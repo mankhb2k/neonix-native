@@ -1,0 +1,17 @@
+{
+  "name": "motionvideo",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "pnpm --filter @motionvideo/web dev",
+    "dev:worker": "pnpm --filter @motionvideo/render-worker dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}
