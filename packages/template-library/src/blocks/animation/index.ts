@@ -16,8 +16,21 @@ export {
   ENTER_FLIP,
   ENTER_ROTATE_IN,
 } from "./entrance";
-export { EXIT_BLOCKS } from "./exit";
-export { EMPHASIS_BLOCKS } from "./emphasis";
+export {
+  EXIT_BLOCKS,
+  EXIT_FADE_OUT,
+  EXIT_SCALE_OUT,
+  EXIT_SLIDE_UP,
+  EXIT_SLIDE_LEFT,
+  EXIT_SLIDE_RIGHT,
+  EXIT_ZOOM_OUT,
+} from "./exit";
+export {
+  EMPHASIS_BLOCKS,
+  EMPHASIS_PULSE,
+  EMPHASIS_SHAKE,
+  EMPHASIS_FLASH,
+} from "./emphasis";
 export { TRANSFORM_BLOCKS } from "./transform";
 export {
   TEXT_ANIMATION_BLOCKS,
@@ -29,9 +42,32 @@ export {
   TEXT_HIGHLIGHT,
 } from "./text";
 export { NUMBER_ANIMATION_BLOCKS, TEXT_COUNTER } from "./number";
-export { SHAPE_ANIMATION_BLOCKS } from "./shape";
-export { TRANSITION_BLOCKS } from "./transition";
+export {
+  SHAPE_ANIMATION_BLOCKS,
+  SHAPE_DRAW_LINE,
+  SHAPE_BAR_GROW,
+  SHAPE_PROGRESS_FILL,
+  SHAPE_FADE,
+} from "./shape";
+export {
+  TRANSITION_BLOCKS,
+  TRANS_CROSSFADE,
+  TRANS_SWIPE,
+  TRANS_PUSH,
+} from "./transition";
 export { CAMERA_PRESET_BLOCKS, CAMERA_BLOCKS } from "./camera";
+export {
+  CAMERA_ZOOM_IN,
+  CAMERA_ZOOM_OUT,
+  CAMERA_PAN_LEFT,
+  CAMERA_PAN_RIGHT,
+  CAMERA_PAN_UP,
+  CAMERA_PAN_DOWN,
+  CAMERA_FOCUS_TARGET,
+  CAMERA_FOLLOW_OBJECT,
+  CAMERA_SHAKE,
+  CAMERA_ROTATE,
+} from "./camera";
 export {
   TIMING_DEFAULTS,
   TIMING_FIELDS,

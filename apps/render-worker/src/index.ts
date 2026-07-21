@@ -1,23 +1,40 @@
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import {
+  parseMotionProject,
+  type MotionProject,
+} from "@motionvideo/motion-schema";
+import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import type { RenderJobStatus } from "@motionvideo/shared";
 import { compileMotionProject } from "./compiler";
 import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 import { uploadOutputs } from "./upload";
 
-async function processJob(rawProject: unknown): Promise<{
+export async function processJob(rawProject: unknown): Promise<{
   status: RenderJobStatus;
   urls?: string[];
+  error?: string;
 }> {
   const project = parseMotionProject(rawProject);
+  const presetCheck = validateMotionProjectPresets(project);
+  if (!presetCheck.ok) {
+    const detail = presetCheck.unknown
+      .map((u) => `${u.sceneId}/${u.layerId}:${u.preset}`)
+      .join(", ");
+    return {
+      status: "failed",
+      error: `Unknown animation presets: ${detail}`,
+    };
+  }
+
   const compiled = compileMotionProject(project);
-  const framesOrScene = await renderCompiledProject(compiled);
+  const framesOrScene = await renderCompiledProject(compiled, project);
   const files = await encodeOutputs(framesOrScene, project.aspectRatio);
   const urls = await uploadOutputs(files);
   return { status: "done", urls };
 }
 
-console.log("[render-worker] stub ready — queue wiring comes next");
+export type { MotionProject };
 
-// Keep import graph alive for typecheck / future queue consumer
+console.log("[render-worker] ready — run `pnpm e2e` for a real MP4 smoke test");
+
 void processJob;

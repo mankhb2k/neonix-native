@@ -133,7 +133,7 @@ export const TEXT_BULLET_LIST = contentText(
   "bullet-list",
   "Bullet List",
   "Danh sách",
-  "List gạch đầu dòng. Mỗi dòng = item.",
+  "List gạch đầu dòng. Mỗi dòng = item (tách bằng · hoặc xuống dòng).",
   "Nhanh · Rẻ · Dễ dùng",
 );
 
@@ -141,8 +141,8 @@ export const TEXT_CHECKLIST = contentText(
   "checklist",
   "Checklist",
   "Checklist",
-  "List có dấu check — feature / benefit.",
-  "✓ Không cần edit tay",
+  "List có dấu check — feature / benefit (tách bằng · hoặc xuống dòng).",
+  "Không cần edit tay · Xuất nhanh · Tiếng Việt chuẩn",
 );
 
 export const TEXT_CODE = contentText(

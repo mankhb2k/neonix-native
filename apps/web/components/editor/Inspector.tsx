@@ -1,9 +1,11 @@
 "use client";
 
 import { useEditorStore } from "@/lib/store/editor-store";
-import { AnimationPresetSchema } from "@motionvideo/motion-schema";
+import { listMotionBlocksByFamily } from "@motionvideo/template-library";
 
-const presets = AnimationPresetSchema.options;
+const animationBlocks = listMotionBlocksByFamily("animation").filter(
+  (b) => Boolean(b.preset),
+);
 
 export function Inspector() {
   const project = useEditorStore((s) => s.project);
@@ -26,6 +28,7 @@ export function Inspector() {
   const scene = project.scenes.find((s) => s.id === selectedSceneId);
   const layer = scene?.layers.find((l) => l.id === selectedLayerId);
   const animation = layer?.animations[0];
+  const defaultPreset = animationBlocks[0]?.preset ?? "fade-in";
 
   return (
     <div className="mv-inspector is-stack">
@@ -90,18 +93,14 @@ export function Inspector() {
           <label htmlFor="anim">Animation</label>
           <select
             id="anim"
-            value={animation?.preset ?? "fade"}
+            value={animation?.preset ?? defaultPreset}
             onChange={(e) =>
-              updateLayerAnimation(
-                selectedSceneId,
-                layer.id,
-                e.target.value as (typeof presets)[number],
-              )
+              updateLayerAnimation(selectedSceneId, layer.id, e.target.value)
             }
           >
-            {presets.map((p) => (
-              <option key={p} value={p}>
-                {p}
+            {animationBlocks.map((b) => (
+              <option key={b.id} value={b.preset!}>
+                {b.nameVi}
               </option>
             ))}
           </select>

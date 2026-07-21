@@ -182,16 +182,19 @@ Sao chép `.env.example` → `.env.local` nếu cần URL marketing/app.
 - Tách landing / app (+ middleware subdomain cho prod)
 - Workspace + modal tạo dự án (tên + tỉ lệ)
 - Editor layout kiểu CapCut: icon nav, panel cảnh/layer, preview, timeline, AI / Cơ bản
-- Motion JSON schema + template F&B mẫu + planner stub
+- **Motion Format `.mt`** (`version: 1`) — schema structural + preset registry ở template-library
+- Template F&B mẫu + planner stub
 - Lưu project tạm trên `localStorage`
+- Render-worker pipeline thật (reference renderer `@napi-rs/canvas` + `ffmpeg-static` → MP4): `pnpm --filter @motionvideo/render-worker e2e`
 
 **Chưa có / đang stub**
 
-- Render Motion Canvas + FFmpeg thật
+- Motion Canvas adapter (renderer hiện tại là tham chiếu, đổi được)
 - LLM planner production
 - TTS / nhạc đồng bộ
-- Camera preset
-- Auth, billing, storage cloud
+- Auth, billing, storage cloud (upload vẫn stub `file://`)
+
+Spec định dạng: [`docs/motion-format.md`](docs/motion-format.md).
 
 ---
 

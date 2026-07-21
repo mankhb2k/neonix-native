@@ -2,41 +2,52 @@
 
 Kệ sản phẩm: **Content + Animation → Pattern → Template**.
 
-## Cấu trúc thư mục
+## Hai lớp
+
+| Lớp | Vai trò | Ví dụ |
+|---|---|---|
+| **Content** | Cái gì trên khung | `text.title`, `shape.circle`, `data.progress` |
+| **Animation** | Làm gì với layer/scene | `enter.fade-up`, `exit.fade-out`, `camera.zoom-in` |
+| **Meta** | Field schema — không phải block | Timing (`delay`/`easing`), Transform primitives |
+
+## Cấu trúc
 
 ```text
 src/blocks/
-├── content/
-│   ├── text/           # Title, Subtitle, Number, CTA…
-│   ├── shape/
-│   ├── media/
-│   ├── container/
-│   ├── data/
-│   ├── character/
-│   └── camera/         # shot/frame placeholder
+├── content/     # text, shape, media, container, data, character
 ├── animation/
-│   ├── entrance/       # enter.fade-up…
-│   ├── exit/
-│   ├── emphasis/
-│   ├── transform/
-│   ├── text/           # Text Animation (typewriter, stagger, highlight)
-│   ├── number/         # Number Animation (counter…)
-│   ├── shape/          # Shape Animation (draw-line…)
-│   ├── transition/
-│   ├── camera/         # Camera Presets
-│   └── timing/         # schema constants — không phải block
+│   ├── entrance/          # 14 enter.*
+│   ├── exit/              # fade/scale/slide/zoom out
+│   ├── emphasis/          # pulse, shake, flash
+│   ├── text/              # typewriter, stagger, highlight
+│   ├── number/            # counter
+│   ├── shape/             # draw-line, bar-grow, progress-fill
+│   ├── transition/        # crossfade, swipe, push
+│   ├── camera/            # zoom/pan/focus/shake…
+│   ├── transform/         # meta — không shelf block
+│   └── timing/            # meta — schema constants
 ├── library.ts
-├── catalog.ts
-├── types.ts
-└── index.ts
+└── …
 ```
 
-| Family | Nghĩa | Ví dụ |
-|---|---|---|
-| **Content** | Cái gì trên khung | `text.title`, `shape.circle` |
-| **Animation** | Làm gì với layer | `enter.fade-up`, `text.typewriter` |
+## MVP giữ / bỏ / thêm (Animation A–J)
 
-Lab: `/app/lab/blocks` — filter Content | Animation.
+| Nhóm | Giữ | Thêm MVP | Bỏ / để sau |
+|---|---|---|---|
+| Entrance | 14 `enter.*` | — | Typewriter → Text Anim |
+| Exit | — | fade/scale/slide/zoom out | Collapse, Explode |
+| Emphasis | — | pulse, shake, flash | Jelly, Rubber Band; highlight ở Text Anim |
+| Transform | schema only | — | Không block trên kệ |
+| Text Anim | typewriter, stagger, highlight | — | Letter-split, scramble… |
+| Number | counter | — | Rolling/money (params sau) |
+| Shape Anim | — | draw-line, bar-grow, progress-fill | Morph, Ripple |
+| Transition | — | crossfade, swipe, push | Curtain, Split… |
+| Camera | 10 primitive | — | Ken Burns / Orbit (pha 2) |
+| Timing | schema fields | — | Không tạo `timing.*` block |
+
+**Content:** giữ Text/Shape/Media/Container/Data/Character. Không kệ Content Camera (trùng Camera Presets).
+
+Lab: `/app/lab/blocks`.
 
 ## API
 
@@ -46,10 +57,15 @@ import {
   motionLibrary,
   listMotionBlocksByFamily,
   getMotionBlock,
+  isKnownPreset,
+  validateMotionProjectPresets,
 } from "@motionvideo/template-library";
 ```
 
+`validateMotionProjectPresets(project)` — semantic check: mọi `animation.preset` phải có trong registry (schema chỉ kiểm tra `preset` là string).
+
 ## Docs
 
+- [`docs/motion-format.md`](../../docs/motion-format.md) — định dạng `.mt`
 - [`docs/blocks-plan.md`](../../docs/blocks-plan.md)
 - Repo [`README.md`](../../README.md)

@@ -9,13 +9,11 @@ import {
   TEXT_ANIMATION_BLOCKS,
   TIMING_DEFAULTS,
   TIMING_FIELDS,
-  TRANSFORM_BLOCKS,
   TRANSITION_BLOCKS,
 } from "./animation";
 import {
   CHARACTER_BLOCKS,
   CONTAINER_BLOCKS,
-  CONTENT_CAMERA_BLOCKS,
   DATA_BLOCKS,
   MEDIA_BLOCKS,
   SHAPE_BLOCKS,
@@ -24,10 +22,10 @@ import {
 import type { MotionBlock, MotionLibrarySection } from "./types";
 
 /**
- * Library shelves:
- *   content/  — Text, Shape, Media, Container, Data, Character, Camera
- *   animation/ — Entrance, Exit, Emphasis, Transform, Text/Number/Shape Animation,
- *                Transition, Camera Presets, Timing
+ * Library shelves (MVP):
+ *   content/  — Text, Shape, Media, Container, Data, Character
+ *   animation/ — Entrance, Exit, Emphasis, Text/Number/Shape Anim, Transition, Camera
+ *   meta — Timing + Transform (không block)
  */
 export const motionLibrary: MotionLibrarySection[] = [
   // —— Content ——
@@ -54,7 +52,7 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "content",
     title: "Media",
     titleVi: "Media",
-    description: "Image, icon, SVG, Lottie…",
+    description: "Image, icon, SVG, GIF…",
     isBlockShelf: true,
     blocks: MEDIA_BLOCKS,
   },
@@ -81,18 +79,9 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "content",
     title: "Character",
     titleVi: "Nhân vật",
-    description: "Person, device, chat — pha sau.",
+    description: "Person, device, chat, robot…",
     isBlockShelf: true,
     blocks: CHARACTER_BLOCKS,
-  },
-  {
-    id: "camera",
-    family: "content",
-    title: "Camera",
-    titleVi: "Camera",
-    description: "Shot/frame content placeholder — pha sau.",
-    isBlockShelf: true,
-    blocks: CONTENT_CAMERA_BLOCKS,
   },
   // —— Animation ——
   {
@@ -109,7 +98,7 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "animation",
     title: "Exit",
     titleVi: "Ra khung",
-    description: "Fade out, scale out… — sắp mở.",
+    description: "Fade / scale / slide / zoom out.",
     isBlockShelf: true,
     blocks: EXIT_BLOCKS,
   },
@@ -118,18 +107,9 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "animation",
     title: "Emphasis",
     titleVi: "Nhấn mạnh",
-    description: "Pulse, shake… — sắp mở.",
+    description: "Pulse, shake, flash.",
     isBlockShelf: true,
     blocks: EMPHASIS_BLOCKS,
-  },
-  {
-    id: "transform",
-    family: "animation",
-    title: "Transform",
-    titleVi: "Biến đổi",
-    description: "Primitive engine — không shelf MVP.",
-    isBlockShelf: true,
-    blocks: TRANSFORM_BLOCKS,
   },
   {
     id: "text-animation",
@@ -145,7 +125,7 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "animation",
     title: "Number Animation",
     titleVi: "Motion số",
-    description: "Counter / rolling number…",
+    description: "Counter (count up).",
     isBlockShelf: true,
     blocks: NUMBER_ANIMATION_BLOCKS,
   },
@@ -154,7 +134,7 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "animation",
     title: "Shape Animation",
     titleVi: "Motion hình",
-    description: "Draw line, bar grow… — sắp mở.",
+    description: "Draw line, bar grow, progress fill.",
     isBlockShelf: true,
     blocks: SHAPE_ANIMATION_BLOCKS,
   },
@@ -163,7 +143,7 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "animation",
     title: "Transition",
     titleVi: "Chuyển cảnh",
-    description: "Crossfade, swipe… — sắp mở.",
+    description: "Crossfade, swipe, push.",
     isBlockShelf: true,
     blocks: TRANSITION_BLOCKS,
   },
@@ -172,9 +152,19 @@ export const motionLibrary: MotionLibrarySection[] = [
     family: "animation",
     title: "Camera Presets",
     titleVi: "Preset camera",
-    description: "Zoom, pan, focus, Ken Burns — sắp mở.",
+    description: "Zoom, pan, focus, shake, rotate — viewport.",
     isBlockShelf: true,
     blocks: CAMERA_PRESET_BLOCKS,
+  },
+  {
+    id: "transform",
+    family: "meta",
+    title: "Transform",
+    titleVi: "Biến đổi",
+    description:
+      "Primitive engine (move/scale/rotate/opacity) — không phải block trên kệ.",
+    isBlockShelf: false,
+    blocks: [],
   },
   {
     id: "timing",
@@ -205,11 +195,9 @@ export const motionBlocks: MotionBlock[] = uniqueBlocks([
   CONTAINER_BLOCKS,
   DATA_BLOCKS,
   CHARACTER_BLOCKS,
-  CONTENT_CAMERA_BLOCKS,
   ENTRANCE_CORE_BLOCKS,
   EXIT_BLOCKS,
   EMPHASIS_BLOCKS,
-  TRANSFORM_BLOCKS,
   TEXT_ANIMATION_BLOCKS,
   NUMBER_ANIMATION_BLOCKS,
   SHAPE_ANIMATION_BLOCKS,

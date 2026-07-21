@@ -1,7 +1,5 @@
-import type { MotionBlock } from "../../types";
-
 /**
- * Transform — engine primitives (move/scale/rotate/skew/opacity…).
- * Not a product shelf of named blocks in MVP; AI uses Entrance/Exit presets instead.
+ * Transform — engine primitives (move/scale/rotate/opacity…).
+ * Không phải Motion Block trên kệ MVP. Timing/easing trên AnimationSchema.
  */
-export const TRANSFORM_BLOCKS: MotionBlock[] = [];
+export const TRANSFORM_BLOCKS: never[] = [];

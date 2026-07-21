@@ -108,21 +108,56 @@ export function BlockLabDetail({ block }: Props) {
               </div>
             </dl>
 
-            <div className="mv-field" style={{ marginTop: "1.25rem" }}>
-              <label htmlFor="sample">
-                {block.id === "text.counter"
-                  ? "Số đích"
-                  : isContent
-                    ? "Nội dung mẫu"
-                    : "Chữ thử (tiếng Việt)"}
-              </label>
-              <input
-                id="sample"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                onBlur={replay}
-              />
-            </div>
+            {block.kind !== "shape" &&
+            block.kind !== "media" &&
+            block.kind !== "character" &&
+            block.kind !== "container" &&
+            block.kind !== "data" &&
+            block.kind !== "camera" ? (
+              <div className="mv-field" style={{ marginTop: "1.25rem" }}>
+                <label htmlFor="sample">
+                  {block.id === "text.counter"
+                    ? "Số đích"
+                    : isContent
+                      ? "Nội dung mẫu"
+                      : "Chữ thử (tiếng Việt)"}
+                </label>
+                <input
+                  id="sample"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onBlur={replay}
+                />
+              </div>
+            ) : block.kind === "data" &&
+              (block.id === "data.counter" ||
+                block.id === "data.statistic" ||
+                block.id === "data.progress" ||
+                block.id === "data.gauge") ? (
+              <div className="mv-field" style={{ marginTop: "1.25rem" }}>
+                <label htmlFor="sample">Giá trị mẫu</label>
+                <input
+                  id="sample"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onBlur={replay}
+                />
+              </div>
+            ) : (
+              <p className="mv-hub-lead" style={{ marginTop: "1.25rem" }}>
+                {block.kind === "camera"
+                  ? "Camera preset — gắn scene/viewport. Khác Entrance zoom (scale layer)."
+                  : block.kind === "media"
+                    ? "Media content — gắn assetId khi dựng scene; animate bằng Entrance."
+                    : block.kind === "character"
+                      ? "Character content — xem README content/character."
+                      : block.kind === "container"
+                        ? "Container — xem README content/container."
+                        : block.kind === "data"
+                          ? "Data widget — xem README content/data. Counter motion = text.counter."
+                          : "Shape content — gắn Entrance / Shape Animation khi dựng scene."}
+              </p>
+            )}
             {!isContent ? (
               <div className="mv-field">
                 <label htmlFor="dur">Duration: {duration.toFixed(2)}s</label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { MotionBlock } from "@motionvideo/template-library";
 
 type Props = {
@@ -34,10 +34,101 @@ export function BlockPreview({
   const className = `${block.previewClass}${card ? " is-card" : ""}`;
 
   if (block.family === "content") {
+    if (
+      block.kind === "shape" ||
+      block.kind === "media" ||
+      block.kind === "character" ||
+      block.kind === "container" ||
+      block.kind === "data"
+    ) {
+      return (
+        <div
+          className={className}
+          key={playId}
+          role="img"
+          aria-label={block.name}
+        >
+          {block.kind !== "shape" ? (
+            <span className="mv-block-content-media-label">
+              {block.sampleText || block.name}
+            </span>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (block.id === "text.bullet-list" || block.id === "text.checklist") {
+      const items = (text || "…")
+        .split(/\n|·|•/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const bullet = block.id === "text.checklist" ? "✓" : "•";
+      return (
+        <ul className={className} key={playId}>
+          {items.map((item, i) => (
+            <li key={`${playId}-${i}`}>
+              <span aria-hidden>{bullet}</span> {item}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+
     return (
       <p className={className} key={playId}>
         {text || "…"}
       </p>
+    );
+  }
+
+  if (block.shelf === "camera-presets" || block.kind === "camera") {
+    return (
+      <div className={`mv-block-cam-stage${card ? " is-card" : ""}`} key={playId}>
+        <div
+          className={className}
+          style={{ animationDuration: `${duration}s` }}
+        />
+      </div>
+    );
+  }
+
+  if (block.shelf === "shape-animation") {
+    return (
+      <div
+        className={`mv-block-shape-anim-stage${card ? " is-card" : ""}`}
+        key={playId}
+        role="img"
+        aria-label={block.name}
+      >
+        <div
+          className={className}
+          style={
+            {
+              animationDuration: `${duration}s`,
+              ["--mv-dur"]: `${duration}s`,
+            } as CSSProperties
+          }
+        />
+      </div>
+    );
+  }
+
+  if (block.shelf === "transition") {
+    return (
+      <div
+        className={`mv-block-trans-stage${card ? " is-card" : ""}`}
+        key={playId}
+        role="img"
+        aria-label={block.name}
+      >
+        <div
+          className={className}
+          style={{ animationDuration: `${duration}s` }}
+        >
+          <span className="mv-block-trans-panel is-a" />
+          <span className="mv-block-trans-panel is-b" />
+        </div>
+      </div>
     );
   }
 

@@ -203,35 +203,42 @@ Lottie là **asset**, vẫn nằm dưới Pattern — không thay Motion Block l
 
 ```text
 packages/template-library/src/blocks/
-├── content/
-│   ├── text/
-│   ├── shape/
-│   ├── media/
-│   ├── container/
-│   ├── data/
-│   ├── character/
-│   └── camera/
+├── content/          # text, shape, media, container, data, character
 ├── animation/
-│   ├── entrance/
-│   ├── exit/
-│   ├── emphasis/
-│   ├── transform/
-│   ├── text/              # Text Animation
-│   ├── number/            # Number Animation
-│   ├── shape/             # Shape Animation
-│   ├── transition/
-│   ├── camera/            # Camera Presets
-│   └── timing/            # schema only
+│   ├── entrance/     # 14 enter.*
+│   ├── exit/         # fade/scale/slide/zoom out
+│   ├── emphasis/     # pulse, shake, flash
+│   ├── text/         # typewriter, stagger, highlight
+│   ├── number/       # counter
+│   ├── shape/        # draw-line, bar-grow, progress-fill
+│   ├── transition/   # crossfade, swipe, push
+│   ├── camera/       # 10 primitives
+│   ├── transform/    # meta — không block
+│   └── timing/       # meta — schema fields
 ├── library.ts
-├── catalog.ts
-└── types.ts
+└── …
 ```
 
 | Family | Shelf | Ý nghĩa |
 |---|---|---|
-| Content | text…camera | Khối tĩnh trên khung |
-| Animation | entrance…camera-presets | Chuyển động / preset |
-| Meta | timing | delay/duration/easing trên schema |
+| Content | text…character | Khối tĩnh (không kệ Content Camera) |
+| Animation | entrance…camera-presets | Preset chuyển động |
+| Meta | timing, transform | delay/easing/primitives — không block |
+
+### MVP giữ / bỏ / thêm (Animation)
+
+| Nhóm | Giữ | Thêm | Bỏ / pha 2 |
+|---|---|---|---|
+| Entrance | 14 enter.* | — | Typewriter → Text Anim |
+| Exit | — | fade/scale/slide/zoom out | Collapse, Explode |
+| Emphasis | — | pulse, shake, flash | Jelly…; highlight ở Text Anim |
+| Transform | schema | — | Không shelf block |
+| Text Anim | typewriter, stagger, highlight | — | Letter-split, scramble |
+| Number | counter | — | Rolling/money |
+| Shape Anim | — | draw-line, bar-grow, progress-fill | Morph, Ripple |
+| Transition | — | crossfade, swipe, push | Curtain, Split |
+| Camera | 10 cơ bản | — | Ken Burns, Orbit… |
+| Timing | schema fields | — | Không `timing.*` block |
 
 Lab filter: **Content | Animation**.
 

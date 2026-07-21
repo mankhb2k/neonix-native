@@ -168,13 +168,21 @@ export function BlockLabCatalog() {
       sections = sections.filter((s) => s.id === shelf);
     } else if (!showEmpty) {
       sections = sections.filter(
-        (s) => s.blocks.length > 0 || s.id === "timing",
+        (s) =>
+          s.blocks.length > 0 || s.id === "timing" || s.id === "transform",
       );
     }
 
     if (q) {
       sections = sections.filter((s) => {
-        if (!s.isBlockShelf) return s.id === "timing" && "timing".includes(q);
+        if (!s.isBlockShelf) {
+          return (
+            (s.id === "timing" || s.id === "transform") &&
+            (s.id.includes(q) ||
+              s.title.toLowerCase().includes(q) ||
+              s.titleVi.toLowerCase().includes(q))
+          );
+        }
         return s.blocks.some((b) => matchesQuery(b, q));
       });
     }
@@ -336,6 +344,15 @@ export function BlockLabCatalog() {
                     </FilterChip>
                   );
                 })}
+                <FilterChip
+                  active={shelf === "transform"}
+                  onClick={() => {
+                    setFamily("all");
+                    setShelf("transform");
+                  }}
+                >
+                  Transform
+                </FilterChip>
                 <FilterChip
                   active={shelf === "timing"}
                   onClick={() => {

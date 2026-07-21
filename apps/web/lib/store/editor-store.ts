@@ -1,12 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type {
-  AnimationPreset,
-  Layer,
-  MotionProject,
-  Scene,
-} from "@motionvideo/motion-schema";
+import type { Layer, MotionProject, Scene } from "@motionvideo/motion-schema";
 
 export type ChatRole = "user" | "assistant";
 
@@ -37,7 +32,7 @@ type EditorState = {
   updateLayerAnimation: (
     sceneId: string,
     layerId: string,
-    preset: AnimationPreset,
+    preset: string,
   ) => void;
   setAspectRatio: (aspectRatio: MotionProject["aspectRatio"]) => void;
   sendChat: (text: string) => void;
