@@ -3,11 +3,30 @@ import { z } from "zod";
 export const AspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);
 
 export const AnimationPresetSchema = z.enum([
+  // Entrance
   "fade",
+  "fade-in",
   "fade-up",
+  "fade-down",
+  "fade-left",
+  "fade-right",
+  "scale",
+  "scale-in",
+  "zoom-in",
+  "slide-up",
   "slide-left",
   "slide-right",
-  "scale",
+  "pop",
+  "bounce-in",
+  "flip",
+  "rotate-in",
+  "typing",
+  "typewriter",
+  // Text / emphasis / data
+  "stagger-words",
+  "highlight",
+  "counter",
+  // Template leftovers
   "logo-reveal",
   "price-pop",
   "cta-slide",
@@ -22,10 +41,22 @@ export const LayerTypeSchema = z.enum([
   "icon",
 ]);
 
+export const EasingSchema = z.enum([
+  "linear",
+  "easeIn",
+  "easeOut",
+  "easeInOut",
+  "spring",
+]);
+
 export const AnimationSchema = z.object({
   preset: AnimationPresetSchema,
   start: z.number().nonnegative(),
   duration: z.number().positive(),
+  /** Optional — engine default 0 */
+  delay: z.number().nonnegative().optional(),
+  /** Optional — engine default easeOut */
+  easing: EasingSchema.optional(),
 });
 
 export const LayerSchema = z.object({

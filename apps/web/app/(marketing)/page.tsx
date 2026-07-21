@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
 import { appUrl } from "@/lib/hosts";
 import { APP_NAME } from "@motionvideo/shared";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "MotionVideo — TVC motion 2D cho doanh nghiệp Việt",
@@ -17,7 +17,7 @@ export default function MarketingHomePage() {
         maxWidth: 760,
         margin: "0 auto",
         background:
-          "radial-gradient(ellipse 70% 45% at 50% -5%, #243528 0%, transparent 60%)",
+          "radial-gradient(ellipse 70% 45% at 50% -5%, #232329 0%, transparent 60%)",
       }}
     >
       <p

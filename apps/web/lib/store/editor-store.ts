@@ -1,12 +1,12 @@
 "use client";
 
+import { create } from "zustand";
 import type {
   AnimationPreset,
   Layer,
   MotionProject,
   Scene,
 } from "@motionvideo/motion-schema";
-import { create } from "zustand";
 
 export type ChatRole = "user" | "assistant";
 

@@ -1,7 +1,7 @@
 "use client";
 
-import { AnimationPresetSchema } from "@motionvideo/motion-schema";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { AnimationPresetSchema } from "@motionvideo/motion-schema";
 
 const presets = AnimationPresetSchema.options;
 
@@ -15,14 +15,20 @@ export function Inspector() {
   const updateSceneDuration = useEditorStore((s) => s.updateSceneDuration);
   const setAspectRatio = useEditorStore((s) => s.setAspectRatio);
 
-  if (!project || !selectedSceneId) return null;
+  if (!project || !selectedSceneId) {
+    return (
+      <div className="mv-tool-empty">
+        <p>Chọn một scene hoặc layer để chỉnh.</p>
+      </div>
+    );
+  }
 
   const scene = project.scenes.find((s) => s.id === selectedSceneId);
   const layer = scene?.layers.find((l) => l.id === selectedLayerId);
   const animation = layer?.animations[0];
 
   return (
-    <div className="mv-inspector">
+    <div className="mv-inspector is-stack">
       <div className="mv-field">
         <label htmlFor="brand-name">Brand</label>
         <input
@@ -68,7 +74,7 @@ export function Inspector() {
         />
       </div>
       {layer?.type === "text" ? (
-        <div className="mv-field" style={{ gridColumn: "1 / -1" }}>
+        <div className="mv-field">
           <label htmlFor="layer-text">Chữ layer</label>
           <input
             id="layer-text"

@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import { useEffect, useState } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { TopBar } from "./TopBar";
-import { SceneRail } from "./SceneRail";
+import { IconNav, type EditorTool } from "./IconNav";
 import { PreviewStage } from "./PreviewStage";
-import { Inspector } from "./Inspector";
+import { RightDock } from "./RightDock";
 import { Timeline } from "./Timeline";
-import { ChatDock } from "./ChatDock";
+import { ToolPanel } from "./ToolPanel";
+import { TopBar } from "./TopBar";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 type Props = {
   initialProject: MotionProject;
@@ -17,35 +17,46 @@ type Props = {
 export function EditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
+  const [tool, setTool] = useState<EditorTool>("scenes");
+  const [toolsOpen, setToolsOpen] = useState(true);
 
   useEffect(() => {
     loadProject(initialProject);
   }, [initialProject, loadProject]);
 
+  function handleToolChange(next: EditorTool) {
+    if (next === tool && toolsOpen) {
+      setToolsOpen(false);
+      return;
+    }
+    setTool(next);
+    setToolsOpen(true);
+  }
+
   return (
-    <div className="mv-editor">
+    <div className={`mv-editor${toolsOpen ? "" : " is-tools-collapsed"}`}>
       <TopBar />
-      <div className="mv-workspace">
-        <SceneRail />
-        <div className="mv-center">
-          <PreviewStage />
-          <Inspector />
-          <Timeline />
-        </div>
-        <ChatDock />
+      <IconNav active={tool} onChange={handleToolChange} />
+      <ToolPanel tool={tool} />
+      <button
+        type="button"
+        className="mv-tools-edge-toggle"
+        onClick={() => setToolsOpen((open) => !open)}
+        aria-label={toolsOpen ? "Thu gọn panel phụ" : "Mở panel phụ"}
+        aria-expanded={toolsOpen}
+        title={toolsOpen ? "Thu gọn" : "Mở rộng"}
+      >
+        <span className="mv-tools-edge-toggle-chevron" aria-hidden>
+          {toolsOpen ? "‹" : "›"}
+        </span>
+      </button>
+      <div className="mv-stage-col">
+        <PreviewStage />
+        <Timeline />
       </div>
+      <RightDock />
       {!project ? (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            display: "grid",
-            placeItems: "center",
-            background: "rgba(0,0,0,0.4)",
-          }}
-        >
-          Đang tải editor…
-        </div>
+        <div className="mv-editor-loading">Đang tải editor…</div>
       ) : null}
     </div>
   );

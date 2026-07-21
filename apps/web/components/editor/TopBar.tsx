@@ -1,52 +1,65 @@
 "use client";
 
+import { useState } from "react";
 import { AppLink } from "@/components/AppLink";
+import { NewProjectModal } from "@/components/hub/NewProjectModal";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { marketingUrl } from "@/lib/hosts";
 
 export function TopBar() {
   const project = useEditorStore((s) => s.project);
   const isExporting = useEditorStore((s) => s.isExporting);
   const setExporting = useEditorStore((s) => s.setExporting);
+  const updateBrand = useEditorStore((s) => s.updateBrand);
+  const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <header className="mv-topbar">
-      <AppLink href="/" className="mv-topbar-brand">
-        MotionVideo
-      </AppLink>
-      <div className="mv-topbar-meta">
-        <span className="mv-topbar-title">
-          {project?.brand.name ?? "Chưa có dự án"}
-        </span>
-        {project ? (
-          <>
+    <>
+      <header className="mv-topbar">
+        <div className="mv-topbar-left">
+          <AppLink href="/" className="mv-topbar-brand">
+            MotionVideo
+          </AppLink>
+          <input
+            className="mv-topbar-name"
+            value={project?.brand.name ?? ""}
+            onChange={(e) => updateBrand({ name: e.target.value })}
+            aria-label="Tên dự án"
+          />
+          {project ? (
             <span className="mv-pill">{project.aspectRatio}</span>
-            <span className="mv-pill">{project.scenes.length} scene</span>
-            {project.industry ? (
-              <span className="mv-pill">{project.industry}</span>
-            ) : null}
-          </>
-        ) : null}
-      </div>
-      <div className="mv-topbar-actions">
-        <a className="mv-btn mv-btn-ghost mv-btn-sm" href={marketingUrl("/")}>
-          Landing
-        </a>
-        <AppLink href="/projects/new" className="mv-btn mv-btn-ghost mv-btn-sm">
-          Dự án mới
-        </AppLink>
-        <button
-          type="button"
-          className="mv-btn mv-btn-primary mv-btn-sm"
-          disabled={!project || isExporting}
-          onClick={() => {
-            setExporting(true);
-            window.setTimeout(() => setExporting(false), 1200);
-          }}
-        >
-          {isExporting ? "Đang xếp hàng…" : "Xuất video"}
-        </button>
-      </div>
-    </header>
+          ) : null}
+        </div>
+        <div className="mv-topbar-center">
+          <button type="button" className="mv-icon-btn" title="Hoàn tác" disabled>
+            ↶
+          </button>
+          <button type="button" className="mv-icon-btn" title="Làm lại" disabled>
+            ↷
+          </button>
+          <span className="mv-pill">100%</span>
+        </div>
+        <div className="mv-topbar-actions">
+          <button
+            type="button"
+            className="mv-btn mv-btn-ghost mv-btn-sm"
+            onClick={() => setModalOpen(true)}
+          >
+            Dự án mới
+          </button>
+          <button
+            type="button"
+            className="mv-btn mv-btn-primary mv-btn-sm"
+            disabled={!project || isExporting}
+            onClick={() => {
+              setExporting(true);
+              window.setTimeout(() => setExporting(false), 1200);
+            }}
+          >
+            {isExporting ? "Đang xếp hàng…" : "Xuất"}
+          </button>
+        </div>
+      </header>
+      <NewProjectModal open={modalOpen} onClose={() => setModalOpen(false)} />
+    </>
   );
 }

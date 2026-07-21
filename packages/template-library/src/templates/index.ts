@@ -11,7 +11,7 @@ export const templates: Template[] = [
     aspectRatio: "9:16",
     grammar: ["hook", "offer", "cta"],
     tags: ["cà phê", "đồ uống", "khuyến mãi", "tiktok"],
-    motionBlocks: ["text-fade-up", "price-pop", "cta-slide", "logo-reveal"],
+    motionBlocks: ["text.fade-up", "price-pop", "cta-slide", "logo-reveal"],
     project: {
       id: "fnb-hook-offer-cta-v1",
       locale: "vi-VN",
