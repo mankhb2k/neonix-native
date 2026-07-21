@@ -1,15 +1,15 @@
-import type { MotionBlock } from "../types";
-import { TEXT_TYPEWRITER } from "../text";
+import type { MotionBlock } from "../../types";
 
 /**
- * Entrance — generic enter presets (MVP preview on text layers).
- * Text-only enters (typewriter) live under Text and are appended to ENTRANCE_BLOCKS.
+ * Entrance — generic enter presets (áp dụng text / shape / media…).
+ * Text/Number-specific motion sống ở animation/text và animation/number.
  */
 
-export const TEXT_FADE_IN: MotionBlock = {
-  id: "text.fade-in",
+export const ENTER_FADE_IN: MotionBlock = {
+  id: "enter.fade-in",
   name: "Fade In",
   nameVi: "Hiện mờ dần",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -18,18 +18,16 @@ export const TEXT_FADE_IN: MotionBlock = {
   durationMin: 0.25,
   durationMax: 1,
   preset: "fade-in",
-  tags: ["text", "entrance", "vi-safe", "core"],
+  tags: ["animation", "entrance", "vi-safe", "core"],
   sampleText: "Giải thích ngắn gọn",
   previewClass: "mv-block-text-fade-in",
 };
 
-/** @deprecated alias — dùng text.fade-in */
-export const TEXT_FADE = TEXT_FADE_IN;
-
-export const TEXT_FADE_UP: MotionBlock = {
-  id: "text.fade-up",
+export const ENTER_FADE_UP: MotionBlock = {
+  id: "enter.fade-up",
   name: "Fade Up",
   nameVi: "Hiện từ dưới lên",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -38,15 +36,16 @@ export const TEXT_FADE_UP: MotionBlock = {
   durationMin: 0.35,
   durationMax: 1.2,
   preset: "fade-up",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Giảm 30% hôm nay",
   previewClass: "mv-block-text-fade-up",
 };
 
-export const TEXT_FADE_DOWN: MotionBlock = {
-  id: "text.fade-down",
+export const ENTER_FADE_DOWN: MotionBlock = {
+  id: "enter.fade-down",
   name: "Fade Down",
   nameVi: "Hiện từ trên xuống",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -55,15 +54,16 @@ export const TEXT_FADE_DOWN: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "fade-down",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Bắt đầu từ đây",
   previewClass: "mv-block-text-fade-down",
 };
 
-export const TEXT_FADE_LEFT: MotionBlock = {
-  id: "text.fade-left",
+export const ENTER_FADE_LEFT: MotionBlock = {
+  id: "enter.fade-left",
   name: "Fade Left",
   nameVi: "Hiện từ trái",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -72,15 +72,16 @@ export const TEXT_FADE_LEFT: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "fade-left",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Ưu điểm nổi bật",
   previewClass: "mv-block-text-fade-left",
 };
 
-export const TEXT_FADE_RIGHT: MotionBlock = {
-  id: "text.fade-right",
+export const ENTER_FADE_RIGHT: MotionBlock = {
+  id: "enter.fade-right",
   name: "Fade Right",
   nameVi: "Hiện từ phải",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -89,15 +90,16 @@ export const TEXT_FADE_RIGHT: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "fade-right",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Lợi ích rõ ràng",
   previewClass: "mv-block-text-fade-right",
 };
 
-export const TEXT_SCALE_IN: MotionBlock = {
-  id: "text.scale-in",
+export const ENTER_SCALE_IN: MotionBlock = {
+  id: "enter.scale-in",
   name: "Scale In",
   nameVi: "Phóng to vào",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -106,15 +108,16 @@ export const TEXT_SCALE_IN: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "scale-in",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Giảm 50%",
   previewClass: "mv-block-text-scale-in",
 };
 
-export const TEXT_ZOOM_IN: MotionBlock = {
-  id: "text.zoom-in",
+export const ENTER_ZOOM_IN: MotionBlock = {
+  id: "enter.zoom-in",
   name: "Zoom In",
   nameVi: "Zoom vào",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -123,15 +126,16 @@ export const TEXT_ZOOM_IN: MotionBlock = {
   durationMin: 0.35,
   durationMax: 1.2,
   preset: "zoom-in",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Ra mắt hôm nay",
   previewClass: "mv-block-text-zoom-in",
 };
 
-export const TEXT_SLIDE_UP: MotionBlock = {
-  id: "text.slide-up",
+export const ENTER_SLIDE_UP: MotionBlock = {
+  id: "enter.slide-up",
   name: "Slide Up",
   nameVi: "Trượt từ dưới lên",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -140,15 +144,16 @@ export const TEXT_SLIDE_UP: MotionBlock = {
   durationMin: 0.35,
   durationMax: 1.2,
   preset: "slide-up",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Đặt hàng ngay",
   previewClass: "mv-block-text-slide-up",
 };
 
-export const TEXT_SLIDE_LEFT: MotionBlock = {
-  id: "text.slide-left",
+export const ENTER_SLIDE_LEFT: MotionBlock = {
+  id: "enter.slide-left",
   name: "Slide Left",
   nameVi: "Trượt vào từ phải",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -157,15 +162,16 @@ export const TEXT_SLIDE_LEFT: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "slide-left",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Ưu đãi hôm nay",
   previewClass: "mv-block-text-slide-left",
 };
 
-export const TEXT_SLIDE_RIGHT: MotionBlock = {
-  id: "text.slide-right",
+export const ENTER_SLIDE_RIGHT: MotionBlock = {
+  id: "enter.slide-right",
   name: "Slide Right",
   nameVi: "Trượt vào từ trái",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -174,15 +180,16 @@ export const TEXT_SLIDE_RIGHT: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "slide-right",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Giải pháp của bạn",
   previewClass: "mv-block-text-slide-right",
 };
 
-export const TEXT_POP: MotionBlock = {
-  id: "text.pop",
+export const ENTER_POP: MotionBlock = {
+  id: "enter.pop",
   name: "Pop",
   nameVi: "Bật nảy nhẹ",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -191,15 +198,16 @@ export const TEXT_POP: MotionBlock = {
   durationMin: 0.3,
   durationMax: 1,
   preset: "pop",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Mới",
   previewClass: "mv-block-text-pop",
 };
 
-export const TEXT_BOUNCE_IN: MotionBlock = {
-  id: "text.bounce-in",
+export const ENTER_BOUNCE_IN: MotionBlock = {
+  id: "enter.bounce-in",
   name: "Bounce In",
   nameVi: "Nảy vào",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -208,15 +216,16 @@ export const TEXT_BOUNCE_IN: MotionBlock = {
   durationMin: 0.45,
   durationMax: 1.4,
   preset: "bounce-in",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Surprise!",
   previewClass: "mv-block-text-bounce-in",
 };
 
-export const TEXT_FLIP: MotionBlock = {
-  id: "text.flip",
+export const ENTER_FLIP: MotionBlock = {
+  id: "enter.flip",
   name: "Flip",
   nameVi: "Lật vào",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -225,15 +234,16 @@ export const TEXT_FLIP: MotionBlock = {
   durationMin: 0.4,
   durationMax: 1.2,
   preset: "flip",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Bật mí",
   previewClass: "mv-block-text-flip",
 };
 
-export const TEXT_ROTATE_IN: MotionBlock = {
-  id: "text.rotate-in",
+export const ENTER_ROTATE_IN: MotionBlock = {
+  id: "enter.rotate-in",
   name: "Rotate In",
   nameVi: "Xoay vào",
+  family: "animation",
   kind: "text",
   intent: "entrance",
   shelf: "entrance",
@@ -242,31 +252,27 @@ export const TEXT_ROTATE_IN: MotionBlock = {
   durationMin: 0.35,
   durationMax: 1.2,
   preset: "rotate-in",
-  tags: ["text", "entrance", "kinetic", "vi-safe", "core"],
+  tags: ["animation", "entrance", "kinetic", "vi-safe", "core"],
   sampleText: "Hot deal",
   previewClass: "mv-block-text-rotate-in",
 };
 
-/** Owned by this shelf (generic enters). Typewriter lives under Text. */
 export const ENTRANCE_CORE_BLOCKS: MotionBlock[] = [
-  TEXT_FADE_IN,
-  TEXT_FADE_UP,
-  TEXT_FADE_DOWN,
-  TEXT_FADE_LEFT,
-  TEXT_FADE_RIGHT,
-  TEXT_SCALE_IN,
-  TEXT_ZOOM_IN,
-  TEXT_SLIDE_UP,
-  TEXT_SLIDE_LEFT,
-  TEXT_SLIDE_RIGHT,
-  TEXT_POP,
-  TEXT_BOUNCE_IN,
-  TEXT_FLIP,
-  TEXT_ROTATE_IN,
+  ENTER_FADE_IN,
+  ENTER_FADE_UP,
+  ENTER_FADE_DOWN,
+  ENTER_FADE_LEFT,
+  ENTER_FADE_RIGHT,
+  ENTER_SCALE_IN,
+  ENTER_ZOOM_IN,
+  ENTER_SLIDE_UP,
+  ENTER_SLIDE_LEFT,
+  ENTER_SLIDE_RIGHT,
+  ENTER_POP,
+  ENTER_BOUNCE_IN,
+  ENTER_FLIP,
+  ENTER_ROTATE_IN,
 ];
 
-/** Product entrance shelf = core + text typewriter */
-export const ENTRANCE_BLOCKS: MotionBlock[] = [
-  ...ENTRANCE_CORE_BLOCKS,
-  TEXT_TYPEWRITER,
-];
+/** Entrance shelf = generic enters only */
+export const ENTRANCE_BLOCKS: MotionBlock[] = [...ENTRANCE_CORE_BLOCKS];

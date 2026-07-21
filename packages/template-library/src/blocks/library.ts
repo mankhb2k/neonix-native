@@ -1,138 +1,189 @@
-import { AUDIO_BLOCKS } from "./audio";
-import { CAMERA_BLOCKS } from "./camera";
-import { CHARACTER_BLOCKS } from "./character";
-import { CHART_BLOCKS } from "./chart";
-import { EFFECTS_BLOCKS } from "./effects";
-import { EMPHASIS_BLOCKS } from "./emphasis";
-import { ENTRANCE_BLOCKS, ENTRANCE_CORE_BLOCKS } from "./entrance";
-import { EXIT_BLOCKS } from "./exit";
-import { MEDIA_BLOCKS } from "./media";
-import { SHAPE_BLOCKS } from "./shape";
-import { TEXT_BLOCKS } from "./text";
-import { TIMING_DEFAULTS, TIMING_FIELDS } from "./timing";
-import { TRANSFORM_BLOCKS } from "./transform";
-import { TRANSITION_BLOCKS } from "./transition";
+import {
+  CAMERA_PRESET_BLOCKS,
+  EMPHASIS_BLOCKS,
+  ENTRANCE_BLOCKS,
+  ENTRANCE_CORE_BLOCKS,
+  EXIT_BLOCKS,
+  NUMBER_ANIMATION_BLOCKS,
+  SHAPE_ANIMATION_BLOCKS,
+  TEXT_ANIMATION_BLOCKS,
+  TIMING_DEFAULTS,
+  TIMING_FIELDS,
+  TRANSFORM_BLOCKS,
+  TRANSITION_BLOCKS,
+} from "./animation";
+import {
+  CHARACTER_BLOCKS,
+  CONTAINER_BLOCKS,
+  CONTENT_CAMERA_BLOCKS,
+  DATA_BLOCKS,
+  MEDIA_BLOCKS,
+  SHAPE_BLOCKS,
+  TEXT_BLOCKS,
+} from "./content";
 import type { MotionBlock, MotionLibrarySection } from "./types";
 
 /**
- * Motion Library shelf order (matches product tree).
- * Timing is schema-only — no blocks.
- * Emphasis re-indexes text.highlight (same id, not duplicated in catalog).
+ * Library shelves:
+ *   content/  — Text, Shape, Media, Container, Data, Character, Camera
+ *   animation/ — Entrance, Exit, Emphasis, Transform, Text/Number/Shape Animation,
+ *                Transition, Camera Presets, Timing
  */
 export const motionLibrary: MotionLibrarySection[] = [
+  // —— Content ——
   {
     id: "text",
+    family: "content",
     title: "Text",
     titleVi: "Chữ",
-    description:
-      "Motion chỉ chữ: typewriter, stagger-words, highlight, counter (vi-safe).",
+    description: "Loại chữ tĩnh: title, subtitle, number, CTA…",
     isBlockShelf: true,
     blocks: TEXT_BLOCKS,
   },
   {
     id: "shape",
+    family: "content",
     title: "Shape",
     titleVi: "Hình",
-    description: "Draw line, bar grow, progress, shape enter — sắp mở.",
+    description: "Rect, circle, line, arrow…",
     isBlockShelf: true,
     blocks: SHAPE_BLOCKS,
   },
   {
     id: "media",
+    family: "content",
     title: "Media",
     titleVi: "Media",
-    description: "Ảnh / video / Lottie — sắp mở.",
+    description: "Image, icon, SVG, Lottie…",
     isBlockShelf: true,
     blocks: MEDIA_BLOCKS,
   },
   {
-    id: "chart",
-    title: "Chart",
-    titleVi: "Biểu đồ",
-    description: "Bar / line / pie motion — sắp mở.",
+    id: "container",
+    family: "content",
+    title: "Container",
+    titleVi: "Khung nhóm",
+    description: "Card, stack, grid, background…",
     isBlockShelf: true,
-    blocks: CHART_BLOCKS,
+    blocks: CONTAINER_BLOCKS,
+  },
+  {
+    id: "data",
+    family: "content",
+    title: "Data",
+    titleVi: "Dữ liệu",
+    description: "Bar/pie/progress/comparison — infographic.",
+    isBlockShelf: true,
+    blocks: DATA_BLOCKS,
   },
   {
     id: "character",
+    family: "content",
     title: "Character",
     titleVi: "Nhân vật",
-    description: "Character 2D — pha sau.",
+    description: "Person, device, chat — pha sau.",
     isBlockShelf: true,
     blocks: CHARACTER_BLOCKS,
   },
   {
     id: "camera",
+    family: "content",
     title: "Camera",
     titleVi: "Camera",
-    description: "Hero zoom, Ken Burns, focus — sắp mở.",
+    description: "Shot/frame content placeholder — pha sau.",
     isBlockShelf: true,
-    blocks: CAMERA_BLOCKS,
+    blocks: CONTENT_CAMERA_BLOCKS,
   },
+  // —— Animation ——
   {
     id: "entrance",
+    family: "animation",
     title: "Entrance",
     titleVi: "Vào khung",
-    description: "Fade / slide / scale / pop / flip + typewriter.",
+    description: "Fade / slide / scale / pop / flip…",
     isBlockShelf: true,
     blocks: ENTRANCE_BLOCKS,
   },
   {
     id: "exit",
+    family: "animation",
     title: "Exit",
     titleVi: "Ra khung",
-    description: "Fade out, scale out, slide out — sắp mở.",
+    description: "Fade out, scale out… — sắp mở.",
     isBlockShelf: true,
     blocks: EXIT_BLOCKS,
   },
   {
     id: "emphasis",
+    family: "animation",
     title: "Emphasis",
     titleVi: "Nhấn mạnh",
-    description: "Highlight (text) + pulse/shake sắp mở.",
+    description: "Pulse, shake… — sắp mở.",
     isBlockShelf: true,
     blocks: EMPHASIS_BLOCKS,
   },
   {
     id: "transform",
+    family: "animation",
     title: "Transform",
     titleVi: "Biến đổi",
-    description:
-      "Primitive engine (move/scale/rotate…) — không shelf block MVP.",
+    description: "Primitive engine — không shelf MVP.",
     isBlockShelf: true,
     blocks: TRANSFORM_BLOCKS,
   },
   {
+    id: "text-animation",
+    family: "animation",
+    title: "Text Animation",
+    titleVi: "Motion chữ",
+    description: "Typewriter, stagger-words, highlight (vi-safe).",
+    isBlockShelf: true,
+    blocks: TEXT_ANIMATION_BLOCKS,
+  },
+  {
+    id: "number-animation",
+    family: "animation",
+    title: "Number Animation",
+    titleVi: "Motion số",
+    description: "Counter / rolling number…",
+    isBlockShelf: true,
+    blocks: NUMBER_ANIMATION_BLOCKS,
+  },
+  {
+    id: "shape-animation",
+    family: "animation",
+    title: "Shape Animation",
+    titleVi: "Motion hình",
+    description: "Draw line, bar grow… — sắp mở.",
+    isBlockShelf: true,
+    blocks: SHAPE_ANIMATION_BLOCKS,
+  },
+  {
     id: "transition",
+    family: "animation",
     title: "Transition",
     titleVi: "Chuyển cảnh",
-    description: "Crossfade, swipe, push — sắp mở.",
+    description: "Crossfade, swipe… — sắp mở.",
     isBlockShelf: true,
     blocks: TRANSITION_BLOCKS,
   },
   {
+    id: "camera-presets",
+    family: "animation",
+    title: "Camera Presets",
+    titleVi: "Preset camera",
+    description: "Zoom, pan, focus, Ken Burns — sắp mở.",
+    isBlockShelf: true,
+    blocks: CAMERA_PRESET_BLOCKS,
+  },
+  {
     id: "timing",
+    family: "meta",
     title: "Timing",
     titleVi: "Nhịp",
-    description: `Schema chung: ${TIMING_FIELDS.join(", ")}. Default easing=${TIMING_DEFAULTS.easing}.`,
+    description: `Schema: ${TIMING_FIELDS.join(", ")}. Default easing=${TIMING_DEFAULTS.easing}.`,
     isBlockShelf: false,
     blocks: [],
-  },
-  {
-    id: "audio",
-    title: "Audio",
-    titleVi: "Âm thanh",
-    description: "SFX / ducking — pha sau.",
-    isBlockShelf: true,
-    blocks: AUDIO_BLOCKS,
-  },
-  {
-    id: "effects",
-    title: "Effects",
-    titleVi: "Hiệu ứng",
-    description: "Blur, glow, particles — pha sau.",
-    isBlockShelf: true,
-    blocks: EFFECTS_BLOCKS,
   },
 ];
 
@@ -146,18 +197,22 @@ function uniqueBlocks(lists: MotionBlock[][]): MotionBlock[] {
   return [...map.values()];
 }
 
-/** Deduped shelf for AI / engine (each id once). */
+/** Deduped catalog (each id once). */
 export const motionBlocks: MotionBlock[] = uniqueBlocks([
-  ENTRANCE_CORE_BLOCKS,
   TEXT_BLOCKS,
   SHAPE_BLOCKS,
   MEDIA_BLOCKS,
-  CHART_BLOCKS,
+  CONTAINER_BLOCKS,
+  DATA_BLOCKS,
   CHARACTER_BLOCKS,
-  CAMERA_BLOCKS,
+  CONTENT_CAMERA_BLOCKS,
+  ENTRANCE_CORE_BLOCKS,
   EXIT_BLOCKS,
+  EMPHASIS_BLOCKS,
   TRANSFORM_BLOCKS,
+  TEXT_ANIMATION_BLOCKS,
+  NUMBER_ANIMATION_BLOCKS,
+  SHAPE_ANIMATION_BLOCKS,
   TRANSITION_BLOCKS,
-  AUDIO_BLOCKS,
-  EFFECTS_BLOCKS,
+  CAMERA_PRESET_BLOCKS,
 ]);

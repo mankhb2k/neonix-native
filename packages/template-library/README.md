@@ -1,72 +1,55 @@
 # `@motionvideo/template-library`
 
-Kệ sản phẩm của MotionVideo: **Motion Block → (Pattern) → Template**, cộng retrieval theo tag/ngành.
+Kệ sản phẩm: **Content + Animation → Pattern → Template**.
 
-AI / editor **không** bịa animation tùy ý — chọn `id` đã duyệt trên kệ, gắn vào Motion JSON (`@motionvideo/motion-schema`).
-
-## Chức năng
-
-| Phần | Vai trò |
-|---|---|
-| **`src/blocks/`** | Motion Library — preset vào/ra/nhấn + text/shape/… |
-| **`src/templates/`** | Template seed (scene + layer + animation sẵn) |
-| **`src/retrieve.ts`** | Lọc template theo `industry` / `tags` / `aspectRatio` (RAG vector sau) |
+## Cấu trúc thư mục
 
 ```text
-Block (fade-up, counter…)
-  → Pattern (big-number, compare-2…)   # sắp thêm
-    → Template (F&B hook→offer→cta…)
-      → MotionProject JSON → preview / render
+src/blocks/
+├── content/
+│   ├── text/           # Title, Subtitle, Number, CTA…
+│   ├── shape/
+│   ├── media/
+│   ├── container/
+│   ├── data/
+│   ├── character/
+│   └── camera/         # shot/frame placeholder
+├── animation/
+│   ├── entrance/       # enter.fade-up…
+│   ├── exit/
+│   ├── emphasis/
+│   ├── transform/
+│   ├── text/           # Text Animation (typewriter, stagger, highlight)
+│   ├── number/         # Number Animation (counter…)
+│   ├── shape/          # Shape Animation (draw-line…)
+│   ├── transition/
+│   ├── camera/         # Camera Presets
+│   └── timing/         # schema constants — không phải block
+├── library.ts
+├── catalog.ts
+├── types.ts
+└── index.ts
 ```
 
-## Motion Library (`src/blocks/`)
+| Family | Nghĩa | Ví dụ |
+|---|---|---|
+| **Content** | Cái gì trên khung | `text.title`, `shape.circle` |
+| **Animation** | Làm gì với layer | `enter.fade-up`, `text.typewriter` |
 
-```text
-text/  shape/  media/  chart/  character/  camera/
-entrance/  exit/  emphasis/  transform/  transition/
-timing/  audio/  effects/
-library.ts   # thứ tự kệ (motionLibrary)
-catalog.ts   # motionBlocks (id duy nhất) + get/list helpers
-```
+Lab: `/app/lab/blocks` — filter Content | Animation.
 
-Hai trục:
-
-- **kind** — target layer (`text`, `shape`, …)
-- **intent / shelf** — vai trò timeline (`entrance`, `exit`, `emphasis`, …)
-
-**Timing** không phải block: `delay` / `duration` / `easing` nằm trên mọi animation trong schema.
-
-Lab preview: app web `/app/lab/blocks`.
-
-## API chính
+## API
 
 ```ts
 import {
   motionBlocks,
   motionLibrary,
+  listMotionBlocksByFamily,
   getMotionBlock,
-  listMotionBlocksByKind,
-  listMotionBlocksByIntent,
-  listMotionBlocksByShelf,
-  templates,
-  retrieveTemplates,
 } from "@motionvideo/template-library";
 ```
 
-Ví dụ animation trong template:
+## Docs
 
-```ts
-{ preset: "fade-up", start: 0, duration: 0.8, delay: 0.2, easing: "easeOut" }
-```
-
-## Nguyên tắc kệ
-
-1. Block mới phải có `id` ổn định (`text.fade-up`), preview lab, và (lý tưởng) gắn ≥1 pattern/template.
-2. Không commit 200 preset marketing — MVP ~30–40 block đủ tổ hợp.
-3. Chữ tiếng Việt: stagger theo **từ**, typewriter theo **grapheme** — không tách dấu.
-4. Code sống trong **`src/`**. Không dùng folder stub `blocks/` / `templates/` ở root package.
-
-## Docs liên quan
-
-- Repo: [`README.md`](../../README.md), [`workflow.md`](../../workflow.md)
-- Kế hoạch block: [`docs/blocks-plan.md`](../../docs/blocks-plan.md)
+- [`docs/blocks-plan.md`](../../docs/blocks-plan.md)
+- Repo [`README.md`](../../README.md)

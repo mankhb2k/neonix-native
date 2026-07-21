@@ -1,4 +1,4 @@
-import type { MotionBlock } from "../types";
+import type { MotionBlock } from "../../types";
 
 /** Transition — scene-to-scene */
 export const TRANSITION_BLOCKS: MotionBlock[] = [];

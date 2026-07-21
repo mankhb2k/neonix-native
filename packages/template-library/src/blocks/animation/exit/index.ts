@@ -1,4 +1,4 @@
-import type { MotionBlock } from "../types";
+import type { MotionBlock } from "../../types";
 
 /** Exit — leave frame */
 export const EXIT_BLOCKS: MotionBlock[] = [];

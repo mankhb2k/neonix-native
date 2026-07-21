@@ -4,6 +4,7 @@ export type {
   MotionBlockIntent,
   MotionLibraryShelfId,
   MotionLibrarySection,
+  BlockFamily,
 } from "./types";
 
 export {
@@ -13,53 +14,75 @@ export {
   listMotionBlocksByKind,
   listMotionBlocksByIntent,
   listMotionBlocksByShelf,
+  listMotionBlocksByFamily,
   getMotionLibrarySection,
 } from "./catalog";
 
 export {
   TEXT_BLOCKS,
+  SHAPE_BLOCKS,
+  MEDIA_BLOCKS,
+  CONTAINER_BLOCKS,
+  DATA_BLOCKS,
+  CHART_BLOCKS,
+  CHARACTER_BLOCKS,
+  CONTENT_CAMERA_BLOCKS,
+} from "./content";
+
+export {
+  ENTRANCE_BLOCKS,
+  ENTRANCE_CORE_BLOCKS,
+  ENTER_FADE_IN,
+  ENTER_FADE_UP,
+  ENTER_FADE_DOWN,
+  ENTER_FADE_LEFT,
+  ENTER_FADE_RIGHT,
+  ENTER_SCALE_IN,
+  ENTER_ZOOM_IN,
+  ENTER_SLIDE_UP,
+  ENTER_SLIDE_LEFT,
+  ENTER_SLIDE_RIGHT,
+  ENTER_POP,
+  ENTER_BOUNCE_IN,
+  ENTER_FLIP,
+  ENTER_ROTATE_IN,
+  EXIT_BLOCKS,
+  EMPHASIS_BLOCKS,
+  TRANSFORM_BLOCKS,
+  TEXT_ANIMATION_BLOCKS,
+  TEXT_MOTION_BLOCKS,
   TEXT_EXTRA_BLOCKS,
   TEXT_TYPEWRITER,
   TEXT_TYPING,
   TEXT_STAGGER_WORDS,
   TEXT_HIGHLIGHT,
+  NUMBER_ANIMATION_BLOCKS,
   TEXT_COUNTER,
-} from "./text";
-
-export {
-  ENTRANCE_BLOCKS,
-  ENTRANCE_CORE_BLOCKS,
-  TEXT_FADE,
-  TEXT_FADE_IN,
-  TEXT_FADE_UP,
-  TEXT_FADE_DOWN,
-  TEXT_FADE_LEFT,
-  TEXT_FADE_RIGHT,
-  TEXT_SCALE_IN,
-  TEXT_ZOOM_IN,
-  TEXT_SLIDE_UP,
-  TEXT_SLIDE_LEFT,
-  TEXT_SLIDE_RIGHT,
-  TEXT_POP,
-  TEXT_BOUNCE_IN,
-  TEXT_FLIP,
-  TEXT_ROTATE_IN,
-} from "./entrance";
-
-export { SHAPE_BLOCKS } from "./shape";
-export { MEDIA_BLOCKS } from "./media";
-export { CHART_BLOCKS } from "./chart";
-export { CHARACTER_BLOCKS } from "./character";
-export { CAMERA_BLOCKS } from "./camera";
-export { EXIT_BLOCKS } from "./exit";
-export { EMPHASIS_BLOCKS } from "./emphasis";
-export { TRANSFORM_BLOCKS } from "./transform";
-export { TRANSITION_BLOCKS } from "./transition";
-export { AUDIO_BLOCKS } from "./audio";
-export { EFFECTS_BLOCKS } from "./effects";
-export {
+  SHAPE_ANIMATION_BLOCKS,
+  TRANSITION_BLOCKS,
+  CAMERA_PRESET_BLOCKS,
+  CAMERA_BLOCKS,
   TIMING_DEFAULTS,
   TIMING_FIELDS,
   EasingIdSchema,
   type EasingId,
-} from "./timing";
+} from "./animation";
+
+/** Re-export named content text roles */
+export {
+  TEXT_TITLE,
+  TEXT_SUBTITLE,
+  TEXT_PARAGRAPH,
+  TEXT_CAPTION,
+  TEXT_QUOTE,
+  TEXT_BADGE,
+  TEXT_LABEL,
+  TEXT_NUMBER,
+  TEXT_PERCENTAGE,
+  TEXT_PRICE,
+  TEXT_CTA,
+  TEXT_TAG,
+  TEXT_BULLET_LIST,
+  TEXT_CHECKLIST,
+  TEXT_CODE,
+} from "./content/text";

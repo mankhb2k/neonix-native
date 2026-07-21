@@ -10,8 +10,11 @@ type Props = {
 };
 
 export function BlockLabDetail({ block }: Props) {
+  const isContent = block.family === "content";
   const [text, setText] = useState(block.sampleText);
-  const [duration, setDuration] = useState(block.duration);
+  const [duration, setDuration] = useState(
+    block.duration > 0 ? block.duration : 0.6,
+  );
   const [playId, setPlayId] = useState(0);
 
   function replay() {
@@ -32,7 +35,7 @@ export function BlockLabDetail({ block }: Props) {
 
       <main className="mv-hub-main" style={{ maxWidth: 880 }}>
         <p className="mv-hub-kicker">
-          Motion Block lab · {block.intent ?? block.kind}
+          {isContent ? "Content" : "Animation"} · {block.shelf}
         </p>
         <h1 className="mv-hub-title">{block.id}</h1>
         <p className="mv-hub-lead">
@@ -50,14 +53,16 @@ export function BlockLabDetail({ block }: Props) {
                 playId={playId}
               />
             </div>
-            <button
-              type="button"
-              className="mv-btn mv-btn-primary"
-              onClick={replay}
-              style={{ marginTop: "1rem" }}
-            >
-              Phát lại
-            </button>
+            {!isContent ? (
+              <button
+                type="button"
+                className="mv-btn mv-btn-primary"
+                onClick={replay}
+                style={{ marginTop: "1rem" }}
+              >
+                Phát lại
+              </button>
+            ) : null}
           </div>
 
           <aside className="mv-block-lab-meta">
@@ -68,6 +73,10 @@ export function BlockLabDetail({ block }: Props) {
                 <dd>
                   <code>{block.id}</code>
                 </dd>
+              </div>
+              <div>
+                <dt>Family</dt>
+                <dd>{block.family}</dd>
               </div>
               <div>
                 <dt>Kind</dt>
@@ -82,15 +91,17 @@ export function BlockLabDetail({ block }: Props) {
                 <dd>{block.intent ?? "—"}</dd>
               </div>
               <div>
-                <dt>Preset (schema)</dt>
+                <dt>Preset</dt>
                 <dd>
                   <code>{block.preset ?? "—"}</code>
                 </dd>
               </div>
-              <div>
-                <dt>Duration mặc định</dt>
-                <dd>{block.duration}s</dd>
-              </div>
+              {!isContent ? (
+                <div>
+                  <dt>Duration mặc định</dt>
+                  <dd>{block.duration}s</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>Tags</dt>
                 <dd>{block.tags.join(", ")}</dd>
@@ -101,7 +112,9 @@ export function BlockLabDetail({ block }: Props) {
               <label htmlFor="sample">
                 {block.id === "text.counter"
                   ? "Số đích"
-                  : "Chữ thử (tiếng Việt)"}
+                  : isContent
+                    ? "Nội dung mẫu"
+                    : "Chữ thử (tiếng Việt)"}
               </label>
               <input
                 id="sample"
@@ -110,31 +123,41 @@ export function BlockLabDetail({ block }: Props) {
                 onBlur={replay}
               />
             </div>
-            <div className="mv-field">
-              <label htmlFor="dur">Duration: {duration.toFixed(2)}s</label>
-              <input
-                id="dur"
-                type="range"
-                min={block.durationMin}
-                max={block.durationMax}
-                step={0.05}
-                value={duration}
-                onChange={(e) => {
-                  setDuration(Number(e.target.value));
-                  replay();
-                }}
-              />
-            </div>
+            {!isContent ? (
+              <div className="mv-field">
+                <label htmlFor="dur">Duration: {duration.toFixed(2)}s</label>
+                <input
+                  id="dur"
+                  type="range"
+                  min={block.durationMin}
+                  max={block.durationMax}
+                  step={0.05}
+                  value={duration}
+                  onChange={(e) => {
+                    setDuration(Number(e.target.value));
+                    replay();
+                  }}
+                />
+              </div>
+            ) : null}
 
             <pre className="mv-block-lab-json">
               {JSON.stringify(
-                {
-                  id: block.id,
-                  kind: block.kind,
-                  duration,
-                  preset: block.preset,
-                  sampleText: text,
-                },
+                isContent
+                  ? {
+                      id: block.id,
+                      family: block.family,
+                      kind: block.kind,
+                      sampleText: text,
+                    }
+                  : {
+                      id: block.id,
+                      family: block.family,
+                      kind: block.kind,
+                      duration,
+                      preset: block.preset,
+                      sampleText: text,
+                    },
                 null,
                 2,
               )}

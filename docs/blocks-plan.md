@@ -44,27 +44,29 @@ Không dùng Lottie để thay toàn bộ library — khó thống nhất brand,
 
 Giai đoạn 1 chỉ làm nhóm **A–D**. E–G để sau.
 
-### A. Entrance (text target — làm trước)
+### A. Entrance (generic — dùng cho text/shape/icon; làm trước)
 
 | ID | Tên | Ghi chú |
 |---|---|---|
-| `text.fade-in` | Fade In | Chỉ opacity (`text.fade` = alias) |
-| `text.fade-up` | Fade Up | Hook mặc định |
-| `text.fade-down` | Fade Down | Đối xứng |
-| `text.fade-left` | Fade Left | Dịch nhẹ hơn slide |
-| `text.fade-right` | Fade Right | Đối xứng |
-| `text.scale-in` | Scale In | Big number / giá |
-| `text.zoom-in` | Zoom In | Mạnh hơn scale-in |
-| `text.slide-up` | Slide Up | Travel xa hơn fade-up |
-| `text.slide-left` | Slide Left | So sánh cột |
-| `text.slide-right` | Slide Right | So sánh cột |
-| `text.pop` | Pop | Overshoot nhẹ |
-| `text.bounce-in` | Bounce In | Dùng sparingly |
-| `text.flip` | Flip | Perspective X |
-| `text.rotate-in` | Rotate In | Badge / sticker |
-| `text.typewriter` | Typewriter | Grapheme-safe (`text.typing` = alias) |
+| `enter.fade-in` | Fade In | Chỉ opacity |
+| `enter.fade-up` | Fade Up | Hook mặc định |
+| `enter.fade-down` | Fade Down | Đối xứng |
+| `enter.fade-left` | Fade Left | Dịch nhẹ hơn slide |
+| `enter.fade-right` | Fade Right | Đối xứng |
+| `enter.scale-in` | Scale In | Big number / giá |
+| `enter.zoom-in` | Zoom In | Mạnh hơn scale-in |
+| `enter.slide-up` | Slide Up | Travel xa hơn fade-up |
+| `enter.slide-left` | Slide Left | So sánh cột |
+| `enter.slide-right` | Slide Right | So sánh cột |
+| `enter.pop` | Pop | Overshoot nhẹ |
+| `enter.bounce-in` | Bounce In | Dùng sparingly |
+| `enter.flip` | Flip | Perspective X |
+| `enter.rotate-in` | Rotate In | Badge / sticker |
+| `text.typewriter` | Typewriter | Chỉ chữ, grapheme-safe (`text.typing` = alias) |
 
-**Text đặc biệt (cùng shelf):** `text.stagger-words`, `text.highlight`, `text.counter`
+Id cũ `text.fade-up`… vẫn resolve qua alias trong `catalog.ts`.
+
+**Text đặc biệt (kệ Text):** `text.stagger-words`, `text.highlight`, `text.counter`
 
 ### B. Shape / Layout Motion
 
@@ -113,13 +115,13 @@ Làm **pattern trước danh sách block**, rồi chỉ gen block mà pattern c�
 
 | Pattern | Block tối thiểu |
 |---|---|
-| `big-number` | `text.counter` hoặc `text.scale-in` + `text.fade-up` + `shape.fade` |
-| `process-steps` | `text.fade-up` + `icon.fade-up` + `shape.draw-line` (stagger) |
-| `compare-2` | `text.slide-left/right` + `shape.bar-grow` |
-| `quote` | `text.fade-up` + `shape.fade` |
-| `feature-list` | `text.stagger` / `icon.fade-up` × N |
+| `big-number` | `text.counter` hoặc `enter.scale-in` + `enter.fade-up` + `shape.fade` |
+| `process-steps` | `enter.fade-up` (text + icon) + `shape.draw-line` (stagger) |
+| `compare-2` | `enter.slide-left/right` + `shape.bar-grow` |
+| `quote` | `enter.fade-up` + `shape.fade` |
+| `feature-list` | `text.stagger-words` / `enter.fade-up` × N |
 | `cta` | `cta.slide-up` + `logo.reveal` |
-| `problem-solution` | 2 scene: `text.fade` + `trans.fade` |
+| `problem-solution` | 2 scene: `enter.fade-in` + `trans.fade` |
 
 → Khoảng **15–25 block “trên kệ”** là đủ nuôi 6–8 pattern đầu.
 
@@ -153,7 +155,7 @@ AI có thể draft 50–100 biến thể; **merge ~20–30** sau khi preview.
 
 1. Template: `education-tiktok`, `saas-feature` = Pattern + Block + màu/font.  
 2. Gắn 1 pipeline render thử (Motion Canvas hoặc tạm export thủ công 1 mẫu để cảm nhận).  
-3. Chuẩn hoá ID: `text.fade-up`, không `FadeUp1` / `fade_up_final`.  
+3. Chuẩn hoá ID: `enter.fade-up`, không `FadeUp1` / `fade_up_final`.  
 
 ### Tuần 4 — AI Intent → Pattern
 
@@ -167,7 +169,7 @@ AI có thể draft 50–100 biến thể; **merge ~20–30** sau khi preview.
 
 Mỗi block trước khi merge:
 
-- [ ] Có `id` ổn định (`text.fade-up`)  
+- [ ] Có `id` ổn định (`enter.fade-up`)  
 - [ ] Có `duration` mặc định + min/max  
 - [ ] Có mô tả 1 dòng (AI/retrieve sau này)  
 - [ ] Có tags: `text`, `enter`, `vi-safe`  
@@ -201,36 +203,37 @@ Lottie là **asset**, vẫn nằm dưới Pattern — không thay Motion Block l
 
 ```text
 packages/template-library/src/blocks/
-├── text/          # typewriter, stagger, highlight, counter
-├── shape/         # draw-line, bar-grow… (MVP trống)
-├── media/
-├── chart/
-├── character/
-├── camera/
-├── entrance/      # fade / slide / scale / pop / flip…
-├── exit/
-├── emphasis/      # index + pulse/shake sau (highlight re-index từ text)
-├── transform/     # primitive — không shelf block MVP
-├── transition/
-├── timing/        # constants + easing — KHÔNG phải MotionBlock
-├── audio/
-├── effects/
-├── library.ts     # motionLibrary[] = thứ tự kệ
+├── content/
+│   ├── text/
+│   ├── shape/
+│   ├── media/
+│   ├── container/
+│   ├── data/
+│   ├── character/
+│   └── camera/
+├── animation/
+│   ├── entrance/
+│   ├── exit/
+│   ├── emphasis/
+│   ├── transform/
+│   ├── text/              # Text Animation
+│   ├── number/            # Number Animation
+│   ├── shape/             # Shape Animation
+│   ├── transition/
+│   ├── camera/            # Camera Presets
+│   └── timing/            # schema only
+├── library.ts
 ├── catalog.ts
 └── types.ts
 ```
 
-Hai trục:
-
-| Trục | Ví dụ | Ý nghĩa |
+| Family | Shelf | Ý nghĩa |
 |---|---|---|
-| **kind / target** | text, shape, media | Layer bị animate |
-| **intent / shelf** | entrance, exit, emphasis | Vai trò trên timeline |
+| Content | text…camera | Khối tĩnh trên khung |
+| Animation | entrance…camera-presets | Chuyển động / preset |
+| Meta | timing | delay/duration/easing trên schema |
 
-Cùng `preset` (`fade-up`) dùng chung schema; block id có thể `text.fade-up` / `shape.fade-up` khi cần defaults khác.  
-**Timing** (delay, duration, easing, loop…) gắn mọi animation — không nhân bản thành block.
-
-Mỗi block = 1 id duy nhất trong `motionBlocks` (dedupe). Lab hiện mọi kệ qua `motionLibrary`.
+Lab filter: **Content | Animation**.
 
 ---
 

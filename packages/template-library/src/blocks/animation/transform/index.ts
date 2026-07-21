@@ -1,4 +1,4 @@
-import type { MotionBlock } from "../types";
+import type { MotionBlock } from "../../types";
 
 /**
  * Transform — engine primitives (move/scale/rotate/skew/opacity…).

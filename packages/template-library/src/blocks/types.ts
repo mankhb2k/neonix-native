@@ -1,20 +1,23 @@
+/** Content = cái gì trên khung. Animation = làm gì với cái đó. */
+export type BlockFamily = "content" | "animation";
+
 export type MotionBlockKind =
   | "text"
   | "shape"
   | "media"
-  | "chart"
+  | "container"
+  | "data"
   | "character"
   | "camera"
-  | "audio"
-  | "effects"
   | "icon"
   | "logo"
   | "cta"
-  | "transition";
+  | "transition"
+  | "chart";
 
 /**
- * Timeline / motion role — orthogonal to kind (target).
- * Timing is NOT an intent: delay/duration/easing live on AnimationSchema.
+ * Timeline / motion role — chỉ meaningful khi family = animation.
+ * Timing không phải intent: delay/duration/easing trên AnimationSchema.
  */
 export type MotionBlockIntent =
   | "entrance"
@@ -23,55 +26,64 @@ export type MotionBlockIntent =
   | "transform"
   | "transition"
   | "camera"
-  | "effects";
+  | "text-animation"
+  | "number-animation"
+  | "shape-animation";
 
-/** Top-level Motion Library shelf (folder = section) */
+/** Top-level library shelf (folder ≈ section) */
 export type MotionLibraryShelfId =
+  // Content
   | "text"
   | "shape"
   | "media"
-  | "chart"
+  | "container"
+  | "data"
   | "character"
   | "camera"
+  // Animation
   | "entrance"
   | "exit"
   | "emphasis"
   | "transform"
+  | "text-animation"
+  | "number-animation"
+  | "shape-animation"
   | "transition"
-  | "timing"
-  | "audio"
-  | "effects";
+  | "camera-presets"
+  // Schema-only
+  | "timing";
 
 export type MotionBlock = {
-  /** Stable id, e.g. text.fade-up */
+  /** Stable id — content: text.title · animation: enter.fade-up */
   id: string;
   name: string;
   nameVi: string;
+  family: BlockFamily;
   kind: MotionBlockKind;
-  /** What the motion does on the timeline */
+  /** Motion role — omit / ignore on pure content */
   intent?: MotionBlockIntent;
-  /** Which library shelf owns this block (physical folder) */
   shelf: MotionLibraryShelfId;
   description: string;
-  /** Default duration in seconds */
+  /** Default duration (seconds). Content blocks use 0. */
   duration: number;
   durationMin: number;
   durationMax: number;
-  /** Maps to MotionProject layer animation.preset when applicable */
+  /** Maps to animation.preset when family = animation */
   preset?: string;
   tags: string[];
-  /** Example Vietnamese copy for QA diacritics */
+  /** Example Vietnamese copy / label for lab */
   sampleText: string;
-  /** CSS @keyframes / class used by web preview lab */
+  /** CSS class for lab preview */
   previewClass: string;
 };
 
 export type MotionLibrarySection = {
   id: MotionLibraryShelfId;
+  family: BlockFamily | "meta";
   title: string;
   titleVi: string;
   description: string;
-  /** false = schema/constants only (e.g. Timing), not MotionBlocks */
+  /** false = schema/constants only (e.g. Timing) */
   isBlockShelf: boolean;
   blocks: MotionBlock[];
 };

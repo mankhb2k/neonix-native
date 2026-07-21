@@ -33,6 +33,14 @@ export function BlockPreview({
 }: Props) {
   const className = `${block.previewClass}${card ? " is-card" : ""}`;
 
+  if (block.family === "content") {
+    return (
+      <p className={className} key={playId}>
+        {text || "…"}
+      </p>
+    );
+  }
+
   if (block.id === "text.stagger-words") {
     const words = splitWords(text || "…");
     const step = duration / Math.max(words.length, 1);
