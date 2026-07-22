@@ -1,5 +1,5 @@
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
-import { retrieveTemplates } from "@motionvideo/template-library";
+import { retrieveTemplates, templates } from "@motionvideo/template-library";
 
 export type PlanInput = {
   brandName: string;
@@ -8,22 +8,31 @@ export type PlanInput = {
   tags?: string[];
   aspectRatio?: "9:16" | "16:9" | "1:1";
   primaryColor?: string;
+  /** Explicit template id — preferred when user picks from gallery */
+  templateId?: string;
 };
 
 /**
- * Stub planner: retrieve template by tags/industry, fill brand + script lines.
+ * Stub planner: retrieve template by id/tags/industry, fill brand + script lines.
  * Replace internals with LLM later; keep output validated by Zod.
  */
 export function planMotionProject(input: PlanInput): MotionProject {
-  const matched = retrieveTemplates({
-    industry: input.industry,
-    tags: input.tags,
-    limit: 1,
-  });
-  const [template] =
-    matched.length > 0
-      ? matched
-      : retrieveTemplates({ tags: input.tags, limit: 1 });
+  let template =
+    input.templateId != null
+      ? templates.find((t) => t.id === input.templateId)
+      : undefined;
+
+  if (!template) {
+    const matched = retrieveTemplates({
+      industry: input.industry,
+      tags: input.tags,
+      limit: 1,
+    });
+    template =
+      matched[0] ??
+      retrieveTemplates({ tags: input.tags, limit: 1 })[0] ??
+      templates[0];
+  }
 
   if (!template) {
     throw new Error(`No template found for industry=${input.industry}`);
@@ -34,6 +43,7 @@ export function planMotionProject(input: PlanInput): MotionProject {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  let lineIndex = 0;
   const project: MotionProject = {
     ...template.project,
     id: `proj_${Date.now()}`,
@@ -43,14 +53,13 @@ export function planMotionProject(input: PlanInput): MotionProject {
       name: input.brandName,
       primaryColor: input.primaryColor ?? template.project.brand.primaryColor,
     },
-    scenes: template.project.scenes.map((scene, index) => ({
+    scenes: template.project.scenes.map((scene) => ({
       ...scene,
       layers: scene.layers.map((layer) => {
         if (layer.type !== "text") return layer;
-        return {
-          ...layer,
-          content: lines[index] ?? layer.content,
-        };
+        const content = lines[lineIndex] ?? layer.content;
+        lineIndex += 1;
+        return { ...layer, content };
       }),
     })),
   };

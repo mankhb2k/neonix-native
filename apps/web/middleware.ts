@@ -11,6 +11,11 @@ export function middleware(request: NextRequest) {
   const hostname = getHostname(request.headers.get("host"));
   const { pathname } = request.nextUrl;
 
+  // API routes stay at /api/* on every host
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
+
   // app.motionvideo.com → rewrite into /app/*
   if (isAppHost(hostname)) {
     // Prefer clean URLs on subdomain (no /app prefix in the address bar)

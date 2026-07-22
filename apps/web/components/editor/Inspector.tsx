@@ -1,9 +1,11 @@
 "use client";
 
-import { AnimationPresetSchema } from "@motionvideo/motion-schema";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { listMotionBlocksByFamily } from "@motionvideo/template-library";
 
-const presets = AnimationPresetSchema.options;
+const animationBlocks = listMotionBlocksByFamily("animation").filter((b) =>
+  Boolean(b.preset),
+);
 
 export function Inspector() {
   const project = useEditorStore((s) => s.project);
@@ -12,17 +14,25 @@ export function Inspector() {
   const updateBrand = useEditorStore((s) => s.updateBrand);
   const updateLayerContent = useEditorStore((s) => s.updateLayerContent);
   const updateLayerAnimation = useEditorStore((s) => s.updateLayerAnimation);
+  const updateLayerPosition = useEditorStore((s) => s.updateLayerPosition);
   const updateSceneDuration = useEditorStore((s) => s.updateSceneDuration);
   const setAspectRatio = useEditorStore((s) => s.setAspectRatio);
 
-  if (!project || !selectedSceneId) return null;
+  if (!project || !selectedSceneId) {
+    return (
+      <div className="mv-tool-empty">
+        <p>Chọn một scene hoặc layer để chỉnh.</p>
+      </div>
+    );
+  }
 
   const scene = project.scenes.find((s) => s.id === selectedSceneId);
   const layer = scene?.layers.find((l) => l.id === selectedLayerId);
   const animation = layer?.animations[0];
+  const defaultPreset = animationBlocks[0]?.preset ?? "fade-in";
 
   return (
-    <div className="mv-inspector">
+    <div className="mv-inspector is-stack">
       <div className="mv-field">
         <label htmlFor="brand-name">Brand</label>
         <input
@@ -68,7 +78,7 @@ export function Inspector() {
         />
       </div>
       {layer?.type === "text" ? (
-        <div className="mv-field" style={{ gridColumn: "1 / -1" }}>
+        <div className="mv-field">
           <label htmlFor="layer-text">Chữ layer</label>
           <input
             id="layer-text"
@@ -80,26 +90,84 @@ export function Inspector() {
         </div>
       ) : null}
       {layer ? (
-        <div className="mv-field">
-          <label htmlFor="anim">Animation</label>
-          <select
-            id="anim"
-            value={animation?.preset ?? "fade"}
-            onChange={(e) =>
-              updateLayerAnimation(
-                selectedSceneId,
-                layer.id,
-                e.target.value as (typeof presets)[number],
-              )
-            }
-          >
-            {presets.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </div>
+        <>
+          <div className="mv-field">
+            <label htmlFor="layer-x">X</label>
+            <input
+              id="layer-x"
+              type="number"
+              step={1}
+              value={layer.x}
+              onChange={(e) =>
+                updateLayerPosition(selectedSceneId, layer.id, {
+                  x: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="layer-y">Y</label>
+            <input
+              id="layer-y"
+              type="number"
+              step={1}
+              value={layer.y}
+              onChange={(e) =>
+                updateLayerPosition(selectedSceneId, layer.id, {
+                  y: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="anim">Animation</label>
+            <select
+              id="anim"
+              value={animation?.preset ?? defaultPreset}
+              onChange={(e) =>
+                updateLayerAnimation(selectedSceneId, layer.id, {
+                  preset: e.target.value,
+                })
+              }
+            >
+              {animationBlocks.map((b) => (
+                <option key={b.id} value={b.preset!}>
+                  {b.nameVi}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mv-field">
+            <label htmlFor="anim-dur">Anim duration (s)</label>
+            <input
+              id="anim-dur"
+              type="number"
+              min={0.1}
+              step={0.1}
+              value={animation?.duration ?? 0.6}
+              onChange={(e) =>
+                updateLayerAnimation(selectedSceneId, layer.id, {
+                  duration: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="anim-delay">Anim delay (s)</label>
+            <input
+              id="anim-delay"
+              type="number"
+              min={0}
+              step={0.1}
+              value={animation?.delay ?? 0}
+              onChange={(e) =>
+                updateLayerAnimation(selectedSceneId, layer.id, {
+                  delay: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+        </>
       ) : null}
     </div>
   );

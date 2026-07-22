@@ -1,6 +1,6 @@
 import Link from "next/link";
-import type { ComponentProps } from "react";
 import { APP_ROUTE_PREFIX } from "@/lib/hosts";
+import type { ComponentProps } from "react";
 
 type Props = Omit<ComponentProps<typeof Link>, "href"> & {
   href: string;

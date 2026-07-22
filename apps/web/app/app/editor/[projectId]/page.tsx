@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import type { MotionProject } from "@motionvideo/motion-schema";
-import { EditorShell } from "@/components/editor/EditorShell";
+import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
+import { EditorShell } from "@/components/editor/EditorShell";
 import { loadProject, saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 export default function EditorPage() {
   const params = useParams<{ projectId: string }>();

@@ -7,11 +7,15 @@ const CHIPS = [
   "Đổi màu #C45C26",
   "Đổi CTA: Đặt bàn ngay",
   "Tỉ lệ TikTok 9:16",
-  "Tỉ lệ ngang 16:9",
-  "Đổi tên brand: Phở Nhà",
+  "preset: pop",
+  "chậm hơn",
 ];
 
-export function ChatDock() {
+type Props = {
+  embedded?: boolean;
+};
+
+export function ChatDock({ embedded = false }: Props) {
   const messages = useEditorStore((s) => s.messages);
   const sendChat = useEditorStore((s) => s.sendChat);
   const applyPatch = useEditorStore((s) => s.applyPatch);
@@ -24,11 +28,17 @@ export function ChatDock() {
   }
 
   return (
-    <aside className="mv-chat">
-      <div className="mv-chat-head">
-        <h2>AI Copilot</h2>
-        <p>Sửa timeline bằng tiếng Việt — luôn có nút Áp dụng</p>
-      </div>
+    <div className={`mv-chat${embedded ? " is-embedded" : ""}`}>
+      {!embedded ? (
+        <div className="mv-chat-head">
+          <h2>AI Copilot</h2>
+          <p>Sửa timeline bằng tiếng Việt — luôn có nút Áp dụng</p>
+        </div>
+      ) : (
+        <div className="mv-chat-head is-compact">
+          <p>Chat để sửa chữ, màu, CTA — bấm Áp dụng trước khi đổi timeline</p>
+        </div>
+      )}
       <div className="mv-chat-chips">
         {CHIPS.map((chip) => (
           <button
@@ -91,6 +101,6 @@ export function ChatDock() {
           </button>
         </div>
       </div>
-    </aside>
+    </div>
   );
 }
