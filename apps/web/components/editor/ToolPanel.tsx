@@ -1,11 +1,66 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { appHref } from "@/components/AppLink";
+import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { planMotionProject } from "@motionvideo/ai-planner";
+import { templates } from "@motionvideo/template-library";
 import type { EditorTool } from "./IconNav";
 
 type Props = {
   tool: EditorTool;
 };
+
+function TemplatePickerPanel() {
+  const router = useRouter();
+  const project = useEditorStore((s) => s.project);
+  const loadProject = useEditorStore((s) => s.loadProject);
+
+  function applyTemplate(templateId: string) {
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    const next = planMotionProject({
+      brandName: project?.brand.name ?? tpl.project.brand.name,
+      industry: tpl.industry,
+      templateId: tpl.id,
+      aspectRatio: project?.aspectRatio ?? tpl.aspectRatio,
+      primaryColor: project?.brand.primaryColor,
+      script: tpl.project.scenes
+        .flatMap((s) => s.layers.map((l) => l.content ?? ""))
+        .filter(Boolean)
+        .join("\n"),
+    });
+    const withId = project ? { ...next, id: project.id } : next;
+    saveProject(withId);
+    loadProject(withId);
+    if (!project) {
+      router.push(appHref(`/editor/${withId.id}`));
+    }
+  }
+
+  return (
+    <div className="mv-rail-section">
+      <p className="mv-rail-label">Chọn mẫu</p>
+      <ul className="mv-scene-list">
+        {templates.map((t) => (
+          <li key={t.id}>
+            <button
+              type="button"
+              className="mv-scene-item"
+              onClick={() => applyTemplate(t.id)}
+            >
+              <strong>{t.name}</strong>
+              <span>
+                {t.industry} · {t.duration}s · {t.aspectRatio}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export function ToolPanel({ tool }: Props) {
   const project = useEditorStore((s) => s.project);
@@ -71,11 +126,15 @@ export function ToolPanel({ tool }: Props) {
             ))}
           </ul>
         </>
-      ) : (
+      ) : null}
+
+      {tool === "templates" ? <TemplatePickerPanel /> : null}
+
+      {tool !== "scenes" && tool !== "templates" ? (
         <div className="mv-tool-empty">
-          <p>Sắp có — dùng tab Cảnh để chỉnh timeline MVP.</p>
+          <p>Sắp có — dùng tab Cảnh / Mẫu cho MVP.</p>
         </div>
-      )}
+      ) : null}
     </aside>
   );
 }

@@ -7,8 +7,8 @@ const CHIPS = [
   "Đổi màu #C45C26",
   "Đổi CTA: Đặt bàn ngay",
   "Tỉ lệ TikTok 9:16",
-  "Tỉ lệ ngang 16:9",
-  "Đổi tên brand: Phở Nhà",
+  "preset: pop",
+  "chậm hơn",
 ];
 
 type Props = {

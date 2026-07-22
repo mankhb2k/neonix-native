@@ -5,6 +5,7 @@ import { useEffect, useId, useState } from "react";
 import { appHref } from "@/components/AppLink";
 import { saveProject } from "@/lib/project-storage";
 import { planMotionProject } from "@motionvideo/ai-planner";
+import { templates } from "@motionvideo/template-library";
 
 type AspectRatio = "9:16" | "16:9" | "1:1";
 
@@ -19,11 +20,14 @@ const RATIOS: Array<{ value: AspectRatio; label: string; hint: string }> = [
   { value: "1:1", label: "1:1", hint: "Feed vuông" },
 ];
 
+const DEFAULT_TEMPLATE_ID = templates[0]?.id ?? "fnb-hook-offer-cta-v1";
+
 export function NewProjectModal({ open, onClose }: Props) {
   const router = useRouter();
   const titleId = useId();
   const [name, setName] = useState("Dự án chưa đặt tên");
   const [ratio, setRatio] = useState<AspectRatio>("9:16");
+  const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export function NewProjectModal({ open, onClose }: Props) {
 
     setName("Dự án chưa đặt tên");
     setRatio("9:16");
+    setTemplateId(DEFAULT_TEMPLATE_ID);
     setBusy(false);
 
     function onKey(e: KeyboardEvent) {
@@ -47,13 +52,15 @@ export function NewProjectModal({ open, onClose }: Props) {
     const trimmed = name.trim();
     if (!trimmed || busy) return;
 
+    const tpl = templates.find((t) => t.id === templateId) ?? templates[0];
     setBusy(true);
     try {
       const project = planMotionProject({
         brandName: trimmed,
-        industry: "fnb",
+        industry: tpl?.industry ?? "fnb",
+        templateId: tpl?.id,
         aspectRatio: ratio,
-        script: "Hook của bạn\nƯu đãi nổi bật\nKêu gọi hành động",
+        script: "Hook của bạn\nƯu đãi nổi bật\nKêu gọi hành động\nChi tiết thêm",
       });
       saveProject(project);
       onClose();
@@ -99,6 +106,20 @@ export function NewProjectModal({ open, onClose }: Props) {
               required
               maxLength={80}
             />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="template-pick">Mẫu motion</label>
+            <select
+              id="template-pick"
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+            >
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name} · {t.industry} · {t.duration}s
+                </option>
+              ))}
+            </select>
           </div>
           <div className="mv-field">
             <span className="mv-field-label">Tỉ lệ khung hình</span>

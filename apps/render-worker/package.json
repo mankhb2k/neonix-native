@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "e2e": "tsx src/e2e.ts",
     "benchmark": "tsx src/benchmark.ts",
+    "export": "tsx src/cli-export.ts",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"no lint yet\""
   },

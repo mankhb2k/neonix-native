@@ -3,8 +3,8 @@
 import { useEditorStore } from "@/lib/store/editor-store";
 import { listMotionBlocksByFamily } from "@motionvideo/template-library";
 
-const animationBlocks = listMotionBlocksByFamily("animation").filter(
-  (b) => Boolean(b.preset),
+const animationBlocks = listMotionBlocksByFamily("animation").filter((b) =>
+  Boolean(b.preset),
 );
 
 export function Inspector() {
@@ -14,6 +14,7 @@ export function Inspector() {
   const updateBrand = useEditorStore((s) => s.updateBrand);
   const updateLayerContent = useEditorStore((s) => s.updateLayerContent);
   const updateLayerAnimation = useEditorStore((s) => s.updateLayerAnimation);
+  const updateLayerPosition = useEditorStore((s) => s.updateLayerPosition);
   const updateSceneDuration = useEditorStore((s) => s.updateSceneDuration);
   const setAspectRatio = useEditorStore((s) => s.setAspectRatio);
 
@@ -89,22 +90,84 @@ export function Inspector() {
         </div>
       ) : null}
       {layer ? (
-        <div className="mv-field">
-          <label htmlFor="anim">Animation</label>
-          <select
-            id="anim"
-            value={animation?.preset ?? defaultPreset}
-            onChange={(e) =>
-              updateLayerAnimation(selectedSceneId, layer.id, e.target.value)
-            }
-          >
-            {animationBlocks.map((b) => (
-              <option key={b.id} value={b.preset!}>
-                {b.nameVi}
-              </option>
-            ))}
-          </select>
-        </div>
+        <>
+          <div className="mv-field">
+            <label htmlFor="layer-x">X</label>
+            <input
+              id="layer-x"
+              type="number"
+              step={1}
+              value={layer.x}
+              onChange={(e) =>
+                updateLayerPosition(selectedSceneId, layer.id, {
+                  x: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="layer-y">Y</label>
+            <input
+              id="layer-y"
+              type="number"
+              step={1}
+              value={layer.y}
+              onChange={(e) =>
+                updateLayerPosition(selectedSceneId, layer.id, {
+                  y: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="anim">Animation</label>
+            <select
+              id="anim"
+              value={animation?.preset ?? defaultPreset}
+              onChange={(e) =>
+                updateLayerAnimation(selectedSceneId, layer.id, {
+                  preset: e.target.value,
+                })
+              }
+            >
+              {animationBlocks.map((b) => (
+                <option key={b.id} value={b.preset!}>
+                  {b.nameVi}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mv-field">
+            <label htmlFor="anim-dur">Anim duration (s)</label>
+            <input
+              id="anim-dur"
+              type="number"
+              min={0.1}
+              step={0.1}
+              value={animation?.duration ?? 0.6}
+              onChange={(e) =>
+                updateLayerAnimation(selectedSceneId, layer.id, {
+                  duration: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+          <div className="mv-field">
+            <label htmlFor="anim-delay">Anim delay (s)</label>
+            <input
+              id="anim-delay"
+              type="number"
+              min={0}
+              step={0.1}
+              value={animation?.delay ?? 0}
+              onChange={(e) =>
+                updateLayerAnimation(selectedSceneId, layer.id, {
+                  delay: Number(e.target.value),
+                })
+              }
+            />
+          </div>
+        </>
       ) : null}
     </div>
   );

@@ -180,21 +180,20 @@ Sao chép `.env.example` → `.env.local` nếu cần URL marketing/app.
 **Đã có**
 
 - Tách landing / app (+ middleware subdomain cho prod)
-- Workspace + modal tạo dự án (tên + tỉ lệ)
-- Editor layout kiểu CapCut: icon nav, panel cảnh/layer, preview, timeline, AI / Cơ bản
-- **Motion Format `.mt`** (`version: 1`) — schema structural + preset registry ở template-library
-- Template F&B mẫu + planner stub
-- Lưu project tạm trên `localStorage`
-- Render-worker pipeline thật (reference renderer `@napi-rs/canvas` + `ffmpeg-static` → MP4): `pnpm --filter @motionvideo/render-worker e2e`
+- Workspace + modal tạo dự án (tên + tỉ lệ + **chọn template**)
+- Editor: preview motion (CSS theo preset), Inspector (preset/duration/delay/x/y), import/tải `.mt`, **Xuất MP4** qua `/api/export` → render-worker CLI
+- 4 template: F&B, big-number, process-steps, compare-2
+- Chat stub: keyword + dán ```json``` patch → Zod/registry → Áp dụng
+- **Motion Format `.mt`** (`version: 1`) + preset registry
+- Render-worker: e2e / benchmark / `cli-export` (parallel frames)
 
 **Chưa có / đang stub**
 
-- Motion Canvas adapter (renderer hiện tại là tham chiếu, đổi được)
-- LLM planner production
-- TTS / nhạc đồng bộ
-- Auth, billing, storage cloud (upload vẫn stub `file://`)
+- Motion Canvas adapter
+- LLM planner production (chat vẫn rule-based)
+- TTS / nhạc / auth / billing / cloud upload
 
-Spec định dạng: [`docs/motion-format.md`](docs/motion-format.md).
+Spec: [`docs/motion-format.md`](docs/motion-format.md).
 
 ---
 

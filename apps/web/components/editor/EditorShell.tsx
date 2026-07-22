@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { IconNav, type EditorTool } from "./IconNav";
+import { LeftSidebar } from "./LeftSidebar";
 import { PreviewStage } from "./PreviewStage";
 import { RightDock } from "./RightDock";
 import { Timeline } from "./Timeline";
-import { ToolPanel } from "./ToolPanel";
 import { TopBar } from "./TopBar";
 import type { MotionProject } from "@motionvideo/motion-schema";
 
@@ -17,27 +17,23 @@ type Props = {
 export function EditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
-  const [tool, setTool] = useState<EditorTool>("scenes");
   const [toolsOpen, setToolsOpen] = useState(true);
 
   useEffect(() => {
     loadProject(initialProject);
   }, [initialProject, loadProject]);
 
-  function handleToolChange(next: EditorTool) {
-    if (next === tool && toolsOpen) {
-      setToolsOpen(false);
-      return;
-    }
-    setTool(next);
-    setToolsOpen(true);
-  }
+  useEffect(() => {
+    if (!project) return;
+    saveProject(project);
+  }, [project]);
 
   return (
     <div className={`mv-editor${toolsOpen ? "" : " is-tools-collapsed"}`}>
       <TopBar />
-      <IconNav active={tool} onChange={handleToolChange} />
-      <ToolPanel tool={tool} />
+      
+      <LeftSidebar />
+      
       <button
         type="button"
         className="mv-tools-edge-toggle"
@@ -50,11 +46,16 @@ export function EditorShell({ initialProject }: Props) {
           {toolsOpen ? "‹" : "›"}
         </span>
       </button>
-      <div className="mv-stage-col">
+
+      <main className="canvas-area" style={{ gridArea: 'stage', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundImage: 'radial-gradient(#27272A 1px, transparent 1px)', backgroundSize: '20px 20px', overflow: 'hidden' }}>
         <PreviewStage />
+      </main>
+
+      <RightDock />
+      
+      <div className="mv-timeline-area">
         <Timeline />
       </div>
-      <RightDock />
       {!project ? (
         <div className="mv-editor-loading">Đang tải editor…</div>
       ) : null}
