@@ -33,9 +33,11 @@ type EditorState = {
   selectedLayerId: string | null;
   messages: ChatMessage[];
   isExporting: boolean;
+  activeSidebarTab: string;
   loadProject: (project: MotionProject) => void;
   selectScene: (sceneId: string) => void;
   selectLayer: (layerId: string | null) => void;
+  setActiveSidebarTab: (tab: string) => void;
   updateBrand: (patch: Partial<MotionProject["brand"]>) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
   updateLayerContent: (sceneId: string, layerId: string, content: string) => void;
@@ -249,6 +251,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     },
   ],
   isExporting: false,
+  activeSidebarTab: "frame",
 
   loadProject: (project) => {
     const firstScene = project.scenes[0];
@@ -277,6 +280,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   selectLayer: (layerId) => set({ selectedLayerId: layerId }),
+
+  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
 
   updateBrand: (patch) => {
     const project = get().project;

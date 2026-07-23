@@ -13,18 +13,18 @@ export function Timeline() {
 
   return (
     <>
-      <div className="timeline-toolbar">
-        <button className="mv-btn-ghost mv-btn-sm" style={{ padding: "4px 8px" }}>▶ Play</button>
-        <span style={{ fontFamily: "monospace", fontSize: "14px", color: "var(--accent)" }}>
+      <div className="flex h-[36px] items-center gap-2 border-b border-[var(--line-strong)] bg-[var(--bg-panel)] px-3">
+        <button className="cursor-pointer rounded bg-transparent px-2 py-1 text-[12px] font-medium text-[var(--fg)] hover:bg-[var(--bg-hover)]">▶ Play</button>
+        <span className="font-mono text-[14px] text-[var(--accent)]">
           00:00:00 / 00:00:{total.toString().padStart(2, "0")}
         </span>
-        <div style={{ flex: 1 }}></div>
-        <button className="mv-btn-ghost mv-btn-sm" style={{ padding: "4px 8px" }}>Tách</button>
-        <button className="mv-btn-ghost mv-btn-sm" style={{ padding: "4px 8px" }}>Xóa</button>
+        <div className="flex-1"></div>
+        <button className="cursor-pointer rounded bg-transparent px-2 py-1 text-[12px] font-medium text-[var(--fg)] hover:bg-[var(--bg-hover)]">Tách</button>
+        <button className="cursor-pointer rounded bg-transparent px-2 py-1 text-[12px] font-medium text-[var(--fg)] hover:bg-[var(--bg-hover)]">Xóa</button>
       </div>
 
-      <div className="timeline-tracks">
-        <div className="playhead-mock"></div>
+      <div className="relative flex-1 overflow-auto bg-[var(--bg-panel)] p-2">
+        <div className="absolute bottom-0 left-[240px] top-0 z-10 w-[2px] bg-red-500 after:absolute after:-top-1 after:-ml-1.5 after:border-[6px] after:border-transparent after:border-t-red-500"></div>
 
         {/* Video Track */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "8px", alignItems: "center" }}>

@@ -1,4 +1,4 @@
-import "./app.css";
+import "../globals.css";
 import type { ReactNode } from "react";
 
 export default function AppRootLayout({ children }: { children: ReactNode }) {
