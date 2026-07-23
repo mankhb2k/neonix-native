@@ -23,9 +23,8 @@ export function MediaItem({
   onClick,
 }: MediaItemProps) {
   return (
-    <div className={cn("flex flex-col gap-1.5 w-full cursor-pointer group", className)} onClick={onClick}>
-      <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-[#27272A] border-2 border-transparent transition-all group-hover:border-[var(--line-strong)]">
-        {/* Background Image */}
+    <div className={cn("flex flex-col gap-1.5 w-full cursor-pointer", className)} onClick={onClick}>
+      <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-[#27272A]">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -36,21 +35,18 @@ export function MediaItem({
           <div className="absolute inset-0 bg-gradient-to-br from-[#27272A] to-[#18181B]" />
         )}
 
-        {/* Added Badge */}
         {isAdded && (
           <div className="absolute top-1 left-1 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-sm font-medium">
             Đã thêm
           </div>
         )}
 
-        {/* Duration Badge */}
         {duration && (
           <div className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm text-white text-[10px] rounded-sm font-medium">
             {duration}
           </div>
         )}
 
-        {/* Logo / Brand Text */}
         {(logoUrl || logoText) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
             {logoUrl && (
@@ -67,8 +63,7 @@ export function MediaItem({
         )}
       </div>
 
-      {/* Title */}
-      <div className="text-[12px] font-medium text-[var(--fg)] truncate w-full px-0.5 group-hover:text-[var(--accent)] transition-colors">
+      <div className="text-[12px] font-medium text-[var(--fg)] truncate w-full px-0.5">
         {title}
       </div>
     </div>

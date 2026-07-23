@@ -27,17 +27,23 @@ export type ChatMessage = {
   pendingPatch?: ProjectPatch;
 };
 
+export type SceneRole = NonNullable<Scene["role"]>;
+
 type EditorState = {
   project: MotionProject | null;
   selectedSceneId: string | null;
   selectedLayerId: string | null;
+  sceneClipboard: Scene | null;
   messages: ChatMessage[];
   isExporting: boolean;
   activeSidebarTab: string;
+  sidebarOpen: boolean;
   loadProject: (project: MotionProject) => void;
   selectScene: (sceneId: string) => void;
   selectLayer: (layerId: string | null) => void;
   setActiveSidebarTab: (tab: string) => void;
+  setSidebarOpen: (open: boolean) => void;
+  toggleSidebar: () => void;
   updateBrand: (patch: Partial<MotionProject["brand"]>) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
   updateLayerContent: (sceneId: string, layerId: string, content: string) => void;
@@ -52,6 +58,12 @@ type EditorState = {
     patch: { preset?: string; duration?: number; delay?: number },
   ) => void;
   setAspectRatio: (aspectRatio: MotionProject["aspectRatio"]) => void;
+  copyScene: (sceneId: string) => void;
+  cutScene: (sceneId: string) => void;
+  pasteScene: (afterSceneId: string) => void;
+  duplicateScene: (sceneId: string) => void;
+  renameScene: (sceneId: string, role: SceneRole) => void;
+  deleteScene: (sceneId: string) => void;
   sendChat: (text: string) => void;
   applyPatch: (messageId: string) => void;
   dismissPatch: (messageId: string) => void;
@@ -64,6 +76,30 @@ function uid(prefix: string) {
 
 function findTextLayer(scene: Scene): Layer | undefined {
   return scene.layers.find((l) => l.type === "text");
+}
+
+function cloneScene(scene: Scene): Scene {
+  return {
+    ...scene,
+    id: uid("scene"),
+    layers: scene.layers.map((layer) => ({
+      ...layer,
+      id: uid("layer"),
+      animations: layer.animations.map((a) => ({ ...a })),
+    })),
+  };
+}
+
+function insertSceneAfter(
+  scenes: Scene[],
+  afterSceneId: string,
+  scene: Scene,
+): Scene[] {
+  const index = scenes.findIndex((s) => s.id === afterSceneId);
+  if (index < 0) return [...scenes, scene];
+  const next = [...scenes];
+  next.splice(index + 1, 0, scene);
+  return next;
 }
 
 function mapLayer(
@@ -242,6 +278,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
   selectedSceneId: null,
   selectedLayerId: null,
+  sceneClipboard: null,
   messages: [
     {
       id: "welcome",
@@ -252,6 +289,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   ],
   isExporting: false,
   activeSidebarTab: "frame",
+  sidebarOpen: true,
 
   loadProject: (project) => {
     const firstScene = project.scenes[0];
@@ -281,7 +319,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   selectLayer: (layerId) => set({ selectedLayerId: layerId }),
 
-  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
+  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab, sidebarOpen: true }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
   updateBrand: (patch) => {
     const project = get().project;
@@ -364,6 +404,76 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const project = get().project;
     if (!project) return;
     set({ project: { ...project, aspectRatio } });
+  },
+
+  copyScene: (sceneId) => {
+    const scene = get().project?.scenes.find((s) => s.id === sceneId);
+    if (!scene) return;
+    set({ sceneClipboard: cloneScene(scene) });
+  },
+
+  cutScene: (sceneId) => {
+    const { project, copyScene, deleteScene } = get();
+    if (!project || project.scenes.length <= 1) return;
+    copyScene(sceneId);
+    deleteScene(sceneId);
+  },
+
+  pasteScene: (afterSceneId) => {
+    const { project, sceneClipboard } = get();
+    if (!project || !sceneClipboard) return;
+    const pasted = cloneScene(sceneClipboard);
+    set({
+      project: {
+        ...project,
+        scenes: insertSceneAfter(project.scenes, afterSceneId, pasted),
+      },
+      selectedSceneId: pasted.id,
+      selectedLayerId: pasted.layers[0]?.id ?? null,
+    });
+  },
+
+  duplicateScene: (sceneId) => {
+    const project = get().project;
+    const scene = project?.scenes.find((s) => s.id === sceneId);
+    if (!project || !scene) return;
+    const duplicated = cloneScene(scene);
+    set({
+      project: {
+        ...project,
+        scenes: insertSceneAfter(project.scenes, sceneId, duplicated),
+      },
+      selectedSceneId: duplicated.id,
+      selectedLayerId: duplicated.layers[0]?.id ?? null,
+    });
+  },
+
+  renameScene: (sceneId, role) => {
+    const project = get().project;
+    if (!project) return;
+    set({
+      project: {
+        ...project,
+        scenes: project.scenes.map((s) =>
+          s.id === sceneId ? { ...s, role } : s,
+        ),
+      },
+    });
+  },
+
+  deleteScene: (sceneId) => {
+    const project = get().project;
+    if (!project || project.scenes.length <= 1) return;
+    const index = project.scenes.findIndex((s) => s.id === sceneId);
+    if (index < 0) return;
+    const scenes = project.scenes.filter((s) => s.id !== sceneId);
+    const nextSelected =
+      scenes[Math.min(index, scenes.length - 1)] ?? scenes[0]!;
+    set({
+      project: { ...project, scenes },
+      selectedSceneId: nextSelected.id,
+      selectedLayerId: nextSelected.layers[0]?.id ?? null,
+    });
   },
 
   sendChat: (text) => {

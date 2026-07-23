@@ -1,8 +1,8 @@
 "use client";
 
 import { useEditorStore } from "@/lib/store/editor-store";
-import { Tabs, type TabItem } from "@/components/ui/Tabs";
-import { Frame, Shapes, Type, Upload } from "lucide-react";
+import { Tabs, type TabItem } from "@/components/ui";
+import { Frame, Shapes, Type, CloudUpload } from "lucide-react";
 
 const ICON_PROPS = { size: 14, strokeWidth: 1.2 };
 
@@ -24,8 +24,8 @@ const RIBBON_TABS: TabItem[] = [
   },
   {
     id: "upload",
-    label: "Tải lên",
-    icon: <Upload {...ICON_PROPS} />,
+    label: "Phương tiện",
+    icon: <CloudUpload {...ICON_PROPS} />,
   },
 ];
 

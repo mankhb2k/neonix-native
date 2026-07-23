@@ -10,11 +10,13 @@ export function Sidebar() {
   const activeSidebarTab = useEditorStore((s) => s.activeSidebarTab);
 
   return (
-    <aside className="relative flex flex-col overflow-y-auto border-r border-[var(--line)] bg-[var(--bg-panel)] [grid-area:sidebar]">
-      {activeSidebarTab === "frame" && <FramePanel />}
-      {activeSidebarTab === "elements" && <ElementsPanel />}
-      {activeSidebarTab === "text" && <TextPanel />}
-      {activeSidebarTab === "upload" && <UploadPanel />}
+    <aside className="relative flex flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--bg-panel)] [grid-area:sidebar]">
+      <div className="w-[320px] h-full flex flex-col">
+        {activeSidebarTab === "frame" && <FramePanel />}
+        {activeSidebarTab === "elements" && <ElementsPanel />}
+        {activeSidebarTab === "text" && <TextPanel />}
+        {activeSidebarTab === "upload" && <UploadPanel />}
+      </div>
     </aside>
   );
 }

@@ -3,8 +3,7 @@
 import { useRef, useState } from "react";
 import { AppLink } from "@/components/AppLink";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
-import { Button } from "@/components/ui/Button";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
 import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";

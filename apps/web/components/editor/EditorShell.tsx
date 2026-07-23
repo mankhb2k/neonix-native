@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./PreviewStage";
 import { RightDock } from "./RightDock";
@@ -17,7 +18,8 @@ type Props = {
 export function EditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
-  const [toolsOpen, setToolsOpen] = useState(true);
+  const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
+  const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
 
   useEffect(() => {
     loadProject(initialProject);
@@ -30,8 +32,8 @@ export function EditorShell({ initialProject }: Props) {
 
   return (
     <div
-      className={`grid h-screen w-screen overflow-hidden bg-[var(--bg-base)] text-[var(--fg)] relative ${
-        toolsOpen
+      className={`grid h-screen w-screen overflow-hidden bg-[var(--bg-base)] text-[var(--fg)] relative transition-[grid-template-columns] duration-200 ease-out ${
+        sidebarOpen
           ? "grid-rows-[74px_1fr_240px] grid-cols-[320px_1fr_320px]"
           : "grid-rows-[74px_1fr_240px] grid-cols-[0px_1fr_320px]"
       }`}
@@ -46,18 +48,21 @@ export function EditorShell({ initialProject }: Props) {
       <TopBar />
       
       <Sidebar />
-      
+
       <button
         type="button"
-        className={`absolute top-1/2 -translate-y-1/2 z-30 flex h-[36px] w-[16px] items-center justify-center rounded-r bg-[var(--bg-panel)] border border-[var(--line-strong)] text-[var(--fg-muted)] cursor-pointer hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-all duration-300 ${toolsOpen ? "left-[320px]" : "left-0"}`}
-        onClick={() => setToolsOpen((open) => !open)}
-        aria-label={toolsOpen ? "Thu gọn panel phụ" : "Mở panel phụ"}
-        aria-expanded={toolsOpen}
-        title={toolsOpen ? "Thu gọn" : "Mở rộng"}
+        className={`absolute top-[80px] z-30 flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[var(--bg-panel)] border border-[var(--line-strong)] text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] shadow-sm transition-all duration-200 ease-out cursor-pointer ${
+          sidebarOpen ? "left-[328px]" : "left-[12px]"
+        }`}
+        onClick={toggleSidebar}
+        aria-label={sidebarOpen ? "Thu gọn sidebar" : "Mở rộng sidebar"}
+        title={sidebarOpen ? "Thu gọn" : "Mở rộng"}
       >
-        <span aria-hidden>
-          {toolsOpen ? "‹" : "›"}
-        </span>
+        {sidebarOpen ? (
+          <PanelLeftClose size={14} strokeWidth={1.5} />
+        ) : (
+          <PanelLeftOpen size={14} strokeWidth={1.5} />
+        )}
       </button>
 
       <main 

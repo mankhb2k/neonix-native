@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Tooltip } from "./Tooltip";
-import { Button } from "../Button";
+import { Button } from "../Button/Button";
 import { Settings, CloudCheck, Gem, Upload, Info } from "lucide-react";
 
 const meta: Meta<typeof Tooltip> = {

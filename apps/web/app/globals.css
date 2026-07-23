@@ -2,14 +2,14 @@
 
 :root {
   --bg: #0e0e10;
-  --bg-base: #0F0F11;
+  --bg-base: #0f0f11;
   --bg-elevated: #17171a;
-  --bg-panel: #18181B;
-  --bg-hover: #27272A;
+  --bg-panel: #18181b;
+  --bg-hover: #27272a;
   --fg: #f0f0f2;
   --fg-muted: #a2a2ab;
   --fg-faint: #6f6f78;
-  --line: #27272A;
+  --line: #27272a;
   --line-strong: #3f3f46;
   --accent: #3f9a62;
   --accent-soft: rgba(63, 154, 98, 0.16);
@@ -20,10 +20,30 @@
   --radius: 10px;
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
+
+  /* Type scale — dùng text-micro | text-caption | text-ui | text-body | text-title | … */
+
+  --fs-caption: 11px;
+  --fs-ui: 12px;
+  --fs-body: 13px;
+  --fs-title: 13px;
+  --fs-micro: 10px;
+  --fs-subtitle: 16px;
+  --fs-heading: 18px;
+  --fs-display: 24px;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --lh-tight: 1.25;
+  --lh-normal: 1.4;
 }
 
 /* Light Theme Variables */
-[data-theme="light"], .light {
+[data-theme="light"],
+.light {
   --bg: #ffffff;
   --bg-base: #f4f4f5;
   --bg-elevated: #f4f4f5;
@@ -40,6 +60,30 @@
   --preview-bg: #e4e4e7;
 }
 
+@theme inline {
+  --text-micro: var(--fs-micro);
+  --text-micro--line-height: var(--lh-tight);
+  --text-caption: var(--fs-caption);
+  --text-caption--line-height: var(--lh-tight);
+  --text-ui: var(--fs-ui);
+  --text-ui--line-height: var(--lh-normal);
+  --text-body: var(--fs-body);
+  --text-body--line-height: var(--lh-normal);
+  --text-title: var(--fs-title);
+  --text-title--line-height: var(--lh-normal);
+  --text-subtitle: var(--fs-subtitle);
+  --text-subtitle--line-height: var(--lh-normal);
+  --text-heading: var(--fs-heading);
+  --text-heading--line-height: var(--lh-tight);
+  --text-display: var(--fs-display);
+  --text-display--line-height: var(--lh-tight);
+
+  --font-weight-regular: var(--fw-regular);
+  --font-weight-medium: var(--fw-medium);
+  --font-weight-semibold: var(--fw-semibold);
+  --font-weight-bold: var(--fw-bold);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -52,6 +96,9 @@ body {
   background: var(--bg-base);
   color: var(--fg);
   font-family: var(--font-sans);
+  font-size: var(--fs-ui);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
   overflow: hidden;
 }
 
