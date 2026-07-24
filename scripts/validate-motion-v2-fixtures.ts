@@ -59,7 +59,7 @@ type LimitCase = {
     | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
-    | "shape.polygonPoints" | "path.contours" | "path.segments";
+    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -338,6 +338,30 @@ async function validateNegativeFixtures(): Promise<number> {
       message: "Mask dependency cycle detected",
     },
     {
+      file: "components/missing-repeater-variable.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.item.repeat.source.variableId",
+      message: "Unknown variable: missing",
+    },
+    {
+      file: "components/repeater-source-not-list.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.item.repeat.source.variableId",
+      message: "Repeater source must be a list variable: count",
+    },
+    {
+      file: "components/duplicate-repeater-key.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.item.repeat.source.keyPath",
+      message: "Duplicate Repeater key: same",
+    },
+    {
+      file: "components/missing-repeater-key.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.item.repeat.source.keyPath",
+      message: "Repeater key id is missing at item 0",
+    },
+    {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
       path: "scenes.scene.nodes.instance.payload",
@@ -461,6 +485,16 @@ async function validateNegativeFixtures(): Promise<number> {
       file: "components/invalid-mask-mode.mvc.json",
       path: "nodes.1.mask.mode",
       code: "invalid_enum_value",
+    },
+    {
+      file: "components/invalid-repeater-layout.mvc.json",
+      path: "nodes.0.repeat.layout.kind",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "components/negative-repeater-stagger.mvc.json",
+      path: "nodes.0.repeat.timeStagger",
+      code: "too_small",
     },
   ] as const;
   for (const fixture of schemaCases) {
@@ -618,6 +652,15 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
       },
       style: { stroke: "#ffffff", strokeWidth: 1 },
     }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "repeater.count" || testCase.target === "repeater.gridColumns") {
+    const component = baseLimitComponent();
+    (component.nodes as Array<Record<string, unknown>>)[0]!.repeat = {
+      source: { kind: "count", count: testCase.target === "repeater.count" ? count : 1, keyPrefix: "item" },
+      layout: testCase.target === "repeater.gridColumns" ? { kind: "grid", columns: count, gapX: 1, gapY: 1 } : { kind: "none" },
+      timeStagger: 0,
+    };
     return { artifact: component, parse: parseMotionComponentV2 };
   }
   const project = baseLimitProject();
@@ -787,6 +830,24 @@ async function main(): Promise<void> {
   const repeatedTitles = repeatRuntime.scenes[0]!.nodes.filter((node) => node.id.includes("step-title::"));
   if (repeatedTitles.length !== 3) throw new Error(`Expected 3 repeated step titles, got ${repeatedTitles.length}`);
   console.log("OK compiler/repeater expanded 3 items");
+
+  const repeaterProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "repeater-layouts.mt.json")));
+  const repeaterRuntime = compileMotionProject(repeaterProject, { components });
+  const repeaterScene = repeaterRuntime.scenes[0]!;
+  if (JSON.stringify(repeaterRuntime).includes('"repeat"')) throw new Error("Compiler leaked Repeater authoring directives into Runtime IR");
+  const family = (name: string) => repeaterScene.nodes.filter((node) => node.id.includes(`::${name}::`));
+  const listNodes = family("list-item");
+  const gridNodes = family("grid-item");
+  const radialNodes = family("radial-item");
+  const noneNodes = family("none-item");
+  deepStrictEqual([listNodes.length, gridNodes.length, radialNodes.length, noneNodes.length], [3, 6, 5, 2], "Repeater family counts changed");
+  deepStrictEqual(listNodes.map((node) => node.id.split("::").at(-1)), ["alpha", "beta", "gamma"], "List Repeater stable keys changed");
+  deepStrictEqual(listNodes.map((node) => node.style?.fill), ["#ef4444", "#f97316", "#facc15"], "List context bindings changed");
+  deepStrictEqual(gridNodes.map((node) => [node.transform.x, node.transform.y]), [[110, 300], [220, 300], [330, 300], [110, 400], [220, 400], [330, 400]], "Grid Repeater layout changed");
+  deepStrictEqual(noneNodes.map((node) => [node.transform.x, node.transform.y]), [[220, 650], [220, 650]], "None Repeater layout changed");
+  deepStrictEqual(radialNodes.map((node) => node.transform.rotation), [0, 72, 144, 216, 288], "Radial orientation changed");
+  deepStrictEqual(repeaterScene.tracks.map((track) => track.keys[0]!.t), [0, 0.1, 0.2, 0.3, 0.4, 0.5], "Repeater time stagger changed");
+  console.log("OK compiler/repeater vNext list/count/none/linear/grid/radial/stagger expansion");
 
   console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
 }

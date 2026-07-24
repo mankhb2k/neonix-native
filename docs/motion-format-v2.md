@@ -31,7 +31,7 @@ Renderer chỉ đọc Normalized Runtime IR.
 
 Mọi number trong typed fields lẫn generic JSON phải hữu hạn; parser reject NaN/Infinity, kể cả khi JSON hợp lệ như `1e400` được JavaScript đọc thành Infinity. Transform dimensions, scale, media duration/FPS, playback iterations và các numeric domain khác có hard limit trong `MOTION_V2_LIMITS`.
 
-Mọi public array hiện có—asset, variable, public param, dependency, binding, scene, node, clip, track, key, audio track, extension entry, patch operation, enum option, locale, semantic tags, polygon points, Path contours và Path segments—đều có trần schema. Limit cho effect stack và Repeater vNext chỉ được thêm cùng primitive tương ứng; không tồn tại placeholder không được test.
+Mọi public array hiện có—asset, variable, public param, dependency, binding, scene, node, clip, track, key, audio track, extension entry, patch operation, enum option, locale, semantic tags, polygon points, Path contours và Path segments—đều có trần schema. Repeater có hard limit cho count và grid columns; effect stack chỉ nhận limit khi primitive tương ứng được thêm cùng fixture.
 
 ## Scene graph
 
@@ -108,7 +108,7 @@ AI và schema-driven controls chỉ enumerate property có `public: true`; việ
 
 ## List và repeater
 
-Variable list khai báo `itemSchema`. Group template có `repeat` với source, alias, stable key và layout. Binding con có source `context`, ví dụ `item.title`. Compiler clone subtree, binding và clip bằng ID deterministic; giới hạn số item là policy của compiler. Renderer không biết Repeater.
+Variable list khai báo `itemSchema`. Node template có `repeat.source` dạng `list { variableId, keyPath }` hoặc `count { count, keyPrefix }`; layout là `none`, `linear`, `grid` hoặc `radial`. Binding con có source `context`, ví dụ `item.title`. Compiler clone subtree/binding/clip bằng ID deterministic, áp `timeStagger`, canonicalize timestamp và xóa directive khỏi Runtime IR. Count, list item và grid columns đều có hard limit; renderer không biết Repeater.
 
 ## Clip timing
 

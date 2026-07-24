@@ -33,6 +33,8 @@ export const MOTION_V2_LIMITS = Object.freeze({
   pathContours: 64,
   pathSegmentsPerContour: 10_000,
   polygonPoints: 10_000,
+  repeaterInstances: 1_000,
+  repeaterGridColumns: 100,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

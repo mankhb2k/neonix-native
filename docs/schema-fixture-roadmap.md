@@ -21,7 +21,7 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone Mask/Clip có 13 positive fixtures, 34 negative artifacts, 24 deterministic limit cases, 7 Runtime IR goldens, 5 PNG goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone Repeater vNext có 15 positive fixtures, 40 negative artifacts, 26 deterministic limit cases, 8 Runtime IR goldens, 6 PNG goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
@@ -29,13 +29,13 @@ Baseline sau milestone Mask/Clip có 13 positive fixtures, 34 negative artifacts
 - [x] Finite-number policy cho toàn bộ numeric/JSON surface; limits cho dimensions, scale, duration, FPS, playback và public arrays hiện có.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 34 negative artifacts và 24 limit/depth descriptors với structured error assertions.
-- [x] 7 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
+- [x] 40 negative artifacts và 26 limit/depth descriptors với structured error assertions.
+- [x] 8 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
 - [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 - [x] Runtime world bounds, inverse-matrix hit-test, drawable subtree bounds và offscreen dimension/pixel budgets.
-- [x] Shared frame clock, pure random-access seeded samples và 5 stored PNG pixel goldens có diff artifact.
+- [x] Shared frame clock, pure random-access seeded samples và 6 stored PNG pixel goldens có diff artifact.
 - [x] Runtime schema reject unknown/compile-only tracks; Text string/number/color tracks dùng evaluator thật trong renderer.
 
 ### Phase 1 progress
@@ -52,6 +52,7 @@ Baseline sau milestone Mask/Clip có 13 positive fixtures, 34 negative artifacts
 - [x] Solid Paint fill/stroke/opacity/cap/join, animated property registry, geometry limits và negative topology fixtures.
 - [x] Worker renderer, true cubic extrema bounds, stroke inflation và stored geometry PNG golden chứng minh `evenodd` hole.
 - [x] Typed Mask relation thay `maskId`: clip/alpha/inverse-alpha, source visibility, missing/cycle rejection và nested compositing.
+- [x] Repeater vNext list/count, none/linear/grid/radial, stable keys/context, orient-to-angle, time stagger và hard limits.
 
 ### Đã có contract và hành vi có thể dựa vào
 
@@ -111,7 +112,7 @@ Trạng thái: hoàn tất cho mọi property normative hiện tại. Registry e
 
 Chốt max scenes/nodes/keys/path points/repeater count/effects, finite number policy, key ordering/duplicate time, ID length và nesting depth. Negative fixtures phải khóa từng limit.
 
-Trạng thái: finite policy và mọi limit thuộc normative surface hiện tại đã khóa bằng 24 stress cases. Path có giới hạn contour/segment và polygon có giới hạn point; effect stack sẽ nhận limit cùng fixtures S2. Repeater list hiện bị khóa bởi `listItems` và sẽ có count/grid/radial limits riêng khi mở rộng ở S3.
+Trạng thái: finite policy và mọi limit thuộc normative surface hiện tại đã khóa bằng 26 stress cases. Path có giới hạn contour/segment, polygon có giới hạn point, Repeater có giới hạn instance/grid columns và list có giới hạn item; effect stack sẽ nhận limit cùng fixtures tương ứng.
 
 ## Thứ tự primitive cần fixture để thêm/siết schema
 
@@ -136,6 +137,8 @@ Exit: authoring fixtures + expected Runtime JSON + negative topology/reference/v
 Exit: compiler giữ đúng thứ tự canonical `raster → mask → effects → composite`; chưa cần pixel renderer để khóa JSON order/reference.
 
 ### S3 — Motion/expansion
+
+**Progress:** Repeater vNext hoàn tất; Motion Path, Text Animator và Morph còn chờ các milestone kế tiếp.
 
 9. Motion Path: pathId/progress/orient/offset.
 10. Repeater count/list + linear/grid/radial + stagger; compile-time expansion.

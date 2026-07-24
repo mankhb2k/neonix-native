@@ -200,20 +200,25 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
   }).strict(),
 ]);
 
-const RepeaterSchema = z
-  .object({
-    sourceVariableId: IdSchema,
-    itemAlias: IdSchema.default("item"),
-    indexAlias: IdSchema.default("index"),
-    keyPath: PropertyPathSchema,
-    layout: z
-      .object({
-        direction: z.enum(["horizontal", "vertical"]),
-        gap: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
-      })
-      .strict(),
-  })
-  .strict();
+const RepeatSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("list"), variableId: IdSchema, keyPath: PropertyPathSchema }).strict(),
+  z.object({ kind: z.literal("count"), count: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.repeaterInstances), keyPrefix: IdSchema.default("item") }).strict(),
+]);
+
+const RepeatLayoutSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("none") }).strict(),
+  z.object({ kind: z.literal("linear"), offsetX: FiniteNumberSchema, offsetY: FiniteNumberSchema }).strict(),
+  z.object({ kind: z.literal("grid"), columns: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.repeaterGridColumns), gapX: FiniteNumberSchema, gapY: FiniteNumberSchema }).strict(),
+  z.object({ kind: z.literal("radial"), radius: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension), startAngle: FiniteNumberSchema, endAngle: FiniteNumberSchema, orientToAngle: z.boolean().default(false) }).strict(),
+]);
+
+const RepeaterSchema = z.object({
+  source: RepeatSourceSchema,
+  itemAlias: IdSchema.default("item"),
+  indexAlias: IdSchema.default("index"),
+  layout: RepeatLayoutSchema,
+  timeStagger: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).default(0),
+}).strict();
 
 const NodeBaseSchema = z.object({
   id: IdSchema,
@@ -686,6 +691,15 @@ function duplicates(values: string[]): string[] {
   return values.filter((value, index) => values.indexOf(value) !== index);
 }
 
+function valueAtPath(value: unknown, path: string): unknown {
+  let current = value;
+  for (const part of path.split(".")) {
+    if (current === null || typeof current !== "object" || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
 function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: string): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const ids = nodes.map((node) => node.id);
@@ -903,7 +917,24 @@ export function validateMotionComponentV2References(component: MotionComponentV2
     }
   }
   for (const node of component.nodes) {
-    if (node.repeat && !variableIds.has(node.repeat.sourceVariableId)) issues.push({ path: `nodes.${node.id}.repeat.sourceVariableId`, message: `Unknown variable: ${node.repeat.sourceVariableId}` });
+    if (node.repeat?.source.kind !== "list") continue;
+    const source = node.repeat.source;
+    const variable = component.variables.find((candidate) => candidate.id === source.variableId);
+    if (!variable) {
+      issues.push({ path: `nodes.${node.id}.repeat.source.variableId`, message: `Unknown variable: ${source.variableId}` });
+      continue;
+    }
+    if (variable.type !== "list") {
+      issues.push({ path: `nodes.${node.id}.repeat.source.variableId`, message: `Repeater source must be a list variable: ${source.variableId}` });
+      continue;
+    }
+    const keys: string[] = [];
+    variable.value.forEach((item, index) => {
+      const key = valueAtPath(item, source.keyPath);
+      if (typeof key !== "string" && typeof key !== "number") issues.push({ path: `nodes.${node.id}.repeat.source.keyPath`, message: `Repeater key ${source.keyPath} is missing at item ${index}` });
+      else keys.push(String(key));
+    });
+    for (const key of new Set(duplicates(keys))) issues.push({ path: `nodes.${node.id}.repeat.source.keyPath`, message: `Duplicate Repeater key: ${key}` });
   }
   const referencedVariables = new Set<string>();
   const collectReferences = (value: unknown): void => {

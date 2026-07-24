@@ -20,7 +20,7 @@ import {
   planOffscreenSurface,
   subtreeBounds,
 } from "../packages/motion-runtime/src/index";
-import { parseMotionProjectV2 } from "../packages/motion-schema/src/index";
+import { parseMotionComponentV2, parseMotionProjectV2 } from "../packages/motion-schema/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
@@ -32,6 +32,7 @@ const frameGoldens = [
   { project: "hierarchy", time: 1.5, file: "hierarchy-transform-t1_5.png", width: 270, height: 480 },
   { project: "geometry", time: 1, file: "geometry-paths-t1.png", width: 540, height: 540 },
   { project: "mask", time: 0, file: "mask-compositing-t0.png", width: 540, height: 540 },
+  { project: "repeater", time: 1, file: "repeater-layouts-t1.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -234,11 +235,21 @@ async function main(): Promise<void> {
   assert.ok(alphaHitsInside.some(({ node }) => node.id === "content.alpha"), "alpha-masked content must hit inside mask bounds");
   assert.ok(!alphaHitsInside.some(({ node }) => node.id === "mask.alpha"), "mask-only source must not capture hit-tests");
 
+  const repeaterComponent = parseMotionComponentV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "components", "repeater-layouts.mvc.json"),
+    "utf8",
+  )));
+  const repeaterSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "repeater-layouts.mt.json"),
+    "utf8",
+  )));
+  const repeaterRuntime = compileMotionProject(repeaterSource, { components: [repeaterComponent] });
+
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
   for (const golden of frameGoldens) {
-    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : runtime;
+    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
     await writeFile(resolve(outputRoot, golden.file), png);
@@ -267,8 +278,13 @@ async function main(): Promise<void> {
       const alphaPixel = await pixelAt(png, 110, 110);
       assert.ok(alphaPixel[0] > 100 && alphaPixel[0] < 239, "alpha mask must preserve source opacity instead of acting as binary clip");
     }
+    if (golden.project === "repeater") {
+      assert.ok(await countColor(png, [20, 184, 166]) >= 100, "grid Repeater pixels missing");
+      assert.ok(await countColor(png, [168, 85, 247]) >= 100, "radial Repeater pixels missing");
+      assert.ok(await countColor(png, [249, 115, 22]) >= 100, "list context-bound Repeater pixels missing");
+    }
   }
-  assert.equal(hashes.size, 5, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 6, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
@@ -276,6 +292,7 @@ async function main(): Promise<void> {
   console.log("OK SVG torso, limb, hand and attached prop pixels rendered");
   console.log("OK Shape/Path geometry, cubic bounds, animated paint and evenodd holes rendered");
   console.log("OK clip/alpha/inverse-alpha masks, nested masks and mask-aware hit testing");
+  console.log("OK Repeater vNext list/count/linear/grid/radial visual expansion");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

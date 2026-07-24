@@ -30,6 +30,15 @@ function setPath(target: Record<string, unknown>, path: string, value: unknown):
   if (last) cursor[last] = clone(value);
 }
 
+function getPath(value: unknown, path: string): unknown {
+  let current = value;
+  for (const part of path.split(".")) {
+    if (current === null || typeof current !== "object" || Array.isArray(current)) return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
 function resolveValue(value: unknown, variables: Map<string, unknown>): unknown {
   if (Array.isArray(value)) return value.map((item) => resolveValue(item, variables));
   if (value === null || typeof value !== "object") return value;
@@ -82,6 +91,10 @@ function number(value: unknown, label: string): number {
   return value;
 }
 
+function canonicalTime(value: number): number {
+  return Math.round(value * 1_000_000_000) / 1_000_000_000;
+}
+
 function presetTracks(node: RuntimeNode, preset: string, start: number, end: number): RuntimeTrack[] {
   const x = node.transform.x;
   const y = node.transform.y;
@@ -116,14 +129,14 @@ function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<
   return clips.flatMap((clip) => {
     const rate = number(resolveValue(clip.playback.rate, variables), `clips.${clip.id}.playback.rate`);
     if (rate <= 0) throw new Error(`clips.${clip.id}.playback.rate must be > 0`);
-    const start = starts.get(clip.id) ?? 0;
+    const start = canonicalTime(starts.get(clip.id) ?? 0);
     const duration = clip.duration / rate;
     if (clip.source.kind === "tracks") {
       return clip.source.tracks.map((track) => ({
         targetId: track.targetId,
         property: track.property,
         keys: track.keys.map((key) => ({
-          t: start + key.t / rate,
+          t: canonicalTime(start + key.t / rate),
           v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"],
           ...(key.easing ? { easing: key.easing } : {}),
         })),
@@ -132,7 +145,7 @@ function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<
     if (!clip.targetId) throw new Error(`Preset clip ${clip.id} requires targetId`);
     const node = nodeById.get(clip.targetId);
     if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
-    return presetTracks(node, clip.source.presetId, start, start + duration);
+    return presetTracks(node, clip.source.presetId, start, canonicalTime(start + duration));
   });
 }
 
@@ -164,10 +177,10 @@ function expandComponents(
       }
       return undefined;
     };
-    type ExpandedTarget = { node: RuntimeNode; context?: Record<string, unknown>; itemIndex?: number; repeatKey?: string };
+    type ExpandedTarget = { node?: RuntimeNode; context?: Record<string, unknown>; itemIndex?: number; repeatKey?: string; timeStagger?: number };
     const targets = new Map<string, ExpandedTarget[]>();
     const expanded: RuntimeNode[] = [];
-    const addExpanded = (internal: MotionNode, id: string, parentId: string | null, context?: Record<string, unknown>, itemIndex?: number, repeatKey?: string): void => {
+    const addExpanded = (internal: MotionNode, id: string, parentId: string | null, context?: Record<string, unknown>, itemIndex?: number, repeatKey?: string, timeStagger?: number): void => {
       if (internal.type === "component") throw new Error(`Nested component is not supported: ${key}/${internal.id}`);
       const next = clone(internal) as RuntimeNode;
       delete (next as RuntimeNode & { repeat?: unknown }).repeat;
@@ -191,7 +204,7 @@ function expandComponents(
       }
       expanded.push(next);
       const list = targets.get(internal.id) ?? [];
-      list.push({ node: next, context, itemIndex, repeatKey });
+      list.push({ node: next, context, itemIndex, repeatKey, timeStagger });
       targets.set(internal.id, list);
     };
     for (const internal of component.nodes.filter((candidate) => !repeatOwner(candidate))) {
@@ -199,13 +212,17 @@ function expandComponents(
     }
     for (const root of repeatRoots) {
       const directive = root.repeat!;
-      const items = values.get(directive.sourceVariableId);
-      if (!Array.isArray(items)) throw new Error(`Repeater source must be a list: ${key}/${directive.sourceVariableId}`);
+      const items = directive.source.kind === "list"
+        ? values.get(directive.source.variableId)
+        : Array.from({ length: directive.source.count }, (_, index) => ({ index: index + 1 }));
+      if (!Array.isArray(items)) throw new Error(`Repeater source must be a list: ${key}/${directive.source.kind === "list" ? directive.source.variableId : root.id}`);
       const subtree = component.nodes.filter((candidate) => repeatOwner(candidate)?.id === root.id);
       items.forEach((item, index) => {
         if (item === null || typeof item !== "object" || Array.isArray(item)) throw new Error(`Repeater item ${index} must be an object`);
-        const rawKey = (item as Record<string, unknown>)[directive.keyPath];
-        if (typeof rawKey !== "string" && typeof rawKey !== "number") throw new Error(`Repeater key ${directive.keyPath} is missing at item ${index}`);
+        const rawKey = directive.source.kind === "list"
+          ? getPath(item, directive.source.keyPath)
+          : `${directive.source.keyPrefix}-${index + 1}`;
+        if (typeof rawKey !== "string" && typeof rawKey !== "number") throw new Error(`Repeater key ${directive.source.kind === "list" ? directive.source.keyPath : directive.source.keyPrefix} is missing at item ${index}`);
         const repeatKey = String(rawKey);
         const context = { [directive.itemAlias]: item, [directive.indexAlias]: index + 1 };
         for (const internal of subtree) {
@@ -213,12 +230,19 @@ function expandComponents(
           const parentId = internal.id === root.id
             ? (root.parentId ? `${node.id}::${root.parentId}` : node.parentId)
             : `${node.id}::${internal.parentId}::${repeatKey}`;
-          addExpanded(internal, id, parentId, context, index, repeatKey);
+          addExpanded(internal, id, parentId, context, index, repeatKey, directive.timeStagger);
           const created = expanded[expanded.length - 1]!;
           if (internal.id === root.id) {
-            const delta = index * (root.transform.height + directive.layout.gap);
-            if (directive.layout.direction === "vertical") created.transform.y += delta;
-            else created.transform.x += index * (root.transform.width + directive.layout.gap);
+            const layout = directive.layout;
+            if (layout.kind === "linear") { created.transform.x += index * layout.offsetX; created.transform.y += index * layout.offsetY; }
+            else if (layout.kind === "grid") { created.transform.x += (index % layout.columns) * layout.gapX; created.transform.y += Math.floor(index / layout.columns) * layout.gapY; }
+            else if (layout.kind === "radial") {
+              const angle = items.length === 1 ? layout.startAngle : layout.startAngle + (layout.endAngle - layout.startAngle) * index / (items.length - 1);
+              const radians = angle * Math.PI / 180;
+              created.transform.x += Math.cos(radians) * layout.radius;
+              created.transform.y += Math.sin(radians) * layout.radius;
+              if (layout.orientToAngle) created.transform.rotation += angle;
+            }
           }
         }
       });
@@ -242,22 +266,23 @@ function expandComponents(
     outputNodes.push(...expanded);
     for (const clipInput of component.clips) {
       const resolved = resolveValue(clipInput, values) as MotionClip;
-      const clipTargets = resolved.targetId ? targets.get(resolved.targetId) ?? [] : [{ node: undefined, repeatKey: undefined, itemIndex: undefined }];
+      const clipTargets: ExpandedTarget[] = resolved.targetId ? targets.get(resolved.targetId) ?? [] : [{ node: undefined }];
       for (const target of clipTargets) {
         const suffix = target.repeatKey ? `::${target.repeatKey}` : "";
-        const staggerValue = resolved.source.kind === "preset" ? resolved.source.params?.stagger : undefined;
-        const stagger = typeof staggerValue === "number" && target.itemIndex !== undefined ? staggerValue * target.itemIndex : 0;
+        const presetStagger = resolved.source.kind === "preset" ? resolved.source.params?.stagger : undefined;
+        const staggerStep = target.timeStagger ?? (typeof presetStagger === "number" ? presetStagger : 0);
+        const stagger = target.itemIndex !== undefined ? staggerStep * target.itemIndex : 0;
         outputClips.push({
           ...clone(resolved),
           id: `${node.id}::${resolved.id}${suffix}`,
           targetId: target.node?.id,
           schedule: resolved.schedule.kind === "absolute"
-            ? { ...resolved.schedule, at: resolved.schedule.at + stagger }
+            ? { ...resolved.schedule, at: canonicalTime(resolved.schedule.at + stagger) }
             : { ...resolved.schedule, clipId: `${node.id}::${resolved.schedule.clipId}${suffix}` },
           source: resolved.source.kind === "tracks"
             ? { ...clone(resolved.source), tracks: resolved.source.tracks.map((track) => {
                 const matching = targets.get(track.targetId)?.find((candidate) => candidate.repeatKey === target.repeatKey) ?? targets.get(track.targetId)?.[0];
-                return { ...clone(track), targetId: matching?.node.id ?? `${node.id}::${track.targetId}` };
+                return { ...clone(track), targetId: matching?.node?.id ?? `${node.id}::${track.targetId}` };
               }) }
             : clone(resolved.source),
         });

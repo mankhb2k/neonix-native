@@ -59,11 +59,11 @@
       "parentId": "root",
       "semantic": { "role": "list-item-template" },
       "repeat": {
-        "sourceVariableId": "var.steps",
+        "source": { "kind": "list", "variableId": "var.steps", "keyPath": "id" },
         "itemAlias": "item",
         "indexAlias": "index",
-        "keyPath": "id",
-        "layout": { "direction": "vertical", "gap": 24 }
+        "layout": { "kind": "linear", "offsetX": 0, "offsetY": 184 },
+        "timeStagger": 0.08
       },
       "transform": {
         "x": 80, "y": 400, "width": 920, "height": 160,

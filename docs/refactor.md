@@ -127,7 +127,8 @@ pnpm e2e:render
 - [ ] Action/pose timeline cho idle, blink, talk, wave và walk cycle.
 - [ ] Camera transform, scene transition và prop attachment.
 - [ ] Motion Path, Bone chain và Secondary Motion deterministic cho segmented hair/tail.
-- [ ] Harden Repeater MVP và thêm Text Animator Unicode-aware.
+- [x] Harden Repeater thành list/count + none/linear/grid/radial + time stagger.
+- [ ] Thêm Text Animator Unicode-aware.
 
 ### P2 — Component và asset production
 

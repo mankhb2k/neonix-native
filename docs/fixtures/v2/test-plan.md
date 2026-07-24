@@ -14,16 +14,16 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 34 artifacts + 24 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 40 artifacts + 26 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
-| Stored Runtime IR goldens | ✅ | ✅ 7 projects | — | — |
-| Stored PNG goldens | — | — | ✅ 5 fixed-time frames + pixel diff | ⬜ |
+| Stored Runtime IR goldens | ✅ | ✅ 8 projects | — | — |
+| Stored PNG goldens | — | — | ✅ 6 fixed-time frames + pixel diff | ⬜ |
 | Property capability registry | ✅ kind/domain/public/runtime state | ✅ reject unsupported/compile-only | ✅ Text string/number/color | — |
 | Resource limits | ✅ finite numbers + all current public arrays | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
 | Component expansion | ✅ | ✅ | 🟡 | ⬜ |
-| Repeater/list | ✅ | ✅ | 🟡 | ⬜ |
+| Repeater/list | ✅ stable key/context | ✅ removed from Runtime | ✅ layout PNG | ⬜ |
 | Schedule/playback/preset | ✅ | 🟡 | 🟡 | ⬜ |
 | Text/brand semantic | ✅ | ✅ | ✅ smoke | 🟡 |
 | Image opaque/alpha | ✅ | ✅ plumbing | ⬜ | ⬜ |
@@ -46,7 +46,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Mask clip/alpha/inverse | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Motion Path | ⬜ | ⬜ | ⬜ | ⬜ |
 | Text Animator grapheme/word/line | ⬜ | ⬜ | ⬜ | ⬜ |
-| Repeater count/grid/radial | ⬜ | ⬜ | ⬜ | ⬜ |
+| Repeater count/grid/radial | ✅ + limits | ✅ IDs/layout/stagger | ✅ worker PNG golden | ⬜ |
 | Ordered effects stack | ⬜ | ⬜ | ⬜ | ⬜ |
 | Normalized Path Morph | ⬜ | ⬜ | ⬜ | ⬜ |
 | Bone Secondary Motion | ⬜ | ⬜ | ⬜ | ⬜ |

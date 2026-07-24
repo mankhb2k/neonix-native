@@ -127,10 +127,10 @@ Canonical order: raster subtree → mask → ordered effects → blend/z-order.
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
 | Component expansion | Package → namespaced Nodes/Tracks | Implemented | nested policy, props/bindings, no Component runtime leak |
-| Repeater list | List variable → cloned subtree | Implemented MVP | stable key, context binding, 0/1/n |
-| Repeater count | Numeric clone source | Planned P0 | count limits, IDs, transform step |
-| Repeater layout | Linear/grid/radial | Planned P0 | positions, gaps, radial angle |
-| Time stagger | Offset cloned clips/tracks | Planned P0 | positive/negative bounds, deterministic schedule |
+| Repeater list | List variable → cloned subtree | Implemented | stable key, duplicate/missing rejection, context binding |
+| Repeater count | Numeric clone source | Implemented | count limits, stable generated IDs |
+| Repeater layout | None/linear/grid/radial | Implemented | exact positions, columns, radius và orientation |
+| Time stagger | Offset cloned clips/tracks | Implemented | bounded value, canonical deterministic schedule |
 | Text Animator | Text → grapheme/word/line runs | Planned P0 | Vietnamese combining marks, emoji, stagger |
 | Emitter | Seeded repeated sprites | Planned P1 | count/lifetime/seed/resource limits |
 
@@ -356,7 +356,7 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 
 ### Phase 2 — compiler expansions
 
-- Repeater vNext.
+- [x] Repeater vNext list/count/layout/stagger và compiler/PNG goldens.
 - Text Animator.
 - Compiler goldens và AI capability limits.
 

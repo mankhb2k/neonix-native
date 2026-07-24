@@ -38,13 +38,13 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | World matrix + SVG worker smoke đã có; Web parity còn thiếu |
 | Bounds/Hit-test | Không cần authoring field | Không cần compile | AABB/inverse/draw-order assertions đã có; alpha/mask parity còn thiếu |
 | Offscreen plan | Resource limits | Không cần compile | Integer surface plan + dimension/pixel rejection đã có; allocation chờ Mask/Effects |
-| Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 4 stored pixel goldens đã có |
+| Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 6 stored pixel goldens đã có |
 | Property capabilities | Enumerable schema metadata | Domain/support enforced khi compile | Text và Shape/Path paint evaluator đã có; primitive registry mở rộng dần |
 | Path | Typed multi-contour line/cubic + limits | Literal geometry được giữ | Fill/stroke/open/closed/evenodd + true cubic bounds đã có |
 | Mask | Typed relation + cycle guard | Literal relation được giữ/namespace | clip/alpha/inverse-alpha, nested và source visibility đã render |
 | Motion Path | Chưa có | Chưa có | Chưa có |
 | Text Animator | Chưa có | Chưa có | Chưa có |
-| Repeater | List MVP | Expand được | Không cần biết repeater |
+| Repeater | list/count + four layouts + limits | Stable IDs/context/stagger expansion | Không lọt vào Runtime; PNG layout golden đã có |
 | Effects stack | Chưa có typed schema | Chưa có | Chưa có |
 | Path Morph | Chưa có | Chưa có | Chưa có |
 | Secondary Motion | Chưa có | Chưa có | Chưa có |
@@ -381,7 +381,7 @@ Những fixture này phát hiện lỗi interaction/order mà unit fixture khôn
 
 ### Phase 2 — compile-time expressiveness
 
-1. Harden Repeater MVP; thêm count/grid/radial/time stagger.
+1. [x] Repeater list/count, none/linear/grid/radial, orient-to-angle và time stagger.
 2. Text Animator với Unicode segmentation.
 3. Expected Runtime snapshots và AI capability registry.
 
