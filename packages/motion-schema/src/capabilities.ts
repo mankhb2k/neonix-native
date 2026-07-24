@@ -14,6 +14,20 @@ export const MOTION_V2_LIMITS = Object.freeze({
   frameRate: 240,
   sampleRate: 384_000,
   audioChannels: 16,
+  nodeDimension: 32_768,
+  transformScale: 1_000,
+  playbackIterations: 10_000,
+  semanticTags: 64,
+  enumOptions: 256,
+  localeCoverage: 64,
+  assetsPerArtifact: 1_024,
+  variablesPerArtifact: 1_024,
+  publicParamsPerComponent: 512,
+  bindingsPerArtifact: 4_096,
+  dependenciesPerProject: 512,
+  audioTracksPerProject: 2_048,
+  extensionEntries: 2_048,
+  patchOperations: 2_048,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

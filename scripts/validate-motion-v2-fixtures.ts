@@ -51,7 +51,11 @@ type AssetManifest = {
 
 type LimitCase = {
   id: string;
-  target: "component.nodes" | "component.clips" | "project.scenes" | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys" | "variable.listItems" | "hierarchy.depth";
+  target:
+    | "component.nodes" | "component.clips" | "component.assets" | "component.variables" | "component.publicAPI" | "component.bindings"
+    | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
+    | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
+    | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -368,6 +372,26 @@ async function validateNegativeFixtures(): Promise<number> {
       path: "nodes.0.payload.shape",
       code: "invalid_union_discriminator",
     },
+    {
+      file: "components/non-finite-transform.mvc.json",
+      path: "nodes.0.transform.x",
+      code: "not_finite",
+    },
+    {
+      file: "components/non-finite-json.mvc.json",
+      path: "metadata.badNumber",
+      code: "not_finite",
+    },
+    {
+      file: "components/node-dimension-over-limit.mvc.json",
+      path: "nodes.0.transform.width",
+      code: "too_big",
+    },
+    {
+      file: "components/playback-iterations-over-limit.mvc.json",
+      path: "clips.0.playback.iterations",
+      code: "too_big",
+    },
   ] as const;
   for (const fixture of schemaCases) {
     let error: unknown;
@@ -445,7 +469,16 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
   if (testCase.target.startsWith("component.")) {
     const component = baseLimitComponent();
     if (testCase.target === "component.nodes") component.nodes = Array.from({ length: count }, (_, index) => fixtureNode(`node-${index}`));
-    else component.clips = Array.from({ length: count }, (_, index) => fixtureClip(`clip-${index}`));
+    else if (testCase.target === "component.clips") component.clips = Array.from({ length: count }, (_, index) => fixtureClip(`clip-${index}`));
+    else if (testCase.target === "component.assets") component.assets = Array.from({ length: count }, (_, index) => ({
+      id: `asset-${index}`, assetType: "image", uri: `asset-${index}.png`, mimeType: "image/png",
+      width: 1, height: 1, pixelFormat: "rgb24", hasAlpha: false,
+    }));
+    else if (testCase.target === "component.variables") component.variables = Array.from({ length: count }, (_, index) => ({ id: `variable-${index}`, name: `Variable ${index}`, type: "string", value: "" }));
+    else if (testCase.target === "component.publicAPI") component.publicAPI = Array.from({ length: count }, (_, index) => ({ id: `param-${index}`, type: "string", variableId: `variable-${index}` }));
+    else component.bindings = Array.from({ length: count }, (_, index) => ({
+      id: `binding-${index}`, source: { kind: "variable", variableId: `variable-${index}` }, target: { nodeId: "root", property: "transform.x" },
+    }));
     return { artifact: component, parse: parseMotionComponentV2 };
   }
   if (testCase.target === "variable.listItems") {
@@ -456,6 +489,33 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
       value: Array.from({ length: count }, (_, index) => ({ label: `Item ${index}` })),
     }];
     return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "variable.enumOptions") {
+    const component = baseLimitComponent();
+    component.variables = [{ id: "choice", name: "Choice", type: "enum", value: "option-0", options: Array.from({ length: count }, (_, index) => `option-${index}`) }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "semantic.tags") {
+    const component = baseLimitComponent();
+    (component.nodes as Array<Record<string, unknown>>)[0]!.semantic = { role: "root", tags: Array.from({ length: count }, (_, index) => `tag-${index}`) };
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "asset.localeCoverage") {
+    const component = baseLimitComponent();
+    component.assets = [{
+      id: "font", assetType: "font", uri: "font.ttf", mimeType: "font/ttf", family: "Fixture", weight: 400, style: "normal",
+      localeCoverage: Array.from({ length: count }, (_, index) => `locale-${index}`),
+    }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "patch.operations") {
+    return {
+      artifact: {
+        format: "motion-patch", formatVersion: 1, baseRevision: 0,
+        operations: Array.from({ length: count }, (_, index) => ({ op: "set", target: { variableId: `variable-${index}` }, value: index })),
+      },
+      parse: (input: unknown) => MotionPatchSchema.parse(input),
+    };
   }
   if (testCase.target === "hierarchy.depth") {
     const component = baseLimitComponent();
@@ -472,6 +532,14 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     scene.nodes = Array.from({ length: count }, (_, index) => fixtureNode(`node-${index}`));
   } else if (testCase.target === "scene.clips") {
     scene.clips = Array.from({ length: count }, (_, index) => fixtureClip(`clip-${index}`));
+  } else if (testCase.target === "project.dependencies") {
+    (project.dependencies as Record<string, unknown>).components = Array.from({ length: count }, (_, index) => ({ componentId: `component-${index}`, version: "1.0.0", source: "registry", integrity: `sha256-${index}` }));
+  } else if (testCase.target === "project.audioTracks") {
+    (project.timeline as Record<string, unknown>).audioTracks = Array.from({ length: count }, (_, index) => ({ id: `audio-${index}`, role: "sfx", assetId: `asset-${index}`, start: 0 }));
+  } else if (testCase.target === "project.bindings") {
+    project.bindings = Array.from({ length: count }, (_, index) => ({ id: `binding-${index}`, source: { kind: "variable", variableId: `variable-${index}` }, target: { sceneId: "scene-0", nodeId: "root", property: "transform.x" } }));
+  } else if (testCase.target === "project.extensionConstraints") {
+    (project.extensions as Record<string, unknown>).constraints = Array.from({ length: count }, (_, index) => ({ id: `constraint-${index}` }));
   } else {
     const trackCount = testCase.target === "clip.tracks" ? count : 1;
     const keyCount = testCase.target === "track.keys" ? count : 1;

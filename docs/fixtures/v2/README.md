@@ -40,9 +40,9 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `projects/hierarchy-transform.mt.json` | Group/Bone/SVG hierarchy, pivot chain, inherited opacity, flip và prop attachment |
 | `imports/svg-import-sources.json` | SVG phẳng từ Figma/Illustrator cho sanitize, group trong app và re-import |
 | `patches/ai-fill-big-number.json` | Planner patch chỉ sửa public surface |
-| `negative/components/*.json` | Missing parent, unsupported path/value/asset, asset mismatch, duplicate key time/ID, schedule cycle và schema limits |
+| `negative/components/*.json` | Missing parent, unsupported path/value/asset/node, mismatch, duplicate/cycle, non-finite number và schema limits |
 | `negative/projects/*.json` | Project reference/dependency không hợp lệ |
-| `negative/limits/cases.json` | Stress descriptors cho scene/node/clip/track/key/list/depth limits mà không commit JSON khổng lồ |
+| `negative/limits/cases.json` | Stress descriptors cho mọi public array hiện có và hierarchy depth mà không commit JSON khổng lồ |
 | `expected-runtime/*.runtime.json` | Runtime IR deterministic của từng positive Project fixture |
 
 ## Asset kit

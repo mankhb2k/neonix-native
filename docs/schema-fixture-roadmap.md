@@ -21,18 +21,19 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone discriminated Node schema có 10 positive fixtures, 18 negative artifacts, 9 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone finite/resource policy có 10 positive fixtures, 22 negative artifacts, 21 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
 - [x] Property capability registry nền cho transform và property đang dùng.
-- [x] Limits cho ID, scene, node, clip, track, key, list và hierarchy depth.
+- [x] Finite-number policy cho toàn bộ numeric/JSON surface; limits cho dimensions, scale, duration, FPS, playback và public arrays hiện có.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 18 negative artifacts và 9 limit/depth descriptors với structured error assertions.
+- [x] 22 negative artifacts và 21 limit/depth descriptors với structured error assertions.
 - [x] 4 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
+- [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 
 ### Phase 1 progress
 
@@ -103,6 +104,8 @@ Schema giữ property path ổn định, validator tra registry theo target type
 ### F0.4 — Limits và deterministic policy
 
 Chốt max scenes/nodes/keys/path points/repeater count/effects, finite number policy, key ordering/duplicate time, ID length và nesting depth. Negative fixtures phải khóa từng limit.
+
+Trạng thái: finite policy và mọi limit thuộc normative surface hiện tại đã khóa bằng 21 stress cases. Path/effects chưa tồn tại trong schema nên giới hạn point/effect sẽ được thêm cùng positive/negative fixtures S1/S2; Repeater list hiện bị khóa bởi `listItems` và sẽ có count/grid/radial limits riêng khi mở rộng ở S3.
 
 ## Thứ tự primitive cần fixture để thêm/siết schema
 

@@ -45,7 +45,7 @@ Value + Property + Keyframe + Track + Binding
 | Variable | string/color/number/bool/image/enum/list | Partial | defaults, min/max/options, list item schema |
 | Binding | Variable/context → Node property | Partial | precedence, one-to-many, context item, missing target |
 | Public parameter | Component safe surface | Partial | type match, default/override, internal isolation |
-| Capability metadata | Primitive support/limits for UI và AI | Planned P0 | unsupported capability rejected consistently |
+| Capability metadata | Primitive support/limits for UI và AI | Partial registry | current property/resource limits chạy; primitive registry đầy đủ còn thiếu |
 
 ## 3. Time/animation primitives
 
@@ -56,7 +56,7 @@ Value + Property + Keyframe + Track + Binding
 | Easing | linear/ease/spring/step | Partial | exact values tại fixed timestamps, clamp policy |
 | Clip | Duration, target, source | Partial | target, duration, keys không vượt clip |
 | Schedule | absolute/after/with | Partial | chain, offset, missing ref, cycle |
-| Playback | iterations/direction/rate | Partial | finite/infinite policy, reverse/alternate, variable rate |
+| Playback | iterations/direction/rate | Partial schema | finite/infinite hard limit chạy; reverse/alternate evaluator còn thiếu |
 | Preset source | Authoring shortcut → tracks | Implemented | known preset, literal expansion, no preset in Runtime IR |
 | Named Action | Reusable component animation | Planned P0 | idle/blink/talk/wave/walk, namespace, loop/rate |
 | Deterministic clock | Random-access frame evaluation | Planned P0 | frame order independence, repeated render equality |

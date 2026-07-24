@@ -14,12 +14,12 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 18 artifacts + 9 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 22 artifacts + 21 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
 | Stored Runtime IR goldens | ✅ | ✅ 4 projects | — | — |
 | Property capability registry | ✅ baseline | ✅ reject unsupported | — | — |
-| Resource limits | ✅ ID/array limits | — | — | — |
+| Resource limits | ✅ finite numbers + all current public arrays | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
 | Component expansion | ✅ | ✅ | 🟡 | ⬜ |
 | Repeater/list | ✅ | ✅ | 🟡 | ⬜ |

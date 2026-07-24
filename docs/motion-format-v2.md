@@ -27,6 +27,12 @@ Normalized Runtime IR
 
 Renderer chỉ đọc Normalized Runtime IR.
 
+## Numeric và resource policy
+
+Mọi number trong typed fields lẫn generic JSON phải hữu hạn; parser reject NaN/Infinity, kể cả khi JSON hợp lệ như `1e400` được JavaScript đọc thành Infinity. Transform dimensions, scale, media duration/FPS, playback iterations và các numeric domain khác có hard limit trong `MOTION_V2_LIMITS`.
+
+Mọi public array hiện có—asset, variable, public param, dependency, binding, scene, node, clip, track, key, audio track, extension entry, patch operation, enum option, locale và semantic tags—đều có trần schema. Limit cho Path points, effect stack và Repeater vNext chỉ được thêm cùng primitive tương ứng; không tồn tại placeholder không được test.
+
 ## Scene graph
 
 Mọi spatial entity thuộc đúng một Scene. Component Instance là Node:

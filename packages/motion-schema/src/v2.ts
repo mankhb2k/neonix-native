@@ -15,13 +15,14 @@ export const AspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);
 const IdSchema = z.string().min(1).max(MOTION_V2_LIMITS.idLength);
 const PropertyPathSchema = z.string().min(1);
 const SemverSchema = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, "Expected semantic version");
+const FiniteNumberSchema = z.number().finite();
 
 export const JsonValueSchema: z.ZodType<
   string | number | boolean | null | Array<unknown> | Record<string, unknown>
 > = z.lazy(() =>
   z.union([
     z.string(),
-    z.number(),
+    FiniteNumberSchema,
     z.boolean(),
     z.null(),
     z.array(JsonValueSchema),
@@ -32,7 +33,7 @@ export const JsonValueSchema: z.ZodType<
 export const VariableReferenceSchema = z.object({
   ref: z.object({ kind: z.literal("variable"), id: IdSchema }),
   map: z
-    .object({ scale: z.number().optional(), offset: z.number().optional() })
+    .object({ scale: FiniteNumberSchema.optional(), offset: FiniteNumberSchema.optional() })
     .strict()
     .optional(),
 });
@@ -60,22 +61,22 @@ export const SemanticSchema = z
   .object({
     role: IdSchema,
     key: IdSchema.optional(),
-    tags: z.array(IdSchema).default([]),
+    tags: z.array(IdSchema).max(MOTION_V2_LIMITS.semanticTags).default([]),
   })
   .strict();
 
 export const TransformV2Schema = z
   .object({
-    x: z.number(),
-    y: z.number(),
-    width: z.number().nonnegative(),
-    height: z.number().nonnegative(),
-    rotation: z.number(),
-    scaleX: z.number().nonnegative(),
-    scaleY: z.number().nonnegative(),
-    anchorX: z.number().min(0).max(1),
-    anchorY: z.number().min(0).max(1),
-    opacity: z.number().min(0).max(1),
+    x: FiniteNumberSchema,
+    y: FiniteNumberSchema,
+    width: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    height: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    rotation: FiniteNumberSchema,
+    scaleX: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.transformScale),
+    scaleY: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.transformScale),
+    anchorX: FiniteNumberSchema.min(0).max(1),
+    anchorY: FiniteNumberSchema.min(0).max(1),
+    opacity: FiniteNumberSchema.min(0).max(1),
     visible: z.boolean(),
     flipX: z.boolean(),
     flipY: z.boolean(),
@@ -88,7 +89,7 @@ const AssetBaseSchema = z.object({
   integrity: z.string().min(1).optional(),
 });
 
-const AssetDimensionSchema = z.number().int().positive().max(MOTION_V2_LIMITS.assetDimension);
+const AssetDimensionSchema = FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.assetDimension);
 
 function pixelFormatHasAlpha(pixelFormat: string): boolean {
   return /(?:rgba|bgra|argb|abgr|yuva|graya)/i.test(pixelFormat);
@@ -117,32 +118,32 @@ export const VideoAssetV2Schema = AssetBaseSchema.extend({
   mimeType: z.enum(["video/mp4", "video/webm"]),
   width: AssetDimensionSchema,
   height: AssetDimensionSchema,
-  duration: z.number().positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
-  fps: z.number().positive().max(MOTION_V2_LIMITS.frameRate),
+  duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  fps: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.frameRate),
   videoCodec: z.string().min(1),
   pixelFormat: z.string().min(1),
   hasAudio: z.boolean(),
   audioCodec: z.string().min(1).optional(),
-  sampleRate: z.number().int().positive().max(MOTION_V2_LIMITS.sampleRate).optional(),
-  channels: z.number().int().positive().max(MOTION_V2_LIMITS.audioChannels).optional(),
+  sampleRate: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.sampleRate).optional(),
+  channels: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.audioChannels).optional(),
 }).strict();
 
 export const AudioAssetV2Schema = AssetBaseSchema.extend({
   assetType: z.literal("audio"),
   mimeType: z.enum(["audio/mpeg", "audio/wav", "audio/aac", "audio/ogg"]),
-  duration: z.number().positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
   codec: z.string().min(1),
-  sampleRate: z.number().int().positive().max(MOTION_V2_LIMITS.sampleRate),
-  channels: z.number().int().positive().max(MOTION_V2_LIMITS.audioChannels),
+  sampleRate: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.sampleRate),
+  channels: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.audioChannels),
 }).strict();
 
 export const FontAssetV2Schema = AssetBaseSchema.extend({
   assetType: z.literal("font"),
   mimeType: z.enum(["font/ttf", "font/otf", "font/woff", "font/woff2"]),
   family: z.string().min(1),
-  weight: z.number().int().min(1).max(1000),
+  weight: FiniteNumberSchema.int().min(1).max(1000),
   style: z.enum(["normal", "italic"]),
-  localeCoverage: z.array(IdSchema).min(1),
+  localeCoverage: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.localeCoverage),
 }).strict();
 
 export const AssetV2Schema = z.discriminatedUnion("assetType", [
@@ -179,16 +180,16 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
   ScalarVariableSchema.extend({ type: z.literal("color"), value: z.string().min(1) }).strict(),
   ScalarVariableSchema.extend({
     type: z.literal("number"),
-    value: z.number(),
-    min: z.number().optional(),
-    max: z.number().optional(),
+    value: FiniteNumberSchema,
+    min: FiniteNumberSchema.optional(),
+    max: FiniteNumberSchema.optional(),
   }).strict(),
   ScalarVariableSchema.extend({ type: z.literal("boolean"), value: z.boolean() }).strict(),
   ScalarVariableSchema.extend({ type: z.literal("image"), value: IdSchema }).strict(),
   ScalarVariableSchema.extend({
     type: z.literal("enum"),
     value: z.string(),
-    options: z.array(z.string()).min(1),
+    options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions),
   }).strict(),
   ScalarVariableSchema.extend({
     type: z.literal("list"),
@@ -208,7 +209,7 @@ const RepeaterSchema = z
     layout: z
       .object({
         direction: z.enum(["horizontal", "vertical"]),
-        gap: z.number().nonnegative(),
+        gap: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
       })
       .strict(),
   })
@@ -219,7 +220,7 @@ const NodeBaseSchema = z.object({
   type: IdSchema,
   name: z.string().min(1).optional(),
   parentId: IdSchema.nullable(),
-  zIndex: z.number().int().optional(),
+  zIndex: FiniteNumberSchema.int().optional(),
   transform: TransformV2Schema,
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
@@ -233,16 +234,16 @@ const NodeBaseSchema = z.object({
 const FitSchema = z.enum(["contain", "cover", "fill", "none"]);
 
 const CropSchema = z.object({
-  x: z.number().min(0).max(1),
-  y: z.number().min(0).max(1),
-  width: z.number().positive().max(1),
-  height: z.number().positive().max(1),
+  x: FiniteNumberSchema.min(0).max(1),
+  y: FiniteNumberSchema.min(0).max(1),
+  width: FiniteNumberSchema.positive().max(1),
+  height: FiniteNumberSchema.positive().max(1),
 }).strict();
 
 const PaintStyleSchema = z.object({
   fill: z.string().min(1).optional(),
   stroke: z.string().min(1).optional(),
-  strokeWidth: z.number().nonnegative().optional(),
+  strokeWidth: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
 }).strict();
 
 export const GroupNodeV2Schema = NodeBaseSchema.extend({
@@ -252,8 +253,8 @@ export const GroupNodeV2Schema = NodeBaseSchema.extend({
 export const BoneNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("bone"),
   payload: z.object({
-    length: z.number().nonnegative(),
-    restRotation: z.number().optional(),
+    length: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    restRotation: FiniteNumberSchema.optional(),
   }).strict(),
 }).strict();
 
@@ -262,20 +263,20 @@ export const TextNodeV2Schema = NodeBaseSchema.extend({
   payload: z.object({
     text: z.string(),
     fontAssetId: IdSchema.optional(),
-    fontSize: z.number().positive(),
-    fontWeight: z.number().int().min(1).max(1000).optional(),
+    fontSize: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension),
+    fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     align: z.enum(["left", "center", "right"]).optional(),
     wrap: z.enum(["none", "word", "character"]).optional(),
-    lineHeight: z.number().positive().optional(),
-    letterSpacing: z.number().optional(),
-    maxLines: z.number().int().positive().optional(),
-    counterProgress: z.number().min(0).max(1).optional(),
+    lineHeight: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+    letterSpacing: FiniteNumberSchema.optional(),
+    maxLines: FiniteNumberSchema.int().positive().optional(),
+    counterProgress: FiniteNumberSchema.min(0).max(1).optional(),
   }).strict(),
   style: PaintStyleSchema.optional(),
 }).strict();
 
 const ShapePayloadSchema = z.discriminatedUnion("shape", [
-  z.object({ shape: z.literal("rectangle"), cornerRadius: z.number().nonnegative().optional() }).strict(),
+  z.object({ shape: z.literal("rectangle"), cornerRadius: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional() }).strict(),
   z.object({ shape: z.literal("ellipse") }).strict(),
 ]);
 
@@ -309,8 +310,8 @@ export const VideoNodeV2Schema = NodeBaseSchema.extend({
   payload: z.object({
     assetId: IdSchema,
     fit: FitSchema.optional(),
-    trimStart: z.number().nonnegative().optional(),
-    trimEnd: z.number().positive().optional(),
+    trimStart: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).optional(),
+    trimEnd: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds).optional(),
     loop: z.boolean().optional(),
     muted: z.boolean().optional(),
     framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
@@ -320,7 +321,7 @@ export const VideoNodeV2Schema = NodeBaseSchema.extend({
 export const CameraNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("camera"),
   payload: z.object({
-    zoom: z.number().positive(),
+    zoom: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.transformScale),
     projection: z.literal("orthographic").optional(),
   }).strict(),
 }).strict();
@@ -349,14 +350,14 @@ export const NodeV2Schema = z.discriminatedUnion("type", [
 ]);
 
 export const ClipScheduleSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("absolute"), at: z.number().nonnegative() }).strict(),
-  z.object({ kind: z.literal("after"), clipId: IdSchema, offset: z.number().optional() }).strict(),
-  z.object({ kind: z.literal("with"), clipId: IdSchema, offset: z.number().optional() }).strict(),
+  z.object({ kind: z.literal("absolute"), at: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds) }).strict(),
+  z.object({ kind: z.literal("after"), clipId: IdSchema, offset: FiniteNumberSchema.optional() }).strict(),
+  z.object({ kind: z.literal("with"), clipId: IdSchema, offset: FiniteNumberSchema.optional() }).strict(),
 ]);
 
 export const PlaybackSchema = z
   .object({
-    iterations: z.union([z.number().int().positive(), z.literal("infinite")]).default(1),
+    iterations: z.union([FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.playbackIterations), z.literal("infinite")]).default(1),
     direction: z.enum(["normal", "reverse", "alternate"]).default("normal"),
     rate: ResolvableValueSchema.default(1),
   })
@@ -370,7 +371,7 @@ const PropertyTrackSchema = z
       .array(
         z
           .object({
-            t: z.number().nonnegative(),
+            t: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
             v: ResolvableValueSchema,
             easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "spring", "step"]).optional(),
           })
@@ -393,7 +394,7 @@ export const ClipV2Schema = z
     id: IdSchema,
     targetId: IdSchema.optional(),
     schedule: ClipScheduleSchema,
-    duration: z.number().positive(),
+    duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
     playback: PlaybackSchema.default({}),
     source: ClipSourceSchema,
   })
@@ -425,9 +426,9 @@ export const PublicParamSchema = z
     label: z.string().min(1).optional(),
     variableId: IdSchema,
     semantic: SemanticSchema.optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    options: z.array(z.string()).min(1).optional(),
+    min: FiniteNumberSchema.optional(),
+    max: FiniteNumberSchema.optional(),
+    options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions).optional(),
   })
   .strict();
 
@@ -438,11 +439,11 @@ export const MotionComponentV2Schema = z
     componentId: IdSchema,
     componentVersion: SemverSchema,
     metadata: z.record(JsonValueSchema),
-    assets: z.array(AssetV2Schema).default([]),
-    variables: z.array(VariableV2Schema),
-    publicAPI: z.array(PublicParamSchema),
+    assets: z.array(AssetV2Schema).max(MOTION_V2_LIMITS.assetsPerArtifact).default([]),
+    variables: z.array(VariableV2Schema).max(MOTION_V2_LIMITS.variablesPerArtifact),
+    publicAPI: z.array(PublicParamSchema).max(MOTION_V2_LIMITS.publicParamsPerComponent),
     nodes: z.array(NodeV2Schema).min(1).max(MOTION_V2_LIMITS.nodesPerComponent),
-    bindings: z.array(ComponentBindingSchema).default([]),
+    bindings: z.array(ComponentBindingSchema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
     clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerComponent).default([]),
   })
   .strict();
@@ -461,12 +462,12 @@ const AudioTrackSchema = z
     id: IdSchema,
     role: z.enum(["bgm", "voiceover", "sfx"]),
     assetId: IdSchema,
-    start: z.number().nonnegative(),
-    trimStart: z.number().nonnegative().default(0),
-    volume: z.number().min(0).max(1).default(1),
+    start: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    trimStart: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).default(0),
+    volume: FiniteNumberSchema.min(0).max(1).default(1),
     loop: z.boolean().default(false),
-    fadeIn: z.number().nonnegative().default(0),
-    fadeOut: z.number().nonnegative().default(0),
+    fadeIn: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).default(0),
+    fadeOut: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).default(0),
   })
   .strict();
 
@@ -474,7 +475,7 @@ const SceneV2Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
-    duration: z.number().positive(),
+    duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
     semantic: SemanticSchema.optional(),
     nodes: z.array(NodeV2Schema).max(MOTION_V2_LIMITS.nodesPerScene),
     clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerScene),
@@ -497,7 +498,7 @@ export const ProjectMetadataV2Schema = z
     id: IdSchema,
     name: z.string().min(1),
     aspectRatio: AspectRatioSchema,
-    fps: z.number().int().positive(),
+    fps: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.frameRate),
     locale: z.literal("vi-VN"),
     industry: z.string().optional(),
     brand: BrandV2Schema,
@@ -512,16 +513,22 @@ export const MotionProjectV2Schema = z
     format: z.literal("motion-project"),
     formatVersion: z.literal(MOTION_PROJECT_FORMAT_VERSION),
     metadata: ProjectMetadataV2Schema,
-    dependencies: z.object({ components: z.array(ComponentDependencySchema) }).strict(),
-    assets: z.array(AssetV2Schema),
-    variables: z.array(VariableV2Schema),
+    dependencies: z.object({ components: z.array(ComponentDependencySchema).max(MOTION_V2_LIMITS.dependenciesPerProject) }).strict(),
+    assets: z.array(AssetV2Schema).max(MOTION_V2_LIMITS.assetsPerArtifact),
+    variables: z.array(VariableV2Schema).max(MOTION_V2_LIMITS.variablesPerArtifact),
     timeline: z
-      .object({ sceneOrder: z.array(IdSchema).min(1), audioTracks: z.array(AudioTrackSchema).default([]) })
+      .object({
+        sceneOrder: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
+        audioTracks: z.array(AudioTrackSchema).max(MOTION_V2_LIMITS.audioTracksPerProject).default([]),
+      })
       .strict(),
     scenes: z.array(SceneV2Schema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
-    bindings: z.array(ProjectBindingSchema).default([]),
+    bindings: z.array(ProjectBindingSchema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
     extensions: z
-      .object({ constraints: z.array(JsonValueSchema).default([]), events: z.array(JsonValueSchema).default([]) })
+      .object({
+        constraints: z.array(JsonValueSchema).max(MOTION_V2_LIMITS.extensionEntries).default([]),
+        events: z.array(JsonValueSchema).max(MOTION_V2_LIMITS.extensionEntries).default([]),
+      })
       .strict()
       .default({}),
   })
@@ -536,8 +543,8 @@ export const MotionPatchSchema = z
   .object({
     format: z.literal("motion-patch"),
     formatVersion: z.literal(MOTION_PATCH_FORMAT_VERSION),
-    baseRevision: z.number().int().nonnegative(),
-    operations: z.array(z.object({ op: z.literal("set"), target: PatchTargetSchema, value: JsonValueSchema }).strict()),
+    baseRevision: FiniteNumberSchema.int().nonnegative(),
+    operations: z.array(z.object({ op: z.literal("set"), target: PatchTargetSchema, value: JsonValueSchema }).strict()).max(MOTION_V2_LIMITS.patchOperations),
   })
   .strict();
 
@@ -556,7 +563,7 @@ const RuntimeTrackSchema = z
   .object({
     targetId: IdSchema,
     property: PropertyPathSchema,
-    keys: z.array(z.object({ t: z.number().nonnegative(), v: LiteralValueSchema, easing: z.string().optional() }).strict()).min(1).max(MOTION_V2_LIMITS.keysPerTrack),
+    keys: z.array(z.object({ t: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds), v: LiteralValueSchema, easing: z.string().optional() }).strict()).min(1).max(MOTION_V2_LIMITS.keysPerTrack),
   })
   .strict();
 
@@ -565,12 +572,15 @@ export const NormalizedMotionProjectV2Schema = z
     format: z.literal("motion-runtime"),
     formatVersion: z.literal(MOTION_PROJECT_FORMAT_VERSION),
     metadata: ProjectMetadataV2Schema,
-    assets: z.array(AssetV2Schema),
-    timeline: z.object({ sceneOrder: z.array(IdSchema), audioTracks: z.array(AudioTrackSchema) }).strict(),
+    assets: z.array(AssetV2Schema).max(MOTION_V2_LIMITS.assetsPerArtifact),
+    timeline: z.object({
+      sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
+      audioTracks: z.array(AudioTrackSchema).max(MOTION_V2_LIMITS.audioTracksPerProject),
+    }).strict(),
     scenes: z.array(
       z.object({
         id: IdSchema,
-        duration: z.number().positive(),
+        duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
         nodes: z.array(RuntimeNodeSchema).max(MOTION_V2_LIMITS.nodesPerScene),
         tracks: z.array(RuntimeTrackSchema).max(MOTION_V2_LIMITS.clipsPerScene * MOTION_V2_LIMITS.tracksPerClip),
       }).strict(),
