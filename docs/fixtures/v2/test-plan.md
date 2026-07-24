@@ -45,7 +45,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Parent/world transform | ✅ | ✅ preserved | ✅ matrix assertions | ⬜ |
 | Bounds/hit-test/offscreen plan | — | — | ✅ AABB/inverse/draw order/budgets | ⬜ |
 | Camera/transition | ✅ strict orthographic + transition duration | ✅ active camera/transition preserved | ✅ camera PNG + crossfade composition | ⬜ |
-| Video silent/audio | ✅ | ✅ plumbing | ⬜ | ⬜ |
+| Video silent/audio | ✅ trim bounds | ✅ plumbing | ✅ cached decoded-frame timestamp hashes | ⬜ |
 | BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ⬜ mix | ⬜ |
 | Font và tiếng Việt | ✅ asset/text | ✅ preserved | 🟡 one bundled font | ⬜ |
 | Preview/export equivalence | — | — | 🟡 export renderer goldenized | ⬜ browser |
@@ -63,7 +63,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Normalized Path Morph | ✅ topology/limits | ✅ progress track | ✅ worker PNG goldens | ⬜ |
 | Bone Secondary Motion | ✅ refs/ownership/limit | ✅ literal modifier | ✅ random-access solver + PNG | ⬜ |
 
-`media-assets.mt.json` và `assets/manifest.json` khóa asset plumbing. Trạng thái “plumbing” không được hiểu là renderer đã vẽ hoặc mix media.
+`media-assets.mt.json` và `assets/manifest.json` khóa asset plumbing. Video frame sampling now proves decoded pixels at fixed timestamps; audio remains unproven until MP4 stream probing is enabled.
 
 Schema, fixtures và acceptance gate cho nhân vật SVG: [`../../svg-cutout-plan.md`](../../svg-cutout-plan.md).
 
@@ -114,7 +114,7 @@ Schema, composition order và fixture matrix cho atomic primitives: [`../../atom
 2. ✅ Tách evaluator/transform math dùng chung và thêm timestamp assertions cho hierarchy fixture.
 3. ✅ Thêm visual smoke cố định cho SVG rig; tiếp tục nâng thành pixel-diff golden cho text/logo.
 4. ✅ Triển khai world transform và SVG renderer; tiếp tục mở shape/image/mask tests.
-5. Triển khai video frame và audio mix, bật media E2E.
+5. ✅ Triển khai video frame deterministic; tiếp tục audio mix và media E2E probe.
 6. Chuyển Web preview sang Runtime IR và bật parity suite.
 7. Khóa vertical slice `cutout-dialogue`: import → rig → actions → lip sync → camera/audio → MP4.
 8. Chỉ bật Effects/Morph sau khi Path/Mask/world transform visual goldens ổn định.

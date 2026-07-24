@@ -73,7 +73,7 @@ Exit criteria: complete for worker Runtime IR/export. Browser preview parity rem
 
 ### Phase 5 — Video frames and audio
 
-Implement deterministic video frame selection from timestamp, trim, loop, mute, and fit/crop policy. Then implement audio trim, loop, gain, fade, role, overlap, and stream validation. Keep video and audio fixtures separate so failures identify the media layer.
+Video frame selection is deterministic from timestamp, trim, hold/transparent/loop and fit policy, with decoded frames cached by asset/frame index. Next implement audio trim, loop, gain, fade, role, overlap, and stream validation. Keep video and audio fixtures separate so failures identify the media layer.
 
 Exit criteria: decoded-frame/runtime assertions, media metadata negatives, and an end-to-end probe of the produced streams.
 

@@ -1,4 +1,6 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, GlobalFonts, Image, loadImage, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
@@ -18,6 +20,7 @@ import { projectFrameLayers } from "./frame-plan";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
 const FONT_PATH = path.join(REPO_ROOT, "assets/fonts/BeVietnamPro-Regular.ttf");
+const require = createRequire(import.meta.url);
 
 type RuntimeAsset = NormalizedMotionProjectV2["assets"][number];
 type Brand = NormalizedMotionProjectV2["metadata"]["brand"];
@@ -26,6 +29,7 @@ type PaintNode = Extract<RuntimeNode, { type: "shape" | "path" }>;
 
 let fontRegistered = false;
 const imageCache = new Map<string, Image>();
+const videoFrameCache = new Map<string, Image>();
 
 export function ensureFont(): void {
   if (fontRegistered) return;
@@ -91,6 +95,107 @@ function loadAssetImage(asset: RuntimeAsset, assetBaseDir: string): Image {
   image.src = readFileSync(file);
   imageCache.set(file, image);
   return image;
+}
+
+function resolveFfmpegPath(): string {
+  const fromEnv = process.env.FFMPEG_BIN;
+  if (fromEnv) return fromEnv;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const bin = require("ffmpeg-static") as string | null;
+  return bin && existsSync(bin) ? bin : "ffmpeg";
+}
+
+function loadVideoFrame(asset: RuntimeAsset, assetBaseDir: string, time: number): Image {
+  if (asset.assetType !== "video") throw new Error(`Expected video asset, got ${asset.assetType}`);
+  const frameRate = asset.fps;
+  const frameIndex = Math.max(0, Math.floor(time * frameRate + 1e-6));
+  const cacheKey = `${resolveAssetPath(asset, assetBaseDir)}:${frameIndex}`;
+  const cached = videoFrameCache.get(cacheKey);
+  if (cached) return cached;
+
+  const result = spawnSync(resolveFfmpegPath(), [
+    "-v", "error",
+    "-ss", (frameIndex / frameRate).toFixed(6),
+    "-i", resolveAssetPath(asset, assetBaseDir),
+    "-frames:v", "1",
+    "-f", "image2pipe",
+    "-vcodec", "png",
+    "pipe:1",
+  ], { encoding: null, maxBuffer: 32 * 1024 * 1024 });
+  if (result.status !== 0 || !result.stdout?.length) {
+    throw new Error(`Could not decode video frame ${asset.uri} at ${frameIndex / frameRate}s: ${result.stderr?.toString().trim() ?? "unknown ffmpeg error"}`);
+  }
+  const image = new Image();
+  image.src = result.stdout;
+  videoFrameCache.set(cacheKey, image);
+  return image;
+}
+
+function drawFittedImage(
+  ctx: SKRSContext2D,
+  image: Image,
+  width: number,
+  height: number,
+  fit: "contain" | "cover" | "fill" | "none" | undefined,
+): void {
+  const sourceWidth = image.width;
+  const sourceHeight = image.height;
+  if (!sourceWidth || !sourceHeight) return;
+  if (fit === "fill" || !fit) {
+    ctx.drawImage(image, 0, 0, width, height);
+    return;
+  }
+  if (fit === "none") {
+    ctx.drawImage(image, 0, 0);
+    return;
+  }
+  const scale = fit === "cover"
+    ? Math.max(width / sourceWidth, height / sourceHeight)
+    : Math.min(width / sourceWidth, height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+}
+
+function videoFrameTime(
+  asset: Extract<RuntimeAsset, { assetType: "video" }>,
+  payload: Extract<RuntimeNode, { type: "video" }>["payload"],
+  localTime: number,
+): number | undefined {
+  const trimStart = payload.trimStart ?? 0;
+  const trimEnd = payload.trimEnd ?? asset.duration;
+  const duration = trimEnd - trimStart;
+  if (duration <= 0) return undefined;
+  const policy = payload.framePolicy ?? (payload.loop ? "loop" : "hold");
+  if (localTime >= duration) {
+    if (policy === "transparent") return undefined;
+    if (policy === "loop") return trimStart + (localTime % duration);
+    return Math.max(trimStart, trimEnd - 1 / asset.fps);
+  }
+  return trimStart + Math.max(0, localTime);
+}
+
+async function prepareFrameAssets(
+  scene: RuntimeScene,
+  assets: RuntimeAsset[],
+  assetBaseDir: string,
+  time: number,
+): Promise<void> {
+  const assetById = new Map(assets.map((asset) => [asset.id, asset]));
+  const pending: Promise<void>[] = [];
+  for (const { node } of evaluateScene(scene, time)) {
+    if (node.type === "image" || node.type === "svg") {
+      const asset = assetById.get(evaluateProperty(scene, node, "payload.assetId", time, node.payload.assetId) as string);
+      if (asset) pending.push(loadAssetImage(asset, assetBaseDir).decode());
+    } else if (node.type === "video") {
+      const asset = assetById.get(evaluateProperty(scene, node, "payload.assetId", time, node.payload.assetId) as string);
+      if (asset?.assetType === "video") {
+        const mediaTime = videoFrameTime(asset, node.payload, time);
+        if (mediaTime !== undefined) pending.push(loadVideoFrame(asset, assetBaseDir, mediaTime).decode());
+      }
+    }
+  }
+  await Promise.all(pending);
 }
 
 function rectanglePath(ctx: SKRSContext2D, width: number, height: number, radius: number): void {
@@ -200,7 +305,16 @@ function drawEvaluatedNode(
     const asset = typeof rawAssetId === "string" ? assetById.get(rawAssetId) : undefined;
     if (asset) {
       const image = loadAssetImage(asset, assetBaseDir);
-      ctx.drawImage(image, 0, 0, transform.width, transform.height);
+      drawFittedImage(ctx, image, transform.width, transform.height, node.payload.fit);
+    }
+  } else if (node.type === "video") {
+    const rawAssetId = evaluateProperty(scene, node, "payload.assetId", time, node.payload.assetId);
+    const asset = typeof rawAssetId === "string" ? assetById.get(rawAssetId) : undefined;
+    if (asset?.assetType === "video") {
+      const mediaTime = videoFrameTime(asset, node.payload, time);
+      if (mediaTime !== undefined) {
+        drawFittedImage(ctx, loadVideoFrame(asset, assetBaseDir, mediaTime), transform.width, transform.height, node.payload.fit);
+      }
     }
   } else if (node.type === "text") {
     const evaluatedText = evaluateProperty(scene, node, "payload.text", time, node.payload.text);
@@ -312,7 +426,7 @@ function applyCameraView(
   ctx.translate(-x, -y);
 }
 
-export function drawSceneFrame(
+export async function drawSceneFrame(
   scene: RuntimeScene,
   metadata: NormalizedMotionProjectV2["metadata"],
   assets: RuntimeAsset[],
@@ -320,7 +434,8 @@ export function drawSceneFrame(
   width: number,
   height: number,
   assetBaseDir = REPO_ROOT,
-): Buffer {
+): Promise<Buffer> {
+  await prepareFrameAssets(scene, assets, assetBaseDir, localTime);
   ensureFont();
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
@@ -393,7 +508,7 @@ export async function drawProjectFrame(
   for (const layer of projectFrameLayers(project, globalTime)) {
     const scene = project.scenes[layer.sceneIndex];
     if (!scene || layer.opacity <= 0) continue;
-    const image = await loadImage(drawSceneFrame(scene, project.metadata, project.assets, layer.localTime, width, height, assetBaseDir));
+    const image = await loadImage(await drawSceneFrame(scene, project.metadata, project.assets, layer.localTime, width, height, assetBaseDir));
     ctx.save();
     ctx.globalAlpha = Math.min(1, Math.max(0, layer.opacity));
     ctx.drawImage(image, 0, 0);

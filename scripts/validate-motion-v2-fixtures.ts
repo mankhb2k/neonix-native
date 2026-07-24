@@ -983,7 +983,22 @@ async function main(): Promise<void> {
   }
   const vietnamese = mediaRuntime.scenes[0]?.nodes.find((node) => node.id === "text.vietnamese");
   if (vietnamese?.payload?.text !== "Tiếng Việt: Đặng Thị Hồng – 49.000₫") throw new Error("Vietnamese text did not survive compilation");
+  const invalidVideoTrim = structuredClone(mediaProject);
+  const invalidVideo = invalidVideoTrim.scenes[0]?.nodes.find((node) => node.id === "video.silent");
+  if (!invalidVideo || invalidVideo.type !== "video") throw new Error("Media video fixture missing");
+  invalidVideo.payload.trimStart = 3;
+  invalidVideo.payload.trimEnd = 1;
+  let invalidVideoTrimError: unknown;
+  try { parseMotionProjectV2(invalidVideoTrim); } catch (caught) { invalidVideoTrimError = caught; }
+  if (
+    !(invalidVideoTrimError instanceof MotionV2ReferenceError)
+    || !invalidVideoTrimError.issues.some((issue) =>
+      issue.path === "scenes.scene.media.nodes.video.silent.payload"
+      && issue.message.includes("Video trim must satisfy"),
+    )
+  ) throw new Error("Video trim reference validation changed");
   console.log("OK compiler/media assets, node types, audio roles and Vietnamese text preserved");
+  console.log("OK video trim bounds reject invalid media windows");
 
   const propertyProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "property-capabilities.mt.json")));
   const propertyRuntime = compileMotionProject(propertyProject);

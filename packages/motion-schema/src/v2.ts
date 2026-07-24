@@ -1237,6 +1237,15 @@ function validateNodeAssets(
         const expected = node.type;
         if (asset.assetType !== expected) {
           issues.push({ path, message: `Asset ${assetId} has type ${asset.assetType}, expected ${expected}` });
+        } else if (node.type === "video" && asset.assetType === "video") {
+          const trimStart = node.payload.trimStart ?? 0;
+          const trimEnd = node.payload.trimEnd ?? asset.duration;
+          if (trimStart >= trimEnd || trimEnd > asset.duration) {
+            issues.push({
+              path: `${prefix}.${node.id}.payload`,
+              message: `Video trim must satisfy 0 <= trimStart < trimEnd <= ${asset.duration}`,
+            });
+          }
         }
       }
     }

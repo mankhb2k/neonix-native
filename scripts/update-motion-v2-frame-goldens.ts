@@ -45,7 +45,7 @@ async function main(): Promise<void> {
       runtime = compileMotionProject(source, { components });
       runtimes.set(golden.project, runtime);
     }
-    const png = drawSceneFrame(runtime.scenes[0]!, runtime.metadata, runtime.assets, golden.time, golden.width, golden.height, fixturesRoot);
+    const png = await drawSceneFrame(runtime.scenes[0]!, runtime.metadata, runtime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     await writeFile(resolve(outputRoot, golden.file), png);
     console.log(`WROTE expected-frames/${golden.file}`);
   }

@@ -362,12 +362,45 @@ async function main(): Promise<void> {
   assert.equal(projectDuration(cameraTransitionRuntime), 4, "crossfade must overlap authored durations");
   assert.deepEqual(projectFrameLayers(cameraTransitionRuntime, 2.5).map(({ sceneIndex, localTime, opacity }) => [sceneIndex, localTime, opacity]), [[0, 2.5, 0.5], [1, 0.5, 0.5]], "crossfade midpoint layer timing");
   assert.equal(buildFramePlan(cameraTransitionRuntime, 30).length, 120, "crossfade frame plan duration");
-  const cameraFrame0 = drawSceneFrame(cameraScene, cameraTransitionRuntime.metadata, cameraTransitionRuntime.assets, 0, 540, 540, fixturesRoot);
-  const cameraFrameMid = drawSceneFrame(cameraScene, cameraTransitionRuntime.metadata, cameraTransitionRuntime.assets, 1.5, 540, 540, fixturesRoot);
+  const cameraFrame0 = await drawSceneFrame(cameraScene, cameraTransitionRuntime.metadata, cameraTransitionRuntime.assets, 0, 540, 540, fixturesRoot);
+  const cameraFrameMid = await drawSceneFrame(cameraScene, cameraTransitionRuntime.metadata, cameraTransitionRuntime.assets, 1.5, 540, 540, fixturesRoot);
   assert.notEqual(createHash("sha256").update(cameraFrame0).digest("hex"), createHash("sha256").update(cameraFrameMid).digest("hex"), "camera transform must change framing");
   const transitionFrame = await drawProjectFrame(cameraTransitionRuntime, 2.5, 540, 540, fixturesRoot);
   const transitionPixel = await pixelAt(transitionFrame, 20, 20);
   assert.ok(transitionPixel[0] > 25 && transitionPixel[2] > 70, "crossfade midpoint must blend Scene A and Scene B backgrounds");
+
+  const mediaSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "media-assets.mt.json"),
+    "utf8",
+  )));
+  const mediaRuntime = compileMotionProject(mediaSource);
+  const videoScene = structuredClone(mediaRuntime.scenes[0]!);
+  const silentVideo = videoScene.nodes.find((node) => node.id === "video.silent");
+  assert.ok(silentVideo?.type === "video", "Media fixture must include a silent video node");
+  silentVideo.transform = {
+    ...silentVideo.transform,
+    x: 540,
+    y: 960,
+    width: 1080,
+    height: 1920,
+    anchorX: 0.5,
+    anchorY: 0.5,
+  };
+  videoScene.nodes = [silentVideo];
+  videoScene.activeCameraId = undefined;
+  const mediaFrame0 = await drawSceneFrame(videoScene, mediaRuntime.metadata, mediaRuntime.assets, 0, 270, 480, fixturesRoot);
+  const mediaFrame1 = await drawSceneFrame(videoScene, mediaRuntime.metadata, mediaRuntime.assets, 1, 270, 480, fixturesRoot);
+  const mediaFrameAfterEnd = await drawSceneFrame(videoScene, mediaRuntime.metadata, mediaRuntime.assets, 3.8, 270, 480, fixturesRoot);
+  assert.notEqual(
+    createHash("sha256").update(mediaFrame0).digest("hex"),
+    createHash("sha256").update(mediaFrame1).digest("hex"),
+    "video frame sampling must advance at deterministic timestamps",
+  );
+  assert.notEqual(
+    createHash("sha256").update(mediaFrame1).digest("hex"),
+    createHash("sha256").update(mediaFrameAfterEnd).digest("hex"),
+    "video trim hold frame must differ from an in-range frame",
+  );
 
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
@@ -383,7 +416,7 @@ async function main(): Promise<void> {
       : golden.project === "secondary-motion" ? secondaryMotionRuntime
       : golden.project === "camera-transition" ? cameraTransitionRuntime
       : runtime;
-    const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
+    const png = await drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
     await writeFile(resolve(outputRoot, golden.file), png);
     await assertFrameGolden(png, golden.file);
@@ -450,6 +483,7 @@ async function main(): Promise<void> {
   console.log("OK Path Morph topology interpolation at progress 0/0.5/1");
   console.log("OK Secondary Motion chain follow-through and random-access evaluation");
   console.log("OK camera projection tracks, overlap timing and crossfade compositing");
+  console.log("OK video trim/hold frame sampling and silent/audio pixel decoding");
   console.log(`Preview frames: ${outputRoot}`);
 }
 
