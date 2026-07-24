@@ -131,7 +131,7 @@ Canonical order: raster subtree → mask → ordered effects → blend/z-order.
 | Repeater count | Numeric clone source | Implemented | count limits, stable generated IDs |
 | Repeater layout | None/linear/grid/radial | Implemented | exact positions, columns, radius và orientation |
 | Time stagger | Offset cloned clips/tracks | Implemented | bounded value, canonical deterministic schedule |
-| Text Animator | Text → grapheme/word/line runs | Planned P0 | Vietnamese combining marks, emoji, stagger |
+| Text Animator | Text → grapheme/word/line runs | Implemented compiler | Vietnamese combining marks, emoji ZWJ, selector, stagger và unit limit |
 | Emitter | Seeded repeated sprites | Planned P1 | count/lifetime/seed/resource limits |
 
 Compiler phải loại các expansion primitives khỏi Runtime IR.
@@ -357,7 +357,7 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 ### Phase 2 — compiler expansions
 
 - [x] Repeater vNext list/count/layout/stagger và compiler/PNG goldens.
-- Text Animator.
+- [x] Text Animator Unicode-aware, selector/stagger, compiler/PNG goldens.
 - Compiler goldens và AI capability limits.
 
 ### Phase 3 — movement/cut-out

@@ -16,6 +16,9 @@ const IdSchema = z.string().min(1).max(MOTION_V2_LIMITS.idLength);
 const PropertyPathSchema = z.string().min(1);
 const SemverSchema = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, "Expected semantic version");
 const FiniteNumberSchema = z.number().finite();
+const LocaleIdentifierSchema = z.string().min(1).refine((locale) => {
+  try { return Intl.getCanonicalLocales(locale).length === 1; } catch { return false; }
+}, "Invalid locale identifier");
 
 export const JsonValueSchema: z.ZodType<
   string | number | boolean | null | Array<unknown> | Record<string, unknown>
@@ -277,8 +280,39 @@ export const BoneNodeV2Schema = NodeBaseSchema.extend({
   }).strict(),
 }).strict();
 
+const TextAnimatorSchema = z.object({
+  id: IdSchema,
+  unit: z.enum(["grapheme", "word", "line"]),
+  locale: LocaleIdentifierSchema.optional(),
+  selector: z.object({ start: FiniteNumberSchema.min(0).max(1), end: FiniteNumberSchema.min(0).max(1) }).strict(),
+  startTime: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  stagger: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).default("easeOut"),
+  properties: z.object({
+    offsetX: FiniteNumberSchema.optional(),
+    offsetY: FiniteNumberSchema.optional(),
+    rotation: FiniteNumberSchema.optional(),
+    scale: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.transformScale).optional(),
+    opacity: FiniteNumberSchema.min(0).max(1).optional(),
+    fill: z.string().min(1).optional(),
+  }).strict(),
+}).strict().superRefine((animator, context) => {
+  if (animator.selector.start > animator.selector.end) context.addIssue({ code: z.ZodIssueCode.custom, path: ["selector", "end"], message: "Text Animator selector end must be >= start" });
+  if (Object.keys(animator.properties).length === 0) context.addIssue({ code: z.ZodIssueCode.custom, path: ["properties"], message: "Text Animator requires at least one property" });
+});
+
+export function segmentTextUnits(text: string, unit: "grapheme" | "word" | "line", locale = "vi"): string[] {
+  if (unit === "line") return text.split(/\r?\n/);
+  const segments = [...new Intl.Segmenter(locale, { granularity: unit }).segment(text)];
+  return unit === "word"
+    ? segments.map((segment) => segment.segment).filter((segment) => segment.trim().length > 0)
+    : segments.map((segment) => segment.segment);
+}
+
 export const TextNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("text"),
+  textAnimator: TextAnimatorSchema.optional(),
   payload: z.object({
     text: z.string(),
     fontAssetId: IdSchema.optional(),
@@ -601,7 +635,7 @@ export const MotionPatchSchema = z
 const RuntimeNodeSchema = z.discriminatedUnion("type", [
   GroupNodeV2Schema.omit({ repeat: true }),
   BoneNodeV2Schema.omit({ repeat: true }),
-  TextNodeV2Schema.omit({ repeat: true }),
+  TextNodeV2Schema.omit({ repeat: true, textAnimator: true }),
   ShapeNodeV2Schema.omit({ repeat: true }),
   PathNodeV2Schema.omit({ repeat: true }),
   ImageNodeV2Schema.omit({ repeat: true }),
@@ -709,6 +743,20 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     for (const id of new Set(duplicates(node.payload.contours.map((contour) => contour.id)))) {
       issues.push({ path: `${prefix}.${node.id}.payload.contours`, message: `Duplicate Path contour id: ${id}` });
     }
+  }
+  for (const node of nodes) {
+    if (node.type !== "text" || !node.textAnimator) continue;
+    const units = segmentTextUnits(node.payload.text, node.textAnimator.unit, node.textAnimator.locale);
+    if (units.length === 0) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: "Text Animator requires at least one text unit" });
+    if (units.length > MOTION_V2_LIMITS.textAnimatorUnits) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: `Text Animator exceeds unit limit ${MOTION_V2_LIMITS.textAnimatorUnits}` });
+    const selectedCount = units.filter((_, index) => {
+      const progress = units.length <= 1 ? 0 : index / (units.length - 1);
+      return progress >= node.textAnimator!.selector.start && progress <= node.textAnimator!.selector.end;
+    }).length;
+    const endTime = node.textAnimator.startTime + Math.max(0, selectedCount - 1) * node.textAnimator.stagger + node.textAnimator.duration;
+    if (endTime > MOTION_V2_LIMITS.mediaDurationSeconds) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: `Text Animator timing exceeds maximum ${MOTION_V2_LIMITS.mediaDurationSeconds}` });
+    if (nodes.some((candidate) => candidate.parentId === node.id)) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: "Text Animator node cannot own child nodes" });
+    if (nodes.some((candidate) => candidate.mask?.sourceNodeId === node.id)) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: "Text Animator node cannot be a mask source" });
   }
   const idSet = new Set(ids);
   const parentById = new Map(nodes.map((node) => [node.id, node.parentId]));
@@ -826,6 +874,10 @@ function validateClips(
   for (const id of new Set(duplicates(clips.map((clip) => clip.id)))) issues.push({ path: prefix, message: `Duplicate clip id: ${id}` });
   for (const clip of clips) {
     if (clip.targetId && !nodeById.has(clip.targetId)) issues.push({ path: `${prefix}.${clip.id}.targetId`, message: `Unknown node: ${clip.targetId}` });
+    if (clip.targetId) {
+      const target = nodeById.get(clip.targetId);
+      if (target?.type === "text" && target.textAnimator) issues.push({ path: `${prefix}.${clip.id}.targetId`, message: "Text Animator node cannot be targeted by authored clips; animate its parent or animator properties" });
+    }
     if (clip.schedule.kind !== "absolute" && !clipById.has(clip.schedule.clipId)) {
       issues.push({ path: `${prefix}.${clip.id}.schedule`, message: `Unknown schedule clip: ${clip.schedule.clipId}` });
     }
@@ -834,6 +886,7 @@ function validateClips(
         const trackPath = `${prefix}.${clip.id}.source.tracks.${track.property}`;
         const node = nodeById.get(track.targetId);
         if (!node) issues.push({ path: trackPath, message: `Unknown node: ${track.targetId}` });
+        if (node?.type === "text" && node.textAnimator) issues.push({ path: trackPath, message: "Text Animator node cannot be targeted by authored tracks; animate its parent or animator properties" });
         const capability = node ? motionPropertyCapability(node.type, track.property) : undefined;
         if (node) issues.push(...validatePropertyPath(node, track.property, "track", trackPath));
         for (let index = 0; index < track.keys.length; index += 1) {

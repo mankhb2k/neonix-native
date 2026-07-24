@@ -20,7 +20,7 @@ import {
   planOffscreenSurface,
   subtreeBounds,
 } from "../packages/motion-runtime/src/index";
-import { parseMotionComponentV2, parseMotionProjectV2 } from "../packages/motion-schema/src/index";
+import { parseMotionComponentV2, parseMotionProjectV2, segmentTextUnits } from "../packages/motion-schema/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
@@ -33,6 +33,7 @@ const frameGoldens = [
   { project: "geometry", time: 1, file: "geometry-paths-t1.png", width: 540, height: 540 },
   { project: "mask", time: 0, file: "mask-compositing-t0.png", width: 540, height: 540 },
   { project: "repeater", time: 1, file: "repeater-layouts-t1.png", width: 540, height: 540 },
+  { project: "text-animator", time: 1.5, file: "text-animator-unicode-t1_5.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -244,12 +245,21 @@ async function main(): Promise<void> {
     "utf8",
   )));
   const repeaterRuntime = compileMotionProject(repeaterSource, { components: [repeaterComponent] });
+  const graphemes = segmentTextUnits("Á 👨‍👩‍👧‍👦 Việt", "grapheme", "vi");
+  assert.equal(graphemes[0], "Á", "combining-mark grapheme must remain one unit");
+  assert.equal(graphemes[2], "👨‍👩‍👧‍👦", "ZWJ family emoji must remain one grapheme unit");
+  assert.deepEqual(segmentTextUnits("Xin chào, Việt Nam! 👋🏽", "word", "vi"), ["Xin", "chào", ",", "Việt", "Nam", "!", "👋🏽"], "word segmentation changed");
+  const textAnimatorSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "text-animator-unicode.mt.json"),
+    "utf8",
+  )));
+  const textAnimatorRuntime = compileMotionProject(textAnimatorSource);
 
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
   for (const golden of frameGoldens) {
-    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : runtime;
+    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : golden.project === "text-animator" ? textAnimatorRuntime : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
     await writeFile(resolve(outputRoot, golden.file), png);
@@ -283,8 +293,13 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [168, 85, 247]) >= 100, "radial Repeater pixels missing");
       assert.ok(await countColor(png, [249, 115, 22]) >= 100, "list context-bound Repeater pixels missing");
     }
+    if (golden.project === "text-animator") {
+      assert.ok(await countColor(png, [248, 250, 252]) >= 20, "grapheme Text Animator pixels missing");
+      assert.ok(await countColor(png, [96, 165, 250]) >= 20, "word Text Animator pixels missing");
+      assert.ok(await countColor(png, [250, 204, 21]) >= 20, "line Text Animator pixels missing");
+    }
   }
-  assert.equal(hashes.size, 6, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 7, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
@@ -293,6 +308,7 @@ async function main(): Promise<void> {
   console.log("OK Shape/Path geometry, cubic bounds, animated paint and evenodd holes rendered");
   console.log("OK clip/alpha/inverse-alpha masks, nested masks and mask-aware hit testing");
   console.log("OK Repeater vNext list/count/linear/grid/radial visual expansion");
+  console.log("OK Unicode Text Animator grapheme/word/line expansion and visual runs");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

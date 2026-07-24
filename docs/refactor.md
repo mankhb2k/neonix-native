@@ -128,7 +128,7 @@ pnpm e2e:render
 - [ ] Camera transform, scene transition và prop attachment.
 - [ ] Motion Path, Bone chain và Secondary Motion deterministic cho segmented hair/tail.
 - [x] Harden Repeater thành list/count + none/linear/grid/radial + time stagger.
-- [ ] Thêm Text Animator Unicode-aware.
+- [x] Thêm Text Animator Unicode grapheme/word/line với selector/stagger và literal run expansion.
 
 ### P2 — Component và asset production
 

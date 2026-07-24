@@ -14,6 +14,7 @@ import {
   MotionV2ReferenceError,
   motionPropertyCapability,
   motionPropertyCapabilities,
+  segmentTextUnits,
 } from "../packages/motion-schema/src/index";
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
 import { evaluateProperty } from "../packages/motion-runtime/src/index";
@@ -59,7 +60,7 @@ type LimitCase = {
     | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
-    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns";
+    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -362,6 +363,30 @@ async function validateNegativeFixtures(): Promise<number> {
       message: "Repeater key id is missing at item 0",
     },
     {
+      file: "components/text-animator-with-child.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.text.textAnimator",
+      message: "Text Animator node cannot own child nodes",
+    },
+    {
+      file: "components/text-animator-authored-clip.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.bad.targetId",
+      message: "Text Animator node cannot be targeted by authored clips; animate its parent or animator properties",
+    },
+    {
+      file: "components/empty-text-animator-text.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.text.textAnimator",
+      message: "Text Animator requires at least one text unit",
+    },
+    {
+      file: "components/text-animator-timing-over-limit.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.text.textAnimator",
+      message: "Text Animator timing exceeds maximum 86400",
+    },
+    {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
       path: "scenes.scene.nodes.instance.payload",
@@ -495,6 +520,29 @@ async function validateNegativeFixtures(): Promise<number> {
       file: "components/negative-repeater-stagger.mvc.json",
       path: "nodes.0.repeat.timeStagger",
       code: "too_small",
+    },
+    {
+      file: "components/invalid-text-selector.mvc.json",
+      path: "nodes.0.textAnimator.selector.end",
+      code: "custom",
+      message: "Text Animator selector end must be >= start",
+    },
+    {
+      file: "components/empty-text-animator-properties.mvc.json",
+      path: "nodes.0.textAnimator.properties",
+      code: "custom",
+      message: "Text Animator requires at least one property",
+    },
+    {
+      file: "components/invalid-text-animator-unit.mvc.json",
+      path: "nodes.0.textAnimator.unit",
+      code: "invalid_enum_value",
+    },
+    {
+      file: "components/invalid-text-animator-locale.mvc.json",
+      path: "nodes.0.textAnimator.locale",
+      code: "custom",
+      message: "Invalid locale identifier",
     },
   ] as const;
   for (const fixture of schemaCases) {
@@ -663,6 +711,15 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     };
     return { artifact: component, parse: parseMotionComponentV2 };
   }
+  if (testCase.target === "textAnimator.units") {
+    const component = baseLimitComponent();
+    component.nodes = [{
+      id: "text", type: "text", parentId: null, transform: fixtureTransform(),
+      payload: { text: "a".repeat(count), fontSize: 10 }, style: { fill: "#ffffff" },
+      textAnimator: { id: "letters", unit: "grapheme", selector: { start: 0, end: 1 }, startTime: 0, duration: 1, stagger: 0, properties: { opacity: 0 } },
+    }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
   const project = baseLimitProject();
   const scenes = project.scenes as Array<Record<string, unknown>>;
   const scene = scenes[0]!;
@@ -715,9 +772,12 @@ async function validateLimitCases(): Promise<number> {
     const { artifact, parse } = buildLimitArtifact(testCase);
     let error: unknown;
     try { parse(artifact); } catch (caught) { error = caught; }
-    if (testCase.target === "hierarchy.depth") {
-      if (!(error instanceof MotionV2ReferenceError) || !error.issues.some((issue) => issue.path === testCase.expectedPath && issue.message === `Hierarchy exceeds depth limit ${MOTION_V2_LIMITS.hierarchyDepth}`)) {
-        throw new Error(`Hierarchy limit contract changed: ${testCase.id}`);
+    if (testCase.target === "hierarchy.depth" || testCase.target === "textAnimator.units") {
+      const expectedMessage = testCase.target === "hierarchy.depth"
+        ? `Hierarchy exceeds depth limit ${MOTION_V2_LIMITS.hierarchyDepth}`
+        : `Text Animator exceeds unit limit ${MOTION_V2_LIMITS.textAnimatorUnits}`;
+      if (!(error instanceof MotionV2ReferenceError) || !error.issues.some((issue) => issue.path === testCase.expectedPath && issue.message === expectedMessage)) {
+        throw new Error(`Reference limit contract changed: ${testCase.id}`);
       }
     } else {
       const issues = error && typeof error === "object" && "issues" in error
@@ -848,6 +908,22 @@ async function main(): Promise<void> {
   deepStrictEqual(radialNodes.map((node) => node.transform.rotation), [0, 72, 144, 216, 288], "Radial orientation changed");
   deepStrictEqual(repeaterScene.tracks.map((track) => track.keys[0]!.t), [0, 0.1, 0.2, 0.3, 0.4, 0.5], "Repeater time stagger changed");
   console.log("OK compiler/repeater vNext list/count/none/linear/grid/radial/stagger expansion");
+
+  const textAnimatorProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "text-animator-unicode.mt.json")));
+  const textAnimatorRuntime = compileMotionProject(textAnimatorProject);
+  const textScene = textAnimatorRuntime.scenes[0]!;
+  if (JSON.stringify(textAnimatorRuntime).includes('"textAnimator"')) throw new Error("Compiler leaked Text Animator authoring metadata into Runtime IR");
+  const textFamily = (name: string) => textScene.nodes.filter((node) => node.id.startsWith(`text.${name}::`));
+  const graphemeRuns = textFamily("grapheme");
+  const wordRuns = textFamily("word");
+  const lineRuns = textFamily("line");
+  deepStrictEqual([graphemeRuns.length, wordRuns.length, lineRuns.length], [8, 7, 3], "Text Animator run counts changed");
+  deepStrictEqual(graphemeRuns.map((node) => node.type === "text" ? node.payload.text : ""), segmentTextUnits("Á 👨‍👩‍👧‍👦 Việt", "grapheme", "vi"), "Grapheme run text changed");
+  deepStrictEqual(wordRuns.map((node) => node.type === "text" ? node.payload.text : ""), ["Xin", "chào", ",", "Việt", "Nam", "!", "👋🏽"], "Word run text changed");
+  deepStrictEqual(lineRuns.map((node) => node.type === "text" ? node.payload.text : ""), ["Dòng một", "Dòng hai", "🎬 Kết"], "Line run text changed");
+  if (textScene.nodes.some((node) => ["text.grapheme", "text.word", "text.line"].includes(node.id))) throw new Error("Compiler retained original Text Animator source nodes");
+  deepStrictEqual(textScene.tracks.filter((track) => track.property === "transform.x").map((track) => track.keys[0]!.t), [0.2, 0.28, 0.36, 0.44, 0.52], "Word selector/stagger changed");
+  console.log("OK compiler/Text Animator Unicode grapheme/word/line selector and stagger expansion");
 
   console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
 }

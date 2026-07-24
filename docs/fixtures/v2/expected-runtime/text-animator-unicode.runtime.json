@@ -1,0 +1,1499 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "fixture.text-animator-unicode",
+    "name": "Unicode Text Animator expansion",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Text fixture",
+      "primaryColor": "#101828"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.text-animator"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.text-animator",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "text.grapheme::letters::0",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 120,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Á",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::1",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 240,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": " ",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::2",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 360,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "👨‍👩‍👧‍👦",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::3",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 480,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": " ",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::4",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 600,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "V",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::5",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 720,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "i",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::6",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 840,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "ệ",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.grapheme::letters::7",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 960,
+            "y": 155,
+            "width": 120,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "t",
+            "fontSize": 64,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "text.word::words::0",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 128.57142857142856,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Xin",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.word::words::1",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 265.7142857142857,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "chào",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.word::words::2",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 402.85714285714283,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": ",",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.word::words::3",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 540,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Việt",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.word::words::4",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 677.1428571428571,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Nam",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.word::words::5",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 814.2857142857142,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "!",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.word::words::6",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 951.4285714285714,
+            "y": 425,
+            "width": 137.14285714285714,
+            "height": 150,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "👋🏽",
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#60a5fa"
+          }
+        },
+        {
+          "id": "text.line::lines::0",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 540,
+            "y": 675,
+            "width": 880,
+            "height": 110,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Dòng một",
+            "fontSize": 48,
+            "align": "center",
+            "lineHeight": 64
+          },
+          "style": {
+            "fill": "#facc15"
+          }
+        },
+        {
+          "id": "text.line::lines::1",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 540,
+            "y": 785,
+            "width": 880,
+            "height": 110,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Dòng hai",
+            "fontSize": 48,
+            "align": "center",
+            "lineHeight": 64
+          },
+          "style": {
+            "fill": "#facc15"
+          }
+        },
+        {
+          "id": "text.line::lines::2",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 540,
+            "y": 895,
+            "width": 880,
+            "height": 110,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "🎬 Kết",
+            "fontSize": 48,
+            "align": "center",
+            "lineHeight": 64
+          },
+          "style": {
+            "fill": "#facc15"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "text.grapheme::letters::0",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0,
+              "v": 225
+            },
+            {
+              "t": 0.6,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::0",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0,
+              "v": -12
+            },
+            {
+              "t": 0.6,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::0",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.6
+            },
+            {
+              "t": 0.6,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::0",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.6
+            },
+            {
+              "t": 0.6,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::0",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.6,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::0",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.6,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::1",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.06,
+              "v": 225
+            },
+            {
+              "t": 0.66,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::1",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.06,
+              "v": -12
+            },
+            {
+              "t": 0.66,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::1",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.06,
+              "v": 0.6
+            },
+            {
+              "t": 0.66,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::1",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.06,
+              "v": 0.6
+            },
+            {
+              "t": 0.66,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::1",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.06,
+              "v": 0
+            },
+            {
+              "t": 0.66,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::1",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.06,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.66,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::2",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.12,
+              "v": 225
+            },
+            {
+              "t": 0.72,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::2",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.12,
+              "v": -12
+            },
+            {
+              "t": 0.72,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::2",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.12,
+              "v": 0.6
+            },
+            {
+              "t": 0.72,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::2",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.12,
+              "v": 0.6
+            },
+            {
+              "t": 0.72,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::2",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.12,
+              "v": 0
+            },
+            {
+              "t": 0.72,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::2",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.12,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.72,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::3",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.18,
+              "v": 225
+            },
+            {
+              "t": 0.78,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::3",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.18,
+              "v": -12
+            },
+            {
+              "t": 0.78,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::3",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.18,
+              "v": 0.6
+            },
+            {
+              "t": 0.78,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::3",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.18,
+              "v": 0.6
+            },
+            {
+              "t": 0.78,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::3",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.18,
+              "v": 0
+            },
+            {
+              "t": 0.78,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::3",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.18,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.78,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::4",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.24,
+              "v": 225
+            },
+            {
+              "t": 0.84,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::4",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.24,
+              "v": -12
+            },
+            {
+              "t": 0.84,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::4",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.24,
+              "v": 0.6
+            },
+            {
+              "t": 0.84,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::4",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.24,
+              "v": 0.6
+            },
+            {
+              "t": 0.84,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::4",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.24,
+              "v": 0
+            },
+            {
+              "t": 0.84,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::4",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.24,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.84,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::5",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": 225
+            },
+            {
+              "t": 0.9,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::5",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": -12
+            },
+            {
+              "t": 0.9,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::5",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": 0.6
+            },
+            {
+              "t": 0.9,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::5",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": 0.6
+            },
+            {
+              "t": 0.9,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::5",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": 0
+            },
+            {
+              "t": 0.9,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::5",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.9,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::6",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": 225
+            },
+            {
+              "t": 0.96,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::6",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": -12
+            },
+            {
+              "t": 0.96,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::6",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": 0.6
+            },
+            {
+              "t": 0.96,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::6",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": 0.6
+            },
+            {
+              "t": 0.96,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::6",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": 0
+            },
+            {
+              "t": 0.96,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::6",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": "#fb7185"
+            },
+            {
+              "t": 0.96,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::7",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.42,
+              "v": 225
+            },
+            {
+              "t": 1.02,
+              "v": 155,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::7",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0.42,
+              "v": -12
+            },
+            {
+              "t": 1.02,
+              "v": 0,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::7",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.42,
+              "v": 0.6
+            },
+            {
+              "t": 1.02,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::7",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.42,
+              "v": 0.6
+            },
+            {
+              "t": 1.02,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::7",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.42,
+              "v": 0
+            },
+            {
+              "t": 1.02,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.grapheme::letters::7",
+          "property": "style.fill",
+          "keys": [
+            {
+              "t": 0.42,
+              "v": "#fb7185"
+            },
+            {
+              "t": 1.02,
+              "v": "#f8fafc",
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::1",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0.2,
+              "v": 215.71428571428572
+            },
+            {
+              "t": 0.7,
+              "v": 265.7142857142857,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::1",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.2,
+              "v": 0
+            },
+            {
+              "t": 0.7,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::2",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0.28,
+              "v": 352.85714285714283
+            },
+            {
+              "t": 0.78,
+              "v": 402.85714285714283,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::2",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.28,
+              "v": 0
+            },
+            {
+              "t": 0.78,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::3",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": 490
+            },
+            {
+              "t": 0.86,
+              "v": 540,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::3",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.36,
+              "v": 0
+            },
+            {
+              "t": 0.86,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::4",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0.44,
+              "v": 627.1428571428571
+            },
+            {
+              "t": 0.94,
+              "v": 677.1428571428571,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::4",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.44,
+              "v": 0
+            },
+            {
+              "t": 0.94,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::5",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0.52,
+              "v": 764.2857142857142
+            },
+            {
+              "t": 1.02,
+              "v": 814.2857142857142,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.word::words::5",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.52,
+              "v": 0
+            },
+            {
+              "t": 1.02,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "text.line::lines::0",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.4,
+              "v": 720
+            },
+            {
+              "t": 1.1,
+              "v": 675,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "text.line::lines::0",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.4,
+              "v": 0
+            },
+            {
+              "t": 1.1,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "text.line::lines::1",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.52,
+              "v": 830
+            },
+            {
+              "t": 1.22,
+              "v": 785,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "text.line::lines::1",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.52,
+              "v": 0
+            },
+            {
+              "t": 1.22,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "text.line::lines::2",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.64,
+              "v": 940
+            },
+            {
+              "t": 1.34,
+              "v": 895,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "text.line::lines::2",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.64,
+              "v": 0
+            },
+            {
+              "t": 1.34,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

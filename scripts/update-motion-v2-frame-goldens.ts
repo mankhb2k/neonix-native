@@ -17,6 +17,7 @@ export const FRAME_GOLDENS = [
   { project: "geometry-paths.mt.json", time: 1, file: "geometry-paths-t1.png", width: 540, height: 540 },
   { project: "mask-compositing.mt.json", time: 0, file: "mask-compositing-t0.png", width: 540, height: 540 },
   { project: "repeater-layouts.mt.json", time: 1, file: "repeater-layouts-t1.png", width: 540, height: 540 },
+  { project: "text-animator-unicode.mt.json", time: 1.5, file: "text-animator-unicode-t1_5.png", width: 540, height: 540 },
 ] as const;
 
 async function main(): Promise<void> {

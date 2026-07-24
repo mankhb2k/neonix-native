@@ -35,6 +35,7 @@ export const MOTION_V2_LIMITS = Object.freeze({
   polygonPoints: 10_000,
   repeaterInstances: 1_000,
   repeaterGridColumns: 100,
+  textAnimatorUnits: 1_000,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

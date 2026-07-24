@@ -27,6 +27,7 @@
     { "id": "path-contours", "target": "path.contours", "limit": "pathContours", "expectedPath": "nodes.0.payload.contours" },
     { "id": "path-segments", "target": "path.segments", "limit": "pathSegmentsPerContour", "expectedPath": "nodes.0.payload.contours.0.segments" },
     { "id": "repeater-count", "target": "repeater.count", "limit": "repeaterInstances", "expectedPath": "nodes.0.repeat.source.count" },
-    { "id": "repeater-grid-columns", "target": "repeater.gridColumns", "limit": "repeaterGridColumns", "expectedPath": "nodes.0.repeat.layout.columns" }
+    { "id": "repeater-grid-columns", "target": "repeater.gridColumns", "limit": "repeaterGridColumns", "expectedPath": "nodes.0.repeat.layout.columns" },
+    { "id": "text-animator-units", "target": "textAnimator.units", "limit": "textAnimatorUnits", "expectedPath": "nodes.text.textAnimator" }
   ]
 }

@@ -110,6 +110,10 @@ AI và schema-driven controls chỉ enumerate property có `public: true`; việ
 
 Variable list khai báo `itemSchema`. Node template có `repeat.source` dạng `list { variableId, keyPath }` hoặc `count { count, keyPrefix }`; layout là `none`, `linear`, `grid` hoặc `radial`. Binding con có source `context`, ví dụ `item.title`. Compiler clone subtree/binding/clip bằng ID deterministic, áp `timeStagger`, canonicalize timestamp và xóa directive khỏi Runtime IR. Count, list item và grid columns đều có hard limit; renderer không biết Repeater.
 
+## Text Animator
+
+Text Node authoring có thể khai báo một `textAnimator` gồm stable ID, unit `grapheme | word | line`, locale, selector chuẩn hóa 0..1, start/duration/stagger/easing và các from-properties offset/rotation/scale/opacity/fill. Compiler dùng `Intl.Segmenter`, vì vậy combining mark, emoji ZWJ và skin-tone modifier không bị split theo UTF-16. Nó sinh Text run + literal tracks, canonicalize timestamp và xóa Node nguồn/textAnimator khỏi Runtime IR. Unit count có hard limit; Text Animator Node không được làm parent, mask source hoặc target của authored clip/track—hãy animate parent nếu cần chuyển động toàn khối.
+
 ## Clip timing
 
 - Scene duration, schedule, clip duration và key `t` đều tính bằng giây.

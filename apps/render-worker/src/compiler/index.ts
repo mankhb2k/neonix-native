@@ -1,5 +1,6 @@
 import {
   NormalizedMotionProjectV2Schema,
+  segmentTextUnits,
   type MotionClip,
   type MotionComponentV2,
   type MotionNode,
@@ -292,6 +293,58 @@ function expandComponents(
   return { nodes: outputNodes, clips: outputClips, variables: componentVariables };
 }
 
+function expandTextAnimators(nodes: MotionNode[]): { nodes: RuntimeNode[]; tracks: RuntimeTrack[] } {
+  const outputNodes: RuntimeNode[] = [];
+  const outputTracks: RuntimeTrack[] = [];
+  for (const node of nodes) {
+    if (node.type !== "text" || !node.textAnimator) {
+      outputNodes.push(clone(node) as RuntimeNode);
+      continue;
+    }
+    const animator = node.textAnimator;
+    const units = segmentTextUnits(node.payload.text, animator.unit, animator.locale);
+    const horizontal = animator.unit !== "line";
+    const cellWidth = horizontal ? node.transform.width / Math.max(1, units.length) : node.transform.width;
+    const cellHeight = horizontal ? node.transform.height : node.transform.height / Math.max(1, units.length);
+    const left = node.transform.x - node.transform.anchorX * node.transform.width;
+    const top = node.transform.y - node.transform.anchorY * node.transform.height;
+    let selectedIndex = 0;
+    units.forEach((text, index) => {
+      const run = clone(node) as typeof node & { textAnimator?: unknown; repeat?: unknown };
+      delete run.textAnimator;
+      delete run.repeat;
+      run.id = `${node.id}::${animator.id}::${index}`;
+      run.payload.text = text;
+      run.transform.x = horizontal ? left + cellWidth * (index + 0.5) : left + cellWidth / 2;
+      run.transform.y = horizontal ? top + cellHeight / 2 : top + cellHeight * (index + 0.5);
+      run.transform.width = cellWidth;
+      run.transform.height = cellHeight;
+      run.transform.anchorX = 0.5;
+      run.transform.anchorY = 0.5;
+      outputNodes.push(run as RuntimeNode);
+
+      const progress = units.length <= 1 ? 0 : index / (units.length - 1);
+      if (progress < animator.selector.start || progress > animator.selector.end) return;
+      const start = canonicalTime(animator.startTime + selectedIndex * animator.stagger);
+      const end = canonicalTime(start + animator.duration);
+      selectedIndex += 1;
+      const track = (property: string, from: RuntimeTrack["keys"][number]["v"], to: RuntimeTrack["keys"][number]["v"]): void => {
+        outputTracks.push({ targetId: run.id, property, keys: [{ t: start, v: from }, { t: end, v: to, easing: animator.easing }] });
+      };
+      if (animator.properties.offsetX !== undefined) track("transform.x", run.transform.x + animator.properties.offsetX, run.transform.x);
+      if (animator.properties.offsetY !== undefined) track("transform.y", run.transform.y + animator.properties.offsetY, run.transform.y);
+      if (animator.properties.rotation !== undefined) track("transform.rotation", run.transform.rotation + animator.properties.rotation, run.transform.rotation);
+      if (animator.properties.scale !== undefined) {
+        track("transform.scaleX", run.transform.scaleX * animator.properties.scale, run.transform.scaleX);
+        track("transform.scaleY", run.transform.scaleY * animator.properties.scale, run.transform.scaleY);
+      }
+      if (animator.properties.opacity !== undefined) track("transform.opacity", run.transform.opacity * animator.properties.opacity, run.transform.opacity);
+      if (animator.properties.fill !== undefined) track("style.fill", animator.properties.fill, run.style?.fill ?? "#ffffff");
+    });
+  }
+  return { nodes: outputNodes, tracks: outputTracks };
+}
+
 /** Authoring IR v2 → renderer-only literal Runtime IR. */
 export function compileMotionProject(project: MotionProject, options: CompileOptions = {}): NormalizedMotionProjectV2 {
   const projectVariables = new Map(project.variables.map((variable) => [variable.id, clone(variable.value)]));
@@ -307,12 +360,13 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
       }
       const expanded = expandComponents(scene.nodes, scene.clips, componentPackages);
       const variables = new Map([...projectVariables, ...expanded.variables]);
-      const resolvedNodes = expanded.nodes.map((node) => resolveValue(node, variables) as RuntimeNode);
+      const resolvedAuthoringNodes = expanded.nodes.map((node) => resolveValue(node, variables) as unknown as MotionNode);
+      const textExpanded = expandTextAnimators(resolvedAuthoringNodes);
       return {
         id: scene.id,
         duration: scene.duration,
-        nodes: resolvedNodes,
-        tracks: compileClips(resolvedNodes, expanded.clips, variables),
+        nodes: textExpanded.nodes,
+        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables), ...textExpanded.tracks],
       };
     });
   return NormalizedMotionProjectV2Schema.parse({
