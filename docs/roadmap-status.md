@@ -22,14 +22,14 @@ This file is the current implementation ledger. A capability is marked **done** 
 | Normalized Path Morph | topology-checked targets, progress tracks, Runtime/PNG goldens at t=0/1/2 | `36103d6` |
 | Component Action outer playback | iterations, reverse/alternate, `action.loop` fill and over-duration guard | `9fb5c60` |
 | Lip-sync cue generation | cue validation and generated mouth `payload.assetId` step-key golden | *(this commit)* |
+| Deterministic Secondary Motion | bounded rotation-only bone chain, random-access solver, Runtime/PNG goldens | *(this commit)* |
 
-Current verification after Lip-sync cues: 24 positive artifacts, 72 negative artifacts, 39 limit cases, 15 Runtime goldens, 14 PNG goldens, and 21 pinned assets.
+Current verification after Secondary Motion: 25 positive artifacts, 76 negative artifacts, 40 limit cases, 16 Runtime goldens, 16 PNG goldens, and 21 pinned assets.
 
 ## Partial or not implemented
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
-| Secondary Motion | No modifier/evaluator implementation | deterministic random-access segmented-chain solver and PNG fixture |
 | Figma/Illustrator importer and re-import | Source mapping is typed metadata only | sanitizer/parser, stable element fingerprint reconciliation and import fixtures |
 | Camera projection/scene transitions | Active camera is validated, but renderer does not apply camera transforms or transitions | camera-aware render plan and overlap/crossfade fixture |
 | Video frame rendering | Video assets are validated/plumbed, but draw path has no decoded frame/trim/loop behavior | deterministic frame decoder and media golden |

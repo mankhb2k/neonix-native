@@ -1,0 +1,277 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "fixture.bone-secondary-motion",
+    "name": "Bone Secondary Motion",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Secondary Motion fixture",
+      "primaryColor": "#101828"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.secondary"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.secondary",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "bone.driver",
+          "type": "bone",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 110,
+            "y": 270,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "modifiers": [
+            {
+              "id": "tail-follow",
+              "type": "secondary-motion",
+              "driverNodeId": "bone.driver",
+              "chainNodeIds": [
+                "bone.a",
+                "bone.b",
+                "bone.c"
+              ],
+              "stiffness": 28,
+              "damping": 8,
+              "lag": 0.08,
+              "amplitude": 0.55,
+              "axis": "rotation"
+            }
+          ],
+          "payload": {
+            "length": 120
+          }
+        },
+        {
+          "id": "shape.driver",
+          "type": "shape",
+          "parentId": "bone.driver",
+          "zIndex": 2,
+          "transform": {
+            "x": 0,
+            "y": -14,
+            "width": 120,
+            "height": 28,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 14
+          },
+          "style": {
+            "fill": "#f97316"
+          }
+        },
+        {
+          "id": "bone.a",
+          "type": "bone",
+          "parentId": "bone.driver",
+          "zIndex": 3,
+          "transform": {
+            "x": 120,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "length": 105
+          }
+        },
+        {
+          "id": "shape.a",
+          "type": "shape",
+          "parentId": "bone.a",
+          "zIndex": 4,
+          "transform": {
+            "x": 0,
+            "y": -12,
+            "width": 105,
+            "height": 24,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#38bdf8"
+          }
+        },
+        {
+          "id": "bone.b",
+          "type": "bone",
+          "parentId": "bone.a",
+          "zIndex": 5,
+          "transform": {
+            "x": 105,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "length": 90
+          }
+        },
+        {
+          "id": "shape.b",
+          "type": "shape",
+          "parentId": "bone.b",
+          "zIndex": 6,
+          "transform": {
+            "x": 0,
+            "y": -10,
+            "width": 90,
+            "height": 20,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 10
+          },
+          "style": {
+            "fill": "#a78bfa"
+          }
+        },
+        {
+          "id": "bone.c",
+          "type": "bone",
+          "parentId": "bone.b",
+          "zIndex": 7,
+          "transform": {
+            "x": 90,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "length": 74
+          }
+        },
+        {
+          "id": "shape.c",
+          "type": "shape",
+          "parentId": "bone.c",
+          "zIndex": 8,
+          "transform": {
+            "x": 0,
+            "y": -8,
+            "width": 74,
+            "height": 16,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 8
+          },
+          "style": {
+            "fill": "#f472b6"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "bone.driver",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 1,
+              "v": 45,
+              "easing": "easeInOut"
+            },
+            {
+              "t": 2,
+              "v": 0,
+              "easing": "easeInOut"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

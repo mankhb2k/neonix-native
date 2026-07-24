@@ -263,10 +263,19 @@ function expandComponents(
       }
       if (internal.modifiers) {
         next.modifiers = internal.modifiers.map((modifier) => {
-          if (modifier.type !== "motion-path") return modifier;
-          const source = internalById.get(modifier.pathNodeId);
-          const sharesRepeat = Boolean(repeatKey && source && repeatOwner(source)?.id === repeatOwner(internal)?.id);
-          return { ...modifier, pathNodeId: `${node.id}::${modifier.pathNodeId}${sharesRepeat ? `::${repeatKey}` : ""}` };
+          if (modifier.type === "motion-path") {
+            const source = internalById.get(modifier.pathNodeId);
+            const sharesRepeat = Boolean(repeatKey && source && repeatOwner(source)?.id === repeatOwner(internal)?.id);
+            return { ...modifier, pathNodeId: `${node.id}::${modifier.pathNodeId}${sharesRepeat ? `::${repeatKey}` : ""}` };
+          }
+          if (modifier.type === "secondary-motion") {
+            return {
+              ...modifier,
+              driverNodeId: `${node.id}::${modifier.driverNodeId}`,
+              chainNodeIds: modifier.chainNodeIds.map((chainNodeId) => `${node.id}::${chainNodeId}`),
+            };
+          }
+          return modifier;
         });
       }
       if (internal.parentId === null) {

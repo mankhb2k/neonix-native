@@ -10,6 +10,7 @@ import {
 } from "./matrix";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
 import { localNodeBounds, pathMorphContours, samplePathContour } from "./geometry";
+import { solveSecondaryMotionChain } from "./secondary-motion";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
@@ -171,6 +172,25 @@ export function evaluateTransform(scene: RuntimeScene, node: RuntimeNode, time: 
 
 export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[] {
   const byId = new Map(scene.nodes.map((node) => [node.id, node]));
+  const secondaryRotations = new Map<string, number>();
+  for (const node of scene.nodes) {
+    for (const modifier of node.modifiers ?? []) {
+      if (modifier.type !== "secondary-motion" || modifier.axis !== "rotation") continue;
+      const driver = byId.get(modifier.driverNodeId);
+      if (!driver) throw new Error(`Runtime Secondary Motion driver missing: ${modifier.driverNodeId}`);
+      const rotations = solveSecondaryMotionChain(time, {
+        chainLength: modifier.chainNodeIds.length,
+        stiffness: modifier.stiffness,
+        damping: modifier.damping,
+        lag: modifier.lag,
+        amplitude: modifier.amplitude,
+      }, (sampleTime) => evaluateTransform(scene, driver, sampleTime).rotation);
+      for (let index = 0; index < modifier.chainNodeIds.length; index += 1) {
+        const chainNodeId = modifier.chainNodeIds[index]!;
+        secondaryRotations.set(chainNodeId, (secondaryRotations.get(chainNodeId) ?? 0) + rotations[index]!);
+      }
+    }
+  }
   const evaluated = new Map<string, EvaluatedNode>();
   const visiting = new Set<string>();
 
@@ -181,6 +201,8 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     visiting.add(node.id);
 
     let transform = evaluateTransform(scene, node, time);
+    const secondaryRotation = secondaryRotations.get(node.id);
+    if (secondaryRotation !== undefined) transform = { ...transform, rotation: transform.rotation + secondaryRotation };
     const pathMorph = node.type === "path" ? node.modifiers?.find((modifier) => modifier.type === "path-morph") : undefined;
     const pathMorphProgress = pathMorph
       ? evaluateProperty(scene, node, `modifiers.${pathMorph.id}.progress`, time, pathMorph.progress)

@@ -6,6 +6,8 @@ Effects acceptance is covered by `projects/effects-stack.mt.json`, `expected-run
 
 Path Morph acceptance is covered by `projects/path-morph.mt.json`, `expected-runtime/path-morph.runtime.json`, and `expected-frames/path-morph-t{0,1,2}.png`; it verifies topology-compatible targets, progress tracks, mismatch/limit negatives, and silhouette interpolation at progress 0/0.5/1.
 
+Secondary Motion acceptance is covered by `projects/bone-secondary-motion.mt.json`, its Runtime golden, and `expected-frames/bone-secondary-motion-t{0_5,1_5}.png`; the modifier lives on its driver bone, supports rotation only, validates chain ownership/references/limits, and verifies random-access follow-through.
+
 Component Action outer playback is covered by `components/action-playback.mvc.json` and `projects/action-playback.mt.json`; it verifies iterations/rate, reverse, alternate, `action.loop` fill, and the over-duration guard.
 
 Tài liệu này là coverage map cho fixtures. Ký hiệu:
@@ -22,11 +24,11 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 72 artifacts + 39 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 76 artifacts + 40 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
-| Stored Runtime IR goldens | ✅ | ✅ 10 projects | — | — |
-| Stored PNG goldens | — | — | ✅ 10 fixed-time frames + pixel diff | ⬜ |
+| Stored Runtime IR goldens | ✅ | ✅ 11 projects | — | — |
+| Stored PNG goldens | — | — | ✅ 16 fixed-time frames + pixel diff | ⬜ |
 | Property capability registry | ✅ kind/domain/public/runtime state | ✅ reject unsupported/compile-only | ✅ Text string/number/color | — |
 | Resource limits | ✅ finite numbers + all current public arrays | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
@@ -57,7 +59,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Repeater count/grid/radial | ✅ + limits | ✅ IDs/layout/stagger | ✅ worker PNG golden | ⬜ |
 | Ordered effects stack | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Normalized Path Morph | ✅ topology/limits | ✅ progress track | ✅ worker PNG goldens | ⬜ |
-| Bone Secondary Motion | ⬜ | ⬜ | ⬜ | ⬜ |
+| Bone Secondary Motion | ✅ refs/ownership/limit | ✅ literal modifier | ✅ random-access solver + PNG | ⬜ |
 
 `media-assets.mt.json` và `assets/manifest.json` khóa asset plumbing. Trạng thái “plumbing” không được hiểu là renderer đã vẽ hoặc mix media.
 

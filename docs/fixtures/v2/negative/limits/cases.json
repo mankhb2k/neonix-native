@@ -31,6 +31,7 @@
     { "id": "repeater-grid-columns", "target": "repeater.gridColumns", "limit": "repeaterGridColumns", "expectedPath": "nodes.0.repeat.layout.columns" },
     { "id": "text-animator-units", "target": "textAnimator.units", "limit": "textAnimatorUnits", "expectedPath": "nodes.text.textAnimator" },
     { "id": "modifiers-per-node", "target": "modifier.items", "limit": "modifiersPerNode", "expectedPath": "nodes.0.modifiers" },
+    { "id": "secondary-motion-chain-length", "target": "secondaryMotion.chain", "limit": "secondaryMotionChainLength", "expectedPath": "nodes.0.modifiers.0.chainNodeIds" },
     { "id": "effects-per-node", "target": "effects.items", "limit": "effectsPerNode", "expectedPath": "nodes.0.effects" },
     { "id": "component-source-imports", "target": "component.sourceImports", "limit": "sourceImportsPerComponent", "expectedPath": "sourceImports" },
     { "id": "source-import-parts", "target": "sourceImport.parts", "limit": "sourcePartsPerImport", "expectedPath": "sourceImports.0.parts" },

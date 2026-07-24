@@ -43,6 +43,8 @@ const frameGoldens = [
   { project: "path-morph", time: 0, file: "path-morph-t0.png", width: 540, height: 540 },
   { project: "path-morph", time: 1, file: "path-morph-t1.png", width: 540, height: 540 },
   { project: "path-morph", time: 2, file: "path-morph-t2.png", width: 540, height: 540 },
+  { project: "secondary-motion", time: 0.5, file: "bone-secondary-motion-t0_5.png", width: 540, height: 540 },
+  { project: "secondary-motion", time: 1.5, file: "bone-secondary-motion-t1_5.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -330,6 +332,20 @@ async function main(): Promise<void> {
   ));
   assert.deepEqual(morphProgress, [0, 0.5, 1], "Path Morph progress track must hit 0/0.5/1");
 
+  const secondaryMotionSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "bone-secondary-motion.mt.json"),
+    "utf8",
+  )));
+  const secondaryMotionRuntime = compileMotionProject(secondaryMotionSource);
+  const secondaryMotionScene = secondaryMotionRuntime.scenes[0]!;
+  const secondaryMid = evaluateScene(secondaryMotionScene, 0.5);
+  const secondaryMidAgain = evaluateScene(secondaryMotionScene, 0.5);
+  const secondaryDriver = secondaryMid.find(({ node }) => node.id === "bone.driver");
+  const secondaryChain = ["bone.a", "bone.b", "bone.c"].map((id) => secondaryMid.find(({ node }) => node.id === id));
+  assert.ok(secondaryDriver && secondaryChain.every(Boolean), "Secondary Motion fixture bones must evaluate");
+  assert.ok(secondaryChain.some((node) => Math.abs(node!.transform.rotation - secondaryDriver!.transform.rotation) > 0.01), "Secondary Motion chain rotations must differ from driver");
+  assert.deepEqual(secondaryMid.map(({ transform }) => transform.rotation), secondaryMidAgain.map(({ transform }) => transform.rotation), "Secondary Motion must be random-access deterministic");
+
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
@@ -341,6 +357,7 @@ async function main(): Promise<void> {
       : golden.project === "motion-path" ? motionPathRuntime
       : golden.project === "effects" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "effects-stack.mt.json"), "utf8"))))
       : golden.project === "path-morph" ? pathMorphRuntime
+      : golden.project === "secondary-motion" ? secondaryMotionRuntime
       : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
@@ -394,7 +411,7 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [56, 189, 248]) >= 20, "Path Morph stroke silhouette pixels missing");
     }
   }
-  assert.equal(hashes.size, 14, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 16, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
@@ -407,6 +424,7 @@ async function main(): Promise<void> {
   console.log("OK Motion Path arc length, offsets, cross-hierarchy position and orientation");
   console.log("OK ordered effects stack, animated properties and mask-before-effects rendering");
   console.log("OK Path Morph topology interpolation at progress 0/0.5/1");
+  console.log("OK Secondary Motion chain follow-through and random-access evaluation");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

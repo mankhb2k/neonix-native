@@ -399,6 +399,9 @@ async function validateNegativeFixtures(): Promise<number> {
     { file: "components/motion-path-zero-length.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.contourId", message: "Motion Path contour has zero length: route" },
     { file: "components/unknown-motion-path-property.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.missing.progress", message: "Unknown progress modifier: missing" },
     { file: "components/motion-path-progress-over-limit.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.follow.progress", message: "Value 1.2 exceeds maximum 1 for modifiers.follow.progress" },
+    { file: "components/secondary-motion-missing-driver.mvc.json", parse: parseMotionComponentV2, path: "nodes.driver.modifiers.tail.driverNodeId", message: "Unknown Secondary Motion driver: missing" },
+    { file: "components/secondary-motion-duplicate-chain.mvc.json", parse: parseMotionComponentV2, path: "nodes.driver.modifiers.tail.chainNodeIds", message: "Duplicate Secondary Motion chain node: chain" },
+    { file: "components/secondary-motion-unknown-chain.mvc.json", parse: parseMotionComponentV2, path: "nodes.driver.modifiers.tail.chainNodeIds", message: "Unknown Secondary Motion chain node: missing" },
     { file: "components/effect-unknown-track-id.mvc.json", parse: parseMotionComponentV2, path: "clips.animate.source.tracks.effects.missing.radius", message: "Unknown effect: missing" },
     { file: "components/effect-unsupported-field.mvc.json", parse: parseMotionComponentV2, path: "clips.animate.source.tracks.effects.tone.radius", message: "Unsupported property for color-adjust effect: radius" },
     { file: "components/effect-duplicate-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.card.effects", message: "Duplicate effect id: blur" },
@@ -519,6 +522,11 @@ async function validateNegativeFixtures(): Promise<number> {
     {
       file: "components/path-empty-segments.mvc.json",
       path: "nodes.0.payload.contours.0.segments",
+      code: "too_small",
+    },
+    {
+      file: "components/secondary-motion-empty-chain.mvc.json",
+      path: "nodes.0.modifiers.0.chainNodeIds",
       code: "too_small",
     },
     {
@@ -803,6 +811,23 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
       payload: { text: "a".repeat(count), fontSize: 10 }, style: { fill: "#ffffff" },
       textAnimator: { id: "letters", unit: "grapheme", selector: { start: 0, end: 1 }, startTime: 0, duration: 1, stagger: 0, properties: { opacity: 0 } },
     }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "secondaryMotion.chain") {
+    const component = baseLimitComponent();
+    const chainNodeIds = Array.from({ length: count }, (_, index) => `chain-${index}`);
+    component.nodes = [
+      {
+        ...fixtureNode("driver"),
+        type: "bone",
+        payload: { length: 1 },
+        modifiers: [{
+          id: "tail", type: "secondary-motion", driverNodeId: "driver", chainNodeIds,
+          stiffness: 1, damping: 0, lag: 0, amplitude: 1, axis: "rotation",
+        }],
+      },
+      ...chainNodeIds.map((id) => ({ ...fixtureNode(id), type: "bone", parentId: "driver", payload: { length: 1 } })),
+    ];
     return { artifact: component, parse: parseMotionComponentV2 };
   }
   if (testCase.target === "modifier.items") {

@@ -26,9 +26,9 @@ A capability is **done** only when its fixture, schema validation, compiler/runt
 
 ## Current state
 
-The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback (`action.loop`, reverse/alternate), and cut-out lip-sync cue expansion.
+The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback (`action.loop`, reverse/alternate), cut-out lip-sync cue expansion, and deterministic Secondary Motion.
 
-Counts after Lip-sync cues: 24 positive artifacts, 72 negative artifacts, 39 limit cases, 15 Runtime goldens, 14 PNG goldens, 21 pinned assets.
+Counts after Secondary Motion: 25 positive artifacts, 76 negative artifacts, 40 limit cases, 16 Runtime goldens, 16 PNG goldens, 21 pinned assets.
 
 The remaining P0 work is intentionally explicit and **fixtures-first** (positive/negative fixtures before expanding Zod, then compiler/runtime, goldens, docs, commit):
 
@@ -61,11 +61,9 @@ Cue schema driven by cut-out mouth fixtures compiles variants to `payload.assetI
 
 Exit criteria: complete.
 
-### Phase 3 — Secondary Motion
+### Phase 3 — Secondary Motion ✅
 
-Define a bounded, deterministic segmented-chain modifier. Add a positive cut-out fixture, invalid chain/reference/cycle/limit negatives, Runtime IR output, and a PNG golden at multiple timestamps. The solver must be random-access: rendering frame `t` cannot depend on having rendered frame `t-1`.
-
-Exit criteria: schema, capability registry, compiler/evaluator, renderer assertion, fixture matrix, and a dedicated commit.
+Secondary Motion is a bounded rotation-only bone-chain modifier owned by its driver. It resolves a fixed 60 Hz damped spring from `t=0` on every evaluation, so random access does not depend on prior frames. The fixture, ownership/reference/limit negatives, Runtime IR golden, two PNG goldens, and evaluator assertions are complete.
 
 ### Phase 4 — Camera and scene transitions
 

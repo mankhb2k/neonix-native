@@ -282,6 +282,17 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     to: IdSchema,
     progress: ResolvableValueSchema,
   }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("secondary-motion"),
+    driverNodeId: IdSchema,
+    chainNodeIds: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.secondaryMotionChainLength),
+    stiffness: FiniteNumberSchema.positive(),
+    damping: FiniteNumberSchema.nonnegative(),
+    lag: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    amplitude: FiniteNumberSchema,
+    axis: z.enum(["rotation", "position"]),
+  }).strict(),
 ]);
 
 const NodeBaseSchema = z.object({
@@ -813,6 +824,7 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
   for (let sceneIndex = 0; sceneIndex < runtime.scenes.length; sceneIndex += 1) {
     const scene = runtime.scenes[sceneIndex]!;
     const nodeById = new Map(scene.nodes.map((node) => [node.id, node]));
+    const secondaryChainOwners = new Map<string, string>();
     for (let nodeIndex = 0; nodeIndex < scene.nodes.length; nodeIndex += 1) {
       const node = scene.nodes[nodeIndex]!;
       const modifiers = node.modifiers ?? [];
@@ -844,6 +856,27 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
       }
       if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Only one runtime motion-path modifier is allowed per node" });
+      }
+      for (let modifierIndex = 0; modifierIndex < modifiers.length; modifierIndex += 1) {
+        const modifier = modifiers[modifierIndex]!;
+        if (modifier.type !== "secondary-motion") continue;
+        const path = ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers", modifierIndex] as Array<string | number>;
+        if (modifier.axis !== "rotation") context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "axis"], message: "Runtime Secondary Motion supports rotation axis only" });
+        const driver = nodeById.get(modifier.driverNodeId);
+        if (!driver) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "driverNodeId"], message: `Unknown runtime Secondary Motion driver: ${modifier.driverNodeId}` });
+        else if (driver.type !== "bone") context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "driverNodeId"], message: `Runtime Secondary Motion driver must be bone: ${modifier.driverNodeId}` });
+        if (modifier.driverNodeId !== node.id) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "driverNodeId"], message: "Runtime Secondary Motion modifier must live on its driver node" });
+        for (const chainNodeId of modifier.chainNodeIds) {
+          const chainNode = nodeById.get(chainNodeId);
+          if (!chainNode) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "chainNodeIds"], message: `Unknown runtime Secondary Motion chain node: ${chainNodeId}` });
+          else if (chainNode.type !== "bone") context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "chainNodeIds"], message: `Runtime Secondary Motion chain node must be bone: ${chainNodeId}` });
+          const owner = secondaryChainOwners.get(chainNodeId);
+          if (owner) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "chainNodeIds"], message: `Runtime Secondary Motion chain node already owned: ${chainNodeId}` });
+          else secondaryChainOwners.set(chainNodeId, modifier.id);
+        }
+        for (const chainNodeId of new Set(duplicates(modifier.chainNodeIds))) {
+          context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "chainNodeIds"], message: `Duplicate runtime Secondary Motion chain node: ${chainNodeId}` });
+        }
       }
       for (let modifierIndex = 0; modifierIndex < (node.modifiers?.length ?? 0); modifierIndex += 1) {
         const modifier = node.modifiers![modifierIndex]!;
@@ -1032,6 +1065,7 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
   const idSet = new Set(ids);
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const parentById = new Map(nodes.map((node) => [node.id, node.parentId]));
+  const secondaryChainOwners = new Map<string, string>();
   for (const node of nodes) {
     if (node.parentId !== null && !idSet.has(node.parentId)) {
       issues.push({ path: `${prefix}.${node.id}.parentId`, message: `Unknown parent: ${node.parentId}` });
@@ -1043,6 +1077,25 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     for (const id of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: `Duplicate modifier id: ${id}` });
     if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Only one motion-path modifier is allowed per node" });
     for (const modifier of modifiers) {
+      if (modifier.type === "secondary-motion") {
+        if (modifier.axis !== "rotation") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.axis`, message: "Secondary Motion supports rotation axis only" });
+        const driver = nodeById.get(modifier.driverNodeId);
+        if (!driver) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.driverNodeId`, message: `Unknown Secondary Motion driver: ${modifier.driverNodeId}` });
+        else if (driver.type !== "bone") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.driverNodeId`, message: `Secondary Motion driver must be bone: ${modifier.driverNodeId}` });
+        if (modifier.driverNodeId !== node.id) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.driverNodeId`, message: "Secondary Motion modifier must live on its driver node" });
+        for (const chainNodeId of modifier.chainNodeIds) {
+          const chainNode = nodeById.get(chainNodeId);
+          if (!chainNode) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.chainNodeIds`, message: `Unknown Secondary Motion chain node: ${chainNodeId}` });
+          else if (chainNode.type !== "bone") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.chainNodeIds`, message: `Secondary Motion chain node must be bone: ${chainNodeId}` });
+          const owner = secondaryChainOwners.get(chainNodeId);
+          if (owner) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.chainNodeIds`, message: `Secondary Motion chain node already owned: ${chainNodeId}` });
+          else secondaryChainOwners.set(chainNodeId, modifier.id);
+        }
+        for (const chainNodeId of new Set(duplicates(modifier.chainNodeIds))) {
+          issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.chainNodeIds`, message: `Duplicate Secondary Motion chain node: ${chainNodeId}` });
+        }
+        continue;
+      }
       if (modifier.type !== "motion-path") continue;
       if (modifier.startOffset > modifier.endOffset) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Motion Path endOffset must be >= startOffset" });
       const source = nodeById.get(modifier.pathNodeId);
