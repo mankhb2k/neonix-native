@@ -1,14 +1,15 @@
 import { motionPropertyCapability, type NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   IDENTITY_MATRIX,
+  applyMatrix,
   inheritedParentMatrix,
   localTransformMatrix,
   multiplyMatrix,
   type Matrix2D,
   type Transform2D,
 } from "./matrix";
-import { transformBounds, type Bounds2D } from "./spatial";
-import { localNodeBounds } from "./geometry";
+import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
+import { localNodeBounds, samplePathContour } from "./geometry";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
@@ -112,23 +113,49 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     if (visiting.has(node.id)) throw new Error(`Runtime parent cycle: ${node.id}`);
     visiting.add(node.id);
 
-    const transform = evaluateTransform(scene, node, time);
-    let worldMatrix = localTransformMatrix(transform);
+    let transform = evaluateTransform(scene, node, time);
+    let parentMatrix = IDENTITY_MATRIX;
     let worldOpacity = transform.opacity;
     let visible = transform.visible;
     if (node.parentId) {
       const parentNode = byId.get(node.parentId);
       if (!parentNode) throw new Error(`Runtime parent missing: ${node.parentId}`);
       const parent = evaluate(parentNode);
-      const parentMatrix = inheritedParentMatrix(parent.worldMatrix, {
+      parentMatrix = inheritedParentMatrix(parent.worldMatrix, {
         position: node.inheritPosition !== false,
         rotation: node.inheritRotation !== false,
         scale: node.inheritScale !== false,
       });
-      worldMatrix = multiplyMatrix(parentMatrix, worldMatrix);
       worldOpacity = (node.inheritOpacity !== false ? parent.worldOpacity : 1) * transform.opacity;
       visible = parent.visible && transform.visible;
     }
+
+    const motionPath = node.modifiers?.find((modifier) => modifier.type === "motion-path");
+    if (motionPath) {
+      const pathNode = byId.get(motionPath.pathNodeId);
+      if (!pathNode || pathNode.type !== "path") throw new Error(`Runtime Motion Path source missing: ${motionPath.pathNodeId}`);
+      const path = evaluate(pathNode);
+      const rawProgress = evaluateProperty(scene, node, `modifiers.${motionPath.id}.progress`, time, motionPath.progress);
+      const progress = typeof rawProgress === "number" ? rawProgress : motionPath.progress;
+      const mappedProgress = motionPath.startOffset + (motionPath.endOffset - motionPath.startOffset) * progress;
+      const sample = samplePathContour(pathNode, motionPath.contourId, mappedProgress);
+      const worldPoint = applyMatrix(path.worldMatrix, sample.point.x, sample.point.y);
+      const worldTangentPoint = applyMatrix(path.worldMatrix, sample.point.x + sample.tangent.x, sample.point.y + sample.tangent.y);
+      const inverseParent = invertMatrix(parentMatrix);
+      if (!inverseParent) throw new Error(`Motion Path target parent matrix is not invertible: ${node.id}`);
+      const localPoint = applyMatrix(inverseParent, worldPoint.x, worldPoint.y);
+      const localTangentPoint = applyMatrix(inverseParent, worldTangentPoint.x, worldTangentPoint.y);
+      transform = {
+        ...transform,
+        x: localPoint.x,
+        y: localPoint.y,
+        rotation: motionPath.orientToPath
+          ? Math.atan2(localTangentPoint.y - localPoint.y, localTangentPoint.x - localPoint.x) * 180 / Math.PI + motionPath.rotationOffset
+          : transform.rotation,
+      };
+    }
+
+    const worldMatrix = multiplyMatrix(parentMatrix, localTransformMatrix(transform));
 
     const strokeWidth = (node.type === "shape" || node.type === "path") && node.style?.stroke
       ? numberProperty(scene, node, "style.strokeWidth", time, node.style.strokeWidth ?? 1)

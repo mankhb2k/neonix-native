@@ -60,7 +60,7 @@ type LimitCase = {
     | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
-    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units";
+    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -386,6 +386,17 @@ async function validateNegativeFixtures(): Promise<number> {
       path: "nodes.text.textAnimator",
       message: "Text Animator timing exceeds maximum 86400",
     },
+    { file: "components/missing-motion-path-node.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.pathNodeId", message: "Unknown Motion Path node: missing" },
+    { file: "components/motion-path-source-wrong-type.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.pathNodeId", message: "Motion Path source source has type group, expected path" },
+    { file: "components/missing-motion-path-contour.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.contourId", message: "Unknown Path contour: missing" },
+    { file: "components/duplicate-modifier-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers", message: "Duplicate modifier id: follow" },
+    { file: "components/multiple-motion-path-modifiers.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers", message: "Only one motion-path modifier is allowed per node" },
+    { file: "components/motion-path-offset-order.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow", message: "Motion Path endOffset must be >= startOffset" },
+    { file: "components/motion-path-cycle.mvc.json", parse: parseMotionComponentV2, path: "nodes.a.modifiers.ma", message: "Motion Path dependency cycle detected" },
+    { file: "components/motion-path-descendant-source.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.pathNodeId", message: "Motion Path source cannot be a descendant of its target" },
+    { file: "components/motion-path-zero-length.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.contourId", message: "Motion Path contour has zero length: route" },
+    { file: "components/unknown-motion-path-property.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.missing.progress", message: "Unknown Motion Path modifier: missing" },
+    { file: "components/motion-path-progress-over-limit.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.follow.progress", message: "Value 1.2 exceeds maximum 1 for modifiers.follow.progress" },
     {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
@@ -720,6 +731,14 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     }];
     return { artifact: component, parse: parseMotionComponentV2 };
   }
+  if (testCase.target === "modifier.items") {
+    const component = baseLimitComponent();
+    (component.nodes as Array<Record<string, unknown>>)[0]!.modifiers = Array.from({ length: count }, (_, index) => ({
+      id: `modifier-${index}`, type: "motion-path", pathNodeId: "path", contourId: "route", progress: 0,
+      orientToPath: false, rotationOffset: 0, startOffset: 0, endOffset: 1,
+    }));
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
   const project = baseLimitProject();
   const scenes = project.scenes as Array<Record<string, unknown>>;
   const scene = scenes[0]!;
@@ -826,6 +845,9 @@ async function main(): Promise<void> {
   for (const property of ["transform.x", "payload.text", "payload.fontSize", "style.fill"]) {
     if (!aiTextProperties.includes(property)) throw new Error(`AI property vocabulary lost ${property}`);
   }
+  if (!motionPropertyCapabilities("shape", ["follow"]).some((capability) => capability.property === "modifiers.follow.progress" && capability.max === 1)) {
+    throw new Error("AI Motion Path modifier property vocabulary changed");
+  }
   await validateAssetKit();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
@@ -924,6 +946,16 @@ async function main(): Promise<void> {
   if (textScene.nodes.some((node) => ["text.grapheme", "text.word", "text.line"].includes(node.id))) throw new Error("Compiler retained original Text Animator source nodes");
   deepStrictEqual(textScene.tracks.filter((track) => track.property === "transform.x").map((track) => track.keys[0]!.t), [0.2, 0.28, 0.36, 0.44, 0.52], "Word selector/stagger changed");
   console.log("OK compiler/Text Animator Unicode grapheme/word/line selector and stagger expansion");
+
+  const motionPathProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "motion-path.mt.json")));
+  const motionPathRuntime = compileMotionProject(motionPathProject);
+  const motionPathScene = motionPathRuntime.scenes[0]!;
+  const rocket = motionPathScene.nodes.find((node) => node.id === "follower.rocket");
+  if (!rocket?.modifiers?.some((modifier) => modifier.id === "follow" && modifier.type === "motion-path" && modifier.pathNodeId === "guide.curve")) throw new Error("Compiler lost literal Motion Path modifier");
+  const progressTrack = motionPathScene.tracks.find((track) => track.targetId === "follower.rocket" && track.property === "modifiers.follow.progress");
+  if (!progressTrack) throw new Error("Compiler lost Motion Path progress track");
+  deepStrictEqual([0, 1, 2].map((time) => evaluateProperty(motionPathScene, rocket, "modifiers.follow.progress", time, -1)), [0, 0.5, 1], "Motion Path progress evaluation changed");
+  console.log("OK compiler/runtime Motion Path modifier reference and progress track");
 
   console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
 }

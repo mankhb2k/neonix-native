@@ -21,7 +21,7 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone Text Animator có 16 positive fixtures, 48 negative artifacts, 27 deterministic limit cases, 9 Runtime IR goldens, 7 PNG goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone Motion Path có 17 positive fixtures, 59 negative artifacts, 28 deterministic limit cases, 10 Runtime IR goldens, 10 PNG goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
@@ -29,13 +29,13 @@ Baseline sau milestone Text Animator có 16 positive fixtures, 48 negative artif
 - [x] Finite-number policy cho toàn bộ numeric/JSON surface; limits cho dimensions, scale, duration, FPS, playback và public arrays hiện có.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 48 negative artifacts và 27 limit/depth descriptors với structured error assertions.
-- [x] 9 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
+- [x] 59 negative artifacts và 28 limit/depth descriptors với structured error assertions.
+- [x] 10 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
 - [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 - [x] Runtime world bounds, inverse-matrix hit-test, drawable subtree bounds và offscreen dimension/pixel budgets.
-- [x] Shared frame clock, pure random-access seeded samples và 7 stored PNG pixel goldens có diff artifact.
+- [x] Shared frame clock, pure random-access seeded samples và 10 stored PNG pixel goldens có diff artifact.
 - [x] Runtime schema reject unknown/compile-only tracks; Text string/number/color tracks dùng evaluator thật trong renderer.
 
 ### Phase 1 progress
@@ -54,6 +54,7 @@ Baseline sau milestone Text Animator có 16 positive fixtures, 48 negative artif
 - [x] Typed Mask relation thay `maskId`: clip/alpha/inverse-alpha, source visibility, missing/cycle rejection và nested compositing.
 - [x] Repeater vNext list/count, none/linear/grid/radial, stable keys/context, orient-to-angle, time stagger và hard limits.
 - [x] Text Animator authoring-only với Unicode grapheme/word/line, selector, stagger, transform/opacity/fill tracks và unit limit.
+- [x] Motion Path modifier với contour reference, animatable progress, arc-length lookup, offsets, tangent orientation và cross-hierarchy transforms.
 
 ### Đã có contract và hành vi có thể dựa vào
 
@@ -139,9 +140,9 @@ Exit: compiler giữ đúng thứ tự canonical `raster → mask → effects �
 
 ### S3 — Motion/expansion
 
-**Progress:** Repeater vNext và Text Animator hoàn tất; Motion Path và Morph còn chờ các milestone kế tiếp.
+**Progress:** Motion Path, Repeater vNext và Text Animator hoàn tất; normalized Path Morph còn chờ milestone Phase 4.
 
-9. Motion Path: pathId/progress/orient/offset.
+9. [x] Motion Path: path/contour reference, progress, orient, rotation/start/end offset và deterministic arc-length sampling.
 10. Repeater count/list + linear/grid/radial + stagger; compile-time expansion.
 11. Text Animator: grapheme/word/line + selector/stagger; compile-time expansion.
 12. Normalized Path Morph: chỉ topology tương thích.

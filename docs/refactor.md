@@ -126,7 +126,8 @@ pnpm e2e:render
 - [ ] Mouth/eye/hand replacement variants compile thành literal tracks.
 - [ ] Action/pose timeline cho idle, blink, talk, wave và walk cycle.
 - [ ] Camera transform, scene transition và prop attachment.
-- [ ] Motion Path, Bone chain và Secondary Motion deterministic cho segmented hair/tail.
+- [x] Motion Path deterministic theo typed Path contour, progress/offset và tangent orientation.
+- [ ] Mở rộng Bone chain và Secondary Motion deterministic cho segmented hair/tail.
 - [x] Harden Repeater thành list/count + none/linear/grid/radial + time stagger.
 - [x] Thêm Text Animator Unicode grapheme/word/line với selector/stagger và literal run expansion.
 

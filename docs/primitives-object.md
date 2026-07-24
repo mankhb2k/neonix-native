@@ -140,7 +140,7 @@ Compiler phải loại các expansion primitives khỏi Runtime IR.
 
 | Modifier | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Motion Path | Node position/orientation theo Path | Planned P0 | arc length, tangent, progress, offset |
+| Motion Path | Node position/orientation theo Path | Implemented runtime | typed refs, arc length, tangent, progress, offsets, cycles, cross-hierarchy |
 | Path Morph | Geometry interpolation | Planned P0 late | topology + numeric interpolation |
 | Secondary Motion | Follow-through trên chain | Planned P0 cut-out | fixed time, random access, damping/stiffness |
 | Simple constraint | Copy/look-at/pin | Planned P1 | dependency order/cycle |
@@ -362,7 +362,7 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 
 ### Phase 3 — movement/cut-out
 
-- Motion Path.
+- [x] Motion Path modifier, deterministic evaluator và JSON/PNG goldens.
 - Figma/Illustrator import + Rig Mapper.
 - Bone Chain, variants, Named Actions và lip-sync.
 - Secondary Motion deterministic.

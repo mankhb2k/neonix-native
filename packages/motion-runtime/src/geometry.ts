@@ -5,6 +5,13 @@ import type { Bounds2D } from "./spatial";
 
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
 type Point = { x: number; y: number };
+type PathNode = Extract<RuntimeNode, { type: "path" }>;
+type PathContour = PathNode["payload"]["contours"][number];
+type PathSample = { point: Point; tangent: Point };
+
+export const MOTION_PATH_CUBIC_SAMPLES = 32;
+
+const contourSampleCache = new WeakMap<object, { points: Point[]; cumulative: number[]; total: number }>();
 
 function pointBounds(points: Point[]): Bounds2D {
   const xs = points.map(({ x }) => x);
@@ -30,6 +37,59 @@ function cubicValue(start: number, control1: number, control2: number, end: numb
     + 3 * inverse ** 2 * time * control1
     + 3 * inverse * time ** 2 * control2
     + time ** 3 * end;
+}
+
+function cubicPoint(start: Point, control1: Point, control2: Point, end: Point, time: number): Point {
+  return {
+    x: cubicValue(start.x, control1.x, control2.x, end.x, time),
+    y: cubicValue(start.y, control1.y, control2.y, end.y, time),
+  };
+}
+
+function contourSamples(contour: PathContour): { points: Point[]; cumulative: number[]; total: number } {
+  const cached = contourSampleCache.get(contour);
+  if (cached) return cached;
+  const points: Point[] = [{ ...contour.start }];
+  let current = contour.start;
+  for (const segment of contour.segments) {
+    if (segment.kind === "line") points.push({ ...segment.to });
+    else {
+      for (let sample = 1; sample <= MOTION_PATH_CUBIC_SAMPLES; sample += 1) {
+        points.push(cubicPoint(current, segment.control1, segment.control2, segment.to, sample / MOTION_PATH_CUBIC_SAMPLES));
+      }
+    }
+    current = segment.to;
+  }
+  if (contour.closed && (current.x !== contour.start.x || current.y !== contour.start.y)) points.push({ ...contour.start });
+  const cumulative = [0];
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1]!;
+    const point = points[index]!;
+    cumulative.push(cumulative[index - 1]! + Math.hypot(point.x - previous.x, point.y - previous.y));
+  }
+  const result = { points, cumulative, total: cumulative.at(-1) ?? 0 };
+  contourSampleCache.set(contour, result);
+  return result;
+}
+
+/** Deterministic fixed-sample arc-length lookup for a typed Path contour. */
+export function samplePathContour(node: PathNode, contourId: string, progress: number): PathSample {
+  const contour = node.payload.contours.find((candidate) => candidate.id === contourId);
+  if (!contour) throw new Error(`Path contour missing: ${node.id}/${contourId}`);
+  const table = contourSamples(contour);
+  if (table.total <= Number.EPSILON || table.points.length < 2) throw new Error(`Path contour has zero length: ${node.id}/${contourId}`);
+  const distance = Math.min(1, Math.max(0, progress)) * table.total;
+  let index = 1;
+  while (index < table.cumulative.length - 1 && table.cumulative[index]! < distance) index += 1;
+  const left = table.points[index - 1]!;
+  const right = table.points[index]!;
+  const span = Math.max(Number.EPSILON, table.cumulative[index]! - table.cumulative[index - 1]!);
+  const amount = (distance - table.cumulative[index - 1]!) / span;
+  const length = Math.max(Number.EPSILON, Math.hypot(right.x - left.x, right.y - left.y));
+  return {
+    point: { x: left.x + (right.x - left.x) * amount, y: left.y + (right.y - left.y) * amount },
+    tangent: { x: (right.x - left.x) / length, y: (right.y - left.y) / length },
+  };
 }
 
 function cubicExtrema(start: number, control1: number, control2: number, end: number): number[] {

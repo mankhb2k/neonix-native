@@ -195,6 +195,13 @@ function expandComponents(
           sourceNodeId: `${node.id}::${internal.mask.sourceNodeId}${sharesRepeat ? `::${repeatKey}` : ""}`,
         };
       }
+      if (internal.modifiers) {
+        next.modifiers = internal.modifiers.map((modifier) => {
+          const source = internalById.get(modifier.pathNodeId);
+          const sharesRepeat = Boolean(repeatKey && source && repeatOwner(source)?.id === repeatOwner(internal)?.id);
+          return { ...modifier, pathNodeId: `${node.id}::${modifier.pathNodeId}${sharesRepeat ? `::${repeatKey}` : ""}` };
+        });
+      }
       if (internal.parentId === null) {
         next.transform.x += node.transform.x;
         next.transform.y += node.transform.y;

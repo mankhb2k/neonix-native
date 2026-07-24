@@ -36,6 +36,7 @@ export const MOTION_V2_LIMITS = Object.freeze({
   repeaterInstances: 1_000,
   repeaterGridColumns: 100,
   textAnimatorUnits: 1_000,
+  modifiersPerNode: 32,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";
@@ -112,6 +113,7 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
 export function motionPropertyCapability(nodeType: string, property: string): MotionPropertyCapability | undefined {
   const transform = TRANSFORM_PROPERTIES[property];
   if (transform) return transform;
+  if (/^modifiers\.[^.]+\.progress$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
   if (nodeType === "component" && property.startsWith("payload.props.") && property.length > "payload.props.".length) {
     return { valueKind: "json", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" };
   }
@@ -121,10 +123,11 @@ export function motionPropertyCapability(nodeType: string, property: string): Mo
 export type MotionPropertyCapabilityEntry = MotionPropertyCapability & { property: string };
 
 /** Enumerable safe vocabulary for AI authoring and schema-driven controls. */
-export function motionPropertyCapabilities(nodeType: string): MotionPropertyCapabilityEntry[] {
+export function motionPropertyCapabilities(nodeType: string, motionPathModifierIds: readonly string[] = []): MotionPropertyCapabilityEntry[] {
   return [
     ...Object.entries(TRANSFORM_PROPERTIES),
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
+    ...motionPathModifierIds.map((id) => [`modifiers.${id}.progress`, motionPropertyCapability(nodeType, `modifiers.${id}.progress`)!] as const),
   ].map(([property, capability]) => ({ property, ...capability }));
 }
 

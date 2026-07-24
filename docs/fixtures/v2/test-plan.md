@@ -14,11 +14,11 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 48 artifacts + 27 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 59 artifacts + 28 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
-| Stored Runtime IR goldens | ✅ | ✅ 9 projects | — | — |
-| Stored PNG goldens | — | — | ✅ 7 fixed-time frames + pixel diff | ⬜ |
+| Stored Runtime IR goldens | ✅ | ✅ 10 projects | — | — |
+| Stored PNG goldens | — | — | ✅ 10 fixed-time frames + pixel diff | ⬜ |
 | Property capability registry | ✅ kind/domain/public/runtime state | ✅ reject unsupported/compile-only | ✅ Text string/number/color | — |
 | Resource limits | ✅ finite numbers + all current public arrays | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
@@ -44,7 +44,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Dialogue lip-sync cues | ⬜ | ⬜ | ⬜ | ⬜ |
 | Typed Path geometry | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Mask clip/alpha/inverse | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
-| Motion Path | ⬜ | ⬜ | ⬜ | ⬜ |
+| Motion Path | ✅ refs/cycles/limits | ✅ literal modifier + progress track | ✅ arc length/offset/orientation PNG | ⬜ |
 | Text Animator grapheme/word/line | ✅ Unicode + limits | ✅ literal runs/tracks | ✅ worker PNG golden | ⬜ |
 | Repeater count/grid/radial | ✅ + limits | ✅ IDs/layout/stagger | ✅ worker PNG golden | ⬜ |
 | Ordered effects stack | ⬜ | ⬜ | ⬜ | ⬜ |

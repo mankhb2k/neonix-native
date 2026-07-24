@@ -18,9 +18,10 @@ import {
   hitTestScene,
   invertMatrix,
   planOffscreenSurface,
+  samplePathContour,
   subtreeBounds,
 } from "../packages/motion-runtime/src/index";
-import { parseMotionComponentV2, parseMotionProjectV2, segmentTextUnits } from "../packages/motion-schema/src/index";
+import { NormalizedMotionProjectV2Schema, parseMotionComponentV2, parseMotionProjectV2, segmentTextUnits } from "../packages/motion-schema/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
@@ -34,6 +35,9 @@ const frameGoldens = [
   { project: "mask", time: 0, file: "mask-compositing-t0.png", width: 540, height: 540 },
   { project: "repeater", time: 1, file: "repeater-layouts-t1.png", width: 540, height: 540 },
   { project: "text-animator", time: 1.5, file: "text-animator-unicode-t1_5.png", width: 540, height: 540 },
+  { project: "motion-path", time: 0, file: "motion-path-t0.png", width: 540, height: 540 },
+  { project: "motion-path", time: 1, file: "motion-path-t1.png", width: 540, height: 540 },
+  { project: "motion-path", time: 2, file: "motion-path-t2.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -254,12 +258,57 @@ async function main(): Promise<void> {
     "utf8",
   )));
   const textAnimatorRuntime = compileMotionProject(textAnimatorSource);
+  const motionPathSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "motion-path.mt.json"),
+    "utf8",
+  )));
+  const motionPathRuntime = compileMotionProject(motionPathSource);
+  const motionPathScene = motionPathRuntime.scenes[0]!;
+  const guide = motionPathScene.nodes.find((node) => node.id === "guide.curve");
+  assert.ok(guide?.type === "path");
+  const startSample = samplePathContour(guide, "flight", 0);
+  const middleSample = samplePathContour(guide, "flight", 0.5);
+  const endSample = samplePathContour(guide, "flight", 1);
+  assert.deepEqual(startSample.point, { x: 0, y: 280 });
+  close(middleSample.point.x, 369.2367, "arc-length midpoint x", 0.02);
+  close(middleSample.point.y, 205.5190, "arc-length midpoint y", 0.02);
+  assert.deepEqual(endSample.point, { x: 760, y: 80 });
+  const rocketStates = [0, 1, 2].map((time) => evaluateScene(motionPathScene, time).find(({ node }) => node.id === "follower.rocket")!);
+  const rocketAnchors = rocketStates.map((state) => applyMatrix(state.worldMatrix, 50, 22));
+  close(rocketAnchors[0]!.x, 67.6063, "Motion Path start world x");
+  close(rocketAnchors[1]!.x, 460.7695, "Motion Path midpoint world x");
+  close(rocketAnchors[2]!.x, 885.5921, "Motion Path end world x");
+  close(rocketStates[1]!.transform.rotation, 34.1693, "Motion Path hierarchy-relative orientation");
+  const duplicateModifierRuntime = structuredClone(motionPathRuntime);
+  const duplicateModifierNode = duplicateModifierRuntime.scenes[0]!.nodes.find((node) => node.id === "follower.rocket");
+  assert.ok(duplicateModifierNode?.modifiers?.[0]);
+  duplicateModifierNode.modifiers.push({ ...duplicateModifierNode.modifiers[0] });
+  const duplicateModifierResult = NormalizedMotionProjectV2Schema.safeParse(duplicateModifierRuntime);
+  assert.equal(duplicateModifierResult.success, false, "Runtime IR must reject duplicate Motion Path modifiers");
+  assert.ok(!duplicateModifierResult.success && duplicateModifierResult.error.issues.some(({ message }) => message.includes("Duplicate runtime modifier id")));
+  const cyclicModifierRuntime = structuredClone(motionPathRuntime);
+  const cyclicGuide = cyclicModifierRuntime.scenes[0]!.nodes.find((node) => node.id === "guide.curve");
+  assert.ok(cyclicGuide?.type === "path");
+  cyclicGuide.modifiers = [{
+    id: "cycle",
+    type: "motion-path",
+    pathNodeId: "follower.rocket",
+    contourId: "flight",
+    progress: 0,
+    orientToPath: false,
+    rotationOffset: 0,
+    startOffset: 0,
+    endOffset: 1,
+  }];
+  const cyclicModifierResult = NormalizedMotionProjectV2Schema.safeParse(cyclicModifierRuntime);
+  assert.equal(cyclicModifierResult.success, false, "Runtime IR must reject Motion Path dependency cycles");
+  assert.ok(!cyclicModifierResult.success && cyclicModifierResult.error.issues.some(({ message }) => message.includes("dependency cycle")));
 
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
   for (const golden of frameGoldens) {
-    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : golden.project === "text-animator" ? textAnimatorRuntime : runtime;
+    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : golden.project === "text-animator" ? textAnimatorRuntime : golden.project === "motion-path" ? motionPathRuntime : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
     await writeFile(resolve(outputRoot, golden.file), png);
@@ -298,8 +347,12 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [96, 165, 250]) >= 20, "word Text Animator pixels missing");
       assert.ok(await countColor(png, [250, 204, 21]) >= 20, "line Text Animator pixels missing");
     }
+    if (golden.project === "motion-path") {
+      assert.ok(await countColor(png, [249, 115, 22]) >= 20, "Motion Path follower pixels missing");
+      assert.ok(await countColor(png, [168, 85, 247]) >= 20, "Motion Path offset follower pixels missing");
+    }
   }
-  assert.equal(hashes.size, 7, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 10, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
@@ -309,6 +362,7 @@ async function main(): Promise<void> {
   console.log("OK clip/alpha/inverse-alpha masks, nested masks and mask-aware hit testing");
   console.log("OK Repeater vNext list/count/linear/grid/radial visual expansion");
   console.log("OK Unicode Text Animator grapheme/word/line expansion and visual runs");
+  console.log("OK Motion Path arc length, offsets, cross-hierarchy position and orientation");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

@@ -38,11 +38,11 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | World matrix + SVG worker smoke đã có; Web parity còn thiếu |
 | Bounds/Hit-test | Không cần authoring field | Không cần compile | AABB/inverse/draw-order assertions đã có; alpha/mask parity còn thiếu |
 | Offscreen plan | Resource limits | Không cần compile | Integer surface plan + dimension/pixel rejection đã có; allocation chờ Mask/Effects |
-| Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 7 stored pixel goldens đã có |
+| Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 10 stored pixel goldens đã có |
 | Property capabilities | Enumerable schema metadata | Domain/support enforced khi compile | Text và Shape/Path paint evaluator đã có; primitive registry mở rộng dần |
 | Path | Typed multi-contour line/cubic + limits | Literal geometry được giữ | Fill/stroke/open/closed/evenodd + true cubic bounds đã có |
 | Mask | Typed relation + cycle guard | Literal relation được giữ/namespace | clip/alpha/inverse-alpha, nested và source visibility đã render |
-| Motion Path | Chưa có | Chưa có | Chưa có |
+| Motion Path | Typed modifier + validated Path/contour refs | Literal modifier/progress track được giữ và namespaced | Deterministic arc-length, offsets, tangent orientation và cross-hierarchy PNG goldens |
 | Text Animator | Typed grapheme/word/line authoring directive | Unicode runs + literal tracks | Renderer chỉ nhận Text runs; PNG golden đã có |
 | Repeater | list/count + four layouts + limits | Stable IDs/context/stagger expansion | Không lọt vào Runtime; PNG layout golden đã có |
 | Effects stack | Chưa có typed schema | Chưa có | Chưa có |
@@ -126,6 +126,7 @@ type MotionPathModifier = {
   id: string;
   type: "motion-path";
   pathNodeId: string;
+  contourId: string;
   progress: ResolvableValue; // 0..1
   orientToPath: boolean;
   rotationOffset: number;
@@ -135,6 +136,8 @@ type MotionPathModifier = {
 ```
 
 Track animate `modifiers.<id>.progress`. Evaluator dùng arc-length lookup table deterministic; tangent xác định orientation. Path Node có thể ẩn nhưng vẫn làm motion resource.
+
+Implementation hiện dùng 32 mẫu cố định cho mỗi cubic segment, cộng line/closing segment, rồi nội suy theo cumulative length. Authoring và Runtime IR cùng reject source/contour thiếu, sai Node type, contour zero-length, modifier trùng, nhiều Motion Path trên một Node, offset đảo, descendant source và dependency cycle. Source và target có thể nằm trong hai hierarchy đã transform khác nhau; evaluator chuyển point/tangent qua world rồi về parent-space của target.
 
 ### 4. Text Animator
 
@@ -387,7 +390,7 @@ Những fixture này phát hiện lỗi interaction/order mà unit fixture khôn
 
 ### Phase 3 — movement và cut-out
 
-1. Motion Path arc-length evaluator.
+1. [x] Motion Path arc-length evaluator, modifier limits và start/middle/end PNG goldens.
 2. Bone chain/world pivot fixtures.
 3. Secondary Motion deterministic bake/evaluator.
 4. Tích hợp named actions/variants từ `svg-cutout-plan.md`.

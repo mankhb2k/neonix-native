@@ -46,6 +46,7 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `projects/mask-compositing.mt.json` | Clip/alpha/inverse-alpha, mask-only/content-and-mask và nested mask graph |
 | `projects/repeater-layouts.mt.json` | Stable Runtime IDs, exact layouts/tracks và không còn `repeat` |
 | `projects/text-animator-unicode.mt.json` | Grapheme/word/line tiếng Việt, combining mark, emoji ZWJ, selector và stagger |
+| `projects/motion-path.mt.json` | Arc-length progress, offsets, tangent orientation và source/target ở hierarchy khác nhau |
 | `imports/svg-import-sources.json` | SVG phẳng từ Figma/Illustrator cho sanitize, group trong app và re-import |
 | `patches/ai-fill-big-number.json` | Planner patch chỉ sửa public surface |
 | `negative/components/*.json` | Missing parent, unsupported path/value/asset/node, mismatch, duplicate/cycle, non-finite number và schema limits |
@@ -76,7 +77,7 @@ Chạy:
 pnpm validate:primitives
 ```
 
-Lệnh này compile fixtures hierarchy, geometry, mask, Repeater và Text Animator; kiểm tra clock/seed/world-space/bounds/hit-test/cubic extrema/mask graph/compile-time expansion, render bảy stored PNG goldens rồi ghi preview vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp PNG hoặc `.diff.png` để kiểm tra.
+Lệnh này compile fixtures hierarchy, geometry, mask, Repeater, Text Animator và Motion Path; kiểm tra clock/seed/world-space/bounds/hit-test/cubic extrema/mask graph/compile-time expansion/arc-length orientation, render mười stored PNG goldens rồi ghi preview vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp PNG hoặc `.diff.png` để kiểm tra.
 
 ## Quy ước đã khóa
 

@@ -114,6 +114,12 @@ Variable list khai báo `itemSchema`. Node template có `repeat.source` dạng `
 
 Text Node authoring có thể khai báo một `textAnimator` gồm stable ID, unit `grapheme | word | line`, locale, selector chuẩn hóa 0..1, start/duration/stagger/easing và các from-properties offset/rotation/scale/opacity/fill. Compiler dùng `Intl.Segmenter`, vì vậy combining mark, emoji ZWJ và skin-tone modifier không bị split theo UTF-16. Nó sinh Text run + literal tracks, canonicalize timestamp và xóa Node nguồn/textAnimator khỏi Runtime IR. Unit count có hard limit; Text Animator Node không được làm parent, mask source hoặc target của authored clip/track—hãy animate parent nếu cần chuyển động toàn khối.
 
+## Motion Path modifier
+
+Mọi drawable/transform Node có thể có tối đa một modifier `motion-path` với stable `id`, `pathNodeId`, `contourId`, literal `progress` trong `[0,1]`, `orientToPath`, `rotationOffset` và normalized `startOffset/endOffset`. Track animate đúng path `modifiers.<id>.progress`; compiler giữ modifier và track literal trong Runtime IR, đồng thời namespace reference khi expand Component.
+
+Path source phải cùng Scene, có type `path`, chứa contour được tham chiếu và contour phải có chiều dài khác zero. Authoring lẫn Runtime IR đều reject modifier ID trùng, nhiều Motion Path trên một Node, offset đảo, source là descendant của target và dependency cycle. Evaluator dùng bảng arc-length deterministic với 32 mẫu cho mỗi cubic segment; line và closing segment giữ nguyên. Point/tangent của source được chuyển sang world-space rồi về parent-space của target, nên source và target có thể thuộc các hierarchy transform khác nhau. `orientToPath` đặt rotation theo tangent cộng `rotationOffset`; hidden Path vẫn được dùng làm motion resource.
+
 ## Clip timing
 
 - Scene duration, schedule, clip duration và key `t` đều tính bằng giây.

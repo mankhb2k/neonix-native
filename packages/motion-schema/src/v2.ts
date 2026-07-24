@@ -223,6 +223,20 @@ const RepeaterSchema = z.object({
   timeStagger: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).default(0),
 }).strict();
 
+const MotionModifierSchema = z.discriminatedUnion("type", [
+  z.object({
+    id: IdSchema,
+    type: z.literal("motion-path"),
+    pathNodeId: IdSchema,
+    contourId: IdSchema,
+    progress: FiniteNumberSchema.min(0).max(1),
+    orientToPath: z.boolean(),
+    rotationOffset: FiniteNumberSchema,
+    startOffset: FiniteNumberSchema.min(0).max(1).default(0),
+    endOffset: FiniteNumberSchema.min(0).max(1).default(1),
+  }).strict(),
+]);
+
 const NodeBaseSchema = z.object({
   id: IdSchema,
   type: IdSchema,
@@ -232,6 +246,7 @@ const NodeBaseSchema = z.object({
   transform: TransformV2Schema,
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
+  modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
   inheritPosition: z.boolean().optional(),
   inheritRotation: z.boolean().optional(),
   inheritScale: z.boolean().optional(),
@@ -677,12 +692,52 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
   for (let sceneIndex = 0; sceneIndex < runtime.scenes.length; sceneIndex += 1) {
     const scene = runtime.scenes[sceneIndex]!;
     const nodeById = new Map(scene.nodes.map((node) => [node.id, node]));
+    for (let nodeIndex = 0; nodeIndex < scene.nodes.length; nodeIndex += 1) {
+      const node = scene.nodes[nodeIndex]!;
+      const modifiers = node.modifiers ?? [];
+      for (const modifierId of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: `Duplicate runtime modifier id: ${modifierId}` });
+      }
+      if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Only one runtime motion-path modifier is allowed per node" });
+      }
+      for (let modifierIndex = 0; modifierIndex < (node.modifiers?.length ?? 0); modifierIndex += 1) {
+        const modifier = node.modifiers![modifierIndex]!;
+        const source = nodeById.get(modifier.pathNodeId);
+        const path = ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers", modifierIndex] as Array<string | number>;
+        if (modifier.startOffset > modifier.endOffset) context.addIssue({ code: z.ZodIssueCode.custom, path, message: "Runtime Motion Path endOffset must be >= startOffset" });
+        if (!source) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "pathNodeId"], message: `Unknown runtime Motion Path node: ${modifier.pathNodeId}` });
+        else if (source.type !== "path") context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "pathNodeId"], message: `Runtime Motion Path source must be path: ${modifier.pathNodeId}` });
+        else {
+          const contour = source.payload.contours.find((candidate) => candidate.id === modifier.contourId);
+          if (!contour) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "contourId"], message: `Unknown runtime Path contour: ${modifier.contourId}` });
+          else if (!contourHasLength(contour)) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "contourId"], message: `Runtime Motion Path contour has zero length: ${modifier.contourId}` });
+        }
+      }
+      const seen = new Set([node.id]);
+      let current = node;
+      while (current) {
+        const motionPath = current.modifiers?.find((modifier) => modifier.type === "motion-path");
+        if (!motionPath) break;
+        if (seen.has(motionPath.pathNodeId)) {
+          context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Runtime Motion Path dependency cycle detected" });
+          break;
+        }
+        seen.add(motionPath.pathNodeId);
+        current = nodeById.get(motionPath.pathNodeId)!;
+      }
+    }
     for (let trackIndex = 0; trackIndex < scene.tracks.length; trackIndex += 1) {
       const track = scene.tracks[trackIndex]!;
       const path = ["scenes", sceneIndex, "tracks", trackIndex] as Array<string | number>;
       const node = nodeById.get(track.targetId);
       if (!node) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "targetId"], message: `Unknown runtime node: ${track.targetId}` });
+        continue;
+      }
+      const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(track.property);
+      if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && modifier.type === "motion-path")) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime Motion Path modifier: ${modifierMatch[1]}` });
         continue;
       }
       const capability = motionPropertyCapability(node.type, track.property);
@@ -734,6 +789,16 @@ function valueAtPath(value: unknown, path: string): unknown {
   return current;
 }
 
+function contourHasLength(contour: z.infer<typeof PathContourV2Schema>): boolean {
+  let current = contour.start;
+  for (const segment of contour.segments) {
+    if (segment.kind === "cubic" && [segment.control1, segment.control2].some((point) => point.x !== current.x || point.y !== current.y)) return true;
+    if (segment.to.x !== current.x || segment.to.y !== current.y) return true;
+    current = segment.to;
+  }
+  return contour.closed && (current.x !== contour.start.x || current.y !== contour.start.y);
+}
+
 function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: string): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const ids = nodes.map((node) => node.id);
@@ -759,6 +824,7 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     if (nodes.some((candidate) => candidate.mask?.sourceNodeId === node.id)) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: "Text Animator node cannot be a mask source" });
   }
   const idSet = new Set(ids);
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const parentById = new Map(nodes.map((node) => [node.id, node.parentId]));
   for (const node of nodes) {
     if (node.parentId !== null && !idSet.has(node.parentId)) {
@@ -766,6 +832,28 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     }
     if (node.mask && !idSet.has(node.mask.sourceNodeId)) {
       issues.push({ path: `${prefix}.${node.id}.mask.sourceNodeId`, message: `Unknown mask source: ${node.mask.sourceNodeId}` });
+    }
+    const modifiers = node.modifiers ?? [];
+    for (const id of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: `Duplicate modifier id: ${id}` });
+    if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Only one motion-path modifier is allowed per node" });
+    for (const modifier of modifiers) {
+      if (modifier.startOffset > modifier.endOffset) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Motion Path endOffset must be >= startOffset" });
+      const source = nodeById.get(modifier.pathNodeId);
+      if (!source) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.pathNodeId`, message: `Unknown Motion Path node: ${modifier.pathNodeId}` });
+      else if (source.type !== "path") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.pathNodeId`, message: `Motion Path source ${modifier.pathNodeId} has type ${source.type}, expected path` });
+      else {
+        const contour = source.payload.contours.find((candidate) => candidate.id === modifier.contourId);
+        if (!contour) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.contourId`, message: `Unknown Path contour: ${modifier.contourId}` });
+        else if (!contourHasLength(contour)) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.contourId`, message: `Motion Path contour has zero length: ${modifier.contourId}` });
+      }
+      let ancestor = source?.parentId ?? null;
+      while (ancestor && nodeById.has(ancestor)) {
+        if (ancestor === node.id) {
+          issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.pathNodeId`, message: "Motion Path source cannot be a descendant of its target" });
+          break;
+        }
+        ancestor = nodeById.get(ancestor)?.parentId ?? null;
+      }
     }
     const seen = new Set<string>([node.id]);
     let parent = node.parentId;
@@ -784,7 +872,6 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
       }
     }
   }
-  const nodeById = new Map(nodes.map((node) => [node.id, node]));
   for (const node of nodes) {
     if (!node.mask) continue;
     const seen = new Set([node.id]);
@@ -799,6 +886,21 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
       current = nodeById.get(sourceId);
     }
   }
+  for (const node of nodes) {
+    const seen = new Set([node.id]);
+    let current: z.infer<typeof NodeV2Schema> | undefined = node;
+    const originModifier = node.modifiers?.find((modifier) => modifier.type === "motion-path");
+    while (current) {
+      const motionPath = current.modifiers?.find((modifier) => modifier.type === "motion-path");
+      if (!motionPath) break;
+      if (seen.has(motionPath.pathNodeId)) {
+        issues.push({ path: `${prefix}.${node.id}.modifiers.${originModifier?.id ?? motionPath.id}`, message: "Motion Path dependency cycle detected" });
+        break;
+      }
+      seen.add(motionPath.pathNodeId);
+      current = nodeById.get(motionPath.pathNodeId);
+    }
+  }
   return issues;
 }
 
@@ -808,6 +910,10 @@ function validatePropertyPath(
   usage: "track" | "binding",
   path: string,
 ): ReferenceIssue[] {
+  const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(property);
+  if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && modifier.type === "motion-path")) {
+    return [{ path, message: `Unknown Motion Path modifier: ${modifierMatch[1]}` }];
+  }
   const capability = motionPropertyCapability(node.type, property);
   if (!capability) return [{ path, message: `Unsupported property for ${node.type}: ${property}` }];
   if (usage === "track" && !capability.animatable) return [{ path, message: `Property is not animatable: ${property}` }];
