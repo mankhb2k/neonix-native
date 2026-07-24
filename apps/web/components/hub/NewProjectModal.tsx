@@ -20,7 +20,7 @@ const RATIOS: Array<{ value: AspectRatio; label: string; hint: string }> = [
   { value: "1:1", label: "1:1", hint: "Feed vuông" },
 ];
 
-const DEFAULT_TEMPLATE_ID = templates[0]?.id ?? "fnb-hook-offer-cta-v2";
+const DEFAULT_TEMPLATE_ID = templates[0]?.id ?? "fnb-hook-offer-cta";
 
 export function NewProjectModal({ open, onClose }: Props) {
   const router = useRouter();

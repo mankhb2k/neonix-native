@@ -8,39 +8,6 @@ import type {
   MotionLibraryShelfId,
 } from "./types";
 
-/** Legacy block ids → current ids */
-const BLOCK_ID_ALIASES: Record<string, string> = {
-  "text.typing": "text.typewriter",
-  "text.fade": "enter.fade-in",
-  "text.fade-in": "enter.fade-in",
-  "text.fade-up": "enter.fade-up",
-  "text.fade-down": "enter.fade-down",
-  "text.fade-left": "enter.fade-left",
-  "text.fade-right": "enter.fade-right",
-  "text.scale-in": "enter.scale-in",
-  "text.zoom-in": "enter.zoom-in",
-  "text.slide-up": "enter.slide-up",
-  "text.slide-left": "enter.slide-left",
-  "text.slide-right": "enter.slide-right",
-  "text.pop": "enter.pop",
-  "text.bounce-in": "enter.bounce-in",
-  "text.flip": "enter.flip",
-  "text.rotate-in": "enter.rotate-in",
-};
-
-/**
- * Legacy animation.preset strings → canonical preset on a MotionBlock.
- * Schema accepts any string; product code resolves via this map.
- */
-const PRESET_ALIASES: Record<string, string> = {
-  fade: "fade-in",
-  scale: "scale-in",
-  typing: "typewriter",
-  "price-pop": "pop",
-  "cta-slide": "slide-up",
-  "logo-reveal": "fade-in",
-};
-
 function buildPresetRegistry(): {
   known: Set<string>;
   byPreset: Map<string, MotionBlock>;
@@ -52,9 +19,6 @@ function buildPresetRegistry(): {
     known.add(block.preset);
     if (!byPreset.has(block.preset)) byPreset.set(block.preset, block);
   }
-  for (const [alias, canonical] of Object.entries(PRESET_ALIASES)) {
-    if (known.has(canonical)) known.add(alias);
-  }
   return { known, byPreset };
 }
 
@@ -63,17 +27,12 @@ const { known: KNOWN_PRESET_IDS, byPreset: PRESET_TO_BLOCK } =
 
 export { motionBlocks, motionLibrary, KNOWN_PRESET_IDS };
 
-export function resolvePresetId(preset: string): string {
-  return PRESET_ALIASES[preset] ?? preset;
-}
-
 export function isKnownPreset(preset: string): boolean {
-  return KNOWN_PRESET_IDS.has(preset) || KNOWN_PRESET_IDS.has(resolvePresetId(preset));
+  return KNOWN_PRESET_IDS.has(preset);
 }
 
 export function getBlockByPreset(preset: string): MotionBlock | undefined {
-  const canonical = resolvePresetId(preset);
-  return PRESET_TO_BLOCK.get(canonical) ?? PRESET_TO_BLOCK.get(preset);
+  return PRESET_TO_BLOCK.get(preset);
 }
 
 export type UnknownPresetRef = {
@@ -109,8 +68,7 @@ export function validateMotionProjectPresets(
 }
 
 export function getMotionBlock(id: string): MotionBlock | undefined {
-  const resolved = BLOCK_ID_ALIASES[id] ?? id;
-  return motionBlocks.find((b) => b.id === resolved);
+  return motionBlocks.find((block) => block.id === id);
 }
 
 export function listMotionBlocksByKind(

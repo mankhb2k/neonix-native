@@ -2,7 +2,7 @@ import type { Template } from "../types";
 import { createTemplateProject } from "./factory";
 
 export const fnbHookOfferCta: Template = {
-  id: "fnb-hook-offer-cta-v2",
+  id: "fnb-hook-offer-cta",
   name: "F&B Hook → Offer → CTA",
   industry: "fnb",
   locale: "vi-VN",
@@ -12,7 +12,7 @@ export const fnbHookOfferCta: Template = {
   tags: ["cà phê", "đồ uống", "khuyến mãi", "tiktok"],
   motionBlocks: ["enter.fade-up", "enter.pop", "enter.slide-up", "enter.fade-in"],
   project: createTemplateProject({
-    id: "fnb-hook-offer-cta-v2",
+    id: "fnb-hook-offer-cta",
     name: "F&B Hook Offer CTA",
     industry: "fnb",
     primaryColor: "#1A5D3A",

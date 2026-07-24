@@ -10,14 +10,14 @@ import {
 } from "@motionvideo/motion-schema";
 ```
 
-Các tên không có hậu tố version luôn trả **MotionProject v2**. `parseMotionProject` chấp nhận project v2 hoặc v1 legacy; v1 được migrate ngay và không thoát ra khỏi package dưới type mặc định.
+`parseMotionProject` chỉ nhận canonical Motion Project hiện tại và chạy cả structural lẫn reference validation. Package không cung cấp migrator hoặc schema tương thích định dạng cũ.
 
 API chính:
 
-- `MotionProjectV2Schema`, `parseMotionProjectV2`: structural + reference validation v2.
+- `MotionProjectSchema`, `parseMotionProject`: API application mặc định.
+- `MotionProjectV2Schema`, `parseMotionProjectV2`: schema được version hóa của file format.
 - `MotionComponentV2Schema`, `parseMotionComponentV2`: Component authoring contract.
 - `NormalizedMotionProjectV2Schema`: renderer-only literal IR.
-- `MotionPatchV1Schema`: patch artifact version độc lập với Motion Project version.
-- `parseMotionProjectV1`, `migrateMotionProjectV1ToV2`: chỉ dành cho import/migration/test.
+- `MotionPatchSchema`: patch artifact cho AI/editor operation.
 
-Không import type v1 trong Web, planner, template hoặc worker. Contract đầy đủ: [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md).
+Contract đầy đủ: [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md).

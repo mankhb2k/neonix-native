@@ -4,9 +4,8 @@ import { fileURLToPath } from "node:url";
 
 import {
   parseMotionComponentV2,
-  parseMotionProject,
   parseMotionProjectV2,
-  MotionPatchV1Schema,
+  MotionPatchSchema,
 } from "../packages/motion-schema/src/index";
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
 
@@ -33,7 +32,7 @@ async function validateDirectory(
 async function main(): Promise<void> {
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
-  MotionPatchV1Schema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
+  MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
   console.log(`OK patches/ai-fill-big-number.json`);
 
   const brokenComponent = await readJson(resolve(fixturesRoot, "components", "big-number.mvc.json")) as {
@@ -84,17 +83,6 @@ async function main(): Promise<void> {
   const repeatedTitles = repeatRuntime.scenes[0]!.nodes.filter((node) => node.id.includes("step-title::"));
   if (repeatedTitles.length !== 3) throw new Error(`Expected 3 repeated step titles, got ${repeatedTitles.length}`);
   console.log("OK compiler/repeater expanded 3 items");
-
-  const migrated = parseMotionProject({
-    version: 1,
-    id: "legacy.test",
-    locale: "vi-VN",
-    aspectRatio: "9:16",
-    brand: { name: "Legacy" },
-    scenes: [{ id: "legacy.scene", role: "hook", duration: 1, layers: [{ id: "legacy.text", type: "text", content: "Xin chào", x: 0, y: 0, animations: [] }] }],
-  });
-  if (migrated.formatVersion !== 2 || migrated.scenes[0]?.nodes[0]?.type !== "text") throw new Error("V1 migration did not produce canonical v2");
-  console.log("OK migration/v1 input canonicalized to v2");
 
   console.log(`Validated ${componentCount + projectCount + 1} Motion Format v2 fixtures.`);
 }

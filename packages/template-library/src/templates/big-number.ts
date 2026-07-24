@@ -2,7 +2,7 @@ import type { Template } from "../types";
 import { createTemplateProject } from "./factory";
 
 export const bigNumber: Template = {
-  id: "big-number-v2",
+  id: "big-number",
   name: "Big Number",
   industry: "saas",
   locale: "vi-VN",
@@ -12,7 +12,7 @@ export const bigNumber: Template = {
   tags: ["số liệu", "infographic", "counter", "tiktok"],
   motionBlocks: ["text.counter", "enter.scale-in", "enter.fade-up"],
   project: createTemplateProject({
-    id: "big-number-v2",
+    id: "big-number",
     name: "Big Number",
     industry: "saas",
     primaryColor: "#0F4C81",

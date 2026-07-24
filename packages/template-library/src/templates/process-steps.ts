@@ -2,7 +2,7 @@ import type { Template } from "../types";
 import { createTemplateProject } from "./factory";
 
 export const processSteps: Template = {
-  id: "process-steps-v2",
+  id: "process-steps",
   name: "Process Steps",
   industry: "education",
   locale: "vi-VN",
@@ -12,7 +12,7 @@ export const processSteps: Template = {
   tags: ["quy trình", "bước", "infographic", "học"],
   motionBlocks: ["enter.fade-up"],
   project: createTemplateProject({
-    id: "process-steps-v2",
+    id: "process-steps",
     name: "Process Steps",
     industry: "education",
     primaryColor: "#5B2C6F",

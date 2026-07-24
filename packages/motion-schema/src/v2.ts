@@ -352,7 +352,7 @@ const PatchTargetSchema = z.union([
   z.object({ sceneId: IdSchema, nodeId: IdSchema, property: PropertyPathSchema }).strict(),
 ]);
 
-export const MotionPatchV1Schema = z
+export const MotionPatchSchema = z
   .object({
     format: z.literal("motion-patch"),
     formatVersion: z.literal(MOTION_PATCH_FORMAT_VERSION),
@@ -393,7 +393,7 @@ export type MotionNode = z.infer<typeof NodeV2Schema>;
 export type MotionScene = z.infer<typeof SceneV2Schema>;
 export type MotionClip = z.infer<typeof ClipV2Schema>;
 export type AspectRatio = z.infer<typeof AspectRatioSchema>;
-export type MotionPatchV1 = z.infer<typeof MotionPatchV1Schema>;
+export type MotionPatch = z.infer<typeof MotionPatchSchema>;
 export type NormalizedMotionProjectV2 = z.infer<typeof NormalizedMotionProjectV2Schema>;
 
 export interface ReferenceIssue {

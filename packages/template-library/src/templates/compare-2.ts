@@ -2,7 +2,7 @@ import type { Template } from "../types";
 import { createTemplateProject } from "./factory";
 
 export const compare2: Template = {
-  id: "compare-2-v2",
+  id: "compare-2",
   name: "Compare A vs B",
   industry: "retail",
   locale: "vi-VN",
@@ -12,7 +12,7 @@ export const compare2: Template = {
   tags: ["so sánh", "vs", "infographic"],
   motionBlocks: ["enter.slide-left", "enter.slide-right", "enter.fade-up"],
   project: createTemplateProject({
-    id: "compare-2-v2",
+    id: "compare-2",
     name: "Compare A vs B",
     industry: "retail",
     primaryColor: "#B85C38",

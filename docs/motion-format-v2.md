@@ -1,6 +1,6 @@
 # Motion Format v2 — authoring contract
 
-Đây là contract normative duy nhất cho `.mt` và `.mvc`. Schema thực thi nằm tại `packages/motion-schema/src/v2.ts`; API không có hậu tố version luôn trả canonical v2. V1 chỉ được parse trong migration boundary.
+Đây là contract normative duy nhất cho `.mt` và `.mvc`. Schema thực thi nằm tại `packages/motion-schema/src/v2.ts`; API không có hậu tố version luôn trả canonical format hiện tại. Input không đúng contract bị từ chối và không có migration boundary.
 
 ## Artifact và version
 

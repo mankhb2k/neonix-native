@@ -2,13 +2,12 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { useEditorStore, nodeText } from "@/lib/store/editor-store";
-import { getBlockByPreset, resolvePresetId } from "@motionvideo/template-library";
+import { getBlockByPreset } from "@motionvideo/template-library";
 import type { MotionClip, MotionNode } from "@motionvideo/motion-schema";
 
 function previewClass(presetId: string | undefined): string {
   if (!presetId) return "mv-stage-layer-static";
-  const resolved = resolvePresetId(presetId);
-  return getBlockByPreset(resolved)?.previewClass ?? `mv-block-text-${resolved}`;
+  return getBlockByPreset(presetId)?.previewClass ?? `mv-block-text-${presetId}`;
 }
 
 function NodePreview({ node, clip, brandName, playId }: {

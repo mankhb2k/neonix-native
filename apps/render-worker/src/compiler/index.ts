@@ -6,7 +6,6 @@ import {
   type MotionProject,
   type NormalizedMotionProjectV2,
 } from "@motionvideo/motion-schema";
-import { resolvePresetId } from "@motionvideo/template-library";
 
 type RuntimeTrack = NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
@@ -91,7 +90,7 @@ function presetTracks(node: RuntimeNode, preset: string, start: number, end: num
     property: "transform.opacity",
     keys: [{ t: start, v: from }, { t: end, v: to, easing: "easeOut" }],
   });
-  switch (resolvePresetId(preset)) {
+  switch (preset) {
     case "fade-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 48 }, { t: end, v: y, easing: "easeOut" }] }];
     case "fade-down": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y - 48 }, { t: end, v: y, easing: "easeOut" }] }];
     case "fade-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 48 }, { t: end, v: x, easing: "easeOut" }] }];
@@ -107,7 +106,6 @@ function presetTracks(node: RuntimeNode, preset: string, start: number, end: num
     ];
     case "counter": return [{ targetId: node.id, property: "payload.counterProgress", keys: [{ t: start, v: 0 }, { t: end, v: 1, easing: "easeOut" }] }];
     case "fade-in":
-    case "fade":
     default: return [opacity()];
   }
 }
