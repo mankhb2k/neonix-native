@@ -173,6 +173,14 @@ function expandComponents(
       delete (next as RuntimeNode & { repeat?: unknown }).repeat;
       next.id = id;
       next.parentId = parentId;
+      if (internal.mask) {
+        const source = internalById.get(internal.mask.sourceNodeId);
+        const sharesRepeat = Boolean(repeatKey && source && repeatOwner(source)?.id === repeatOwner(internal)?.id);
+        next.mask = {
+          ...internal.mask,
+          sourceNodeId: `${node.id}::${internal.mask.sourceNodeId}${sharesRepeat ? `::${repeatKey}` : ""}`,
+        };
+      }
       if (internal.parentId === null) {
         next.transform.x += node.transform.x;
         next.transform.y += node.transform.y;

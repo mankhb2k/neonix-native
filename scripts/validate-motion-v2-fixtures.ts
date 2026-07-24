@@ -326,6 +326,18 @@ async function validateNegativeFixtures(): Promise<number> {
       message: "Duplicate Path contour id: duplicate",
     },
     {
+      file: "components/missing-mask-source.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.content.mask.sourceNodeId",
+      message: "Unknown mask source: missing",
+    },
+    {
+      file: "components/mask-cycle.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.a.mask",
+      message: "Mask dependency cycle detected",
+    },
+    {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
       path: "scenes.scene.nodes.instance.payload",
@@ -444,6 +456,11 @@ async function validateNegativeFixtures(): Promise<number> {
       file: "components/path-coordinate-over-limit.mvc.json",
       path: "nodes.0.payload.contours.0.start.x",
       code: "too_big",
+    },
+    {
+      file: "components/invalid-mask-mode.mvc.json",
+      path: "nodes.1.mask.mode",
+      code: "invalid_enum_value",
     },
   ] as const;
   for (const fixture of schemaCases) {

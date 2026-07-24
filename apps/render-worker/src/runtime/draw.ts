@@ -131,8 +131,14 @@ function buildGeometryPath(ctx: SKRSContext2D, node: PaintNode, scene: RuntimeSc
   }
 }
 
-function drawPaintNode(ctx: SKRSContext2D, scene: RuntimeScene, node: PaintNode, time: number, width: number, height: number): void {
+function drawPaintNode(ctx: SKRSContext2D, scene: RuntimeScene, node: PaintNode, time: number, width: number, height: number, clipMask = false): void {
   buildGeometryPath(ctx, node, scene, time, width, height);
+  if (clipMask) {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.fill(node.type === "path" ? node.payload.fillRule : "nonzero");
+    return;
+  }
   const baseAlpha = ctx.globalAlpha;
   const fill = evaluateProperty(scene, node, "style.fill", time, node.style?.fill);
   if (typeof fill === "string") {
@@ -164,17 +170,18 @@ function drawEvaluatedNode(
   assetById: Map<string, RuntimeAsset>,
   assetBaseDir: string,
   time: number,
+  maskPass?: "alpha" | "clip",
 ): void {
   if (!evaluated.visible || evaluated.worldOpacity <= 0.001) return;
   const { node, transform, worldMatrix } = evaluated;
   if (node.type === "group" || node.type === "bone" || node.type === "camera") return;
 
   ctx.save();
-  ctx.globalAlpha = Math.min(1, Math.max(0, evaluated.worldOpacity));
+  ctx.globalAlpha = maskPass === "clip" ? 1 : Math.min(1, Math.max(0, evaluated.worldOpacity));
   ctx.transform(worldMatrix.a, worldMatrix.b, worldMatrix.c, worldMatrix.d, worldMatrix.e, worldMatrix.f);
 
   if (node.type === "shape" || node.type === "path") {
-    drawPaintNode(ctx, scene, node, time, transform.width, transform.height);
+    drawPaintNode(ctx, scene, node, time, transform.width, transform.height, maskPass === "clip");
   } else if (node.type === "image" || node.type === "svg") {
     const rawAssetId = evaluateProperty(scene, node, "payload.assetId", time, node.payload?.assetId);
     const asset = typeof rawAssetId === "string" ? assetById.get(rawAssetId) : undefined;
@@ -218,13 +225,45 @@ export function drawSceneFrame(
   ctx.fillRect(0, height * 0.35, width, height * 0.3);
 
   const source = sourceSize(metadata.aspectRatio);
-  ctx.save();
-  ctx.scale(width / source.width, height / source.height);
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));
   const evaluated = evaluateScene(scene, localTime)
     .map((item, index) => ({ item, index }))
     .sort((left, right) => ((left.item.node.zIndex ?? 0) - (right.item.node.zIndex ?? 0)) || left.index - right.index);
-  for (const { item } of evaluated) drawEvaluatedNode(ctx, scene, item, metadata.brand, assetById, assetBaseDir, localTime);
+  const byId = new Map(evaluated.map(({ item }) => [item.node.id, item]));
+  const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "content-and-mask").map(({ item }) => item.node.mask!.sourceNodeId));
+  const hiddenMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "mask-only").map(({ item }) => item.node.mask!.sourceNodeId));
+  const rasterize = (item: EvaluatedNode, stack = new Set<string>(), maskPass?: "alpha" | "clip") => {
+    if (stack.has(item.node.id)) throw new Error(`Runtime mask cycle: ${item.node.id}`);
+    const nextStack = new Set(stack).add(item.node.id);
+    const layer = createCanvas(width, height);
+    const layerContext = layer.getContext("2d");
+    layerContext.scale(width / source.width, height / source.height);
+    drawEvaluatedNode(layerContext, scene, item, metadata.brand, assetById, assetBaseDir, localTime, maskPass);
+    if (item.node.mask) {
+      const maskSource = byId.get(item.node.mask.sourceNodeId);
+      if (!maskSource) throw new Error(`Runtime mask source missing: ${item.node.mask.sourceNodeId}`);
+      const maskLayer = rasterize(maskSource, nextStack, item.node.mask.mode === "clip" ? "clip" : "alpha");
+      layerContext.setTransform(1, 0, 0, 1, 0, 0);
+      layerContext.globalCompositeOperation = item.node.mask.mode === "inverse-alpha" ? "destination-out" : "destination-in";
+      layerContext.drawImage(maskLayer, 0, 0);
+      layerContext.globalCompositeOperation = "source-over";
+    }
+    return layer;
+  };
+  ctx.save();
+  ctx.scale(width / source.width, height / source.height);
+  for (const { item } of evaluated) {
+    if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) continue;
+    if (!item.node.mask) {
+      drawEvaluatedNode(ctx, scene, item, metadata.brand, assetById, assetBaseDir, localTime);
+      continue;
+    }
+    const layer = rasterize(item);
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(layer, 0, 0);
+    ctx.restore();
+  }
   ctx.restore();
   return canvas.toBuffer("image/png");
 }

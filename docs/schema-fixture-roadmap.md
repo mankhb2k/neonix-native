@@ -21,7 +21,7 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone typed geometry có 12 positive fixtures, 31 negative artifacts, 24 deterministic limit cases, 6 Runtime IR goldens, 4 PNG goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone Mask/Clip có 13 positive fixtures, 34 negative artifacts, 24 deterministic limit cases, 7 Runtime IR goldens, 5 PNG goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
@@ -29,13 +29,13 @@ Baseline sau milestone typed geometry có 12 positive fixtures, 31 negative arti
 - [x] Finite-number policy cho toàn bộ numeric/JSON surface; limits cho dimensions, scale, duration, FPS, playback và public arrays hiện có.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 31 negative artifacts và 24 limit/depth descriptors với structured error assertions.
-- [x] 6 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
+- [x] 34 negative artifacts và 24 limit/depth descriptors với structured error assertions.
+- [x] 7 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
 - [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 - [x] Runtime world bounds, inverse-matrix hit-test, drawable subtree bounds và offscreen dimension/pixel budgets.
-- [x] Shared frame clock, pure random-access seeded samples và 4 stored PNG pixel goldens có diff artifact.
+- [x] Shared frame clock, pure random-access seeded samples và 5 stored PNG pixel goldens có diff artifact.
 - [x] Runtime schema reject unknown/compile-only tracks; Text string/number/color tracks dùng evaluator thật trong renderer.
 
 ### Phase 1 progress
@@ -51,6 +51,7 @@ Baseline sau milestone typed geometry có 12 positive fixtures, 31 negative arti
 - [x] Typed Shape rectangle/ellipse/polygon và Path multi-contour line/cubic, open/closed, `nonzero|evenodd`.
 - [x] Solid Paint fill/stroke/opacity/cap/join, animated property registry, geometry limits và negative topology fixtures.
 - [x] Worker renderer, true cubic extrema bounds, stroke inflation và stored geometry PNG golden chứng minh `evenodd` hole.
+- [x] Typed Mask relation thay `maskId`: clip/alpha/inverse-alpha, source visibility, missing/cycle rejection và nested compositing.
 
 ### Đã có contract và hành vi có thể dựa vào
 
@@ -71,10 +72,9 @@ Baseline sau milestone typed geometry có 12 positive fixtures, 31 negative arti
 
 | Tên hiện có | Vấn đề |
 |---|---|
-| `maskId` | Chỉ là ID reference; chưa có mode clip/alpha/inverse, cycle graph và fixture dương |
 | `camera` | Zoom/projection và active-camera reference đã typed; shot/transition runtime chưa có |
 | `video` | fit/crop/trim/loop/mute/frame policy đã typed; frame renderer và audio mix chưa có |
-| property path | Registry đã phủ Transform/Text/Shape/Path/media baseline; chưa phủ Mask/effect/modifier tương lai |
+| property path | Registry đã phủ Transform/Text/Shape/Path/media baseline; Mask là typed relation, effect/modifier còn chờ |
 | `extensions.constraints/events` | Array JSON tự do, chưa có consumer hoặc reference validation |
 
 Node types thực sự xuất hiện trong positive fixtures hiện tại: `bone`, `camera`, `component`, `group`, `image`, `path`, `shape`, `svg`, `text`, `video`. Track properties bao phủ Transform, Text và animated Shape/Path paint/geometry baseline.

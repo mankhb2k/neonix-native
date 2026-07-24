@@ -41,7 +41,7 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 4 stored pixel goldens đã có |
 | Property capabilities | Enumerable schema metadata | Domain/support enforced khi compile | Text và Shape/Path paint evaluator đã có; primitive registry mở rộng dần |
 | Path | Typed multi-contour line/cubic + limits | Literal geometry được giữ | Fill/stroke/open/closed/evenodd + true cubic bounds đã có |
-| Mask | Chỉ có `maskId` | Pass-through | Chưa áp dụng |
+| Mask | Typed relation + cycle guard | Literal relation được giữ/namespace | clip/alpha/inverse-alpha, nested và source visibility đã render |
 | Motion Path | Chưa có | Chưa có | Chưa có |
 | Text Animator | Chưa có | Chưa có | Chưa có |
 | Repeater | List MVP | Expand được | Không cần biết repeater |
@@ -375,9 +375,9 @@ Những fixture này phát hiện lỗi interaction/order mà unit fixture khôn
 
 1. [x] Typed Shape/Path/Paint schema, renderer, bounds, limits và JSON/PNG goldens.
 2. Path import normalization từ SVG arc/quadratic sang canonical cubic.
-3. Mask dependency graph và clip/alpha modes.
-4. Hợp nhất SVG/image/shape/path vào cùng composite pipeline.
-5. Visual fixtures cho masks, nested composition và z-order.
+3. [x] Mask dependency graph, clip/alpha/inverse-alpha, nested compositing và mask-aware hit-test.
+4. [x] Node layer compositing dùng chung cho masked Shape/Path/Text/Image/SVG.
+5. [x] Visual fixtures cho mask modes, nested composition và source visibility.
 
 ### Phase 2 — compile-time expressiveness
 

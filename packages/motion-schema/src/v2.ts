@@ -228,7 +228,11 @@ const NodeBaseSchema = z.object({
   inheritRotation: z.boolean().optional(),
   inheritScale: z.boolean().optional(),
   inheritOpacity: z.boolean().optional(),
-  maskId: IdSchema.optional(),
+  mask: z.object({
+    sourceNodeId: IdSchema,
+    mode: z.enum(["clip", "alpha", "inverse-alpha"]),
+    sourceVisibility: z.enum(["mask-only", "content-and-mask"]),
+  }).strict().optional(),
 });
 
 const FitSchema = z.enum(["contain", "cover", "fill", "none"]);
@@ -698,8 +702,8 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     if (node.parentId !== null && !idSet.has(node.parentId)) {
       issues.push({ path: `${prefix}.${node.id}.parentId`, message: `Unknown parent: ${node.parentId}` });
     }
-    if (node.maskId && !idSet.has(node.maskId)) {
-      issues.push({ path: `${prefix}.${node.id}.maskId`, message: `Unknown mask: ${node.maskId}` });
+    if (node.mask && !idSet.has(node.mask.sourceNodeId)) {
+      issues.push({ path: `${prefix}.${node.id}.mask.sourceNodeId`, message: `Unknown mask source: ${node.mask.sourceNodeId}` });
     }
     const seen = new Set<string>([node.id]);
     let parent = node.parentId;
@@ -716,6 +720,21 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
         issues.push({ path: `${prefix}.${node.id}.parentId`, message: `Hierarchy exceeds depth limit ${MOTION_V2_LIMITS.hierarchyDepth}` });
         break;
       }
+    }
+  }
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  for (const node of nodes) {
+    if (!node.mask) continue;
+    const seen = new Set([node.id]);
+    let current: z.infer<typeof NodeV2Schema> | undefined = node;
+    while (current?.mask) {
+      const sourceId = current.mask.sourceNodeId;
+      if (seen.has(sourceId)) {
+        issues.push({ path: `${prefix}.${node.id}.mask`, message: "Mask dependency cycle detected" });
+        break;
+      }
+      seen.add(sourceId);
+      current = nodeById.get(sourceId);
     }
   }
   return issues;

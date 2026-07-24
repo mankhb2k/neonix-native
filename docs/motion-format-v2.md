@@ -65,6 +65,8 @@ Không có top-level `instances[]`. Parenting, masking, draw order và clip targ
 
 Paint solid dùng `fill`, `fillOpacity`, `stroke`, `strokeWidth`, `strokeOpacity`, `lineCap`, `lineJoin` và `miterLimit`. Fill, opacity, stroke width và rectangle radius có thể animate qua capability registry; Path morph/gradient/dash chưa thuộc contract này. Runtime bounds dùng cực trị Bézier thật và nới nửa stroke width đã evaluate.
 
+Mỗi Node có tối đa một quan hệ `mask { sourceNodeId, mode, sourceVisibility }`. `mode` là `clip | alpha | inverse-alpha`; nguồn phải cùng Scene. `mask-only` ẩn nguồn khỏi compositing/hit-test bình thường, còn `content-and-mask` giữ nguồn như content. Mask lồng nhau được phép, nhưng graph thiếu nguồn hoặc có cycle bị reject trước compiler.
+
 ## Public API và binding
 
 ```text

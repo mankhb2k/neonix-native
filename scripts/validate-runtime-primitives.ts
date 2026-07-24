@@ -31,6 +31,7 @@ const frameGoldens = [
   { project: "hierarchy", time: 1, file: "hierarchy-transform-t1.png", width: 270, height: 480 },
   { project: "hierarchy", time: 1.5, file: "hierarchy-transform-t1_5.png", width: 270, height: 480 },
   { project: "geometry", time: 1, file: "geometry-paths-t1.png", width: 540, height: 540 },
+  { project: "mask", time: 0, file: "mask-compositing-t0.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -221,11 +222,23 @@ async function main(): Promise<void> {
   assert.ok(curveBounds.y > -80 && curveBounds.y <= 80, "cubic bounds must use the true minimum, not the control hull");
   assert.ok(curveBounds.y + curveBounds.height < 300, "cubic bounds must use the true maximum, not the control hull");
 
+  const maskSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "mask-compositing.mt.json"),
+    "utf8",
+  )));
+  const maskRuntime = compileMotionProject(maskSource);
+  const maskScene = maskRuntime.scenes[0]!;
+  const alphaHitsOutside = hitTestScene(maskScene, 0, { x: 80, y: 80 });
+  assert.ok(!alphaHitsOutside.some(({ node }) => node.id === "content.alpha"), "alpha-masked content must not hit outside mask bounds");
+  const alphaHitsInside = hitTestScene(maskScene, 0, { x: 200, y: 200 });
+  assert.ok(alphaHitsInside.some(({ node }) => node.id === "content.alpha"), "alpha-masked content must hit inside mask bounds");
+  assert.ok(!alphaHitsInside.some(({ node }) => node.id === "mask.alpha"), "mask-only source must not capture hit-tests");
+
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
   for (const golden of frameGoldens) {
-    const targetRuntime = golden.project === "geometry" ? geometryRuntime : runtime;
+    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
     await writeFile(resolve(outputRoot, golden.file), png);
@@ -247,14 +260,22 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [168, 85, 247]) >= 100, "evenodd Path fill pixels missing");
       assert.deepEqual(await pixelAt(png, 410, 430), [16, 24, 40, 255], "evenodd inner contour must leave a transparent hole over the scene background");
     }
+    if (golden.project === "mask") {
+      assert.ok(await countColor(png, [250, 204, 21]) >= 100, "clip mask content pixels missing");
+      assert.ok(await countColor(png, [168, 85, 247]) >= 100, "nested mask content pixels missing");
+      assert.deepEqual(await pixelAt(png, 365, 110), [16, 24, 40, 255], "inverse-alpha center must cut a hole to the scene background");
+      const alphaPixel = await pixelAt(png, 110, 110);
+      assert.ok(alphaPixel[0] > 100 && alphaPixel[0] < 239, "alpha mask must preserve source opacity instead of acting as binary clip");
+    }
   }
-  assert.equal(hashes.size, 4, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 5, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
   console.log("OK deterministic frame clock, random-access seed and stored PNG pixel goldens");
   console.log("OK SVG torso, limb, hand and attached prop pixels rendered");
   console.log("OK Shape/Path geometry, cubic bounds, animated paint and evenodd holes rendered");
+  console.log("OK clip/alpha/inverse-alpha masks, nested masks and mask-aware hit testing");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

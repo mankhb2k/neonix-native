@@ -87,7 +87,9 @@ function cloneScene(scene: MotionScene): MotionScene {
       ...structuredClone(node),
       id: nodeIds.get(node.id)!,
       parentId: node.parentId ? nodeIds.get(node.parentId) ?? null : null,
-      maskId: node.maskId ? nodeIds.get(node.maskId) : undefined,
+      mask: node.mask
+        ? { ...node.mask, sourceNodeId: nodeIds.get(node.mask.sourceNodeId) ?? node.mask.sourceNodeId }
+        : undefined,
     })),
     clips: scene.clips.map((clip) => ({
       ...structuredClone(clip),

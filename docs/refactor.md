@@ -113,7 +113,7 @@ pnpm e2e:render
 - [x] Thêm safe local asset resolver và renderer cho SVG parts/image trong export worker.
 - [x] Renderer worker cho Shape rectangle/ellipse/polygon và solid Paint.
 - [x] Typed Path geometry + renderer + cubic bounds + evenodd hole golden.
-- [ ] Mask dependency graph với clip/alpha/inverse-alpha và unified compositing.
+- [x] Mask dependency graph với clip/alpha/inverse-alpha, nested layer compositing và source visibility.
 - [x] Golden Runtime/PNG harness, deterministic clock/seed và capability limits.
 
 Đây là ưu tiên cao nhất vì hiện preview Web chỉ là preview gần đúng, chưa phải kết quả export.

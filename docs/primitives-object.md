@@ -111,7 +111,7 @@ SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph kh
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Mask/Clip | Node/subtree visibility từ source Node | Planned P0 | clip/alpha/inverse, nested, cycle |
+| Mask/Clip | Node visibility từ source Node | Implemented worker | clip/alpha/inverse, nested, cycle và source visibility |
 | Effects stack | Ordered pixel effects | Planned P0 late | order, property animation, resource limits |
 | Blur | Effect | Planned P0 late | radius 0/max, offscreen bounds |
 | Shadow | Effect | Planned P0 late | offset/blur/color/alpha |
@@ -351,7 +351,7 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 
 - [x] Typed Shape/Path/Paint, geometry bounds, worker renderer và JSON/PNG goldens.
 - SVG/Image renderer.
-- Mask dependency graph và draw order.
+- [x] Mask dependency graph, modes, nested layer compositing và draw order.
 - Geometry, hierarchy và mask fixtures.
 
 ### Phase 2 — compiler expansions
