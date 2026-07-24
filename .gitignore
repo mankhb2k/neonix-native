@@ -15,4 +15,5 @@ tmp
 *.exe
 *.mp4
 *.webm
+!docs/fixtures/v2/assets/*.mp4
 *.tsbuildinfo

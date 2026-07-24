@@ -1,0 +1,164 @@
+{
+  "manifestVersion": 1,
+  "usage": {
+    "scope": "MotionVideo automated fixtures and local previews",
+    "status": "approved-by-project-owner",
+    "confirmedAt": "2026-07-24"
+  },
+  "assets": [
+    {
+      "path": "adobe-illustrator-export-character.svg",
+      "kind": "svg",
+      "bytes": 7109,
+      "sha256": "696269cdb590037c3346c08c13bef40467d00312d9cb3b8c492611cb9c28e85a",
+      "sourceKind": "adobe-illustrator-export",
+      "viewBox": "0 0 104.71 184.98",
+      "expectedGroups": 2,
+      "expectedPaths": 36
+    },
+    {
+      "path": "character.svg",
+      "kind": "svg",
+      "bytes": 21958,
+      "sha256": "df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a",
+      "width": 300,
+      "height": 400,
+      "expectedGroups": 2,
+      "expectedPaths": 53,
+      "expectedMasks": 2
+    },
+    {
+      "path": "figma-export1.svg",
+      "kind": "svg",
+      "bytes": 28739,
+      "sha256": "a5631cdcded1809a74215618ad988fc1bb92f7b0f0c5823c7a97d34d28deb9de",
+      "sourceKind": "figma-export",
+      "width": 300,
+      "height": 400,
+      "expectedGroups": 3,
+      "expectedPaths": 70,
+      "expectedMasks": 3
+    },
+    {
+      "path": "figma-export2.svg",
+      "kind": "svg",
+      "bytes": 18453,
+      "sha256": "b00b97f729c5f29bca6051cc83ef8b4c1c3b999ad9d6615ace1245c33ab72573",
+      "sourceKind": "figma-export",
+      "width": 300,
+      "height": 400,
+      "expectedGroups": 4,
+      "expectedPaths": 56,
+      "expectedMasks": 4
+    },
+    {
+      "path": "image-alpha.png",
+      "kind": "image",
+      "bytes": 73784,
+      "sha256": "df8cf3593f7e328c75b6d4e8e53d31223d5dad15ff9c52a376087c24ae8c7a40",
+      "codec": "png",
+      "pixelFormat": "rgba",
+      "width": 450,
+      "height": 466
+    },
+    {
+      "path": "image-product.png",
+      "kind": "image",
+      "bytes": 1088277,
+      "sha256": "ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "codec": "png",
+      "pixelFormat": "rgb24",
+      "width": 1000,
+      "height": 1000
+    },
+    {
+      "path": "Lora-Bold.ttf",
+      "kind": "font",
+      "bytes": 133828,
+      "sha256": "7d74015e950c2fb66519c7295b8155621d22200ae2ca2a4c6b43ce3c490cac87",
+      "family": "Lora",
+      "style": "Bold",
+      "localeCoverage": "vi-VN"
+    },
+    {
+      "path": "Lora-Medium.ttf",
+      "kind": "font",
+      "bytes": 134004,
+      "sha256": "fd57ed9e3945de65de667f1919c2978b79937a13d246508fc4f64bb562e53196",
+      "family": "Lora",
+      "style": "Medium",
+      "localeCoverage": "vi-VN"
+    },
+    {
+      "path": "Lora-Regular.ttf",
+      "kind": "font",
+      "bytes": 133888,
+      "sha256": "7ed00e7c9cdf16ab7e2fd2361fe45d4f0b61263cd60aae398b27b7ee08108827",
+      "family": "Lora",
+      "style": "Regular",
+      "localeCoverage": "vi-VN"
+    },
+    {
+      "path": "music.mp3",
+      "kind": "audio",
+      "bytes": 2900464,
+      "sha256": "c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf",
+      "codec": "mp3",
+      "duration": 124.58,
+      "sampleRate": 44100,
+      "channels": 2,
+      "role": "bgm"
+    },
+    {
+      "path": "sfx.wav",
+      "kind": "audio",
+      "bytes": 2104474,
+      "sha256": "e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b",
+      "codec": "pcm_s16le",
+      "duration": 11.93,
+      "sampleRate": 44100,
+      "channels": 2,
+      "role": "sfx"
+    },
+    {
+      "path": "video-silent.mp4",
+      "kind": "video",
+      "bytes": 1626066,
+      "sha256": "a6b5501f7b86fa070022e609193e558e7042f671df374821d8484f7382d2cde1",
+      "codec": "h264",
+      "pixelFormat": "yuv420p",
+      "duration": 3.37,
+      "width": 480,
+      "height": 854,
+      "fps": 30,
+      "hasAudio": false
+    },
+    {
+      "path": "video-with-audio.mp4",
+      "kind": "video",
+      "bytes": 1710866,
+      "sha256": "457621ad4923add1dedd90529deea13e425444578c49faacf3093720c6d74a5e",
+      "codec": "h264",
+      "pixelFormat": "yuv420p",
+      "duration": 3.37,
+      "width": 480,
+      "height": 854,
+      "fps": 30,
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "path": "voiceover.mp3",
+      "kind": "audio",
+      "bytes": 162048,
+      "sha256": "b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74",
+      "codec": "mp3",
+      "duration": 5.06,
+      "sampleRate": 48000,
+      "channels": 1,
+      "role": "voiceover"
+    }
+  ]
+}

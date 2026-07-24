@@ -2,6 +2,8 @@
 
 MotionVideo là editor và render pipeline cho TVC motion graphic 2D tiếng Việt. Hệ thống tạo project có cấu trúc từ brief/template, cho phép chỉnh nội dung, brand, scene, node và timing trước khi xuất MP4.
 
+Phạm vi đích gồm limited/cut-out character animation từ SVG rig được chuẩn bị trong Figma và map lại trong app; không nhằm trở thành công cụ vẽ frame-by-frame.
+
 ## Kiến trúc
 
 ```text
@@ -26,7 +28,7 @@ Các nguyên tắc chính:
 - AI User và Web chỉ sửa Project Variable, text Node và public props của Component.
 - Preview và export phải tiến tới dùng chung property vocabulary, transform convention và track evaluator.
 
-Contract đầy đủ: [Motion Format](docs/motion-format-v2.md).
+Contract đầy đủ: [Motion Format](docs/motion-format-v2.md). Catalog nguyên tử: [Primitive objects](docs/primitives-object.md). Tiến độ: [Kiến trúc và lộ trình refactor](docs/refactor.md). Hướng nhân vật SVG: [SVG cut-out plan](docs/svg-cutout-plan.md). Thiết kế primitive: [Atomic primitives plan](docs/atomic-primitives-plan.md).
 
 ## Monorepo
 

@@ -42,17 +42,26 @@
     {
       "id": "asset.product",
       "assetType": "image",
-      "uri": "assets/demo-product.png"
+      "uri": "assets/image-product.png",
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd"
     },
     {
       "id": "asset.bgm",
       "assetType": "audio",
-      "uri": "assets/demo-lofi.mp3"
+      "uri": "assets/music.mp3",
+      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf"
     },
     {
       "id": "asset.voiceover",
       "assetType": "audio",
-      "uri": "assets/demo-voiceover.mp3"
+      "uri": "assets/voiceover.mp3",
+      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74"
+    },
+    {
+      "id": "asset.sfx",
+      "assetType": "audio",
+      "uri": "assets/sfx.wav",
+      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b"
     }
   ],
   "variables": [
@@ -85,6 +94,17 @@
         "loop": false,
         "fadeIn": 0,
         "fadeOut": 0.1
+      },
+      {
+        "id": "audio.sfx",
+        "role": "sfx",
+        "assetId": "asset.sfx",
+        "start": 2.5,
+        "trimStart": 0,
+        "volume": 0.8,
+        "loop": false,
+        "fadeIn": 0,
+        "fadeOut": 0
       }
     ]
   },

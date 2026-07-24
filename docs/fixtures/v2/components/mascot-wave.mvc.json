@@ -12,7 +12,8 @@
     {
       "id": "asset.mascot-svg",
       "assetType": "svg",
-      "uri": "assets/demo-svg/character.svg"
+      "uri": "assets/character.svg",
+      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a"
     }
   ],
   "variables": [

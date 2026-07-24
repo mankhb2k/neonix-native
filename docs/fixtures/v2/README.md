@@ -6,6 +6,8 @@ Các fixture này là dữ liệu chuẩn cho contract v2 tại [`../../motion-f
 pnpm validate:v2-fixtures
 ```
 
+Coverage và thứ tự bổ sung acceptance tests: [`test-plan.md`](test-plan.md).
+
 ## Acceptance = workflow
 
 Một fixture đạt khi đi hết chuỗi sau mà không truy cập internal Component từ Web/AI User:
@@ -32,7 +34,22 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `components/product-showcase.mvc.json` | Component asset, image prop, CTA và binding 1→n |
 | `projects/big-number-demo.mt.json` | Component Node và project binding |
 | `projects/golden-product-promo.mt.json` | Dependency pinning, scene order và audio timeline |
+| `projects/media-assets.mt.json` | Image opaque/alpha, SVG, font Việt, video silent/audio và ba audio roles |
+| `imports/svg-import-sources.json` | SVG phẳng từ Figma/Illustrator cho sanitize, group trong app và re-import |
 | `patches/ai-fill-big-number.json` | Planner patch chỉ sửa public surface |
+
+## Asset kit
+
+`assets/manifest.json` là nguồn sự thật cho binary fixtures. Validator kiểm tra đồng thời:
+
+- mọi file có đúng byte size và SHA-256;
+- image/video/audio có đúng codec, dimensions, duration, FPS, sample rate, channel và audio-stream policy;
+- font đăng ký được với raster engine;
+- mọi URI/thumbnail trong Project và Component trỏ tới asset có manifest;
+- integrity pin trong artifact khớp SHA-256;
+- không có asset trong manifest mà chưa được ít nhất một fixture sử dụng.
+
+Các asset đã được project owner xác nhận cho phép sử dụng trong automated fixtures và local preview. `video-silent.mp4` không có audio stream; `video-with-audio.mp4` có AAC để khóa hai trường hợp riêng biệt.
 
 ## Quy ước đã khóa
 
