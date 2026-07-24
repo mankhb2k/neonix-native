@@ -22,6 +22,9 @@ export const FRAME_GOLDENS = [
   { project: "motion-path.mt.json", time: 1, file: "motion-path-t1.png", width: 540, height: 540 },
   { project: "motion-path.mt.json", time: 2, file: "motion-path-t2.png", width: 540, height: 540 },
   { project: "effects-stack.mt.json", time: 0.5, file: "effects-stack-t0_5.png", width: 540, height: 540 },
+  { project: "path-morph.mt.json", time: 0, file: "path-morph-t0.png", width: 540, height: 540 },
+  { project: "path-morph.mt.json", time: 1, file: "path-morph-t1.png", width: 540, height: 540 },
+  { project: "path-morph.mt.json", time: 2, file: "path-morph-t2.png", width: 540, height: 540 },
 ] as const;
 
 async function main(): Promise<void> {

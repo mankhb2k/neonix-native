@@ -19,14 +19,14 @@ This file is the current implementation ledger. A capability is marked **done** 
 | SVG cut-out authoring contract | source parts, rig slots, variants and named actions | `41d4f28` |
 | Deterministic playback | rate, iterations, reverse/alternate, infinite clipping and schedule | `47eb433` |
 | Ordered Effects stack | blur, shadow, glow, color-adjust, animation, mask-before-effects and PNG golden | `0b66cfe` |
+| Normalized Path Morph | topology-checked targets, progress tracks, Runtime/PNG goldens at t=0/1/2 | *(pending commit)* |
 
-Current verification after the Effects milestone: 21 positive artifacts, 63 negative artifacts, 37 limit cases, 13 Runtime goldens, 11 PNG goldens, and 21 pinned assets. The Path Morph WIP is typechecked but intentionally not included in these counts.
+Current verification after Path Morph: 22 positive artifacts, 68 negative artifacts, 38 limit cases, 14 Runtime goldens, 14 PNG goldens, and 21 pinned assets.
 
 ## Partial or not implemented
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
-| Normalized Path Morph | WIP schema/compiler/runtime scaffold is present and typechecks, but no committed fixture/golden/negative matrix yet; do not treat as stable | topology-checked path targets, interpolation evaluator, Runtime/PNG fixtures, then promote from WIP |
 | Component Action outer playback and `action.loop` | Compiler intentionally accepts only one normal iteration for outer action invocation | expand action invocations through shared playback semantics; add loop/reverse fixtures |
 | Lip-sync cue generation | Mouth variants exist, but no cue/marker-to-step-key compiler | cue schema, alignment validation, generated track golden |
 | Secondary Motion | No modifier/evaluator implementation | deterministic random-access segmented-chain solver and PNG fixture |

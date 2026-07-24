@@ -4,6 +4,8 @@ Playback acceptance is covered by `projects/schedule-playback.mt.json` and its R
 
 Effects acceptance is covered by `projects/effects-stack.mt.json`, `expected-runtime/effects-stack.runtime.json`, and `expected-frames/effects-stack-t0_5.png`; it verifies ordered blur/shadow/glow/color-adjust, animated effect properties, mask-before-effects, negative references, and the per-node effect limit.
 
+Path Morph acceptance is covered by `projects/path-morph.mt.json`, `expected-runtime/path-morph.runtime.json`, and `expected-frames/path-morph-t{0,1,2}.png`; it verifies topology-compatible targets, progress tracks, mismatch/limit negatives, and silhouette interpolation at progress 0/0.5/1.
+
 Tài liệu này là coverage map cho fixtures. Ký hiệu:
 
 Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`](../../primitives-object.md).
@@ -51,8 +53,8 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Motion Path | ✅ refs/cycles/limits | ✅ literal modifier + progress track | ✅ arc length/offset/orientation PNG | ⬜ |
 | Text Animator grapheme/word/line | ✅ Unicode + limits | ✅ literal runs/tracks | ✅ worker PNG golden | ⬜ |
 | Repeater count/grid/radial | ✅ + limits | ✅ IDs/layout/stagger | ✅ worker PNG golden | ⬜ |
-| Ordered effects stack | ⬜ | ⬜ | ⬜ | ⬜ |
-| Normalized Path Morph | ⬜ | ⬜ | ⬜ | ⬜ |
+| Ordered effects stack | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
+| Normalized Path Morph | ✅ topology/limits | ✅ progress track | ✅ worker PNG goldens | ⬜ |
 | Bone Secondary Motion | ⬜ | ⬜ | ⬜ | ⬜ |
 
 `media-assets.mt.json` và `assets/manifest.json` khóa asset plumbing. Trạng thái “plumbing” không được hiểu là renderer đã vẽ hoặc mix media.

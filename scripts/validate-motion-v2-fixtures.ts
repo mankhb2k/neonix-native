@@ -60,7 +60,7 @@ type LimitCase = {
     | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
-    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items"
+    | "shape.polygonPoints" | "path.contours" | "path.segments" | "path.morphTargets" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items"
     | "component.sourceImports" | "sourceImport.parts" | "sourcePart.elementIds" | "component.cutoutRigs" | "effects.items"
     | "cutoutRig.slots" | "variantSlot.variants" | "component.actions" | "action.clips";
   limit: keyof typeof MOTION_V2_LIMITS;
@@ -397,11 +397,16 @@ async function validateNegativeFixtures(): Promise<number> {
     { file: "components/motion-path-cycle.mvc.json", parse: parseMotionComponentV2, path: "nodes.a.modifiers.ma", message: "Motion Path dependency cycle detected" },
     { file: "components/motion-path-descendant-source.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.pathNodeId", message: "Motion Path source cannot be a descendant of its target" },
     { file: "components/motion-path-zero-length.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.contourId", message: "Motion Path contour has zero length: route" },
-    { file: "components/unknown-motion-path-property.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.missing.progress", message: "Unknown Motion Path modifier: missing" },
+    { file: "components/unknown-motion-path-property.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.missing.progress", message: "Unknown progress modifier: missing" },
     { file: "components/motion-path-progress-over-limit.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.follow.progress", message: "Value 1.2 exceeds maximum 1 for modifiers.follow.progress" },
     { file: "components/effect-unknown-track-id.mvc.json", parse: parseMotionComponentV2, path: "clips.animate.source.tracks.effects.missing.radius", message: "Unknown effect: missing" },
     { file: "components/effect-unsupported-field.mvc.json", parse: parseMotionComponentV2, path: "clips.animate.source.tracks.effects.tone.radius", message: "Unsupported property for color-adjust effect: radius" },
     { file: "components/effect-duplicate-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.card.effects", message: "Duplicate effect id: blur" },
+    { file: "components/morph-topology-mismatch.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.modifiers.morph", message: "Path Morph segment kind/order mismatch: body.1" },
+    { file: "components/morph-unknown-target.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.modifiers.morph.to", message: "Unknown Path Morph target: missing" },
+    { file: "components/morph-from-equals-to.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.modifiers.morph", message: "Path Morph from and to targets must differ" },
+    { file: "components/morph-on-non-path.mvc.json", parse: parseMotionComponentV2, path: "nodes.shape.modifiers", message: "Path Morph modifier requires a path node" },
+    { file: "components/morph-duplicate-target-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.payload.morphTargets", message: "Duplicate Path Morph target id: dup" },
     {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
@@ -746,7 +751,7 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     }];
     return { artifact: component, parse: parseMotionComponentV2 };
   }
-  if (testCase.target === "path.contours" || testCase.target === "path.segments") {
+  if (testCase.target === "path.contours" || testCase.target === "path.segments" || testCase.target === "path.morphTargets") {
     const component = baseLimitComponent();
     const line = (index: number) => ({ kind: "line", to: { x: index + 1, y: 0 } });
     const contour = (index: number, segmentCount = 1) => ({
@@ -759,7 +764,10 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
         fillRule: "nonzero",
         contours: testCase.target === "path.contours"
           ? Array.from({ length: count }, (_, index) => contour(index))
-          : [contour(0, count)],
+          : [contour(0, testCase.target === "path.segments" ? count : 1)],
+        ...(testCase.target === "path.morphTargets"
+          ? { morphTargets: Array.from({ length: count }, (_, index) => ({ id: `target-${index}`, contours: [contour(index)] })) }
+          : {}),
       },
       style: { stroke: "#ffffff", strokeWidth: 1 },
     }];

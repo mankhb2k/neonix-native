@@ -865,8 +865,8 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
         continue;
       }
       const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(track.property);
-      if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && modifier.type === "motion-path")) {
-        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime Motion Path modifier: ${modifierMatch[1]}` });
+      if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && (modifier.type === "motion-path" || modifier.type === "path-morph"))) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime progress modifier: ${modifierMatch[1]}` });
         continue;
       }
       const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(track.property);
@@ -1102,8 +1102,8 @@ function validatePropertyPath(
   path: string,
 ): ReferenceIssue[] {
   const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(property);
-  if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && modifier.type === "motion-path")) {
-    return [{ path, message: `Unknown Motion Path modifier: ${modifierMatch[1]}` }];
+  if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && (modifier.type === "motion-path" || modifier.type === "path-morph"))) {
+    return [{ path, message: `Unknown progress modifier: ${modifierMatch[1]}` }];
   }
   const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(property);
   if (effectMatch) {
