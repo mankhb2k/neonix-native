@@ -115,6 +115,9 @@ Variable list khai báo `itemSchema`. Group template có `repeat` với source, 
 - rotation dùng degree, chiều Canvas; visible dùng step interpolation.
 - Với column-vector convention, local matrix là `T(x,y) · R(rotation) · S(scale × flipSign) · T(-anchor × size)`; world matrix là `parentWorld · local` sau khi áp dụng inherit flags.
 - Camera pan dùng `transform.x/y`, rotation dùng `transform.rotation`, zoom dùng duy nhất `payload.zoom`.
+- World bounds là AABB của bốn góc local `[0,width] × [0,height]` sau world matrix; subtree bounds mặc định chỉ union drawable descendants.
+- Hit-test đổi world point về local bằng inverse world matrix, loại node hidden/opacity 0 và trả kết quả theo draw order giảm dần.
+- Mask/Effects phải xin offscreen plan từ bounds đã tính; plan làm tròn ra ngoài và reject dimension/pixel budget trước khi cấp phát surface.
 
 ## Asset, dependency và offline
 

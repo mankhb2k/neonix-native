@@ -30,6 +30,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Typed Path | ⬜ | ⬜ | ⬜ | ⬜ |
 | Shape/group/mask | ✅ | 🟡 | ⬜ | ⬜ |
 | Parent/world transform | ✅ | ✅ preserved | ✅ matrix assertions | ⬜ |
+| Bounds/hit-test/offscreen plan | — | — | ✅ AABB/inverse/draw order/budgets | ⬜ |
 | Camera/transition | ✅ | 🟡 | ⬜ | ⬜ |
 | Video silent/audio | ✅ | ✅ plumbing | ⬜ | ⬜ |
 | BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ⬜ mix | ⬜ |

@@ -28,6 +28,8 @@ export const MOTION_V2_LIMITS = Object.freeze({
   audioTracksPerProject: 2_048,
   extensionEntries: 2_048,
   patchOperations: 2_048,
+  offscreenDimension: 8_192,
+  offscreenPixels: 33_554_432,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

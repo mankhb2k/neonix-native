@@ -7,7 +7,14 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
 import { drawSceneFrame } from "../apps/render-worker/src/runtime/draw";
-import { applyMatrix, evaluateScene } from "../packages/motion-runtime/src/index";
+import {
+  applyMatrix,
+  evaluateScene,
+  hitTestScene,
+  invertMatrix,
+  planOffscreenSurface,
+  subtreeBounds,
+} from "../packages/motion-runtime/src/index";
 import { parseMotionProjectV2 } from "../packages/motion-schema/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -61,6 +68,39 @@ async function main(): Promise<void> {
   close(wrist0.x, 805, "wrist x at t=0");
   close(wrist0.y, 720, "wrist y at t=0");
 
+  const torso0 = frame0.find(({ node }) => node.id === "part.torso");
+  assert.ok(torso0);
+  close(torso0.worldBounds.x, 450, "torso bounds x at t=0");
+  close(torso0.worldBounds.y, 650, "torso bounds y at t=0");
+  close(torso0.worldBounds.width, 180, "torso bounds width at t=0");
+  close(torso0.worldBounds.height, 300, "torso bounds height at t=0");
+
+  const overlapHits = hitTestScene(scene, 0, { x: 620, y: 720 });
+  assert.equal(overlapHits[0]?.node.id, "part.upper-arm", "hit-test must return the highest draw-order node first");
+  assert.ok(overlapHits.some(({ node }) => node.id === "part.torso"), "hit-test must retain lower overlapping drawables");
+  const hiddenScene = structuredClone(scene);
+  const hiddenArm = hiddenScene.nodes.find((node) => node.id === "part.upper-arm");
+  assert.ok(hiddenArm);
+  hiddenArm.transform.visible = false;
+  assert.equal(hitTestScene(hiddenScene, 0, { x: 620, y: 720 })[0]?.node.id, "part.torso", "hidden nodes must not capture hit-tests");
+
+  const torsoInverse = invertMatrix(torso0.worldMatrix);
+  assert.ok(torsoInverse);
+  const torsoWorldCenter = applyMatrix(torso0.worldMatrix, 90, 150);
+  const torsoLocalCenter = applyMatrix(torsoInverse, torsoWorldCenter.x, torsoWorldCenter.y);
+  close(torsoLocalCenter.x, 90, "inverse matrix local x", 0.0001);
+  close(torsoLocalCenter.y, 150, "inverse matrix local y", 0.0001);
+
+  const rigBounds = subtreeBounds(frame0, "rig.root");
+  assert.ok(rigBounds && rigBounds.width > torso0.worldBounds.width && rigBounds.height >= torso0.worldBounds.height, "subtree bounds must union drawable descendants");
+  const surface = planOffscreenSurface({ x: 0.25, y: 1.5, width: 10.2, height: 20.2 }, 2);
+  assert.deepEqual(surface, { originX: -2, originY: -1, width: 15, height: 25, pixelCount: 375 });
+  assert.throws(
+    () => planOffscreenSurface({ x: 0, y: 0, width: 9_000, height: 1 }),
+    /exceeds dimension limit/,
+    "offscreen surfaces must reject dimension explosions",
+  );
+
   const frame1 = evaluateScene(scene, 1);
   const elbow1 = pointAt(frame1, "bone.elbow");
   const wrist1 = pointAt(frame1, "bone.wrist");
@@ -112,6 +152,7 @@ async function main(): Promise<void> {
   assert.equal(hashes.size, 3, "The three primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
+  console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
   console.log("OK SVG torso, limb, hand and attached prop pixels rendered");
   console.log(`Preview frames: ${outputRoot}`);
 }

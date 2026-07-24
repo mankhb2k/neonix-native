@@ -7,6 +7,7 @@ import {
   type Matrix2D,
   type Transform2D,
 } from "./matrix";
+import { transformBounds, type Bounds2D } from "./spatial";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
@@ -18,6 +19,7 @@ export type EvaluatedNode = {
   worldMatrix: Matrix2D;
   worldOpacity: number;
   visible: boolean;
+  worldBounds: Bounds2D;
 };
 
 export function easingValue(progress: number, easing = "linear"): number {
@@ -120,7 +122,8 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       visible = parent.visible && transform.visible;
     }
 
-    const result = { node, transform, worldMatrix, worldOpacity, visible };
+    const worldBounds = transformBounds(worldMatrix, { x: 0, y: 0, width: transform.width, height: transform.height });
+    const result = { node, transform, worldMatrix, worldOpacity, visible, worldBounds };
     evaluated.set(node.id, result);
     visiting.delete(node.id);
     return result;

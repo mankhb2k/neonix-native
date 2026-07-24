@@ -69,8 +69,8 @@ Value + Property + Keyframe + Track + Binding
 | Hierarchy | `parentId` Node graph | Partial | missing parent, cycle, deep hierarchy |
 | World matrix | Parent × local | Partial — worker tested | anchor, inherit flags, flip, nested scale/rotation; Web parity còn thiếu |
 | Draw order | z-index + stable tree order | Partial | equal z-index, nested groups, mask/effect layers |
-| Bounds | Geometry/layout bounds | Planned P0 | transformed AABB, zero-size Bone, effect inflation |
-| Hit test | Canvas selection | Planned P0 | transform inverse, transparent/masked content |
+| Bounds | Geometry/layout bounds | Implemented runtime baseline | transformed AABB + drawable subtree chạy; effect inflation còn thiếu |
+| Hit test | Canvas selection | Partial runtime | inverse transform, visibility, opacity và draw order chạy; alpha/mask Web selection còn thiếu |
 | Layout | linear/grid/radial placement | Planned P0 | deterministic positions and item limits |
 
 ## 5. Core Node objects
@@ -199,8 +199,8 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 | Literal Runtime Track | Resolved keys | Implemented schema | literal-only enforcement |
 | Frame Plan | Scene-local frame jobs | Implemented | FPS, boundaries, frame count |
 | Evaluated Node State | Property values tại time t | Partial | all property families, deterministic result |
-| Offscreen Surface | Mask/effect subtree buffer | Planned P0 | bounds/memory/reuse |
-| Raster Output | PNG frame | Implemented text/logo | exact dimensions, visual golden |
+| Offscreen Surface | Mask/effect subtree buffer | Implemented planning abstraction | integer origin/size + dimension/pixel budget; allocation/reuse đến cùng Mask/Effects |
+| Raster Output | PNG frame | Implemented text/SVG smoke | exact dimensions, visual golden |
 | Encoder Output | H.264/AAC MP4 | Partial video smoke | streams, duration, FPS, colorspace, audio |
 
 ## 14. P1 và P2 boundary

@@ -36,6 +36,8 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 |---|---|---|---|
 | Property/Track/Keyframe | Có | Có một phần | Numeric evaluator cơ bản |
 | Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | World matrix + SVG worker smoke đã có; Web parity còn thiếu |
+| Bounds/Hit-test | Không cần authoring field | Không cần compile | AABB/inverse/draw-order assertions đã có; alpha/mask parity còn thiếu |
+| Offscreen plan | Resource limits | Không cần compile | Integer surface plan + dimension/pixel rejection đã có; allocation chờ Mask/Effects |
 | Path | Bị reject cho tới typed fixture | Chưa có | Chưa vẽ |
 | Mask | Chỉ có `maskId` | Pass-through | Chưa áp dụng |
 | Motion Path | Chưa có | Chưa có | Chưa có |
