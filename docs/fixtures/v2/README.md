@@ -41,6 +41,7 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `projects/media-assets.mt.json` | Image opaque/alpha, SVG, font Việt, video silent/audio và ba audio roles |
 | `projects/hierarchy-transform.mt.json` | Group/Bone/SVG hierarchy, pivot chain, inherited opacity, flip và prop attachment |
 | `projects/property-capabilities.mt.json` | Runtime Text tracks cho string, numeric interpolation và discrete color |
+| `projects/geometry-paths.mt.json` | Rectangle/ellipse/polygon, open cubic Path, multi-contour evenodd hole và animated Paint |
 | `imports/svg-import-sources.json` | SVG phẳng từ Figma/Illustrator cho sanitize, group trong app và re-import |
 | `patches/ai-fill-big-number.json` | Planner patch chỉ sửa public surface |
 | `negative/components/*.json` | Missing parent, unsupported path/value/asset/node, mismatch, duplicate/cycle, non-finite number và schema limits |
@@ -71,7 +72,7 @@ Chạy:
 pnpm validate:primitives
 ```
 
-Lệnh này compile `hierarchy-transform.mt.json`, kiểm tra clock/seed/world-space/bounds/hit-test, render SVG parts ở ba timestamp, so với stored PNG goldens và ghi preview vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp PNG hoặc `.diff.png` để kiểm tra.
+Lệnh này compile `hierarchy-transform.mt.json` và `geometry-paths.mt.json`, kiểm tra clock/seed/world-space/bounds/hit-test/cubic extrema, render SVG rig ở ba timestamp cùng Shape/Path ở một timestamp, so với stored PNG goldens và ghi preview vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp PNG hoặc `.diff.png` để kiểm tra.
 
 ## Quy ước đã khóa
 

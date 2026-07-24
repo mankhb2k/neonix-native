@@ -58,7 +58,8 @@ type LimitCase = {
     | "component.nodes" | "component.clips" | "component.assets" | "component.variables" | "component.publicAPI" | "component.bindings"
     | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
-    | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth";
+    | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
+    | "shape.polygonPoints" | "path.contours" | "path.segments";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -319,6 +320,12 @@ async function validateNegativeFixtures(): Promise<number> {
       message: "Value 2 exceeds maximum 1 for transform.opacity",
     },
     {
+      file: "components/duplicate-path-contour-id.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.path.payload.contours",
+      message: "Duplicate Path contour id: duplicate",
+    },
+    {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
       path: "scenes.scene.nodes.instance.payload",
@@ -411,6 +418,31 @@ async function validateNegativeFixtures(): Promise<number> {
     {
       file: "components/playback-iterations-over-limit.mvc.json",
       path: "clips.0.playback.iterations",
+      code: "too_big",
+    },
+    {
+      file: "components/polygon-too-few-points.mvc.json",
+      path: "nodes.0.payload.points",
+      code: "too_small",
+    },
+    {
+      file: "components/path-empty-contours.mvc.json",
+      path: "nodes.0.payload.contours",
+      code: "too_small",
+    },
+    {
+      file: "components/path-empty-segments.mvc.json",
+      path: "nodes.0.payload.contours.0.segments",
+      code: "too_small",
+    },
+    {
+      file: "components/path-invalid-cubic.mvc.json",
+      path: "nodes.0.payload.contours.0.segments.0.control2",
+      code: "invalid_type",
+    },
+    {
+      file: "components/path-coordinate-over-limit.mvc.json",
+      path: "nodes.0.payload.contours.0.start.x",
       code: "too_big",
     },
   ] as const;
@@ -543,6 +575,34 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     component.nodes = Array.from({ length: count + 1 }, (_, index) => fixtureNode(`node-${index}`, index === 0 ? null : `node-${index - 1}`));
     return { artifact: component, parse: parseMotionComponentV2 };
   }
+  if (testCase.target === "shape.polygonPoints") {
+    const component = baseLimitComponent();
+    component.nodes = [{
+      id: "polygon", type: "shape", parentId: null, transform: fixtureTransform(),
+      payload: { shape: "polygon", points: Array.from({ length: count }, (_, index) => ({ x: index, y: index % 2 })) },
+      style: { fill: "#ffffff" },
+    }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "path.contours" || testCase.target === "path.segments") {
+    const component = baseLimitComponent();
+    const line = (index: number) => ({ kind: "line", to: { x: index + 1, y: 0 } });
+    const contour = (index: number, segmentCount = 1) => ({
+      id: `contour-${index}`, start: { x: 0, y: index }, closed: false,
+      segments: Array.from({ length: segmentCount }, (_, segmentIndex) => line(segmentIndex)),
+    });
+    component.nodes = [{
+      id: "path", type: "path", parentId: null, transform: fixtureTransform(),
+      payload: {
+        fillRule: "nonzero",
+        contours: testCase.target === "path.contours"
+          ? Array.from({ length: count }, (_, index) => contour(index))
+          : [contour(0, count)],
+      },
+      style: { stroke: "#ffffff", strokeWidth: 1 },
+    }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
   const project = baseLimitProject();
   const scenes = project.scenes as Array<Record<string, unknown>>;
   const scene = scenes[0]!;
@@ -638,8 +698,9 @@ async function main(): Promise<void> {
   if (!textCapability?.public || textCapability.runtimeSupport !== "evaluated" || textCapability.valueKind !== "string") {
     throw new Error("Text capability metadata contract changed");
   }
-  if (shapeFillCapability?.runtimeSupport !== "compile-time" || shapeFillCapability.animatable) {
-    throw new Error("Unsupported Shape animation was exposed by capability registry");
+  const pathStrokeCapability = motionPropertyCapability("path", "style.strokeWidth");
+  if (shapeFillCapability?.runtimeSupport !== "evaluated" || !shapeFillCapability.animatable || pathStrokeCapability?.runtimeSupport !== "evaluated") {
+    throw new Error("Shape/Path evaluated paint capability contract changed");
   }
   const aiTextProperties = motionPropertyCapabilities("text").filter((capability) => capability.public).map((capability) => capability.property);
   for (const property of ["transform.x", "payload.text", "payload.fontSize", "style.fill"]) {

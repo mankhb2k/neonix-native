@@ -240,10 +240,20 @@ const CropSchema = z.object({
   height: FiniteNumberSchema.positive().max(1),
 }).strict();
 
-const PaintStyleSchema = z.object({
+export const PaintStyleSchema = z.object({
   fill: z.string().min(1).optional(),
+  fillOpacity: FiniteNumberSchema.min(0).max(1).optional(),
   stroke: z.string().min(1).optional(),
   strokeWidth: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+  strokeOpacity: FiniteNumberSchema.min(0).max(1).optional(),
+  lineCap: z.enum(["butt", "round", "square"]).optional(),
+  lineJoin: z.enum(["miter", "round", "bevel"]).optional(),
+  miterLimit: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+}).strict();
+
+export const PointV2Schema = z.object({
+  x: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(MOTION_V2_LIMITS.nodeDimension),
+  y: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(MOTION_V2_LIMITS.nodeDimension),
 }).strict();
 
 export const GroupNodeV2Schema = NodeBaseSchema.extend({
@@ -278,11 +288,41 @@ export const TextNodeV2Schema = NodeBaseSchema.extend({
 const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z.object({ shape: z.literal("rectangle"), cornerRadius: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional() }).strict(),
   z.object({ shape: z.literal("ellipse") }).strict(),
+  z.object({
+    shape: z.literal("polygon"),
+    points: z.array(PointV2Schema).min(3).max(MOTION_V2_LIMITS.polygonPoints),
+  }).strict(),
 ]);
 
 export const ShapeNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("shape"),
   payload: ShapePayloadSchema,
+  style: PaintStyleSchema.optional(),
+}).strict();
+
+export const PathSegmentV2Schema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("line"), to: PointV2Schema }).strict(),
+  z.object({
+    kind: z.literal("cubic"),
+    control1: PointV2Schema,
+    control2: PointV2Schema,
+    to: PointV2Schema,
+  }).strict(),
+]);
+
+export const PathContourV2Schema = z.object({
+  id: IdSchema,
+  start: PointV2Schema,
+  segments: z.array(PathSegmentV2Schema).min(1).max(MOTION_V2_LIMITS.pathSegmentsPerContour),
+  closed: z.boolean(),
+}).strict();
+
+export const PathNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("path"),
+  payload: z.object({
+    contours: z.array(PathContourV2Schema).min(1).max(MOTION_V2_LIMITS.pathContours),
+    fillRule: z.enum(["nonzero", "evenodd"]).default("nonzero"),
+  }).strict(),
   style: PaintStyleSchema.optional(),
 }).strict();
 
@@ -342,6 +382,7 @@ export const NodeV2Schema = z.discriminatedUnion("type", [
   BoneNodeV2Schema,
   TextNodeV2Schema,
   ShapeNodeV2Schema,
+  PathNodeV2Schema,
   ImageNodeV2Schema,
   SvgNodeV2Schema,
   VideoNodeV2Schema,
@@ -553,6 +594,7 @@ const RuntimeNodeSchema = z.discriminatedUnion("type", [
   BoneNodeV2Schema.omit({ repeat: true }),
   TextNodeV2Schema.omit({ repeat: true }),
   ShapeNodeV2Schema.omit({ repeat: true }),
+  PathNodeV2Schema.omit({ repeat: true }),
   ImageNodeV2Schema.omit({ repeat: true }),
   SvgNodeV2Schema.omit({ repeat: true }),
   VideoNodeV2Schema.omit({ repeat: true }),
@@ -626,6 +668,10 @@ export type MotionClip = z.infer<typeof ClipV2Schema>;
 export type AspectRatio = z.infer<typeof AspectRatioSchema>;
 export type MotionPatch = z.infer<typeof MotionPatchSchema>;
 export type NormalizedMotionProjectV2 = z.infer<typeof NormalizedMotionProjectV2Schema>;
+export type MotionPaintStyle = z.infer<typeof PaintStyleSchema>;
+export type MotionPoint = z.infer<typeof PointV2Schema>;
+export type MotionPathSegment = z.infer<typeof PathSegmentV2Schema>;
+export type MotionPathContour = z.infer<typeof PathContourV2Schema>;
 
 export interface ReferenceIssue {
   path: string;
@@ -640,6 +686,12 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
   const issues: ReferenceIssue[] = [];
   const ids = nodes.map((node) => node.id);
   for (const id of new Set(duplicates(ids))) issues.push({ path: prefix, message: `Duplicate node id: ${id}` });
+  for (const node of nodes) {
+    if (node.type !== "path") continue;
+    for (const id of new Set(duplicates(node.payload.contours.map((contour) => contour.id)))) {
+      issues.push({ path: `${prefix}.${node.id}.payload.contours`, message: `Duplicate Path contour id: ${id}` });
+    }
+  }
   const idSet = new Set(ids);
   const parentById = new Map(nodes.map((node) => [node.id, node.parentId]));
   for (const node of nodes) {

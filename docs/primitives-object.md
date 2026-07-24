@@ -81,8 +81,8 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 |---|---|---|---|
 | Group | Hierarchy/container | Partial | parent transform, subtree opacity/effects/mask |
 | Text | Text content/layout | Partial | Vietnamese, wrap, alignment, font fallback |
-| Shape | Rectangle/ellipse primitives | Partial typed schema | fill/stroke/radius typed; polygon/renderer còn thiếu |
-| Path | Typed contours + line/cubic segments | Planned P0 | open/closed, holes, fill rule, bounds |
+| Shape | Rectangle/ellipse/polygon primitives | Implemented worker | typed paint, animated radius/paint, geometry limits và PNG golden |
+| Path | Typed contours + line/cubic segments | Implemented worker | open/closed, evenodd holes, true cubic bounds và PNG golden |
 | Image | Raster asset | Partial typed plumbing | contain/cover/crop/alpha/color space |
 | SVG | Normalized vector asset/part | Partial typed + worker smoke | sanitize, raster, nested transform; mask/Web parity còn thiếu |
 | Video | Time-based media asset | Partial typed plumbing | trim, frame selection, loop, mute/audio policy |
@@ -96,9 +96,9 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Point/Contour/Segment | Canonical Path geometry | Planned P0 | finite coordinates, cubic normalization, limits |
-| Fill | Solid paint | Partial | color/opacity/fill rule |
-| Stroke | Width/cap/join | Planned P0 | open path, scale behavior, bounds |
+| Point/Contour/Segment | Canonical Path geometry | Implemented | finite coordinates, line/cubic, contour/segment limits |
+| Fill | Solid paint | Implemented worker | color/opacity/nonzero/evenodd |
+| Stroke | Width/cap/join | Implemented worker | open path, animated width, stroke-inflated bounds |
 | Gradient | Linear/radial typed paint | Planned P1 | stable stop IDs, interpolation, transforms |
 | Dash | Stroke dash array/offset | Planned P1 | odd arrays, offset animation |
 | Trim Path | Arc-length range | Planned P1 | start/end/offset, open/closed contours |
@@ -349,7 +349,7 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 
 ### Phase 1 — geometry/compositing
 
-- Typed Shape/Path/Paint.
+- [x] Typed Shape/Path/Paint, geometry bounds, worker renderer và JSON/PNG goldens.
 - SVG/Image renderer.
 - Mask dependency graph và draw order.
 - Geometry, hierarchy và mask fixtures.

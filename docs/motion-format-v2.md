@@ -31,7 +31,7 @@ Renderer chỉ đọc Normalized Runtime IR.
 
 Mọi number trong typed fields lẫn generic JSON phải hữu hạn; parser reject NaN/Infinity, kể cả khi JSON hợp lệ như `1e400` được JavaScript đọc thành Infinity. Transform dimensions, scale, media duration/FPS, playback iterations và các numeric domain khác có hard limit trong `MOTION_V2_LIMITS`.
 
-Mọi public array hiện có—asset, variable, public param, dependency, binding, scene, node, clip, track, key, audio track, extension entry, patch operation, enum option, locale và semantic tags—đều có trần schema. Limit cho Path points, effect stack và Repeater vNext chỉ được thêm cùng primitive tương ứng; không tồn tại placeholder không được test.
+Mọi public array hiện có—asset, variable, public param, dependency, binding, scene, node, clip, track, key, audio track, extension entry, patch operation, enum option, locale, semantic tags, polygon points, Path contours và Path segments—đều có trần schema. Limit cho effect stack và Repeater vNext chỉ được thêm cùng primitive tương ứng; không tồn tại placeholder không được test.
 
 ## Scene graph
 
@@ -57,11 +57,13 @@ Không có top-level `instances[]`. Parenting, masking, draw order và clip targ
 `NodeV2` là discriminated union, không có `payload` hoặc `style` JSON tự do:
 
 - Group không nhận payload/style; Bone chỉ nhận length/rest rotation.
-- Text, Shape, Image, SVG, Video và Camera có payload riêng, strict theo family.
+- Text, Shape, Path, Image, SVG, Video và Camera có payload riêng, strict theo family.
 - Component Instance tồn tại trong Authoring IR và phải được compiler expand; Runtime IR không chấp nhận Component hoặc `repeat`.
 - `logo` và `icon` là semantic role được compose bằng Text/Image/SVG/Component, không phải Node type.
 - Character là Component từ Group/Bone/SVG/variants/actions, không có `CharacterNode`.
-- Path hiện bị reject cho tới khi typed contours/segments và fixtures S1 được triển khai cùng nhau.
+- Shape hỗ trợ rectangle/ellipse/polygon. Path hỗ trợ nhiều contour, line/cubic, open/closed và `fillRule: nonzero|evenodd`; mọi tọa độ phải finite.
+
+Paint solid dùng `fill`, `fillOpacity`, `stroke`, `strokeWidth`, `strokeOpacity`, `lineCap`, `lineJoin` và `miterLimit`. Fill, opacity, stroke width và rectangle radius có thể animate qua capability registry; Path morph/gradient/dash chưa thuộc contract này. Runtime bounds dùng cực trị Bézier thật và nới nửa stroke width đã evaluate.
 
 ## Public API và binding
 

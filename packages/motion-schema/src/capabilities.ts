@@ -30,6 +30,9 @@ export const MOTION_V2_LIMITS = Object.freeze({
   patchOperations: 2_048,
   offscreenDimension: 8_192,
   offscreenPixels: 33_554_432,
+  pathContours: 64,
+  pathSegmentsPerContour: 10_000,
+  polygonPoints: 10_000,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";
@@ -69,8 +72,19 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   },
   shape: {
-    "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
-    "payload.cornerRadius": { valueKind: "number", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "style.fillOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+    "style.stroke": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "style.strokeWidth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+    "payload.cornerRadius": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+  },
+  path: {
+    "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "style.fillOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+    "style.stroke": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "style.strokeWidth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
   },
   svg: {
     "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },

@@ -38,9 +38,9 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | World matrix + SVG worker smoke đã có; Web parity còn thiếu |
 | Bounds/Hit-test | Không cần authoring field | Không cần compile | AABB/inverse/draw-order assertions đã có; alpha/mask parity còn thiếu |
 | Offscreen plan | Resource limits | Không cần compile | Integer surface plan + dimension/pixel rejection đã có; allocation chờ Mask/Effects |
-| Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 3 stored pixel goldens đã có |
-| Property capabilities | Enumerable schema metadata | Domain/support enforced khi compile | Text string/number/color evaluator đã có; primitive registry mở rộng dần |
-| Path | Bị reject cho tới typed fixture | Chưa có | Chưa vẽ |
+| Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 4 stored pixel goldens đã có |
+| Property capabilities | Enumerable schema metadata | Domain/support enforced khi compile | Text và Shape/Path paint evaluator đã có; primitive registry mở rộng dần |
+| Path | Typed multi-contour line/cubic + limits | Literal geometry được giữ | Fill/stroke/open/closed/evenodd + true cubic bounds đã có |
 | Mask | Chỉ có `maskId` | Pass-through | Chưa áp dụng |
 | Motion Path | Chưa có | Chưa có | Chưa có |
 | Text Animator | Chưa có | Chưa có | Chưa có |
@@ -49,7 +49,7 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Path Morph | Chưa có | Chưa có | Chưa có |
 | Secondary Motion | Chưa có | Chưa có | Chưa có |
 
-Vì vậy kế hoạch không được mô tả Path/Bone/Mask như capability đã chạy chỉ vì tên field/type đã tồn tại.
+Vì vậy kế hoạch không được mô tả Mask và các modifier tương lai như capability đã chạy chỉ vì tên field/type tồn tại.
 
 ## Thứ tự xử lý canonical
 
@@ -373,10 +373,11 @@ Những fixture này phát hiện lỗi interaction/order mà unit fixture khôn
 
 ### Phase 1 — geometry/compositing
 
-1. Path schema/import normalization/renderer.
-2. Mask dependency graph và clip/alpha modes.
-3. SVG/image/shape renderer dùng cùng geometry/composite pipeline.
-4. Visual fixtures cho hierarchy, holes, masks và z-order.
+1. [x] Typed Shape/Path/Paint schema, renderer, bounds, limits và JSON/PNG goldens.
+2. Path import normalization từ SVG arc/quadratic sang canonical cubic.
+3. Mask dependency graph và clip/alpha modes.
+4. Hợp nhất SVG/image/shape/path vào cùng composite pipeline.
+5. Visual fixtures cho masks, nested composition và z-order.
 
 ### Phase 2 — compile-time expressiveness
 

@@ -111,9 +111,10 @@ pnpm e2e:render
 - [x] Thêm fixed-time assertions và visual smoke PNG cho hierarchy SVG tại `pnpm validate:primitives`.
 - [ ] World matrix, pivot, inherit flags và z-order chạy giống nhau trên preview/export.
 - [x] Thêm safe local asset resolver và renderer cho SVG parts/image trong export worker.
-- [ ] Renderer cho shape và mask.
-- [ ] Typed Path geometry + renderer; Mask dependency graph với clip/alpha/inverse-alpha.
-- [ ] Golden Runtime/PNG harness, deterministic clock/seed và capability limits.
+- [x] Renderer worker cho Shape rectangle/ellipse/polygon và solid Paint.
+- [x] Typed Path geometry + renderer + cubic bounds + evenodd hole golden.
+- [ ] Mask dependency graph với clip/alpha/inverse-alpha và unified compositing.
+- [x] Golden Runtime/PNG harness, deterministic clock/seed và capability limits.
 
 Đây là ưu tiên cao nhất vì hiện preview Web chỉ là preview gần đúng, chưa phải kết quả export.
 

@@ -21,7 +21,7 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone capability registry có 11 positive fixtures, 25 negative artifacts, 21 deterministic limit cases, 5 Runtime IR goldens, 3 PNG goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone typed geometry có 12 positive fixtures, 31 negative artifacts, 24 deterministic limit cases, 6 Runtime IR goldens, 4 PNG goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
@@ -29,13 +29,13 @@ Baseline sau milestone capability registry có 11 positive fixtures, 25 negative
 - [x] Finite-number policy cho toàn bộ numeric/JSON surface; limits cho dimensions, scale, duration, FPS, playback và public arrays hiện có.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 25 negative artifacts và 21 limit/depth descriptors với structured error assertions.
-- [x] 5 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
+- [x] 31 negative artifacts và 24 limit/depth descriptors với structured error assertions.
+- [x] 6 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
 - [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 - [x] Runtime world bounds, inverse-matrix hit-test, drawable subtree bounds và offscreen dimension/pixel budgets.
-- [x] Shared frame clock, pure random-access seeded samples và 3 stored PNG pixel goldens có diff artifact.
+- [x] Shared frame clock, pure random-access seeded samples và 4 stored PNG pixel goldens có diff artifact.
 - [x] Runtime schema reject unknown/compile-only tracks; Text string/number/color tracks dùng evaluator thật trong renderer.
 
 ### Phase 1 progress
@@ -48,6 +48,9 @@ Baseline sau milestone capability registry có 11 positive fixtures, 25 negative
 - [x] Thay `RegularNode` generic bằng discriminated union cho Group/Bone/Text/Shape/Image/SVG/Video/Camera/Component.
 - [x] Xóa `logo`, `icon`, `character` và Path placeholder khỏi normative Node union; Path chỉ quay lại cùng typed geometry fixture.
 - [x] Active camera bắt buộc trỏ tới Camera Node; Group reject generic payload/style.
+- [x] Typed Shape rectangle/ellipse/polygon và Path multi-contour line/cubic, open/closed, `nonzero|evenodd`.
+- [x] Solid Paint fill/stroke/opacity/cap/join, animated property registry, geometry limits và negative topology fixtures.
+- [x] Worker renderer, true cubic extrema bounds, stroke inflation và stored geometry PNG golden chứng minh `evenodd` hole.
 
 ### Đã có contract và hành vi có thể dựa vào
 
@@ -60,7 +63,7 @@ Baseline sau milestone capability registry có 11 positive fixtures, 25 negative
 | Playback | iterations/direction/rate, preset source | Preset được expand; playback chưa test đủ evaluator |
 | Spatial | Transform, parent hierarchy, zIndex, inherit flags | Worker có world matrix và hierarchy assertions |
 | Compile-time | Component expansion, list Repeater MVP | Có compiler assertions |
-| Drawable | Text; typed Shape/Image/SVG/Video | Text và SVG/Image fixture hierarchy đã render; Shape/Video renderer còn thiếu |
+| Drawable | Text/Shape/Path/Image/SVG; Video plumbing | Shape/Path/Text/SVG/Image đã render trong worker; Video frame renderer còn thiếu |
 | Joint | Bone như zero-size transform Node | Arm hierarchy fixture đã test pivot/prop attachment |
 | Timeline | scene order; BGM/voiceover/SFX metadata | Contract/compiler plumbing, chưa mix audio |
 
@@ -68,15 +71,13 @@ Baseline sau milestone capability registry có 11 positive fixtures, 25 negative
 
 | Tên hiện có | Vấn đề |
 |---|---|
-| `shape` | Rectangle/ellipse và paint đã typed; polygon, geometry limits và renderer chưa có |
-| `path` | Đã bị reject khỏi Node union cho tới khi có typed contours/segments và fixtures S1 |
 | `maskId` | Chỉ là ID reference; chưa có mode clip/alpha/inverse, cycle graph và fixture dương |
 | `camera` | Zoom/projection và active-camera reference đã typed; shot/transition runtime chưa có |
 | `video` | fit/crop/trim/loop/mute/frame policy đã typed; frame renderer và audio mix chưa có |
-| property path | Registry đã khóa baseline hiện dùng; chưa phủ Path/Mask/effect/modifier tương lai |
+| property path | Registry đã phủ Transform/Text/Shape/Path/media baseline; chưa phủ Mask/effect/modifier tương lai |
 | `extensions.constraints/events` | Array JSON tự do, chưa có consumer hoặc reference validation |
 
-Node types thực sự xuất hiện trong positive fixtures hiện tại: `bone`, `camera`, `component`, `group`, `image`, `shape`, `svg`, `text`, `video`. Track properties hiện chỉ bao phủ `transform.rotation`, `transform.opacity`, `transform.flipX`.
+Node types thực sự xuất hiện trong positive fixtures hiện tại: `bone`, `camera`, `component`, `group`, `image`, `path`, `shape`, `svg`, `text`, `video`. Track properties bao phủ Transform, Text và animated Shape/Path paint/geometry baseline.
 
 ## Schema foundation phải làm trước primitive mới
 
@@ -110,11 +111,13 @@ Trạng thái: hoàn tất cho mọi property normative hiện tại. Registry e
 
 Chốt max scenes/nodes/keys/path points/repeater count/effects, finite number policy, key ordering/duplicate time, ID length và nesting depth. Negative fixtures phải khóa từng limit.
 
-Trạng thái: finite policy và mọi limit thuộc normative surface hiện tại đã khóa bằng 21 stress cases. Path/effects chưa tồn tại trong schema nên giới hạn point/effect sẽ được thêm cùng positive/negative fixtures S1/S2; Repeater list hiện bị khóa bởi `listItems` và sẽ có count/grid/radial limits riêng khi mở rộng ở S3.
+Trạng thái: finite policy và mọi limit thuộc normative surface hiện tại đã khóa bằng 24 stress cases. Path có giới hạn contour/segment và polygon có giới hạn point; effect stack sẽ nhận limit cùng fixtures S2. Repeater list hiện bị khóa bởi `listItems` và sẽ có count/grid/radial limits riêng khi mở rộng ở S3.
 
 ## Thứ tự primitive cần fixture để thêm/siết schema
 
 ### S1 — Core geometry
+
+**Status: complete for Shape/Path/Paint.** Image/SVG typed bounds và Group/Bone hierarchy đã có baseline từ Phase 0; parity Web vẫn thuộc phase preview sau.
 
 1. Shape: rectangle, ellipse, polygon; fill/stroke/radius.
 2. Path: line/cubic contours, open/closed, holes, fillRule.

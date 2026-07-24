@@ -8,6 +8,7 @@ import {
   type Transform2D,
 } from "./matrix";
 import { transformBounds, type Bounds2D } from "./spatial";
+import { localNodeBounds } from "./geometry";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
@@ -129,7 +130,10 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       visible = parent.visible && transform.visible;
     }
 
-    const worldBounds = transformBounds(worldMatrix, { x: 0, y: 0, width: transform.width, height: transform.height });
+    const strokeWidth = (node.type === "shape" || node.type === "path") && node.style?.stroke
+      ? numberProperty(scene, node, "style.strokeWidth", time, node.style.strokeWidth ?? 1)
+      : 0;
+    const worldBounds = transformBounds(worldMatrix, localNodeBounds(node, transform, strokeWidth));
     const result = { node, transform, worldMatrix, worldOpacity, visible, worldBounds };
     evaluated.set(node.id, result);
     visiting.delete(node.id);

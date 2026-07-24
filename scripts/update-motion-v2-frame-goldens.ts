@@ -10,19 +10,24 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
 const outputRoot = resolve(fixturesRoot, "expected-frames");
 
-export const HIERARCHY_FRAME_GOLDENS = [
-  { time: 0, file: "hierarchy-transform-t0.png" },
-  { time: 1, file: "hierarchy-transform-t1.png" },
-  { time: 1.5, file: "hierarchy-transform-t1_5.png" },
+export const FRAME_GOLDENS = [
+  { project: "hierarchy-transform.mt.json", time: 0, file: "hierarchy-transform-t0.png", width: 270, height: 480 },
+  { project: "hierarchy-transform.mt.json", time: 1, file: "hierarchy-transform-t1.png", width: 270, height: 480 },
+  { project: "hierarchy-transform.mt.json", time: 1.5, file: "hierarchy-transform-t1_5.png", width: 270, height: 480 },
+  { project: "geometry-paths.mt.json", time: 1, file: "geometry-paths-t1.png", width: 540, height: 540 },
 ] as const;
 
 async function main(): Promise<void> {
-  const source = parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "hierarchy-transform.mt.json"), "utf8")));
-  const runtime = compileMotionProject(source);
-  const scene = runtime.scenes[0]!;
   await mkdir(outputRoot, { recursive: true });
-  for (const golden of HIERARCHY_FRAME_GOLDENS) {
-    const png = drawSceneFrame(scene, runtime.metadata, runtime.assets, golden.time, 270, 480, fixturesRoot);
+  const runtimes = new Map<string, ReturnType<typeof compileMotionProject>>();
+  for (const golden of FRAME_GOLDENS) {
+    let runtime = runtimes.get(golden.project);
+    if (!runtime) {
+      const source = parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", golden.project), "utf8")));
+      runtime = compileMotionProject(source);
+      runtimes.set(golden.project, runtime);
+    }
+    const png = drawSceneFrame(runtime.scenes[0]!, runtime.metadata, runtime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     await writeFile(resolve(outputRoot, golden.file), png);
     console.log(`WROTE expected-frames/${golden.file}`);
   }

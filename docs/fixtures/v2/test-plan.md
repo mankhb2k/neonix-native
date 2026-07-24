@@ -14,11 +14,11 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 25 artifacts + 21 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 31 artifacts + 24 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
-| Stored Runtime IR goldens | ✅ | ✅ 5 projects | — | — |
-| Stored PNG goldens | — | — | ✅ 3 fixed-time frames + pixel diff | ⬜ |
+| Stored Runtime IR goldens | ✅ | ✅ 6 projects | — | — |
+| Stored PNG goldens | — | — | ✅ 4 fixed-time frames + pixel diff | ⬜ |
 | Property capability registry | ✅ kind/domain/public/runtime state | ✅ reject unsupported/compile-only | ✅ Text string/number/color | — |
 | Resource limits | ✅ finite numbers + all current public arrays | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
@@ -28,8 +28,8 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Text/brand semantic | ✅ | ✅ | ✅ smoke | 🟡 |
 | Image opaque/alpha | ✅ | ✅ plumbing | ⬜ | ⬜ |
 | SVG/Bone | ✅ | ✅ plumbing | ✅ SVG/Bone smoke | ⬜ |
-| Typed Path | ⬜ | ⬜ | ⬜ | ⬜ |
-| Shape/group/mask | ✅ | 🟡 | ⬜ | ⬜ |
+| Typed Path | ✅ line/cubic + limits | ✅ preserved | ✅ fill/stroke/hole/bounds | ⬜ |
+| Shape/group/mask | ✅ Shape/Group; Mask pending | ✅ Shape/Group | ✅ Shape PNG; Mask pending | ⬜ |
 | Parent/world transform | ✅ | ✅ preserved | ✅ matrix assertions | ⬜ |
 | Bounds/hit-test/offscreen plan | — | — | ✅ AABB/inverse/draw order/budgets | ⬜ |
 | Camera/transition | ✅ | 🟡 | ⬜ | ⬜ |
@@ -42,7 +42,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Named character actions | ⬜ | ⬜ | ⬜ | ⬜ |
 | Mouth/eye/hand variants | ⬜ | ⬜ | ⬜ | ⬜ |
 | Dialogue lip-sync cues | ⬜ | ⬜ | ⬜ | ⬜ |
-| Typed Path geometry | ⬜ | ⬜ | ⬜ | ⬜ |
+| Typed Path geometry | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Mask clip/alpha/inverse | ⬜ | ⬜ | ⬜ | ⬜ |
 | Motion Path | ⬜ | ⬜ | ⬜ | ⬜ |
 | Text Animator grapheme/word/line | ⬜ | ⬜ | ⬜ | ⬜ |

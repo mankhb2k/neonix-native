@@ -11,6 +11,8 @@ const FONT_PATH = path.join(REPO_ROOT, "assets/fonts/BeVietnamPro-Regular.ttf");
 
 type RuntimeAsset = NormalizedMotionProjectV2["assets"][number];
 type Brand = NormalizedMotionProjectV2["metadata"]["brand"];
+type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+type PaintNode = Extract<RuntimeNode, { type: "shape" | "path" }>;
 
 let fontRegistered = false;
 const imageCache = new Map<string, Image>();
@@ -81,6 +83,79 @@ function loadAssetImage(asset: RuntimeAsset, assetBaseDir: string): Image {
   return image;
 }
 
+function rectanglePath(ctx: SKRSContext2D, width: number, height: number, radius: number): void {
+  const bounded = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.moveTo(bounded, 0);
+  ctx.lineTo(width - bounded, 0);
+  ctx.quadraticCurveTo(width, 0, width, bounded);
+  ctx.lineTo(width, height - bounded);
+  ctx.quadraticCurveTo(width, height, width - bounded, height);
+  ctx.lineTo(bounded, height);
+  ctx.quadraticCurveTo(0, height, 0, height - bounded);
+  ctx.lineTo(0, bounded);
+  ctx.quadraticCurveTo(0, 0, bounded, 0);
+  ctx.closePath();
+}
+
+function buildGeometryPath(ctx: SKRSContext2D, node: PaintNode, scene: RuntimeScene, time: number, width: number, height: number): void {
+  ctx.beginPath();
+  if (node.type === "shape") {
+    if (node.payload.shape === "rectangle") {
+      const rawRadius = evaluateProperty(scene, node, "payload.cornerRadius", time, node.payload.cornerRadius ?? 0);
+      rectanglePath(ctx, width, height, typeof rawRadius === "number" ? rawRadius : 0);
+    } else if (node.payload.shape === "ellipse") {
+      ctx.ellipse(width / 2, height / 2, width / 2, height / 2, 0, 0, Math.PI * 2);
+    } else {
+      const [first, ...rest] = node.payload.points;
+      if (!first) return;
+      ctx.moveTo(first.x, first.y);
+      for (const point of rest) ctx.lineTo(point.x, point.y);
+      ctx.closePath();
+    }
+    return;
+  }
+  for (const contour of node.payload.contours) {
+    ctx.moveTo(contour.start.x, contour.start.y);
+    for (const segment of contour.segments) {
+      if (segment.kind === "line") ctx.lineTo(segment.to.x, segment.to.y);
+      else ctx.bezierCurveTo(
+        segment.control1.x,
+        segment.control1.y,
+        segment.control2.x,
+        segment.control2.y,
+        segment.to.x,
+        segment.to.y,
+      );
+    }
+    if (contour.closed) ctx.closePath();
+  }
+}
+
+function drawPaintNode(ctx: SKRSContext2D, scene: RuntimeScene, node: PaintNode, time: number, width: number, height: number): void {
+  buildGeometryPath(ctx, node, scene, time, width, height);
+  const baseAlpha = ctx.globalAlpha;
+  const fill = evaluateProperty(scene, node, "style.fill", time, node.style?.fill);
+  if (typeof fill === "string") {
+    const opacity = evaluateProperty(scene, node, "style.fillOpacity", time, node.style?.fillOpacity ?? 1);
+    ctx.globalAlpha = baseAlpha * (typeof opacity === "number" ? opacity : 1);
+    ctx.fillStyle = fill;
+    ctx.fill(node.type === "path" ? node.payload.fillRule : "nonzero");
+  }
+  const stroke = evaluateProperty(scene, node, "style.stroke", time, node.style?.stroke);
+  if (typeof stroke === "string") {
+    const opacity = evaluateProperty(scene, node, "style.strokeOpacity", time, node.style?.strokeOpacity ?? 1);
+    const strokeWidth = evaluateProperty(scene, node, "style.strokeWidth", time, node.style?.strokeWidth ?? 1);
+    ctx.globalAlpha = baseAlpha * (typeof opacity === "number" ? opacity : 1);
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = typeof strokeWidth === "number" ? strokeWidth : 1;
+    ctx.lineCap = node.style?.lineCap ?? "butt";
+    ctx.lineJoin = node.style?.lineJoin ?? "miter";
+    ctx.miterLimit = node.style?.miterLimit ?? 10;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = baseAlpha;
+}
+
 function drawEvaluatedNode(
   ctx: SKRSContext2D,
   scene: RuntimeScene,
@@ -98,7 +173,9 @@ function drawEvaluatedNode(
   ctx.globalAlpha = Math.min(1, Math.max(0, evaluated.worldOpacity));
   ctx.transform(worldMatrix.a, worldMatrix.b, worldMatrix.c, worldMatrix.d, worldMatrix.e, worldMatrix.f);
 
-  if (node.type === "image" || node.type === "svg") {
+  if (node.type === "shape" || node.type === "path") {
+    drawPaintNode(ctx, scene, node, time, transform.width, transform.height);
+  } else if (node.type === "image" || node.type === "svg") {
     const rawAssetId = evaluateProperty(scene, node, "payload.assetId", time, node.payload?.assetId);
     const asset = typeof rawAssetId === "string" ? assetById.get(rawAssetId) : undefined;
     if (asset) {

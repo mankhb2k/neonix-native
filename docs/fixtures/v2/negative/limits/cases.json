@@ -22,6 +22,9 @@
     { "id": "semantic-tags", "target": "semantic.tags", "limit": "semanticTags", "expectedPath": "nodes.0.semantic.tags" },
     { "id": "font-locale-coverage", "target": "asset.localeCoverage", "limit": "localeCoverage", "expectedPath": "assets.0.localeCoverage" },
     { "id": "patch-operations", "target": "patch.operations", "limit": "patchOperations", "expectedPath": "operations" },
-    { "id": "hierarchy-depth", "target": "hierarchy.depth", "limit": "hierarchyDepth", "expectedPath": "nodes.node-65.parentId" }
+    { "id": "hierarchy-depth", "target": "hierarchy.depth", "limit": "hierarchyDepth", "expectedPath": "nodes.node-65.parentId" },
+    { "id": "polygon-points", "target": "shape.polygonPoints", "limit": "polygonPoints", "expectedPath": "nodes.0.payload.points" },
+    { "id": "path-contours", "target": "path.contours", "limit": "pathContours", "expectedPath": "nodes.0.payload.contours" },
+    { "id": "path-segments", "target": "path.segments", "limit": "pathSegmentsPerContour", "expectedPath": "nodes.0.payload.contours.0.segments" }
   ]
 }
