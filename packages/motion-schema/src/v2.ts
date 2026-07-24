@@ -702,6 +702,14 @@ const AudioTrackSchema = z
   })
   .strict();
 
+export const SceneTransitionSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("cut"), duration: z.literal(0).optional() }).strict(),
+  z.object({
+    type: z.enum(["fade", "crossfade"]),
+    duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  }).strict(),
+]);
+
 const SceneV2Schema = z
   .object({
     id: IdSchema,
@@ -711,6 +719,7 @@ const SceneV2Schema = z
     nodes: z.array(NodeV2Schema).max(MOTION_V2_LIMITS.nodesPerScene),
     clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerScene),
     activeCameraId: IdSchema.optional(),
+    transition: SceneTransitionSchema.optional(),
   })
   .strict();
 
@@ -813,6 +822,8 @@ const NormalizedMotionProjectV2BaseSchema = z
       z.object({
         id: IdSchema,
         duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+        activeCameraId: IdSchema.optional(),
+        transition: SceneTransitionSchema.optional(),
         nodes: z.array(RuntimeNodeSchema).max(MOTION_V2_LIMITS.nodesPerScene),
         tracks: z.array(RuntimeTrackSchema).max(MOTION_V2_LIMITS.clipsPerScene * MOTION_V2_LIMITS.tracksPerClip),
       }).strict(),
@@ -824,6 +835,11 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
   for (let sceneIndex = 0; sceneIndex < runtime.scenes.length; sceneIndex += 1) {
     const scene = runtime.scenes[sceneIndex]!;
     const nodeById = new Map(scene.nodes.map((node) => [node.id, node]));
+    if (scene.activeCameraId) {
+      const camera = nodeById.get(scene.activeCameraId);
+      if (!camera) context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "activeCameraId"], message: `Unknown runtime camera: ${scene.activeCameraId}` });
+      else if (camera.type !== "camera") context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "activeCameraId"], message: `Runtime node ${scene.activeCameraId} has type ${camera.type}, expected camera` });
+    }
     const secondaryChainOwners = new Map<string, string>();
     for (let nodeIndex = 0; nodeIndex < scene.nodes.length; nodeIndex += 1) {
       const node = scene.nodes[nodeIndex]!;
@@ -1507,6 +1523,17 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
   for (const sceneId of project.timeline.sceneOrder) if (!sceneById.has(sceneId)) issues.push({ path: "timeline.sceneOrder", message: `Unknown scene: ${sceneId}` });
   if (new Set(project.timeline.sceneOrder).size !== project.timeline.sceneOrder.length) issues.push({ path: "timeline.sceneOrder", message: "Scene order contains duplicates" });
   for (const sceneId of sceneById.keys()) if (!project.timeline.sceneOrder.includes(sceneId)) issues.push({ path: "timeline.sceneOrder", message: `Scene is not scheduled: ${sceneId}` });
+  project.timeline.sceneOrder.forEach((sceneId, index) => {
+    const scene = sceneById.get(sceneId);
+    const transition = scene?.transition;
+    if (!transition || transition.type === "cut") return;
+    const next = sceneById.get(project.timeline.sceneOrder[index + 1] ?? "");
+    if (!next) {
+      issues.push({ path: `scenes.${sceneId}.transition`, message: "Transition requires a following scene" });
+    } else if (transition.duration > next.duration) {
+      issues.push({ path: `scenes.${sceneId}.transition.duration`, message: `Transition duration ${transition.duration} exceeds next scene duration ${next.duration}` });
+    }
+  });
   for (const audio of project.timeline.audioTracks) {
     const asset = project.assets.find((candidate) => candidate.id === audio.assetId);
     const path = `timeline.audioTracks.${audio.id}.assetId`;
@@ -1527,6 +1554,10 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
       const camera = scene.nodes.find((node) => node.id === scene.activeCameraId);
       if (!camera) issues.push({ path: `scenes.${scene.id}.activeCameraId`, message: `Unknown camera: ${scene.activeCameraId}` });
       else if (camera.type !== "camera") issues.push({ path: `scenes.${scene.id}.activeCameraId`, message: `Node ${scene.activeCameraId} has type ${camera.type}, expected camera` });
+    }
+    const transition = scene.transition;
+    if (transition && transition.type !== "cut" && transition.duration > scene.duration) {
+      issues.push({ path: `scenes.${scene.id}.transition.duration`, message: `Transition duration ${transition.duration} exceeds scene duration ${scene.duration}` });
     }
     for (const node of scene.nodes) {
       if (node.type === "component") {

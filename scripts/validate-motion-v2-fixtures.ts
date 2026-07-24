@@ -313,8 +313,8 @@ async function validateNegativeFixtures(): Promise<number> {
     {
       file: "components/runtime-unsupported-property.mvc.json",
       parse: parseMotionComponentV2,
-      path: "clips.zoom.source.tracks.payload.zoom",
-      message: "Property is not animatable: payload.zoom",
+      path: "clips.projection.source.tracks.payload.projection",
+      message: "Unsupported property for camera: payload.projection",
     },
     {
       file: "components/binding-domain-over-limit.mvc.json",
@@ -583,11 +583,23 @@ async function validateNegativeFixtures(): Promise<number> {
       code: "custom",
       message: "Invalid locale identifier",
     },
+    {
+      file: "projects/camera-invalid-projection.mt.json",
+      path: "scenes.0.nodes.0.payload.projection",
+      code: "invalid_literal",
+      parse: parseMotionProjectV2,
+    },
+    {
+      file: "projects/transition-zero-duration.mt.json",
+      path: "scenes.0.transition.duration",
+      code: "too_small",
+      parse: parseMotionProjectV2,
+    },
   ] as const;
   for (const fixture of schemaCases) {
     let error: unknown;
     try {
-      parseMotionComponentV2(await readJson(resolve(fixturesRoot, "negative", fixture.file)));
+      (fixture.parse ?? parseMotionComponentV2)(await readJson(resolve(fixturesRoot, "negative", fixture.file)));
     } catch (caught) {
       error = caught;
     }

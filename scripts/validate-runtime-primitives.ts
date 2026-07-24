@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
-import { drawSceneFrame } from "../apps/render-worker/src/runtime/draw";
+import { drawProjectFrame, drawSceneFrame } from "../apps/render-worker/src/runtime/draw";
+import { buildFramePlan, projectDuration, projectFrameLayers } from "../apps/render-worker/src/runtime/frame-plan";
 import {
   applyMatrix,
   cubicBezierBounds,
@@ -45,6 +46,8 @@ const frameGoldens = [
   { project: "path-morph", time: 2, file: "path-morph-t2.png", width: 540, height: 540 },
   { project: "secondary-motion", time: 0.5, file: "bone-secondary-motion-t0_5.png", width: 540, height: 540 },
   { project: "secondary-motion", time: 1.5, file: "bone-secondary-motion-t1_5.png", width: 540, height: 540 },
+  { project: "camera-transition", time: 0, file: "camera-transition-t0.png", width: 540, height: 540 },
+  { project: "camera-transition", time: 1.5, file: "camera-transition-t1_5.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -346,6 +349,26 @@ async function main(): Promise<void> {
   assert.ok(secondaryChain.some((node) => Math.abs(node!.transform.rotation - secondaryDriver!.transform.rotation) > 0.01), "Secondary Motion chain rotations must differ from driver");
   assert.deepEqual(secondaryMid.map(({ transform }) => transform.rotation), secondaryMidAgain.map(({ transform }) => transform.rotation), "Secondary Motion must be random-access deterministic");
 
+  const cameraTransitionSource = parseMotionProjectV2(JSON.parse(await readFile(
+    resolve(fixturesRoot, "projects", "camera-transition.mt.json"),
+    "utf8",
+  )));
+  const cameraTransitionRuntime = compileMotionProject(cameraTransitionSource);
+  const cameraScene = cameraTransitionRuntime.scenes[0]!;
+  const camera = cameraScene.nodes.find((node) => node.id === "camera.main");
+  assert.ok(camera?.type === "camera", "Camera fixture must retain its active camera");
+  assert.equal(cameraScene.activeCameraId, "camera.main", "Runtime IR must retain active camera selection");
+  close(Number(evaluateProperty(cameraScene, camera, "payload.zoom", 1.5, 0)), 1.225, "camera zoom track");
+  assert.equal(projectDuration(cameraTransitionRuntime), 4, "crossfade must overlap authored durations");
+  assert.deepEqual(projectFrameLayers(cameraTransitionRuntime, 2.5).map(({ sceneIndex, localTime, opacity }) => [sceneIndex, localTime, opacity]), [[0, 2.5, 0.5], [1, 0.5, 0.5]], "crossfade midpoint layer timing");
+  assert.equal(buildFramePlan(cameraTransitionRuntime, 30).length, 120, "crossfade frame plan duration");
+  const cameraFrame0 = drawSceneFrame(cameraScene, cameraTransitionRuntime.metadata, cameraTransitionRuntime.assets, 0, 540, 540, fixturesRoot);
+  const cameraFrameMid = drawSceneFrame(cameraScene, cameraTransitionRuntime.metadata, cameraTransitionRuntime.assets, 1.5, 540, 540, fixturesRoot);
+  assert.notEqual(createHash("sha256").update(cameraFrame0).digest("hex"), createHash("sha256").update(cameraFrameMid).digest("hex"), "camera transform must change framing");
+  const transitionFrame = await drawProjectFrame(cameraTransitionRuntime, 2.5, 540, 540, fixturesRoot);
+  const transitionPixel = await pixelAt(transitionFrame, 20, 20);
+  assert.ok(transitionPixel[0] > 25 && transitionPixel[2] > 70, "crossfade midpoint must blend Scene A and Scene B backgrounds");
+
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
@@ -358,6 +381,7 @@ async function main(): Promise<void> {
       : golden.project === "effects" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "effects-stack.mt.json"), "utf8"))))
       : golden.project === "path-morph" ? pathMorphRuntime
       : golden.project === "secondary-motion" ? secondaryMotionRuntime
+      : golden.project === "camera-transition" ? cameraTransitionRuntime
       : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
@@ -411,7 +435,7 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [56, 189, 248]) >= 20, "Path Morph stroke silhouette pixels missing");
     }
   }
-  assert.equal(hashes.size, 16, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 18, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
@@ -425,6 +449,7 @@ async function main(): Promise<void> {
   console.log("OK ordered effects stack, animated properties and mask-before-effects rendering");
   console.log("OK Path Morph topology interpolation at progress 0/0.5/1");
   console.log("OK Secondary Motion chain follow-through and random-access evaluation");
+  console.log("OK camera projection tracks, overlap timing and crossfade compositing");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

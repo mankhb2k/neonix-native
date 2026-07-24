@@ -196,6 +196,7 @@
     {
       "id": "scene.media",
       "duration": 4,
+      "activeCameraId": "camera.main",
       "nodes": [
         {
           "id": "camera.main",

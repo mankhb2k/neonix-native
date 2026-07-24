@@ -1,0 +1,24 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": { "id": "negative.camera-projection", "name": "Camera projection", "aspectRatio": "1:1", "fps": 30, "locale": "vi-VN", "brand": { "name": "Fixture" } },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene"], "audioTracks": [] },
+  "scenes": [{
+    "id": "scene",
+    "duration": 1,
+    "activeCameraId": "camera",
+    "nodes": [{
+      "id": "camera",
+      "type": "camera",
+      "parentId": null,
+      "transform": { "x": 540, "y": 540, "width": 1080, "height": 1080, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "zoom": 1, "projection": "perspective" }
+    }],
+    "clips": []
+  }],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

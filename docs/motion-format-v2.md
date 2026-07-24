@@ -137,6 +137,7 @@ Path source phải cùng Scene, có type `path`, chứa contour được tham ch
 - rotation dùng degree, chiều Canvas; visible dùng step interpolation.
 - Với column-vector convention, local matrix là `T(x,y) · R(rotation) · S(scale × flipSign) · T(-anchor × size)`; world matrix là `parentWorld · local` sau khi áp dụng inherit flags.
 - Camera pan dùng `transform.x/y`, rotation dùng `transform.rotation`, zoom dùng duy nhất `payload.zoom`.
+- Camera projection chỉ hỗ trợ `orthographic`. Renderer map camera center vào canvas center bằng `T(viewCenter) · R(-rotation) · S(zoom) · T(-cameraPosition)` sau source-size scaling; Camera Node không tự vẽ.
 - World bounds là AABB của bốn góc local `[0,width] × [0,height]` sau world matrix; subtree bounds mặc định chỉ union drawable descendants.
 - Hit-test đổi world point về local bằng inverse world matrix, loại node hidden/opacity 0 và trả kết quả theo draw order giảm dần.
 - Mask/Effects phải xin offscreen plan từ bounds đã tính; plan làm tròn ra ngoài và reject dimension/pixel budget trước khi cấp phát surface.
@@ -159,7 +160,7 @@ Schema reject ảnh có `hasAlpha` mâu thuẫn với pixel format và reject vi
 
 ## Timeline và audio
 
-Project `timeline.sceneOrder` là thứ tự phát canonical. `timeline.audioTracks` chứa BGM, voiceover và SFX với start/trim/volume/loop/fade. `extensions` chỉ dành cho constraints và events chưa thuộc runtime lõi.
+Project `timeline.sceneOrder` là thứ tự phát canonical. Mỗi Scene có thể khai báo `transition` ra Scene kế tiếp: `cut` (duration 0/omitted), hoặc `fade`/`crossfade` với duration dương có giới hạn và không vượt hai Scene kề nhau. Với fade/crossfade, authored Scene duration được giữ nguyên nhưng global timeline overlap `duration` giây; Runtime frame plan blend hai Scene ở overlap (0→1 incoming, 1→0 outgoing). `timeline.audioTracks` chứa BGM, voiceover và SFX với start/trim/volume/loop/fade. `extensions` chỉ dành cho constraints và events chưa thuộc runtime lõi.
 
 ## Semver và semantic
 

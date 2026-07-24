@@ -118,7 +118,7 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "payload.muted": { valueKind: "boolean", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
   },
   camera: {
-    "payload.zoom": { valueKind: "number", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time", minExclusive: 0, max: MOTION_V2_LIMITS.transformScale },
+    "payload.zoom": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", minExclusive: 0, max: MOTION_V2_LIMITS.transformScale },
   },
   bone: {
     "payload.length": { valueKind: "number", animatable: false, bindable: true, public: false, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },

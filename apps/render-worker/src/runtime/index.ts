@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import type { CompiledProject } from "../compiler";
 import { sizeForAspect } from "./draw";
-import { buildFramePlan, chunkFramePlan } from "./frame-plan";
+import { buildFramePlan, chunkFramePlan, projectDuration } from "./frame-plan";
 import type { FrameWorkerInput } from "./frame-worker";
 
 export { sizeForAspect } from "./draw";
@@ -93,6 +93,6 @@ export async function renderCompiledProject(
     fps,
     width,
     height,
-    durationSec: compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0),
+    durationSec: projectDuration(compiled),
   };
 }

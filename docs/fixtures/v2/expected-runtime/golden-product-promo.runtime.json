@@ -108,6 +108,7 @@
     {
       "id": "scene.hook",
       "duration": 3,
+      "activeCameraId": "cam.hook",
       "nodes": [
         {
           "id": "cam.hook",
@@ -366,6 +367,7 @@
     {
       "id": "scene.offer",
       "duration": 5,
+      "activeCameraId": "cam.offer",
       "nodes": [
         {
           "id": "cam.offer",
@@ -677,6 +679,7 @@
     {
       "id": "scene.cta",
       "duration": 4,
+      "activeCameraId": "cam.cta",
       "nodes": [
         {
           "id": "cam.cta",

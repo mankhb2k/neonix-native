@@ -27,6 +27,8 @@ export const FRAME_GOLDENS = [
   { project: "path-morph.mt.json", time: 2, file: "path-morph-t2.png", width: 540, height: 540 },
   { project: "bone-secondary-motion.mt.json", time: 0.5, file: "bone-secondary-motion-t0_5.png", width: 540, height: 540 },
   { project: "bone-secondary-motion.mt.json", time: 1.5, file: "bone-secondary-motion-t1_5.png", width: 540, height: 540 },
+  { project: "camera-transition.mt.json", time: 0, file: "camera-transition-t0.png", width: 540, height: 540 },
+  { project: "camera-transition.mt.json", time: 1.5, file: "camera-transition-t1_5.png", width: 540, height: 540 },
 ] as const;
 
 async function main(): Promise<void> {

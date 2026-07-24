@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createCanvas, GlobalFonts, Image, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, Image, loadImage, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
 import type { AspectRatio, NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   evaluateNodeEffects,
@@ -13,6 +13,7 @@ import {
   type RuntimeEffect,
   type RuntimeScene,
 } from "@motionvideo/motion-runtime";
+import { projectFrameLayers } from "./frame-plan";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
@@ -293,6 +294,24 @@ function applyEffects(
   return effects.reduce((current, effect) => applyEffect(current, effect), layer);
 }
 
+function applyCameraView(
+  ctx: SKRSContext2D,
+  scene: RuntimeScene,
+  camera: Extract<RuntimeNode, { type: "camera" }>,
+  time: number,
+  source: AspectSize,
+): void {
+  const x = evaluateProperty(scene, camera, "transform.x", time, camera.transform.x);
+  const y = evaluateProperty(scene, camera, "transform.y", time, camera.transform.y);
+  const rotation = evaluateProperty(scene, camera, "transform.rotation", time, camera.transform.rotation);
+  const zoom = evaluateProperty(scene, camera, "payload.zoom", time, camera.payload.zoom);
+  if (typeof x !== "number" || typeof y !== "number" || typeof rotation !== "number" || typeof zoom !== "number") return;
+  ctx.translate(source.width / 2, source.height / 2);
+  ctx.rotate((-rotation * Math.PI) / 180);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-x, -y);
+}
+
 export function drawSceneFrame(
   scene: RuntimeScene,
   metadata: NormalizedMotionProjectV2["metadata"],
@@ -315,6 +334,9 @@ export function drawSceneFrame(
   const evaluated = evaluateScene(scene, localTime)
     .map((item, index) => ({ item, index }))
     .sort((left, right) => ((left.item.node.zIndex ?? 0) - (right.item.node.zIndex ?? 0)) || left.index - right.index);
+  const activeCamera = scene.activeCameraId
+    ? scene.nodes.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraId && node.type === "camera")
+    : undefined;
   const byId = new Map(evaluated.map(({ item }) => [item.node.id, item]));
   const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "content-and-mask").map(({ item }) => item.node.mask!.sourceNodeId));
   const hiddenMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "mask-only").map(({ item }) => item.node.mask!.sourceNodeId));
@@ -324,6 +346,7 @@ export function drawSceneFrame(
     const layer = createCanvas(width, height);
     const layerContext = layer.getContext("2d");
     layerContext.scale(width / source.width, height / source.height);
+    if (activeCamera) applyCameraView(layerContext, scene, activeCamera, localTime, source);
     drawEvaluatedNode(layerContext, scene, item, metadata.brand, assetById, assetBaseDir, localTime, maskPass);
     if (item.node.mask) {
       const maskSource = byId.get(item.node.mask.sourceNodeId);
@@ -339,6 +362,7 @@ export function drawSceneFrame(
   };
   ctx.save();
   ctx.scale(width / source.width, height / source.height);
+  if (activeCamera) applyCameraView(ctx, scene, activeCamera, localTime, source);
   for (const { item } of evaluated) {
     if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) continue;
     if (!item.node.mask && (item.node.effects?.length ?? 0) === 0) {
@@ -352,5 +376,28 @@ export function drawSceneFrame(
     ctx.restore();
   }
   ctx.restore();
+  return canvas.toBuffer("image/png");
+}
+
+/** Draws all scene layers at a project-global timestamp. Crossfades overlap
+ * authored scene durations; each layer is independently rendered and blended. */
+export async function drawProjectFrame(
+  project: NormalizedMotionProjectV2,
+  globalTime: number,
+  width: number,
+  height: number,
+  assetBaseDir = REPO_ROOT,
+): Promise<Buffer> {
+  const canvas = createCanvas(width, height);
+  const ctx = canvas.getContext("2d");
+  for (const layer of projectFrameLayers(project, globalTime)) {
+    const scene = project.scenes[layer.sceneIndex];
+    if (!scene || layer.opacity <= 0) continue;
+    const image = await loadImage(drawSceneFrame(scene, project.metadata, project.assets, layer.localTime, width, height, assetBaseDir));
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, Math.max(0, layer.opacity));
+    ctx.drawImage(image, 0, 0);
+    ctx.restore();
+  }
   return canvas.toBuffer("image/png");
 }

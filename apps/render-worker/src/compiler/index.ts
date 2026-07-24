@@ -564,6 +564,8 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
       return {
         id: scene.id,
         duration: scene.duration,
+        ...(scene.activeCameraId ? { activeCameraId: scene.activeCameraId } : {}),
+        ...(scene.transition ? { transition: scene.transition } : {}),
         nodes: textExpanded.nodes,
         tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables, scene.duration), ...textExpanded.tracks],
       };

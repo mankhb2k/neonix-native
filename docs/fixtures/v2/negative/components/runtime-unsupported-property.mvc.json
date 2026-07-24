@@ -19,10 +19,10 @@
   "bindings": [],
   "clips": [
     {
-      "id": "zoom",
+      "id": "projection",
       "schedule": { "kind": "absolute", "at": 0 },
       "duration": 1,
-      "source": { "kind": "tracks", "tracks": [{ "targetId": "camera", "property": "payload.zoom", "keys": [{ "t": 0, "v": 1 }, { "t": 1, "v": 2 }] }] }
+      "source": { "kind": "tracks", "tracks": [{ "targetId": "camera", "property": "payload.projection", "keys": [{ "t": 0, "v": "orthographic" }, { "t": 1, "v": "orthographic" }] }] }
     }
   ]
 }

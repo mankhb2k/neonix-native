@@ -1,7 +1,7 @@
 import { workerData, parentPort } from "node:worker_threads";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { drawSceneFrame } from "./draw";
+import { drawProjectFrame } from "./draw";
 import type { CompiledProject } from "../compiler";
 import type { FrameJob } from "./frame-plan";
 
@@ -19,9 +19,7 @@ async function run() {
     workerData as FrameWorkerInput;
 
   for (const job of jobs) {
-    const scene = compiled.scenes[job.sceneIndex];
-    if (!scene) continue;
-    const png = drawSceneFrame(scene, compiled.metadata, compiled.assets, job.localTime, width, height, assetBaseDir);
+    const png = await drawProjectFrame(compiled, job.globalTime, width, height, assetBaseDir);
     const name = `frame_${String(job.frameIndex).padStart(6, "0")}.png`;
     await writeFile(path.join(outDir, name), png);
   }

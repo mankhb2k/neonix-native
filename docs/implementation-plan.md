@@ -26,15 +26,15 @@ A capability is **done** only when its fixture, schema validation, compiler/runt
 
 ## Current state
 
-The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback (`action.loop`, reverse/alternate), cut-out lip-sync cue expansion, and deterministic Secondary Motion.
+The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback (`action.loop`, reverse/alternate), cut-out lip-sync cue expansion, deterministic Secondary Motion, and camera projection with scene transitions.
 
-Counts after Secondary Motion: 25 positive artifacts, 76 negative artifacts, 40 limit cases, 16 Runtime goldens, 16 PNG goldens, 21 pinned assets.
+Counts after Camera projection and scene transitions: 26 positive artifacts, 78 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, 21 pinned assets.
 
 The remaining P0 work is intentionally explicit and **fixtures-first** (positive/negative fixtures before expanding Zod, then compiler/runtime, goldens, docs, commit):
 
 1. Secondary Motion.
 2. Figma/Illustrator import sanitization and stable re-import.
-3. Camera projection and scene transitions.
+3. Camera projection and scene transitions ✅.
 4. Video frame rendering and trim/loop behavior.
 5. Audio mixing/export.
 6. Browser preview/export parity using Runtime IR.
@@ -65,11 +65,11 @@ Exit criteria: complete.
 
 Secondary Motion is a bounded rotation-only bone-chain modifier owned by its driver. It resolves a fixed 60 Hz damped spring from `t=0` on every evaluation, so random access does not depend on prior frames. The fixture, ownership/reference/limit negatives, Runtime IR golden, two PNG goldens, and evaluator assertions are complete.
 
-### Phase 4 — Camera and scene transitions
+### Phase 4 — Camera and scene transitions ✅
 
-Apply the active camera projection to world-space draw plans and define transition timing (cut, fade, or crossfade) in the schema. Add camera-reference, invalid projection, overlap, and transition-duration fixtures plus a frame golden.
+The renderer evaluates active-camera pan/rotation/zoom tracks and applies its orthographic view transform after source-size scaling. Scene transitions use authored Scene durations with `fade`/`crossfade` overlap in the global frame plan; the fixture asserts camera framing at two timestamps and a composed overlap midpoint.
 
-Exit criteria: camera transforms affect the same Runtime IR used by preview/export; no camera logic remains only in the UI.
+Exit criteria: complete for worker Runtime IR/export. Browser preview parity remains Phase 7 work.
 
 ### Phase 5 — Video frames and audio
 
