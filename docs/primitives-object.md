@@ -67,7 +67,7 @@ Value + Property + Keyframe + Track + Binding
 |---|---|---|---|
 | Transform | x/y/size/rotation/scale/anchor/opacity/visibility/flip | Partial | local matrix và tracked values |
 | Hierarchy | `parentId` Node graph | Partial | missing parent, cycle, deep hierarchy |
-| World matrix | Parent × local | Planned P0 | anchor, inherit flags, flip, nested scale/rotation |
+| World matrix | Parent × local | Partial — worker tested | anchor, inherit flags, flip, nested scale/rotation; Web parity còn thiếu |
 | Draw order | z-index + stable tree order | Partial | equal z-index, nested groups, mask/effect layers |
 | Bounds | Geometry/layout bounds | Planned P0 | transformed AABB, zero-size Bone, effect inflation |
 | Hit test | Canvas selection | Planned P0 | transform inverse, transparent/masked content |
@@ -84,11 +84,11 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 | Shape | Rectangle/ellipse/polygon primitives | Planned P0 | fill/stroke/radius/bounds |
 | Path | Typed contours + line/cubic segments | Planned P0 | open/closed, holes, fill rule, bounds |
 | Image | Raster asset | Partial plumbing | contain/cover/crop/alpha/color space |
-| SVG | Normalized vector asset/part | Partial plumbing | sanitize, raster, nested transform/mask |
+| SVG | Normalized vector asset/part | Partial — worker smoke | sanitize, raster, nested transform; mask/Web parity còn thiếu |
 | Video | Time-based media asset | Partial plumbing | trim, frame selection, loop, mute/audio policy |
 | Logo | Convenience semantic visual | Partial | should render through image/SVG vocabulary |
 | Icon | Convenience semantic visual | Partial | should render through SVG/Path vocabulary |
-| Bone | Zero-size transform joint | Partial schema | chain, pivot, limits, hierarchy |
+| Bone | Zero-size transform joint | Partial — worker smoke | chain/pivot/hierarchy chạy; limits/Web parity còn thiếu |
 | Camera | Scene view transform | Partial schema | active camera, pan/zoom/rotate, shot changes |
 | Component Instance | Reusable package Node | Implemented compiler | dependency pin, props, expansion, namespace |
 
@@ -158,12 +158,12 @@ Modifier có stable ID và animatable paths như `modifiers.hairFollow.stiffness
 | SVG Source Import | Raw Figma/Illustrator source | Planned P0 | sanitize, parse, source fingerprint |
 | Part | Một hoặc nhiều source paths thành SVG asset | Planned P0 | multi-select, create, rename, extract |
 | Rig Mapper | Part → parent/pivot/order/semantic | Planned P0 | save/reload, reparent, conflict |
-| Bone Chain | Joint hierarchy | Planned P0 | torso/head/arm/leg/hair chains |
+| Bone Chain | Joint hierarchy | Partial — worker smoke | arm chain chạy; mở rộng torso/head/leg/hair và Web parity |
 | Rest Pose | Canonical local transforms | Planned P0 | reset, re-import preservation |
 | Variant Slot | Mouth/eyes/hand/expression assets | Planned P0 | default, switch, invalid asset |
 | Named Action | Reusable animation clips | Planned P0 | compose idle/blink/talk/gesture |
 | Lip-sync cues | Step keys cho mouth variants | Planned P0 | cue boundaries, voiceover alignment |
-| Prop Attachment | Prop parented vào hand/slot | Planned P0 | pivot, draw order, detach |
+| Prop Attachment | Prop parented vào hand/slot | Partial — worker smoke | pivot/draw order chạy; detach/action/Web parity còn thiếu |
 | Secondary Chain | Hair/tail/ribbon overlap | Planned P0 late | deterministic movement |
 
 Raw source/import/rig/action metadata không được đi vào Runtime IR.

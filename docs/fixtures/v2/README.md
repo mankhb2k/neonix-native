@@ -8,6 +8,8 @@ pnpm validate:v2-fixtures
 
 Coverage và thứ tự bổ sung acceptance tests: [`test-plan.md`](test-plan.md).
 
+Compiler goldens được lưu tại `expected-runtime/`. Chỉ chạy `pnpm update:v2-goldens` khi thay đổi compiler là có chủ ý và đã review JSON diff; validation thông thường không tự ghi lại golden.
+
 ## Acceptance = workflow
 
 Một fixture đạt khi đi hết chuỗi sau mà không truy cập internal Component từ Web/AI User:
@@ -35,8 +37,13 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `projects/big-number-demo.mt.json` | Component Node và project binding |
 | `projects/golden-product-promo.mt.json` | Dependency pinning, scene order và audio timeline |
 | `projects/media-assets.mt.json` | Image opaque/alpha, SVG, font Việt, video silent/audio và ba audio roles |
+| `projects/hierarchy-transform.mt.json` | Group/Bone/SVG hierarchy, pivot chain, inherited opacity, flip và prop attachment |
 | `imports/svg-import-sources.json` | SVG phẳng từ Figma/Illustrator cho sanitize, group trong app và re-import |
 | `patches/ai-fill-big-number.json` | Planner patch chỉ sửa public surface |
+| `negative/components/*.json` | Missing parent, unsupported path/value/asset, asset mismatch, duplicate key time/ID, schedule cycle và schema limits |
+| `negative/projects/*.json` | Project reference/dependency không hợp lệ |
+| `negative/limits/cases.json` | Stress descriptors cho scene/node/clip/track/key/list/depth limits mà không commit JSON khổng lồ |
+| `expected-runtime/*.runtime.json` | Runtime IR deterministic của từng positive Project fixture |
 
 ## Asset kit
 
@@ -50,6 +57,16 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 - không có asset trong manifest mà chưa được ít nhất một fixture sử dụng.
 
 Các asset đã được project owner xác nhận cho phép sử dụng trong automated fixtures và local preview. `video-silent.mp4` không có audio stream; `video-with-audio.mp4` có AAC để khóa hai trường hợp riêng biệt.
+
+## Xem primitive preview
+
+Chạy:
+
+```bash
+pnpm validate:primitives
+```
+
+Lệnh này compile `hierarchy-transform.mt.json`, kiểm tra world-space tại shoulder/elbow/wrist, render SVG parts ở ba timestamp và ghi PNG vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp các file PNG bằng Explorer hoặc editor để xem pose trước, pose gập tay và pose đã flip.
 
 ## Quy ước đã khóa
 

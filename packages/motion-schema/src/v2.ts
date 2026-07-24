@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  MOTION_V2_LIMITS,
+  motionLiteralMatchesValueKind,
+  motionPropertyCapability,
+  motionVariableTypeMatchesValueKind,
+} from "./capabilities";
 
 export const MOTION_PROJECT_FORMAT_VERSION = 2 as const;
 export const MOTION_COMPONENT_FORMAT_VERSION = 2 as const;
@@ -6,7 +12,7 @@ export const MOTION_PATCH_FORMAT_VERSION = 1 as const;
 
 export const AspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);
 
-const IdSchema = z.string().min(1);
+const IdSchema = z.string().min(1).max(MOTION_V2_LIMITS.idLength);
 const PropertyPathSchema = z.string().min(1);
 const SemverSchema = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, "Expected semantic version");
 
@@ -76,14 +82,19 @@ export const TransformV2Schema = z
   })
   .strict();
 
-export const AssetV2Schema = z
-  .object({
-    id: IdSchema,
-    assetType: IdSchema,
-    uri: z.string().min(1),
-    integrity: z.string().min(1).optional(),
-  })
-  .strict();
+const AssetBaseSchema = z.object({
+  id: IdSchema,
+  uri: z.string().min(1),
+  integrity: z.string().min(1).optional(),
+});
+
+export const AssetV2Schema = z.discriminatedUnion("assetType", [
+  AssetBaseSchema.extend({ assetType: z.literal("image") }).strict(),
+  AssetBaseSchema.extend({ assetType: z.literal("svg") }).strict(),
+  AssetBaseSchema.extend({ assetType: z.literal("video") }).strict(),
+  AssetBaseSchema.extend({ assetType: z.literal("audio") }).strict(),
+  AssetBaseSchema.extend({ assetType: z.literal("font") }).strict(),
+]);
 
 const ScalarVariableSchema = z.object({
   id: IdSchema,
@@ -115,7 +126,7 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
     itemSchema: z
       .object({ type: z.literal("object"), fields: z.record(ObjectFieldSchema) })
       .strict(),
-    value: z.array(z.record(JsonValueSchema)),
+    value: z.array(z.record(JsonValueSchema)).max(MOTION_V2_LIMITS.listItems),
   }).strict(),
 ]);
 
@@ -197,7 +208,8 @@ const PropertyTrackSchema = z
           })
           .strict(),
       )
-      .min(1),
+      .min(1)
+      .max(MOTION_V2_LIMITS.keysPerTrack),
   })
   .strict();
 
@@ -205,7 +217,7 @@ const ClipSourceSchema = z.discriminatedUnion("kind", [
   z
     .object({ kind: z.literal("preset"), presetId: IdSchema, params: z.record(ResolvableValueSchema).optional() })
     .strict(),
-  z.object({ kind: z.literal("tracks"), tracks: z.array(PropertyTrackSchema).min(1) }).strict(),
+  z.object({ kind: z.literal("tracks"), tracks: z.array(PropertyTrackSchema).min(1).max(MOTION_V2_LIMITS.tracksPerClip) }).strict(),
 ]);
 
 export const ClipV2Schema = z
@@ -261,9 +273,9 @@ export const MotionComponentV2Schema = z
     assets: z.array(AssetV2Schema).default([]),
     variables: z.array(VariableV2Schema),
     publicAPI: z.array(PublicParamSchema),
-    nodes: z.array(NodeV2Schema).min(1),
+    nodes: z.array(NodeV2Schema).min(1).max(MOTION_V2_LIMITS.nodesPerComponent),
     bindings: z.array(ComponentBindingSchema).default([]),
-    clips: z.array(ClipV2Schema).default([]),
+    clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerComponent).default([]),
   })
   .strict();
 
@@ -296,8 +308,8 @@ const SceneV2Schema = z
     name: z.string().min(1).optional(),
     duration: z.number().positive(),
     semantic: SemanticSchema.optional(),
-    nodes: z.array(NodeV2Schema),
-    clips: z.array(ClipV2Schema),
+    nodes: z.array(NodeV2Schema).max(MOTION_V2_LIMITS.nodesPerScene),
+    clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerScene),
     activeCameraId: IdSchema.optional(),
   })
   .strict();
@@ -338,7 +350,7 @@ export const MotionProjectV2Schema = z
     timeline: z
       .object({ sceneOrder: z.array(IdSchema).min(1), audioTracks: z.array(AudioTrackSchema).default([]) })
       .strict(),
-    scenes: z.array(SceneV2Schema).min(1),
+    scenes: z.array(SceneV2Schema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
     bindings: z.array(ProjectBindingSchema).default([]),
     extensions: z
       .object({ constraints: z.array(JsonValueSchema).default([]), events: z.array(JsonValueSchema).default([]) })
@@ -370,7 +382,7 @@ const RuntimeTrackSchema = z
   .object({
     targetId: IdSchema,
     property: PropertyPathSchema,
-    keys: z.array(z.object({ t: z.number().nonnegative(), v: LiteralValueSchema, easing: z.string().optional() }).strict()).min(1),
+    keys: z.array(z.object({ t: z.number().nonnegative(), v: LiteralValueSchema, easing: z.string().optional() }).strict()).min(1).max(MOTION_V2_LIMITS.keysPerTrack),
   })
   .strict();
 
@@ -382,13 +394,19 @@ export const NormalizedMotionProjectV2Schema = z
     assets: z.array(AssetV2Schema),
     timeline: z.object({ sceneOrder: z.array(IdSchema), audioTracks: z.array(AudioTrackSchema) }).strict(),
     scenes: z.array(
-      z.object({ id: IdSchema, duration: z.number().positive(), nodes: z.array(RuntimeNodeSchema), tracks: z.array(RuntimeTrackSchema) }).strict(),
-    ),
+      z.object({
+        id: IdSchema,
+        duration: z.number().positive(),
+        nodes: z.array(RuntimeNodeSchema).max(MOTION_V2_LIMITS.nodesPerScene),
+        tracks: z.array(RuntimeTrackSchema).max(MOTION_V2_LIMITS.clipsPerScene * MOTION_V2_LIMITS.tracksPerClip),
+      }).strict(),
+    ).max(MOTION_V2_LIMITS.scenesPerProject),
   })
   .strict();
 
 export type MotionComponentV2 = z.infer<typeof MotionComponentV2Schema>;
 export type MotionProjectV2 = z.infer<typeof MotionProjectV2Schema>;
+export type MotionTransform = z.infer<typeof TransformV2Schema>;
 export type MotionNode = z.infer<typeof NodeV2Schema>;
 export type MotionScene = z.infer<typeof SceneV2Schema>;
 export type MotionClip = z.infer<typeof ClipV2Schema>;
@@ -420,6 +438,7 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     }
     const seen = new Set<string>([node.id]);
     let parent = node.parentId;
+    let depth = 0;
     while (parent !== null && idSet.has(parent)) {
       if (seen.has(parent)) {
         issues.push({ path: `${prefix}.${node.id}.parentId`, message: "Parent cycle detected" });
@@ -427,6 +446,129 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
       }
       seen.add(parent);
       parent = parentById.get(parent) ?? null;
+      depth += 1;
+      if (depth > MOTION_V2_LIMITS.hierarchyDepth) {
+        issues.push({ path: `${prefix}.${node.id}.parentId`, message: `Hierarchy exceeds depth limit ${MOTION_V2_LIMITS.hierarchyDepth}` });
+        break;
+      }
+    }
+  }
+  return issues;
+}
+
+function validatePropertyPath(
+  node: z.infer<typeof NodeV2Schema>,
+  property: string,
+  usage: "track" | "binding",
+  path: string,
+): ReferenceIssue[] {
+  const capability = motionPropertyCapability(node.type, property);
+  if (!capability) return [{ path, message: `Unsupported property for ${node.type}: ${property}` }];
+  if (usage === "track" && !capability.animatable) return [{ path, message: `Property is not animatable: ${property}` }];
+  if (usage === "binding" && !capability.bindable) return [{ path, message: `Property is not bindable: ${property}` }];
+  return [];
+}
+
+function validateNodeAssets(
+  nodes: Array<z.infer<typeof NodeV2Schema>>,
+  assets: Array<z.infer<typeof AssetV2Schema>>,
+  prefix: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  const assetById = new Map(assets.map((asset) => [asset.id, asset]));
+  const allowedByNode: Readonly<Record<string, ReadonlyArray<z.infer<typeof AssetV2Schema>["assetType"]>>> = {
+    image: ["image"],
+    svg: ["svg"],
+    video: ["video"],
+    logo: ["image", "svg"],
+    icon: ["svg"],
+    character: ["svg"],
+  };
+  for (const node of nodes) {
+    const assetId = node.payload && "assetId" in node.payload ? node.payload.assetId : undefined;
+    if (typeof assetId === "string") {
+      const asset = assetById.get(assetId);
+      const path = `${prefix}.${node.id}.payload.assetId`;
+      if (!asset) issues.push({ path, message: `Unknown asset: ${assetId}` });
+      else {
+        const allowed = allowedByNode[node.type];
+        if (allowed && !allowed.includes(asset.assetType)) {
+          issues.push({ path, message: `Asset ${assetId} has type ${asset.assetType}, expected ${allowed.join(" or ")}` });
+        }
+      }
+    }
+    const fontAssetId = node.payload && "fontAssetId" in node.payload ? node.payload.fontAssetId : undefined;
+    if (typeof fontAssetId === "string") {
+      const asset = assetById.get(fontAssetId);
+      const path = `${prefix}.${node.id}.payload.fontAssetId`;
+      if (!asset) issues.push({ path, message: `Unknown asset: ${fontAssetId}` });
+      else if (asset.assetType !== "font") issues.push({ path, message: `Asset ${fontAssetId} has type ${asset.assetType}, expected font` });
+    }
+  }
+  return issues;
+}
+
+function validateClips(
+  clips: Array<z.infer<typeof ClipV2Schema>>,
+  nodes: Array<z.infer<typeof NodeV2Schema>>,
+  variables: Array<z.infer<typeof VariableV2Schema>>,
+  prefix: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const variableById = new Map(variables.map((variable) => [variable.id, variable]));
+  const clipById = new Map(clips.map((clip) => [clip.id, clip]));
+  for (const id of new Set(duplicates(clips.map((clip) => clip.id)))) issues.push({ path: prefix, message: `Duplicate clip id: ${id}` });
+  for (const clip of clips) {
+    if (clip.targetId && !nodeById.has(clip.targetId)) issues.push({ path: `${prefix}.${clip.id}.targetId`, message: `Unknown node: ${clip.targetId}` });
+    if (clip.schedule.kind !== "absolute" && !clipById.has(clip.schedule.clipId)) {
+      issues.push({ path: `${prefix}.${clip.id}.schedule`, message: `Unknown schedule clip: ${clip.schedule.clipId}` });
+    }
+    if (clip.source.kind === "tracks") {
+      for (const track of clip.source.tracks) {
+        const trackPath = `${prefix}.${clip.id}.source.tracks.${track.property}`;
+        const node = nodeById.get(track.targetId);
+        if (!node) issues.push({ path: trackPath, message: `Unknown node: ${track.targetId}` });
+        const capability = node ? motionPropertyCapability(node.type, track.property) : undefined;
+        if (node) issues.push(...validatePropertyPath(node, track.property, "track", trackPath));
+        for (let index = 0; index < track.keys.length; index += 1) {
+          const key = track.keys[index]!;
+          if (key.t > clip.duration) issues.push({ path: trackPath, message: `Key time ${key.t} exceeds clip duration ${clip.duration}` });
+          if (index > 0 && key.t <= track.keys[index - 1]!.t) {
+            issues.push({ path: trackPath, message: "Key times must be strictly increasing" });
+            break;
+          }
+          if (capability) {
+            const value = key.v;
+            const reference = value !== null && typeof value === "object" && !Array.isArray(value)
+              ? (value as { ref?: { kind?: unknown; id?: unknown } }).ref
+              : undefined;
+            if (reference?.kind === "variable" && typeof reference.id === "string") {
+              const variable = variableById.get(reference.id);
+              if (variable && !motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
+                issues.push({ path: trackPath, message: `Expected ${capability.valueKind} value for ${track.property}, got variable type ${variable.type}` });
+              }
+            } else if (!motionLiteralMatchesValueKind(capability.valueKind, value)) {
+              issues.push({ path: trackPath, message: `Expected ${capability.valueKind} value for ${track.property}` });
+            }
+          }
+        }
+      }
+    }
+  }
+  for (const clip of clips) {
+    const seen = new Set<string>([clip.id]);
+    let cursor = clip;
+    while (cursor.schedule.kind !== "absolute") {
+      const dependencyId = cursor.schedule.clipId;
+      if (seen.has(dependencyId)) {
+        issues.push({ path: `${prefix}.${clip.id}.schedule`, message: "Clip schedule cycle detected" });
+        break;
+      }
+      seen.add(dependencyId);
+      const dependency = clipById.get(dependencyId);
+      if (!dependency) break;
+      cursor = dependency;
     }
   }
   return issues;
@@ -434,13 +576,13 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
 
 export function validateMotionComponentV2References(component: MotionComponentV2): ReferenceIssue[] {
   const issues = validateNodeGraph(component.nodes, "nodes");
+  issues.push(...validateNodeAssets(component.nodes, component.assets, "nodes"));
   const variableIds = new Set(component.variables.map((variable) => variable.id));
   const nodeIds = new Set(component.nodes.map((node) => node.id));
-  const assetIds = new Set(component.assets.map((asset) => asset.id));
   for (const id of new Set(duplicates(component.variables.map((variable) => variable.id)))) issues.push({ path: "variables", message: `Duplicate variable id: ${id}` });
   for (const id of new Set(duplicates(component.assets.map((asset) => asset.id)))) issues.push({ path: "assets", message: `Duplicate asset id: ${id}` });
   for (const id of new Set(duplicates(component.publicAPI.map((api) => api.id)))) issues.push({ path: "publicAPI", message: `Duplicate public API id: ${id}` });
-  for (const id of new Set(duplicates(component.clips.map((clip) => clip.id)))) issues.push({ path: "clips", message: `Duplicate clip id: ${id}` });
+  issues.push(...validateClips(component.clips, component.nodes, component.variables, "clips"));
   for (const api of component.publicAPI) {
     if (!variableIds.has(api.variableId)) issues.push({ path: `publicAPI.${api.id}.variableId`, message: `Unknown variable: ${api.variableId}` });
     const variable = component.variables.find((candidate) => candidate.id === api.variableId);
@@ -450,24 +592,22 @@ export function validateMotionComponentV2References(component: MotionComponentV2
     if (binding.source.kind === "variable" && !variableIds.has(binding.source.variableId)) {
       issues.push({ path: `bindings.${binding.id}.source`, message: `Unknown variable: ${binding.source.variableId}` });
     }
-    if (!nodeIds.has(binding.target.nodeId)) issues.push({ path: `bindings.${binding.id}.target`, message: `Unknown node: ${binding.target.nodeId}` });
-  }
-  for (const clip of component.clips) {
-    if (clip.targetId && !nodeIds.has(clip.targetId)) issues.push({ path: `clips.${clip.id}.targetId`, message: `Unknown node: ${clip.targetId}` });
-    if (clip.source.kind === "tracks") {
-      for (const track of clip.source.tracks) {
-        if (!nodeIds.has(track.targetId)) issues.push({ path: `clips.${clip.id}.source.tracks`, message: `Unknown node: ${track.targetId}` });
-        for (const key of track.keys) if (key.t > clip.duration) issues.push({ path: `clips.${clip.id}.source.tracks.${track.property}`, message: `Key time ${key.t} exceeds clip duration ${clip.duration}` });
+    const target = component.nodes.find((node) => node.id === binding.target.nodeId);
+    if (!target) issues.push({ path: `bindings.${binding.id}.target`, message: `Unknown node: ${binding.target.nodeId}` });
+    else {
+      const propertyPath = `bindings.${binding.id}.target.property`;
+      issues.push(...validatePropertyPath(target, binding.target.property, "binding", propertyPath));
+      if (binding.source.kind === "variable") {
+        const variableId = binding.source.variableId;
+        const variable = component.variables.find((candidate) => candidate.id === variableId);
+        const capability = motionPropertyCapability(target.type, binding.target.property);
+        if (variable && capability && !motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
+          issues.push({ path: propertyPath, message: `Expected ${capability.valueKind} binding for ${binding.target.property}, got variable type ${variable.type}` });
+        }
       }
-    }
-    if (clip.schedule.kind !== "absolute") {
-      const scheduleClipId = clip.schedule.clipId;
-      if (!component.clips.some((candidate) => candidate.id === scheduleClipId)) issues.push({ path: `clips.${clip.id}.schedule`, message: `Unknown schedule clip: ${scheduleClipId}` });
     }
   }
   for (const node of component.nodes) {
-    const assetId = node.payload && "assetId" in node.payload ? node.payload.assetId : undefined;
-    if (typeof assetId === "string" && !assetIds.has(assetId)) issues.push({ path: `nodes.${node.id}.payload.assetId`, message: `Unknown component asset: ${assetId}` });
     if (node.repeat && !variableIds.has(node.repeat.sourceVariableId)) issues.push({ path: `nodes.${node.id}.repeat.sourceVariableId`, message: `Unknown variable: ${node.repeat.sourceVariableId}` });
   }
   const referencedVariables = new Set<string>();
@@ -490,7 +630,6 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
   const issues: ReferenceIssue[] = [];
   const sceneById = new Map(project.scenes.map((scene) => [scene.id, scene]));
   const variableIds = new Set(project.variables.map((variable) => variable.id));
-  const assetIds = new Set(project.assets.map((asset) => asset.id));
   const dependencies = new Set(project.dependencies.components.map((dependency) => `${dependency.componentId}@${dependency.version}`));
   for (const id of new Set(duplicates(project.scenes.map((scene) => scene.id)))) issues.push({ path: "scenes", message: `Duplicate scene id: ${id}` });
   for (const id of new Set(duplicates(project.variables.map((variable) => variable.id)))) issues.push({ path: "variables", message: `Duplicate variable id: ${id}` });
@@ -499,9 +638,21 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
   for (const sceneId of project.timeline.sceneOrder) if (!sceneById.has(sceneId)) issues.push({ path: "timeline.sceneOrder", message: `Unknown scene: ${sceneId}` });
   if (new Set(project.timeline.sceneOrder).size !== project.timeline.sceneOrder.length) issues.push({ path: "timeline.sceneOrder", message: "Scene order contains duplicates" });
   for (const sceneId of sceneById.keys()) if (!project.timeline.sceneOrder.includes(sceneId)) issues.push({ path: "timeline.sceneOrder", message: `Scene is not scheduled: ${sceneId}` });
-  for (const audio of project.timeline.audioTracks) if (!assetIds.has(audio.assetId)) issues.push({ path: `timeline.audioTracks.${audio.id}.assetId`, message: `Unknown asset: ${audio.assetId}` });
+  for (const audio of project.timeline.audioTracks) {
+    const asset = project.assets.find((candidate) => candidate.id === audio.assetId);
+    const path = `timeline.audioTracks.${audio.id}.assetId`;
+    if (!asset) issues.push({ path, message: `Unknown asset: ${audio.assetId}` });
+    else if (asset.assetType !== "audio") issues.push({ path, message: `Asset ${audio.assetId} has type ${asset.assetType}, expected audio` });
+  }
+  if (project.metadata.brand.logoAssetId) {
+    const logo = project.assets.find((asset) => asset.id === project.metadata.brand.logoAssetId);
+    if (!logo) issues.push({ path: "metadata.brand.logoAssetId", message: `Unknown asset: ${project.metadata.brand.logoAssetId}` });
+    else if (logo.assetType !== "image" && logo.assetType !== "svg") issues.push({ path: "metadata.brand.logoAssetId", message: `Asset ${logo.id} has type ${logo.assetType}, expected image or svg` });
+  }
   for (const scene of project.scenes) {
     issues.push(...validateNodeGraph(scene.nodes, `scenes.${scene.id}.nodes`));
+    issues.push(...validateNodeAssets(scene.nodes, project.assets, `scenes.${scene.id}.nodes`));
+    issues.push(...validateClips(scene.clips, scene.nodes, project.variables, `scenes.${scene.id}.clips`));
     const nodeIds = new Set(scene.nodes.map((node) => node.id));
     if (scene.activeCameraId && !nodeIds.has(scene.activeCameraId)) issues.push({ path: `scenes.${scene.id}.activeCameraId`, message: `Unknown camera: ${scene.activeCameraId}` });
     for (const node of scene.nodes) {
@@ -510,13 +661,24 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
         if (!dependencies.has(dependency)) issues.push({ path: `scenes.${scene.id}.nodes.${node.id}.payload`, message: `Unpinned component dependency: ${dependency}` });
       }
     }
-    for (const clip of scene.clips) if (clip.targetId && !nodeIds.has(clip.targetId)) issues.push({ path: `scenes.${scene.id}.clips.${clip.id}.targetId`, message: `Unknown node: ${clip.targetId}` });
   }
   for (const binding of project.bindings) {
     if (!variableIds.has(binding.source.variableId)) issues.push({ path: `bindings.${binding.id}.source`, message: `Unknown variable: ${binding.source.variableId}` });
     const scene = sceneById.get(binding.target.sceneId);
     if (!scene) issues.push({ path: `bindings.${binding.id}.target.sceneId`, message: `Unknown scene: ${binding.target.sceneId}` });
-    else if (!scene.nodes.some((node) => node.id === binding.target.nodeId)) issues.push({ path: `bindings.${binding.id}.target.nodeId`, message: `Unknown node: ${binding.target.nodeId}` });
+    else {
+      const target = scene.nodes.find((node) => node.id === binding.target.nodeId);
+      if (!target) issues.push({ path: `bindings.${binding.id}.target.nodeId`, message: `Unknown node: ${binding.target.nodeId}` });
+      else {
+        const propertyPath = `bindings.${binding.id}.target.property`;
+        issues.push(...validatePropertyPath(target, binding.target.property, "binding", propertyPath));
+        const variable = project.variables.find((candidate) => candidate.id === binding.source.variableId);
+        const capability = motionPropertyCapability(target.type, binding.target.property);
+        if (variable && capability && !motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
+          issues.push({ path: propertyPath, message: `Expected ${capability.valueKind} binding for ${binding.target.property}, got variable type ${variable.type}` });
+        }
+      }
+    }
   }
   return issues;
 }

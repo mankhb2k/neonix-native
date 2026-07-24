@@ -32,6 +32,8 @@ export type RenderOptions = {
   scale?: number;
   /** Parallel worker threads — default: CPU cores, capped at 8 */
   concurrency?: number;
+  /** Base directory used to resolve safe relative asset URIs. */
+  assetBaseDir?: string;
 };
 
 function runFrameWorker(input: FrameWorkerInput): Promise<void> {
@@ -64,6 +66,7 @@ export async function renderCompiledProject(
   const { width, height } = sizeForAspect(compiled.metadata.aspectRatio, scale);
   const outDir =
     options.outDir ?? path.join(REPO_ROOT, "tmp", "frames", compiled.metadata.id);
+  const assetBaseDir = path.resolve(options.assetBaseDir ?? REPO_ROOT);
 
   await mkdir(outDir, { recursive: true });
 
@@ -79,7 +82,7 @@ export async function renderCompiledProject(
     chunks
       .filter((chunk) => chunk.length > 0)
       .map((chunk) =>
-        runFrameWorker({ compiled, width, height, outDir, jobs: chunk }),
+        runFrameWorker({ compiled, width, height, outDir, assetBaseDir, jobs: chunk }),
       ),
   );
 

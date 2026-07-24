@@ -14,22 +14,26 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
+| Stored negative/error contract | ✅ 10 artifacts + 9 limit cases | — | — | — |
+| Stored Runtime IR goldens | ✅ | ✅ 4 projects | — | — |
+| Property capability registry | ✅ baseline | ✅ reject unsupported | — | — |
+| Resource limits | ✅ ID/array limits | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
 | Component expansion | ✅ | ✅ | 🟡 | ⬜ |
 | Repeater/list | ✅ | ✅ | 🟡 | ⬜ |
 | Schedule/playback/preset | ✅ | 🟡 | 🟡 | ⬜ |
 | Text/logo | ✅ | ✅ | ✅ smoke | ⬜ |
 | Image opaque/alpha | ✅ | ✅ plumbing | ⬜ | ⬜ |
-| SVG/path/bone | ✅ | ✅ plumbing | ⬜ | ⬜ |
+| SVG/path/bone | ✅ | ✅ plumbing | ✅ SVG/Bone smoke | ⬜ |
 | Shape/group/mask | ✅ | 🟡 | ⬜ | ⬜ |
-| Parent/world transform | ✅ | 🟡 | ⬜ | ⬜ |
+| Parent/world transform | ✅ | ✅ preserved | ✅ matrix assertions | ⬜ |
 | Camera/transition | ✅ | 🟡 | ⬜ | ⬜ |
 | Video silent/audio | ✅ | ✅ plumbing | ⬜ | ⬜ |
 | BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ⬜ mix | ⬜ |
 | Font và tiếng Việt | ✅ asset/text | ✅ preserved | 🟡 one bundled font | ⬜ |
 | Preview/export equivalence | — | — | ⬜ | ⬜ |
 | Figma SVG import/re-import | ⬜ | — | — | ⬜ |
-| Cut-out rig/pivot hierarchy | ⬜ | ⬜ | ⬜ | ⬜ |
+| Cut-out rig/pivot hierarchy | ✅ fixture | ✅ preserved | ✅ visual smoke | ⬜ |
 | Named character actions | ⬜ | ⬜ | ⬜ | ⬜ |
 | Mouth/eye/hand variants | ⬜ | ⬜ | ⬜ | ⬜ |
 | Dialogue lip-sync cues | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -90,9 +94,9 @@ Schema, composition order và fixture matrix cho atomic primitives: [`../../atom
 ## Thứ tự triển khai
 
 1. Hoàn thiện negative reference suite và compiler JSON goldens.
-2. Tách evaluator dùng chung, thêm timestamp unit tests.
-3. Thêm visual golden cho text/logo hiện có.
-4. Triển khai world transform rồi mở shape/image/SVG/mask tests.
+2. ✅ Tách evaluator/transform math dùng chung và thêm timestamp assertions cho hierarchy fixture.
+3. ✅ Thêm visual smoke cố định cho SVG rig; tiếp tục nâng thành pixel-diff golden cho text/logo.
+4. ✅ Triển khai world transform và SVG renderer; tiếp tục mở shape/image/mask tests.
 5. Triển khai video frame và audio mix, bật media E2E.
 6. Chuyển Web preview sang Runtime IR và bật parity suite.
 7. Khóa vertical slice `cutout-dialogue`: import → rig → actions → lip sync → camera/audio → MP4.

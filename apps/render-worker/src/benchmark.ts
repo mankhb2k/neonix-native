@@ -1,7 +1,6 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { parseMotionProject } from "@motionvideo/motion-schema";
 import {
@@ -9,22 +8,15 @@ import {
   validateMotionProjectPresets,
 } from "@motionvideo/template-library";
 import { compileMotionProject } from "./compiler";
-import { encodeOutputs } from "./ffmpeg";
+import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 
-const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 
-function ffmpegBin(): string {
-  const bin = require("ffmpeg-static") as string | null;
-  if (!bin) throw new Error("ffmpeg-static binary missing");
-  return bin;
-}
-
 function probe(file: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(ffmpegBin(), ["-i", file], {
+    const child = spawn(resolveFfmpegPath(), ["-i", file], {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";

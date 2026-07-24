@@ -1,4 +1,5 @@
 export * from "./v2";
+export * from "./capabilities";
 
 import {
   parseMotionProjectV2,

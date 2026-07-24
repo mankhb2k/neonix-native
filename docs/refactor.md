@@ -10,6 +10,7 @@ Tài liệu này trả lời ba câu hỏi: kiến trúc nào đã được khó
 2. `packages/motion-schema/src/v2.ts` là schema thực thi contract.
 3. Tài liệu này là decision log, trạng thái triển khai và roadmap.
 4. [`primitives-object.md`](primitives-object.md) là catalog capability và fixture coverage.
+5. [`browser-preview-atomic-roadmap.md`](browser-preview-atomic-roadmap.md) là lịch triển khai preview parity và test gates theo milestone.
 5. [`../workflow.md`](../workflow.md) mô tả luồng sản phẩm và definition of done.
 6. `docs/fixtures/v2` khóa các use case và regression compiler.
 
@@ -97,6 +98,7 @@ Lệnh kiểm tra hiện tại:
 ```bash
 pnpm typecheck
 pnpm validate:v2-fixtures
+pnpm validate:primitives
 pnpm e2e:render
 ```
 
@@ -104,11 +106,12 @@ pnpm e2e:render
 
 ### P0 — Runtime foundation cho preview và SVG cut-out
 
-- [ ] Tách track evaluator và transform math thành module dùng chung.
+- [x] Tách track evaluator và transform math thành package `@motionvideo/motion-runtime` dùng chung được.
 - [ ] Browser preview compile Project sang Runtime IR thay vì mô phỏng preset bằng CSS.
-- [ ] Thêm deterministic frame/time controls và visual golden tests.
+- [x] Thêm fixed-time assertions và visual smoke PNG cho hierarchy SVG tại `pnpm validate:primitives`.
 - [ ] World matrix, pivot, inherit flags và z-order chạy giống nhau trên preview/export.
-- [ ] Asset resolver và renderer cho SVG parts, image, shape và mask.
+- [x] Thêm safe local asset resolver và renderer cho SVG parts/image trong export worker.
+- [ ] Renderer cho shape và mask.
 - [ ] Typed Path geometry + renderer; Mask dependency graph với clip/alpha/inverse-alpha.
 - [ ] Golden Runtime/PNG harness, deterministic clock/seed và capability limits.
 
@@ -152,13 +155,14 @@ pnpm e2e:render
 
 ## Việc tiếp theo được đề xuất
 
-Không viết lại render pipeline. Sprint tiếp theo bắt đầu bằng P0 theo lát cắt dọc SVG cut-out:
+Không viết lại render pipeline. Theo quyết định schema-first, sprint tiếp theo khóa JSON contract trước preview:
 
-1. Tách evaluator hiện có khỏi worker runtime.
-2. Cho Web preview nhận cùng Runtime IR và evaluator.
-3. Thêm fixture SVG gồm torso/head/arm có pivot làm visual golden.
-4. Triển khai world matrix và SVG part renderer trong cả hai consumer.
-5. Chốt schema rig/action bằng `cutout-character.mvc.json` trước khi làm Rig Mapper UI.
+1. ✅ Tách evaluator/transform math thành `packages/motion-runtime`.
+2. ✅ Thêm fixture SVG gồm torso/arm/hand/prop với pivot và visual smoke.
+3. ✅ Triển khai world matrix và SVG/image renderer trong export worker.
+4. Thực hiện Sprint A/B tại [`schema-fixture-roadmap.md`](schema-fixture-roadmap.md): negative files, compiler goldens, typed Asset/Node và property registry.
+5. Khóa P0 geometry/composition/motion/cut-out/media fixtures và expected Runtime IR.
+6. Sau freeze gate mới cho Web preview compile cùng Runtime IR và dùng `motion-runtime`.
 
 ## Quy tắc cập nhật tiến độ
 

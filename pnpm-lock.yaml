@@ -10,6 +10,9 @@ importers:
 
   apps/render-worker:
     dependencies:
+      '@motionvideo/motion-runtime':
+        specifier: workspace:*
+        version: link:../../packages/motion-runtime
       '@motionvideo/motion-schema':
         specifier: workspace:*
         version: link:../../packages/motion-schema
@@ -150,6 +153,16 @@ importers:
         version: 5.9.3
 
   packages/motion-grammar:
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
+  packages/motion-runtime:
+    dependencies:
+      '@motionvideo/motion-schema':
+        specifier: workspace:*
+        version: link:../motion-schema
     devDependencies:
       typescript:
         specifier: ^5.8.2

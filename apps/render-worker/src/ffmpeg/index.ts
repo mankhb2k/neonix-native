@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -15,17 +16,12 @@ export type EncodedFile = {
   aspectRatio: AspectRatio;
 };
 
-function resolveFfmpegPath(): string {
+export function resolveFfmpegPath(): string {
   const fromEnv = process.env.FFMPEG_BIN;
   if (fromEnv) return fromEnv;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const bin = require("ffmpeg-static") as string | null;
-  if (!bin) {
-    throw new Error(
-      "ffmpeg-static binary missing — run: node node_modules/ffmpeg-static/install.js",
-    );
-  }
-  return bin;
+  return bin && existsSync(bin) ? bin : "ffmpeg";
 }
 
 function run(cmd: string, args: string[]): Promise<void> {

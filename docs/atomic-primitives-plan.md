@@ -35,7 +35,7 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Capability | Schema | Compiler | Renderer |
 |---|---|---|---|
 | Property/Track/Keyframe | Có | Có một phần | Numeric evaluator cơ bản |
-| Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | Chưa có world matrix |
+| Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | World matrix + SVG worker smoke đã có; Web parity còn thiếu |
 | Path | Chỉ có Node type | Pass-through | Chưa vẽ |
 | Mask | Chỉ có `maskId` | Pass-through | Chưa áp dụng |
 | Motion Path | Chưa có | Chưa có | Chưa có |

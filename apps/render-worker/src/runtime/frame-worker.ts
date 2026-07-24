@@ -10,17 +10,18 @@ export type FrameWorkerInput = {
   width: number;
   height: number;
   outDir: string;
+  assetBaseDir: string;
   jobs: FrameJob[];
 };
 
 async function run() {
-  const { compiled, width, height, outDir, jobs } =
+  const { compiled, width, height, outDir, assetBaseDir, jobs } =
     workerData as FrameWorkerInput;
 
   for (const job of jobs) {
     const scene = compiled.scenes[job.sceneIndex];
     if (!scene) continue;
-    const png = drawSceneFrame(scene, compiled.metadata, job.localTime, width, height);
+    const png = drawSceneFrame(scene, compiled.metadata, compiled.assets, job.localTime, width, height, assetBaseDir);
     const name = `frame_${String(job.frameIndex).padStart(6, "0")}.png`;
     await writeFile(path.join(outDir, name), png);
   }

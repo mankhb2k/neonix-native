@@ -1,0 +1,847 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "proj.golden-product-promo",
+    "name": "Golden — Product Promo",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Cà Phê Sáng",
+      "primaryColor": "#C45C26",
+      "fontFamily": "Be Vietnam Pro"
+    },
+    "description": "Fixture sống suốt đời engine. Mọi refactor phải load, patch, edit, resolve dependency và export được.",
+    "createdAt": "2026-07-24T00:00:00.000Z",
+    "updatedAt": "2026-07-24T00:00:00.000Z"
+  },
+  "assets": [
+    {
+      "id": "asset.product",
+      "assetType": "image",
+      "uri": "assets/image-product.png",
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd"
+    },
+    {
+      "id": "asset.bgm",
+      "assetType": "audio",
+      "uri": "assets/music.mp3",
+      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf"
+    },
+    {
+      "id": "asset.voiceover",
+      "assetType": "audio",
+      "uri": "assets/voiceover.mp3",
+      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74"
+    },
+    {
+      "id": "asset.sfx",
+      "assetType": "audio",
+      "uri": "assets/sfx.wav",
+      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b"
+    }
+  ],
+  "timeline": {
+    "sceneOrder": [
+      "scene.hook",
+      "scene.offer",
+      "scene.cta"
+    ],
+    "audioTracks": [
+      {
+        "id": "audio.bgm",
+        "role": "bgm",
+        "assetId": "asset.bgm",
+        "start": 0,
+        "trimStart": 0,
+        "volume": 0.6,
+        "loop": true,
+        "fadeIn": 0.3,
+        "fadeOut": 0.5
+      },
+      {
+        "id": "audio.voiceover",
+        "role": "voiceover",
+        "assetId": "asset.voiceover",
+        "start": 0.2,
+        "trimStart": 0,
+        "volume": 1,
+        "loop": false,
+        "fadeIn": 0,
+        "fadeOut": 0.1
+      },
+      {
+        "id": "audio.sfx",
+        "role": "sfx",
+        "assetId": "asset.sfx",
+        "start": 2.5,
+        "trimStart": 0,
+        "volume": 0.8,
+        "loop": false,
+        "fadeIn": 0,
+        "fadeOut": 0
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene.hook",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "cam.hook",
+          "type": "camera",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "zoom": 1
+          }
+        },
+        {
+          "id": "inst.bn.hook::root",
+          "type": "group",
+          "name": "Big Number Root",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "inst.bn.hook::bg",
+          "type": "shape",
+          "name": "Background",
+          "parentId": "inst.bn.hook::root",
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "style": {
+            "fill": "#0B1220"
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "semantic": {
+            "role": "background",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.bn.hook::title",
+          "type": "text",
+          "name": "Title",
+          "parentId": "inst.bn.hook::root",
+          "zIndex": 2,
+          "transform": {
+            "x": 80,
+            "y": 520,
+            "width": 920,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Giảm",
+            "fontSize": 42,
+            "align": "center"
+          },
+          "semantic": {
+            "role": "hero-title",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.bn.hook::number",
+          "type": "text",
+          "name": "Number",
+          "parentId": "inst.bn.hook::root",
+          "zIndex": 3,
+          "transform": {
+            "x": 80,
+            "y": 640,
+            "width": 920,
+            "height": 220,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "style": {
+            "fill": "#C45C26"
+          },
+          "payload": {
+            "text": "30%",
+            "fontSize": 160,
+            "align": "center",
+            "fontWeight": 700
+          },
+          "semantic": {
+            "role": "statistic",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.bn.hook::subtitle",
+          "type": "text",
+          "name": "Subtitle",
+          "parentId": "inst.bn.hook::root",
+          "zIndex": 2,
+          "transform": {
+            "x": 80,
+            "y": 900,
+            "width": 920,
+            "height": 60,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "chỉ hôm nay",
+            "fontSize": 28,
+            "align": "center"
+          },
+          "semantic": {
+            "role": "subtitle",
+            "tags": []
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "inst.bn.hook::number",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.8,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.bn.hook::number",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.65
+            },
+            {
+              "t": 0.8,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.bn.hook::number",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.65
+            },
+            {
+              "t": 0.8,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.bn.hook::title",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.1,
+              "v": 0
+            },
+            {
+              "t": 0.6,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.bn.hook::title",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.1,
+              "v": 568
+            },
+            {
+              "t": 0.6,
+              "v": 520,
+              "easing": "easeOut"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scene.offer",
+      "duration": 5,
+      "nodes": [
+        {
+          "id": "cam.offer",
+          "type": "camera",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "zoom": 1
+          }
+        },
+        {
+          "id": "inst.showcase.offer::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "inst.showcase.offer::product-image",
+          "type": "image",
+          "parentId": "inst.showcase.offer::root",
+          "zIndex": 1,
+          "transform": {
+            "x": 140,
+            "y": 360,
+            "width": 800,
+            "height": 800,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.product",
+            "fit": "cover"
+          },
+          "semantic": {
+            "role": "product-image",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.showcase.offer::product-name",
+          "type": "text",
+          "parentId": "inst.showcase.offer::root",
+          "zIndex": 2,
+          "transform": {
+            "x": 80,
+            "y": 1220,
+            "width": 920,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Cà Phê Sáng",
+            "fontSize": 48,
+            "align": "center",
+            "fontWeight": 700
+          },
+          "semantic": {
+            "role": "hero-title",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.showcase.offer::price",
+          "type": "text",
+          "parentId": "inst.showcase.offer::root",
+          "zIndex": 2,
+          "transform": {
+            "x": 80,
+            "y": 1320,
+            "width": 920,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "style": {
+            "fill": "#C45C26"
+          },
+          "payload": {
+            "text": "49K",
+            "fontSize": 40,
+            "align": "center",
+            "fontWeight": 700
+          },
+          "semantic": {
+            "role": "price",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.showcase.offer::cta",
+          "type": "group",
+          "parentId": "inst.showcase.offer::root",
+          "zIndex": 3,
+          "transform": {
+            "x": 290,
+            "y": 1480,
+            "width": 500,
+            "height": 88,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "cta",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.showcase.offer::cta-bg",
+          "type": "shape",
+          "parentId": "inst.showcase.offer::cta",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 500,
+            "height": 88,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "style": {
+            "fill": "#C45C26",
+            "cornerRadius": 16
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "semantic": {
+            "role": "cta-background",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.showcase.offer::cta-label",
+          "type": "text",
+          "parentId": "inst.showcase.offer::cta",
+          "transform": {
+            "x": 0,
+            "y": 20,
+            "width": 500,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "style": {
+            "fill": "#FFFFFF"
+          },
+          "payload": {
+            "text": "Đặt bàn ngay",
+            "fontSize": 28,
+            "align": "center",
+            "fontWeight": 600
+          },
+          "semantic": {
+            "role": "cta-label",
+            "tags": []
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "inst.showcase.offer::product-image",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.7,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.showcase.offer::product-image",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0,
+              "v": 408
+            },
+            {
+              "t": 0.7,
+              "v": 360,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.showcase.offer::cta",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.35,
+              "v": 0
+            },
+            {
+              "t": 0.85,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.showcase.offer::cta",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 0.35,
+              "v": 0.65
+            },
+            {
+              "t": 0.85,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.showcase.offer::cta",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 0.35,
+              "v": 0.65
+            },
+            {
+              "t": 0.85,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scene.cta",
+      "duration": 4,
+      "nodes": [
+        {
+          "id": "cam.cta",
+          "type": "camera",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "zoom": 1.05
+          }
+        },
+        {
+          "id": "inst.mascot.cta::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 200,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "inst.mascot.cta::spine",
+          "type": "bone",
+          "name": "Spine",
+          "parentId": "inst.mascot.cta::root",
+          "transform": {
+            "x": 540,
+            "y": 1100,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "length": 280,
+            "restRotation": -90
+          },
+          "semantic": {
+            "role": "mascot-spine",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.mascot.cta::left-arm",
+          "type": "bone",
+          "name": "Left Arm",
+          "parentId": "inst.mascot.cta::spine",
+          "transform": {
+            "x": 0,
+            "y": -200,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "length": 160,
+            "restRotation": 0
+          },
+          "semantic": {
+            "role": "left-hand",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.mascot.cta::mascot-body",
+          "type": "svg",
+          "parentId": "inst.mascot.cta::spine",
+          "transform": {
+            "x": -120,
+            "y": -280,
+            "width": 240,
+            "height": 320,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.mascot-svg",
+            "fit": "contain"
+          },
+          "semantic": {
+            "role": "mascot-body",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.mascot.cta::hand-prop",
+          "type": "shape",
+          "parentId": "inst.mascot.cta::left-arm",
+          "transform": {
+            "x": 140,
+            "y": -20,
+            "width": 40,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "style": {
+            "fill": "#C45C26"
+          },
+          "payload": {
+            "shape": "circle"
+          },
+          "semantic": {
+            "role": "left-hand-prop",
+            "tags": []
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "inst.mascot.cta::left-arm",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.36363636363636365,
+              "v": 30,
+              "easing": "easeOut"
+            },
+            {
+              "t": 0.7272727272727273,
+              "v": 0,
+              "easing": "easeIn"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

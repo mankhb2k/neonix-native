@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
+import { deepStrictEqual } from "node:assert";
 import { readFile, readdir, stat } from "node:fs/promises";
-import { createRequire } from "node:module";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -9,14 +9,15 @@ import { GlobalFonts } from "@napi-rs/canvas";
 import {
   parseMotionComponentV2,
   parseMotionProjectV2,
+  MOTION_V2_LIMITS,
   MotionPatchSchema,
+  MotionV2ReferenceError,
 } from "../packages/motion-schema/src/index";
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
 const assetsRoot = resolve(fixturesRoot, "assets");
-const require = createRequire(import.meta.url);
 
 type AssetManifestEntry = {
   path: string;
@@ -48,14 +49,15 @@ type AssetManifest = {
   assets: AssetManifestEntry[];
 };
 
+type LimitCase = {
+  id: string;
+  target: "component.nodes" | "component.clips" | "project.scenes" | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys" | "variable.listItems" | "hierarchy.depth";
+  limit: keyof typeof MOTION_V2_LIMITS;
+  expectedPath: string;
+};
+
 async function readJson(path: string): Promise<unknown> {
   return JSON.parse(await readFile(path, "utf8"));
-}
-
-function parseDuration(probe: string): number | undefined {
-  const match = probe.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
-  if (!match) return undefined;
-  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
 }
 
 function expectProbe(condition: boolean, message: string): void {
@@ -69,30 +71,35 @@ function probeAsset(path: string, entry: AssetManifestEntry): void {
   }
   if (entry.kind === "svg") return;
 
-  const ffmpeg = require("ffmpeg-static") as string | null;
-  if (!ffmpeg) throw new Error("ffmpeg-static binary missing");
-  const result = spawnSync(ffmpeg, ["-hide_banner", "-i", path], { encoding: "utf8" });
-  const output = result.stderr ?? "";
-  const streamKind = entry.kind === "audio" ? "Audio" : "Video";
-  expectProbe(output.includes(`${streamKind}: ${entry.codec}`), `${entry.path} codec ${entry.codec}`);
-  if (entry.pixelFormat) expectProbe(output.includes(entry.pixelFormat), `${entry.path} pixel format ${entry.pixelFormat}`);
-  if (entry.width && entry.height) expectProbe(output.includes(`${entry.width}x${entry.height}`), `${entry.path} dimensions ${entry.width}x${entry.height}`);
+  const result = spawnSync("ffprobe", [
+    "-v", "error",
+    "-show_entries", "stream=codec_name,codec_type,width,height,duration,sample_rate,channels,pix_fmt,r_frame_rate:format=duration",
+    "-of", "json",
+    path,
+  ], { encoding: "utf8" });
+  expectProbe(result.status === 0, `${entry.path} ffprobe (${result.stderr?.trim() || "not available"})`);
+  const probe = JSON.parse(result.stdout) as {
+    streams: Array<Record<string, string | number>>;
+    format?: { duration?: string };
+  };
+  const primaryKind = entry.kind === "audio" ? "audio" : "video";
+  const primary = probe.streams.find((stream) => stream.codec_type === primaryKind);
+  const audio = probe.streams.find((stream) => stream.codec_type === "audio");
+  expectProbe(primary?.codec_name === entry.codec, `${entry.path} codec ${entry.codec}`);
+  if (entry.pixelFormat) expectProbe(primary?.pix_fmt === entry.pixelFormat, `${entry.path} pixel format ${entry.pixelFormat}`);
+  if (entry.width && entry.height) expectProbe(primary?.width === entry.width && primary.height === entry.height, `${entry.path} dimensions ${entry.width}x${entry.height}`);
   if (entry.duration !== undefined) {
-    const duration = parseDuration(output);
+    const duration = Number(primary?.duration ?? probe.format?.duration);
     expectProbe(duration !== undefined && Math.abs(duration - entry.duration) <= 0.06, `${entry.path} duration ${entry.duration}`);
   }
-  if (entry.fps) expectProbe(output.includes(`${entry.fps} fps`), `${entry.path} fps ${entry.fps}`);
-  if (entry.sampleRate) expectProbe(output.includes(`${entry.sampleRate} Hz`), `${entry.path} sample rate ${entry.sampleRate}`);
-  if (entry.channels) {
-    const channelsMatch = entry.channels === 1
-      ? output.includes("mono")
-      : entry.channels === 2
-        ? /(stereo|2 channels)/.test(output)
-        : output.includes(`${entry.channels} channels`);
-    expectProbe(channelsMatch, `${entry.path} channels ${entry.channels}`);
+  if (entry.fps) {
+    const [numerator, denominator = "1"] = String(primary?.r_frame_rate ?? "0/1").split("/");
+    expectProbe(Math.abs(Number(numerator) / Number(denominator) - entry.fps) < 0.01, `${entry.path} fps ${entry.fps}`);
   }
-  if (entry.hasAudio !== undefined) expectProbe(/Audio:/.test(output) === entry.hasAudio, `${entry.path} hasAudio=${entry.hasAudio}`);
-  if (entry.audioCodec) expectProbe(output.includes(`Audio: ${entry.audioCodec}`), `${entry.path} audio codec ${entry.audioCodec}`);
+  if (entry.sampleRate) expectProbe(Number(audio?.sample_rate) === entry.sampleRate, `${entry.path} sample rate ${entry.sampleRate}`);
+  if (entry.channels) expectProbe(audio?.channels === entry.channels, `${entry.path} channels ${entry.channels}`);
+  if (entry.hasAudio !== undefined) expectProbe(Boolean(audio) === entry.hasAudio, `${entry.path} hasAudio=${entry.hasAudio}`);
+  if (entry.audioCodec) expectProbe(audio?.codec_name === entry.audioCodec, `${entry.path} audio codec ${entry.audioCodec}`);
 }
 
 function collectAssetReferences(value: unknown, references: Array<{ uri: string; integrity?: string }>): void {
@@ -177,33 +184,266 @@ async function validateDirectory(
   return files.length;
 }
 
+async function validateNegativeFixtures(): Promise<number> {
+  const cases = [
+    {
+      file: "components/missing-parent.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.child.parentId",
+      message: "Unknown parent: missing-parent",
+    },
+    {
+      file: "components/unsupported-property.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.bad-track.source.tracks.payload.magic",
+      message: "Unsupported property for text: payload.magic",
+    },
+    {
+      file: "components/duplicate-key-time.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.duplicate-keys.source.tracks.transform.opacity",
+      message: "Key times must be strictly increasing",
+    },
+    {
+      file: "components/invalid-property-value.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.invalid-value.source.tracks.transform.opacity",
+      message: "Expected number value for transform.opacity",
+    },
+    {
+      file: "components/schedule-cycle.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.a.schedule",
+      message: "Clip schedule cycle detected",
+    },
+    {
+      file: "components/duplicate-node-id.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes",
+      message: "Duplicate node id: duplicate",
+    },
+    {
+      file: "components/asset-type-mismatch.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.image.payload.assetId",
+      message: "Asset asset.font has type font, expected image",
+    },
+    {
+      file: "projects/unpinned-component.mt.json",
+      parse: parseMotionProjectV2,
+      path: "scenes.scene.nodes.instance.payload",
+      message: "Unpinned component dependency: missing.component@1.0.0",
+    },
+  ] as const;
+  for (const fixture of cases) {
+    let error: unknown;
+    try {
+      fixture.parse(await readJson(resolve(fixturesRoot, "negative", fixture.file)));
+    } catch (caught) {
+      error = caught;
+    }
+    if (!(error instanceof MotionV2ReferenceError)) throw new Error(`Negative fixture did not fail with a reference error: ${fixture.file}`);
+    if (!error.issues.some((issue) => issue.path === fixture.path && issue.message === fixture.message)) {
+      throw new Error(`Negative fixture changed error contract: ${fixture.file}\n${error.message}`);
+    }
+    console.log(`OK negative/${fixture.file}`);
+  }
+  const schemaLimitFile = "components/id-over-limit.mvc.json";
+  let schemaError: unknown;
+  try {
+    parseMotionComponentV2(await readJson(resolve(fixturesRoot, "negative", schemaLimitFile)));
+  } catch (caught) {
+    schemaError = caught;
+  }
+  const schemaIssues = schemaError && typeof schemaError === "object" && "issues" in schemaError
+    ? (schemaError as { issues: Array<{ path: Array<string | number>; message: string }> }).issues
+    : [];
+  if (!schemaIssues.some((issue) => issue.path.join(".") === "nodes.0.id" && issue.message.includes("at most 128"))) {
+    throw new Error(`Negative fixture changed schema limit contract: ${schemaLimitFile}`);
+  }
+  console.log(`OK negative/${schemaLimitFile}`);
+  const unsupportedAssetFile = "components/unsupported-asset-type.mvc.json";
+  let assetSchemaError: unknown;
+  try {
+    parseMotionComponentV2(await readJson(resolve(fixturesRoot, "negative", unsupportedAssetFile)));
+  } catch (caught) {
+    assetSchemaError = caught;
+  }
+  const assetSchemaIssues = assetSchemaError && typeof assetSchemaError === "object" && "issues" in assetSchemaError
+    ? (assetSchemaError as { issues: Array<{ path: Array<string | number>; code?: string }> }).issues
+    : [];
+  if (!assetSchemaIssues.some((issue) => issue.path.join(".") === "assets.0.assetType" && issue.code === "invalid_union_discriminator")) {
+    throw new Error(`Negative fixture changed asset discriminator contract: ${unsupportedAssetFile}`);
+  }
+  console.log(`OK negative/${unsupportedAssetFile}`);
+  return cases.length + 2;
+}
+
+function fixtureTransform(): Record<string, unknown> {
+  return {
+    x: 0, y: 0, width: 0, height: 0, rotation: 0,
+    scaleX: 1, scaleY: 1, anchorX: 0, anchorY: 0,
+    opacity: 1, visible: true, flipX: false, flipY: false,
+  };
+}
+
+function fixtureNode(id: string, parentId: string | null = null): Record<string, unknown> {
+  return { id, type: "group", parentId, transform: fixtureTransform() };
+}
+
+function fixtureClip(id: string): Record<string, unknown> {
+  return {
+    id,
+    targetId: "root",
+    schedule: { kind: "absolute", at: 0 },
+    duration: 1,
+    playback: { iterations: 1, direction: "normal", rate: 1 },
+    source: { kind: "preset", presetId: "fade-in" },
+  };
+}
+
+function baseLimitComponent(): Record<string, unknown> {
+  return {
+    format: "motion-component",
+    formatVersion: 2,
+    componentId: "negative.limit",
+    componentVersion: "1.0.0",
+    metadata: { name: "Limit fixture" },
+    assets: [], variables: [], publicAPI: [],
+    nodes: [fixtureNode("root")], bindings: [], clips: [],
+  };
+}
+
+function baseLimitProject(): Record<string, unknown> {
+  return {
+    format: "motion-project",
+    formatVersion: 2,
+    metadata: {
+      id: "negative.limit", name: "Limit fixture", aspectRatio: "9:16", fps: 30, locale: "vi-VN",
+      brand: { name: "Limit fixture" },
+    },
+    dependencies: { components: [] }, assets: [], variables: [],
+    timeline: { sceneOrder: ["scene-0"], audioTracks: [] },
+    scenes: [{ id: "scene-0", duration: 1, nodes: [fixtureNode("root")], clips: [] }],
+    bindings: [], extensions: { constraints: [], events: [] },
+  };
+}
+
+function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unknown>; parse: (input: unknown) => unknown } {
+  const count = MOTION_V2_LIMITS[testCase.limit] + 1;
+  if (testCase.target.startsWith("component.")) {
+    const component = baseLimitComponent();
+    if (testCase.target === "component.nodes") component.nodes = Array.from({ length: count }, (_, index) => fixtureNode(`node-${index}`));
+    else component.clips = Array.from({ length: count }, (_, index) => fixtureClip(`clip-${index}`));
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "variable.listItems") {
+    const component = baseLimitComponent();
+    component.variables = [{
+      id: "items", name: "Items", type: "list",
+      itemSchema: { type: "object", fields: { label: { type: "string" } } },
+      value: Array.from({ length: count }, (_, index) => ({ label: `Item ${index}` })),
+    }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  if (testCase.target === "hierarchy.depth") {
+    const component = baseLimitComponent();
+    component.nodes = Array.from({ length: count + 1 }, (_, index) => fixtureNode(`node-${index}`, index === 0 ? null : `node-${index - 1}`));
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
+  const project = baseLimitProject();
+  const scenes = project.scenes as Array<Record<string, unknown>>;
+  const scene = scenes[0]!;
+  if (testCase.target === "project.scenes") {
+    project.scenes = Array.from({ length: count }, (_, index) => ({ id: `scene-${index}`, duration: 1, nodes: [], clips: [] }));
+    (project.timeline as Record<string, unknown>).sceneOrder = Array.from({ length: count }, (_, index) => `scene-${index}`);
+  } else if (testCase.target === "scene.nodes") {
+    scene.nodes = Array.from({ length: count }, (_, index) => fixtureNode(`node-${index}`));
+  } else if (testCase.target === "scene.clips") {
+    scene.clips = Array.from({ length: count }, (_, index) => fixtureClip(`clip-${index}`));
+  } else {
+    const trackCount = testCase.target === "clip.tracks" ? count : 1;
+    const keyCount = testCase.target === "track.keys" ? count : 1;
+    scene.duration = Math.max(1, keyCount);
+    scene.clips = [{
+      id: "tracks", schedule: { kind: "absolute", at: 0 }, duration: Math.max(1, keyCount),
+      playback: { iterations: 1, direction: "normal", rate: 1 },
+      source: {
+        kind: "tracks",
+        tracks: Array.from({ length: trackCount }, () => ({
+          targetId: "root", property: "transform.opacity",
+          keys: Array.from({ length: keyCount }, (_, index) => ({ t: index, v: 1 })),
+        })),
+      },
+    }];
+  }
+  return { artifact: project, parse: parseMotionProjectV2 };
+}
+
+async function validateLimitCases(): Promise<number> {
+  const descriptor = await readJson(resolve(fixturesRoot, "negative", "limits", "cases.json")) as {
+    format?: unknown;
+    formatVersion?: unknown;
+    cases?: unknown;
+  };
+  if (descriptor.format !== "motion-negative-limit-cases" || descriptor.formatVersion !== 1 || !Array.isArray(descriptor.cases)) {
+    throw new Error("Invalid negative limit descriptor");
+  }
+  const cases = descriptor.cases as LimitCase[];
+  for (const testCase of cases) {
+    if (!(testCase.limit in MOTION_V2_LIMITS)) throw new Error(`Unknown limit key: ${testCase.limit}`);
+    const { artifact, parse } = buildLimitArtifact(testCase);
+    let error: unknown;
+    try { parse(artifact); } catch (caught) { error = caught; }
+    if (testCase.target === "hierarchy.depth") {
+      if (!(error instanceof MotionV2ReferenceError) || !error.issues.some((issue) => issue.path === testCase.expectedPath && issue.message === `Hierarchy exceeds depth limit ${MOTION_V2_LIMITS.hierarchyDepth}`)) {
+        throw new Error(`Hierarchy limit contract changed: ${testCase.id}`);
+      }
+    } else {
+      const issues = error && typeof error === "object" && "issues" in error
+        ? (error as { issues: Array<{ path: Array<string | number>; code?: string; maximum?: number }> }).issues
+        : [];
+      if (!issues.some((issue) => issue.path.join(".") === testCase.expectedPath && issue.code === "too_big" && issue.maximum === MOTION_V2_LIMITS[testCase.limit])) {
+        throw new Error(`Array limit contract changed: ${testCase.id}`);
+      }
+    }
+    console.log(`OK negative/limits/${testCase.id}`);
+  }
+  return cases.length;
+}
+
+async function validateCompilerGoldens(components: ReturnType<typeof parseMotionComponentV2>[]): Promise<number> {
+  const projectRoot = resolve(fixturesRoot, "projects");
+  const goldenRoot = resolve(fixturesRoot, "expected-runtime");
+  const projectFiles = (await readdir(projectRoot)).filter((file) => file.endsWith(".json")).sort();
+  const goldenFiles = (await readdir(goldenRoot)).filter((file) => file.endsWith(".json")).sort();
+  const expectedNames = projectFiles.map((file) => file.replace(/\.mt\.json$/, ".runtime.json"));
+  deepStrictEqual(goldenFiles, expectedNames, "Runtime golden set must exactly match project fixtures");
+  for (let index = 0; index < projectFiles.length; index += 1) {
+    const projectFile = projectFiles[index]!;
+    const goldenFile = expectedNames[index]!;
+    const project = parseMotionProjectV2(await readJson(resolve(projectRoot, projectFile)));
+    const first = compileMotionProject(project, { components });
+    const second = compileMotionProject(project, { components });
+    deepStrictEqual(second, first, `Compiler output is not deterministic: ${projectFile}`);
+    deepStrictEqual(first, await readJson(resolve(goldenRoot, goldenFile)), `Runtime golden changed: ${projectFile}`);
+    console.log(`OK expected-runtime/${goldenFile}`);
+  }
+  return projectFiles.length;
+}
+
 async function main(): Promise<void> {
   await validateAssetKit();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
   MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
   console.log(`OK patches/ai-fill-big-number.json`);
-
-  const brokenComponent = await readJson(resolve(fixturesRoot, "components", "big-number.mvc.json")) as {
-    nodes: Array<{ parentId: string | null }>;
-  };
-  brokenComponent.nodes[1].parentId = "missing-parent";
-  let rejectedBrokenParent = false;
-  try { parseMotionComponentV2(brokenComponent); } catch { rejectedBrokenParent = true; }
-  if (!rejectedBrokenParent) throw new Error("Reference validator accepted a missing parent");
-  console.log("OK negative/missing-parent rejected");
-
-  const brokenProject = await readJson(resolve(fixturesRoot, "projects", "big-number-demo.mt.json")) as {
-    dependencies: { components: unknown[] };
-  };
-  brokenProject.dependencies.components = [];
-  let rejectedMissingDependency = false;
-  try { parseMotionProjectV2(brokenProject); } catch { rejectedMissingDependency = true; }
-  if (!rejectedMissingDependency) throw new Error("Reference validator accepted an unpinned component");
-  console.log("OK negative/unpinned-component rejected");
+  const negativeCount = await validateNegativeFixtures();
+  const limitCount = await validateLimitCases();
 
   const componentFiles = (await readdir(resolve(fixturesRoot, "components"))).filter((file) => file.endsWith(".json"));
   const components = await Promise.all(componentFiles.map(async (file) => parseMotionComponentV2(await readJson(resolve(fixturesRoot, "components", file)))));
+  const goldenCount = await validateCompilerGoldens(components);
   const mediaProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "media-assets.mt.json")));
   const mediaRuntime = compileMotionProject(mediaProject);
   const mediaNodeTypes = new Set(mediaRuntime.scenes.flatMap((scene) => scene.nodes.map((node) => node.type)));
@@ -248,7 +488,7 @@ async function main(): Promise<void> {
   if (repeatedTitles.length !== 3) throw new Error(`Expected 3 repeated step titles, got ${repeatedTitles.length}`);
   console.log("OK compiler/repeater expanded 3 items");
 
-  console.log(`Validated ${componentCount + projectCount + 1} Motion Format v2 fixtures.`);
+  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
 }
 
 main().catch((error: unknown) => {

@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/shared": "workspace:*",
     "@motionvideo/template-library": "workspace:*",
     "@napi-rs/canvas": "^0.1.80",

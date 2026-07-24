@@ -28,7 +28,7 @@ Các nguyên tắc chính:
 - AI User và Web chỉ sửa Project Variable, text Node và public props của Component.
 - Preview và export phải tiến tới dùng chung property vocabulary, transform convention và track evaluator.
 
-Contract đầy đủ: [Motion Format](docs/motion-format-v2.md). Catalog nguyên tử: [Primitive objects](docs/primitives-object.md). Tiến độ: [Kiến trúc và lộ trình refactor](docs/refactor.md). Hướng nhân vật SVG: [SVG cut-out plan](docs/svg-cutout-plan.md). Thiết kế primitive: [Atomic primitives plan](docs/atomic-primitives-plan.md).
+Contract đầy đủ: [Motion Format](docs/motion-format-v2.md). Catalog nguyên tử: [Primitive objects](docs/primitives-object.md). Fixture-driven schema: [Schema roadmap](docs/schema-fixture-roadmap.md). Tiến độ: [Kiến trúc và lộ trình refactor](docs/refactor.md). Browser preview và lịch test: [Atomic roadmap](docs/browser-preview-atomic-roadmap.md). Hướng nhân vật SVG: [SVG cut-out plan](docs/svg-cutout-plan.md). Thiết kế primitive: [Atomic primitives plan](docs/atomic-primitives-plan.md).
 
 ## Monorepo
 
@@ -52,29 +52,34 @@ pnpm install
 pnpm dev
 ```
 
+AI User workspace mới dùng chung server Next.js nhưng tách route khỏi editor hiện tại.
+
 - Landing: `http://localhost:3000`
 - App: `http://localhost:3000/app`
+- AI User: `http://localhost:3000/appai`
 - Block Lab: `http://localhost:3000/app/lab/blocks`
 - Render worker: `pnpm dev:worker`
 
-Block Lab là cách xem nhanh preview của motion blocks. Các JSON trong `docs/fixtures/v2` là regression data để khóa contract/compiler; chúng không tự tạo preview và không phải dữ liệu người dùng.
+Block Lab là cách xem nhanh preview của motion blocks. Các JSON trong `docs/fixtures/v2` là regression data để khóa contract/compiler và không phải dữ liệu người dùng. Riêng fixture hierarchy SVG có thể render thành PNG cục bộ bằng `pnpm validate:primitives`.
 
 ## Kiểm tra
 
 ```bash
 pnpm typecheck
 pnpm validate:v2-fixtures
+pnpm validate:primitives
 pnpm e2e:render
 ```
 
 - `validate:v2-fixtures` parse Component, Project và AI Patch, kiểm tra reference lỗi và compiler expansion.
+- `validate:primitives` kiểm tra world transform/Bone/SVG và tạo ba PNG tại `tmp/primitive-previews`.
 - `e2e:render` compile project, raster frame và encode một MP4 thật.
 
 ## Trạng thái render
 
 Giữ pipeline hiện tại: Authoring compiler → Runtime IR → raster workers → FFmpeg. Đây là ranh giới đúng để preview/export cùng dựa trên dữ liệu literal và để renderer không phụ thuộc template hay schema authoring.
 
-Phần cần mở rộng tiếp theo nằm trong implementation, không phải thay kiến trúc: world transform/parenting, image/shape/mask, asset resolver, audio mix và dùng chung track evaluator với browser preview.
+World transform/parenting, shared evaluator và SVG/image asset resolver đã có trong worker. Phần cần mở rộng tiếp theo là đưa cùng Runtime IR/evaluator vào browser preview, rồi triển khai shape/mask và audio mix.
 
 ## Quy tắc đóng góp
 

@@ -1,0 +1,15 @@
+{
+  "format": "motion-negative-limit-cases",
+  "formatVersion": 1,
+  "cases": [
+    { "id": "component-nodes", "target": "component.nodes", "limit": "nodesPerComponent", "expectedPath": "nodes" },
+    { "id": "component-clips", "target": "component.clips", "limit": "clipsPerComponent", "expectedPath": "clips" },
+    { "id": "project-scenes", "target": "project.scenes", "limit": "scenesPerProject", "expectedPath": "scenes" },
+    { "id": "scene-nodes", "target": "scene.nodes", "limit": "nodesPerScene", "expectedPath": "scenes.0.nodes" },
+    { "id": "scene-clips", "target": "scene.clips", "limit": "clipsPerScene", "expectedPath": "scenes.0.clips" },
+    { "id": "clip-tracks", "target": "clip.tracks", "limit": "tracksPerClip", "expectedPath": "scenes.0.clips.0.source.tracks" },
+    { "id": "track-keys", "target": "track.keys", "limit": "keysPerTrack", "expectedPath": "scenes.0.clips.0.source.tracks.0.keys" },
+    { "id": "list-items", "target": "variable.listItems", "limit": "listItems", "expectedPath": "variables.0.value" },
+    { "id": "hierarchy-depth", "target": "hierarchy.depth", "limit": "hierarchyDepth", "expectedPath": "nodes.node-65.parentId" }
+  ]
+}
