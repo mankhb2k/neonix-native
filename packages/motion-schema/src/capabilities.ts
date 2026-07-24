@@ -38,52 +38,57 @@ export type MotionPropertyCapability = {
   valueKind: MotionPropertyValueKind;
   animatable: boolean;
   bindable: boolean;
+  public: boolean;
+  runtimeSupport: "evaluated" | "compile-time";
+  min?: number;
+  minExclusive?: number;
+  max?: number;
 };
 
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> = Object.freeze({
-  "transform.x": { valueKind: "number", animatable: true, bindable: true },
-  "transform.y": { valueKind: "number", animatable: true, bindable: true },
-  "transform.width": { valueKind: "number", animatable: true, bindable: true },
-  "transform.height": { valueKind: "number", animatable: true, bindable: true },
-  "transform.rotation": { valueKind: "number", animatable: true, bindable: true },
-  "transform.scaleX": { valueKind: "number", animatable: true, bindable: true },
-  "transform.scaleY": { valueKind: "number", animatable: true, bindable: true },
-  "transform.anchorX": { valueKind: "number", animatable: true, bindable: true },
-  "transform.anchorY": { valueKind: "number", animatable: true, bindable: true },
-  "transform.opacity": { valueKind: "number", animatable: true, bindable: true },
-  "transform.visible": { valueKind: "boolean", animatable: true, bindable: true },
-  "transform.flipX": { valueKind: "boolean", animatable: true, bindable: true },
-  "transform.flipY": { valueKind: "boolean", animatable: true, bindable: true },
+  "transform.x": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.y": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+  "transform.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+  "transform.rotation": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.scaleX": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.transformScale },
+  "transform.scaleY": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.transformScale },
+  "transform.anchorX": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+  "transform.anchorY": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+  "transform.opacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+  "transform.visible": { valueKind: "boolean", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.flipX": { valueKind: "boolean", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.flipY": { valueKind: "boolean", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
 });
 
 const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPropertyCapability>>>> = Object.freeze({
   text: {
-    "payload.text": { valueKind: "string", animatable: true, bindable: true },
-    "payload.fontSize": { valueKind: "number", animatable: true, bindable: true },
-    "payload.counterProgress": { valueKind: "number", animatable: true, bindable: false },
-    "style.fill": { valueKind: "color", animatable: true, bindable: true },
+    "payload.text": { valueKind: "string", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "payload.fontSize": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", minExclusive: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "payload.counterProgress": { valueKind: "number", animatable: true, bindable: false, public: false, runtimeSupport: "evaluated", min: 0, max: 1 },
+    "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   },
   shape: {
-    "style.fill": { valueKind: "color", animatable: true, bindable: true },
-    "payload.cornerRadius": { valueKind: "number", animatable: true, bindable: true },
+    "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
+    "payload.cornerRadius": { valueKind: "number", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   },
   svg: {
-    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true },
-    "style.fill": { valueKind: "color", animatable: true, bindable: true },
+    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
   },
   image: {
-    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true },
+    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   },
   video: {
-    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true },
-    "payload.trimStart": { valueKind: "number", animatable: false, bindable: true },
-    "payload.muted": { valueKind: "boolean", animatable: false, bindable: true },
+    "payload.assetId": { valueKind: "asset", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
+    "payload.trimStart": { valueKind: "number", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.mediaDurationSeconds },
+    "payload.muted": { valueKind: "boolean", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
   },
   camera: {
-    "payload.zoom": { valueKind: "number", animatable: true, bindable: true },
+    "payload.zoom": { valueKind: "number", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time", minExclusive: 0, max: MOTION_V2_LIMITS.transformScale },
   },
   bone: {
-    "payload.length": { valueKind: "number", animatable: false, bindable: true },
+    "payload.length": { valueKind: "number", animatable: false, bindable: true, public: false, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   },
 });
 
@@ -91,9 +96,19 @@ export function motionPropertyCapability(nodeType: string, property: string): Mo
   const transform = TRANSFORM_PROPERTIES[property];
   if (transform) return transform;
   if (nodeType === "component" && property.startsWith("payload.props.") && property.length > "payload.props.".length) {
-    return { valueKind: "json", animatable: false, bindable: true };
+    return { valueKind: "json", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" };
   }
   return NODE_PROPERTIES[nodeType]?.[property];
+}
+
+export type MotionPropertyCapabilityEntry = MotionPropertyCapability & { property: string };
+
+/** Enumerable safe vocabulary for AI authoring and schema-driven controls. */
+export function motionPropertyCapabilities(nodeType: string): MotionPropertyCapabilityEntry[] {
+  return [
+    ...Object.entries(TRANSFORM_PROPERTIES),
+    ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
+  ].map(([property, capability]) => ({ property, ...capability }));
 }
 
 export function motionLiteralMatchesValueKind(kind: MotionPropertyValueKind, value: unknown): boolean {
@@ -108,4 +123,13 @@ export function motionVariableTypeMatchesValueKind(kind: MotionPropertyValueKind
   if (kind === "asset") return variableType === "image";
   if (kind === "color") return variableType === "color";
   return kind === variableType;
+}
+
+export function motionPropertyValueError(capability: MotionPropertyCapability, value: unknown, property: string): string | undefined {
+  if (!motionLiteralMatchesValueKind(capability.valueKind, value)) return `Expected ${capability.valueKind} value for ${property}`;
+  if (typeof value !== "number") return undefined;
+  if (capability.min !== undefined && value < capability.min) return `Value ${value} is below minimum ${capability.min} for ${property}`;
+  if (capability.minExclusive !== undefined && value <= capability.minExclusive) return `Value ${value} must be greater than ${capability.minExclusive} for ${property}`;
+  if (capability.max !== undefined && value > capability.max) return `Value ${value} exceeds maximum ${capability.max} for ${property}`;
+  return undefined;
 }

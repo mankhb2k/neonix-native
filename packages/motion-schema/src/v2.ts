@@ -1,8 +1,8 @@
 import { z } from "zod";
 import {
   MOTION_V2_LIMITS,
-  motionLiteralMatchesValueKind,
   motionPropertyCapability,
+  motionPropertyValueError,
   motionVariableTypeMatchesValueKind,
 } from "./capabilities";
 
@@ -567,7 +567,7 @@ const RuntimeTrackSchema = z
   })
   .strict();
 
-export const NormalizedMotionProjectV2Schema = z
+const NormalizedMotionProjectV2BaseSchema = z
   .object({
     format: z.literal("motion-runtime"),
     formatVersion: z.literal(MOTION_PROJECT_FORMAT_VERSION),
@@ -587,6 +587,35 @@ export const NormalizedMotionProjectV2Schema = z
     ).max(MOTION_V2_LIMITS.scenesPerProject),
   })
   .strict();
+
+export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSchema.superRefine((runtime, context) => {
+  for (let sceneIndex = 0; sceneIndex < runtime.scenes.length; sceneIndex += 1) {
+    const scene = runtime.scenes[sceneIndex]!;
+    const nodeById = new Map(scene.nodes.map((node) => [node.id, node]));
+    for (let trackIndex = 0; trackIndex < scene.tracks.length; trackIndex += 1) {
+      const track = scene.tracks[trackIndex]!;
+      const path = ["scenes", sceneIndex, "tracks", trackIndex] as Array<string | number>;
+      const node = nodeById.get(track.targetId);
+      if (!node) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "targetId"], message: `Unknown runtime node: ${track.targetId}` });
+        continue;
+      }
+      const capability = motionPropertyCapability(node.type, track.property);
+      if (!capability) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unsupported runtime property for ${node.type}: ${track.property}` });
+        continue;
+      }
+      if (!capability.animatable || capability.runtimeSupport !== "evaluated") {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Property is not supported by runtime evaluator: ${track.property}` });
+        continue;
+      }
+      for (let keyIndex = 0; keyIndex < track.keys.length; keyIndex += 1) {
+        const message = motionPropertyValueError(capability, track.keys[keyIndex]!.v, track.property);
+        if (message) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "keys", keyIndex, "v"], message });
+      }
+    }
+  }
+});
 
 export type MotionComponentV2 = z.infer<typeof MotionComponentV2Schema>;
 export type MotionProjectV2 = z.infer<typeof MotionProjectV2Schema>;
@@ -649,8 +678,23 @@ function validatePropertyPath(
   const capability = motionPropertyCapability(node.type, property);
   if (!capability) return [{ path, message: `Unsupported property for ${node.type}: ${property}` }];
   if (usage === "track" && !capability.animatable) return [{ path, message: `Property is not animatable: ${property}` }];
+  if (usage === "track" && capability.runtimeSupport !== "evaluated") return [{ path, message: `Property is not supported by runtime evaluator: ${property}` }];
   if (usage === "binding" && !capability.bindable) return [{ path, message: `Property is not bindable: ${property}` }];
   return [];
+}
+
+function validateVariableCapabilityValue(
+  variable: z.infer<typeof VariableV2Schema>,
+  capability: NonNullable<ReturnType<typeof motionPropertyCapability>>,
+  property: string,
+  map?: { scale?: number; offset?: number },
+): string | undefined {
+  if (!motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
+    return `Expected ${capability.valueKind} value for ${property}, got variable type ${variable.type}`;
+  }
+  let value: unknown = variable.value;
+  if (typeof value === "number" && map) value = value * (map.scale ?? 1) + (map.offset ?? 0);
+  return motionPropertyValueError(capability, value, property);
 }
 
 function validateNodeAssets(
@@ -716,16 +760,19 @@ function validateClips(
           }
           if (capability) {
             const value = key.v;
-            const reference = value !== null && typeof value === "object" && !Array.isArray(value)
-              ? (value as { ref?: { kind?: unknown; id?: unknown } }).ref
+            const referenceValue = value !== null && typeof value === "object" && !Array.isArray(value)
+              ? value as { ref?: { kind?: unknown; id?: unknown }; map?: { scale?: number; offset?: number } }
               : undefined;
+            const reference = referenceValue?.ref;
             if (reference?.kind === "variable" && typeof reference.id === "string") {
               const variable = variableById.get(reference.id);
-              if (variable && !motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
-                issues.push({ path: trackPath, message: `Expected ${capability.valueKind} value for ${track.property}, got variable type ${variable.type}` });
+              if (variable) {
+                const message = validateVariableCapabilityValue(variable, capability, track.property, referenceValue?.map);
+                if (message) issues.push({ path: trackPath, message });
               }
-            } else if (!motionLiteralMatchesValueKind(capability.valueKind, value)) {
-              issues.push({ path: trackPath, message: `Expected ${capability.valueKind} value for ${track.property}` });
+            } else {
+              const message = motionPropertyValueError(capability, value, track.property);
+              if (message) issues.push({ path: trackPath, message });
             }
           }
         }
@@ -777,8 +824,9 @@ export function validateMotionComponentV2References(component: MotionComponentV2
         const variableId = binding.source.variableId;
         const variable = component.variables.find((candidate) => candidate.id === variableId);
         const capability = motionPropertyCapability(target.type, binding.target.property);
-        if (variable && capability && !motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
-          issues.push({ path: propertyPath, message: `Expected ${capability.valueKind} binding for ${binding.target.property}, got variable type ${variable.type}` });
+        if (variable && capability) {
+          const message = validateVariableCapabilityValue(variable, capability, binding.target.property);
+          if (message) issues.push({ path: propertyPath, message: message.replace("value for", "binding for") });
         }
       }
     }
@@ -854,8 +902,9 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
         issues.push(...validatePropertyPath(target, binding.target.property, "binding", propertyPath));
         const variable = project.variables.find((candidate) => candidate.id === binding.source.variableId);
         const capability = motionPropertyCapability(target.type, binding.target.property);
-        if (variable && capability && !motionVariableTypeMatchesValueKind(capability.valueKind, variable.type)) {
-          issues.push({ path: propertyPath, message: `Expected ${capability.valueKind} binding for ${binding.target.property}, got variable type ${variable.type}` });
+        if (variable && capability) {
+          const message = validateVariableCapabilityValue(variable, capability, binding.target.property);
+          if (message) issues.push({ path: propertyPath, message: message.replace("value for", "binding for") });
         }
       }
     }

@@ -96,6 +96,12 @@ Authoring value là literal hoặc variable reference:
 
 MVP chỉ hỗ trợ reference, numeric scale và offset. Compiler phải type-check rồi resolve trước Runtime IR; không có expression engine tổng quát.
 
+## Property capability registry
+
+Mỗi property normative đăng ký `valueKind`, `animatable`, `bindable`, `public`, numeric domain và `runtimeSupport`. Authoring validator dùng registry cho track/binding; Runtime schema kiểm tra lại target, property, support state và literal domain. `compile-time` nghĩa property có thể được binding/resolve trước compile nhưng không được phép xuất hiện như Runtime Track.
+
+AI và schema-driven controls chỉ enumerate property có `public: true`; việc một field tồn tại trong Node schema không tự động cho phép AI animate field đó.
+
 ## List và repeater
 
 Variable list khai báo `itemSchema`. Group template có `repeat` với source, alias, stable key và layout. Binding con có source `context`, ví dụ `item.title`. Compiler clone subtree, binding và clip bằng ID deterministic; giới hạn số item là policy của compiler. Renderer không biết Repeater.

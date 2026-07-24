@@ -39,6 +39,7 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 | Bounds/Hit-test | Không cần authoring field | Không cần compile | AABB/inverse/draw-order assertions đã có; alpha/mask parity còn thiếu |
 | Offscreen plan | Resource limits | Không cần compile | Integer surface plan + dimension/pixel rejection đã có; allocation chờ Mask/Effects |
 | Clock/seed + PNG golden | Không cần authoring field | Frame time canonical | Random-access seed và 3 stored pixel goldens đã có |
+| Property capabilities | Enumerable schema metadata | Domain/support enforced khi compile | Text string/number/color evaluator đã có; primitive registry mở rộng dần |
 | Path | Bị reject cho tới typed fixture | Chưa có | Chưa vẽ |
 | Mask | Chỉ có `maskId` | Pass-through | Chưa áp dụng |
 | Motion Path | Chưa có | Chưa có | Chưa có |
@@ -362,6 +363,8 @@ Những fixture này phát hiện lỗi interaction/order mà unit fixture khôn
 ## Development phases
 
 ### Phase 0 — foundation
+
+**Status: complete (2026-07-24).** Shared evaluator/property registry, world matrix/bounds/hit-test, offscreen planning, deterministic clock/seed, JSON/PNG goldens, resource limits và unsupported-capability rejection đều có automated assertions.
 
 1. Shared property evaluator và stable property-path registry.
 2. World matrix, bounds, hit-test và offscreen surface abstraction.

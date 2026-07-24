@@ -40,6 +40,7 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `projects/golden-product-promo.mt.json` | Dependency pinning, scene order và audio timeline |
 | `projects/media-assets.mt.json` | Image opaque/alpha, SVG, font Việt, video silent/audio và ba audio roles |
 | `projects/hierarchy-transform.mt.json` | Group/Bone/SVG hierarchy, pivot chain, inherited opacity, flip và prop attachment |
+| `projects/property-capabilities.mt.json` | Runtime Text tracks cho string, numeric interpolation và discrete color |
 | `imports/svg-import-sources.json` | SVG phẳng từ Figma/Illustrator cho sanitize, group trong app và re-import |
 | `patches/ai-fill-big-number.json` | Planner patch chỉ sửa public surface |
 | `negative/components/*.json` | Missing parent, unsupported path/value/asset/node, mismatch, duplicate/cycle, non-finite number và schema limits |

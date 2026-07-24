@@ -106,12 +106,15 @@ function drawEvaluatedNode(
       ctx.drawImage(image, 0, 0, transform.width, transform.height);
     }
   } else if (node.type === "text") {
-    const rawText = typeof node.payload?.text === "string" ? node.payload.text : brand.name;
+    const evaluatedText = evaluateProperty(scene, node, "payload.text", time, node.payload.text);
+    const rawText = typeof evaluatedText === "string" ? evaluatedText : brand.name;
     const counter = Number(evaluateProperty(scene, node, "payload.counterProgress", time, 1));
     const numeric = Number(rawText);
     const text = Number.isFinite(numeric) && counter < 1 ? Math.round(numeric * counter).toString() : rawText;
-    const fontSize = typeof node.payload?.fontSize === "number" ? node.payload.fontSize : Math.max(24, transform.height * 0.45);
-    ctx.fillStyle = typeof node.style?.fill === "string" ? node.style.fill : "#ffffff";
+    const evaluatedFontSize = evaluateProperty(scene, node, "payload.fontSize", time, node.payload.fontSize);
+    const fontSize = typeof evaluatedFontSize === "number" ? evaluatedFontSize : Math.max(24, transform.height * 0.45);
+    const evaluatedFill = evaluateProperty(scene, node, "style.fill", time, node.style?.fill ?? "#ffffff");
+    ctx.fillStyle = typeof evaluatedFill === "string" ? evaluatedFill : "#ffffff";
     ctx.font = `600 ${Math.round(fontSize)}px "Be Vietnam Pro", sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";

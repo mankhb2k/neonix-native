@@ -41,11 +41,11 @@ Value + Property + Keyframe + Track + Binding
 |---|---|---|---|
 | JSON literal value | Runtime scalar/object/list | Partial | string/number/bool/null/list/object round-trip |
 | Resolvable value | Literal hoặc variable reference | Partial | type, numeric scale/offset, missing variable |
-| Property path | Stable animatable address | Partial | valid target, invalid path, ID-based effect/modifier path |
+| Property path | Stable animatable address | Implemented current surface | enumerable kind/domain/public/runtime state; effect/modifier paths đến cùng primitive |
 | Variable | string/color/number/bool/image/enum/list | Partial | defaults, min/max/options, list item schema |
 | Binding | Variable/context → Node property | Partial | precedence, one-to-many, context item, missing target |
 | Public parameter | Component safe surface | Partial | type match, default/override, internal isolation |
-| Capability metadata | Primitive support/limits for UI và AI | Partial registry | current property/resource limits chạy; primitive registry đầy đủ còn thiếu |
+| Capability metadata | Primitive support/limits for UI và AI | Implemented property registry | safe property enumeration chạy; primitive-level registry mở rộng theo phase |
 
 ## 3. Time/animation primitives
 
@@ -189,7 +189,7 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 | Canvas selection | Select/move/rotate/pivot | Planned P0 | zoom, hit test, hierarchy |
 | Import/re-import | External asset reconciliation | Planned P0 | stable Node IDs, conflict UI |
 | Preview | Browser evaluation | Partial CSS | same Runtime IR/frame as export |
-| AI capability registry | Safe generation vocabulary | Planned P0 | only supported primitives/properties |
+| AI capability registry | Safe generation vocabulary | Partial implemented | property vocabulary chạy; primitive/composition gates mở rộng theo phase |
 
 ## 13. Runtime-only primitives
 
@@ -339,6 +339,8 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 ## Implementation order
 
 ### Phase 0 — test/runtime foundation
+
+**Status: complete (2026-07-24).** Freeze evidence nằm trong schema fixture validator, Runtime IR/PNG goldens và runtime primitive assertions.
 
 - Stable property-path/capability registry.
 - Shared evaluator, deterministic clock/seed.

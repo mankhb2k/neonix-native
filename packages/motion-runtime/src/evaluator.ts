@@ -1,4 +1,4 @@
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import { motionPropertyCapability, type NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   IDENTITY_MATRIX,
   inheritedParentMatrix,
@@ -58,11 +58,18 @@ export function evaluateProperty(
   time: number,
   fallback: unknown,
 ): unknown {
-  return evaluateTrack(
+  const value = evaluateTrack(
     scene.tracks.find((track) => track.targetId === node.id && track.property === property),
     time,
     fallback,
   );
+  const capability = motionPropertyCapability(node.type, property);
+  if (typeof value !== "number" || !capability) return value;
+  let bounded = value;
+  if (capability.min !== undefined) bounded = Math.max(capability.min, bounded);
+  if (capability.minExclusive !== undefined && bounded <= capability.minExclusive) bounded = capability.minExclusive + Number.EPSILON;
+  if (capability.max !== undefined) bounded = Math.min(capability.max, bounded);
+  return bounded;
 }
 
 function numberProperty(scene: RuntimeScene, node: RuntimeNode, property: string, time: number, fallback: number): number {

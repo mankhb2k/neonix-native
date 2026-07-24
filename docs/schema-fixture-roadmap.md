@@ -21,21 +21,22 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone finite/resource policy có 10 positive fixtures, 22 negative artifacts, 21 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone capability registry có 11 positive fixtures, 25 negative artifacts, 21 deterministic limit cases, 5 Runtime IR goldens, 3 PNG goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
-- [x] Property capability registry nền cho transform và property đang dùng.
+- [x] Enumerable property capability registry có value kind, animatable/bindable/public, domain và runtime-support state.
 - [x] Finite-number policy cho toàn bộ numeric/JSON surface; limits cho dimensions, scale, duration, FPS, playback và public arrays hiện có.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 22 negative artifacts và 21 limit/depth descriptors với structured error assertions.
-- [x] 4 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
+- [x] 25 negative artifacts và 21 limit/depth descriptors với structured error assertions.
+- [x] 5 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
 - [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 - [x] Runtime world bounds, inverse-matrix hit-test, drawable subtree bounds và offscreen dimension/pixel budgets.
 - [x] Shared frame clock, pure random-access seeded samples và 3 stored PNG pixel goldens có diff artifact.
+- [x] Runtime schema reject unknown/compile-only tracks; Text string/number/color tracks dùng evaluator thật trong renderer.
 
 ### Phase 1 progress
 
@@ -102,6 +103,8 @@ Thay RegularNode dùng chung generic payload bằng union có payload/style riê
 ### F0.3 — Property capability registry
 
 Schema giữ property path ổn định, validator tra registry theo target type. Registry mô tả value type, animatable/bindable/public, min/max và runtime support. Reject path không tồn tại hoặc value sai kiểu ngay khi parse references.
+
+Trạng thái: hoàn tất cho mọi property normative hiện tại. Registry enumerable là vocabulary cho AI/controls; compile-only property không được gắn track. Literal key, mapped variable default, binding default và Runtime IR đều dùng chung domain validator.
 
 ### F0.4 — Limits và deterministic policy
 

@@ -12,8 +12,11 @@ import {
   MOTION_V2_LIMITS,
   MotionPatchSchema,
   MotionV2ReferenceError,
+  motionPropertyCapability,
+  motionPropertyCapabilities,
 } from "../packages/motion-schema/src/index";
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
+import { evaluateProperty } from "../packages/motion-runtime/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
@@ -296,6 +299,24 @@ async function validateNegativeFixtures(): Promise<number> {
       parse: parseMotionComponentV2,
       path: "nodes.image.payload.assetId",
       message: "Asset asset.font has type font, expected image",
+    },
+    {
+      file: "components/property-domain-over-limit.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.opacity.source.tracks.transform.opacity",
+      message: "Value 1.5 exceeds maximum 1 for transform.opacity",
+    },
+    {
+      file: "components/runtime-unsupported-property.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.zoom.source.tracks.payload.zoom",
+      message: "Property is not animatable: payload.zoom",
+    },
+    {
+      file: "components/binding-domain-over-limit.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "bindings.opacity.target.property",
+      message: "Value 2 exceeds maximum 1 for transform.opacity",
     },
     {
       file: "projects/unpinned-component.mt.json",
@@ -612,6 +633,18 @@ async function validateCompilerGoldens(components: ReturnType<typeof parseMotion
 }
 
 async function main(): Promise<void> {
+  const textCapability = motionPropertyCapability("text", "payload.text");
+  const shapeFillCapability = motionPropertyCapability("shape", "style.fill");
+  if (!textCapability?.public || textCapability.runtimeSupport !== "evaluated" || textCapability.valueKind !== "string") {
+    throw new Error("Text capability metadata contract changed");
+  }
+  if (shapeFillCapability?.runtimeSupport !== "compile-time" || shapeFillCapability.animatable) {
+    throw new Error("Unsupported Shape animation was exposed by capability registry");
+  }
+  const aiTextProperties = motionPropertyCapabilities("text").filter((capability) => capability.public).map((capability) => capability.property);
+  for (const property of ["transform.x", "payload.text", "payload.fontSize", "style.fill"]) {
+    if (!aiTextProperties.includes(property)) throw new Error(`AI property vocabulary lost ${property}`);
+  }
   await validateAssetKit();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
@@ -637,6 +670,16 @@ async function main(): Promise<void> {
   const vietnamese = mediaRuntime.scenes[0]?.nodes.find((node) => node.id === "text.vietnamese");
   if (vietnamese?.payload?.text !== "Tiếng Việt: Đặng Thị Hồng – 49.000₫") throw new Error("Vietnamese text did not survive compilation");
   console.log("OK compiler/media assets, node types, audio roles and Vietnamese text preserved");
+
+  const propertyProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "property-capabilities.mt.json")));
+  const propertyRuntime = compileMotionProject(propertyProject);
+  const propertyScene = propertyRuntime.scenes[0]!;
+  const propertyNode = propertyScene.nodes[0]!;
+  if (evaluateProperty(propertyScene, propertyNode, "payload.text", 0.5, "") !== "A") throw new Error("Discrete text property evaluation changed");
+  if (evaluateProperty(propertyScene, propertyNode, "payload.text", 1, "") !== "B") throw new Error("Text property end key evaluation changed");
+  if (evaluateProperty(propertyScene, propertyNode, "payload.fontSize", 0.5, 0) !== 60) throw new Error("Numeric font-size interpolation changed");
+  if (evaluateProperty(propertyScene, propertyNode, "style.fill", 0.5, "") !== "#ff0000") throw new Error("Discrete color property evaluation changed");
+  console.log("OK runtime/property capability text, number and color evaluation");
 
   const golden = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "golden-product-promo.mt.json")));
   const goldenRuntime = compileMotionProject(golden, { components });
