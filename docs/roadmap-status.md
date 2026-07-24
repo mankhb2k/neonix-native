@@ -34,7 +34,7 @@ Current verification after deterministic video sampling: 26 positive artifacts, 
 | Figma/Illustrator importer and re-import | Source mapping is typed metadata only | sanitizer/parser, stable element fingerprint reconciliation and import fixtures |
 | Camera projection/scene transitions | Orthographic active-camera projection, timeline overlap and crossfade raster compositing are implemented | fade policy refinement and preview parity |
 | Video frame rendering | Decoded ffmpeg frames are cached by asset/frame index and drawn with trim, hold/transparent/loop and fit policy; fixed-time hashes cover silent/audio pixels | audio mux remains the next media milestone |
-| Audio mixer/export | Audio timeline metadata exists; ffmpeg export currently encodes video frames only | trim/loop/fade/gain mix and stream probe E2E |
+| Audio mixer/export | FFmpeg deterministically trims, delays, loops, gains, fades and mixes BGM/voiceover/SFX into AAC; fixture export is ffprobe-checked for stream and duration | browser preview parity |
 | Browser preview/export parity | Web editor preview still uses CSS/mock blocks rather than Runtime IR | browser-safe render adapter, timestamp parity and Web E2E |
 | P1 primitives | emitter, trim path, animated dash/gradient, blend modes, constraints, IK and bend are intentionally deferred | activate only with a real composition fixture |
 

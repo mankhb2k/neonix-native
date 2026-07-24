@@ -64,7 +64,7 @@ async function main() {
   const renderMs = performance.now() - t0;
 
   const t1 = performance.now();
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
   const encodeMs = performance.now() - t1;
 
   const totalMs = renderMs + encodeMs;

@@ -56,7 +56,7 @@ async function main() {
     scale: 0.5,
     outDir: path.join(outDir, "frames", project.metadata.id),
   });
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
   const mp4Path = files[0]?.path;
   if (!mp4Path) throw new Error("Encode produced no file");
 

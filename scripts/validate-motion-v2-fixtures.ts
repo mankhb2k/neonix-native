@@ -17,6 +17,8 @@ import {
   segmentTextUnits,
 } from "../packages/motion-schema/src/index";
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
+import { encodeOutputs } from "../apps/render-worker/src/ffmpeg";
+import { renderCompiledProject } from "../apps/render-worker/src/runtime";
 import { evaluateProperty } from "../packages/motion-runtime/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -942,6 +944,29 @@ async function validateCompilerGoldens(components: ReturnType<typeof parseMotion
   return projectFiles.length;
 }
 
+async function validateMediaExport(project: ReturnType<typeof parseMotionProjectV2>): Promise<void> {
+  const compiled = compileMotionProject(project);
+  const rendered = await renderCompiledProject(compiled, {
+    fps: 2,
+    scale: 0.1,
+    concurrency: 1,
+    assetBaseDir: fixturesRoot,
+    outDir: resolve(repoRoot, "tmp", "media-probe-frames"),
+  });
+  const [output] = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled, fixturesRoot);
+  if (!output) throw new Error("Media export did not produce an MP4");
+  const probe = spawnSync("ffprobe", [
+    "-v", "error", "-show_entries", "stream=codec_type,codec_name:format=duration", "-of", "json", output.path,
+  ], { encoding: "utf8" });
+  if (probe.status !== 0) throw new Error(`Media export ffprobe failed: ${probe.stderr}`);
+  const parsed = JSON.parse(probe.stdout) as { streams: Array<{ codec_type: string; codec_name: string }>; format?: { duration?: string } };
+  const audio = parsed.streams.find((stream) => stream.codec_type === "audio");
+  if (audio?.codec_name !== "aac") throw new Error("Media export audio stream must be AAC");
+  const duration = Number(parsed.format?.duration);
+  if (!Number.isFinite(duration) || Math.abs(duration - rendered.durationSec) > 0.25) throw new Error("Media export duration is implausible");
+  console.log("OK media export MP4 has AAC audio stream and plausible duration");
+}
+
 async function main(): Promise<void> {
   const textCapability = motionPropertyCapability("text", "payload.text");
   const shapeFillCapability = motionPropertyCapability("shape", "style.fill");
@@ -999,6 +1024,7 @@ async function main(): Promise<void> {
   ) throw new Error("Video trim reference validation changed");
   console.log("OK compiler/media assets, node types, audio roles and Vietnamese text preserved");
   console.log("OK video trim bounds reject invalid media windows");
+  await validateMediaExport(mediaProject);
 
   const propertyProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "property-capabilities.mt.json")));
   const propertyRuntime = compileMotionProject(propertyProject);

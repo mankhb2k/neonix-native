@@ -46,7 +46,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Bounds/hit-test/offscreen plan | — | — | ✅ AABB/inverse/draw order/budgets | ⬜ |
 | Camera/transition | ✅ strict orthographic + transition duration | ✅ active camera/transition preserved | ✅ camera PNG + crossfade composition | ⬜ |
 | Video silent/audio | ✅ trim bounds | ✅ plumbing | ✅ cached decoded-frame timestamp hashes | ⬜ |
-| BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ⬜ mix | ⬜ |
+| BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ✅ trim/loop/gain/fade mix + AAC ffprobe | ⬜ |
 | Font và tiếng Việt | ✅ asset/text | ✅ preserved | 🟡 one bundled font | ⬜ |
 | Preview/export equivalence | — | — | 🟡 export renderer goldenized | ⬜ browser |
 | Figma SVG import/re-import | ⬜ | — | — | ⬜ |

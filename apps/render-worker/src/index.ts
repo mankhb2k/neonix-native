@@ -28,7 +28,7 @@ export async function processJob(rawProject: unknown): Promise<{
 
   const compiled = compileMotionProject(project);
   const framesOrScene = await renderCompiledProject(compiled);
-  const files = await encodeOutputs(framesOrScene, project.metadata.aspectRatio);
+  const files = await encodeOutputs(framesOrScene, project.metadata.aspectRatio, compiled);
   const urls = await uploadOutputs(files);
   return { status: "done", urls };
 }

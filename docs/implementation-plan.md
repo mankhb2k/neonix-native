@@ -73,7 +73,7 @@ Exit criteria: complete for worker Runtime IR/export. Browser preview parity rem
 
 ### Phase 5 — Video frames and audio
 
-Video frame selection is deterministic from timestamp, trim, hold/transparent/loop and fit policy, with decoded frames cached by asset/frame index. Next implement audio trim, loop, gain, fade, role, overlap, and stream validation. Keep video and audio fixtures separate so failures identify the media layer.
+Video frame selection is deterministic from timestamp, trim, hold/transparent/loop and fit policy, with decoded frames cached by asset/frame index. Timeline audio now uses deterministic FFmpeg trim, loop, delay, gain, fade and role overlap mixing, with exported AAC streams probed in the fixture gate.
 
 Exit criteria: decoded-frame/runtime assertions, media metadata negatives, and an end-to-end probe of the produced streams.
 

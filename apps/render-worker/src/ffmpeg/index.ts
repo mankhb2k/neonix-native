@@ -5,6 +5,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { AspectRatio } from "@motionvideo/shared";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import type { RenderResult } from "../runtime";
 
 const require = createRequire(import.meta.url);
@@ -15,6 +16,8 @@ export type EncodedFile = {
   path: string;
   aspectRatio: AspectRatio;
 };
+
+export type AudioMixProject = Pick<NormalizedMotionProjectV2, "assets" | "timeline">;
 
 export function resolveFfmpegPath(): string {
   const fromEnv = process.env.FFMPEG_BIN;
@@ -43,6 +46,8 @@ function run(cmd: string, args: string[]): Promise<void> {
 export async function encodeOutputs(
   renderResult: RenderResult,
   aspectRatio: AspectRatio,
+  audioProject?: AudioMixProject,
+  assetBaseDir = REPO_ROOT,
 ): Promise<EncodedFile[]> {
   const ffmpeg = resolveFfmpegPath();
   const outDir = path.join(REPO_ROOT, "tmp");
@@ -50,12 +55,34 @@ export async function encodeOutputs(
   const outPath = path.join(outDir, `${renderResult.projectId}.mp4`);
   const pattern = path.join(renderResult.framesDir, "frame_%06d.png");
 
+  const audioTracks = audioProject?.timeline.audioTracks ?? [];
+  const audioAssets = new Map(audioProject?.assets.filter((asset) => asset.assetType === "audio").map((asset) => [asset.id, asset]) ?? []);
+  const audioArgs = audioTracks.flatMap((track) => {
+    const asset = audioAssets.get(track.assetId);
+    if (!asset) throw new Error(`Audio mix asset missing: ${track.assetId}`);
+    const input = path.resolve(assetBaseDir, asset.uri);
+    return track.loop ? ["-stream_loop", "-1", "-i", input] : ["-i", input];
+  });
+  const filters = audioTracks.map((track, index) => {
+    const end = renderResult.durationSec - track.start;
+    const fadeOutStart = Math.max(0, end - track.fadeOut);
+    return `[${index + 1}:a]atrim=start=${track.trimStart}:end=${Math.max(0, end)},asetpts=PTS-STARTPTS,adelay=${Math.round(track.start * 1000)}:all=1,volume=${track.volume}${track.fadeIn ? `,afade=t=in:st=0:d=${track.fadeIn}` : ""}${track.fadeOut ? `,afade=t=out:st=${fadeOutStart}:d=${track.fadeOut}` : ""}[a${index}]`;
+  });
+  const mix = audioTracks.length > 0 ? [...filters, `${audioTracks.map((_, index) => `[a${index}]`).join("")}amix=inputs=${audioTracks.length}:duration=longest:normalize=0[aout]`] : [];
+
   await run(ffmpeg, [
     "-y",
     "-framerate",
     String(renderResult.fps),
     "-i",
     pattern,
+    ...audioArgs,
+    ...(mix.length > 0 ? ["-filter_complex", mix.join(";")] : []),
+    "-t",
+    String(renderResult.durationSec),
+    "-map",
+    "0:v",
+    ...(mix.length > 0 ? ["-map", "[aout]", "-c:a", "aac"] : []),
     "-c:v",
     "libx264",
     "-pix_fmt",

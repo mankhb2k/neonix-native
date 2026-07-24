@@ -71,7 +71,7 @@ async function main() {
     `[e2e] rendered ${rendered.frameCount} frames @ ${rendered.fps}fps (${rendered.width}x${rendered.height})`,
   );
 
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
   const urls = await uploadOutputs(files);
   const mp4 = files[0]!.path;
   const info = await stat(mp4);
