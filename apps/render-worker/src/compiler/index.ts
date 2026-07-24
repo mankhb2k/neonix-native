@@ -369,55 +369,100 @@ function expandComponents(
       const actionId = invocation.source.actionId;
       const action = component.actions.find((candidate) => candidate.id === actionId);
       if (!action) throw new Error(`Unknown Component Action: ${key}/${actionId}`);
-      if (invocation.playback.iterations !== 1 || invocation.playback.direction !== "normal") {
-        throw new Error(`Component Action ${invocation.id} currently requires one normal iteration`);
-      }
       const baseValues = new Map([...projectVariables, ...values]);
       const actionValues = new Map(baseValues);
       for (const [paramId, paramValue] of Object.entries(invocation.source.params ?? {})) actionValues.set(paramId, resolveValue(paramValue, baseValues));
       const outerRate = number(resolveValue(invocation.playback.rate, baseValues), `clips.${invocation.id}.playback.rate`);
       if (outerRate <= 0) throw new Error(`clips.${invocation.id}.playback.rate must be > 0`);
-      if (action.duration / outerRate > invocation.duration + 1e-9) throw new Error(`Component Action ${invocation.id} exceeds invocation duration`);
       const resolvedActionClips = action.clips.map((clip) => resolveValue(resolveValue(clip, actionValues), actionValues) as MotionClip);
       const actionStarts = scheduleTimes(resolvedActionClips, actionValues, action.duration);
       const invocationStart = sceneStarts.get(invocation.id) ?? 0;
+      const cycleTracks: RuntimeTrack[] = [];
       for (const actionClip of resolvedActionClips) {
-        const innerRate = number(actionClip.playback.rate, `actions.${action.id}.clips.${actionClip.id}.playback.rate`);
+        const innerRate = number(resolveValue(actionClip.playback.rate, actionValues), `actions.${action.id}.clips.${actionClip.id}.playback.rate`);
         if (innerRate <= 0) throw new Error(`actions.${action.id}.clips.${actionClip.id}.playback.rate must be > 0`);
-        const source = actionClip.source.kind === "tracks"
-          ? {
-              ...clone(actionClip.source),
-              tracks: actionClip.source.tracks.map((track) => {
-                const expandedTarget = targets.get(track.targetId)?.[0]?.node;
-                if (!expandedTarget) throw new Error(`Unknown Component Action target: ${key}/${action.id}/${track.targetId}`);
-                if (track.property !== "payload.variantId") return { ...clone(track), targetId: expandedTarget.id };
-                const slot = slotByNodeId.get(track.targetId);
-                if (!slot) throw new Error(`Unknown Component Action variant slot: ${key}/${track.targetId}`);
+        const localStart = actionStarts.get(actionClip.id) ?? 0;
+        if (actionClip.source.kind === "component-action") throw new Error(`Nested Component Action is not supported: ${key}/${action.id}`);
+        const baseTracks = actionClip.source.kind === "tracks"
+          ? actionClip.source.tracks.map((track) => {
+              const expandedTarget = targets.get(track.targetId)?.[0]?.node;
+              if (!expandedTarget) throw new Error(`Unknown Component Action target: ${key}/${action.id}/${track.targetId}`);
+              if (track.property !== "payload.variantId") {
                 return {
-                  ...clone(track),
                   targetId: expandedTarget.id,
-                  property: "payload.assetId",
-                  keys: track.keys.map((keyframe) => {
-                    const variant = slot.variants.find((candidate) => candidate.id === keyframe.v);
-                    if (!variant) throw new Error(`Unknown variant ${String(keyframe.v)} for ${slot.id}`);
-                    return { ...clone(keyframe), v: variant.assetId };
-                  }),
+                  property: track.property,
+                  keys: track.keys.map((keyframe) => ({
+                    t: keyframe.t,
+                    v: resolveValue(keyframe.v, actionValues) as RuntimeTrack["keys"][number]["v"],
+                    ...(keyframe.easing ? { easing: keyframe.easing } : {}),
+                  })),
                 };
-              }),
-            }
-          : actionClip.source.kind === "preset"
-            ? clone(actionClip.source)
-            : (() => { throw new Error(`Nested Component Action is not supported: ${key}/${action.id}`); })();
-        const target = actionClip.targetId ? targets.get(actionClip.targetId)?.[0]?.node : undefined;
-        outputClips.push({
-          ...clone(actionClip),
-          id: `${node.id}::action:${invocation.id}::${actionClip.id}`,
-          targetId: target?.id,
-          schedule: { kind: "absolute", at: canonicalTime(invocationStart + (actionStarts.get(actionClip.id) ?? 0) / outerRate) },
-          playback: { ...clone(actionClip.playback), rate: innerRate * outerRate },
-          source,
-        });
+              }
+              const slot = slotByNodeId.get(track.targetId);
+              if (!slot) throw new Error(`Unknown Component Action variant slot: ${key}/${track.targetId}`);
+              return {
+                targetId: expandedTarget.id,
+                property: "payload.assetId",
+                keys: track.keys.map((keyframe) => {
+                  const variant = slot.variants.find((candidate) => candidate.id === keyframe.v);
+                  if (!variant) throw new Error(`Unknown variant ${String(keyframe.v)} for ${slot.id}`);
+                  return { t: keyframe.t, v: variant.assetId, ...(keyframe.easing ? { easing: keyframe.easing } : {}) };
+                }),
+              };
+            })
+          : (() => {
+              const target = actionClip.targetId ? targets.get(actionClip.targetId)?.[0]?.node : undefined;
+              if (!target) throw new Error(`Preset Component Action clip requires target: ${key}/${action.id}/${actionClip.id}`);
+              return presetTracks(target, actionClip.source.presetId, 0, actionClip.duration);
+            })();
+        for (const track of baseTracks) {
+          cycleTracks.push(expandPlaybackTrack(track, { ...actionClip, playback: { ...actionClip.playback, rate: innerRate } }, localStart, action.duration, actionValues));
+        }
       }
+      const mergedCycle = new Map<string, RuntimeTrack>();
+      for (const track of cycleTracks) {
+        const trackKey = `${track.targetId}\u0000${track.property}`;
+        const current = mergedCycle.get(trackKey);
+        if (!current) {
+          mergedCycle.set(trackKey, { ...track, keys: [...track.keys] });
+          continue;
+        }
+        const byTime = new Map(current.keys.map((keyframe) => [keyframe.t, keyframe]));
+        for (const keyframe of track.keys) byTime.set(keyframe.t, keyframe);
+        current.keys = [...byTime.values()].sort((left, right) => left.t - right.t);
+      }
+      const cycleWall = action.duration / outerRate;
+      const fillLoop = action.loop && invocation.playback.iterations === 1;
+      const outerIterations = invocation.playback.iterations === "infinite"
+        ? "infinite" as const
+        : fillLoop
+          ? Math.max(1, Math.ceil(invocation.duration / cycleWall - 1e-9))
+          : invocation.playback.iterations;
+      if (!fillLoop && typeof outerIterations === "number" && cycleWall * outerIterations > invocation.duration + 1e-9) {
+        throw new Error(`Component Action ${invocation.id} exceeds invocation duration`);
+      }
+      outputClips.push({
+        id: `${node.id}::action:${invocation.id}`,
+        schedule: { kind: "absolute", at: canonicalTime(invocationStart) },
+        duration: action.duration,
+        playback: {
+          iterations: outerIterations,
+          direction: invocation.playback.direction,
+          rate: outerRate,
+        },
+        source: {
+          kind: "tracks",
+          tracks: [...mergedCycle.values()].map((track) => ({
+            targetId: track.targetId,
+            property: track.property,
+            keys: track.keys.map((keyframe) => ({
+              t: keyframe.t,
+              v: keyframe.v,
+              ...(keyframe.easing ? { easing: keyframe.easing } : {}),
+            })),
+          })),
+        } as Extract<MotionClip["source"], { kind: "tracks" }>,
+      });
     }
   }
   return { nodes: outputNodes, clips: outputClips, variables: componentVariables };

@@ -19,15 +19,15 @@ This file is the current implementation ledger. A capability is marked **done** 
 | SVG cut-out authoring contract | source parts, rig slots, variants and named actions | `41d4f28` |
 | Deterministic playback | rate, iterations, reverse/alternate, infinite clipping and schedule | `47eb433` |
 | Ordered Effects stack | blur, shadow, glow, color-adjust, animation, mask-before-effects and PNG golden | `0b66cfe` |
-| Normalized Path Morph | topology-checked targets, progress tracks, Runtime/PNG goldens at t=0/1/2 | *(pending commit)* |
+| Normalized Path Morph | topology-checked targets, progress tracks, Runtime/PNG goldens at t=0/1/2 | `36103d6` |
+| Component Action outer playback | iterations, reverse/alternate, `action.loop` fill and over-duration guard | *(pending commit)* |
 
-Current verification after Path Morph: 22 positive artifacts, 68 negative artifacts, 38 limit cases, 14 Runtime goldens, 14 PNG goldens, and 21 pinned assets.
+Current verification after Action playback: 24 positive artifacts, 68 negative artifacts, 38 limit cases, 15 Runtime goldens, 14 PNG goldens, and 21 pinned assets.
 
 ## Partial or not implemented
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
-| Component Action outer playback and `action.loop` | Compiler intentionally accepts only one normal iteration for outer action invocation | expand action invocations through shared playback semantics; add loop/reverse fixtures |
 | Lip-sync cue generation | Mouth variants exist, but no cue/marker-to-step-key compiler | cue schema, alignment validation, generated track golden |
 | Secondary Motion | No modifier/evaluator implementation | deterministic random-access segmented-chain solver and PNG fixture |
 | Figma/Illustrator importer and re-import | Source mapping is typed metadata only | sanitizer/parser, stable element fingerprint reconciliation and import fixtures |

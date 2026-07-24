@@ -6,6 +6,8 @@ Effects acceptance is covered by `projects/effects-stack.mt.json`, `expected-run
 
 Path Morph acceptance is covered by `projects/path-morph.mt.json`, `expected-runtime/path-morph.runtime.json`, and `expected-frames/path-morph-t{0,1,2}.png`; it verifies topology-compatible targets, progress tracks, mismatch/limit negatives, and silhouette interpolation at progress 0/0.5/1.
 
+Component Action outer playback is covered by `components/action-playback.mvc.json` and `projects/action-playback.mt.json`; it verifies iterations/rate, reverse, alternate, `action.loop` fill, and the over-duration guard.
+
 Tài liệu này là coverage map cho fixtures. Ký hiệu:
 
 Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`](../../primitives-object.md).
@@ -45,8 +47,8 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Preview/export equivalence | — | — | 🟡 export renderer goldenized | ⬜ browser |
 | Figma SVG import/re-import | ⬜ | — | — | ⬜ |
 | Cut-out rig/pivot hierarchy | ✅ fixture | ✅ preserved | ✅ visual smoke | ⬜ |
-| Named character actions | ⬜ | ⬜ | ⬜ | ⬜ |
-| Mouth/eye/hand variants | ⬜ | ⬜ | ⬜ | ⬜ |
+| Named character actions | ✅ | ✅ outer playback | ✅ evaluator | ⬜ |
+| Mouth/eye/hand variants | ✅ | ✅ assetId step keys | 🟡 | ⬜ |
 | Dialogue lip-sync cues | ⬜ | ⬜ | ⬜ | ⬜ |
 | Typed Path geometry | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Mask clip/alpha/inverse | ✅ | ✅ | ✅ worker PNG golden | ⬜ |

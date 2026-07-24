@@ -1034,6 +1034,58 @@ async function main(): Promise<void> {
   deepStrictEqual([0, 1, 2].map((time) => evaluateProperty(motionPathScene, rocket, "modifiers.follow.progress", time, -1)), [0, 0.5, 1], "Motion Path progress evaluation changed");
   console.log("OK compiler/runtime Motion Path modifier reference and progress track");
 
+  const actionPlaybackProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "action-playback.mt.json")));
+  const actionPlaybackRuntime = compileMotionProject(actionPlaybackProject, { components });
+  const actionScene = actionPlaybackRuntime.scenes[0]!;
+  const actionNode = (id: string) => {
+    const node = actionScene.nodes.find((candidate) => candidate.id === `${id}::marker`);
+    if (!node) throw new Error(`Action playback marker missing: ${id}`);
+    return node;
+  };
+  deepStrictEqual(
+    [0, 0.25, 0.5, 0.75, 1].map((time) => evaluateProperty(actionScene, actionNode("normal"), "transform.x", time, -1)),
+    [0, 0, 0, 50, 100],
+    "Component Action normal iterations/rate changed",
+  );
+  deepStrictEqual(
+    [0, 1].map((time) => evaluateProperty(actionScene, actionNode("reverse"), "transform.x", time, -1)),
+    [100, 0],
+    "Component Action reverse playback changed",
+  );
+  deepStrictEqual(
+    [0, 1, 2].map((time) => evaluateProperty(actionScene, actionNode("alternate"), "transform.x", time, -1)),
+    [0, 100, 0],
+    "Component Action alternate playback changed",
+  );
+  deepStrictEqual(
+    [0, 0.5, 1, 1.5, 2, 2.5].map((time) => evaluateProperty(actionScene, actionNode("looped"), "transform.rotation", time, -1)),
+    [0, 90, 0, 90, 0, 90],
+    "Component Action action.loop fill changed",
+  );
+  let overDurationError: unknown;
+  try {
+    compileMotionProject(parseMotionProjectV2({
+      ...actionPlaybackProject,
+      scenes: [{
+        ...actionPlaybackProject.scenes[0]!,
+        clips: [{
+          id: "invoke.overflow",
+          targetId: "normal",
+          schedule: { kind: "absolute", at: 0 },
+          duration: 1,
+          playback: { iterations: 3, direction: "normal", rate: 1 },
+          source: { kind: "component-action", actionId: "pulse" },
+        }],
+      }],
+    }), { components });
+  } catch (caught) {
+    overDurationError = caught;
+  }
+  if (!(overDurationError instanceof Error) || !overDurationError.message.includes("exceeds invocation duration")) {
+    throw new Error("Component Action over-duration guard changed");
+  }
+  console.log("OK compiler/Component Action outer playback iterations, reverse, alternate and action.loop");
+
   console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
 }
 
