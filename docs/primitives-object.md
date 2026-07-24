@@ -59,7 +59,7 @@ Value + Property + Keyframe + Track + Binding
 | Playback | iterations/direction/rate | Partial schema | finite/infinite hard limit chạy; reverse/alternate evaluator còn thiếu |
 | Preset source | Authoring shortcut → tracks | Implemented | known preset, literal expansion, no preset in Runtime IR |
 | Named Action | Reusable component animation | Planned P0 | idle/blink/talk/wave/walk, namespace, loop/rate |
-| Deterministic clock | Random-access frame evaluation | Planned P0 | frame order independence, repeated render equality |
+| Deterministic clock/seed | Random-access frame evaluation và pseudo-random sample | Implemented runtime foundation | frame index/time, channel/sample independence, stored frame equality |
 
 ## 4. Spatial/layout primitives
 

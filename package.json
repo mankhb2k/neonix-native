@@ -13,6 +13,7 @@
     "typecheck": "pnpm -r run typecheck",
     "validate:v2-fixtures": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-motion-v2-fixtures.ts",
     "update:v2-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-goldens.ts",
+    "update:v2-frame-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-frame-goldens.ts",
     "validate:primitives": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-runtime-primitives.ts",
     "storybook": "pnpm --filter @motionvideo/web storybook"
   },

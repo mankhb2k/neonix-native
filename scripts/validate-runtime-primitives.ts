@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
@@ -10,6 +10,9 @@ import { drawSceneFrame } from "../apps/render-worker/src/runtime/draw";
 import {
   applyMatrix,
   evaluateScene,
+  deterministicRandom,
+  frameIndexAtTime,
+  frameTimestamp,
   hitTestScene,
   invertMatrix,
   planOffscreenSurface,
@@ -20,6 +23,12 @@ import { parseMotionProjectV2 } from "../packages/motion-schema/src/index";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
 const outputRoot = resolve(repoRoot, "tmp", "primitive-previews");
+const expectedFrameRoot = resolve(fixturesRoot, "expected-frames");
+const frameGoldens = [
+  { time: 0, file: "hierarchy-transform-t0.png" },
+  { time: 1, file: "hierarchy-transform-t1.png" },
+  { time: 1.5, file: "hierarchy-transform-t1_5.png" },
+] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${label}: expected ${expected}, received ${actual}`);
@@ -49,7 +58,48 @@ async function countColor(png: Buffer, expected: [number, number, number], toler
   return count;
 }
 
+async function assertFrameGolden(actual: Buffer, file: string, tolerance = 2): Promise<void> {
+  const expected = await readFile(resolve(expectedFrameRoot, file));
+  const [actualImage, expectedImage] = await Promise.all([loadImage(actual), loadImage(expected)]);
+  assert.equal(actualImage.width, expectedImage.width, `${file} width changed`);
+  assert.equal(actualImage.height, expectedImage.height, `${file} height changed`);
+  const actualCanvas = createCanvas(actualImage.width, actualImage.height);
+  const expectedCanvas = createCanvas(expectedImage.width, expectedImage.height);
+  const actualContext = actualCanvas.getContext("2d");
+  const expectedContext = expectedCanvas.getContext("2d");
+  actualContext.drawImage(actualImage, 0, 0);
+  expectedContext.drawImage(expectedImage, 0, 0);
+  const actualPixels = actualContext.getImageData(0, 0, actualImage.width, actualImage.height).data;
+  const expectedPixels = expectedContext.getImageData(0, 0, expectedImage.width, expectedImage.height).data;
+  const diffCanvas = createCanvas(actualImage.width, actualImage.height);
+  const diffContext = diffCanvas.getContext("2d");
+  const diff = diffContext.createImageData(actualImage.width, actualImage.height);
+  let changedPixels = 0;
+  for (let index = 0; index < actualPixels.length; index += 4) {
+    const changed = [0, 1, 2, 3].some((channel) => Math.abs(actualPixels[index + channel]! - expectedPixels[index + channel]!) > tolerance);
+    if (changed) {
+      changedPixels += 1;
+      diff.data[index] = 255;
+      diff.data[index + 3] = 255;
+    }
+  }
+  if (changedPixels > 0) {
+    diffContext.putImageData(diff, 0, 0);
+    const diffFile = resolve(outputRoot, file.replace(/\.png$/, ".diff.png"));
+    await writeFile(diffFile, diffCanvas.toBuffer("image/png"));
+    throw new Error(`${file} differs by ${changedPixels} pixels (tolerance ${tolerance}); diff: ${diffFile}`);
+  }
+}
+
 async function main(): Promise<void> {
+  assert.deepEqual(frameTimestamp(30, 30), { frameIndex: 30, fps: 30, time: 1 });
+  assert.equal(frameIndexAtTime(0.999, 30), 29);
+  assert.throws(() => frameTimestamp(-1, 30), /Frame index/);
+  const randomSample = deterministicRandom("fixture-seed", "secondary-motion", 42);
+  assert.equal(randomSample, deterministicRandom("fixture-seed", "secondary-motion", 42), "seeded random sample must repeat exactly");
+  assert.notEqual(randomSample, deterministicRandom("fixture-seed", "secondary-motion", 41), "sample index must create an independent random-access value");
+  assert.ok(randomSample >= 0 && randomSample < 1);
+
   const source = parseMotionProjectV2(JSON.parse(await readFile(
     resolve(fixturesRoot, "projects", "hierarchy-transform.mt.json"),
     "utf8",
@@ -132,12 +182,14 @@ async function main(): Promise<void> {
   assert.ok(root15.worldMatrix.a < 0, "flipX must produce a reflected root matrix");
 
   await mkdir(outputRoot, { recursive: true });
+  assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
-  for (const time of [0, 1, 1.5]) {
-    const png = drawSceneFrame(scene, runtime.metadata, runtime.assets, time, 270, 480, fixturesRoot);
+  for (const golden of frameGoldens) {
+    const png = drawSceneFrame(scene, runtime.metadata, runtime.assets, golden.time, 270, 480, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
-    await writeFile(resolve(outputRoot, `hierarchy-transform-t${String(time).replace(".", "_")}.png`), png);
-    if (time === 0) {
+    await writeFile(resolve(outputRoot, golden.file), png);
+    await assertFrameGolden(png, golden.file);
+    if (golden.time === 0) {
       for (const [name, color] of [
         ["torso", [231, 76, 60]],
         ["upper arm", [52, 152, 219]],
@@ -153,6 +205,7 @@ async function main(): Promise<void> {
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
+  console.log("OK deterministic frame clock, random-access seed and stored PNG pixel goldens");
   console.log("OK SVG torso, limb, hand and attached prop pixels rendered");
   console.log(`Preview frames: ${outputRoot}`);
 }

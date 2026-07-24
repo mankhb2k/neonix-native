@@ -10,6 +10,8 @@ Coverage và thứ tự bổ sung acceptance tests: [`test-plan.md`](test-plan.m
 
 Compiler goldens được lưu tại `expected-runtime/`. Chỉ chạy `pnpm update:v2-goldens` khi thay đổi compiler là có chủ ý và đã review JSON diff; validation thông thường không tự ghi lại golden.
 
+Visual goldens được lưu tại `expected-frames/`. Chỉ chạy `pnpm update:v2-frame-goldens` khi pixel output thay đổi có chủ ý. `pnpm validate:primitives` so ảnh với tolerance theo channel và ghi `.diff.png` vào `tmp/primitive-previews/` khi sai; validation không tự nhận output mới.
+
 ## Acceptance = workflow
 
 Một fixture đạt khi đi hết chuỗi sau mà không truy cập internal Component từ Web/AI User:
@@ -44,6 +46,7 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 | `negative/projects/*.json` | Project reference/dependency không hợp lệ |
 | `negative/limits/cases.json` | Stress descriptors cho mọi public array hiện có và hierarchy depth mà không commit JSON khổng lồ |
 | `expected-runtime/*.runtime.json` | Runtime IR deterministic của từng positive Project fixture |
+| `expected-frames/*.png` | Stored pixel goldens tại timestamp cố định dùng cùng Runtime IR/evaluator với export |
 
 ## Asset kit
 
@@ -67,7 +70,7 @@ Chạy:
 pnpm validate:primitives
 ```
 
-Lệnh này compile `hierarchy-transform.mt.json`, kiểm tra world-space tại shoulder/elbow/wrist, render SVG parts ở ba timestamp và ghi PNG vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp các file PNG bằng Explorer hoặc editor để xem pose trước, pose gập tay và pose đã flip.
+Lệnh này compile `hierarchy-transform.mt.json`, kiểm tra clock/seed/world-space/bounds/hit-test, render SVG parts ở ba timestamp, so với stored PNG goldens và ghi preview vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp PNG hoặc `.diff.png` để kiểm tra.
 
 ## Quy ước đã khóa
 

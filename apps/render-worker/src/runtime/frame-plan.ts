@@ -1,4 +1,5 @@
 import type { CompiledProject } from "../compiler";
+import { frameTimestamp } from "@motionvideo/motion-runtime";
 
 export type FrameJob = {
   frameIndex: number;
@@ -16,7 +17,7 @@ export function buildFramePlan(
   compiled.scenes.forEach((scene, sceneIndex) => {
     const sceneFrames = Math.max(1, Math.round(scene.duration * fps));
     for (let i = 0; i < sceneFrames; i++) {
-      jobs.push({ frameIndex, sceneIndex, localTime: i / fps });
+      jobs.push({ frameIndex, sceneIndex, localTime: frameTimestamp(i, fps).time });
       frameIndex += 1;
     }
   });

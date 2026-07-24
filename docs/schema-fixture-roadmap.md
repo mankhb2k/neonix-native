@@ -35,6 +35,7 @@ Baseline sau milestone finite/resource policy có 10 positive fixtures, 22 negat
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
 - [x] JSON `1e400` bị reject ở typed transform lẫn generic JSON metadata; schema không nhận NaN/Infinity sau parse.
 - [x] Runtime world bounds, inverse-matrix hit-test, drawable subtree bounds và offscreen dimension/pixel budgets.
+- [x] Shared frame clock, pure random-access seeded samples và 3 stored PNG pixel goldens có diff artifact.
 
 ### Phase 1 progress
 

@@ -18,6 +18,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
 | Stored Runtime IR goldens | ✅ | ✅ 4 projects | — | — |
+| Stored PNG goldens | — | — | ✅ 3 fixed-time frames + pixel diff | ⬜ |
 | Property capability registry | ✅ baseline | ✅ reject unsupported | — | — |
 | Resource limits | ✅ finite numbers + all current public arrays | — | — | — |
 | Public props và Project binding | ✅ | 🟡 | ⬜ | ⬜ |
@@ -35,7 +36,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Video silent/audio | ✅ | ✅ plumbing | ⬜ | ⬜ |
 | BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ⬜ mix | ⬜ |
 | Font và tiếng Việt | ✅ asset/text | ✅ preserved | 🟡 one bundled font | ⬜ |
-| Preview/export equivalence | — | — | ⬜ | ⬜ |
+| Preview/export equivalence | — | — | 🟡 export renderer goldenized | ⬜ browser |
 | Figma SVG import/re-import | ⬜ | — | — | ⬜ |
 | Cut-out rig/pivot hierarchy | ✅ fixture | ✅ preserved | ✅ visual smoke | ⬜ |
 | Named character actions | ⬜ | ⬜ | ⬜ | ⬜ |

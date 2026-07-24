@@ -107,6 +107,8 @@ Variable list khai báo `itemSchema`. Group template có `repeat` với source, 
 - `absolute.at`, `after.clipId` và `with.clipId` thay trigger/start/delay mơ hồ.
 - Playback dùng `iterations`, `direction` và `rate`.
 - Compiler reject dependency cycle và clip vượt policy Scene.
+- Frame time canonical là `frameIndex / fps`; preview/export không dùng wall clock để evaluate composition.
+- Mọi stochastic primitive tương lai phải lấy sample bằng `(seed, channel, sampleIndex)` thuần, không dùng `Math.random()` hoặc state phụ thuộc thứ tự render frame.
 
 ## Transform và camera
 
