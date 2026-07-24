@@ -38,6 +38,7 @@ const frameGoldens = [
   { project: "motion-path", time: 0, file: "motion-path-t0.png", width: 540, height: 540 },
   { project: "motion-path", time: 1, file: "motion-path-t1.png", width: 540, height: 540 },
   { project: "motion-path", time: 2, file: "motion-path-t2.png", width: 540, height: 540 },
+  { project: "effects", time: 0.5, file: "effects-stack-t0_5.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -308,7 +309,7 @@ async function main(): Promise<void> {
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
   const hashes = new Set<string>();
   for (const golden of frameGoldens) {
-    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : golden.project === "text-animator" ? textAnimatorRuntime : golden.project === "motion-path" ? motionPathRuntime : runtime;
+    const targetRuntime = golden.project === "geometry" ? geometryRuntime : golden.project === "mask" ? maskRuntime : golden.project === "repeater" ? repeaterRuntime : golden.project === "text-animator" ? textAnimatorRuntime : golden.project === "motion-path" ? motionPathRuntime : golden.project === "effects" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "effects-stack.mt.json"), "utf8")))) : runtime;
     const png = drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
     await writeFile(resolve(outputRoot, golden.file), png);
@@ -351,8 +352,13 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [249, 115, 22]) >= 20, "Motion Path follower pixels missing");
       assert.ok(await countColor(png, [168, 85, 247]) >= 20, "Motion Path offset follower pixels missing");
     }
+    if (golden.project === "effects") {
+      assert.ok(await countColor(png, [239, 68, 68], 32) >= 100, "Effects source pixels missing");
+      assert.ok(await countColor(png, [59, 130, 246], 32) >= 100, "Effects reordered pixels missing");
+      assert.ok(await countColor(png, [168, 85, 247], 32) >= 100, "Masked effects pixels missing");
+    }
   }
-  assert.equal(hashes.size, 10, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 11, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");
@@ -363,6 +369,7 @@ async function main(): Promise<void> {
   console.log("OK Repeater vNext list/count/linear/grid/radial visual expansion");
   console.log("OK Unicode Text Animator grapheme/word/line expansion and visual runs");
   console.log("OK Motion Path arc length, offsets, cross-hierarchy position and orientation");
+  console.log("OK ordered effects stack, animated properties and mask-before-effects rendering");
   console.log(`Preview frames: ${outputRoot}`);
 }
 

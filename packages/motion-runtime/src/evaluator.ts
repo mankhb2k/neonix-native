@@ -14,6 +14,7 @@ import { localNodeBounds, samplePathContour } from "./geometry";
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
 export type RuntimeTrack = RuntimeScene["tracks"][number];
+export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
 
 export type EvaluatedNode = {
   node: RuntimeNode;
@@ -72,6 +73,72 @@ export function evaluateProperty(
   if (capability.minExclusive !== undefined && bounded <= capability.minExclusive) bounded = capability.minExclusive + Number.EPSILON;
   if (capability.max !== undefined) bounded = Math.min(capability.max, bounded);
   return bounded;
+}
+
+function effectNumber(
+  scene: RuntimeScene,
+  node: RuntimeNode,
+  effect: RuntimeEffect,
+  field: string,
+  time: number,
+  fallback: number,
+): number {
+  const value = evaluateProperty(scene, node, `effects.${effect.id}.${field}`, time, fallback);
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function effectString(
+  scene: RuntimeScene,
+  node: RuntimeNode,
+  effect: RuntimeEffect,
+  field: string,
+  time: number,
+  fallback: string,
+): string {
+  const value = evaluateProperty(scene, node, `effects.${effect.id}.${field}`, time, fallback);
+  return typeof value === "string" ? value : fallback;
+}
+
+/** Resolve one ordered effect at a deterministic frame timestamp. */
+export function evaluateEffect(
+  scene: RuntimeScene,
+  node: RuntimeNode,
+  effect: RuntimeEffect,
+  time: number,
+): RuntimeEffect {
+  switch (effect.type) {
+    case "blur":
+      return { ...effect, radius: effectNumber(scene, node, effect, "radius", time, effect.radius) };
+    case "shadow":
+      return {
+        ...effect,
+        offsetX: effectNumber(scene, node, effect, "offsetX", time, effect.offsetX),
+        offsetY: effectNumber(scene, node, effect, "offsetY", time, effect.offsetY),
+        blur: effectNumber(scene, node, effect, "blur", time, effect.blur),
+        color: effectString(scene, node, effect, "color", time, effect.color),
+        opacity: effectNumber(scene, node, effect, "opacity", time, effect.opacity),
+      };
+    case "glow":
+      return {
+        ...effect,
+        radius: effectNumber(scene, node, effect, "radius", time, effect.radius),
+        intensity: effectNumber(scene, node, effect, "intensity", time, effect.intensity),
+        color: effectString(scene, node, effect, "color", time, effect.color),
+        opacity: effectNumber(scene, node, effect, "opacity", time, effect.opacity),
+      };
+    case "color-adjust":
+      return {
+        ...effect,
+        brightness: effectNumber(scene, node, effect, "brightness", time, effect.brightness),
+        contrast: effectNumber(scene, node, effect, "contrast", time, effect.contrast),
+        saturation: effectNumber(scene, node, effect, "saturation", time, effect.saturation),
+      };
+  }
+}
+
+/** Resolve effects in authoring order; consumers must preserve this order. */
+export function evaluateNodeEffects(scene: RuntimeScene, node: RuntimeNode, time: number): RuntimeEffect[] {
+  return (node.effects ?? []).map((effect) => evaluateEffect(scene, node, effect, time));
 }
 
 function numberProperty(scene: RuntimeScene, node: RuntimeNode, property: string, time: number, fallback: number): number {

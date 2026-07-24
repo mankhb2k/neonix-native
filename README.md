@@ -72,7 +72,8 @@ pnpm e2e:render
 ```
 
 - `validate:v2-fixtures` parse Component, Project và AI Patch, kiểm tra reference lỗi và compiler expansion.
-- `validate:primitives` kiểm tra world transform/Bone/SVG và tạo ba PNG tại `tmp/primitive-previews`.
+- `validate:primitives` kiểm tra world transform/Bone/SVG/effects và tạo 11 PNG goldens tại `tmp/primitive-previews`.
+- Trạng thái từng phase, commit tương ứng và các gap còn lại: [`docs/roadmap-status.md`](docs/roadmap-status.md).
 - `e2e:render` compile project, raster frame và encode một MP4 thật.
 
 ## Trạng thái render

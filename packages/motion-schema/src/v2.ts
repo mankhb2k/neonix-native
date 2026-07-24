@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   MOTION_V2_LIMITS,
+  motionEffectPropertyCapability,
   motionPropertyCapability,
   motionPropertyValueError,
   motionVariableTypeMatchesValueKind,
@@ -40,6 +41,45 @@ export const VariableReferenceSchema = z.object({
     .strict()
     .optional(),
 });
+
+const EffectIdSchema = IdSchema;
+
+/**
+ * Ordered pixel effects. Effects are intentionally literal authoring data;
+ * animation addresses use `effects.<id>.<field>` and are validated against
+ * the concrete effect instance in the reference pass below.
+ */
+export const EffectV2Schema = z.discriminatedUnion("type", [
+  z.object({
+    id: EffectIdSchema,
+    type: z.literal("blur"),
+    radius: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.effectRadius),
+  }).strict(),
+  z.object({
+    id: EffectIdSchema,
+    type: z.literal("shadow"),
+    offsetX: FiniteNumberSchema.min(-MOTION_V2_LIMITS.effectOffset).max(MOTION_V2_LIMITS.effectOffset),
+    offsetY: FiniteNumberSchema.min(-MOTION_V2_LIMITS.effectOffset).max(MOTION_V2_LIMITS.effectOffset),
+    blur: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.effectRadius),
+    color: z.string().min(1),
+    opacity: FiniteNumberSchema.min(0).max(1).default(1),
+  }).strict(),
+  z.object({
+    id: EffectIdSchema,
+    type: z.literal("glow"),
+    radius: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.effectRadius),
+    intensity: FiniteNumberSchema.min(0).max(MOTION_V2_LIMITS.effectIntensity),
+    color: z.string().min(1),
+    opacity: FiniteNumberSchema.min(0).max(1).default(1),
+  }).strict(),
+  z.object({
+    id: EffectIdSchema,
+    type: z.literal("color-adjust"),
+    brightness: FiniteNumberSchema.min(-1).max(1).default(0),
+    contrast: FiniteNumberSchema.min(0).max(4).default(1),
+    saturation: FiniteNumberSchema.min(0).max(4).default(1),
+  }).strict(),
+]);
 
 export const ResolvableValueSchema = z.union([JsonValueSchema, VariableReferenceSchema]);
 
@@ -247,6 +287,7 @@ const NodeBaseSchema = z.object({
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
   modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
+  effects: z.array(EffectV2Schema).max(MOTION_V2_LIMITS.effectsPerNode).optional(),
   inheritPosition: z.boolean().optional(),
   inheritRotation: z.boolean().optional(),
   inheritScale: z.boolean().optional(),
@@ -746,6 +787,10 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
     for (let nodeIndex = 0; nodeIndex < scene.nodes.length; nodeIndex += 1) {
       const node = scene.nodes[nodeIndex]!;
       const modifiers = node.modifiers ?? [];
+      const effects = node.effects ?? [];
+      for (const effectId of new Set(duplicates(effects.map((effect) => effect.id)))) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "effects"], message: `Duplicate runtime effect id: ${effectId}` });
+      }
       for (const modifierId of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: `Duplicate runtime modifier id: ${modifierId}` });
       }
@@ -791,6 +836,18 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
         context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime Motion Path modifier: ${modifierMatch[1]}` });
         continue;
       }
+      const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(track.property);
+      if (effectMatch) {
+        const effect = node.effects?.find((candidate) => candidate.id === effectMatch[1]);
+        if (!effect) {
+          context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime effect: ${effectMatch[1]}` });
+          continue;
+        }
+        if (!motionEffectPropertyCapability(effect.type, effectMatch[2]!)) {
+          context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unsupported runtime property for ${effect.type} effect: ${effectMatch[2]}` });
+          continue;
+        }
+      }
       const capability = motionPropertyCapability(node.type, track.property);
       if (!capability) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unsupported runtime property for ${node.type}: ${track.property}` });
@@ -821,6 +878,7 @@ export type MotionPaintStyle = z.infer<typeof PaintStyleSchema>;
 export type MotionPoint = z.infer<typeof PointV2Schema>;
 export type MotionPathSegment = z.infer<typeof PathSegmentV2Schema>;
 export type MotionPathContour = z.infer<typeof PathContourV2Schema>;
+export type MotionEffect = z.infer<typeof EffectV2Schema>;
 
 export interface ReferenceIssue {
   path: string;
@@ -855,6 +913,10 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
   const ids = nodes.map((node) => node.id);
   for (const id of new Set(duplicates(ids))) issues.push({ path: prefix, message: `Duplicate node id: ${id}` });
   for (const node of nodes) {
+    const effects = node.effects ?? [];
+    for (const id of new Set(duplicates(effects.map((effect) => effect.id)))) {
+      issues.push({ path: `${prefix}.${node.id}.effects`, message: `Duplicate effect id: ${id}` });
+    }
     if (node.type === "bone" && node.payload.rotationLimits && node.payload.rotationLimits.min > node.payload.rotationLimits.max) {
       issues.push({ path: `${prefix}.${node.id}.payload.rotationLimits.max`, message: "Bone rotation limit max must be >= min" });
     }
@@ -967,6 +1029,14 @@ function validatePropertyPath(
   const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(property);
   if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && modifier.type === "motion-path")) {
     return [{ path, message: `Unknown Motion Path modifier: ${modifierMatch[1]}` }];
+  }
+  const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(property);
+  if (effectMatch) {
+    const effect = node.effects?.find((candidate) => candidate.id === effectMatch[1]);
+    if (!effect) return [{ path, message: `Unknown effect: ${effectMatch[1]}` }];
+    if (!motionEffectPropertyCapability(effect.type, effectMatch[2]!)) {
+      return [{ path, message: `Unsupported property for ${effect.type} effect: ${effectMatch[2]}` }];
+    }
   }
   const capability = motionPropertyCapability(node.type, property);
   if (!capability) return [{ path, message: `Unsupported property for ${node.type}: ${property}` }];

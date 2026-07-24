@@ -61,7 +61,7 @@ type LimitCase = {
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
     | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items"
-    | "component.sourceImports" | "sourceImport.parts" | "sourcePart.elementIds" | "component.cutoutRigs"
+    | "component.sourceImports" | "sourceImport.parts" | "sourcePart.elementIds" | "component.cutoutRigs" | "effects.items"
     | "cutoutRig.slots" | "variantSlot.variants" | "component.actions" | "action.clips";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
@@ -399,6 +399,9 @@ async function validateNegativeFixtures(): Promise<number> {
     { file: "components/motion-path-zero-length.mvc.json", parse: parseMotionComponentV2, path: "nodes.target.modifiers.follow.contourId", message: "Motion Path contour has zero length: route" },
     { file: "components/unknown-motion-path-property.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.missing.progress", message: "Unknown Motion Path modifier: missing" },
     { file: "components/motion-path-progress-over-limit.mvc.json", parse: parseMotionComponentV2, path: "clips.bad.source.tracks.modifiers.follow.progress", message: "Value 1.2 exceeds maximum 1 for modifiers.follow.progress" },
+    { file: "components/effect-unknown-track-id.mvc.json", parse: parseMotionComponentV2, path: "clips.animate.source.tracks.effects.missing.radius", message: "Unknown effect: missing" },
+    { file: "components/effect-unsupported-field.mvc.json", parse: parseMotionComponentV2, path: "clips.animate.source.tracks.effects.tone.radius", message: "Unsupported property for color-adjust effect: radius" },
+    { file: "components/effect-duplicate-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.card.effects", message: "Duplicate effect id: blur" },
     {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
@@ -535,6 +538,12 @@ async function validateNegativeFixtures(): Promise<number> {
       code: "too_small",
     },
     {
+      file: "components/effect-radius-over-limit.mvc.json",
+      path: "nodes.0.effects.0.radius",
+      code: "too_big",
+      message: "less than or equal to 512",
+    },
+    {
       file: "components/invalid-text-selector.mvc.json",
       path: "nodes.0.textAnimator.selector.end",
       code: "custom",
@@ -631,6 +640,11 @@ function baseLimitProject(): Record<string, unknown> {
 
 function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unknown>; parse: (input: unknown) => unknown } {
   const count = MOTION_V2_LIMITS[testCase.limit] + 1;
+  if (testCase.target === "effects.items") {
+    const component = baseLimitComponent();
+    component.nodes = [{ ...fixtureNode("root"), effects: Array.from({ length: count }, (_, index) => ({ id: `effect-${index}`, type: "blur", radius: 1 })) }];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
   if (["component.sourceImports", "sourceImport.parts", "sourcePart.elementIds", "component.cutoutRigs", "cutoutRig.slots", "variantSlot.variants", "component.actions", "action.clips"].includes(testCase.target)) {
     const component = baseLimitComponent();
     const part = (index: number, elementCount = 1) => ({

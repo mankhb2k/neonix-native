@@ -2,6 +2,8 @@
 
 Playback acceptance is covered by `projects/schedule-playback.mt.json` and its Runtime golden, including iterations, reverse/alternate direction, infinite scene clipping, schedule offsets, and evaluator timestamp assertions.
 
+Effects acceptance is covered by `projects/effects-stack.mt.json`, `expected-runtime/effects-stack.runtime.json`, and `expected-frames/effects-stack-t0_5.png`; it verifies ordered blur/shadow/glow/color-adjust, animated effect properties, mask-before-effects, negative references, and the per-node effect limit.
+
 Tài liệu này là coverage map cho fixtures. Ký hiệu:
 
 Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`](../../primitives-object.md).

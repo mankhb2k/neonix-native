@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createCanvas, GlobalFonts, Image, type SKRSContext2D } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts, Image, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
 import type { AspectRatio, NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
-import { evaluateProperty, evaluateScene, type EvaluatedNode, type RuntimeScene } from "@motionvideo/motion-runtime";
+import {
+  evaluateNodeEffects,
+  evaluateProperty,
+  evaluateScene,
+  planOffscreenSurface,
+  type EvaluatedNode,
+  type RuntimeEffect,
+  type RuntimeScene,
+} from "@motionvideo/motion-runtime";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
@@ -207,6 +215,80 @@ function drawEvaluatedNode(
   ctx.restore();
 }
 
+function effectPadding(effect: RuntimeEffect): number {
+  switch (effect.type) {
+    case "blur": return effect.radius;
+    case "shadow": return Math.max(Math.abs(effect.offsetX), Math.abs(effect.offsetY)) + effect.blur;
+    case "glow": return effect.radius;
+    case "color-adjust": return 0;
+  }
+}
+
+function colorWithOpacity(color: string, opacity: number): string {
+  const bounded = Math.min(1, Math.max(0, opacity));
+  const short = /^#([\da-f]{3})$/i.exec(color);
+  if (short) {
+    const [r, g, b] = [...short[1]!].map((channel) => Number.parseInt(`${channel}${channel}`, 16));
+    return `rgba(${r},${g},${b},${bounded})`;
+  }
+  const hex = /^#([\da-f]{6})$/i.exec(color);
+  if (hex) {
+    const value = Number.parseInt(hex[1]!, 16);
+    return `rgba(${(value >> 16) & 255},${(value >> 8) & 255},${value & 255},${bounded})`;
+  }
+  const rgb = /^rgba?\(([^)]+)\)$/i.exec(color);
+  if (rgb) {
+    const channels = rgb[1]!.split(",").map((channel) => channel.trim());
+    if (channels.length >= 3) return `rgba(${channels[0]},${channels[1]},${channels[2]},${bounded})`;
+  }
+  return color;
+}
+
+function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
+  const output = createCanvas(layer.width, layer.height);
+  const outputContext = output.getContext("2d");
+  if (effect.type === "blur") {
+    outputContext.filter = `blur(${effect.radius}px)`;
+    outputContext.drawImage(layer, 0, 0);
+    outputContext.filter = "none";
+  } else if (effect.type === "shadow") {
+    outputContext.shadowColor = colorWithOpacity(effect.color, effect.opacity);
+    outputContext.shadowBlur = effect.blur;
+    outputContext.shadowOffsetX = effect.offsetX;
+    outputContext.shadowOffsetY = effect.offsetY;
+    outputContext.drawImage(layer, 0, 0);
+    outputContext.shadowColor = "transparent";
+    outputContext.shadowBlur = 0;
+    outputContext.shadowOffsetX = 0;
+    outputContext.shadowOffsetY = 0;
+  } else if (effect.type === "glow") {
+    outputContext.shadowColor = colorWithOpacity(effect.color, Math.min(1, effect.opacity * effect.intensity));
+    outputContext.shadowBlur = effect.radius;
+    outputContext.drawImage(layer, 0, 0);
+    outputContext.shadowColor = "transparent";
+    outputContext.shadowBlur = 0;
+  } else {
+    outputContext.filter = `brightness(${(1 + effect.brightness) * 100}%) contrast(${effect.contrast * 100}%) saturate(${effect.saturation * 100}%)`;
+    outputContext.drawImage(layer, 0, 0);
+    outputContext.filter = "none";
+  }
+  return output;
+}
+
+function applyEffects(
+  layer: Canvas,
+  effects: RuntimeEffect[],
+  bounds: EvaluatedNode["worldBounds"],
+): Canvas {
+  if (effects.length === 0) return layer;
+  const padding = effects.reduce((max, effect) => Math.max(max, effectPadding(effect)), 0);
+  // Validate the effect's expanded footprint before allocating/rendering an
+  // offscreen surface. The reference renderer still uses a full-frame layer,
+  // but this gate keeps the same resource policy as a cropped adapter.
+  planOffscreenSurface(bounds, padding);
+  return effects.reduce((current, effect) => applyEffect(current, effect), layer);
+}
+
 export function drawSceneFrame(
   scene: RuntimeScene,
   metadata: NormalizedMotionProjectV2["metadata"],
@@ -248,13 +330,14 @@ export function drawSceneFrame(
       layerContext.drawImage(maskLayer, 0, 0);
       layerContext.globalCompositeOperation = "source-over";
     }
-    return layer;
+    if (maskPass) return layer;
+    return applyEffects(layer, evaluateNodeEffects(scene, item.node, localTime), item.worldBounds);
   };
   ctx.save();
   ctx.scale(width / source.width, height / source.height);
   for (const { item } of evaluated) {
     if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) continue;
-    if (!item.node.mask) {
+    if (!item.node.mask && (item.node.effects?.length ?? 0) === 0) {
       drawEvaluatedNode(ctx, scene, item, metadata.brand, assetById, assetBaseDir, localTime);
       continue;
     }

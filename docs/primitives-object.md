@@ -1,5 +1,7 @@
 # MotionVideo primitive object catalog
 
+Current status ledger: [`roadmap-status.md`](roadmap-status.md). Effects stack is now implemented and verified; Path Morph, Secondary Motion, media mixing, importer, camera rendering, and browser parity remain pending.
+
 > Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative hiện tại vẫn là [`motion-format-v2.md`](motion-format-v2.md). Proposal chi tiết nằm tại [`atomic-primitives-plan.md`](atomic-primitives-plan.md), [`svg-cutout-plan.md`](svg-cutout-plan.md) và [`fixtures/v2/test-plan.md`](fixtures/v2/test-plan.md).
 
 ## Định vị

@@ -45,6 +45,10 @@ export const MOTION_V2_LIMITS = Object.freeze({
   variantsPerSlot: 128,
   actionsPerComponent: 256,
   clipsPerAction: 512,
+  effectsPerNode: 16,
+  effectRadius: 512,
+  effectOffset: 32_768,
+  effectIntensity: 8,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";
@@ -122,6 +126,13 @@ export function motionPropertyCapability(nodeType: string, property: string): Mo
   const transform = TRANSFORM_PROPERTIES[property];
   if (transform) return transform;
   if (/^modifiers\.[^.]+\.progress$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
+  const effectMatch = /^effects\.[^.]+\.([^.]+)$/.exec(property);
+  if (effectMatch) {
+    for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {
+      const capability = motionEffectPropertyCapability(type, effectMatch[1]!);
+      if (capability) return capability;
+    }
+  }
   if (nodeType === "component" && property.startsWith("payload.props.") && property.length > "payload.props.".length) {
     return { valueKind: "json", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" };
   }
@@ -129,6 +140,34 @@ export function motionPropertyCapability(nodeType: string, property: string): Mo
 }
 
 export type MotionPropertyCapabilityEntry = MotionPropertyCapability & { property: string };
+
+export function motionEffectPropertyCapability(
+  effectType: "blur" | "shadow" | "glow" | "color-adjust",
+  field: string,
+): MotionPropertyCapability | undefined {
+  const number = (min?: number, max?: number): MotionPropertyCapability => ({
+    valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min, max,
+  });
+  switch (effectType) {
+    case "blur": return field === "radius" ? number(0, MOTION_V2_LIMITS.effectRadius) : undefined;
+    case "shadow":
+      if (field === "offsetX" || field === "offsetY") return number(-MOTION_V2_LIMITS.effectOffset, MOTION_V2_LIMITS.effectOffset);
+      if (field === "blur") return number(0, MOTION_V2_LIMITS.effectRadius);
+      if (field === "opacity") return number(0, 1);
+      if (field === "color") return { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" };
+      return undefined;
+    case "glow":
+      if (field === "radius") return number(0, MOTION_V2_LIMITS.effectRadius);
+      if (field === "intensity") return number(0, MOTION_V2_LIMITS.effectIntensity);
+      if (field === "opacity") return number(0, 1);
+      if (field === "color") return { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" };
+      return undefined;
+    case "color-adjust":
+      if (field === "brightness") return number(-1, 1);
+      if (field === "contrast" || field === "saturation") return number(0, 4);
+      return undefined;
+  }
+}
 
 /** Enumerable safe vocabulary for AI authoring and schema-driven controls. */
 export function motionPropertyCapabilities(nodeType: string, motionPathModifierIds: readonly string[] = []): MotionPropertyCapabilityEntry[] {
