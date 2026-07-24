@@ -46,20 +46,30 @@ export function planMotionProject(input: PlanInput): MotionProject {
   let lineIndex = 0;
   const project: MotionProject = {
     ...template.project,
-    id: `proj_${Date.now()}`,
-    aspectRatio: input.aspectRatio ?? template.project.aspectRatio,
-    brand: {
-      ...template.project.brand,
+    metadata: {
+      ...template.project.metadata,
+      id: `proj_${Date.now()}`,
       name: input.brandName,
-      primaryColor: input.primaryColor ?? template.project.brand.primaryColor,
+      aspectRatio: input.aspectRatio ?? template.project.metadata.aspectRatio,
+      brand: {
+        ...template.project.metadata.brand,
+        name: input.brandName,
+        primaryColor: input.primaryColor ?? template.project.metadata.brand.primaryColor,
+      },
     },
+    variables: template.project.variables.map((variable) => {
+      if (variable.id === "project.brandName" && variable.type === "string") return { ...variable, value: input.brandName };
+      if (variable.id === "project.primaryColor" && variable.type === "color") return { ...variable, value: input.primaryColor ?? template.project.metadata.brand.primaryColor ?? variable.value };
+      return variable;
+    }),
     scenes: template.project.scenes.map((scene) => ({
       ...scene,
-      layers: scene.layers.map((layer) => {
-        if (layer.type !== "text") return layer;
-        const content = lines[lineIndex] ?? layer.content;
+      nodes: scene.nodes.map((node) => {
+        if (node.type !== "text") return node;
+        const currentText = typeof node.payload?.text === "string" ? node.payload.text : "";
+        const text = lines[lineIndex] ?? currentText;
         lineIndex += 1;
-        return { ...layer, content };
+        return { ...node, payload: { ...node.payload, text } };
       }),
     })),
   };

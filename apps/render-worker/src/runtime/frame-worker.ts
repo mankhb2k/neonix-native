@@ -20,7 +20,7 @@ async function run() {
   for (const job of jobs) {
     const scene = compiled.scenes[job.sceneIndex];
     if (!scene) continue;
-    const png = drawSceneFrame(scene, compiled.brand, job.localTime, width, height);
+    const png = drawSceneFrame(scene, compiled.metadata, job.localTime, width, height);
     const name = `frame_${String(job.frameIndex).padStart(6, "0")}.png`;
     await writeFile(path.join(outDir, name), png);
   }

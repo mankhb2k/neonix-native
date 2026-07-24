@@ -1,212 +1,131 @@
 # MotionVideo
 
-AI **motion graphic 2D** cho doanh nghiệp Việt — tạo TVC 15–30 giây dạng timeline có thể chỉnh, không phải hộp đen text → video.
+MotionVideo là editor và render pipeline cho TVC motion graphic 2D tiếng Việt. AI tạo hoặc điền một project có cấu trúc; người dùng vẫn sửa được nội dung, brand, scene, node và timing trước khi xuất MP4.
 
-> Người dùng không mua “AI”. Họ mua video quảng cáo, nội dung TikTok, và thời gian tiết kiệm so với After Effects.
+## Phạm vi sản phẩm
 
----
+- TVC 15–30 giây cho F&B, spa, bán lẻ và SME.
+- Kinetic text, logo, shape, image, camera 2D, component tái sử dụng và audio timeline.
+- Template/grammar quảng cáo Việt Nam và font có kiểm tra dấu tiếng Việt.
+- Không phải trình sinh pixel cinematic và không nhằm thay thế toàn bộ After Effects.
 
-## App này làm gì?
-
-MotionVideo giúp marketing / SME / agency nhỏ:
-
-1. Tạo dự án (tên + tỉ lệ khung hình)
-2. AI (hoặc template) dựng **storyboard → scene → layer → animation** thành **Motion JSON**
-3. Chỉnh trong editor kiểu CapCut-lite: scene, layer, chữ, màu brand, preset animation, AI chat
-4. Xuất video (ngang / dọc) qua render worker
-
-**Phạm vi sản phẩm (MVP):** TVC motion 2D tiếng Việt — kinetic text, logo reveal, icon, shape, CTA — tối ưu cho F&B / spa / SME Việt Nam.
-
-**Không nhằm:** thay thế After Effects đầy đủ, hay cạnh tranh Runway/Pika kiểu cinematic generative video.
-
----
-
-## Motion là gì? (không phải slide, không phải “AI video”)
-
-### Motion ≠ PowerPoint
-
-| Slide | Motion graphic |
-|---|---|
-| Slide 1 → 2 → 3 gần như độc lập | Một **timeline** liên tục (0s → 30s) |
-| Animation chủ yếu trong từng slide | Text, image, shape, camera, audio **chồng thời gian** |
-| Chuyển slide | Scene là đoạn trên cùng một dòng thời gian |
-
-### Motion ≠ Generative AI video
-
-| AI video (Runway, Pika, text→video…) | MotionVideo |
-|---|---|
-| Model sinh **pixel / clip** | AI sinh / lắp **timeline có cấu trúc** |
-| Khó chỉnh từng chữ, từng scene | Sửa layer, preset, màu, CTA rồi render lại |
-| Brand / font tiếng Việt khó kiểm soát | Font whitelist VN, template, grammar quảng cáo |
-| Output gần như hộp đen | Source of truth = **Motion JSON** |
-
-**Định nghĩa làm việc:**
-
-> Motion graphic = một **scene graph** (scene → layer → object) được phát theo **timeline** (khi nào xuất hiện, kéo dài bao lâu, animate thế nào), rồi **render** thành video.
+## Một kiến trúc canonical
 
 ```text
-Project
-├── Brand (tên, màu, logo, font)
-├── Aspect ratio (9:16 | 16:9 | 1:1)
-└── Scenes[]
-    ├── role (hook | offer | cta | …)
-    ├── duration
-    └── Layers[]
-        ├── type (text | logo | shape | …)
-        ├── content / asset
-        └── animations[] (preset + start + duration)
+Prompt / Template / Import v1
+              │
+              ▼
+       Authoring IR v2 (.mt/.mvc)
+       Node graph + Clips + Variables
+       Components + Bindings + Timeline
+              │
+              ▼ compile
+       Normalized Runtime IR
+       literal Nodes + literal Tracks
+              │
+              ▼
+       Reference renderer → Frames → FFmpeg → MP4
 ```
 
-Timeline là trái tim. Scene gần “slide” nhưng chỉ là **đoạn thời gian** trên timeline, không phải trang độc lập.
+Nguyên tắc bắt buộc:
 
----
+1. `MotionProject` trong application code luôn là v2.
+2. V1 chỉ là định dạng import legacy: parse v1 → migrate → v2 ngay tại biên hệ thống.
+3. Component Instance là Node trong `scene.nodes[]`; không có graph `instances[]` thứ hai.
+4. Preset, variable reference, binding và repeater chỉ tồn tại trong Authoring IR; renderer không diễn giải chúng.
+5. Web/AI User chỉ sửa Project Variable và Component public props; internal node/bone/track của `.mvc` được đóng gói.
+6. Preview và export dùng chung property vocabulary và transform convention.
 
-## Luồng AI (quan trọng)
+Contract: [Motion Format v2](docs/motion-format-v2.md). Quyết định kiến trúc: [refactor.md](docs/refactor.md).
 
-```text
-Prompt / form brand + kịch bản
-        ↓
-AI Planner + Template / Grammar (retrieve)
-        ↓
-Motion JSON  ← có thể validate (Zod) và chỉnh tay
-        ↓
-Compiler
-        ↓
-Render engine (MVP: Motion Canvas runtime)
-        ↓
-FFmpeg (encode, tỉ lệ, audio)
-        ↓
-MP4
+## Motion Format v2
+
+Project dùng identity rõ ràng:
+
+```json
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "project.demo",
+    "name": "Demo",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Brand", "primaryColor": "#D9381E" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene.hook"], "audioTracks": [] },
+  "scenes": [],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}
 ```
 
-**AI không nên chỉ sinh file video cuối.**  
-AI nên sinh (hoặc chọn + điền) **timeline**. User giữ quyền sửa trước khi xuất.
+`.mvc` tách `formatVersion` khỏi `componentVersion`. Component package đã publish phải bất biến và project pin exact version + integrity.
 
-Camera (pha sau): không bắt user keyframe như AE — dùng **camera preset** (`Zoom In`, `Focus Object`, …); trong data có thể là transform/preset trên scene, không nhất thiết “một layer lung tung” trên UI.
+## Monorepo
 
----
-
-## Khác gì video AI generate ngoài kia?
-
-| | ChatGPT / Runway / HeyGen avatar… | MotionVideo |
-|---|---|---|
-| Bài toán | Sinh clip / talking head / cinematic | TVC motion 2D có cấu trúc quảng cáo |
-| Chỉnh sửa | Prompt lại, hoặc edit hạn chế | Editor: scene, layer, inspector, AI patch có **Áp dụng** |
-| Brand | Dễ lệch | Logo, màu, font VN-safe |
-| Tiếng Việt | Thường phụ | Kinetic typography + font đã QA dấu |
-| Moat | Model lớn | Template, grammar TVC VN, asset, UX |
-| Xuất | Video | Video **từ** project format riêng (đổi engine được) |
-
-Tóm lại: cạnh tranh bằng **workflow + thư viện motion cho VN**, không bằng “model lớn hơn”.
-
----
-
-## Công nghệ
-
-### Monorepo (pnpm)
-
-| Phần | Vai trò |
+| Package | Trách nhiệm |
 |---|---|
-| `apps/web` | Next.js — landing + app editor |
-| `apps/render-worker` | Queue render (không chạy trong serverless Next) |
-| `packages/motion-schema` | Zod contract: Motion JSON |
-| `packages/template-library` | Template / motion block + retrieve (tag) |
-| `packages/motion-grammar` | Hook → Offer → CTA… |
-| `packages/ai-planner` | Input → MotionProject (stub → LLM sau) |
-| `packages/asset-registry` | Font VN-safe whitelist |
-| `packages/shared` | Constants / job status |
-
-### Stack chính
-
-- **UI:** Next.js (App Router), React, Zustand  
-- **Domain model:** TypeScript + Zod (`@motionvideo/motion-schema`)  
-- **Render (hướng MVP):** Motion Canvas (runtime) + **FFmpeg** (encode)  
-- **AI:** LLM API gọi qua planner; output bắt buộc khớp schema  
-- **Deploy ý tưởng:** `motionvideo.com` (landing) + `app.motionvideo.com` (app); local: `/` và `/app`
-
-### Nguyên tắc kiến trúc
-
-1. Editor chỉ thao tác **Motion JSON** — không phụ thuộc cứng một render engine.  
-2. Web **không** render video nặng trong request Next.js — đẩy sang worker.  
-3. Preview (browser) và final render (worker) có thể khác engine; cùng một project format.  
-4. MVP: animation **preset** + scene timing; keyframe graph kiểu AE = pha sau nếu khách trả tiền.
-
----
-
-## Cấu trúc thư mục (rút gọn)
-
-```text
-motionvideo/
-├── apps/
-│   ├── web/                 # Next.js UI + editor
-│   └── render-worker/       # compile → runtime → ffmpeg → upload
-├── packages/
-│   ├── motion-schema/
-│   ├── template-library/
-│   ├── motion-grammar/
-│   ├── ai-planner/
-│   ├── asset-registry/
-│   └── shared/
-├── assets/                  # fonts / music / characters (binary)
-└── scripts/
-```
-
----
+| `apps/web` | Next.js workspace/editor, import/export và local project storage |
+| `apps/render-worker` | Authoring compiler, literal-track renderer, FFmpeg và upload adapter |
+| `packages/motion-schema` | Zod v2, reference validator, Runtime IR và v1 migration boundary |
+| `packages/template-library` | Seed project v2, block/preset registry và retrieval |
+| `packages/ai-planner` | Chọn template và sinh project v2 đã validate |
+| `packages/motion-grammar` | Grammar Hook → Offer → CTA |
+| `packages/asset-registry` | Asset/font policy |
+| `packages/shared` | Kiểu dùng chung ngoài motion domain |
 
 ## Chạy local
 
-Yêu cầu: Node ≥ 20, **pnpm** ≥ 9.
+Yêu cầu Node ≥ 20 và pnpm ≥ 9.
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-- Landing: http://localhost:3000  
-- App: http://localhost:3000/app  
+- Landing: `http://localhost:3000`
+- App: `http://localhost:3000/app`
+- Worker: `pnpm dev:worker`
 
-Worker (khi nối queue):
+## Kiểm tra
 
 ```bash
-pnpm dev:worker
+pnpm typecheck
+pnpm validate:v2-fixtures
+pnpm e2e:render
 ```
 
-Sao chép `.env.example` → `.env.local` nếu cần URL marketing/app.
+`validate:v2-fixtures` parse 5 Component, 2 Project và 1 AI Patch; đồng thời kiểm tra reference hỏng bị từ chối. `e2e:render` compile template v2 thành Runtime IR, raster frame và encode MP4 thật.
 
----
+## Trạng thái
 
-## Trạng thái hiện tại (MVP)
+Đã có:
 
-**Đã có**
+- Canonical v2 xuyên schema, template, planner, editor, storage, export và worker.
+- Import/localStorage v1 được migrate sang v2 khi đọc.
+- Node/Clip editor cơ bản, template retrieval và preset registry.
+- Authoring compiler loại preset/reference/binding trước runtime.
+- Reference renderer đa worker và FFmpeg export.
+- Golden fixtures cho Component API, dependency, list/repeater, camera và audio.
 
-- Tách landing / app (+ middleware subdomain cho prod)
-- Workspace + modal tạo dự án (tên + tỉ lệ + **chọn template**)
-- Editor: preview motion (CSS theo preset), Inspector (preset/duration/delay/x/y), import/tải `.mt`, **Xuất MP4** qua `/api/export` → render-worker CLI
-- 4 template: F&B, big-number, process-steps, compare-2
-- Chat stub: keyword + dán ```json``` patch → Zod/registry → Áp dụng
-- **Motion Format `.mt`** (`version: 1`) + preset registry
-- Render-worker: e2e / benchmark / `cli-export` (parallel frames)
+Đang hoàn thiện:
 
-**Chưa có / đang stub**
+- Component package resolver/cache cho production và portable bundle.
+- Repeater/component compiler đầy đủ cho mọi nested case.
+- Preview browser dùng cùng evaluator track với worker.
+- Transition, audio mix production, cloud queue/upload, auth/billing và LLM planner thật.
 
-- Motion Canvas adapter
-- LLM planner production (chat vẫn rule-based)
-- TTS / nhạc / auth / billing / cloud upload
+## Quy tắc đóng góp
 
-Spec: [`docs/motion-format.md`](docs/motion-format.md).
+- Không thêm feature mới vào `legacy-v1.ts`.
+- Không import type v1 ngoài migration/test.
+- Không cho renderer đọc preset, variable, binding, repeater hoặc Component package.
+- Mọi thay đổi contract phải cập nhật schema, docs và fixtures cùng lúc.
+- Chạy typecheck và fixture validation trước khi commit.
 
----
-
-## Định hướng sản phẩm
-
-1. **Ship Next.js** để validate và có doanh thu.  
-2. Xây moat: template + grammar + font tiếng Việt + UX.  
-3. Chỉ khi khách thật cần hiệu năng / offline: native / C++ / Wasm cho hot path — **không** bắt đầu bằng clone After Effects.
-
-Model AI là “điện”. Tài sản là **format + template + engine preset**.
-
----
-
-## License
-
-Private / chưa công bố — cập nhật khi mở source hoặc commercial.
+Private project; chưa công bố license.

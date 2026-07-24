@@ -19,11 +19,11 @@ const animationBlocks = listMotionBlocksByFamily("animation").filter((b) =>
 export function Inspector() {
   const project = useEditorStore((s) => s.project);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
-  const selectedLayerId = useEditorStore((s) => s.selectedLayerId);
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const updateBrand = useEditorStore((s) => s.updateBrand);
-  const updateLayerContent = useEditorStore((s) => s.updateLayerContent);
-  const updateLayerAnimation = useEditorStore((s) => s.updateLayerAnimation);
-  const updateLayerPosition = useEditorStore((s) => s.updateLayerPosition);
+  const updateNodeText = useEditorStore((s) => s.updateNodeText);
+  const updateNodeAnimation = useEditorStore((s) => s.updateNodeAnimation);
+  const updateNodePosition = useEditorStore((s) => s.updateNodePosition);
   const updateSceneDuration = useEditorStore((s) => s.updateSceneDuration);
   const setAspectRatio = useEditorStore((s) => s.setAspectRatio);
 
@@ -36,16 +36,16 @@ export function Inspector() {
   }
 
   const scene = project.scenes.find((s) => s.id === selectedSceneId);
-  const layer = scene?.layers.find((l) => l.id === selectedLayerId);
-  const animation = layer?.animations[0];
+  const node = scene?.nodes.find((candidate) => candidate.id === selectedNodeId);
+  const animation = scene?.clips.find((clip) => clip.targetId === node?.id && clip.source.kind === "preset");
   const defaultPreset = animationBlocks[0]?.preset ?? "fade-in";
   const layerTitle =
-    layer?.type === "text"
+    node?.type === "text"
       ? "Văn bản"
-      : layer
-        ? layer.type.charAt(0).toUpperCase() + layer.type.slice(1)
-        : scene?.role
-          ? `Khung · ${scene.role}`
+      : node
+        ? node.type.charAt(0).toUpperCase() + node.type.slice(1)
+        : scene?.semantic?.role
+          ? `Khung · ${scene.semantic.role}`
           : "Khung hình";
 
   return (
@@ -64,11 +64,11 @@ export function Inspector() {
             type="number"
             step={1}
             stepper
-            disabled={!layer}
-            value={layer?.x ?? 0}
+            disabled={!node}
+            value={node?.transform.x ?? 0}
             onChange={(e) =>
-              layer &&
-              updateLayerPosition(selectedSceneId, layer.id, {
+              node &&
+              updateNodePosition(selectedSceneId, node.id, {
                 x: Number(e.target.value),
               })
             }
@@ -79,11 +79,11 @@ export function Inspector() {
             type="number"
             step={1}
             stepper
-            disabled={!layer}
-            value={layer?.y ?? 0}
+            disabled={!node}
+            value={node?.transform.y ?? 0}
             onChange={(e) =>
-              layer &&
-              updateLayerPosition(selectedSceneId, layer.id, {
+              node &&
+              updateNodePosition(selectedSceneId, node.id, {
                 y: Number(e.target.value),
               })
             }
@@ -109,9 +109,9 @@ export function Inspector() {
           <PropertySelect
             id="aspect"
             label="Tỉ lệ"
-            value={project.aspectRatio}
+            value={project.metadata.aspectRatio}
             onChange={(e) =>
-              setAspectRatio(e.target.value as typeof project.aspectRatio)
+              setAspectRatio(e.target.value as typeof project.metadata.aspectRatio)
             }
           >
             <option value="9:16">9:16</option>
@@ -133,19 +133,19 @@ export function Inspector() {
           <PropertyInput
             id="brand-name"
             label="Brand"
-            value={project.brand.name}
+            value={project.metadata.brand.name}
             onChange={(e) => updateBrand({ name: e.target.value })}
           />
           <PropertyColor
             id="brand-color"
             label="Màu brand"
-            value={project.brand.primaryColor ?? "#1A5D3A"}
+            value={project.metadata.brand.primaryColor ?? "#1A5D3A"}
             onChange={(value) => updateBrand({ primaryColor: value })}
           />
         </div>
       </PropertySection>
 
-      {layer?.type === "text" ? (
+      {node?.type === "text" ? (
         <PropertySection
           title="Chữ"
           action={
@@ -156,15 +156,15 @@ export function Inspector() {
         >
           <PropertyInput
             id="layer-text"
-            value={layer.content ?? ""}
+            value={typeof node.payload?.text === "string" ? node.payload.text : ""}
             onChange={(e) =>
-              updateLayerContent(selectedSceneId, layer.id, e.target.value)
+              updateNodeText(selectedSceneId, node.id, e.target.value)
             }
           />
         </PropertySection>
       ) : null}
 
-      {layer ? (
+      {node ? (
         <PropertySection
           title="Hoạt hình"
           action={
@@ -177,15 +177,15 @@ export function Inspector() {
             <PropertySelect
               id="anim"
               label="Preset"
-              value={animation?.preset ?? defaultPreset}
+              value={animation?.source.kind === "preset" ? animation.source.presetId : defaultPreset}
               onChange={(e) =>
-                updateLayerAnimation(selectedSceneId, layer.id, {
-                  preset: e.target.value,
+                updateNodeAnimation(selectedSceneId, node.id, {
+                  presetId: e.target.value,
                 })
               }
             >
               {animationBlocks.map((b) => (
-                <option key={b.id} value={b.preset!}>
+                <option key={b.id} value={b.preset}>
                   {b.nameVi}
                 </option>
               ))}
@@ -201,23 +201,23 @@ export function Inspector() {
                 stepper
                 value={animation?.duration ?? 0.6}
                 onChange={(e) =>
-                  updateLayerAnimation(selectedSceneId, layer.id, {
+                  updateNodeAnimation(selectedSceneId, node.id, {
                     duration: Number(e.target.value),
                   })
                 }
               />
               <PropertyInput
-                id="anim-delay"
-                label="Delay"
+                id="anim-at"
+                label="Bắt đầu"
                 prefix="s"
                 type="number"
                 min={0}
                 step={0.1}
                 stepper
-                value={animation?.delay ?? 0}
+                value={animation?.schedule.kind === "absolute" ? animation.schedule.at : 0}
                 onChange={(e) =>
-                  updateLayerAnimation(selectedSceneId, layer.id, {
-                    delay: Number(e.target.value),
+                  updateNodeAnimation(selectedSceneId, node.id, {
+                    at: Number(e.target.value),
                   })
                 }
               />

@@ -40,28 +40,28 @@ async function main() {
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {
     const detail = presetCheck.unknown
-      .map((u) => `${u.sceneId}/${u.layerId}:${u.preset}`)
+      .map((u) => `${u.sceneId}/${u.nodeId}:${u.preset}`)
       .join(", ");
     throw new Error(`Unknown animation presets: ${detail}`);
   }
 
   const outDir = path.join(REPO_ROOT, "tmp");
   await mkdir(outDir, { recursive: true });
-  const mtPath = path.join(outDir, `${project.id}.mt`);
+  const mtPath = path.join(outDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
 
   const compiled = compileMotionProject(project);
-  const rendered = await renderCompiledProject(compiled, project, {
+  const rendered = await renderCompiledProject(compiled, {
     fps: 24,
     scale: 0.5,
-    outDir: path.join(outDir, "frames", project.id),
+    outDir: path.join(outDir, "frames", project.metadata.id),
   });
-  const files = await encodeOutputs(rendered, project.aspectRatio);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio);
   const mp4Path = files[0]?.path;
   if (!mp4Path) throw new Error("Encode produced no file");
 
   process.stdout.write(
-    `${JSON.stringify({ ok: true, mp4Path, projectId: project.id, mtPath })}\n`,
+    `${JSON.stringify({ ok: true, mp4Path, projectId: project.metadata.id, mtPath })}\n`,
   );
 }
 

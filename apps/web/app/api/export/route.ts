@@ -96,7 +96,7 @@ export async function POST(request: Request): Promise<Response> {
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {
     const detail = presetCheck.unknown
-      .map((u) => `${u.sceneId}/${u.layerId}:${u.preset}`)
+      .map((u) => `${u.sceneId}/${u.nodeId}:${u.preset}`)
       .join(", ");
     return Response.json(
       { error: `Unknown animation presets: ${detail}` },
@@ -107,7 +107,7 @@ export async function POST(request: Request): Promise<Response> {
   const root = repoRoot();
   const tmpDir = path.join(root, "tmp", "api-export");
   await mkdir(tmpDir, { recursive: true });
-  const mtPath = path.join(tmpDir, `${project.id}.mt`);
+  const mtPath = path.join(tmpDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, `${JSON.stringify(project, null, 2)}\n`, "utf8");
 
   const result = await runCliExport(mtPath);
@@ -119,7 +119,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const bytes = await readFile(result.mp4Path);
-  const filename = `${project.brand.name.replace(/[^\w\-]+/g, "_") || "motion"}.mp4`;
+  const filename = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
   return new Response(bytes, {
     status: 200,
     headers: {

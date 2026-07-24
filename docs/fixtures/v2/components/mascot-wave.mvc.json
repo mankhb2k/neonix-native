@@ -1,0 +1,138 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "comp.mascot-wave",
+  "componentVersion": "1.0.0",
+  "metadata": {
+    "name": "Mascot Wave",
+    "nameVi": "Mascot vẫy tay",
+    "description": "Bone + SVG — Web/AI chỉ thấy waveAngle + color, không thấy Bone"
+  },
+  "assets": [
+    {
+      "id": "asset.mascot-svg",
+      "assetType": "svg",
+      "uri": "assets/demo-svg/character.svg"
+    }
+  ],
+  "variables": [
+    { "id": "var.waveAngle", "type": "number", "name": "Wave Angle", "value": 25, "min": 0, "max": 60 },
+    { "id": "var.primaryColor", "type": "color", "name": "Accent", "value": "#0F766E" },
+    { "id": "var.speed", "type": "number", "name": "Speed", "value": 1, "min": 0.5, "max": 2 }
+  ],
+  "publicAPI": [
+    {
+      "id": "waveAngle",
+      "type": "number",
+      "label": "Góc vẫy",
+      "variableId": "var.waveAngle",
+      "semantic": { "role": "wave-angle" },
+      "min": 0,
+      "max": 60
+    },
+    { "id": "primaryColor", "type": "color", "variableId": "var.primaryColor", "semantic": { "role": "brand-primary" } },
+    { "id": "animationSpeed", "type": "number", "variableId": "var.speed", "semantic": { "role": "animation-speed" } }
+  ],
+  "nodes": [
+    {
+      "id": "root",
+      "type": "group",
+      "parentId": null,
+      "transform": {
+        "x": 0, "y": 0, "width": 1080, "height": 1920,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      }
+    },
+    {
+      "id": "spine",
+      "type": "bone",
+      "name": "Spine",
+      "parentId": "root",
+      "semantic": { "role": "mascot-spine" },
+      "transform": {
+        "x": 540, "y": 1100, "width": 0, "height": 0,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0,
+        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+      },
+      "payload": { "length": 280, "restRotation": -90 }
+    },
+    {
+      "id": "left-arm",
+      "type": "bone",
+      "name": "Left Arm",
+      "parentId": "spine",
+      "semantic": { "role": "left-hand" },
+      "transform": {
+        "x": 0, "y": -200, "width": 0, "height": 0,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0.5,
+        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+      },
+      "payload": { "length": 160, "restRotation": 0 }
+    },
+    {
+      "id": "mascot-body",
+      "type": "svg",
+      "parentId": "spine",
+      "semantic": { "role": "mascot-body" },
+      "transform": {
+        "x": -120, "y": -280, "width": 240, "height": 320,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5,
+        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+      },
+      "payload": { "assetId": "asset.mascot-svg", "fit": "contain" }
+    },
+    {
+      "id": "hand-prop",
+      "type": "shape",
+      "parentId": "left-arm",
+      "semantic": { "role": "left-hand-prop" },
+      "transform": {
+        "x": 140, "y": -20, "width": 40, "height": 40,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5,
+        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+      },
+      "style": { "fill": "#0F766E" },
+      "payload": { "shape": "circle" }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.hand-color",
+      "source": { "kind": "variable", "variableId": "var.primaryColor" },
+      "target": { "nodeId": "hand-prop", "property": "style.fill" }
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip.wave",
+      "targetId": "left-arm",
+      "schedule": { "kind": "absolute", "at": 0 },
+      "duration": 0.8,
+      "playback": {
+        "iterations": 1,
+        "direction": "normal",
+        "rate": { "ref": { "kind": "variable", "id": "var.speed" } }
+      },
+      "source": {
+        "kind": "tracks",
+        "tracks": [
+          {
+            "targetId": "left-arm",
+            "property": "transform.rotation",
+            "keys": [
+              { "t": 0, "v": 0 },
+              { "t": 0.4, "v": { "ref": { "kind": "variable", "id": "var.waveAngle" } }, "easing": "easeOut" },
+              { "t": 0.8, "v": 0, "easing": "easeIn" }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

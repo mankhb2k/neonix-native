@@ -78,7 +78,7 @@ export function getBlockByPreset(preset: string): MotionBlock | undefined {
 
 export type UnknownPresetRef = {
   sceneId: string;
-  layerId: string;
+  nodeId: string;
   preset: string;
 };
 
@@ -86,19 +86,19 @@ export type PresetValidationResult =
   | { ok: true; unknown: [] }
   | { ok: false; unknown: UnknownPresetRef[] };
 
-/** Semantic check: every animation.preset must exist in the block registry. */
+/** Semantic check: every authoring preset must exist in the block registry. */
 export function validateMotionProjectPresets(
   project: MotionProject,
 ): PresetValidationResult {
   const unknown: UnknownPresetRef[] = [];
   for (const scene of project.scenes) {
-    for (const layer of scene.layers) {
-      for (const anim of layer.animations) {
-        if (!isKnownPreset(anim.preset)) {
+    for (const clip of scene.clips) {
+      if (clip.source.kind === "preset") {
+        if (!isKnownPreset(clip.source.presetId)) {
           unknown.push({
             sceneId: scene.id,
-            layerId: layer.id,
-            preset: anim.preset,
+            nodeId: clip.targetId ?? clip.id,
+            preset: clip.source.presetId,
           });
         }
       }

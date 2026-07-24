@@ -1,67 +1,297 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
+import {
+  NormalizedMotionProjectV2Schema,
+  type MotionClip,
+  type MotionComponentV2,
+  type MotionNode,
+  type MotionProject,
+  type NormalizedMotionProjectV2,
+} from "@motionvideo/motion-schema";
 import { resolvePresetId } from "@motionvideo/template-library";
 
-export type CompiledLayer = {
-  id: string;
-  type: string;
-  content?: string;
-  x: number;
-  y: number;
-  animations: Array<{
-    preset: string;
-    start: number;
-    duration: number;
-    delay: number;
-    easing: string;
-    params?: Record<string, unknown>;
-  }>;
+type RuntimeTrack = NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
+type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+
+export type CompileOptions = {
+  components?: MotionComponentV2[];
 };
 
-export type CompiledScene = {
-  sceneId: string;
-  role?: string;
-  duration: number;
-  layers: CompiledLayer[];
-};
-
-export type CompiledProject = {
-  projectId: string;
-  aspectRatio: MotionProject["aspectRatio"];
-  brand: MotionProject["brand"];
-  sceneCount: number;
-  scenes: CompiledScene[];
-  totalDuration: number;
-};
-
-/** Motion JSON → engine-agnostic compile IR (reference renderer / adapters later) */
-export function compileMotionProject(project: MotionProject): CompiledProject {
-  const scenes: CompiledScene[] = project.scenes.map((scene) => ({
-    sceneId: scene.id,
-    role: scene.role,
-    duration: scene.duration,
-    layers: scene.layers.map((layer) => ({
-      id: layer.id,
-      type: layer.type,
-      content: layer.content,
-      x: layer.x,
-      y: layer.y,
-      animations: layer.animations.map((a) => ({
-        preset: resolvePresetId(a.preset),
-        start: a.start,
-        duration: a.duration,
-        delay: a.delay ?? 0,
-        easing: a.easing ?? "easeOut",
-        params: a.params,
-      })),
-    })),
-  }));
-
-  return {
-    projectId: project.id,
-    aspectRatio: project.aspectRatio,
-    brand: project.brand,
-    sceneCount: scenes.length,
-    scenes,
-    totalDuration: scenes.reduce((sum, s) => sum + s.duration, 0),
-  };
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
+
+function setPath(target: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split(".");
+  let cursor = target;
+  for (const part of parts.slice(0, -1)) {
+    const current = cursor[part];
+    if (current === null || typeof current !== "object" || Array.isArray(current)) cursor[part] = {};
+    cursor = cursor[part] as Record<string, unknown>;
+  }
+  const last = parts.at(-1);
+  if (last) cursor[last] = clone(value);
+}
+
+function resolveValue(value: unknown, variables: Map<string, unknown>): unknown {
+  if (Array.isArray(value)) return value.map((item) => resolveValue(item, variables));
+  if (value === null || typeof value !== "object") return value;
+  const record = value as Record<string, unknown>;
+  const ref = record.ref;
+  if (ref && typeof ref === "object" && (ref as Record<string, unknown>).kind === "variable") {
+    const id = (ref as Record<string, unknown>).id;
+    if (typeof id !== "string" || !variables.has(id)) throw new Error(`Unknown variable reference: ${String(id)}`);
+    const raw = variables.get(id);
+    const map = record.map;
+    if (map && typeof map === "object" && typeof raw === "number") {
+      const scale = typeof (map as Record<string, unknown>).scale === "number" ? (map as Record<string, number>).scale : 1;
+      const offset = typeof (map as Record<string, unknown>).offset === "number" ? (map as Record<string, number>).offset : 0;
+      return raw * scale + offset;
+    }
+    return clone(raw);
+  }
+  return Object.fromEntries(Object.entries(record).map(([key, nested]) => [key, resolveValue(nested, variables)]));
+}
+
+function scheduleTimes(clips: MotionClip[]): Map<string, number> {
+  const byId = new Map(clips.map((clip) => [clip.id, clip]));
+  const times = new Map<string, number>();
+  const visiting = new Set<string>();
+  const resolve = (clip: MotionClip): number => {
+    const cached = times.get(clip.id);
+    if (cached !== undefined) return cached;
+    if (visiting.has(clip.id)) throw new Error(`Clip schedule cycle: ${clip.id}`);
+    visiting.add(clip.id);
+    let at: number;
+    if (clip.schedule.kind === "absolute") at = clip.schedule.at;
+    else {
+      const dependency = byId.get(clip.schedule.clipId);
+      if (!dependency) throw new Error(`Unknown schedule clip: ${clip.schedule.clipId}`);
+      const dependencyStart = resolve(dependency);
+      at = clip.schedule.kind === "after"
+        ? dependencyStart + dependency.duration + (clip.schedule.offset ?? 0)
+        : dependencyStart + (clip.schedule.offset ?? 0);
+    }
+    visiting.delete(clip.id);
+    times.set(clip.id, at);
+    return at;
+  };
+  for (const clip of clips) resolve(clip);
+  return times;
+}
+
+function number(value: unknown, label: string): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) throw new Error(`${label} must resolve to a number`);
+  return value;
+}
+
+function presetTracks(node: RuntimeNode, preset: string, start: number, end: number): RuntimeTrack[] {
+  const x = node.transform.x;
+  const y = node.transform.y;
+  const opacity = (from = 0, to = node.transform.opacity): RuntimeTrack => ({
+    targetId: node.id,
+    property: "transform.opacity",
+    keys: [{ t: start, v: from }, { t: end, v: to, easing: "easeOut" }],
+  });
+  switch (resolvePresetId(preset)) {
+    case "fade-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 48 }, { t: end, v: y, easing: "easeOut" }] }];
+    case "fade-down": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y - 48 }, { t: end, v: y, easing: "easeOut" }] }];
+    case "fade-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 48 }, { t: end, v: x, easing: "easeOut" }] }];
+    case "fade-right": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x - 48 }, { t: end, v: x, easing: "easeOut" }] }];
+    case "slide-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 120 }, { t: end, v: y, easing: "easeOut" }] }];
+    case "slide-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 120 }, { t: end, v: x, easing: "easeOut" }] }];
+    case "slide-right": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x - 120 }, { t: end, v: x, easing: "easeOut" }] }];
+    case "scale-in":
+    case "zoom-in":
+    case "pop": return [opacity(),
+      { targetId: node.id, property: "transform.scaleX", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleX, easing: preset === "pop" ? "spring" : "easeOut" }] },
+      { targetId: node.id, property: "transform.scaleY", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleY, easing: preset === "pop" ? "spring" : "easeOut" }] },
+    ];
+    case "counter": return [{ targetId: node.id, property: "payload.counterProgress", keys: [{ t: start, v: 0 }, { t: end, v: 1, easing: "easeOut" }] }];
+    case "fade-in":
+    case "fade":
+    default: return [opacity()];
+  }
+}
+
+function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<string, unknown>): RuntimeTrack[] {
+  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const starts = scheduleTimes(clips);
+  return clips.flatMap((clip) => {
+    const rate = number(resolveValue(clip.playback.rate, variables), `clips.${clip.id}.playback.rate`);
+    if (rate <= 0) throw new Error(`clips.${clip.id}.playback.rate must be > 0`);
+    const start = starts.get(clip.id) ?? 0;
+    const duration = clip.duration / rate;
+    if (clip.source.kind === "tracks") {
+      return clip.source.tracks.map((track) => ({
+        targetId: track.targetId,
+        property: track.property,
+        keys: track.keys.map((key) => ({
+          t: start + key.t / rate,
+          v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"],
+          ...(key.easing ? { easing: key.easing } : {}),
+        })),
+      }));
+    }
+    if (!clip.targetId) throw new Error(`Preset clip ${clip.id} requires targetId`);
+    const node = nodeById.get(clip.targetId);
+    if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
+    return presetTracks(node, clip.source.presetId, start, start + duration);
+  });
+}
+
+function expandComponents(
+  nodes: MotionNode[],
+  clips: MotionClip[],
+  componentPackages: Map<string, MotionComponentV2>,
+): { nodes: RuntimeNode[]; clips: MotionClip[]; variables: Map<string, unknown> } {
+  const outputNodes: RuntimeNode[] = [];
+  const outputClips = [...clips];
+  const componentVariables = new Map<string, unknown>();
+  for (const node of nodes) {
+    if (node.type !== "component") {
+      outputNodes.push(clone(node) as RuntimeNode);
+      continue;
+    }
+    const key = `${node.payload.componentId}@${node.payload.componentVersion}`;
+    const component = componentPackages.get(key);
+    if (!component) throw new Error(`Component package unavailable: ${key}`);
+    const values = new Map<string, unknown>(component.variables.map((variable) => [variable.id, clone(variable.value)]));
+    for (const api of component.publicAPI) if (api.id in node.payload.props) values.set(api.variableId, clone(node.payload.props[api.id]));
+    const internalById = new Map(component.nodes.map((internal) => [internal.id, internal]));
+    const repeatRoots = component.nodes.filter((internal) => internal.repeat);
+    const repeatOwner = (internal: MotionNode): MotionNode | undefined => {
+      let current: MotionNode | undefined = internal;
+      while (current) {
+        if (current.repeat) return current;
+        current = current.parentId ? internalById.get(current.parentId) : undefined;
+      }
+      return undefined;
+    };
+    type ExpandedTarget = { node: RuntimeNode; context?: Record<string, unknown>; itemIndex?: number; repeatKey?: string };
+    const targets = new Map<string, ExpandedTarget[]>();
+    const expanded: RuntimeNode[] = [];
+    const addExpanded = (internal: MotionNode, id: string, parentId: string | null, context?: Record<string, unknown>, itemIndex?: number, repeatKey?: string): void => {
+      if (internal.type === "component") throw new Error(`Nested component is not supported: ${key}/${internal.id}`);
+      const next = clone(internal) as RuntimeNode;
+      delete (next as RuntimeNode & { repeat?: unknown }).repeat;
+      next.id = id;
+      next.parentId = parentId;
+      if (internal.parentId === null) {
+        next.transform.x += node.transform.x;
+        next.transform.y += node.transform.y;
+        next.transform.scaleX *= node.transform.scaleX;
+        next.transform.scaleY *= node.transform.scaleY;
+        next.transform.opacity *= node.transform.opacity;
+        next.zIndex = (node.zIndex ?? 0) + (internal.zIndex ?? 0);
+      }
+      expanded.push(next);
+      const list = targets.get(internal.id) ?? [];
+      list.push({ node: next, context, itemIndex, repeatKey });
+      targets.set(internal.id, list);
+    };
+    for (const internal of component.nodes.filter((candidate) => !repeatOwner(candidate))) {
+      addExpanded(internal, `${node.id}::${internal.id}`, internal.parentId ? `${node.id}::${internal.parentId}` : node.parentId);
+    }
+    for (const root of repeatRoots) {
+      const directive = root.repeat!;
+      const items = values.get(directive.sourceVariableId);
+      if (!Array.isArray(items)) throw new Error(`Repeater source must be a list: ${key}/${directive.sourceVariableId}`);
+      const subtree = component.nodes.filter((candidate) => repeatOwner(candidate)?.id === root.id);
+      items.forEach((item, index) => {
+        if (item === null || typeof item !== "object" || Array.isArray(item)) throw new Error(`Repeater item ${index} must be an object`);
+        const rawKey = (item as Record<string, unknown>)[directive.keyPath];
+        if (typeof rawKey !== "string" && typeof rawKey !== "number") throw new Error(`Repeater key ${directive.keyPath} is missing at item ${index}`);
+        const repeatKey = String(rawKey);
+        const context = { [directive.itemAlias]: item, [directive.indexAlias]: index + 1 };
+        for (const internal of subtree) {
+          const id = `${node.id}::${internal.id}::${repeatKey}`;
+          const parentId = internal.id === root.id
+            ? (root.parentId ? `${node.id}::${root.parentId}` : node.parentId)
+            : `${node.id}::${internal.parentId}::${repeatKey}`;
+          addExpanded(internal, id, parentId, context, index, repeatKey);
+          const created = expanded[expanded.length - 1]!;
+          if (internal.id === root.id) {
+            const delta = index * (root.transform.height + directive.layout.gap);
+            if (directive.layout.direction === "vertical") created.transform.y += delta;
+            else created.transform.x += index * (root.transform.width + directive.layout.gap);
+          }
+        }
+      });
+    }
+    const readContext = (context: Record<string, unknown> | undefined, path: string): unknown => {
+      let current: unknown = context;
+      for (const part of path.split(".")) {
+        if (current === null || typeof current !== "object") return undefined;
+        current = (current as Record<string, unknown>)[part];
+      }
+      return current;
+    };
+    for (const binding of component.bindings) {
+      for (const target of targets.get(binding.target.nodeId) ?? []) {
+        const value = binding.source.kind === "variable"
+          ? values.get(binding.source.variableId)
+          : readContext(target.context, binding.source.path);
+        setPath(target.node as unknown as Record<string, unknown>, binding.target.property, value);
+      }
+    }
+    outputNodes.push(...expanded);
+    for (const clipInput of component.clips) {
+      const resolved = resolveValue(clipInput, values) as MotionClip;
+      const clipTargets = resolved.targetId ? targets.get(resolved.targetId) ?? [] : [{ node: undefined, repeatKey: undefined, itemIndex: undefined }];
+      for (const target of clipTargets) {
+        const suffix = target.repeatKey ? `::${target.repeatKey}` : "";
+        const staggerValue = resolved.source.kind === "preset" ? resolved.source.params?.stagger : undefined;
+        const stagger = typeof staggerValue === "number" && target.itemIndex !== undefined ? staggerValue * target.itemIndex : 0;
+        outputClips.push({
+          ...clone(resolved),
+          id: `${node.id}::${resolved.id}${suffix}`,
+          targetId: target.node?.id,
+          schedule: resolved.schedule.kind === "absolute"
+            ? { ...resolved.schedule, at: resolved.schedule.at + stagger }
+            : { ...resolved.schedule, clipId: `${node.id}::${resolved.schedule.clipId}${suffix}` },
+          source: resolved.source.kind === "tracks"
+            ? { ...clone(resolved.source), tracks: resolved.source.tracks.map((track) => {
+                const matching = targets.get(track.targetId)?.find((candidate) => candidate.repeatKey === target.repeatKey) ?? targets.get(track.targetId)?.[0];
+                return { ...clone(track), targetId: matching?.node.id ?? `${node.id}::${track.targetId}` };
+              }) }
+            : clone(resolved.source),
+        });
+      }
+    }
+  }
+  return { nodes: outputNodes, clips: outputClips, variables: componentVariables };
+}
+
+/** Authoring IR v2 → renderer-only literal Runtime IR. */
+export function compileMotionProject(project: MotionProject, options: CompileOptions = {}): NormalizedMotionProjectV2 {
+  const projectVariables = new Map(project.variables.map((variable) => [variable.id, clone(variable.value)]));
+  const componentPackages = new Map((options.components ?? []).map((component) => [`${component.componentId}@${component.componentVersion}`, component]));
+  const sceneOrder = new Map(project.timeline.sceneOrder.map((id, index) => [id, index]));
+  const scenes = project.scenes
+    .map((scene) => clone(scene))
+    .sort((a, b) => (sceneOrder.get(a.id) ?? 0) - (sceneOrder.get(b.id) ?? 0))
+    .map((scene) => {
+      for (const binding of project.bindings.filter((candidate) => candidate.target.sceneId === scene.id)) {
+        const target = scene.nodes.find((node) => node.id === binding.target.nodeId);
+        if (target) setPath(target as unknown as Record<string, unknown>, binding.target.property, projectVariables.get(binding.source.variableId));
+      }
+      const expanded = expandComponents(scene.nodes, scene.clips, componentPackages);
+      const variables = new Map([...projectVariables, ...expanded.variables]);
+      const resolvedNodes = expanded.nodes.map((node) => resolveValue(node, variables) as RuntimeNode);
+      return {
+        id: scene.id,
+        duration: scene.duration,
+        nodes: resolvedNodes,
+        tracks: compileClips(resolvedNodes, expanded.clips, variables),
+      };
+    });
+  return NormalizedMotionProjectV2Schema.parse({
+    format: "motion-runtime",
+    formatVersion: 2,
+    metadata: project.metadata,
+    assets: project.assets,
+    timeline: project.timeline,
+    scenes,
+  });
+}
+
+export type CompiledProject = NormalizedMotionProjectV2;

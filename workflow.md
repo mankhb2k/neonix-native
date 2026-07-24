@@ -1,208 +1,77 @@
-# Quy trình MotionVideo (giải thích đơn giản)
+# Workflow MotionVideo
 
-Bạn mới bắt đầu: **đừng nghĩ app = editor đẹp trước**.  
-Nghĩ app = **có vài mẫu chuyển động chạy được**, rồi mới bọc editor quanh chúng.
+## Giá trị người dùng
 
----
+Người dùng đưa nội dung và brand. Hệ thống chọn một cấu trúc motion đã kiểm chứng, điền dữ liệu, cho phép chỉnh có kiểm soát và xuất MP4. Moat nằm ở template, component contract, grammar TVC Việt Nam và khả năng chỉnh sửa deterministic—not ở việc sinh pixel bằng model lớn.
 
-## Câu hỏi: Editor trước hay mẫu animation trước?
-
-| | Hoàn thiện editor | Hoàn thiện vài mẫu infographic |
-|---|---|---|
-| Là gì? | Giao diện CapCut-like | Pattern + Motion JSON + (sau) render ra video |
-| Người dùng mua vì? | “Dễ dùng” | “Video/motion ra được, đẹp, đúng tiếng Việt” |
-| Không có cái kia thì? | Editor trống = vô dụng | Vẫn demo/bán tay (concierge) được |
-
-### Kết luận (gốc rễ)
+## Luồng tạo project
 
 ```text
-GỐC RỄ = Mẫu motion (template / pattern)
-           ↓
-         Motion JSON chuẩn
-           ↓
-         Xem được / xuất được
-           ↓
-         Editor chỉ là CÁCH SỬA mẫu đó
+Brief / script / brand
+        ↓
+Template retrieval + motion grammar
+        ↓
+AI Planner điền Project Variables / public props / text Nodes
+        ↓
+parseMotionProject (canonical v2)
+        ↓
+Editor sửa Node, Clip, Variable và Timeline
+        ↓
+Lưu .mt v2
 ```
 
-**Gốc rễ của app = vài mẫu animation infographic (hoặc TVC) chạy được.**  
-Editor là lớp vỏ để người dùng sửa mẫu — quan trọng, nhưng **không phải gốc**.
+AI User bị giới hạn ở public surface. AI Author/Designer mới được soạn internal `.mvc`.
 
-Làm một mình:  
-1. **Trước:** 3–5 mẫu + JSON đúng schema  
-2. **Song song mỏng:** editor đủ để đổi chữ/màu/xem preview  
-3. **Sau:** AI chọn mẫu, render MP4, chat đẹp hơn  
-
-Đừng mài editor 2 tháng khi chưa có mẫu nào “thật”.
-
----
-
-## App làm gì? (1 hình dung)
-
-Người dùng đưa **nội dung** → hệ thống chọn **khung xương chuyển động** → điền chữ/số/màu → user chỉnh nhẹ → **xuất video**.
-
-AI **không** vẽ cả video như Runway.  
-AI (sau này) chỉ **chọn khung + điền nội dung**.  
-Engine + template lo phần chuyển động.
-
----
-
-## Sơ đồ quy trình tổng thể
-
-```mermaid
-flowchart TB
-  subgraph input [1. Đầu vào]
-    A[User: chủ đề / số liệu / kịch bản]
-  end
-
-  subgraph brain [2. Chọn khung xương]
-    B[AI hoặc bạn chọn pattern]
-    C[process-steps / compare / big-number / ...]
-  end
-
-  subgraph data [3. Dữ liệu gốc của app]
-    D[Motion JSON]
-  end
-
-  subgraph ui [4. Editor - lớp vỏ]
-    E[Sửa chữ, màu, thứ tự scene]
-    F[Preview]
-  end
-
-  subgraph out [5. Xuất]
-    G[Render worker]
-    H[MP4]
-  end
-
-  A --> B --> C --> D --> E --> F
-  D --> G --> H
-  E --> D
-```
-
-**Motion JSON** nằm giữa mọi thứ.  
-Editor đọc/ghi JSON. Render đọc JSON. AI cũng chỉ được phép ghi JSON đúng schema.
-
----
-
-## Sơ đồ “mẫu infographic” là gì?
-
-Mỗi mẫu = một **pattern** (kịch bản chuyển động cố định) + chỗ trống để điền.
-
-Ví dụ pattern `process-steps` (quy trình):
+## Luồng import legacy
 
 ```text
-0s     Bước 1 hiện (fade-up)
-2s     Bước 2 hiện
-4s     Bước 3 hiện
-6s     Kết luận / CTA
+.mt v1 hoặc localStorage v1
+        ↓ parseMotionProjectV1
+migrateMotionProjectV1ToV2
+        ↓ reference validation
+MotionProject v2
+        ↓ lưu lại v2
 ```
 
-AI hoặc bạn chỉ điền:
+Không có feature code chạy trên type v1.
 
-- “Thu thập dữ liệu”
-- “Phân tích”
-- “Kết luận”
-- màu brand
-
-**Không** invent animation mỗi lần từ đầu.
-
-```mermaid
-flowchart LR
-  P[Pattern có sẵn] --> J[Motion JSON đã điền]
-  J --> V[Preview / Video]
-  T[Chữ / số / màu] --> J
-```
-
-Bạn cần khoảng **3 mẫu đầu** (đủ để hiểu quy trình):
-
-1. `big-number` — số liệu lớn + chú thích  
-2. `process-steps` — 3–5 bước  
-3. `compare-2` — so sánh A vs B  
-
-Sau mới thêm nhiều pattern.
-
----
-
-## Việc làm theo thứ tự (solo)
-
-### Giai đoạn A — Gốc rễ (làm trước)
-
-1. Chốt schema Motion JSON (đã có trong `packages/motion-schema`)  
-2. Viết tay **3 template** trong `template-library`  
-3. Preview trong app: đọc JSON → hiện chữ/scene (stub cũng được)  
-4. (Tuỳ chọn sớm) 1 pipeline render thử → 1 file MP4  
-
-**Xong giai đoạn A = bạn đã có “sản phẩm cốt lõi”**, dù UI còn xấu.
-
-### Giai đoạn B — Editor đủ dùng
-
-1. Đổi chữ, màu, duration scene  
-2. Timeline chọn scene  
-3. Nút “tạo từ mẫu”  
-
-Editor lúc này mới có giá trị vì **đã có gì để sửa**.
-
-### Giai đoạn C — AI
-
-1. User dán đoạn văn / số liệu  
-2. Model nhỏ/vừa → chọn pattern + điền JSON  
-3. Zod validate → mở editor  
-
-### Giai đoạn D — Render ổn định
-
-1. Motion Canvas (hoặc engine khác) trong `render-worker`  
-2. FFmpeg → MP4 nhiều tỉ lệ  
-
----
-
-## Motion Canvas nằm chỗ nào?
+## Luồng compile và render
 
 ```text
-Không cần ngay để nghĩ quy trình / viết mẫu JSON
-Cần khi: muốn xuất video tự động từ JSON
+Authoring Project v2
+  1. validate structural + references
+  2. resolve exact Component dependencies
+  3. apply Project bindings
+  4. map public props → Component variables → internal bindings
+  5. expand repeater/component namespace
+  6. resolve schedule, playback rate và variable references
+  7. expand preset thành literal property tracks
+        ↓
+Normalized Runtime IR
+        ↓
+frame plan → parallel raster workers → PNG → FFmpeg → MP4
 ```
 
-Thứ tự đúng:
+Runtime IR không chứa preset, Component, variable reference, binding hoặc repeater.
 
-```text
-Mẫu JSON → Preview thô → Editor mỏng → Render (Motion Canvas) → AI
-```
+## Thứ tự phát triển
 
-Không phải:
+1. Khóa use case bằng fixture.
+2. Cập nhật contract và reference validator.
+3. Cập nhật compiler sang Runtime IR literal.
+4. Dùng cùng evaluator cho preview và export.
+5. Mới mở UI/AI capability tương ứng.
 
-```text
-Editor đẹp → rồi mới nghĩ mẫu ❌
-```
+Không thêm field tạm riêng cho từng preset như `speedFromVariable`; dùng `ResolvableValue`. Không tạo collection spatial thứ hai ngoài Scene Node graph.
 
----
+## Definition of done
 
-## So với AI video ngoài kia (nhắc lại 1 câu)
+Một thay đổi motion hoàn tất khi:
 
-| Họ | Bạn |
-|---|---|
-| Prompt → video pixel | Nội dung → **mẫu timeline** → sửa → render |
-| Khó chỉnh từng chữ | Chỉnh layer / scene |
-
----
-
-## Checklist “tôi đang làm đúng gốc rễ chưa?”
-
-Hỏi mỗi tuần:
-
-- [ ] Có ≥ 3 mẫu JSON mở được trong app không?  
-- [ ] Đổi được chữ trong mẫu đó không?  
-- [ ] (Bonus) Xuất được 1 MP4 từ 1 mẫu không?  
-
-Nếu chưa có 3 mẫu mà đang mài icon nav / chat UI → **lệch gốc rễ**.
-
----
-
-## Tóm tắt một câu
-
-**Gốc rễ = vài mẫu animation (Motion JSON) chạy được; editor và AI là lớp sau để dùng và nhân bản các mẫu đó.**
-
----
-
-## Kế hoạch Motion Block chi tiết
-
-Xem [`docs/blocks-plan.md`](./docs/blocks-plan.md): taxonomy block, 4 tuần, khi nào dùng LottieFiles, KPI tháng 1.
+- project/component parse được bằng API canonical;
+- ID/reference/cycle/dependency được validate;
+- AI/Web không phải chạm internal Component;
+- compiler loại hết authoring-only construct;
+- preview và export có cùng kết quả property/timing;
+- project cũ migrate hoặc được từ chối với lỗi version rõ ràng;
+- fixture, typecheck và render smoke test đều pass.

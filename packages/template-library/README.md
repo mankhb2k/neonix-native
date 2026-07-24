@@ -62,10 +62,10 @@ import {
 } from "@motionvideo/template-library";
 ```
 
-`validateMotionProjectPresets(project)` — semantic check: mọi `animation.preset` phải có trong registry (schema chỉ kiểm tra `preset` là string).
+`validateMotionProjectPresets(project)` — semantic check: mọi `Clip.source.presetId` phải có trong registry; schema giữ preset ID là string mở.
 
 ## Docs
 
-- [`docs/motion-format.md`](../../docs/motion-format.md) — định dạng `.mt`
+- [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md) — canonical `.mt` / `.mvc`
 - [`docs/blocks-plan.md`](../../docs/blocks-plan.md)
 - Repo [`README.md`](../../README.md)

@@ -21,21 +21,21 @@ function TemplatePickerPanel() {
     const tpl = templates.find((t) => t.id === templateId);
     if (!tpl) return;
     const next = planMotionProject({
-      brandName: project?.brand.name ?? tpl.project.brand.name,
+      brandName: project?.metadata.brand.name ?? tpl.project.metadata.brand.name,
       industry: tpl.industry,
       templateId: tpl.id,
-      aspectRatio: project?.aspectRatio ?? tpl.aspectRatio,
-      primaryColor: project?.brand.primaryColor,
+      aspectRatio: project?.metadata.aspectRatio ?? tpl.aspectRatio,
+      primaryColor: project?.metadata.brand.primaryColor,
       script: tpl.project.scenes
-        .flatMap((s) => s.layers.map((l) => l.content ?? ""))
+        .flatMap((scene) => scene.nodes.map((node) => node.type === "text" && typeof node.payload?.text === "string" ? node.payload.text : ""))
         .filter(Boolean)
         .join("\n"),
     });
-    const withId = project ? { ...next, id: project.id } : next;
+    const withId = project ? { ...next, metadata: { ...next.metadata, id: project.metadata.id } } : next;
     saveProject(withId);
     loadProject(withId);
     if (!project) {
-      router.push(appHref(`/editor/${withId.id}`));
+      router.push(appHref(`/editor/${withId.metadata.id}`));
     }
   }
 
@@ -65,14 +65,14 @@ function TemplatePickerPanel() {
 export function ToolPanel({ tool }: Props) {
   const project = useEditorStore((s) => s.project);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
-  const selectedLayerId = useEditorStore((s) => s.selectedLayerId);
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const selectScene = useEditorStore((s) => s.selectScene);
-  const selectLayer = useEditorStore((s) => s.selectLayer);
+  const selectNode = useEditorStore((s) => s.selectNode);
 
   const scene = project?.scenes.find((s) => s.id === selectedSceneId);
 
   const titles: Record<EditorTool, string> = {
-    scenes: "Cảnh & Layer",
+    scenes: "Cảnh & Node",
     templates: "Mẫu",
     text: "Văn bản",
     audio: "Âm thanh",
@@ -98,10 +98,10 @@ export function ToolPanel({ tool }: Props) {
                     onClick={() => selectScene(s.id)}
                   >
                     <strong>
-                      {index + 1}. {s.role ?? s.id}
+                      {index + 1}. {s.semantic?.role ?? s.name ?? s.id}
                     </strong>
                     <span>
-                      {s.duration}s · {s.layers.length} layer
+                      {s.duration}s · {s.nodes.length} node
                     </span>
                   </button>
                 </li>
@@ -109,18 +109,18 @@ export function ToolPanel({ tool }: Props) {
             </ul>
           </div>
           <p className="mv-rail-label" style={{ padding: "0.75rem 0.85rem 0" }}>
-            Layers
+            Nodes
           </p>
           <ul className="mv-layer-list">
-            {scene?.layers.map((layer) => (
-              <li key={layer.id}>
+            {scene?.nodes.map((node) => (
+              <li key={node.id}>
                 <button
                   type="button"
-                  className={`mv-layer-item${selectedLayerId === layer.id ? " is-active" : ""}`}
-                  onClick={() => selectLayer(layer.id)}
+                  className={`mv-layer-item${selectedNodeId === node.id ? " is-active" : ""}`}
+                  onClick={() => selectNode(node.id)}
                 >
-                  <span>{layer.content || layer.id}</span>
-                  <span>{layer.type}</span>
+                  <span>{node.type === "text" && typeof node.payload?.text === "string" ? node.payload.text : node.id}</span>
+                  <span>{node.type}</span>
                 </button>
               </li>
             ))}

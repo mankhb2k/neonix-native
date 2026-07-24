@@ -52,7 +52,7 @@ export function Timeline() {
                 onClick={() => selectScene(scene.id)}
               >
                 <strong>
-                  {index + 1}. {scene.role ?? scene.id} ({scene.duration}s)
+                  {index + 1}. {scene.semantic?.role ?? scene.name ?? scene.id} ({scene.duration}s)
                 </strong>
               </button>
             ))}
@@ -62,22 +62,11 @@ export function Timeline() {
         {/* Audio Track */}
         <div style={{ display: "flex", gap: "4px", marginBottom: "8px", alignItems: "center" }}>
           <div style={{ width: "40px", fontSize: "12px", color: "var(--fg-muted)" }}>Audio</div>
-          <div
-            style={{
-              height: "24px",
-              background: "#164E63",
-              border: "1px solid #0E7490",
-              borderRadius: "4px",
-              width: "600px",
-              display: "flex",
-              alignItems: "center",
-              paddingLeft: "8px",
-              fontSize: "10px",
-              color: "white"
-            }}
-          >
-            Nhạc nền Lofi Chill.mp3
-          </div>
+          {project.timeline.audioTracks.length === 0 ? <span className="text-[10px] text-[var(--fg-muted)]">Chưa có audio</span> : project.timeline.audioTracks.map((track) => (
+            <div key={track.id} style={{ height: "24px", background: "#164E63", border: "1px solid #0E7490", borderRadius: "4px", width: `${Math.max(80, total * 28)}px`, display: "flex", alignItems: "center", paddingLeft: "8px", fontSize: "10px", color: "white" }}>
+              {track.role} · {track.assetId}
+            </div>
+          ))}
         </div>
       </div>
     </>

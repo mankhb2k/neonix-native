@@ -28,7 +28,7 @@ export function TitleBar() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [isPro, setIsPro] = useState(true); // Mặc định là Pro
+  const [isPro] = useState(true); // Mặc định là Pro
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleExport() {
@@ -38,7 +38,7 @@ export function TitleBar() {
     try {
       saveProject(project);
       const blob = await exportMotionProject(project);
-      const name = `${project.brand.name.replace(/[^\w\-]+/g, "_") || "motion"}.mp4`;
+      const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Xuất thất bại");
@@ -52,7 +52,7 @@ export function TitleBar() {
     const text = serializeMotionProject(project);
     downloadBlob(
       new Blob([text], { type: "application/json" }),
-      `${project.id}.mt`,
+      `${project.metadata.id}.mt`,
     );
   }
 
@@ -87,7 +87,7 @@ export function TitleBar() {
           {/* Project Name Input */}
           <input
             className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg)] outline-none hover:border-[var(--line-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--line-strong)] focus:bg-[var(--bg-hover)]"
-            value={project?.brand.name ?? "Presentation 2"}
+            value={project?.metadata.brand.name ?? "Presentation 2"}
             onChange={(e) => updateBrand({ name: e.target.value })}
             aria-label="Tên dự án"
             placeholder="Dự án không tên"
@@ -137,8 +137,9 @@ export function TitleBar() {
             accept=".mt,application/json"
             hidden
             onChange={(e) => {
-              void handleImportFile(e.target.files?.[0]);
-              e.target.value = "";
+              const input = e.currentTarget;
+              void handleImportFile(input.files?.[0]);
+              input.value = "";
             }}
           />
 

@@ -26,13 +26,13 @@ export function ProjectList() {
     <div className="mv-card-grid">
       {items.map(({ project, savedAt }) => (
         <AppLink
-          key={project.id}
-          href={`/editor/${project.id}`}
+          key={project.metadata.id}
+          href={`/editor/${project.metadata.id}`}
           className="mv-card"
         >
-          <h3>{project.brand.name}</h3>
+          <h3>{project.metadata.brand.name}</h3>
           <p>
-            {project.industry ?? "general"} · {project.aspectRatio} ·{" "}
+            {project.metadata.industry ?? "general"} · {project.metadata.aspectRatio} ·{" "}
             {project.scenes.length} scene
           </p>
           <p style={{ marginTop: "0.5rem", fontSize: "0.8rem" }}>

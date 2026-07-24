@@ -70,7 +70,7 @@ export function FramePanel() {
                 onOpen={() => selectScene(scene.id)}
               >
                 <MediaItem
-                  title={scene.role ?? `Scene ${index + 1}`}
+                  title={scene.semantic?.role ?? scene.name ?? `Scene ${index + 1}`}
                   duration={`${scene.duration}s`}
                   onClick={() => selectScene(scene.id)}
                 />
@@ -110,7 +110,7 @@ export function FramePanel() {
                 <ContextMenuItem
                   leftIcon={<Pencil size={14} />}
                   onSelect={() => {
-                    const role = promptRename(scene.role);
+                    const role = promptRename(scene.semantic?.role);
                     if (role) renameScene(scene.id, role);
                   }}
                 >

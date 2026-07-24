@@ -20,7 +20,7 @@ const RATIOS: Array<{ value: AspectRatio; label: string; hint: string }> = [
   { value: "1:1", label: "1:1", hint: "Feed vuông" },
 ];
 
-const DEFAULT_TEMPLATE_ID = templates[0]?.id ?? "fnb-hook-offer-cta-v1";
+const DEFAULT_TEMPLATE_ID = templates[0]?.id ?? "fnb-hook-offer-cta-v2";
 
 export function NewProjectModal({ open, onClose }: Props) {
   const router = useRouter();
@@ -64,7 +64,7 @@ export function NewProjectModal({ open, onClose }: Props) {
       });
       saveProject(project);
       onClose();
-      router.push(appHref(`/editor/${project.id}`));
+      router.push(appHref(`/editor/${project.metadata.id}`));
     } catch {
       setBusy(false);
     }

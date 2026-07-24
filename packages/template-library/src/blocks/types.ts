@@ -17,7 +17,7 @@ export type MotionBlockKind =
 
 /**
  * Timeline / motion role — chỉ meaningful khi family = animation.
- * Timing không phải intent: delay/duration/easing trên AnimationSchema.
+ * Timing không phải intent: schedule/duration/playback nằm trên Motion Clip v2.
  */
 export type MotionBlockIntent =
   | "entrance"
@@ -68,7 +68,7 @@ export type MotionBlock = {
   duration: number;
   durationMin: number;
   durationMax: number;
-  /** Maps to animation.preset when family = animation */
+  /** Maps to Clip.source.presetId when family = animation. */
   preset?: string;
   tags: string[];
   /** Example Vietnamese copy / label for lab */

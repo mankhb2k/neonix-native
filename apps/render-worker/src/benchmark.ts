@@ -45,7 +45,7 @@ async function main() {
 
   const project = parseMotionProject({
     ...template.project,
-    id: `bench_${Date.now()}`,
+    metadata: { ...template.project.metadata, id: `bench_${Date.now()}` },
   });
 
   const presetCheck = validateMotionProjectPresets(project);
@@ -57,22 +57,22 @@ async function main() {
 
   const compiled = compileMotionProject(project);
   console.log(
-    `[bench] project: ${compiled.sceneCount} scenes, ${compiled.totalDuration}s total, aspect ${compiled.aspectRatio}`,
+    `[bench] project: ${compiled.scenes.length} scenes, ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s total, aspect ${compiled.metadata.aspectRatio}`,
   );
 
   const fps = 30;
   const scale = 1; // 1.0 = full production resolution (1080x1920 for 9:16)
 
   const t0 = performance.now();
-  const rendered = await renderCompiledProject(compiled, project, {
+  const rendered = await renderCompiledProject(compiled, {
     fps,
     scale,
-    outDir: path.join(REPO_ROOT, "tmp", "frames", project.id),
+    outDir: path.join(REPO_ROOT, "tmp", "frames", project.metadata.id),
   });
   const renderMs = performance.now() - t0;
 
   const t1 = performance.now();
-  const files = await encodeOutputs(rendered, project.aspectRatio);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio);
   const encodeMs = performance.now() - t1;
 
   const totalMs = renderMs + encodeMs;
@@ -81,7 +81,7 @@ async function main() {
   const probeOut = await probe(mp4);
   const videoMatch = probeOut.match(/Video:\s*([^\n]+)/);
 
-  const videoDurationSec = compiled.totalDuration;
+  const videoDurationSec = compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0);
   const realtimeFactor = totalMs / 1000 / videoDurationSec;
 
   console.log("");

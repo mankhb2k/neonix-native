@@ -1,123 +1,61 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { useEditorStore, nodeText } from "@/lib/store/editor-store";
 import { getBlockByPreset, resolvePresetId } from "@motionvideo/template-library";
-import type { Layer } from "@motionvideo/motion-schema";
+import type { MotionClip, MotionNode } from "@motionvideo/motion-schema";
 
-function presetPreviewClass(preset: string | undefined): string {
-  if (!preset) return "mv-stage-layer-static";
-  const block = getBlockByPreset(resolvePresetId(preset));
-  if (block?.previewClass) return block.previewClass;
-  // Fallback for presets without a lab class
-  const id = resolvePresetId(preset);
-  return `mv-block-text-${id}`;
+function previewClass(presetId: string | undefined): string {
+  if (!presetId) return "mv-stage-layer-static";
+  const resolved = resolvePresetId(presetId);
+  return getBlockByPreset(resolved)?.previewClass ?? `mv-block-text-${resolved}`;
 }
 
-function LayerPreview({
-  layer,
-  brandName,
-  playId,
-}: {
-  layer: Layer;
+function NodePreview({ node, clip, brandName, playId }: {
+  node: MotionNode;
+  clip?: MotionClip;
   brandName: string;
   playId: number;
 }) {
-  const anim = layer.animations[0];
-  const duration = anim?.duration ?? 0.6;
-  const delay = anim?.delay ?? 0;
-  const className = presetPreviewClass(anim?.preset);
+  if (node.type !== "text" && node.type !== "logo") return null;
+  const presetId = clip?.source.kind === "preset" ? clip.source.presetId : undefined;
+  const at = clip?.schedule.kind === "absolute" ? clip.schedule.at : 0;
   const style: CSSProperties = {
-    animationDuration: `${duration}s`,
-    animationDelay: `${delay}s`,
-    transform: `translate(${layer.x}px, ${layer.y}px)`,
+    animationDuration: `${clip?.duration ?? 0.6}s`,
+    animationDelay: `${at}s`,
+    transform: `translate(${(node.transform.x - 540) * 0.25}px, ${(node.transform.y - 960) * 0.25}px)`,
+    opacity: node.transform.visible ? node.transform.opacity : 0,
   };
-
-  if (layer.type === "logo") {
-    return (
-      <div
-        key={`${layer.id}-${playId}`}
-        className={`mv-stage-layer mv-stage-layer-logo ${className}`}
-        style={style}
-        aria-label="Logo"
-      >
-        <span className="mv-stage-logo-mark">
-          {(brandName || "MV").slice(0, 2).toUpperCase()}
-        </span>
-      </div>
-    );
+  if (node.type === "logo") {
+    return <div key={`${node.id}-${playId}`} className={`mv-stage-layer mv-stage-layer-logo ${previewClass(presetId)}`} style={style}>
+      <span className="mv-stage-logo-mark">{brandName.slice(0, 2).toUpperCase()}</span>
+    </div>;
   }
-
-  return (
-    <p
-      key={`${layer.id}-${playId}`}
-      className={`mv-stage-layer mv-stage-layer-text ${className}`}
-      style={style}
-    >
-      {layer.content || "…"}
-    </p>
-  );
+  return <p key={`${node.id}-${playId}`} className={`mv-stage-layer mv-stage-layer-text ${previewClass(presetId)}`} style={style}>
+    {nodeText(node) || "…"}
+  </p>;
 }
 
 export function PreviewStage() {
-  const project = useEditorStore((s) => s.project);
-  const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
+  const project = useEditorStore((state) => state.project);
+  const selectedSceneId = useEditorStore((state) => state.selectedSceneId);
   const [playId, setPlayId] = useState(0);
-
-  useEffect(() => {
-    setPlayId((n) => n + 1);
-  }, [selectedSceneId]);
-
-  if (!project) {
-    return (
-      <div className="mv-preview-wrap">
-        <p style={{ color: "var(--fg-muted)" }}>Chưa có dự án</p>
-      </div>
-    );
-  }
-
-  const scene =
-    project.scenes.find((s) => s.id === selectedSceneId) ?? project.scenes[0];
-  const accent = project.brand.primaryColor ?? "#3f9a62";
-
-  return (
-    <div className="mv-preview-wrap">
-      <div className="mv-preview-toolbar">
-        <button
-          type="button"
-          className="mv-btn mv-btn-ghost mv-btn-sm"
-          onClick={() => setPlayId((n) => n + 1)}
-        >
-          ▶ Phát lại
-        </button>
-        <span className="mv-pill">{scene.role ?? scene.id}</span>
-      </div>
-      <div
-        className="mv-stage"
-        data-ratio={project.aspectRatio}
-        style={
-          {
-            ["--stage-accent" as string]: accent,
-            background: accent,
-          } as CSSProperties
-        }
-        key={`${scene.id}-${playId}`}
-      >
-        <div className="mv-stage-brand">
-          <div className="mv-stage-logo" />
-          <span>{project.brand.name}</span>
-        </div>
-        <div className="mv-stage-layers">
-          {scene.layers.map((layer) => (
-            <LayerPreview
-              key={`${layer.id}-${playId}`}
-              layer={layer}
-              brandName={project.brand.name}
-              playId={playId}
-            />
-          ))}
-        </div>
+  useEffect(() => setPlayId((value) => value + 1), [selectedSceneId]);
+  if (!project) return <div className="mv-preview-wrap"><p style={{ color: "var(--fg-muted)" }}>Chưa có dự án</p></div>;
+  const scene = project.scenes.find((candidate) => candidate.id === selectedSceneId) ?? project.scenes[0];
+  if (!scene) return null;
+  const brand = project.metadata.brand;
+  const accent = brand.primaryColor ?? "#3f9a62";
+  return <div className="mv-preview-wrap">
+    <div className="mv-preview-toolbar">
+      <button type="button" className="mv-btn mv-btn-ghost mv-btn-sm" onClick={() => setPlayId((value) => value + 1)}>▶ Phát lại</button>
+      <span className="mv-pill">{scene.semantic?.role ?? scene.name ?? scene.id}</span>
+    </div>
+    <div className="mv-stage" data-ratio={project.metadata.aspectRatio} style={{ ["--stage-accent" as string]: accent, background: accent }} key={`${scene.id}-${playId}`}>
+      <div className="mv-stage-brand"><div className="mv-stage-logo" /><span>{brand.name}</span></div>
+      <div className="mv-stage-layers">
+        {scene.nodes.map((node) => <NodePreview key={`${node.id}-${playId}`} node={node} clip={scene.clips.find((clip) => clip.targetId === node.id)} brandName={brand.name} playId={playId} />)}
       </div>
     </div>
-  );
+  </div>;
 }
