@@ -13,7 +13,12 @@
       "id": "asset.product.default",
       "assetType": "image",
       "uri": "assets/image-product.png",
-      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd"
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "mimeType": "image/png",
+      "width": 1000,
+      "height": 1000,
+      "pixelFormat": "rgb24",
+      "hasAlpha": false
     }
   ],
   "variables": [

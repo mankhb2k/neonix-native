@@ -102,7 +102,13 @@ function probeAsset(path: string, entry: AssetManifestEntry): void {
   if (entry.audioCodec) expectProbe(audio?.codec_name === entry.audioCodec, `${entry.path} audio codec ${entry.audioCodec}`);
 }
 
-function collectAssetReferences(value: unknown, references: Array<{ uri: string; integrity?: string }>): void {
+type FixtureAssetReference = {
+  uri: string;
+  integrity?: string;
+  declaration?: Record<string, unknown>;
+};
+
+function collectAssetReferences(value: unknown, references: FixtureAssetReference[]): void {
   if (Array.isArray(value)) {
     for (const item of value) collectAssetReferences(item, references);
     return;
@@ -111,9 +117,67 @@ function collectAssetReferences(value: unknown, references: Array<{ uri: string;
   const record = value as Record<string, unknown>;
   for (const [key, nested] of Object.entries(record)) {
     if ((key === "uri" || key === "thumbnail") && typeof nested === "string" && nested.startsWith("assets/")) {
-      references.push({ uri: nested, integrity: typeof record.integrity === "string" ? record.integrity : undefined });
+      references.push({
+        uri: nested,
+        integrity: typeof record.integrity === "string" ? record.integrity : undefined,
+        declaration: typeof record.assetType === "string" ? record : undefined,
+      });
     }
     collectAssetReferences(nested, references);
+  }
+}
+
+function expectedMimeType(entry: AssetManifestEntry): string {
+  const extension = entry.path.split(".").at(-1)?.toLowerCase();
+  const byExtension: Record<string, string> = {
+    png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp",
+    svg: "image/svg+xml", mp4: "video/mp4", webm: "video/webm",
+    mp3: "audio/mpeg", wav: "audio/wav", aac: "audio/aac", ogg: "audio/ogg",
+    ttf: "font/ttf", otf: "font/otf", woff: "font/woff", woff2: "font/woff2",
+  };
+  const mime = extension ? byExtension[extension] : undefined;
+  if (!mime) throw new Error(`No fixture MIME mapping for ${entry.path}`);
+  return mime;
+}
+
+function pixelFormatHasAlpha(pixelFormat: string): boolean {
+  return /(?:rgba|bgra|argb|abgr|yuva|graya)/i.test(pixelFormat);
+}
+
+function validateDeclaredAssetMetadata(reference: FixtureAssetReference, entry: AssetManifestEntry): void {
+  const asset = reference.declaration;
+  if (!asset) return;
+  const fail = (field: string): never => { throw new Error(`Fixture asset metadata mismatch: ${reference.uri} ${field}`); };
+  if (asset.assetType !== entry.kind) fail("assetType");
+  if (asset.mimeType !== expectedMimeType(entry)) fail("mimeType");
+  if (entry.width !== undefined && asset.width !== entry.width) fail("width");
+  if (entry.height !== undefined && asset.height !== entry.height) fail("height");
+  if (entry.duration !== undefined && (typeof asset.duration !== "number" || Math.abs(asset.duration - entry.duration) > 0.001)) fail("duration");
+  if (entry.sampleRate !== undefined && asset.sampleRate !== entry.sampleRate) fail("sampleRate");
+  if (entry.channels !== undefined && asset.channels !== entry.channels) fail("channels");
+  if (entry.kind === "image") {
+    if (asset.pixelFormat !== entry.pixelFormat) fail("pixelFormat");
+    if (asset.hasAlpha !== pixelFormatHasAlpha(String(entry.pixelFormat))) fail("hasAlpha");
+  }
+  if (entry.kind === "svg") {
+    if (entry.viewBox !== undefined && asset.viewBox !== entry.viewBox) fail("viewBox");
+    if (asset.sanitized !== true) fail("sanitized");
+  }
+  if (entry.kind === "audio" && asset.codec !== entry.codec) fail("codec");
+  if (entry.kind === "video") {
+    if (asset.videoCodec !== entry.codec) fail("videoCodec");
+    if (asset.pixelFormat !== entry.pixelFormat) fail("pixelFormat");
+    if (asset.fps !== entry.fps) fail("fps");
+    if (asset.hasAudio !== entry.hasAudio) fail("hasAudio");
+    if (entry.hasAudio && asset.audioCodec !== entry.audioCodec) fail("audioCodec");
+  }
+  if (entry.kind === "font") {
+    const expectedWeight = entry.style === "Bold" ? 700 : entry.style === "Medium" ? 500 : 400;
+    const expectedStyle = entry.style?.includes("Italic") ? "italic" : "normal";
+    if (asset.family !== entry.family) fail("family");
+    if (asset.weight !== expectedWeight) fail("weight");
+    if (asset.style !== expectedStyle) fail("style");
+    if (!Array.isArray(asset.localeCoverage) || !asset.localeCoverage.includes(entry.localeCoverage)) fail("localeCoverage");
   }
 }
 
@@ -149,7 +213,7 @@ async function validateAssetKit(): Promise<number> {
     probeAsset(path, entry);
   }
 
-  const references: Array<{ uri: string; integrity?: string }> = [];
+  const references: FixtureAssetReference[] = [];
   for (const directory of ["components", "projects", "imports"] as const) {
     const root = resolve(fixturesRoot, directory);
     for (const file of (await readdir(root)).filter((name) => name.endsWith(".json"))) {
@@ -163,6 +227,7 @@ async function validateAssetKit(): Promise<number> {
     if (reference.integrity && reference.integrity !== `sha256-${entry.sha256}`) {
       throw new Error(`Fixture integrity mismatch: ${reference.uri}`);
     }
+    validateDeclaredAssetMetadata(reference, entry);
   }
   const referencedPaths = new Set(references.map((reference) => reference.uri.slice("assets/".length)));
   const unused = manifest.assets.filter((entry) => !referencedPaths.has(entry.path));
@@ -248,35 +313,60 @@ async function validateNegativeFixtures(): Promise<number> {
     }
     console.log(`OK negative/${fixture.file}`);
   }
-  const schemaLimitFile = "components/id-over-limit.mvc.json";
-  let schemaError: unknown;
-  try {
-    parseMotionComponentV2(await readJson(resolve(fixturesRoot, "negative", schemaLimitFile)));
-  } catch (caught) {
-    schemaError = caught;
+  const schemaCases = [
+    {
+      file: "components/id-over-limit.mvc.json",
+      path: "nodes.0.id",
+      message: "at most 128",
+    },
+    {
+      file: "components/unsupported-asset-type.mvc.json",
+      path: "assets.0.assetType",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "components/missing-image-metadata.mvc.json",
+      path: "assets.0.hasAlpha",
+      code: "invalid_type",
+    },
+    {
+      file: "components/image-alpha-mismatch.mvc.json",
+      path: "assets.0.hasAlpha",
+      code: "custom",
+      message: "Image hasAlpha does not match pixelFormat",
+    },
+    {
+      file: "components/video-audio-metadata.mvc.json",
+      path: "assets.0.hasAudio",
+      code: "custom",
+      message: "Silent video must not declare audio metadata",
+    },
+    {
+      file: "components/video-missing-audio-metadata.mvc.json",
+      path: "assets.0.hasAudio",
+      code: "custom",
+      message: "Video with audio requires audioCodec, sampleRate and channels",
+    },
+  ] as const;
+  for (const fixture of schemaCases) {
+    let error: unknown;
+    try {
+      parseMotionComponentV2(await readJson(resolve(fixturesRoot, "negative", fixture.file)));
+    } catch (caught) {
+      error = caught;
+    }
+    const issues = error && typeof error === "object" && "issues" in error
+      ? (error as { issues: Array<{ path: Array<string | number>; code?: string; message: string }> }).issues
+      : [];
+    const matches = issues.some((issue) =>
+      issue.path.join(".") === fixture.path
+      && (!("code" in fixture) || issue.code === fixture.code)
+      && (!("message" in fixture) || issue.message.includes(fixture.message)),
+    );
+    if (!matches) throw new Error(`Negative fixture changed schema contract: ${fixture.file}`);
+    console.log(`OK negative/${fixture.file}`);
   }
-  const schemaIssues = schemaError && typeof schemaError === "object" && "issues" in schemaError
-    ? (schemaError as { issues: Array<{ path: Array<string | number>; message: string }> }).issues
-    : [];
-  if (!schemaIssues.some((issue) => issue.path.join(".") === "nodes.0.id" && issue.message.includes("at most 128"))) {
-    throw new Error(`Negative fixture changed schema limit contract: ${schemaLimitFile}`);
-  }
-  console.log(`OK negative/${schemaLimitFile}`);
-  const unsupportedAssetFile = "components/unsupported-asset-type.mvc.json";
-  let assetSchemaError: unknown;
-  try {
-    parseMotionComponentV2(await readJson(resolve(fixturesRoot, "negative", unsupportedAssetFile)));
-  } catch (caught) {
-    assetSchemaError = caught;
-  }
-  const assetSchemaIssues = assetSchemaError && typeof assetSchemaError === "object" && "issues" in assetSchemaError
-    ? (assetSchemaError as { issues: Array<{ path: Array<string | number>; code?: string }> }).issues
-    : [];
-  if (!assetSchemaIssues.some((issue) => issue.path.join(".") === "assets.0.assetType" && issue.code === "invalid_union_discriminator")) {
-    throw new Error(`Negative fixture changed asset discriminator contract: ${unsupportedAssetFile}`);
-  }
-  console.log(`OK negative/${unsupportedAssetFile}`);
-  return cases.length + 2;
+  return cases.length + schemaCases.length;
 }
 
 function fixtureTransform(): Record<string, unknown> {

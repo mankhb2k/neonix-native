@@ -105,6 +105,18 @@ Variable list khai báo `itemSchema`. Group template có `repeat` với source, 
 
 Asset reference luôn là ID; URI chỉ nằm trong asset manifest. Project pin mỗi Component bằng `componentId`, exact version, source và integrity. Integrity không tự bảo đảm offline: loader phải lấy đúng package từ portable bundle hoặc content-addressed cache trước khi compile.
 
+Asset declaration là discriminated union theo `assetType`; không dùng metadata record tự do:
+
+| Family | Metadata bắt buộc |
+|---|---|
+| `image` | `mimeType`, `width`, `height`, `pixelFormat`, `hasAlpha` |
+| `svg` | `mimeType: image/svg+xml`, `width`, `height`, `viewBox`, `sanitized: true` |
+| `video` | `mimeType`, dimensions, `duration`, `fps`, `videoCodec`, `pixelFormat`, `hasAudio`; video có audio bắt buộc thêm codec/sample rate/channels |
+| `audio` | `mimeType`, `duration`, `codec`, `sampleRate`, `channels` |
+| `font` | `mimeType`, `family`, `weight`, `style`, `localeCoverage` |
+
+Schema reject ảnh có `hasAlpha` mâu thuẫn với pixel format và reject video có audio metadata không khớp `hasAudio`. Fixture validator tiếp tục đối chiếu declaration với hash và media probe; compiler giữ nguyên metadata đã xác thực trong Runtime IR để renderer không phải đoán lại.
+
 ## Timeline và audio
 
 Project `timeline.sceneOrder` là thứ tự phát canonical. `timeline.audioTracks` chứa BGM, voiceover và SFX với start/trim/volume/loop/fade. `extensions` chỉ dành cho constraints và events chưa thuộc runtime lõi.

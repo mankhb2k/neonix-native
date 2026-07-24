@@ -21,7 +21,7 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau Phase 0 có 10 positive fixtures, 10 negative artifacts, 9 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone typed asset metadata có 10 positive fixtures, 14 negative artifacts, 9 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
@@ -29,7 +29,7 @@ Baseline sau Phase 0 có 10 positive fixtures, 10 negative artifacts, 9 determin
 - [x] Limits cho ID, scene, node, clip, track, key, list và hierarchy depth.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 10 negative artifacts và 9 limit/depth descriptors với structured error assertions.
+- [x] 14 negative artifacts và 9 limit/depth descriptors với structured error assertions.
 - [x] 4 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
@@ -39,7 +39,8 @@ Baseline sau Phase 0 có 10 positive fixtures, 10 negative artifacts, 9 determin
 - [x] `assetType` đổi từ string tự do thành discriminated union: image/svg/video/audio/font.
 - [x] Node `assetId`, text `fontAssetId`, brand logo và audio timeline được kiểm tra asset compatibility.
 - [x] Negative fixtures cho unsupported asset type và Node–Asset mismatch.
-- [ ] Thêm typed metadata riêng cho từng asset family.
+- [x] Typed metadata riêng cho image, SVG, video, audio và font; validator đối chiếu declaration với manifest/probe.
+- [x] Negative contracts cho thiếu metadata, alpha mismatch và video audio-policy mismatch.
 - [ ] Chuyển RegularNode generic thành discriminated Node payload/style schemas.
 
 ### Đã có contract và hành vi có thể dựa vào

@@ -16,33 +16,58 @@
   "assets": [
     {
       "id": "asset.rig.torso",
-      "assetType": "svg",
       "uri": "assets/rig-torso.svg",
-      "integrity": "sha256-f321ac6562ae53030b96cfd535bed2921548380c836e768251d3d7b6fbe6d4d6"
+      "integrity": "sha256-f321ac6562ae53030b96cfd535bed2921548380c836e768251d3d7b6fbe6d4d6",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 180,
+      "height": 300,
+      "viewBox": "0 0 180 300",
+      "sanitized": true
     },
     {
       "id": "asset.rig.upper-arm",
-      "assetType": "svg",
       "uri": "assets/rig-upper-arm.svg",
-      "integrity": "sha256-983fd2bf0545ba193f24f5333ccc43c27b7c698217ba74b9962e1801001d64ed"
+      "integrity": "sha256-983fd2bf0545ba193f24f5333ccc43c27b7c698217ba74b9962e1801001d64ed",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 120,
+      "height": 40,
+      "viewBox": "0 0 120 40",
+      "sanitized": true
     },
     {
       "id": "asset.rig.forearm",
-      "assetType": "svg",
       "uri": "assets/rig-forearm.svg",
-      "integrity": "sha256-e2b78441487cc1299fd369e688c0db860ed370ad47b85034ba770dd13f8eec03"
+      "integrity": "sha256-e2b78441487cc1299fd369e688c0db860ed370ad47b85034ba770dd13f8eec03",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 100,
+      "height": 36,
+      "viewBox": "0 0 100 36",
+      "sanitized": true
     },
     {
       "id": "asset.rig.hand",
-      "assetType": "svg",
       "uri": "assets/rig-hand.svg",
-      "integrity": "sha256-faba88083866303710306cb9262dcd3bd36e500c703a224617f9ab6581bd1bc3"
+      "integrity": "sha256-faba88083866303710306cb9262dcd3bd36e500c703a224617f9ab6581bd1bc3",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 50,
+      "height": 50,
+      "viewBox": "0 0 50 50",
+      "sanitized": true
     },
     {
       "id": "asset.rig.prop",
-      "assetType": "svg",
       "uri": "assets/rig-prop.svg",
-      "integrity": "sha256-00f286870bba7168a501a28c2d44e7a400faf1903ee8aaeb6c1817a5e61f8be1"
+      "integrity": "sha256-00f286870bba7168a501a28c2d44e7a400faf1903ee8aaeb6c1817a5e61f8be1",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 50,
+      "height": 100,
+      "viewBox": "0 0 50 100",
+      "sanitized": true
     }
   ],
   "timeline": {

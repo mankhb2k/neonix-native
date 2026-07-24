@@ -13,7 +13,12 @@
       "id": "asset.mascot-svg",
       "assetType": "svg",
       "uri": "assets/character.svg",
-      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a"
+      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a",
+      "mimeType": "image/svg+xml",
+      "width": 300,
+      "height": 400,
+      "viewBox": "0 0 300 400",
+      "sanitized": true
     }
   ],
   "variables": [

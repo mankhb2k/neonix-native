@@ -17,69 +17,139 @@
   "assets": [
     {
       "id": "asset.image.product",
-      "assetType": "image",
       "uri": "assets/image-product.png",
-      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd"
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 1000,
+      "height": 1000,
+      "pixelFormat": "rgb24",
+      "hasAlpha": false
     },
     {
       "id": "asset.image.alpha",
-      "assetType": "image",
       "uri": "assets/image-alpha.png",
-      "integrity": "sha256-df8cf3593f7e328c75b6d4e8e53d31223d5dad15ff9c52a376087c24ae8c7a40"
+      "integrity": "sha256-df8cf3593f7e328c75b6d4e8e53d31223d5dad15ff9c52a376087c24ae8c7a40",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 450,
+      "height": 466,
+      "pixelFormat": "rgba",
+      "hasAlpha": true
     },
     {
       "id": "asset.character",
-      "assetType": "svg",
       "uri": "assets/character.svg",
-      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a"
+      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 300,
+      "height": 400,
+      "viewBox": "0 0 300 400",
+      "sanitized": true
     },
     {
       "id": "asset.font.regular",
-      "assetType": "font",
       "uri": "assets/Lora-Regular.ttf",
-      "integrity": "sha256-7ed00e7c9cdf16ab7e2fd2361fe45d4f0b61263cd60aae398b27b7ee08108827"
+      "integrity": "sha256-7ed00e7c9cdf16ab7e2fd2361fe45d4f0b61263cd60aae398b27b7ee08108827",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Lora",
+      "weight": 400,
+      "style": "normal",
+      "localeCoverage": [
+        "vi-VN"
+      ]
     },
     {
       "id": "asset.font.medium",
-      "assetType": "font",
       "uri": "assets/Lora-Medium.ttf",
-      "integrity": "sha256-fd57ed9e3945de65de667f1919c2978b79937a13d246508fc4f64bb562e53196"
+      "integrity": "sha256-fd57ed9e3945de65de667f1919c2978b79937a13d246508fc4f64bb562e53196",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Lora",
+      "weight": 500,
+      "style": "normal",
+      "localeCoverage": [
+        "vi-VN"
+      ]
     },
     {
       "id": "asset.font.bold",
-      "assetType": "font",
       "uri": "assets/Lora-Bold.ttf",
-      "integrity": "sha256-7d74015e950c2fb66519c7295b8155621d22200ae2ca2a4c6b43ce3c490cac87"
+      "integrity": "sha256-7d74015e950c2fb66519c7295b8155621d22200ae2ca2a4c6b43ce3c490cac87",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Lora",
+      "weight": 700,
+      "style": "normal",
+      "localeCoverage": [
+        "vi-VN"
+      ]
     },
     {
       "id": "asset.audio.music",
-      "assetType": "audio",
       "uri": "assets/music.mp3",
-      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf"
+      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 124.58,
+      "codec": "mp3",
+      "sampleRate": 44100,
+      "channels": 2
     },
     {
       "id": "asset.audio.voiceover",
-      "assetType": "audio",
       "uri": "assets/voiceover.mp3",
-      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74"
+      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 5.06,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 1
     },
     {
       "id": "asset.audio.sfx",
-      "assetType": "audio",
       "uri": "assets/sfx.wav",
-      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b"
+      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b",
+      "assetType": "audio",
+      "mimeType": "audio/wav",
+      "duration": 11.93,
+      "codec": "pcm_s16le",
+      "sampleRate": 44100,
+      "channels": 2
     },
     {
       "id": "asset.video.silent",
-      "assetType": "video",
       "uri": "assets/video-silent.mp4",
-      "integrity": "sha256-a6b5501f7b86fa070022e609193e558e7042f671df374821d8484f7382d2cde1"
+      "integrity": "sha256-a6b5501f7b86fa070022e609193e558e7042f671df374821d8484f7382d2cde1",
+      "assetType": "video",
+      "mimeType": "video/mp4",
+      "width": 480,
+      "height": 854,
+      "duration": 3.37,
+      "fps": 30,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAudio": false
     },
     {
       "id": "asset.video.audio",
-      "assetType": "video",
       "uri": "assets/video-with-audio.mp4",
-      "integrity": "sha256-457621ad4923add1dedd90529deea13e425444578c49faacf3093720c6d74a5e"
+      "integrity": "sha256-457621ad4923add1dedd90529deea13e425444578c49faacf3093720c6d74a5e",
+      "assetType": "video",
+      "mimeType": "video/mp4",
+      "width": 480,
+      "height": 854,
+      "duration": 3.37,
+      "fps": 30,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "sampleRate": 44100,
+      "channels": 2
     }
   ],
   "timeline": {

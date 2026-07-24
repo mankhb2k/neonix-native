@@ -176,7 +176,8 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 | Project Timeline | Scene order + audio tracks | Partial | missing/duplicate scene, total duration |
 | Audio Track | BGM/voiceover/SFX | Partial plumbing | start/trim/loop/gain/fade/mix |
 | Audio cue/marker | Beat/phoneme/semantic time | Planned P1 tooling | import/generate/edit, no raster dependency |
-| Asset resolver | ID → verified local/cache resource | Planned P0 | URI safety, hash, cache/offline |
+| Asset declaration | Typed image/SVG/video/audio/font metadata | Implemented schema + fixtures | required fields, alpha/audio consistency, manifest/probe parity |
+| Asset resolver | ID → verified local/cache resource | Partial fixtures | URI safety, hash, manifest coverage; cache/offline còn thiếu |
 | Font resolver | Family/weight → bundled font | Partial fixture | Vietnamese glyphs, fallback, missing weight |
 | Media probe | Codec/duration/dimensions policy | Implemented fixtures | invalid/corrupt/unsupported media |
 
@@ -224,7 +225,7 @@ Out of scope hiện tại:
 
 ## Asset audit — 2026-07-24
 
-`docs/fixtures/v2/assets/manifest.json` hiện khóa 14 assets và validator đã pass hash/probe/reference.
+`docs/fixtures/v2/assets/manifest.json` hiện khóa 19 assets. Validator kiểm tra hash/probe/reference và đối chiếu typed declaration của năm asset family với manifest.
 
 | Nhóm | Coverage |
 |---|---|

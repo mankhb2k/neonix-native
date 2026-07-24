@@ -54,6 +54,7 @@ Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track n�
 - font đăng ký được với raster engine;
 - mọi URI/thumbnail trong Project và Component trỏ tới asset có manifest;
 - integrity pin trong artifact khớp SHA-256;
+- declaration của năm asset family khớp manifest/probe về MIME, kích thước, codec, duration, FPS, alpha/audio policy, font và SVG viewBox;
 - không có asset trong manifest mà chưa được ít nhất một fixture sử dụng.
 
 Các asset đã được project owner xác nhận cho phép sử dụng trong automated fixtures và local preview. `video-silent.mp4` không có audio stream; `video-with-audio.mp4` có AAC để khóa hai trường hợp riêng biệt.
@@ -78,5 +79,6 @@ Lệnh này compile `hierarchy-transform.mt.json`, kiểm tra world-space tại 
 - Authoring IR cho phép variable reference; Runtime IR chỉ chứa literal.
 - Repeater là authoring directive và được compiler expand trước renderer.
 - Asset ID khác URI; project pin Component bằng version + integrity.
+- Asset declaration dùng discriminated union `image | svg | video | audio | font`; metadata kỹ thuật bắt buộc và được giữ nguyên vào Runtime IR.
 - Audio và thứ tự Scene thuộc `timeline`, không thuộc `extensions`.
 - Camera pan/rotation dùng transform; zoom dùng `payload.zoom`.

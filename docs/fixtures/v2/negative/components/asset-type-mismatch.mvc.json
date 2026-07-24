@@ -4,7 +4,7 @@
   "componentId": "negative.asset-type-mismatch",
   "componentVersion": "1.0.0",
   "metadata": { "name": "Asset type mismatch" },
-  "assets": [{ "id": "asset.font", "assetType": "font", "uri": "assets/Lora-Regular.ttf" }],
+  "assets": [{ "id": "asset.font", "assetType": "font", "uri": "assets/Lora-Regular.ttf", "mimeType": "font/ttf", "family": "Lora", "weight": 400, "style": "normal", "localeCoverage": ["vi-VN"] }],
   "variables": [],
   "publicAPI": [],
   "nodes": [

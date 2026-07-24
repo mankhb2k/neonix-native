@@ -19,27 +19,47 @@
   "assets": [
     {
       "id": "asset.product",
-      "assetType": "image",
       "uri": "assets/image-product.png",
-      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd"
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 1000,
+      "height": 1000,
+      "pixelFormat": "rgb24",
+      "hasAlpha": false
     },
     {
       "id": "asset.bgm",
-      "assetType": "audio",
       "uri": "assets/music.mp3",
-      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf"
+      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 124.58,
+      "codec": "mp3",
+      "sampleRate": 44100,
+      "channels": 2
     },
     {
       "id": "asset.voiceover",
-      "assetType": "audio",
       "uri": "assets/voiceover.mp3",
-      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74"
+      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 5.06,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 1
     },
     {
       "id": "asset.sfx",
-      "assetType": "audio",
       "uri": "assets/sfx.wav",
-      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b"
+      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b",
+      "assetType": "audio",
+      "mimeType": "audio/wav",
+      "duration": 11.93,
+      "codec": "pcm_s16le",
+      "sampleRate": 44100,
+      "channels": 2
     }
   ],
   "timeline": {

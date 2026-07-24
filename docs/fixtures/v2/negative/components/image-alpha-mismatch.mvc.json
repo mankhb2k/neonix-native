@@ -1,0 +1,31 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "negative.image-alpha-mismatch",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "Image alpha metadata mismatch" },
+  "assets": [
+    {
+      "id": "asset.image",
+      "assetType": "image",
+      "uri": "assets/image-alpha.png",
+      "mimeType": "image/png",
+      "width": 512,
+      "height": 512,
+      "pixelFormat": "rgba",
+      "hasAlpha": false
+    }
+  ],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "root",
+      "type": "group",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }
+    }
+  ],
+  "bindings": [],
+  "clips": []
+}

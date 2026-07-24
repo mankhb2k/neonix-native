@@ -9,6 +9,11 @@ export const MOTION_V2_LIMITS = Object.freeze({
   keysPerTrack: 10_000,
   hierarchyDepth: 64,
   listItems: 1_000,
+  assetDimension: 32_768,
+  mediaDurationSeconds: 86_400,
+  frameRate: 240,
+  sampleRate: 384_000,
+  audioChannels: 16,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

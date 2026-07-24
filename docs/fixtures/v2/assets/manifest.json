@@ -23,6 +23,7 @@
       "sha256": "df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a",
       "width": 300,
       "height": 400,
+      "viewBox": "0 0 300 400",
       "expectedGroups": 2,
       "expectedPaths": 53,
       "expectedMasks": 2
@@ -116,6 +117,7 @@
       "sha256": "e2b78441487cc1299fd369e688c0db860ed370ad47b85034ba770dd13f8eec03",
       "width": 100,
       "height": 36,
+      "viewBox": "0 0 100 36",
       "expectedGroups": 0,
       "expectedPaths": 0,
       "expectedMasks": 0
@@ -127,6 +129,7 @@
       "sha256": "faba88083866303710306cb9262dcd3bd36e500c703a224617f9ab6581bd1bc3",
       "width": 50,
       "height": 50,
+      "viewBox": "0 0 50 50",
       "expectedGroups": 0,
       "expectedPaths": 0,
       "expectedMasks": 0
@@ -138,6 +141,7 @@
       "sha256": "00f286870bba7168a501a28c2d44e7a400faf1903ee8aaeb6c1817a5e61f8be1",
       "width": 50,
       "height": 100,
+      "viewBox": "0 0 50 100",
       "expectedGroups": 0,
       "expectedPaths": 0,
       "expectedMasks": 0
@@ -149,6 +153,7 @@
       "sha256": "f321ac6562ae53030b96cfd535bed2921548380c836e768251d3d7b6fbe6d4d6",
       "width": 180,
       "height": 300,
+      "viewBox": "0 0 180 300",
       "expectedGroups": 0,
       "expectedPaths": 0,
       "expectedMasks": 0
@@ -160,6 +165,7 @@
       "sha256": "983fd2bf0545ba193f24f5333ccc43c27b7c698217ba74b9962e1801001d64ed",
       "width": 120,
       "height": 40,
+      "viewBox": "0 0 120 40",
       "expectedGroups": 0,
       "expectedPaths": 0,
       "expectedMasks": 0

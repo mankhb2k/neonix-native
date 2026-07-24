@@ -14,7 +14,8 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 10 artifacts + 9 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 14 artifacts + 9 limit cases | — | — | — |
+| Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Stored Runtime IR goldens | ✅ | ✅ 4 projects | — | — |
 | Property capability registry | ✅ baseline | ✅ reject unsupported | — | — |
 | Resource limits | ✅ ID/array limits | — | — | — |
