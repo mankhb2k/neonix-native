@@ -143,6 +143,7 @@ function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<
         })),
       }));
     }
+    if (clip.source.kind === "component-action") throw new Error(`Unexpanded Component Action clip: ${clip.id}`);
     if (!clip.targetId) throw new Error(`Preset clip ${clip.id} requires targetId`);
     const node = nodeById.get(clip.targetId);
     if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
@@ -154,9 +155,16 @@ function expandComponents(
   nodes: MotionNode[],
   clips: MotionClip[],
   componentPackages: Map<string, MotionComponentV2>,
+  projectVariables: Map<string, unknown>,
 ): { nodes: RuntimeNode[]; clips: MotionClip[]; variables: Map<string, unknown> } {
   const outputNodes: RuntimeNode[] = [];
-  const outputClips = [...clips];
+  const sceneStarts = scheduleTimes(clips);
+  const actionInvocationIds = new Set(clips.filter((clip) => clip.source.kind === "component-action").map((clip) => clip.id));
+  const outputClips = clips
+    .filter((clip) => clip.source.kind !== "component-action")
+    .map((clip) => clip.schedule.kind !== "absolute" && actionInvocationIds.has(clip.schedule.clipId)
+      ? { ...clone(clip), schedule: { kind: "absolute" as const, at: sceneStarts.get(clip.id) ?? 0 } }
+      : clone(clip));
   const componentVariables = new Map<string, unknown>();
   for (const node of nodes) {
     if (node.type !== "component") {
@@ -296,6 +304,62 @@ function expandComponents(
         });
       }
     }
+    const slotByNodeId = new Map(component.cutoutRigs.flatMap((rig) => rig.slots.map((slot) => [slot.nodeId, slot] as const)));
+    for (const invocation of clips.filter((clip) => clip.targetId === node.id && clip.source.kind === "component-action")) {
+      if (invocation.source.kind !== "component-action") continue;
+      const actionId = invocation.source.actionId;
+      const action = component.actions.find((candidate) => candidate.id === actionId);
+      if (!action) throw new Error(`Unknown Component Action: ${key}/${actionId}`);
+      if (invocation.playback.iterations !== 1 || invocation.playback.direction !== "normal") {
+        throw new Error(`Component Action ${invocation.id} currently requires one normal iteration`);
+      }
+      const baseValues = new Map([...projectVariables, ...values]);
+      const actionValues = new Map(baseValues);
+      for (const [paramId, paramValue] of Object.entries(invocation.source.params ?? {})) actionValues.set(paramId, resolveValue(paramValue, baseValues));
+      const outerRate = number(resolveValue(invocation.playback.rate, baseValues), `clips.${invocation.id}.playback.rate`);
+      if (outerRate <= 0) throw new Error(`clips.${invocation.id}.playback.rate must be > 0`);
+      if (action.duration / outerRate > invocation.duration + 1e-9) throw new Error(`Component Action ${invocation.id} exceeds invocation duration`);
+      const resolvedActionClips = action.clips.map((clip) => resolveValue(resolveValue(clip, actionValues), actionValues) as MotionClip);
+      const actionStarts = scheduleTimes(resolvedActionClips);
+      const invocationStart = sceneStarts.get(invocation.id) ?? 0;
+      for (const actionClip of resolvedActionClips) {
+        const innerRate = number(actionClip.playback.rate, `actions.${action.id}.clips.${actionClip.id}.playback.rate`);
+        if (innerRate <= 0) throw new Error(`actions.${action.id}.clips.${actionClip.id}.playback.rate must be > 0`);
+        const source = actionClip.source.kind === "tracks"
+          ? {
+              ...clone(actionClip.source),
+              tracks: actionClip.source.tracks.map((track) => {
+                const expandedTarget = targets.get(track.targetId)?.[0]?.node;
+                if (!expandedTarget) throw new Error(`Unknown Component Action target: ${key}/${action.id}/${track.targetId}`);
+                if (track.property !== "payload.variantId") return { ...clone(track), targetId: expandedTarget.id };
+                const slot = slotByNodeId.get(track.targetId);
+                if (!slot) throw new Error(`Unknown Component Action variant slot: ${key}/${track.targetId}`);
+                return {
+                  ...clone(track),
+                  targetId: expandedTarget.id,
+                  property: "payload.assetId",
+                  keys: track.keys.map((keyframe) => {
+                    const variant = slot.variants.find((candidate) => candidate.id === keyframe.v);
+                    if (!variant) throw new Error(`Unknown variant ${String(keyframe.v)} for ${slot.id}`);
+                    return { ...clone(keyframe), v: variant.assetId };
+                  }),
+                };
+              }),
+            }
+          : actionClip.source.kind === "preset"
+            ? clone(actionClip.source)
+            : (() => { throw new Error(`Nested Component Action is not supported: ${key}/${action.id}`); })();
+        const target = actionClip.targetId ? targets.get(actionClip.targetId)?.[0]?.node : undefined;
+        outputClips.push({
+          ...clone(actionClip),
+          id: `${node.id}::action:${invocation.id}::${actionClip.id}`,
+          targetId: target?.id,
+          schedule: { kind: "absolute", at: canonicalTime(invocationStart + (actionStarts.get(actionClip.id) ?? 0) / outerRate) },
+          playback: { ...clone(actionClip.playback), rate: innerRate * outerRate },
+          source,
+        });
+      }
+    }
   }
   return { nodes: outputNodes, clips: outputClips, variables: componentVariables };
 }
@@ -365,7 +429,7 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
         const target = scene.nodes.find((node) => node.id === binding.target.nodeId);
         if (target) setPath(target as unknown as Record<string, unknown>, binding.target.property, projectVariables.get(binding.source.variableId));
       }
-      const expanded = expandComponents(scene.nodes, scene.clips, componentPackages);
+      const expanded = expandComponents(scene.nodes, scene.clips, componentPackages, projectVariables);
       const variables = new Map([...projectVariables, ...expanded.variables]);
       const resolvedAuthoringNodes = expanded.nodes.map((node) => resolveValue(node, variables) as unknown as MotionNode);
       const textExpanded = expandTextAnimators(resolvedAuthoringNodes);

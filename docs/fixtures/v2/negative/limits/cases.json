@@ -29,6 +29,14 @@
     { "id": "repeater-count", "target": "repeater.count", "limit": "repeaterInstances", "expectedPath": "nodes.0.repeat.source.count" },
     { "id": "repeater-grid-columns", "target": "repeater.gridColumns", "limit": "repeaterGridColumns", "expectedPath": "nodes.0.repeat.layout.columns" },
     { "id": "text-animator-units", "target": "textAnimator.units", "limit": "textAnimatorUnits", "expectedPath": "nodes.text.textAnimator" },
-    { "id": "modifiers-per-node", "target": "modifier.items", "limit": "modifiersPerNode", "expectedPath": "nodes.0.modifiers" }
+    { "id": "modifiers-per-node", "target": "modifier.items", "limit": "modifiersPerNode", "expectedPath": "nodes.0.modifiers" },
+    { "id": "component-source-imports", "target": "component.sourceImports", "limit": "sourceImportsPerComponent", "expectedPath": "sourceImports" },
+    { "id": "source-import-parts", "target": "sourceImport.parts", "limit": "sourcePartsPerImport", "expectedPath": "sourceImports.0.parts" },
+    { "id": "source-part-element-ids", "target": "sourcePart.elementIds", "limit": "sourceElementIdsPerPart", "expectedPath": "sourceImports.0.parts.0.sourceElementIds" },
+    { "id": "component-cutout-rigs", "target": "component.cutoutRigs", "limit": "cutoutRigsPerComponent", "expectedPath": "cutoutRigs" },
+    { "id": "cutout-rig-slots", "target": "cutoutRig.slots", "limit": "variantSlotsPerRig", "expectedPath": "cutoutRigs.0.slots" },
+    { "id": "variant-slot-variants", "target": "variantSlot.variants", "limit": "variantsPerSlot", "expectedPath": "cutoutRigs.0.slots.0.variants" },
+    { "id": "component-actions", "target": "component.actions", "limit": "actionsPerComponent", "expectedPath": "actions" },
+    { "id": "action-clips", "target": "action.clips", "limit": "clipsPerAction", "expectedPath": "actions.0.clips" }
   ]
 }

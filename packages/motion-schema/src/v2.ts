@@ -292,6 +292,7 @@ export const BoneNodeV2Schema = NodeBaseSchema.extend({
   payload: z.object({
     length: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     restRotation: FiniteNumberSchema.optional(),
+    rotationLimits: z.object({ min: FiniteNumberSchema, max: FiniteNumberSchema }).strict().optional(),
   }).strict(),
 }).strict();
 
@@ -486,6 +487,11 @@ const ClipSourceSchema = z.discriminatedUnion("kind", [
     .object({ kind: z.literal("preset"), presetId: IdSchema, params: z.record(ResolvableValueSchema).optional() })
     .strict(),
   z.object({ kind: z.literal("tracks"), tracks: z.array(PropertyTrackSchema).min(1).max(MOTION_V2_LIMITS.tracksPerClip) }).strict(),
+  z.object({
+    kind: z.literal("component-action"),
+    actionId: IdSchema,
+    params: z.record(ResolvableValueSchema).optional(),
+  }).strict(),
 ]);
 
 export const ClipV2Schema = z
@@ -531,6 +537,48 @@ export const PublicParamSchema = z
   })
   .strict();
 
+const SvgSourceImportSchema = z.object({
+  id: IdSchema,
+  kind: z.literal("svg"),
+  sourceAssetId: IdSchema,
+  sourceIntegrity: z.string().min(1),
+  parts: z.array(z.object({
+    id: IdSchema,
+    sourceElementIds: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.sourceElementIdsPerPart),
+    structuralFingerprint: z.string().min(1),
+    nodeId: IdSchema,
+    outputAssetId: IdSchema,
+    originalName: z.string().min(1).optional(),
+  }).strict()).max(MOTION_V2_LIMITS.sourcePartsPerImport),
+}).strict();
+
+const CutoutVariantSlotSchema = z.object({
+  id: IdSchema,
+  nodeId: IdSchema,
+  semanticRole: IdSchema,
+  defaultVariantId: IdSchema,
+  variants: z.array(z.object({
+    id: IdSchema,
+    assetId: IdSchema,
+    semantic: IdSchema.optional(),
+  }).strict()).min(1).max(MOTION_V2_LIMITS.variantsPerSlot),
+}).strict();
+
+const CutoutRigSchema = z.object({
+  id: IdSchema,
+  kind: z.literal("cutout"),
+  rootNodeId: IdSchema,
+  slots: z.array(CutoutVariantSlotSchema).max(MOTION_V2_LIMITS.variantSlotsPerRig),
+}).strict();
+
+const MotionActionSchema = z.object({
+  id: IdSchema,
+  name: z.string().min(1),
+  duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  loop: z.boolean().default(false),
+  clips: z.array(ClipV2Schema).min(1).max(MOTION_V2_LIMITS.clipsPerAction),
+}).strict();
+
 export const MotionComponentV2Schema = z
   .object({
     format: z.literal("motion-component"),
@@ -544,6 +592,9 @@ export const MotionComponentV2Schema = z
     nodes: z.array(NodeV2Schema).min(1).max(MOTION_V2_LIMITS.nodesPerComponent),
     bindings: z.array(ComponentBindingSchema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
     clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerComponent).default([]),
+    sourceImports: z.array(SvgSourceImportSchema).max(MOTION_V2_LIMITS.sourceImportsPerComponent).default([]),
+    cutoutRigs: z.array(CutoutRigSchema).max(MOTION_V2_LIMITS.cutoutRigsPerComponent).default([]),
+    actions: z.array(MotionActionSchema).max(MOTION_V2_LIMITS.actionsPerComponent).default([]),
   })
   .strict();
 
@@ -804,6 +855,9 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
   const ids = nodes.map((node) => node.id);
   for (const id of new Set(duplicates(ids))) issues.push({ path: prefix, message: `Duplicate node id: ${id}` });
   for (const node of nodes) {
+    if (node.type === "bone" && node.payload.rotationLimits && node.payload.rotationLimits.min > node.payload.rotationLimits.max) {
+      issues.push({ path: `${prefix}.${node.id}.payload.rotationLimits.max`, message: "Bone rotation limit max must be >= min" });
+    }
     if (node.type !== "path") continue;
     for (const id of new Set(duplicates(node.payload.contours.map((contour) => contour.id)))) {
       issues.push({ path: `${prefix}.${node.id}.payload.contours`, message: `Duplicate Path contour id: ${id}` });
@@ -967,11 +1021,39 @@ function validateNodeAssets(
   return issues;
 }
 
+function clipScheduleStarts(clips: Array<z.infer<typeof ClipV2Schema>>): Map<string, number> {
+  const byId = new Map(clips.map((clip) => [clip.id, clip]));
+  const starts = new Map<string, number>();
+  const visiting = new Set<string>();
+  const resolve = (clip: z.infer<typeof ClipV2Schema>): number | undefined => {
+    const cached = starts.get(clip.id);
+    if (cached !== undefined) return cached;
+    if (visiting.has(clip.id)) return undefined;
+    visiting.add(clip.id);
+    let start: number | undefined;
+    if (clip.schedule.kind === "absolute") start = clip.schedule.at;
+    else {
+      const dependency = byId.get(clip.schedule.clipId);
+      const dependencyStart = dependency ? resolve(dependency) : undefined;
+      if (dependency && dependencyStart !== undefined) start = dependencyStart + (clip.schedule.kind === "after" ? dependency.duration : 0) + (clip.schedule.offset ?? 0);
+    }
+    visiting.delete(clip.id);
+    if (start !== undefined) starts.set(clip.id, start);
+    return start;
+  };
+  for (const clip of clips) resolve(clip);
+  return starts;
+}
+
 function validateClips(
   clips: Array<z.infer<typeof ClipV2Schema>>,
   nodes: Array<z.infer<typeof NodeV2Schema>>,
   variables: Array<z.infer<typeof VariableV2Schema>>,
   prefix: string,
+  options: {
+    allowComponentAction?: boolean;
+    variantSlots?: Map<string, z.infer<typeof CutoutVariantSlotSchema>>;
+  } = {},
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
@@ -984,6 +1066,12 @@ function validateClips(
       const target = nodeById.get(clip.targetId);
       if (target?.type === "text" && target.textAnimator) issues.push({ path: `${prefix}.${clip.id}.targetId`, message: "Text Animator node cannot be targeted by authored clips; animate its parent or animator properties" });
     }
+    if (clip.source.kind === "component-action") {
+      const target = clip.targetId ? nodeById.get(clip.targetId) : undefined;
+      if (!options.allowComponentAction) issues.push({ path: `${prefix}.${clip.id}.source`, message: "Component Action invocation is only allowed in Project scenes" });
+      if (!clip.targetId) issues.push({ path: `${prefix}.${clip.id}.targetId`, message: "Component Action requires a target Component instance" });
+      else if (target && target.type !== "component") issues.push({ path: `${prefix}.${clip.id}.targetId`, message: `Component Action target has type ${target.type}, expected component` });
+    }
     if (clip.schedule.kind !== "absolute" && !clipById.has(clip.schedule.clipId)) {
       issues.push({ path: `${prefix}.${clip.id}.schedule`, message: `Unknown schedule clip: ${clip.schedule.clipId}` });
     }
@@ -991,10 +1079,13 @@ function validateClips(
       for (const track of clip.source.tracks) {
         const trackPath = `${prefix}.${clip.id}.source.tracks.${track.property}`;
         const node = nodeById.get(track.targetId);
+        const variantSlot = options.variantSlots?.get(track.targetId);
+        const isVariantTrack = track.property === "payload.variantId";
         if (!node) issues.push({ path: trackPath, message: `Unknown node: ${track.targetId}` });
         if (node?.type === "text" && node.textAnimator) issues.push({ path: trackPath, message: "Text Animator node cannot be targeted by authored tracks; animate its parent or animator properties" });
-        const capability = node ? motionPropertyCapability(node.type, track.property) : undefined;
-        if (node) issues.push(...validatePropertyPath(node, track.property, "track", trackPath));
+        if (isVariantTrack && !variantSlot) issues.push({ path: trackPath, message: `Variant track target is not a cut-out slot: ${track.targetId}` });
+        const capability = node && !isVariantTrack ? motionPropertyCapability(node.type, track.property) : undefined;
+        if (node && !isVariantTrack) issues.push(...validatePropertyPath(node, track.property, "track", trackPath));
         for (let index = 0; index < track.keys.length; index += 1) {
           const key = track.keys[index]!;
           if (key.t > clip.duration) issues.push({ path: trackPath, message: `Key time ${key.t} exceeds clip duration ${clip.duration}` });
@@ -1002,7 +1093,11 @@ function validateClips(
             issues.push({ path: trackPath, message: "Key times must be strictly increasing" });
             break;
           }
-          if (capability) {
+          if (isVariantTrack && variantSlot) {
+            if (typeof key.v !== "string" || !variantSlot.variants.some((variant) => variant.id === key.v)) {
+              issues.push({ path: trackPath, message: `Unknown variant ${String(key.v)} for slot ${variantSlot.id}` });
+            }
+          } else if (capability) {
             const value = key.v;
             const referenceValue = value !== null && typeof value === "object" && !Array.isArray(value)
               ? value as { ref?: { kind?: unknown; id?: unknown }; map?: { scale?: number; offset?: number } }
@@ -1050,6 +1145,62 @@ export function validateMotionComponentV2References(component: MotionComponentV2
   for (const id of new Set(duplicates(component.assets.map((asset) => asset.id)))) issues.push({ path: "assets", message: `Duplicate asset id: ${id}` });
   for (const id of new Set(duplicates(component.publicAPI.map((api) => api.id)))) issues.push({ path: "publicAPI", message: `Duplicate public API id: ${id}` });
   issues.push(...validateClips(component.clips, component.nodes, component.variables, "clips"));
+  const assetById = new Map(component.assets.map((asset) => [asset.id, asset]));
+  const nodeById = new Map(component.nodes.map((node) => [node.id, node]));
+  for (const id of new Set(duplicates(component.sourceImports.map((sourceImport) => sourceImport.id)))) issues.push({ path: "sourceImports", message: `Duplicate source import id: ${id}` });
+  for (const sourceImport of component.sourceImports) {
+    const sourceAsset = assetById.get(sourceImport.sourceAssetId);
+    if (!sourceAsset) issues.push({ path: `sourceImports.${sourceImport.id}.sourceAssetId`, message: `Unknown source SVG asset: ${sourceImport.sourceAssetId}` });
+    else if (sourceAsset.assetType !== "svg") issues.push({ path: `sourceImports.${sourceImport.id}.sourceAssetId`, message: `Source import asset has type ${sourceAsset.assetType}, expected svg` });
+    else if (sourceAsset.integrity !== sourceImport.sourceIntegrity) issues.push({ path: `sourceImports.${sourceImport.id}.sourceIntegrity`, message: "Source import integrity does not match source asset" });
+    for (const id of new Set(duplicates(sourceImport.parts.map((part) => part.id)))) issues.push({ path: `sourceImports.${sourceImport.id}.parts`, message: `Duplicate source part id: ${id}` });
+    const sourceOwners = new Map<string, string>();
+    for (const part of sourceImport.parts) {
+      for (const sourceElementId of part.sourceElementIds) {
+        const owner = sourceOwners.get(sourceElementId);
+        if (owner) issues.push({ path: `sourceImports.${sourceImport.id}.parts.${part.id}.sourceElementIds`, message: `Source element ${sourceElementId} is already assigned to part ${owner}` });
+        else sourceOwners.set(sourceElementId, part.id);
+      }
+      const node = nodeById.get(part.nodeId);
+      const outputAsset = assetById.get(part.outputAssetId);
+      if (!node) issues.push({ path: `sourceImports.${sourceImport.id}.parts.${part.id}.nodeId`, message: `Unknown mapped node: ${part.nodeId}` });
+      else if (node.type !== "svg") issues.push({ path: `sourceImports.${sourceImport.id}.parts.${part.id}.nodeId`, message: `Mapped part node has type ${node.type}, expected svg` });
+      else if (node.payload.assetId !== part.outputAssetId) issues.push({ path: `sourceImports.${sourceImport.id}.parts.${part.id}.outputAssetId`, message: `Mapped output asset does not match node ${part.nodeId}` });
+      if (!outputAsset) issues.push({ path: `sourceImports.${sourceImport.id}.parts.${part.id}.outputAssetId`, message: `Unknown output asset: ${part.outputAssetId}` });
+      else if (outputAsset.assetType !== "svg") issues.push({ path: `sourceImports.${sourceImport.id}.parts.${part.id}.outputAssetId`, message: `Output part asset has type ${outputAsset.assetType}, expected svg` });
+    }
+  }
+  for (const id of new Set(duplicates(component.cutoutRigs.map((rig) => rig.id)))) issues.push({ path: "cutoutRigs", message: `Duplicate cut-out rig id: ${id}` });
+  const variantSlotByNode = new Map<string, z.infer<typeof CutoutVariantSlotSchema>>();
+  for (const rig of component.cutoutRigs) {
+    if (!nodeById.has(rig.rootNodeId)) issues.push({ path: `cutoutRigs.${rig.id}.rootNodeId`, message: `Unknown rig root: ${rig.rootNodeId}` });
+    for (const id of new Set(duplicates(rig.slots.map((slot) => slot.id)))) issues.push({ path: `cutoutRigs.${rig.id}.slots`, message: `Duplicate variant slot id: ${id}` });
+    for (const slot of rig.slots) {
+      const node = nodeById.get(slot.nodeId);
+      if (!node) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.nodeId`, message: `Unknown slot node: ${slot.nodeId}` });
+      else if (node.type !== "svg") issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.nodeId`, message: `Variant slot node has type ${node.type}, expected svg` });
+      if (variantSlotByNode.has(slot.nodeId)) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.nodeId`, message: `Node already owns a variant slot: ${slot.nodeId}` });
+      else variantSlotByNode.set(slot.nodeId, slot);
+      for (const id of new Set(duplicates(slot.variants.map((variant) => variant.id)))) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.variants`, message: `Duplicate variant id: ${id}` });
+      const defaultVariant = slot.variants.find((variant) => variant.id === slot.defaultVariantId);
+      if (!defaultVariant) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.defaultVariantId`, message: `Unknown default variant: ${slot.defaultVariantId}` });
+      else if (node?.type === "svg" && node.payload.assetId !== defaultVariant.assetId) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.defaultVariantId`, message: "Slot node asset must match its default variant" });
+      for (const variant of slot.variants) {
+        const asset = assetById.get(variant.assetId);
+        if (!asset) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.variants.${variant.id}.assetId`, message: `Unknown variant asset: ${variant.assetId}` });
+        else if (asset.assetType !== "svg") issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.variants.${variant.id}.assetId`, message: `Variant asset has type ${asset.assetType}, expected svg` });
+      }
+    }
+  }
+  for (const id of new Set(duplicates(component.actions.map((action) => action.id)))) issues.push({ path: "actions", message: `Duplicate action id: ${id}` });
+  for (const action of component.actions) {
+    issues.push(...validateClips(action.clips, component.nodes, component.variables, `actions.${action.id}.clips`, { variantSlots: variantSlotByNode }));
+    const starts = clipScheduleStarts(action.clips);
+    for (const clip of action.clips) {
+      const start = starts.get(clip.id);
+      if (start !== undefined && start + clip.duration > action.duration) issues.push({ path: `actions.${action.id}.clips.${clip.id}`, message: `Action clip exceeds action duration ${action.duration}` });
+    }
+  }
   for (const api of component.publicAPI) {
     if (!variableIds.has(api.variableId)) issues.push({ path: `publicAPI.${api.id}.variableId`, message: `Unknown variable: ${api.variableId}` });
     const variable = component.variables.find((candidate) => candidate.id === api.variableId);
@@ -1107,6 +1258,7 @@ export function validateMotionComponentV2References(component: MotionComponentV2
     for (const nested of Object.values(record)) collectReferences(nested);
   };
   collectReferences(component.clips);
+  collectReferences(component.actions);
   for (const variableId of referencedVariables) if (!variableIds.has(variableId)) issues.push({ path: "clips", message: `Unknown referenced variable: ${variableId}` });
   return issues;
 }
@@ -1137,7 +1289,7 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
   for (const scene of project.scenes) {
     issues.push(...validateNodeGraph(scene.nodes, `scenes.${scene.id}.nodes`));
     issues.push(...validateNodeAssets(scene.nodes, project.assets, `scenes.${scene.id}.nodes`));
-    issues.push(...validateClips(scene.clips, scene.nodes, project.variables, `scenes.${scene.id}.clips`));
+    issues.push(...validateClips(scene.clips, scene.nodes, project.variables, `scenes.${scene.id}.clips`, { allowComponentAction: true }));
     const nodeIds = new Set(scene.nodes.map((node) => node.id));
     if (scene.activeCameraId) {
       const camera = scene.nodes.find((node) => node.id === scene.activeCameraId);

@@ -111,6 +111,30 @@
       "role": "bgm"
     },
     {
+      "path": "rig-mouth-a.svg",
+      "kind": "svg",
+      "bytes": 212,
+      "sha256": "e8897ef58c3f2f28e0d38d1c85c6eed62693b8a14b61b74f38fad779923f704b",
+      "width": 100,
+      "height": 40,
+      "viewBox": "0 0 100 40",
+      "expectedGroups": 0,
+      "expectedPaths": 0,
+      "expectedMasks": 0
+    },
+    {
+      "path": "rig-mouth-rest.svg",
+      "kind": "svg",
+      "bytes": 202,
+      "sha256": "951f11e5ccf909dda3b36b523901fe9b9efc24fdb7eb11748dd5fe51e503a5c9",
+      "width": 100,
+      "height": 40,
+      "viewBox": "0 0 100 40",
+      "expectedGroups": 0,
+      "expectedPaths": 1,
+      "expectedMasks": 0
+    },
+    {
       "path": "rig-forearm.svg",
       "kind": "svg",
       "bytes": 195,

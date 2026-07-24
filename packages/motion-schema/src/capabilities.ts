@@ -37,6 +37,14 @@ export const MOTION_V2_LIMITS = Object.freeze({
   repeaterGridColumns: 100,
   textAnimatorUnits: 1_000,
   modifiersPerNode: 32,
+  sourceImportsPerComponent: 16,
+  sourcePartsPerImport: 2_048,
+  sourceElementIdsPerPart: 1_024,
+  cutoutRigsPerComponent: 16,
+  variantSlotsPerRig: 128,
+  variantsPerSlot: 128,
+  actionsPerComponent: 256,
+  clipsPerAction: 512,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

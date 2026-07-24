@@ -60,7 +60,9 @@ type LimitCase = {
     | "project.scenes" | "project.dependencies" | "project.audioTracks" | "project.bindings" | "project.extensionConstraints"
     | "scene.nodes" | "scene.clips" | "clip.tracks" | "track.keys"
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
-    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items";
+    | "shape.polygonPoints" | "path.contours" | "path.segments" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items"
+    | "component.sourceImports" | "sourceImport.parts" | "sourcePart.elementIds" | "component.cutoutRigs"
+    | "cutoutRig.slots" | "variantSlot.variants" | "component.actions" | "action.clips";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -629,6 +631,42 @@ function baseLimitProject(): Record<string, unknown> {
 
 function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unknown>; parse: (input: unknown) => unknown } {
   const count = MOTION_V2_LIMITS[testCase.limit] + 1;
+  if (["component.sourceImports", "sourceImport.parts", "sourcePart.elementIds", "component.cutoutRigs", "cutoutRig.slots", "variantSlot.variants", "component.actions", "action.clips"].includes(testCase.target)) {
+    const component = baseLimitComponent();
+    const part = (index: number, elementCount = 1) => ({
+      id: `part-${index}`,
+      sourceElementIds: Array.from({ length: elementCount }, (_, elementIndex) => `element-${index}-${elementIndex}`),
+      structuralFingerprint: `fingerprint-${index}`,
+      nodeId: "root",
+      outputAssetId: "asset",
+    });
+    const sourceImport = (index: number, partCount = 1, elementCount = 1) => ({
+      id: `import-${index}`, kind: "svg", sourceAssetId: "source", sourceIntegrity: "sha256-source",
+      parts: Array.from({ length: partCount }, (_, partIndex) => part(partIndex, elementCount)),
+    });
+    const variant = (index: number) => ({ id: `variant-${index}`, assetId: "asset" });
+    const slot = (index: number, variantCount = 1) => ({
+      id: `slot-${index}`, nodeId: "root", semanticRole: "mouth", defaultVariantId: "variant-0",
+      variants: Array.from({ length: variantCount }, (_, variantIndex) => variant(variantIndex)),
+    });
+    const rig = (index: number, slotCount = 1, variantCount = 1) => ({
+      id: `rig-${index}`, kind: "cutout", rootNodeId: "root",
+      slots: Array.from({ length: slotCount }, (_, slotIndex) => slot(slotIndex, variantCount)),
+    });
+    const action = (index: number, clipCount = 1) => ({
+      id: `action-${index}`, name: `Action ${index}`, duration: 1, loop: false,
+      clips: Array.from({ length: clipCount }, (_, clipIndex) => fixtureClip(`action-clip-${clipIndex}`)),
+    });
+    if (testCase.target === "component.sourceImports") component.sourceImports = Array.from({ length: count }, (_, index) => sourceImport(index));
+    else if (testCase.target === "sourceImport.parts") component.sourceImports = [sourceImport(0, count)];
+    else if (testCase.target === "sourcePart.elementIds") component.sourceImports = [sourceImport(0, 1, count)];
+    else if (testCase.target === "component.cutoutRigs") component.cutoutRigs = Array.from({ length: count }, (_, index) => rig(index));
+    else if (testCase.target === "cutoutRig.slots") component.cutoutRigs = [rig(0, count)];
+    else if (testCase.target === "variantSlot.variants") component.cutoutRigs = [rig(0, 1, count)];
+    else if (testCase.target === "component.actions") component.actions = Array.from({ length: count }, (_, index) => action(index));
+    else component.actions = [action(0, count)];
+    return { artifact: component, parse: parseMotionComponentV2 };
+  }
   if (testCase.target.startsWith("component.")) {
     const component = baseLimitComponent();
     if (testCase.target === "component.nodes") component.nodes = Array.from({ length: count }, (_, index) => fixtureNode(`node-${index}`));
