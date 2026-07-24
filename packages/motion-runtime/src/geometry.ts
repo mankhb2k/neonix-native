@@ -73,8 +73,8 @@ function contourSamples(contour: PathContour): { points: Point[]; cumulative: nu
 }
 
 /** Deterministic fixed-sample arc-length lookup for a typed Path contour. */
-export function samplePathContour(node: PathNode, contourId: string, progress: number): PathSample {
-  const contour = node.payload.contours.find((candidate) => candidate.id === contourId);
+export function samplePathContour(node: PathNode, contourId: string, progress: number, contours = node.payload.contours): PathSample {
+  const contour = contours.find((candidate) => candidate.id === contourId);
   if (!contour) throw new Error(`Path contour missing: ${node.id}/${contourId}`);
   const table = contourSamples(contour);
   if (table.total <= Number.EPSILON || table.points.length < 2) throw new Error(`Path contour has zero length: ${node.id}/${contourId}`);
@@ -120,8 +120,8 @@ export function cubicBezierBounds(start: Point, control1: Point, control2: Point
   })));
 }
 
-function pathBounds(node: Extract<RuntimeNode, { type: "path" }>): Bounds2D {
-  const contourBounds = node.payload.contours.map((contour) => {
+function pathBounds(node: Extract<RuntimeNode, { type: "path" }>, contours = node.payload.contours): Bounds2D {
+  const contourBounds = contours.map((contour) => {
     let current = contour.start;
     let bounds: Bounds2D = { x: current.x, y: current.y, width: 0, height: 0 };
     for (const segment of contour.segments) {
@@ -149,9 +149,46 @@ export function inflateBounds(bounds: Bounds2D, amount: number): Bounds2D {
 }
 
 /** Returns canonical local-space drawable bounds, including half of the evaluated stroke. */
-export function localNodeBounds(node: RuntimeNode, transform: Transform2D, strokeWidth = 0): Bounds2D {
+export function localNodeBounds(node: RuntimeNode, transform: Transform2D, strokeWidth = 0, contours?: PathContour[]): Bounds2D {
   let bounds: Bounds2D = { x: 0, y: 0, width: transform.width, height: transform.height };
   if (node.type === "shape" && node.payload.shape === "polygon") bounds = pointBounds(node.payload.points);
-  else if (node.type === "path") bounds = pathBounds(node);
+  else if (node.type === "path") bounds = pathBounds(node, contours);
   return inflateBounds(bounds, strokeWidth / 2);
+}
+
+function interpolatePoint(left: Point, right: Point, progress: number): Point {
+  return { x: left.x + (right.x - left.x) * progress, y: left.y + (right.y - left.y) * progress };
+}
+
+/** Return the normalized geometry for a Path Morph modifier at a frame progress. */
+export function pathMorphContours(node: PathNode, progress: number): PathContour[] {
+  const modifier = node.modifiers?.find((candidate) => candidate.type === "path-morph");
+  if (!modifier) return node.payload.contours;
+  const targets = new Map((node.payload.morphTargets ?? []).map((target) => [target.id, target]));
+  const from = modifier.from === "base" ? node.payload.contours : targets.get(modifier.from)?.contours;
+  const to = targets.get(modifier.to)?.contours;
+  if (!from || !to) throw new Error(`Path Morph target missing: ${node.id}`);
+  const amount = Math.min(1, Math.max(0, progress));
+  return from.map((contour, contourIndex) => {
+    const destination = to[contourIndex]!;
+    return {
+      ...contour,
+      start: interpolatePoint(contour.start, destination.start, amount),
+      segments: contour.segments.map((segment, segmentIndex) => {
+        const targetSegment = destination.segments[segmentIndex]!;
+        if (segment.kind === "line" && targetSegment.kind === "line") {
+          return { kind: "line" as const, to: interpolatePoint(segment.to, targetSegment.to, amount) };
+        }
+        if (segment.kind === "cubic" && targetSegment.kind === "cubic") {
+          return {
+            kind: "cubic" as const,
+            control1: interpolatePoint(segment.control1, targetSegment.control1, amount),
+            control2: interpolatePoint(segment.control2, targetSegment.control2, amount),
+            to: interpolatePoint(segment.to, targetSegment.to, amount),
+          };
+        }
+        throw new Error(`Path Morph topology mismatch: ${node.id}/${contour.id}/${segmentIndex}`);
+      }),
+    };
+  });
 }

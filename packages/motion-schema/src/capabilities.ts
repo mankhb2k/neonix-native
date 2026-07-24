@@ -49,6 +49,7 @@ export const MOTION_V2_LIMITS = Object.freeze({
   effectRadius: 512,
   effectOffset: 32_768,
   effectIntensity: 8,
+  pathMorphTargets: 64,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";

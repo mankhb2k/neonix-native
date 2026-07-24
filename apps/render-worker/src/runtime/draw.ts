@@ -7,6 +7,7 @@ import {
   evaluateNodeEffects,
   evaluateProperty,
   evaluateScene,
+  pathMorphContours,
   planOffscreenSurface,
   type EvaluatedNode,
   type RuntimeEffect,
@@ -122,7 +123,10 @@ function buildGeometryPath(ctx: SKRSContext2D, node: PaintNode, scene: RuntimeSc
     }
     return;
   }
-  for (const contour of node.payload.contours) {
+  const morph = node.type === "path" ? node.modifiers?.find((modifier) => modifier.type === "path-morph") : undefined;
+  const morphProgress = morph ? evaluateProperty(scene, node, `modifiers.${morph.id}.progress`, time, morph.progress) : 0;
+  const contours = morph ? pathMorphContours(node, typeof morphProgress === "number" ? morphProgress : 0) : node.payload.contours;
+  for (const contour of contours) {
     ctx.moveTo(contour.start.x, contour.start.y);
     for (const segment of contour.segments) {
       if (segment.kind === "line") ctx.lineTo(segment.to.x, segment.to.y);

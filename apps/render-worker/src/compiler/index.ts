@@ -263,6 +263,7 @@ function expandComponents(
       }
       if (internal.modifiers) {
         next.modifiers = internal.modifiers.map((modifier) => {
+          if (modifier.type !== "motion-path") return modifier;
           const source = internalById.get(modifier.pathNodeId);
           const sharesRepeat = Boolean(repeatKey && source && repeatOwner(source)?.id === repeatOwner(internal)?.id);
           return { ...modifier, pathNodeId: `${node.id}::${modifier.pathNodeId}${sharesRepeat ? `::${repeatKey}` : ""}` };

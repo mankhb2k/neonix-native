@@ -9,7 +9,7 @@ import {
   type Transform2D,
 } from "./matrix";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
-import { localNodeBounds, samplePathContour } from "./geometry";
+import { localNodeBounds, pathMorphContours, samplePathContour } from "./geometry";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
@@ -181,6 +181,13 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     visiting.add(node.id);
 
     let transform = evaluateTransform(scene, node, time);
+    const pathMorph = node.type === "path" ? node.modifiers?.find((modifier) => modifier.type === "path-morph") : undefined;
+    const pathMorphProgress = pathMorph
+      ? evaluateProperty(scene, node, `modifiers.${pathMorph.id}.progress`, time, pathMorph.progress)
+      : undefined;
+    const morphContours = node.type === "path" && pathMorph
+      ? pathMorphContours(node, typeof pathMorphProgress === "number" ? pathMorphProgress : 0)
+      : undefined;
     let parentMatrix = IDENTITY_MATRIX;
     let worldOpacity = transform.opacity;
     let visible = transform.visible;
@@ -205,7 +212,14 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       const rawProgress = evaluateProperty(scene, node, `modifiers.${motionPath.id}.progress`, time, motionPath.progress);
       const progress = typeof rawProgress === "number" ? rawProgress : motionPath.progress;
       const mappedProgress = motionPath.startOffset + (motionPath.endOffset - motionPath.startOffset) * progress;
-      const sample = samplePathContour(pathNode, motionPath.contourId, mappedProgress);
+      const sourceMorph = pathNode.modifiers?.find((modifier) => modifier.type === "path-morph");
+      const sourceProgress = sourceMorph
+        ? evaluateProperty(scene, pathNode, `modifiers.${sourceMorph.id}.progress`, time, sourceMorph.progress)
+        : undefined;
+      const sourceContours = sourceMorph
+        ? pathMorphContours(pathNode, typeof sourceProgress === "number" ? sourceProgress : 0)
+        : pathNode.payload.contours;
+      const sample = samplePathContour(pathNode, motionPath.contourId, mappedProgress, sourceContours);
       const worldPoint = applyMatrix(path.worldMatrix, sample.point.x, sample.point.y);
       const worldTangentPoint = applyMatrix(path.worldMatrix, sample.point.x + sample.tangent.x, sample.point.y + sample.tangent.y);
       const inverseParent = invertMatrix(parentMatrix);
@@ -227,7 +241,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     const strokeWidth = (node.type === "shape" || node.type === "path") && node.style?.stroke
       ? numberProperty(scene, node, "style.strokeWidth", time, node.style.strokeWidth ?? 1)
       : 0;
-    const worldBounds = transformBounds(worldMatrix, localNodeBounds(node, transform, strokeWidth));
+    const worldBounds = transformBounds(worldMatrix, localNodeBounds(node, transform, strokeWidth, morphContours));
     const result = { node, transform, worldMatrix, worldOpacity, visible, worldBounds };
     evaluated.set(node.id, result);
     visiting.delete(node.id);

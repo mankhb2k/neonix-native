@@ -275,6 +275,13 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     startOffset: FiniteNumberSchema.min(0).max(1).default(0),
     endOffset: FiniteNumberSchema.min(0).max(1).default(1),
   }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("path-morph"),
+    from: z.union([z.literal("base"), IdSchema]),
+    to: IdSchema,
+    progress: ResolvableValueSchema,
+  }).strict(),
 ]);
 
 const NodeBaseSchema = z.object({
@@ -417,11 +424,17 @@ export const PathContourV2Schema = z.object({
   closed: z.boolean(),
 }).strict();
 
+export const PathMorphTargetV2Schema = z.object({
+  id: IdSchema,
+  contours: z.array(PathContourV2Schema).min(1).max(MOTION_V2_LIMITS.pathContours),
+}).strict();
+
 export const PathNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("path"),
   payload: z.object({
     contours: z.array(PathContourV2Schema).min(1).max(MOTION_V2_LIMITS.pathContours),
     fillRule: z.enum(["nonzero", "evenodd"]).default("nonzero"),
+    morphTargets: z.array(PathMorphTargetV2Schema).max(MOTION_V2_LIMITS.pathMorphTargets).optional(),
   }).strict(),
   style: PaintStyleSchema.optional(),
 }).strict();
@@ -794,11 +807,31 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
       for (const modifierId of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: `Duplicate runtime modifier id: ${modifierId}` });
       }
+      if (node.type === "path") {
+        const morphTargets = node.payload.morphTargets ?? [];
+        for (const targetId of new Set(duplicates(morphTargets.map((target) => target.id)))) {
+          context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "payload", "morphTargets"], message: `Duplicate runtime Path Morph target id: ${targetId}` });
+        }
+        for (const modifier of modifiers.filter((candidate) => candidate.type === "path-morph")) {
+          const targetById = new Map(morphTargets.map((target) => [target.id, target]));
+          const fromContours = modifier.from === "base" ? node.payload.contours : targetById.get(modifier.from)?.contours;
+          const toContours = targetById.get(modifier.to)?.contours;
+          if (modifier.from !== "base" && !fromContours) context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: `Unknown runtime Path Morph target: ${modifier.from}` });
+          if (!toContours) context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: `Unknown runtime Path Morph target: ${modifier.to}` });
+          if (fromContours && toContours) {
+            const mismatch = morphTopologyMismatch(fromContours, toContours);
+            if (mismatch) context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: mismatch });
+          }
+        }
+      } else if (modifiers.some((modifier) => modifier.type === "path-morph")) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Runtime Path Morph modifier requires a path node" });
+      }
       if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Only one runtime motion-path modifier is allowed per node" });
       }
       for (let modifierIndex = 0; modifierIndex < (node.modifiers?.length ?? 0); modifierIndex += 1) {
         const modifier = node.modifiers![modifierIndex]!;
+        if (modifier.type !== "motion-path") continue;
         const source = nodeById.get(modifier.pathNodeId);
         const path = ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers", modifierIndex] as Array<string | number>;
         if (modifier.startOffset > modifier.endOffset) context.addIssue({ code: z.ZodIssueCode.custom, path, message: "Runtime Motion Path endOffset must be >= startOffset" });
@@ -878,6 +911,7 @@ export type MotionPaintStyle = z.infer<typeof PaintStyleSchema>;
 export type MotionPoint = z.infer<typeof PointV2Schema>;
 export type MotionPathSegment = z.infer<typeof PathSegmentV2Schema>;
 export type MotionPathContour = z.infer<typeof PathContourV2Schema>;
+export type MotionPathMorphTarget = z.infer<typeof PathMorphTargetV2Schema>;
 export type MotionEffect = z.infer<typeof EffectV2Schema>;
 
 export interface ReferenceIssue {
@@ -887,6 +921,25 @@ export interface ReferenceIssue {
 
 function duplicates(values: string[]): string[] {
   return values.filter((value, index) => values.indexOf(value) !== index);
+}
+
+type MorphContourLike = z.infer<typeof PathContourV2Schema>;
+
+function morphTopologyMismatch(from: MorphContourLike[], to: MorphContourLike[]): string | undefined {
+  if (from.length !== to.length) return "Path Morph contour count must match";
+  for (let index = 0; index < from.length; index += 1) {
+    const left = from[index]!;
+    const right = to[index]!;
+    if (left.id !== right.id) return `Path Morph contour id/order mismatch: ${left.id} vs ${right.id}`;
+    if (left.closed !== right.closed) return `Path Morph contour closed flag must match: ${left.id}`;
+    if (left.segments.length !== right.segments.length) return `Path Morph segment count must match: ${left.id}`;
+    for (let segmentIndex = 0; segmentIndex < left.segments.length; segmentIndex += 1) {
+      if (left.segments[segmentIndex]!.kind !== right.segments[segmentIndex]!.kind) {
+        return `Path Morph segment kind/order mismatch: ${left.id}.${segmentIndex}`;
+      }
+    }
+  }
+  return undefined;
 }
 
 function valueAtPath(value: unknown, path: string): unknown {
@@ -916,6 +969,27 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     const effects = node.effects ?? [];
     for (const id of new Set(duplicates(effects.map((effect) => effect.id)))) {
       issues.push({ path: `${prefix}.${node.id}.effects`, message: `Duplicate effect id: ${id}` });
+    }
+    if (node.type === "path") {
+      const morphTargets = node.payload.morphTargets ?? [];
+      for (const id of new Set(duplicates(morphTargets.map((target) => target.id)))) {
+        issues.push({ path: `${prefix}.${node.id}.payload.morphTargets`, message: `Duplicate Path Morph target id: ${id}` });
+      }
+      for (const modifier of node.modifiers ?? []) {
+        if (modifier.type !== "path-morph") continue;
+        const targetById = new Map(morphTargets.map((target) => [target.id, target]));
+        const fromContours = modifier.from === "base" ? node.payload.contours : targetById.get(modifier.from)?.contours;
+        const toContours = targetById.get(modifier.to)?.contours;
+        if (modifier.from !== "base" && !fromContours) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.from`, message: `Unknown Path Morph target: ${modifier.from}` });
+        if (!toContours) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.to`, message: `Unknown Path Morph target: ${modifier.to}` });
+        if (modifier.from === modifier.to) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Path Morph from and to targets must differ" });
+        if (fromContours && toContours) {
+          const mismatch = morphTopologyMismatch(fromContours, toContours);
+          if (mismatch) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: mismatch });
+        }
+      }
+    } else if ((node.modifiers ?? []).some((modifier) => modifier.type === "path-morph")) {
+      issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Path Morph modifier requires a path node" });
     }
     if (node.type === "bone" && node.payload.rotationLimits && node.payload.rotationLimits.min > node.payload.rotationLimits.max) {
       issues.push({ path: `${prefix}.${node.id}.payload.rotationLimits.max`, message: "Bone rotation limit max must be >= min" });
@@ -953,6 +1027,7 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     for (const id of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: `Duplicate modifier id: ${id}` });
     if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Only one motion-path modifier is allowed per node" });
     for (const modifier of modifiers) {
+      if (modifier.type !== "motion-path") continue;
       if (modifier.startOffset > modifier.endOffset) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Motion Path endOffset must be >= startOffset" });
       const source = nodeById.get(modifier.pathNodeId);
       if (!source) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.pathNodeId`, message: `Unknown Motion Path node: ${modifier.pathNodeId}` });
