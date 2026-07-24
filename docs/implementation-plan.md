@@ -26,19 +26,18 @@ A capability is **done** only when its fixture, schema validation, compiler/runt
 
 ## Current state
 
-The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph and Component Action outer playback (`action.loop`, reverse/alternate).
+The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback (`action.loop`, reverse/alternate), and cut-out lip-sync cue expansion.
 
-Counts after Action playback: 24 positive artifacts, 68 negative artifacts, 38 limit cases, 15 Runtime goldens, 14 PNG goldens, 21 pinned assets.
+Counts after Lip-sync cues: 24 positive artifacts, 72 negative artifacts, 39 limit cases, 15 Runtime goldens, 14 PNG goldens, 21 pinned assets.
 
 The remaining P0 work is intentionally explicit and **fixtures-first** (positive/negative fixtures before expanding Zod, then compiler/runtime, goldens, docs, commit):
 
-1. Lip-sync cue generation.
-2. Secondary Motion.
-3. Figma/Illustrator import sanitization and stable re-import.
-4. Camera projection and scene transitions.
-5. Video frame rendering and trim/loop behavior.
-6. Audio mixing/export.
-7. Browser preview/export parity using Runtime IR.
+1. Secondary Motion.
+2. Figma/Illustrator import sanitization and stable re-import.
+3. Camera projection and scene transitions.
+4. Video frame rendering and trim/loop behavior.
+5. Audio mixing/export.
+6. Browser preview/export parity using Runtime IR.
 
 P1 primitives (particles, trim path, animated dashes/gradients, blend modes, constraints and IK) stay deferred until a real composition requires them. P2 deformation/physics/expression features are outside the current product boundary.
 
@@ -56,11 +55,11 @@ Expand outer action invocations through shared playback semantics (iterations, r
 
 Exit criteria: loop/reverse fixtures, Runtime golden, commit.
 
-### Phase 2.7 — Lip-sync cues
+### Phase 2.7 — Lip-sync cues ✅
 
-Cue schema driven by cut-out mouth fixtures: cues compile to `payload.assetId` step keys; cue metadata must not leak into Runtime IR.
+Cue schema driven by cut-out mouth fixtures compiles variants to `payload.assetId` step keys without leaking cue metadata into Runtime IR. Unknown slots/variants, cue ordering, action duration, and per-action limits are validated.
 
-Exit criteria: cue positives/negatives, generated track golden, commit.
+Exit criteria: complete.
 
 ### Phase 3 — Secondary Motion
 

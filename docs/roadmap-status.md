@@ -20,15 +20,15 @@ This file is the current implementation ledger. A capability is marked **done** 
 | Deterministic playback | rate, iterations, reverse/alternate, infinite clipping and schedule | `47eb433` |
 | Ordered Effects stack | blur, shadow, glow, color-adjust, animation, mask-before-effects and PNG golden | `0b66cfe` |
 | Normalized Path Morph | topology-checked targets, progress tracks, Runtime/PNG goldens at t=0/1/2 | `36103d6` |
-| Component Action outer playback | iterations, reverse/alternate, `action.loop` fill and over-duration guard | *(pending commit)* |
+| Component Action outer playback | iterations, reverse/alternate, `action.loop` fill and over-duration guard | `9fb5c60` |
+| Lip-sync cue generation | cue validation and generated mouth `payload.assetId` step-key golden | *(this commit)* |
 
-Current verification after Action playback: 24 positive artifacts, 68 negative artifacts, 38 limit cases, 15 Runtime goldens, 14 PNG goldens, and 21 pinned assets.
+Current verification after Lip-sync cues: 24 positive artifacts, 72 negative artifacts, 39 limit cases, 15 Runtime goldens, 14 PNG goldens, and 21 pinned assets.
 
 ## Partial or not implemented
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
-| Lip-sync cue generation | Mouth variants exist, but no cue/marker-to-step-key compiler | cue schema, alignment validation, generated track golden |
 | Secondary Motion | No modifier/evaluator implementation | deterministic random-access segmented-chain solver and PNG fixture |
 | Figma/Illustrator importer and re-import | Source mapping is typed metadata only | sanitizer/parser, stable element fingerprint reconciliation and import fixtures |
 | Camera projection/scene transitions | Active camera is validated, but renderer does not apply camera transforms or transitions | camera-aware render plan and overlap/crossfade fixture |

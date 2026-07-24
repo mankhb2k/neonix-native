@@ -22,7 +22,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 59 artifacts + 28 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 72 artifacts + 39 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
 | Stored Runtime IR goldens | ✅ | ✅ 10 projects | — | — |
@@ -49,7 +49,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Cut-out rig/pivot hierarchy | ✅ fixture | ✅ preserved | ✅ visual smoke | ⬜ |
 | Named character actions | ✅ | ✅ outer playback | ✅ evaluator | ⬜ |
 | Mouth/eye/hand variants | ✅ | ✅ assetId step keys | 🟡 | ⬜ |
-| Dialogue lip-sync cues | ⬜ | ⬜ | ⬜ | ⬜ |
+| Dialogue lip-sync cues | ✅ slot/variant/time/limit negatives | ✅ `payload.assetId` step keys | 🟡 Runtime IR golden | ⬜ |
 | Typed Path geometry | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Mask clip/alpha/inverse | ✅ | ✅ | ✅ worker PNG golden | ⬜ |
 | Motion Path | ✅ refs/cycles/limits | ✅ literal modifier + progress track | ✅ arc length/offset/orientation PNG | ⬜ |

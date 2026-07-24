@@ -68,23 +68,17 @@
       "name": "Talk",
       "duration": 2,
       "loop": false,
-      "clips": [
-        {
-          "id": "mouth-cues",
-          "schedule": { "kind": "absolute", "at": 0 },
-          "duration": 2,
-          "playback": { "iterations": 1, "direction": "normal", "rate": 1 },
-          "source": { "kind": "tracks", "tracks": [
-            { "targetId": "part.mouth", "property": "payload.variantId", "keys": [
-              { "t": 0, "v": "rest", "easing": "step" },
-              { "t": 0.35, "v": "A", "easing": "step" },
-              { "t": 0.7, "v": "rest", "easing": "step" },
-              { "t": 1.05, "v": "A", "easing": "step" },
-              { "t": 1.45, "v": "rest", "easing": "step" }
-            ] }
-          ] }
-        }
-      ]
+      "clips": [],
+      "lipSync": {
+        "slotId": "slot.mouth",
+        "cues": [
+          { "id": "cue-0", "at": 0, "variantId": "rest" },
+          { "id": "cue-1", "at": 0.35, "variantId": "A" },
+          { "id": "cue-2", "at": 0.7, "variantId": "rest" },
+          { "id": "cue-3", "at": 1.05, "variantId": "A" },
+          { "id": "cue-4", "at": 1.45, "variantId": "rest" }
+        ]
+      }
     },
     {
       "id": "wave",

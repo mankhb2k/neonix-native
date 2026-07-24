@@ -39,6 +39,7 @@
     { "id": "cutout-rig-slots", "target": "cutoutRig.slots", "limit": "variantSlotsPerRig", "expectedPath": "cutoutRigs.0.slots" },
     { "id": "variant-slot-variants", "target": "variantSlot.variants", "limit": "variantsPerSlot", "expectedPath": "cutoutRigs.0.slots.0.variants" },
     { "id": "component-actions", "target": "component.actions", "limit": "actionsPerComponent", "expectedPath": "actions" },
-    { "id": "action-clips", "target": "action.clips", "limit": "clipsPerAction", "expectedPath": "actions.0.clips" }
+    { "id": "action-clips", "target": "action.clips", "limit": "clipsPerAction", "expectedPath": "actions.0.clips" },
+    { "id": "lip-sync-cues-per-action", "target": "action.lipSyncCues", "limit": "lipSyncCuesPerAction", "expectedPath": "actions.0.lipSync.cues" }
   ]
 }

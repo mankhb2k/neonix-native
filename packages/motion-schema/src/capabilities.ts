@@ -45,6 +45,7 @@ export const MOTION_V2_LIMITS = Object.freeze({
   variantsPerSlot: 128,
   actionsPerComponent: 256,
   clipsPerAction: 512,
+  lipSyncCuesPerAction: 512,
   effectsPerNode: 16,
   effectRadius: 512,
   effectOffset: 32_768,

@@ -378,6 +378,21 @@ function expandComponents(
       const actionStarts = scheduleTimes(resolvedActionClips, actionValues, action.duration);
       const invocationStart = sceneStarts.get(invocation.id) ?? 0;
       const cycleTracks: RuntimeTrack[] = [];
+      if (action.lipSync) {
+        const slot = component.cutoutRigs.flatMap((rig) => rig.slots).find((candidate) => candidate.id === action.lipSync!.slotId);
+        if (!slot) throw new Error(`Unknown Component Action lip-sync slot: ${key}/${action.lipSync.slotId}`);
+        const expandedTarget = targets.get(slot.nodeId)?.[0]?.node;
+        if (!expandedTarget) throw new Error(`Unknown Component Action lip-sync target: ${key}/${action.id}/${slot.nodeId}`);
+        cycleTracks.push({
+          targetId: expandedTarget.id,
+          property: "payload.assetId",
+          keys: action.lipSync.cues.map((cue) => {
+            const variant = slot.variants.find((candidate) => candidate.id === cue.variantId);
+            if (!variant) throw new Error(`Unknown Component Action lip-sync variant: ${key}/${action.id}/${slot.id}/${cue.variantId}`);
+            return { t: cue.at, v: variant.assetId, easing: "step" };
+          }),
+        });
+      }
       for (const actionClip of resolvedActionClips) {
         const innerRate = number(resolveValue(actionClip.playback.rate, actionValues), `actions.${action.id}.clips.${actionClip.id}.playback.rate`);
         if (innerRate <= 0) throw new Error(`actions.${action.id}.clips.${actionClip.id}.playback.rate must be > 0`);

@@ -62,7 +62,7 @@ type LimitCase = {
     | "variable.listItems" | "variable.enumOptions" | "semantic.tags" | "asset.localeCoverage" | "patch.operations" | "hierarchy.depth"
     | "shape.polygonPoints" | "path.contours" | "path.segments" | "path.morphTargets" | "repeater.count" | "repeater.gridColumns" | "textAnimator.units" | "modifier.items"
     | "component.sourceImports" | "sourceImport.parts" | "sourcePart.elementIds" | "component.cutoutRigs" | "effects.items"
-    | "cutoutRig.slots" | "variantSlot.variants" | "component.actions" | "action.clips";
+    | "cutoutRig.slots" | "variantSlot.variants" | "component.actions" | "action.clips" | "action.lipSyncCues";
   limit: keyof typeof MOTION_V2_LIMITS;
   expectedPath: string;
 };
@@ -407,6 +407,10 @@ async function validateNegativeFixtures(): Promise<number> {
     { file: "components/morph-from-equals-to.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.modifiers.morph", message: "Path Morph from and to targets must differ" },
     { file: "components/morph-on-non-path.mvc.json", parse: parseMotionComponentV2, path: "nodes.shape.modifiers", message: "Path Morph modifier requires a path node" },
     { file: "components/morph-duplicate-target-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.payload.morphTargets", message: "Duplicate Path Morph target id: dup" },
+    { file: "components/lip-sync-unknown-slot.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync.slotId", message: "Unknown lip-sync slot: missing" },
+    { file: "components/lip-sync-unknown-variant.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync.cues.cue-0.variantId", message: "Unknown lip-sync variant missing for slot mouth-slot" },
+    { file: "components/lip-sync-time-order.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync", message: "Lip-sync cue times must be strictly increasing" },
+    { file: "components/lip-sync-over-duration.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync.cues.cue-0", message: "Lip-sync cue time 1.1 exceeds action duration 1" },
     {
       file: "projects/unpinned-component.mt.json",
       parse: parseMotionProjectV2,
@@ -650,7 +654,7 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     component.nodes = [{ ...fixtureNode("root"), effects: Array.from({ length: count }, (_, index) => ({ id: `effect-${index}`, type: "blur", radius: 1 })) }];
     return { artifact: component, parse: parseMotionComponentV2 };
   }
-  if (["component.sourceImports", "sourceImport.parts", "sourcePart.elementIds", "component.cutoutRigs", "cutoutRig.slots", "variantSlot.variants", "component.actions", "action.clips"].includes(testCase.target)) {
+  if (["component.sourceImports", "sourceImport.parts", "sourcePart.elementIds", "component.cutoutRigs", "cutoutRig.slots", "variantSlot.variants", "component.actions", "action.clips", "action.lipSyncCues"].includes(testCase.target)) {
     const component = baseLimitComponent();
     const part = (index: number, elementCount = 1) => ({
       id: `part-${index}`,
@@ -672,9 +676,15 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
       id: `rig-${index}`, kind: "cutout", rootNodeId: "root",
       slots: Array.from({ length: slotCount }, (_, slotIndex) => slot(slotIndex, variantCount)),
     });
-    const action = (index: number, clipCount = 1) => ({
+    const action = (index: number, clipCount = 1, cueCount = 0) => ({
       id: `action-${index}`, name: `Action ${index}`, duration: 1, loop: false,
-      clips: Array.from({ length: clipCount }, (_, clipIndex) => fixtureClip(`action-clip-${clipIndex}`)),
+      clips: cueCount === 0 ? Array.from({ length: clipCount }, (_, clipIndex) => fixtureClip(`action-clip-${clipIndex}`)) : [],
+      ...(cueCount === 0 ? {} : {
+        lipSync: {
+          slotId: "slot-0",
+          cues: Array.from({ length: cueCount }, (_, cueIndex) => ({ id: `cue-${cueIndex}`, at: cueIndex / (cueCount + 1), variantId: "variant-0" })),
+        },
+      }),
     });
     if (testCase.target === "component.sourceImports") component.sourceImports = Array.from({ length: count }, (_, index) => sourceImport(index));
     else if (testCase.target === "sourceImport.parts") component.sourceImports = [sourceImport(0, count)];
@@ -683,7 +693,11 @@ function buildLimitArtifact(testCase: LimitCase): { artifact: Record<string, unk
     else if (testCase.target === "cutoutRig.slots") component.cutoutRigs = [rig(0, count)];
     else if (testCase.target === "variantSlot.variants") component.cutoutRigs = [rig(0, 1, count)];
     else if (testCase.target === "component.actions") component.actions = Array.from({ length: count }, (_, index) => action(index));
-    else component.actions = [action(0, count)];
+    else if (testCase.target === "action.clips") component.actions = [action(0, count)];
+    else {
+      component.cutoutRigs = [rig(0)];
+      component.actions = [action(0, 0, count)];
+    }
     return { artifact: component, parse: parseMotionComponentV2 };
   }
   if (testCase.target.startsWith("component.")) {
@@ -1085,6 +1099,18 @@ async function main(): Promise<void> {
     throw new Error("Component Action over-duration guard changed");
   }
   console.log("OK compiler/Component Action outer playback iterations, reverse, alternate and action.loop");
+
+  const cutoutDialogue = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "cutout-dialogue.mt.json")));
+  const cutoutRuntime = compileMotionProject(cutoutDialogue, { components });
+  const mouthTrack = cutoutRuntime.scenes[0]?.tracks.find((track) => track.targetId === "character::part.mouth");
+  if (mouthTrack?.property !== "payload.assetId") throw new Error("Lip-sync did not compile to a mouth assetId track");
+  deepStrictEqual(
+    mouthTrack.keys.map((key) => [key.t, key.v, key.easing]),
+    [[0, "asset.mouth.rest", "step"], [0.35, "asset.mouth.A", "step"], [0.7, "asset.mouth.rest", "step"], [1.05, "asset.mouth.A", "step"], [1.45, "asset.mouth.rest", "step"]],
+    "Lip-sync cue asset keys changed",
+  );
+  if (JSON.stringify(cutoutRuntime).includes("\"lipSync\"")) throw new Error("Compiler leaked lip-sync cue metadata into Runtime IR");
+  console.log("OK compiler/lip-sync cues expand to assetId step keys without Runtime metadata");
 
   console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
 }

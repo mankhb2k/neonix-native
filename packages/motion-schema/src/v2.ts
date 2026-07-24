@@ -625,13 +625,29 @@ const CutoutRigSchema = z.object({
   slots: z.array(CutoutVariantSlotSchema).max(MOTION_V2_LIMITS.variantSlotsPerRig),
 }).strict();
 
+export const LipSyncCueSchema = z.object({
+  id: IdSchema,
+  at: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  variantId: IdSchema,
+}).strict();
+
+export const LipSyncSchema = z.object({
+  slotId: IdSchema,
+  cues: z.array(LipSyncCueSchema).min(1).max(MOTION_V2_LIMITS.lipSyncCuesPerAction),
+}).strict();
+
 const MotionActionSchema = z.object({
   id: IdSchema,
   name: z.string().min(1),
   duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
   loop: z.boolean().default(false),
-  clips: z.array(ClipV2Schema).min(1).max(MOTION_V2_LIMITS.clipsPerAction),
-}).strict();
+  clips: z.array(ClipV2Schema).max(MOTION_V2_LIMITS.clipsPerAction),
+  lipSync: LipSyncSchema.optional(),
+}).strict().superRefine((action, context) => {
+  if (action.clips.length === 0 && !action.lipSync) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["clips"], message: "Action requires clips or lipSync" });
+  }
+});
 
 export const MotionComponentV2Schema = z
   .object({
@@ -1317,6 +1333,7 @@ export function validateMotionComponentV2References(component: MotionComponentV2
   }
   for (const id of new Set(duplicates(component.cutoutRigs.map((rig) => rig.id)))) issues.push({ path: "cutoutRigs", message: `Duplicate cut-out rig id: ${id}` });
   const variantSlotByNode = new Map<string, z.infer<typeof CutoutVariantSlotSchema>>();
+  const variantSlotById = new Map<string, z.infer<typeof CutoutVariantSlotSchema>>();
   for (const rig of component.cutoutRigs) {
     if (!nodeById.has(rig.rootNodeId)) issues.push({ path: `cutoutRigs.${rig.id}.rootNodeId`, message: `Unknown rig root: ${rig.rootNodeId}` });
     for (const id of new Set(duplicates(rig.slots.map((slot) => slot.id)))) issues.push({ path: `cutoutRigs.${rig.id}.slots`, message: `Duplicate variant slot id: ${id}` });
@@ -1326,6 +1343,7 @@ export function validateMotionComponentV2References(component: MotionComponentV2
       else if (node.type !== "svg") issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.nodeId`, message: `Variant slot node has type ${node.type}, expected svg` });
       if (variantSlotByNode.has(slot.nodeId)) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.nodeId`, message: `Node already owns a variant slot: ${slot.nodeId}` });
       else variantSlotByNode.set(slot.nodeId, slot);
+      if (!variantSlotById.has(slot.id)) variantSlotById.set(slot.id, slot);
       for (const id of new Set(duplicates(slot.variants.map((variant) => variant.id)))) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.variants`, message: `Duplicate variant id: ${id}` });
       const defaultVariant = slot.variants.find((variant) => variant.id === slot.defaultVariantId);
       if (!defaultVariant) issues.push({ path: `cutoutRigs.${rig.id}.slots.${slot.id}.defaultVariantId`, message: `Unknown default variant: ${slot.defaultVariantId}` });
@@ -1340,6 +1358,22 @@ export function validateMotionComponentV2References(component: MotionComponentV2
   for (const id of new Set(duplicates(component.actions.map((action) => action.id)))) issues.push({ path: "actions", message: `Duplicate action id: ${id}` });
   for (const action of component.actions) {
     issues.push(...validateClips(action.clips, component.nodes, component.variables, `actions.${action.id}.clips`, { variantSlots: variantSlotByNode }));
+    if (action.lipSync) {
+      const slot = variantSlotById.get(action.lipSync.slotId);
+      const cuePath = `actions.${action.id}.lipSync`;
+      if (!slot) issues.push({ path: `${cuePath}.slotId`, message: `Unknown lip-sync slot: ${action.lipSync.slotId}` });
+      for (let index = 0; index < action.lipSync.cues.length; index += 1) {
+        const cue = action.lipSync.cues[index]!;
+        if (cue.at > action.duration) issues.push({ path: `${cuePath}.cues.${cue.id}`, message: `Lip-sync cue time ${cue.at} exceeds action duration ${action.duration}` });
+        if (index > 0 && cue.at <= action.lipSync.cues[index - 1]!.at) {
+          issues.push({ path: cuePath, message: "Lip-sync cue times must be strictly increasing" });
+          break;
+        }
+        if (slot && !slot.variants.some((variant) => variant.id === cue.variantId)) {
+          issues.push({ path: `${cuePath}.cues.${cue.id}.variantId`, message: `Unknown lip-sync variant ${cue.variantId} for slot ${slot.id}` });
+        }
+      }
+    }
     const starts = clipScheduleStarts(action.clips);
     for (const clip of action.clips) {
       const start = starts.get(clip.id);
