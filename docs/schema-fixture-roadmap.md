@@ -21,6 +21,10 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
+## Verified coverage 25/07/2026
+
+The committed fixture suite now contains 20 positive projects/components, 59 negative artifacts, 36 deterministic limit cases, 12 Runtime IR goldens, 10 PNG goldens, and 21 pinned assets. Playback iterations, reverse, alternate, infinite clipping, and schedule timing are covered by `projects/schedule-playback.mt.json` and its Runtime golden.
+
 Baseline sau milestone Motion Path có 17 positive fixtures, 59 negative artifacts, 28 deterministic limit cases, 10 Runtime IR goldens, 10 PNG goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress

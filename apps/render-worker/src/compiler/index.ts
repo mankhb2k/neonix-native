@@ -60,7 +60,24 @@ function resolveValue(value: unknown, variables: Map<string, unknown>): unknown 
   return Object.fromEntries(Object.entries(record).map(([key, nested]) => [key, resolveValue(nested, variables)]));
 }
 
-function scheduleTimes(clips: MotionClip[]): Map<string, number> {
+type PlaybackDirection = MotionClip["playback"]["direction"];
+
+function playbackRate(clip: MotionClip, variables: Map<string, unknown>): number {
+  const rate = number(resolveValue(clip.playback.rate, variables), `clips.${clip.id}.playback.rate`);
+  if (rate <= 0) throw new Error(`clips.${clip.id}.playback.rate must be > 0`);
+  return rate;
+}
+
+function playbackDuration(clip: MotionClip, variables: Map<string, unknown>, sceneDuration?: number): number {
+  const rate = playbackRate(clip, variables);
+  if (clip.playback.iterations === "infinite") {
+    if (sceneDuration === undefined) throw new Error(`Infinite playback requires a scene duration: ${clip.id}`);
+    return Math.max(0, sceneDuration);
+  }
+  return clip.duration * clip.playback.iterations / rate;
+}
+
+function scheduleTimes(clips: MotionClip[], variables: Map<string, unknown> = new Map(), sceneDuration?: number): Map<string, number> {
   const byId = new Map(clips.map((clip) => [clip.id, clip]));
   const times = new Map<string, number>();
   const visiting = new Set<string>();
@@ -76,7 +93,7 @@ function scheduleTimes(clips: MotionClip[]): Map<string, number> {
       if (!dependency) throw new Error(`Unknown schedule clip: ${clip.schedule.clipId}`);
       const dependencyStart = resolve(dependency);
       at = clip.schedule.kind === "after"
-        ? dependencyStart + dependency.duration + (clip.schedule.offset ?? 0)
+        ? dependencyStart + playbackDuration(dependency, variables, sceneDuration) + (clip.schedule.offset ?? 0)
         : dependencyStart + (clip.schedule.offset ?? 0);
     }
     visiting.delete(clip.id);
@@ -124,31 +141,71 @@ function presetTracks(node: RuntimeNode, preset: string, start: number, end: num
   }
 }
 
-function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<string, unknown>): RuntimeTrack[] {
+function expandPlaybackTrack(
+  track: RuntimeTrack,
+  clip: MotionClip,
+  start: number,
+  sceneDuration: number,
+  variables: Map<string, unknown>,
+): RuntimeTrack {
+  const rate = playbackRate(clip, variables);
+  const cycleDuration = clip.duration / rate;
+  const iterations = clip.playback.iterations === "infinite" ? Number.POSITIVE_INFINITY : clip.playback.iterations;
+  const keys: RuntimeTrack["keys"] = [];
+  const append = (key: RuntimeTrack["keys"][number]): void => {
+    const previous = keys.at(-1);
+    if (previous && Math.abs(previous.t - key.t) <= 1e-8) keys[keys.length - 1] = { ...key, t: previous.t };
+    else if (key.t <= sceneDuration + 1e-9) keys.push(key);
+  };
+  for (let iteration = 0; iteration < iterations; iteration += 1) {
+    const cycleStart = canonicalTime(start + iteration * cycleDuration);
+    if (cycleStart >= sceneDuration - 1e-9) break;
+    const cycleEnd = Math.min(sceneDuration, cycleStart + cycleDuration);
+    const reverse = clip.playback.direction === "reverse"
+      || (clip.playback.direction === "alternate" && iteration % 2 === 1);
+    const sourceKeys = reverse
+      ? [...track.keys].reverse().map((key) => ({ ...key, t: canonicalTime((clip.duration - key.t) / rate) }))
+      : track.keys.map((key) => ({ ...key, t: canonicalTime(key.t / rate) }));
+    for (const key of sourceKeys) {
+      const absolute = canonicalTime(cycleStart + key.t);
+      if (absolute <= cycleEnd + 1e-9) append({ ...key, t: absolute });
+    }
+  }
+  return { ...track, keys };
+}
+
+function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<string, unknown>, sceneDuration: number): RuntimeTrack[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const starts = scheduleTimes(clips);
-  return clips.flatMap((clip) => {
-    const rate = number(resolveValue(clip.playback.rate, variables), `clips.${clip.id}.playback.rate`);
-    if (rate <= 0) throw new Error(`clips.${clip.id}.playback.rate must be > 0`);
+  const starts = scheduleTimes(clips, variables, sceneDuration);
+  const expanded = clips.flatMap((clip) => {
     const start = canonicalTime(starts.get(clip.id) ?? 0);
-    const duration = clip.duration / rate;
     if (clip.source.kind === "tracks") {
-      return clip.source.tracks.map((track) => ({
+      return clip.source.tracks.map((track) => expandPlaybackTrack({
         targetId: track.targetId,
         property: track.property,
-        keys: track.keys.map((key) => ({
-          t: canonicalTime(start + key.t / rate),
-          v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"],
-          ...(key.easing ? { easing: key.easing } : {}),
-        })),
-      }));
+        keys: track.keys.map((key) => ({ t: key.t, v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"], ...(key.easing ? { easing: key.easing } : {}) })),
+      }, clip, start, sceneDuration, variables));
     }
     if (clip.source.kind === "component-action") throw new Error(`Unexpanded Component Action clip: ${clip.id}`);
     if (!clip.targetId) throw new Error(`Preset clip ${clip.id} requires targetId`);
     const node = nodeById.get(clip.targetId);
     if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
-    return presetTracks(node, clip.source.presetId, start, canonicalTime(start + duration));
+    return presetTracks(node, clip.source.presetId, 0, clip.duration)
+      .map((track) => expandPlaybackTrack(track, clip, start, sceneDuration, variables));
   });
+  const merged = new Map<string, RuntimeTrack>();
+  for (const track of expanded) {
+    const key = `${track.targetId}\u0000${track.property}`;
+    const current = merged.get(key);
+    if (!current) {
+      merged.set(key, { ...track, keys: [...track.keys] });
+      continue;
+    }
+    const byTime = new Map(current.keys.map((keyframe) => [keyframe.t, keyframe]));
+    for (const keyframe of track.keys) byTime.set(keyframe.t, keyframe);
+    current.keys = [...byTime.values()].sort((a, b) => a.t - b.t);
+  }
+  return [...merged.values()];
 }
 
 function expandComponents(
@@ -156,9 +213,10 @@ function expandComponents(
   clips: MotionClip[],
   componentPackages: Map<string, MotionComponentV2>,
   projectVariables: Map<string, unknown>,
+  sceneDuration: number,
 ): { nodes: RuntimeNode[]; clips: MotionClip[]; variables: Map<string, unknown> } {
   const outputNodes: RuntimeNode[] = [];
-  const sceneStarts = scheduleTimes(clips);
+  const sceneStarts = scheduleTimes(clips, projectVariables, sceneDuration);
   const actionInvocationIds = new Set(clips.filter((clip) => clip.source.kind === "component-action").map((clip) => clip.id));
   const outputClips = clips
     .filter((clip) => clip.source.kind !== "component-action")
@@ -320,7 +378,7 @@ function expandComponents(
       if (outerRate <= 0) throw new Error(`clips.${invocation.id}.playback.rate must be > 0`);
       if (action.duration / outerRate > invocation.duration + 1e-9) throw new Error(`Component Action ${invocation.id} exceeds invocation duration`);
       const resolvedActionClips = action.clips.map((clip) => resolveValue(resolveValue(clip, actionValues), actionValues) as MotionClip);
-      const actionStarts = scheduleTimes(resolvedActionClips);
+      const actionStarts = scheduleTimes(resolvedActionClips, actionValues, action.duration);
       const invocationStart = sceneStarts.get(invocation.id) ?? 0;
       for (const actionClip of resolvedActionClips) {
         const innerRate = number(actionClip.playback.rate, `actions.${action.id}.clips.${actionClip.id}.playback.rate`);
@@ -429,7 +487,7 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
         const target = scene.nodes.find((node) => node.id === binding.target.nodeId);
         if (target) setPath(target as unknown as Record<string, unknown>, binding.target.property, projectVariables.get(binding.source.variableId));
       }
-      const expanded = expandComponents(scene.nodes, scene.clips, componentPackages, projectVariables);
+      const expanded = expandComponents(scene.nodes, scene.clips, componentPackages, projectVariables, scene.duration);
       const variables = new Map([...projectVariables, ...expanded.variables]);
       const resolvedAuthoringNodes = expanded.nodes.map((node) => resolveValue(node, variables) as unknown as MotionNode);
       const textExpanded = expandTextAnimators(resolvedAuthoringNodes);
@@ -437,7 +495,7 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
         id: scene.id,
         duration: scene.duration,
         nodes: textExpanded.nodes,
-        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables), ...textExpanded.tracks],
+        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables, scene.duration), ...textExpanded.tracks],
       };
     });
   return NormalizedMotionProjectV2Schema.parse({

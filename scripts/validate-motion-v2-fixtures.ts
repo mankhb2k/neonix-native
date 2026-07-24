@@ -922,6 +922,23 @@ async function main(): Promise<void> {
   if (evaluateProperty(propertyScene, propertyNode, "style.fill", 0.5, "") !== "#ff0000") throw new Error("Discrete color property evaluation changed");
   console.log("OK runtime/property capability text, number and color evaluation");
 
+  const playbackProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "schedule-playback.mt.json")));
+  const playbackRuntime = compileMotionProject(playbackProject);
+  const playbackScene = playbackRuntime.scenes[0]!;
+  const playbackTrack = (targetId: string) => playbackScene.tracks.find((track) => track.targetId === targetId && track.property === "transform.x");
+  deepStrictEqual(playbackTrack("normal")?.keys.map((key) => key.t), [0, 0.5, 1], "Normal repeated playback keys changed");
+  deepStrictEqual(playbackTrack("reverse")?.keys.map((key) => key.v), [100, 0], "Reverse playback direction changed");
+  deepStrictEqual(playbackTrack("alternate")?.keys.map((key) => key.v), [0, 100, 0, 100], "Alternate playback direction changed");
+  deepStrictEqual(playbackTrack("infinite")?.keys.map((key) => key.t), [2.5], "Infinite playback must clip to scene duration");
+  const playbackNodes = new Map(playbackScene.nodes.map((node) => [node.id, node]));
+  const normal = playbackNodes.get("normal")!;
+  const alternate = playbackNodes.get("alternate")!;
+  if (evaluateProperty(playbackScene, normal, "transform.x", -0.1, -1) !== 0) throw new Error("Playback before-start clamp changed");
+  if (evaluateProperty(playbackScene, normal, "transform.x", 0.75, -1) !== 50) throw new Error("Playback middle interpolation changed");
+  if (evaluateProperty(playbackScene, normal, "transform.x", 2, -1) !== 100) throw new Error("Playback after-end clamp changed");
+  if (Math.abs(Number(evaluateProperty(playbackScene, alternate, "transform.x", 1.5, -1)) - 25) > 1e-6) throw new Error("Alternate playback interpolation changed");
+  console.log("OK compiler/evaluator playback iterations, reverse, alternate, infinite and schedule timing");
+
   const golden = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "golden-product-promo.mt.json")));
   const goldenRuntime = compileMotionProject(golden, { components });
   if (goldenRuntime.scenes.some((scene) => scene.nodes.some((node) => node.type === "component"))) {

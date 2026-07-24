@@ -49,6 +49,8 @@ Value + Property + Keyframe + Track + Binding
 
 ## 3. Time/animation primitives
 
+Playback is implemented for finite and infinite iterations, normal/reverse/alternate direction, rate scaling, scene-duration clipping, and schedule offsets. The acceptance fixture is `docs/fixtures/v2/projects/schedule-playback.mt.json`; compiler and evaluator assertions cover before/start/middle/end/after timestamps.
+
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
 | Keyframe | `{t, v, easing}` | Partial | ordering, duplicate time policy, before/after range |

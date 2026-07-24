@@ -1,5 +1,7 @@
 # Kế hoạch test Motion Format
 
+Playback acceptance is covered by `projects/schedule-playback.mt.json` and its Runtime golden, including iterations, reverse/alternate direction, infinite scene clipping, schedule offsets, and evaluator timestamp assertions.
+
 Tài liệu này là coverage map cho fixtures. Ký hiệu:
 
 Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`](../../primitives-object.md).
