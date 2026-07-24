@@ -122,12 +122,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.rig.torso"
-          },
           "semantic": {
             "role": "torso",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.rig.torso"
           }
         },
         {
@@ -150,12 +150,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "length": 110
-          },
           "semantic": {
             "role": "shoulder-joint",
             "tags": []
+          },
+          "payload": {
+            "length": 110
           }
         },
         {
@@ -178,12 +178,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.rig.upper-arm"
-          },
           "semantic": {
             "role": "upper-arm",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.rig.upper-arm"
           }
         },
         {
@@ -206,12 +206,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "length": 90
-          },
           "semantic": {
             "role": "elbow-joint",
             "tags": []
+          },
+          "payload": {
+            "length": 90
           }
         },
         {
@@ -234,12 +234,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.rig.forearm"
-          },
           "semantic": {
             "role": "forearm",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.rig.forearm"
           }
         },
         {
@@ -262,12 +262,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "length": 0
-          },
           "semantic": {
             "role": "wrist-joint",
             "tags": []
+          },
+          "payload": {
+            "length": 0
           }
         },
         {
@@ -290,12 +290,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.rig.hand"
-          },
           "semantic": {
             "role": "hand",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.rig.hand"
           }
         },
         {
@@ -318,12 +318,12 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.rig.prop"
-          },
           "semantic": {
             "role": "held-prop",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.rig.prop"
           }
         }
       ],

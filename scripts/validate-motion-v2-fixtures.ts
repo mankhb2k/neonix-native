@@ -299,6 +299,12 @@ async function validateNegativeFixtures(): Promise<number> {
       path: "scenes.scene.nodes.instance.payload",
       message: "Unpinned component dependency: missing.component@1.0.0",
     },
+    {
+      file: "projects/active-camera-type.mt.json",
+      parse: parseMotionProjectV2,
+      path: "scenes.scene.activeCameraId",
+      message: "Node not-a-camera has type group, expected camera",
+    },
   ] as const;
   for (const fixture of cases) {
     let error: unknown;
@@ -346,6 +352,21 @@ async function validateNegativeFixtures(): Promise<number> {
       path: "assets.0.hasAudio",
       code: "custom",
       message: "Video with audio requires audioCodec, sampleRate and channels",
+    },
+    {
+      file: "components/unsupported-node-type.mvc.json",
+      path: "nodes.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "components/group-extra-payload.mvc.json",
+      path: "nodes.0",
+      code: "unrecognized_keys",
+    },
+    {
+      file: "components/invalid-shape-kind.mvc.json",
+      path: "nodes.0.payload.shape",
+      code: "invalid_union_discriminator",
     },
   ] as const;
   for (const fixture of schemaCases) {

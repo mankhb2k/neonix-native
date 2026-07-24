@@ -118,8 +118,8 @@
         "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
         "flipX": false, "flipY": false
       },
-      "style": { "fill": "#C45C26", "cornerRadius": 16 },
-      "payload": { "shape": "rectangle" }
+      "style": { "fill": "#C45C26" },
+      "payload": { "shape": "rectangle", "cornerRadius": 16 }
     },
     {
       "id": "cta-label",

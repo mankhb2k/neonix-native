@@ -99,8 +99,8 @@
           "parentId": null,
           "zIndex": 6,
           "transform": { "x": 540, "y": 1780, "width": 900, "height": 120, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
-          "style": { "fill": "#FFFFFF", "fontFamily": "Lora", "fontWeight": 700 },
-          "payload": { "text": "Tiếng Việt: Đặng Thị Hồng – 49.000₫", "fontAssetId": "asset.font.bold", "fontSize": 56 }
+          "style": { "fill": "#FFFFFF" },
+          "payload": { "text": "Tiếng Việt: Đặng Thị Hồng – 49.000₫", "fontAssetId": "asset.font.bold", "fontSize": 56, "fontWeight": 700 }
         }
       ],
       "clips": []

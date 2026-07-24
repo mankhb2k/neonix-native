@@ -14,8 +14,9 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 14 artifacts + 9 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 18 artifacts + 9 limit cases | — | — | — |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
+| Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
 | Stored Runtime IR goldens | ✅ | ✅ 4 projects | — | — |
 | Property capability registry | ✅ baseline | ✅ reject unsupported | — | — |
 | Resource limits | ✅ ID/array limits | — | — | — |
@@ -23,9 +24,10 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Component expansion | ✅ | ✅ | 🟡 | ⬜ |
 | Repeater/list | ✅ | ✅ | 🟡 | ⬜ |
 | Schedule/playback/preset | ✅ | 🟡 | 🟡 | ⬜ |
-| Text/logo | ✅ | ✅ | ✅ smoke | ⬜ |
+| Text/brand semantic | ✅ | ✅ | ✅ smoke | 🟡 |
 | Image opaque/alpha | ✅ | ✅ plumbing | ⬜ | ⬜ |
-| SVG/path/bone | ✅ | ✅ plumbing | ✅ SVG/Bone smoke | ⬜ |
+| SVG/Bone | ✅ | ✅ plumbing | ✅ SVG/Bone smoke | ⬜ |
+| Typed Path | ⬜ | ⬜ | ⬜ | ⬜ |
 | Shape/group/mask | ✅ | 🟡 | ⬜ | ⬜ |
 | Parent/world transform | ✅ | ✅ preserved | ✅ matrix assertions | ⬜ |
 | Camera/transition | ✅ | 🟡 | ⬜ | ⬜ |

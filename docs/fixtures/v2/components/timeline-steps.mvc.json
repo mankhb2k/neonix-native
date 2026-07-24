@@ -17,14 +17,15 @@
         "type": "object",
         "fields": {
           "id": { "type": "string" },
+          "index": { "type": "string" },
           "title": { "type": "string" },
           "desc": { "type": "string" }
         }
       },
       "value": [
-        { "id": "order", "title": "Đặt hàng", "desc": "Chọn món" },
-        { "id": "brew", "title": "Pha chế", "desc": "Barista" },
-        { "id": "deliver", "title": "Giao", "desc": "15 phút" }
+        { "id": "order", "index": "01", "title": "Đặt hàng", "desc": "Chọn món" },
+        { "id": "brew", "index": "02", "title": "Pha chế", "desc": "Barista" },
+        { "id": "deliver", "index": "03", "title": "Giao", "desc": "15 phút" }
       ]
     },
     { "id": "var.accent", "type": "color", "name": "Accent", "value": "#D9381E" }
@@ -120,7 +121,7 @@
     },
     {
       "id": "bind.index",
-      "source": { "kind": "context", "path": "index" },
+      "source": { "kind": "context", "path": "item.index" },
       "target": { "nodeId": "step-index", "property": "payload.text" }
     },
     {

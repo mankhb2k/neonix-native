@@ -176,15 +176,15 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#0B1220"
+          "semantic": {
+            "role": "background",
+            "tags": []
           },
           "payload": {
             "shape": "rectangle"
           },
-          "semantic": {
-            "role": "background",
-            "tags": []
+          "style": {
+            "fill": "#0B1220"
           }
         },
         {
@@ -208,14 +208,14 @@
             "flipX": false,
             "flipY": false
           },
+          "semantic": {
+            "role": "hero-title",
+            "tags": []
+          },
           "payload": {
             "text": "Giảm",
             "fontSize": 42,
             "align": "center"
-          },
-          "semantic": {
-            "role": "hero-title",
-            "tags": []
           }
         },
         {
@@ -239,18 +239,18 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#C45C26"
+          "semantic": {
+            "role": "statistic",
+            "tags": []
           },
           "payload": {
             "text": "30%",
             "fontSize": 160,
-            "align": "center",
-            "fontWeight": 700
+            "fontWeight": 700,
+            "align": "center"
           },
-          "semantic": {
-            "role": "statistic",
-            "tags": []
+          "style": {
+            "fill": "#C45C26"
           }
         },
         {
@@ -274,14 +274,14 @@
             "flipX": false,
             "flipY": false
           },
+          "semantic": {
+            "role": "subtitle",
+            "tags": []
+          },
           "payload": {
             "text": "chỉ hôm nay",
             "fontSize": 28,
             "align": "center"
-          },
-          "semantic": {
-            "role": "subtitle",
-            "tags": []
           }
         }
       ],
@@ -432,13 +432,13 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.product",
-            "fit": "cover"
-          },
           "semantic": {
             "role": "product-image",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.product",
+            "fit": "cover"
           }
         },
         {
@@ -461,15 +461,15 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "text": "Cà Phê Sáng",
-            "fontSize": 48,
-            "align": "center",
-            "fontWeight": 700
-          },
           "semantic": {
             "role": "hero-title",
             "tags": []
+          },
+          "payload": {
+            "text": "Cà Phê Sáng",
+            "fontSize": 48,
+            "fontWeight": 700,
+            "align": "center"
           }
         },
         {
@@ -492,18 +492,18 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#C45C26"
+          "semantic": {
+            "role": "price",
+            "tags": []
           },
           "payload": {
             "text": "49K",
             "fontSize": 40,
-            "align": "center",
-            "fontWeight": 700
+            "fontWeight": 700,
+            "align": "center"
           },
-          "semantic": {
-            "role": "price",
-            "tags": []
+          "style": {
+            "fill": "#C45C26"
           }
         },
         {
@@ -550,16 +550,16 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#C45C26",
-            "cornerRadius": 16
-          },
-          "payload": {
-            "shape": "rectangle"
-          },
           "semantic": {
             "role": "cta-background",
             "tags": []
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 16
+          },
+          "style": {
+            "fill": "#C45C26"
           }
         },
         {
@@ -581,18 +581,18 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#FFFFFF"
+          "semantic": {
+            "role": "cta-label",
+            "tags": []
           },
           "payload": {
             "text": "Đặt bàn ngay",
             "fontSize": 28,
-            "align": "center",
-            "fontWeight": 600
+            "fontWeight": 600,
+            "align": "center"
           },
-          "semantic": {
-            "role": "cta-label",
-            "tags": []
+          "style": {
+            "fill": "#FFFFFF"
           }
         }
       ],
@@ -743,13 +743,13 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "length": 280,
-            "restRotation": -90
-          },
           "semantic": {
             "role": "mascot-spine",
             "tags": []
+          },
+          "payload": {
+            "length": 280,
+            "restRotation": -90
           }
         },
         {
@@ -772,13 +772,13 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "length": 160,
-            "restRotation": 0
-          },
           "semantic": {
             "role": "left-hand",
             "tags": []
+          },
+          "payload": {
+            "length": 160,
+            "restRotation": 0
           }
         },
         {
@@ -800,13 +800,13 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": {
-            "assetId": "asset.mascot-svg",
-            "fit": "contain"
-          },
           "semantic": {
             "role": "mascot-body",
             "tags": []
+          },
+          "payload": {
+            "assetId": "asset.mascot-svg",
+            "fit": "contain"
           }
         },
         {
@@ -828,15 +828,15 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#C45C26"
-          },
-          "payload": {
-            "shape": "circle"
-          },
           "semantic": {
             "role": "left-hand-prop",
             "tags": []
+          },
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#C45C26"
           }
         }
       ],

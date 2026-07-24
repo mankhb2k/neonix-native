@@ -66,6 +66,9 @@ export function planMotionProject(input: PlanInput): MotionProject {
       ...scene,
       nodes: scene.nodes.map((node) => {
         if (node.type !== "text") return node;
+        if (node.semantic?.role === "logo") {
+          return { ...node, payload: { ...node.payload, text: input.brandName } };
+        }
         const currentText = typeof node.payload?.text === "string" ? node.payload.text : "";
         const text = lines[lineIndex] ?? currentText;
         lineIndex += 1;

@@ -16,7 +16,7 @@ function NodePreview({ node, clip, brandName, playId }: {
   brandName: string;
   playId: number;
 }) {
-  if (node.type !== "text" && node.type !== "logo") return null;
+  if (node.type !== "text") return null;
   const presetId = clip?.source.kind === "preset" ? clip.source.presetId : undefined;
   const at = clip?.schedule.kind === "absolute" ? clip.schedule.at : 0;
   const style: CSSProperties = {
@@ -25,7 +25,7 @@ function NodePreview({ node, clip, brandName, playId }: {
     transform: `translate(${(node.transform.x - 540) * 0.25}px, ${(node.transform.y - 960) * 0.25}px)`,
     opacity: node.transform.visible ? node.transform.opacity : 0,
   };
-  if (node.type === "logo") {
+  if (node.semantic?.role === "logo") {
     return <div key={`${node.id}-${playId}`} className={`mv-stage-layer mv-stage-layer-logo ${previewClass(presetId)}`} style={style}>
       <span className="mv-stage-logo-mark">{brandName.slice(0, 2).toUpperCase()}</span>
     </div>;

@@ -2,7 +2,7 @@ import { parseMotionProject, type MotionProject } from "@motionvideo/motion-sche
 
 type SeedNode = {
   id: string;
-  type?: "text" | "logo";
+  type?: "text" | "brand-text";
   text?: string;
   x?: number;
   y?: number;
@@ -55,7 +55,7 @@ export function createTemplateProject(input: {
       semantic: { role: scene.role },
       nodes: scene.nodes.map((node, index) => ({
         id: node.id,
-        type: node.type ?? "text",
+        type: "text" as const,
         parentId: null,
         zIndex: index,
         transform: {
@@ -73,8 +73,13 @@ export function createTemplateProject(input: {
           flipX: false,
           flipY: false,
         },
-        payload: node.type === "logo" ? {} : { text: node.text ?? "" },
-        semantic: { role: node.type === "logo" ? "logo" : "text-content" },
+        payload: {
+          text: node.type === "brand-text" ? "Brand" : (node.text ?? ""),
+          fontSize: node.type === "brand-text" ? 72 : 64,
+          fontWeight: node.type === "brand-text" ? 700 : 600,
+          align: "center" as const,
+        },
+        semantic: { role: node.type === "brand-text" ? "logo" : "text-content" },
       })),
       clips: scene.nodes.flatMap((node) =>
         node.preset

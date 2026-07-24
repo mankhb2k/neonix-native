@@ -105,19 +105,6 @@ function drawEvaluatedNode(
       const image = loadAssetImage(asset, assetBaseDir);
       ctx.drawImage(image, 0, 0, transform.width, transform.height);
     }
-  } else if (node.type === "logo") {
-    const width = transform.width || 180;
-    const height = transform.height || 180;
-    const size = Math.min(width, height);
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.roundRect((width - size) / 2, (height - size) / 2, size, size, size * 0.2);
-    ctx.fill();
-    ctx.fillStyle = brand.primaryColor ?? "#1A5D3A";
-    ctx.font = `bold ${Math.round(size * 0.28)}px "Be Vietnam Pro", sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(brand.name.slice(0, 2).toUpperCase(), width / 2, height / 2);
   } else if (node.type === "text") {
     const rawText = typeof node.payload?.text === "string" ? node.payload.text : brand.name;
     const counter = Number(evaluateProperty(scene, node, "payload.counterProgress", time, 1));

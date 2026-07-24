@@ -369,15 +369,14 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#FFFFFF",
-            "fontFamily": "Lora",
-            "fontWeight": 700
-          },
           "payload": {
             "text": "Tiếng Việt: Đặng Thị Hồng – 49.000₫",
             "fontAssetId": "asset.font.bold",
-            "fontSize": 56
+            "fontSize": 56,
+            "fontWeight": 700
+          },
+          "style": {
+            "fill": "#FFFFFF"
           }
         }
       ],

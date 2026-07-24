@@ -21,7 +21,7 @@ Renderer/preview golden có thể bổ sung sau, nhưng contract và compiler go
 
 ## Audit baseline 24/07/2026
 
-Baseline sau milestone typed asset metadata có 10 positive fixtures, 14 negative artifacts, 9 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
+Baseline sau milestone discriminated Node schema có 10 positive fixtures, 18 negative artifacts, 9 deterministic limit cases, 4 Runtime IR goldens và 19 asset đã pin hash/probe.
 
 ### Phase 0 implementation progress
 
@@ -29,7 +29,7 @@ Baseline sau milestone typed asset metadata có 10 positive fixtures, 14 negativ
 - [x] Limits cho ID, scene, node, clip, track, key, list và hierarchy depth.
 - [x] Strictly increasing key-time validation.
 - [x] Reference validation cho track target/property và schedule graph.
-- [x] 14 negative artifacts và 9 limit/depth descriptors với structured error assertions.
+- [x] 18 negative artifacts và 9 limit/depth descriptors với structured error assertions.
 - [x] 4 stored Runtime IR goldens, exact-set check và double-compile determinism assertion.
 - [x] Property value/variable-type validation cho registry baseline.
 - [x] Negative matrix cho duplicate Node ID, hierarchy depth và từng array limit.
@@ -41,7 +41,9 @@ Baseline sau milestone typed asset metadata có 10 positive fixtures, 14 negativ
 - [x] Negative fixtures cho unsupported asset type và Node–Asset mismatch.
 - [x] Typed metadata riêng cho image, SVG, video, audio và font; validator đối chiếu declaration với manifest/probe.
 - [x] Negative contracts cho thiếu metadata, alpha mismatch và video audio-policy mismatch.
-- [ ] Chuyển RegularNode generic thành discriminated Node payload/style schemas.
+- [x] Thay `RegularNode` generic bằng discriminated union cho Group/Bone/Text/Shape/Image/SVG/Video/Camera/Component.
+- [x] Xóa `logo`, `icon`, `character` và Path placeholder khỏi normative Node union; Path chỉ quay lại cùng typed geometry fixture.
+- [x] Active camera bắt buộc trỏ tới Camera Node; Group reject generic payload/style.
 
 ### Đã có contract và hành vi có thể dựa vào
 
@@ -54,7 +56,7 @@ Baseline sau milestone typed asset metadata có 10 positive fixtures, 14 negativ
 | Playback | iterations/direction/rate, preset source | Preset được expand; playback chưa test đủ evaluator |
 | Spatial | Transform, parent hierarchy, zIndex, inherit flags | Worker có world matrix và hierarchy assertions |
 | Compile-time | Component expansion, list Repeater MVP | Có compiler assertions |
-| Drawable | Text; SVG/Image worker smoke | Text/logo logic có; SVG/Image fixture hierarchy đã render |
+| Drawable | Text; typed Shape/Image/SVG/Video | Text và SVG/Image fixture hierarchy đã render; Shape/Video renderer còn thiếu |
 | Joint | Bone như zero-size transform Node | Arm hierarchy fixture đã test pivot/prop attachment |
 | Timeline | scene order; BGM/voiceover/SFX metadata | Contract/compiler plumbing, chưa mix audio |
 
@@ -62,16 +64,12 @@ Baseline sau milestone typed asset metadata có 10 positive fixtures, 14 negativ
 
 | Tên hiện có | Vấn đề |
 |---|---|
-| `shape` | Có 3 fixture node nhưng geometry/style vẫn là JSON record; renderer chưa thực thi |
-| `path` | Chỉ có tên trong Node enum; không có typed contours/segments hay positive fixture |
+| `shape` | Rectangle/ellipse và paint đã typed; polygon, geometry limits và renderer chưa có |
+| `path` | Đã bị reject khỏi Node union cho tới khi có typed contours/segments và fixtures S1 |
 | `maskId` | Chỉ là ID reference; chưa có mode clip/alpha/inverse, cycle graph và fixture dương |
-| `camera` | Có 5 node fixture và `activeCameraId`; payload zoom và hành vi shot chưa typed/test |
-| `video` | Có 2 node fixture và asset probe; trim/fit/frame/loop/audio policy chưa typed |
-| `logo`, `icon` | Convenience type; chưa chứng minh cần renderer primitive riêng |
-| `character` | Tên generic không có contract; nên bỏ và compose Character bằng Component/Bone/SVG |
-| `style`, `payload` | `Record<string, JSON>` cho hầu hết Node nên AI có thể sinh field vô nghĩa |
-| property path | Chuỗi tự do; chưa có registry kiểm tra property hợp lệ theo Node/effect/modifier |
-| `assetType` | Chuỗi tự do; chưa discriminated union theo image/svg/video/audio/font |
+| `camera` | Zoom/projection và active-camera reference đã typed; shot/transition runtime chưa có |
+| `video` | fit/crop/trim/loop/mute/frame policy đã typed; frame renderer và audio mix chưa có |
+| property path | Registry đã khóa baseline hiện dùng; chưa phủ Path/Mask/effect/modifier tương lai |
 | `extensions.constraints/events` | Array JSON tự do, chưa có consumer hoặc reference validation |
 
 Node types thực sự xuất hiện trong positive fixtures hiện tại: `bone`, `camera`, `component`, `group`, `image`, `shape`, `svg`, `text`, `video`. Track properties hiện chỉ bao phủ `transform.rotation`, `transform.opacity`, `transform.flipX`.

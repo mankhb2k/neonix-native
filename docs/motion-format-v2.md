@@ -48,6 +48,15 @@ Mọi spatial entity thuộc đúng một Scene. Component Instance là Node:
 
 Không có top-level `instances[]`. Parenting, masking, draw order và clip targeting dùng cùng Node graph. Node ID chỉ unique trong Scene; mọi project-level target phải chứa `sceneId`.
 
+`NodeV2` là discriminated union, không có `payload` hoặc `style` JSON tự do:
+
+- Group không nhận payload/style; Bone chỉ nhận length/rest rotation.
+- Text, Shape, Image, SVG, Video và Camera có payload riêng, strict theo family.
+- Component Instance tồn tại trong Authoring IR và phải được compiler expand; Runtime IR không chấp nhận Component hoặc `repeat`.
+- `logo` và `icon` là semantic role được compose bằng Text/Image/SVG/Component, không phải Node type.
+- Character là Component từ Group/Bone/SVG/variants/actions, không có `CharacterNode`.
+- Path hiện bị reject cho tới khi typed contours/segments và fixtures S1 được triển khai cùng nhau.
+
 ## Public API và binding
 
 ```text

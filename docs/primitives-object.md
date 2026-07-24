@@ -81,18 +81,16 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 |---|---|---|---|
 | Group | Hierarchy/container | Partial | parent transform, subtree opacity/effects/mask |
 | Text | Text content/layout | Partial | Vietnamese, wrap, alignment, font fallback |
-| Shape | Rectangle/ellipse/polygon primitives | Planned P0 | fill/stroke/radius/bounds |
+| Shape | Rectangle/ellipse primitives | Partial typed schema | fill/stroke/radius typed; polygon/renderer còn thiếu |
 | Path | Typed contours + line/cubic segments | Planned P0 | open/closed, holes, fill rule, bounds |
-| Image | Raster asset | Partial plumbing | contain/cover/crop/alpha/color space |
-| SVG | Normalized vector asset/part | Partial — worker smoke | sanitize, raster, nested transform; mask/Web parity còn thiếu |
-| Video | Time-based media asset | Partial plumbing | trim, frame selection, loop, mute/audio policy |
-| Logo | Convenience semantic visual | Partial | should render through image/SVG vocabulary |
-| Icon | Convenience semantic visual | Partial | should render through SVG/Path vocabulary |
+| Image | Raster asset | Partial typed plumbing | contain/cover/crop/alpha/color space |
+| SVG | Normalized vector asset/part | Partial typed + worker smoke | sanitize, raster, nested transform; mask/Web parity còn thiếu |
+| Video | Time-based media asset | Partial typed plumbing | trim, frame selection, loop, mute/audio policy |
 | Bone | Zero-size transform joint | Partial — worker smoke | chain/pivot/hierarchy chạy; limits/Web parity còn thiếu |
 | Camera | Scene view transform | Partial schema | active camera, pan/zoom/rotate, shot changes |
 | Component Instance | Reusable package Node | Implemented compiler | dependency pin, props, expansion, namespace |
 
-`character` không nên trở thành một renderer primitive riêng. Character là Component được compose từ Bone/Group/SVG/variants/actions. Trước schema freeze cần đánh giá bỏ generic `character` Node type nếu không có consumer thực.
+`logo`, `icon` và `character` đã bị xóa khỏi Node union. Logo/icon là semantic composition bằng Text/Image/SVG/Path/Component; Character là Component được compose từ Bone/Group/SVG/variants/actions.
 
 ## 6. Geometry/paint primitives
 

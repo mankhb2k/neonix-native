@@ -36,7 +36,7 @@ Mọi item trong array cần `id` ổn định để property track target `effe
 |---|---|---|---|
 | Property/Track/Keyframe | Có | Có một phần | Numeric evaluator cơ bản |
 | Hierarchy/Bone chain | Biểu diễn được bằng `parentId` | Giữ hierarchy | World matrix + SVG worker smoke đã có; Web parity còn thiếu |
-| Path | Chỉ có Node type | Pass-through | Chưa vẽ |
+| Path | Bị reject cho tới typed fixture | Chưa có | Chưa vẽ |
 | Mask | Chỉ có `maskId` | Pass-through | Chưa áp dụng |
 | Motion Path | Chưa có | Chưa có | Chưa có |
 | Text Animator | Chưa có | Chưa có | Chưa có |
@@ -274,7 +274,7 @@ Không thêm placeholder field cho P2 vào canonical schema.
 
 ## Cross-cutting schema work
 
-Trước khi thêm primitive, cần tách `payload/style` generic thành typed schemas theo Node family, nhưng vẫn cho extension namespaced có kiểm soát.
+`payload/style` generic đã được thay bằng discriminated schemas cho chín authoring Node family hiện có. Primitive mới phải mở rộng union bằng typed fixture; không thêm lại record tự do. Extension namespaced có kiểm soát chỉ được thêm khi có consumer và validation.
 
 Các field dự kiến trên Node:
 

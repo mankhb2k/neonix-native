@@ -73,6 +73,8 @@ Lệnh này compile `hierarchy-transform.mt.json`, kiểm tra world-space tại 
 
 - Mọi artifact có `format` và `formatVersion`; Component dùng thêm `componentVersion`.
 - Component Instance là Node `type: "component"` trong `scene.nodes[]`.
+- Node dùng discriminated payload/style schemas; Group không nhận field tùy ý và Runtime IR không nhận Component/repeat.
+- `logo`, `icon`, `character` không phải Node type; chúng là semantic composition/Component.
 - Hierarchy chỉ dùng `parentId`; Node ID có scope theo Scene.
 - Project binding target luôn có `sceneId` và `nodeId`.
 - Public API ánh xạ `variableId`; consumer không thấy internal binding target.

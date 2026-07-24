@@ -25,7 +25,7 @@ export const fnbHookOfferCta: Template = {
       ] },
       { id: "cta", role: "cta", duration: 7, nodes: [
         { id: "cta-text", text: "Ghé quán ngay", preset: "slide-up" },
-        { id: "logo", type: "logo", y: 80, preset: "fade-in", start: 0.4 },
+        { id: "brand-name", type: "brand-text", y: 80, preset: "fade-in", start: 0.4 },
       ] },
     ],
   }),

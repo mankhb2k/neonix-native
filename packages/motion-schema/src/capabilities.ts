@@ -49,7 +49,7 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
   },
   shape: {
     "style.fill": { valueKind: "color", animatable: true, bindable: true },
-    "style.cornerRadius": { valueKind: "number", animatable: true, bindable: true },
+    "payload.cornerRadius": { valueKind: "number", animatable: true, bindable: true },
   },
   svg: {
     "payload.assetId": { valueKind: "asset", animatable: true, bindable: true },

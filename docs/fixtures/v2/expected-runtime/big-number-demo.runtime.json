@@ -94,15 +94,15 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#0B1220"
+          "semantic": {
+            "role": "background",
+            "tags": []
           },
           "payload": {
             "shape": "rectangle"
           },
-          "semantic": {
-            "role": "background",
-            "tags": []
+          "style": {
+            "fill": "#0B1220"
           }
         },
         {
@@ -126,14 +126,14 @@
             "flipX": false,
             "flipY": false
           },
+          "semantic": {
+            "role": "hero-title",
+            "tags": []
+          },
           "payload": {
             "text": "Doanh thu",
             "fontSize": 42,
             "align": "center"
-          },
-          "semantic": {
-            "role": "hero-title",
-            "tags": []
           }
         },
         {
@@ -157,18 +157,18 @@
             "flipX": false,
             "flipY": false
           },
-          "style": {
-            "fill": "#0F766E"
+          "semantic": {
+            "role": "statistic",
+            "tags": []
           },
           "payload": {
             "text": "2.4x",
             "fontSize": 160,
-            "align": "center",
-            "fontWeight": 700
+            "fontWeight": 700,
+            "align": "center"
           },
-          "semantic": {
-            "role": "statistic",
-            "tags": []
+          "style": {
+            "fill": "#0F766E"
           }
         },
         {
@@ -192,14 +192,14 @@
             "flipX": false,
             "flipY": false
           },
+          "semantic": {
+            "role": "subtitle",
+            "tags": []
+          },
           "payload": {
             "text": "Q2 2026",
             "fontSize": 28,
             "align": "center"
-          },
-          "semantic": {
-            "role": "subtitle",
-            "tags": []
           }
         }
       ],

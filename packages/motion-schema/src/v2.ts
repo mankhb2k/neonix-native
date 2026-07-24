@@ -221,8 +221,6 @@ const NodeBaseSchema = z.object({
   parentId: IdSchema.nullable(),
   zIndex: z.number().int().optional(),
   transform: TransformV2Schema,
-  style: z.record(JsonValueSchema).optional(),
-  payload: z.record(JsonValueSchema).optional(),
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
   inheritPosition: z.boolean().optional(),
@@ -232,7 +230,102 @@ const NodeBaseSchema = z.object({
   maskId: IdSchema.optional(),
 });
 
-const ComponentNodeSchema = NodeBaseSchema.extend({
+const FitSchema = z.enum(["contain", "cover", "fill", "none"]);
+
+const CropSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  width: z.number().positive().max(1),
+  height: z.number().positive().max(1),
+}).strict();
+
+const PaintStyleSchema = z.object({
+  fill: z.string().min(1).optional(),
+  stroke: z.string().min(1).optional(),
+  strokeWidth: z.number().nonnegative().optional(),
+}).strict();
+
+export const GroupNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("group"),
+}).strict();
+
+export const BoneNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("bone"),
+  payload: z.object({
+    length: z.number().nonnegative(),
+    restRotation: z.number().optional(),
+  }).strict(),
+}).strict();
+
+export const TextNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("text"),
+  payload: z.object({
+    text: z.string(),
+    fontAssetId: IdSchema.optional(),
+    fontSize: z.number().positive(),
+    fontWeight: z.number().int().min(1).max(1000).optional(),
+    align: z.enum(["left", "center", "right"]).optional(),
+    wrap: z.enum(["none", "word", "character"]).optional(),
+    lineHeight: z.number().positive().optional(),
+    letterSpacing: z.number().optional(),
+    maxLines: z.number().int().positive().optional(),
+    counterProgress: z.number().min(0).max(1).optional(),
+  }).strict(),
+  style: PaintStyleSchema.optional(),
+}).strict();
+
+const ShapePayloadSchema = z.discriminatedUnion("shape", [
+  z.object({ shape: z.literal("rectangle"), cornerRadius: z.number().nonnegative().optional() }).strict(),
+  z.object({ shape: z.literal("ellipse") }).strict(),
+]);
+
+export const ShapeNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("shape"),
+  payload: ShapePayloadSchema,
+  style: PaintStyleSchema.optional(),
+}).strict();
+
+export const ImageNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("image"),
+  payload: z.object({
+    assetId: IdSchema,
+    fit: FitSchema.optional(),
+    crop: CropSchema.optional(),
+  }).strict(),
+}).strict();
+
+export const SvgNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("svg"),
+  payload: z.object({
+    assetId: IdSchema,
+    fit: FitSchema.optional(),
+    crop: CropSchema.optional(),
+  }).strict(),
+  style: PaintStyleSchema.optional(),
+}).strict();
+
+export const VideoNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("video"),
+  payload: z.object({
+    assetId: IdSchema,
+    fit: FitSchema.optional(),
+    trimStart: z.number().nonnegative().optional(),
+    trimEnd: z.number().positive().optional(),
+    loop: z.boolean().optional(),
+    muted: z.boolean().optional(),
+    framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
+  }).strict(),
+}).strict();
+
+export const CameraNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("camera"),
+  payload: z.object({
+    zoom: z.number().positive(),
+    projection: z.literal("orthographic").optional(),
+  }).strict(),
+}).strict();
+
+export const ComponentNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("component"),
   payload: z
     .object({
@@ -243,11 +336,17 @@ const ComponentNodeSchema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-const RegularNodeSchema = NodeBaseSchema.extend({
-  type: z.enum(["text", "shape", "image", "svg", "path", "group", "bone", "camera", "logo", "icon", "character", "video"]),
-}).strict();
-
-export const NodeV2Schema = z.union([ComponentNodeSchema, RegularNodeSchema]);
+export const NodeV2Schema = z.discriminatedUnion("type", [
+  GroupNodeV2Schema,
+  BoneNodeV2Schema,
+  TextNodeV2Schema,
+  ShapeNodeV2Schema,
+  ImageNodeV2Schema,
+  SvgNodeV2Schema,
+  VideoNodeV2Schema,
+  CameraNodeV2Schema,
+  ComponentNodeV2Schema,
+]);
 
 export const ClipScheduleSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("absolute"), at: z.number().nonnegative() }).strict(),
@@ -442,10 +541,16 @@ export const MotionPatchSchema = z
   })
   .strict();
 
-const RuntimeNodeSchema = RegularNodeSchema.omit({ repeat: true }).extend({
-  style: z.record(LiteralValueSchema).optional(),
-  payload: z.record(LiteralValueSchema).optional(),
-}).strict();
+const RuntimeNodeSchema = z.discriminatedUnion("type", [
+  GroupNodeV2Schema.omit({ repeat: true }),
+  BoneNodeV2Schema.omit({ repeat: true }),
+  TextNodeV2Schema.omit({ repeat: true }),
+  ShapeNodeV2Schema.omit({ repeat: true }),
+  ImageNodeV2Schema.omit({ repeat: true }),
+  SvgNodeV2Schema.omit({ repeat: true }),
+  VideoNodeV2Schema.omit({ repeat: true }),
+  CameraNodeV2Schema.omit({ repeat: true }),
+]);
 
 const RuntimeTrackSchema = z
   .object({
@@ -545,28 +650,20 @@ function validateNodeAssets(
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));
-  const allowedByNode: Readonly<Record<string, ReadonlyArray<z.infer<typeof AssetV2Schema>["assetType"]>>> = {
-    image: ["image"],
-    svg: ["svg"],
-    video: ["video"],
-    logo: ["image", "svg"],
-    icon: ["svg"],
-    character: ["svg"],
-  };
   for (const node of nodes) {
-    const assetId = node.payload && "assetId" in node.payload ? node.payload.assetId : undefined;
-    if (typeof assetId === "string") {
+    if (node.type === "image" || node.type === "svg" || node.type === "video") {
+      const assetId = node.payload.assetId;
       const asset = assetById.get(assetId);
       const path = `${prefix}.${node.id}.payload.assetId`;
       if (!asset) issues.push({ path, message: `Unknown asset: ${assetId}` });
       else {
-        const allowed = allowedByNode[node.type];
-        if (allowed && !allowed.includes(asset.assetType)) {
-          issues.push({ path, message: `Asset ${assetId} has type ${asset.assetType}, expected ${allowed.join(" or ")}` });
+        const expected = node.type;
+        if (asset.assetType !== expected) {
+          issues.push({ path, message: `Asset ${assetId} has type ${asset.assetType}, expected ${expected}` });
         }
       }
     }
-    const fontAssetId = node.payload && "fontAssetId" in node.payload ? node.payload.fontAssetId : undefined;
+    const fontAssetId = node.type === "text" ? node.payload.fontAssetId : undefined;
     if (typeof fontAssetId === "string") {
       const asset = assetById.get(fontAssetId);
       const path = `${prefix}.${node.id}.payload.fontAssetId`;
@@ -723,7 +820,11 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
     issues.push(...validateNodeAssets(scene.nodes, project.assets, `scenes.${scene.id}.nodes`));
     issues.push(...validateClips(scene.clips, scene.nodes, project.variables, `scenes.${scene.id}.clips`));
     const nodeIds = new Set(scene.nodes.map((node) => node.id));
-    if (scene.activeCameraId && !nodeIds.has(scene.activeCameraId)) issues.push({ path: `scenes.${scene.id}.activeCameraId`, message: `Unknown camera: ${scene.activeCameraId}` });
+    if (scene.activeCameraId) {
+      const camera = scene.nodes.find((node) => node.id === scene.activeCameraId);
+      if (!camera) issues.push({ path: `scenes.${scene.id}.activeCameraId`, message: `Unknown camera: ${scene.activeCameraId}` });
+      else if (camera.type !== "camera") issues.push({ path: `scenes.${scene.id}.activeCameraId`, message: `Node ${scene.activeCameraId} has type ${camera.type}, expected camera` });
+    }
     for (const node of scene.nodes) {
       if (node.type === "component") {
         const dependency = `${node.payload.componentId}@${node.payload.componentVersion}`;
