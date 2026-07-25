@@ -434,6 +434,36 @@ async function validateNegativeFixtures(): Promise<number> {
       path: "scenes.scene.activeCameraId",
       message: "Node not-a-camera has type group, expected camera",
     },
+    {
+      file: "schema/missing-variable-ref.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips",
+      message: "Unknown referenced variable: var.missing",
+    },
+    {
+      file: "schema/missing-binding-target.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "bindings.bind.title.target",
+      message: "Unknown node: missing.node",
+    },
+    {
+      file: "schema/public-param-type-mismatch.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "publicAPI.title.type",
+      message: "Expected variable type string, got number",
+    },
+    {
+      file: "schema/source-integrity-mismatch.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "sourceImports.import.1.sourceIntegrity",
+      message: "Source import integrity does not match source asset",
+    },
+    {
+      file: "schema/schedule-missing-ref.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.clip.b.schedule",
+      message: "Unknown schedule clip: clip.missing",
+    },
   ] as const;
   for (const fixture of cases) {
     let error: unknown;
@@ -603,6 +633,96 @@ async function validateNegativeFixtures(): Promise<number> {
       code: "too_small",
       parse: parseMotionProjectV2,
     },
+    {
+      file: "schema/wrong-format.mt.json",
+      path: "format",
+      code: "invalid_literal",
+      parse: parseMotionProjectV2,
+    },
+    {
+      file: "schema/wrong-format-version.mt.json",
+      path: "formatVersion",
+      code: "invalid_literal",
+      parse: parseMotionProjectV2,
+    },
+    {
+      file: "schema/empty-id.mvc.json",
+      path: "nodes.0.id",
+      code: "too_small",
+    },
+    {
+      file: "schema/playback-rate-zero.mvc.json",
+      path: "clips.0.playback.rate",
+      code: "too_small",
+      message: "greater than 0",
+    },
+    {
+      file: "schema/invalid-image-fit.mvc.json",
+      path: "nodes.0.payload.fit",
+      code: "invalid_enum_value",
+    },
+    {
+      file: "schema/invalid-image-crop.mvc.json",
+      path: "nodes.0.payload.crop.width",
+      code: "too_small",
+    },
+    {
+      file: "schema/unknown-modifier-type.mvc.json",
+      path: "nodes.0.modifiers.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "schema/wipe-transition.mt.json",
+      path: "scenes.0.transition.type",
+      code: "invalid_union_discriminator",
+      parse: parseMotionProjectV2,
+    },
+    {
+      file: "p1-not-normative/emitter-node.json",
+      path: "nodes.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "p1-not-normative/trim-path-modifier.json",
+      path: "nodes.0.modifiers.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "p1-not-normative/animated-dash.json",
+      path: "nodes.0.style",
+      code: "unrecognized_keys",
+    },
+    {
+      file: "p1-not-normative/gradient-anim.json",
+      path: "nodes.0.style.fill",
+      code: "invalid_type",
+    },
+    {
+      file: "p1-not-normative/blend-mode.json",
+      path: "nodes.0",
+      code: "unrecognized_keys",
+    },
+    {
+      file: "p1-not-normative/constraint-modifier.json",
+      path: "nodes.0.modifiers.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "p1-not-normative/two-bone-ik.json",
+      path: "nodes.0.modifiers.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "p1-not-normative/path-bend.json",
+      path: "nodes.0.modifiers.0.type",
+      code: "invalid_union_discriminator",
+    },
+    {
+      file: "p1-not-normative/audio-marker-track.json",
+      path: "timeline.audioTracks.0",
+      code: "unrecognized_keys",
+      parse: parseMotionProjectV2,
+    },
   ] as const;
   for (const fixture of schemaCases) {
     let error: unknown;
@@ -623,6 +743,62 @@ async function validateNegativeFixtures(): Promise<number> {
     console.log(`OK negative/${fixture.file}`);
   }
   return cases.length + schemaCases.length;
+}
+
+type CoverageGate = "pass" | "na";
+
+type PrimitivesCoverage = {
+  version: number;
+  requiredGates: Array<"contract" | "reference" | "limits">;
+  primitives: Array<{
+    id: string;
+    section: string;
+    status: string;
+    hasRuntimeSurface: boolean;
+    gates: Record<string, CoverageGate | string>;
+    fixtures: string[];
+    notes?: string;
+  }>;
+};
+
+async function validatePrimitivesCoverage(): Promise<number> {
+  const coverage = await readJson(resolve(fixturesRoot, "primitives-coverage.json")) as PrimitivesCoverage;
+  if (coverage.version !== 1) throw new Error("primitives-coverage.json version must be 1");
+  if (coverage.primitives.length === 0) throw new Error("primitives-coverage.json has no primitives");
+  let passCount = 0;
+  for (const primitive of coverage.primitives) {
+    for (const gate of coverage.requiredGates) {
+      const value = primitive.gates[gate];
+      if (value !== "pass" && value !== "na") {
+        throw new Error(`primitives-coverage ${primitive.id}.${gate} must be pass|na, got ${String(value)}`);
+      }
+      if (value === "na" && !(primitive.notes ?? "").trim()) {
+        throw new Error(`primitives-coverage ${primitive.id}.${gate}=na requires notes`);
+      }
+    }
+    if (primitive.hasRuntimeSurface) {
+      const compiler = primitive.gates.compiler;
+      if (compiler !== "pass" && compiler !== "na") {
+        throw new Error(`primitives-coverage ${primitive.id}.compiler must be pass|na when hasRuntimeSurface`);
+      }
+      if (compiler === "na" && !(primitive.notes ?? "").trim()) {
+        throw new Error(`primitives-coverage ${primitive.id}.compiler=na requires notes`);
+      }
+    }
+    for (const fixture of primitive.fixtures) {
+      const absolute = resolve(fixturesRoot, fixture);
+      try {
+        await stat(absolute);
+      } catch {
+        throw new Error(`primitives-coverage ${primitive.id} missing fixture: ${fixture}`);
+      }
+    }
+    if (coverage.requiredGates.every((gate) => primitive.gates[gate] === "pass" || primitive.gates[gate] === "na")) {
+      passCount += 1;
+    }
+  }
+  console.log(`OK primitives-coverage ${passCount}/${coverage.primitives.length}`);
+  return coverage.primitives.length;
 }
 
 function fixtureTransform(): Record<string, unknown> {
@@ -1088,6 +1264,7 @@ async function main(): Promise<void> {
   }
   await validateAssetKit();
   await validateSvgImportFixtures();
+  const coverageCount = await validatePrimitivesCoverage();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
   MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
@@ -1293,7 +1470,7 @@ async function main(): Promise<void> {
   if (JSON.stringify(cutoutRuntime).includes("\"lipSync\"")) throw new Error("Compiler leaked lip-sync cue metadata into Runtime IR");
   console.log("OK compiler/lip-sync cues expand to assetId step keys without Runtime metadata");
 
-  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases and ${goldenCount} Runtime golden Motion Format v2 fixtures.`);
+  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases, ${goldenCount} Runtime golden and ${coverageCount} primitives-coverage rows.`);
 }
 
 main().catch((error: unknown) => {

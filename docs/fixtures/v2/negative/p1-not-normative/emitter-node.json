@@ -1,0 +1,21 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "p1.emitter-node",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "P1 emitter node reject" },
+  "assets": [],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "emitter",
+      "type": "emitter",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 10, "height": 10, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "count": 10, "lifetime": 1, "seed": 1 }
+    }
+  ],
+  "bindings": [],
+  "clips": []
+}

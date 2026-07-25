@@ -1,6 +1,6 @@
 # MotionVideo primitive object catalog
 
-Current status ledger: [`roadmap-status.md`](roadmap-status.md). Effects stack is now implemented and verified; Path Morph, Secondary Motion, media mixing, importer, camera rendering, and browser parity remain pending.
+Current status ledger: [`roadmap-status.md`](roadmap-status.md). Machine-readable schema-first coverage: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`). Worker PNG/Web parity remain separate gates; this catalog’s “Implemented” for schema means contract/reference/limits (+ compiler when Runtime surface) are covered.
 
 > Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative hiện tại vẫn là [`motion-format-v2.md`](motion-format-v2.md). Proposal chi tiết nằm tại [`atomic-primitives-plan.md`](atomic-primitives-plan.md), [`svg-cutout-plan.md`](svg-cutout-plan.md) và [`fixtures/v2/test-plan.md`](fixtures/v2/test-plan.md).
 
@@ -35,7 +35,7 @@ Value + Property + Keyframe + Track + Binding
 | Semantic | `role`, `key`, `tags` | Partial | public/internal address, duplicate role được phép, key stability |
 | Integrity | SHA-256 pin cho asset/component | Partial | đúng hash, mismatch, missing file, immutable package |
 | Component semver | Public contract version | Partial | exact pin, missing dependency, incompatible action/public prop |
-| Source mapping | Figma/Illustrator element → canonical Node/asset | Planned P0 | flat paths, group, rename, re-import, conflict |
+| Source mapping | Figma/Illustrator SVG export → canonical Node/asset | Implemented schema + import fixtures | flat paths, fingerprint, re-import identity, script/URL reject |
 
 ## 2. Value/property primitives
 
@@ -60,9 +60,9 @@ Playback is implemented for finite and infinite iterations, normal/reverse/alter
 | Easing | linear/ease/spring/step | Partial | exact values tại fixed timestamps, clamp policy |
 | Clip | Duration, target, source | Partial | target, duration, keys không vượt clip |
 | Schedule | absolute/after/with | Partial | chain, offset, missing ref, cycle |
-| Playback | iterations/direction/rate | Partial schema | finite/infinite hard limit chạy; reverse/alternate evaluator còn thiếu |
+| Playback | iterations/direction/rate | Implemented | finite/infinite, reverse/alternate evaluator, rate>0 reject |
 | Preset source | Authoring shortcut → tracks | Implemented | known preset, literal expansion, no preset in Runtime IR |
-| Named Action | Reusable component animation | Planned P0 | idle/blink/talk/wave/walk, namespace, loop/rate |
+| Named Action | Reusable component animation | Implemented outer playback | idle/blink/talk/wave compose, loop/rate, over-duration guard |
 | Deterministic clock/seed | Random-access frame evaluation và pseudo-random sample | Implemented runtime foundation | frame index/time, channel/sample independence, stored frame equality |
 
 ## 4. Spatial/layout primitives
@@ -75,7 +75,7 @@ Playback is implemented for finite and infinite iterations, normal/reverse/alter
 | Draw order | z-index + stable tree order | Partial | equal z-index, nested groups, mask/effect layers |
 | Bounds | Geometry/layout bounds | Implemented runtime baseline | transformed AABB + drawable subtree chạy; effect inflation còn thiếu |
 | Hit test | Canvas selection | Partial runtime | inverse transform, visibility, opacity và draw order chạy; alpha/mask Web selection còn thiếu |
-| Layout | linear/grid/radial placement | Planned P0 | deterministic positions and item limits |
+| Layout | linear/grid/radial placement | Implemented via Repeater | deterministic positions and item limits |
 
 ## 5. Core Node objects
 
@@ -87,11 +87,11 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 | Text | Text content/layout | Partial | Vietnamese, wrap, alignment, font fallback |
 | Shape | Rectangle/ellipse/polygon primitives | Implemented worker | typed paint, animated radius/paint, geometry limits và PNG golden |
 | Path | Typed contours + line/cubic segments | Implemented worker | open/closed, evenodd holes, true cubic bounds và PNG golden |
-| Image | Raster asset | Partial typed plumbing | contain/cover/crop/alpha/color space |
+| Image | Raster asset | Implemented schema + media fixture | contain/cover/fill/none fit, crop rect, alpha metadata |
 | SVG | Normalized vector asset/part | Partial typed + worker smoke | sanitize, raster, nested transform; mask/Web parity còn thiếu |
-| Video | Time-based media asset | Partial typed plumbing | trim, frame selection, loop, mute/audio policy |
+| Video | Time-based media asset | Implemented worker frame sampling | trim, frame policy, loop, mute/audio policy |
 | Bone | Zero-size transform joint | Partial — worker smoke | chain/pivot/hierarchy chạy; limits/Web parity còn thiếu |
-| Camera | Scene view transform | Partial schema | active camera, pan/zoom/rotate, shot changes |
+| Camera | Scene view transform | Implemented worker | active camera, pan/zoom/rotate, crossfade |
 | Component Instance | Reusable package Node | Implemented compiler | dependency pin, props, expansion, namespace |
 
 `logo`, `icon` và `character` đã bị xóa khỏi Node union. Logo/icon là semantic composition bằng Text/Image/SVG/Path/Component; Character là Component được compose từ Bone/Group/SVG/variants/actions.
@@ -103,10 +103,10 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 | Point/Contour/Segment | Canonical Path geometry | Implemented | finite coordinates, line/cubic, contour/segment limits |
 | Fill | Solid paint | Implemented worker | color/opacity/nonzero/evenodd |
 | Stroke | Width/cap/join | Implemented worker | open path, animated width, stroke-inflated bounds |
-| Gradient | Linear/radial typed paint | Planned P1 | stable stop IDs, interpolation, transforms |
-| Dash | Stroke dash array/offset | Planned P1 | odd arrays, offset animation |
-| Trim Path | Arc-length range | Planned P1 | start/end/offset, open/closed contours |
-| Path Morph | Compatible topology interpolation | Planned P0 late | mismatch rejection, 0/0.5/1 silhouettes |
+| Gradient | Linear/radial typed paint | Planned P1 — rejected in schema | negative/p1-not-normative/gradient-anim.json |
+| Dash | Stroke dash array/offset | Planned P1 — rejected in schema | negative/p1-not-normative/animated-dash.json |
+| Trim Path | Arc-length range | Planned P1 — rejected in schema | negative/p1-not-normative/trim-path-modifier.json |
+| Path Morph | Compatible topology interpolation | Implemented worker | mismatch rejection, 0/0.5/1 silhouettes |
 | Path Bend | Lightweight curve deformation | Planned P1 | bounded control points, deterministic geometry |
 
 SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph không tự thêm points hoặc đoán correspondence.
@@ -116,13 +116,13 @@ SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph kh
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
 | Mask/Clip | Node visibility từ source Node | Implemented worker | clip/alpha/inverse, nested, cycle và source visibility |
-| Effects stack | Ordered pixel effects | Planned P0 late | order, property animation, resource limits |
-| Blur | Effect | Planned P0 late | radius 0/max, offscreen bounds |
-| Shadow | Effect | Planned P0 late | offset/blur/color/alpha |
-| Glow | Effect | Planned P0 late | radius/intensity/order |
-| Color adjust | Effect | Planned P0 late | brightness/contrast/saturation |
-| Blend mode | Layer compositing | Planned P1 | normal/multiply/screen/overlay/add |
-| Scene transition | Cross-scene compositing | Planned P0 | duration, overlap, crossfade/wipe |
+| Effects stack | Ordered pixel effects | Implemented worker | order, property animation, resource limits |
+| Blur | Effect | Implemented worker | radius 0/max, offscreen budgets via effects fixture |
+| Shadow | Effect | Implemented worker | offset/blur/color/alpha |
+| Glow | Effect | Implemented worker | radius/intensity/order |
+| Color adjust | Effect | Implemented worker | brightness/contrast/saturation |
+| Blend mode | Layer compositing | Planned P1 — rejected in schema | negative/p1-not-normative/blend-mode.json |
+| Scene transition | Cross-scene compositing | Implemented cut/fade/crossfade | wipe rejected; duration/overlap goldens |
 
 Canonical order: raster subtree → mask → ordered effects → blend/z-order.
 
@@ -136,7 +136,7 @@ Canonical order: raster subtree → mask → ordered effects → blend/z-order.
 | Repeater layout | None/linear/grid/radial | Implemented | exact positions, columns, radius và orientation |
 | Time stagger | Offset cloned clips/tracks | Implemented | bounded value, canonical deterministic schedule |
 | Text Animator | Text → grapheme/word/line runs | Implemented compiler | Vietnamese combining marks, emoji ZWJ, selector, stagger và unit limit |
-| Emitter | Seeded repeated sprites | Planned P1 | count/lifetime/seed/resource limits |
+| Emitter | Seeded repeated sprites | Planned P1 — rejected in schema | negative/p1-not-normative/emitter-node.json |
 
 Compiler phải loại các expansion primitives khỏi Runtime IR.
 
@@ -145,11 +145,11 @@ Compiler phải loại các expansion primitives khỏi Runtime IR.
 | Modifier | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
 | Motion Path | Node position/orientation theo Path | Implemented runtime | typed refs, arc length, tangent, progress, offsets, cycles, cross-hierarchy |
-| Path Morph | Geometry interpolation | Planned P0 late | topology + numeric interpolation |
-| Secondary Motion | Follow-through trên chain | Planned P0 cut-out | fixed time, random access, damping/stiffness |
-| Simple constraint | Copy/look-at/pin | Planned P1 | dependency order/cycle |
-| 2-bone IK | Analytic arm/leg solver | Planned P1 | reachable/unreachable target, bend direction |
-| Path Bend | Simple warp | Planned P1 | hair/ribbon curvature |
+| Path Morph | Geometry interpolation | Implemented runtime | topology + numeric interpolation |
+| Secondary Motion | Follow-through trên chain | Implemented runtime | fixed time, random access, damping/stiffness |
+| Simple constraint | Copy/look-at/pin | Planned P1 — rejected in schema | negative/p1-not-normative/constraint-modifier.json |
+| 2-bone IK | Analytic arm/leg solver | Planned P1 — rejected in schema | negative/p1-not-normative/two-bone-ik.json |
+| Path Bend | Simple warp | Planned P1 — rejected in schema | negative/p1-not-normative/path-bend.json |
 
 Modifier có stable ID và animatable paths như `modifiers.hairFollow.stiffness`.
 
@@ -157,16 +157,16 @@ Modifier có stable ID và animatable paths như `modifiers.hairFollow.stiffness
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| SVG Source Import | Raw Figma/Illustrator source | Planned P0 | sanitize, parse, source fingerprint |
-| Part | Một hoặc nhiều source paths thành SVG asset | Planned P0 | multi-select, create, rename, extract |
-| Rig Mapper | Part → parent/pivot/order/semantic | Planned P0 | save/reload, reparent, conflict |
-| Bone Chain | Joint hierarchy | Partial — worker smoke | arm chain chạy; mở rộng torso/head/leg/hair và Web parity |
-| Rest Pose | Canonical local transforms | Planned P0 | reset, re-import preservation |
-| Variant Slot | Mouth/eyes/hand/expression assets | Planned P0 | default, switch, invalid asset |
-| Named Action | Reusable animation clips | Planned P0 | compose idle/blink/talk/gesture |
-| Lip-sync cues | Step keys cho mouth variants | Planned P0 | cue boundaries, voiceover alignment |
-| Prop Attachment | Prop parented vào hand/slot | Partial — worker smoke | pivot/draw order chạy; detach/action/Web parity còn thiếu |
-| Secondary Chain | Hair/tail/ribbon overlap | Planned P0 late | deterministic movement |
+| SVG Source Import | SVG export (Figma/Illustrator) | Implemented sanitizer + fixtures | sanitize, fingerprint, re-import |
+| Part | Một hoặc nhiều source paths thành SVG asset | Implemented import mapping | multi-select mapping via sourceImports.parts |
+| Rig Mapper | Part → parent/pivot/order/semantic | Partial — mapped to cutoutRigs/sourceImports | no separate RigMapper schema type; covered by cutout-character |
+| Bone Chain | Joint hierarchy | Implemented worker smoke | arm chain + hierarchy-transform |
+| Rest Pose | Canonical local transforms | Partial — bone.restRotation | no separate RestPose object; reset/re-import via import fixtures |
+| Variant Slot | Mouth/eyes/hand/expression assets | Implemented | default, switch, invalid asset negatives |
+| Named Action | Reusable animation clips | Implemented | compose idle/blink/talk/gesture + outer playback |
+| Lip-sync cues | Step keys cho mouth variants | Implemented compiler | cue boundaries → assetId step keys |
+| Prop Attachment | Prop parented vào hand/slot | Implemented worker smoke | pivot/draw order; Web parity còn thiếu |
+| Secondary Chain | Hair/tail/ribbon overlap | Implemented Secondary Motion | deterministic chain follow-through |
 
 Raw source/import/rig/action metadata không được đi vào Runtime IR.
 
@@ -176,8 +176,8 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 |---|---|---|---|
 | Scene | Spatial/time scope | Partial | unique ID, duration, order |
 | Project Timeline | Scene order + audio tracks | Partial | missing/duplicate scene, total duration |
-| Audio Track | BGM/voiceover/SFX | Partial plumbing | start/trim/loop/gain/fade/mix |
-| Audio cue/marker | Beat/phoneme/semantic time | Planned P1 tooling | import/generate/edit, no raster dependency |
+| Audio Track | BGM/voiceover/SFX | Implemented mix + probe | start/trim/loop/gain/fade/mix |
+| Audio cue/marker | Beat/phoneme/semantic time | Planned P1 — rejected in schema | negative/p1-not-normative/audio-marker-track.json |
 | Asset declaration | Typed image/SVG/video/audio/font metadata | Implemented schema + fixtures | required fields, alpha/audio consistency, manifest/probe parity |
 | Asset resolver | ID → verified local/cache resource | Partial fixtures | URI safety, hash, manifest coverage; cache/offline còn thiếu |
 | Font resolver | Family/weight → bundled font | Partial fixture | Vietnamese glyphs, fallback, missing weight |
@@ -192,7 +192,7 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 | Timeline/dope sheet | Key/action editing | Planned P0 | drag, snap, multi-select, serialization |
 | Canvas selection | Select/move/rotate/pivot | Planned P0 | zoom, hit test, hierarchy |
 | Import/re-import | External asset reconciliation | Planned P0 | stable Node IDs, conflict UI |
-| Preview | Browser evaluation | Partial CSS | same Runtime IR/frame as export |
+| Preview | Browser evaluation | Partial Runtime IR | hierarchy harness parity; full PNG/Web still deferred |
 | AI capability registry | Safe generation vocabulary | Partial implemented | property vocabulary chạy; primitive/composition gates mở rộng theo phase |
 
 ## 13. Runtime-only primitives

@@ -1,0 +1,27 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "p1.constraint-modifier",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "P1 constraint modifier reject" },
+  "assets": [],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "a",
+      "type": "group",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "modifiers": [{ "id": "look", "type": "constraint", "kind": "look-at", "targetNodeId": "b" }]
+    },
+    {
+      "id": "b",
+      "type": "group",
+      "parentId": null,
+      "transform": { "x": 10, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }
+    }
+  ],
+  "bindings": [],
+  "clips": []
+}

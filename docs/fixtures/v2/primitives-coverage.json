@@ -1,0 +1,2425 @@
+{
+  "version": 1,
+  "requiredGates": ["contract", "reference", "limits"],
+  "primitives": [
+    {
+      "id": "artifact-identity",
+      "section": "1-identity",
+      "status": "partial",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "negative/schema/wrong-format.mt.json",
+        "negative/schema/wrong-format-version.mt.json",
+        "projects/schedule-playback.mt.json"
+      ],
+      "notes": "format/formatVersion rejection; reference/limits N/A (identity fields, not ID graph)"
+    },
+    {
+      "id": "stable-id",
+      "section": "1-identity",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "negative/schema/empty-id.mvc.json",
+        "negative/components/duplicate-node-id.mvc.json",
+        "negative/components/id-over-limit.mvc.json",
+        "expected-runtime/repeater-layouts.runtime.json"
+      ],
+      "notes": "empty/duplicate/over-limit IDs; expansion namespaces covered by repeater Runtime golden"
+    },
+    {
+      "id": "semantic",
+      "section": "1-identity",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "projects/cutout-dialogue.mt.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "role/key/tags on cutout parts; tag limit via cases.json; reference N/A (duplicate roles allowed)"
+    },
+    {
+      "id": "integrity",
+      "section": "1-identity",
+      "status": "partial",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "negative/schema/source-integrity-mismatch.mvc.json",
+        "assets/manifest.json",
+        "projects/media-assets.mt.json"
+      ],
+      "notes": "SHA-256 pin mismatch + manifest parity; limits N/A (hash identity, not array limits)"
+    },
+    {
+      "id": "component-semver",
+      "section": "1-identity",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "negative/projects/unpinned-component.mt.json",
+        "projects/action-playback.mt.json",
+        "expected-runtime/action-playback.runtime.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "dependency pin + expansion; missing/unpinned rejection"
+    },
+    {
+      "id": "source-mapping",
+      "section": "1-identity",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "imports/expected-import/figma-cutout.import.json",
+        "imports/expected-import/illustrator-cutout.import.json",
+        "imports/expected-reimport/figma-cutout-reimport.json",
+        "imports/expected-reimport/illustrator-cutout-reimport.json",
+        "negative/components/duplicate-source-element.mvc.json",
+        "negative/components/missing-source-import-asset.mvc.json"
+      ],
+      "notes": "Figma/AI import expectations + re-import conflict negatives; compiler not yet goldenized"
+    },
+    {
+      "id": "json-literal-value",
+      "section": "2-value",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/variables-all-types.mvc.json",
+        "negative/components/non-finite-json.mvc.json",
+        "expected-runtime/schedule-playback.runtime.json"
+      ],
+      "notes": "scalar/list/object literals; reference N/A (no ID refs)"
+    },
+    {
+      "id": "resolvable-value",
+      "section": "2-value",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/variables-all-types.mvc.json",
+        "negative/schema/missing-variable-ref.mvc.json",
+        "expected-runtime/big-number-demo.runtime.json"
+      ],
+      "notes": "literal-or-variable refs resolve in compiler; limits N/A (type/ref rules, not array caps)"
+    },
+    {
+      "id": "property-path",
+      "section": "2-value",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/property-capabilities.mt.json",
+        "expected-runtime/property-capabilities.runtime.json",
+        "negative/components/unsupported-property.mvc.json",
+        "negative/components/runtime-unsupported-property.mvc.json",
+        "negative/components/property-domain-over-limit.mvc.json"
+      ],
+      "notes": "enumerable kind/domain/public/runtime property registry"
+    },
+    {
+      "id": "variable",
+      "section": "2-value",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/variables-all-types.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "string/color/number/bool/image/enum/list defaults; reference N/A (definitions, not refs)"
+    },
+    {
+      "id": "binding",
+      "section": "2-value",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/variables-all-types.mvc.json",
+        "negative/schema/missing-binding-target.mvc.json",
+        "negative/components/binding-domain-over-limit.mvc.json",
+        "projects/big-number-demo.mt.json",
+        "expected-runtime/big-number-demo.runtime.json"
+      ],
+      "notes": "variable→property bindings; missing target + domain limits"
+    },
+    {
+      "id": "public-parameter",
+      "section": "2-value",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/big-number.mvc.json",
+        "negative/schema/public-param-type-mismatch.mvc.json",
+        "projects/big-number-demo.mt.json",
+        "expected-runtime/big-number-demo.runtime.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "publicAPI type match/defaults; internal isolation via compiler expansion"
+    },
+    {
+      "id": "capability-metadata",
+      "section": "2-value",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/property-capabilities.mt.json",
+        "expected-runtime/property-capabilities.runtime.json"
+      ],
+      "notes": "property capability registry for Inspector/AI; reference N/A (metadata, not node graph)"
+    },
+    {
+      "id": "keyframe",
+      "section": "3-time",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json",
+        "negative/components/duplicate-key-time.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "t/v/easing keys; duplicate-time policy; reference N/A (track-local)"
+    },
+    {
+      "id": "property-track",
+      "section": "3-time",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json",
+        "negative/components/effect-unknown-track-id.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "tracks on clip targets; numeric/non-numeric interpolation via schedule evaluator"
+    },
+    {
+      "id": "easing",
+      "section": "3-time",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json",
+        "projects/motion-path.mt.json"
+      ],
+      "notes": "linear/ease/spring/step sampled at fixed timestamps; reference/limits N/A (enum + numeric params)"
+    },
+    {
+      "id": "clip",
+      "section": "3-time",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json",
+        "negative/components/action-clip-over-duration.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "duration/target/source; keys must stay within clip"
+    },
+    {
+      "id": "schedule",
+      "section": "3-time",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json",
+        "negative/schema/schedule-missing-ref.mvc.json",
+        "negative/components/schedule-cycle.mvc.json"
+      ],
+      "notes": "absolute/after/with chain + cycle rejection; limits N/A (graph rules, not array caps)"
+    },
+    {
+      "id": "playback",
+      "section": "3-time",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json",
+        "projects/action-playback.mt.json",
+        "expected-runtime/action-playback.runtime.json",
+        "negative/schema/playback-rate-zero.mvc.json",
+        "negative/components/playback-iterations-over-limit.mvc.json"
+      ],
+      "notes": "iterations/direction/rate; finite/infinite + reverse/alternate; reference N/A"
+    },
+    {
+      "id": "preset-source",
+      "section": "3-time",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json"
+      ],
+      "notes": "authoring preset expands to tracks; absent from Runtime IR; reference/limits N/A"
+    },
+    {
+      "id": "named-action",
+      "section": "3-time",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/action-playback.mvc.json",
+        "projects/action-playback.mt.json",
+        "expected-runtime/action-playback.runtime.json",
+        "negative/components/invalid-action-variant.mvc.json",
+        "negative/components/nested-component-action.mvc.json",
+        "negative/projects/component-action-wrong-target.mt.json"
+      ],
+      "notes": "reusable component actions with outer playback; visual golden still pending"
+    },
+    {
+      "id": "deterministic-clock-seed",
+      "section": "3-time",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/schedule-playback.mt.json",
+        "projects/bone-secondary-motion.mt.json",
+        "expected-frames/bone-secondary-motion-t0_5.png",
+        "expected-frames/bone-secondary-motion-t1_5.png"
+      ],
+      "notes": "runtime foundation; contract/reference/limits N/A (no authoring schema type)"
+    },
+    {
+      "id": "transform",
+      "section": "4-spatial",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "expected-frames/hierarchy-transform-t0.png",
+        "expected-frames/hierarchy-transform-t1.png",
+        "negative/components/non-finite-transform.mvc.json",
+        "negative/components/node-dimension-over-limit.mvc.json"
+      ],
+      "notes": "x/y/size/rotation/scale/anchor/opacity/visibility/flip; reference N/A"
+    },
+    {
+      "id": "hierarchy",
+      "section": "4-spatial",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "negative/components/missing-parent.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "parentId graph; missing parent + depth limit"
+    },
+    {
+      "id": "world-matrix",
+      "section": "4-spatial",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "expected-frames/hierarchy-transform-t1_5.png"
+      ],
+      "notes": "parent×local matrices; contract/reference/limits N/A (derived runtime state)"
+    },
+    {
+      "id": "draw-order",
+      "section": "4-spatial",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/mask-compositing.mt.json",
+        "expected-runtime/mask-compositing.runtime.json",
+        "expected-frames/mask-compositing-t0.png",
+        "projects/hierarchy-transform.mt.json"
+      ],
+      "notes": "z-index + stable tree order with mask/effect layers; reference/limits N/A"
+    },
+    {
+      "id": "bounds",
+      "section": "4-spatial",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/geometry-paths.mt.json",
+        "expected-frames/geometry-paths-t1.png",
+        "projects/hierarchy-transform.mt.json",
+        "negative/components/node-dimension-over-limit.mvc.json"
+      ],
+      "notes": "transformed AABB + drawable subtree; contract/reference N/A (runtime-derived)"
+    },
+    {
+      "id": "hit-test",
+      "section": "4-spatial",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/hierarchy-transform.runtime.json"
+      ],
+      "notes": "inverse transform/visibility/draw-order runtime; contract/reference/limits N/A (no schema type)"
+    },
+    {
+      "id": "layout",
+      "section": "4-spatial",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/repeater-layouts.mt.json",
+        "components/repeater-layouts.mvc.json",
+        "expected-runtime/repeater-layouts.runtime.json",
+        "expected-frames/repeater-layouts-t1.png",
+        "negative/components/invalid-repeater-layout.mvc.json"
+      ],
+      "notes": "linear/grid/radial via repeater layout; standalone layout node still planned"
+    },
+    {
+      "id": "group-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "negative/components/group-extra-payload.mvc.json",
+        "projects/mask-compositing.mt.json"
+      ],
+      "notes": "hierarchy container; subtree opacity/effects/mask"
+    },
+    {
+      "id": "text-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/text-animator-unicode.mt.json",
+        "expected-runtime/text-animator-unicode.runtime.json",
+        "expected-frames/text-animator-unicode-t1_5.png",
+        "projects/media-assets.mt.json"
+      ],
+      "notes": "Vietnamese/emoji text; reference N/A (content node)"
+    },
+    {
+      "id": "shape-node",
+      "section": "5-nodes",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/geometry-paths.mt.json",
+        "expected-runtime/geometry-paths.runtime.json",
+        "expected-frames/geometry-paths-t1.png",
+        "negative/components/invalid-shape-kind.mvc.json",
+        "negative/components/polygon-too-few-points.mvc.json"
+      ],
+      "notes": "rectangle/ellipse/polygon with paint + PNG golden"
+    },
+    {
+      "id": "path-node",
+      "section": "5-nodes",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/geometry-paths.mt.json",
+        "expected-runtime/geometry-paths.runtime.json",
+        "expected-frames/geometry-paths-t1.png",
+        "negative/components/path-empty-contours.mvc.json",
+        "negative/components/path-empty-segments.mvc.json",
+        "negative/components/path-invalid-cubic.mvc.json",
+        "negative/components/path-coordinate-over-limit.mvc.json"
+      ],
+      "notes": "typed contours + line/cubic; open/closed/evenodd holes"
+    },
+    {
+      "id": "image-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/media-assets.mt.json",
+        "expected-runtime/media-assets.runtime.json",
+        "negative/schema/invalid-image-fit.mvc.json",
+        "negative/schema/invalid-image-crop.mvc.json",
+        "negative/components/missing-image-metadata.mvc.json",
+        "negative/components/image-alpha-mismatch.mvc.json"
+      ],
+      "notes": "contain/cover/crop/alpha plumbing; limits N/A (enum/fit rules)"
+    },
+    {
+      "id": "svg-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json",
+        "projects/media-assets.mt.json"
+      ],
+      "notes": "normalized vector parts; mask/Web parity still open; limits N/A"
+    },
+    {
+      "id": "video-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/media-assets.mt.json",
+        "expected-runtime/media-assets.runtime.json",
+        "negative/components/video-missing-audio-metadata.mvc.json",
+        "negative/components/video-audio-metadata.mvc.json"
+      ],
+      "notes": "trim/frame/loop/mute plumbing; limits N/A (media policy fields)"
+    },
+    {
+      "id": "bone-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/bone-secondary-motion.mt.json",
+        "expected-runtime/bone-secondary-motion.runtime.json",
+        "expected-frames/bone-secondary-motion-t0_5.png",
+        "components/cutout-character.mvc.json",
+        "negative/components/bone-rotation-limit-order.mvc.json"
+      ],
+      "notes": "zero-size joint chain; Web parity still open"
+    },
+    {
+      "id": "camera-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/camera-transition.mt.json",
+        "expected-runtime/camera-transition.runtime.json",
+        "expected-frames/camera-transition-t0.png",
+        "expected-frames/camera-transition-t1_5.png",
+        "negative/projects/active-camera-type.mt.json",
+        "negative/projects/camera-invalid-projection.mt.json"
+      ],
+      "notes": "orthographic pan/zoom/rotate; limits N/A (projection/type rules)"
+    },
+    {
+      "id": "component-instance",
+      "section": "5-nodes",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/action-playback.mt.json",
+        "expected-runtime/action-playback.runtime.json",
+        "projects/big-number-demo.mt.json",
+        "expected-runtime/big-number-demo.runtime.json",
+        "negative/projects/unpinned-component.mt.json"
+      ],
+      "notes": "compile-time expansion only; no Component leak in Runtime IR"
+    },
+    {
+      "id": "point-contour-segment",
+      "section": "6-geometry",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/geometry-paths.mt.json",
+        "expected-runtime/geometry-paths.runtime.json",
+        "expected-frames/geometry-paths-t1.png",
+        "negative/components/duplicate-path-contour-id.mvc.json",
+        "negative/components/path-coordinate-over-limit.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "canonical path geometry finite coords + contour/segment limits"
+    },
+    {
+      "id": "fill",
+      "section": "6-geometry",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/geometry-paths.mt.json",
+        "expected-runtime/geometry-paths.runtime.json",
+        "expected-frames/geometry-paths-t1.png"
+      ],
+      "notes": "solid color/opacity/nonzero/evenodd; reference/limits N/A"
+    },
+    {
+      "id": "stroke",
+      "section": "6-geometry",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/geometry-paths.mt.json",
+        "expected-runtime/geometry-paths.runtime.json",
+        "expected-frames/geometry-paths-t1.png"
+      ],
+      "notes": "width/cap/join + stroke-inflated bounds; reference/limits N/A"
+    },
+    {
+      "id": "gradient",
+      "section": "6-geometry",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/gradient-anim.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "dash",
+      "section": "6-geometry",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/animated-dash.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "trim-path",
+      "section": "6-geometry",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/trim-path-modifier.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "path-morph",
+      "section": "6-geometry",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/path-morph.mt.json",
+        "expected-runtime/path-morph.runtime.json",
+        "expected-frames/path-morph-t0.png",
+        "expected-frames/path-morph-t1.png",
+        "expected-frames/path-morph-t2.png",
+        "negative/components/morph-topology-mismatch.mvc.json",
+        "negative/components/morph-unknown-target.mvc.json",
+        "negative/components/morph-from-equals-to.mvc.json",
+        "negative/components/morph-on-non-path.mvc.json",
+        "negative/components/morph-duplicate-target-id.mvc.json"
+      ],
+      "notes": "topology-compatible morph silhouettes at progress 0/0.5/1"
+    },
+    {
+      "id": "path-bend",
+      "section": "6-geometry",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/path-bend.json"],
+      "notes": "P1 not normative geometry warp; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "mask-clip",
+      "section": "7-composition",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/mask-compositing.mt.json",
+        "expected-runtime/mask-compositing.runtime.json",
+        "expected-frames/mask-compositing-t0.png",
+        "negative/components/mask-cycle.mvc.json",
+        "negative/components/missing-mask-source.mvc.json",
+        "negative/components/invalid-mask-mode.mvc.json"
+      ],
+      "notes": "clip/alpha/inverse nested masks; limits N/A (graph/mode rules)"
+    },
+    {
+      "id": "effects-stack",
+      "section": "7-composition",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/effects-stack.mt.json",
+        "expected-runtime/effects-stack.runtime.json",
+        "expected-frames/effects-stack-t0_5.png",
+        "negative/components/effect-duplicate-id.mvc.json",
+        "negative/components/effect-radius-over-limit.mvc.json",
+        "negative/components/effect-unknown-track-id.mvc.json",
+        "negative/components/effect-unsupported-field.mvc.json"
+      ],
+      "notes": "ordered pixel effects with animated properties + per-node limit"
+    },
+    {
+      "id": "blur-effect",
+      "section": "7-composition",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/effects-stack.mt.json",
+        "expected-runtime/effects-stack.runtime.json",
+        "expected-frames/effects-stack-t0_5.png",
+        "negative/components/effect-radius-over-limit.mvc.json"
+      ],
+      "notes": "blur radius 0/max via effects-stack; reference N/A"
+    },
+    {
+      "id": "shadow-effect",
+      "section": "7-composition",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/effects-stack.mt.json",
+        "expected-runtime/effects-stack.runtime.json",
+        "expected-frames/effects-stack-t0_5.png"
+      ],
+      "notes": "offset/blur/color/alpha shadow via effects-stack; reference N/A"
+    },
+    {
+      "id": "glow-effect",
+      "section": "7-composition",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/effects-stack.mt.json",
+        "expected-runtime/effects-stack.runtime.json",
+        "expected-frames/effects-stack-t0_5.png"
+      ],
+      "notes": "glow radius/intensity/order via effects-stack; reference N/A"
+    },
+    {
+      "id": "color-adjust-effect",
+      "section": "7-composition",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/effects-stack.mt.json",
+        "expected-runtime/effects-stack.runtime.json",
+        "expected-frames/effects-stack-t0_5.png"
+      ],
+      "notes": "brightness/contrast/saturation via effects-stack; reference N/A"
+    },
+    {
+      "id": "blend-mode",
+      "section": "7-composition",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/blend-mode.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "scene-transition",
+      "section": "7-composition",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/camera-transition.mt.json",
+        "expected-runtime/camera-transition.runtime.json",
+        "expected-frames/camera-transition-t1_5.png",
+        "negative/projects/transition-zero-duration.mt.json",
+        "negative/schema/wipe-transition.mt.json"
+      ],
+      "notes": "crossfade implemented; wipe rejected by schema; limits N/A (duration/type rules)"
+    },
+    {
+      "id": "composition-infographic",
+      "section": "7-composition",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/effects-stack.mt.json",
+        "projects/text-animator-unicode.mt.json",
+        "projects/repeater-layouts.mt.json",
+        "expected-runtime/effects-stack.runtime.json",
+        "expected-runtime/text-animator-unicode.runtime.json",
+        "expected-runtime/repeater-layouts.runtime.json"
+      ],
+      "notes": "compose via these fixtures: Path/Repeater + Text Animator + Effects"
+    },
+    {
+      "id": "composition-product-tvc",
+      "section": "7-composition",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/media-assets.mt.json",
+        "projects/camera-transition.mt.json",
+        "expected-runtime/media-assets.runtime.json",
+        "expected-runtime/camera-transition.runtime.json",
+        "projects/golden-product-promo.mt.json",
+        "expected-runtime/golden-product-promo.runtime.json"
+      ],
+      "notes": "compose via these fixtures: media-assets + camera-transition (Image/SVG/audio + camera)"
+    },
+    {
+      "id": "composition-cutout-dialogue",
+      "section": "7-composition",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json",
+        "components/cutout-character.mvc.json"
+      ],
+      "notes": "compose via these fixtures: cutout-dialogue (parts + bones + variants/actions + lip sync)"
+    },
+    {
+      "id": "composition-cutout-semi-organic",
+      "section": "7-composition",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/bone-secondary-motion.mt.json",
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/bone-secondary-motion.runtime.json",
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "expected-frames/bone-secondary-motion-t1_5.png"
+      ],
+      "notes": "compose via these fixtures: bone-secondary-motion + hierarchy-transform"
+    },
+    {
+      "id": "component-expansion",
+      "section": "8-expansion",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/big-number-demo.mt.json",
+        "expected-runtime/big-number-demo.runtime.json",
+        "projects/action-playback.mt.json",
+        "expected-runtime/action-playback.runtime.json",
+        "negative/projects/unpinned-component.mt.json"
+      ],
+      "notes": "package → namespaced nodes/tracks; Component removed from Runtime IR"
+    },
+    {
+      "id": "repeater-list",
+      "section": "8-expansion",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/repeater-layouts.mt.json",
+        "components/repeater-layouts.mvc.json",
+        "expected-runtime/repeater-layouts.runtime.json",
+        "expected-frames/repeater-layouts-t1.png",
+        "negative/components/duplicate-repeater-key.mvc.json",
+        "negative/components/missing-repeater-key.mvc.json",
+        "negative/components/missing-repeater-variable.mvc.json",
+        "negative/components/repeater-source-not-list.mvc.json"
+      ],
+      "notes": "list variable → cloned subtree with stable keys/context"
+    },
+    {
+      "id": "repeater-count",
+      "section": "8-expansion",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/repeater-layouts.mt.json",
+        "expected-runtime/repeater-layouts.runtime.json",
+        "expected-frames/repeater-layouts-t1.png",
+        "negative/limits/cases.json"
+      ],
+      "notes": "numeric clone source + instance limits; reference N/A (count source)"
+    },
+    {
+      "id": "repeater-layout",
+      "section": "8-expansion",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/repeater-layouts.mt.json",
+        "expected-runtime/repeater-layouts.runtime.json",
+        "expected-frames/repeater-layouts-t1.png",
+        "negative/components/invalid-repeater-layout.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "none/linear/grid/radial positions; reference N/A"
+    },
+    {
+      "id": "time-stagger",
+      "section": "8-expansion",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/repeater-layouts.mt.json",
+        "expected-runtime/repeater-layouts.runtime.json",
+        "negative/components/negative-repeater-stagger.mvc.json",
+        "projects/text-animator-unicode.mt.json"
+      ],
+      "notes": "bounded stagger on cloned clips/tracks; reference N/A"
+    },
+    {
+      "id": "text-animator",
+      "section": "8-expansion",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/text-animator-unicode.mt.json",
+        "expected-runtime/text-animator-unicode.runtime.json",
+        "expected-frames/text-animator-unicode-t1_5.png",
+        "negative/components/invalid-text-animator-unit.mvc.json",
+        "negative/components/invalid-text-animator-locale.mvc.json",
+        "negative/components/invalid-text-selector.mvc.json",
+        "negative/components/empty-text-animator-text.mvc.json",
+        "negative/components/empty-text-animator-properties.mvc.json",
+        "negative/components/text-animator-timing-over-limit.mvc.json",
+        "negative/components/text-animator-authored-clip.mvc.json",
+        "negative/components/text-animator-with-child.mvc.json"
+      ],
+      "notes": "grapheme/word/line runs; Vietnamese + emoji ZWJ; removed from Runtime IR"
+    },
+    {
+      "id": "emitter",
+      "section": "8-expansion",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/emitter-node.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "motion-path",
+      "section": "9-modifiers",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/motion-path.mt.json",
+        "expected-runtime/motion-path.runtime.json",
+        "expected-frames/motion-path-t0.png",
+        "expected-frames/motion-path-t1.png",
+        "expected-frames/motion-path-t2.png",
+        "negative/components/missing-motion-path-node.mvc.json",
+        "negative/components/missing-motion-path-contour.mvc.json",
+        "negative/components/motion-path-cycle.mvc.json",
+        "negative/components/motion-path-zero-length.mvc.json",
+        "negative/components/motion-path-progress-over-limit.mvc.json",
+        "negative/components/motion-path-offset-order.mvc.json",
+        "negative/components/motion-path-descendant-source.mvc.json",
+        "negative/components/motion-path-source-wrong-type.mvc.json",
+        "negative/components/multiple-motion-path-modifiers.mvc.json",
+        "negative/components/unknown-motion-path-property.mvc.json",
+        "negative/components/duplicate-modifier-id.mvc.json",
+        "negative/schema/unknown-modifier-type.mvc.json"
+      ],
+      "notes": "arc-length progress/tangent/offsets with PNG goldens"
+    },
+    {
+      "id": "path-morph-modifier",
+      "section": "9-modifiers",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/path-morph.mt.json",
+        "expected-runtime/path-morph.runtime.json",
+        "expected-frames/path-morph-t0.png",
+        "expected-frames/path-morph-t1.png",
+        "expected-frames/path-morph-t2.png",
+        "negative/components/morph-topology-mismatch.mvc.json"
+      ],
+      "notes": "geometry interpolation modifier surface (same acceptance as path-morph)"
+    },
+    {
+      "id": "secondary-motion",
+      "section": "9-modifiers",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/bone-secondary-motion.mt.json",
+        "expected-runtime/bone-secondary-motion.runtime.json",
+        "expected-frames/bone-secondary-motion-t0_5.png",
+        "expected-frames/bone-secondary-motion-t1_5.png",
+        "negative/components/secondary-motion-unknown-chain.mvc.json",
+        "negative/components/secondary-motion-duplicate-chain.mvc.json",
+        "negative/components/secondary-motion-empty-chain.mvc.json",
+        "negative/components/secondary-motion-missing-driver.mvc.json"
+      ],
+      "notes": "rotation-only follow-through; random-access deterministic solver"
+    },
+    {
+      "id": "simple-constraint",
+      "section": "9-modifiers",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/constraint-modifier.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "two-bone-ik",
+      "section": "9-modifiers",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/two-bone-ik.json"],
+      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "path-bend-modifier",
+      "section": "9-modifiers",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/path-bend.json"],
+      "notes": "P1 not normative modifier warp; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "svg-source-import",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "imports/svg-import-sources.json",
+        "imports/expected-import/figma-cutout.import.json",
+        "imports/expected-import/illustrator-cutout.import.json",
+        "components/cutout-character.mvc.json",
+        "negative/components/missing-source-import-asset.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "sourceImports + fingerprint expectations; authoring-only (not Runtime IR)"
+    },
+    {
+      "id": "cutout-part",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "imports/expected-import/figma-cutout.import.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "source paths → SVG part assets via sourceImports.parts"
+    },
+    {
+      "id": "rig-mapper",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "negative/components/missing-cutout-rig-root.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "no separate schema type; map via cutoutRigs + sourceImports parent/pivot/order"
+    },
+    {
+      "id": "bone-chain",
+      "section": "10-cutout",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "projects/bone-secondary-motion.mt.json",
+        "expected-runtime/bone-secondary-motion.runtime.json",
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json"
+      ],
+      "notes": "joint hierarchy for cut-out; Web parity open"
+    },
+    {
+      "id": "rest-pose",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["components/cutout-character.mvc.json"],
+      "notes": "no separate schema type; map via restRotation on bones; reference/limits N/A"
+    },
+    {
+      "id": "variant-slot",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json",
+        "negative/components/invalid-default-variant.mvc.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "mouth/eyes/hand/expression slots with default/switch validation"
+    },
+    {
+      "id": "cutout-named-action",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/action-playback.mvc.json",
+        "projects/action-playback.mt.json",
+        "expected-runtime/action-playback.runtime.json",
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json",
+        "negative/components/invalid-action-variant.mvc.json"
+      ],
+      "notes": "idle/blink/talk/gesture reusable clips on cutout components"
+    },
+    {
+      "id": "lip-sync-cues",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json",
+        "components/cutout-character.mvc.json",
+        "negative/components/lip-sync-unknown-slot.mvc.json",
+        "negative/components/lip-sync-unknown-variant.mvc.json",
+        "negative/components/lip-sync-time-order.mvc.json",
+        "negative/components/lip-sync-over-duration.mvc.json"
+      ],
+      "notes": "step keys for mouth variants; Runtime IR golden present"
+    },
+    {
+      "id": "prop-attachment",
+      "section": "10-cutout",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "components/cutout-character.mvc.json",
+        "projects/cutout-dialogue.mt.json",
+        "expected-runtime/cutout-dialogue.runtime.json"
+      ],
+      "notes": "prop parented to hand/slot via hierarchy; limits N/A (parenting rules)"
+    },
+    {
+      "id": "secondary-chain",
+      "section": "10-cutout",
+      "status": "planned-p0",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/bone-secondary-motion.mt.json",
+        "expected-runtime/bone-secondary-motion.runtime.json",
+        "expected-frames/bone-secondary-motion-t0_5.png",
+        "expected-frames/bone-secondary-motion-t1_5.png"
+      ],
+      "notes": "hair/tail/ribbon overlap via secondary-motion chain"
+    },
+    {
+      "id": "scene",
+      "section": "11-media",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/camera-transition.mt.json",
+        "expected-runtime/camera-transition.runtime.json",
+        "projects/schedule-playback.mt.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "spatial/time scope; unique ID/duration/order"
+    },
+    {
+      "id": "project-timeline",
+      "section": "11-media",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/media-assets.mt.json",
+        "expected-runtime/media-assets.runtime.json",
+        "projects/camera-transition.mt.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "scene order + audio tracks; total duration"
+    },
+    {
+      "id": "audio-track",
+      "section": "11-media",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/media-assets.mt.json",
+        "expected-runtime/media-assets.runtime.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "BGM/voiceover/SFX start/trim/loop/gain/fade mix plumbing"
+    },
+    {
+      "id": "audio-cue-marker",
+      "section": "11-media",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/audio-marker-track.json"],
+      "notes": "P1 tooling not normative; schema must reject; reference/limits N/A until typed"
+    },
+    {
+      "id": "asset-declaration",
+      "section": "11-media",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "assets/manifest.json",
+        "projects/media-assets.mt.json",
+        "expected-runtime/media-assets.runtime.json",
+        "negative/components/unsupported-asset-type.mvc.json",
+        "negative/components/asset-type-mismatch.mvc.json",
+        "negative/components/missing-image-metadata.mvc.json"
+      ],
+      "notes": "typed image/SVG/video/audio/font metadata + manifest cross-check"
+    },
+    {
+      "id": "asset-resolver",
+      "section": "11-media",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "assets/manifest.json",
+        "projects/media-assets.mt.json",
+        "negative/schema/source-integrity-mismatch.mvc.json"
+      ],
+      "notes": "ID → verified local resource via manifest/hash; limits N/A"
+    },
+    {
+      "id": "font-resolver",
+      "section": "11-media",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/media-assets.mt.json",
+        "projects/text-animator-unicode.mt.json",
+        "expected-frames/text-animator-unicode-t1_5.png",
+        "assets/manifest.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "bundled Vietnamese fonts + localeCoverage limit"
+    },
+    {
+      "id": "media-probe",
+      "section": "11-media",
+      "status": "implemented",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "assets/manifest.json",
+        "projects/media-assets.mt.json",
+        "negative/components/video-missing-audio-metadata.mvc.json",
+        "negative/components/image-alpha-mismatch.mvc.json"
+      ],
+      "notes": "codec/duration/dimensions policy via manifest probe; reference/limits N/A"
+    },
+    {
+      "id": "patch",
+      "section": "12-authoring",
+      "status": "partial",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "patches/ai-fill-big-number.json",
+        "negative/limits/cases.json"
+      ],
+      "notes": "revision-guarded public edit parse; reference N/A (ops target public surface)"
+    },
+    {
+      "id": "inspector-control",
+      "section": "12-authoring",
+      "status": "na-authoring",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["projects/property-capabilities.mt.json"],
+      "notes": "not Motion Format schema surface"
+    },
+    {
+      "id": "timeline-dope-sheet",
+      "section": "12-authoring",
+      "status": "na-authoring",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [],
+      "notes": "not Motion Format schema surface"
+    },
+    {
+      "id": "canvas-selection",
+      "section": "12-authoring",
+      "status": "na-authoring",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["projects/hierarchy-transform.mt.json"],
+      "notes": "not Motion Format schema surface"
+    },
+    {
+      "id": "import-ui",
+      "section": "12-authoring",
+      "status": "na-authoring",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "imports/expected-import/figma-cutout.import.json",
+        "imports/expected-reimport/figma-cutout-reimport.json"
+      ],
+      "notes": "not Motion Format schema surface"
+    },
+    {
+      "id": "preview",
+      "section": "12-authoring",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "expected-frames/hierarchy-transform-t0.png",
+        "projects/hierarchy-transform.mt.json"
+      ],
+      "notes": "browser preview should share Runtime IR/frames; contract/reference/limits N/A (app surface)"
+    },
+    {
+      "id": "ai-capability-registry",
+      "section": "12-authoring",
+      "status": "partial",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/property-capabilities.mt.json",
+        "expected-runtime/property-capabilities.runtime.json",
+        "patches/ai-fill-big-number.json"
+      ],
+      "notes": "safe generation vocabulary via property registry; reference N/A"
+    },
+    {
+      "id": "literal-runtime-node",
+      "section": "13-runtime",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "expected-runtime/schedule-playback.runtime.json",
+        "expected-runtime/geometry-paths.runtime.json",
+        "expected-runtime/repeater-layouts.runtime.json",
+        "negative/components/runtime-unsupported-property.mvc.json"
+      ],
+      "notes": "draw-ready literal nodes; no variable/component/repeat metadata; reference N/A"
+    },
+    {
+      "id": "literal-runtime-track",
+      "section": "13-runtime",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "expected-runtime/schedule-playback.runtime.json",
+        "expected-runtime/motion-path.runtime.json",
+        "expected-runtime/path-morph.runtime.json"
+      ],
+      "notes": "literal-only keys in Runtime IR; reference N/A"
+    },
+    {
+      "id": "frame-plan",
+      "section": "13-runtime",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/camera-transition.mt.json",
+        "expected-runtime/camera-transition.runtime.json",
+        "expected-frames/camera-transition-t1_5.png",
+        "projects/schedule-playback.mt.json"
+      ],
+      "notes": "scene-local frame jobs/FPS/boundaries; contract/reference N/A (planner output)"
+    },
+    {
+      "id": "evaluated-node-state",
+      "section": "13-runtime",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json",
+        "expected-runtime/hierarchy-transform.runtime.json",
+        "projects/schedule-playback.mt.json",
+        "expected-runtime/schedule-playback.runtime.json"
+      ],
+      "notes": "property values at time t; contract/reference/limits N/A (evaluator output)"
+    },
+    {
+      "id": "offscreen-surface",
+      "section": "13-runtime",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/mask-compositing.mt.json",
+        "expected-frames/mask-compositing-t0.png",
+        "projects/effects-stack.mt.json",
+        "expected-frames/effects-stack-t0_5.png"
+      ],
+      "notes": "mask/effect subtree buffers + pixel budget; contract/reference N/A"
+    },
+    {
+      "id": "raster-output",
+      "section": "13-runtime",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "na",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "expected-frames/geometry-paths-t1.png",
+        "expected-frames/mask-compositing-t0.png",
+        "expected-frames/effects-stack-t0_5.png",
+        "expected-frames/path-morph-t1.png",
+        "expected-frames/motion-path-t1.png"
+      ],
+      "notes": "PNG frame goldens; contract/reference N/A (render output)"
+    },
+    {
+      "id": "encoder-output",
+      "section": "13-runtime",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["projects/media-assets.mt.json"],
+      "notes": "H.264/AAC MP4 smoke via media-assets export path; contract/reference/limits N/A"
+    },
+    {
+      "id": "p1-reject-emitter",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/emitter-node.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-trim-path",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/trim-path-modifier.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-dash",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/animated-dash.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-gradient",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/gradient-anim.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-blend-mode",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/blend-mode.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-constraint",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/constraint-modifier.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-two-bone-ik",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/two-bone-ik.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-path-bend",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/path-bend.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "p1-reject-audio-marker",
+      "section": "14-p1-reject",
+      "status": "planned-p1",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": ["negative/p1-not-normative/audio-marker-track.json"],
+      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 Playback acceptance is covered by `projects/schedule-playback.mt.json` and its Runtime golden, including iterations, reverse/alternate direction, infinite scene clipping, schedule offsets, and evaluator timestamp assertions.
 
+**Primitives-object schema matrix:** machine ledger [`primitives-coverage.json`](primitives-coverage.json) (113 rows) is asserted by `pnpm validate:v2-fixtures`. Gate focus is contract/reference/limits (+ compiler when Runtime surface). P1 capabilities are locked by `negative/p1-not-normative/*` reject fixtures. Cross-primitive compositions are mapped to existing project goldens in that ledger.
+
 Effects acceptance is covered by `projects/effects-stack.mt.json`, `expected-runtime/effects-stack.runtime.json`, and `expected-frames/effects-stack-t0_5.png`; it verifies ordered blur/shadow/glow/color-adjust, animated effect properties, mask-before-effects, negative references, and the per-node effect limit.
 
 Path Morph acceptance is covered by `projects/path-morph.mt.json`, `expected-runtime/path-morph.runtime.json`, and `expected-frames/path-morph-t{0,1,2}.png`; it verifies topology-compatible targets, progress tracks, mismatch/limit negatives, and silhouette interpolation at progress 0/0.5/1.
@@ -26,7 +28,8 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 |---|---:|---:|---:|---:|
 | Project/Component/Patch parse | ✅ | — | — | — |
 | Parent/dependency reference | ✅ | — | — | — |
-| Stored negative/error contract | ✅ 78 artifacts + 40 limit cases | — | — | — |
+| Stored negative/error contract | ✅ 100 artifacts + 40 limit cases + P1 reject wall | — | — | — |
+| Primitives-object coverage ledger | ✅ 113 rows in primitives-coverage.json | ✅ mapped | 🟡 worker subset | 🟡 hierarchy harness |
 | Typed asset metadata | ✅ 5 families + manifest cross-check | ✅ preserved in Runtime IR | ✅ ffprobe/font/SVG probe | — |
 | Discriminated Node payload/style | ✅ 9 authoring families | ✅ Component removed, literal union preserved | 🟡 Text/SVG smoke | 🟡 legacy editor type-safe |
 | Stored Runtime IR goldens | ✅ | ✅ 17 projects | — | — |
@@ -49,7 +52,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | BGM/voiceover/SFX timeline | ✅ | ✅ plumbing | ✅ trim/loop/gain/fade mix + AAC ffprobe | ⬜ |
 | Font và tiếng Việt | ✅ asset/text | ✅ preserved | 🟡 one bundled font | ⬜ |
 | Preview/export equivalence | — | — | 🟡 export renderer goldenized | ⬜ browser |
-| Figma SVG import/re-import | ⬜ | — | — | ⬜ |
+| Figma SVG import/re-import | ✅ sanitize/fingerprint | — | ✅ imports/ suite | ⬜ |
 | Cut-out rig/pivot hierarchy | ✅ fixture | ✅ preserved | ✅ visual smoke | ⬜ |
 | Named character actions | ✅ | ✅ outer playback | ✅ evaluator | ⬜ |
 | Mouth/eye/hand variants | ✅ | ✅ assetId step keys | 🟡 | ⬜ |

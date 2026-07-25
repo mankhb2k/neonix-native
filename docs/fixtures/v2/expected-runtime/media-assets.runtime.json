@@ -269,7 +269,13 @@
           },
           "payload": {
             "assetId": "asset.image.alpha",
-            "fit": "contain"
+            "fit": "contain",
+            "crop": {
+              "x": 0.1,
+              "y": 0.1,
+              "width": 0.8,
+              "height": 0.8
+            }
           }
         },
         {

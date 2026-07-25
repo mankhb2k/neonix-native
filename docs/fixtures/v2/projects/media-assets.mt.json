@@ -67,7 +67,7 @@
           "parentId": null,
           "zIndex": 2,
           "transform": { "x": 770, "y": 420, "width": 360, "height": 373, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 0.85, "visible": true, "flipX": false, "flipY": false },
-          "payload": { "assetId": "asset.image.alpha", "fit": "contain" }
+          "payload": { "assetId": "asset.image.alpha", "fit": "contain", "crop": { "x": 0.1, "y": 0.1, "width": 0.8, "height": 0.8 } }
         },
         {
           "id": "character.svg",

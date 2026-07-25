@@ -526,7 +526,19 @@ export const PlaybackSchema = z
     direction: z.enum(["normal", "reverse", "alternate"]).default("normal"),
     rate: ResolvableValueSchema.default(1),
   })
-  .strict();
+  .strict()
+  .superRefine((playback, context) => {
+    if (typeof playback.rate === "number" && !(playback.rate > 0)) {
+      context.addIssue({
+        code: z.ZodIssueCode.too_small,
+        minimum: Number.MIN_VALUE,
+        inclusive: false,
+        type: "number",
+        path: ["rate"],
+        message: "Number must be greater than 0",
+      });
+    }
+  });
 
 const PropertyTrackSchema = z
   .object({
