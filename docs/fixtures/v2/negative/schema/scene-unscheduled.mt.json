@@ -1,0 +1,22 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "negative.scene-unscheduled",
+    "name": "Unscheduled scene",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Negative" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene.a"], "audioTracks": [] },
+  "scenes": [
+    { "id": "scene.a", "duration": 1, "nodes": [], "clips": [] },
+    { "id": "scene.b", "duration": 1, "nodes": [], "clips": [] }
+  ],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

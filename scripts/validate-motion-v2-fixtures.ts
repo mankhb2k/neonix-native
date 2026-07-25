@@ -12,6 +12,8 @@ import {
   MOTION_V2_LIMITS,
   MotionPatchSchema,
   MotionV2ReferenceError,
+  applyMotionPatch,
+  serializeMotionProjectV2,
   motionPropertyCapability,
   motionPropertyCapabilities,
   segmentTextUnits,
@@ -463,6 +465,48 @@ async function validateNegativeFixtures(): Promise<number> {
       parse: parseMotionComponentV2,
       path: "clips.clip.b.schedule",
       message: "Unknown schedule clip: clip.missing",
+    },
+    {
+      file: "schema/scene-order-unknown.mt.json",
+      parse: parseMotionProjectV2,
+      path: "timeline.sceneOrder",
+      message: "Unknown scene: scene.missing",
+    },
+    {
+      file: "schema/scene-order-duplicate.mt.json",
+      parse: parseMotionProjectV2,
+      path: "timeline.sceneOrder",
+      message: "Scene order contains duplicates",
+    },
+    {
+      file: "schema/scene-unscheduled.mt.json",
+      parse: parseMotionProjectV2,
+      path: "timeline.sceneOrder",
+      message: "Scene is not scheduled: scene.b",
+    },
+    {
+      file: "schema/key-over-clip-duration.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "clips.clip.source.tracks.transform.opacity",
+      message: "Key time 1.5 exceeds clip duration 1",
+    },
+    {
+      file: "schema/font-asset-unknown.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.title.payload.fontAssetId",
+      message: "Unknown asset: asset.missing.font",
+    },
+    {
+      file: "schema/font-asset-wrong-type.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "nodes.title.payload.fontAssetId",
+      message: "Asset asset.image has type image, expected font",
+    },
+    {
+      file: "schema/duplicate-binding-target.mvc.json",
+      parse: parseMotionComponentV2,
+      path: "bindings.bind.b.target",
+      message: "Duplicate binding target title.payload.text (also bound by bind.a)",
     },
   ] as const;
   for (const fixture of cases) {
@@ -1269,6 +1313,69 @@ async function main(): Promise<void> {
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
   MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
   console.log(`OK patches/ai-fill-big-number.json`);
+
+  // P0 freeze: round-trip, semantic.key stability, patch public surface, AI vocabulary.
+  const roundTripSource = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "property-capabilities.mt.json")));
+  const roundTripAgain = parseMotionProjectV2(JSON.parse(serializeMotionProjectV2(roundTripSource)));
+  deepStrictEqual(roundTripAgain, roundTripSource, "Project serialize/parse round-trip changed meaning");
+  console.log("OK freeze/round-trip serialize→parse");
+
+  const semanticSource = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "hierarchy-transform.mt.json")));
+  const tagged = structuredClone(semanticSource);
+  const taggedNode = tagged.scenes[0]?.nodes.find((node) => node.id === "part.torso");
+  if (!taggedNode) throw new Error("hierarchy fixture missing part.torso");
+  taggedNode.semantic = { ...(taggedNode.semantic ?? { role: "torso" }), key: "part.torso.stable" };
+  const taggedRuntime = compileMotionProject(tagged);
+  const runtimeTagged = taggedRuntime.scenes[0]?.nodes.find((node) => node.id === "part.torso");
+  if (runtimeTagged?.semantic?.key !== "part.torso.stable") throw new Error("Compiler dropped semantic.key");
+  console.log("OK freeze/semantic.key preserved through compile");
+
+  const patchProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "big-number-demo.mt.json")));
+  const patched = applyMotionPatch(patchProject, await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
+  const patchedVar = patched.variables.find((variable) => variable.id === "proj.brandPrimary");
+  if (patchedVar?.type !== "color" || patchedVar.value !== "#D9381E") throw new Error("Patch did not apply project variable");
+  const patchedInstance = patched.scenes[0]?.nodes.find((node) => node.id === "inst.bn.1");
+  if (patchedInstance?.type !== "component" || patchedInstance.payload.props.number !== "95%") {
+    throw new Error("Patch did not apply public payload.props");
+  }
+  console.log("OK freeze/applyMotionPatch public surface");
+
+  let privatePatchError: unknown;
+  try {
+    applyMotionPatch(patchProject, await readJson(resolve(fixturesRoot, "negative/schema/patch-private-property.json")));
+  } catch (caught) {
+    privatePatchError = caught;
+  }
+  if (
+    !(privatePatchError instanceof MotionV2ReferenceError)
+    || !privatePatchError.issues.some((issue) =>
+      issue.path === "operations.0.target.property"
+      && issue.message.includes("payload.props.*"),
+    )
+  ) {
+    throw new Error("Private patch property contract changed");
+  }
+  console.log("OK freeze/patch rejects private property");
+
+  const p0NodeTypes = ["group", "bone", "text", "shape", "path", "image", "svg", "video", "camera", "component"] as const;
+  for (const type of p0NodeTypes) {
+    const publicCaps = motionPropertyCapabilities(type).filter((capability) => capability.public);
+    if (type === "text" && publicCaps.length < 4) throw new Error("AI text vocabulary shrank below freeze baseline");
+    for (const capability of publicCaps) {
+      if (!capability.property.startsWith("transform.") && !capability.property.startsWith("payload.") && !capability.property.startsWith("style.") && !capability.property.startsWith("modifiers.")) {
+        throw new Error(`Unexpected AI property namespace: ${type}.${capability.property}`);
+      }
+    }
+  }
+  // Unknown / P1 node types must not gain dedicated payload/style vocabulary.
+  for (const type of ["emitter", "character", "particle"] as const) {
+    const nodeSpecific = motionPropertyCapabilities(type).filter((capability) =>
+      capability.property.startsWith("payload.") || capability.property.startsWith("style."),
+    );
+    if (nodeSpecific.length > 0) throw new Error(`AI registry must not expose P1 node vocabulary for ${type}`);
+  }
+  console.log("OK freeze/AI registry public P0 surface");
+
   const negativeCount = await validateNegativeFixtures();
   const limitCount = await validateLimitCases();
 
