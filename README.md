@@ -76,6 +76,7 @@ pnpm e2e:web
 - `validate:primitives` kiểm tra world transform/Bone/SVG/effects và tạo PNG goldens tại `tmp/primitive-previews`.
 - `e2e:render` compile project, raster frame và encode một MP4 thật.
 - `e2e:web` chạy Playwright trên `http://127.0.0.1:3000` (AI User: `/appai`). Trên Windows nên mở sẵn `pnpm dev` rồi chạy `pnpm e2e:web` để reuse server; Playwright cũng tự start Next nếu cổng trống.
+- `test:preview-parity` chạy E2E Runtime IR harness (`/appai/runtime-harness`) so transform tại t=0/1/1.5 với worker.
 
 Trạng thái từng phase, commit tương ứng và các gap còn lại: [`docs/roadmap-status.md`](docs/roadmap-status.md).
 

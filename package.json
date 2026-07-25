@@ -8,6 +8,7 @@
     "dev:worker": "pnpm --filter @motionvideo/render-worker dev",
     "e2e:render": "pnpm --filter @motionvideo/render-worker e2e",
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
+    "test:preview-parity": "pnpm --filter @motionvideo/web exec playwright test e2e/preview-parity.spec.ts",
     "build": "pnpm -r run build",
     "lint": "pnpm --filter @motionvideo/web lint",
     "lint:web": "pnpm --filter @motionvideo/web lint",

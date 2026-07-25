@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@motionvideo/shared",
     "@motionvideo/motion-schema",
+    "@motionvideo/motion-runtime",
+    "@motionvideo/motion-compiler",
     "@motionvideo/template-library",
     "@motionvideo/ai-planner",
     "@motionvideo/motion-grammar",

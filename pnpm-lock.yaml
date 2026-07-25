@@ -10,6 +10,9 @@ importers:
 
   apps/render-worker:
     dependencies:
+      '@motionvideo/motion-compiler':
+        specifier: workspace:*
+        version: link:../../packages/motion-compiler
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
@@ -44,6 +47,12 @@ importers:
       '@motionvideo/ai-planner':
         specifier: workspace:*
         version: link:../../packages/ai-planner
+      '@motionvideo/motion-compiler':
+        specifier: workspace:*
+        version: link:../../packages/motion-compiler
+      '@motionvideo/motion-runtime':
+        specifier: workspace:*
+        version: link:../../packages/motion-runtime
       '@motionvideo/motion-schema':
         specifier: workspace:*
         version: link:../../packages/motion-schema
@@ -154,6 +163,16 @@ importers:
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+
+  packages/motion-compiler:
+    dependencies:
+      '@motionvideo/motion-schema':
+        specifier: workspace:*
+        version: link:../motion-schema
+    devDependencies:
       typescript:
         specifier: ^5.8.2
         version: 5.9.3
