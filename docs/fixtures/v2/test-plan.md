@@ -63,7 +63,7 @@ Catalog đầy đủ của mọi primitive/object: [`../../primitives-object.md`
 | Normalized Path Morph | ✅ topology/limits | ✅ progress track | ✅ worker PNG goldens | ⬜ |
 | Bone Secondary Motion | ✅ refs/ownership/limit | ✅ literal modifier | ✅ random-access solver + PNG | ⬜ |
 
-`media-assets.mt.json` và `assets/manifest.json` khóa asset plumbing. Video frame sampling now proves decoded pixels at fixed timestamps; audio remains unproven until MP4 stream probing is enabled.
+`media-assets.mt.json` và `assets/manifest.json` khóa asset plumbing. Video frame sampling proves decoded pixels at fixed timestamps; audio mix proves AAC stream presence and plausible duration via ffprobe on export.
 
 Schema, fixtures và acceptance gate cho nhân vật SVG: [`../../svg-cutout-plan.md`](../../svg-cutout-plan.md).
 

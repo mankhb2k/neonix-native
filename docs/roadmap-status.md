@@ -21,20 +21,19 @@ This file is the current implementation ledger. A capability is marked **done** 
 | Ordered Effects stack | blur, shadow, glow, color-adjust, animation, mask-before-effects and PNG golden | `0b66cfe` |
 | Normalized Path Morph | topology-checked targets, progress tracks, Runtime/PNG goldens at t=0/1/2 | `36103d6` |
 | Component Action outer playback | iterations, reverse/alternate, `action.loop` fill and over-duration guard | `9fb5c60` |
-| Lip-sync cue generation | cue validation and generated mouth `payload.assetId` step-key golden | *(this commit)* |
-| Deterministic Secondary Motion | bounded rotation-only bone chain, random-access solver, Runtime/PNG goldens | *(this commit)* |
-| Camera projection and scene transitions | active-camera pan/zoom/rotation, overlap frame plan, crossfade compositing, Runtime/PNG goldens | *(this commit)* |
+| Lip-sync cue generation | cue validation and generated mouth `payload.assetId` step-key golden | `2031522` |
+| Deterministic Secondary Motion | bounded rotation-only bone chain, random-access solver, Runtime/PNG goldens | `8102637` |
+| Camera projection and scene transitions | active-camera pan/zoom/rotation, overlap frame plan, crossfade compositing, Runtime/PNG goldens | `ce3583a` |
+| Deterministic video frame sampling | cached ffmpeg frame decode with trim/hold/transparent/loop and fit | `4b82763` |
+| Audio timeline mix and probe | BGM/VO/SFX trim/loop/gain/fade mix muxed to AAC; ffprobe stream/duration assert | `4882661` |
 
-Current verification after deterministic video sampling: 26 positive artifacts, 78 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, and 21 pinned assets.
+Current verification after Audio mix: 26 positive artifacts, 78 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, and 21 pinned assets.
 
 ## Partial or not implemented
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
 | Figma/Illustrator importer and re-import | Source mapping is typed metadata only | sanitizer/parser, stable element fingerprint reconciliation and import fixtures |
-| Camera projection/scene transitions | Orthographic active-camera projection, timeline overlap and crossfade raster compositing are implemented | fade policy refinement and preview parity |
-| Video frame rendering | Decoded ffmpeg frames are cached by asset/frame index and drawn with trim, hold/transparent/loop and fit policy; fixed-time hashes cover silent/audio pixels | audio mux remains the next media milestone |
-| Audio mixer/export | FFmpeg deterministically trims, delays, loops, gains, fades and mixes BGM/voiceover/SFX into AAC; fixture export is ffprobe-checked for stream and duration | browser preview parity |
 | Browser preview/export parity | Web editor preview still uses CSS/mock blocks rather than Runtime IR | browser-safe render adapter, timestamp parity and Web E2E |
 | P1 primitives | emitter, trim path, animated dash/gradient, blend modes, constraints, IK and bend are intentionally deferred | activate only with a real composition fixture |
 

@@ -26,18 +26,14 @@ A capability is **done** only when its fixture, schema validation, compiler/runt
 
 ## Current state
 
-The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback (`action.loop`, reverse/alternate), cut-out lip-sync cue expansion, deterministic Secondary Motion, and camera projection with scene transitions.
+The completed and committed milestones are tracked in [`roadmap-status.md`](roadmap-status.md). The verified suite covers the foundation through Path Morph, Component Action outer playback, lip-sync cues, Secondary Motion, camera/transitions, deterministic video frame sampling, and audio timeline mix/probe.
 
-Counts after Camera projection and scene transitions: 26 positive artifacts, 78 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, 21 pinned assets.
+Counts after Audio mix: 26 positive artifacts, 78 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, 21 pinned assets.
 
-The remaining P0 work is intentionally explicit and **fixtures-first** (positive/negative fixtures before expanding Zod, then compiler/runtime, goldens, docs, commit):
+The remaining P0 work is intentionally explicit and **fixtures-first**:
 
-1. Secondary Motion.
-2. Figma/Illustrator import sanitization and stable re-import.
-3. Camera projection and scene transitions ✅.
-4. Video frame rendering and trim/loop behavior.
-5. Audio mixing/export.
-6. Browser preview/export parity using Runtime IR.
+1. Figma/Illustrator import sanitization and stable re-import.
+2. Browser preview/export parity using Runtime IR.
 
 P1 primitives (particles, trim path, animated dashes/gradients, blend modes, constraints and IK) stay deferred until a real composition requires them. P2 deformation/physics/expression features are outside the current product boundary.
 
@@ -71,11 +67,11 @@ The renderer evaluates active-camera pan/rotation/zoom tracks and applies its or
 
 Exit criteria: complete for worker Runtime IR/export. Browser preview parity remains Phase 7 work.
 
-### Phase 5 — Video frames and audio
+### Phase 5 — Video frames and audio ✅
 
-Video frame selection is deterministic from timestamp, trim, hold/transparent/loop and fit policy, with decoded frames cached by asset/frame index. Timeline audio now uses deterministic FFmpeg trim, loop, delay, gain, fade and role overlap mixing, with exported AAC streams probed in the fixture gate.
+Video frame selection is deterministic from timestamp, trim, hold/transparent/loop and fit policy, with decoded frames cached by asset/frame index. Timeline audio uses deterministic FFmpeg trim, loop, delay, gain, fade and role overlap mixing, with exported AAC streams probed in the fixture gate.
 
-Exit criteria: decoded-frame/runtime assertions, media metadata negatives, and an end-to-end probe of the produced streams.
+Exit criteria: complete.
 
 ### Phase 6 — Import and re-import
 
