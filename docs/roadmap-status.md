@@ -30,15 +30,16 @@ This file is the current implementation ledger. A capability is marked **done** 
 | Browser Runtime IR preview parity | PreviewStage + `/appai/runtime-harness` evaluateScene vs worker hierarchy goldens | `9d82ef8` |
 | P0 primitives-object schema matrix | `primitives-coverage.json` 113 rows; Wave A–E schema ± + P1 reject wall; compositions mapped | `d67cd65` |
 | P0 schema freeze | Checklist + freeze asserts (round-trip, binding uniqueness, patch public surface, semantic.key, AI registry); formatVersion stays 2 | see `docs/p0-schema-freeze-checklist.md` |
+| Promote Trim/Gradient/Dash/Blend/PathBend/Constraint | Paint union + dash; trim-path/path-bend/constraint modifiers; blendMode; topo constraint eval; ± fixtures + Runtime/PNG goldens | see fixtures `trim-path-reveal`, `gradient-dash`, `blend-mode-glow`, `path-bend-ribbon`, `constraint-look-at` |
 
-Current verification after P0 schema freeze: 27 positive artifacts, 107 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, 21 pinned assets, and 113 primitives-coverage rows.
+Current verification after P1 paint/modifier promote: 33 positive artifacts, 108 negative artifacts, 40 limit cases, 22 Runtime goldens, and 107 primitives-coverage rows.
 
 ## Partial or not implemented
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
 | Browser preview/export parity | Runtime IR evaluate + transform/text/shape preview; media/PNG screenshot parity still deferred | media assets in Canvas adapter, screenshot tolerance vs worker PNG |
-| P1 primitives | emitter, trim path, animated dash/gradient, blend modes, constraints, IK and bend are intentionally deferred | activate only with a real composition fixture |
+| P1 primitives | emitter, 2-bone IK, mesh/skinning, audio markers, animated gradient stops, constraint `pin` remain deferred | activate only with a real composition fixture |
 
 ## Verification commands
 

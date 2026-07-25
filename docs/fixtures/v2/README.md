@@ -6,7 +6,7 @@ Các fixture này là dữ liệu chuẩn cho contract v2 tại [`../../motion-f
 pnpm validate:v2-fixtures
 ```
 
-Coverage và thứ tự bổ sung acceptance tests: [`test-plan.md`](test-plan.md).
+Machine-readable coverage ledger: [`primitives-coverage.json`](primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`).
 
 Compiler goldens được lưu tại `expected-runtime/`. Chỉ chạy `pnpm update:v2-goldens` khi thay đổi compiler là có chủ ý và đã review JSON diff; validation thông thường không tự ghi lại golden.
 

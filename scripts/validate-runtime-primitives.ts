@@ -48,6 +48,9 @@ const frameGoldens = [
   { project: "secondary-motion", time: 1.5, file: "bone-secondary-motion-t1_5.png", width: 540, height: 540 },
   { project: "camera-transition", time: 0, file: "camera-transition-t0.png", width: 540, height: 540 },
   { project: "camera-transition", time: 1.5, file: "camera-transition-t1_5.png", width: 540, height: 540 },
+  { project: "trim-path", time: 1, file: "trim-path-reveal-t1.png", width: 540, height: 540 },
+  { project: "blend-mode", time: 1, file: "blend-mode-glow-t1.png", width: 540, height: 540 },
+  { project: "path-bend", time: 1, file: "path-bend-ribbon-t1.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -415,6 +418,9 @@ async function main(): Promise<void> {
       : golden.project === "path-morph" ? pathMorphRuntime
       : golden.project === "secondary-motion" ? secondaryMotionRuntime
       : golden.project === "camera-transition" ? cameraTransitionRuntime
+      : golden.project === "trim-path" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "trim-path-reveal.mt.json"), "utf8"))))
+      : golden.project === "blend-mode" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "blend-mode-glow.mt.json"), "utf8"))))
+      : golden.project === "path-bend" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "path-bend-ribbon.mt.json"), "utf8"))))
       : runtime;
     const png = await drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
@@ -468,7 +474,7 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [56, 189, 248]) >= 20, "Path Morph stroke silhouette pixels missing");
     }
   }
-  assert.equal(hashes.size, 18, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, 21, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");

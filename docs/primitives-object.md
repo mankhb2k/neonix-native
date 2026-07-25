@@ -2,7 +2,7 @@
 
 Current status ledger: [`roadmap-status.md`](roadmap-status.md). Machine-readable schema-first coverage: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`). **P0 schema freeze:** [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md) (2026-07-25). Worker PNG/Web parity remain separate gates; this catalog’s “Implemented schema” means contract/reference/limits (+ compiler when Runtime surface) are covered.
 
-> Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative hiện tại vẫn là [`motion-format-v2.md`](motion-format-v2.md). Proposal chi tiết nằm tại [`atomic-primitives-plan.md`](atomic-primitives-plan.md), [`svg-cutout-plan.md`](svg-cutout-plan.md) và [`fixtures/v2/test-plan.md`](fixtures/v2/test-plan.md).
+> Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative: [`motion-format-v2.md`](motion-format-v2.md). Fixture suite: [`fixtures/v2/README.md`](fixtures/v2/README.md).
 
 ## Định vị
 
@@ -103,11 +103,11 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 | Point/Contour/Segment | Canonical Path geometry | Implemented | finite coordinates, line/cubic, contour/segment limits |
 | Fill | Solid paint | Implemented worker | color/opacity/nonzero/evenodd |
 | Stroke | Width/cap/join | Implemented worker | open path, animated width, stroke-inflated bounds |
-| Gradient | Linear/radial typed paint | Planned P1 — rejected in schema | negative/p1-not-normative/gradient-anim.json |
-| Dash | Stroke dash array/offset | Planned P1 — rejected in schema | negative/p1-not-normative/animated-dash.json |
-| Trim Path | Arc-length range | Planned P1 — rejected in schema | negative/p1-not-normative/trim-path-modifier.json |
+| Gradient | Linear/radial typed paint | Implemented worker | `gradient-dash` + stop-order negatives; stops literal (not animated) |
+| Dash | Stroke dash array/offset | Implemented worker | `style.dash` + animatable `dashOffset` on path/shape |
+| Trim Path | Arc-length range | Implemented worker | `trim-path-reveal`; animate start/end/offset |
 | Path Morph | Compatible topology interpolation | Implemented worker | mismatch rejection, 0/0.5/1 silhouettes |
-| Path Bend | Lightweight curve deformation | Planned P1 | bounded control points, deterministic geometry |
+| Path Bend | Arc-chord warp | Implemented worker | `path-bend-ribbon`; amount ∈ [-1,1]; sin(πt) perpendicular offset |
 
 SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph không tự thêm points hoặc đoán correspondence.
 
@@ -121,7 +121,7 @@ SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph kh
 | Shadow | Effect | Implemented worker | offset/blur/color/alpha |
 | Glow | Effect | Implemented worker | radius/intensity/order |
 | Color adjust | Effect | Implemented worker | brightness/contrast/saturation |
-| Blend mode | Layer compositing | Planned P1 — rejected in schema | negative/p1-not-normative/blend-mode.json |
+| Blend mode | Layer compositing | Implemented worker | `normal\|multiply\|screen\|add`; `blend-mode-glow` |
 | Scene transition | Cross-scene compositing | Implemented cut/fade/crossfade | wipe rejected; duration/overlap goldens |
 
 Canonical order: raster subtree → mask → ordered effects → blend/z-order.
@@ -146,12 +146,13 @@ Compiler phải loại các expansion primitives khỏi Runtime IR.
 |---|---|---|---|
 | Motion Path | Node position/orientation theo Path | Implemented runtime | typed refs, arc length, tangent, progress, offsets, cycles, cross-hierarchy |
 | Path Morph | Geometry interpolation | Implemented runtime | topology + numeric interpolation |
-| Secondary Motion | Follow-through trên chain | Implemented runtime | fixed time, random access, damping/stiffness |
-| Simple constraint | Copy/look-at/pin | Planned P1 — rejected in schema | negative/p1-not-normative/constraint-modifier.json |
+| Secondary Motion | Follow-through trên chain | Implemented runtime | fixed time, random access; params static at P0 |
+| Trim Path | Arc-length reveal | Implemented worker | `trim-path-reveal`; animate start/end/offset |
+| Simple constraint | look-at / copy-position / copy-rotation | Implemented worker | `constraint-look-at`; cycle reject; topo evaluation |
 | 2-bone IK | Analytic arm/leg solver | Planned P1 — rejected in schema | negative/p1-not-normative/two-bone-ik.json |
-| Path Bend | Simple warp | Planned P1 — rejected in schema | negative/p1-not-normative/path-bend.json |
+| Path Bend | Arc-chord warp | Implemented worker | `path-bend-ribbon`; amount ∈ [-1,1] |
 
-Modifier có stable ID và animatable paths như `modifiers.hairFollow.stiffness`.
+Modifier có stable ID. Animatable paths P0: `modifiers.<id>.progress` (Motion Path/Path Morph), `modifiers.<id>.start|end|offset` (Trim Path), `modifiers.<id>.amount` (Path Bend), `modifiers.<id>.weight` (Constraint). Secondary Motion stiffness/damping/amplitude là static configuration.
 
 ## 10. Cut-out character primitives
 
@@ -209,12 +210,15 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 
 ## 14. P1 và P2 boundary
 
-P1 chỉ triển khai sau khi composition/cut-out vertical slices pass:
+Đã promote lên P0 (2026-07-25): Trim Path, Gradient fill (literal), Dash, Blend (`normal|multiply|screen|add`), Path Bend, Constraint (`look-at|copy-position|copy-rotation`).
 
-- Emitter, Trim Path, animated Dash/Gradient.
-- Blend modes nhỏ.
+P1 còn lại — chỉ mở khi composition fixture thật đòi hỏi:
+
+- Emitter.
+- Animated gradient stops.
+- Constraint `pin`.
+- 2-bone IK.
 - Audio waveform/beat markers.
-- Simple constraints, 2-bone IK và Path Bend.
 
 Out of scope hiện tại:
 
@@ -378,9 +382,9 @@ Các composition fixtures bắt buộc vì thứ tự interaction/compositing kh
 - Video frame + audio mixer.
 - Preview/export parity.
 
-### Phase 5 — selected P1
+### Phase 5 — remaining P1
 
-- Trim/Dash/Gradient/Blend/Emitter/Constraints/2-bone IK/Path Bend chỉ khi có template và fixture thật yêu cầu.
+- Emitter / animated gradient stops / constraint `pin` / 2-bone IK chỉ khi có template và fixture thật yêu cầu.
 
 ## Completion rule
 

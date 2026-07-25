@@ -1,6 +1,6 @@
 # Browser preview và atomic primitive test roadmap
 
-> Baseline kỹ thuật: 24/07/2026. Từ quyết định schema-first, lịch calendar M1–M5 bên dưới được xem là forecast cũ và chỉ bắt đầu lại sau freeze gate trong [`schema-fixture-roadmap.md`](schema-fixture-roadmap.md). Thiết kế pipeline/gates vẫn giữ nguyên; browser preview không còn là sprint kế tiếp.
+> Baseline kỹ thuật: 24/07/2026. P0 schema đã freeze ([`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md)); lịch calendar M1–M5 bên dưới là forecast cho **browser preview / Web parity** còn lại. Thiết kế pipeline/gates vẫn giữ nguyên.
 
 ## Đích sản phẩm
 

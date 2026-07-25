@@ -29,6 +29,9 @@ export const FRAME_GOLDENS = [
   { project: "bone-secondary-motion.mt.json", time: 1.5, file: "bone-secondary-motion-t1_5.png", width: 540, height: 540 },
   { project: "camera-transition.mt.json", time: 0, file: "camera-transition-t0.png", width: 540, height: 540 },
   { project: "camera-transition.mt.json", time: 1.5, file: "camera-transition-t1_5.png", width: 540, height: 540 },
+  { project: "trim-path-reveal.mt.json", time: 1, file: "trim-path-reveal-t1.png", width: 540, height: 540 },
+  { project: "blend-mode-glow.mt.json", time: 1, file: "blend-mode-glow-t1.png", width: 540, height: 540 },
+  { project: "path-bend-ribbon.mt.json", time: 1, file: "path-bend-ribbon-t1.png", width: 540, height: 540 },
 ] as const;
 
 async function main(): Promise<void> {

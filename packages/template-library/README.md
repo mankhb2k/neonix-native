@@ -67,5 +67,5 @@ import {
 ## Docs
 
 - [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md) — canonical `.mt` / `.mvc`
-- [`docs/blocks-plan.md`](../../docs/blocks-plan.md)
+- [`docs/primitives-object.md`](../../docs/primitives-object.md) — primitive catalog
 - Repo [`README.md`](../../README.md)
