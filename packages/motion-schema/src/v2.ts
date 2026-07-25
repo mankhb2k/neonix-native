@@ -1495,6 +1495,19 @@ export function validateMotionComponentV2References(component: MotionComponentV2
       }
     }
   }
+  const componentBindingTargets = new Map<string, string>();
+  for (const binding of component.bindings) {
+    const key = `${binding.target.nodeId}\u0000${binding.target.property}`;
+    const previous = componentBindingTargets.get(key);
+    if (previous) {
+      issues.push({
+        path: `bindings.${binding.id}.target`,
+        message: `Duplicate binding target ${binding.target.nodeId}.${binding.target.property} (also bound by ${previous})`,
+      });
+    } else {
+      componentBindingTargets.set(key, binding.id);
+    }
+  }
   for (const node of component.nodes) {
     if (node.repeat?.source.kind !== "list") continue;
     const source = node.repeat.source;
@@ -1606,6 +1619,19 @@ export function validateMotionProjectV2References(project: MotionProjectV2): Ref
       }
     }
   }
+  const projectBindingTargets = new Map<string, string>();
+  for (const binding of project.bindings) {
+    const key = `${binding.target.sceneId}\u0000${binding.target.nodeId}\u0000${binding.target.property}`;
+    const previous = projectBindingTargets.get(key);
+    if (previous) {
+      issues.push({
+        path: `bindings.${binding.id}.target`,
+        message: `Duplicate binding target ${binding.target.sceneId}/${binding.target.nodeId}.${binding.target.property} (also bound by ${previous})`,
+      });
+    } else {
+      projectBindingTargets.set(key, binding.id);
+    }
+  }
   return issues;
 }
 
@@ -1625,6 +1651,62 @@ export function parseMotionProjectV2(input: unknown): MotionProjectV2 {
 
 export function serializeMotionProjectV2(project: MotionProjectV2): string {
   return `${JSON.stringify(project, null, 2)}\n`;
+}
+
+function setRecordPath(target: Record<string, unknown>, path: string, value: unknown): void {
+  const parts = path.split(".");
+  let cursor: Record<string, unknown> = target;
+  for (const part of parts.slice(0, -1)) {
+    const current = cursor[part];
+    if (current === null || typeof current !== "object" || Array.isArray(current)) cursor[part] = {};
+    cursor = cursor[part] as Record<string, unknown>;
+  }
+  const last = parts.at(-1);
+  if (last) cursor[last] = value;
+}
+
+/** Apply a public-surface patch: project variables or Component Instance `payload.props.*` only. */
+export function applyMotionPatch(project: MotionProjectV2, patchInput: unknown): MotionProjectV2 {
+  const patch = MotionPatchSchema.parse(patchInput);
+  const next = JSON.parse(JSON.stringify(project)) as MotionProjectV2;
+  const issues: ReferenceIssue[] = [];
+  for (let index = 0; index < patch.operations.length; index += 1) {
+    const operation = patch.operations[index]!;
+    const path = `operations.${index}`;
+    const target = operation.target;
+    if ("variableId" in target) {
+      const variableId = target.variableId;
+      const variable = next.variables.find((candidate) => candidate.id === variableId);
+      if (!variable) {
+        issues.push({ path: `${path}.target.variableId`, message: `Unknown variable: ${variableId}` });
+        continue;
+      }
+      (variable as { value: unknown }).value = operation.value;
+      continue;
+    }
+    const { sceneId, nodeId, property } = target;
+    if (!property.startsWith("payload.props.")) {
+      issues.push({ path: `${path}.target.property`, message: "Patch may only set public payload.props.* or project variables" });
+      continue;
+    }
+    const scene = next.scenes.find((candidate) => candidate.id === sceneId);
+    if (!scene) {
+      issues.push({ path: `${path}.target.sceneId`, message: `Unknown scene: ${sceneId}` });
+      continue;
+    }
+    const node = scene.nodes.find((candidate) => candidate.id === nodeId);
+    if (!node) {
+      issues.push({ path: `${path}.target.nodeId`, message: `Unknown node: ${nodeId}` });
+      continue;
+    }
+    if (node.type !== "component") {
+      issues.push({ path: `${path}.target.nodeId`, message: `Patch node target must be a component instance: ${nodeId}` });
+      continue;
+    }
+    setRecordPath(node as unknown as Record<string, unknown>, property, operation.value);
+  }
+  if (issues.length > 0) throw new MotionV2ReferenceError(issues);
+  return parseMotionProjectV2(next);
 }
 
 export class MotionV2ReferenceError extends Error {
