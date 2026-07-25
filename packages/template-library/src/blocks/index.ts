@@ -17,7 +17,6 @@ export {
   listMotionBlocksByShelf,
   listMotionBlocksByFamily,
   getMotionLibrarySection,
-  resolvePresetId,
   isKnownPreset,
   getBlockByPreset,
   validateMotionProjectPresets,

@@ -1,0 +1,393 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "proj.media-assets",
+    "name": "Media Asset Coverage",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Tiếng Việt",
+      "primaryColor": "#243B53",
+      "fontFamily": "Lora"
+    },
+    "description": "Fixture khóa asset plumbing cho image alpha/opaque, SVG, font, audio và video."
+  },
+  "assets": [
+    {
+      "id": "asset.image.product",
+      "uri": "assets/image-product.png",
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 1000,
+      "height": 1000,
+      "pixelFormat": "rgb24",
+      "hasAlpha": false
+    },
+    {
+      "id": "asset.image.alpha",
+      "uri": "assets/image-alpha.png",
+      "integrity": "sha256-df8cf3593f7e328c75b6d4e8e53d31223d5dad15ff9c52a376087c24ae8c7a40",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 450,
+      "height": 466,
+      "pixelFormat": "rgba",
+      "hasAlpha": true
+    },
+    {
+      "id": "asset.character",
+      "uri": "assets/character.svg",
+      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a",
+      "assetType": "svg",
+      "mimeType": "image/svg+xml",
+      "width": 300,
+      "height": 400,
+      "viewBox": "0 0 300 400",
+      "sanitized": true
+    },
+    {
+      "id": "asset.font.regular",
+      "uri": "assets/Lora-Regular.ttf",
+      "integrity": "sha256-7ed00e7c9cdf16ab7e2fd2361fe45d4f0b61263cd60aae398b27b7ee08108827",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Lora",
+      "weight": 400,
+      "style": "normal",
+      "localeCoverage": [
+        "vi-VN"
+      ]
+    },
+    {
+      "id": "asset.font.medium",
+      "uri": "assets/Lora-Medium.ttf",
+      "integrity": "sha256-fd57ed9e3945de65de667f1919c2978b79937a13d246508fc4f64bb562e53196",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Lora",
+      "weight": 500,
+      "style": "normal",
+      "localeCoverage": [
+        "vi-VN"
+      ]
+    },
+    {
+      "id": "asset.font.bold",
+      "uri": "assets/Lora-Bold.ttf",
+      "integrity": "sha256-7d74015e950c2fb66519c7295b8155621d22200ae2ca2a4c6b43ce3c490cac87",
+      "assetType": "font",
+      "mimeType": "font/ttf",
+      "family": "Lora",
+      "weight": 700,
+      "style": "normal",
+      "localeCoverage": [
+        "vi-VN"
+      ]
+    },
+    {
+      "id": "asset.audio.music",
+      "uri": "assets/music.mp3",
+      "integrity": "sha256-c93cf4e8538c2a0f79d902c0ff7545393550c10e3091830601dae566bb5f89cf",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 124.58,
+      "codec": "mp3",
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "asset.audio.voiceover",
+      "uri": "assets/voiceover.mp3",
+      "integrity": "sha256-b9b241e9e2bafd814f7bc1eb2b6244a64cef401a3630aa8f17b361369093aa74",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 5.06,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 1
+    },
+    {
+      "id": "asset.audio.sfx",
+      "uri": "assets/sfx.wav",
+      "integrity": "sha256-e197bf99d6d64377f64da9fe42290063fdf80fcc9e214b4cbac47ca8a5d9137b",
+      "assetType": "audio",
+      "mimeType": "audio/wav",
+      "duration": 11.93,
+      "codec": "pcm_s16le",
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "asset.video.silent",
+      "uri": "assets/video-silent.mp4",
+      "integrity": "sha256-a6b5501f7b86fa070022e609193e558e7042f671df374821d8484f7382d2cde1",
+      "assetType": "video",
+      "mimeType": "video/mp4",
+      "width": 480,
+      "height": 854,
+      "duration": 3.37,
+      "fps": 30,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAudio": false
+    },
+    {
+      "id": "asset.video.audio",
+      "uri": "assets/video-with-audio.mp4",
+      "integrity": "sha256-457621ad4923add1dedd90529deea13e425444578c49faacf3093720c6d74a5e",
+      "assetType": "video",
+      "mimeType": "video/mp4",
+      "width": 480,
+      "height": 854,
+      "duration": 3.37,
+      "fps": 30,
+      "videoCodec": "h264",
+      "pixelFormat": "yuv420p",
+      "hasAudio": true,
+      "audioCodec": "aac",
+      "sampleRate": 44100,
+      "channels": 2
+    }
+  ],
+  "timeline": {
+    "sceneOrder": [
+      "scene.media"
+    ],
+    "audioTracks": [
+      {
+        "id": "audio.music",
+        "role": "bgm",
+        "assetId": "asset.audio.music",
+        "start": 0,
+        "trimStart": 1,
+        "volume": 0.5,
+        "loop": true,
+        "fadeIn": 0.25,
+        "fadeOut": 0.25
+      },
+      {
+        "id": "audio.voiceover",
+        "role": "voiceover",
+        "assetId": "asset.audio.voiceover",
+        "start": 0.25,
+        "trimStart": 0,
+        "volume": 1,
+        "loop": false,
+        "fadeIn": 0,
+        "fadeOut": 0.1
+      },
+      {
+        "id": "audio.sfx",
+        "role": "sfx",
+        "assetId": "asset.audio.sfx",
+        "start": 1.5,
+        "trimStart": 0.5,
+        "volume": 0.8,
+        "loop": false,
+        "fadeIn": 0,
+        "fadeOut": 0
+      }
+    ]
+  },
+  "scenes": [
+    {
+      "id": "scene.media",
+      "duration": 4,
+      "activeCameraId": "camera.main",
+      "nodes": [
+        {
+          "id": "camera.main",
+          "type": "camera",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 540,
+            "y": 960,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "zoom": 1
+          }
+        },
+        {
+          "id": "image.product",
+          "type": "image",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 300,
+            "y": 420,
+            "width": 420,
+            "height": 420,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.image.product",
+            "fit": "cover"
+          }
+        },
+        {
+          "id": "image.alpha",
+          "type": "image",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 770,
+            "y": 420,
+            "width": 360,
+            "height": 373,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 0.85,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.image.alpha",
+            "fit": "contain",
+            "crop": {
+              "x": 0.1,
+              "y": 0.1,
+              "width": 0.8,
+              "height": 0.8
+            }
+          }
+        },
+        {
+          "id": "character.svg",
+          "type": "svg",
+          "parentId": null,
+          "zIndex": 3,
+          "transform": {
+            "x": 270,
+            "y": 1000,
+            "width": 300,
+            "height": 400,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.character"
+          }
+        },
+        {
+          "id": "video.silent",
+          "type": "video",
+          "parentId": null,
+          "zIndex": 4,
+          "transform": {
+            "x": 760,
+            "y": 950,
+            "width": 360,
+            "height": 640,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.video.silent",
+            "fit": "cover",
+            "trimStart": 0.25,
+            "muted": true
+          }
+        },
+        {
+          "id": "video.audio",
+          "type": "video",
+          "parentId": null,
+          "zIndex": 5,
+          "transform": {
+            "x": 540,
+            "y": 1450,
+            "width": 270,
+            "height": 480,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "assetId": "asset.video.audio",
+            "fit": "contain",
+            "trimStart": 0,
+            "muted": false
+          }
+        },
+        {
+          "id": "text.vietnamese",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 6,
+          "transform": {
+            "x": 540,
+            "y": 1780,
+            "width": 900,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Tiếng Việt: Đặng Thị Hồng – 49.000₫",
+            "fontAssetId": "asset.font.bold",
+            "fontSize": 56,
+            "fontWeight": 700
+          },
+          "style": {
+            "fill": "#FFFFFF"
+          }
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

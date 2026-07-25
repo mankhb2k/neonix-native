@@ -24,7 +24,7 @@ export default function EditorPage() {
   }, [params.projectId]);
 
   useEffect(() => {
-    if (project && project.id === params.projectId) {
+    if (project && project.metadata.id === params.projectId) {
       saveProject(project);
     }
   }, [project, params.projectId]);

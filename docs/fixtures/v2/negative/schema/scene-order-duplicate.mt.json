@@ -1,0 +1,19 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "negative.scene-order-duplicate",
+    "name": "Duplicate scene order",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Negative" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene", "scene"], "audioTracks": [] },
+  "scenes": [{ "id": "scene", "duration": 1, "nodes": [], "clips": [] }],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

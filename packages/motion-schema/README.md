@@ -1,27 +1,23 @@
 # `@motionvideo/motion-schema`
 
-**MotionVideo Motion Format (`.mt`)** — Zod contract + parse/serialize.
-
-Đây là **project format** của sản phẩm (IR), không phải API của Motion Canvas / Remotion.
-
-## API
+Canonical Zod contract cho MotionVideo.
 
 ```ts
 import {
-  MOTION_FORMAT_VERSION,
   parseMotionProject,
   serializeMotionProject,
-  MotionProjectSchema,
   type MotionProject,
 } from "@motionvideo/motion-schema";
 ```
 
-- `parseMotionProject(input)` — structural validate; reject wrong `version`
-- `serializeMotionProject(project)` — JSON string luôn kèm `version`
-- `preset` trên animation là `string` — **không** enum cứng ở đây
+`parseMotionProject` chỉ nhận canonical Motion Project hiện tại và chạy cả structural lẫn reference validation. Package không cung cấp migrator hoặc schema tương thích định dạng cũ.
 
-Preset nào được hỗ trợ → `@motionvideo/template-library` (`validateMotionProjectPresets`).
+API chính:
 
-## Spec
+- `MotionProjectSchema`, `parseMotionProject`: API application mặc định.
+- `MotionProjectV2Schema`, `parseMotionProjectV2`: schema được version hóa của file format.
+- `MotionComponentV2Schema`, `parseMotionComponentV2`: Component authoring contract.
+- `NormalizedMotionProjectV2Schema`: renderer-only literal IR.
+- `MotionPatchSchema`: patch artifact cho AI/editor operation.
 
-Xem [`docs/motion-format.md`](../../docs/motion-format.md).
+Contract đầy đủ: [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md).

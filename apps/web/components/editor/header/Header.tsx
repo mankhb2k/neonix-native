@@ -5,7 +5,7 @@ import { RibbonBar } from "./RibbonBar/RibbonBar";
 
 export function Header() {
   return (
-    <header className="mv-ppt-header">
+    <header className="col-span-full flex h-[74px] flex-col bg-[var(--bg-panel)] border-b border-[var(--line)] z-20 [grid-area:header]">
       <TitleBar />
       <RibbonBar />
     </header>

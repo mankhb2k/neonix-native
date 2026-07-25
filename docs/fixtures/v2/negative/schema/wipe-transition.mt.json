@@ -1,0 +1,33 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "negative.wipe-transition",
+    "name": "Wipe transition not normative",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Negative" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene.a", "scene.b"], "audioTracks": [] },
+  "scenes": [
+    {
+      "id": "scene.a",
+      "duration": 1,
+      "transition": { "type": "wipe", "duration": 0.5 },
+      "nodes": [],
+      "clips": []
+    },
+    {
+      "id": "scene.b",
+      "duration": 1,
+      "nodes": [],
+      "clips": []
+    }
+  ],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

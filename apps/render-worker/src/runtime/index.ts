@@ -3,10 +3,9 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
-import type { MotionProject } from "@motionvideo/motion-schema";
 import type { CompiledProject } from "../compiler";
 import { sizeForAspect } from "./draw";
-import { buildFramePlan, chunkFramePlan } from "./frame-plan";
+import { buildFramePlan, chunkFramePlan, projectDuration } from "./frame-plan";
 import type { FrameWorkerInput } from "./frame-worker";
 
 export { sizeForAspect } from "./draw";
@@ -33,6 +32,8 @@ export type RenderOptions = {
   scale?: number;
   /** Parallel worker threads — default: CPU cores, capped at 8 */
   concurrency?: number;
+  /** Base directory used to resolve safe relative asset URIs. */
+  assetBaseDir?: string;
 };
 
 function runFrameWorker(input: FrameWorkerInput): Promise<void> {
@@ -58,14 +59,14 @@ function runFrameWorker(input: FrameWorkerInput): Promise<void> {
  */
 export async function renderCompiledProject(
   compiled: CompiledProject,
-  _project?: MotionProject,
   options: RenderOptions = {},
 ): Promise<RenderResult> {
   const fps = options.fps ?? 15;
   const scale = options.scale ?? 0.5;
-  const { width, height } = sizeForAspect(compiled.aspectRatio, scale);
+  const { width, height } = sizeForAspect(compiled.metadata.aspectRatio, scale);
   const outDir =
-    options.outDir ?? path.join(REPO_ROOT, "tmp", "frames", compiled.projectId);
+    options.outDir ?? path.join(REPO_ROOT, "tmp", "frames", compiled.metadata.id);
+  const assetBaseDir = path.resolve(options.assetBaseDir ?? REPO_ROOT);
 
   await mkdir(outDir, { recursive: true });
 
@@ -81,17 +82,17 @@ export async function renderCompiledProject(
     chunks
       .filter((chunk) => chunk.length > 0)
       .map((chunk) =>
-        runFrameWorker({ compiled, width, height, outDir, jobs: chunk }),
+        runFrameWorker({ compiled, width, height, outDir, assetBaseDir, jobs: chunk }),
       ),
   );
 
   return {
-    projectId: compiled.projectId,
+    projectId: compiled.metadata.id,
     framesDir: outDir,
     frameCount: jobs.length,
     fps,
     width,
     height,
-    durationSec: compiled.totalDuration,
+    durationSec: projectDuration(compiled),
   };
 }

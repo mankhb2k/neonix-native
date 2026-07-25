@@ -1,0 +1,246 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "fixture.motion-path",
+    "name": "Arc-length Motion Path",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Motion Path fixture",
+      "primaryColor": "#101828"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.motion-path"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.motion-path",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "path.parent",
+          "type": "group",
+          "parentId": null,
+          "transform": {
+            "x": 120,
+            "y": 250,
+            "width": 800,
+            "height": 500,
+            "rotation": 12,
+            "scaleX": 1.05,
+            "scaleY": 0.9,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "guide.curve",
+          "type": "path",
+          "parentId": "path.parent",
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 760,
+            "height": 360,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "contours": [
+              {
+                "id": "flight",
+                "start": {
+                  "x": 0,
+                  "y": 280
+                },
+                "segments": [
+                  {
+                    "kind": "cubic",
+                    "control1": {
+                      "x": 180,
+                      "y": -120
+                    },
+                    "control2": {
+                      "x": 430,
+                      "y": 500
+                    },
+                    "to": {
+                      "x": 760,
+                      "y": 80
+                    }
+                  }
+                ],
+                "closed": false
+              }
+            ],
+            "fillRule": "nonzero"
+          },
+          "style": {
+            "stroke": "#475569",
+            "strokeWidth": 8,
+            "lineCap": "round"
+          }
+        },
+        {
+          "id": "target.parent",
+          "type": "group",
+          "parentId": null,
+          "transform": {
+            "x": 40,
+            "y": 30,
+            "width": 1000,
+            "height": 900,
+            "rotation": -8,
+            "scaleX": 0.95,
+            "scaleY": 1.1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "follower.rocket",
+          "type": "shape",
+          "parentId": "target.parent",
+          "zIndex": 3,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 44,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "modifiers": [
+            {
+              "id": "follow",
+              "type": "motion-path",
+              "pathNodeId": "guide.curve",
+              "contourId": "flight",
+              "progress": 0,
+              "orientToPath": true,
+              "rotationOffset": 0,
+              "startOffset": 0,
+              "endOffset": 1
+            }
+          ],
+          "payload": {
+            "shape": "polygon",
+            "points": [
+              {
+                "x": 0,
+                "y": 0
+              },
+              {
+                "x": 100,
+                "y": 22
+              },
+              {
+                "x": 0,
+                "y": 44
+              },
+              {
+                "x": 20,
+                "y": 22
+              }
+            ]
+          },
+          "style": {
+            "fill": "#f97316",
+            "stroke": "#fed7aa",
+            "strokeWidth": 5,
+            "lineJoin": "round"
+          }
+        },
+        {
+          "id": "follower.offset",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 46,
+            "height": 46,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "modifiers": [
+            {
+              "id": "partial",
+              "type": "motion-path",
+              "pathNodeId": "guide.curve",
+              "contourId": "flight",
+              "progress": 0.5,
+              "orientToPath": false,
+              "rotationOffset": 0,
+              "startOffset": 0.2,
+              "endOffset": 0.8
+            }
+          ],
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#a855f7",
+            "stroke": "#e9d5ff",
+            "strokeWidth": 4
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "follower.rocket",
+          "property": "modifiers.follow.progress",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2,
+              "v": 1,
+              "easing": "linear"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

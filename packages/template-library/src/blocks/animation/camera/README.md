@@ -27,4 +27,4 @@ Khác `content/camera` (placeholder shot). Kệ lab: **Animation → Camera Pres
 
 ## Timing
 
-Dùng `delay` / `duration` / `easing` chung trên AnimationSchema.
+Dùng `schedule` / `duration` / `playback` trên Clip; easing nằm trên Track key sau compile.

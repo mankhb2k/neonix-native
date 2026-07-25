@@ -1,0 +1,102 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "fixture.cutout-character",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "Cut-out Dialogue Character", "description": "SVG parts, Bone hierarchy, source mapping, mouth variants and named actions." },
+  "assets": [
+    { "id": "asset.source.figma", "assetType": "svg", "uri": "assets/figma-export1.svg", "integrity": "sha256-a5631cdcded1809a74215618ad988fc1bb92f7b0f0c5823c7a97d34d28deb9de", "mimeType": "image/svg+xml", "width": 300, "height": 400, "viewBox": "0 0 300 400", "sanitized": true },
+    { "id": "asset.rig.torso", "assetType": "svg", "uri": "assets/rig-torso.svg", "integrity": "sha256-f321ac6562ae53030b96cfd535bed2921548380c836e768251d3d7b6fbe6d4d6", "mimeType": "image/svg+xml", "width": 180, "height": 300, "viewBox": "0 0 180 300", "sanitized": true },
+    { "id": "asset.rig.upper-arm", "assetType": "svg", "uri": "assets/rig-upper-arm.svg", "integrity": "sha256-983fd2bf0545ba193f24f5333ccc43c27b7c698217ba74b9962e1801001d64ed", "mimeType": "image/svg+xml", "width": 120, "height": 40, "viewBox": "0 0 120 40", "sanitized": true },
+    { "id": "asset.rig.forearm", "assetType": "svg", "uri": "assets/rig-forearm.svg", "integrity": "sha256-e2b78441487cc1299fd369e688c0db860ed370ad47b85034ba770dd13f8eec03", "mimeType": "image/svg+xml", "width": 100, "height": 36, "viewBox": "0 0 100 36", "sanitized": true },
+    { "id": "asset.rig.hand", "assetType": "svg", "uri": "assets/rig-hand.svg", "integrity": "sha256-faba88083866303710306cb9262dcd3bd36e500c703a224617f9ab6581bd1bc3", "mimeType": "image/svg+xml", "width": 50, "height": 50, "viewBox": "0 0 50 50", "sanitized": true },
+    { "id": "asset.rig.prop", "assetType": "svg", "uri": "assets/rig-prop.svg", "integrity": "sha256-00f286870bba7168a501a28c2d44e7a400faf1903ee8aaeb6c1817a5e61f8be1", "mimeType": "image/svg+xml", "width": 50, "height": 100, "viewBox": "0 0 50 100", "sanitized": true },
+    { "id": "asset.mouth.rest", "assetType": "svg", "uri": "assets/rig-mouth-rest.svg", "integrity": "sha256-951f11e5ccf909dda3b36b523901fe9b9efc24fdb7eb11748dd5fe51e503a5c9", "mimeType": "image/svg+xml", "width": 100, "height": 40, "viewBox": "0 0 100 40", "sanitized": true },
+    { "id": "asset.mouth.A", "assetType": "svg", "uri": "assets/rig-mouth-a.svg", "integrity": "sha256-e8897ef58c3f2f28e0d38d1c85c6eed62693b8a14b61b74f38fad779923f704b", "mimeType": "image/svg+xml", "width": 100, "height": 40, "viewBox": "0 0 100 40", "sanitized": true }
+  ],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    { "id": "rig.root", "type": "group", "parentId": null, "zIndex": 0, "transform": { "x": 0, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "semantic": { "role": "character-root" } },
+    { "id": "part.torso", "type": "svg", "parentId": "rig.root", "zIndex": 1, "transform": { "x": 0, "y": 0, "width": 144, "height": 240, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "assetId": "asset.rig.torso" }, "semantic": { "role": "torso" } },
+    { "id": "part.mouth", "type": "svg", "parentId": "rig.root", "zIndex": 3, "transform": { "x": 0, "y": -58, "width": 72, "height": 29, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "assetId": "asset.mouth.rest" }, "semantic": { "role": "mouth" } },
+    { "id": "bone.shoulder", "type": "bone", "parentId": "rig.root", "zIndex": 4, "transform": { "x": 62, "y": -62, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "length": 92, "restRotation": 0, "rotationLimits": { "min": -55, "max": 55 } }, "semantic": { "role": "shoulder-joint" } },
+    { "id": "part.upper-arm", "type": "svg", "parentId": "bone.shoulder", "zIndex": 5, "transform": { "x": 0, "y": 0, "width": 96, "height": 32, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "assetId": "asset.rig.upper-arm" } },
+    { "id": "bone.elbow", "type": "bone", "parentId": "bone.shoulder", "zIndex": 6, "transform": { "x": 90, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "length": 76, "restRotation": 0, "rotationLimits": { "min": -110, "max": 80 } }, "semantic": { "role": "elbow-joint" } },
+    { "id": "part.forearm", "type": "svg", "parentId": "bone.elbow", "zIndex": 7, "transform": { "x": 0, "y": 0, "width": 80, "height": 29, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "assetId": "asset.rig.forearm" } },
+    { "id": "bone.wrist", "type": "bone", "parentId": "bone.elbow", "zIndex": 8, "transform": { "x": 74, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "length": 0 } },
+    { "id": "part.hand", "type": "svg", "parentId": "bone.wrist", "zIndex": 9, "transform": { "x": 0, "y": 0, "width": 40, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.2, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "assetId": "asset.rig.hand" } },
+    { "id": "part.prop", "type": "svg", "parentId": "bone.wrist", "zIndex": 10, "transform": { "x": 31, "y": 14, "width": 35, "height": 70, "rotation": 12, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "assetId": "asset.rig.prop" }, "semantic": { "role": "held-prop" } }
+  ],
+  "bindings": [],
+  "clips": [],
+  "sourceImports": [
+    {
+      "id": "figma.character.v1",
+      "kind": "svg",
+      "sourceAssetId": "asset.source.figma",
+      "sourceIntegrity": "sha256-a5631cdcded1809a74215618ad988fc1bb92f7b0f0c5823c7a97d34d28deb9de",
+      "parts": [
+        { "id": "source.torso", "sourceElementIds": ["torso-fill", "torso-outline"], "structuralFingerprint": "sha256-part-torso-v1", "nodeId": "part.torso", "outputAssetId": "asset.rig.torso", "originalName": "Body" },
+        { "id": "source.upper-arm", "sourceElementIds": ["arm-right-upper"], "structuralFingerprint": "sha256-part-upper-arm-v1", "nodeId": "part.upper-arm", "outputAssetId": "asset.rig.upper-arm", "originalName": "Right arm" },
+        { "id": "source.mouth", "sourceElementIds": ["mouth-rest"], "structuralFingerprint": "sha256-part-mouth-v1", "nodeId": "part.mouth", "outputAssetId": "asset.mouth.rest", "originalName": "Mouth" }
+      ]
+    }
+  ],
+  "cutoutRigs": [
+    {
+      "id": "rig.character",
+      "kind": "cutout",
+      "rootNodeId": "rig.root",
+      "slots": [
+        {
+          "id": "slot.mouth",
+          "nodeId": "part.mouth",
+          "semanticRole": "mouth",
+          "defaultVariantId": "rest",
+          "variants": [
+            { "id": "rest", "assetId": "asset.mouth.rest", "semantic": "viseme-rest" },
+            { "id": "A", "assetId": "asset.mouth.A", "semantic": "viseme-open-a" }
+          ]
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "talk",
+      "name": "Talk",
+      "duration": 2,
+      "loop": false,
+      "clips": [],
+      "lipSync": {
+        "slotId": "slot.mouth",
+        "cues": [
+          { "id": "cue-0", "at": 0, "variantId": "rest" },
+          { "id": "cue-1", "at": 0.35, "variantId": "A" },
+          { "id": "cue-2", "at": 0.7, "variantId": "rest" },
+          { "id": "cue-3", "at": 1.05, "variantId": "A" },
+          { "id": "cue-4", "at": 1.45, "variantId": "rest" }
+        ]
+      }
+    },
+    {
+      "id": "wave",
+      "name": "Wave",
+      "duration": 2,
+      "loop": false,
+      "clips": [
+        {
+          "id": "arm-wave",
+          "schedule": { "kind": "absolute", "at": 0 },
+          "duration": 2,
+          "playback": { "iterations": 1, "direction": "normal", "rate": 1 },
+          "source": { "kind": "tracks", "tracks": [
+            { "targetId": "bone.shoulder", "property": "transform.rotation", "keys": [{ "t": 0, "v": 0 }, { "t": 0.6, "v": -35, "easing": "easeInOut" }, { "t": 1.2, "v": 30, "easing": "easeInOut" }, { "t": 2, "v": 0, "easing": "easeInOut" }] },
+            { "targetId": "bone.elbow", "property": "transform.rotation", "keys": [{ "t": 0, "v": 0 }, { "t": 0.6, "v": -95, "easing": "easeInOut" }, { "t": 1.2, "v": -55, "easing": "easeInOut" }, { "t": 2, "v": 0, "easing": "easeInOut" }] }
+          ] }
+        }
+      ]
+    }
+  ]
+}

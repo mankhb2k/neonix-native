@@ -3,443 +3,296 @@
 import { create } from "zustand";
 import {
   parseMotionProject,
-  type Layer,
+  type AspectRatio,
+  type MotionNode,
   type MotionProject,
-  type Scene,
+  type MotionScene,
 } from "@motionvideo/motion-schema";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
 
-export type ChatRole = "user" | "assistant";
-
-export type ProjectPatch = Partial<{
-  brandName: string;
-  primaryColor: string;
-  layerText: { sceneId: string; layerId: string; content: string };
-  aspectRatio: MotionProject["aspectRatio"];
-  projectJson: unknown;
-  animationPreset: { sceneId: string; layerId: string; preset: string };
-}>;
-
-export type ChatMessage = {
-  id: string;
-  role: ChatRole;
-  content: string;
-  pendingPatch?: ProjectPatch;
-};
+export type SceneRole = "hook" | "pain" | "benefit" | "demo" | "offer" | "cta" | "logo";
 
 type EditorState = {
   project: MotionProject | null;
   selectedSceneId: string | null;
-  selectedLayerId: string | null;
-  messages: ChatMessage[];
+  selectedNodeId: string | null;
+  sceneClipboard: MotionScene | null;
   isExporting: boolean;
+  activeSidebarTab: string;
+  sidebarOpen: boolean;
   loadProject: (project: MotionProject) => void;
   selectScene: (sceneId: string) => void;
-  selectLayer: (layerId: string | null) => void;
-  updateBrand: (patch: Partial<MotionProject["brand"]>) => void;
+  selectNode: (nodeId: string | null) => void;
+  setActiveSidebarTab: (tab: string) => void;
+  setSidebarOpen: (open: boolean) => void;
+  toggleSidebar: () => void;
+  updateBrand: (patch: Partial<MotionProject["metadata"]["brand"]>) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
-  updateLayerContent: (sceneId: string, layerId: string, content: string) => void;
-  updateLayerPosition: (
-    sceneId: string,
-    layerId: string,
-    pos: { x?: number; y?: number },
-  ) => void;
-  updateLayerAnimation: (
-    sceneId: string,
-    layerId: string,
-    patch: { preset?: string; duration?: number; delay?: number },
-  ) => void;
-  setAspectRatio: (aspectRatio: MotionProject["aspectRatio"]) => void;
-  sendChat: (text: string) => void;
-  applyPatch: (messageId: string) => void;
-  dismissPatch: (messageId: string) => void;
+  updateNodeText: (sceneId: string, nodeId: string, text: string) => void;
+  updateNodePosition: (sceneId: string, nodeId: string, position: { x?: number; y?: number }) => void;
+  updateNodeAnimation: (sceneId: string, nodeId: string, patch: { presetId?: string; duration?: number; at?: number }) => void;
+  setAspectRatio: (aspectRatio: AspectRatio) => void;
+  copyScene: (sceneId: string) => void;
+  cutScene: (sceneId: string) => void;
+  pasteScene: (afterSceneId: string) => void;
+  duplicateScene: (sceneId: string) => void;
+  renameScene: (sceneId: string, role: SceneRole) => void;
+  deleteScene: (sceneId: string) => void;
   setExporting: (value: boolean) => void;
 };
 
-function uid(prefix: string) {
+function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function findTextLayer(scene: Scene): Layer | undefined {
-  return scene.layers.find((l) => l.type === "text");
+export function nodeText(node: MotionNode | undefined): string {
+  return node?.type === "text" && typeof node.payload?.text === "string" ? node.payload.text : "";
 }
 
-function mapLayer(
+function firstEditableNode(scene: MotionScene | undefined): MotionNode | undefined {
+  return scene?.nodes.find((node) => node.type !== "camera");
+}
+
+function updateVariable(project: MotionProject, id: string, value: string): MotionProject["variables"] {
+  return project.variables.map((variable) => {
+    if (variable.id !== id) return variable;
+    if (variable.type === "string" || variable.type === "color") return { ...variable, value };
+    return variable;
+  });
+}
+
+function mapNode(
   project: MotionProject,
   sceneId: string,
-  layerId: string,
-  map: (l: Layer) => Layer,
+  nodeId: string,
+  transform: (node: MotionNode) => MotionNode,
 ): MotionProject {
   return {
     ...project,
-    scenes: project.scenes.map((s) =>
-      s.id !== sceneId
-        ? s
-        : {
-            ...s,
-            layers: s.layers.map((l) => (l.id === layerId ? map(l) : l)),
-          },
-    ),
+    scenes: project.scenes.map((scene) => scene.id === sceneId
+      ? { ...scene, nodes: scene.nodes.map((node) => node.id === nodeId ? transform(node) : node) }
+      : scene),
   };
 }
 
-function proposeChatPatch(
-  text: string,
-  project: MotionProject | null,
-  selectedSceneId: string | null,
-  selectedLayerId: string | null,
-): { reply: string; pendingPatch?: ProjectPatch } {
-  const lower = text.toLowerCase();
-  const colorMatch = text.match(/#([0-9a-fA-F]{3,8})\b/);
-
-  if (colorMatch || lower.includes("màu")) {
-    const color = colorMatch ? `#${colorMatch[1]}` : "#1A5D3A";
-    return {
-      reply: `Đề xuất đổi màu brand thành ${color}. Bấm Áp dụng.`,
-      pendingPatch: { primaryColor: color },
-    };
-  }
-
-  if (lower.includes("cta") || lower.includes("gọi")) {
-    const scene =
-      project?.scenes.find((s) => s.role === "cta") ??
-      project?.scenes[project.scenes.length - 1];
-    const layer = scene ? findTextLayer(scene) : undefined;
-    if (scene && layer) {
-      const content =
-        text.replace(/^(đổi\s*)?(cta|chữ)?\s*[:=-]?\s*/i, "").trim() ||
-        "Gọi ngay hôm nay";
-      return {
-        reply: `Đề xuất đổi chữ CTA thành «${content}».`,
-        pendingPatch: {
-          layerText: { sceneId: scene.id, layerId: layer.id, content },
-        },
-      };
-    }
-  }
-
-  if (lower.includes("16:9") || lower.includes("ngang")) {
-    return {
-      reply: "Đề xuất đổi khung hình sang 16:9.",
-      pendingPatch: { aspectRatio: "16:9" },
-    };
-  }
-
-  if (
-    lower.includes("9:16") ||
-    lower.includes("dọc") ||
-    lower.includes("tiktok")
-  ) {
-    return {
-      reply: "Đề xuất đổi khung hình sang 9:16.",
-      pendingPatch: { aspectRatio: "9:16" },
-    };
-  }
-
-  if (lower.includes("tên") || lower.includes("brand")) {
-    const name =
-      text.replace(/.*(tên|brand)\s*[:=-]?\s*/i, "").trim() ||
-      project?.brand.name ||
-      "Brand";
-    return {
-      reply: `Đề xuất đổi tên brand thành «${name}».`,
-      pendingPatch: { brandName: name },
-    };
-  }
-
-  const jsonFence = text.match(/```(?:json|mt)?\s*([\s\S]*?)```/i);
-  const rawJson =
-    jsonFence?.[1]?.trim() ??
-    (text.trim().startsWith("{") ? text.trim() : null);
-  if (rawJson && project) {
-    try {
-      const parsed = JSON.parse(rawJson) as unknown;
-      const brandPatch =
-        typeof parsed === "object" &&
-        parsed !== null &&
-        "brand" in parsed &&
-        typeof (parsed as { brand: unknown }).brand === "object" &&
-        (parsed as { brand: unknown }).brand !== null
-          ? ((parsed as { brand: Record<string, unknown> }).brand)
-          : {};
-      const merged = {
-        ...project,
-        ...(typeof parsed === "object" && parsed !== null
-          ? (parsed as object)
-          : {}),
-        id: project.id,
-        version: 1 as const,
-        brand: { ...project.brand, ...brandPatch },
-      };
-      const validated = parseMotionProject(merged);
-      const check = validateMotionProjectPresets(validated);
-      if (!check.ok) {
-        return {
-          reply: `JSON gần đúng nhưng preset lạ: ${check.unknown
-            .map((u) => u.preset)
-            .join(", ")}`,
-        };
-      }
-      return {
-        reply:
-          "Đề xuất áp dụng patch JSON vào project (Zod + registry OK). Bấm Áp dụng.",
-        pendingPatch: { projectJson: validated },
-      };
-    } catch (err) {
-      return {
-        reply: `JSON không parse được: ${
-          err instanceof Error ? err.message : "lỗi"
-        }`,
-      };
-    }
-  }
-
-  const presetMatch = text.match(
-    /(?:preset|animation|hiệu ứng)\s*[:=]?\s*([a-z0-9\-]+)/i,
-  );
-  if (presetMatch && selectedSceneId && selectedLayerId) {
-    return {
-      reply: `Đề xuất đổi animation thành «${presetMatch[1]}».`,
-      pendingPatch: {
-        animationPreset: {
-          sceneId: selectedSceneId,
-          layerId: selectedLayerId,
-          preset: presetMatch[1]!,
-        },
-      },
-    };
-  }
-
-  if (lower.includes("chậm") && project && selectedSceneId && selectedLayerId) {
-    const layer = project.scenes
-      .find((s) => s.id === selectedSceneId)
-      ?.layers.find((l) => l.id === selectedLayerId);
-    const cur = layer?.animations[0]?.duration ?? 0.6;
-    const next = mapLayer(project, selectedSceneId, selectedLayerId, (l) => ({
-      ...l,
-      animations:
-        l.animations.length > 0
-          ? l.animations.map((a, i) =>
-              i === 0 ? { ...a, duration: cur + 0.4 } : a,
-            )
-          : [{ preset: "fade-up", start: 0, duration: cur + 0.4 }],
-    }));
-    return {
-      reply: `Đề xuất tăng duration lên ${(cur + 0.4).toFixed(1)}s.`,
-      pendingPatch: { projectJson: next },
-    };
-  }
-
+function cloneScene(scene: MotionScene): MotionScene {
+  const sceneId = uid("scene");
+  const nodeIds = new Map(scene.nodes.map((node) => [node.id, uid("node")]));
+  const clipIds = new Map(scene.clips.map((clip) => [clip.id, uid("clip")]));
   return {
-    reply:
-      "Thử: đổi màu #hex, CTA, tỉ lệ, tên brand — hoặc dán ```json``` (.mt) để patch.",
+    ...structuredClone(scene),
+    id: sceneId,
+    name: `${scene.name ?? scene.id} copy`,
+    nodes: scene.nodes.map((node) => ({
+      ...structuredClone(node),
+      id: nodeIds.get(node.id)!,
+      parentId: node.parentId ? nodeIds.get(node.parentId) ?? null : null,
+      mask: node.mask
+        ? { ...node.mask, sourceNodeId: nodeIds.get(node.mask.sourceNodeId) ?? node.mask.sourceNodeId }
+        : undefined,
+    })),
+    clips: scene.clips.map((clip) => ({
+      ...structuredClone(clip),
+      id: clipIds.get(clip.id)!,
+      targetId: clip.targetId ? nodeIds.get(clip.targetId) : undefined,
+      schedule: clip.schedule.kind === "absolute"
+        ? clip.schedule
+        : { ...clip.schedule, clipId: clipIds.get(clip.schedule.clipId) ?? clip.schedule.clipId },
+      source: clip.source.kind === "tracks"
+        ? { ...clip.source, tracks: clip.source.tracks.map((track) => ({ ...track, targetId: nodeIds.get(track.targetId) ?? track.targetId })) }
+        : clip.source,
+    })),
   };
+}
+
+function insertAfter<T extends { id: string }>(items: T[], afterId: string, item: T): T[] {
+  const index = items.findIndex((candidate) => candidate.id === afterId);
+  if (index < 0) return [...items, item];
+  const next = [...items];
+  next.splice(index + 1, 0, item);
+  return next;
+}
+
+function insertOrder(order: string[], afterId: string, id: string): string[] {
+  const index = order.indexOf(afterId);
+  if (index < 0) return [...order, id];
+  const next = [...order];
+  next.splice(index + 1, 0, id);
+  return next;
 }
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
   selectedSceneId: null,
-  selectedLayerId: null,
-  messages: [
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Mình đã tải timeline. Đổi chữ/màu, dán JSON ```json```, hoặc Xuất MP4.",
-    },
-  ],
+  selectedNodeId: null,
+  sceneClipboard: null,
   isExporting: false,
+  activeSidebarTab: "frame",
+  sidebarOpen: true,
 
-  loadProject: (project) => {
-    const firstScene = project.scenes[0];
-    const firstLayer = firstScene?.layers[0];
-    set({
-      project,
-      selectedSceneId: firstScene?.id ?? null,
-      selectedLayerId: firstLayer?.id ?? null,
-      messages: [
-        {
-          id: "welcome",
-          role: "assistant",
-          content: `Đã mở «${project.brand.name}» · ${project.scenes.length} scene.`,
-        },
-      ],
-    });
+  loadProject: (input) => {
+    const project = parseMotionProject(input);
+    const firstScene = project.scenes.find((scene) => scene.id === project.timeline.sceneOrder[0]) ?? project.scenes[0];
+    set({ project, selectedSceneId: firstScene?.id ?? null, selectedNodeId: firstEditableNode(firstScene)?.id ?? null });
   },
 
   selectScene: (sceneId) => {
-    const project = get().project;
-    const scene = project?.scenes.find((s) => s.id === sceneId);
-    set({
-      selectedSceneId: sceneId,
-      selectedLayerId: scene?.layers[0]?.id ?? null,
-    });
+    const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
+    set({ selectedSceneId: sceneId, selectedNodeId: firstEditableNode(scene)?.id ?? null });
   },
 
-  selectLayer: (layerId) => set({ selectedLayerId: layerId }),
+  selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
+  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab, sidebarOpen: true }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
   updateBrand: (patch) => {
     const project = get().project;
     if (!project) return;
-    set({
-      project: { ...project, brand: { ...project.brand, ...patch } },
-    });
+    const brand = { ...project.metadata.brand, ...patch };
+    let variables = project.variables;
+    if (patch.name !== undefined) variables = updateVariable({ ...project, variables }, "project.brandName", patch.name);
+    if (patch.primaryColor !== undefined) variables = updateVariable({ ...project, variables }, "project.primaryColor", patch.primaryColor);
+    set({ project: { ...project, metadata: { ...project.metadata, name: patch.name ?? project.metadata.name, brand }, variables } });
   },
 
   updateSceneDuration: (sceneId, duration) => {
     const project = get().project;
     if (!project) return;
-    set({
-      project: {
-        ...project,
-        scenes: project.scenes.map((s) =>
-          s.id === sceneId ? { ...s, duration: Math.max(0.5, duration) } : s,
-        ),
-      },
-    });
+    set({ project: { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, duration: Math.max(0.5, duration) } : scene) } });
   },
 
-  updateLayerContent: (sceneId, layerId, content) => {
+  updateNodeText: (sceneId, nodeId, text) => {
     const project = get().project;
     if (!project) return;
-    set({
-      project: mapLayer(project, sceneId, layerId, (l) => ({ ...l, content })),
-    });
+    set({ project: mapNode(project, sceneId, nodeId, (node) => node.type === "text"
+      ? { ...node, payload: { ...node.payload, text } }
+      : node) });
   },
 
-  updateLayerPosition: (sceneId, layerId, pos) => {
+  updateNodePosition: (sceneId, nodeId, position) => {
     const project = get().project;
     if (!project) return;
-    set({
-      project: mapLayer(project, sceneId, layerId, (l) => ({
-        ...l,
-        x: pos.x ?? l.x,
-        y: pos.y ?? l.y,
-      })),
-    });
+    set({ project: mapNode(project, sceneId, nodeId, (node) => ({
+      ...node,
+      transform: { ...node.transform, x: position.x ?? node.transform.x, y: position.y ?? node.transform.y },
+    })) });
   },
 
-  updateLayerAnimation: (sceneId, layerId, patch) => {
+  updateNodeAnimation: (sceneId, nodeId, patch) => {
     const project = get().project;
     if (!project) return;
-    set({
-      project: mapLayer(project, sceneId, layerId, (l) => {
-        const animations =
-          l.animations.length > 0
-            ? l.animations.map((a, i) =>
-                i === 0
-                  ? {
-                      ...a,
-                      ...(patch.preset !== undefined
-                        ? { preset: patch.preset }
-                        : {}),
-                      ...(patch.duration !== undefined
-                        ? { duration: Math.max(0.1, patch.duration) }
-                        : {}),
-                      ...(patch.delay !== undefined
-                        ? { delay: Math.max(0, patch.delay) }
-                        : {}),
-                    }
-                  : a,
-              )
-            : [
-                {
-                  preset: patch.preset ?? "fade-in",
-                  start: 0,
-                  duration: patch.duration ?? 0.6,
-                  delay: patch.delay ?? 0,
-                },
-              ];
-        return { ...l, animations };
+    set({ project: {
+      ...project,
+      scenes: project.scenes.map((scene) => {
+        if (scene.id !== sceneId) return scene;
+        const existing = scene.clips.find((clip) => clip.targetId === nodeId && clip.source.kind === "preset");
+        if (!existing) {
+          return {
+            ...scene,
+            clips: [...scene.clips, {
+              id: uid("clip"),
+              targetId: nodeId,
+              schedule: { kind: "absolute", at: Math.max(0, patch.at ?? 0) },
+              duration: Math.max(0.1, patch.duration ?? 0.6),
+              playback: { iterations: 1, direction: "normal", rate: 1 },
+              source: { kind: "preset", presetId: patch.presetId ?? "fade-in" },
+            }],
+          };
+        }
+        return {
+          ...scene,
+          clips: scene.clips.map((clip) => clip.id !== existing.id ? clip : {
+            ...clip,
+            schedule: patch.at !== undefined ? { kind: "absolute" as const, at: Math.max(0, patch.at) } : clip.schedule,
+            duration: patch.duration !== undefined ? Math.max(0.1, patch.duration) : clip.duration,
+            source: clip.source.kind === "preset" && patch.presetId !== undefined
+              ? { ...clip.source, presetId: patch.presetId }
+              : clip.source,
+          }),
+        };
       }),
-    });
+    } });
   },
 
   setAspectRatio: (aspectRatio) => {
     const project = get().project;
+    if (project) set({ project: { ...project, metadata: { ...project.metadata, aspectRatio } } });
+  },
+
+  copyScene: (sceneId) => {
+    const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
+    if (scene) set({ sceneClipboard: structuredClone(scene) });
+  },
+
+  cutScene: (sceneId) => {
+    if ((get().project?.scenes.length ?? 0) <= 1) return;
+    get().copyScene(sceneId);
+    get().deleteScene(sceneId);
+  },
+
+  pasteScene: (afterSceneId) => {
+    const { project, sceneClipboard } = get();
+    if (!project || !sceneClipboard) return;
+    const scene = cloneScene(sceneClipboard);
+    set({
+      project: {
+        ...project,
+        scenes: insertAfter(project.scenes, afterSceneId, scene),
+        timeline: { ...project.timeline, sceneOrder: insertOrder(project.timeline.sceneOrder, afterSceneId, scene.id) },
+      },
+      selectedSceneId: scene.id,
+      selectedNodeId: firstEditableNode(scene)?.id ?? null,
+    });
+  },
+
+  duplicateScene: (sceneId) => {
+    const project = get().project;
+    const source = project?.scenes.find((scene) => scene.id === sceneId);
+    if (!project || !source) return;
+    const scene = cloneScene(source);
+    set({
+      project: {
+        ...project,
+        scenes: insertAfter(project.scenes, sceneId, scene),
+        timeline: { ...project.timeline, sceneOrder: insertOrder(project.timeline.sceneOrder, sceneId, scene.id) },
+      },
+      selectedSceneId: scene.id,
+      selectedNodeId: firstEditableNode(scene)?.id ?? null,
+    });
+  },
+
+  renameScene: (sceneId, role) => {
+    const project = get().project;
     if (!project) return;
-    set({ project: { ...project, aspectRatio } });
+    set({ project: { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, name: role, semantic: { role, tags: [] } } : scene) } });
   },
 
-  sendChat: (text) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
-    const { reply, pendingPatch } = proposeChatPatch(
-      trimmed,
-      get().project,
-      get().selectedSceneId,
-      get().selectedLayerId,
-    );
+  deleteScene: (sceneId) => {
+    const project = get().project;
+    if (!project || project.scenes.length <= 1) return;
+    const scenes = project.scenes.filter((scene) => scene.id !== sceneId);
+    const sceneOrder = project.timeline.sceneOrder.filter((id) => id !== sceneId);
+    const next = scenes.find((scene) => scene.id === sceneOrder[0]) ?? scenes[0];
+    if (!next) return;
     set({
-      messages: [
-        ...get().messages,
-        { id: uid("u"), role: "user", content: trimmed },
-        {
-          id: uid("a"),
-          role: "assistant",
-          content: reply,
-          pendingPatch,
-        },
-      ],
-    });
-  },
-
-  applyPatch: (messageId) => {
-    const msg = get().messages.find((m) => m.id === messageId);
-    const patch = msg?.pendingPatch;
-    if (!patch) return;
-
-    if (patch.projectJson) {
-      try {
-        const validated = parseMotionProject(patch.projectJson);
-        const check = validateMotionProjectPresets(validated);
-        if (!check.ok) return;
-        set({ project: validated });
-      } catch {
-        return;
-      }
-    }
-    if (patch.primaryColor) {
-      get().updateBrand({ primaryColor: patch.primaryColor });
-    }
-    if (patch.brandName) get().updateBrand({ name: patch.brandName });
-    if (patch.aspectRatio) get().setAspectRatio(patch.aspectRatio);
-    if (patch.layerText) {
-      get().updateLayerContent(
-        patch.layerText.sceneId,
-        patch.layerText.layerId,
-        patch.layerText.content,
-      );
-      get().selectScene(patch.layerText.sceneId);
-    }
-    if (patch.animationPreset) {
-      get().updateLayerAnimation(
-        patch.animationPreset.sceneId,
-        patch.animationPreset.layerId,
-        { preset: patch.animationPreset.preset },
-      );
-    }
-
-    set({
-      messages: get().messages.map((m) =>
-        m.id === messageId
-          ? {
-              ...m,
-              pendingPatch: undefined,
-              content: `${m.content}\n\n✓ Đã áp dụng vào timeline.`,
-            }
-          : m,
-      ),
-    });
-  },
-
-  dismissPatch: (messageId) => {
-    set({
-      messages: get().messages.map((m) =>
-        m.id === messageId ? { ...m, pendingPatch: undefined } : m,
-      ),
+      project: {
+        ...project,
+        scenes,
+        timeline: { ...project.timeline, sceneOrder },
+        bindings: project.bindings.filter((binding) => binding.target.sceneId !== sceneId),
+      },
+      selectedSceneId: next.id,
+      selectedNodeId: firstEditableNode(next)?.id ?? null,
     });
   },
 
   setExporting: (value) => set({ isExporting: value }),
 }));
+
+export function validateEditorProject(project: MotionProject): MotionProject {
+  const parsed = parseMotionProject(project);
+  const presets = validateMotionProjectPresets(parsed);
+  if (!presets.ok) throw new Error(`Unknown presets: ${presets.unknown.map((item) => item.preset).join(", ")}`);
+  return parsed;
+}

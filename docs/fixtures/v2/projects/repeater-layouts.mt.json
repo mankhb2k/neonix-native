@@ -1,0 +1,16 @@
+{
+  "format": "motion-project", "formatVersion": 2,
+  "metadata": { "id": "fixture.repeater-layouts", "name": "Repeater vNext compiler expansion", "aspectRatio": "1:1", "fps": 30, "locale": "vi-VN", "brand": { "name": "Repeater fixture", "primaryColor": "#101828" } },
+  "dependencies": { "components": [{ "componentId": "comp.repeater-layouts", "version": "1.0.0", "source": "registry.main", "integrity": "sha256-fixture-repeater-layouts-1.0.0" }] },
+  "assets": [], "variables": [], "timeline": { "sceneOrder": ["scene.repeater"], "audioTracks": [] },
+  "scenes": [{
+    "id": "scene.repeater", "duration": 2,
+    "nodes": [{
+      "id": "repeater.demo", "type": "component", "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 1080, "height": 1080, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "componentId": "comp.repeater-layouts", "componentVersion": "1.0.0", "props": {} }
+    }],
+    "clips": []
+  }],
+  "bindings": [], "extensions": { "constraints": [], "events": [] }
+}

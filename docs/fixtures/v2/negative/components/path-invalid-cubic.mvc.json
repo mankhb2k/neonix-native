@@ -1,0 +1,19 @@
+{
+  "format": "motion-component", "formatVersion": 2,
+  "componentId": "negative.path-invalid-cubic", "componentVersion": "1.0.0",
+  "metadata": { "name": "Cubic requires both controls" },
+  "assets": [], "variables": [], "publicAPI": [],
+  "nodes": [{
+    "id": "path", "type": "path", "parentId": null,
+    "transform": { "x": 0, "y": 0, "width": 100, "height": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+    "payload": {
+      "fillRule": "nonzero",
+      "contours": [{
+        "id": "broken", "start": { "x": 0, "y": 0 }, "closed": false,
+        "segments": [{ "kind": "cubic", "control1": { "x": 10, "y": 20 }, "to": { "x": 100, "y": 100 } }]
+      }]
+    },
+    "style": { "stroke": "#ffffff", "strokeWidth": 1 }
+  }],
+  "bindings": [], "clips": []
+}

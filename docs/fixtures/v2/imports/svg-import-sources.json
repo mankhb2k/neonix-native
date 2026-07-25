@@ -1,0 +1,30 @@
+{
+  "fixture": "svg-import-sources",
+  "description": "Raw SVG exports used to test sanitization, flat-path grouping, source mapping and re-import reconciliation.",
+  "sources": [
+    {
+      "id": "source.character.flat",
+      "uri": "assets/character.svg",
+      "origin": "svg",
+      "expected": { "groups": 2, "paths": 53, "masks": 2, "semanticPartGroups": false }
+    },
+    {
+      "id": "source.character.figma.1",
+      "uri": "assets/figma-export1.svg",
+      "origin": "figma",
+      "expected": { "groups": 3, "paths": 70, "masks": 3, "semanticPartGroups": false }
+    },
+    {
+      "id": "source.character.figma.2",
+      "uri": "assets/figma-export2.svg",
+      "origin": "figma",
+      "expected": { "groups": 4, "paths": 56, "masks": 4, "semanticPartGroups": false }
+    },
+    {
+      "id": "source.character.illustrator",
+      "uri": "assets/adobe-illustrator-export-character.svg",
+      "origin": "adobe-illustrator",
+      "expected": { "groups": 2, "paths": 36, "masks": 0, "semanticPartGroups": false }
+    }
+  ]
+}

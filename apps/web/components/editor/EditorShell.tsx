@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { LeftSidebar } from "./LeftSidebar";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./PreviewStage";
 import { RightDock } from "./RightDock";
 import { Timeline } from "./Timeline";
@@ -17,7 +18,8 @@ type Props = {
 export function EditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
-  const [toolsOpen, setToolsOpen] = useState(true);
+  const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
+  const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
 
   useEffect(() => {
     loadProject(initialProject);
@@ -29,35 +31,57 @@ export function EditorShell({ initialProject }: Props) {
   }, [project]);
 
   return (
-    <div className={`mv-editor${toolsOpen ? "" : " is-tools-collapsed"}`}>
+    <div
+      className={`grid h-screen w-screen overflow-hidden bg-[var(--bg-base)] text-[var(--fg)] relative transition-[grid-template-columns] duration-200 ease-out ${
+        sidebarOpen
+          ? "grid-rows-[74px_1fr_240px] grid-cols-[320px_1fr_320px]"
+          : "grid-rows-[74px_1fr_240px] grid-cols-[0px_1fr_320px]"
+      }`}
+      style={{
+        gridTemplateAreas: `
+          "header header header"
+          "sidebar stage rightdock"
+          "timeline timeline timeline"
+        `
+      }}
+    >
       <TopBar />
       
-      <LeftSidebar />
-      
+      <Sidebar />
+
       <button
         type="button"
-        className="mv-tools-edge-toggle"
-        onClick={() => setToolsOpen((open) => !open)}
-        aria-label={toolsOpen ? "Thu gọn panel phụ" : "Mở panel phụ"}
-        aria-expanded={toolsOpen}
-        title={toolsOpen ? "Thu gọn" : "Mở rộng"}
+        className={`absolute top-[80px] z-30 flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[var(--bg-panel)] border border-[var(--line-strong)] text-[var(--fg-muted)] hover:text-[var(--fg)] hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] shadow-sm transition-all duration-200 ease-out cursor-pointer ${
+          sidebarOpen ? "left-[328px]" : "left-[12px]"
+        }`}
+        onClick={toggleSidebar}
+        aria-label={sidebarOpen ? "Thu gọn sidebar" : "Mở rộng sidebar"}
+        title={sidebarOpen ? "Thu gọn" : "Mở rộng"}
       >
-        <span className="mv-tools-edge-toggle-chevron" aria-hidden>
-          {toolsOpen ? "‹" : "›"}
-        </span>
+        {sidebarOpen ? (
+          <PanelLeftClose size={14} strokeWidth={1.5} />
+        ) : (
+          <PanelLeftOpen size={14} strokeWidth={1.5} />
+        )}
       </button>
 
-      <main className="canvas-area" style={{ gridArea: 'stage', backgroundColor: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundImage: 'radial-gradient(#27272A 1px, transparent 1px)', backgroundSize: '20px 20px', overflow: 'hidden' }}>
+      <main 
+        className="relative flex items-center justify-center overflow-hidden bg-[var(--bg-base)] [grid-area:stage]" 
+        style={{ 
+          backgroundImage: 'radial-gradient(#27272A 1px, transparent 1px)', 
+          backgroundSize: '20px 20px' 
+        }}
+      >
         <PreviewStage />
       </main>
 
       <RightDock />
       
-      <div className="mv-timeline-area">
+      <div className="col-span-full flex flex-col overflow-hidden border-t border-[var(--line)] bg-[var(--bg-panel)] [grid-area:timeline]">
         <Timeline />
       </div>
       {!project ? (
-        <div className="mv-editor-loading">Đang tải editor…</div>
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-sm">Đang tải editor…</div>
       ) : null}
     </div>
   );

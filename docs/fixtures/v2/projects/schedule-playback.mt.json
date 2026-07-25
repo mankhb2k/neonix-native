@@ -1,0 +1,29 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": { "id": "fixture.schedule-playback", "name": "Schedule and Playback", "aspectRatio": "1:1", "fps": 30, "locale": "vi-VN", "brand": { "name": "Playback fixture", "primaryColor": "#111111" } },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene.playback"], "audioTracks": [] },
+  "scenes": [{
+    "id": "scene.playback",
+    "duration": 3,
+    "nodes": [
+      { "id": "normal", "type": "shape", "parentId": null, "transform": { "x": 0, "y": 80, "width": 40, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#ef4444" } },
+      { "id": "reverse", "type": "shape", "parentId": null, "transform": { "x": 0, "y": 180, "width": 40, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#3b82f6" } },
+      { "id": "alternate", "type": "shape", "parentId": null, "transform": { "x": 0, "y": 280, "width": 40, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#22c55e" } },
+      { "id": "scheduled", "type": "shape", "parentId": null, "transform": { "x": 0, "y": 380, "width": 40, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#f59e0b" } },
+      { "id": "infinite", "type": "shape", "parentId": null, "transform": { "x": 0, "y": 480, "width": 40, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#a855f7" } }
+    ],
+    "clips": [
+      { "id": "normal-loop", "targetId": "normal", "schedule": { "kind": "absolute", "at": 0 }, "duration": 1, "playback": { "iterations": 2, "direction": "normal", "rate": 2 }, "source": { "kind": "tracks", "tracks": [{ "targetId": "normal", "property": "transform.x", "keys": [{ "t": 0, "v": 0 }, { "t": 1, "v": 100, "easing": "linear" }] }] } },
+      { "id": "reverse-once", "targetId": "reverse", "schedule": { "kind": "absolute", "at": 0 }, "duration": 1, "playback": { "iterations": 1, "direction": "reverse", "rate": 1 }, "source": { "kind": "tracks", "tracks": [{ "targetId": "reverse", "property": "transform.x", "keys": [{ "t": 0, "v": 0 }, { "t": 1, "v": 100, "easing": "linear" }] }] } },
+      { "id": "alternate-loop", "targetId": "alternate", "schedule": { "kind": "absolute", "at": 0 }, "duration": 1, "playback": { "iterations": 3, "direction": "alternate", "rate": 1.5 }, "source": { "kind": "tracks", "tracks": [{ "targetId": "alternate", "property": "transform.x", "keys": [{ "t": 0, "v": 0 }, { "t": 1, "v": 100, "easing": "linear" }] }] } },
+      { "id": "after-loop", "targetId": "scheduled", "schedule": { "kind": "after", "clipId": "normal-loop", "offset": 0 }, "duration": 0.5, "playback": { "iterations": 1, "direction": "normal", "rate": 1 }, "source": { "kind": "tracks", "tracks": [{ "targetId": "scheduled", "property": "transform.x", "keys": [{ "t": 0, "v": 10 }, { "t": 0.5, "v": 90, "easing": "linear" }] }] } },
+      { "id": "infinite-loop", "targetId": "infinite", "schedule": { "kind": "absolute", "at": 2.5 }, "duration": 1, "playback": { "iterations": "infinite", "direction": "alternate", "rate": 1 }, "source": { "kind": "tracks", "tracks": [{ "targetId": "infinite", "property": "transform.x", "keys": [{ "t": 0, "v": 0 }, { "t": 1, "v": 100, "easing": "linear" }] }] } }
+    ]
+  }],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

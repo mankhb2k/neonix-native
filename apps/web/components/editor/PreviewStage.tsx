@@ -1,72 +1,82 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { getBlockByPreset, resolvePresetId } from "@motionvideo/template-library";
-import type { Layer } from "@motionvideo/motion-schema";
+import { useMemo, useState } from "react";
+import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
+import type { MotionProject } from "@motionvideo/motion-schema";
+import { useEditorStore, nodeText } from "@/lib/store/editor-store";
+import {
+  matrixToCss,
+  previewParitySnapshot,
+  stageSizeForAspect,
+  type PreviewParityNode,
+} from "@/lib/runtime/preview-evaluate";
 
-function presetPreviewClass(preset: string | undefined): string {
-  if (!preset) return "mv-stage-layer-static";
-  const block = getBlockByPreset(resolvePresetId(preset));
-  if (block?.previewClass) return block.previewClass;
-  // Fallback for presets without a lab class
-  const id = resolvePresetId(preset);
-  return `mv-block-text-${id}`;
+function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
+  if (node.type === "text") {
+    const scene = project.scenes[0];
+    const authored = scene?.nodes.find((candidate) => candidate.id === node.id);
+    return nodeText(authored) || node.id;
+  }
+  if (node.type === "shape" || node.type === "path") return node.type;
+  if (node.type === "group" || node.type === "bone") return "";
+  return node.id;
 }
 
-function LayerPreview({
-  layer,
-  brandName,
-  playId,
-}: {
-  layer: Layer;
-  brandName: string;
-  playId: number;
-}) {
-  const anim = layer.animations[0];
-  const duration = anim?.duration ?? 0.6;
-  const delay = anim?.delay ?? 0;
-  const className = presetPreviewClass(anim?.preset);
-  const style: CSSProperties = {
-    animationDuration: `${duration}s`,
-    animationDelay: `${delay}s`,
-    transform: `translate(${layer.x}px, ${layer.y}px)`,
-  };
-
-  if (layer.type === "logo") {
-    return (
-      <div
-        key={`${layer.id}-${playId}`}
-        className={`mv-stage-layer mv-stage-layer-logo ${className}`}
-        style={style}
-        aria-label="Logo"
-      >
-        <span className="mv-stage-logo-mark">
-          {(brandName || "MV").slice(0, 2).toUpperCase()}
-        </span>
-      </div>
-    );
-  }
-
+function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: MotionProject }) {
+  if (!node.visible || node.worldOpacity <= 0) return null;
+  if (node.type === "group" || node.type === "bone" || node.type === "camera") return null;
+  const label = nodeLabel(node, project);
+  const width = Math.max(8, node.transform.width || node.worldBounds.width);
+  const height = Math.max(8, node.transform.height || node.worldBounds.height);
   return (
-    <p
-      key={`${layer.id}-${playId}`}
-      className={`mv-stage-layer mv-stage-layer-text ${className}`}
-      style={style}
+    <div
+      data-testid={`runtime-node-${node.id}`}
+      data-node-type={node.type}
+      data-world-x={node.worldOrigin.x.toFixed(4)}
+      data-world-y={node.worldOrigin.y.toFixed(4)}
+      data-world-opacity={node.worldOpacity.toFixed(4)}
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width,
+        height,
+        opacity: node.worldOpacity,
+        transform: matrixToCss(node.worldMatrix),
+        transformOrigin: "0 0",
+        pointerEvents: "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: node.type === "text" ? "flex-start" : "center",
+        color: "#f4f7fb",
+        fontSize: node.type === "text" ? 42 : 18,
+        fontWeight: 600,
+        background: node.type === "text" ? "transparent" : "rgba(255,255,255,0.12)",
+        border: node.type === "text" ? "none" : "1px solid rgba(255,255,255,0.35)",
+        boxSizing: "border-box",
+        padding: node.type === "text" ? "0 12px" : 0,
+        whiteSpace: "pre-wrap",
+      }}
     >
-      {layer.content || "…"}
-    </p>
+      {label}
+    </div>
   );
 }
 
 export function PreviewStage() {
-  const project = useEditorStore((s) => s.project);
-  const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
-  const [playId, setPlayId] = useState(0);
+  const project = useEditorStore((state) => state.project);
+  const selectedSceneId = useEditorStore((state) => state.selectedSceneId);
+  const [time, setTime] = useState(0);
 
-  useEffect(() => {
-    setPlayId((n) => n + 1);
-  }, [selectedSceneId]);
+  const compiled = useMemo(() => {
+    if (!project) return null;
+    try {
+      return compileMotionProject(project);
+    } catch {
+      return null;
+    }
+  }, [project]);
 
   if (!project) {
     return (
@@ -76,46 +86,74 @@ export function PreviewStage() {
     );
   }
 
-  const scene =
-    project.scenes.find((s) => s.id === selectedSceneId) ?? project.scenes[0];
-  const accent = project.brand.primaryColor ?? "#3f9a62";
+  const scene = project.scenes.find((candidate) => candidate.id === selectedSceneId) ?? project.scenes[0];
+  if (!scene) return null;
+  const brand = project.metadata.brand;
+  const accent = brand.primaryColor ?? "#3f9a62";
+  const fps = project.metadata.fps ?? 30;
+  const stage = stageSizeForAspect(project.metadata.aspectRatio);
+  const frame = quantizeTimeToFrame(Math.min(time, scene.duration), fps);
+  const snapshot = compiled
+    ? previewParitySnapshot(compiled, scene.id, frame.time)
+    : null;
 
   return (
     <div className="mv-preview-wrap">
       <div className="mv-preview-toolbar">
-        <button
-          type="button"
-          className="mv-btn mv-btn-ghost mv-btn-sm"
-          onClick={() => setPlayId((n) => n + 1)}
-        >
-          ▶ Phát lại
-        </button>
-        <span className="mv-pill">{scene.role ?? scene.id}</span>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+          t={frame.time.toFixed(2)}s
+          <input
+            type="range"
+            min={0}
+            max={scene.duration}
+            step={1 / fps}
+            value={frame.time}
+            onChange={(event) => setTime(Number(event.target.value))}
+            data-testid="preview-time-scrubber"
+          />
+        </label>
+        <span className="mv-pill">{scene.semantic?.role ?? scene.name ?? scene.id}</span>
+        <span className="mv-pill">{compiled ? "Runtime IR" : "compile error"}</span>
       </div>
       <div
         className="mv-stage"
-        data-ratio={project.aspectRatio}
-        style={
-          {
-            ["--stage-accent" as string]: accent,
-            background: accent,
-          } as CSSProperties
-        }
-        key={`${scene.id}-${playId}`}
+        data-ratio={project.metadata.aspectRatio}
+        data-testid="runtime-preview-stage"
+        style={{
+          ["--stage-accent" as string]: accent,
+          background: accent,
+          position: "relative",
+          overflow: "hidden",
+        }}
       >
         <div className="mv-stage-brand">
           <div className="mv-stage-logo" />
-          <span>{project.brand.name}</span>
+          <span>{brand.name}</span>
         </div>
-        <div className="mv-stage-layers">
-          {scene.layers.map((layer) => (
-            <LayerPreview
-              key={`${layer.id}-${playId}`}
-              layer={layer}
-              brandName={project.brand.name}
-              playId={playId}
-            />
-          ))}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            data-testid="runtime-preview-canvas"
+            style={{
+              position: "relative",
+              width: stage.width,
+              height: stage.height,
+              transform: "scale(0.25)",
+              transformOrigin: "center center",
+              background: "rgba(0,0,0,0.18)",
+            }}
+          >
+            {snapshot?.nodes.map((node) => (
+              <RuntimeLayer key={node.id} node={node} project={project} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

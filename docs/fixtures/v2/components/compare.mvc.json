@@ -1,0 +1,144 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "comp.compare",
+  "componentVersion": "1.0.0",
+  "metadata": {
+    "name": "Compare",
+    "nameVi": "So sánh 2 cột",
+    "description": "Left vs Right — giá / tính năng"
+  },
+  "variables": [
+    { "id": "var.leftTitle", "type": "string", "name": "Left Title", "value": "Gói Cơ bản" },
+    { "id": "var.rightTitle", "type": "string", "name": "Right Title", "value": "Gói Pro" },
+    { "id": "var.leftValue", "type": "string", "name": "Left Value", "value": "199K" },
+    { "id": "var.rightValue", "type": "string", "name": "Right Value", "value": "399K" },
+    { "id": "var.accentLeft", "type": "color", "name": "Left Accent", "value": "#64748B" },
+    { "id": "var.accentRight", "type": "color", "name": "Right Accent", "value": "#0F766E" }
+  ],
+  "publicAPI": [
+    { "id": "leftTitle", "type": "string", "variableId": "var.leftTitle", "semantic": { "role": "compare-left-title" } },
+    { "id": "rightTitle", "type": "string", "variableId": "var.rightTitle", "semantic": { "role": "compare-right-title" } },
+    { "id": "leftValue", "type": "string", "variableId": "var.leftValue", "semantic": { "role": "compare-left-value" } },
+    { "id": "rightValue", "type": "string", "variableId": "var.rightValue", "semantic": { "role": "compare-right-value" } },
+    { "id": "accentLeft", "type": "color", "variableId": "var.accentLeft" },
+    { "id": "accentRight", "type": "color", "variableId": "var.accentRight" }
+  ],
+  "nodes": [
+    {
+      "id": "root",
+      "type": "group",
+      "parentId": null,
+      "transform": {
+        "x": 0, "y": 0, "width": 1080, "height": 1920,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      }
+    },
+    {
+      "id": "left-card",
+      "type": "group",
+      "name": "Left",
+      "parentId": "root",
+      "semantic": { "role": "compare-left" },
+      "transform": {
+        "x": 60, "y": 600, "width": 440, "height": 520,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      }
+    },
+    {
+      "id": "left-title",
+      "type": "text",
+      "parentId": "left-card",
+      "semantic": { "role": "compare-left-title" },
+      "transform": {
+        "x": 24, "y": 40, "width": 392, "height": 48,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "payload": { "text": "Gói Cơ bản", "fontSize": 28, "align": "center" }
+    },
+    {
+      "id": "left-value",
+      "type": "text",
+      "parentId": "left-card",
+      "semantic": { "role": "compare-left-value" },
+      "transform": {
+        "x": 24, "y": 200, "width": 392, "height": 100,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "style": { "fill": "#64748B" },
+      "payload": { "text": "199K", "fontSize": 64, "align": "center", "fontWeight": 700 }
+    },
+    {
+      "id": "right-card",
+      "type": "group",
+      "name": "Right",
+      "parentId": "root",
+      "semantic": { "role": "compare-right" },
+      "transform": {
+        "x": 580, "y": 600, "width": 440, "height": 520,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      }
+    },
+    {
+      "id": "right-title",
+      "type": "text",
+      "parentId": "right-card",
+      "semantic": { "role": "compare-right-title" },
+      "transform": {
+        "x": 24, "y": 40, "width": 392, "height": 48,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "payload": { "text": "Gói Pro", "fontSize": 28, "align": "center" }
+    },
+    {
+      "id": "right-value",
+      "type": "text",
+      "parentId": "right-card",
+      "semantic": { "role": "compare-right-value" },
+      "transform": {
+        "x": 24, "y": 200, "width": 392, "height": 100,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "style": { "fill": "#0F766E" },
+      "payload": { "text": "399K", "fontSize": 64, "align": "center", "fontWeight": 700 }
+    }
+  ],
+  "bindings": [
+    { "id": "b1", "source": { "kind": "variable", "variableId": "var.leftTitle" }, "target": { "nodeId": "left-title", "property": "payload.text" } },
+    { "id": "b2", "source": { "kind": "variable", "variableId": "var.rightTitle" }, "target": { "nodeId": "right-title", "property": "payload.text" } },
+    { "id": "b3", "source": { "kind": "variable", "variableId": "var.leftValue" }, "target": { "nodeId": "left-value", "property": "payload.text" } },
+    { "id": "b4", "source": { "kind": "variable", "variableId": "var.rightValue" }, "target": { "nodeId": "right-value", "property": "payload.text" } },
+    { "id": "b5", "source": { "kind": "variable", "variableId": "var.accentLeft" }, "target": { "nodeId": "left-value", "property": "style.fill" } },
+    { "id": "b6", "source": { "kind": "variable", "variableId": "var.accentRight" }, "target": { "nodeId": "right-value", "property": "style.fill" } }
+  ],
+  "clips": [
+    {
+      "id": "clip.left-in",
+      "targetId": "left-card",
+      "schedule": { "kind": "absolute", "at": 0 },
+      "duration": 0.6,
+      "source": { "kind": "preset", "presetId": "fade-up" }
+    },
+    {
+      "id": "clip.right-in",
+      "targetId": "right-card",
+      "schedule": { "kind": "absolute", "at": 0.15 },
+      "duration": 0.6,
+      "source": { "kind": "preset", "presetId": "fade-up" }
+    }
+  ]
+}

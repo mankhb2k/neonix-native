@@ -1,0 +1,33 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "negative.font-asset-wrong-type",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "Font asset wrong type" },
+  "assets": [
+    {
+      "id": "asset.image",
+      "assetType": "image",
+      "uri": "assets/image-product.png",
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "mimeType": "image/png",
+      "width": 1000,
+      "height": 1000,
+      "pixelFormat": "rgb24",
+      "hasAlpha": false
+    }
+  ],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "title",
+      "type": "text",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 100, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "text": "Hi", "fontSize": 24, "fontAssetId": "asset.image" }
+    }
+  ],
+  "bindings": [],
+  "clips": []
+}

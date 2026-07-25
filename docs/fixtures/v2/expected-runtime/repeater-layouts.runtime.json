@@ -1,0 +1,572 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "fixture.repeater-layouts",
+    "name": "Repeater vNext compiler expansion",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Repeater fixture",
+      "primaryColor": "#101828"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.repeater"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.repeater",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "repeater.demo::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1080,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "repeater.demo::list-item::alpha",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 90,
+            "y": 100,
+            "width": 64,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#ef4444"
+          }
+        },
+        {
+          "id": "repeater.demo::list-item::beta",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 180,
+            "y": 100,
+            "width": 64,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#f97316"
+          }
+        },
+        {
+          "id": "repeater.demo::list-item::gamma",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 270,
+            "y": 100,
+            "width": 64,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#facc15"
+          }
+        },
+        {
+          "id": "repeater.demo::grid-item::cell-1",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 110,
+            "y": 300,
+            "width": 72,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "repeater.demo::grid-item::cell-2",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 220,
+            "y": 300,
+            "width": 72,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "repeater.demo::grid-item::cell-3",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 330,
+            "y": 300,
+            "width": 72,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "repeater.demo::grid-item::cell-4",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 110,
+            "y": 400,
+            "width": 72,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "repeater.demo::grid-item::cell-5",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 220,
+            "y": 400,
+            "width": 72,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "repeater.demo::grid-item::cell-6",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 330,
+            "y": 400,
+            "width": 72,
+            "height": 72,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "repeater.demo::radial-item::ray-1",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 870,
+            "y": 380,
+            "width": 36,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 18
+          },
+          "style": {
+            "fill": "#a855f7"
+          }
+        },
+        {
+          "id": "repeater.demo::radial-item::ray-2",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 752.5328890437411,
+            "y": 541.6796077701761,
+            "width": 36,
+            "height": 100,
+            "rotation": 72,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 18
+          },
+          "style": {
+            "fill": "#a855f7"
+          }
+        },
+        {
+          "id": "repeater.demo::radial-item::ray-3",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 562.4671109562589,
+            "y": 479.9234928897205,
+            "width": 36,
+            "height": 100,
+            "rotation": 144,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 18
+          },
+          "style": {
+            "fill": "#a855f7"
+          }
+        },
+        {
+          "id": "repeater.demo::radial-item::ray-4",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 562.4671109562589,
+            "y": 280.0765071102796,
+            "width": 36,
+            "height": 100,
+            "rotation": 216,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 18
+          },
+          "style": {
+            "fill": "#a855f7"
+          }
+        },
+        {
+          "id": "repeater.demo::radial-item::ray-5",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 752.5328890437411,
+            "y": 218.32039222982388,
+            "width": 36,
+            "height": 100,
+            "rotation": 288,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 18
+          },
+          "style": {
+            "fill": "#a855f7"
+          }
+        },
+        {
+          "id": "repeater.demo::none-item::overlay-1",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 220,
+            "y": 650,
+            "width": 180,
+            "height": 90,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 0.5,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 45
+          },
+          "style": {
+            "fill": "#3b82f6"
+          }
+        },
+        {
+          "id": "repeater.demo::none-item::overlay-2",
+          "type": "shape",
+          "parentId": "repeater.demo::root",
+          "transform": {
+            "x": 220,
+            "y": 650,
+            "width": 180,
+            "height": 90,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 0.5,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 45
+          },
+          "style": {
+            "fill": "#3b82f6"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "repeater.demo::grid-item::cell-1",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.4,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "repeater.demo::grid-item::cell-2",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.1,
+              "v": 0
+            },
+            {
+              "t": 0.5,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "repeater.demo::grid-item::cell-3",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.2,
+              "v": 0
+            },
+            {
+              "t": 0.6,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "repeater.demo::grid-item::cell-4",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.3,
+              "v": 0
+            },
+            {
+              "t": 0.7,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "repeater.demo::grid-item::cell-5",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.4,
+              "v": 0
+            },
+            {
+              "t": 0.8,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "repeater.demo::grid-item::cell-6",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.5,
+              "v": 0
+            },
+            {
+              "t": 0.9,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

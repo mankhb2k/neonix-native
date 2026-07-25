@@ -18,7 +18,7 @@ export async function processJob(rawProject: unknown): Promise<{
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {
     const detail = presetCheck.unknown
-      .map((u) => `${u.sceneId}/${u.layerId}:${u.preset}`)
+      .map((u) => `${u.sceneId}/${u.nodeId}:${u.preset}`)
       .join(", ");
     return {
       status: "failed",
@@ -27,8 +27,8 @@ export async function processJob(rawProject: unknown): Promise<{
   }
 
   const compiled = compileMotionProject(project);
-  const framesOrScene = await renderCompiledProject(compiled, project);
-  const files = await encodeOutputs(framesOrScene, project.aspectRatio);
+  const framesOrScene = await renderCompiledProject(compiled);
+  const files = await encodeOutputs(framesOrScene, project.metadata.aspectRatio, compiled);
   const urls = await uploadOutputs(files);
   return { status: "done", urls };
 }

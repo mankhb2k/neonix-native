@@ -1,7 +1,6 @@
 import { mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import {
   parseMotionProject,
@@ -12,23 +11,16 @@ import {
   validateMotionProjectPresets,
 } from "@motionvideo/template-library";
 import { compileMotionProject } from "./compiler";
-import { encodeOutputs } from "./ffmpeg";
+import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 import { uploadOutputs } from "./upload";
 
-const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
 
-function ffmpegBin(): string {
-  const bin = require("ffmpeg-static") as string | null;
-  if (!bin) throw new Error("ffmpeg-static binary missing");
-  return bin;
-}
-
 function probe(file: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const child = spawn(ffmpegBin(), ["-i", file], {
+    const child = spawn(resolveFfmpegPath(), ["-i", file], {
       stdio: ["ignore", "pipe", "pipe"],
     });
     let stderr = "";
@@ -49,7 +41,7 @@ async function main() {
 
   const project = parseMotionProject({
     ...template.project,
-    id: `e2e_${Date.now()}`,
+    metadata: { ...template.project.metadata, id: `e2e_${Date.now()}` },
   });
 
   const presetCheck = validateMotionProjectPresets(project);
@@ -61,25 +53,25 @@ async function main() {
 
   const mtDir = path.join(REPO_ROOT, "tmp");
   await mkdir(mtDir, { recursive: true });
-  const mtPath = path.join(mtDir, `${project.id}.mt`);
+  const mtPath = path.join(mtDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
   console.log(`[e2e] wrote ${mtPath}`);
 
   const compiled = compileMotionProject(project);
   console.log(
-    `[e2e] compiled ${compiled.sceneCount} scenes · ${compiled.totalDuration}s`,
+    `[e2e] compiled ${compiled.scenes.length} scenes · ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s`,
   );
 
-  const rendered = await renderCompiledProject(compiled, project, {
+  const rendered = await renderCompiledProject(compiled, {
     fps: 12,
     scale: 0.5,
-    outDir: path.join(REPO_ROOT, "tmp", "frames", project.id),
+    outDir: path.join(REPO_ROOT, "tmp", "frames", project.metadata.id),
   });
   console.log(
     `[e2e] rendered ${rendered.frameCount} frames @ ${rendered.fps}fps (${rendered.width}x${rendered.height})`,
   );
 
-  const files = await encodeOutputs(rendered, project.aspectRatio);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
   const urls = await uploadOutputs(files);
   const mp4 = files[0]!.path;
   const info = await stat(mp4);

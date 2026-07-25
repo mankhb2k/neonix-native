@@ -1,0 +1,35 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "p1.two-bone-ik",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "P1 two-bone IK reject" },
+  "assets": [],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "root",
+      "type": "bone",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "length": 40 },
+      "modifiers": [{ "id": "ik", "type": "two-bone-ik", "endEffectorId": "hand", "targetNodeId": "target", "bendDirection": 1 }]
+    },
+    {
+      "id": "hand",
+      "type": "bone",
+      "parentId": "root",
+      "transform": { "x": 40, "y": 0, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "length": 40 }
+    },
+    {
+      "id": "target",
+      "type": "group",
+      "parentId": null,
+      "transform": { "x": 50, "y": 10, "width": 0, "height": 0, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }
+    }
+  ],
+  "bindings": [],
+  "clips": []
+}

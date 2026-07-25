@@ -1,13 +1,16 @@
+@import "tailwindcss";
+
 :root {
   --bg: #0e0e10;
+  --bg-base: #0f0f11;
   --bg-elevated: #17171a;
-  --bg-panel: #121214;
-  --bg-hover: #1e1e22;
+  --bg-panel: #18181b;
+  --bg-hover: #27272a;
   --fg: #f0f0f2;
   --fg-muted: #a2a2ab;
   --fg-faint: #6f6f78;
-  --line: rgba(240, 240, 242, 0.08);
-  --line-strong: rgba(240, 240, 242, 0.14);
+  --line: #27272a;
+  --line-strong: #3f3f46;
   --accent: #3f9a62;
   --accent-soft: rgba(63, 154, 98, 0.16);
   --accent-text: #8fd4a8;
@@ -17,6 +20,68 @@
   --radius: 10px;
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
+
+  /* Type scale — dùng text-micro | text-caption | text-ui | text-body | text-title | … */
+
+  --fs-caption: 11px;
+  --fs-ui: 12px;
+  --fs-body: 13px;
+  --fs-title: 13px;
+  --fs-micro: 10px;
+  --fs-subtitle: 16px;
+  --fs-heading: 18px;
+  --fs-display: 24px;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  --lh-tight: 1.25;
+  --lh-normal: 1.4;
+}
+
+/* Light Theme Variables */
+[data-theme="light"],
+.light {
+  --bg: #ffffff;
+  --bg-base: #f4f4f5;
+  --bg-elevated: #f4f4f5;
+  --bg-panel: #f8f8fa;
+  --bg-hover: #e4e4e7;
+  --fg: #09090b;
+  --fg-muted: #71717a;
+  --fg-faint: #a1a1aa;
+  --line: rgba(9, 9, 11, 0.1);
+  --line-strong: rgba(9, 9, 11, 0.2);
+  --accent: #d9381e;
+  --accent-soft: rgba(217, 56, 30, 0.15);
+  --accent-text: #d9381e;
+  --preview-bg: #e4e4e7;
+}
+
+@theme inline {
+  --text-micro: var(--fs-micro);
+  --text-micro--line-height: var(--lh-tight);
+  --text-caption: var(--fs-caption);
+  --text-caption--line-height: var(--lh-tight);
+  --text-ui: var(--fs-ui);
+  --text-ui--line-height: var(--lh-normal);
+  --text-body: var(--fs-body);
+  --text-body--line-height: var(--lh-normal);
+  --text-title: var(--fs-title);
+  --text-title--line-height: var(--lh-normal);
+  --text-subtitle: var(--fs-subtitle);
+  --text-subtitle--line-height: var(--lh-normal);
+  --text-heading: var(--fs-heading);
+  --text-heading--line-height: var(--lh-tight);
+  --text-display: var(--fs-display);
+  --text-display--line-height: var(--lh-tight);
+
+  --font-weight-regular: var(--fw-regular);
+  --font-weight-medium: var(--fw-medium);
+  --font-weight-semibold: var(--fw-semibold);
+  --font-weight-bold: var(--fw-bold);
 }
 
 * {
@@ -28,47 +93,30 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--bg);
+  background: var(--bg-base);
   color: var(--fg);
   font-family: var(--font-sans);
+  font-size: var(--fs-ui);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-normal);
+  overflow: hidden;
 }
 
-a {
-  color: inherit;
+/* Custom Scrollbar for Webkit */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-  color: inherit;
+::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-code {
-  font-size: 0.9em;
-  opacity: 0.85;
+::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 4px;
 }
 
-.mv-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: none;
-  border-radius: 999px;
-  padding: 0.75rem 1.25rem;
-  cursor: pointer;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.mv-btn-primary {
-  background: var(--accent);
-  color: #fff;
-}
-
-.mv-btn-primary:hover {
-  background: #48a86e;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-muted);
 }

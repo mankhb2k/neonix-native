@@ -1,0 +1,151 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "comp.timeline-steps",
+  "componentVersion": "1.0.0",
+  "metadata": {
+    "name": "Timeline Steps",
+    "nameVi": "Các bước theo thời gian",
+    "description": "List bước lặp — kiểm thử repeat / item template (chưa auto-layout engine)"
+  },
+  "variables": [
+    {
+      "id": "var.steps",
+      "type": "list",
+      "name": "Steps",
+      "itemSchema": {
+        "type": "object",
+        "fields": {
+          "id": { "type": "string" },
+          "index": { "type": "string" },
+          "title": { "type": "string" },
+          "desc": { "type": "string" }
+        }
+      },
+      "value": [
+        { "id": "order", "index": "01", "title": "Đặt hàng", "desc": "Chọn món" },
+        { "id": "brew", "index": "02", "title": "Pha chế", "desc": "Barista" },
+        { "id": "deliver", "index": "03", "title": "Giao", "desc": "15 phút" }
+      ]
+    },
+    { "id": "var.accent", "type": "color", "name": "Accent", "value": "#D9381E" }
+  ],
+  "publicAPI": [
+    {
+      "id": "steps",
+      "type": "list",
+      "label": "Danh sách bước",
+      "variableId": "var.steps",
+      "semantic": { "role": "process-steps" }
+    },
+    { "id": "accent", "type": "color", "variableId": "var.accent", "semantic": { "role": "accent-color" } }
+  ],
+  "nodes": [
+    {
+      "id": "root",
+      "type": "group",
+      "parentId": null,
+      "transform": {
+        "x": 0, "y": 0, "width": 1080, "height": 1920,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      }
+    },
+    {
+      "id": "step-item-template",
+      "type": "group",
+      "name": "Step Item Template",
+      "parentId": "root",
+      "semantic": { "role": "list-item-template" },
+      "repeat": {
+        "source": { "kind": "list", "variableId": "var.steps", "keyPath": "id" },
+        "itemAlias": "item",
+        "indexAlias": "index",
+        "layout": { "kind": "linear", "offsetX": 0, "offsetY": 184 },
+        "timeStagger": 0.08
+      },
+      "transform": {
+        "x": 80, "y": 400, "width": 920, "height": 160,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      }
+    },
+    {
+      "id": "step-index",
+      "type": "text",
+      "parentId": "step-item-template",
+      "semantic": { "role": "step-index" },
+      "transform": {
+        "x": 0, "y": 20, "width": 80, "height": 80,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "style": { "fill": "#D9381E" },
+      "payload": { "text": "01", "fontSize": 40, "fontWeight": 700 }
+    },
+    {
+      "id": "step-title",
+      "type": "text",
+      "parentId": "step-item-template",
+      "semantic": { "role": "step-title" },
+      "transform": {
+        "x": 100, "y": 24, "width": 780, "height": 48,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "payload": { "text": "Đặt hàng", "fontSize": 32 }
+    },
+    {
+      "id": "step-desc",
+      "type": "text",
+      "parentId": "step-item-template",
+      "semantic": { "role": "step-desc" },
+      "transform": {
+        "x": 100, "y": 80, "width": 780, "height": 40,
+        "rotation": 0, "scaleX": 1, "scaleY": 1,
+        "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true,
+        "flipX": false, "flipY": false
+      },
+      "payload": { "text": "Chọn món", "fontSize": 22 }
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.accent",
+      "source": { "kind": "variable", "variableId": "var.accent" },
+      "target": { "nodeId": "step-index", "property": "style.fill" }
+    },
+    {
+      "id": "bind.index",
+      "source": { "kind": "context", "path": "item.index" },
+      "target": { "nodeId": "step-index", "property": "payload.text" }
+    },
+    {
+      "id": "bind.title",
+      "source": { "kind": "context", "path": "item.title" },
+      "target": { "nodeId": "step-title", "property": "payload.text" }
+    },
+    {
+      "id": "bind.desc",
+      "source": { "kind": "context", "path": "item.desc" },
+      "target": { "nodeId": "step-desc", "property": "payload.text" }
+    }
+  ],
+  "clips": [
+    {
+      "id": "clip.stagger",
+      "targetId": "step-item-template",
+      "schedule": { "kind": "absolute", "at": 0 },
+      "duration": 0.5,
+      "source": {
+        "kind": "preset",
+        "presetId": "fade-up",
+        "params": { "stagger": 0.12 }
+      }
+    }
+  ]
+}

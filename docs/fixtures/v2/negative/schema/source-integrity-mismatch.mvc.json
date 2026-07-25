@@ -1,0 +1,61 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "negative.source-integrity-mismatch",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "Source import integrity mismatch" },
+  "assets": [
+    {
+      "id": "asset.source",
+      "assetType": "svg",
+      "uri": "assets/character.svg",
+      "integrity": "sha256-df5b5a66a6b7f190cebe1ff28d48f436ace9961f9ec73a77780ac99b20819f9a",
+      "mimeType": "image/svg+xml",
+      "width": 300,
+      "height": 400,
+      "viewBox": "0 0 300 400",
+      "sanitized": true
+    },
+    {
+      "id": "asset.part",
+      "assetType": "svg",
+      "uri": "assets/rig-torso.svg",
+      "integrity": "sha256-f321ac6562ae53030b96cfd535bed2921548380c836e768251d3d7b6fbe6d4d6",
+      "mimeType": "image/svg+xml",
+      "width": 180,
+      "height": 300,
+      "viewBox": "0 0 180 300",
+      "sanitized": true
+    }
+  ],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "part",
+      "type": "svg",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 180, "height": 300, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "assetId": "asset.part" }
+    }
+  ],
+  "bindings": [],
+  "clips": [],
+  "sourceImports": [
+    {
+      "id": "import.1",
+      "kind": "svg",
+      "sourceAssetId": "asset.source",
+      "sourceIntegrity": "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+      "parts": [
+        {
+          "id": "source.part",
+          "sourceElementIds": ["torso"],
+          "structuralFingerprint": "sha256-part-v1",
+          "nodeId": "part",
+          "outputAssetId": "asset.part"
+        }
+      ]
+    }
+  ]
+}
