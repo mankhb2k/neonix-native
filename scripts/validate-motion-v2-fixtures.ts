@@ -20,6 +20,12 @@ import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
 import { encodeOutputs } from "../apps/render-worker/src/ffmpeg";
 import { renderCompiledProject } from "../apps/render-worker/src/runtime";
 import { evaluateProperty } from "../packages/motion-runtime/src/index";
+import {
+  SvgImportError,
+  assertSafeSvgExport,
+  importSvgExport,
+  reconcileSvgReimport,
+} from "../packages/asset-registry/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");
@@ -967,6 +973,102 @@ async function validateMediaExport(project: ReturnType<typeof parseMotionProject
   console.log("OK media export MP4 has AAC audio stream and plausible duration");
 }
 
+async function validateSvgImportFixtures(): Promise<void> {
+  const importsRoot = resolve(fixturesRoot, "imports");
+  const cases = [
+    { source: "figma-cutout-source.svg", expected: "expected-import/figma-cutout.import.json", reimport: "expected-reimport/figma-cutout-reimport.json" },
+    { source: "illustrator-cutout-source.svg", expected: "expected-import/illustrator-cutout.import.json", reimport: "expected-reimport/illustrator-cutout-reimport.json" },
+  ] as const;
+
+  for (const testCase of cases) {
+    const svg = await readFile(resolve(importsRoot, testCase.source), "utf8");
+    const result = importSvgExport(svg);
+    const expected = await readJson(resolve(importsRoot, testCase.expected)) as {
+      sourceIntegrity: string;
+      partCount: number;
+      elementCount: number;
+      parts: Array<{ id: string; sourceElementIds: string[]; structuralFingerprint: string; originalName?: string }>;
+    };
+    deepStrictEqual(result.sourceIntegrity, expected.sourceIntegrity, `${testCase.source} integrity changed`);
+    deepStrictEqual(result.parts.length, expected.partCount, `${testCase.source} part count changed`);
+    deepStrictEqual(result.elements.length, expected.elementCount, `${testCase.source} element count changed`);
+    deepStrictEqual(
+      result.parts.map((part) => ({
+        id: part.id,
+        sourceElementIds: part.sourceElementIds,
+        structuralFingerprint: part.structuralFingerprint,
+        ...(part.originalName ? { originalName: part.originalName } : {}),
+      })),
+      expected.parts,
+      `${testCase.source} part matrix changed`,
+    );
+
+    const again = importSvgExport(svg);
+    const re = reconcileSvgReimport(
+      result.parts.map((part, index) => ({
+        id: part.id,
+        structuralFingerprint: part.structuralFingerprint,
+        nodeId: `node.${index}`,
+      })),
+      again.parts,
+    );
+    const expectedRe = await readJson(resolve(importsRoot, testCase.reimport));
+    deepStrictEqual(
+      { keptCount: re.kept.length, conflictCount: re.conflicts.length, kept: re.kept, conflicts: re.conflicts },
+      expectedRe,
+      `${testCase.source} re-import reconciliation changed`,
+    );
+    if (re.conflicts.length !== 0 || re.kept.length !== result.parts.length) {
+      throw new Error(`${testCase.source} identical re-import must keep all parts`);
+    }
+
+    const conflict = reconcileSvgReimport(
+      [{ id: "part.missing", structuralFingerprint: "sha256-missing", nodeId: "node.missing" }],
+      again.parts.slice(0, 1),
+    );
+    if (conflict.conflicts.length < 2) throw new Error(`${testCase.source} re-import conflict contract changed`);
+
+    // Imported parts must be expressible as SvgSourceImportSchema fields.
+    const sourceImport = {
+      id: `import.${testCase.source}`,
+      kind: "svg" as const,
+      sourceAssetId: "asset.source",
+      sourceIntegrity: result.sourceIntegrity,
+      parts: result.parts.slice(0, 3).map((part, index) => ({
+        id: part.id,
+        sourceElementIds: part.sourceElementIds,
+        structuralFingerprint: part.structuralFingerprint,
+        nodeId: `node.${index}`,
+        outputAssetId: `asset.out.${index}`,
+        ...(part.originalName ? { originalName: part.originalName } : {}),
+      })),
+    };
+    if (sourceImport.parts.some((part) => part.sourceElementIds.length < 1 || !part.structuralFingerprint.startsWith("sha256-"))) {
+      throw new Error(`${testCase.source} sourceImport shape is invalid`);
+    }
+    console.log(`OK imports/${testCase.source}`);
+  }
+
+  const negatives = [
+    { file: "svg-with-script.svg", path: "svg.script" },
+    { file: "svg-external-url.svg", path: "svg.externalUrl" },
+    { file: "svg-malformed.svg", path: "svg.root" },
+  ] as const;
+  for (const negative of negatives) {
+    const svg = await readFile(resolve(fixturesRoot, "negative/imports", negative.file), "utf8");
+    let error: unknown;
+    try {
+      assertSafeSvgExport(svg);
+    } catch (caught) {
+      error = caught;
+    }
+    if (!(error instanceof SvgImportError) || error.path !== negative.path) {
+      throw new Error(`SVG negative contract changed: ${negative.file}`);
+    }
+    console.log(`OK negative/imports/${negative.file}`);
+  }
+}
+
 async function main(): Promise<void> {
   const textCapability = motionPropertyCapability("text", "payload.text");
   const shapeFillCapability = motionPropertyCapability("shape", "style.fill");
@@ -985,6 +1087,7 @@ async function main(): Promise<void> {
     throw new Error("AI Motion Path modifier property vocabulary changed");
   }
   await validateAssetKit();
+  await validateSvgImportFixtures();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
   MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));

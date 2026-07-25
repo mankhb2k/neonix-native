@@ -26,6 +26,7 @@ This file is the current implementation ledger. A capability is marked **done** 
 | Camera projection and scene transitions | active-camera pan/zoom/rotation, overlap frame plan, crossfade compositing, Runtime/PNG goldens | `ce3583a` |
 | Deterministic video frame sampling | cached ffmpeg frame decode with trim/hold/transparent/loop and fit | `4b82763` |
 | Audio timeline mix and probe | BGM/VO/SFX trim/loop/gain/fade mix muxed to AAC; ffprobe stream/duration assert | `4882661` |
+| SVG export import (Figma/Illustrator) | sanitize/reject unsafe SVG, leaf-part fingerprints, identical re-import keeps node mapping | *(pending)* |
 
 Current verification after Audio mix: 26 positive artifacts, 78 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, and 21 pinned assets.
 
@@ -33,7 +34,6 @@ Current verification after Audio mix: 26 positive artifacts, 78 negative artifac
 
 | Capability | Current evidence/status | Next required milestone |
 |---|---|---|
-| Figma/Illustrator importer and re-import | Source mapping is typed metadata only | sanitizer/parser, stable element fingerprint reconciliation and import fixtures |
 | Browser preview/export parity | Web editor preview still uses CSS/mock blocks rather than Runtime IR | browser-safe render adapter, timestamp parity and Web E2E |
 | P1 primitives | emitter, trim path, animated dash/gradient, blend modes, constraints, IK and bend are intentionally deferred | activate only with a real composition fixture |
 

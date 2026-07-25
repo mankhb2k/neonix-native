@@ -21,3 +21,5 @@ test-results
 playwright-report
 blob-report
 playwright/.cache
+.next.bak*
+apps/web/.next.bak*

@@ -1,0 +1,197 @@
+{
+  "keptCount": 38,
+  "conflictCount": 0,
+  "kept": [
+    {
+      "previousPartId": "part.elem-0",
+      "nextPartId": "part.elem-0",
+      "nodeId": "node.0"
+    },
+    {
+      "previousPartId": "part.elem-1",
+      "nextPartId": "part.elem-1",
+      "nodeId": "node.1"
+    },
+    {
+      "previousPartId": "part.elem-2",
+      "nextPartId": "part.elem-2",
+      "nodeId": "node.2"
+    },
+    {
+      "previousPartId": "part.elem-3",
+      "nextPartId": "part.elem-3",
+      "nodeId": "node.3"
+    },
+    {
+      "previousPartId": "part.elem-4",
+      "nextPartId": "part.elem-4",
+      "nodeId": "node.4"
+    },
+    {
+      "previousPartId": "part.elem-5",
+      "nextPartId": "part.elem-5",
+      "nodeId": "node.5"
+    },
+    {
+      "previousPartId": "part.elem-6",
+      "nextPartId": "part.elem-6",
+      "nodeId": "node.6"
+    },
+    {
+      "previousPartId": "part.elem-7",
+      "nextPartId": "part.elem-7",
+      "nodeId": "node.7"
+    },
+    {
+      "previousPartId": "part.elem-8",
+      "nextPartId": "part.elem-8",
+      "nodeId": "node.8"
+    },
+    {
+      "previousPartId": "part.elem-9",
+      "nextPartId": "part.elem-9",
+      "nodeId": "node.9"
+    },
+    {
+      "previousPartId": "part.elem-10",
+      "nextPartId": "part.elem-10",
+      "nodeId": "node.10"
+    },
+    {
+      "previousPartId": "part.elem-11",
+      "nextPartId": "part.elem-11",
+      "nodeId": "node.11"
+    },
+    {
+      "previousPartId": "part.elem-12",
+      "nextPartId": "part.elem-12",
+      "nodeId": "node.12"
+    },
+    {
+      "previousPartId": "part.elem-13",
+      "nextPartId": "part.elem-13",
+      "nodeId": "node.13"
+    },
+    {
+      "previousPartId": "part.elem-14",
+      "nextPartId": "part.elem-14",
+      "nodeId": "node.14"
+    },
+    {
+      "previousPartId": "part.elem-15",
+      "nextPartId": "part.elem-15",
+      "nodeId": "node.15"
+    },
+    {
+      "previousPartId": "part.elem-16",
+      "nextPartId": "part.elem-16",
+      "nodeId": "node.16"
+    },
+    {
+      "previousPartId": "part.elem-17",
+      "nextPartId": "part.elem-17",
+      "nodeId": "node.17"
+    },
+    {
+      "previousPartId": "part.elem-18",
+      "nextPartId": "part.elem-18",
+      "nodeId": "node.18"
+    },
+    {
+      "previousPartId": "part.elem-19",
+      "nextPartId": "part.elem-19",
+      "nodeId": "node.19"
+    },
+    {
+      "previousPartId": "part.elem-20",
+      "nextPartId": "part.elem-20",
+      "nodeId": "node.20"
+    },
+    {
+      "previousPartId": "part.elem-21",
+      "nextPartId": "part.elem-21",
+      "nodeId": "node.21"
+    },
+    {
+      "previousPartId": "part.elem-22",
+      "nextPartId": "part.elem-22",
+      "nodeId": "node.22"
+    },
+    {
+      "previousPartId": "part.elem-23",
+      "nextPartId": "part.elem-23",
+      "nodeId": "node.23"
+    },
+    {
+      "previousPartId": "part.elem-24",
+      "nextPartId": "part.elem-24",
+      "nodeId": "node.24"
+    },
+    {
+      "previousPartId": "part.elem-25",
+      "nextPartId": "part.elem-25",
+      "nodeId": "node.25"
+    },
+    {
+      "previousPartId": "part.elem-26",
+      "nextPartId": "part.elem-26",
+      "nodeId": "node.26"
+    },
+    {
+      "previousPartId": "part.elem-27",
+      "nextPartId": "part.elem-27",
+      "nodeId": "node.27"
+    },
+    {
+      "previousPartId": "part.elem-28",
+      "nextPartId": "part.elem-28",
+      "nodeId": "node.28"
+    },
+    {
+      "previousPartId": "part.elem-29",
+      "nextPartId": "part.elem-29",
+      "nodeId": "node.29"
+    },
+    {
+      "previousPartId": "part.elem-30",
+      "nextPartId": "part.elem-30",
+      "nodeId": "node.30"
+    },
+    {
+      "previousPartId": "part.elem-31",
+      "nextPartId": "part.elem-31",
+      "nodeId": "node.31"
+    },
+    {
+      "previousPartId": "part.elem-32",
+      "nextPartId": "part.elem-32",
+      "nodeId": "node.32"
+    },
+    {
+      "previousPartId": "part.elem-33",
+      "nextPartId": "part.elem-33",
+      "nodeId": "node.33"
+    },
+    {
+      "previousPartId": "part.elem-34",
+      "nextPartId": "part.elem-34",
+      "nodeId": "node.34"
+    },
+    {
+      "previousPartId": "part.elem-35",
+      "nextPartId": "part.elem-35",
+      "nodeId": "node.35"
+    },
+    {
+      "previousPartId": "part.elem-36",
+      "nextPartId": "part.elem-36",
+      "nodeId": "node.36"
+    },
+    {
+      "previousPartId": "part.elem-37",
+      "nextPartId": "part.elem-37",
+      "nodeId": "node.37"
+    }
+  ],
+  "conflicts": []
+}

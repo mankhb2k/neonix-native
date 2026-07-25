@@ -151,6 +151,9 @@ importers:
 
   packages/asset-registry:
     devDependencies:
+      '@types/node':
+        specifier: ^22.13.10
+        version: 22.20.1
       typescript:
         specifier: ^5.8.2
         version: 5.9.3

@@ -34,3 +34,16 @@ export function listSafeFonts(role?: FontEntry["roles"][number]): FontEntry[] {
     (f) => f.vietnameseSafe && (!role || f.roles.includes(role)),
   );
 }
+
+export {
+  SvgImportError,
+  assertSafeSvgExport,
+  importSvgExport,
+  reconcileSvgReimport,
+  sanitizeSvgExport,
+  type SvgImportElement,
+  type SvgImportPart,
+  type SvgImportResult,
+  type SvgReimportConflict,
+  type SvgReimportResult,
+} from "./svg-import";
