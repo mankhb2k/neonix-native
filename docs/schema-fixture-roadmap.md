@@ -230,16 +230,16 @@ Mỗi expected Runtime file phải deterministic và review được bằng JSON
 - S4 và S5.
 - Khóa `cutout-dialogue` và `media-timeline` acceptance JSON.
 
-Sau khoảng 6–8 tuần, ta có thể freeze Motion Format v2 cho AI authoring P0 dù browser preview chưa hoàn thiện. Khi đó renderer/preview được xây theo contract đã khóa thay vì vừa làm UI vừa đoán schema.
-
 ## Freeze gate
 
-Chỉ freeze v2 khi:
+**Done 2026-07-25** — Motion Format v2 P0 schema freeze. Browser preview/Web PNG parity is not a freeze dependency; renderer continues against the locked contract. Evidence: [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md).
 
-- mọi Node/asset/effect/modifier là discriminated typed union;
-- không còn generic `character` hay property path không validate;
-- mỗi P0 primitive có positive, negative và expected Runtime fixture;
-- mọi compile-time construct biến mất khỏi Runtime IR;
-- reference graph và resource limits có test;
-- bốn composition fixtures compile deterministic;
-- AI capability registry chỉ expose surface đã qua các gate trên.
+Checklist (all pass):
+
+- [x] mọi Node/asset/effect/modifier là discriminated typed union;
+- [x] không còn generic `character` hay property path không validate;
+- [x] mỗi P0 primitive có contract/reference/limits (`pass|na`) trong `primitives-coverage.json`;
+- [x] mọi compile-time construct biến mất khỏi Runtime IR;
+- [x] reference graph và resource limits có test;
+- [x] bốn composition maps compile deterministic (coverage ledger);
+- [x] AI capability registry chỉ expose public P0 surface.

@@ -2,6 +2,27 @@
 
 Đây là contract normative duy nhất cho `.mt` và `.mvc`. Schema thực thi nằm tại `packages/motion-schema/src/v2.ts`; API không có hậu tố version luôn trả canonical format hiện tại. Input không đúng contract bị từ chối và không có migration boundary.
 
+**P0 schema freeze:** 2026-07-25 (`formatVersion: 2`). Checklist: [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md). Post-freeze schema PRs need ± fixtures and a breaking/non-breaking note; breaking changes bump `formatVersion` or use `extensions`.
+
+## P0 surface (frozen)
+
+| Family | In P0 |
+|---|---|
+| Nodes | `group`, `bone`, `text`, `shape`, `path`, `image`, `svg`, `video`, `camera`, `component` (authoring only) |
+| Assets | `image`, `svg`, `video`, `audio`, `font` discriminated metadata |
+| Paint | Solid string fill/stroke (+ opacity/cap/join); no gradient/dash/trim |
+| Transitions | `cut`, `fade`, `crossfade` only |
+| Effects | `blur`, `shadow`, `glow`, `color-adjust` ordered stack |
+| Modifiers | Motion Path, Path Morph, Secondary Motion |
+| Expansion | Repeater, Text Animator, Component, lip-sync cues (compile away) |
+| Values | Variables + bindings + public params; resolvable refs on typed clip/track/playback/params only (`text.payload.text` stays `string`) |
+| Patch | `set` on project variables or Component Instance `payload.props.*` |
+| Cut-out | `sourceImports` + `cutoutRigs` + `bone.payload.restRotation` (no `RestPose` / `RigMapper` node types) |
+
+### Explicitly not in P0
+
+Emitter, trim path, animated dash, gradient, blend modes, constraints, 2-bone IK, path bend, audio markers, wipe transitions, and any generic `character` node. Reject fixtures live under `docs/fixtures/v2/negative/p1-not-normative/`. Inspector/timeline/canvas UI schemas are out of format scope.
+
 ## Artifact và version
 
 ```text
@@ -63,7 +84,17 @@ Không có top-level `instances[]`. Parenting, masking, draw order và clip targ
 - Character là Component từ Group/Bone/SVG/variants/actions, không có `CharacterNode`.
 - Shape hỗ trợ rectangle/ellipse/polygon. Path hỗ trợ nhiều contour, line/cubic, open/closed và `fillRule: nonzero|evenodd`; mọi tọa độ phải finite.
 
-Paint solid dùng `fill`, `fillOpacity`, `stroke`, `strokeWidth`, `strokeOpacity`, `lineCap`, `lineJoin` và `miterLimit`. Fill, opacity, stroke width và rectangle radius có thể animate qua capability registry; Path morph/gradient/dash chưa thuộc contract này. Runtime bounds dùng cực trị Bézier thật và nới nửa stroke width đã evaluate.
+Paint solid dùng `fill`, `fillOpacity`, `stroke`, `strokeWidth`, `strokeOpacity`, `lineCap`, `lineJoin` và `miterLimit`. Fill, opacity, stroke width và rectangle radius có thể animate qua capability registry; Path morph thuộc modifier stack; gradient/dash/trim Path là P1 và bị reject. Runtime bounds dùng cực trị Bézier thật và nới nửa stroke width đã evaluate.
+
+## Cut-out mapping model
+
+Cut-out characters không thêm Node type `RestPose` hay `RigMapper`. Normative mapping:
+
+- `sourceImports[]` — SVG export parts → output assets + node ids + structural fingerprints
+- `cutoutRigs[]` — part → parent/pivot/z-order/semantic slots
+- `bone.payload.restRotation` — rest pose on Bone nodes
+
+Variant slots, named actions và lip-sync cues sống trên Component metadata và compile ra literal tracks/nodes.
 
 Mỗi Node có tối đa một quan hệ `mask { sourceNodeId, mode, sourceVisibility }`. `mode` là `clip | alpha | inverse-alpha`; nguồn phải cùng Scene. `mask-only` ẩn nguồn khỏi compositing/hit-test bình thường, còn `content-and-mask` giữ nguồn như content. Mask lồng nhau được phép, nhưng graph thiếu nguồn hoặc có cycle bị reject trước compiler.
 
@@ -83,9 +114,9 @@ Project binding có độ ưu tiên cao hơn literal instance prop:
 Component default < Instance payload.props < Project binding
 ```
 
-Khi một prop đang bound, UI sửa source Project Variable. Muốn sửa local phải detach binding trước. Một variable điều khiển nhiều target bằng nhiều binding record.
+Khi một prop đang bound, UI sửa source Project Variable. Muốn sửa local phải detach binding trước. Một variable điều khiển nhiều target bằng nhiều binding record. Mỗi target property chỉ được một binding (duplicate target bị reject).
 
-Web/AI User chỉ được sửa Project Variable và Component Node `payload.props`. Internal semantic, node, bone, clip và track chỉ dành cho Designer/AI Author.
+Web/AI User chỉ được sửa Project Variable và Component Node `payload.props`. Internal semantic, node, bone, clip và track chỉ dành cho Designer/AI Author. Patch `set` tuân cùng public surface.
 
 ## Resolvable value
 
@@ -98,7 +129,7 @@ Authoring value là literal hoặc variable reference:
 }
 ```
 
-MVP chỉ hỗ trợ reference, numeric scale và offset. Compiler phải type-check rồi resolve trước Runtime IR; không có expression engine tổng quát.
+MVP chỉ hỗ trợ reference, numeric scale và offset trên các field resolvable đã typed (clip/track/playback/params). `text.payload.text` và các payload string tương tự giữ `string` thuần — không nhúng ref vào mọi field. Compiler phải type-check rồi resolve trước Runtime IR; không có expression engine tổng quát.
 
 ## Property capability registry
 

@@ -29,8 +29,9 @@ This file is the current implementation ledger. A capability is marked **done** 
 | SVG export import (Figma/Illustrator) | sanitize/reject unsafe SVG, leaf-part fingerprints, identical re-import keeps node mapping | `59331f2` |
 | Browser Runtime IR preview parity | PreviewStage + `/appai/runtime-harness` evaluateScene vs worker hierarchy goldens | `9d82ef8` |
 | P0 primitives-object schema matrix | `primitives-coverage.json` 113 rows; Wave A–E schema ± + P1 reject wall; compositions mapped | `d67cd65` |
+| P0 schema freeze | Checklist + freeze asserts (round-trip, binding uniqueness, patch public surface, semantic.key, AI registry); formatVersion stays 2 | see `docs/p0-schema-freeze-checklist.md` |
 
-Current verification after primitives schema matrix: 27 positive artifacts, 100 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, 21 pinned assets, and 113 primitives-coverage rows.
+Current verification after P0 schema freeze: 27 positive artifacts, 107 negative artifacts, 40 limit cases, 17 Runtime goldens, 18 PNG goldens, 21 pinned assets, and 113 primitives-coverage rows.
 
 ## Partial or not implemented
 

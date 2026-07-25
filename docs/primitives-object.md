@@ -1,6 +1,6 @@
 # MotionVideo primitive object catalog
 
-Current status ledger: [`roadmap-status.md`](roadmap-status.md). Machine-readable schema-first coverage: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`). Worker PNG/Web parity remain separate gates; this catalog’s “Implemented” for schema means contract/reference/limits (+ compiler when Runtime surface) are covered.
+Current status ledger: [`roadmap-status.md`](roadmap-status.md). Machine-readable schema-first coverage: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`). **P0 schema freeze:** [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md) (2026-07-25). Worker PNG/Web parity remain separate gates; this catalog’s “Implemented schema” means contract/reference/limits (+ compiler when Runtime surface) are covered.
 
 > Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative hiện tại vẫn là [`motion-format-v2.md`](motion-format-v2.md). Proposal chi tiết nằm tại [`atomic-primitives-plan.md`](atomic-primitives-plan.md), [`svg-cutout-plan.md`](svg-cutout-plan.md) và [`fixtures/v2/test-plan.md`](fixtures/v2/test-plan.md).
 
@@ -30,24 +30,24 @@ Value + Property + Keyframe + Track + Binding
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Artifact identity | `format`, `formatVersion` | Partial | đúng/sai format, version rejection, strict unknown fields |
-| Stable ID | Address trong scope | Partial | empty, duplicate, namespace sau expansion |
-| Semantic | `role`, `key`, `tags` | Partial | public/internal address, duplicate role được phép, key stability |
-| Integrity | SHA-256 pin cho asset/component | Partial | đúng hash, mismatch, missing file, immutable package |
-| Component semver | Public contract version | Partial | exact pin, missing dependency, incompatible action/public prop |
+| Artifact identity | `format`, `formatVersion` | Implemented schema | đúng/sai format, version rejection, strict unknown fields |
+| Stable ID | Address trong scope | Implemented schema | empty, duplicate, namespace sau expansion |
+| Semantic | `role`, `key`, `tags` | Implemented schema | public/internal address; `key` preserved through compile |
+| Integrity | SHA-256 pin cho asset/component | Implemented schema | đúng hash, mismatch, missing file, immutable package |
+| Component semver | Public contract version | Implemented schema | exact pin, missing dependency, incompatible action/public prop |
 | Source mapping | Figma/Illustrator SVG export → canonical Node/asset | Implemented schema + import fixtures | flat paths, fingerprint, re-import identity, script/URL reject |
 
 ## 2. Value/property primitives
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| JSON literal value | Runtime scalar/object/list | Partial | string/number/bool/null/list/object round-trip |
-| Resolvable value | Literal hoặc variable reference | Partial | type, numeric scale/offset, missing variable |
+| JSON literal value | Runtime scalar/object/list | Implemented schema | string/number/bool/null/list/object round-trip |
+| Resolvable value | Literal hoặc variable reference | Implemented schema | typed clip/track/playback/params only; missing variable + finite map |
 | Property path | Stable animatable address | Implemented current surface | enumerable kind/domain/public/runtime state; effect/modifier paths đến cùng primitive |
-| Variable | string/color/number/bool/image/enum/list | Partial | defaults, min/max/options, list item schema |
-| Binding | Variable/context → Node property | Partial | precedence, one-to-many, context item, missing target |
-| Public parameter | Component safe surface | Partial | type match, default/override, internal isolation |
-| Capability metadata | Primitive support/limits for UI và AI | Implemented property registry | safe property enumeration chạy; primitive-level registry mở rộng theo phase |
+| Variable | string/color/number/bool/image/enum/list | Implemented schema | defaults, min/max/options, list item schema |
+| Binding | Variable/context → Node property | Implemented schema | one target property per binding; one variable → many targets |
+| Public parameter | Component safe surface | Implemented schema | type match, default/override, internal isolation |
+| Capability metadata | Primitive support/limits for UI và AI | Implemented property registry | public P0 enumeration; P1 node types rejected |
 
 ## 3. Time/animation primitives
 
@@ -55,11 +55,11 @@ Playback is implemented for finite and infinite iterations, normal/reverse/alter
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Keyframe | `{t, v, easing}` | Partial | ordering, duplicate time policy, before/after range |
-| Property Track | Keys trên target/property | Partial | numeric/non-numeric interpolation, target validation |
-| Easing | linear/ease/spring/step | Partial | exact values tại fixed timestamps, clamp policy |
-| Clip | Duration, target, source | Partial | target, duration, keys không vượt clip |
-| Schedule | absolute/after/with | Partial | chain, offset, missing ref, cycle |
+| Keyframe | `{t, v, easing}` | Implemented schema | ordering, duplicate time reject, before/after range |
+| Property Track | Keys trên target/property | Implemented schema | numeric/non-numeric interpolation, target validation |
+| Easing | linear/ease/spring/step | Implemented schema | exact values tại fixed timestamps, clamp policy |
+| Clip | Duration, target, source | Implemented schema | target, duration, keys không vượt clip |
+| Schedule | absolute/after/with | Implemented schema | chain, offset, missing ref, cycle |
 | Playback | iterations/direction/rate | Implemented | finite/infinite, reverse/alternate evaluator, rate>0 reject |
 | Preset source | Authoring shortcut → tracks | Implemented | known preset, literal expansion, no preset in Runtime IR |
 | Named Action | Reusable component animation | Implemented outer playback | idle/blink/talk/wave compose, loop/rate, over-duration guard |
@@ -69,12 +69,12 @@ Playback is implemented for finite and infinite iterations, normal/reverse/alter
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Transform | x/y/size/rotation/scale/anchor/opacity/visibility/flip | Partial | local matrix và tracked values |
-| Hierarchy | `parentId` Node graph | Partial | missing parent, cycle, deep hierarchy |
-| World matrix | Parent × local | Partial — worker tested | anchor, inherit flags, flip, nested scale/rotation; Web parity còn thiếu |
-| Draw order | z-index + stable tree order | Partial | equal z-index, nested groups, mask/effect layers |
+| Transform | x/y/size/rotation/scale/anchor/opacity/visibility/flip | Implemented schema (Web deferred) | local matrix và tracked values |
+| Hierarchy | `parentId` Node graph | Implemented schema | missing parent, cycle, deep hierarchy |
+| World matrix | Parent × local | Implemented schema — worker tested; Web deferred | anchor, inherit flags, flip, nested scale/rotation |
+| Draw order | z-index + stable tree order | Implemented schema | equal z-index, nested groups, mask/effect layers |
 | Bounds | Geometry/layout bounds | Implemented runtime baseline | transformed AABB + drawable subtree chạy; effect inflation còn thiếu |
-| Hit test | Canvas selection | Partial runtime | inverse transform, visibility, opacity và draw order chạy; alpha/mask Web selection còn thiếu |
+| Hit test | Canvas selection | Implemented schema; Web selection deferred | inverse transform, visibility, opacity và draw order |
 | Layout | linear/grid/radial placement | Implemented via Repeater | deterministic positions and item limits |
 
 ## 5. Core Node objects
@@ -83,14 +83,14 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 
 | Node | Atomic responsibility | Trạng thái | Fixture logic |
 |---|---|---|---|
-| Group | Hierarchy/container | Partial | parent transform, subtree opacity/effects/mask |
-| Text | Text content/layout | Partial | Vietnamese, wrap, alignment, font fallback |
+| Group | Hierarchy/container | Implemented schema | parent transform, subtree opacity/effects/mask |
+| Text | Text content/layout | Implemented schema; font/Web deferred | Vietnamese, wrap, alignment, fontAssetId mismatch reject |
 | Shape | Rectangle/ellipse/polygon primitives | Implemented worker | typed paint, animated radius/paint, geometry limits và PNG golden |
 | Path | Typed contours + line/cubic segments | Implemented worker | open/closed, evenodd holes, true cubic bounds và PNG golden |
 | Image | Raster asset | Implemented schema + media fixture | contain/cover/fill/none fit, crop rect, alpha metadata |
-| SVG | Normalized vector asset/part | Partial typed + worker smoke | sanitize, raster, nested transform; mask/Web parity còn thiếu |
+| SVG | Normalized vector asset/part | Implemented schema + worker smoke; Web deferred | sanitize, raster, nested transform |
 | Video | Time-based media asset | Implemented worker frame sampling | trim, frame policy, loop, mute/audio policy |
-| Bone | Zero-size transform joint | Partial — worker smoke | chain/pivot/hierarchy chạy; limits/Web parity còn thiếu |
+| Bone | Zero-size transform joint | Implemented schema + worker smoke; Web deferred | chain/pivot/hierarchy; restRotation |
 | Camera | Scene view transform | Implemented worker | active camera, pan/zoom/rotate, crossfade |
 | Component Instance | Reusable package Node | Implemented compiler | dependency pin, props, expansion, namespace |
 
@@ -159,9 +159,9 @@ Modifier có stable ID và animatable paths như `modifiers.hairFollow.stiffness
 |---|---|---|---|
 | SVG Source Import | SVG export (Figma/Illustrator) | Implemented sanitizer + fixtures | sanitize, fingerprint, re-import |
 | Part | Một hoặc nhiều source paths thành SVG asset | Implemented import mapping | multi-select mapping via sourceImports.parts |
-| Rig Mapper | Part → parent/pivot/order/semantic | Partial — mapped to cutoutRigs/sourceImports | no separate RigMapper schema type; covered by cutout-character |
+| Rig Mapper | Part → parent/pivot/order/semantic | Implemented as mapped fields (not a type) | `cutoutRigs` + `sourceImports`; no RigMapper schema type |
 | Bone Chain | Joint hierarchy | Implemented worker smoke | arm chain + hierarchy-transform |
-| Rest Pose | Canonical local transforms | Partial — bone.restRotation | no separate RestPose object; reset/re-import via import fixtures |
+| Rest Pose | Canonical local transforms | Implemented as `bone.payload.restRotation` | no RestPose object; reset/re-import via import fixtures |
 | Variant Slot | Mouth/eyes/hand/expression assets | Implemented | default, switch, invalid asset negatives |
 | Named Action | Reusable animation clips | Implemented | compose idle/blink/talk/gesture + outer playback |
 | Lip-sync cues | Step keys cho mouth variants | Implemented compiler | cue boundaries → assetId step keys |
@@ -174,26 +174,26 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Scene | Spatial/time scope | Partial | unique ID, duration, order |
-| Project Timeline | Scene order + audio tracks | Partial | missing/duplicate scene, total duration |
+| Scene | Spatial/time scope | Implemented schema | unique ID, duration, order |
+| Project Timeline | Scene order + audio tracks | Implemented schema | missing/duplicate/unscheduled scene reject |
 | Audio Track | BGM/voiceover/SFX | Implemented mix + probe | start/trim/loop/gain/fade/mix |
 | Audio cue/marker | Beat/phoneme/semantic time | Planned P1 — rejected in schema | negative/p1-not-normative/audio-marker-track.json |
 | Asset declaration | Typed image/SVG/video/audio/font metadata | Implemented schema + fixtures | required fields, alpha/audio consistency, manifest/probe parity |
-| Asset resolver | ID → verified local/cache resource | Partial fixtures | URI safety, hash, manifest coverage; cache/offline còn thiếu |
-| Font resolver | Family/weight → bundled font | Partial fixture | Vietnamese glyphs, fallback, missing weight |
+| Asset resolver | ID → verified local/cache resource | Implemented schema; cache/offline deferred | URI safety, hash, manifest coverage |
+| Font resolver | Family/weight → bundled font | Implemented schema | fontAssetId unknown/wrong-type reject; glyph Web deferred |
 | Media probe | Codec/duration/dimensions policy | Implemented fixtures | invalid/corrupt/unsupported media |
 
 ## 12. Authoring/application primitives
 
 | Primitive | Vai trò | Trạng thái | Logic phải test |
 |---|---|---|---|
-| Patch | Revision-guarded public edit | Partial parse | apply, conflict, public-surface enforcement |
-| Inspector control | Edit supported property | Partial | schema-driven controls, undo/redo |
-| Timeline/dope sheet | Key/action editing | Planned P0 | drag, snap, multi-select, serialization |
-| Canvas selection | Select/move/rotate/pivot | Planned P0 | zoom, hit test, hierarchy |
-| Import/re-import | External asset reconciliation | Planned P0 | stable Node IDs, conflict UI |
-| Preview | Browser evaluation | Partial Runtime IR | hierarchy harness parity; full PNG/Web still deferred |
-| AI capability registry | Safe generation vocabulary | Partial implemented | property vocabulary chạy; primitive/composition gates mở rộng theo phase |
+| Patch | Revision-guarded public edit | Implemented schema | `applyMotionPatch` public-surface only; private property reject |
+| Inspector control | Edit supported property | Deferred UI (not format) | schema-driven controls, undo/redo |
+| Timeline/dope sheet | Key/action editing | Deferred UI (not format) | drag, snap, multi-select, serialization |
+| Canvas selection | Select/move/rotate/pivot | Deferred UI (not format) | zoom, hit test, hierarchy |
+| Import/re-import | External asset reconciliation | Implemented import fixtures; UI deferred | stable Node IDs via import contract |
+| Preview | Browser evaluation | Deferred Web parity (Runtime IR harness exists) | hierarchy harness; full PNG/Web still deferred |
+| AI capability registry | Safe generation vocabulary | Implemented freeze gate | public P0 properties only; P1 node types absent |
 
 ## 13. Runtime-only primitives
 
