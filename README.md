@@ -69,12 +69,15 @@ pnpm typecheck
 pnpm validate:v2-fixtures
 pnpm validate:primitives
 pnpm e2e:render
+pnpm e2e:web
 ```
 
 - `validate:v2-fixtures` parse Component, Project và AI Patch, kiểm tra reference lỗi và compiler expansion.
-- `validate:primitives` kiểm tra world transform/Bone/SVG/effects và tạo 11 PNG goldens tại `tmp/primitive-previews`.
-- Trạng thái từng phase, commit tương ứng và các gap còn lại: [`docs/roadmap-status.md`](docs/roadmap-status.md).
+- `validate:primitives` kiểm tra world transform/Bone/SVG/effects và tạo PNG goldens tại `tmp/primitive-previews`.
 - `e2e:render` compile project, raster frame và encode một MP4 thật.
+- `e2e:web` chạy Playwright trên `http://127.0.0.1:3000` (AI User: `/appai`). Trên Windows nên mở sẵn `pnpm dev` rồi chạy `pnpm e2e:web` để reuse server; Playwright cũng tự start Next nếu cổng trống.
+
+Trạng thái từng phase, commit tương ứng và các gap còn lại: [`docs/roadmap-status.md`](docs/roadmap-status.md).
 
 ## Trạng thái render
 

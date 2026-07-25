@@ -17,3 +17,7 @@ tmp
 *.webm
 !docs/fixtures/v2/assets/*.mp4
 *.tsbuildinfo
+test-results
+playwright-report
+blob-report
+playwright/.cache
