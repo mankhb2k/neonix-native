@@ -39,13 +39,6 @@ export function WorkspaceHome() {
         >
           Tạo dự án mới
         </button>
-        <AppLink
-          href="/lab/blocks"
-          className="mv-btn mv-btn-ghost"
-          style={{ marginLeft: "0.75rem" }}
-        >
-          Thư viện block
-        </AppLink>
         <ProjectList />
       </main>
       <NewProjectModal open={modalOpen} onClose={() => setModalOpen(false)} />

@@ -101,6 +101,8 @@ Mỗi Node có tối đa một quan hệ `mask { sourceNodeId, mode, sourceVisib
 
 ## Public API và binding
 
+Public param có thể khai báo metadata UI (optional): `group` (`content|style|motion|layout|audio`), `control` (`text|textarea|color-picker|slider|toggle|asset-picker|enum`), `capability` (`basic|advanced|designer-only`, mặc định `basic`). Component Factory `/factory` dùng các field này để sinh Controls.
+
 ```text
 Component default variable
         ↓ overridden by instance prop mapped through Public API

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-25",
+  "entries": [
+    {
+      "id": "accept-compare-blend",
+      "kind": "visual-intent",
+      "message": "Only screen-blend highlight visible; compare cards off-frame — fails compare brief at sample frame.",
+      "at": "2026-07-25T14:27:39.914Z"
+    }
+  ]
+}

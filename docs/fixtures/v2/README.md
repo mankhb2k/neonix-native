@@ -16,8 +16,8 @@ Visual goldens được lưu tại `expected-frames/`. Chỉ chạy `pnpm update
 
 Một fixture đạt khi đi hết chuỗi sau mà không truy cập internal Component từ Web/AI User:
 
-1. Designer tạo/mở Component.
-2. Publish `.mvc` bất biến theo `componentId@componentVersion`.
+1. Designer tạo/mở Component (Component Factory tại `/factory`).
+2. Publish `.mvc` bất biến theo `componentId@componentVersion` — ledger máy đọc được: [`registry/scene-components.json`](registry/scene-components.json).
 3. AI tạo `.mt`, thêm Component Node vào Scene.
 4. AI điền text/màu/số qua project variables hoặc `payload.props`.
 5. User Web sửa màu và tốc độ animation.
@@ -26,6 +26,8 @@ Một fixture đạt khi đi hết chuỗi sau mà không truy cập internal Co
 8. Project cũ mở được từ package cache/bundle theo dependency đã pin.
 
 Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track nội bộ.
+
+Product composition pack (12 `accept-*` projects + scorecard): [`../../product-primitive-acceptance.md`](../../product-primitive-acceptance.md) và [`acceptance/scorecard.json`](acceptance/scorecard.json).
 
 ## Bản đồ fixture
 

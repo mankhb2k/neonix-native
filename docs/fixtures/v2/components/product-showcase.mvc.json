@@ -31,13 +31,13 @@
     { "id": "var.animationSpeed", "type": "number", "name": "Speed", "value": 1 }
   ],
   "publicAPI": [
-    { "id": "productName", "type": "string", "variableId": "var.productName", "semantic": { "role": "product-name" } },
-    { "id": "price", "type": "string", "variableId": "var.price", "semantic": { "role": "price" } },
-    { "id": "cta", "type": "string", "variableId": "var.cta", "semantic": { "role": "cta-text" } },
-    { "id": "theme", "type": "enum", "variableId": "var.theme", "options": ["warm", "cool", "dark"] },
-    { "id": "primaryColor", "type": "color", "variableId": "var.primaryColor", "semantic": { "role": "brand-primary" } },
-    { "id": "productImage", "type": "image", "variableId": "var.productImage", "semantic": { "role": "product-image" } },
-    { "id": "animationSpeed", "type": "number", "variableId": "var.animationSpeed", "semantic": { "role": "animation-speed" } }
+    { "id": "productName", "type": "string", "variableId": "var.productName", "semantic": { "role": "product-name" }, "label": "Tên sản phẩm", "group": "content", "control": "text", "capability": "basic" },
+    { "id": "price", "type": "string", "variableId": "var.price", "semantic": { "role": "price" }, "label": "Giá", "group": "content", "control": "text", "capability": "basic" },
+    { "id": "cta", "type": "string", "variableId": "var.cta", "semantic": { "role": "cta-text" }, "label": "CTA", "group": "content", "control": "text", "capability": "basic" },
+    { "id": "theme", "type": "enum", "variableId": "var.theme", "options": ["warm", "cool", "dark"], "label": "Theme", "group": "style", "control": "enum", "capability": "basic" },
+    { "id": "primaryColor", "type": "color", "variableId": "var.primaryColor", "semantic": { "role": "brand-primary" }, "label": "Màu thương hiệu", "group": "style", "control": "color-picker", "capability": "basic" },
+    { "id": "productImage", "type": "image", "variableId": "var.productImage", "semantic": { "role": "product-image" }, "label": "Ảnh sản phẩm", "group": "content", "control": "asset-picker", "capability": "basic" },
+    { "id": "animationSpeed", "type": "number", "variableId": "var.animationSpeed", "semantic": { "role": "animation-speed" }, "label": "Tốc độ", "group": "motion", "control": "slider", "capability": "basic", "min": 0.5, "max": 2 }
   ],
   "nodes": [
     {

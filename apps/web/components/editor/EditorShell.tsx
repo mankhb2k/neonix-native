@@ -5,10 +5,10 @@ import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Sidebar } from "./sidebar/Sidebar";
-import { PreviewStage } from "./PreviewStage";
-import { RightDock } from "./RightDock";
-import { Timeline } from "./Timeline";
-import { TopBar } from "./TopBar";
+import { PreviewStage } from "./stage/PreviewStage";
+import { RightDock } from "./inspector/RightDock";
+import { Timeline } from "./timeline/Timeline";
+import { Header } from "./header/Header";
 import type { MotionProject } from "@motionvideo/motion-schema";
 
 type Props = {
@@ -45,7 +45,7 @@ export function EditorShell({ initialProject }: Props) {
         `
       }}
     >
-      <TopBar />
+      <Header />
       
       <Sidebar />
 
@@ -76,10 +76,8 @@ export function EditorShell({ initialProject }: Props) {
       </main>
 
       <RightDock />
-      
-      <div className="col-span-full flex flex-col overflow-hidden border-t border-[var(--line)] bg-[var(--bg-panel)] [grid-area:timeline]">
-        <Timeline />
-      </div>
+
+      <Timeline />
       {!project ? (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-[var(--bg-base)]/80 backdrop-blur-sm">Đang tải editor…</div>
       ) : null}

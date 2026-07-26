@@ -32,6 +32,18 @@ export const FRAME_GOLDENS = [
   { project: "trim-path-reveal.mt.json", time: 1, file: "trim-path-reveal-t1.png", width: 540, height: 540 },
   { project: "blend-mode-glow.mt.json", time: 1, file: "blend-mode-glow-t1.png", width: 540, height: 540 },
   { project: "path-bend-ribbon.mt.json", time: 1, file: "path-bend-ribbon-t1.png", width: 540, height: 540 },
+  { project: "accept-process-trim.mt.json", time: 1, file: "accept-process-trim-t1.png", width: 540, height: 540 },
+  { project: "accept-bignumber-paint.mt.json", time: 1, file: "accept-bignumber-paint-t1.png", width: 540, height: 540 },
+  { project: "accept-compare-blend.mt.json", time: 1, file: "accept-compare-blend-t1.png", width: 540, height: 540 },
+  { project: "accept-tvc-hook.mt.json", time: 1, file: "accept-tvc-hook-t1.png", width: 270, height: 480 },
+  { project: "accept-showcase-lookat.mt.json", time: 1, file: "accept-showcase-lookat-t1.png", width: 540, height: 540 },
+  { project: "accept-ribbon-promo.mt.json", time: 1, file: "accept-ribbon-promo-t1.png", width: 540, height: 540 },
+  { project: "accept-cutout-talk.mt.json", time: 1, file: "accept-cutout-talk-t1.png", width: 540, height: 540 },
+  { project: "accept-prop-mask.mt.json", time: 1, file: "accept-prop-mask-t1.png", width: 270, height: 480 },
+  { project: "accept-look-at.mt.json", time: 1, file: "accept-look-at-t1.png", width: 540, height: 540 },
+  { project: "accept-secondary-wave.mt.json", time: 1, file: "accept-secondary-wave-t1.png", width: 540, height: 540 },
+  { project: "accept-path-morph.mt.json", time: 1, file: "accept-path-morph-t1.png", width: 540, height: 540 },
+  { project: "accept-action-loop.mt.json", time: 1, file: "accept-action-loop-t1.png", width: 540, height: 540 },
 ] as const;
 
 async function main(): Promise<void> {

@@ -2318,6 +2318,30 @@
       },
       "fixtures": ["negative/p1-not-normative/audio-marker-track.json"],
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "product-acceptance-pack",
+      "section": "15-product-acceptance",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "acceptance/scorecard.json",
+        "projects/accept-process-trim.mt.json",
+        "projects/accept-ribbon-promo.mt.json",
+        "projects/accept-look-at.mt.json",
+        "expected-frames/accept-ribbon-promo-t1.png",
+        "acceptance/web-parity-baseline.json"
+      ],
+      "notes": "12 accept-* compositions + scorecard; worker PNG/export gates green; browser Canvas PNG parity still deferred (harness transform + checksum baseline)"
     }
   ]
 }

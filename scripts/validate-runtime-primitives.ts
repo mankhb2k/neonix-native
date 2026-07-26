@@ -51,6 +51,18 @@ const frameGoldens = [
   { project: "trim-path", time: 1, file: "trim-path-reveal-t1.png", width: 540, height: 540 },
   { project: "blend-mode", time: 1, file: "blend-mode-glow-t1.png", width: 540, height: 540 },
   { project: "path-bend", time: 1, file: "path-bend-ribbon-t1.png", width: 540, height: 540 },
+  { project: "accept-process-trim", time: 1, file: "accept-process-trim-t1.png", width: 540, height: 540 },
+  { project: "accept-bignumber-paint", time: 1, file: "accept-bignumber-paint-t1.png", width: 540, height: 540 },
+  { project: "accept-compare-blend", time: 1, file: "accept-compare-blend-t1.png", width: 540, height: 540 },
+  { project: "accept-tvc-hook", time: 1, file: "accept-tvc-hook-t1.png", width: 270, height: 480 },
+  { project: "accept-showcase-lookat", time: 1, file: "accept-showcase-lookat-t1.png", width: 540, height: 540 },
+  { project: "accept-ribbon-promo", time: 1, file: "accept-ribbon-promo-t1.png", width: 540, height: 540 },
+  { project: "accept-cutout-talk", time: 1, file: "accept-cutout-talk-t1.png", width: 540, height: 540 },
+  { project: "accept-prop-mask", time: 1, file: "accept-prop-mask-t1.png", width: 270, height: 480 },
+  { project: "accept-look-at", time: 1, file: "accept-look-at-t1.png", width: 540, height: 540 },
+  { project: "accept-secondary-wave", time: 1, file: "accept-secondary-wave-t1.png", width: 540, height: 540 },
+  { project: "accept-path-morph", time: 1, file: "accept-path-morph-t1.png", width: 540, height: 540 },
+  { project: "accept-action-loop", time: 1, file: "accept-action-loop-t1.png", width: 540, height: 540 },
 ] as const;
 
 function close(actual: number, expected: number, label: string, tolerance = 0.02): void {
@@ -407,6 +419,22 @@ async function main(): Promise<void> {
 
   await mkdir(outputRoot, { recursive: true });
   assert.deepEqual((await readdir(expectedFrameRoot)).filter((file) => file.endsWith(".png")).sort(), frameGoldens.map(({ file }) => file).sort(), "Stored frame golden set changed");
+  const componentRoot = resolve(fixturesRoot, "components");
+  const acceptanceComponents = await Promise.all(
+    (await readdir(componentRoot))
+      .filter((file) => file.endsWith(".json"))
+      .map(async (file) => parseMotionComponentV2(JSON.parse(await readFile(resolve(componentRoot, file), "utf8")))),
+  );
+  const acceptanceRuntimes = new Map<string, ReturnType<typeof compileMotionProject>>();
+  async function runtimeForAccept(stem: string) {
+    let compiled = acceptanceRuntimes.get(stem);
+    if (!compiled) {
+      const source = parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", `${stem}.mt.json`), "utf8")));
+      compiled = compileMotionProject(source, { components: acceptanceComponents });
+      acceptanceRuntimes.set(stem, compiled);
+    }
+    return compiled;
+  }
   const hashes = new Set<string>();
   for (const golden of frameGoldens) {
     const targetRuntime = golden.project === "geometry" ? geometryRuntime
@@ -421,6 +449,7 @@ async function main(): Promise<void> {
       : golden.project === "trim-path" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "trim-path-reveal.mt.json"), "utf8"))))
       : golden.project === "blend-mode" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "blend-mode-glow.mt.json"), "utf8"))))
       : golden.project === "path-bend" ? compileMotionProject(parseMotionProjectV2(JSON.parse(await readFile(resolve(fixturesRoot, "projects", "path-bend-ribbon.mt.json"), "utf8"))))
+      : golden.project.startsWith("accept-") ? await runtimeForAccept(golden.project)
       : runtime;
     const png = await drawSceneFrame(targetRuntime.scenes[0]!, targetRuntime.metadata, targetRuntime.assets, golden.time, golden.width, golden.height, fixturesRoot);
     hashes.add(createHash("sha256").update(png).digest("hex"));
@@ -474,7 +503,7 @@ async function main(): Promise<void> {
       assert.ok(await countColor(png, [56, 189, 248]) >= 20, "Path Morph stroke silhouette pixels missing");
     }
   }
-  assert.equal(hashes.size, 21, "All primitive preview frames must be visually distinct");
+  assert.equal(hashes.size, frameGoldens.length, "All primitive preview frames must be visually distinct");
 
   console.log("OK world transforms, pivot chain, inherit flags and discrete flip");
   console.log("OK world bounds, inverse transforms, draw-order hit-test and offscreen budgets");

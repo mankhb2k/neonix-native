@@ -1,0 +1,311 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.action-loop",
+    "name": "Accept — Multi Action Playback",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Action playback fixture",
+      "primaryColor": "#281828"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.actions"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.actions",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "normal::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 80,
+            "y": 80,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "normal::marker",
+          "type": "shape",
+          "parentId": "normal::root",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 40,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#ef4444"
+          }
+        },
+        {
+          "id": "reverse::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 80,
+            "y": 180,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "reverse::marker",
+          "type": "shape",
+          "parentId": "reverse::root",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 40,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#ef4444"
+          }
+        },
+        {
+          "id": "alternate::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 80,
+            "y": 280,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "alternate::marker",
+          "type": "shape",
+          "parentId": "alternate::root",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 40,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#ef4444"
+          }
+        },
+        {
+          "id": "looped::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 80,
+            "y": 380,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "looped::marker",
+          "type": "shape",
+          "parentId": "looped::root",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 40,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#ef4444"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "normal::marker",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.5,
+              "v": 0
+            },
+            {
+              "t": 1,
+              "v": 100,
+              "easing": "linear"
+            }
+          ]
+        },
+        {
+          "targetId": "reverse::marker",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0,
+              "v": 100,
+              "easing": "linear"
+            },
+            {
+              "t": 1,
+              "v": 0
+            }
+          ]
+        },
+        {
+          "targetId": "alternate::marker",
+          "property": "transform.x",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 1,
+              "v": 100,
+              "easing": "linear"
+            },
+            {
+              "t": 2,
+              "v": 0
+            }
+          ]
+        },
+        {
+          "targetId": "looped::marker",
+          "property": "transform.rotation",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.5,
+              "v": 90,
+              "easing": "linear"
+            },
+            {
+              "t": 1,
+              "v": 0
+            },
+            {
+              "t": 1.5,
+              "v": 90,
+              "easing": "linear"
+            },
+            {
+              "t": 2,
+              "v": 0
+            },
+            {
+              "t": 2.5,
+              "v": 90,
+              "easing": "linear"
+            },
+            {
+              "t": 3,
+              "v": 0,
+              "easing": "linear"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

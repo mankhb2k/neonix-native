@@ -9,6 +9,7 @@ import { GlobalFonts } from "@napi-rs/canvas";
 import {
   parseMotionComponentV2,
   parseMotionProjectV2,
+  parseSceneComponentRegistry,
   MOTION_V2_LIMITS,
   MotionPatchSchema,
   MotionV2ReferenceError,
@@ -1298,8 +1299,43 @@ async function main(): Promise<void> {
   const coverageCount = await validatePrimitivesCoverage();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
-  MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
-  console.log(`OK patches/ai-fill-big-number.json`);
+  const patchRoot = resolve(fixturesRoot, "patches");
+  const patchFiles = (await readdir(patchRoot)).filter((file) => file.endsWith(".json")).sort();
+  for (const file of patchFiles) {
+    MotionPatchSchema.parse(await readJson(resolve(patchRoot, file)));
+    console.log(`OK patches/${file}`);
+  }
+
+  const acceptanceScorecard = await readJson(resolve(fixturesRoot, "acceptance", "scorecard.json")) as {
+    compositions: Array<{ id: string; project: string; patch: string | null; frame: string }>;
+  };
+  if (acceptanceScorecard.compositions.length !== 12) {
+    throw new Error(`Acceptance pack must list 12 compositions, got ${acceptanceScorecard.compositions.length}`);
+  }
+  for (const composition of acceptanceScorecard.compositions) {
+    await stat(resolve(fixturesRoot, composition.project));
+    if (composition.patch) await stat(resolve(fixturesRoot, composition.patch));
+    if (!composition.id.startsWith("accept-")) throw new Error(`Acceptance id must start with accept-: ${composition.id}`);
+  }
+  console.log(`OK acceptance/scorecard ${acceptanceScorecard.compositions.length} compositions`);
+
+  const sceneRegistry = parseSceneComponentRegistry(await readJson(resolve(fixturesRoot, "registry", "scene-components.json")));
+  const registryIds = new Set<string>();
+  for (const entry of sceneRegistry.components) {
+    if (registryIds.has(entry.componentId)) throw new Error(`Duplicate scene registry componentId: ${entry.componentId}`);
+    registryIds.add(entry.componentId);
+    await stat(resolve(fixturesRoot, entry.fixturePath));
+    const component = parseMotionComponentV2(await readJson(resolve(fixturesRoot, entry.fixturePath)));
+    if (component.componentId !== entry.componentId) {
+      throw new Error(`Registry ${entry.componentId} fixture componentId is ${component.componentId}`);
+    }
+    if (component.componentVersion !== entry.version) {
+      throw new Error(`Registry ${entry.componentId} version ${entry.version} != fixture ${component.componentVersion}`);
+    }
+    if (entry.demoProjectPath) await stat(resolve(fixturesRoot, entry.demoProjectPath));
+    if (entry.patchPath) await stat(resolve(fixturesRoot, entry.patchPath));
+  }
+  console.log(`OK registry/scene-components ${sceneRegistry.components.length} entries`);
 
   // P0 freeze: round-trip, semantic.key stability, patch public surface, AI vocabulary.
   const roundTripSource = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "property-capabilities.mt.json")));

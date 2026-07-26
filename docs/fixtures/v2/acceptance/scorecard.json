@@ -1,0 +1,246 @@
+{
+  "version": 1,
+  "updatedAt": "2026-07-25",
+  "passThreshold": 10,
+  "criteria": [
+    "compile",
+    "exportMp4",
+    "publicApi",
+    "visualIntent",
+    "timing",
+    "reuse"
+  ],
+  "compositions": [
+    {
+      "id": "accept-process-trim",
+      "map": "infographic",
+      "project": "projects/accept-process-trim.mt.json",
+      "patch": "patches/ai-fill-accept-process-trim.json",
+      "frame": "expected-frames/accept-process-trim-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 2,
+        "visualIntent": 1,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 11,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Trim line + title OK; timeline-steps instance sits off 1:1 frame (9:16 layout) so process list not visible at t=1."
+    },
+    {
+      "id": "accept-bignumber-paint",
+      "map": "infographic",
+      "project": "projects/accept-bignumber-paint.mt.json",
+      "patch": "patches/ai-fill-accept-bignumber-paint.json",
+      "frame": "expected-frames/accept-bignumber-paint-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 2,
+        "visualIntent": 1,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 11,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Gradient panel + glow + dashed stroke clear; big-number text clipped by aspect mismatch (component 9:16 on 1:1)."
+    },
+    {
+      "id": "accept-compare-blend",
+      "map": "infographic",
+      "project": "projects/accept-compare-blend.mt.json",
+      "patch": "patches/ai-fill-accept-compare-blend.json",
+      "frame": "expected-frames/accept-compare-blend-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 2,
+        "visualIntent": 0,
+        "timing": 1,
+        "reuse": 2
+      },
+      "total": 9,
+      "status": "fail",
+      "failures": [
+        "visual-intent"
+      ],
+      "reviewNotes": "Only screen-blend highlight visible; compare cards off-frame — fails compare brief at sample frame."
+    },
+    {
+      "id": "accept-tvc-hook",
+      "map": "product-tvc",
+      "project": "projects/accept-tvc-hook.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-tvc-hook-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 11,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Hook scene readable (discount copy + accent); multi-scene/audio/camera composition holds TVC intent."
+    },
+    {
+      "id": "accept-showcase-lookat",
+      "map": "product-tvc",
+      "project": "projects/accept-showcase-lookat.mt.json",
+      "patch": "patches/ai-fill-accept-showcase-lookat.json",
+      "frame": "expected-frames/accept-showcase-lookat-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 2,
+        "visualIntent": 1,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 11,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Motion-path + look-at markers visible; product showcase body mostly cropped — partial product-TVC read."
+    },
+    {
+      "id": "accept-ribbon-promo",
+      "map": "product-tvc",
+      "project": "projects/accept-ribbon-promo.mt.json",
+      "patch": "patches/ai-fill-accept-ribbon-promo.json",
+      "frame": "expected-frames/accept-ribbon-promo-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 2,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 12,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Gradient card, label, and bent ribbon read clearly as promo; strongest paint/modifier combo frame."
+    },
+    {
+      "id": "accept-cutout-talk",
+      "map": "cut-out",
+      "project": "projects/accept-cutout-talk.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-cutout-talk-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 11,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Cut-out rig + prop in frame; talk/wave actions and VO-backed dialogue map satisfied."
+    },
+    {
+      "id": "accept-prop-mask",
+      "map": "cut-out",
+      "project": "projects/accept-prop-mask.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-prop-mask-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 1
+      },
+      "total": 10,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Hierarchy limbs + prop + spotlight mask readable; fixture enrich more than packaged public API."
+    },
+    {
+      "id": "accept-look-at",
+      "map": "cut-out",
+      "project": "projects/accept-look-at.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-look-at-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 1
+      },
+      "total": 10,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Eye/target look-at composition clear with caption; good constraint demo, not a product MVC."
+    },
+    {
+      "id": "accept-secondary-wave",
+      "map": "mascot",
+      "project": "projects/accept-secondary-wave.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-secondary-wave-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 1
+      },
+      "total": 10,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Secondary rotation chain silhouettes + caption; mascot-wave map satisfied as primitive composition."
+    },
+    {
+      "id": "accept-path-morph",
+      "map": "mascot",
+      "project": "projects/accept-path-morph.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-path-morph-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 2,
+        "timing": 2,
+        "reuse": 1
+      },
+      "total": 10,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Morph fills/strokes + caption present; expression accent intent clear."
+    },
+    {
+      "id": "accept-action-loop",
+      "map": "mascot",
+      "project": "projects/accept-action-loop.mt.json",
+      "patch": null,
+      "frame": "expected-frames/accept-action-loop-t1.png",
+      "scores": {
+        "compile": 2,
+        "exportMp4": 2,
+        "publicApi": 1,
+        "visualIntent": 1,
+        "timing": 2,
+        "reuse": 2
+      },
+      "total": 10,
+      "status": "agent-scored",
+      "failures": [],
+      "reviewNotes": "Four action instances render as tiny markers; playback wiring OK but visual punch weak at t=1."
+    }
+  ],
+  "scoredBy": "agent"
+}

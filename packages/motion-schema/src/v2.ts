@@ -667,6 +667,9 @@ export const PublicParamSchema = z
     min: FiniteNumberSchema.optional(),
     max: FiniteNumberSchema.optional(),
     options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions).optional(),
+    group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
+    control: z.enum(["text", "textarea", "color-picker", "slider", "toggle", "asset-picker", "enum"]).optional(),
+    capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
   })
   .strict();
 

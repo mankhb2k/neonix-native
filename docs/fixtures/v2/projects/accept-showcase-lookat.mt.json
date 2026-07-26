@@ -1,0 +1,318 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.showcase-lookat",
+    "name": "Accept — Showcase Look At",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Accept — Showcase Look At",
+      "primaryColor": "#1c1917"
+    }
+  },
+  "dependencies": {
+    "components": [
+      {
+        "componentId": "comp.product-showcase",
+        "version": "1.0.0",
+        "source": "registry.main",
+        "integrity": "sha256-fixture-product-showcase-1.0.0"
+      }
+    ]
+  },
+  "assets": [
+    {
+      "id": "asset.product",
+      "assetType": "image",
+      "uri": "assets/image-product.png",
+      "integrity": "sha256-ec69d6bfed0ef3b2fb4531f5ddbbedbd9f1cfed8fed8eed866ca9a8ea00025fd",
+      "mimeType": "image/png",
+      "width": 1000,
+      "height": 1000,
+      "pixelFormat": "rgb24",
+      "hasAlpha": false
+    }
+  ],
+  "variables": [
+    {
+      "id": "proj.cta",
+      "type": "string",
+      "name": "CTA",
+      "value": "Đặt ngay"
+    }
+  ],
+  "timeline": {
+    "sceneOrder": [
+      "scene.main"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.main",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "inst.product",
+          "type": "component",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": -300,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "comp.product-showcase",
+            "componentVersion": "1.0.0",
+            "props": {
+              "productName": "Cold Brew",
+              "price": "49K",
+              "cta": "Đặt ngay",
+              "theme": "dark",
+              "primaryColor": "#c45c26",
+              "productImage": "asset.product",
+              "animationSpeed": 1
+            }
+          }
+        },
+        {
+          "id": "arrow",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 3,
+          "transform": {
+            "x": 200,
+            "y": 700,
+            "width": 120,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 12
+          },
+          "style": {
+            "fill": "#f97316"
+          },
+          "modifiers": [
+            {
+              "id": "look",
+              "type": "constraint",
+              "kind": "look-at",
+              "targetNodeId": "target",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "id": "target",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 4,
+          "transform": {
+            "x": 820,
+            "y": 360,
+            "width": 48,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#22c55e"
+          }
+        },
+        {
+          "id": "mover",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 200,
+            "y": 200,
+            "width": 64,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "ellipse"
+          },
+          "style": {
+            "fill": "#eab308"
+          },
+          "modifiers": [
+            {
+              "id": "orbit",
+              "type": "motion-path",
+              "pathNodeId": "orbit.path",
+              "contourId": "arc",
+              "progress": 0,
+              "orientToPath": true,
+              "rotationOffset": 0,
+              "startOffset": 0,
+              "endOffset": 1
+            }
+          ]
+        },
+        {
+          "id": "orbit.path",
+          "type": "path",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 200,
+            "y": 160,
+            "width": 680,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "fillRule": "nonzero",
+            "contours": [
+              {
+                "id": "arc",
+                "start": {
+                  "x": 0,
+                  "y": 100
+                },
+                "segments": [
+                  {
+                    "kind": "cubic",
+                    "control1": {
+                      "x": 160,
+                      "y": -20
+                    },
+                    "control2": {
+                      "x": 520,
+                      "y": -20
+                    },
+                    "to": {
+                      "x": 680,
+                      "y": 100
+                    }
+                  }
+                ],
+                "closed": false
+              }
+            ]
+          },
+          "style": {
+            "stroke": "#334155",
+            "strokeWidth": 2
+          }
+        }
+      ],
+      "clips": [
+        {
+          "id": "motion",
+          "schedule": {
+            "kind": "absolute",
+            "at": 0
+          },
+          "duration": 3,
+          "source": {
+            "kind": "tracks",
+            "tracks": [
+              {
+                "targetId": "mover",
+                "property": "modifiers.orbit.progress",
+                "keys": [
+                  {
+                    "t": 0,
+                    "v": 0
+                  },
+                  {
+                    "t": 3,
+                    "v": 1
+                  }
+                ]
+              },
+              {
+                "targetId": "target",
+                "property": "transform.x",
+                "keys": [
+                  {
+                    "t": 0,
+                    "v": 820
+                  },
+                  {
+                    "t": 1.5,
+                    "v": 300
+                  },
+                  {
+                    "t": 3,
+                    "v": 820
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.cta",
+      "source": {
+        "kind": "variable",
+        "variableId": "proj.cta"
+      },
+      "target": {
+        "sceneId": "scene.main",
+        "nodeId": "inst.product",
+        "property": "payload.props.cta"
+      }
+    }
+  ],
+  "extensions": {
+    "constraints": [],
+    "events": []
+  }
+}
