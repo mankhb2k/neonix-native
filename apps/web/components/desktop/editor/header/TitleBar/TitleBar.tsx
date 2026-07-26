@@ -3,8 +3,8 @@
 import { useRef, useState, type CSSProperties } from "react";
 import { AppLink } from "@/components/AppLink";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
-import { DesktopMenuBar } from "@/components/desktop/DesktopMenuBar";
-import { DesktopWindowControls } from "@/components/desktop/DesktopWindowControls";
+import { DesktopMenuBar, DesktopWindowControls } from "@/components/desktop/editor";
+
 import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
 import { useIsDesktop } from "@/lib/desktop";

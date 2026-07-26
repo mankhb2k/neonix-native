@@ -87,6 +87,13 @@ export function loadProject(id: string): MotionProject | null {
   return stored.project;
 }
 
+export function deleteProject(id: string): void {
+  const projects = parseStored();
+  delete projects[id];
+  writeAll(projects);
+}
+
 export function listProjects(): StoredProject[] {
   return Object.values(readAll()).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
+

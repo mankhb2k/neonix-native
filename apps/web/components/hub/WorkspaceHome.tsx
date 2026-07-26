@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLink, appHref } from "@/components/AppLink";
-import { DesktopTitleStrip } from "@/components/desktop/DesktopTitleStrip";
+import { DesktopHub, DesktopTitleStrip } from "@/components/desktop/hub";
+import { useIsDesktop } from "@/lib/desktop";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
 import { ProjectList } from "@/components/hub/ProjectList";
 import { createBlankProject } from "@/lib/create-blank-project";
@@ -13,7 +14,14 @@ import { Plus, Smartphone, Tv, Square } from "lucide-react";
 
 export function WorkspaceHome() {
   const router = useRouter();
+  const isDesktop = useIsDesktop();
   const [modalOpen, setModalOpen] = useState(false);
+
+  if (isDesktop) {
+    return <DesktopHub />;
+  }
+
+
 
   function handleQuickCreate(aspectRatio: "9:16" | "16:9" | "1:1", defaultName: string) {
     const project = createBlankProject({
