@@ -86,6 +86,16 @@ export function PreviewStage() {
     );
   }
 
+  if (project.scenes.length === 0) {
+    return (
+      <div className="mv-preview-wrap">
+        <p style={{ color: "var(--fg-muted)" }}>
+          Thêm khung hình ở panel trái, rồi kéo vào timeline để preview.
+        </p>
+      </div>
+    );
+  }
+
   const scene = project.scenes.find((candidate) => candidate.id === selectedSceneId) ?? project.scenes[0];
   if (!scene) return null;
   const brand = project.metadata.brand;

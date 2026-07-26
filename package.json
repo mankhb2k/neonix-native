@@ -5,6 +5,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "pnpm --filter @motionvideo/web dev",
+    "dev:desktop": "pnpm --filter @motionvideo/desktop dev",
+    "dev:desktop:next": "pnpm --filter @motionvideo/web dev:desktop",
     "dev:worker": "pnpm --filter @motionvideo/render-worker dev",
     "e2e:render": "pnpm --filter @motionvideo/render-worker e2e",
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
@@ -21,6 +23,8 @@
     "score:designer-corrections": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-designer-corrections.ts",
     "score:acceptance-pack": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-acceptance-pack.ts",
     "storybook": "pnpm --filter @motionvideo/web storybook"
+
+
   },
   "engines": {
     "node": ">=20",

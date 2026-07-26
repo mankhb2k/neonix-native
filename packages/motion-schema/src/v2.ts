@@ -829,11 +829,11 @@ export const MotionProjectV2Schema = z
     variables: z.array(VariableV2Schema).max(MOTION_V2_LIMITS.variablesPerArtifact),
     timeline: z
       .object({
-        sceneOrder: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
+        sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
         audioTracks: z.array(AudioTrackSchema).max(MOTION_V2_LIMITS.audioTracksPerProject).default([]),
       })
       .strict(),
-    scenes: z.array(SceneV2Schema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
+    scenes: z.array(SceneV2Schema).max(MOTION_V2_LIMITS.scenesPerProject),
     bindings: z.array(ProjectBindingSchema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
     extensions: z
       .object({

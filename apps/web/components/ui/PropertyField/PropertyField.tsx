@@ -63,7 +63,6 @@ export interface PropertyInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "prefix"> {
   label?: string;
   prefix?: string;
-  /** Hiện nút tăng/giảm bên cạnh input. Mặc định: false (chỉ nhập). */
   stepper?: boolean;
 }
 

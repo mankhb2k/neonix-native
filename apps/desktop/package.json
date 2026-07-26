@@ -1,0 +1,19 @@
+{
+  "name": "@motionvideo/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Electron shell for the MotionVideo editor (dev loads Next; prod ships build output).",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "pnpm build && electron .",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "electron ."
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "electron": "^37.2.5",
+    "typescript": "^5.8.2"
+  }
+}

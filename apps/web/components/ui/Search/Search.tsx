@@ -1,9 +1,7 @@
 import React from "react";
 import { Search as SearchIcon } from "lucide-react";
 
-export interface SearchProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  // Add custom props if needed
-}
+export interface SearchProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 export function Search({ className, ...props }: SearchProps) {
   return (

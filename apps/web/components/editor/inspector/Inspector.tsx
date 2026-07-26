@@ -30,7 +30,9 @@ export function Inspector() {
   if (!project || !selectedSceneId) {
     return (
       <div className="flex flex-1 items-center justify-center px-4 text-center text-ui text-[var(--fg-muted)]">
-        Chọn một khung hình hoặc layer để chỉnh.
+        {project && project.scenes.length === 0
+          ? "Kéo khung hình vào timeline để bắt đầu chỉnh."
+          : "Chọn một khung hình hoặc layer để chỉnh."}
       </div>
     );
   }

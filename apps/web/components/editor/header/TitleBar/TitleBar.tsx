@@ -1,10 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { AppLink } from "@/components/AppLink";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
+import { DesktopMenuBar } from "@/components/desktop/DesktopMenuBar";
+import { DesktopWindowControls } from "@/components/desktop/DesktopWindowControls";
 import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
+import { useIsDesktop } from "@/lib/desktop";
 import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
 import {
@@ -25,10 +28,11 @@ export function TitleBar() {
   const setExporting = useEditorStore((s) => s.setExporting);
   const updateBrand = useEditorStore((s) => s.updateBrand);
   const loadProject = useEditorStore((s) => s.loadProject);
+  const isDesktop = useIsDesktop();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
-  const [isPro] = useState(true); // Mặc định là Pro
+  const [isPro] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handleExport() {
@@ -75,16 +79,25 @@ export function TitleBar() {
     }
   }
 
+  const noDrag = isDesktop
+    ? ({ WebkitAppRegion: "no-drag" } as CSSProperties)
+    : undefined;
+
   return (
     <>
-      <div className="flex h-[38px] items-center justify-between gap-3 border-b border-[var(--line)] px-3">
-        <div className="flex items-center gap-2">
-          {/* App Logo */}
+      <div
+        className="desktop-titlebar flex h-[38px] items-center justify-between gap-3 border-b border-[var(--line)] pl-3 pr-0"
+        style={isDesktop ? ({ WebkitAppRegion: "drag" } as CSSProperties) : { paddingRight: 12 }}
+      >
+        <div className="flex min-w-0 items-center gap-2" style={noDrag}>
           <AppLink href="/" className="flex items-center no-underline" title="Trang chủ">
-            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] bg-[#d9381e] text-[12px] font-bold text-white">M</span>
+            <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[4px] bg-[#d9381e] text-[12px] font-bold text-white">
+              M
+            </span>
           </AppLink>
 
-          {/* Project Name Input */}
+          {isDesktop ? <DesktopMenuBar /> : null}
+
           <input
             className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg)] outline-none hover:border-[var(--line-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--line-strong)] focus:bg-[var(--bg-hover)]"
             value={project?.metadata.brand.name ?? "Presentation 2"}
@@ -93,44 +106,40 @@ export function TitleBar() {
             placeholder="Dự án không tên"
           />
 
-          {/* Cloud Saved Icon */}
           <Tooltip content="Đã lưu tự động vào đám mây" side="bottom">
             <span className="mv-ppt-saved-icon">
               <CloudCheck size={15} strokeWidth={1.2} color="#22c55e" />
             </span>
           </Tooltip>
 
-          {/* Nút Tệp và Trợ giúp ngay bên phải icon đám mây */}
-          <Tooltip content="Tải file dự án (.mt)" side="bottom">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleDownloadMt}
-            >
-              Tệp
-            </Button>
-          </Tooltip>
-
-          <Tooltip content="Trung tâm trợ giúp & Hướng dẫn" side="bottom">
-            <Button
-              variant="ghost"
-              size="sm"
-            >
-              Trợ giúp
-            </Button>
-          </Tooltip>
+          {!isDesktop ? (
+            <>
+              <Tooltip content="Tải file dự án (.mt)" side="bottom">
+                <Button variant="ghost" size="sm" onClick={handleDownloadMt}>
+                  Tệp
+                </Button>
+              </Tooltip>
+              <Tooltip content="Trung tâm trợ giúp & Hướng dẫn" side="bottom">
+                <Button variant="ghost" size="sm">
+                  Trợ giúp
+                </Button>
+              </Tooltip>
+            </>
+          ) : null}
         </div>
 
-        {/* Search Box in Middle */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" style={noDrag}>
           <div className="flex w-[220px] items-center gap-1.5 rounded-md bg-[var(--bg-hover)] px-2.5 py-1 text-[var(--fg-muted)]">
             <Search size={14} strokeWidth={1.2} />
-            <input type="text" placeholder="Tìm kiếm" className="w-full border-none bg-transparent text-[12px] text-[var(--fg)] outline-none" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm"
+              className="w-full border-none bg-transparent text-[12px] text-[var(--fg)] outline-none"
+            />
           </div>
         </div>
 
-        {/* Action Buttons & Avatar Right */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" style={noDrag}>
           <input
             ref={fileRef}
             type="file"
@@ -143,7 +152,6 @@ export function TitleBar() {
             }}
           />
 
-          {/* Nút Pro / Nâng cấp */}
           <Tooltip content="Gói Pro cao cấp" side="bottom">
             <Button
               variant="outline"
@@ -155,7 +163,6 @@ export function TitleBar() {
             </Button>
           </Tooltip>
 
-          {/* Nút Xuất */}
           <Tooltip content="Xuất video MP4 chất lượng cao" side="bottom">
             <Button
               variant="primary"
@@ -180,11 +187,16 @@ export function TitleBar() {
               />
             </div>
           </Tooltip>
+
+          {isDesktop ? <DesktopWindowControls /> : null}
         </div>
       </div>
 
       {exportError ? (
-        <div className="flex items-center justify-center gap-2 bg-red-500/10 px-4 py-2 text-sm text-red-500" role="alert">
+        <div
+          className="flex items-center justify-center gap-2 bg-red-500/10 px-4 py-2 text-sm text-red-500"
+          role="alert"
+        >
           {exportError}
           <Button variant="ghost" size="sm" onClick={() => setExportError(null)}>
             Đóng
