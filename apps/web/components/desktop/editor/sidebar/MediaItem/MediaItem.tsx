@@ -23,8 +23,8 @@ export function MediaItem({
   onClick,
 }: MediaItemProps) {
   return (
-    <div className={cn("flex flex-col gap-1.5 w-full cursor-pointer", className)} onClick={onClick}>
-      <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-[#27272A]">
+    <div className={cn("flex flex-col gap-1 w-[128px] shrink-0 cursor-pointer select-none", className)} onClick={onClick}>
+      <div className="relative w-[128px] h-[84px] rounded-lg overflow-hidden bg-[#222226]">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
@@ -63,7 +63,7 @@ export function MediaItem({
         )}
       </div>
 
-      <div className="text-[12px] font-medium text-[var(--fg)] truncate w-full px-0.5">
+      <div className="text-[11.5px] font-medium text-[var(--fg-secondary)] truncate w-[128px] px-0.5 mt-0.5">
         {title}
       </div>
     </div>

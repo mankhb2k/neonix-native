@@ -58,7 +58,7 @@ export function UploadPanel() {
         </Button>
       </SidebarPanelHeader>
       <SidebarPanelContent>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3 min-w-0">
+        <div className="grid grid-cols-[repeat(auto-fill,128px)] gap-3 justify-start min-w-0">
           {UPLOAD_ITEMS.map((item, i) => (
             <MediaItem
               key={i}

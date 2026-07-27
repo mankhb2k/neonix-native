@@ -57,10 +57,10 @@ export function FramePanel() {
     <SidebarPanel>
       <SidebarPanelHeader>Khung hình</SidebarPanelHeader>
       <SidebarPanelContent>
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,128px)] gap-3 justify-start min-w-0">
           {frames.map((frame) => (
             <ContextMenu key={frame.id}>
-              <ContextMenuTrigger className="w-full">
+              <ContextMenuTrigger className="w-[128px]">
                 <div
                   draggable
                   onDragStart={(event) => {
@@ -95,13 +95,13 @@ export function FramePanel() {
           <button
             type="button"
             onClick={handleAdd}
-            className="flex flex-col gap-1.5 w-full cursor-pointer border-0 bg-transparent p-0 text-left"
+            className="flex flex-col gap-1 w-[128px] shrink-0 cursor-pointer border-0 bg-transparent p-0 text-left select-none"
           >
-            <div className="relative w-full aspect-[4/3] rounded-lg border-2 border-dashed border-[var(--line-strong)] flex flex-col items-center justify-center gap-2 text-[var(--fg-muted)] hover:border-[var(--fg-muted)] hover:text-[var(--fg)]">
-              <Plus size={24} strokeWidth={1.5} />
-              <span className="text-[12px] font-medium">Thêm khung hình</span>
+            <div className="relative w-[128px] h-[84px] rounded-lg border-2 border-dashed border-[var(--border-strong)] flex flex-col items-center justify-center gap-1.5 text-[var(--fg-muted)] hover:border-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors">
+              <Plus size={22} strokeWidth={1.5} />
+              <span className="text-[11px] font-medium">Thêm khung hình</span>
             </div>
-            <div className="text-[12px] font-medium text-transparent">.</div>
+            <div className="text-[11.5px] font-medium text-transparent">.</div>
           </button>
         </div>
       </SidebarPanelContent>
