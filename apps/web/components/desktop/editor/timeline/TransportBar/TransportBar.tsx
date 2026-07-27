@@ -28,7 +28,7 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
   }
 
   return (
-    <div className="grid h-[36px] shrink-0 grid-cols-3 items-center border-b border-[var(--line-strong)] bg-[var(--bg-panel)] px-3">
+    <div className="grid h-[36px] shrink-0 grid-cols-3 items-center border-b border-[var(--line-strong)] px-3">
       <div />
       <div className="flex items-center justify-center gap-3">
         <span className="font-mono text-[13px] tabular-nums text-[var(--fg-muted)]">

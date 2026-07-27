@@ -80,16 +80,16 @@ export function PreviewStage() {
 
   if (!project) {
     return (
-      <div className="mv-preview-wrap">
-        <p style={{ color: "var(--fg-muted)" }}>Chưa có dự án</p>
+      <div className="flex flex-col items-center justify-center p-6 bg-transparent min-h-0 overflow-hidden text-[var(--fg-muted)]">
+        <p>Chưa có dự án</p>
       </div>
     );
   }
 
   if (project.scenes.length === 0) {
     return (
-      <div className="mv-preview-wrap">
-        <p style={{ color: "var(--fg-muted)" }}>
+      <div className="flex flex-col items-center justify-center p-6 bg-transparent min-h-0 overflow-hidden text-[var(--fg-muted)]">
+        <p>
           Thêm khung hình ở panel trái, rồi kéo vào timeline để preview.
         </p>
       </div>
@@ -108,8 +108,8 @@ export function PreviewStage() {
     : null;
 
   return (
-    <div className="mv-preview-wrap">
-      <div className="mv-preview-toolbar">
+    <div className="flex flex-col items-center justify-center p-6 bg-transparent min-h-0 overflow-hidden">
+      <div className="flex items-center gap-2 mb-2">
         <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13 }}>
           t={frame.time.toFixed(2)}s
           <input
@@ -122,11 +122,15 @@ export function PreviewStage() {
             data-testid="preview-time-scrubber"
           />
         </label>
-        <span className="mv-pill">{scene.semantic?.role ?? scene.name ?? scene.id}</span>
-        <span className="mv-pill">{compiled ? "Runtime IR" : "compile error"}</span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--bg-hover)] text-[var(--fg-muted)] text-[12px] whitespace-nowrap">
+          {scene.semantic?.role ?? scene.name ?? scene.id}
+        </span>
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--bg-hover)] text-[var(--fg-muted)] text-[12px] whitespace-nowrap">
+          {compiled ? "Runtime IR" : "compile error"}
+        </span>
       </div>
       <div
-        className="mv-stage"
+        className="relative bg-[#0c0c0e] rounded-xl overflow-hidden shadow-2xl flex flex-col justify-center items-center p-6 gap-4 text-center select-none"
         data-ratio={project.metadata.aspectRatio}
         data-testid="runtime-preview-stage"
         style={{
@@ -136,8 +140,8 @@ export function PreviewStage() {
           overflow: "hidden",
         }}
       >
-        <div className="mv-stage-brand">
-          <div className="mv-stage-logo" />
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-center text-[11px] text-[var(--fg-muted)]">
+          <div className="w-7 h-7 rounded-lg bg-[var(--stage-accent,var(--accent))]" />
           <span>{brand.name}</span>
         </div>
         <div

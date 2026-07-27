@@ -57,7 +57,7 @@ export function FramePanel() {
     <SidebarPanel>
       <SidebarPanelHeader>Khung hình</SidebarPanelHeader>
       <SidebarPanelContent>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-3">
           {frames.map((frame) => (
             <ContextMenu key={frame.id}>
               <ContextMenuTrigger className="w-full">

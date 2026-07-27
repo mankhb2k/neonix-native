@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
@@ -21,6 +21,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
   const project = useEditorStore((s) => s.project);
   const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
   const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
+  const [sidebarWidth, setSidebarWidth] = useState(380);
+  const [isResizing, setIsResizing] = useState(false);
 
   useEffect(() => {
     loadProject(initialProject);
@@ -31,37 +33,70 @@ export function DesktopEditorShell({ initialProject }: Props) {
     saveProject(project);
   }, [project]);
 
+  const startResizing = useCallback(
+    (mouseDownEvent: React.PointerEvent) => {
+      mouseDownEvent.preventDefault();
+      setIsResizing(true);
+      const startX = mouseDownEvent.clientX;
+      const startWidth = sidebarWidth;
+
+      const onPointerMove = (moveEvent: PointerEvent) => {
+        const deltaX = moveEvent.clientX - startX;
+        const newWidth = Math.min(650, Math.max(280, startWidth + deltaX));
+        setSidebarWidth(newWidth);
+      };
+
+      const onPointerUp = () => {
+        setIsResizing(false);
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", onPointerUp);
+      };
+
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointerup", onPointerUp);
+    },
+    [sidebarWidth],
+  );
+
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#0a0a0c] text-[var(--fg)] relative select-none">
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] relative select-none">
       {/* Top Desktop Header Bar */}
       <Header />
 
       {/* Main 4-Panel Gap Grid (CapCut / Desktop NLE Style) */}
       <div
-        className={`flex-1 grid p-2 gap-2 overflow-hidden transition-[grid-template-columns] duration-200 ease-out ${
-          sidebarOpen
-            ? "grid-rows-[1fr_260px] grid-cols-[340px_1fr_340px]"
-            : "grid-rows-[1fr_260px] grid-cols-[0px_1fr_340px]"
-        }`}
+        className="flex-1 grid p-2 gap-2 overflow-hidden"
         style={{
+          gridTemplateColumns: sidebarOpen
+            ? `${sidebarWidth}px 1fr 340px`
+            : "0px 1fr 340px",
+          gridTemplateRows: "1fr 260px",
           gridTemplateAreas: `
             "sidebar stage rightdock"
             "timeline timeline timeline"
           `,
+          transition: isResizing ? "none" : "grid-template-columns 0.15s ease-out",
         }}
       >
         {/* Panel 1: Top-Left Assets / Library Sidebar Card */}
         <div
-          className={`[grid-area:sidebar] bg-[#18181c] rounded-xl overflow-hidden flex flex-col shadow-md transition-opacity duration-150 ${
+          className={`[grid-area:sidebar] relative bg-[var(--bg-panel)] rounded-xl overflow-hidden flex flex-col shadow-md transition-opacity duration-150 ${
             sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
           <Sidebar />
+
+          {/* Vertical Drag Handle for Sidebar Resizing */}
+          <div
+            onPointerDown={startResizing}
+            className="absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[var(--accent)]/50 active:bg-[var(--accent)] transition-colors z-30"
+            title="Kéo để thay đổi kích thước Sidebar"
+          />
         </div>
 
         {/* Panel 2: Top-Center Preview Stage Card */}
         <main
-          className="[grid-area:stage] bg-[#141417] rounded-xl overflow-hidden relative flex items-center justify-center shadow-md"
+          className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex items-center justify-center shadow-md"
           style={{
             backgroundImage: "radial-gradient(#27272A 1px, transparent 1px)",
             backgroundSize: "20px 20px",
@@ -86,12 +121,12 @@ export function DesktopEditorShell({ initialProject }: Props) {
         </main>
 
         {/* Panel 3: Top-Right Inspector Card */}
-        <div className="[grid-area:rightdock] bg-[#18181c] rounded-xl overflow-hidden flex flex-col shadow-md">
+        <div className="[grid-area:rightdock] bg-[var(--bg-panel)] rounded-xl overflow-hidden flex flex-col shadow-md">
           <RightDock />
         </div>
 
         {/* Panel 4: Bottom Full-Width Timeline Card */}
-        <div className="[grid-area:timeline] bg-[#18181c] rounded-xl overflow-hidden flex flex-col shadow-md">
+        <div className="[grid-area:timeline] bg-[var(--bg-panel)] rounded-xl overflow-hidden flex flex-col shadow-md">
           <Timeline />
         </div>
       </div>

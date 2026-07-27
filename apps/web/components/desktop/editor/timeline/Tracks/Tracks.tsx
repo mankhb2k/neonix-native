@@ -39,7 +39,7 @@ export function Tracks({ zoom }: Props) {
   }, [project]);
 
   if (!project) {
-    return <div ref={rootRef} className="relative flex-1 overflow-auto bg-[var(--bg-panel)]" />;
+    return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
   }
 
   const fps = project.metadata.fps ?? 30;
@@ -96,7 +96,7 @@ export function Tracks({ zoom }: Props) {
   return (
     <div
       ref={rootRef}
-      className={`relative flex-1 overflow-auto bg-[var(--bg-panel)] ${
+      className={`relative flex-1 overflow-auto ${
         dragOver ? "outline outline-1 outline-[var(--accent)] outline-offset-[-1px]" : ""
       }`}
       onDragOver={handleDragOver}
