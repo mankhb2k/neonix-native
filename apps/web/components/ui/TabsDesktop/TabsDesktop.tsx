@@ -95,10 +95,10 @@ export function TabsDesktop({
               disabled={item.disabled}
               onClick={() => !item.disabled && onChange(item.id)}
               className={cn(
-                "relative flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-all cursor-pointer whitespace-nowrap",
+                "flex shrink-0 items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium transition-colors bg-transparent cursor-pointer whitespace-nowrap outline-none border-none",
                 isActive
-                  ? "bg-[var(--bg-hover)] text-[var(--accent-text)] font-semibold"
-                  : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)]/50",
+                  ? "text-[var(--tab-fg-active)] font-semibold"
+                  : "text-[var(--tab-fg)] hover:text-[var(--tab-fg-hover)]",
                 item.disabled && "opacity-40 cursor-not-allowed",
               )}
             >
@@ -108,9 +108,6 @@ export function TabsDesktop({
                 </span>
               ) : null}
               <span>{item.label}</span>
-              {isActive ? (
-                <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[var(--accent-text)]" />
-              ) : null}
             </button>
           );
         })}
