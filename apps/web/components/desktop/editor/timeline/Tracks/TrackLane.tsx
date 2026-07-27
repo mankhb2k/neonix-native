@@ -84,13 +84,13 @@ export function TrackLane({
       >
         {children}
 
-        {/* Ghost Preview Block when Dragging */}
+        {/* Snapped Destination Placeholder Slot (Khối Xám Đục chuẩn CapCut) */}
         {ghostPreview && (
           <div
-            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#0D7476]/50 border border-dashed border-[#14B8A6] px-2 text-[11px] text-white flex items-center shadow-lg transition-all z-20 overflow-hidden"
+            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[11px] text-white/90 flex items-center shadow-md transition-all z-20 overflow-hidden"
             style={{ left: ghostPreview.left, width: ghostPreview.width }}
           >
-            <span className="truncate font-semibold text-white/95">
+            <span className="truncate font-semibold text-white/80">
               {ghostPreview.label ?? "Khung hình"}
               {ghostPreview.duration != null && ` (${ghostPreview.duration}s)`}
             </span>

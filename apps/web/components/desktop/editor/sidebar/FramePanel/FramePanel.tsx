@@ -29,6 +29,10 @@ export function FramePanel() {
   const projectId = project?.metadata.id;
   const [frames, setFrames] = useState<FrameDraft[]>([]);
 
+  const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
+  const setDragCursorPos = useEditorStore((s) => s.setDragCursorPos);
+  const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
+
   const refresh = useCallback(() => {
     if (!projectId) {
       setFrames([]);
@@ -64,6 +68,9 @@ export function FramePanel() {
                 <div
                   draggable
                   onDragStart={(event) => {
+                    const img = new Image();
+                    img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                    event.dataTransfer.setDragImage(img, 0, 0);
                     event.dataTransfer.setData(FRAME_LIBRARY_MIME, frame.id);
                     event.dataTransfer.setData(
                       "application/json",
@@ -76,6 +83,26 @@ export function FramePanel() {
                     );
                     event.dataTransfer.setData("text/plain", frame.id);
                     event.dataTransfer.effectAllowed = "copy";
+                    setActiveDragItem({
+                      id: frame.id,
+                      type: "frame",
+                      name: frame.name,
+                      duration: frame.duration ?? 5,
+                    });
+                    setIsOverTimeline(false);
+                    if (event.clientX > 0 && event.clientY > 0) {
+                      setDragCursorPos({ x: event.clientX, y: event.clientY });
+                    }
+                  }}
+                  onDrag={(event) => {
+                    if (event.clientX > 0 && event.clientY > 0) {
+                      setDragCursorPos({ x: event.clientX, y: event.clientY });
+                    }
+                  }}
+                  onDragEnd={() => {
+                    setActiveDragItem(null);
+                    setDragCursorPos(null);
+                    setIsOverTimeline(false);
                   }}
                   className="cursor-grab active:cursor-grabbing"
                 >

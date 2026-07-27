@@ -39,6 +39,9 @@ export function Tracks({ zoom }: Props) {
   );
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
+  const setDragCursorPos = useEditorStore((s) => s.setDragCursorPos);
+  const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
+  const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
   const rootRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
@@ -48,6 +51,10 @@ export function Tracks({ zoom }: Props) {
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState<number>(0);
+  const [mouseScreenPos, setMouseScreenPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Track control states (CapCut style)
   const [videoLocked, setVideoLocked] = useState(false);
@@ -120,6 +127,11 @@ export function Tracks({ zoom }: Props) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     setDragOver(true);
+    setIsOverTimeline(true);
+    setMouseScreenPos({ x: event.clientX, y: event.clientY });
+    if (event.clientX > 0 && event.clientY > 0) {
+      setDragCursorPos({ x: event.clientX, y: event.clientY });
+    }
 
     if (!rootRef.current) return;
     const rect = rootRef.current.getBoundingClientRect();
@@ -210,11 +222,16 @@ export function Tracks({ zoom }: Props) {
     setIsOverlayInsertLine(false);
     setTargetOverlayLayer(null);
     setDragGhostState(null);
+    setMouseScreenPos(null);
+    setIsOverTimeline(false);
   }
 
   function handleDrop(event: React.DragEvent) {
     event.preventDefault();
     setDragOver(false);
+    setIsOverTimeline(false);
+    setActiveDragItem(null);
+    setDragCursorPos(null);
 
     if (isOverlayInsertLine || targetOverlayLayer !== null) {
       const frameId =
@@ -286,8 +303,8 @@ export function Tracks({ zoom }: Props) {
           </div>
         </div>
 
-        {/* 1. TimeRuler Header Bar (Sticky Top 0, Z-Index 30) */}
-        <div className="sticky top-0 z-30 flex bg-[var(--bg-panel)]">
+        {/* 1. TimeRuler Header Bar (Sticky Top 0, Z-Index 40) */}
+        <div className="sticky top-0 z-40 flex bg-[var(--bg-panel)] border-b border-[var(--border-subtle)]">
           <div
             className="sticky left-0 z-40 shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
             style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
@@ -421,16 +438,32 @@ export function Tracks({ zoom }: Props) {
               );
             })}
 
-            {/* Glowing Green/Cyan Insertion Line Indicator when Dragging Between / Above Lanes */}
+            {/* Snapped Dark Gray Placeholder Slot & Glowing Green Insertion Line when Dragging Between / Above Lanes */}
             {isOverlayInsertLine && dragGhostState && (
-              <div
-                className="absolute z-40 h-[3px] rounded-full bg-[#14B8A6] shadow-[0_0_12px_#14B8A6] pointer-events-none transition-all"
-                style={{
-                  top: indicatorTopPos,
-                  left: TIMELINE_LABEL_WIDTH + dragGhostState.left,
-                  width: dragGhostState.width,
-                }}
-              />
+              <>
+                {/* Khối Xám Đục biểu diễn tọa độ khối Cyan chuẩn bị đưa vào lane mới */}
+                <div
+                  className="absolute z-30 h-8 -translate-y-1/2 flex items-center rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[10px] font-semibold text-white/80 shadow-md pointer-events-none transition-all overflow-hidden"
+                  style={{
+                    top: indicatorTopPos,
+                    left: TIMELINE_LABEL_WIDTH + dragGhostState.left,
+                    width: dragGhostState.width,
+                  }}
+                >
+                  <span className="truncate">
+                    {dragGhostState.label} ({dragGhostState.duration}s)
+                  </span>
+                </div>
+                {/* Đường kẻ màu xanh cyan chỉ đạo ở ranh giới sát nẹp */}
+                <div
+                  className="absolute z-40 h-[3px] rounded-full bg-[#14B8A6] shadow-[0_0_12px_#14B8A6] pointer-events-none transition-all"
+                  style={{
+                    top: indicatorTopPos,
+                    left: TIMELINE_LABEL_WIDTH + dragGhostState.left,
+                    width: dragGhostState.width,
+                  }}
+                />
+              </>
             )}
 
             {/* 1. Main Video Track Runway Lane */}

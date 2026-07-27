@@ -9,6 +9,7 @@ import { RightDock } from "./inspector/RightDock";
 import { Timeline } from "./timeline/Timeline";
 import { PanelHeader } from "@/components/ui";
 import { Header } from "./header/Header";
+import { GlobalDragPreview } from "./GlobalDragPreview";
 
 import type { MotionProject } from "@motionvideo/motion-schema";
 
@@ -201,6 +202,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
           Đang tải editor…
         </div>
       ) : null}
+
+      <GlobalDragPreview />
     </div>
   );
 }

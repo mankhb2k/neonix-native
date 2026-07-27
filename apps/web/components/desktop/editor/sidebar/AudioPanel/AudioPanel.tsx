@@ -44,6 +44,9 @@ export function AudioPanel() {
                 key={item.id}
                 draggable
                 onDragStart={(event) => {
+                  const img = new Image();
+                  img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+                  event.dataTransfer.setDragImage(img, 0, 0);
                   const parts = (item.duration || "").split(":").map(Number);
                   const durationSec = parts.length === 2 ? parts[0] * 60 + parts[1] : 10;
                   event.dataTransfer.setData(
