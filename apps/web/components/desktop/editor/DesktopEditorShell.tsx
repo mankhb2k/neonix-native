@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { saveProject } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./stage/PreviewStage";
 import { RightDock } from "./inspector/RightDock";
@@ -20,8 +19,6 @@ type Props = {
 export function DesktopEditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
-  const sidebarOpen = useEditorStore((s) => s.sidebarOpen);
-  const toggleSidebar = useEditorStore((s) => s.toggleSidebar);
 
   const [sidebarWidth, setSidebarWidth] = useState(380);
   const [rightdockWidth, setRightdockWidth] = useState(340);
@@ -132,9 +129,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
       <div
         className="flex-1 grid p-2 gap-2 overflow-hidden"
         style={{
-          gridTemplateColumns: sidebarOpen
-            ? `${sidebarWidth}px 1fr ${rightdockWidth}px`
-            : `0px 1fr ${rightdockWidth}px`,
+          gridTemplateColumns: `${sidebarWidth}px 1fr ${rightdockWidth}px`,
           gridTemplateRows: `1fr ${timelineHeight}px`,
           gridTemplateAreas: `
             "sidebar stage rightdock"
@@ -144,49 +139,24 @@ export function DesktopEditorShell({ initialProject }: Props) {
         }}
       >
         {/* Panel 1: Top-Left Assets / Library Sidebar Card */}
-        <div
-          className={`[grid-area:sidebar] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md transition-opacity duration-150 ${
-            sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        >
+        <div className="[grid-area:sidebar] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md">
           <div className="w-full h-full rounded-xl overflow-hidden flex flex-col">
             <Sidebar />
           </div>
 
           {/* Gap Drag Handle: Sidebar & Stage */}
-          {sidebarOpen ? (
-            <div
-              onPointerDown={startSidebarResizing}
-              className="absolute top-0 -right-2.5 bottom-0 w-3 cursor-ew-resize z-40 touch-none"
-              title="Kéo để thay đổi kích thước Sidebar"
-            />
-          ) : null}
+          <div
+            onPointerDown={startSidebarResizing}
+            className="absolute top-0 -right-2.5 bottom-0 w-3 cursor-ew-resize z-40 touch-none"
+            title="Kéo để thay đổi kích thước Sidebar"
+          />
         </div>
 
         {/* Panel 2: Top-Center Preview Stage Card */}
         <main
           className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex flex-col shadow-md"
         >
-          <PanelHeader
-            title={
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="flex h-6 w-6 items-center justify-center rounded bg-[#27272a] text-[#a0a0a5] hover:bg-[#3f3f46] hover:text-white shadow-sm transition-all cursor-pointer"
-                  onClick={toggleSidebar}
-                  aria-label={sidebarOpen ? "Thu gọn sidebar" : "Mở rộng sidebar"}
-                  title={sidebarOpen ? "Thu gọn" : "Mở rộng"}
-                >
-                  {sidebarOpen ? (
-                    <PanelLeftClose size={13} strokeWidth={1.5} />
-                  ) : (
-                    <PanelLeftOpen size={13} strokeWidth={1.5} />
-                  )}
-                </button>
-                <span className="font-semibold text-[13px] text-[var(--fg)]">Trình phát</span>
-              </div>
-            }
-          />
+          <PanelHeader title="Trình phát" />
 
           <div
             className="relative flex-1 flex items-center justify-center overflow-hidden"
