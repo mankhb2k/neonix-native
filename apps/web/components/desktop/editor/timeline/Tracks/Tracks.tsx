@@ -126,7 +126,7 @@ export function Tracks({ zoom }: Props) {
   return (
     <div
       ref={rootRef}
-      className={`relative flex-1 overflow-auto transition-colors select-none ${
+      className={`relative flex-1 overflow-auto transition-colors select-none bg-[var(--timeline-track-lane)] ${
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
       onDragOver={handleDragOver}
@@ -134,7 +134,7 @@ export function Tracks({ zoom }: Props) {
       onDrop={handleDrop}
     >
       <div
-        className="relative min-h-full flex flex-col"
+        className="relative min-h-full flex flex-col flex-1"
         style={{ minWidth: TIMELINE_LABEL_WIDTH + canvasWidth }}
       >
         {/* Playhead Vertical Line & Time Badge */}
@@ -232,7 +232,7 @@ export function Tracks({ zoom }: Props) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col pt-2 pb-12 space-y-[2px]">
+          <div className="flex flex-1 flex-col pt-2 pb-12 space-y-[2px]">
             {/* 1. Main Video Track Runway Lane */}
             <TrackLane
               variant="main"

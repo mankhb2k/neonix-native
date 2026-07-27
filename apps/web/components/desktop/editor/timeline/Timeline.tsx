@@ -9,7 +9,7 @@ export function Timeline() {
   const [zoom, setZoom] = useState(TIMELINE_ZOOM_DEFAULT);
 
   return (
-    <div className="col-span-full flex flex-col overflow-hidden [grid-area:timeline]">
+    <div className="col-span-full flex flex-col h-full min-h-0 overflow-hidden [grid-area:timeline]">
       <TransportBar zoom={zoom} onZoomChange={setZoom} />
       <Tracks zoom={zoom} />
     </div>
