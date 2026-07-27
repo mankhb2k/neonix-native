@@ -108,10 +108,10 @@ export function Tracks({ zoom }: Props) {
         style={{ minWidth: TIMELINE_LABEL_WIDTH + canvasWidth }}
       >
         <div
-          className="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-[var(--fg)]"
+          className="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-[var(--timeline-playhead)]"
           style={{ left: playheadLeft }}
         >
-          <div className="absolute top-0 left-1/2 flex h-3.5 min-w-3.5 -translate-x-1/2 items-center justify-center rounded-sm bg-[var(--fg)] px-1 font-mono text-[9px] font-semibold text-[var(--bg-panel)]">
+          <div className="absolute top-0 left-1/2 flex h-3.5 min-w-3.5 -translate-x-1/2 items-center justify-center rounded-sm bg-[var(--timeline-playhead)] px-1 font-mono text-[9px] font-semibold text-[var(--bg-panel)]">
             0
           </div>
         </div>
@@ -129,7 +129,7 @@ export function Tracks({ zoom }: Props) {
           />
         </div>
 
-        <div className="flex items-center gap-0 border-b border-[var(--line)]/60 py-1.5">
+        <div className="flex items-center gap-0 border-b border-[var(--border-subtle)] py-1.5">
           <div
             className="sticky left-0 z-10 flex shrink-0 items-center bg-[var(--bg-panel)] px-2 text-[11px] text-[var(--fg-muted)]"
             style={{ width: TIMELINE_LABEL_WIDTH }}
@@ -138,7 +138,7 @@ export function Tracks({ zoom }: Props) {
           </div>
           <div className="relative h-10" style={{ width: canvasWidth }}>
             {isEmpty ? (
-              <div className="flex h-full items-center px-2 text-[11px] text-[var(--fg-faint)]">
+              <div className="flex h-full items-center px-2 text-[11px] text-[var(--fg-muted)]">
                 Kéo khung hình vào đây
               </div>
             ) : (
@@ -151,7 +151,7 @@ export function Tracks({ zoom }: Props) {
                     className={`absolute top-0 h-10 overflow-hidden rounded px-2 text-left text-[11px] ${
                       active
                         ? "border border-[var(--accent)] bg-[var(--bg-hover)] text-[var(--accent)]"
-                        : "border border-[var(--line-strong)] bg-[#27272A] text-[var(--fg-muted)]"
+                        : "border border-[var(--border-strong)] bg-[var(--timeline-track-bg)] text-[var(--fg-secondary)]"
                     }`}
                     style={{ left, width }}
                     onClick={() => selectScene(scene.id)}

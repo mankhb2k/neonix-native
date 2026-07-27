@@ -86,7 +86,7 @@ export function TitleBar() {
   return (
     <>
       <div
-        className="desktop-titlebar flex h-[38px] items-center justify-between gap-3 border-b border-[var(--line)] pl-3 pr-0"
+        className="desktop-titlebar flex h-[38px] items-center justify-between gap-3 border-b border-[var(--border-subtle)] pl-3 pr-0"
         style={isDesktop ? ({ WebkitAppRegion: "drag" } as CSSProperties) : { paddingRight: 12 }}
       >
         <div className="flex min-w-0 items-center gap-2" style={noDrag}>
@@ -99,7 +99,7 @@ export function TitleBar() {
           {isDesktop ? <DesktopMenuBar /> : null}
 
           <input
-            className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg)] outline-none hover:border-[var(--line-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--line-strong)] focus:bg-[var(--bg-hover)]"
+            className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
             value={project?.metadata.brand.name ?? "Presentation 2"}
             onChange={(e) => updateBrand({ name: e.target.value })}
             aria-label="Tên dự án"
@@ -129,12 +129,12 @@ export function TitleBar() {
         </div>
 
         <div className="flex items-center gap-2" style={noDrag}>
-          <div className="flex w-[220px] items-center gap-1.5 rounded-md bg-[var(--bg-hover)] px-2.5 py-1 text-[var(--fg-muted)]">
+          <div className="flex w-[220px] items-center gap-1.5 rounded-md bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--fg-muted)]">
             <Search size={14} strokeWidth={1.2} />
             <input
               type="text"
               placeholder="Tìm kiếm"
-              className="w-full border-none bg-transparent text-[12px] text-[var(--fg)] outline-none"
+              className="w-full border-none bg-transparent text-[12px] text-[var(--fg-secondary)] outline-none"
             />
           </div>
         </div>

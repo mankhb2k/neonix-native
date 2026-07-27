@@ -130,7 +130,7 @@ export function PreviewStage() {
         </span>
       </div>
       <div
-        className="relative bg-[#0c0c0e] rounded-xl overflow-hidden shadow-2xl flex flex-col justify-center items-center p-6 gap-4 text-center select-none"
+        className="relative bg-[var(--stage-bg)] rounded-xl overflow-hidden shadow-2xl flex flex-col justify-center items-center p-6 gap-4 text-center select-none"
         data-ratio={project.metadata.aspectRatio}
         data-testid="runtime-preview-stage"
         style={{

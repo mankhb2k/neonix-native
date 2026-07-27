@@ -31,7 +31,7 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
     <div className="grid h-[36px] shrink-0 grid-cols-3 items-center border-b border-[var(--line-strong)] px-3">
       <div />
       <div className="flex items-center justify-center gap-3">
-        <span className="font-mono text-[13px] tabular-nums text-[var(--fg-muted)]">
+        <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
           {formatTimecode(0, fps)}
         </span>
         <button
@@ -46,7 +46,7 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
             <Play size={14} strokeWidth={0} fill="currentColor" className="ml-0.5" />
           )}
         </button>
-        <span className="font-mono text-[13px] tabular-nums text-[var(--fg-muted)]">
+        <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
           {formatTimecode(total, fps)}
         </span>
       </div>

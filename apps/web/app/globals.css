@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
 :root {
+  /* ========================================================================== */
   /* 1. Nền (Backgrounds - --bg-*) */
+  /* ========================================================================== */
   --bg-app: #0e0e10;
   --bg-panel: #1b1b1a;
   --bg-elevated: #222226;
@@ -9,14 +11,18 @@
   --bg-hover: #2a2a2e;
   --bg-active: #323238;
 
-  /* 2. Chữ & Icon (Foregrounds - --fg-*) */
-  --fg-primary: #dddddd;
-  --fg-secondary: #d6d6d6;
+  /* ========================================================================== */
+  /* 2. Chữ & Icon (Foregrounds - --fg-*)  */
+  /* ========================================================================== */
+  --fg-primary: #d6d6d6;
+  --fg-secondary: #cecece;
   --fg-muted: #808085;
   --fg-disabled: #45454a;
 
+  /* ========================================================================== */
   /* 3. Đường viền (Borders - --border-*) */
-  --border-subtle: #27272a;
+  /* ========================================================================== */
+  --border-subtle: var(--bg-app);
   --border-strong: #3f3f46;
   --border-focus: #3f9a62;
 
@@ -24,7 +30,9 @@
   --line: var(--border-subtle);
   --line-strong: var(--border-strong);
 
-  /* 4. Điểm nhấn & Trạng thái (Accents & Status - --accent-*, --status-*) */
+  /* ==========================================================================
+     4. Điểm nhấn & Trạng thái (Accents & Status - --accent-*, --status-*) 
+     ========================================================================== */
   --accent: #3f9a62;
   --accent-soft: rgba(
     63,
@@ -38,17 +46,27 @@
   --warn: var(--warning);
   --success: #22c55e; /* Màu xanh lá hoàn thành/đã lưu */
 
-  /* 5. Component Tokens - Tab / Nav */
-  --tab-fg: var(--fg-muted); /* Màu chữ/icon tab mặc định */
-  --tab-fg-hover: var(--fg-secondary); /* Màu chữ/icon tab khi hover */
-  --tab-fg-active: var(--fg-primary); /* Màu chữ/icon tab khi active */
+  /* ==========================================================================
+     5. Component Tokens (Linh kiện UI cụ thể)
+     ========================================================================== */
+  /* Thanh Tab (--tab-*) */
+  --tab-fg: var(--fg-muted); /* màu mặc định (var(--fg-muted)) */
+  --tab-fg-hover: var(--fg-secondary); /* màu rê chuột (var(--fg-secondary)) */
+  --tab-fg-active: var(--fg-primary); /* màu đang chọn (var(--fg-primary)) */
+
+  /* Khung Timeline (--timeline-*) */
+  --timeline-track-bg: var(--bg-surface); /* màu nền đường track */
+  --timeline-playhead: #ffffff; /* màu kim thời gian */
+
+  /* Khung Stage (--stage-*) */
+  --stage-bg: #0c0c0e; /* màu nền canvas xem trước */
 
   --preview-bg: #09090b;
   --radius: 10px;
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
 
-  /* Type scale — dùng text-micro | text-caption | text-ui | text-body | text-title | … */
+  /* 6 Type scale — dùng text-micro | text-caption | text-ui | text-body | text-title | … */
 
   --fs-caption: 11px;
   --fs-ui: 12px;
@@ -103,10 +121,15 @@
   --warn: var(--warning);
   --success: #10b981;
 
-  /* 5. Component Tokens - Tab / Nav */
+  /* 5. Component Tokens (Linh kiện UI cụ thể) */
   --tab-fg: var(--fg-muted);
   --tab-fg-hover: var(--fg-secondary);
   --tab-fg-active: var(--fg-primary);
+
+  --timeline-track-bg: var(--bg-hover);
+  --timeline-playhead: #09090b;
+
+  --stage-bg: #e4e4e7;
 
   --preview-bg: #e4e4e7;
 }

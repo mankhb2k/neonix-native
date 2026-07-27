@@ -16,10 +16,8 @@ type Tick = {
 
 export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
   const safeFps = Math.max(1, Math.round(fps));
-  const { tickEveryFrames, labelEveryFrames, pixelsPerFrame } = capCutRulerScale(
-    pixelsPerSecond,
-    safeFps,
-  );
+  const { tickEveryFrames, labelEveryFrames, pixelsPerFrame } =
+    capCutRulerScale(pixelsPerSecond, safeFps);
   const totalFrames = Math.max(safeFps, Math.ceil(duration * safeFps));
   const ticks: Tick[] = [];
 
@@ -61,12 +59,12 @@ export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
                 labeled
                   ? isSecond
                     ? "h-3.5 w-px bg-[var(--fg-muted)]"
-                    : "h-3 w-px bg-[var(--fg-faint)]"
+                    : "h-3 w-px bg-[var(--fg-muted)]"
                   : "h-2 w-px bg-[var(--line-strong)]/80"
               }
             />
             {labeled ? (
-              <span className="whitespace-nowrap text-[10px] tabular-nums leading-none tracking-wide text-[var(--fg-faint)] select-none">
+              <span className="whitespace-nowrap text-[10px] tabular-nums leading-none tracking-wide text-[var(--fg-muted)] select-none">
                 {formatRulerLabel(frame, safeFps, labelEveryFrames)}
               </span>
             ) : null}
