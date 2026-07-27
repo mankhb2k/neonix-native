@@ -63,7 +63,7 @@ export function TabsDesktop({
   }
 
   return (
-    <div className={cn("relative flex h-11 w-full items-center overflow-hidden select-none", className)}>
+    <div className={cn("relative flex h-[38px] w-full items-center overflow-hidden select-none", className)}>
       {/* Left Scroll Button */}
       {canScrollLeft ? (
         <div className="absolute top-0 bottom-0 left-0 z-20 flex items-center pr-3 pl-1 bg-gradient-to-r from-[var(--bg-panel)] via-[var(--bg-panel)]/90 to-transparent">

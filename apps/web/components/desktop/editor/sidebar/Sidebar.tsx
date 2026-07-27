@@ -1,7 +1,7 @@
 "use client";
 
 import { useEditorStore } from "@/lib/store/editor-store";
-import { TabsDesktop, type DesktopTabItem } from "@/components/ui";
+import { PanelHeader, TabsDesktop, type DesktopTabItem } from "@/components/ui";
 import {
   Frame,
   Shapes,
@@ -37,13 +37,13 @@ export function Sidebar() {
   return (
     <aside className="relative flex h-full flex-col overflow-hidden [grid-area:sidebar]">
       {/* CapCut Style Desktop Tabs with overflow Chevron scroll buttons */}
-      <div className="shrink-0 border-b border-[var(--line-strong)]/40">
+      <PanelHeader className="px-0">
         <TabsDesktop
           items={SIDEBAR_TABS}
           value={activeSidebarTab}
           onChange={(id) => setActiveSidebarTab(id as any)}
         />
-      </div>
+      </PanelHeader>
 
       {/* Main Panel Content */}
       <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">

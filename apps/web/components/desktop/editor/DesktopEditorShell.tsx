@@ -8,6 +8,7 @@ import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./stage/PreviewStage";
 import { RightDock } from "./inspector/RightDock";
 import { Timeline } from "./timeline/Timeline";
+import { PanelHeader } from "@/components/ui";
 import { Header } from "./header/Header";
 
 import type { MotionProject } from "@motionvideo/motion-schema";
@@ -164,28 +165,38 @@ export function DesktopEditorShell({ initialProject }: Props) {
 
         {/* Panel 2: Top-Center Preview Stage Card */}
         <main
-          className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex items-center justify-center shadow-md"
-          style={{
-            backgroundImage: "radial-gradient(#27272A 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
-          }}
+          className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex flex-col shadow-md"
         >
-          {/* Toggle Sidebar Floating Button */}
-          <button
-            type="button"
-            className="absolute top-3 left-3 z-30 flex h-[28px] w-[28px] items-center justify-center rounded-lg bg-[#222226]/90 border border-[#35353a] text-[#a0a0a5] hover:text-white hover:border-[#55555a] hover:bg-[#2a2a2f] shadow-sm transition-all cursor-pointer"
-            onClick={toggleSidebar}
-            aria-label={sidebarOpen ? "Thu gọn sidebar" : "Mở rộng sidebar"}
-            title={sidebarOpen ? "Thu gọn" : "Mở rộng"}
-          >
-            {sidebarOpen ? (
-              <PanelLeftClose size={15} strokeWidth={1.5} />
-            ) : (
-              <PanelLeftOpen size={15} strokeWidth={1.5} />
-            )}
-          </button>
+          <PanelHeader
+            title={
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="flex h-6 w-6 items-center justify-center rounded bg-[#27272a] text-[#a0a0a5] hover:bg-[#3f3f46] hover:text-white shadow-sm transition-all cursor-pointer"
+                  onClick={toggleSidebar}
+                  aria-label={sidebarOpen ? "Thu gọn sidebar" : "Mở rộng sidebar"}
+                  title={sidebarOpen ? "Thu gọn" : "Mở rộng"}
+                >
+                  {sidebarOpen ? (
+                    <PanelLeftClose size={13} strokeWidth={1.5} />
+                  ) : (
+                    <PanelLeftOpen size={13} strokeWidth={1.5} />
+                  )}
+                </button>
+                <span className="font-semibold text-[13px] text-[var(--fg)]">Trình phát</span>
+              </div>
+            }
+          />
 
-          <PreviewStage />
+          <div
+            className="relative flex-1 flex items-center justify-center overflow-hidden"
+            style={{
+              backgroundImage: "radial-gradient(#27272A 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+            }}
+          >
+            <PreviewStage />
+          </div>
         </main>
 
         {/* Panel 3: Top-Right Inspector Card */}

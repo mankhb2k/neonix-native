@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, Eye } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { listMotionBlocksByFamily } from "@motionvideo/template-library";
 import {
+  PanelHeader,
+  TabsDesktop,
+  type DesktopTabItem,
   PropertySection,
   PropertyRow,
   PropertyInput,
@@ -16,6 +20,15 @@ const animationBlocks = listMotionBlocksByFamily("animation").filter((b) =>
   Boolean(b.preset),
 );
 
+const INSPECTOR_TABS: DesktopTabItem[] = [
+  { id: "basic", label: "Cơ bản" },
+  { id: "audio", label: "Âm thanh" },
+  { id: "speed", label: "Tốc độ" },
+  { id: "animation", label: "Hoạt hình" },
+  { id: "adjust", label: "Điều chỉnh" },
+  { id: "ai", label: "Phong cách AI" },
+];
+
 export function Inspector() {
   const project = useEditorStore((s) => s.project);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
@@ -26,6 +39,8 @@ export function Inspector() {
   const updateNodePosition = useEditorStore((s) => s.updateNodePosition);
   const updateSceneDuration = useEditorStore((s) => s.updateSceneDuration);
   const setAspectRatio = useEditorStore((s) => s.setAspectRatio);
+
+  const [activeTab, setActiveTab] = useState("basic");
 
   if (!project || !selectedSceneId) {
     return (
@@ -41,22 +56,17 @@ export function Inspector() {
   const node = scene?.nodes.find((candidate) => candidate.id === selectedNodeId);
   const animation = scene?.clips.find((clip) => clip.targetId === node?.id && clip.source.kind === "preset");
   const defaultPreset = animationBlocks[0]?.preset ?? "fade-in";
-  const layerTitle =
-    node?.type === "text"
-      ? "Văn bản"
-      : node
-        ? node.type.charAt(0).toUpperCase() + node.type.slice(1)
-        : scene?.semantic?.role
-          ? `Khung · ${scene.semantic.role}`
-          : "Khung hình";
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="flex h-10 shrink-0 items-center border-b border-[var(--line)] px-3">
-        <span className="truncate text-body font-semibold text-[var(--fg)]">
-          {layerTitle}
-        </span>
-      </div>
+      {/* CapCut Style Inspector Header Tabs */}
+      <PanelHeader className="px-0">
+        <TabsDesktop
+          items={INSPECTOR_TABS}
+          value={activeTab}
+          onChange={setActiveTab}
+        />
+      </PanelHeader>
 
       <PropertySection title="Vị trí">
         <PropertyRow>
