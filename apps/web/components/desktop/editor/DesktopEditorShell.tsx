@@ -151,7 +151,6 @@ export function DesktopEditorShell({ initialProject }: Props) {
           <div
             onPointerDown={startSidebarResizing}
             className="absolute top-0 -right-2.5 bottom-0 w-3 cursor-ew-resize z-40 touch-none"
-            title="Kéo để thay đổi kích thước Sidebar"
           />
         </div>
 
@@ -180,7 +179,6 @@ export function DesktopEditorShell({ initialProject }: Props) {
           <div
             onPointerDown={startRightdockResizing}
             className="absolute top-0 -left-2.5 bottom-0 w-3 cursor-ew-resize z-40 touch-none"
-            title="Kéo để thay đổi kích thước Inspector"
           />
         </div>
 
@@ -194,7 +192,6 @@ export function DesktopEditorShell({ initialProject }: Props) {
           <div
             onPointerDown={startTimelineResizing}
             className="absolute -top-2.5 left-0 right-0 h-3 cursor-ns-resize z-40 touch-none"
-            title="Kéo để thay đổi chiều cao Timeline"
           />
         </div>
       </div>

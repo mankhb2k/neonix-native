@@ -14,6 +14,7 @@ import { FramePanel } from "./FramePanel/FramePanel";
 import { UploadPanel } from "./UploadPanel/UploadPanel";
 import { ElementsPanel } from "./ElementsPanel/ElementsPanel";
 import { TextPanel } from "./TextPanel/TextPanel";
+import { AudioPanel } from "./AudioPanel/AudioPanel";
 
 const SIDEBAR_TABS: DesktopTabItem[] = [
   { id: "frame", label: "Khung hình", icon: <Frame size={17} /> },
@@ -47,7 +48,7 @@ export function Sidebar() {
         {activeSidebarTab === "text" && <TextPanel />}
         {activeSidebarTab === "upload" && <UploadPanel />}
         {activeSidebarTab === "stickers" && <ElementsPanel />}
-        {activeSidebarTab === "audio" && <UploadPanel />}
+        {activeSidebarTab === "audio" && <AudioPanel />}
       </div>
     </aside>
   );

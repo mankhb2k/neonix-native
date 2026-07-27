@@ -41,6 +41,7 @@ type EditorState = {
   renameScene: (sceneId: string, role: SceneRole) => void;
   deleteScene: (sceneId: string) => void;
   addSceneFromFrame: (draft: FrameDraft) => void;
+  addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
   setExporting: (value: boolean) => void;
 };
 
@@ -361,12 +362,78 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  addAudioTrack: (track) => {
+    const project = get().project;
+    if (!project) return;
+    const assetId = track.assetId;
+    const existingAsset = project.assets.find((a) => a.id === assetId);
+    const audioAsset = existingAsset
+      ? null
+      : {
+          id: assetId,
+          assetType: "audio" as const,
+          uri:
+            track.src ||
+            "https://actions.google.com/sounds/v1/ambiences/outdoor_theme_park.ogg",
+          mimeType: "audio/mpeg" as const,
+          codec: "mp3",
+          duration: 10,
+          sampleRate: 44100,
+          channels: 2,
+        };
+
+    const assets = audioAsset
+      ? [...project.assets, audioAsset as any]
+      : project.assets;
+
+    const newTrack = {
+      id: uid("audio"),
+      role: "bgm" as const,
+      assetId,
+      start: 0,
+      trimStart: 0,
+      volume: 1,
+      loop: false,
+      fadeIn: 0,
+      fadeOut: 0,
+    };
+
+    set({
+      project: {
+        ...project,
+        assets,
+        timeline: {
+          ...project.timeline,
+          audioTracks: [...project.timeline.audioTracks, newTrack],
+        },
+      },
+    });
+  },
+
   setExporting: (value) => set({ isExporting: value }),
 }));
 
 export function validateEditorProject(project: MotionProject): MotionProject {
-  const parsed = parseMotionProject(project);
+  const sanitizedAssets = project.assets.map((asset) => {
+    if ((asset as any).assetType === "audio") {
+      const a = asset as any;
+      return {
+        ...a,
+        mimeType:
+          a.mimeType === "audio/mp3" || !a.mimeType
+            ? "audio/mpeg"
+            : a.mimeType,
+        codec: a.codec ?? "mp3",
+      };
+    }
+    return asset;
+  });
+  const sanitizedProject = { ...project, assets: sanitizedAssets };
+  const parsed = parseMotionProject(sanitizedProject);
   const presets = validateMotionProjectPresets(parsed);
-  if (!presets.ok) throw new Error(`Unknown presets: ${presets.unknown.map((item) => item.preset).join(", ")}`);
+  if (!presets.ok)
+    throw new Error(
+      `Unknown presets: ${presets.unknown.map((item) => item.preset).join(", ")}`,
+    );
   return parsed;
 }

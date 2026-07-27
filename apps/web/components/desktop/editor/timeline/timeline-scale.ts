@@ -46,7 +46,7 @@ export function formatRulerLabel(
   return `${frameInSecond}f`;
 }
 
-export const TIMELINE_LABEL_WIDTH = 48;
+export const TIMELINE_LABEL_WIDTH = 96;
 export const TIMELINE_ZOOM_MIN = 0;
 export const TIMELINE_ZOOM_MAX = 100;
 export const TIMELINE_ZOOM_DEFAULT = 0;
