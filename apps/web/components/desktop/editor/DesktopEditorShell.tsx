@@ -20,10 +20,13 @@ export function DesktopEditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
 
-  const [sidebarWidth, setSidebarWidth] = useState(380);
-  const [rightdockWidth, setRightdockWidth] = useState(340);
-  const [timelineHeight, setTimelineHeight] = useState(260);
-  const [activeResizer, setActiveResizer] = useState<"sidebar" | "rightdock" | "timeline" | null>(null);
+  // Default widths in px (1rem = 16px)
+  const [sidebarWidth, setSidebarWidth] = useState(560); // 35rem
+  const [rightdockWidth, setRightdockWidth] = useState(600); // 37.5rem
+  const [timelineHeight, setTimelineHeight] = useState(380); // 23.75rem
+  const [activeResizer, setActiveResizer] = useState<
+    "sidebar" | "rightdock" | "timeline" | null
+  >(null);
 
   useEffect(() => {
     loadProject(initialProject);
@@ -44,7 +47,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
 
       const onPointerMove = (moveEvent: PointerEvent) => {
         const deltaX = moveEvent.clientX - startX;
-        const newWidth = Math.min(650, Math.max(260, startWidth + deltaX));
+        const newWidth = Math.min(800, Math.max(320, startWidth + deltaX));
         setSidebarWidth(newWidth);
       };
 
@@ -70,7 +73,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
 
       const onPointerMove = (moveEvent: PointerEvent) => {
         const deltaX = startX - moveEvent.clientX;
-        const newWidth = Math.min(550, Math.max(260, startWidth + deltaX));
+        const newWidth = Math.min(850, Math.max(340, startWidth + deltaX));
         setRightdockWidth(newWidth);
       };
 
@@ -96,7 +99,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
 
       const onPointerMove = (moveEvent: PointerEvent) => {
         const deltaY = startY - moveEvent.clientY;
-        const newHeight = Math.min(550, Math.max(160, startHeight + deltaY));
+        const newHeight = Math.min(650, Math.max(200, startHeight + deltaY));
         setTimelineHeight(newHeight);
       };
 
@@ -118,8 +121,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
         activeResizer === "sidebar" || activeResizer === "rightdock"
           ? "cursor-ew-resize"
           : activeResizer === "timeline"
-          ? "cursor-ns-resize"
-          : ""
+            ? "cursor-ns-resize"
+            : ""
       }`}
     >
       {/* Top Desktop Header Bar */}
@@ -129,8 +132,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
       <div
         className="flex-1 grid p-2 gap-2 overflow-hidden"
         style={{
-          gridTemplateColumns: `${sidebarWidth}px 1fr ${rightdockWidth}px`,
-          gridTemplateRows: `1fr ${timelineHeight}px`,
+          gridTemplateColumns: `${sidebarWidth / 16}rem 1fr ${rightdockWidth / 16}rem`,
+          gridTemplateRows: `1fr ${timelineHeight / 16}rem`,
           gridTemplateAreas: `
             "sidebar stage rightdock"
             "timeline timeline timeline"
@@ -139,8 +142,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
         }}
       >
         {/* Panel 1: Top-Left Assets / Library Sidebar Card */}
-        <div className="[grid-area:sidebar] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md">
-          <div className="w-full h-full rounded-xl overflow-hidden flex flex-col">
+        <div className="[grid-area:sidebar] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 overflow-hidden">
+          <div className="w-full h-full rounded-xl overflow-hidden flex flex-col min-w-0">
             <Sidebar />
           </div>
 
@@ -153,9 +156,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
         </div>
 
         {/* Panel 2: Top-Center Preview Stage Card */}
-        <main
-          className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex flex-col shadow-md"
-        >
+        <main className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex flex-col shadow-md min-w-0">
           <PanelHeader title="Trình phát" />
 
           <div
@@ -170,8 +171,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
         </main>
 
         {/* Panel 3: Top-Right Inspector Card */}
-        <div className="[grid-area:rightdock] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md">
-          <div className="w-full h-full rounded-xl overflow-hidden flex flex-col">
+        <div className="[grid-area:rightdock] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 overflow-hidden">
+          <div className="w-full h-full rounded-xl overflow-hidden flex flex-col min-w-0">
             <RightDock />
           </div>
 
@@ -184,8 +185,8 @@ export function DesktopEditorShell({ initialProject }: Props) {
         </div>
 
         {/* Panel 4: Bottom Full-Width Timeline Card */}
-        <div className="[grid-area:timeline] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md">
-          <div className="w-full h-full rounded-xl overflow-hidden flex flex-col">
+        <div className="[grid-area:timeline] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 min-h-0 overflow-hidden">
+          <div className="w-full h-full rounded-xl overflow-hidden flex flex-col min-w-0">
             <Timeline />
           </div>
 
