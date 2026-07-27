@@ -15,6 +15,7 @@ import { useEditorStore } from "@/lib/store/editor-store";
 import { FRAME_LIBRARY_MIME, getFrame } from "@/lib/frame-library";
 import { AUDIO_LIBRARY_MIME } from "../../sidebar/AudioPanel/AudioPanel";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
+import { TrackLane } from "./TrackLane";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PPS_MIN,
@@ -232,114 +233,35 @@ export function Tracks({ zoom }: Props) {
           </div>
         ) : (
           <div className="flex flex-col pt-2 pb-12 space-y-px">
-            {/* 1. Main Video Track Runway Lane (Đường băng Video chính) */}
-            <div className="group relative flex items-center h-10 bg-[#121214]/80 border-y border-[#27272A]/50 transition-colors">
-              {/* Left Control Sidebar */}
-              <div
-                className="sticky left-0 z-20 flex h-full shrink-0 items-center justify-center gap-1.5 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2"
-                style={{ width: TIMELINE_LABEL_WIDTH }}
-              >
-                <button
-                  type="button"
-                  className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                  title="Khung hình / Video"
-                >
-                  <Film size={14} strokeWidth={1.5} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoLocked(!videoLocked)}
-                  className={`p-1 transition-colors rounded cursor-pointer ${
-                    videoLocked
-                      ? "text-[var(--accent)]"
-                      : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                  }`}
-                  title={
-                    videoLocked ? "Mở khóa Track Video" : "Khóa Track Video"
-                  }
-                >
-                  {videoLocked ? (
-                    <Lock size={14} strokeWidth={1.75} />
-                  ) : (
-                    <Unlock size={14} strokeWidth={1.75} />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoVisible(!videoVisible)}
-                  className={`p-1 transition-colors rounded cursor-pointer ${
-                    !videoVisible
-                      ? "text-[var(--accent)]"
-                      : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                  }`}
-                  title={videoVisible ? "Ẩn Track Video" : "Hiện Track Video"}
-                >
-                  {videoVisible ? (
-                    <Eye size={14} strokeWidth={1.75} />
-                  ) : (
-                    <EyeOff size={14} strokeWidth={1.75} />
-                  )}
-                </button>
-              </div>
-
-              {/* Video Runway Canvas Strip */}
-              <div className="relative h-full flex-1" style={{ width: canvasWidth }}>
-                {/* Scene Frame Blocks sitting directly ON top of the Video Runway */}
-                {sceneBlocks.map(({ scene, index, left, width }) => {
-                  const active = selectedSceneId === scene.id;
-                  return (
-                    <button
-                      key={scene.id}
-                      type="button"
-                      className={`absolute top-0 bottom-0 h-full overflow-hidden rounded px-2 text-left text-[11px] transition-all ${
-                        active
-                          ? "bg-[#0D9488] text-white shadow-md"
-                          : "bg-[#0F766E]/90 text-white/90 hover:bg-[#0D9488]"
-                      }`}
-                      style={{ left, width }}
-                      onClick={() => selectScene(scene.id)}
-                    >
-                      <span className="block truncate font-semibold text-white">
-                        {index + 1}.{" "}
-                        {scene.semantic?.role ?? scene.name ?? scene.id}
-                      </span>
-                      <span className="block truncate text-white/80">
-                        {scene.duration}s
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 2. Audio Track Runway Lane (Đường băng Audio) */}
-            {project.timeline.audioTracks.length > 0 && (
-              <div className="group relative flex items-center h-7 bg-[#121214]/60 border-y border-[#27272A]/30 transition-colors">
-                {/* Left Control Sidebar */}
-                <div
-                  className="sticky left-0 z-20 flex h-full shrink-0 items-center justify-center gap-1 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2"
-                  style={{ width: TIMELINE_LABEL_WIDTH }}
-                >
+            {/* 1. Main Video Track Runway Lane */}
+            <TrackLane
+              variant="main"
+              bgClass="bg-[#121214]/80"
+              borderClass="border-y border-[#27272A]/50"
+              labelWidth={TIMELINE_LABEL_WIDTH}
+              canvasWidth={canvasWidth}
+              leftControl={
+                <>
                   <button
                     type="button"
                     className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                    title="Nhạc / Âm thanh"
+                    title="Khung hình / Video"
                   >
-                    <Music size={14} strokeWidth={1.5} />
+                    <Film size={14} strokeWidth={1.5} />
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAudioLocked(!audioLocked)}
+                    onClick={() => setVideoLocked(!videoLocked)}
                     className={`p-1 transition-colors rounded cursor-pointer ${
-                      audioLocked
+                      videoLocked
                         ? "text-[var(--accent)]"
                         : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
                     }`}
                     title={
-                      audioLocked ? "Mở khóa Track Audio" : "Khóa Track Audio"
+                      videoLocked ? "Mở khóa Track Video" : "Khóa Track Video"
                     }
                   >
-                    {audioLocked ? (
+                    {videoLocked ? (
                       <Lock size={14} strokeWidth={1.75} />
                     ) : (
                       <Unlock size={14} strokeWidth={1.75} />
@@ -347,44 +269,125 @@ export function Tracks({ zoom }: Props) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setAudioMuted(!audioMuted)}
+                    onClick={() => setVideoVisible(!videoVisible)}
                     className={`p-1 transition-colors rounded cursor-pointer ${
-                      audioMuted
+                      !videoVisible
                         ? "text-[var(--accent)]"
                         : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
                     }`}
                     title={
-                      audioMuted ? "Bật âm thanh Track" : "Tắt âm thanh Track"
+                      videoVisible ? "Ẩn Track Video" : "Hiện Track Video"
                     }
                   >
-                    {audioMuted ? (
-                      <VolumeX size={14} strokeWidth={1.75} />
+                    {videoVisible ? (
+                      <Eye size={14} strokeWidth={1.75} />
                     ) : (
-                      <Volume2 size={14} strokeWidth={1.75} />
+                      <EyeOff size={14} strokeWidth={1.75} />
                     )}
                   </button>
-                </div>
+                </>
+              }
+            >
+              {sceneBlocks.map(({ scene, index, left, width }) => {
+                const active = selectedSceneId === scene.id;
+                return (
+                  <button
+                    key={scene.id}
+                    type="button"
+                    className={`absolute top-0 bottom-0 my-auto h-[calc(100%-2px)] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
+                      active
+                        ? "bg-[#0D9488] text-white shadow-md"
+                        : "bg-[#0F766E]/90 text-white/90 hover:bg-[#0D9488]"
+                    }`}
+                    style={{ left, width }}
+                    onClick={() => selectScene(scene.id)}
+                  >
+                    <span className="block truncate font-semibold text-white">
+                      {index + 1}.{" "}
+                      {scene.semantic?.role ?? scene.name ?? scene.id}
+                    </span>
+                    <span className="block truncate text-white/80">
+                      {scene.duration}s
+                    </span>
+                  </button>
+                );
+              })}
+            </TrackLane>
 
-                {/* Audio Runway Canvas Strip */}
-                <div className="relative h-full flex-1" style={{ width: canvasWidth }}>
-                  {/* Audio Wave Blocks sitting ON top of Audio Runway */}
-                  {project.timeline.audioTracks.map((track) => (
-                    <div
-                      key={track.id}
-                      className="absolute top-0 bottom-0 flex h-full items-center rounded bg-[#164E63]/95 px-2 text-[10px] font-medium text-white shadow-sm"
-                      style={{
-                        left: 0,
-                        width: Math.max(
-                          120,
-                          Math.max(total, 1) * pixelsPerSecond,
-                        ),
-                      }}
+            {/* 2. Audio Track Runway Lane */}
+            {project.timeline.audioTracks.length > 0 && (
+              <TrackLane
+                variant="secondary"
+                bgClass="bg-[#121214]/60"
+                borderClass="border-y border-[#27272A]/30"
+                labelWidth={TIMELINE_LABEL_WIDTH}
+                canvasWidth={canvasWidth}
+                leftControl={
+                  <>
+                    <button
+                      type="button"
+                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
+                      title="Nhạc / Âm thanh"
                     >
-                      🎵 {track.role}
-                    </div>
-                  ))}
-                </div>
-              </div>
+                      <Music size={14} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAudioLocked(!audioLocked)}
+                      className={`p-1 transition-colors rounded cursor-pointer ${
+                        audioLocked
+                          ? "text-[var(--accent)]"
+                          : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                      }`}
+                      title={
+                        audioLocked
+                          ? "Mở khóa Track Audio"
+                          : "Khóa Track Audio"
+                      }
+                    >
+                      {audioLocked ? (
+                        <Lock size={14} strokeWidth={1.75} />
+                      ) : (
+                        <Unlock size={14} strokeWidth={1.75} />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAudioMuted(!audioMuted)}
+                      className={`p-1 transition-colors rounded cursor-pointer ${
+                        audioMuted
+                          ? "text-[var(--accent)]"
+                          : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                      }`}
+                      title={
+                        audioMuted ? "Bật âm thanh Track" : "Tắt âm thanh Track"
+                      }
+                    >
+                      {audioMuted ? (
+                        <VolumeX size={14} strokeWidth={1.75} />
+                      ) : (
+                        <Volume2 size={14} strokeWidth={1.75} />
+                      )}
+                    </button>
+                  </>
+                }
+              >
+                {project.timeline.audioTracks.map((track) => (
+                  <div
+                    key={track.id}
+                    className="absolute top-0 bottom-0 my-auto flex h-[calc(100%-2px)] items-center rounded bg-[#164E63]/95 px-2 text-[10px] font-medium text-white shadow-sm"
+                    style={{
+                      left: 0,
+                      width: Math.max(
+                        120,
+                        Math.max(total, 1) * pixelsPerSecond,
+                      ),
+                    }}
+                  >
+                    🎵 {track.role}
+                  </div>
+                ))}
+              </TrackLane>
             )}
           </div>
         )}
