@@ -9,6 +9,7 @@ import { GlobalFonts } from "@napi-rs/canvas";
 import {
   parseMotionComponentV2,
   parseMotionProjectV2,
+  parseSceneComponentRegistry,
   MOTION_V2_LIMITS,
   MotionPatchSchema,
   MotionV2ReferenceError,
@@ -420,6 +421,11 @@ async function validateNegativeFixtures(): Promise<number> {
     { file: "components/morph-from-equals-to.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.modifiers.morph", message: "Path Morph from and to targets must differ" },
     { file: "components/morph-on-non-path.mvc.json", parse: parseMotionComponentV2, path: "nodes.shape.modifiers", message: "Path Morph modifier requires a path node" },
     { file: "components/morph-duplicate-target-id.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.payload.morphTargets", message: "Duplicate Path Morph target id: dup" },
+    { file: "schema/trim-path-start-after-end.mvc.json", parse: parseMotionComponentV2, path: "nodes.path.modifiers.trim", message: "Trim Path end must be >= start" },
+    { file: "schema/trim-path-on-group.mvc.json", parse: parseMotionComponentV2, path: "nodes.group.modifiers.trim", message: "Trim Path modifier requires a path node" },
+    { file: "schema/path-bend-on-shape.mvc.json", parse: parseMotionComponentV2, path: "nodes.shape.modifiers.bend", message: "Path Bend modifier requires a path node" },
+    { file: "schema/constraint-cycle.mvc.json", parse: parseMotionComponentV2, path: "nodes.a.modifiers.look-b", message: "Constraint dependency cycle detected" },
+    { file: "schema/constraint-missing-target.mvc.json", parse: parseMotionComponentV2, path: "nodes.a.modifiers.look.targetNodeId", message: "Unknown constraint target: missing" },
     { file: "components/lip-sync-unknown-slot.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync.slotId", message: "Unknown lip-sync slot: missing" },
     { file: "components/lip-sync-unknown-variant.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync.cues.cue-0.variantId", message: "Unknown lip-sync variant missing for slot mouth-slot" },
     { file: "components/lip-sync-time-order.mvc.json", parse: parseMotionComponentV2, path: "actions.talk.lipSync", message: "Lip-sync cue times must be strictly increasing" },
@@ -722,42 +728,24 @@ async function validateNegativeFixtures(): Promise<number> {
       parse: parseMotionProjectV2,
     },
     {
+      file: "schema/gradient-stops-decreasing.mvc.json",
+      path: "nodes.0.style.fill.stops.1.offset",
+      code: "custom",
+      message: "Gradient stop offsets must be non-decreasing",
+    },
+    {
+      file: "schema/blend-mode-invalid.mt.json",
+      path: "scenes.0.nodes.0.blendMode",
+      code: "invalid_enum_value",
+      parse: parseMotionProjectV2,
+    },
+    {
       file: "p1-not-normative/emitter-node.json",
       path: "nodes.0.type",
       code: "invalid_union_discriminator",
     },
     {
-      file: "p1-not-normative/trim-path-modifier.json",
-      path: "nodes.0.modifiers.0.type",
-      code: "invalid_union_discriminator",
-    },
-    {
-      file: "p1-not-normative/animated-dash.json",
-      path: "nodes.0.style",
-      code: "unrecognized_keys",
-    },
-    {
-      file: "p1-not-normative/gradient-anim.json",
-      path: "nodes.0.style.fill",
-      code: "invalid_type",
-    },
-    {
-      file: "p1-not-normative/blend-mode.json",
-      path: "nodes.0",
-      code: "unrecognized_keys",
-    },
-    {
-      file: "p1-not-normative/constraint-modifier.json",
-      path: "nodes.0.modifiers.0.type",
-      code: "invalid_union_discriminator",
-    },
-    {
       file: "p1-not-normative/two-bone-ik.json",
-      path: "nodes.0.modifiers.0.type",
-      code: "invalid_union_discriminator",
-    },
-    {
-      file: "p1-not-normative/path-bend.json",
       path: "nodes.0.modifiers.0.type",
       code: "invalid_union_discriminator",
     },
@@ -1311,8 +1299,43 @@ async function main(): Promise<void> {
   const coverageCount = await validatePrimitivesCoverage();
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
-  MotionPatchSchema.parse(await readJson(resolve(fixturesRoot, "patches", "ai-fill-big-number.json")));
-  console.log(`OK patches/ai-fill-big-number.json`);
+  const patchRoot = resolve(fixturesRoot, "patches");
+  const patchFiles = (await readdir(patchRoot)).filter((file) => file.endsWith(".json")).sort();
+  for (const file of patchFiles) {
+    MotionPatchSchema.parse(await readJson(resolve(patchRoot, file)));
+    console.log(`OK patches/${file}`);
+  }
+
+  const acceptanceScorecard = await readJson(resolve(fixturesRoot, "acceptance", "scorecard.json")) as {
+    compositions: Array<{ id: string; project: string; patch: string | null; frame: string }>;
+  };
+  if (acceptanceScorecard.compositions.length !== 12) {
+    throw new Error(`Acceptance pack must list 12 compositions, got ${acceptanceScorecard.compositions.length}`);
+  }
+  for (const composition of acceptanceScorecard.compositions) {
+    await stat(resolve(fixturesRoot, composition.project));
+    if (composition.patch) await stat(resolve(fixturesRoot, composition.patch));
+    if (!composition.id.startsWith("accept-")) throw new Error(`Acceptance id must start with accept-: ${composition.id}`);
+  }
+  console.log(`OK acceptance/scorecard ${acceptanceScorecard.compositions.length} compositions`);
+
+  const sceneRegistry = parseSceneComponentRegistry(await readJson(resolve(fixturesRoot, "registry", "scene-components.json")));
+  const registryIds = new Set<string>();
+  for (const entry of sceneRegistry.components) {
+    if (registryIds.has(entry.componentId)) throw new Error(`Duplicate scene registry componentId: ${entry.componentId}`);
+    registryIds.add(entry.componentId);
+    await stat(resolve(fixturesRoot, entry.fixturePath));
+    const component = parseMotionComponentV2(await readJson(resolve(fixturesRoot, entry.fixturePath)));
+    if (component.componentId !== entry.componentId) {
+      throw new Error(`Registry ${entry.componentId} fixture componentId is ${component.componentId}`);
+    }
+    if (component.componentVersion !== entry.version) {
+      throw new Error(`Registry ${entry.componentId} version ${entry.version} != fixture ${component.componentVersion}`);
+    }
+    if (entry.demoProjectPath) await stat(resolve(fixturesRoot, entry.demoProjectPath));
+    if (entry.patchPath) await stat(resolve(fixturesRoot, entry.patchPath));
+  }
+  console.log(`OK registry/scene-components ${sceneRegistry.components.length} entries`);
 
   // P0 freeze: round-trip, semantic.key stability, patch public surface, AI vocabulary.
   const roundTripSource = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "projects", "property-capabilities.mt.json")));

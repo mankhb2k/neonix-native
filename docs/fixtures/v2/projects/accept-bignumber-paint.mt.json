@@ -1,0 +1,233 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.bignumber-paint",
+    "name": "Accept — Big Number Paint",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Accept — Big Number Paint",
+      "primaryColor": "#1e1b4b"
+    }
+  },
+  "dependencies": {
+    "components": [
+      {
+        "componentId": "comp.big-number",
+        "version": "1.0.0",
+        "source": "registry.main",
+        "integrity": "sha256-fixture-big-number-1.0.0"
+      }
+    ]
+  },
+  "assets": [],
+  "variables": [
+    {
+      "id": "proj.number",
+      "type": "string",
+      "name": "Number",
+      "value": "3.2x"
+    }
+  ],
+  "timeline": {
+    "sceneOrder": [
+      "scene.main"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.main",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "panel",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 140,
+            "y": 180,
+            "width": 800,
+            "height": 520,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 48
+          },
+          "style": {
+            "fill": {
+              "type": "linear-gradient",
+              "angle": 30,
+              "stops": [
+                {
+                  "id": "a",
+                  "offset": 0,
+                  "color": "#7c3aed"
+                },
+                {
+                  "id": "b",
+                  "offset": 1,
+                  "color": "#06b6d4"
+                }
+              ]
+            }
+          },
+          "effects": [
+            {
+              "id": "glow",
+              "type": "glow",
+              "radius": 12,
+              "intensity": 0.7,
+              "color": "#22d3ee",
+              "opacity": 0.6
+            }
+          ]
+        },
+        {
+          "id": "inst.bn",
+          "type": "component",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "comp.big-number",
+            "componentVersion": "1.0.0",
+            "props": {
+              "title": "Tăng trưởng",
+              "number": "3.2x",
+              "subtitle": "YoY",
+              "primaryColor": "#f8fafc",
+              "animationSpeed": 1
+            }
+          }
+        },
+        {
+          "id": "dash",
+          "type": "path",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 160,
+            "y": 780,
+            "width": 760,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "fillRule": "nonzero",
+            "contours": [
+              {
+                "id": "line",
+                "start": {
+                  "x": 0,
+                  "y": 20
+                },
+                "segments": [
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 760,
+                      "y": 20
+                    }
+                  }
+                ],
+                "closed": false
+              }
+            ]
+          },
+          "style": {
+            "stroke": "#ffffff",
+            "strokeWidth": 8,
+            "lineCap": "round",
+            "dash": [
+              14,
+              10
+            ],
+            "dashOffset": 0
+          }
+        }
+      ],
+      "clips": [
+        {
+          "id": "dash",
+          "schedule": {
+            "kind": "absolute",
+            "at": 0
+          },
+          "duration": 2,
+          "source": {
+            "kind": "tracks",
+            "tracks": [
+              {
+                "targetId": "dash",
+                "property": "style.dashOffset",
+                "keys": [
+                  {
+                    "t": 0,
+                    "v": 0
+                  },
+                  {
+                    "t": 2,
+                    "v": -60
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "bindings": [
+    {
+      "id": "bind.number",
+      "source": {
+        "kind": "variable",
+        "variableId": "proj.number"
+      },
+      "target": {
+        "sceneId": "scene.main",
+        "nodeId": "inst.bn",
+        "property": "payload.props.number"
+      }
+    }
+  ],
+  "extensions": {
+    "constraints": [],
+    "events": []
+  }
+}

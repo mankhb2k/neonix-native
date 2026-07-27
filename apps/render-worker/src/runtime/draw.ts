@@ -4,13 +4,15 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, GlobalFonts, Image, loadImage, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
-import type { AspectRatio, NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { AspectRatio, MotionPaintStyle, NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   evaluateNodeEffects,
   evaluateProperty,
   evaluateScene,
+  bendPathContours,
   pathMorphContours,
   planOffscreenSurface,
+  trimPathContours,
   type EvaluatedNode,
   type RuntimeEffect,
   type RuntimeScene,
@@ -26,6 +28,8 @@ type RuntimeAsset = NormalizedMotionProjectV2["assets"][number];
 type Brand = NormalizedMotionProjectV2["metadata"]["brand"];
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
 type PaintNode = Extract<RuntimeNode, { type: "shape" | "path" }>;
+type BlendMode = NonNullable<RuntimeNode["blendMode"]>;
+type GradientFill = Exclude<MotionPaintStyle["fill"], string | undefined>;
 
 let fontRegistered = false;
 const imageCache = new Map<string, Image>();
@@ -212,6 +216,15 @@ function rectanglePath(ctx: SKRSContext2D, width: number, height: number, radius
   ctx.closePath();
 }
 
+function compositeOperation(blendMode: BlendMode | undefined): SKRSContext2D["globalCompositeOperation"] {
+  switch (blendMode) {
+    case "multiply": return "multiply";
+    case "screen": return "screen";
+    case "add": return "lighter";
+    default: return "source-over";
+  }
+}
+
 function buildGeometryPath(ctx: SKRSContext2D, node: PaintNode, scene: RuntimeScene, time: number, width: number, height: number): void {
   ctx.beginPath();
   if (node.type === "shape") {
@@ -231,7 +244,24 @@ function buildGeometryPath(ctx: SKRSContext2D, node: PaintNode, scene: RuntimeSc
   }
   const morph = node.type === "path" ? node.modifiers?.find((modifier) => modifier.type === "path-morph") : undefined;
   const morphProgress = morph ? evaluateProperty(scene, node, `modifiers.${morph.id}.progress`, time, morph.progress) : 0;
-  const contours = morph ? pathMorphContours(node, typeof morphProgress === "number" ? morphProgress : 0) : node.payload.contours;
+  let contours = morph ? pathMorphContours(node, typeof morphProgress === "number" ? morphProgress : 0) : node.payload.contours;
+  const bend = node.modifiers?.find((modifier) => modifier.type === "path-bend");
+  if (bend) {
+    const amount = evaluateProperty(scene, node, `modifiers.${bend.id}.amount`, time, bend.amount);
+    contours = bendPathContours(contours, typeof amount === "number" ? amount : bend.amount);
+  }
+  const trim = node.modifiers?.find((modifier) => modifier.type === "trim-path");
+  if (trim) {
+    const start = evaluateProperty(scene, node, `modifiers.${trim.id}.start`, time, trim.start);
+    const end = evaluateProperty(scene, node, `modifiers.${trim.id}.end`, time, trim.end);
+    const offset = evaluateProperty(scene, node, `modifiers.${trim.id}.offset`, time, trim.offset);
+    contours = trimPathContours(
+      contours,
+      typeof start === "number" ? start : trim.start,
+      typeof end === "number" ? end : trim.end,
+      typeof offset === "number" ? offset : trim.offset,
+    );
+  }
   for (const contour of contours) {
     ctx.moveTo(contour.start.x, contour.start.y);
     for (const segment of contour.segments) {
@@ -259,10 +289,36 @@ function drawPaintNode(ctx: SKRSContext2D, scene: RuntimeScene, node: PaintNode,
   }
   const baseAlpha = ctx.globalAlpha;
   const fill = evaluateProperty(scene, node, "style.fill", time, node.style?.fill);
-  if (typeof fill === "string") {
+  if (typeof fill === "string" || (fill && typeof fill === "object" && "type" in fill && "stops" in fill)) {
     const opacity = evaluateProperty(scene, node, "style.fillOpacity", time, node.style?.fillOpacity ?? 1);
     ctx.globalAlpha = baseAlpha * (typeof opacity === "number" ? opacity : 1);
-    ctx.fillStyle = fill;
+    if (typeof fill === "string") {
+      ctx.fillStyle = fill;
+    } else {
+      const gradientFill = fill as GradientFill;
+      if (gradientFill.type === "linear-gradient") {
+        const radians = ((gradientFill.angle ?? 0) * Math.PI) / 180;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const extent = Math.hypot(width, height) / 2;
+        const dx = Math.cos(radians) * extent;
+        const dy = Math.sin(radians) * extent;
+        const gradient = ctx.createLinearGradient(centerX - dx, centerY - dy, centerX + dx, centerY + dy);
+        for (const stop of gradientFill.stops) gradient.addColorStop(stop.offset, stop.color);
+        ctx.fillStyle = gradient;
+      } else {
+        const gradient = ctx.createRadialGradient(
+          gradientFill.cx * width,
+          gradientFill.cy * height,
+          0,
+          gradientFill.cx * width,
+          gradientFill.cy * height,
+          gradientFill.radius * Math.min(width, height),
+        );
+        for (const stop of gradientFill.stops) gradient.addColorStop(stop.offset, stop.color);
+        ctx.fillStyle = gradient;
+      }
+    }
     ctx.fill(node.type === "path" ? node.payload.fillRule : "nonzero");
   }
   const stroke = evaluateProperty(scene, node, "style.stroke", time, node.style?.stroke);
@@ -275,6 +331,10 @@ function drawPaintNode(ctx: SKRSContext2D, scene: RuntimeScene, node: PaintNode,
     ctx.lineCap = node.style?.lineCap ?? "butt";
     ctx.lineJoin = node.style?.lineJoin ?? "miter";
     ctx.miterLimit = node.style?.miterLimit ?? 10;
+    const dash = evaluateProperty(scene, node, "style.dash", time, node.style?.dash ?? []);
+    ctx.setLineDash(Array.isArray(dash) && dash.every((item) => typeof item === "number") ? dash : []);
+    const dashOffset = evaluateProperty(scene, node, "style.dashOffset", time, node.style?.dashOffset ?? 0);
+    ctx.lineDashOffset = typeof dashOffset === "number" ? dashOffset : 0;
     ctx.stroke();
   }
   ctx.globalAlpha = baseAlpha;
@@ -296,6 +356,7 @@ function drawEvaluatedNode(
 
   ctx.save();
   ctx.globalAlpha = maskPass === "clip" ? 1 : Math.min(1, Math.max(0, evaluated.worldOpacity));
+  ctx.globalCompositeOperation = compositeOperation(node.blendMode);
   ctx.transform(worldMatrix.a, worldMatrix.b, worldMatrix.c, worldMatrix.d, worldMatrix.e, worldMatrix.f);
 
   if (node.type === "shape" || node.type === "path") {
@@ -487,6 +548,7 @@ export async function drawSceneFrame(
     const layer = rasterize(item);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = compositeOperation(item.node.blendMode);
     ctx.drawImage(layer, 0, 0);
     ctx.restore();
   }

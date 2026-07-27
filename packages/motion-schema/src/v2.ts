@@ -293,6 +293,25 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     amplitude: FiniteNumberSchema,
     axis: z.enum(["rotation", "position"]),
   }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("trim-path"),
+    start: FiniteNumberSchema.min(0).max(1),
+    end: FiniteNumberSchema.min(0).max(1),
+    offset: FiniteNumberSchema.default(0),
+  }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("path-bend"),
+    amount: FiniteNumberSchema.min(-MOTION_V2_LIMITS.pathBendAmount).max(MOTION_V2_LIMITS.pathBendAmount),
+  }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("constraint"),
+    kind: z.enum(["look-at", "copy-position", "copy-rotation"]),
+    targetNodeId: IdSchema,
+    weight: FiniteNumberSchema.min(0).max(1).default(1),
+  }).strict(),
 ]);
 
 const NodeBaseSchema = z.object({
@@ -306,6 +325,7 @@ const NodeBaseSchema = z.object({
   repeat: RepeaterSchema.optional(),
   modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
   effects: z.array(EffectV2Schema).max(MOTION_V2_LIMITS.effectsPerNode).optional(),
+  blendMode: z.enum(["normal", "multiply", "screen", "add"]).optional(),
   inheritPosition: z.boolean().optional(),
   inheritRotation: z.boolean().optional(),
   inheritScale: z.boolean().optional(),
@@ -326,8 +346,29 @@ const CropSchema = z.object({
   height: FiniteNumberSchema.positive().max(1),
 }).strict();
 
+const GradientStopSchema = z.object({
+  id: IdSchema,
+  offset: FiniteNumberSchema.min(0).max(1),
+  color: z.string().min(1),
+}).strict();
+
+const GradientPaintSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("linear-gradient"),
+    angle: FiniteNumberSchema.optional(),
+    stops: z.array(GradientStopSchema).min(2).max(MOTION_V2_LIMITS.gradientStops),
+  }).strict(),
+  z.object({
+    type: z.literal("radial-gradient"),
+    cx: FiniteNumberSchema.min(0).max(1),
+    cy: FiniteNumberSchema.min(0).max(1),
+    radius: FiniteNumberSchema.positive().max(2),
+    stops: z.array(GradientStopSchema).min(2).max(MOTION_V2_LIMITS.gradientStops),
+  }).strict(),
+]);
+
 export const PaintStyleSchema = z.object({
-  fill: z.string().min(1).optional(),
+  fill: z.union([z.string().min(1), GradientPaintSchema]).optional(),
   fillOpacity: FiniteNumberSchema.min(0).max(1).optional(),
   stroke: z.string().min(1).optional(),
   strokeWidth: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
@@ -335,7 +376,22 @@ export const PaintStyleSchema = z.object({
   lineCap: z.enum(["butt", "round", "square"]).optional(),
   lineJoin: z.enum(["miter", "round", "bevel"]).optional(),
   miterLimit: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension).optional(),
-}).strict();
+  dash: z.array(FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.dashLength)).min(1).max(MOTION_V2_LIMITS.dashSegments).optional(),
+  dashOffset: FiniteNumberSchema.min(-MOTION_V2_LIMITS.dashLength).max(MOTION_V2_LIMITS.dashLength).optional(),
+}).strict().superRefine((style, context) => {
+  const fill = style.fill;
+  if (fill && typeof fill === "object" && "stops" in fill) {
+    for (let index = 1; index < fill.stops.length; index += 1) {
+      if (fill.stops[index]!.offset < fill.stops[index - 1]!.offset) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["fill", "stops", index, "offset"],
+          message: "Gradient stop offsets must be non-decreasing",
+        });
+      }
+    }
+  }
+});
 
 export const PointV2Schema = z.object({
   x: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(MOTION_V2_LIMITS.nodeDimension),
@@ -611,6 +667,9 @@ export const PublicParamSchema = z
     min: FiniteNumberSchema.optional(),
     max: FiniteNumberSchema.optional(),
     options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions).optional(),
+    group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
+    control: z.enum(["text", "textarea", "color-picker", "slider", "toggle", "asset-picker", "enum"]).optional(),
+    capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
   })
   .strict();
 
@@ -770,11 +829,11 @@ export const MotionProjectV2Schema = z
     variables: z.array(VariableV2Schema).max(MOTION_V2_LIMITS.variablesPerArtifact),
     timeline: z
       .object({
-        sceneOrder: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
+        sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
         audioTracks: z.array(AudioTrackSchema).max(MOTION_V2_LIMITS.audioTracksPerProject).default([]),
       })
       .strict(),
-    scenes: z.array(SceneV2Schema).min(1).max(MOTION_V2_LIMITS.scenesPerProject),
+    scenes: z.array(SceneV2Schema).max(MOTION_V2_LIMITS.scenesPerProject),
     bindings: z.array(ProjectBindingSchema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
     extensions: z
       .object({
@@ -882,13 +941,27 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
       } else if (modifiers.some((modifier) => modifier.type === "path-morph")) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Runtime Path Morph modifier requires a path node" });
       }
+      if (modifiers.some((modifier) => modifier.type === "trim-path") && node.type !== "path") {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Runtime Trim Path modifier requires a path node" });
+      }
+      if (modifiers.some((modifier) => modifier.type === "path-bend") && node.type !== "path") {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Runtime Path Bend modifier requires a path node" });
+      }
       if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"], message: "Only one runtime motion-path modifier is allowed per node" });
       }
       for (let modifierIndex = 0; modifierIndex < modifiers.length; modifierIndex += 1) {
         const modifier = modifiers[modifierIndex]!;
-        if (modifier.type !== "secondary-motion") continue;
         const path = ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers", modifierIndex] as Array<string | number>;
+        if (modifier.type === "trim-path" && modifier.start > modifier.end) {
+          context.addIssue({ code: z.ZodIssueCode.custom, path, message: "Runtime Trim Path end must be >= start" });
+        }
+        if (modifier.type === "constraint") {
+          const target = nodeById.get(modifier.targetNodeId);
+          if (!target) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "targetNodeId"], message: `Unknown runtime constraint target: ${modifier.targetNodeId}` });
+          else if (modifier.targetNodeId === node.id) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "targetNodeId"], message: "Runtime Constraint cannot target itself" });
+        }
+        if (modifier.type !== "secondary-motion") continue;
         if (modifier.axis !== "rotation") context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "axis"], message: "Runtime Secondary Motion supports rotation axis only" });
         const driver = nodeById.get(modifier.driverNodeId);
         if (!driver) context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "driverNodeId"], message: `Unknown runtime Secondary Motion driver: ${modifier.driverNodeId}` });
@@ -944,6 +1017,16 @@ export const NormalizedMotionProjectV2Schema = NormalizedMotionProjectV2BaseSche
       const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(track.property);
       if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && (modifier.type === "motion-path" || modifier.type === "path-morph"))) {
         context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime progress modifier: ${modifierMatch[1]}` });
+        continue;
+      }
+      const trimMatch = /^modifiers\.([^.]+)\.(start|end|offset)$/.exec(track.property);
+      if (trimMatch && !node.modifiers?.some((modifier) => modifier.id === trimMatch[1] && modifier.type === "trim-path")) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime trim-path modifier: ${trimMatch[1]}` });
+        continue;
+      }
+      const amountMatch = /^modifiers\.([^.]+)\.amount$/.exec(track.property);
+      if (amountMatch && !node.modifiers?.some((modifier) => modifier.id === amountMatch[1] && modifier.type === "path-bend")) {
+        context.addIssue({ code: z.ZodIssueCode.custom, path: [...path, "property"], message: `Unknown runtime path-bend modifier: ${amountMatch[1]}` });
         continue;
       }
       const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(track.property);
@@ -1104,7 +1187,24 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
     const modifiers = node.modifiers ?? [];
     for (const id of new Set(duplicates(modifiers.map((modifier) => modifier.id)))) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: `Duplicate modifier id: ${id}` });
     if (modifiers.filter((modifier) => modifier.type === "motion-path").length > 1) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Only one motion-path modifier is allowed per node" });
+    if (modifiers.filter((modifier) => modifier.type === "trim-path").length > 1) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Only one trim-path modifier is allowed per node" });
+    if (modifiers.filter((modifier) => modifier.type === "path-bend").length > 1) issues.push({ path: `${prefix}.${node.id}.modifiers`, message: "Only one path-bend modifier is allowed per node" });
     for (const modifier of modifiers) {
+      if (modifier.type === "trim-path") {
+        if (node.type !== "path") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Trim Path modifier requires a path node" });
+        if (modifier.start > modifier.end) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Trim Path end must be >= start" });
+        continue;
+      }
+      if (modifier.type === "path-bend") {
+        if (node.type !== "path") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}`, message: "Path Bend modifier requires a path node" });
+        continue;
+      }
+      if (modifier.type === "constraint") {
+        const target = nodeById.get(modifier.targetNodeId);
+        if (!target) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.targetNodeId`, message: `Unknown constraint target: ${modifier.targetNodeId}` });
+        else if (modifier.targetNodeId === node.id) issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.targetNodeId`, message: "Constraint cannot target itself" });
+        continue;
+      }
       if (modifier.type === "secondary-motion") {
         if (modifier.axis !== "rotation") issues.push({ path: `${prefix}.${node.id}.modifiers.${modifier.id}.axis`, message: "Secondary Motion supports rotation axis only" });
         const driver = nodeById.get(modifier.driverNodeId);
@@ -1189,6 +1289,22 @@ function validateNodeGraph(nodes: Array<z.infer<typeof NodeV2Schema>>, prefix: s
       current = nodeById.get(motionPath.pathNodeId);
     }
   }
+  for (const node of nodes) {
+    const origin = node.modifiers?.find((modifier) => modifier.type === "constraint");
+    if (!origin) continue;
+    const seen = new Set([node.id]);
+    let current: z.infer<typeof NodeV2Schema> | undefined = node;
+    while (current) {
+      const constraint = current.modifiers?.find((modifier) => modifier.type === "constraint");
+      if (!constraint) break;
+      if (seen.has(constraint.targetNodeId)) {
+        issues.push({ path: `${prefix}.${node.id}.modifiers.${origin.id}`, message: "Constraint dependency cycle detected" });
+        break;
+      }
+      seen.add(constraint.targetNodeId);
+      current = nodeById.get(constraint.targetNodeId);
+    }
+  }
   return issues;
 }
 
@@ -1198,9 +1314,21 @@ function validatePropertyPath(
   usage: "track" | "binding",
   path: string,
 ): ReferenceIssue[] {
-  const modifierMatch = /^modifiers\.([^.]+)\.progress$/.exec(property);
-  if (modifierMatch && !node.modifiers?.some((modifier) => modifier.id === modifierMatch[1] && (modifier.type === "motion-path" || modifier.type === "path-morph"))) {
-    return [{ path, message: `Unknown progress modifier: ${modifierMatch[1]}` }];
+  const progressMatch = /^modifiers\.([^.]+)\.progress$/.exec(property);
+  if (progressMatch && !node.modifiers?.some((modifier) => modifier.id === progressMatch[1] && (modifier.type === "motion-path" || modifier.type === "path-morph"))) {
+    return [{ path, message: `Unknown progress modifier: ${progressMatch[1]}` }];
+  }
+  const trimMatch = /^modifiers\.([^.]+)\.(start|end|offset)$/.exec(property);
+  if (trimMatch && !node.modifiers?.some((modifier) => modifier.id === trimMatch[1] && modifier.type === "trim-path")) {
+    return [{ path, message: `Unknown trim-path modifier: ${trimMatch[1]}` }];
+  }
+  const amountMatch = /^modifiers\.([^.]+)\.amount$/.exec(property);
+  if (amountMatch && !node.modifiers?.some((modifier) => modifier.id === amountMatch[1] && modifier.type === "path-bend")) {
+    return [{ path, message: `Unknown path-bend modifier: ${amountMatch[1]}` }];
+  }
+  const weightMatch = /^modifiers\.([^.]+)\.weight$/.exec(property);
+  if (weightMatch && !node.modifiers?.some((modifier) => modifier.id === weightMatch[1] && modifier.type === "constraint")) {
+    return [{ path, message: `Unknown constraint modifier: ${weightMatch[1]}` }];
   }
   const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(property);
   if (effectMatch) {

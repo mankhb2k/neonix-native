@@ -1,21 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Tooltip } from "./Tooltip";
 import { Button } from "../Button/Button";
-import { Settings, CloudCheck, Gem, Upload, Info } from "lucide-react";
 
 const meta: Meta<typeof Tooltip> = {
   title: "UI/Tooltip",
   component: Tooltip,
-  tags: ["autodocs"],
+  parameters: {
+    layout: "centered",
+  },
   argTypes: {
     side: {
       control: "select",
       options: ["top", "bottom", "left", "right"],
-      description: "Hướng hiển thị của tooltip",
-    },
-    content: {
-      control: "text",
-      description: "Nội dung văn bản bên trong tooltip",
     },
   },
 };
@@ -23,73 +19,34 @@ const meta: Meta<typeof Tooltip> = {
 export default meta;
 type Story = StoryObj<typeof Tooltip>;
 
-export const DefaultTop: Story = {
+export const Top: Story = {
   args: {
-    content: "Đã lưu tự động vào đám mây",
+    content: "Đã lưu tự động vào bộ nhớ",
     side: "top",
-    children: (
-      <Button variant="ghost" size="sm">
-        <CloudCheck size={15} color="#22c55e" />
-      </Button>
-    ),
+    children: <Button variant="secondary">Rê chuột vào đây (Top)</Button>,
   },
 };
 
 export const Bottom: Story = {
   args: {
-    content: "Cài đặt thông số dự án",
+    content: "Xuất video MP4 1080p",
     side: "bottom",
-    children: (
-      <Button variant="action" size="sm" leftIcon={<Settings size={14} />}>
-        Cài đặt
-      </Button>
-    ),
+    children: <Button variant="primary">Rê chuột vào đây (Bottom)</Button>,
   },
 };
 
 export const Left: Story = {
   args: {
-    content: "Nâng cấp tài khoản Pro",
+    content: "Xem trước thông số",
     side: "left",
-    children: (
-      <Button variant="outline" size="sm" leftIcon={<Gem size={13} color="#eab308" />}>
-        Pro
-      </Button>
-    ),
+    children: <Button variant="outline">Rê chuột vào đây (Left)</Button>,
   },
 };
 
 export const Right: Story = {
   args: {
-    content: "Xuất video chất lượng 4K",
+    content: "Mở thanh cài đặt",
     side: "right",
-    children: (
-      <Button variant="primary" size="sm" leftIcon={<Upload size={13} />}>
-        Xuất
-      </Button>
-    ),
+    children: <Button variant="ghost">Rê chuột vào đây (Right)</Button>,
   },
-};
-
-/* All Sides Overview Story */
-export const AllSidesPreview: Story = {
-  render: () => (
-    <div style={{ display: "flex", gap: "32px", padding: "40px 20px", alignItems: "center", justifyContent: "center" }}>
-      <Tooltip content="Hướng Top (Trên)" side="top">
-        <Button variant="outline" size="sm">Hover Top</Button>
-      </Tooltip>
-
-      <Tooltip content="Hướng Bottom (Dưới)" side="bottom">
-        <Button variant="outline" size="sm">Hover Bottom</Button>
-      </Tooltip>
-
-      <Tooltip content="Hướng Left (Trái)" side="left">
-        <Button variant="outline" size="sm">Hover Left</Button>
-      </Tooltip>
-
-      <Tooltip content="Hướng Right (Phải)" side="right">
-        <Button variant="outline" size="sm">Hover Right</Button>
-      </Tooltip>
-    </div>
-  ),
 };

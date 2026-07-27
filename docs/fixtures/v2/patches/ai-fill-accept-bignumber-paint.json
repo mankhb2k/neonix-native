@@ -1,0 +1,23 @@
+{
+  "format": "motion-patch",
+  "formatVersion": 1,
+  "baseRevision": 1,
+  "operations": [
+    {
+      "op": "set",
+      "target": {
+        "variableId": "proj.number"
+      },
+      "value": "4.8x"
+    },
+    {
+      "op": "set",
+      "target": {
+        "sceneId": "scene.main",
+        "nodeId": "inst.bn",
+        "property": "payload.props.subtitle"
+      },
+      "value": "Q3 2026"
+    }
+  ]
+}

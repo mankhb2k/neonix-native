@@ -28,7 +28,7 @@ Các nguyên tắc chính:
 - AI User và Web chỉ sửa Project Variable, text Node và public props của Component.
 - Preview và export phải tiến tới dùng chung property vocabulary, transform convention và track evaluator.
 
-Contract đầy đủ: [Motion Format](docs/motion-format-v2.md). Catalog nguyên tử: [Primitive objects](docs/primitives-object.md). Fixture-driven schema: [Schema roadmap](docs/schema-fixture-roadmap.md). Tiến độ: [Kiến trúc và lộ trình refactor](docs/refactor.md). Browser preview và lịch test: [Atomic roadmap](docs/browser-preview-atomic-roadmap.md). Hướng nhân vật SVG: [SVG cut-out plan](docs/svg-cutout-plan.md). Thiết kế primitive: [Atomic primitives plan](docs/atomic-primitives-plan.md).
+Contract: [Motion Format](docs/motion-format-v2.md). Catalog: [Primitive objects](docs/primitives-object.md). Tiến độ: [roadmap-status](docs/roadmap-status.md). Kiến trúc: [refactor](docs/refactor.md). Freeze policy: [P0 schema freeze](docs/p0-schema-freeze-checklist.md). Browser preview remaining: [browser-preview roadmap](docs/browser-preview-atomic-roadmap.md).
 
 ## Monorepo
 

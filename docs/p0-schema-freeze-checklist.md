@@ -38,7 +38,11 @@ Gate run (green): `pnpm typecheck`, `pnpm validate:v2-fixtures` (27+/107−/40 l
 | Patch | Close gap | parse + `applyMotionPatch` public-surface |
 | Inspector / Timeline UI / Canvas / Import UI | Defer N/A | not Motion Format surface |
 | Preview / Web parity | Defer N/A for freeze | browser roadmap |
-| P1 rows | Keep reject wall | `negative/p1-not-normative/*` |
+| P1 rows | Keep reject wall for remaining P1 | `negative/p1-not-normative/*` (emitter, two-bone-ik, audio-marker) |
+
+## Post-freeze additive primitives (2026-07-25)
+
+Additive (non-breaking, `formatVersion` stays 2): Trim Path, Gradient fill, Dash, Blend mode (`normal|multiply|screen|add`), Path Bend (chord + sin(πt) offset), Constraint (`look-at|copy-position|copy-rotation` with topo evaluation + cycle reject). Evidence: projects/negatives above + Runtime/PNG goldens.
 
 ## Freeze gate evidence
 

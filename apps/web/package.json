@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:desktop": "next dev",
+
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -50,3 +52,5 @@
     "typescript-eslint": "^8.26.1"
   }
 }
+
+

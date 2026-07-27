@@ -1,0 +1,14 @@
+{
+  "format": "motion-patch",
+  "formatVersion": 1,
+  "baseRevision": 1,
+  "operations": [
+    {
+      "op": "set",
+      "target": {
+        "variableId": "proj.accent"
+      },
+      "value": "#f97316"
+    }
+  ]
+}

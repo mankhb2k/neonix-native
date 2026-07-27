@@ -6,7 +6,7 @@ import type { Bounds2D } from "./spatial";
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
 type Point = { x: number; y: number };
 type PathNode = Extract<RuntimeNode, { type: "path" }>;
-type PathContour = PathNode["payload"]["contours"][number];
+export type PathContour = PathNode["payload"]["contours"][number];
 type PathSample = { point: Point; tangent: Point };
 
 export const MOTION_PATH_CUBIC_SAMPLES = 32;
@@ -72,6 +72,89 @@ function contourSamples(contour: PathContour): { points: Point[]; cumulative: nu
   return result;
 }
 
+function pointAtDistance(table: ReturnType<typeof contourSamples>, distance: number): Point {
+  if (table.points.length === 0) return { x: 0, y: 0 };
+  if (table.total <= Number.EPSILON) return { ...table.points[0]! };
+  const bounded = Math.min(table.total, Math.max(0, distance));
+  let index = 1;
+  while (index < table.cumulative.length - 1 && table.cumulative[index]! < bounded) index += 1;
+  const left = table.points[index - 1]!;
+  const right = table.points[index]!;
+  const span = Math.max(Number.EPSILON, table.cumulative[index]! - table.cumulative[index - 1]!);
+  return interpolatePoint(left, right, (bounded - table.cumulative[index - 1]!) / span);
+}
+
+function polylineContour(id: string, points: Point[]): PathContour | undefined {
+  const [start, ...rest] = points;
+  if (!start || rest.length === 0) return undefined;
+  return {
+    id,
+    start,
+    closed: false,
+    segments: rest.map((to) => ({ kind: "line" as const, to })),
+  };
+}
+
+/** Trim sampled contours in global arc-length order and return one open polyline. */
+export function trimPathContours(contours: PathContour[], start: number, end: number, offset: number): PathContour[] {
+  const boundedStart = Math.min(1, Math.max(0, start));
+  const boundedEnd = Math.min(1, Math.max(0, end));
+  if (boundedEnd <= boundedStart + Number.EPSILON) return [];
+  const tables = contours.map((contour) => contourSamples(contour));
+  const total = tables.reduce((sum, table) => sum + table.total, 0);
+  if (total <= Number.EPSILON) return [];
+  const wrap = (value: number) => ((value % 1) + 1) % 1;
+  const intervalLength = boundedEnd - boundedStart;
+  const intervalStart = wrap(boundedStart + offset);
+  const sampleCount = Math.max(2, Math.ceil(
+    tables.reduce((sum, table) => sum + Math.max(1, table.points.length - 1), 0) * intervalLength,
+  ) + 1);
+  const pointAtProgress = (progress: number): Point => {
+    let distance = wrap(progress) * total;
+    for (let index = 0; index < tables.length; index += 1) {
+      const table = tables[index]!;
+      if (distance <= table.total || index === tables.length - 1) return pointAtDistance(table, distance);
+      distance -= table.total;
+    }
+    return { ...tables.at(-1)!.points.at(-1)! };
+  };
+  const points = Array.from({ length: sampleCount }, (_, index) => {
+    const progress = intervalStart + intervalLength * index / (sampleCount - 1);
+    return pointAtProgress(intervalLength >= 1 - Number.EPSILON && index === sampleCount - 1 ? 1 : progress);
+  });
+  const contour = polylineContour(`${contours[0]?.id ?? "path"}-trimmed`, points);
+  return contour ? [contour] : [];
+}
+
+/**
+ * Design freeze: sample each contour to a polyline and bend around its first→last chord.
+ * Offset each sample by amount * chordLength * sin(π * t) along the chord perpendicular.
+ */
+export function bendPathContours(contours: PathContour[], amount: number): PathContour[] {
+  const boundedAmount = Math.min(1, Math.max(-1, amount));
+  return contours.flatMap((contour) => {
+    const table = contourSamples(contour);
+    const first = table.points[0];
+    const last = table.points.at(-1);
+    if (!first || !last || table.points.length < 2) return [];
+    const chordX = last.x - first.x;
+    const chordY = last.y - first.y;
+    const chordLength = Math.hypot(chordX, chordY);
+    if (chordLength <= Number.EPSILON || table.total <= Number.EPSILON) {
+      const unchanged = polylineContour(`${contour.id}-bent`, table.points.map((point) => ({ ...point })));
+      return unchanged ? [unchanged] : [];
+    }
+    const perpendicular = { x: -chordY / chordLength, y: chordX / chordLength };
+    const points = table.points.map((point, index) => {
+      const progress = table.cumulative[index]! / table.total;
+      const distance = boundedAmount * chordLength * Math.sin(Math.PI * progress);
+      return { x: point.x + perpendicular.x * distance, y: point.y + perpendicular.y * distance };
+    });
+    const bent = polylineContour(`${contour.id}-bent`, points);
+    return bent ? [bent] : [];
+  });
+}
+
 /** Deterministic fixed-sample arc-length lookup for a typed Path contour. */
 export function samplePathContour(node: PathNode, contourId: string, progress: number, contours = node.payload.contours): PathSample {
   const contour = contours.find((candidate) => candidate.id === contourId);
@@ -135,6 +218,7 @@ function pathBounds(node: Extract<RuntimeNode, { type: "path" }>, contours = nod
     if (contour.closed) bounds = mergeBounds(bounds, pointBounds([current, contour.start]));
     return bounds;
   });
+  if (contourBounds.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
   return contourBounds.slice(1).reduce((bounds, next) => mergeBounds(bounds, next), contourBounds[0]!);
 }
 

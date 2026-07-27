@@ -1,9 +1,11 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  parseMotionComponentV2,
   parseMotionProject,
   serializeMotionProject,
+  type MotionComponentV2,
 } from "@motionvideo/motion-schema";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import { compileMotionProject } from "./compiler";
@@ -12,6 +14,20 @@ import { renderCompiledProject } from "./runtime";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../..");
+
+async function loadFixtureComponents(): Promise<MotionComponentV2[]> {
+  const componentRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2", "components");
+  try {
+    const files = (await readdir(componentRoot)).filter((file) => file.endsWith(".json"));
+    return Promise.all(
+      files.map(async (file) =>
+        parseMotionComponentV2(JSON.parse(await readFile(path.join(componentRoot, file), "utf8"))),
+      ),
+    );
+  } catch {
+    return [];
+  }
+}
 
 async function readInput(): Promise<unknown> {
   const argPath = process.argv[2];
@@ -50,13 +66,16 @@ async function main() {
   const mtPath = path.join(outDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
 
-  const compiled = compileMotionProject(project);
+  const components = await loadFixtureComponents();
+  const compiled = compileMotionProject(project, { components });
+  const fixturesRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2");
   const rendered = await renderCompiledProject(compiled, {
     fps: 24,
     scale: 0.5,
     outDir: path.join(outDir, "frames", project.metadata.id),
+    assetBaseDir: fixturesRoot,
   });
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
+  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled, fixturesRoot);
   const mp4Path = files[0]?.path;
   if (!mp4Path) throw new Error("Encode produced no file");
 

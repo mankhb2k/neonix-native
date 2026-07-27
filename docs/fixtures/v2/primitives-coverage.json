@@ -936,53 +936,53 @@
     {
       "id": "gradient",
       "section": "6-geometry",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/gradient-anim.json"],
-      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["components/gradient-paint.mvc.json", "projects/gradient-dash.mt.json", "expected-runtime/gradient-dash.runtime.json", "negative/schema/gradient-stops-decreasing.mvc.json"],
+      "notes": "linear/radial gradient paint with ordered stops; Web parity remains open"
     },
     {
       "id": "dash",
       "section": "6-geometry",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/animated-dash.json"],
-      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["projects/gradient-dash.mt.json", "expected-runtime/gradient-dash.runtime.json"],
+      "notes": "dash arrays and animated dashOffset render deterministically; Web parity remains open"
     },
     {
       "id": "trim-path",
       "section": "6-geometry",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/trim-path-modifier.json"],
-      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["projects/trim-path-reveal.mt.json", "expected-runtime/trim-path-reveal.runtime.json", "expected-frames/trim-path-reveal-t1.png", "negative/schema/trim-path-start-after-end.mvc.json", "negative/schema/trim-path-on-group.mvc.json"],
+      "notes": "arc-length trim reveal with animated end and offset wrapping; Web parity remains open"
     },
     {
       "id": "path-morph",
@@ -1015,19 +1015,19 @@
     {
       "id": "path-bend",
       "section": "6-geometry",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/path-bend.json"],
-      "notes": "P1 not normative geometry warp; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["projects/path-bend-ribbon.mt.json", "expected-runtime/path-bend-ribbon.runtime.json", "expected-frames/path-bend-ribbon-t1.png", "negative/schema/path-bend-on-shape.mvc.json"],
+      "notes": "fixed chord-perpendicular sine bend on sampled contours; Web parity remains open"
     },
     {
       "id": "mask-clip",
@@ -1166,19 +1166,19 @@
     {
       "id": "blend-mode",
       "section": "7-composition",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/blend-mode.json"],
-      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["projects/blend-mode-glow.mt.json", "expected-runtime/blend-mode-glow.runtime.json", "expected-frames/blend-mode-glow-t1.png", "negative/schema/blend-mode-invalid.mt.json"],
+      "notes": "normal/multiply/screen/add map to Canvas compositing; Web parity remains open"
     },
     {
       "id": "scene-transition",
@@ -1545,19 +1545,19 @@
     {
       "id": "simple-constraint",
       "section": "9-modifiers",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/constraint-modifier.json"],
-      "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["projects/constraint-look-at.mt.json", "expected-runtime/constraint-look-at.runtime.json", "negative/schema/constraint-cycle.mvc.json", "negative/schema/constraint-missing-target.mvc.json"],
+      "notes": "topologically evaluated look-at/copy-position/copy-rotation constraints; Web parity remains open"
     },
     {
       "id": "two-bone-ik",
@@ -1579,19 +1579,19 @@
     {
       "id": "path-bend-modifier",
       "section": "9-modifiers",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
+      "status": "implemented",
+      "hasRuntimeSurface": true,
       "gates": {
         "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
+        "reference": "pass",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/path-bend.json"],
-      "notes": "P1 not normative modifier warp; schema must reject; reference/limits N/A until typed"
+      "fixtures": ["projects/path-bend-ribbon.mt.json", "expected-runtime/path-bend-ribbon.runtime.json", "expected-frames/path-bend-ribbon-t1.png", "negative/schema/path-bend-on-shape.mvc.json"],
+      "notes": "path modifier applies after morph and before trim; Web parity remains open"
     },
     {
       "id": "svg-source-import",
@@ -2286,91 +2286,6 @@
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
     },
     {
-      "id": "p1-reject-trim-path",
-      "section": "14-p1-reject",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
-      "gates": {
-        "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
-        "web": "na"
-      },
-      "fixtures": ["negative/p1-not-normative/trim-path-modifier.json"],
-      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
-    },
-    {
-      "id": "p1-reject-dash",
-      "section": "14-p1-reject",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
-      "gates": {
-        "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
-        "web": "na"
-      },
-      "fixtures": ["negative/p1-not-normative/animated-dash.json"],
-      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
-    },
-    {
-      "id": "p1-reject-gradient",
-      "section": "14-p1-reject",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
-      "gates": {
-        "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
-        "web": "na"
-      },
-      "fixtures": ["negative/p1-not-normative/gradient-anim.json"],
-      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
-    },
-    {
-      "id": "p1-reject-blend-mode",
-      "section": "14-p1-reject",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
-      "gates": {
-        "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
-        "web": "na"
-      },
-      "fixtures": ["negative/p1-not-normative/blend-mode.json"],
-      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
-    },
-    {
-      "id": "p1-reject-constraint",
-      "section": "14-p1-reject",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
-      "gates": {
-        "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
-        "web": "na"
-      },
-      "fixtures": ["negative/p1-not-normative/constraint-modifier.json"],
-      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
-    },
-    {
       "id": "p1-reject-two-bone-ik",
       "section": "14-p1-reject",
       "status": "planned-p1",
@@ -2385,23 +2300,6 @@
         "web": "na"
       },
       "fixtures": ["negative/p1-not-normative/two-bone-ik.json"],
-      "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
-    },
-    {
-      "id": "p1-reject-path-bend",
-      "section": "14-p1-reject",
-      "status": "planned-p1",
-      "hasRuntimeSurface": false,
-      "gates": {
-        "contract": "pass",
-        "reference": "na",
-        "limits": "na",
-        "compiler": "na",
-        "evaluator": "na",
-        "visual": "na",
-        "web": "na"
-      },
-      "fixtures": ["negative/p1-not-normative/path-bend.json"],
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
     },
     {
@@ -2420,6 +2318,30 @@
       },
       "fixtures": ["negative/p1-not-normative/audio-marker-track.json"],
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
+    },
+    {
+      "id": "product-acceptance-pack",
+      "section": "15-product-acceptance",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "pass",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "pass",
+        "web": "na"
+      },
+      "fixtures": [
+        "acceptance/scorecard.json",
+        "projects/accept-process-trim.mt.json",
+        "projects/accept-ribbon-promo.mt.json",
+        "projects/accept-look-at.mt.json",
+        "expected-frames/accept-ribbon-promo-t1.png",
+        "acceptance/web-parity-baseline.json"
+      ],
+      "notes": "12 accept-* compositions + scorecard; worker PNG/export gates green; browser Canvas PNG parity still deferred (harness transform + checksum baseline)"
     }
   ]
 }

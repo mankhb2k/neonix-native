@@ -9,6 +9,8 @@ import {
   type MotionScene,
 } from "@motionvideo/motion-schema";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
+import type { FrameDraft } from "@/lib/frame-library";
+import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
 
 export type SceneRole = "hook" | "pain" | "benefit" | "demo" | "offer" | "cta" | "logo";
 
@@ -38,6 +40,7 @@ type EditorState = {
   duplicateScene: (sceneId: string) => void;
   renameScene: (sceneId: string, role: SceneRole) => void;
   deleteScene: (sceneId: string) => void;
+  addSceneFromFrame: (draft: FrameDraft) => void;
   setExporting: (value: boolean) => void;
 };
 
@@ -94,14 +97,68 @@ function cloneScene(scene: MotionScene): MotionScene {
     clips: scene.clips.map((clip) => ({
       ...structuredClone(clip),
       id: clipIds.get(clip.id)!,
-      targetId: clip.targetId ? nodeIds.get(clip.targetId) : undefined,
+      targetId: clip.targetId ? nodeIds.get(clip.targetId) ?? clip.targetId : clip.targetId,
       schedule: clip.schedule.kind === "absolute"
         ? clip.schedule
-        : { ...clip.schedule, clipId: clipIds.get(clip.schedule.clipId) ?? clip.schedule.clipId },
+        : {
+            ...clip.schedule,
+            clipId: clipIds.get(clip.schedule.clipId) ?? clip.schedule.clipId,
+          },
       source: clip.source.kind === "tracks"
         ? { ...clip.source, tracks: clip.source.tracks.map((track) => ({ ...track, targetId: nodeIds.get(track.targetId) ?? track.targetId })) }
         : clip.source,
     })),
+  };
+}
+
+function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
+  const sceneId = uid("scene");
+  const nodeId = uid("node");
+  const clipId = uid("clip");
+  const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
+  return {
+    id: sceneId,
+    name: draft.name,
+    duration,
+    nodes: [
+      {
+        id: nodeId,
+        type: "text",
+        parentId: null,
+        zIndex: 0,
+        transform: {
+          x: 540,
+          y: 960,
+          width: 900,
+          height: 180,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0.5,
+          anchorY: 0.5,
+          opacity: 1,
+          visible: true,
+          flipX: false,
+          flipY: false,
+        },
+        payload: {
+          text: draft.text || draft.name,
+          fontSize: 64,
+          fontWeight: 600,
+          align: "center",
+        },
+      },
+    ],
+    clips: [
+      {
+        id: clipId,
+        targetId: nodeId,
+        schedule: { kind: "absolute", at: 0 },
+        duration: Math.min(0.8, duration),
+        playback: { iterations: 1, direction: "normal", rate: 1 },
+        source: { kind: "preset", presetId: "fade-in" },
+      },
+    ],
   };
 }
 
@@ -226,7 +283,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   cutScene: (sceneId) => {
-    if ((get().project?.scenes.length ?? 0) <= 1) return;
+    if ((get().project?.scenes.length ?? 0) < 1) return;
     get().copyScene(sceneId);
     get().deleteScene(sceneId);
   },
@@ -270,11 +327,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   deleteScene: (sceneId) => {
     const project = get().project;
-    if (!project || project.scenes.length <= 1) return;
+    if (!project) return;
     const scenes = project.scenes.filter((scene) => scene.id !== sceneId);
     const sceneOrder = project.timeline.sceneOrder.filter((id) => id !== sceneId);
     const next = scenes.find((scene) => scene.id === sceneOrder[0]) ?? scenes[0];
-    if (!next) return;
     set({
       project: {
         ...project,
@@ -282,8 +338,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         timeline: { ...project.timeline, sceneOrder },
         bindings: project.bindings.filter((binding) => binding.target.sceneId !== sceneId),
       },
-      selectedSceneId: next.id,
+      selectedSceneId: next?.id ?? null,
       selectedNodeId: firstEditableNode(next)?.id ?? null,
+    });
+  },
+
+  addSceneFromFrame: (draft) => {
+    const project = get().project;
+    if (!project) return;
+    const scene = sceneFromFrameDraft(draft);
+    set({
+      project: {
+        ...project,
+        scenes: [...project.scenes, scene],
+        timeline: {
+          ...project.timeline,
+          sceneOrder: [...project.timeline.sceneOrder, scene.id],
+        },
+      },
+      selectedSceneId: scene.id,
+      selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
 

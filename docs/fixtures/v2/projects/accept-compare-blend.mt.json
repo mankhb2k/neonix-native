@@ -1,0 +1,174 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.compare-blend",
+    "name": "Accept — Compare Blend",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Accept — Compare Blend",
+      "primaryColor": "#020617"
+    }
+  },
+  "dependencies": {
+    "components": [
+      {
+        "componentId": "comp.compare",
+        "version": "1.0.0",
+        "source": "registry.main",
+        "integrity": "sha256-fixture-compare-1.0.0"
+      }
+    ]
+  },
+  "assets": [],
+  "variables": [
+    {
+      "id": "proj.leftValue",
+      "type": "string",
+      "name": "Left",
+      "value": "199K"
+    },
+    {
+      "id": "proj.rightValue",
+      "type": "string",
+      "name": "Right",
+      "value": "399K"
+    }
+  ],
+  "timeline": {
+    "sceneOrder": [
+      "scene.main"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.main",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "bg",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 540,
+            "y": 540,
+            "width": 1080,
+            "height": 1080,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#020617"
+          }
+        },
+        {
+          "id": "inst.compare",
+          "type": "component",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": -420,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "comp.compare",
+            "componentVersion": "1.0.0",
+            "props": {
+              "leftTitle": "Basic",
+              "rightTitle": "Pro",
+              "leftValue": "199K",
+              "rightValue": "399K",
+              "accentLeft": "#64748b",
+              "accentRight": "#14b8a6"
+            }
+          }
+        },
+        {
+          "id": "highlight",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 2,
+          "blendMode": "screen",
+          "transform": {
+            "x": 620,
+            "y": 420,
+            "width": 380,
+            "height": 480,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 40
+          },
+          "style": {
+            "fill": "#22d3ee"
+          }
+        }
+      ],
+      "clips": []
+    }
+  ],
+  "bindings": [
+    {
+      "id": "b1",
+      "source": {
+        "kind": "variable",
+        "variableId": "proj.leftValue"
+      },
+      "target": {
+        "sceneId": "scene.main",
+        "nodeId": "inst.compare",
+        "property": "payload.props.leftValue"
+      }
+    },
+    {
+      "id": "b2",
+      "source": {
+        "kind": "variable",
+        "variableId": "proj.rightValue"
+      },
+      "target": {
+        "sceneId": "scene.main",
+        "nodeId": "inst.compare",
+        "property": "payload.props.rightValue"
+      }
+    }
+  ],
+  "extensions": {
+    "constraints": [],
+    "events": []
+  }
+}

@@ -1,8 +1,8 @@
-# MotionVideo primitive object catalog
+﻿# MotionVideo primitive object catalog
 
 Current status ledger: [`roadmap-status.md`](roadmap-status.md). Machine-readable schema-first coverage: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`). **P0 schema freeze:** [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md) (2026-07-25). Worker PNG/Web parity remain separate gates; this catalog’s “Implemented schema” means contract/reference/limits (+ compiler when Runtime surface) are covered.
 
-> Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative hiện tại vẫn là [`motion-format-v2.md`](motion-format-v2.md). Proposal chi tiết nằm tại [`atomic-primitives-plan.md`](atomic-primitives-plan.md), [`svg-cutout-plan.md`](svg-cutout-plan.md) và [`fixtures/v2/test-plan.md`](fixtures/v2/test-plan.md).
+> Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative: [`motion-format-v2.md`](motion-format-v2.md). Fixture suite: [`fixtures/v2/README.md`](fixtures/v2/README.md). Product acceptance: [`product-primitive-acceptance.md`](product-primitive-acceptance.md).
 
 ## Định vị
 
@@ -21,10 +21,66 @@ Value + Property + Keyframe + Track + Binding
 | Trạng thái | Nghĩa |
 |---|---|
 | Implemented | Có implementation và assertion tự động tương ứng |
-| Partial | Có schema/compiler hoặc smoke test nhưng chưa chứng minh end-to-end |
-| Planned P0 | Bắt buộc cho vertical slice motion/cut-out |
-| Planned P1 | Thêm sau khi P0 acceptance pass |
+| Partial | Schema/compiler hoặc smoke có, nhưng Web/PNG/parity còn thiếu |
+| Planned P1 | Chưa normative — schema reject (`negative/p1-not-normative/`) |
+| Deferred UI | Không thuộc Motion Format; editor/canvas/timeline |
 | Out of scope | Không thêm placeholder vào schema hiện tại |
+
+## Tổng hợp — đã làm / chưa làm
+
+Cập nhật: 2026-07-25. Chi tiết từng dòng ở các mục §1–13 bên dưới. Machine ledger: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json).
+
+### Đã làm (P0 — schema + runtime/compiler fixture)
+
+| Nhóm | Nguyên tử |
+|---|---|
+| Identity | Artifact identity, Stable ID, Semantic (`key` qua compile), Integrity, Component semver, Source mapping (SVG import) |
+| Value | JSON literal, Resolvable value (typed surfaces), Property path registry, Variable, Binding (1 target / many sources), Public param, Capability registry |
+| Time | Keyframe, Track, Easing, Clip, Schedule, Playback, Preset, Named Action outer playback, Deterministic clock/seed |
+| Spatial | Transform, Hierarchy, World matrix (worker), Draw order, Bounds, Hit-test (worker), Layout via Repeater |
+| Nodes | Group, Text, Shape, Path, Image, SVG, Video, Bone, Camera, Component Instance |
+| Paint/geometry | Point/Contour/Segment, Solid fill/stroke, **Gradient** (literal stops), **Dash** + animatable `dashOffset`, **Trim Path**, Path Morph, **Path Bend** |
+| Composition | Mask/Clip, Effects stack (blur/shadow/glow/color-adjust), **Blend mode** (`normal\|multiply\|screen\|add`), Scene transition (`cut\|fade\|crossfade`) |
+| Expansion | Component expansion, Repeater (list/count/layouts/stagger), Text Animator — compile away khỏi Runtime IR |
+| Modifiers | Motion Path, Path Morph, Secondary Motion (rotation), Trim Path, Path Bend, Constraint (`look-at\|copy-position\|copy-rotation`) |
+| Cut-out | `sourceImports` / Part / `cutoutRigs`, Bone chain, `restRotation`, Variant slot, Named Action, Lip-sync cues, Prop attachment, Secondary chain |
+| Scene/media | Scene, Timeline `sceneOrder`, Audio track mix, Asset declaration/resolver (schema), Font `fontAssetId` mismatch reject, Media probe |
+| Authoring format | Patch public-surface, AI capability freeze surface, Import fixtures |
+| Runtime IR | Literal node/track, Frame plan, Offscreen plan, PNG worker goldens, Encoder MP4 smoke |
+
+### Làm được nhưng còn gap (Partial / deferred)
+
+| Gap | Ghi chú |
+|---|---|
+| Browser Web / Canvas PNG parity | Runtime IR harness có; media/screenshot parity vs worker còn thiếu |
+| Parallax Modifier | Manual keyframe parallax được; auto parallax modifier **chưa** (plan riêng) |
+| Gradient stops animate | Fill gradient literal OK; animate stops theo track **chưa** |
+| Secondary Motion `axis: position` | Schema/runtime P0 chỉ **rotation** |
+| Secondary Motion animate stiffness/damping | Params **static** ở P0 |
+| Constraint `pin` | Chưa; chỉ look-at / copy-position / copy-rotation |
+| Effect bounds inflation | Bounds baseline có; inflation đầy đủ còn thiếu |
+| Font glyph Web fallback | Schema mismatch reject có; glyph coverage Web deferred |
+| Asset cache/offline | Hash/manifest có; cache/offline deferred |
+| Editor UI | Inspector, timeline/dope sheet, canvas selection — Deferred UI |
+| Encoder/product infra | MP4 smoke; queue/storage/auth chưa |
+
+### Chưa làm — Planned P1 (schema reject)
+
+| Primitive | Reject fixture |
+|---|---|
+| Emitter | `negative/p1-not-normative/emitter-node.json` |
+| 2-bone IK | `negative/p1-not-normative/two-bone-ik.json` |
+| Audio cue/marker | `negative/p1-not-normative/audio-marker-track.json` |
+
+### Out of scope (không thêm placeholder)
+
+Mesh/skinning/weight paint · Organic IK/puppet · Expression language · Full physics · Frame-by-frame/onion skin · Custom shaders · `CharacterNode` / `RestPose` / `RigMapper` types · Wipe transition · Parallax-as-depth-from-`zIndex`
+
+### Quy tắc đọc trạng thái trong bảng §1–13
+
+- **Implemented schema** = contract ± fixtures xanh; Web PNG có thể vẫn deferred.
+- **Implemented worker** = schema + worker/evaluator (+ thường có Runtime/PNG golden).
+- **Planned P1 — rejected** = parser từ chối; chưa mở normative.
 
 ## 1. Artifact và identity primitives
 
@@ -103,11 +159,11 @@ Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test ho
 | Point/Contour/Segment | Canonical Path geometry | Implemented | finite coordinates, line/cubic, contour/segment limits |
 | Fill | Solid paint | Implemented worker | color/opacity/nonzero/evenodd |
 | Stroke | Width/cap/join | Implemented worker | open path, animated width, stroke-inflated bounds |
-| Gradient | Linear/radial typed paint | Planned P1 — rejected in schema | negative/p1-not-normative/gradient-anim.json |
-| Dash | Stroke dash array/offset | Planned P1 — rejected in schema | negative/p1-not-normative/animated-dash.json |
-| Trim Path | Arc-length range | Planned P1 — rejected in schema | negative/p1-not-normative/trim-path-modifier.json |
+| Gradient | Linear/radial typed paint | Implemented worker | `gradient-dash` + stop-order negatives; stops literal (not animated) |
+| Dash | Stroke dash array/offset | Implemented worker | `style.dash` + animatable `dashOffset` on path/shape |
+| Trim Path | Arc-length range | Implemented worker | `trim-path-reveal`; animate start/end/offset |
 | Path Morph | Compatible topology interpolation | Implemented worker | mismatch rejection, 0/0.5/1 silhouettes |
-| Path Bend | Lightweight curve deformation | Planned P1 | bounded control points, deterministic geometry |
+| Path Bend | Arc-chord warp | Implemented worker | `path-bend-ribbon`; amount ∈ [-1,1]; sin(πt) perpendicular offset |
 
 SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph không tự thêm points hoặc đoán correspondence.
 
@@ -121,7 +177,7 @@ SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph kh
 | Shadow | Effect | Implemented worker | offset/blur/color/alpha |
 | Glow | Effect | Implemented worker | radius/intensity/order |
 | Color adjust | Effect | Implemented worker | brightness/contrast/saturation |
-| Blend mode | Layer compositing | Planned P1 — rejected in schema | negative/p1-not-normative/blend-mode.json |
+| Blend mode | Layer compositing | Implemented worker | `normal\|multiply\|screen\|add`; `blend-mode-glow` |
 | Scene transition | Cross-scene compositing | Implemented cut/fade/crossfade | wipe rejected; duration/overlap goldens |
 
 Canonical order: raster subtree → mask → ordered effects → blend/z-order.
@@ -146,12 +202,13 @@ Compiler phải loại các expansion primitives khỏi Runtime IR.
 |---|---|---|---|
 | Motion Path | Node position/orientation theo Path | Implemented runtime | typed refs, arc length, tangent, progress, offsets, cycles, cross-hierarchy |
 | Path Morph | Geometry interpolation | Implemented runtime | topology + numeric interpolation |
-| Secondary Motion | Follow-through trên chain | Implemented runtime | fixed time, random access, damping/stiffness |
-| Simple constraint | Copy/look-at/pin | Planned P1 — rejected in schema | negative/p1-not-normative/constraint-modifier.json |
+| Secondary Motion | Follow-through trên chain | Implemented runtime | fixed time, random access; params static at P0 |
+| Trim Path | Arc-length reveal | Implemented worker | `trim-path-reveal`; animate start/end/offset |
+| Simple constraint | look-at / copy-position / copy-rotation | Implemented worker | `constraint-look-at`; cycle reject; topo evaluation |
 | 2-bone IK | Analytic arm/leg solver | Planned P1 — rejected in schema | negative/p1-not-normative/two-bone-ik.json |
-| Path Bend | Simple warp | Planned P1 — rejected in schema | negative/p1-not-normative/path-bend.json |
+| Path Bend | Arc-chord warp | Implemented worker | `path-bend-ribbon`; amount ∈ [-1,1] |
 
-Modifier có stable ID và animatable paths như `modifiers.hairFollow.stiffness`.
+Modifier có stable ID. Animatable paths P0: `modifiers.<id>.progress` (Motion Path/Path Morph), `modifiers.<id>.start|end|offset` (Trim Path), `modifiers.<id>.amount` (Path Bend), `modifiers.<id>.weight` (Constraint). Secondary Motion stiffness/damping/amplitude là static configuration.
 
 ## 10. Cut-out character primitives
 
@@ -207,192 +264,23 @@ Raw source/import/rig/action metadata không được đi vào Runtime IR.
 | Raster Output | PNG frame | Implemented text/SVG smoke | exact dimensions, visual golden |
 | Encoder Output | H.264/AAC MP4 | Partial video smoke | streams, duration, FPS, colorspace, audio |
 
-## 14. P1 và P2 boundary
 
-P1 chỉ triển khai sau khi composition/cut-out vertical slices pass:
+## 14. P1 / P2 và việc tiếp theo
 
-- Emitter, Trim Path, animated Dash/Gradient.
-- Blend modes nhỏ.
-- Audio waveform/beat markers.
-- Simple constraints, 2-bone IK và Path Bend.
+Xem bảng **Tổng hợp — đã làm / chưa làm** ở đầu tài liệu.
 
-Out of scope hiện tại:
+**P1 còn lại** (chỉ mở khi có composition fixture thật): Emitter · animated gradient stops · constraint `pin` · 2-bone IK · audio markers.
 
-- Mesh deformation, skinning, weight paint.
-- Organic IK và puppet pins nâng cao.
-- Expression language/arbitrary scripts.
-- Full physics.
-- Frame-by-frame drawing/onion skin.
-- Advanced compositing/custom shaders.
+**Initiative riêng (không P1 reject wall):** Parallax Modifier (fixtures-first, plan riêng).
 
-## Asset audit — 2026-07-24
+**Out of scope:** mesh/skinning · organic IK · expressions · physics · frame-by-frame · custom shaders.
 
-`docs/fixtures/v2/assets/manifest.json` hiện khóa 19 assets. Validator kiểm tra hash/probe/reference và đối chiếu typed declaration của năm asset family với manifest.
+## Asset / fixture notes
 
-| Nhóm | Coverage |
-|---|---|
-| Opaque/alpha image | Có |
-| Font Việt Regular/Medium/Bold | Có |
-| BGM/voiceover/SFX | Có |
-| Video có/không audio stream | Có |
-| Flat SVG character | Có |
-| Figma exports | Có 2 file, path phẳng + mask wrappers |
-| Illustrator export | Có 1 file, group tổng quát |
-| Script/external URL | Không có trong positive assets |
-| Semantic body-part groups | Không có; đúng để test group trong app |
-| Gradient/clipPath/text SVG | Chưa có; sẽ sinh synthetic fixtures |
-| Mouth/eye/hand variants | Chưa có; sẽ sinh normalized SVG part fixtures |
-
-Không cần thêm asset bên ngoài cho Path/Mask/Gradient/Morph/variants: test geometry nên được sinh nhỏ, deterministic và review được. Một Figma SVG có semantic groups chỉ cần sau này để test happy-path import; không chặn Phase 0.
-
-## Fixture architecture
-
-```text
-docs/fixtures/v2/
-  assets/                 # binary/source fixtures + manifest
-  imports/                # raw import expectations/re-import scenarios
-  components/             # reusable .mvc and rig/actions
-  projects/               # end-to-end .mt compositions
-  primitives/             # one positive fixture per primitive
-  invalid/                # one failure reason per fixture
-  expected-runtime/       # canonical compiler goldens
-  expected-frames/        # PNG visual goldens
-  expected-media/         # probe/audio assertions
-  expected-web/           # preview screenshots/state expectations
-```
-
-## Test layers áp dụng cho mọi primitive
-
-1. Schema positive: minimal và full object parse.
-2. Schema negative: wrong type, unknown field, limit violation.
-3. Reference: missing ID, duplicate ID, cycle và cross-scope target.
-4. Round-trip: parse → serialize → parse không đổi nghĩa.
-5. Compiler: expected Runtime IR và authoring-only fields biến mất.
-6. Evaluator: values tại before/start/middle/end/after.
-7. Visual/audio: fixed frame hoặc media probe/mix assertion.
-8. Interaction: kết hợp với hierarchy, mask, effects, camera và component.
-9. Determinism: khác worker order vẫn cùng output.
-10. Limits/performance: reject hoặc degrade rõ ràng, không memory explosion.
-11. Web parity: preview timestamp khớp exported frame.
-12. AI safety: planner chỉ sinh capability đang active.
-
-Không phải primitive nào cũng cần mọi layer; nhưng một layer chỉ được đánh dấu N/A khi tài liệu ghi lý do.
-
-## Fixture matrix theo logic
-
-### Foundation
-
-- `identity-and-strictness`: format/version/IDs/unknown fields.
-- `variables-and-bindings`: mọi variable type, precedence và one-to-many.
-- `schedule-playback`: absolute/after/with, cycles, rate/direction/iterations.
-- `hierarchy-transform`: anchors, inherit flags, flips và world matrices.
-- `component-public-api`: props/defaults/bindings/internal isolation.
-- `patch-apply-conflict`: revision và public-surface restrictions.
-
-### Drawable/geometry
-
-- `text-vietnamese`: grapheme, wrap, font weight/fallback.
-- `shape-basic`: rectangle/ellipse/polygon fill/stroke.
-- `path-basic`: open/closed/multi-contour/evenodd.
-- `path-invalid`: non-finite, empty, resource limits.
-- `image-fit-alpha`: contain/cover/crop/transparency.
-- `svg-normalized`: masks/transforms and sanitized input.
-- `video-frame`: trim/loop/mute and deterministic frame sampling.
-
-### Composition/modifier
-
-- `mask-modes`: clip/alpha/inverse/nested/cycle.
-- `motion-path`: progress 0/0.5/1, tangent orientation.
-- `effects-stack`: blur/shadow/glow/order/limits.
-- `path-morph`: topology match/mismatch and silhouettes.
-- `bone-secondary`: 3-bone chain at fixed timestamps.
-- `camera-transition`: pan/zoom/rotate and scene overlap.
-
-### Expansions
-
-- `repeater-list`: 0/1/n, stable keys/context.
-- `repeater-count-layout`: count/linear/grid/radial/stagger.
-- `text-animator-vi`: grapheme/word/line with Vietnamese and emoji.
-- `emitter-seeded`: P1 deterministic count/lifetime.
-
-### Character/import
-
-- `svg-flat-import`: multi-select paths → Create Part.
-- `svg-grouped-import`: group suggestions and rename.
-- `svg-reimport`: unchanged/renamed/removed element reconciliation.
-- `cutout-character`: rest pose, pivots, hierarchy, slots và actions.
-- `cutout-dialogue`: idle + blink + lip sync + gesture + prop.
-- `cutout-semi-organic`: segmented hair + Secondary Motion + mask.
-
-### Media
-
-- `audio-three-roles`: BGM/voiceover/SFX trim/loop/fade/gain.
-- `video-audio-policy`: no stream/has stream/muted/kept.
-- `font-vietnamese`: glyph coverage and deterministic fallback.
-- `media-corrupt`: clear decoder/probe errors.
-
-## Cross-primitive acceptance compositions
-
-1. `infographic-composition`: Path + Repeater + Text Animator + Effects.
-2. `product-tvc-composition`: Image/SVG + Mask + Motion Path + Camera + audio.
-3. `cutout-dialogue-composition`: SVG Parts + Bone/Hierarchy + variants/actions + lip sync.
-4. `cutout-semi-organic-composition`: Bone Chain + Secondary Motion + mask + prop attachment.
-
-Các composition fixtures bắt buộc vì thứ tự interaction/compositing không thể chứng minh bằng isolated fixture.
-
-## Implementation order
-
-### Phase 0 — test/runtime foundation
-
-**Status: complete (2026-07-24).** Freeze evidence nằm trong schema fixture validator, Runtime IR/PNG goldens và runtime primitive assertions.
-
-- Stable property-path/capability registry.
-- Shared evaluator, deterministic clock/seed.
-- World matrix, bounds, hit-test và offscreen abstraction.
-- Expected Runtime/PNG/media/Web harness.
-
-### Phase 1 — geometry/compositing
-
-- [x] Typed Shape/Path/Paint, geometry bounds, worker renderer và JSON/PNG goldens.
-- SVG/Image renderer.
-- [x] Mask dependency graph, modes, nested layer compositing và draw order.
-- Geometry, hierarchy và mask fixtures.
-
-### Phase 2 — compiler expansions
-
-- [x] Repeater vNext list/count/layout/stagger và compiler/PNG goldens.
-- [x] Text Animator Unicode-aware, selector/stagger, compiler/PNG goldens.
-- Compiler goldens và AI capability limits.
-
-### Phase 3 — movement/cut-out
-
-- [x] Motion Path modifier, deterministic evaluator và JSON/PNG goldens.
-- Figma/Illustrator import + Rig Mapper.
-- Bone Chain, variants, Named Actions và lip-sync.
-- Secondary Motion deterministic.
-
-### Phase 4 — visual/media finish
-
-- Effects stack và normalized Path Morph.
-- Camera/transition.
-- Video frame + audio mixer.
-- Preview/export parity.
-
-### Phase 5 — selected P1
-
-- Trim/Dash/Gradient/Blend/Emitter/Constraints/2-bone IK/Path Bend chỉ khi có template và fixture thật yêu cầu.
+- Assets pinned: `docs/fixtures/v2/assets/manifest.json` (+ import suite Figma/Illustrator).
+- Layout fixture dirs: `projects/`, `components/`, `negative/`, `expected-runtime/`, `expected-frames/`, `patches/`, `primitives-coverage.json`.
+- Cross-primitive maps: infographic · product TVC · cut-out dialogue · semi-organic mascot.
 
 ## Completion rule
 
-Một primitive chỉ chuyển sang Implemented khi có:
-
-- typed authoring schema;
-- reference/limit validation;
-- runtime representation rõ ràng;
-- stable animatable property paths;
-- compiler/evaluator implementation;
-- positive + negative + Runtime golden;
-- visual/audio assertion nếu có observable output;
-- Web preview/export parity;
-- capability metadata cho Inspector/AI;
-- documentation normative cập nhật sau cùng.
+Primitive → **Implemented** khi có typed schema · reference/limits · Runtime representation · property paths · compiler/evaluator · ± fixtures (+ Runtime golden khi có surface) · visual khi observable · docs normative. Web PNG parity có thể `na` nếu đã ghi lý do.

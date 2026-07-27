@@ -1,0 +1,625 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.process-trim",
+    "name": "Accept — Process Trim Reveal",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Accept — Process Trim Reveal",
+      "primaryColor": "#0f172a"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.main"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.main",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "bg",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 540,
+            "y": 540,
+            "width": 1080,
+            "height": 1080,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#0f172a"
+          }
+        },
+        {
+          "id": "inst.steps::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": -200,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "inst.steps::step-item-template::order",
+          "type": "group",
+          "name": "Step Item Template",
+          "parentId": "inst.steps::root",
+          "transform": {
+            "x": 80,
+            "y": 400,
+            "width": 920,
+            "height": 160,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "list-item-template",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.steps::step-index::order",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::order",
+          "transform": {
+            "x": 0,
+            "y": 20,
+            "width": 80,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-index",
+            "tags": []
+          },
+          "payload": {
+            "text": "01",
+            "fontSize": 40,
+            "fontWeight": 700
+          },
+          "style": {
+            "fill": "#38bdf8"
+          }
+        },
+        {
+          "id": "inst.steps::step-title::order",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::order",
+          "transform": {
+            "x": 100,
+            "y": 24,
+            "width": 780,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-title",
+            "tags": []
+          },
+          "payload": {
+            "text": "Đặt hàng",
+            "fontSize": 32
+          }
+        },
+        {
+          "id": "inst.steps::step-desc::order",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::order",
+          "transform": {
+            "x": 100,
+            "y": 80,
+            "width": 780,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-desc",
+            "tags": []
+          },
+          "payload": {
+            "text": "Chọn món",
+            "fontSize": 22
+          }
+        },
+        {
+          "id": "inst.steps::step-item-template::brew",
+          "type": "group",
+          "name": "Step Item Template",
+          "parentId": "inst.steps::root",
+          "transform": {
+            "x": 80,
+            "y": 584,
+            "width": 920,
+            "height": 160,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "list-item-template",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.steps::step-index::brew",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::brew",
+          "transform": {
+            "x": 0,
+            "y": 20,
+            "width": 80,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-index",
+            "tags": []
+          },
+          "payload": {
+            "text": "02",
+            "fontSize": 40,
+            "fontWeight": 700
+          },
+          "style": {
+            "fill": "#38bdf8"
+          }
+        },
+        {
+          "id": "inst.steps::step-title::brew",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::brew",
+          "transform": {
+            "x": 100,
+            "y": 24,
+            "width": 780,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-title",
+            "tags": []
+          },
+          "payload": {
+            "text": "Pha chế",
+            "fontSize": 32
+          }
+        },
+        {
+          "id": "inst.steps::step-desc::brew",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::brew",
+          "transform": {
+            "x": 100,
+            "y": 80,
+            "width": 780,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-desc",
+            "tags": []
+          },
+          "payload": {
+            "text": "Barista",
+            "fontSize": 22
+          }
+        },
+        {
+          "id": "inst.steps::step-item-template::deliver",
+          "type": "group",
+          "name": "Step Item Template",
+          "parentId": "inst.steps::root",
+          "transform": {
+            "x": 80,
+            "y": 768,
+            "width": 920,
+            "height": 160,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "list-item-template",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.steps::step-index::deliver",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::deliver",
+          "transform": {
+            "x": 0,
+            "y": 20,
+            "width": 80,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-index",
+            "tags": []
+          },
+          "payload": {
+            "text": "03",
+            "fontSize": 40,
+            "fontWeight": 700
+          },
+          "style": {
+            "fill": "#38bdf8"
+          }
+        },
+        {
+          "id": "inst.steps::step-title::deliver",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::deliver",
+          "transform": {
+            "x": 100,
+            "y": 24,
+            "width": 780,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-title",
+            "tags": []
+          },
+          "payload": {
+            "text": "Giao",
+            "fontSize": 32
+          }
+        },
+        {
+          "id": "inst.steps::step-desc::deliver",
+          "type": "text",
+          "parentId": "inst.steps::step-item-template::deliver",
+          "transform": {
+            "x": 100,
+            "y": 80,
+            "width": 780,
+            "height": 40,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "step-desc",
+            "tags": []
+          },
+          "payload": {
+            "text": "15 phút",
+            "fontSize": 22
+          }
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 90,
+            "y": 80,
+            "width": 900,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Quy trình 3 bước",
+            "fontSize": 48,
+            "fontWeight": 700,
+            "align": "left"
+          },
+          "style": {
+            "fill": "#f8fafc"
+          }
+        },
+        {
+          "id": "path.reveal",
+          "type": "path",
+          "parentId": null,
+          "zIndex": 3,
+          "transform": {
+            "x": 140,
+            "y": 900,
+            "width": 800,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "modifiers": [
+            {
+              "id": "reveal",
+              "type": "trim-path",
+              "start": 0,
+              "end": 0,
+              "offset": 0
+            }
+          ],
+          "payload": {
+            "contours": [
+              {
+                "id": "line",
+                "start": {
+                  "x": 0,
+                  "y": 40
+                },
+                "segments": [
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 800,
+                      "y": 40
+                    }
+                  }
+                ],
+                "closed": false
+              }
+            ],
+            "fillRule": "nonzero"
+          },
+          "style": {
+            "stroke": "#38bdf8",
+            "strokeWidth": 10,
+            "lineCap": "round"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "path.reveal",
+          "property": "modifiers.reveal.end",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "title",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.6,
+              "v": 1
+            }
+          ]
+        },
+        {
+          "targetId": "inst.steps::step-item-template::order",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.5,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.steps::step-item-template::order",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0,
+              "v": 448
+            },
+            {
+              "t": 0.5,
+              "v": 400,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.steps::step-item-template::brew",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.08,
+              "v": 0
+            },
+            {
+              "t": 0.58,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.steps::step-item-template::brew",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.08,
+              "v": 632
+            },
+            {
+              "t": 0.58,
+              "v": 584,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.steps::step-item-template::deliver",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.16,
+              "v": 0
+            },
+            {
+              "t": 0.66,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.steps::step-item-template::deliver",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.16,
+              "v": 816
+            },
+            {
+              "t": 0.66,
+              "v": 768,
+              "easing": "easeOut"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

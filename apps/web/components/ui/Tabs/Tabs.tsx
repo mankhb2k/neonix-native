@@ -54,7 +54,6 @@ export function Tabs({
     width: 0,
   });
 
-  // Calculate sliding indicator position and width
   useEffect(() => {
     const activeBtn = tabRefs.current.get(value);
     const container = containerRef.current;
@@ -144,7 +143,6 @@ export function Tabs({
               </span>
             )}
 
-            {/* Custom Tooltip Popup for Icon-Only Mode */}
             {isIconOnly && tooltipText && (
               <span
                 className="absolute bottom-[-32px] left-1/2 -translate-x-1/2 bg-[#18181b] text-[#fafafa] border border-[#3f3f46] text-[11px] font-normal px-2 py-0.5 rounded whitespace-nowrap pointer-events-none opacity-0 invisible transition-all duration-150 delay-0 group-hover:opacity-100 group-hover:visible group-hover:delay-500 z-50 shadow-lg"
@@ -157,7 +155,6 @@ export function Tabs({
         );
       })}
 
-      {/* Animated Sliding Indicator for Underline Variant */}
       {variant === "underline" && sliderStyle.width > 0 && (
         <span
           className="absolute bottom-0 left-0 h-[2px] bg-[#d9381e] rounded-t transition-all duration-250 ease-out pointer-events-none"

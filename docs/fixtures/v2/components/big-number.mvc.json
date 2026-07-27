@@ -49,28 +49,40 @@
       "type": "string",
       "label": "Tiêu đề",
       "variableId": "var.title",
-      "semantic": { "role": "hero-title" }
+      "semantic": { "role": "hero-title" },
+      "group": "content",
+      "control": "text",
+      "capability": "basic"
     },
     {
       "id": "number",
       "type": "string",
       "label": "Số lớn",
       "variableId": "var.number",
-      "semantic": { "role": "statistic" }
+      "semantic": { "role": "statistic" },
+      "group": "content",
+      "control": "text",
+      "capability": "basic"
     },
     {
       "id": "subtitle",
       "type": "string",
       "label": "Phụ đề",
       "variableId": "var.subtitle",
-      "semantic": { "role": "subtitle" }
+      "semantic": { "role": "subtitle" },
+      "group": "content",
+      "control": "text",
+      "capability": "basic"
     },
     {
       "id": "primaryColor",
       "type": "color",
       "label": "Màu chính",
       "variableId": "var.primaryColor",
-      "semantic": { "role": "brand-primary" }
+      "semantic": { "role": "brand-primary" },
+      "group": "style",
+      "control": "color-picker",
+      "capability": "basic"
     },
     {
       "id": "animationSpeed",
@@ -79,7 +91,10 @@
       "variableId": "var.animationSpeed",
       "semantic": { "role": "animation-speed" },
       "min": 0.5,
-      "max": 2
+      "max": 2,
+      "group": "motion",
+      "control": "slider",
+      "capability": "basic"
     }
   ],
   "nodes": [

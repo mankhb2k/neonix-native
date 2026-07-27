@@ -1,8 +1,14 @@
 # `@motionvideo/template-library`
 
-Kệ sản phẩm: **Content + Animation → Pattern → Template**.
+Kệ sản phẩm: **Content + Animation → Pattern → Template**. Seed templates (F&B hook-offer-CTA, big-number, process-steps, compare) và registry preset dùng khi export/preview.
 
-## Hai lớp
+## Vai trò
+
+- Catalog **motion blocks** (content + animation) cho Block Lab / planner
+- **Templates** sẵn → `MotionProject` v2
+- `validateMotionProjectPresets` — mọi `presetId` trong clip phải có trong registry
+
+## Hai lớp block
 
 | Lớp | Vai trò | Ví dụ |
 |---|---|---|
@@ -30,42 +36,25 @@ src/blocks/
 └── …
 ```
 
-## MVP giữ / bỏ / thêm (Animation A–J)
-
-| Nhóm | Giữ | Thêm MVP | Bỏ / để sau |
-|---|---|---|---|
-| Entrance | 14 `enter.*` | — | Typewriter → Text Anim |
-| Exit | — | fade/scale/slide/zoom out | Collapse, Explode |
-| Emphasis | — | pulse, shake, flash | Jelly, Rubber Band; highlight ở Text Anim |
-| Transform | schema only | — | Không block trên kệ |
-| Text Anim | typewriter, stagger, highlight | — | Letter-split, scramble… |
-| Number | counter | — | Rolling/money (params sau) |
-| Shape Anim | — | draw-line, bar-grow, progress-fill | Morph, Ripple |
-| Transition | — | crossfade, swipe, push | Curtain, Split… |
-| Camera | 10 primitive | — | Ken Burns / Orbit (pha 2) |
-| Timing | schema fields | — | Không tạo `timing.*` block |
-
-**Content:** giữ Text/Shape/Media/Container/Data/Character. Không kệ Content Camera (trùng Camera Presets).
-
-Lab: `/app/lab/blocks`.
+Lab UI (CSS preview, không phải Runtime IR): `/app/lab/blocks`.
 
 ## API
 
 ```ts
 import {
+  templates,
   motionBlocks,
   motionLibrary,
   listMotionBlocksByFamily,
   getMotionBlock,
   isKnownPreset,
   validateMotionProjectPresets,
+  retrieveTemplates,
 } from "@motionvideo/template-library";
 ```
-
-`validateMotionProjectPresets(project)` — semantic check: mọi `Clip.source.presetId` phải có trong registry; schema giữ preset ID là string mở.
 
 ## Docs
 
 - [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md) — canonical `.mt` / `.mvc`
-- [`docs/blocks-plan.md`](../../docs/blocks-plan.md)
+- [`docs/primitives-object.md`](../../docs/primitives-object.md) — primitive catalog
 - Repo [`README.md`](../../README.md)

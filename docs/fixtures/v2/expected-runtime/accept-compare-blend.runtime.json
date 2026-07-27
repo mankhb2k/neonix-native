@@ -1,0 +1,343 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.compare-blend",
+    "name": "Accept — Compare Blend",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Accept — Compare Blend",
+      "primaryColor": "#020617"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.main"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.main",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "bg",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 540,
+            "y": 540,
+            "width": 1080,
+            "height": 1080,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle"
+          },
+          "style": {
+            "fill": "#020617"
+          }
+        },
+        {
+          "id": "inst.compare::root",
+          "type": "group",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": -420,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          }
+        },
+        {
+          "id": "inst.compare::left-card",
+          "type": "group",
+          "name": "Left",
+          "parentId": "inst.compare::root",
+          "transform": {
+            "x": 60,
+            "y": 600,
+            "width": 440,
+            "height": 520,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "compare-left",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.compare::left-title",
+          "type": "text",
+          "parentId": "inst.compare::left-card",
+          "transform": {
+            "x": 24,
+            "y": 40,
+            "width": 392,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "compare-left-title",
+            "tags": []
+          },
+          "payload": {
+            "text": "Basic",
+            "fontSize": 28,
+            "align": "center"
+          }
+        },
+        {
+          "id": "inst.compare::left-value",
+          "type": "text",
+          "parentId": "inst.compare::left-card",
+          "transform": {
+            "x": 24,
+            "y": 200,
+            "width": 392,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "compare-left-value",
+            "tags": []
+          },
+          "payload": {
+            "text": "199K",
+            "fontSize": 64,
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#64748b"
+          }
+        },
+        {
+          "id": "inst.compare::right-card",
+          "type": "group",
+          "name": "Right",
+          "parentId": "inst.compare::root",
+          "transform": {
+            "x": 580,
+            "y": 600,
+            "width": 440,
+            "height": 520,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "compare-right",
+            "tags": []
+          }
+        },
+        {
+          "id": "inst.compare::right-title",
+          "type": "text",
+          "parentId": "inst.compare::right-card",
+          "transform": {
+            "x": 24,
+            "y": 40,
+            "width": 392,
+            "height": 48,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "compare-right-title",
+            "tags": []
+          },
+          "payload": {
+            "text": "Pro",
+            "fontSize": 28,
+            "align": "center"
+          }
+        },
+        {
+          "id": "inst.compare::right-value",
+          "type": "text",
+          "parentId": "inst.compare::right-card",
+          "transform": {
+            "x": 24,
+            "y": 200,
+            "width": 392,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "semantic": {
+            "role": "compare-right-value",
+            "tags": []
+          },
+          "payload": {
+            "text": "399K",
+            "fontSize": 64,
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#14b8a6"
+          }
+        },
+        {
+          "id": "highlight",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 620,
+            "y": 420,
+            "width": 380,
+            "height": 480,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "blendMode": "screen",
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 40
+          },
+          "style": {
+            "fill": "#22d3ee"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "inst.compare::left-card",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 0.6,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.compare::left-card",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0,
+              "v": 648
+            },
+            {
+              "t": 0.6,
+              "v": 600,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.compare::right-card",
+          "property": "transform.opacity",
+          "keys": [
+            {
+              "t": 0.15,
+              "v": 0
+            },
+            {
+              "t": 0.75,
+              "v": 1,
+              "easing": "easeOut"
+            }
+          ]
+        },
+        {
+          "targetId": "inst.compare::right-card",
+          "property": "transform.y",
+          "keys": [
+            {
+              "t": 0.15,
+              "v": 648
+            },
+            {
+              "t": 0.75,
+              "v": 600,
+              "easing": "easeOut"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

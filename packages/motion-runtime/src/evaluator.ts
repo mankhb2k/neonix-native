@@ -2,6 +2,7 @@ import { motionPropertyCapability, type NormalizedMotionProjectV2 } from "@motio
 import {
   IDENTITY_MATRIX,
   applyMatrix,
+  decomposeMatrix,
   inheritedParentMatrix,
   localTransformMatrix,
   multiplyMatrix,
@@ -9,7 +10,13 @@ import {
   type Transform2D,
 } from "./matrix";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
-import { localNodeBounds, pathMorphContours, samplePathContour } from "./geometry";
+import {
+  bendPathContours,
+  localNodeBounds,
+  pathMorphContours,
+  samplePathContour,
+  trimPathContours,
+} from "./geometry";
 import { solveSecondaryMotionChain } from "./secondary-motion";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
@@ -170,6 +177,41 @@ export function evaluateTransform(scene: RuntimeScene, node: RuntimeNode, time: 
   };
 }
 
+function topologicalNodes(scene: RuntimeScene): RuntimeNode[] {
+  const byId = new Map(scene.nodes.map((node) => [node.id, node]));
+  const declarationIndex = new Map(scene.nodes.map((node, index) => [node.id, index]));
+  const outgoing = new Map(scene.nodes.map((node) => [node.id, new Set<string>()]));
+  const indegree = new Map(scene.nodes.map((node) => [node.id, 0]));
+  const addEdge = (from: string | null | undefined, to: string) => {
+    if (!from || !byId.has(from) || outgoing.get(from)!.has(to)) return;
+    outgoing.get(from)!.add(to);
+    indegree.set(to, indegree.get(to)! + 1);
+  };
+  for (const node of scene.nodes) {
+    addEdge(node.parentId, node.id);
+    for (const modifier of node.modifiers ?? []) {
+      if (modifier.type === "constraint") addEdge(modifier.targetNodeId, node.id);
+    }
+  }
+  const ready = scene.nodes.filter((node) => indegree.get(node.id) === 0);
+  const ordered: RuntimeNode[] = [];
+  while (ready.length > 0) {
+    ready.sort((left, right) => declarationIndex.get(left.id)! - declarationIndex.get(right.id)!);
+    const node = ready.shift()!;
+    ordered.push(node);
+    for (const targetId of outgoing.get(node.id)!) {
+      indegree.set(targetId, indegree.get(targetId)! - 1);
+      if (indegree.get(targetId) === 0) ready.push(byId.get(targetId)!);
+    }
+  }
+  return ordered.length === scene.nodes.length ? ordered : scene.nodes;
+}
+
+function blendAngle(from: number, to: number, weight: number): number {
+  const delta = ((to - from + 180) % 360 + 360) % 360 - 180;
+  return from + delta * weight;
+}
+
 export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[] {
   const byId = new Map(scene.nodes.map((node) => [node.id, node]));
   const secondaryRotations = new Map<string, number>();
@@ -203,13 +245,6 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     let transform = evaluateTransform(scene, node, time);
     const secondaryRotation = secondaryRotations.get(node.id);
     if (secondaryRotation !== undefined) transform = { ...transform, rotation: transform.rotation + secondaryRotation };
-    const pathMorph = node.type === "path" ? node.modifiers?.find((modifier) => modifier.type === "path-morph") : undefined;
-    const pathMorphProgress = pathMorph
-      ? evaluateProperty(scene, node, `modifiers.${pathMorph.id}.progress`, time, pathMorph.progress)
-      : undefined;
-    const morphContours = node.type === "path" && pathMorph
-      ? pathMorphContours(node, typeof pathMorphProgress === "number" ? pathMorphProgress : 0)
-      : undefined;
     let parentMatrix = IDENTITY_MATRIX;
     let worldOpacity = transform.opacity;
     let visible = transform.visible;
@@ -258,19 +293,81 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       };
     }
 
+    const constraint = node.modifiers?.find((modifier) => modifier.type === "constraint");
+    if (constraint) {
+      const targetNode = byId.get(constraint.targetNodeId);
+      if (!targetNode) throw new Error(`Runtime Constraint target missing: ${constraint.targetNodeId}`);
+      const target = evaluated.get(targetNode.id) ?? evaluate(targetNode);
+      const rawWeight = evaluateProperty(scene, node, `modifiers.${constraint.id}.weight`, time, constraint.weight);
+      const weight = Math.min(1, Math.max(0, typeof rawWeight === "number" ? rawWeight : constraint.weight));
+      const targetWorld = decomposeMatrix(target.worldMatrix);
+      const parentWorld = decomposeMatrix(parentMatrix);
+      if (constraint.kind === "copy-position") {
+        const inverseParent = invertMatrix(parentMatrix);
+        if (!inverseParent) throw new Error(`Constraint target parent matrix is not invertible: ${node.id}`);
+        const localTarget = applyMatrix(inverseParent, targetWorld.x, targetWorld.y);
+        transform = {
+          ...transform,
+          x: transform.x + (localTarget.x - transform.x) * weight,
+          y: transform.y + (localTarget.y - transform.y) * weight,
+        };
+      } else if (constraint.kind === "copy-rotation") {
+        transform = {
+          ...transform,
+          rotation: blendAngle(transform.rotation, targetWorld.rotation - parentWorld.rotation, weight),
+        };
+      } else {
+        const baseWorld = multiplyMatrix(parentMatrix, localTransformMatrix(transform));
+        const worldAngle = Math.atan2(targetWorld.y - baseWorld.f, targetWorld.x - baseWorld.e) * 180 / Math.PI;
+        transform = {
+          ...transform,
+          rotation: blendAngle(transform.rotation, worldAngle - parentWorld.rotation, weight),
+        };
+      }
+    }
+
     const worldMatrix = multiplyMatrix(parentMatrix, localTransformMatrix(transform));
+    let paintContours = node.type === "path" ? node.payload.contours : undefined;
+    if (node.type === "path") {
+      const pathMorph = node.modifiers?.find((modifier) => modifier.type === "path-morph");
+      if (pathMorph) {
+        const progress = evaluateProperty(scene, node, `modifiers.${pathMorph.id}.progress`, time, pathMorph.progress);
+        paintContours = pathMorphContours(
+          node,
+          typeof progress === "number" ? progress : typeof pathMorph.progress === "number" ? pathMorph.progress : 0,
+        );
+      }
+      const bend = node.modifiers?.find((modifier) => modifier.type === "path-bend");
+      if (bend) {
+        const amount = evaluateProperty(scene, node, `modifiers.${bend.id}.amount`, time, bend.amount);
+        paintContours = bendPathContours(paintContours ?? node.payload.contours, typeof amount === "number" ? amount : bend.amount);
+      }
+      const trim = node.modifiers?.find((modifier) => modifier.type === "trim-path");
+      if (trim) {
+        const start = evaluateProperty(scene, node, `modifiers.${trim.id}.start`, time, trim.start);
+        const end = evaluateProperty(scene, node, `modifiers.${trim.id}.end`, time, trim.end);
+        const offset = evaluateProperty(scene, node, `modifiers.${trim.id}.offset`, time, trim.offset);
+        paintContours = trimPathContours(
+          paintContours ?? node.payload.contours,
+          typeof start === "number" ? start : trim.start,
+          typeof end === "number" ? end : trim.end,
+          typeof offset === "number" ? offset : trim.offset,
+        );
+      }
+    }
 
     const strokeWidth = (node.type === "shape" || node.type === "path") && node.style?.stroke
       ? numberProperty(scene, node, "style.strokeWidth", time, node.style.strokeWidth ?? 1)
       : 0;
-    const worldBounds = transformBounds(worldMatrix, localNodeBounds(node, transform, strokeWidth, morphContours));
+    const worldBounds = transformBounds(worldMatrix, localNodeBounds(node, transform, strokeWidth, paintContours));
     const result = { node, transform, worldMatrix, worldOpacity, visible, worldBounds };
     evaluated.set(node.id, result);
     visiting.delete(node.id);
     return result;
   };
 
-  return scene.nodes.map(evaluate);
+  for (const node of topologicalNodes(scene)) evaluate(node);
+  return scene.nodes.map((node) => evaluated.get(node.id) ?? evaluate(node));
 }
 
 export { IDENTITY_MATRIX };

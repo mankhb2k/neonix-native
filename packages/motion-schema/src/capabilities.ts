@@ -52,6 +52,11 @@ export const MOTION_V2_LIMITS = Object.freeze({
   effectIntensity: 8,
   pathMorphTargets: 64,
   secondaryMotionChainLength: 32,
+  gradientStops: 16,
+  dashSegments: 32,
+  dashLength: 4_096,
+  pathBendAmount: 1,
+  parallaxFactor: 8,
 });
 
 export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";
@@ -96,6 +101,7 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "style.stroke": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
     "style.strokeWidth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
     "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+    "style.dashOffset": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.dashLength, max: MOTION_V2_LIMITS.dashLength },
     "payload.cornerRadius": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   },
   path: {
@@ -104,6 +110,7 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "style.stroke": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
     "style.strokeWidth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
     "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
+    "style.dashOffset": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.dashLength, max: MOTION_V2_LIMITS.dashLength },
   },
   svg: {
     "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
@@ -129,6 +136,10 @@ export function motionPropertyCapability(nodeType: string, property: string): Mo
   const transform = TRANSFORM_PROPERTIES[property];
   if (transform) return transform;
   if (/^modifiers\.[^.]+\.progress$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
+  if (/^modifiers\.[^.]+\.(start|end)$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
+  if (/^modifiers\.[^.]+\.offset$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" };
+  if (/^modifiers\.[^.]+\.amount$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.pathBendAmount, max: MOTION_V2_LIMITS.pathBendAmount };
+  if (/^modifiers\.[^.]+\.weight$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
   const effectMatch = /^effects\.[^.]+\.([^.]+)$/.exec(property);
   if (effectMatch) {
     for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {

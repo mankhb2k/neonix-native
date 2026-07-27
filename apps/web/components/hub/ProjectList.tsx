@@ -3,8 +3,13 @@
 import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
 import { listProjects, type StoredProject } from "@/lib/project-storage";
+import { Plus } from "lucide-react";
 
-export function ProjectList() {
+type Props = {
+  onNewProject?: () => void;
+};
+
+export function ProjectList({ onNewProject }: Props) {
   const [items, setItems] = useState<StoredProject[]>([]);
 
   useEffect(() => {
@@ -14,10 +19,21 @@ export function ProjectList() {
   if (items.length === 0) {
     return (
       <div className="mv-card-grid">
-        <div className="mv-card">
-          <h3>Chưa có dự án</h3>
-          <p>Tạo TVC đầu tiên từ template F&B tiếng Việt.</p>
-        </div>
+        <button
+          type="button"
+          onClick={onNewProject}
+          className="mv-card flex flex-col items-start justify-between cursor-pointer hover:border-[var(--line-strong)] text-left transition-all group"
+        >
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#d9381e]/10 text-[#d9381e] group-hover:bg-[#d9381e] group-hover:text-white transition-colors">
+              <Plus size={16} strokeWidth={2} />
+            </span>
+            <h3 className="text-base font-semibold text-[var(--fg)]">Tạo dự án đầu tiên</h3>
+          </div>
+          <p className="text-xs text-[var(--fg-muted)] mt-2">
+            Tạo TVC motion 2D từ template tiếng Việt (9:16, 16:9, 1:1) để bắt đầu biên tập ngay.
+          </p>
+        </button>
       </div>
     );
   }

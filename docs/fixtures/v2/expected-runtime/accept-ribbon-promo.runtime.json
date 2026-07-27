@@ -1,0 +1,215 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "accept.ribbon-promo",
+    "name": "Accept — Ribbon Promo",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Accept — Ribbon Promo",
+      "primaryColor": "#4a044e"
+    }
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "scene.main"
+    ],
+    "audioTracks": []
+  },
+  "scenes": [
+    {
+      "id": "scene.main",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "card",
+          "type": "shape",
+          "parentId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 160,
+            "y": 220,
+            "width": 760,
+            "height": 420,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 56
+          },
+          "style": {
+            "fill": {
+              "type": "linear-gradient",
+              "angle": 20,
+              "stops": [
+                {
+                  "id": "p",
+                  "offset": 0,
+                  "color": "#db2777"
+                },
+                {
+                  "id": "q",
+                  "offset": 1,
+                  "color": "#7c3aed"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "ribbon",
+          "type": "path",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 140,
+            "y": 700,
+            "width": 800,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "modifiers": [
+            {
+              "id": "bend",
+              "type": "path-bend",
+              "amount": 0
+            }
+          ],
+          "payload": {
+            "contours": [
+              {
+                "id": "r",
+                "start": {
+                  "x": 0,
+                  "y": 0
+                },
+                "segments": [
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 200,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 400,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 600,
+                      "y": 0
+                    }
+                  },
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 800,
+                      "y": 0
+                    }
+                  }
+                ],
+                "closed": false
+              }
+            ],
+            "fillRule": "nonzero"
+          },
+          "style": {
+            "stroke": "#f9a8d4",
+            "strokeWidth": 36,
+            "lineCap": "round",
+            "dash": [
+              20,
+              12
+            ],
+            "dashOffset": 0
+          }
+        },
+        {
+          "id": "label",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 200,
+            "y": 360,
+            "width": 680,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Ưu đãi cuối tuần",
+            "fontSize": 56,
+            "fontWeight": 700,
+            "align": "center"
+          },
+          "style": {
+            "fill": "#fff7ed"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "ribbon",
+          "property": "modifiers.bend.amount",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2,
+              "v": 1,
+              "easing": "easeInOut"
+            }
+          ]
+        },
+        {
+          "targetId": "ribbon",
+          "property": "style.dashOffset",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 2,
+              "v": -40
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

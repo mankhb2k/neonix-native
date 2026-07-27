@@ -5,10 +5,11 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "pnpm --filter @motionvideo/web dev",
+    "dev:desktop": "pnpm --filter @motionvideo/desktop dev",
+    "dev:desktop:next": "pnpm --filter @motionvideo/web dev:desktop",
     "dev:worker": "pnpm --filter @motionvideo/render-worker dev",
     "e2e:render": "pnpm --filter @motionvideo/render-worker e2e",
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
-    "test:preview-parity": "pnpm --filter @motionvideo/web exec playwright test e2e/preview-parity.spec.ts",
     "build": "pnpm -r run build",
     "lint": "pnpm --filter @motionvideo/web lint",
     "lint:web": "pnpm --filter @motionvideo/web lint",
@@ -17,7 +18,13 @@
     "update:v2-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-goldens.ts",
     "update:v2-frame-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-frame-goldens.ts",
     "validate:primitives": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-runtime-primitives.ts",
+    "validate:acceptance-export": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-export.ts",
+    "validate:acceptance-web-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-web-parity.ts",
+    "score:designer-corrections": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-designer-corrections.ts",
+    "score:acceptance-pack": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-acceptance-pack.ts",
     "storybook": "pnpm --filter @motionvideo/web storybook"
+
+
   },
   "engines": {
     "node": ">=20",

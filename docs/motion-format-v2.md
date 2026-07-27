@@ -10,10 +10,11 @@
 |---|---|
 | Nodes | `group`, `bone`, `text`, `shape`, `path`, `image`, `svg`, `video`, `camera`, `component` (authoring only) |
 | Assets | `image`, `svg`, `video`, `audio`, `font` discriminated metadata |
-| Paint | Solid string fill/stroke (+ opacity/cap/join); no gradient/dash/trim |
+| Paint | Solid string fill/stroke **or** linear/radial gradient fill; dash[] + animatable dashOffset; cap/join |
 | Transitions | `cut`, `fade`, `crossfade` only |
 | Effects | `blur`, `shadow`, `glow`, `color-adjust` ordered stack |
-| Modifiers | Motion Path, Path Morph, Secondary Motion |
+| Blend | `normal`, `multiply`, `screen`, `add` on Node |
+| Modifiers | Motion Path, Path Morph, Secondary Motion, Trim Path, Path Bend, Constraint (look-at/copy-position/copy-rotation) |
 | Expansion | Repeater, Text Animator, Component, lip-sync cues (compile away) |
 | Values | Variables + bindings + public params; resolvable refs on typed clip/track/playback/params only (`text.payload.text` stays `string`) |
 | Patch | `set` on project variables or Component Instance `payload.props.*` |
@@ -21,7 +22,7 @@
 
 ### Explicitly not in P0
 
-Emitter, trim path, animated dash, gradient, blend modes, constraints, 2-bone IK, path bend, audio markers, wipe transitions, and any generic `character` node. Reject fixtures live under `docs/fixtures/v2/negative/p1-not-normative/`. Inspector/timeline/canvas UI schemas are out of format scope.
+Emitter, 2-bone IK, mesh/skinning, audio markers, wipe transitions, constraint `pin`, animated gradient stops, and any generic `character` node. Reject fixtures live under `docs/fixtures/v2/negative/p1-not-normative/`. Inspector/timeline/canvas UI schemas are out of format scope.
 
 ## Artifact và version
 
@@ -84,7 +85,7 @@ Không có top-level `instances[]`. Parenting, masking, draw order và clip targ
 - Character là Component từ Group/Bone/SVG/variants/actions, không có `CharacterNode`.
 - Shape hỗ trợ rectangle/ellipse/polygon. Path hỗ trợ nhiều contour, line/cubic, open/closed và `fillRule: nonzero|evenodd`; mọi tọa độ phải finite.
 
-Paint solid dùng `fill`, `fillOpacity`, `stroke`, `strokeWidth`, `strokeOpacity`, `lineCap`, `lineJoin` và `miterLimit`. Fill, opacity, stroke width và rectangle radius có thể animate qua capability registry; Path morph thuộc modifier stack; gradient/dash/trim Path là P1 và bị reject. Runtime bounds dùng cực trị Bézier thật và nới nửa stroke width đã evaluate.
+Paint hỗ trợ solid string **hoặc** gradient object (`linear-gradient` / `radial-gradient` với stops literal). Stroke vẫn solid string; `dash` / `dashOffset` cho nét đứt (offset animatable). Fill, opacity, stroke width, rectangle radius và trim-path start/end/offset animate qua capability registry. Path morph, path bend và secondary motion thuộc modifier stack. Runtime bounds dùng cực trị Bézier thật và nới nửa stroke width đã evaluate.
 
 ## Cut-out mapping model
 
@@ -99,6 +100,8 @@ Variant slots, named actions và lip-sync cues sống trên Component metadata v
 Mỗi Node có tối đa một quan hệ `mask { sourceNodeId, mode, sourceVisibility }`. `mode` là `clip | alpha | inverse-alpha`; nguồn phải cùng Scene. `mask-only` ẩn nguồn khỏi compositing/hit-test bình thường, còn `content-and-mask` giữ nguồn như content. Mask lồng nhau được phép, nhưng graph thiếu nguồn hoặc có cycle bị reject trước compiler.
 
 ## Public API và binding
+
+Public param có thể khai báo metadata UI (optional): `group` (`content|style|motion|layout|audio`), `control` (`text|textarea|color-picker|slider|toggle|asset-picker|enum`), `capability` (`basic|advanced|designer-only`, mặc định `basic`). Component Factory `/factory` dùng các field này để sinh Controls.
 
 ```text
 Component default variable
