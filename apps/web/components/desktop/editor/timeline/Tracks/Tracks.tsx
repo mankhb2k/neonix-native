@@ -232,12 +232,10 @@ export function Tracks({ zoom }: Props) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col pt-2 pb-12 space-y-px">
+          <div className="flex flex-col pt-2 pb-12 space-y-[2px]">
             {/* 1. Main Video Track Runway Lane */}
             <TrackLane
               variant="main"
-              bgClass="bg-[#121214]/80"
-              borderClass="border-y border-[#27272A]/50"
               labelWidth={TIMELINE_LABEL_WIDTH}
               canvasWidth={canvasWidth}
               leftControl={
@@ -294,10 +292,10 @@ export function Tracks({ zoom }: Props) {
                   <button
                     key={scene.id}
                     type="button"
-                    className={`absolute top-0 bottom-0 my-auto h-[calc(100%-2px)] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
+                    className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
                       active
-                        ? "bg-[#0D9488] text-white shadow-md"
-                        : "bg-[#0F766E]/90 text-white/90 hover:bg-[#0D9488]"
+                        ? "bg-[var(--timeline-clip-frame-hover)] text-white shadow-md"
+                        : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
                     }`}
                     style={{ left, width }}
                     onClick={() => selectScene(scene.id)}
@@ -318,8 +316,6 @@ export function Tracks({ zoom }: Props) {
             {project.timeline.audioTracks.length > 0 && (
               <TrackLane
                 variant="secondary"
-                bgClass="bg-[#121214]/60"
-                borderClass="border-y border-[#27272A]/30"
                 labelWidth={TIMELINE_LABEL_WIDTH}
                 canvasWidth={canvasWidth}
                 leftControl={
@@ -375,7 +371,7 @@ export function Tracks({ zoom }: Props) {
                 {project.timeline.audioTracks.map((track) => (
                   <div
                     key={track.id}
-                    className="absolute top-0 bottom-0 my-auto flex h-[calc(100%-2px)] items-center rounded bg-[#164E63]/95 px-2 text-[10px] font-medium text-white shadow-sm"
+                    className="absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] hover:bg-[var(--timeline-clip-audio-hover)] px-2 text-[10px] font-medium text-white shadow-sm transition-colors"
                     style={{
                       left: 0,
                       width: Math.max(
