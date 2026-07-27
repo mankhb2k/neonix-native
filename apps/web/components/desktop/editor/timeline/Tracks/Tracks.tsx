@@ -454,13 +454,13 @@ export function Tracks({ zoom }: Props) {
                     {dragGhostState.label} ({dragGhostState.duration}s)
                   </span>
                 </div>
-                {/* Đường kẻ màu xanh cyan chỉ đạo ở ranh giới sát nẹp */}
+                {/* Đường kẻ màu xanh cyan chỉ đạo kéo dài FULL TIMELINE chuẩn CapCut */}
                 <div
-                  className="absolute z-40 h-[3px] rounded-full bg-[#14B8A6] shadow-[0_0_12px_#14B8A6] pointer-events-none transition-all"
+                  className="absolute z-40 h-[1px] bg-[#14B8A6] shadow-[0_0_8px_#14B8A6] pointer-events-none transition-all"
                   style={{
                     top: indicatorTopPos,
-                    left: TIMELINE_LABEL_WIDTH + dragGhostState.left,
-                    width: dragGhostState.width,
+                    left: TIMELINE_LABEL_WIDTH,
+                    width: Math.max(canvasWidth, trackViewWidth),
                   }}
                 />
               </>
