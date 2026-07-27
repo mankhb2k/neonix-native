@@ -10,7 +10,7 @@ export function Sidebar() {
   const activeSidebarTab = useEditorStore((s) => s.activeSidebarTab);
 
   return (
-    <aside className="relative flex flex-col overflow-hidden border-r border-[var(--line)] bg-[var(--bg-panel)] [grid-area:sidebar]">
+    <aside className="relative flex flex-col overflow-hidden bg-[var(--bg-panel)] [grid-area:sidebar]">
       <div className="w-[320px] h-full flex flex-col">
         {activeSidebarTab === "frame" && <FramePanel />}
         {activeSidebarTab === "elements" && <ElementsPanel />}

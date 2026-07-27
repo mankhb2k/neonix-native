@@ -52,7 +52,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
       >
         {/* Panel 1: Top-Left Assets / Library Sidebar Card */}
         <div
-          className={`[grid-area:sidebar] bg-[#18181c] border border-[#27272b] rounded-xl overflow-hidden flex flex-col shadow-md transition-opacity duration-150 ${
+          className={`[grid-area:sidebar] bg-[#18181c] rounded-xl overflow-hidden flex flex-col shadow-md transition-opacity duration-150 ${
             sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
         >
@@ -61,7 +61,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
 
         {/* Panel 2: Top-Center Preview Stage Card */}
         <main
-          className="[grid-area:stage] bg-[#141417] border border-[#27272b] rounded-xl overflow-hidden relative flex items-center justify-center shadow-md"
+          className="[grid-area:stage] bg-[#141417] rounded-xl overflow-hidden relative flex items-center justify-center shadow-md"
           style={{
             backgroundImage: "radial-gradient(#27272A 1px, transparent 1px)",
             backgroundSize: "20px 20px",
@@ -86,12 +86,12 @@ export function DesktopEditorShell({ initialProject }: Props) {
         </main>
 
         {/* Panel 3: Top-Right Inspector Card */}
-        <div className="[grid-area:rightdock] bg-[#18181c] border border-[#27272b] rounded-xl overflow-hidden flex flex-col shadow-md">
+        <div className="[grid-area:rightdock] bg-[#18181c] rounded-xl overflow-hidden flex flex-col shadow-md">
           <RightDock />
         </div>
 
         {/* Panel 4: Bottom Full-Width Timeline Card */}
-        <div className="[grid-area:timeline] bg-[#18181c] border border-[#27272b] rounded-xl overflow-hidden flex flex-col shadow-md">
+        <div className="[grid-area:timeline] bg-[#18181c] rounded-xl overflow-hidden flex flex-col shadow-md">
           <Timeline />
         </div>
       </div>

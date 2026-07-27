@@ -43,7 +43,7 @@ export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
 
   return (
     <div
-      className="relative h-7 shrink-0"
+      className="relative h-7 shrink-0 select-none overflow-hidden"
       style={{ width }}
       aria-hidden
     >
@@ -53,20 +53,20 @@ export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
         return (
           <div
             key={frame}
-            className="absolute top-0"
+            className="absolute top-0 bottom-0 flex items-center gap-1"
             style={{ left, transform: "translateX(-0.5px)" }}
           >
             <div
               className={
                 labeled
                   ? isSecond
-                    ? "h-3 w-px bg-[var(--fg-muted)]"
-                    : "h-2.5 w-px bg-[var(--fg-faint)]"
-                  : "mt-2 h-1 w-px bg-[var(--line-strong)]/80"
+                    ? "h-3.5 w-px bg-[var(--fg-muted)]"
+                    : "h-3 w-px bg-[var(--fg-faint)]"
+                  : "h-2 w-px bg-[var(--line-strong)]/80"
               }
             />
             {labeled ? (
-              <span className="absolute top-3 left-0 translate-x-1 whitespace-nowrap text-[10px] tabular-nums leading-none tracking-wide text-[var(--fg-faint)]">
+              <span className="whitespace-nowrap text-[10px] tabular-nums leading-none tracking-wide text-[var(--fg-faint)] select-none">
                 {formatRulerLabel(frame, safeFps, labelEveryFrames)}
               </span>
             ) : null}
