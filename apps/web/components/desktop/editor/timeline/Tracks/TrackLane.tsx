@@ -4,6 +4,13 @@ import React from "react";
 
 export type TrackVariant = "main" | "secondary" | "layer";
 
+export type GhostPreviewInfo = {
+  left: number;
+  width: number;
+  label?: string;
+  duration?: number;
+};
+
 type TrackLaneProps = {
   /** Track variant: "main" (Frame chính), "secondary" (Frame phụ & Audio), "layer" (Dành riêng cho Layer trong Frame) */
   variant?: TrackVariant;
@@ -19,6 +26,10 @@ type TrackLaneProps = {
   heightClass?: string;
   bgClass?: string;
   borderClass?: string;
+  /** Khối Ghost Preview hiển thị vị trí thả khi đang Drag */
+  ghostPreview?: GhostPreviewInfo | null;
+  dataTrackType?: "main" | "overlay";
+  dataLayerIndex?: number;
   labelWidth: number;
   canvasWidth: number;
   leftControl: React.ReactNode;
@@ -34,6 +45,9 @@ export function TrackLane({
   heightClass,
   bgClass = "bg-[var(--timeline-track-lane)]",
   borderClass = "",
+  ghostPreview,
+  dataTrackType,
+  dataLayerIndex,
   labelWidth,
   canvasWidth,
   leftControl,
@@ -50,6 +64,9 @@ export function TrackLane({
 
   return (
     <div
+      data-track-lane="true"
+      data-track-type={dataTrackType}
+      data-layer-index={dataLayerIndex}
       className={`group relative flex items-center ${resolvedHeightClass} ${bgClass} ${borderClass} transition-colors`}
     >
       {/* Sticky Left Control Sidebar */}
@@ -66,6 +83,19 @@ export function TrackLane({
         style={{ width: canvasWidth }}
       >
         {children}
+
+        {/* Ghost Preview Block when Dragging */}
+        {ghostPreview && (
+          <div
+            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#0D7476]/50 border border-dashed border-[#14B8A6] px-2 text-[11px] text-white flex items-center shadow-lg transition-all z-20 overflow-hidden"
+            style={{ left: ghostPreview.left, width: ghostPreview.width }}
+          >
+            <span className="truncate font-semibold text-white/95">
+              {ghostPreview.label ?? "Khung hình"}
+              {ghostPreview.duration != null && ` (${ghostPreview.duration}s)`}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

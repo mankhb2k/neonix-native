@@ -65,6 +65,15 @@ export function FramePanel() {
                   draggable
                   onDragStart={(event) => {
                     event.dataTransfer.setData(FRAME_LIBRARY_MIME, frame.id);
+                    event.dataTransfer.setData(
+                      "application/json",
+                      JSON.stringify({
+                        id: frame.id,
+                        type: "frame",
+                        name: frame.name,
+                        duration: frame.duration ?? 5,
+                      }),
+                    );
                     event.dataTransfer.setData("text/plain", frame.id);
                     event.dataTransfer.effectAllowed = "copy";
                   }}

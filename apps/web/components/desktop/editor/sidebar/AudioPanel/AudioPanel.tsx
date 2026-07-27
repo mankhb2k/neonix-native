@@ -44,9 +44,20 @@ export function AudioPanel() {
                 key={item.id}
                 draggable
                 onDragStart={(event) => {
+                  const parts = (item.duration || "").split(":").map(Number);
+                  const durationSec = parts.length === 2 ? parts[0] * 60 + parts[1] : 10;
                   event.dataTransfer.setData(
                     AUDIO_LIBRARY_MIME,
                     JSON.stringify(item),
+                  );
+                  event.dataTransfer.setData(
+                    "application/json",
+                    JSON.stringify({
+                      id: item.id,
+                      type: "audio",
+                      name: item.title,
+                      duration: durationSec,
+                    }),
                   );
                   event.dataTransfer.setData("text/plain", item.title);
                   event.dataTransfer.effectAllowed = "copy";

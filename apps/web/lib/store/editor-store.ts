@@ -12,8 +12,23 @@ import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import type { FrameDraft } from "@/lib/frame-library";
 import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
 
+/* ==========================================================================
+   1. Các kiểu dữ liệu trạng thái (State Types)
+   ========================================================================== */
+
+/** Vai trò ngữ nghĩa của Scene (Hook, Pain, Benefit, Demo, Offer, CTA, Logo) */
 export type SceneRole = "hook" | "pain" | "benefit" | "demo" | "offer" | "cta" | "logo";
 
+/** Khung hình phụ ở các dải Overlay phía trên Main Track */
+export type OverlaySceneItem = {
+  id: string;
+  name: string;
+  duration: number;
+  startTime: number;
+  layerIndex: number; // Chỉ số tầng Layer (0 = sát ngay trên Main Track, 1 = tầng trên L1, ...)
+};
+
+/** Cấu trúc State của Editor Zustand Store */
 type EditorState = {
   project: MotionProject | null;
   selectedSceneId: string | null;
@@ -22,6 +37,9 @@ type EditorState = {
   isExporting: boolean;
   activeSidebarTab: string;
   sidebarOpen: boolean;
+  overlayScenes: OverlaySceneItem[]; // Danh sách các clip ở tầng Overlay phía trên
+
+  // Các Action quản lý State
   loadProject: (project: MotionProject) => void;
   selectScene: (sceneId: string) => void;
   selectNode: (nodeId: string | null) => void;
@@ -41,22 +59,36 @@ type EditorState = {
   renameScene: (sceneId: string, role: SceneRole) => void;
   deleteScene: (sceneId: string) => void;
   addSceneFromFrame: (draft: FrameDraft) => void;
+  addOverlaySceneFromFrame: (
+    draft: FrameDraft,
+    startTime: number,
+    layerIndex?: number,
+    insertNewLayer?: boolean,
+  ) => void;
   addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
   setExporting: (value: boolean) => void;
 };
 
+/* ==========================================================================
+   2. Các hàm trợ giúp xử lý nội bộ (Helper Utilities)
+   ========================================================================== */
+
+/** Tạo ID duy nhất ngẫu nhiên với tiền tố */
 function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Trích xuất văn bản từ Node dạng Text */
 export function nodeText(node: MotionNode | undefined): string {
   return node?.type === "text" && typeof node.payload?.text === "string" ? node.payload.text : "";
 }
 
+/** Tìm Node đầu tiên có thể chỉnh sửa trong Scene (bỏ qua camera) */
 function firstEditableNode(scene: MotionScene | undefined): MotionNode | undefined {
   return scene?.nodes.find((node) => node.type !== "camera");
 }
 
+/** Cập nhật biến số thuộc tính thương hiệu dự án */
 function updateVariable(project: MotionProject, id: string, value: string): MotionProject["variables"] {
   return project.variables.map((variable) => {
     if (variable.id !== id) return variable;
@@ -65,6 +97,7 @@ function updateVariable(project: MotionProject, id: string, value: string): Moti
   });
 }
 
+/** Cập nhật một Node cụ thể trong một Scene nhất định */
 function mapNode(
   project: MotionProject,
   sceneId: string,
@@ -79,6 +112,7 @@ function mapNode(
   };
 }
 
+/** Nhân bản và sinh lại ID mới cho Scene và toàn bộ Node / Clip bên trong */
 function cloneScene(scene: MotionScene): MotionScene {
   const sceneId = uid("scene");
   const nodeIds = new Map(scene.nodes.map((node) => [node.id, uid("node")]));
@@ -112,6 +146,7 @@ function cloneScene(scene: MotionScene): MotionScene {
   };
 }
 
+/** Chuyển đổi FrameDraft từ thư viện thành một MotionScene hoàn chỉnh */
 function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   const sceneId = uid("scene");
   const nodeId = uid("node");
@@ -163,6 +198,7 @@ function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   };
 }
 
+/** Chèn phần tử mới vào danh sách ngay phía sau phần tử chỉ định */
 function insertAfter<T extends { id: string }>(items: T[], afterId: string, item: T): T[] {
   const index = items.findIndex((candidate) => candidate.id === afterId);
   if (index < 0) return [...items, item];
@@ -171,6 +207,7 @@ function insertAfter<T extends { id: string }>(items: T[], afterId: string, item
   return next;
 }
 
+/** Chèn ID mới vào danh sách thứ tự ngay phía sau ID chỉ định */
 function insertOrder(order: string[], afterId: string, id: string): string[] {
   const index = order.indexOf(afterId);
   if (index < 0) return [...order, id];
@@ -178,6 +215,10 @@ function insertOrder(order: string[], afterId: string, id: string): string[] {
   next.splice(index + 1, 0, id);
   return next;
 }
+
+/* ==========================================================================
+   3. Tạo Zustand Store chính (useEditorStore)
+   ========================================================================== */
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
@@ -188,22 +229,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeSidebarTab: "frame",
   sidebarOpen: true,
 
+  /** 3.1 Nạp dự án vào Editor Store */
   loadProject: (input) => {
     const project = parseMotionProject(input);
     const firstScene = project.scenes.find((scene) => scene.id === project.timeline.sceneOrder[0]) ?? project.scenes[0];
     set({ project, selectedSceneId: firstScene?.id ?? null, selectedNodeId: firstEditableNode(firstScene)?.id ?? null });
   },
 
+  /** 3.2 Chọn Scene đang hoạt động */
   selectScene: (sceneId) => {
     const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
     set({ selectedSceneId: sceneId, selectedNodeId: firstEditableNode(scene)?.id ?? null });
   },
 
+  /** 3.3 Chọn Node (thành phần đồ họa) đang hoạt động */
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
+
+  /** 3.4 Thay đổi Tab Sidebar đang hiển thị */
   setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab, sidebarOpen: true }),
+
+  /** 3.5 Bật/Tắt Sidebar */
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
+  /** 3.6 Cập nhật thông tin thương hiệu dự án */
   updateBrand: (patch) => {
     const project = get().project;
     if (!project) return;
@@ -214,12 +263,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ project: { ...project, metadata: { ...project.metadata, name: patch.name ?? project.metadata.name, brand }, variables } });
   },
 
+  /** 3.7 Cập nhật thời lượng của 1 Scene */
   updateSceneDuration: (sceneId, duration) => {
     const project = get().project;
     if (!project) return;
     set({ project: { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, duration: Math.max(0.5, duration) } : scene) } });
   },
 
+  /** 3.8 Cập nhật văn bản của Node */
   updateNodeText: (sceneId, nodeId, text) => {
     const project = get().project;
     if (!project) return;
@@ -228,6 +279,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       : node) });
   },
 
+  /** 3.9 Cập nhật tọa độ X, Y của Node */
   updateNodePosition: (sceneId, nodeId, position) => {
     const project = get().project;
     if (!project) return;
@@ -237,6 +289,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     })) });
   },
 
+  /** 3.10 Cập nhật hiệu ứng hoạt họa (Animation) cho Node */
   updateNodeAnimation: (sceneId, nodeId, patch) => {
     const project = get().project;
     if (!project) return;
@@ -273,22 +326,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } });
   },
 
+  /** 3.11 Thay đổi tỷ lệ khung hình video (16:9, 9:16, 1:1, ...) */
   setAspectRatio: (aspectRatio) => {
     const project = get().project;
     if (project) set({ project: { ...project, metadata: { ...project.metadata, aspectRatio } } });
   },
 
+  /** 3.12 Sao chép Scene vào Clipboard */
   copyScene: (sceneId) => {
     const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
     if (scene) set({ sceneClipboard: structuredClone(scene) });
   },
 
+  /** 3.13 Cắt Scene */
   cutScene: (sceneId) => {
     if ((get().project?.scenes.length ?? 0) < 1) return;
     get().copyScene(sceneId);
     get().deleteScene(sceneId);
   },
 
+  /** 3.14 Dán Scene từ Clipboard phía sau 1 Scene chỉ định */
   pasteScene: (afterSceneId) => {
     const { project, sceneClipboard } = get();
     if (!project || !sceneClipboard) return;
@@ -304,6 +361,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  /** 3.15 Nhân bản Scene */
   duplicateScene: (sceneId) => {
     const project = get().project;
     const source = project?.scenes.find((scene) => scene.id === sceneId);
@@ -320,12 +378,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  /** 3.16 Đổi tên và vai trò ngữ nghĩa của Scene */
   renameScene: (sceneId, role) => {
     const project = get().project;
     if (!project) return;
     set({ project: { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, name: role, semantic: { role, tags: [] } } : scene) } });
   },
 
+  /** 3.17 Xóa Scene */
   deleteScene: (sceneId) => {
     const project = get().project;
     if (!project) return;
@@ -344,6 +404,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  /** 3.18 Thêm Scene từ Khung hình vào Main Track nối tiếp */
   addSceneFromFrame: (draft) => {
     const project = get().project;
     if (!project) return;
@@ -362,6 +423,57 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  /** 3.19 Danh sách các dải Khung hình phụ ở hàng Overlay phía trên */
+  overlayScenes: [],
+
+  /** 
+   * 3.20 Thêm Khung hình vào tầng Overlay chỉ định (L1, L2, L3...) phía trên Main Track.
+   * Nếu insertNewLayer = true (thả vào đường kẻ xanh chỉ dẫn ở ranh giới giữa 2 dải):
+   * Tự động đẩy tất cả các dải ở trên lên +1 chỉ số tầng để chèn dải mới vào giữa.
+   */
+  addOverlaySceneFromFrame: (
+    draft,
+    startTime,
+    layerIndex,
+    insertNewLayer = false,
+  ) => {
+    set((state) => {
+      let targetLayer = layerIndex;
+      if (targetLayer === undefined) {
+        const maxLayer = state.overlayScenes.reduce(
+          (max, item) => Math.max(max, item.layerIndex),
+          -1,
+        );
+        targetLayer = maxLayer + 1;
+      }
+      targetLayer = Math.max(0, targetLayer);
+
+      let updatedScenes = state.overlayScenes;
+      if (insertNewLayer) {
+        // Tự động dịch chuyển các tầng phía trên lên +1 khi chèn dải băng mới vào giữa
+        updatedScenes = state.overlayScenes.map((item) => {
+          if (item.layerIndex >= targetLayer!) {
+            return { ...item, layerIndex: item.layerIndex + 1 };
+          }
+          return item;
+        });
+      }
+
+      const newOverlay: OverlaySceneItem = {
+        id: uid("overlay"),
+        name: draft.name,
+        duration: draft.duration ?? DEFAULT_FRAME_DURATION,
+        startTime: Math.max(0, startTime),
+        layerIndex: targetLayer,
+      };
+
+      return {
+        overlayScenes: [...updatedScenes, newOverlay],
+      };
+    });
+  },
+
+  /** 3.21 Thêm đường Audio Track (nhạc nền, âm thanh) */
   addAudioTrack: (track) => {
     const project = get().project;
     if (!project) return;
@@ -410,9 +522,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  /** 3.22 Cập nhật trạng thái xuất file (Exporting) */
   setExporting: (value) => set({ isExporting: value }),
 }));
 
+/* ==========================================================================
+   4. Kiểm tra và chuẩn hóa cấu trúc dữ liệu dự án (Project Validation)
+   ========================================================================== */
+
+/** Kiểm tra và chuẩn hóa dự án (sanitize audio assets & validate presets) */
 export function validateEditorProject(project: MotionProject): MotionProject {
   const sanitizedAssets = project.assets.map((asset) => {
     if ((asset as any).assetType === "audio") {

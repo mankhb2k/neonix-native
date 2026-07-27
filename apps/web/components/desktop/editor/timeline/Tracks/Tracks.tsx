@@ -34,16 +34,33 @@ export function Tracks({ zoom }: Props) {
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
   const selectScene = useEditorStore((s) => s.selectScene);
   const addSceneFromFrame = useEditorStore((s) => s.addSceneFromFrame);
+  const addOverlaySceneFromFrame = useEditorStore(
+    (s) => s.addOverlaySceneFromFrame,
+  );
+  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
   const rootRef = useRef<HTMLDivElement>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
   const [dragOver, setDragOver] = useState(false);
+  const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
+  const [targetOverlayLayer, setTargetOverlayLayer] = useState<number | null>(
+    null,
+  );
+  const [indicatorTopPos, setIndicatorTopPos] = useState<number>(0);
 
   // Track control states (CapCut style)
   const [videoLocked, setVideoLocked] = useState(false);
   const [videoVisible, setVideoVisible] = useState(true);
   const [audioLocked, setAudioLocked] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
+  const [dragGhostState, setDragGhostState] = useState<{
+    left: number;
+    width: number;
+    label: string;
+    duration: number;
+    targetTrack: "video" | "audio";
+  } | null>(null);
 
   // Re-bind when project appears: first paint often returns null (no DOM),
   // so a mount-only effect would leave viewWidth stuck at 0 forever.
@@ -86,10 +103,16 @@ export function Tracks({ zoom }: Props) {
     return { scene, index, left, width };
   });
 
+  // Unique sorted overlay layers (descending: highest layerIndex on top, 0 just above Main)
+  const uniqueLayers = Array.from(
+    new Set(overlayScenes.map((item) => item.layerIndex)),
+  ).sort((a, b) => b - a);
+
   function handleDragOver(event: React.DragEvent) {
     if (
       !event.dataTransfer.types.includes(FRAME_LIBRARY_MIME) &&
       !event.dataTransfer.types.includes(AUDIO_LIBRARY_MIME) &&
+      !event.dataTransfer.types.includes("application/json") &&
       !event.dataTransfer.types.includes("text/plain")
     ) {
       return;
@@ -97,11 +120,127 @@ export function Tracks({ zoom }: Props) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     setDragOver(true);
+
+    if (!rootRef.current) return;
+    const rect = rootRef.current.getBoundingClientRect();
+    const scrollLeft = rootRef.current.scrollLeft;
+    const mouseX = event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
+    const mouseY = event.clientY - rect.top;
+    const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
+    const left = hoverTime * pixelsPerSecond;
+
+    const isAudio = event.dataTransfer.types.includes(AUDIO_LIBRARY_MIME);
+    let duration = 5;
+    let label = isAudio ? "Âm thanh" : "Khung hình";
+
+    if (!isAudio) {
+      const elementAtPoint = document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+      const laneEl = elementAtPoint?.closest("[data-track-lane]");
+
+      if (laneEl && workspaceRef.current) {
+        const wsRect = workspaceRef.current.getBoundingClientRect();
+        const laneRect = laneEl.getBoundingClientRect();
+        const relY = event.clientY - laneRect.top;
+        const edgeThreshold = 8; // 8px boundary threshold
+        const trackType = laneEl.getAttribute("data-track-type");
+        const layerIdxAttr = laneEl.getAttribute("data-layer-index");
+        const laneTopInWorkspace = laneRect.top - wsRect.top;
+
+        if (trackType === "overlay" && layerIdxAttr !== null) {
+          const currentLayerIdx = parseInt(layerIdxAttr, 10);
+          if (relY <= edgeThreshold) {
+            // Upper boundary of layer lane: insert NEW layer ABOVE this layer
+            setIsOverlayInsertLine(true);
+            setTargetOverlayLayer(currentLayerIdx + 1);
+            setIndicatorTopPos(laneTopInWorkspace - 1);
+          } else if (relY >= laneRect.height - edgeThreshold) {
+            // Lower boundary of layer lane: insert NEW layer BELOW this layer
+            setIsOverlayInsertLine(true);
+            setTargetOverlayLayer(currentLayerIdx);
+            setIndicatorTopPos(laneTopInWorkspace + laneRect.height - 1);
+          } else {
+            // Inside body of existing overlay lane: place clip INSIDE this existing lane
+            setIsOverlayInsertLine(false);
+            setTargetOverlayLayer(currentLayerIdx);
+          }
+        } else if (trackType === "main") {
+          if (relY <= 10) {
+            // Top border of Main Track: insert into Layer 0 (flush above Main)
+            setIsOverlayInsertLine(true);
+            setTargetOverlayLayer(0);
+            setIndicatorTopPos(laneTopInWorkspace - 1);
+          } else {
+            // Inside Main Track: place clip into Main Track
+            setIsOverlayInsertLine(false);
+            setTargetOverlayLayer(null);
+          }
+        }
+      } else {
+        // Fallback: hovering in top padding above main track
+        if (mouseY < 120 && uniqueLayers.length > 0) {
+          const maxLayer = Math.max(...uniqueLayers);
+          setIsOverlayInsertLine(true);
+          setTargetOverlayLayer(maxLayer + 1);
+          setIndicatorTopPos(39);
+        } else {
+          setIsOverlayInsertLine(mouseY <= 60);
+          setTargetOverlayLayer(0);
+          setIndicatorTopPos(39);
+        }
+      }
+    } else {
+      setIsOverlayInsertLine(false);
+      setTargetOverlayLayer(null);
+    }
+
+    setDragGhostState({
+      left,
+      width: Math.max(duration * pixelsPerSecond, 24),
+      label,
+      duration,
+      targetTrack: isAudio ? "audio" : "video",
+    });
+  }
+
+  function handleDragLeave() {
+    setDragOver(false);
+    setIsOverlayInsertLine(false);
+    setTargetOverlayLayer(null);
+    setDragGhostState(null);
   }
 
   function handleDrop(event: React.DragEvent) {
     event.preventDefault();
     setDragOver(false);
+
+    if (isOverlayInsertLine || targetOverlayLayer !== null) {
+      const frameId =
+        event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
+        event.dataTransfer.getData("text/plain");
+      if (frameId && project) {
+        const draft = getFrame(project.metadata.id, frameId);
+        if (draft) {
+          const dropTime = dragGhostState
+            ? dragGhostState.left / Math.max(pixelsPerSecond, 1)
+            : 0;
+          addOverlaySceneFromFrame(
+            draft,
+            dropTime,
+            targetOverlayLayer ?? 0,
+            isOverlayInsertLine,
+          );
+        }
+      }
+      setIsOverlayInsertLine(false);
+      setTargetOverlayLayer(null);
+      setDragGhostState(null);
+      return;
+    }
+
+    setDragGhostState(null);
 
     const audioData = event.dataTransfer.getData(AUDIO_LIBRARY_MIME);
     if (audioData) {
@@ -126,11 +265,11 @@ export function Tracks({ zoom }: Props) {
   return (
     <div
       ref={rootRef}
-      className={`relative flex-1 overflow-auto transition-colors select-none bg-[var(--timeline-track-lane)] ${
+      className={`relative flex-1 overflow-auto transition-colors select-none bg-[var(--bg-panel)] ${
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
       onDragOver={handleDragOver}
-      onDragLeave={() => setDragOver(false)}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div
@@ -232,10 +371,79 @@ export function Tracks({ zoom }: Props) {
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 flex-col pt-2 pb-12 space-y-[2px]">
+          <div
+            ref={workspaceRef}
+            className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
+          >
+            {/* Multi-layer Secondary Overlay Video Track Runway Lanes (Hiển thị các tầng Layer ở hàng trên) */}
+            {uniqueLayers.map((layerIdx) => {
+              const layerItems = overlayScenes.filter(
+                (item) => item.layerIndex === layerIdx,
+              );
+              return (
+                <TrackLane
+                  key={`overlay-layer-${layerIdx}`}
+                  variant="secondary"
+                  dataTrackType="overlay"
+                  dataLayerIndex={layerIdx}
+                  ghostPreview={
+                    !isOverlayInsertLine && targetOverlayLayer === layerIdx
+                      ? dragGhostState
+                      : null
+                  }
+                  labelWidth={TIMELINE_LABEL_WIDTH}
+                  canvasWidth={canvasWidth}
+                  leftControl={
+                    <button
+                      type="button"
+                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer text-[11px] font-mono font-semibold"
+                      title={`Frame phụ (Layer ${layerIdx + 1})`}
+                    >
+                      L{layerIdx + 1}
+                    </button>
+                  }
+                >
+                  {layerItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden"
+                      style={{
+                        left: item.startTime * pixelsPerSecond,
+                        width: Math.max(item.duration * pixelsPerSecond, 24),
+                      }}
+                    >
+                      <span className="truncate">
+                        {item.name} ({item.duration}s)
+                      </span>
+                    </div>
+                  ))}
+                </TrackLane>
+              );
+            })}
+
+            {/* Glowing Green/Cyan Insertion Line Indicator when Dragging Between / Above Lanes */}
+            {isOverlayInsertLine && dragGhostState && (
+              <div
+                className="absolute z-40 h-[3px] rounded-full bg-[#14B8A6] shadow-[0_0_12px_#14B8A6] pointer-events-none transition-all"
+                style={{
+                  top: indicatorTopPos,
+                  left: TIMELINE_LABEL_WIDTH + dragGhostState.left,
+                  width: dragGhostState.width,
+                }}
+              />
+            )}
+
             {/* 1. Main Video Track Runway Lane */}
             <TrackLane
               variant="main"
+              dataTrackType="main"
+              ghostPreview={
+                !isOverlayInsertLine &&
+                targetOverlayLayer === null &&
+                dragGhostState?.targetTrack === "video"
+                  ? dragGhostState
+                  : null
+              }
               labelWidth={TIMELINE_LABEL_WIDTH}
               canvasWidth={canvasWidth}
               leftControl={
@@ -273,9 +481,7 @@ export function Tracks({ zoom }: Props) {
                         ? "text-[var(--accent)]"
                         : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
                     }`}
-                    title={
-                      videoVisible ? "Ẩn Track Video" : "Hiện Track Video"
-                    }
+                    title={videoVisible ? "Ẩn Track Video" : "Hiện Track Video"}
                   >
                     {videoVisible ? (
                       <Eye size={14} strokeWidth={1.75} />
@@ -316,6 +522,9 @@ export function Tracks({ zoom }: Props) {
             {project.timeline.audioTracks.length > 0 && (
               <TrackLane
                 variant="secondary"
+                ghostPreview={
+                  dragGhostState?.targetTrack === "audio" ? dragGhostState : null
+                }
                 labelWidth={TIMELINE_LABEL_WIDTH}
                 canvasWidth={canvasWidth}
                 leftControl={
@@ -336,9 +545,7 @@ export function Tracks({ zoom }: Props) {
                           : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
                       }`}
                       title={
-                        audioLocked
-                          ? "Mở khóa Track Audio"
-                          : "Khóa Track Audio"
+                        audioLocked ? "Mở khóa Track Audio" : "Khóa Track Audio"
                       }
                     >
                       {audioLocked ? (

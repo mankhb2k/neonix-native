@@ -55,7 +55,7 @@
   --tab-fg-active: var(--fg-primary); /* màu đang chọn (var(--fg-primary)) */
 
   /* Khung Timeline (--timeline-*) */
-  --timeline-track-lane: #1f1f1e; /* màu nền dải đường băng TrackLane */
+  --timeline-track-lane: #1f1f1e; /* màu nền dải đường băng TrackLane nổi rõ trên nền tối */
   --timeline-clip-frame: #0f766e; /* màu khối Khung hình (Frame clip) */
   --timeline-clip-frame-hover: #0d9488; /* màu khối Khung hình khi hover/active */
   --timeline-clip-audio: #164e63; /* màu khối Audio clip */
