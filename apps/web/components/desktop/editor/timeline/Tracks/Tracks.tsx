@@ -12,7 +12,7 @@ import {
   Music,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { clearDragCursor, setDragCursor } from "@/lib/editor-drag-cursor";
+import { clearDragCursor, setDragCursor, setDragGhostLayout, bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor-drag-cursor";
 import { FRAME_LIBRARY_MIME, getFrame } from "@/lib/frame-library";
 import { AUDIO_LIBRARY_MIME } from "../../sidebar/AudioPanel/AudioPanel";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
@@ -30,10 +30,8 @@ type Props = {
   zoom: number;
 };
 
-/** px below TimeRuler top border — must cross this to enter cyan mode */
-const CYAN_ENTER_BELOW_RULER_TOP_PX = 12;
-/** px above TimeRuler top border — must rise above this to leave cyan mode */
-const CYAN_EXIT_ABOVE_RULER_TOP_PX = 12;
+/** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
+const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
 
 export function Tracks({ zoom }: Props) {
   const project = useEditorStore((s) => s.project);
@@ -50,6 +48,7 @@ export function Tracks({ zoom }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const insertGhostRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
@@ -82,6 +81,19 @@ export function Tracks({ zoom }: Props) {
     observer.observe(el);
     return () => observer.disconnect();
   }, [project]);
+
+  useLayoutEffect(() => {
+    if (!isOverlayInsertLine || !dragGhostState) {
+      unbindDragGhostElementIf(insertGhostRef.current);
+      return;
+    }
+    bindDragGhostElement(insertGhostRef.current, {
+      leftOffset: TIMELINE_LABEL_WIDTH,
+    });
+    return () => {
+      unbindDragGhostElementIf(insertGhostRef.current);
+    };
+  }, [isOverlayInsertLine, dragGhostState != null]);
 
   if (!project) {
     return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
@@ -129,9 +141,6 @@ export function Tracks({ zoom }: Props) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     setDragOver(true);
-    if (event.clientX > 0 && event.clientY > 0) {
-      setDragCursor(event.clientX, event.clientY);
-    }
 
     if (!rootRef.current) return;
     const rect = rootRef.current.getBoundingClientRect();
@@ -142,23 +151,20 @@ export function Tracks({ zoom }: Props) {
     const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
     const left = hoverTime * pixelsPerSecond;
 
-    // Hysteresis vs TimeRuler top border (black edge): dead band avoids card↔cyan flicker.
+    // Single threshold vs TimeRuler top border: same line for card↔cyan.
     const rulerTop =
       rulerHeaderRef.current?.getBoundingClientRect().top ?? rect.top;
     const currentlyOver = useEditorStore.getState().isOverTimeline;
-    const y = event.clientY;
-    let nextOver = currentlyOver;
-    if (!currentlyOver && y >= rulerTop + CYAN_ENTER_BELOW_RULER_TOP_PX) {
-      nextOver = true;
-    } else if (currentlyOver && y < rulerTop - CYAN_EXIT_ABOVE_RULER_TOP_PX) {
-      nextOver = false;
-    }
+    const nextOver = event.clientY >= rulerTop + CYAN_MODE_BELOW_RULER_TOP_PX;
     if (nextOver !== currentlyOver) {
       setIsOverTimeline(nextOver);
     }
 
-    // Above / in dead-band as card mode: no lane ghosts (prevents flash under ruler).
+    // Above threshold as card mode: no lane ghosts (prevents flash under ruler).
     if (!nextOver) {
+      if (event.clientX > 0 && event.clientY > 0) {
+        setDragCursor(event.clientX, event.clientY);
+      }
       setIsOverlayInsertLine(false);
       setTargetOverlayLayer(null);
       setDragGhostState(null);
@@ -166,8 +172,18 @@ export function Tracks({ zoom }: Props) {
     }
 
     const isAudio = event.dataTransfer.types.includes(AUDIO_LIBRARY_MIME);
-    const duration = 5;
-    const label = isAudio ? "Âm thanh" : "Khung hình";
+    const dragItem = useEditorStore.getState().activeDragItem;
+    const duration = dragItem?.duration ?? 5;
+    const label =
+      dragItem?.name ?? (isAudio ? "Âm thanh" : "Khung hình");
+    const ghostWidth = Math.max(duration * pixelsPerSecond, 24);
+
+    // Same rAF as cyan — gray left/width stay in lockstep.
+    setDragGhostLayout(left, ghostWidth);
+    // Cyan sits on the right edge of gray (gray left ≈ clientX).
+    if (event.clientX > 0 && event.clientY > 0) {
+      setDragCursor(event.clientX + ghostWidth, event.clientY);
+    }
 
     if (!isAudio) {
       const elementAtPoint = document.elementFromPoint(
@@ -229,7 +245,7 @@ export function Tracks({ zoom }: Props) {
 
     setDragGhostState({
       left,
-      width: Math.max(duration * pixelsPerSecond, 24),
+      width: ghostWidth,
       label,
       duration,
       targetTrack: isAudio ? "audio" : "video",
@@ -477,15 +493,14 @@ export function Tracks({ zoom }: Props) {
               );
             })}
 
-            {/* Snapped Dark Gray Placeholder Slot & Glowing Green Insertion Line when Dragging Between / Above Lanes */}
+            {/* Gray insert ghost (separate from cyan) — left synced via rAF */}
             {isOverlayInsertLine && dragGhostState && (
               <>
-                {/* Khối Xám Đục biểu diễn tọa độ khối Cyan chuẩn bị đưa vào lane mới */}
                 <div
-                  className="absolute z-30 h-8 -translate-y-1/2 flex items-center rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[10px] font-semibold text-white/80 shadow-md pointer-events-none transition-all overflow-hidden"
+                  ref={insertGhostRef}
+                  className="absolute z-30 h-8 -translate-y-1/2 flex items-center rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[10px] font-semibold text-white/80 shadow-md pointer-events-none overflow-hidden will-change-[left]"
                   style={{
                     top: indicatorTopPos,
-                    left: TIMELINE_LABEL_WIDTH + dragGhostState.left,
                     width: dragGhostState.width,
                   }}
                 >
@@ -493,9 +508,8 @@ export function Tracks({ zoom }: Props) {
                     {dragGhostState.label} ({dragGhostState.duration}s)
                   </span>
                 </div>
-                {/* Đường kẻ màu xanh cyan chỉ đạo kéo dài FULL TIMELINE chuẩn CapCut */}
                 <div
-                  className="absolute z-40 h-[1px] bg-[#14B8A6] shadow-[0_0_8px_#14B8A6] pointer-events-none transition-all"
+                  className="absolute z-40 h-[1px] bg-[#14B8A6] shadow-[0_0_8px_#14B8A6] pointer-events-none"
                   style={{
                     top: indicatorTopPos,
                     left: TIMELINE_LABEL_WIDTH,

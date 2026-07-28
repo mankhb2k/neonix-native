@@ -3,11 +3,13 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { Film, Music } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { bindDragPreviewElement } from "@/lib/editor-drag-cursor";
 import {
-  bindDragPreviewElement,
-} from "@/lib/editor-drag-cursor";
-import { TIMELINE_ZOOM_DEFAULT, zoomToPixelsPerSecond } from "@/components/desktop/editor/timeline/timeline-scale";
+  TIMELINE_ZOOM_DEFAULT,
+  zoomToPixelsPerSecond,
+} from "@/components/desktop/editor/timeline/timeline-scale";
 
+/** Card outside timeline; cyan follows cursor over timeline (gray ghost is separate on track). */
 export function GlobalDragPreview() {
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
   const isOverTimeline = useEditorStore((s) => s.isOverTimeline);
@@ -31,7 +33,6 @@ export function GlobalDragPreview() {
   const pixelsPerSecond = zoomToPixelsPerSecond(TIMELINE_ZOOM_DEFAULT);
   const blockWidth = Math.max(activeDragItem.duration * pixelsPerSecond, 60);
 
-  // Keep both variants mounted; toggle visibility to avoid remount flicker at the mode boundary.
   return (
     <div
       ref={elRef}
@@ -64,7 +65,7 @@ export function GlobalDragPreview() {
         </div>
       </div>
       <div
-        className={`flex h-7 items-center rounded bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white shadow-2xl overflow-hidden opacity-95 border border-[#14B8A6]/40 ${
+        className={`flex h-8 items-center rounded bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white shadow-2xl overflow-hidden opacity-95 border border-[#14B8A6]/40 ${
           isOverTimeline ? "" : "hidden"
         }`}
         style={{ width: blockWidth }}

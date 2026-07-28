@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
+import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor-drag-cursor";
 
 export type TrackVariant = "main" | "secondary" | "layer";
 
@@ -53,6 +54,8 @@ export function TrackLane({
   leftControl,
   children,
 }: TrackLaneProps) {
+  const ghostRef = useRef<HTMLDivElement>(null);
+
   // Tự động chọn class chiều cao dựa trên variant và 3 props chiều cao riêng biệt
   const resolvedHeightClass =
     heightClass ??
@@ -61,6 +64,19 @@ export function TrackLane({
       : variant === "secondary"
         ? secondaryTrackHeight
         : layerTrackHeight);
+
+  const showGhost = Boolean(ghostPreview);
+
+  useLayoutEffect(() => {
+    if (!showGhost) {
+      unbindDragGhostElementIf(ghostRef.current);
+      return;
+    }
+    bindDragGhostElement(ghostRef.current);
+    return () => {
+      unbindDragGhostElementIf(ghostRef.current);
+    };
+  }, [showGhost]);
 
   return (
     <div
@@ -84,11 +100,12 @@ export function TrackLane({
       >
         {children}
 
-        {/* Snapped Destination Placeholder Slot (Khối Xám Đục chuẩn CapCut) */}
+        {/* Gray drop ghost — left/width driven imperatively (synced with cyan rAF) */}
         {ghostPreview && (
           <div
-            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[11px] text-white/90 flex items-center shadow-md transition-all z-20 overflow-hidden"
-            style={{ left: ghostPreview.left, width: ghostPreview.width }}
+            ref={ghostRef}
+            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[11px] text-white/90 flex items-center shadow-md z-20 overflow-hidden will-change-[left]"
+            style={{ width: ghostPreview.width }}
           >
             <span className="truncate font-semibold text-white/80">
               {ghostPreview.label ?? "Khung hình"}
