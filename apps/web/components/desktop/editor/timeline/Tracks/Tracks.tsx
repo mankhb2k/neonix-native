@@ -180,9 +180,9 @@ export function Tracks({ zoom }: Props) {
 
     // Same rAF as cyan — gray left/width stay in lockstep.
     setDragGhostLayout(left, ghostWidth);
-    // Cyan sits on the right edge of gray (gray left ≈ clientX).
+    // Cyan centered on gray (gray left ≈ clientX, center ≈ clientX + width/2).
     if (event.clientX > 0 && event.clientY > 0) {
-      setDragCursor(event.clientX + ghostWidth, event.clientY);
+      setDragCursor(event.clientX + ghostWidth / 2, event.clientY);
     }
 
     if (!isAudio) {
