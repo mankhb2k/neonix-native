@@ -39,13 +39,11 @@ export function Tracks({
   onScrollLeft,
   onScrubBlockedChange,
 }: Props) {
-  const scenes = useEditorStore((s) => s.project?.scenes);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
   const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
-  const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
-  const selectedOverlayId = useEditorStore((s) => s.selectedOverlayId);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
+  const selectedClipId = useEditorStore((s) => s.selectedClipId);
   const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
-  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -57,7 +55,9 @@ export function Tracks({
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const uniqueLayers = Array.from(
-    new Set(overlayScenes.map((item) => item.layerIndex)),
+    new Set(timelineClips
+      .filter((clip) => clip.track === "overlay")
+      .map((clip) => clip.layerIndex ?? 0)),
   ).sort((a, b) => b - a);
 
   const sidebarDrag = useTracksDrag({
@@ -98,7 +98,7 @@ export function Tracks({
     : sidebarDrag.insertGhostRef;
   const dragOver = sidebarDrag.dragOver;
 
-  if (!scenes || !projectId || !audioTracks) {
+  if (!projectId || !audioTracks) {
     return (
       <div
         ref={scrollRef}
@@ -107,17 +107,15 @@ export function Tracks({
     );
   }
 
-  const total = scenes.reduce((sum, s) => sum + s.duration, 0);
-  const isEmpty = scenes.length === 0;
+  const mainClips = timelineClips
+    .filter((clip) => clip.track === "main")
+    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+  const total = timelineClips.reduce(
+    (end, clip) => Math.max(end, clip.startTime + clip.duration),
+    0,
+  );
+  const isEmpty = timelineClips.length === 0;
   const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
-
-  let cursor = 0;
-  const sceneBlocks = scenes.map((scene, index) => {
-    const left = cursor * pixelsPerSecond;
-    const width = Math.max(scene.duration * pixelsPerSecond, 8);
-    cursor += scene.duration;
-    return { scene, index, left, width, startTime: cursor - scene.duration };
-  });
 
   return (
     <div
@@ -222,8 +220,8 @@ export function Tracks({
             }}
           >
             {uniqueLayers.map((layerIdx) => {
-              const layerItems = overlayScenes.filter(
-                (item) => item.layerIndex === layerIdx,
+              const layerItems = timelineClips.filter(
+                (clip) => clip.track === "overlay" && (clip.layerIndex ?? 0) === layerIdx,
               );
               return (
                 <TrackLane
@@ -249,12 +247,13 @@ export function Tracks({
                   }
                 >
                   {layerItems.map((item) => {
-                    const active = selectedOverlayId === item.id;
+                    const active = selectedClipId === item.id;
                     const moving = clipMove.movingClipId === item.id;
                     if (moving) return null;
                     return (
                       <div
                         key={item.id}
+                        data-clip-id={item.id}
                         role="button"
                         tabIndex={0}
                         className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
@@ -358,15 +357,14 @@ export function Tracks({
                 </>
               }
             >
-              {sceneBlocks.map(({ scene, index, left, width, startTime }) => {
-                const active = selectedSceneId === scene.id;
-                const moving = clipMove.movingClipId === scene.id;
+              {mainClips.map((clip, index) => {
+                const active = selectedClipId === clip.id;
+                const moving = clipMove.movingClipId === clip.id;
                 if (moving) return null;
-                const label =
-                  scene.semantic?.role ?? scene.name ?? scene.id;
                 return (
                   <div
-                    key={scene.id}
+                    key={clip.id}
+                    data-clip-id={clip.id}
                     role="button"
                     tabIndex={0}
                     className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
@@ -374,24 +372,19 @@ export function Tracks({
                         ? "z-10 bg-[var(--timeline-clip-frame-hover)] text-white shadow-md ring-2 ring-white"
                         : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
                     }`}
-                    style={{ left, width }}
+                    style={{
+                      left: clip.startTime * pixelsPerSecond,
+                      width: Math.max(clip.duration * pixelsPerSecond, 8),
+                    }}
                     onPointerDown={(event) => {
-                      clipMove.beginMainPointerDown(
-                        {
-                          id: scene.id,
-                          name: label,
-                          duration: scene.duration,
-                          startTime,
-                        },
-                        event,
-                      );
+                      clipMove.beginMainPointerDown(clip, event);
                     }}
                   >
                     <span className="block truncate font-semibold text-white pointer-events-none">
-                      {index + 1}. {label}
+                      {index + 1}. {clip.name}
                     </span>
                     <span className="block truncate text-white/80 pointer-events-none">
-                      {scene.duration}s
+                      {clip.duration}s
                     </span>
                   </div>
                 );

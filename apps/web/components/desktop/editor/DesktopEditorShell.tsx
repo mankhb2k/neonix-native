@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { saveProject, loadOverlayScenes } from "@/lib/project-storage";
+import {
+  saveProject,
+  loadOverlayScenes,
+  loadTimelineClips,
+} from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./stage/PreviewStage";
@@ -23,6 +27,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
 
   const [sidebarWidth, setSidebarWidth] = useState(580);
@@ -39,7 +44,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
     const id = initialProject.metadata.id;
     if (loadedProjectIdRef.current === id) return;
     loadedProjectIdRef.current = id;
-    loadProject(initialProject, loadOverlayScenes(id));
+    loadProject(initialProject, loadOverlayScenes(id), loadTimelineClips(id));
   }, [initialProject, loadProject]);
 
   // Single autosave owner (debounced) — page.tsx must not also save.
@@ -47,12 +52,12 @@ export function DesktopEditorShell({ initialProject }: Props) {
     if (!project) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveProject(project, overlayScenes);
+      saveProject(project, { overlayScenes, timelineClips });
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [project, overlayScenes]);
+  }, [project, overlayScenes, timelineClips]);
 
   const startSidebarResizing = useCallback(
     (e: React.PointerEvent) => {

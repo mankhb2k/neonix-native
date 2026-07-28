@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { clipsContentEndSeconds } from "@/lib/timeline-clips";
 import { TimeRuler } from "./TimeRuler/TimeRuler";
 import { Tracks } from "./Tracks/Tracks";
 import { Playhead, clientXToTimelineTime } from "./Tracks/Playhead";
@@ -10,7 +11,6 @@ import {
   TIMELINE_PPS_MIN,
   maxPixelsPerSecondForView,
   timelineCanvasDuration,
-  timelineContentEndSeconds,
   timelineWorkspaceSeconds,
   zoomToPixelsPerSecond,
 } from "./timeline-scale";
@@ -24,9 +24,8 @@ type Props = {
  * Vertical scroll only affects Tracks; horizontal scroll syncs ruler via translateX.
  */
 export function TimelineBoard({ zoom }: Props) {
-  const scenes = useEditorStore((s) => s.project?.scenes);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
-  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const currentTime = useEditorStore((s) => s.currentTime);
   const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
@@ -46,9 +45,9 @@ export function TimelineBoard({ zoom }: Props) {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [scenes]);
+  }, []);
 
-  const contentEnd = timelineContentEndSeconds(scenes ?? [], overlayScenes);
+  const contentEnd = clipsContentEndSeconds(timelineClips);
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const workspaceSeconds = timelineWorkspaceSeconds(contentEnd);
   const floorPps =

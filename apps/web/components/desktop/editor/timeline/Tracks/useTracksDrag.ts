@@ -56,10 +56,7 @@ export function useTracksDrag({
 }: UseTracksDragArgs) {
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
-  const addOverlaySceneFromFrame = useEditorStore(
-    (s) => s.addOverlaySceneFromFrame,
-  );
-  const addSceneFromFrame = useEditorStore((s) => s.addSceneFromFrame);
+  const addClipFromDraft = useEditorStore((s) => s.addClipFromDraft);
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
 
   const insertGhostRef = useRef<HTMLDivElement>(null);
@@ -291,12 +288,12 @@ export function useTracksDrag({
       if (frameId && id) {
         const draft = getFrame(id, frameId);
         if (draft) {
-          addOverlaySceneFromFrame(
-            draft,
-            dropLeft / pps,
-            dropLayer ?? 0,
-            dropInsert,
-          );
+          addClipFromDraft(draft, {
+            track: "overlay",
+            startTime: dropLeft / pps,
+            layerIndex: dropLayer ?? 0,
+            insertNewLayer: dropInsert,
+          });
         }
       }
       setIsOverlayInsertLine(false);
@@ -326,7 +323,7 @@ export function useTracksDrag({
     if (!frameId || !id) return;
     const draft = getFrame(id, frameId);
     if (!draft) return;
-    addSceneFromFrame(draft);
+    addClipFromDraft(draft, { track: "main" });
   }
 
   return {

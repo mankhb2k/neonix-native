@@ -2,9 +2,9 @@
 
 import { Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { clipsContentEndSeconds } from "@/lib/timeline-clips";
 import {
   formatTimecode,
-  timelineContentEndSeconds,
   TIMELINE_ZOOM_MAX,
   TIMELINE_ZOOM_MIN,
 } from "../timeline-scale";
@@ -15,16 +15,13 @@ type Props = {
 };
 
 export function TransportBar({ zoom, onZoomChange }: Props) {
-  const scenes = useEditorStore((s) => s.project?.scenes);
-  const overlayScenes = useEditorStore((s) => s.overlayScenes);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const currentTime = useEditorStore((s) => s.currentTime);
   const isPlaying = useEditorStore((s) => s.isPlaying);
   const togglePlaying = useEditorStore((s) => s.togglePlaying);
 
-  if (!scenes) return null;
-
-  const contentEnd = timelineContentEndSeconds(scenes, overlayScenes);
+  const contentEnd = clipsContentEndSeconds(timelineClips);
 
   function nudgeZoom(delta: number) {
     onZoomChange(Math.min(TIMELINE_ZOOM_MAX, Math.max(TIMELINE_ZOOM_MIN, zoom + delta)));

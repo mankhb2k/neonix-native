@@ -9,7 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
-import type { OverlaySceneItem } from "@/lib/overlay-scenes";
+import type { TimelineClip } from "@/lib/timeline-clips";
 import {
   bindDragGhostElement,
   clearDragCursor,
@@ -54,13 +54,6 @@ type MoveSession = {
   started: boolean;
   /** Seek playhead here on pure click (main clips). */
   clickSeekTime?: number;
-};
-
-type MainClipPointerItem = {
-  id: string;
-  name: string;
-  duration: number;
-  startTime: number;
 };
 
 /**
@@ -235,22 +228,14 @@ export function useOverlayClipMove({
     const startTime = ghostLeftRef.current / pps;
     const ui = moveUiRef.current;
 
-    if (session.source === "overlay") {
-      store.moveOverlayScene(session.id, {
-        startTime,
-        layerIndex: ui.layer ?? session.originLayer,
-        insertNewLayer: ui.isInsert,
-      });
-    } else if (ui.overMainBody) {
-      store.reorderMainScene(session.id, startTime);
-    } else {
-      store.promoteMainSceneToOverlay(
-        session.id,
-        startTime,
-        ui.layer ?? 0,
-        ui.isInsert,
-      );
-    }
+    store.moveClip(session.id, ui.overMainBody
+      ? { track: "main", startTime }
+      : {
+          track: "overlay",
+          startTime,
+          layerIndex: ui.layer ?? session.originLayer,
+          insertNewLayer: ui.isInsert,
+        });
     resetMoveUi();
   }
 
@@ -278,14 +263,14 @@ export function useOverlayClipMove({
   }, []);
 
   function beginOverlayPointerDown(
-    item: OverlaySceneItem,
+    item: TimelineClip,
     event: ReactPointerEvent,
   ) {
     if (useEditorStore.getState().activeDragItem) return;
 
     event.stopPropagation();
     event.preventDefault();
-    useEditorStore.getState().selectOverlay(item.id);
+    useEditorStore.getState().selectClip(item.id);
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const clipLeft = item.startTime * pps;
@@ -294,18 +279,18 @@ export function useOverlayClipMove({
 
     moveUiRef.current = {
       isInsert: false,
-      layer: item.layerIndex,
+      layer: item.layerIndex ?? 0,
       indicatorTop: 0,
       overMainBody: false,
     };
-    setTargetOverlayLayer(item.layerIndex);
+    setTargetOverlayLayer(item.layerIndex ?? 0);
 
     sessionRef.current = {
       source: "overlay",
       id: item.id,
       name: item.name,
       duration: item.duration,
-      originLayer: item.layerIndex,
+      originLayer: item.layerIndex ?? 0,
       pointerId: event.pointerId,
       originX: event.clientX,
       originY: event.clientY,
@@ -315,14 +300,14 @@ export function useOverlayClipMove({
   }
 
   function beginMainPointerDown(
-    item: MainClipPointerItem,
+    item: TimelineClip,
     event: ReactPointerEvent,
   ) {
     if (useEditorStore.getState().activeDragItem) return;
 
     event.stopPropagation();
     event.preventDefault();
-    useEditorStore.getState().selectScene(item.id);
+    useEditorStore.getState().selectClip(item.id);
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const clipLeft = item.startTime * pps;

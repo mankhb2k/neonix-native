@@ -5,6 +5,7 @@ import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
 import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
 import { useEditorStore, nodeText } from "@/lib/store/editor-store";
+import type { TimelineClip } from "@/lib/timeline-clips";
 import {
   matrixToCss,
   previewParitySnapshot,
@@ -25,22 +26,26 @@ function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
 
 function sceneAtGlobalTime(
   scenes: MotionScene[],
+  timelineClips: TimelineClip[],
   time: number,
 ): { scene: MotionScene; localTime: number; start: number } | null {
-  if (scenes.length === 0) return null;
-  let cursor = 0;
-  for (const scene of scenes) {
-    const end = cursor + scene.duration;
-    if (time < end || scene === scenes[scenes.length - 1]) {
-      return {
-        scene,
-        localTime: Math.min(Math.max(0, time - cursor), scene.duration),
-        start: cursor,
-      };
-    }
-    cursor = end;
-  }
-  return null;
+  const mainClips = timelineClips
+    .filter((clip) => clip.track === "main")
+    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+  const clip = mainClips.find((candidate) =>
+    time >= candidate.startTime && time < candidate.startTime + candidate.duration,
+  ) ?? (mainClips.length > 0 &&
+    time >= mainClips[mainClips.length - 1].startTime + mainClips[mainClips.length - 1].duration
+    ? mainClips[mainClips.length - 1]
+    : undefined);
+  if (!clip) return null;
+  const scene = scenes.find((candidate) => candidate.id === clip.sceneId);
+  if (!scene) return null;
+  return {
+    scene,
+    localTime: Math.min(Math.max(0, time - clip.startTime), clip.duration),
+    start: clip.startTime,
+  };
 }
 
 function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: MotionProject }) {
@@ -86,6 +91,7 @@ function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: Mot
 
 export function PreviewStage() {
   const project = useEditorStore((state) => state.project);
+  const timelineClips = useEditorStore((state) => state.timelineClips);
   const currentTime = useEditorStore((state) => state.currentTime);
 
   const compiled = useMemo(() => {
@@ -115,7 +121,7 @@ export function PreviewStage() {
     );
   }
 
-  const at = sceneAtGlobalTime(project.scenes, currentTime);
+  const at = sceneAtGlobalTime(project.scenes, timelineClips, currentTime);
   if (!at) return null;
   const { scene, localTime } = at;
   const brand = project.metadata.brand;

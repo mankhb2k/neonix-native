@@ -14,10 +14,18 @@ import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
 import type { OverlaySceneItem } from "@/lib/overlay-scenes";
 import {
   TIMELINE_ZOOM_DEFAULT,
-  timelineContentEndSeconds,
 } from "@/components/desktop/editor/timeline/timeline-scale";
+import {
+  clipsContentEndSeconds,
+  findFreeOverlayLayer,
+  migrateClipsFromLegacy,
+  resolveMainStartTime,
+  type TimelineClip,
+  type TimelineTrackKind,
+} from "@/lib/timeline-clips";
 
 export type { OverlaySceneItem } from "@/lib/overlay-scenes";
+export type { TimelineClip } from "@/lib/timeline-clips";
 
 /* ==========================================================================
    1. Các kiểu dữ liệu trạng thái (State Types)
@@ -36,10 +44,12 @@ type EditorState = {
   project: MotionProject | null;
   selectedSceneId: string | null;
   selectedOverlayId: string | null;
+  selectedClipId: string | null;
   selectedNodeId: string | null;
   isExporting: boolean;
   activeSidebarTab: SidebarTabId;
   overlayScenes: OverlaySceneItem[];
+  timelineClips: TimelineClip[];
 
   activeDragItem: {
     id: string;
@@ -63,7 +73,12 @@ type EditorState = {
     } | null,
   ) => void;
   setIsOverTimeline: (over: boolean) => void;
-  loadProject: (project: MotionProject, overlayScenes?: OverlaySceneItem[]) => void;
+  loadProject: (
+    project: MotionProject,
+    overlayScenes?: OverlaySceneItem[],
+    timelineClips?: TimelineClip[],
+  ) => void;
+  selectClip: (clipId: string) => void;
   selectScene: (sceneId: string) => void;
   selectOverlay: (overlayId: string) => void;
   clearTimelineSelection: () => void;
@@ -76,6 +91,24 @@ type EditorState = {
   updateNodeAnimation: (sceneId: string, nodeId: string, patch: { presetId?: string; duration?: number; at?: number }) => void;
   setAspectRatio: (aspectRatio: AspectRatio) => void;
   addSceneFromFrame: (draft: FrameDraft) => void;
+  addClipFromDraft: (
+    draft: FrameDraft,
+    target: { track: "main" } | {
+      track: "overlay";
+      startTime: number;
+      layerIndex?: number;
+      insertNewLayer?: boolean;
+    },
+  ) => void;
+  moveClip: (
+    clipId: string,
+    patch: {
+      startTime: number;
+      track: TimelineTrackKind;
+      layerIndex?: number;
+      insertNewLayer?: boolean;
+    },
+  ) => void;
   addOverlaySceneFromFrame: (
     draft: FrameDraft,
     startTime: number,
@@ -150,22 +183,6 @@ function mapNode(
   };
 }
 
-/** Insert index in magnetic order: drop before the scene whose midpoint is after dropTime. */
-function magneticInsertIndex(
-  order: string[],
-  scenesById: Map<string, MotionScene>,
-  dropTime: number,
-): number {
-  let t = 0;
-  for (let i = 0; i < order.length; i++) {
-    const scene = scenesById.get(order[i]!);
-    const dur = scene?.duration ?? 0;
-    if (dropTime < t + dur / 2) return i;
-    t += dur;
-  }
-  return order.length;
-}
-
 /** Chuyển đổi FrameDraft từ thư viện thành một MotionScene hoàn chỉnh */
 function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   const sceneId = uid("scene");
@@ -218,6 +235,34 @@ function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   };
 }
 
+function overlayScenesFromClips(clips: TimelineClip[]): OverlaySceneItem[] {
+  return clips
+    .filter((clip) => clip.track === "overlay")
+    .map((clip) => ({
+      id: clip.id,
+      name: clip.name,
+      duration: clip.duration,
+      startTime: clip.startTime,
+      layerIndex: clip.layerIndex ?? 0,
+    }));
+}
+
+/** Keeps schema scenes exactly aligned with the main-track clips. */
+function rebuildMainProject(project: MotionProject, clips: TimelineClip[]): MotionProject {
+  const byId = new Map(project.scenes.map((scene) => [scene.id, scene]));
+  const main = clips
+    .filter((clip) => clip.track === "main")
+    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+  const sceneOrder = main
+    .map((clip) => clip.sceneId)
+    .filter((sceneId) => byId.has(sceneId));
+  return {
+    ...project,
+    scenes: sceneOrder.map((sceneId) => byId.get(sceneId)!),
+    timeline: { ...project.timeline, sceneOrder },
+  };
+}
+
 /* ==========================================================================
    3. Tạo Zustand Store chính (useEditorStore)
    ========================================================================== */
@@ -226,10 +271,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
   selectedSceneId: null,
   selectedOverlayId: null,
+  selectedClipId: null,
   selectedNodeId: null,
   isExporting: false,
   activeSidebarTab: "frame",
   overlayScenes: [],
+  timelineClips: [],
 
   activeDragItem: null,
   isOverTimeline: false,
@@ -241,10 +288,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
   setCurrentTime: (time) => {
     const state = get();
-    const max = timelineContentEndSeconds(
-      state.project?.scenes ?? [],
-      state.overlayScenes,
-    );
+    const max = clipsContentEndSeconds(state.timelineClips);
     set({ currentTime: Math.min(Math.max(0, time), max) });
   },
   setPlaying: (playing) => set({ isPlaying: playing }),
@@ -252,15 +296,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),
 
   /** 3.1 Nạp dự án vào Editor Store */
-  loadProject: (input, overlayScenes = []) => {
+  loadProject: (input, overlayScenes = [], storedClips = []) => {
     const project = parseMotionProject(input);
-    const firstScene = project.scenes.find((scene) => scene.id === project.timeline.sceneOrder[0]) ?? project.scenes[0];
+    const timelineClips = storedClips.length
+      ? storedClips
+      : migrateClipsFromLegacy(project, overlayScenes);
+    const firstClip = timelineClips.find((clip) => clip.track === "main") ?? timelineClips[0];
+    const firstScene = firstClip?.track === "main"
+      ? project.scenes.find((scene) => scene.id === firstClip.sceneId)
+      : undefined;
     set({
       project,
-      selectedSceneId: firstScene?.id ?? null,
-      selectedOverlayId: null,
+      timelineClips,
+      selectedClipId: firstClip?.id ?? null,
+      selectedSceneId: firstClip?.track === "main" ? firstClip.sceneId : null,
+      selectedOverlayId: firstClip?.track === "overlay" ? firstClip.id : null,
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
-      overlayScenes,
+      overlayScenes: overlayScenesFromClips(timelineClips),
       currentTime: 0,
       isPlaying: false,
     });
@@ -269,9 +321,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   /** 3.2 Chọn Scene đang hoạt động (clear overlay selection) */
   selectScene: (sceneId) => {
     const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
+    const clip = get().timelineClips.find((candidate) =>
+      candidate.track === "main" && candidate.sceneId === sceneId);
     set({
       selectedSceneId: sceneId,
       selectedOverlayId: null,
+      selectedClipId: clip?.id ?? null,
       selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
@@ -281,7 +336,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       selectedOverlayId: overlayId,
       selectedSceneId: null,
+      selectedClipId: overlayId,
       selectedNodeId: null,
+    });
+  },
+
+  selectClip: (clipId) => {
+    const state = get();
+    const clip = state.timelineClips.find((candidate) => candidate.id === clipId);
+    if (!clip) return;
+    const scene = clip.track === "main"
+      ? state.project?.scenes.find((candidate) => candidate.id === clip.sceneId)
+      : undefined;
+    set({
+      selectedClipId: clip.id,
+      selectedSceneId: clip.track === "main" ? clip.sceneId : null,
+      selectedOverlayId: clip.track === "overlay" ? clip.id : null,
+      selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
 
@@ -289,6 +360,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       selectedSceneId: null,
       selectedOverlayId: null,
+      selectedClipId: null,
       selectedNodeId: null,
     });
   },
@@ -314,7 +386,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   updateSceneDuration: (sceneId, duration) => {
     const project = get().project;
     if (!project) return;
-    set({ project: { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, duration: Math.max(0.5, duration) } : scene) } });
+    const nextDuration = Math.max(0.5, duration);
+    set((state) => ({
+      project: {
+        ...project,
+        scenes: project.scenes.map((scene) => scene.id === sceneId
+          ? { ...scene, duration: nextDuration }
+          : scene),
+      },
+      timelineClips: state.timelineClips.map((clip) => clip.sceneId === sceneId
+        ? { ...clip, duration: nextDuration }
+        : clip),
+      overlayScenes: overlayScenesFromClips(state.timelineClips.map((clip) => clip.sceneId === sceneId
+        ? { ...clip, duration: nextDuration }
+        : clip)),
+    }));
   },
 
   /** 3.8 Cập nhật văn bản của Node */
@@ -381,21 +467,156 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   /** Thêm Scene từ Khung hình vào Main Track nối tiếp */
   addSceneFromFrame: (draft) => {
-    const project = get().project;
-    if (!project) return;
-    const scene = sceneFromFrameDraft(draft);
-    set({
-      project: {
-        ...project,
-        scenes: [...project.scenes, scene],
-        timeline: {
-          ...project.timeline,
-          sceneOrder: [...project.timeline.sceneOrder, scene.id],
-        },
-      },
-      selectedSceneId: scene.id,
-      selectedOverlayId: null,
-      selectedNodeId: firstEditableNode(scene)?.id ?? null,
+    get().addClipFromDraft(draft, { track: "main" });
+  },
+
+  addClipFromDraft: (draft, target) => {
+    set((state) => {
+      const project = state.project;
+      if (!project) return state;
+      const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
+      if (target.track === "main") {
+        const scene = sceneFromFrameDraft(draft);
+        const startTime = state.timelineClips
+          .filter((clip) => clip.track === "main")
+          .reduce((end, clip) => Math.max(end, clip.startTime + clip.duration), 0);
+        const clip: TimelineClip = {
+          id: scene.id,
+          sceneId: scene.id,
+          track: "main",
+          startTime,
+          duration: scene.duration,
+          name: scene.name ?? scene.id,
+        };
+        const timelineClips = [...state.timelineClips, clip];
+        const nextProject = rebuildMainProject(
+          { ...project, scenes: [...project.scenes, scene] },
+          timelineClips,
+        );
+        return {
+          project: nextProject,
+          timelineClips,
+          overlayScenes: overlayScenesFromClips(timelineClips),
+          selectedClipId: clip.id,
+          selectedSceneId: scene.id,
+          selectedOverlayId: null,
+          selectedNodeId: firstEditableNode(scene)?.id ?? null,
+        };
+      }
+
+      const id = uid("overlay");
+      const layer = findFreeOverlayLayer(
+        state.timelineClips,
+        Math.max(0, target.startTime),
+        duration,
+        target.layerIndex ?? 0,
+        target.insertNewLayer ?? false,
+      );
+      let timelineClips = state.timelineClips;
+      if (layer.insertNewLayer) {
+        timelineClips = timelineClips.map((clip) =>
+          clip.track === "overlay" && (clip.layerIndex ?? 0) >= layer.layerIndex
+            ? { ...clip, layerIndex: (clip.layerIndex ?? 0) + 1 }
+            : clip,
+        );
+      }
+      const clip: TimelineClip = {
+        id,
+        sceneId: id,
+        track: "overlay",
+        layerIndex: layer.layerIndex,
+        startTime: Math.max(0, target.startTime),
+        duration,
+        name: draft.name,
+      };
+      timelineClips = [...timelineClips, clip];
+      return {
+        timelineClips,
+        overlayScenes: overlayScenesFromClips(timelineClips),
+        selectedClipId: clip.id,
+        selectedSceneId: null,
+        selectedOverlayId: clip.id,
+        selectedNodeId: null,
+      };
+    });
+  },
+
+  moveClip: (clipId, patch) => {
+    set((state) => {
+      const project = state.project;
+      const existing = state.timelineClips.find((clip) => clip.id === clipId);
+      if (!project || !existing) return state;
+      const startTime = Math.max(0, patch.startTime);
+      let clips = state.timelineClips.filter((clip) => clip.id !== clipId);
+      let nextProject = project;
+      let moved: TimelineClip;
+
+      if (patch.track === "overlay") {
+        const layer = findFreeOverlayLayer(
+          clips,
+          startTime,
+          existing.duration,
+          patch.layerIndex ?? existing.layerIndex ?? 0,
+          patch.insertNewLayer ?? false,
+        );
+        if (layer.insertNewLayer) {
+          clips = clips.map((clip) =>
+            clip.track === "overlay" && (clip.layerIndex ?? 0) >= layer.layerIndex
+              ? { ...clip, layerIndex: (clip.layerIndex ?? 0) + 1 }
+              : clip,
+          );
+        }
+        moved = {
+          ...existing,
+          sceneId: existing.track === "main" ? existing.id : existing.sceneId,
+          track: "overlay",
+          layerIndex: layer.layerIndex,
+          startTime,
+        };
+        // Overlay clips are intentionally shells, not MotionProject scenes.
+        if (existing.track === "main") {
+          nextProject = {
+            ...project,
+            scenes: project.scenes.filter((scene) => scene.id !== existing.sceneId),
+          };
+        }
+      } else {
+        let sceneId = existing.sceneId;
+        if (existing.track === "overlay") {
+          const scene = sceneFromFrameDraft({
+            id: existing.id,
+            name: existing.name,
+            duration: existing.duration,
+            text: existing.name,
+          });
+          sceneId = scene.id;
+          nextProject = { ...project, scenes: [...project.scenes, scene] };
+        }
+        moved = {
+          ...existing,
+          id: existing.track === "overlay" ? sceneId : existing.id,
+          sceneId,
+          track: "main",
+          startTime: resolveMainStartTime(clips, startTime, existing.duration),
+          layerIndex: undefined,
+        };
+      }
+
+      clips.push(moved);
+      // Main keeps free startTime (gaps allowed); do not re-pack magnetically.
+      nextProject = rebuildMainProject(nextProject, clips);
+      const selectedScene = moved.track === "main"
+        ? nextProject.scenes.find((scene) => scene.id === moved.sceneId)
+        : undefined;
+      return {
+        project: nextProject,
+        timelineClips: clips,
+        overlayScenes: overlayScenesFromClips(clips),
+        selectedClipId: moved.id,
+        selectedSceneId: moved.track === "main" ? moved.sceneId : null,
+        selectedOverlayId: moved.track === "overlay" ? moved.id : null,
+        selectedNodeId: firstEditableNode(selectedScene)?.id ?? null,
+      };
     });
   },
 
@@ -408,110 +629,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     layerIndex,
     insertNewLayer = false,
   ) => {
-    set((state) => {
-      let targetLayer = layerIndex;
-      if (targetLayer === undefined) {
-        const maxLayer = state.overlayScenes.reduce(
-          (max, item) => Math.max(max, item.layerIndex),
-          -1,
-        );
-        targetLayer = maxLayer + 1;
-      }
-      targetLayer = Math.max(0, targetLayer);
-
-      let updatedScenes = state.overlayScenes;
-      if (insertNewLayer) {
-        // Tự động dịch chuyển các tầng phía trên lên +1 khi chèn dải băng mới vào giữa
-        updatedScenes = state.overlayScenes.map((item) => {
-          if (item.layerIndex >= targetLayer!) {
-            return { ...item, layerIndex: item.layerIndex + 1 };
-          }
-          return item;
-        });
-      }
-
-      const newOverlay: OverlaySceneItem = {
-        id: uid("overlay"),
-        name: draft.name,
-        duration: draft.duration ?? DEFAULT_FRAME_DURATION,
-        startTime: Math.max(0, startTime),
-        layerIndex: targetLayer,
-      };
-
-      return {
-        overlayScenes: [...updatedScenes, newOverlay],
-        selectedOverlayId: newOverlay.id,
-        selectedSceneId: null,
-        selectedNodeId: null,
-      };
+    get().addClipFromDraft(draft, {
+      track: "overlay",
+      startTime,
+      layerIndex,
+      insertNewLayer,
     });
   },
 
   /** Di chuyển overlay: đổi startTime / layer; insertNewLayer shift các tầng >= target */
   moveOverlayScene: (id, patch) => {
-    set((state) => {
-      const existing = state.overlayScenes.find((item) => item.id === id);
-      if (!existing) return state;
-
-      const targetLayer = Math.max(0, patch.layerIndex);
-      const startTime = Math.max(0, patch.startTime);
-      let others = state.overlayScenes.filter((item) => item.id !== id);
-
-      if (patch.insertNewLayer) {
-        others = others.map((item) =>
-          item.layerIndex >= targetLayer
-            ? { ...item, layerIndex: item.layerIndex + 1 }
-            : item,
-        );
-      }
-
-      return {
-        overlayScenes: [
-          ...others,
-          {
-            ...existing,
-            startTime,
-            layerIndex: targetLayer,
-          },
-        ],
-        selectedOverlayId: id,
-        selectedSceneId: null,
-        selectedNodeId: null,
-      };
-    });
+    get().moveClip(id, { ...patch, track: "overlay" });
   },
 
   /** Sắp xếp lại clip trên Main (magnetic) theo thời điểm thả */
   reorderMainScene: (sceneId, dropTime) => {
-    const project = get().project;
-    if (!project) return;
-    const order = project.timeline.sceneOrder.filter((id) =>
-      project.scenes.some((s) => s.id === id),
-    );
-    if (!order.includes(sceneId)) return;
-
-    const without = order.filter((id) => id !== sceneId);
-    const byId = new Map(project.scenes.map((s) => [s.id, s]));
-    const insertAt = magneticInsertIndex(without, byId, Math.max(0, dropTime));
-    const nextOrder = [
-      ...without.slice(0, insertAt),
-      sceneId,
-      ...without.slice(insertAt),
-    ];
-    const scenes = nextOrder
-      .map((id) => byId.get(id))
-      .filter((s): s is MotionScene => s != null);
-
-    set({
-      project: {
-        ...project,
-        scenes,
-        timeline: { ...project.timeline, sceneOrder: nextOrder },
-      },
-      selectedSceneId: sceneId,
-      selectedOverlayId: null,
-      selectedNodeId: firstEditableNode(byId.get(sceneId))?.id ?? null,
-    });
+    const clip = get().timelineClips.find((candidate) =>
+      candidate.track === "main" && candidate.sceneId === sceneId);
+    if (clip) get().moveClip(clip.id, { track: "main", startTime: dropTime });
   },
 
   /** Đưa clip Main lên lane Overlay (xóa khỏi chuỗi magnetic) */
@@ -521,45 +656,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     layerIndex,
     insertNewLayer = false,
   ) => {
-    set((state) => {
-      const project = state.project;
-      if (!project) return state;
-      const scene = project.scenes.find((s) => s.id === sceneId);
-      if (!scene) return state;
-
-      const nextOrder = project.timeline.sceneOrder.filter((id) => id !== sceneId);
-      const nextScenes = project.scenes.filter((s) => s.id !== sceneId);
-
-      let targetLayer = Math.max(0, layerIndex);
-      let updatedOverlays = state.overlayScenes;
-      if (insertNewLayer) {
-        updatedOverlays = updatedOverlays.map((item) =>
-          item.layerIndex >= targetLayer
-            ? { ...item, layerIndex: item.layerIndex + 1 }
-            : item,
-        );
-      }
-
-      const newOverlay: OverlaySceneItem = {
-        id: uid("overlay"),
-        name: scene.semantic?.role ?? scene.name ?? scene.id,
-        duration: Math.max(0.5, scene.duration),
-        startTime: Math.max(0, startTime),
-        layerIndex: targetLayer,
-      };
-
-      return {
-        project: {
-          ...project,
-          scenes: nextScenes,
-          timeline: { ...project.timeline, sceneOrder: nextOrder },
-        },
-        overlayScenes: [...updatedOverlays, newOverlay],
-        selectedOverlayId: newOverlay.id,
-        selectedSceneId: null,
-        selectedNodeId: null,
-      };
-    });
+    const clip = get().timelineClips.find((candidate) =>
+      candidate.track === "main" && candidate.sceneId === sceneId);
+    if (clip) {
+      get().moveClip(clip.id, {
+        track: "overlay",
+        startTime,
+        layerIndex,
+        insertNewLayer,
+      });
+    }
   },
 
   /** 3.21 Thêm đường Audio Track (nhạc nền, âm thanh) */
