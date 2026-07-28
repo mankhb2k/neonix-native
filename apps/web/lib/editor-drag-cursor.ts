@@ -4,12 +4,16 @@ let previewEl: HTMLElement | null = null;
 let ghostEl: HTMLElement | null = null;
 let ghostLeftOffset = 0;
 
+/** Fixed px offsets (not % of element size — avoids jump when card/cyan width changes). */
+let previewOffsetX = 0;
+let previewOffsetY = 0;
+
 let rafId = 0;
 let pendingCursor: { x: number; y: number } | null = null;
 let pendingGhost: { left: number; width: number } | null = null;
 
 function applyCursorTransform(el: HTMLElement, x: number, y: number): void {
-  el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%)`;
+  el.style.transform = `translate3d(${x - previewOffsetX}px, ${y - previewOffsetY}px, 0)`;
 }
 
 function applyGhostLayout(
@@ -49,6 +53,18 @@ export function bindDragPreviewElement(el: HTMLElement | null): void {
   }
 }
 
+/**
+ * Fixed pixel anchor offsets for the preview wrapper.
+ * Card: center on cursor. Cyan: left edge on cursor (aligns with gray ghost left).
+ */
+export function setDragPreviewAnchor(offsetX: number, offsetY: number): void {
+  previewOffsetX = offsetX;
+  previewOffsetY = offsetY;
+  if (previewEl && pendingCursor) {
+    applyCursorTransform(previewEl, pendingCursor.x, pendingCursor.y);
+  }
+}
+
 export function bindDragGhostElement(
   el: HTMLElement | null,
   options?: { leftOffset?: number },
@@ -68,6 +84,7 @@ export function unbindDragGhostElementIf(el: HTMLElement | null): void {
   }
 }
 
+/** Cursor client coordinates — preview top-left = (x - offsetX, y - offsetY). */
 export function setDragCursor(x: number, y: number): void {
   pendingCursor = { x, y };
   scheduleFlush();
@@ -85,4 +102,6 @@ export function clearDragCursor(): void {
   }
   pendingCursor = null;
   pendingGhost = null;
+  previewOffsetX = 0;
+  previewOffsetY = 0;
 }

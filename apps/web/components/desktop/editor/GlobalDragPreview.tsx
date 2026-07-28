@@ -3,8 +3,18 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { Film, Music } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { bindDragPreviewElement } from "@/lib/editor-drag-cursor";
+import {
+  bindDragPreviewElement,
+  setDragPreviewAnchor,
+} from "@/lib/editor-drag-cursor";
 import { zoomToPixelsPerSecond } from "@/components/desktop/editor/timeline/timeline-scale";
+
+/** Card outside timeline: w-32 h-20 → center on cursor */
+const CARD_ANCHOR_X = 64;
+const CARD_ANCHOR_Y = 40;
+/** Cyan on timeline: h-8 → left edge on cursor, vertically centered */
+const CYAN_ANCHOR_X = 0;
+const CYAN_ANCHOR_Y = 16;
 
 /** Card outside timeline; cyan follows cursor over timeline (gray ghost is separate on track). */
 export function GlobalDragPreview() {
@@ -18,11 +28,16 @@ export function GlobalDragPreview() {
       bindDragPreviewElement(null);
       return;
     }
+    if (isOverTimeline) {
+      setDragPreviewAnchor(CYAN_ANCHOR_X, CYAN_ANCHOR_Y);
+    } else {
+      setDragPreviewAnchor(CARD_ANCHOR_X, CARD_ANCHOR_Y);
+    }
     bindDragPreviewElement(elRef.current);
     return () => {
       bindDragPreviewElement(null);
     };
-  }, [activeDragItem]);
+  }, [activeDragItem, isOverTimeline]);
 
   if (!activeDragItem) {
     return null;
