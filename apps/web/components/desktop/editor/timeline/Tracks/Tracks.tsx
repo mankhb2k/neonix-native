@@ -15,6 +15,7 @@ import { useEditorStore } from "@/lib/store/editor-store";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { TrackLane } from "./TrackLane";
 import { useTracksDrag } from "./useTracksDrag";
+import { useOverlayClipMove } from "./useOverlayClipMove";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PPS_MIN,
@@ -34,7 +35,9 @@ export function Tracks({ zoom }: Props) {
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
+  const selectedOverlayId = useEditorStore((s) => s.selectedOverlayId);
   const selectScene = useEditorStore((s) => s.selectScene);
+  const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const currentTime = useEditorStore((s) => s.currentTime);
   const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
@@ -73,18 +76,7 @@ export function Tracks({ zoom }: Props) {
     new Set(overlayScenes.map((item) => item.layerIndex)),
   ).sort((a, b) => b - a);
 
-  const {
-    dragOver,
-    isOverlayInsertLine,
-    targetOverlayLayer,
-    indicatorTopPos,
-    dragGhostState,
-    insertGhostRef,
-    handleDragEnter,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-  } = useTracksDrag({
+  const sidebarDrag = useTracksDrag({
     rootRef,
     rulerHeaderRef,
     workspaceRef,
@@ -92,6 +84,31 @@ export function Tracks({ zoom }: Props) {
     uniqueLayers,
     projectId: projectId ?? null,
   });
+
+  const clipMove = useOverlayClipMove({
+    rootRef,
+    workspaceRef,
+    pixelsPerSecond,
+    uniqueLayers,
+  });
+
+  // Overlay clip move owns ghosts while active; otherwise sidebar HTML5 drag.
+  const isOverlayInsertLine = clipMove.isMoving
+    ? clipMove.isOverlayInsertLine
+    : sidebarDrag.isOverlayInsertLine;
+  const targetOverlayLayer = clipMove.isMoving
+    ? clipMove.targetOverlayLayer
+    : sidebarDrag.targetOverlayLayer;
+  const indicatorTopPos = clipMove.isMoving
+    ? clipMove.indicatorTopPos
+    : sidebarDrag.indicatorTopPos;
+  const dragGhostState = clipMove.isMoving
+    ? clipMove.dragGhostState
+    : sidebarDrag.dragGhostState;
+  const insertGhostRef = clipMove.isMoving
+    ? clipMove.insertGhostRef
+    : sidebarDrag.insertGhostRef;
+  const dragOver = sidebarDrag.dragOver;
 
   if (!scenes || !projectId || !audioTracks) {
     return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
@@ -120,10 +137,15 @@ export function Tracks({ zoom }: Props) {
       className={`relative flex-1 overflow-auto transition-colors select-none bg-[var(--bg-panel)] ${
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
-      onDragOver={handleDragOver}
-      onDragEnter={handleDragEnter}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDragOver={sidebarDrag.handleDragOver}
+      onDragEnter={sidebarDrag.handleDragEnter}
+      onDragLeave={sidebarDrag.handleDragLeave}
+      onDrop={sidebarDrag.handleDrop}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) {
+          clearTimelineSelection();
+        }
+      }}
     >
       <div
         className="relative min-h-full flex flex-col flex-1"
@@ -230,8 +252,13 @@ export function Tracks({ zoom }: Props) {
           <div
             ref={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) {
+                clearTimelineSelection();
+              }
+            }}
           >
-            {/* Multi-layer Secondary Overlay Video Track Runway Lanes (Hiển thị các tầng Layer ở hàng trên) */}
+            {/* Multi-layer Secondary Overlay Video Track Runway Lanes */}
             {uniqueLayers.map((layerIdx) => {
               const layerItems = overlayScenes.filter(
                 (item) => item.layerIndex === layerIdx,
@@ -259,20 +286,32 @@ export function Tracks({ zoom }: Props) {
                     </button>
                   }
                 >
-                  {layerItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden"
-                      style={{
-                        left: item.startTime * pixelsPerSecond,
-                        width: Math.max(item.duration * pixelsPerSecond, 24),
-                      }}
-                    >
-                      <span className="truncate">
-                        {item.name} ({item.duration}s)
-                      </span>
-                    </div>
-                  ))}
+                  {layerItems.map((item) => {
+                    const active = selectedOverlayId === item.id;
+                    const moving = clipMove.movingOverlayId === item.id;
+                    if (moving) return null;
+                    return (
+                      <div
+                        key={item.id}
+                        role="button"
+                        tabIndex={0}
+                        className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
+                          active ? "z-10 ring-2 ring-white" : ""
+                        }`}
+                        style={{
+                          left: item.startTime * pixelsPerSecond,
+                          width: Math.max(item.duration * pixelsPerSecond, 24),
+                        }}
+                        onPointerDown={(event) => {
+                          clipMove.beginOverlayPointerDown(item, event);
+                        }}
+                      >
+                        <span className="truncate pointer-events-none">
+                          {item.name} ({item.duration}s)
+                        </span>
+                      </div>
+                    );
+                  })}
                 </TrackLane>
               );
             })}
@@ -367,7 +406,7 @@ export function Tracks({ zoom }: Props) {
                     type="button"
                     className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
                       active
-                        ? "bg-[var(--timeline-clip-frame-hover)] text-white shadow-md"
+                        ? "z-10 bg-[var(--timeline-clip-frame-hover)] text-white shadow-md ring-2 ring-white"
                         : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
                     }`}
                     style={{ left, width }}

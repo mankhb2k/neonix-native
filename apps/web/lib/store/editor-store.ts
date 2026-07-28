@@ -32,6 +32,7 @@ export type SidebarTabId =
 type EditorState = {
   project: MotionProject | null;
   selectedSceneId: string | null;
+  selectedOverlayId: string | null;
   selectedNodeId: string | null;
   isExporting: boolean;
   activeSidebarTab: SidebarTabId;
@@ -61,6 +62,8 @@ type EditorState = {
   setIsOverTimeline: (over: boolean) => void;
   loadProject: (project: MotionProject, overlayScenes?: OverlaySceneItem[]) => void;
   selectScene: (sceneId: string) => void;
+  selectOverlay: (overlayId: string) => void;
+  clearTimelineSelection: () => void;
   selectNode: (nodeId: string | null) => void;
   setActiveSidebarTab: (tab: SidebarTabId) => void;
   updateBrand: (patch: Partial<MotionProject["metadata"]["brand"]>) => void;
@@ -75,6 +78,14 @@ type EditorState = {
     startTime: number,
     layerIndex?: number,
     insertNewLayer?: boolean,
+  ) => void;
+  moveOverlayScene: (
+    id: string,
+    patch: {
+      startTime: number;
+      layerIndex: number;
+      insertNewLayer?: boolean;
+    },
   ) => void;
   addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
   setExporting: (value: boolean) => void;
@@ -186,6 +197,7 @@ function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
 export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
   selectedSceneId: null,
+  selectedOverlayId: null,
   selectedNodeId: null,
   isExporting: false,
   activeSidebarTab: "frame",
@@ -211,6 +223,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       project,
       selectedSceneId: firstScene?.id ?? null,
+      selectedOverlayId: null,
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
       overlayScenes,
       currentTime: 0,
@@ -218,10 +231,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  /** 3.2 Chọn Scene đang hoạt động */
+  /** 3.2 Chọn Scene đang hoạt động (clear overlay selection) */
   selectScene: (sceneId) => {
     const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
-    set({ selectedSceneId: sceneId, selectedNodeId: firstEditableNode(scene)?.id ?? null });
+    set({
+      selectedSceneId: sceneId,
+      selectedOverlayId: null,
+      selectedNodeId: firstEditableNode(scene)?.id ?? null,
+    });
+  },
+
+  /** Chọn overlay clip trên timeline (clear main scene selection) */
+  selectOverlay: (overlayId) => {
+    set({
+      selectedOverlayId: overlayId,
+      selectedSceneId: null,
+      selectedNodeId: null,
+    });
+  },
+
+  clearTimelineSelection: () => {
+    set({
+      selectedSceneId: null,
+      selectedOverlayId: null,
+      selectedNodeId: null,
+    });
   },
 
   /** 3.3 Chọn Node (thành phần đồ họa) đang hoạt động */
@@ -325,6 +359,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         },
       },
       selectedSceneId: scene.id,
+      selectedOverlayId: null,
       selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
@@ -370,6 +405,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       return {
         overlayScenes: [...updatedScenes, newOverlay],
+        selectedOverlayId: newOverlay.id,
+        selectedSceneId: null,
+        selectedNodeId: null,
+      };
+    });
+  },
+
+  /** Di chuyển overlay: đổi startTime / layer; insertNewLayer shift các tầng >= target */
+  moveOverlayScene: (id, patch) => {
+    set((state) => {
+      const existing = state.overlayScenes.find((item) => item.id === id);
+      if (!existing) return state;
+
+      const targetLayer = Math.max(0, patch.layerIndex);
+      const startTime = Math.max(0, patch.startTime);
+      let others = state.overlayScenes.filter((item) => item.id !== id);
+
+      if (patch.insertNewLayer) {
+        others = others.map((item) =>
+          item.layerIndex >= targetLayer
+            ? { ...item, layerIndex: item.layerIndex + 1 }
+            : item,
+        );
+      }
+
+      return {
+        overlayScenes: [
+          ...others,
+          {
+            ...existing,
+            startTime,
+            layerIndex: targetLayer,
+          },
+        ],
+        selectedOverlayId: id,
+        selectedSceneId: null,
+        selectedNodeId: null,
       };
     });
   },
