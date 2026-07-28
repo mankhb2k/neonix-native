@@ -32,6 +32,10 @@ type Props = {
 
 /** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
 const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
+/** Enter insert-line mode only when within this many px of a lane edge */
+const OVERLAY_EDGE_ENTER_PX = 2;
+/** Exit insert-line only when this far into the lane body (hysteresis) */
+const OVERLAY_EDGE_EXIT_PX = 10;
 
 export function Tracks({ zoom }: Props) {
   const project = useEditorStore((s) => s.project);
@@ -147,7 +151,6 @@ export function Tracks({ zoom }: Props) {
     const scrollLeft = rootRef.current.scrollLeft;
     const mouseX =
       event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
-    const mouseY = event.clientY - rect.top;
     const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
     const left = hoverTime * pixelsPerSecond;
 
@@ -186,57 +189,148 @@ export function Tracks({ zoom }: Props) {
     }
 
     if (!isAudio) {
-      const elementAtPoint = document.elementFromPoint(
-        event.clientX,
-        event.clientY,
-      );
-      const laneEl = elementAtPoint?.closest("[data-track-lane]");
+      const ws = workspaceRef.current;
 
-      if (laneEl && workspaceRef.current) {
-        const wsRect = workspaceRef.current.getBoundingClientRect();
+      function findNearestVideoLane(clientY: number): HTMLElement | null {
+        const scope = ws ?? rootRef.current;
+        if (!scope) return null;
+        const lanes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+        let best: HTMLElement | null = null;
+        let bestDist = Infinity;
+        for (const lane of lanes) {
+          const type = lane.getAttribute("data-track-type");
+          if (type !== "overlay" && type !== "main") continue;
+          const r = lane.getBoundingClientRect();
+          let dist = 0;
+          if (clientY < r.top) dist = r.top - clientY;
+          else if (clientY > r.bottom) dist = clientY - r.bottom;
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = lane;
+          }
+        }
+        return best;
+      }
+
+      function applyLaneEdgeTarget(
+        laneEl: HTMLElement,
+        wasInsert: boolean,
+      ): void {
+        if (!ws) return;
+        const wsRect = ws.getBoundingClientRect();
         const laneRect = laneEl.getBoundingClientRect();
         const relY = event.clientY - laneRect.top;
-        const edgeThreshold = 8;
+        const h = laneRect.height;
         const trackType = laneEl.getAttribute("data-track-type");
         const layerIdxAttr = laneEl.getAttribute("data-layer-index");
         const laneTopInWorkspace = laneRect.top - wsRect.top;
 
+        const inBodyClear =
+          relY > OVERLAY_EDGE_EXIT_PX && relY < h - OVERLAY_EDGE_EXIT_PX;
+        const nearTopEnter = relY <= OVERLAY_EDGE_ENTER_PX;
+        const nearBottomEnter = relY >= h - OVERLAY_EDGE_ENTER_PX;
+
         if (trackType === "overlay" && layerIdxAttr !== null) {
           const currentLayerIdx = parseInt(layerIdxAttr, 10);
-          if (relY <= edgeThreshold) {
+
+          if (!wasInsert) {
+            if (nearTopEnter) {
+              setIsOverlayInsertLine(true);
+              setTargetOverlayLayer(currentLayerIdx + 1);
+              setIndicatorTopPos(laneTopInWorkspace - 1);
+            } else if (nearBottomEnter) {
+              setIsOverlayInsertLine(true);
+              setTargetOverlayLayer(currentLayerIdx);
+              setIndicatorTopPos(laneTopInWorkspace + h - 1);
+            } else {
+              setIsOverlayInsertLine(false);
+              setTargetOverlayLayer(currentLayerIdx);
+            }
+          } else if (inBodyClear) {
+            setIsOverlayInsertLine(false);
+            setTargetOverlayLayer(currentLayerIdx);
+          } else if (relY < h / 2) {
+            // Dead band / still near top — keep insert above this lane
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(currentLayerIdx + 1);
             setIndicatorTopPos(laneTopInWorkspace - 1);
-          } else if (relY >= laneRect.height - edgeThreshold) {
+          } else {
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(currentLayerIdx);
-            setIndicatorTopPos(laneTopInWorkspace + laneRect.height - 1);
-          } else {
-            setIsOverlayInsertLine(false);
-            setTargetOverlayLayer(currentLayerIdx);
+            setIndicatorTopPos(laneTopInWorkspace + h - 1);
           }
-        } else if (trackType === "main") {
-          if (relY <= 10) {
+          return;
+        }
+
+        if (trackType === "main") {
+          if (!wasInsert) {
+            if (nearTopEnter) {
+              setIsOverlayInsertLine(true);
+              setTargetOverlayLayer(0);
+              setIndicatorTopPos(laneTopInWorkspace - 1);
+            } else {
+              setIsOverlayInsertLine(false);
+              setTargetOverlayLayer(null);
+            }
+          } else if (relY > OVERLAY_EDGE_EXIT_PX) {
+            setIsOverlayInsertLine(false);
+            setTargetOverlayLayer(null);
+          } else {
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(0);
             setIndicatorTopPos(laneTopInWorkspace - 1);
-          } else {
-            setIsOverlayInsertLine(false);
-            setTargetOverlayLayer(null);
           }
         }
-      } else {
-        // Fallback: top padding above main — only while already in cyan mode
-        if (mouseY < 120 && uniqueLayers.length > 0) {
-          const maxLayer = Math.max(...uniqueLayers);
+      }
+
+      const elementAtPoint = document.elementFromPoint(
+        event.clientX,
+        event.clientY,
+      );
+      let laneEl =
+        (elementAtPoint?.closest("[data-track-lane]") as HTMLElement | null) ??
+        null;
+
+      // Ignore audio / unlabeled lanes for frame drop targeting
+      if (
+        laneEl &&
+        laneEl.getAttribute("data-track-type") !== "overlay" &&
+        laneEl.getAttribute("data-track-type") !== "main"
+      ) {
+        laneEl = null;
+      }
+
+      if (!laneEl && ws) {
+        // Truly above the topmost overlay lane → insert new top layer
+        const overlayLanes = ws.querySelectorAll<HTMLElement>(
+          '[data-track-lane][data-track-type="overlay"]',
+        );
+        let topmost: HTMLElement | null = null;
+        let topmostTop = Infinity;
+        for (const lane of overlayLanes) {
+          const top = lane.getBoundingClientRect().top;
+          if (top < topmostTop) {
+            topmostTop = top;
+            topmost = lane;
+          }
+        }
+
+        if (topmost && event.clientY < topmostTop) {
+          const wsRect = ws.getBoundingClientRect();
+          const maxLayer =
+            uniqueLayers.length > 0 ? Math.max(...uniqueLayers) : 0;
           setIsOverlayInsertLine(true);
           setTargetOverlayLayer(maxLayer + 1);
-          setIndicatorTopPos(39);
+          setIndicatorTopPos(topmostTop - wsRect.top - 1);
         } else {
-          setIsOverlayInsertLine(mouseY <= 60);
-          setTargetOverlayLayer(0);
-          setIndicatorTopPos(39);
+          laneEl = findNearestVideoLane(event.clientY);
+          if (laneEl) {
+            applyLaneEdgeTarget(laneEl, isOverlayInsertLine);
+          }
+          // No lane at all: keep previous target (do not jump to L1)
         }
+      } else if (laneEl) {
+        applyLaneEdgeTarget(laneEl, isOverlayInsertLine);
       }
     } else {
       setIsOverlayInsertLine(false);
