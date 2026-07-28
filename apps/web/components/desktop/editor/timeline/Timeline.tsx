@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { timelineContentEndSeconds } from "./timeline-scale";
 import { TransportBar } from "./TransportBar/TransportBar";
-import { Tracks } from "./Tracks/Tracks";
+import { TimelineBoard } from "./TimelineBoard";
 
 export function Timeline() {
   const zoom = useEditorStore((s) => s.timelineZoom);
@@ -39,7 +39,8 @@ export function Timeline() {
   return (
     <div className="col-span-full flex flex-col h-full min-h-0 overflow-hidden [grid-area:timeline]">
       <TransportBar zoom={zoom} onZoomChange={setTimelineZoom} />
-      <Tracks zoom={zoom} />
+      {/* TimeRuler + Tracks + Playhead (ruler không scroll dọc) */}
+      <TimelineBoard zoom={zoom} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useRef, useState, useEffect, type RefObject } from "react";
 import {
   Film,
   Lock,
@@ -12,75 +12,56 @@ import {
   Music,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { TrackLane } from "./TrackLane";
-import { Playhead, clientXToTimelineTime } from "./Playhead";
 import { useTracksDrag } from "./useTracksDrag";
 import { useOverlayClipMove } from "./useOverlayClipMove";
-import {
-  TIMELINE_LABEL_WIDTH,
-  TIMELINE_PPS_MIN,
-  maxPixelsPerSecondForView,
-  timelineCanvasDuration,
-  timelineContentEndSeconds,
-  timelineWorkspaceSeconds,
-  zoomToPixelsPerSecond,
-} from "../timeline-scale";
+import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
 type Props = {
   zoom: number;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  rulerHeaderRef: RefObject<HTMLDivElement | null>;
+  viewWidth: number;
+  pixelsPerSecond: number;
+  canvasWidth: number;
+  contentEnd: number;
+  onScrollLeft: (scrollLeft: number) => void;
+  onScrubBlockedChange: (blocked: boolean) => void;
 };
 
-export function Tracks({ zoom }: Props) {
+/** Scrollable track lanes only — TimeRuler / Playhead live in TimelineBoard. */
+export function Tracks({
+  scrollRef,
+  rulerHeaderRef,
+  viewWidth,
+  pixelsPerSecond,
+  canvasWidth,
+  onScrollLeft,
+  onScrubBlockedChange,
+}: Props) {
   const scenes = useEditorStore((s) => s.project?.scenes);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
-  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
   const selectedOverlayId = useEditorStore((s) => s.selectedOverlayId);
   const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
-  const currentTime = useEditorStore((s) => s.currentTime);
-  const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
-  const rootRef = useRef<HTMLDivElement>(null);
-  const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
-  const [viewWidth, setViewWidth] = useState(0);
 
-  // Track control states (CapCut style)
   const [videoLocked, setVideoLocked] = useState(false);
   const [videoVisible, setVideoVisible] = useState(true);
   const [audioLocked, setAudioLocked] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
 
-  // Re-bind when project appears: first paint often returns null (no DOM),
-  // so a mount-only effect would leave viewWidth stuck at 0 forever.
-  useLayoutEffect(() => {
-    const el = rootRef.current;
-    if (!el) return undefined;
-    const update = () => setViewWidth(el.clientWidth);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [scenes]);
-
-  const total = scenes?.reduce((sum, s) => sum + s.duration, 0) ?? 0;
-  const contentEnd = timelineContentEndSeconds(scenes ?? [], overlayScenes);
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
-  const workspaceSeconds = timelineWorkspaceSeconds(contentEnd);
-  const floorPps =
-    trackViewWidth > 0 ? trackViewWidth / workspaceSeconds : TIMELINE_PPS_MIN;
-  const ceilingPps = maxPixelsPerSecondForView(trackViewWidth, fps);
-  const pixelsPerSecond = zoomToPixelsPerSecond(zoom, floorPps, ceilingPps);
   const uniqueLayers = Array.from(
     new Set(overlayScenes.map((item) => item.layerIndex)),
   ).sort((a, b) => b - a);
 
   const sidebarDrag = useTracksDrag({
-    rootRef,
+    rootRef: scrollRef,
     rulerHeaderRef,
     workspaceRef,
     pixelsPerSecond,
@@ -89,13 +70,17 @@ export function Tracks({ zoom }: Props) {
   });
 
   const clipMove = useOverlayClipMove({
-    rootRef,
+    rootRef: scrollRef,
     workspaceRef,
     pixelsPerSecond,
     uniqueLayers,
   });
 
-  // Overlay clip move owns ghosts while active; otherwise sidebar HTML5 drag.
+  const scrubBlocked = clipMove.isMoving || activeDragItem != null;
+  useEffect(() => {
+    onScrubBlockedChange(scrubBlocked);
+  }, [scrubBlocked, onScrubBlockedChange]);
+
   const isOverlayInsertLine = clipMove.isMoving
     ? clipMove.isOverlayInsertLine
     : sidebarDrag.isOverlayInsertLine;
@@ -114,17 +99,17 @@ export function Tracks({ zoom }: Props) {
   const dragOver = sidebarDrag.dragOver;
 
   if (!scenes || !projectId || !audioTracks) {
-    return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
+    return (
+      <div
+        ref={scrollRef}
+        className="relative min-h-0 flex-1 overflow-auto"
+      />
+    );
   }
 
-  const rulerDuration = timelineCanvasDuration(
-    contentEnd,
-    pixelsPerSecond,
-    trackViewWidth,
-  );
-  const canvasWidth = rulerDuration * pixelsPerSecond;
-  const playheadLeft = TIMELINE_LABEL_WIDTH + currentTime * pixelsPerSecond;
+  const total = scenes.reduce((sum, s) => sum + s.duration, 0);
   const isEmpty = scenes.length === 0;
+  const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
 
   let cursor = 0;
   const sceneBlocks = scenes.map((scene, index) => {
@@ -136,10 +121,13 @@ export function Tracks({ zoom }: Props) {
 
   return (
     <div
-      ref={rootRef}
-      className={`relative flex-1 overflow-auto transition-colors select-none bg-[var(--bg-panel)] ${
+      ref={scrollRef}
+      className={`relative min-h-0 flex-1 overflow-auto transition-colors select-none ${
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
+      onScroll={(event) => {
+        onScrollLeft(event.currentTarget.scrollLeft);
+      }}
       onDragOver={sidebarDrag.handleDragOver}
       onDragEnter={sidebarDrag.handleDragEnter}
       onDragLeave={sidebarDrag.handleDragLeave}
@@ -152,54 +140,8 @@ export function Tracks({ zoom }: Props) {
     >
       <div
         className="relative min-h-full flex flex-col flex-1"
-        style={{ minWidth: TIMELINE_LABEL_WIDTH + canvasWidth }}
+        style={{ minWidth: canvasMinWidth }}
       >
-        {/* Playhead — z-50 above ruler / clips / insert line */}
-        <Playhead
-          left={playheadLeft}
-          labelWidth={TIMELINE_LABEL_WIDTH}
-          pixelsPerSecond={pixelsPerSecond}
-          maxTime={contentEnd}
-          scrollContainerRef={rootRef}
-          enabled={!clipMove.isMoving && activeDragItem == null}
-          onSeek={setCurrentTime}
-        />
-
-        {/* 1. TimeRuler Header Bar (Sticky Top 0, Z-Index 40) */}
-        <div
-          ref={rulerHeaderRef}
-          className="sticky top-0 z-40 flex bg-[var(--bg-panel)]"
-        >
-          <div
-            className="sticky left-0 z-40 shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
-            style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
-          />
-          <TimeRuler
-            duration={rulerDuration}
-            fps={fps}
-            pixelsPerSecond={pixelsPerSecond}
-            width={canvasWidth}
-            onSeekClick={
-              !clipMove.isMoving && activeDragItem == null
-                ? (clientX) => {
-                    const root = rootRef.current;
-                    if (!root) return;
-                    setCurrentTime(
-                      clientXToTimelineTime(
-                        clientX,
-                        root,
-                        TIMELINE_LABEL_WIDTH,
-                        pixelsPerSecond,
-                        contentEnd,
-                      ),
-                    );
-                  }
-                : undefined
-            }
-          />
-        </div>
-
-        {/* 2. Track Workspace Area (With Top Gap & Bottom Gap on scroll) */}
         {isEmpty ? (
           <div className="flex flex-1 min-h-[160px] items-center pt-6 pb-12">
             <div
@@ -279,7 +221,6 @@ export function Tracks({ zoom }: Props) {
               }
             }}
           >
-            {/* Multi-layer Secondary Overlay Video Track Runway Lanes */}
             {uniqueLayers.map((layerIdx) => {
               const layerItems = overlayScenes.filter(
                 (item) => item.layerIndex === layerIdx,
@@ -337,7 +278,6 @@ export function Tracks({ zoom }: Props) {
               );
             })}
 
-            {/* Gray insert ghost (separate from cyan) — left synced via rAF */}
             {isOverlayInsertLine && dragGhostState && (
               <>
                 <div
@@ -360,7 +300,6 @@ export function Tracks({ zoom }: Props) {
               </>
             )}
 
-            {/* 1. Main Video Track Runway Lane */}
             <TrackLane
               variant="main"
               dataTrackType="main"
@@ -459,7 +398,6 @@ export function Tracks({ zoom }: Props) {
               })}
             </TrackLane>
 
-            {/* 2. Audio Track Runway Lane */}
             {audioTracks.length > 0 && (
               <TrackLane
                 variant="secondary"

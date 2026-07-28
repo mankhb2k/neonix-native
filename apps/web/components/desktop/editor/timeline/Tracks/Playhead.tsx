@@ -30,7 +30,7 @@ type Props = {
 
 const HIT_STRIP_WIDTH_PX = 14;
 
-/** CapCut inverted-house — always solid white, no stroke, flat top flush to ruler edge. */
+/** CapCut inverted-house — solid fill, flat top flush to ruler edge. */
 function PlayheadHandleIcon() {
   return (
     <svg
@@ -39,10 +39,11 @@ function PlayheadHandleIcon() {
       viewBox="0 0 11 13"
       fill="none"
       aria-hidden
+      className="text-[var(--timeline-playhead)]"
     >
       <path
         d="M0 0h11v7.5L5.5 13 0 7.5V0z"
-        fill="#ffffff"
+        fill="currentColor"
       />
     </svg>
   );
@@ -128,9 +129,9 @@ export function Playhead({
         style={{ left: 0, top: 12 }}
       />
 
-      {/* Solid handle flush to top edge of TimeRuler */}
+      {/* Solid handle flush to top edge of TimeRuler — above sticky ruler bg */}
       <div
-        className={`absolute top-0 left-0 flex w-5 -translate-x-1/2 items-start justify-center touch-none cursor-ew-resize ${
+        className={`absolute top-0 left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none opacity-60"
         }`}
         style={{ height: 13 }}
