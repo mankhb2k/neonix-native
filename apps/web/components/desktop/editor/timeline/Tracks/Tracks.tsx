@@ -36,6 +36,156 @@ const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
 const OVERLAY_EDGE_ENTER_PX = 2;
 /** Exit insert-line only when this far into the lane body (hysteresis) */
 const OVERLAY_EDGE_EXIT_PX = 10;
+/** Skip indicator setState when Y barely moved (cuts dragover re-renders) */
+const INDICATOR_TOP_EPS_PX = 0.5;
+
+type VideoLaneHit = {
+  top: number;
+  bottom: number;
+  type: "overlay" | "main";
+  layerIndex: number | null;
+};
+
+type OverlayDragTarget = {
+  isInsert: boolean;
+  layer: number | null;
+  indicatorTop: number;
+};
+
+function collectVideoLanes(scope: HTMLElement): VideoLaneHit[] {
+  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+  const out: VideoLaneHit[] = [];
+  for (const el of nodes) {
+    const type = el.getAttribute("data-track-type");
+    if (type !== "overlay" && type !== "main") continue;
+    const r = el.getBoundingClientRect();
+    const layerAttr = el.getAttribute("data-layer-index");
+    out.push({
+      top: r.top,
+      bottom: r.bottom,
+      type,
+      layerIndex: layerAttr != null ? Number.parseInt(layerAttr, 10) : null,
+    });
+  }
+  out.sort((a, b) => a.top - b.top);
+  return out;
+}
+
+function gapMidInWs(upper: VideoLaneHit, lower: VideoLaneHit, wsTop: number): number {
+  return (upper.bottom + lower.top) / 2 - wsTop;
+}
+
+function resolveInsideLane(
+  clientY: number,
+  lane: VideoLaneHit,
+  next: VideoLaneHit | undefined,
+  prev: VideoLaneHit | undefined,
+  wsTop: number,
+  wasInsert: boolean,
+): OverlayDragTarget {
+  const relY = clientY - lane.top;
+  const h = Math.max(lane.bottom - lane.top, 1);
+  const inBodyClear =
+    relY > OVERLAY_EDGE_EXIT_PX && relY < h - OVERLAY_EDGE_EXIT_PX;
+  const nearTopEnter = relY <= OVERLAY_EDGE_ENTER_PX;
+  const nearBottomEnter = relY >= h - OVERLAY_EDGE_ENTER_PX;
+
+  const insertAbove = (): OverlayDragTarget => {
+    const indicatorTop =
+      prev != null ? gapMidInWs(prev, lane, wsTop) : lane.top - wsTop - 1;
+    if (lane.type === "overlay" && lane.layerIndex != null) {
+      return { isInsert: true, layer: lane.layerIndex + 1, indicatorTop };
+    }
+    return { isInsert: true, layer: 0, indicatorTop };
+  };
+
+  const insertBelow = (): OverlayDragTarget => {
+    if (lane.type !== "overlay" || lane.layerIndex == null) {
+      return { isInsert: false, layer: null, indicatorTop: 0 };
+    }
+    const indicatorTop =
+      next != null ? gapMidInWs(lane, next, wsTop) : lane.bottom - wsTop - 1;
+    return { isInsert: true, layer: lane.layerIndex, indicatorTop };
+  };
+
+  const body = (): OverlayDragTarget => {
+    if (lane.type === "overlay" && lane.layerIndex != null) {
+      return { isInsert: false, layer: lane.layerIndex, indicatorTop: 0 };
+    }
+    return { isInsert: false, layer: null, indicatorTop: 0 };
+  };
+
+  if (lane.type === "main") {
+    if (!wasInsert) {
+      if (nearTopEnter) return insertAbove();
+      return body();
+    }
+    if (relY > OVERLAY_EDGE_EXIT_PX) return body();
+    return insertAbove();
+  }
+
+  if (!wasInsert) {
+    if (nearTopEnter) return insertAbove();
+    if (nearBottomEnter) return insertBelow();
+    return body();
+  }
+  if (inBodyClear) return body();
+  if (relY < h / 2) return insertAbove();
+  return insertBelow();
+}
+
+/**
+ * Rect-based hit test (no elementFromPoint). Gaps between lanes always map to
+ * "insert below upper" so the cyan line target does not flip each pixel.
+ */
+function resolveOverlayDragTarget(
+  clientY: number,
+  lanes: VideoLaneHit[],
+  wsTop: number,
+  wasInsert: boolean,
+  maxOverlayLayer: number,
+): OverlayDragTarget | null {
+  if (lanes.length === 0) return null;
+
+  const first = lanes[0];
+  if (clientY < first.top) {
+    return {
+      isInsert: true,
+      layer: maxOverlayLayer + 1,
+      indicatorTop: first.top - wsTop - 1,
+    };
+  }
+
+  for (let i = 0; i < lanes.length; i++) {
+    const lane = lanes[i];
+    const next = lanes[i + 1];
+    const prev = i > 0 ? lanes[i - 1] : undefined;
+
+    // Gap → canonical "below upper" (never flip to "above lower")
+    if (next && clientY > lane.bottom && clientY < next.top) {
+      if (lane.type === "overlay" && lane.layerIndex != null) {
+        return {
+          isInsert: true,
+          layer: lane.layerIndex,
+          indicatorTop: gapMidInWs(lane, next, wsTop),
+        };
+      }
+      return {
+        isInsert: true,
+        layer: 0,
+        indicatorTop: gapMidInWs(lane, next, wsTop),
+      };
+    }
+
+    if (clientY >= lane.top && clientY <= lane.bottom) {
+      return resolveInsideLane(clientY, lane, next, prev, wsTop, wasInsert);
+    }
+  }
+
+  const last = lanes[lanes.length - 1];
+  const prev = lanes.length > 1 ? lanes[lanes.length - 2] : undefined;
+  return resolveInsideLane(clientY, last, undefined, prev, wsTop, wasInsert);
+}
 
 export function Tracks({ zoom }: Props) {
   const scenes = useEditorStore((s) => s.project?.scenes);
@@ -58,6 +208,16 @@ export function Tracks({ zoom }: Props) {
   const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const insertGhostRef = useRef<HTMLDivElement>(null);
+  /** Mirrors drag UI so dragover can skip redundant setState (stops not-allowed flicker). */
+  const dragUiRef = useRef({
+    dragOver: false,
+    isInsert: false,
+    layer: null as number | null,
+    indicatorTop: 0,
+    ghostKey: "" as string,
+  });
+  /** Drop time uses live X; avoid putting left into React every dragover. */
+  const ghostLeftRef = useRef(0);
   const [viewWidth, setViewWidth] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
@@ -155,7 +315,10 @@ export function Tracks({ zoom }: Props) {
 
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
-    setDragOver(true);
+    if (!dragUiRef.current.dragOver) {
+      dragUiRef.current.dragOver = true;
+      setDragOver(true);
+    }
 
     if (!rootRef.current) return;
     const rect = rootRef.current.getBoundingClientRect();
@@ -164,6 +327,7 @@ export function Tracks({ zoom }: Props) {
       event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
     const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
     const left = hoverTime * pixelsPerSecond;
+    ghostLeftRef.current = left;
 
     // Single threshold vs TimeRuler top border: same line for card↔cyan.
     const rulerTop =
@@ -174,14 +338,26 @@ export function Tracks({ zoom }: Props) {
       setIsOverTimeline(nextOver);
     }
 
+    const clearOverlayTarget = () => {
+      const ui = dragUiRef.current;
+      if (ui.isInsert || ui.layer != null) {
+        ui.isInsert = false;
+        ui.layer = null;
+        setIsOverlayInsertLine(false);
+        setTargetOverlayLayer(null);
+      }
+    };
+
     // Above threshold as card mode: no lane ghosts (prevents flash under ruler).
     if (!nextOver) {
       if (event.clientX > 0 && event.clientY > 0) {
         setDragCursor(event.clientX, event.clientY);
       }
-      setIsOverlayInsertLine(false);
-      setTargetOverlayLayer(null);
-      setDragGhostState(null);
+      clearOverlayTarget();
+      if (dragUiRef.current.ghostKey !== "") {
+        dragUiRef.current.ghostKey = "";
+        setDragGhostState(null);
+      }
       return;
     }
 
@@ -192,8 +368,10 @@ export function Tracks({ zoom }: Props) {
     const label =
       dragItem?.name ?? (isAudio ? "Âm thanh" : "Khung hình");
     const ghostWidth = Math.max(duration * pixelsPerSecond, 24);
+    const targetTrack = isAudio ? "audio" : "video";
+    const ghostKey = `${label}|${duration}|${ghostWidth}|${targetTrack}`;
 
-    // Same rAF as cyan — gray left/width stay in lockstep.
+    // Same rAF as cyan — gray left/width stay in lockstep (imperative; no React).
     setDragGhostLayout(left, ghostWidth);
     // Cyan centered on gray (gray left ≈ clientX, center ≈ clientX + width/2).
     if (event.clientX > 0 && event.clientY > 0) {
@@ -202,234 +380,51 @@ export function Tracks({ zoom }: Props) {
 
     if (!isAudio) {
       const ws = workspaceRef.current;
-
-      function findNearestVideoLane(clientY: number): HTMLElement | null {
-        const scope = ws ?? rootRef.current;
-        if (!scope) return null;
-        const lanes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
-        let best: HTMLElement | null = null;
-        let bestDist = Infinity;
-        for (const lane of lanes) {
-          const type = lane.getAttribute("data-track-type");
-          if (type !== "overlay" && type !== "main") continue;
-          const r = lane.getBoundingClientRect();
-          let dist = 0;
-          if (clientY < r.top) dist = r.top - clientY;
-          else if (clientY > r.bottom) dist = clientY - r.bottom;
-          if (dist < bestDist) {
-            bestDist = dist;
-            best = lane;
-          }
-        }
-        return best;
-      }
-
-      function gapMidInWorkspace(
-        edge: "above" | "below",
-        layerIdx: number,
-      ): number {
-        const wsRect = ws!.getBoundingClientRect();
-        const overlayLanes = Array.from(
-          ws!.querySelectorAll<HTMLElement>(
-            '[data-track-lane][data-track-type="overlay"]',
-          ),
+      if (ws) {
+        const wsTop = ws.getBoundingClientRect().top;
+        const lanes = collectVideoLanes(ws);
+        const maxOverlayLayer =
+          uniqueLayers.length > 0 ? Math.max(...uniqueLayers) : 0;
+        const target = resolveOverlayDragTarget(
+          event.clientY,
+          lanes,
+          wsTop,
+          dragUiRef.current.isInsert,
+          maxOverlayLayer,
         );
-        const thisLane = overlayLanes.find(
-          (lane) => lane.getAttribute("data-layer-index") === String(layerIdx),
-        );
-        if (!thisLane) return 0;
-        const thisRect = thisLane.getBoundingClientRect();
-
-        if (edge === "above") {
-          let aboveBottom = -Infinity;
-          let foundAbove = false;
-          for (const lane of overlayLanes) {
-            const r = lane.getBoundingClientRect();
-            if (r.bottom <= thisRect.top + 1 && r.bottom > aboveBottom) {
-              aboveBottom = r.bottom;
-              foundAbove = true;
+        if (target) {
+          const ui = dragUiRef.current;
+          const layerChanged = ui.layer !== target.layer;
+          const insertChanged = ui.isInsert !== target.isInsert;
+          const topChanged =
+            target.isInsert &&
+            Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
+          if (insertChanged || layerChanged || topChanged) {
+            ui.isInsert = target.isInsert;
+            ui.layer = target.layer;
+            if (insertChanged) setIsOverlayInsertLine(target.isInsert);
+            if (layerChanged) setTargetOverlayLayer(target.layer);
+            if (target.isInsert && (topChanged || insertChanged)) {
+              ui.indicatorTop = target.indicatorTop;
+              setIndicatorTopPos(target.indicatorTop);
             }
           }
-          if (foundAbove) {
-            // One shared Y for "below upper lane" and "above this lane"
-            return (aboveBottom + thisRect.top) / 2 - wsRect.top;
-          }
-          return thisRect.top - wsRect.top - 1;
         }
-
-        let belowTop = Infinity;
-        let foundBelow = false;
-        for (const lane of overlayLanes) {
-          const r = lane.getBoundingClientRect();
-          if (r.top >= thisRect.bottom - 1 && r.top < belowTop) {
-            belowTop = r.top;
-            foundBelow = true;
-          }
-        }
-        if (foundBelow) {
-          return (thisRect.bottom + belowTop) / 2 - wsRect.top;
-        }
-        const main = ws!.querySelector<HTMLElement>(
-          '[data-track-lane][data-track-type="main"]',
-        );
-        if (main) {
-          const mainRect = main.getBoundingClientRect();
-          if (mainRect.top >= thisRect.bottom - 1) {
-            return (thisRect.bottom + mainRect.top) / 2 - wsRect.top;
-          }
-        }
-        return thisRect.bottom - wsRect.top - 1;
-      }
-
-      function applyLaneEdgeTarget(
-        laneEl: HTMLElement,
-        wasInsert: boolean,
-      ): void {
-        if (!ws) return;
-        const laneRect = laneEl.getBoundingClientRect();
-        const relY = event.clientY - laneRect.top;
-        const h = laneRect.height;
-        const trackType = laneEl.getAttribute("data-track-type");
-        const layerIdxAttr = laneEl.getAttribute("data-layer-index");
-        const wsRect = ws.getBoundingClientRect();
-        const laneTopInWorkspace = laneRect.top - wsRect.top;
-
-        const inBodyClear =
-          relY > OVERLAY_EDGE_EXIT_PX && relY < h - OVERLAY_EDGE_EXIT_PX;
-        const nearTopEnter = relY <= OVERLAY_EDGE_ENTER_PX;
-        const nearBottomEnter = relY >= h - OVERLAY_EDGE_ENTER_PX;
-
-        if (trackType === "overlay" && layerIdxAttr !== null) {
-          const currentLayerIdx = parseInt(layerIdxAttr, 10);
-
-          const setInsertAbove = () => {
-            setIsOverlayInsertLine(true);
-            setTargetOverlayLayer(currentLayerIdx + 1);
-            setIndicatorTopPos(gapMidInWorkspace("above", currentLayerIdx));
-          };
-          const setInsertBelow = () => {
-            setIsOverlayInsertLine(true);
-            setTargetOverlayLayer(currentLayerIdx);
-            setIndicatorTopPos(gapMidInWorkspace("below", currentLayerIdx));
-          };
-          const setBody = () => {
-            setIsOverlayInsertLine(false);
-            setTargetOverlayLayer(currentLayerIdx);
-          };
-
-          if (!wasInsert) {
-            if (nearTopEnter) setInsertAbove();
-            else if (nearBottomEnter) setInsertBelow();
-            else setBody();
-          } else if (inBodyClear) {
-            setBody();
-          } else if (relY < h / 2) {
-            setInsertAbove();
-          } else {
-            setInsertBelow();
-          }
-          return;
-        }
-
-        if (trackType === "main") {
-          if (!wasInsert) {
-            if (nearTopEnter) {
-              setIsOverlayInsertLine(true);
-              setTargetOverlayLayer(0);
-              // Midpoint between lowest overlay and main, or flush above main
-              const overlayLanes = Array.from(
-                ws.querySelectorAll<HTMLElement>(
-                  '[data-track-lane][data-track-type="overlay"]',
-                ),
-              );
-              let lowestBottom = -Infinity;
-              for (const lane of overlayLanes) {
-                const bottom = lane.getBoundingClientRect().bottom;
-                if (bottom > lowestBottom) lowestBottom = bottom;
-              }
-              if (lowestBottom > -Infinity && lowestBottom <= laneRect.top + 1) {
-                setIndicatorTopPos(
-                  (lowestBottom + laneRect.top) / 2 - wsRect.top,
-                );
-              } else {
-                setIndicatorTopPos(laneTopInWorkspace - 1);
-              }
-            } else {
-              setIsOverlayInsertLine(false);
-              setTargetOverlayLayer(null);
-            }
-          } else if (relY > OVERLAY_EDGE_EXIT_PX) {
-            setIsOverlayInsertLine(false);
-            setTargetOverlayLayer(null);
-          } else {
-            setIsOverlayInsertLine(true);
-            setTargetOverlayLayer(0);
-            setIndicatorTopPos(laneTopInWorkspace - 1);
-          }
-        }
-      }
-
-      const elementAtPoint = document.elementFromPoint(
-        event.clientX,
-        event.clientY,
-      );
-      let laneEl =
-        (elementAtPoint?.closest("[data-track-lane]") as HTMLElement | null) ??
-        null;
-
-      // Ignore audio / unlabeled lanes for frame drop targeting
-      if (
-        laneEl &&
-        laneEl.getAttribute("data-track-type") !== "overlay" &&
-        laneEl.getAttribute("data-track-type") !== "main"
-      ) {
-        laneEl = null;
-      }
-
-      if (!laneEl && ws) {
-        // Truly above the topmost overlay lane → insert new top layer
-        const overlayLanes = ws.querySelectorAll<HTMLElement>(
-          '[data-track-lane][data-track-type="overlay"]',
-        );
-        let topmost: HTMLElement | null = null;
-        let topmostTop = Infinity;
-        for (const lane of overlayLanes) {
-          const top = lane.getBoundingClientRect().top;
-          if (top < topmostTop) {
-            topmostTop = top;
-            topmost = lane;
-          }
-        }
-
-        if (topmost && event.clientY < topmostTop) {
-          const wsRect = ws.getBoundingClientRect();
-          const maxLayer =
-            uniqueLayers.length > 0 ? Math.max(...uniqueLayers) : 0;
-          setIsOverlayInsertLine(true);
-          setTargetOverlayLayer(maxLayer + 1);
-          setIndicatorTopPos(topmostTop - wsRect.top - 1);
-        } else {
-          laneEl = findNearestVideoLane(event.clientY);
-          if (laneEl) {
-            applyLaneEdgeTarget(laneEl, isOverlayInsertLine);
-          }
-          // No lane at all: keep previous target (do not jump to L1)
-        }
-      } else if (laneEl) {
-        applyLaneEdgeTarget(laneEl, isOverlayInsertLine);
       }
     } else {
-      setIsOverlayInsertLine(false);
-      setTargetOverlayLayer(null);
+      clearOverlayTarget();
     }
 
-    setDragGhostState({
-      left,
-      width: ghostWidth,
-      label,
-      duration,
-      targetTrack: isAudio ? "audio" : "video",
-    });
+    if (dragUiRef.current.ghostKey !== ghostKey) {
+      dragUiRef.current.ghostKey = ghostKey;
+      setDragGhostState({
+        left,
+        width: ghostWidth,
+        label,
+        duration,
+        targetTrack,
+      });
+    }
   }
 
   function handleDragLeave(event: React.DragEvent) {
@@ -451,6 +446,13 @@ export function Tracks({ zoom }: Props) {
       return;
     }
 
+    dragUiRef.current = {
+      dragOver: false,
+      isInsert: false,
+      layer: null,
+      indicatorTop: 0,
+      ghostKey: "",
+    };
     setDragOver(false);
     setIsOverlayInsertLine(false);
     setTargetOverlayLayer(null);
@@ -460,26 +462,35 @@ export function Tracks({ zoom }: Props) {
 
   function handleDrop(event: React.DragEvent) {
     event.preventDefault();
+    const dropInsert = dragUiRef.current.isInsert;
+    const dropLayer = dragUiRef.current.layer;
+    const dropLeft = ghostLeftRef.current;
+
+    dragUiRef.current = {
+      dragOver: false,
+      isInsert: false,
+      layer: null,
+      indicatorTop: 0,
+      ghostKey: "",
+    };
     setDragOver(false);
     setIsOverTimeline(false);
     setActiveDragItem(null);
     clearDragCursor();
 
-    if (isOverlayInsertLine || targetOverlayLayer !== null) {
+    if (dropInsert || dropLayer !== null) {
       const frameId =
         event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
         event.dataTransfer.getData("text/plain");
       if (frameId && projectId) {
         const draft = getFrame(projectId, frameId);
         if (draft) {
-          const dropTime = dragGhostState
-            ? dragGhostState.left / Math.max(pixelsPerSecond, 1)
-            : 0;
+          const dropTime = dropLeft / Math.max(pixelsPerSecond, 1);
           addOverlaySceneFromFrame(
             draft,
             dropTime,
-            targetOverlayLayer ?? 0,
-            isOverlayInsertLine,
+            dropLayer ?? 0,
+            dropInsert,
           );
         }
       }
@@ -518,6 +529,23 @@ export function Tracks({ zoom }: Props) {
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
       onDragOver={handleDragOver}
+      onDragEnter={(event) => {
+        // Some browsers need dragenter preventDefault for a stable copy cursor.
+        const dragItem = useEditorStore.getState().activeDragItem;
+        if (!dragItem) {
+          const types = Array.from(event.dataTransfer.types);
+          if (
+            !types.includes(FRAME_LIBRARY_MIME) &&
+            !types.includes(AUDIO_LIBRARY_MIME) &&
+            !types.includes("application/json") &&
+            !types.includes("text/plain")
+          ) {
+            return;
+          }
+        }
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
