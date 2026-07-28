@@ -134,14 +134,21 @@ export function Tracks({ zoom }: Props) {
   ).sort((a, b) => b - a);
 
   function handleDragOver(event: React.DragEvent) {
-    if (
-      !event.dataTransfer.types.includes(FRAME_LIBRARY_MIME) &&
-      !event.dataTransfer.types.includes(AUDIO_LIBRARY_MIME) &&
-      !event.dataTransfer.types.includes("application/json") &&
-      !event.dataTransfer.types.includes("text/plain")
-    ) {
-      return;
+    const dragItem = useEditorStore.getState().activeDragItem;
+    // Trust store while dragging: always allow copy cursor on timeline.
+    // dataTransfer.types can flicker mid-drag and would show not-allowed.
+    if (!dragItem) {
+      const types = Array.from(event.dataTransfer.types);
+      if (
+        !types.includes(FRAME_LIBRARY_MIME) &&
+        !types.includes(AUDIO_LIBRARY_MIME) &&
+        !types.includes("application/json") &&
+        !types.includes("text/plain")
+      ) {
+        return;
+      }
     }
+
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     setDragOver(true);
@@ -174,8 +181,9 @@ export function Tracks({ zoom }: Props) {
       return;
     }
 
-    const isAudio = event.dataTransfer.types.includes(AUDIO_LIBRARY_MIME);
-    const dragItem = useEditorStore.getState().activeDragItem;
+    const types = Array.from(event.dataTransfer.types);
+    const isAudio =
+      dragItem?.type === "audio" || types.includes(AUDIO_LIBRARY_MIME);
     const duration = dragItem?.duration ?? 5;
     const label =
       dragItem?.name ?? (isAudio ? "Âm thanh" : "Khung hình");
@@ -212,17 +220,74 @@ export function Tracks({ zoom }: Props) {
         return best;
       }
 
+      function gapMidInWorkspace(
+        edge: "above" | "below",
+        layerIdx: number,
+      ): number {
+        const wsRect = ws!.getBoundingClientRect();
+        const overlayLanes = Array.from(
+          ws!.querySelectorAll<HTMLElement>(
+            '[data-track-lane][data-track-type="overlay"]',
+          ),
+        );
+        const thisLane = overlayLanes.find(
+          (lane) => lane.getAttribute("data-layer-index") === String(layerIdx),
+        );
+        if (!thisLane) return 0;
+        const thisRect = thisLane.getBoundingClientRect();
+
+        if (edge === "above") {
+          let aboveBottom = -Infinity;
+          let foundAbove = false;
+          for (const lane of overlayLanes) {
+            const r = lane.getBoundingClientRect();
+            if (r.bottom <= thisRect.top + 1 && r.bottom > aboveBottom) {
+              aboveBottom = r.bottom;
+              foundAbove = true;
+            }
+          }
+          if (foundAbove) {
+            // One shared Y for "below upper lane" and "above this lane"
+            return (aboveBottom + thisRect.top) / 2 - wsRect.top;
+          }
+          return thisRect.top - wsRect.top - 1;
+        }
+
+        let belowTop = Infinity;
+        let foundBelow = false;
+        for (const lane of overlayLanes) {
+          const r = lane.getBoundingClientRect();
+          if (r.top >= thisRect.bottom - 1 && r.top < belowTop) {
+            belowTop = r.top;
+            foundBelow = true;
+          }
+        }
+        if (foundBelow) {
+          return (thisRect.bottom + belowTop) / 2 - wsRect.top;
+        }
+        const main = ws!.querySelector<HTMLElement>(
+          '[data-track-lane][data-track-type="main"]',
+        );
+        if (main) {
+          const mainRect = main.getBoundingClientRect();
+          if (mainRect.top >= thisRect.bottom - 1) {
+            return (thisRect.bottom + mainRect.top) / 2 - wsRect.top;
+          }
+        }
+        return thisRect.bottom - wsRect.top - 1;
+      }
+
       function applyLaneEdgeTarget(
         laneEl: HTMLElement,
         wasInsert: boolean,
       ): void {
         if (!ws) return;
-        const wsRect = ws.getBoundingClientRect();
         const laneRect = laneEl.getBoundingClientRect();
         const relY = event.clientY - laneRect.top;
         const h = laneRect.height;
         const trackType = laneEl.getAttribute("data-track-type");
         const layerIdxAttr = laneEl.getAttribute("data-layer-index");
+        const wsRect = ws.getBoundingClientRect();
         const laneTopInWorkspace = laneRect.top - wsRect.top;
 
         const inBodyClear =
@@ -233,31 +298,31 @@ export function Tracks({ zoom }: Props) {
         if (trackType === "overlay" && layerIdxAttr !== null) {
           const currentLayerIdx = parseInt(layerIdxAttr, 10);
 
-          if (!wasInsert) {
-            if (nearTopEnter) {
-              setIsOverlayInsertLine(true);
-              setTargetOverlayLayer(currentLayerIdx + 1);
-              setIndicatorTopPos(laneTopInWorkspace - 1);
-            } else if (nearBottomEnter) {
-              setIsOverlayInsertLine(true);
-              setTargetOverlayLayer(currentLayerIdx);
-              setIndicatorTopPos(laneTopInWorkspace + h - 1);
-            } else {
-              setIsOverlayInsertLine(false);
-              setTargetOverlayLayer(currentLayerIdx);
-            }
-          } else if (inBodyClear) {
-            setIsOverlayInsertLine(false);
-            setTargetOverlayLayer(currentLayerIdx);
-          } else if (relY < h / 2) {
-            // Dead band / still near top — keep insert above this lane
+          const setInsertAbove = () => {
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(currentLayerIdx + 1);
-            setIndicatorTopPos(laneTopInWorkspace - 1);
-          } else {
+            setIndicatorTopPos(gapMidInWorkspace("above", currentLayerIdx));
+          };
+          const setInsertBelow = () => {
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(currentLayerIdx);
-            setIndicatorTopPos(laneTopInWorkspace + h - 1);
+            setIndicatorTopPos(gapMidInWorkspace("below", currentLayerIdx));
+          };
+          const setBody = () => {
+            setIsOverlayInsertLine(false);
+            setTargetOverlayLayer(currentLayerIdx);
+          };
+
+          if (!wasInsert) {
+            if (nearTopEnter) setInsertAbove();
+            else if (nearBottomEnter) setInsertBelow();
+            else setBody();
+          } else if (inBodyClear) {
+            setBody();
+          } else if (relY < h / 2) {
+            setInsertAbove();
+          } else {
+            setInsertBelow();
           }
           return;
         }
@@ -267,7 +332,24 @@ export function Tracks({ zoom }: Props) {
             if (nearTopEnter) {
               setIsOverlayInsertLine(true);
               setTargetOverlayLayer(0);
-              setIndicatorTopPos(laneTopInWorkspace - 1);
+              // Midpoint between lowest overlay and main, or flush above main
+              const overlayLanes = Array.from(
+                ws.querySelectorAll<HTMLElement>(
+                  '[data-track-lane][data-track-type="overlay"]',
+                ),
+              );
+              let lowestBottom = -Infinity;
+              for (const lane of overlayLanes) {
+                const bottom = lane.getBoundingClientRect().bottom;
+                if (bottom > lowestBottom) lowestBottom = bottom;
+              }
+              if (lowestBottom > -Infinity && lowestBottom <= laneRect.top + 1) {
+                setIndicatorTopPos(
+                  (lowestBottom + laneRect.top) / 2 - wsRect.top,
+                );
+              } else {
+                setIndicatorTopPos(laneTopInWorkspace - 1);
+              }
             } else {
               setIsOverlayInsertLine(false);
               setTargetOverlayLayer(null);
@@ -603,7 +685,7 @@ export function Tracks({ zoom }: Props) {
                   </span>
                 </div>
                 <div
-                  className="absolute z-40 h-[1px] bg-[#14B8A6] shadow-[0_0_8px_#14B8A6] pointer-events-none"
+                  className="absolute z-40 h-px bg-[#14B8A6] pointer-events-none"
                   style={{
                     top: indicatorTopPos,
                     left: TIMELINE_LABEL_WIDTH,
