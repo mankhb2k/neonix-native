@@ -12,11 +12,9 @@ import {
   Music,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
-import { clearDragCursor, setDragCursor, setDragGhostLayout, bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor-drag-cursor";
-import { FRAME_LIBRARY_MIME, getFrame } from "@/lib/frame-library";
-import { AUDIO_LIBRARY_MIME } from "../../sidebar/AudioPanel/AudioPanel";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { TrackLane } from "./TrackLane";
+import { useTracksDrag } from "./useTracksDrag";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PPS_MIN,
@@ -30,163 +28,6 @@ type Props = {
   zoom: number;
 };
 
-/** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
-const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
-/** Enter insert-line mode only when within this many px of a lane edge */
-const OVERLAY_EDGE_ENTER_PX = 2;
-/** Exit insert-line only when this far into the lane body (hysteresis) */
-const OVERLAY_EDGE_EXIT_PX = 10;
-/** Skip indicator setState when Y barely moved (cuts dragover re-renders) */
-const INDICATOR_TOP_EPS_PX = 0.5;
-
-type VideoLaneHit = {
-  top: number;
-  bottom: number;
-  type: "overlay" | "main";
-  layerIndex: number | null;
-};
-
-type OverlayDragTarget = {
-  isInsert: boolean;
-  layer: number | null;
-  indicatorTop: number;
-};
-
-function collectVideoLanes(scope: HTMLElement): VideoLaneHit[] {
-  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
-  const out: VideoLaneHit[] = [];
-  for (const el of nodes) {
-    const type = el.getAttribute("data-track-type");
-    if (type !== "overlay" && type !== "main") continue;
-    const r = el.getBoundingClientRect();
-    const layerAttr = el.getAttribute("data-layer-index");
-    out.push({
-      top: r.top,
-      bottom: r.bottom,
-      type,
-      layerIndex: layerAttr != null ? Number.parseInt(layerAttr, 10) : null,
-    });
-  }
-  out.sort((a, b) => a.top - b.top);
-  return out;
-}
-
-function gapMidInWs(upper: VideoLaneHit, lower: VideoLaneHit, wsTop: number): number {
-  return (upper.bottom + lower.top) / 2 - wsTop;
-}
-
-function resolveInsideLane(
-  clientY: number,
-  lane: VideoLaneHit,
-  next: VideoLaneHit | undefined,
-  prev: VideoLaneHit | undefined,
-  wsTop: number,
-  wasInsert: boolean,
-): OverlayDragTarget {
-  const relY = clientY - lane.top;
-  const h = Math.max(lane.bottom - lane.top, 1);
-  const inBodyClear =
-    relY > OVERLAY_EDGE_EXIT_PX && relY < h - OVERLAY_EDGE_EXIT_PX;
-  const nearTopEnter = relY <= OVERLAY_EDGE_ENTER_PX;
-  const nearBottomEnter = relY >= h - OVERLAY_EDGE_ENTER_PX;
-
-  const insertAbove = (): OverlayDragTarget => {
-    const indicatorTop =
-      prev != null ? gapMidInWs(prev, lane, wsTop) : lane.top - wsTop - 1;
-    if (lane.type === "overlay" && lane.layerIndex != null) {
-      return { isInsert: true, layer: lane.layerIndex + 1, indicatorTop };
-    }
-    return { isInsert: true, layer: 0, indicatorTop };
-  };
-
-  const insertBelow = (): OverlayDragTarget => {
-    if (lane.type !== "overlay" || lane.layerIndex == null) {
-      return { isInsert: false, layer: null, indicatorTop: 0 };
-    }
-    const indicatorTop =
-      next != null ? gapMidInWs(lane, next, wsTop) : lane.bottom - wsTop - 1;
-    return { isInsert: true, layer: lane.layerIndex, indicatorTop };
-  };
-
-  const body = (): OverlayDragTarget => {
-    if (lane.type === "overlay" && lane.layerIndex != null) {
-      return { isInsert: false, layer: lane.layerIndex, indicatorTop: 0 };
-    }
-    return { isInsert: false, layer: null, indicatorTop: 0 };
-  };
-
-  if (lane.type === "main") {
-    if (!wasInsert) {
-      if (nearTopEnter) return insertAbove();
-      return body();
-    }
-    if (relY > OVERLAY_EDGE_EXIT_PX) return body();
-    return insertAbove();
-  }
-
-  if (!wasInsert) {
-    if (nearTopEnter) return insertAbove();
-    if (nearBottomEnter) return insertBelow();
-    return body();
-  }
-  if (inBodyClear) return body();
-  if (relY < h / 2) return insertAbove();
-  return insertBelow();
-}
-
-/**
- * Rect-based hit test (no elementFromPoint). Gaps between lanes always map to
- * "insert below upper" so the cyan line target does not flip each pixel.
- */
-function resolveOverlayDragTarget(
-  clientY: number,
-  lanes: VideoLaneHit[],
-  wsTop: number,
-  wasInsert: boolean,
-  maxOverlayLayer: number,
-): OverlayDragTarget | null {
-  if (lanes.length === 0) return null;
-
-  const first = lanes[0];
-  if (clientY < first.top) {
-    return {
-      isInsert: true,
-      layer: maxOverlayLayer + 1,
-      indicatorTop: first.top - wsTop - 1,
-    };
-  }
-
-  for (let i = 0; i < lanes.length; i++) {
-    const lane = lanes[i];
-    const next = lanes[i + 1];
-    const prev = i > 0 ? lanes[i - 1] : undefined;
-
-    // Gap → canonical "below upper" (never flip to "above lower")
-    if (next && clientY > lane.bottom && clientY < next.top) {
-      if (lane.type === "overlay" && lane.layerIndex != null) {
-        return {
-          isInsert: true,
-          layer: lane.layerIndex,
-          indicatorTop: gapMidInWs(lane, next, wsTop),
-        };
-      }
-      return {
-        isInsert: true,
-        layer: 0,
-        indicatorTop: gapMidInWs(lane, next, wsTop),
-      };
-    }
-
-    if (clientY >= lane.top && clientY <= lane.bottom) {
-      return resolveInsideLane(clientY, lane, next, prev, wsTop, wasInsert);
-    }
-  }
-
-  const last = lanes[lanes.length - 1];
-  const prev = lanes.length > 1 ? lanes[lanes.length - 2] : undefined;
-  return resolveInsideLane(clientY, last, undefined, prev, wsTop, wasInsert);
-}
-
 export function Tracks({ zoom }: Props) {
   const scenes = useEditorStore((s) => s.project?.scenes);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
@@ -194,50 +35,20 @@ export function Tracks({ zoom }: Props) {
   const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
   const selectScene = useEditorStore((s) => s.selectScene);
-  const addSceneFromFrame = useEditorStore((s) => s.addSceneFromFrame);
-  const addOverlaySceneFromFrame = useEditorStore(
-    (s) => s.addOverlaySceneFromFrame,
-  );
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
-  const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
-  const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
-  const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
   const currentTime = useEditorStore((s) => s.currentTime);
   const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
+
   const rootRef = useRef<HTMLDivElement>(null);
   const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
-  const insertGhostRef = useRef<HTMLDivElement>(null);
-  /** Mirrors drag UI so dragover can skip redundant setState (stops not-allowed flicker). */
-  const dragUiRef = useRef({
-    dragOver: false,
-    isInsert: false,
-    layer: null as number | null,
-    indicatorTop: 0,
-    ghostKey: "" as string,
-  });
-  /** Drop time uses live X; avoid putting left into React every dragover. */
-  const ghostLeftRef = useRef(0);
   const [viewWidth, setViewWidth] = useState(0);
-  const [dragOver, setDragOver] = useState(false);
-  const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
-  const [targetOverlayLayer, setTargetOverlayLayer] = useState<number | null>(
-    null,
-  );
-  const [indicatorTopPos, setIndicatorTopPos] = useState<number>(0);
 
   // Track control states (CapCut style)
   const [videoLocked, setVideoLocked] = useState(false);
   const [videoVisible, setVideoVisible] = useState(true);
   const [audioLocked, setAudioLocked] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
-  const [dragGhostState, setDragGhostState] = useState<{
-    left: number;
-    width: number;
-    label: string;
-    duration: number;
-    targetTrack: "video" | "audio";
-  } | null>(null);
 
   // Re-bind when project appears: first paint often returns null (no DOM),
   // so a mount-only effect would leave viewWidth stuck at 0 forever.
@@ -251,30 +62,41 @@ export function Tracks({ zoom }: Props) {
     return () => observer.disconnect();
   }, [scenes]);
 
-  useLayoutEffect(() => {
-    if (!isOverlayInsertLine || !dragGhostState) {
-      unbindDragGhostElementIf(insertGhostRef.current);
-      return;
-    }
-    bindDragGhostElement(insertGhostRef.current, {
-      leftOffset: TIMELINE_LABEL_WIDTH,
-    });
-    return () => {
-      unbindDragGhostElementIf(insertGhostRef.current);
-    };
-  }, [isOverlayInsertLine, dragGhostState != null]);
-
-  if (!scenes || !projectId || !audioTracks) {
-    return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
-  }
-
-  const total = scenes.reduce((sum, s) => sum + s.duration, 0);
+  const total = scenes?.reduce((sum, s) => sum + s.duration, 0) ?? 0;
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const workspaceSeconds = timelineWorkspaceSeconds(total);
   const floorPps =
     trackViewWidth > 0 ? trackViewWidth / workspaceSeconds : TIMELINE_PPS_MIN;
   const ceilingPps = maxPixelsPerSecondForView(trackViewWidth, fps);
   const pixelsPerSecond = zoomToPixelsPerSecond(zoom, floorPps, ceilingPps);
+  const uniqueLayers = Array.from(
+    new Set(overlayScenes.map((item) => item.layerIndex)),
+  ).sort((a, b) => b - a);
+
+  const {
+    dragOver,
+    isOverlayInsertLine,
+    targetOverlayLayer,
+    indicatorTopPos,
+    dragGhostState,
+    insertGhostRef,
+    handleDragEnter,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useTracksDrag({
+    rootRef,
+    rulerHeaderRef,
+    workspaceRef,
+    pixelsPerSecond,
+    uniqueLayers,
+    projectId: projectId ?? null,
+  });
+
+  if (!scenes || !projectId || !audioTracks) {
+    return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
+  }
+
   const rulerDuration = timelineCanvasDuration(
     total,
     pixelsPerSecond,
@@ -292,236 +114,6 @@ export function Tracks({ zoom }: Props) {
     return { scene, index, left, width, startTime: cursor - scene.duration };
   });
 
-  // Unique sorted overlay layers (descending: highest layerIndex on top, 0 just above Main)
-  const uniqueLayers = Array.from(
-    new Set(overlayScenes.map((item) => item.layerIndex)),
-  ).sort((a, b) => b - a);
-
-  function handleDragOver(event: React.DragEvent) {
-    const dragItem = useEditorStore.getState().activeDragItem;
-    // Trust store while dragging: always allow copy cursor on timeline.
-    // dataTransfer.types can flicker mid-drag and would show not-allowed.
-    if (!dragItem) {
-      const types = Array.from(event.dataTransfer.types);
-      if (
-        !types.includes(FRAME_LIBRARY_MIME) &&
-        !types.includes(AUDIO_LIBRARY_MIME) &&
-        !types.includes("application/json") &&
-        !types.includes("text/plain")
-      ) {
-        return;
-      }
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-    if (!dragUiRef.current.dragOver) {
-      dragUiRef.current.dragOver = true;
-      setDragOver(true);
-    }
-
-    if (!rootRef.current) return;
-    const rect = rootRef.current.getBoundingClientRect();
-    const scrollLeft = rootRef.current.scrollLeft;
-    const mouseX =
-      event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
-    const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
-    const left = hoverTime * pixelsPerSecond;
-    ghostLeftRef.current = left;
-
-    // Single threshold vs TimeRuler top border: same line for card↔cyan.
-    const rulerTop =
-      rulerHeaderRef.current?.getBoundingClientRect().top ?? rect.top;
-    const currentlyOver = useEditorStore.getState().isOverTimeline;
-    const nextOver = event.clientY >= rulerTop + CYAN_MODE_BELOW_RULER_TOP_PX;
-    if (nextOver !== currentlyOver) {
-      setIsOverTimeline(nextOver);
-    }
-
-    const clearOverlayTarget = () => {
-      const ui = dragUiRef.current;
-      if (ui.isInsert || ui.layer != null) {
-        ui.isInsert = false;
-        ui.layer = null;
-        setIsOverlayInsertLine(false);
-        setTargetOverlayLayer(null);
-      }
-    };
-
-    // Above threshold as card mode: no lane ghosts (prevents flash under ruler).
-    if (!nextOver) {
-      if (event.clientX > 0 && event.clientY > 0) {
-        setDragCursor(event.clientX, event.clientY);
-      }
-      clearOverlayTarget();
-      if (dragUiRef.current.ghostKey !== "") {
-        dragUiRef.current.ghostKey = "";
-        setDragGhostState(null);
-      }
-      return;
-    }
-
-    const types = Array.from(event.dataTransfer.types);
-    const isAudio =
-      dragItem?.type === "audio" || types.includes(AUDIO_LIBRARY_MIME);
-    const duration = dragItem?.duration ?? 5;
-    const label =
-      dragItem?.name ?? (isAudio ? "Âm thanh" : "Khung hình");
-    const ghostWidth = Math.max(duration * pixelsPerSecond, 24);
-    const targetTrack = isAudio ? "audio" : "video";
-    const ghostKey = `${label}|${duration}|${ghostWidth}|${targetTrack}`;
-
-    // Same rAF as cyan — gray left/width stay in lockstep (imperative; no React).
-    setDragGhostLayout(left, ghostWidth);
-    // Cyan left edge on cursor (= gray ghost left under pointer); no +ghostWidth/2.
-    if (event.clientX > 0 && event.clientY > 0) {
-      setDragCursor(event.clientX, event.clientY);
-    }
-
-    if (!isAudio) {
-      const ws = workspaceRef.current;
-      if (ws) {
-        const wsTop = ws.getBoundingClientRect().top;
-        const lanes = collectVideoLanes(ws);
-        const maxOverlayLayer =
-          uniqueLayers.length > 0 ? Math.max(...uniqueLayers) : 0;
-        const target = resolveOverlayDragTarget(
-          event.clientY,
-          lanes,
-          wsTop,
-          dragUiRef.current.isInsert,
-          maxOverlayLayer,
-        );
-        if (target) {
-          const ui = dragUiRef.current;
-          const layerChanged = ui.layer !== target.layer;
-          const insertChanged = ui.isInsert !== target.isInsert;
-          const topChanged =
-            target.isInsert &&
-            Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
-          if (insertChanged || layerChanged || topChanged) {
-            ui.isInsert = target.isInsert;
-            ui.layer = target.layer;
-            if (insertChanged) setIsOverlayInsertLine(target.isInsert);
-            if (layerChanged) setTargetOverlayLayer(target.layer);
-            if (target.isInsert && (topChanged || insertChanged)) {
-              ui.indicatorTop = target.indicatorTop;
-              setIndicatorTopPos(target.indicatorTop);
-            }
-          }
-        }
-      }
-    } else {
-      clearOverlayTarget();
-    }
-
-    if (dragUiRef.current.ghostKey !== ghostKey) {
-      dragUiRef.current.ghostKey = ghostKey;
-      setDragGhostState({
-        left,
-        width: ghostWidth,
-        label,
-        duration,
-        targetTrack,
-      });
-    }
-  }
-
-  function handleDragLeave(event: React.DragEvent) {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const related = event.relatedTarget as Node | null;
-    if (related && root.contains(related)) return;
-
-    // HTML5 drag often gives null relatedTarget — ignore leave while still inside bounds.
-    const { clientX, clientY } = event;
-    const bounds = root.getBoundingClientRect();
-    if (
-      clientX >= bounds.left &&
-      clientX <= bounds.right &&
-      clientY >= bounds.top &&
-      clientY <= bounds.bottom
-    ) {
-      return;
-    }
-
-    dragUiRef.current = {
-      dragOver: false,
-      isInsert: false,
-      layer: null,
-      indicatorTop: 0,
-      ghostKey: "",
-    };
-    setDragOver(false);
-    setIsOverlayInsertLine(false);
-    setTargetOverlayLayer(null);
-    setDragGhostState(null);
-    setIsOverTimeline(false);
-  }
-
-  function handleDrop(event: React.DragEvent) {
-    event.preventDefault();
-    const dropInsert = dragUiRef.current.isInsert;
-    const dropLayer = dragUiRef.current.layer;
-    const dropLeft = ghostLeftRef.current;
-
-    dragUiRef.current = {
-      dragOver: false,
-      isInsert: false,
-      layer: null,
-      indicatorTop: 0,
-      ghostKey: "",
-    };
-    setDragOver(false);
-    setIsOverTimeline(false);
-    setActiveDragItem(null);
-    clearDragCursor();
-
-    if (dropInsert || dropLayer !== null) {
-      const frameId =
-        event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
-        event.dataTransfer.getData("text/plain");
-      if (frameId && projectId) {
-        const draft = getFrame(projectId, frameId);
-        if (draft) {
-          const dropTime = dropLeft / Math.max(pixelsPerSecond, 1);
-          addOverlaySceneFromFrame(
-            draft,
-            dropTime,
-            dropLayer ?? 0,
-            dropInsert,
-          );
-        }
-      }
-      setIsOverlayInsertLine(false);
-      setTargetOverlayLayer(null);
-      setDragGhostState(null);
-      return;
-    }
-
-    setDragGhostState(null);
-
-    const audioData = event.dataTransfer.getData(AUDIO_LIBRARY_MIME);
-    if (audioData) {
-      try {
-        const parsed = JSON.parse(audioData);
-        addAudioTrack({ role: parsed.title, assetId: parsed.title });
-        return;
-      } catch (e) {
-        // fallback
-      }
-    }
-
-    const frameId =
-      event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
-      event.dataTransfer.getData("text/plain");
-    if (!frameId || !projectId) return;
-    const draft = getFrame(projectId, frameId);
-    if (!draft) return;
-    addSceneFromFrame(draft);
-  }
-
   return (
     <div
       ref={rootRef}
@@ -529,23 +121,7 @@ export function Tracks({ zoom }: Props) {
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
       onDragOver={handleDragOver}
-      onDragEnter={(event) => {
-        // Some browsers need dragenter preventDefault for a stable copy cursor.
-        const dragItem = useEditorStore.getState().activeDragItem;
-        if (!dragItem) {
-          const types = Array.from(event.dataTransfer.types);
-          if (
-            !types.includes(FRAME_LIBRARY_MIME) &&
-            !types.includes(AUDIO_LIBRARY_MIME) &&
-            !types.includes("application/json") &&
-            !types.includes("text/plain")
-          ) {
-            return;
-          }
-        }
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "copy";
-      }}
+      onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
