@@ -30,6 +30,11 @@ type Props = {
   zoom: number;
 };
 
+/** px below TimeRuler top border — must cross this to enter cyan mode */
+const CYAN_ENTER_BELOW_RULER_TOP_PX = 12;
+/** px above TimeRuler top border — must rise above this to leave cyan mode */
+const CYAN_EXIT_ABOVE_RULER_TOP_PX = 12;
+
 export function Tracks({ zoom }: Props) {
   const project = useEditorStore((s) => s.project);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
@@ -43,6 +48,7 @@ export function Tracks({ zoom }: Props) {
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
   const rootRef = useRef<HTMLDivElement>(null);
+  const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
   const [dragOver, setDragOver] = useState(false);
@@ -123,7 +129,6 @@ export function Tracks({ zoom }: Props) {
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
     setDragOver(true);
-    setIsOverTimeline(true);
     if (event.clientX > 0 && event.clientY > 0) {
       setDragCursor(event.clientX, event.clientY);
     }
@@ -137,9 +142,32 @@ export function Tracks({ zoom }: Props) {
     const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
     const left = hoverTime * pixelsPerSecond;
 
+    // Hysteresis vs TimeRuler top border (black edge): dead band avoids card↔cyan flicker.
+    const rulerTop =
+      rulerHeaderRef.current?.getBoundingClientRect().top ?? rect.top;
+    const currentlyOver = useEditorStore.getState().isOverTimeline;
+    const y = event.clientY;
+    let nextOver = currentlyOver;
+    if (!currentlyOver && y >= rulerTop + CYAN_ENTER_BELOW_RULER_TOP_PX) {
+      nextOver = true;
+    } else if (currentlyOver && y < rulerTop - CYAN_EXIT_ABOVE_RULER_TOP_PX) {
+      nextOver = false;
+    }
+    if (nextOver !== currentlyOver) {
+      setIsOverTimeline(nextOver);
+    }
+
+    // Above / in dead-band as card mode: no lane ghosts (prevents flash under ruler).
+    if (!nextOver) {
+      setIsOverlayInsertLine(false);
+      setTargetOverlayLayer(null);
+      setDragGhostState(null);
+      return;
+    }
+
     const isAudio = event.dataTransfer.types.includes(AUDIO_LIBRARY_MIME);
-    let duration = 5;
-    let label = isAudio ? "Âm thanh" : "Khung hình";
+    const duration = 5;
+    const label = isAudio ? "Âm thanh" : "Khung hình";
 
     if (!isAudio) {
       const elementAtPoint = document.elementFromPoint(
@@ -152,7 +180,7 @@ export function Tracks({ zoom }: Props) {
         const wsRect = workspaceRef.current.getBoundingClientRect();
         const laneRect = laneEl.getBoundingClientRect();
         const relY = event.clientY - laneRect.top;
-        const edgeThreshold = 8; // 8px boundary threshold
+        const edgeThreshold = 8;
         const trackType = laneEl.getAttribute("data-track-type");
         const layerIdxAttr = laneEl.getAttribute("data-layer-index");
         const laneTopInWorkspace = laneRect.top - wsRect.top;
@@ -160,34 +188,29 @@ export function Tracks({ zoom }: Props) {
         if (trackType === "overlay" && layerIdxAttr !== null) {
           const currentLayerIdx = parseInt(layerIdxAttr, 10);
           if (relY <= edgeThreshold) {
-            // Upper boundary of layer lane: insert NEW layer ABOVE this layer
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(currentLayerIdx + 1);
             setIndicatorTopPos(laneTopInWorkspace - 1);
           } else if (relY >= laneRect.height - edgeThreshold) {
-            // Lower boundary of layer lane: insert NEW layer BELOW this layer
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(currentLayerIdx);
             setIndicatorTopPos(laneTopInWorkspace + laneRect.height - 1);
           } else {
-            // Inside body of existing overlay lane: place clip INSIDE this existing lane
             setIsOverlayInsertLine(false);
             setTargetOverlayLayer(currentLayerIdx);
           }
         } else if (trackType === "main") {
           if (relY <= 10) {
-            // Top border of Main Track: insert into Layer 0 (flush above Main)
             setIsOverlayInsertLine(true);
             setTargetOverlayLayer(0);
             setIndicatorTopPos(laneTopInWorkspace - 1);
           } else {
-            // Inside Main Track: place clip into Main Track
             setIsOverlayInsertLine(false);
             setTargetOverlayLayer(null);
           }
         }
       } else {
-        // Fallback: hovering in top padding above main track
+        // Fallback: top padding above main — only while already in cyan mode
         if (mouseY < 120 && uniqueLayers.length > 0) {
           const maxLayer = Math.max(...uniqueLayers);
           setIsOverlayInsertLine(true);
@@ -213,7 +236,25 @@ export function Tracks({ zoom }: Props) {
     });
   }
 
-  function handleDragLeave() {
+  function handleDragLeave(event: React.DragEvent) {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const related = event.relatedTarget as Node | null;
+    if (related && root.contains(related)) return;
+
+    // HTML5 drag often gives null relatedTarget — ignore leave while still inside bounds.
+    const { clientX, clientY } = event;
+    const bounds = root.getBoundingClientRect();
+    if (
+      clientX >= bounds.left &&
+      clientX <= bounds.right &&
+      clientY >= bounds.top &&
+      clientY <= bounds.bottom
+    ) {
+      return;
+    }
+
     setDragOver(false);
     setIsOverlayInsertLine(false);
     setTargetOverlayLayer(null);
@@ -299,7 +340,10 @@ export function Tracks({ zoom }: Props) {
         </div>
 
         {/* 1. TimeRuler Header Bar (Sticky Top 0, Z-Index 40) */}
-        <div className="sticky top-0 z-40 flex bg-[var(--bg-panel)]">
+        <div
+          ref={rulerHeaderRef}
+          className="sticky top-0 z-40 flex bg-[var(--bg-panel)]"
+        >
           <div
             className="sticky left-0 z-40 shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
             style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
