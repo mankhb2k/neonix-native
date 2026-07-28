@@ -24,6 +24,8 @@ import {
 
 export function TitleBar() {
   const project = useEditorStore((s) => s.project);
+  const brandName = useEditorStore((s) => s.project?.metadata.brand.name);
+  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const isExporting = useEditorStore((s) => s.isExporting);
   const setExporting = useEditorStore((s) => s.setExporting);
   const updateBrand = useEditorStore((s) => s.updateBrand);
@@ -40,7 +42,7 @@ export function TitleBar() {
     setExportError(null);
     setExporting(true);
     try {
-      saveProject(project);
+      saveProject(project, overlayScenes);
       const blob = await exportMotionProject(project);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);
@@ -71,8 +73,8 @@ export function TitleBar() {
         setExportError(`Preset không hợp lệ: ${detail}`);
         return;
       }
-      saveProject(parsed);
-      loadProject(parsed);
+      saveProject(parsed, []);
+      loadProject(parsed, []);
       setExportError(null);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Import .mt thất bại");
@@ -100,7 +102,7 @@ export function TitleBar() {
 
           <input
             className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
-            value={project?.metadata.brand.name ?? "Presentation 2"}
+            value={brandName ?? "Presentation 2"}
             onChange={(e) => updateBrand({ name: e.target.value })}
             aria-label="Tên dự án"
             placeholder="Dự án không tên"

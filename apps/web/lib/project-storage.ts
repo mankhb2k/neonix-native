@@ -1,10 +1,18 @@
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import {
+  parseOverlayScenes,
+  type OverlaySceneItem,
+} from "@/lib/overlay-scenes";
 
 const STORAGE_KEY = "motionvideo.projects";
 /** One-shot: wipe seeded hook/offer/cta (and any) timeline scenes → empty canvas. */
 const EMPTY_TIMELINE_FLAG = "motionvideo.emptyTimeline.v1";
 
-export type StoredProject = { savedAt: string; project: MotionProject };
+export type StoredProject = {
+  savedAt: string;
+  project: MotionProject;
+  overlayScenes?: OverlaySceneItem[];
+};
 
 function withEmptyTimeline(project: MotionProject): MotionProject {
   return parseMotionProject({
@@ -24,7 +32,7 @@ function parseStored(): Record<string, StoredProject> {
   try {
     const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<
       string,
-      { savedAt?: unknown; project?: unknown }
+      { savedAt?: unknown; project?: unknown; overlayScenes?: unknown }
     >;
     const migrated: Record<string, StoredProject> = {};
     for (const item of Object.values(raw)) {
@@ -33,6 +41,7 @@ function parseStored(): Record<string, StoredProject> {
         migrated[project.metadata.id] = {
           savedAt: typeof item.savedAt === "string" ? item.savedAt : new Date().toISOString(),
           project,
+          overlayScenes: parseOverlayScenes(item.overlayScenes),
         };
       } catch {
         // One corrupt item must not hide every valid project.
@@ -51,6 +60,7 @@ function emptyAllTimelines(projects: Record<string, StoredProject>): Record<stri
     emptied[id] = {
       savedAt: now,
       project: withEmptyTimeline(stored.project),
+      overlayScenes: stored.overlayScenes ?? [],
     };
   }
   return emptied;
@@ -73,10 +83,22 @@ function writeAll(projects: Record<string, StoredProject>): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
 }
 
-export function saveProject(project: MotionProject): void {
+/** Persist project; pass overlayScenes from editor to keep overlays across reload. */
+export function saveProject(
+  project: MotionProject,
+  overlayScenes?: OverlaySceneItem[],
+): void {
   const parsed = parseMotionProject(project);
   const projects = parseStored();
-  projects[parsed.metadata.id] = { savedAt: new Date().toISOString(), project: parsed };
+  const previous = projects[parsed.metadata.id];
+  projects[parsed.metadata.id] = {
+    savedAt: new Date().toISOString(),
+    project: parsed,
+    overlayScenes:
+      overlayScenes !== undefined
+        ? overlayScenes
+        : (previous?.overlayScenes ?? []),
+  };
   writeAll(projects);
 }
 
@@ -85,6 +107,11 @@ export function loadProject(id: string): MotionProject | null {
   const stored = projects[id];
   if (!stored) return null;
   return stored.project;
+}
+
+export function loadOverlayScenes(id: string): OverlaySceneItem[] {
+  const projects = readAll();
+  return projects[id]?.overlayScenes ?? [];
 }
 
 export function deleteProject(id: string): void {
@@ -96,4 +123,3 @@ export function deleteProject(id: string): void {
 export function listProjects(): StoredProject[] {
   return Object.values(readAll()).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }
-

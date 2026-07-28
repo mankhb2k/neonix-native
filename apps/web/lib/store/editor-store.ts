@@ -11,35 +11,32 @@ import {
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import type { FrameDraft } from "@/lib/frame-library";
 import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
+import type { OverlaySceneItem } from "@/lib/overlay-scenes";
+import { TIMELINE_ZOOM_DEFAULT } from "@/components/desktop/editor/timeline/timeline-scale";
+
+export type { OverlaySceneItem } from "@/lib/overlay-scenes";
 
 /* ==========================================================================
    1. Các kiểu dữ liệu trạng thái (State Types)
    ========================================================================== */
 
-/** Vai trò ngữ nghĩa của Scene (Hook, Pain, Benefit, Demo, Offer, CTA, Logo) */
-export type SceneRole = "hook" | "pain" | "benefit" | "demo" | "offer" | "cta" | "logo";
-
-/** Khung hình phụ ở các dải Overlay phía trên Main Track */
-export type OverlaySceneItem = {
-  id: string;
-  name: string;
-  duration: number;
-  startTime: number;
-  layerIndex: number; // Chỉ số tầng Layer (0 = sát ngay trên Main Track, 1 = tầng trên L1, ...)
-};
+export type SidebarTabId =
+  | "frame"
+  | "elements"
+  | "text"
+  | "upload"
+  | "stickers"
+  | "audio";
 
 /** Cấu trúc State của Editor Zustand Store */
 type EditorState = {
   project: MotionProject | null;
   selectedSceneId: string | null;
   selectedNodeId: string | null;
-  sceneClipboard: MotionScene | null;
   isExporting: boolean;
-  activeSidebarTab: string;
-  sidebarOpen: boolean;
-  overlayScenes: OverlaySceneItem[]; // Danh sách các clip ở tầng Overlay phía trên
+  activeSidebarTab: SidebarTabId;
+  overlayScenes: OverlaySceneItem[];
 
-  // Drag Preview toàn cục (Quản lý trạng thái kéo thả giữa Sidebar và Timeline)
   activeDragItem: {
     id: string;
     type: "frame" | "audio";
@@ -48,7 +45,11 @@ type EditorState = {
   } | null;
   isOverTimeline: boolean;
 
-  // Các Action quản lý State
+  /** Shared playback / scrub clock (seconds on full main timeline) */
+  currentTime: number;
+  isPlaying: boolean;
+  timelineZoom: number;
+
   setActiveDragItem: (
     item: {
       id: string;
@@ -58,24 +59,16 @@ type EditorState = {
     } | null,
   ) => void;
   setIsOverTimeline: (over: boolean) => void;
-  loadProject: (project: MotionProject) => void;
+  loadProject: (project: MotionProject, overlayScenes?: OverlaySceneItem[]) => void;
   selectScene: (sceneId: string) => void;
   selectNode: (nodeId: string | null) => void;
-  setActiveSidebarTab: (tab: string) => void;
-  setSidebarOpen: (open: boolean) => void;
-  toggleSidebar: () => void;
+  setActiveSidebarTab: (tab: SidebarTabId) => void;
   updateBrand: (patch: Partial<MotionProject["metadata"]["brand"]>) => void;
   updateSceneDuration: (sceneId: string, duration: number) => void;
   updateNodeText: (sceneId: string, nodeId: string, text: string) => void;
   updateNodePosition: (sceneId: string, nodeId: string, position: { x?: number; y?: number }) => void;
   updateNodeAnimation: (sceneId: string, nodeId: string, patch: { presetId?: string; duration?: number; at?: number }) => void;
   setAspectRatio: (aspectRatio: AspectRatio) => void;
-  copyScene: (sceneId: string) => void;
-  cutScene: (sceneId: string) => void;
-  pasteScene: (afterSceneId: string) => void;
-  duplicateScene: (sceneId: string) => void;
-  renameScene: (sceneId: string, role: SceneRole) => void;
-  deleteScene: (sceneId: string) => void;
   addSceneFromFrame: (draft: FrameDraft) => void;
   addOverlaySceneFromFrame: (
     draft: FrameDraft,
@@ -85,6 +78,10 @@ type EditorState = {
   ) => void;
   addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
   setExporting: (value: boolean) => void;
+  setCurrentTime: (time: number) => void;
+  setPlaying: (playing: boolean) => void;
+  togglePlaying: () => void;
+  setTimelineZoom: (zoom: number) => void;
 };
 
 /* ==========================================================================
@@ -127,40 +124,6 @@ function mapNode(
     scenes: project.scenes.map((scene) => scene.id === sceneId
       ? { ...scene, nodes: scene.nodes.map((node) => node.id === nodeId ? transform(node) : node) }
       : scene),
-  };
-}
-
-/** Nhân bản và sinh lại ID mới cho Scene và toàn bộ Node / Clip bên trong */
-function cloneScene(scene: MotionScene): MotionScene {
-  const sceneId = uid("scene");
-  const nodeIds = new Map(scene.nodes.map((node) => [node.id, uid("node")]));
-  const clipIds = new Map(scene.clips.map((clip) => [clip.id, uid("clip")]));
-  return {
-    ...structuredClone(scene),
-    id: sceneId,
-    name: `${scene.name ?? scene.id} copy`,
-    nodes: scene.nodes.map((node) => ({
-      ...structuredClone(node),
-      id: nodeIds.get(node.id)!,
-      parentId: node.parentId ? nodeIds.get(node.parentId) ?? null : null,
-      mask: node.mask
-        ? { ...node.mask, sourceNodeId: nodeIds.get(node.mask.sourceNodeId) ?? node.mask.sourceNodeId }
-        : undefined,
-    })),
-    clips: scene.clips.map((clip) => ({
-      ...structuredClone(clip),
-      id: clipIds.get(clip.id)!,
-      targetId: clip.targetId ? nodeIds.get(clip.targetId) ?? clip.targetId : clip.targetId,
-      schedule: clip.schedule.kind === "absolute"
-        ? clip.schedule
-        : {
-            ...clip.schedule,
-            clipId: clipIds.get(clip.schedule.clipId) ?? clip.schedule.clipId,
-          },
-      source: clip.source.kind === "tracks"
-        ? { ...clip.source, tracks: clip.source.tracks.map((track) => ({ ...track, targetId: nodeIds.get(track.targetId) ?? track.targetId })) }
-        : clip.source,
-    })),
   };
 }
 
@@ -216,24 +179,6 @@ function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   };
 }
 
-/** Chèn phần tử mới vào danh sách ngay phía sau phần tử chỉ định */
-function insertAfter<T extends { id: string }>(items: T[], afterId: string, item: T): T[] {
-  const index = items.findIndex((candidate) => candidate.id === afterId);
-  if (index < 0) return [...items, item];
-  const next = [...items];
-  next.splice(index + 1, 0, item);
-  return next;
-}
-
-/** Chèn ID mới vào danh sách thứ tự ngay phía sau ID chỉ định */
-function insertOrder(order: string[], afterId: string, id: string): string[] {
-  const index = order.indexOf(afterId);
-  if (index < 0) return [...order, id];
-  const next = [...order];
-  next.splice(index + 1, 0, id);
-  return next;
-}
-
 /* ==========================================================================
    3. Tạo Zustand Store chính (useEditorStore)
    ========================================================================== */
@@ -242,23 +187,35 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
   selectedSceneId: null,
   selectedNodeId: null,
-  sceneClipboard: null,
   isExporting: false,
   activeSidebarTab: "frame",
-  sidebarOpen: true,
+  overlayScenes: [],
 
-  // Trạng thái Drag Preview toàn cục (cursor position: lib/editor-drag-cursor.ts)
   activeDragItem: null,
   isOverTimeline: false,
+  currentTime: 0,
+  isPlaying: false,
+  timelineZoom: TIMELINE_ZOOM_DEFAULT,
 
   setActiveDragItem: (item) => set({ activeDragItem: item }),
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
+  setCurrentTime: (time) => set({ currentTime: Math.max(0, time) }),
+  setPlaying: (playing) => set({ isPlaying: playing }),
+  togglePlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
+  setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),
 
   /** 3.1 Nạp dự án vào Editor Store */
-  loadProject: (input) => {
+  loadProject: (input, overlayScenes = []) => {
     const project = parseMotionProject(input);
     const firstScene = project.scenes.find((scene) => scene.id === project.timeline.sceneOrder[0]) ?? project.scenes[0];
-    set({ project, selectedSceneId: firstScene?.id ?? null, selectedNodeId: firstEditableNode(firstScene)?.id ?? null });
+    set({
+      project,
+      selectedSceneId: firstScene?.id ?? null,
+      selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
+      overlayScenes,
+      currentTime: 0,
+      isPlaying: false,
+    });
   },
 
   /** 3.2 Chọn Scene đang hoạt động */
@@ -271,11 +228,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
 
   /** 3.4 Thay đổi Tab Sidebar đang hiển thị */
-  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab, sidebarOpen: true }),
-
-  /** 3.5 Bật/Tắt Sidebar */
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
+  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
 
   /** 3.6 Cập nhật thông tin thương hiệu dự án */
   updateBrand: (patch) => {
@@ -357,79 +310,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (project) set({ project: { ...project, metadata: { ...project.metadata, aspectRatio } } });
   },
 
-  /** 3.12 Sao chép Scene vào Clipboard */
-  copyScene: (sceneId) => {
-    const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
-    if (scene) set({ sceneClipboard: structuredClone(scene) });
-  },
-
-  /** 3.13 Cắt Scene */
-  cutScene: (sceneId) => {
-    if ((get().project?.scenes.length ?? 0) < 1) return;
-    get().copyScene(sceneId);
-    get().deleteScene(sceneId);
-  },
-
-  /** 3.14 Dán Scene từ Clipboard phía sau 1 Scene chỉ định */
-  pasteScene: (afterSceneId) => {
-    const { project, sceneClipboard } = get();
-    if (!project || !sceneClipboard) return;
-    const scene = cloneScene(sceneClipboard);
-    set({
-      project: {
-        ...project,
-        scenes: insertAfter(project.scenes, afterSceneId, scene),
-        timeline: { ...project.timeline, sceneOrder: insertOrder(project.timeline.sceneOrder, afterSceneId, scene.id) },
-      },
-      selectedSceneId: scene.id,
-      selectedNodeId: firstEditableNode(scene)?.id ?? null,
-    });
-  },
-
-  /** 3.15 Nhân bản Scene */
-  duplicateScene: (sceneId) => {
-    const project = get().project;
-    const source = project?.scenes.find((scene) => scene.id === sceneId);
-    if (!project || !source) return;
-    const scene = cloneScene(source);
-    set({
-      project: {
-        ...project,
-        scenes: insertAfter(project.scenes, sceneId, scene),
-        timeline: { ...project.timeline, sceneOrder: insertOrder(project.timeline.sceneOrder, sceneId, scene.id) },
-      },
-      selectedSceneId: scene.id,
-      selectedNodeId: firstEditableNode(scene)?.id ?? null,
-    });
-  },
-
-  /** 3.16 Đổi tên và vai trò ngữ nghĩa của Scene */
-  renameScene: (sceneId, role) => {
-    const project = get().project;
-    if (!project) return;
-    set({ project: { ...project, scenes: project.scenes.map((scene) => scene.id === sceneId ? { ...scene, name: role, semantic: { role, tags: [] } } : scene) } });
-  },
-
-  /** 3.17 Xóa Scene */
-  deleteScene: (sceneId) => {
-    const project = get().project;
-    if (!project) return;
-    const scenes = project.scenes.filter((scene) => scene.id !== sceneId);
-    const sceneOrder = project.timeline.sceneOrder.filter((id) => id !== sceneId);
-    const next = scenes.find((scene) => scene.id === sceneOrder[0]) ?? scenes[0];
-    set({
-      project: {
-        ...project,
-        scenes,
-        timeline: { ...project.timeline, sceneOrder },
-        bindings: project.bindings.filter((binding) => binding.target.sceneId !== sceneId),
-      },
-      selectedSceneId: next?.id ?? null,
-      selectedNodeId: firstEditableNode(next)?.id ?? null,
-    });
-  },
-
-  /** 3.18 Thêm Scene từ Khung hình vào Main Track nối tiếp */
+  /** Thêm Scene từ Khung hình vào Main Track nối tiếp */
   addSceneFromFrame: (draft) => {
     const project = get().project;
     if (!project) return;
@@ -448,13 +329,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  /** 3.19 Danh sách các dải Khung hình phụ ở hàng Overlay phía trên */
-  overlayScenes: [],
-
-  /** 
-   * 3.20 Thêm Khung hình vào tầng Overlay chỉ định (L1, L2, L3...) phía trên Main Track.
-   * Nếu insertNewLayer = true (thả vào đường kẻ xanh chỉ dẫn ở ranh giới giữa 2 dải):
-   * Tự động đẩy tất cả các dải ở trên lên +1 chỉ số tầng để chèn dải mới vào giữa.
+  /**
+   * Thêm Khung hình vào tầng Overlay. insertNewLayer = true đẩy các tầng trên lên +1.
    */
   addOverlaySceneFromFrame: (
     draft,
@@ -520,7 +396,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         };
 
     const assets = audioAsset
-      ? [...project.assets, audioAsset as any]
+      ? [...project.assets, audioAsset]
       : project.assets;
 
     const newTrack = {
@@ -558,15 +434,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 /** Kiểm tra và chuẩn hóa dự án (sanitize audio assets & validate presets) */
 export function validateEditorProject(project: MotionProject): MotionProject {
   const sanitizedAssets = project.assets.map((asset) => {
-    if ((asset as any).assetType === "audio") {
-      const a = asset as any;
+    if (asset.assetType === "audio") {
       return {
-        ...a,
-        mimeType:
-          a.mimeType === "audio/mp3" || !a.mimeType
-            ? "audio/mpeg"
-            : a.mimeType,
-        codec: a.codec ?? "mp3",
+        ...asset,
+        mimeType: asset.mimeType ?? "audio/mpeg",
+        codec: asset.codec ?? "mp3",
       };
     }
     return asset;

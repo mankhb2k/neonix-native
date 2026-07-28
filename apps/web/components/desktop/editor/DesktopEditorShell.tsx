@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { saveProject } from "@/lib/project-storage";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { saveProject, loadOverlayScenes } from "@/lib/project-storage";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./stage/PreviewStage";
@@ -17,28 +17,38 @@ type Props = {
   initialProject: MotionProject;
 };
 
+const AUTOSAVE_DEBOUNCE_MS = 400;
+
 export function DesktopEditorShell({ initialProject }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
+  const overlayScenes = useEditorStore((s) => s.overlayScenes);
+  const projectId = useEditorStore((s) => s.project?.metadata.id);
 
-  // Default widths in px (1rem = 16px)
-  const [sidebarWidth, setSidebarWidth] = useState(580); // 35rem
-  const [rightdockWidth, setRightdockWidth] = useState(600); // 37.5rem
-  const [timelineHeight, setTimelineHeight] = useState(380); // 23.75rem
+  const [sidebarWidth, setSidebarWidth] = useState(580);
+  const [rightDockWidth, setRightDockWidth] = useState(600);
+  const [timelineHeight, setTimelineHeight] = useState(380);
   const [activeResizer, setActiveResizer] = useState<
-    "sidebar" | "rightdock" | "timeline" | null
+    "sidebar" | "rightDock" | "timeline" | null
   >(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    loadProject(initialProject);
+    loadProject(initialProject, loadOverlayScenes(initialProject.metadata.id));
   }, [initialProject, loadProject]);
 
+  // Single autosave owner (debounced) — page.tsx must not also save.
   useEffect(() => {
     if (!project) return;
-    saveProject(project);
-  }, [project]);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveProject(project, overlayScenes);
+    }, AUTOSAVE_DEBOUNCE_MS);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [project, overlayScenes]);
 
-  // Handler: Resizing Sidebar Width (Horizontal Drag)
   const startSidebarResizing = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
@@ -64,18 +74,17 @@ export function DesktopEditorShell({ initialProject }: Props) {
     [sidebarWidth],
   );
 
-  // Handler: Resizing RightDock / Inspector Width (Horizontal Drag)
-  const startRightdockResizing = useCallback(
+  const startRightDockResizing = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
-      setActiveResizer("rightdock");
+      setActiveResizer("rightDock");
       const startX = e.clientX;
-      const startWidth = rightdockWidth;
+      const startWidth = rightDockWidth;
 
       const onPointerMove = (moveEvent: PointerEvent) => {
         const deltaX = startX - moveEvent.clientX;
         const newWidth = Math.min(850, Math.max(340, startWidth + deltaX));
-        setRightdockWidth(newWidth);
+        setRightDockWidth(newWidth);
       };
 
       const onPointerUp = () => {
@@ -87,10 +96,9 @@ export function DesktopEditorShell({ initialProject }: Props) {
       window.addEventListener("pointermove", onPointerMove);
       window.addEventListener("pointerup", onPointerUp);
     },
-    [rightdockWidth],
+    [rightDockWidth],
   );
 
-  // Handler: Resizing Timeline Height (Vertical Drag)
   const startTimelineResizing = useCallback(
     (e: React.PointerEvent) => {
       e.preventDefault();
@@ -119,46 +127,39 @@ export function DesktopEditorShell({ initialProject }: Props) {
   return (
     <div
       className={`flex h-screen w-screen flex-col overflow-hidden bg-[var(--bg)] text-[var(--fg)] relative select-none ${
-        activeResizer === "sidebar" || activeResizer === "rightdock"
+        activeResizer === "sidebar" || activeResizer === "rightDock"
           ? "cursor-ew-resize"
           : activeResizer === "timeline"
             ? "cursor-ns-resize"
             : ""
       }`}
     >
-      {/* Top Desktop Header Bar */}
       <Header />
 
-      {/* Main 4-Panel Gap Grid (CapCut / Desktop NLE Style) */}
       <div
         className="flex-1 grid p-2 gap-2 overflow-hidden"
         style={{
-          gridTemplateColumns: `${sidebarWidth / 16}rem 1fr ${rightdockWidth / 16}rem`,
+          gridTemplateColumns: `${sidebarWidth / 16}rem 1fr ${rightDockWidth / 16}rem`,
           gridTemplateRows: `1fr ${timelineHeight / 16}rem`,
           gridTemplateAreas: `
-            "sidebar stage rightdock"
+            "sidebar stage rightDock"
             "timeline timeline timeline"
           `,
           transition: activeResizer ? "none" : "all 0.15s ease-out",
         }}
       >
-        {/* Panel 1: Top-Left Assets / Library Sidebar Card */}
         <div className="[grid-area:sidebar] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 overflow-hidden">
           <div className="w-full h-full rounded-xl overflow-hidden flex flex-col min-w-0">
             <Sidebar />
           </div>
-
-          {/* Gap Drag Handle: Sidebar & Stage */}
           <div
             onPointerDown={startSidebarResizing}
             className="absolute top-0 -right-2.5 bottom-0 w-3 cursor-ew-resize z-40 touch-none"
           />
         </div>
 
-        {/* Panel 2: Top-Center Preview Stage Card */}
         <main className="[grid-area:stage] bg-[var(--bg-panel)] rounded-xl overflow-hidden relative flex flex-col shadow-md min-w-0">
           <PanelHeader title="Trình phát" />
-
           <div
             className="relative flex-1 flex items-center justify-center overflow-hidden"
             style={{
@@ -170,26 +171,20 @@ export function DesktopEditorShell({ initialProject }: Props) {
           </div>
         </main>
 
-        {/* Panel 3: Top-Right Inspector Card */}
-        <div className="[grid-area:rightdock] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 overflow-hidden">
+        <div className="[grid-area:rightDock] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 overflow-hidden">
           <div className="w-full h-full rounded-xl overflow-hidden flex flex-col min-w-0">
             <RightDock />
           </div>
-
-          {/* Gap Drag Handle: Stage & Inspector */}
           <div
-            onPointerDown={startRightdockResizing}
+            onPointerDown={startRightDockResizing}
             className="absolute top-0 -left-2.5 bottom-0 w-3 cursor-ew-resize z-40 touch-none"
           />
         </div>
 
-        {/* Panel 4: Bottom Full-Width Timeline Card */}
         <div className="[grid-area:timeline] relative bg-[var(--bg-panel)] rounded-xl flex flex-col shadow-md min-w-0 min-h-0 overflow-hidden">
           <div className="w-full h-full rounded-xl overflow-hidden flex flex-col min-w-0">
             <Timeline />
           </div>
-
-          {/* Gap Drag Handle: Top Panels & Timeline */}
           <div
             onPointerDown={startTimelineResizing}
             className="absolute -top-2.5 left-0 right-0 h-3 cursor-ns-resize z-40 touch-none"
@@ -197,7 +192,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
         </div>
       </div>
 
-      {!project ? (
+      {!projectId ? (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0c]/80 backdrop-blur-sm text-white text-sm">
           Đang tải editor…
         </div>

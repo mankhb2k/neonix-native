@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
 import { useEditorStore, nodeText } from "@/lib/store/editor-store";
 import {
   matrixToCss,
@@ -21,6 +21,26 @@ function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
   if (node.type === "shape" || node.type === "path") return node.type;
   if (node.type === "group" || node.type === "bone") return "";
   return node.id;
+}
+
+function sceneAtGlobalTime(
+  scenes: MotionScene[],
+  time: number,
+): { scene: MotionScene; localTime: number; start: number } | null {
+  if (scenes.length === 0) return null;
+  let cursor = 0;
+  for (const scene of scenes) {
+    const end = cursor + scene.duration;
+    if (time < end || scene === scenes[scenes.length - 1]) {
+      return {
+        scene,
+        localTime: Math.min(Math.max(0, time - cursor), scene.duration),
+        start: cursor,
+      };
+    }
+    cursor = end;
+  }
+  return null;
 }
 
 function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: MotionProject }) {
@@ -66,8 +86,8 @@ function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: Mot
 
 export function PreviewStage() {
   const project = useEditorStore((state) => state.project);
-  const selectedSceneId = useEditorStore((state) => state.selectedSceneId);
-  const [time, setTime] = useState(0);
+  const currentTime = useEditorStore((state) => state.currentTime);
+  const setCurrentTime = useEditorStore((state) => state.setCurrentTime);
 
   const compiled = useMemo(() => {
     if (!project) return null;
@@ -96,13 +116,14 @@ export function PreviewStage() {
     );
   }
 
-  const scene = project.scenes.find((candidate) => candidate.id === selectedSceneId) ?? project.scenes[0];
-  if (!scene) return null;
+  const at = sceneAtGlobalTime(project.scenes, currentTime);
+  if (!at) return null;
+  const { scene, localTime, start } = at;
   const brand = project.metadata.brand;
   const accent = brand.primaryColor ?? "#3f9a62";
   const fps = project.metadata.fps ?? 30;
   const stage = stageSizeForAspect(project.metadata.aspectRatio);
-  const frame = quantizeTimeToFrame(Math.min(time, scene.duration), fps);
+  const frame = quantizeTimeToFrame(localTime, fps);
   const snapshot = compiled
     ? previewParitySnapshot(compiled, scene.id, frame.time)
     : null;
@@ -118,7 +139,9 @@ export function PreviewStage() {
             max={scene.duration}
             step={1 / fps}
             value={frame.time}
-            onChange={(event) => setTime(Number(event.target.value))}
+            onChange={(event) =>
+              setCurrentTime(start + Number(event.target.value))
+            }
             data-testid="preview-time-scrubber"
           />
         </label>

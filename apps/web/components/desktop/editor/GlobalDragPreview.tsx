@@ -4,15 +4,13 @@ import React, { useLayoutEffect, useRef } from "react";
 import { Film, Music } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
 import { bindDragPreviewElement } from "@/lib/editor-drag-cursor";
-import {
-  TIMELINE_ZOOM_DEFAULT,
-  zoomToPixelsPerSecond,
-} from "@/components/desktop/editor/timeline/timeline-scale";
+import { zoomToPixelsPerSecond } from "@/components/desktop/editor/timeline/timeline-scale";
 
 /** Card outside timeline; cyan follows cursor over timeline (gray ghost is separate on track). */
 export function GlobalDragPreview() {
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
   const isOverTimeline = useEditorStore((s) => s.isOverTimeline);
+  const timelineZoom = useEditorStore((s) => s.timelineZoom);
   const elRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -30,7 +28,7 @@ export function GlobalDragPreview() {
     return null;
   }
 
-  const pixelsPerSecond = zoomToPixelsPerSecond(TIMELINE_ZOOM_DEFAULT);
+  const pixelsPerSecond = zoomToPixelsPerSecond(timelineZoom);
   const blockWidth = Math.max(activeDragItem.duration * pixelsPerSecond, 60);
 
   return (

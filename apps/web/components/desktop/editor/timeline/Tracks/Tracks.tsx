@@ -38,7 +38,10 @@ const OVERLAY_EDGE_ENTER_PX = 2;
 const OVERLAY_EDGE_EXIT_PX = 10;
 
 export function Tracks({ zoom }: Props) {
-  const project = useEditorStore((s) => s.project);
+  const scenes = useEditorStore((s) => s.project?.scenes);
+  const projectId = useEditorStore((s) => s.project?.metadata.id);
+  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
+  const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
   const selectScene = useEditorStore((s) => s.selectScene);
   const addSceneFromFrame = useEditorStore((s) => s.addSceneFromFrame);
@@ -49,6 +52,8 @@ export function Tracks({ zoom }: Props) {
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
+  const currentTime = useEditorStore((s) => s.currentTime);
+  const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
   const rootRef = useRef<HTMLDivElement>(null);
   const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -84,7 +89,7 @@ export function Tracks({ zoom }: Props) {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [project]);
+  }, [scenes]);
 
   useLayoutEffect(() => {
     if (!isOverlayInsertLine || !dragGhostState) {
@@ -99,12 +104,11 @@ export function Tracks({ zoom }: Props) {
     };
   }, [isOverlayInsertLine, dragGhostState != null]);
 
-  if (!project) {
+  if (!scenes || !projectId || !audioTracks) {
     return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
   }
 
-  const fps = project.metadata.fps ?? 30;
-  const total = project.scenes.reduce((sum, s) => sum + s.duration, 0);
+  const total = scenes.reduce((sum, s) => sum + s.duration, 0);
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const workspaceSeconds = timelineWorkspaceSeconds(total);
   const floorPps =
@@ -117,15 +121,15 @@ export function Tracks({ zoom }: Props) {
     trackViewWidth,
   );
   const canvasWidth = rulerDuration * pixelsPerSecond;
-  const playheadLeft = TIMELINE_LABEL_WIDTH;
-  const isEmpty = project.scenes.length === 0;
+  const playheadLeft = TIMELINE_LABEL_WIDTH + currentTime * pixelsPerSecond;
+  const isEmpty = scenes.length === 0;
 
   let cursor = 0;
-  const sceneBlocks = project.scenes.map((scene, index) => {
+  const sceneBlocks = scenes.map((scene, index) => {
     const left = cursor * pixelsPerSecond;
     const width = Math.max(scene.duration * pixelsPerSecond, 8);
     cursor += scene.duration;
-    return { scene, index, left, width };
+    return { scene, index, left, width, startTime: cursor - scene.duration };
   });
 
   // Unique sorted overlay layers (descending: highest layerIndex on top, 0 just above Main)
@@ -465,8 +469,8 @@ export function Tracks({ zoom }: Props) {
       const frameId =
         event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
         event.dataTransfer.getData("text/plain");
-      if (frameId && project) {
-        const draft = getFrame(project.metadata.id, frameId);
+      if (frameId && projectId) {
+        const draft = getFrame(projectId, frameId);
         if (draft) {
           const dropTime = dragGhostState
             ? dragGhostState.left / Math.max(pixelsPerSecond, 1)
@@ -501,8 +505,8 @@ export function Tracks({ zoom }: Props) {
     const frameId =
       event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
       event.dataTransfer.getData("text/plain");
-    if (!frameId || !project) return;
-    const draft = getFrame(project.metadata.id, frameId);
+    if (!frameId || !projectId) return;
+    const draft = getFrame(projectId, frameId);
     if (!draft) return;
     addSceneFromFrame(draft);
   }
@@ -527,7 +531,7 @@ export function Tracks({ zoom }: Props) {
           style={{ left: playheadLeft }}
         >
           <div className="absolute top-0 left-1/2 flex h-3.5 min-w-3.5 -translate-x-1/2 items-center justify-center rounded-sm bg-[var(--timeline-playhead)] px-1 font-mono text-[9px] font-semibold text-[var(--bg-panel)]">
-            0
+            {currentTime.toFixed(1)}
           </div>
         </div>
 
@@ -754,7 +758,7 @@ export function Tracks({ zoom }: Props) {
                 </>
               }
             >
-              {sceneBlocks.map(({ scene, index, left, width }) => {
+              {sceneBlocks.map(({ scene, index, left, width, startTime }) => {
                 const active = selectedSceneId === scene.id;
                 return (
                   <button
@@ -766,7 +770,10 @@ export function Tracks({ zoom }: Props) {
                         : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
                     }`}
                     style={{ left, width }}
-                    onClick={() => selectScene(scene.id)}
+                    onClick={() => {
+                      selectScene(scene.id);
+                      setCurrentTime(startTime);
+                    }}
                   >
                     <span className="block truncate font-semibold text-white">
                       {index + 1}.{" "}
@@ -781,7 +788,7 @@ export function Tracks({ zoom }: Props) {
             </TrackLane>
 
             {/* 2. Audio Track Runway Lane */}
-            {project.timeline.audioTracks.length > 0 && (
+            {audioTracks.length > 0 && (
               <TrackLane
                 variant="secondary"
                 ghostPreview={
@@ -839,7 +846,7 @@ export function Tracks({ zoom }: Props) {
                   </>
                 }
               >
-                {project.timeline.audioTracks.map((track) => (
+                {audioTracks.map((track) => (
                   <div
                     key={track.id}
                     className="absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] hover:bg-[var(--timeline-clip-audio-hover)] px-2 text-[10px] font-medium text-white shadow-sm transition-colors"

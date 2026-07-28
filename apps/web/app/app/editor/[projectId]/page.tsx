@@ -4,15 +4,13 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
 import { EditorShell } from "@/components/editor/EditorShell";
-import { loadProject, saveProject } from "@/lib/project-storage";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { loadProject } from "@/lib/project-storage";
 import type { MotionProject } from "@motionvideo/motion-schema";
 
 export default function EditorPage() {
   const params = useParams<{ projectId: string }>();
   const [initial, setInitial] = useState<MotionProject | null>(null);
   const [missing, setMissing] = useState(false);
-  const project = useEditorStore((s) => s.project);
 
   useEffect(() => {
     const found = loadProject(params.projectId);
@@ -22,12 +20,6 @@ export default function EditorPage() {
     }
     setInitial(found);
   }, [params.projectId]);
-
-  useEffect(() => {
-    if (project && project.metadata.id === params.projectId) {
-      saveProject(project);
-    }
-  }, [project, params.projectId]);
 
   if (missing) {
     return (

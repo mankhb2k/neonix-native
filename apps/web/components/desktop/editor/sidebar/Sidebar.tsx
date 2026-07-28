@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditorStore } from "@/lib/store/editor-store";
+import { useEditorStore, type SidebarTabId } from "@/lib/store/editor-store";
 import { PanelHeader, TabsDesktop, type DesktopTabItem } from "@/components/ui";
 import {
   Frame,
@@ -31,17 +31,15 @@ export function Sidebar() {
 
   return (
     <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden [grid-area:sidebar]">
-      {/* CapCut Style Desktop Stacked Tabs (Icon top, Text below) within standard h-[40px] header */}
       <PanelHeader className="px-0">
         <TabsDesktop
           stacked
           items={SIDEBAR_TABS}
           value={activeSidebarTab}
-          onChange={(id) => setActiveSidebarTab(id as any)}
+          onChange={(id) => setActiveSidebarTab(id as SidebarTabId)}
         />
       </PanelHeader>
 
-      {/* Main Panel Content */}
       <div className="w-full flex-1 min-h-0 flex flex-col overflow-hidden">
         {activeSidebarTab === "frame" && <FramePanel />}
         {activeSidebarTab === "elements" && <ElementsPanel />}

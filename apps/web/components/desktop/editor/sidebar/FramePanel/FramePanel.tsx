@@ -29,8 +29,7 @@ import {
 } from "@/components/ui";
 
 export function FramePanel() {
-  const project = useEditorStore((s) => s.project);
-  const projectId = project?.metadata.id;
+  const projectId = useEditorStore((s) => s.project?.metadata.id);
   const [frames, setFrames] = useState<FrameDraft[]>([]);
 
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);

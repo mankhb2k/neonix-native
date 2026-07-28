@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
 import {
@@ -15,13 +14,15 @@ type Props = {
 };
 
 export function TransportBar({ zoom, onZoomChange }: Props) {
-  const project = useEditorStore((s) => s.project);
-  const [playing, setPlaying] = useState(false);
+  const scenes = useEditorStore((s) => s.project?.scenes);
+  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
+  const currentTime = useEditorStore((s) => s.currentTime);
+  const isPlaying = useEditorStore((s) => s.isPlaying);
+  const togglePlaying = useEditorStore((s) => s.togglePlaying);
 
-  if (!project) return null;
+  if (!scenes) return null;
 
-  const total = project.scenes.reduce((sum, s) => sum + s.duration, 0);
-  const fps = project.metadata.fps ?? 30;
+  const total = scenes.reduce((sum, s) => sum + s.duration, 0);
 
   function nudgeZoom(delta: number) {
     onZoomChange(Math.min(TIMELINE_ZOOM_MAX, Math.max(TIMELINE_ZOOM_MIN, zoom + delta)));
@@ -32,15 +33,15 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
       <div />
       <div className="flex items-center justify-center gap-3">
         <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
-          {formatTimecode(0, fps)}
+          {formatTimecode(currentTime, fps)}
         </span>
         <button
           type="button"
-          aria-label={playing ? "Pause" : "Play"}
-          onClick={() => setPlaying((value) => !value)}
+          aria-label={isPlaying ? "Pause" : "Play"}
+          onClick={() => togglePlaying()}
           className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--fg-muted)]"
         >
-          {playing ? (
+          {isPlaying ? (
             <Pause size={14} strokeWidth={0} fill="currentColor" />
           ) : (
             <Play size={14} strokeWidth={0} fill="currentColor" className="ml-0.5" />
