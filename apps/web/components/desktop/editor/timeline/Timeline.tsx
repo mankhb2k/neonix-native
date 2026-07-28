@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { timelineContentEndSeconds } from "./timeline-scale";
 import { TransportBar } from "./TransportBar/TransportBar";
 import { Tracks } from "./Tracks/Tracks";
 
@@ -18,12 +19,13 @@ export function Timeline() {
       const dt = (now - last) / 1000;
       last = now;
       const state = useEditorStore.getState();
-      const total =
-        state.project?.scenes.reduce((sum, scene) => sum + scene.duration, 0) ??
-        0;
+      const end = timelineContentEndSeconds(
+        state.project?.scenes ?? [],
+        state.overlayScenes,
+      );
       const next = state.currentTime + dt;
-      if (next >= total) {
-        state.setCurrentTime(total);
+      if (next >= end) {
+        state.setCurrentTime(end);
         state.setPlaying(false);
         return;
       }

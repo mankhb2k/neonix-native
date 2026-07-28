@@ -7,6 +7,8 @@ type Props = {
   fps: number;
   pixelsPerSecond: number;
   width: number;
+  /** Click ruler to seek (optional). */
+  onSeekClick?: (clientX: number) => void;
 };
 
 type Tick = {
@@ -14,7 +16,13 @@ type Tick = {
   labeled: boolean;
 };
 
-export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
+export function TimeRuler({
+  duration,
+  fps,
+  pixelsPerSecond,
+  width,
+  onSeekClick,
+}: Props) {
   const safeFps = Math.max(1, Math.round(fps));
   const { tickEveryFrames, labelEveryFrames, pixelsPerFrame } =
     capCutRulerScale(pixelsPerSecond, safeFps);
@@ -41,9 +49,13 @@ export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
 
   return (
     <div
-      className="relative h-7 shrink-0 select-none overflow-hidden"
+      className="relative h-7 shrink-0 select-none overflow-hidden cursor-ew-resize"
       style={{ width }}
-      aria-hidden
+      aria-hidden={!onSeekClick}
+      onPointerDown={(event) => {
+        if (!onSeekClick || event.button !== 0) return;
+        onSeekClick(event.clientX);
+      }}
     >
       {ticks.map(({ frame, labeled }) => {
         const left = frame * pixelsPerFrame;
@@ -51,7 +63,7 @@ export function TimeRuler({ duration, fps, pixelsPerSecond, width }: Props) {
         return (
           <div
             key={frame}
-            className="absolute top-0 bottom-0 flex items-center gap-1"
+            className="absolute top-0 bottom-0 flex items-center gap-1 pointer-events-none"
             style={{ left, transform: "translateX(-0.5px)" }}
           >
             <div

@@ -87,7 +87,6 @@ function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: Mot
 export function PreviewStage() {
   const project = useEditorStore((state) => state.project);
   const currentTime = useEditorStore((state) => state.currentTime);
-  const setCurrentTime = useEditorStore((state) => state.setCurrentTime);
 
   const compiled = useMemo(() => {
     if (!project) return null;
@@ -118,7 +117,7 @@ export function PreviewStage() {
 
   const at = sceneAtGlobalTime(project.scenes, currentTime);
   if (!at) return null;
-  const { scene, localTime, start } = at;
+  const { scene, localTime } = at;
   const brand = project.metadata.brand;
   const accent = brand.primaryColor ?? "#3f9a62";
   const fps = project.metadata.fps ?? 30;
@@ -130,28 +129,6 @@ export function PreviewStage() {
 
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-transparent min-h-0 overflow-hidden">
-      <div className="flex items-center gap-2 mb-2">
-        <label style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-          t={frame.time.toFixed(2)}s
-          <input
-            type="range"
-            min={0}
-            max={scene.duration}
-            step={1 / fps}
-            value={frame.time}
-            onChange={(event) =>
-              setCurrentTime(start + Number(event.target.value))
-            }
-            data-testid="preview-time-scrubber"
-          />
-        </label>
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--bg-hover)] text-[var(--fg-muted)] text-[12px] whitespace-nowrap">
-          {scene.semantic?.role ?? scene.name ?? scene.id}
-        </span>
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[var(--bg-hover)] text-[var(--fg-muted)] text-[12px] whitespace-nowrap">
-          {compiled ? "Runtime IR" : "compile error"}
-        </span>
-      </div>
       <div
         className="relative bg-[var(--stage-bg)] rounded-xl overflow-hidden shadow-2xl flex flex-col justify-center items-center p-6 gap-4 text-center select-none"
         data-ratio={project.metadata.aspectRatio}

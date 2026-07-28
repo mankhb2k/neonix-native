@@ -99,6 +99,22 @@ export function timelineWorkspaceSeconds(contentSeconds: number): number {
   return Math.max(content * TIMELINE_MIN_SPAN_FACTOR, 20);
 }
 
+/**
+ * End of editable timeline content (CapCut: playhead cannot pass last clip).
+ * Main = sum of scene durations; overlays = max(start + duration).
+ */
+export function timelineContentEndSeconds(
+  scenes: ReadonlyArray<{ duration: number }>,
+  overlays: ReadonlyArray<{ startTime: number; duration: number }> = [],
+): number {
+  const mainEnd = scenes.reduce((sum, scene) => sum + scene.duration, 0);
+  let overlayEnd = 0;
+  for (const item of overlays) {
+    overlayEnd = Math.max(overlayEnd, item.startTime + item.duration);
+  }
+  return Math.max(mainEnd, overlayEnd, 0);
+}
+
 /** Độ dài canvas thước: max(workspace, đủ phủ viewport). */
 export function timelineCanvasDuration(
   contentSeconds: number,

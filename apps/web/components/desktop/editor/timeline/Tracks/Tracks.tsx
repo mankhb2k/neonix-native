@@ -14,6 +14,7 @@ import {
 import { useEditorStore } from "@/lib/store/editor-store";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { TrackLane } from "./TrackLane";
+import { Playhead, clientXToTimelineTime } from "./Playhead";
 import { useTracksDrag } from "./useTracksDrag";
 import { useOverlayClipMove } from "./useOverlayClipMove";
 import {
@@ -21,6 +22,7 @@ import {
   TIMELINE_PPS_MIN,
   maxPixelsPerSecondForView,
   timelineCanvasDuration,
+  timelineContentEndSeconds,
   timelineWorkspaceSeconds,
   zoomToPixelsPerSecond,
 } from "../timeline-scale";
@@ -41,6 +43,7 @@ export function Tracks({ zoom }: Props) {
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const currentTime = useEditorStore((s) => s.currentTime);
   const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
+  const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const rulerHeaderRef = useRef<HTMLDivElement>(null);
@@ -66,8 +69,9 @@ export function Tracks({ zoom }: Props) {
   }, [scenes]);
 
   const total = scenes?.reduce((sum, s) => sum + s.duration, 0) ?? 0;
+  const contentEnd = timelineContentEndSeconds(scenes ?? [], overlayScenes);
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
-  const workspaceSeconds = timelineWorkspaceSeconds(total);
+  const workspaceSeconds = timelineWorkspaceSeconds(contentEnd);
   const floorPps =
     trackViewWidth > 0 ? trackViewWidth / workspaceSeconds : TIMELINE_PPS_MIN;
   const ceilingPps = maxPixelsPerSecondForView(trackViewWidth, fps);
@@ -115,7 +119,7 @@ export function Tracks({ zoom }: Props) {
   }
 
   const rulerDuration = timelineCanvasDuration(
-    total,
+    contentEnd,
     pixelsPerSecond,
     trackViewWidth,
   );
@@ -151,15 +155,16 @@ export function Tracks({ zoom }: Props) {
         className="relative min-h-full flex flex-col flex-1"
         style={{ minWidth: TIMELINE_LABEL_WIDTH + canvasWidth }}
       >
-        {/* Playhead Vertical Line & Time Badge */}
-        <div
-          className="pointer-events-none absolute bottom-0 top-0 z-40 w-px bg-[var(--timeline-playhead)]"
-          style={{ left: playheadLeft }}
-        >
-          <div className="absolute top-0 left-1/2 flex h-3.5 min-w-3.5 -translate-x-1/2 items-center justify-center rounded-sm bg-[var(--timeline-playhead)] px-1 font-mono text-[9px] font-semibold text-[var(--bg-panel)]">
-            {currentTime.toFixed(1)}
-          </div>
-        </div>
+        {/* Playhead — z-50 above ruler / clips / insert line */}
+        <Playhead
+          left={playheadLeft}
+          labelWidth={TIMELINE_LABEL_WIDTH}
+          pixelsPerSecond={pixelsPerSecond}
+          maxTime={contentEnd}
+          scrollContainerRef={rootRef}
+          enabled={!clipMove.isMoving && activeDragItem == null}
+          onSeek={setCurrentTime}
+        />
 
         {/* 1. TimeRuler Header Bar (Sticky Top 0, Z-Index 40) */}
         <div
@@ -175,6 +180,23 @@ export function Tracks({ zoom }: Props) {
             fps={fps}
             pixelsPerSecond={pixelsPerSecond}
             width={canvasWidth}
+            onSeekClick={
+              !clipMove.isMoving && activeDragItem == null
+                ? (clientX) => {
+                    const root = rootRef.current;
+                    if (!root) return;
+                    setCurrentTime(
+                      clientXToTimelineTime(
+                        clientX,
+                        root,
+                        TIMELINE_LABEL_WIDTH,
+                        pixelsPerSecond,
+                        contentEnd,
+                      ),
+                    );
+                  }
+                : undefined
+            }
           />
         </div>
 

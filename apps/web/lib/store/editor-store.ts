@@ -12,7 +12,10 @@ import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import type { FrameDraft } from "@/lib/frame-library";
 import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
 import type { OverlaySceneItem } from "@/lib/overlay-scenes";
-import { TIMELINE_ZOOM_DEFAULT } from "@/components/desktop/editor/timeline/timeline-scale";
+import {
+  TIMELINE_ZOOM_DEFAULT,
+  timelineContentEndSeconds,
+} from "@/components/desktop/editor/timeline/timeline-scale";
 
 export type { OverlaySceneItem } from "@/lib/overlay-scenes";
 
@@ -211,7 +214,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setActiveDragItem: (item) => set({ activeDragItem: item }),
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
-  setCurrentTime: (time) => set({ currentTime: Math.max(0, time) }),
+  setCurrentTime: (time) => {
+    const state = get();
+    const max = timelineContentEndSeconds(
+      state.project?.scenes ?? [],
+      state.overlayScenes,
+    );
+    set({ currentTime: Math.min(Math.max(0, time), max) });
+  },
   setPlaying: (playing) => set({ isPlaying: playing }),
   togglePlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
   setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),

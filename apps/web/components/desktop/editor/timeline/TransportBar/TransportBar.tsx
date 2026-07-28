@@ -4,6 +4,7 @@ import { Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
 import {
   formatTimecode,
+  timelineContentEndSeconds,
   TIMELINE_ZOOM_MAX,
   TIMELINE_ZOOM_MIN,
 } from "../timeline-scale";
@@ -15,6 +16,7 @@ type Props = {
 
 export function TransportBar({ zoom, onZoomChange }: Props) {
   const scenes = useEditorStore((s) => s.project?.scenes);
+  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const currentTime = useEditorStore((s) => s.currentTime);
   const isPlaying = useEditorStore((s) => s.isPlaying);
@@ -22,7 +24,7 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
 
   if (!scenes) return null;
 
-  const total = scenes.reduce((sum, s) => sum + s.duration, 0);
+  const contentEnd = timelineContentEndSeconds(scenes, overlayScenes);
 
   function nudgeZoom(delta: number) {
     onZoomChange(Math.min(TIMELINE_ZOOM_MAX, Math.max(TIMELINE_ZOOM_MIN, zoom + delta)));
@@ -48,7 +50,7 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
           )}
         </button>
         <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
-          {formatTimecode(total, fps)}
+          {formatTimecode(contentEnd, fps)}
         </span>
       </div>
       <div className="flex items-center justify-end gap-3">
