@@ -38,7 +38,6 @@ export function Tracks({ zoom }: Props) {
   const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
   const selectedOverlayId = useEditorStore((s) => s.selectedOverlayId);
-  const selectScene = useEditorStore((s) => s.selectScene);
   const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const currentTime = useEditorStore((s) => s.currentTime);
@@ -310,7 +309,7 @@ export function Tracks({ zoom }: Props) {
                 >
                   {layerItems.map((item) => {
                     const active = selectedOverlayId === item.id;
-                    const moving = clipMove.movingOverlayId === item.id;
+                    const moving = clipMove.movingClipId === item.id;
                     if (moving) return null;
                     return (
                       <div
@@ -422,29 +421,40 @@ export function Tracks({ zoom }: Props) {
             >
               {sceneBlocks.map(({ scene, index, left, width, startTime }) => {
                 const active = selectedSceneId === scene.id;
+                const moving = clipMove.movingClipId === scene.id;
+                if (moving) return null;
+                const label =
+                  scene.semantic?.role ?? scene.name ?? scene.id;
                 return (
-                  <button
+                  <div
                     key={scene.id}
-                    type="button"
+                    role="button"
+                    tabIndex={0}
                     className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
                       active
                         ? "z-10 bg-[var(--timeline-clip-frame-hover)] text-white shadow-md ring-2 ring-white"
                         : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
                     }`}
                     style={{ left, width }}
-                    onClick={() => {
-                      selectScene(scene.id);
-                      setCurrentTime(startTime);
+                    onPointerDown={(event) => {
+                      clipMove.beginMainPointerDown(
+                        {
+                          id: scene.id,
+                          name: label,
+                          duration: scene.duration,
+                          startTime,
+                        },
+                        event,
+                      );
                     }}
                   >
-                    <span className="block truncate font-semibold text-white">
-                      {index + 1}.{" "}
-                      {scene.semantic?.role ?? scene.name ?? scene.id}
+                    <span className="block truncate font-semibold text-white pointer-events-none">
+                      {index + 1}. {label}
                     </span>
-                    <span className="block truncate text-white/80">
+                    <span className="block truncate text-white/80 pointer-events-none">
                       {scene.duration}s
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </TrackLane>

@@ -40,18 +40,32 @@ type UseOverlayClipMoveArgs = {
 };
 
 type MoveSession = {
+  source: "main" | "overlay";
   id: string;
   name: string;
   duration: number;
+  /** Layer at pointerdown (overlay) — used if hit-test never updates. */
+  originLayer: number;
   pointerId: number;
   originX: number;
   originY: number;
+  /** Pointer X offset inside the clip (so drop keeps grab point). */
+  grabOffsetX: number;
   started: boolean;
+  /** Seek playhead here on pure click (main clips). */
+  clickSeekTime?: number;
+};
+
+type MainClipPointerItem = {
+  id: string;
+  name: string;
+  duration: number;
+  startTime: number;
 };
 
 /**
- * Pointer-drag an already-selected overlay clip across time + lanes
- * (reuses insert-line / gray ghost policy from sidebar drops).
+ * Pointer-drag timeline clips (main magnetic + overlay free-place)
+ * with shared insert-line / gray ghost policy from sidebar drops.
  */
 export function useOverlayClipMove({
   rootRef,
@@ -59,16 +73,13 @@ export function useOverlayClipMove({
   pixelsPerSecond,
   uniqueLayers,
 }: UseOverlayClipMoveArgs) {
-  const moveOverlayScene = useEditorStore((s) => s.moveOverlayScene);
-  const selectOverlay = useEditorStore((s) => s.selectOverlay);
-  const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
-  const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
-
   const insertGhostRef = useRef<HTMLDivElement>(null);
   const moveUiRef = useRef({
     isInsert: false,
     layer: null as number | null,
     indicatorTop: 0,
+    /** True only after hit-test reports main-track body (or seeded for main drag). */
+    overMainBody: false,
   });
   const ghostLeftRef = useRef(0);
   const sessionRef = useRef<MoveSession | null>(null);
@@ -78,7 +89,7 @@ export function useOverlayClipMove({
   pixelsPerSecondRef.current = pixelsPerSecond;
   uniqueLayersRef.current = uniqueLayers;
 
-  const [movingOverlayId, setMovingOverlayId] = useState<string | null>(null);
+  const [movingClipId, setMovingClipId] = useState<string | null>(null);
   const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
   const [targetOverlayLayer, setTargetOverlayLayer] = useState<number | null>(
     null,
@@ -102,16 +113,30 @@ export function useOverlayClipMove({
   }, [isOverlayInsertLine, dragGhostState != null]);
 
   function resetMoveUi() {
-    moveUiRef.current = { isInsert: false, layer: null, indicatorTop: 0 };
+    moveUiRef.current = {
+      isInsert: false,
+      layer: null,
+      indicatorTop: 0,
+      overMainBody: false,
+    };
     ghostLeftRef.current = 0;
     sessionRef.current = null;
-    setMovingOverlayId(null);
+    setMovingClipId(null);
     setIsOverlayInsertLine(false);
     setTargetOverlayLayer(null);
     setDragGhostState(null);
-    setIsOverTimeline(false);
-    setActiveDragItem(null);
+    useEditorStore.getState().setIsOverTimeline(false);
+    useEditorStore.getState().setActiveDragItem(null);
     clearDragCursor();
+  }
+
+  function clientXToGhostLeft(clientX: number, grabOffsetX: number): number {
+    const root = rootRef.current;
+    if (!root) return 0;
+    const rect = root.getBoundingClientRect();
+    const mouseX =
+      clientX - rect.left + root.scrollLeft - TIMELINE_LABEL_WIDTH;
+    return Math.max(0, mouseX - grabOffsetX);
   }
 
   function applyPointerMove(clientX: number, clientY: number) {
@@ -123,11 +148,10 @@ export function useOverlayClipMove({
       const dy = clientY - session.originY;
       if (dx * dx + dy * dy < MOVE_THRESHOLD_PX * MOVE_THRESHOLD_PX) return;
       session.started = true;
-      setMovingOverlayId(session.id);
-      setIsOverTimeline(true);
+      setMovingClipId(session.id);
+      useEditorStore.getState().setIsOverTimeline(true);
       setDragPreviewAnchor(CYAN_ANCHOR_X, CYAN_ANCHOR_Y);
-      // Drive GlobalDragPreview cyan block (same path as sidebar drag).
-      setActiveDragItem({
+      useEditorStore.getState().setActiveDragItem({
         id: session.id,
         type: "frame",
         name: session.name,
@@ -136,11 +160,7 @@ export function useOverlayClipMove({
     }
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
-    const rect = rootRef.current.getBoundingClientRect();
-    const scrollLeft = rootRef.current.scrollLeft;
-    const mouseX =
-      clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
-    const left = Math.max(0, mouseX);
+    const left = clientXToGhostLeft(clientX, session.grabOffsetX);
     ghostLeftRef.current = left;
 
     const ghostWidth = Math.max(session.duration * pps, 24);
@@ -174,14 +194,17 @@ export function useOverlayClipMove({
     if (!target) return;
 
     const ui = moveUiRef.current;
+    const overMainBody = !target.isInsert && target.layer == null;
     const layerChanged = ui.layer !== target.layer;
     const insertChanged = ui.isInsert !== target.isInsert;
+    const mainChanged = ui.overMainBody !== overMainBody;
     const topChanged =
       target.isInsert &&
       Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
-    if (insertChanged || layerChanged || topChanged) {
+    if (insertChanged || layerChanged || topChanged || mainChanged) {
       ui.isInsert = target.isInsert;
       ui.layer = target.layer;
+      ui.overMainBody = overMainBody;
       if (insertChanged) setIsOverlayInsertLine(target.isInsert);
       if (layerChanged) setTargetOverlayLayer(target.layer);
       if (target.isInsert && (topChanged || insertChanged)) {
@@ -198,21 +221,36 @@ export function useOverlayClipMove({
       return;
     }
 
+    const store = useEditorStore.getState();
+
     if (!session.started) {
-      // Pure click — selection already applied on pointerdown.
+      if (session.source === "main" && session.clickSeekTime != null) {
+        store.setCurrentTime(session.clickSeekTime);
+      }
       resetMoveUi();
       return;
     }
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const startTime = ghostLeftRef.current / pps;
-    const layer = moveUiRef.current.layer ?? 0;
-    const insertNewLayer = moveUiRef.current.isInsert;
-    moveOverlayScene(session.id, {
-      startTime,
-      layerIndex: layer,
-      insertNewLayer,
-    });
+    const ui = moveUiRef.current;
+
+    if (session.source === "overlay") {
+      store.moveOverlayScene(session.id, {
+        startTime,
+        layerIndex: ui.layer ?? session.originLayer,
+        insertNewLayer: ui.isInsert,
+      });
+    } else if (ui.overMainBody) {
+      store.reorderMainScene(session.id, startTime);
+    } else {
+      store.promoteMainSceneToOverlay(
+        session.id,
+        startTime,
+        ui.layer ?? 0,
+        ui.isInsert,
+      );
+    }
     resetMoveUi();
   }
 
@@ -243,32 +281,88 @@ export function useOverlayClipMove({
     item: OverlaySceneItem,
     event: ReactPointerEvent,
   ) {
-    // Sidebar HTML5 drag wins if already active.
     if (useEditorStore.getState().activeDragItem) return;
 
     event.stopPropagation();
     event.preventDefault();
-    selectOverlay(item.id);
+    useEditorStore.getState().selectOverlay(item.id);
+
+    const pps = Math.max(pixelsPerSecondRef.current, 1);
+    const clipLeft = item.startTime * pps;
+    const pointerLeft = clientXToGhostLeft(event.clientX, 0);
+    const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
+
+    moveUiRef.current = {
+      isInsert: false,
+      layer: item.layerIndex,
+      indicatorTop: 0,
+      overMainBody: false,
+    };
+    setTargetOverlayLayer(item.layerIndex);
 
     sessionRef.current = {
+      source: "overlay",
       id: item.id,
       name: item.name,
       duration: item.duration,
+      originLayer: item.layerIndex,
       pointerId: event.pointerId,
       originX: event.clientX,
       originY: event.clientY,
+      grabOffsetX,
       started: false,
     };
   }
 
+  function beginMainPointerDown(
+    item: MainClipPointerItem,
+    event: ReactPointerEvent,
+  ) {
+    if (useEditorStore.getState().activeDragItem) return;
+
+    event.stopPropagation();
+    event.preventDefault();
+    useEditorStore.getState().selectScene(item.id);
+
+    const pps = Math.max(pixelsPerSecondRef.current, 1);
+    const clipLeft = item.startTime * pps;
+    const pointerLeft = clientXToGhostLeft(event.clientX, 0);
+    const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
+
+    moveUiRef.current = {
+      isInsert: false,
+      layer: null,
+      indicatorTop: 0,
+      overMainBody: true,
+    };
+    setTargetOverlayLayer(null);
+
+    sessionRef.current = {
+      source: "main",
+      id: item.id,
+      name: item.name,
+      duration: item.duration,
+      originLayer: 0,
+      pointerId: event.pointerId,
+      originX: event.clientX,
+      originY: event.clientY,
+      grabOffsetX,
+      started: false,
+      clickSeekTime: item.startTime,
+    };
+  }
+
   return {
-    movingOverlayId,
+    /** @deprecated Prefer movingClipId */
+    movingOverlayId: movingClipId,
+    movingClipId,
     isOverlayInsertLine,
     targetOverlayLayer,
     indicatorTopPos,
     dragGhostState,
     insertGhostRef,
     beginOverlayPointerDown,
-    isMoving: movingOverlayId != null,
+    beginMainPointerDown,
+    isMoving: movingClipId != null,
   };
 }

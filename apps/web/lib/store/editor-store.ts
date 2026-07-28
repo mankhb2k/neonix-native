@@ -90,6 +90,15 @@ type EditorState = {
       insertNewLayer?: boolean;
     },
   ) => void;
+  /** Magnetic reorder on main track by drop time (midpoint rule). */
+  reorderMainScene: (sceneId: string, dropTime: number) => void;
+  /** Lift a main scene into an overlay lane (removes from magnetic main). */
+  promoteMainSceneToOverlay: (
+    sceneId: string,
+    startTime: number,
+    layerIndex: number,
+    insertNewLayer?: boolean,
+  ) => void;
   addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
   setExporting: (value: boolean) => void;
   setCurrentTime: (time: number) => void;
@@ -139,6 +148,22 @@ function mapNode(
       ? { ...scene, nodes: scene.nodes.map((node) => node.id === nodeId ? transform(node) : node) }
       : scene),
   };
+}
+
+/** Insert index in magnetic order: drop before the scene whose midpoint is after dropTime. */
+function magneticInsertIndex(
+  order: string[],
+  scenesById: Map<string, MotionScene>,
+  dropTime: number,
+): number {
+  let t = 0;
+  for (let i = 0; i < order.length; i++) {
+    const scene = scenesById.get(order[i]!);
+    const dur = scene?.duration ?? 0;
+    if (dropTime < t + dur / 2) return i;
+    t += dur;
+  }
+  return order.length;
 }
 
 /** Chuyển đổi FrameDraft từ thư viện thành một MotionScene hoàn chỉnh */
@@ -450,6 +475,87 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           },
         ],
         selectedOverlayId: id,
+        selectedSceneId: null,
+        selectedNodeId: null,
+      };
+    });
+  },
+
+  /** Sắp xếp lại clip trên Main (magnetic) theo thời điểm thả */
+  reorderMainScene: (sceneId, dropTime) => {
+    const project = get().project;
+    if (!project) return;
+    const order = project.timeline.sceneOrder.filter((id) =>
+      project.scenes.some((s) => s.id === id),
+    );
+    if (!order.includes(sceneId)) return;
+
+    const without = order.filter((id) => id !== sceneId);
+    const byId = new Map(project.scenes.map((s) => [s.id, s]));
+    const insertAt = magneticInsertIndex(without, byId, Math.max(0, dropTime));
+    const nextOrder = [
+      ...without.slice(0, insertAt),
+      sceneId,
+      ...without.slice(insertAt),
+    ];
+    const scenes = nextOrder
+      .map((id) => byId.get(id))
+      .filter((s): s is MotionScene => s != null);
+
+    set({
+      project: {
+        ...project,
+        scenes,
+        timeline: { ...project.timeline, sceneOrder: nextOrder },
+      },
+      selectedSceneId: sceneId,
+      selectedOverlayId: null,
+      selectedNodeId: firstEditableNode(byId.get(sceneId))?.id ?? null,
+    });
+  },
+
+  /** Đưa clip Main lên lane Overlay (xóa khỏi chuỗi magnetic) */
+  promoteMainSceneToOverlay: (
+    sceneId,
+    startTime,
+    layerIndex,
+    insertNewLayer = false,
+  ) => {
+    set((state) => {
+      const project = state.project;
+      if (!project) return state;
+      const scene = project.scenes.find((s) => s.id === sceneId);
+      if (!scene) return state;
+
+      const nextOrder = project.timeline.sceneOrder.filter((id) => id !== sceneId);
+      const nextScenes = project.scenes.filter((s) => s.id !== sceneId);
+
+      let targetLayer = Math.max(0, layerIndex);
+      let updatedOverlays = state.overlayScenes;
+      if (insertNewLayer) {
+        updatedOverlays = updatedOverlays.map((item) =>
+          item.layerIndex >= targetLayer
+            ? { ...item, layerIndex: item.layerIndex + 1 }
+            : item,
+        );
+      }
+
+      const newOverlay: OverlaySceneItem = {
+        id: uid("overlay"),
+        name: scene.semantic?.role ?? scene.name ?? scene.id,
+        duration: Math.max(0.5, scene.duration),
+        startTime: Math.max(0, startTime),
+        layerIndex: targetLayer,
+      };
+
+      return {
+        project: {
+          ...project,
+          scenes: nextScenes,
+          timeline: { ...project.timeline, sceneOrder: nextOrder },
+        },
+        overlayScenes: [...updatedOverlays, newOverlay],
+        selectedOverlayId: newOverlay.id,
         selectedSceneId: null,
         selectedNodeId: null,
       };

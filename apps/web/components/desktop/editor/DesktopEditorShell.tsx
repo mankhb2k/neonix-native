@@ -32,9 +32,14 @@ export function DesktopEditorShell({ initialProject }: Props) {
     "sidebar" | "rightDock" | "timeline" | null
   >(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadedProjectIdRef = useRef<string | null>(null);
 
+  // Load once per project id — re-running would wipe in-memory clip moves.
   useEffect(() => {
-    loadProject(initialProject, loadOverlayScenes(initialProject.metadata.id));
+    const id = initialProject.metadata.id;
+    if (loadedProjectIdRef.current === id) return;
+    loadedProjectIdRef.current = id;
+    loadProject(initialProject, loadOverlayScenes(id));
   }, [initialProject, loadProject]);
 
   // Single autosave owner (debounced) — page.tsx must not also save.
