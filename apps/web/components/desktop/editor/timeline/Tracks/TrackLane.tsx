@@ -104,14 +104,10 @@ export function TrackLane({
         {ghostPreview && (
           <div
             ref={ghostRef}
-            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[11px] text-white/90 flex items-center shadow-md z-20 overflow-hidden will-change-[left]"
+            className="absolute top-0 bottom-0 my-auto h-[90%] pointer-events-none rounded bg-[#38383e] border border-[#4a4a52] shadow-md z-20 overflow-hidden will-change-[left]"
             style={{ width: ghostPreview.width }}
-          >
-            <span className="truncate font-semibold text-white/80">
-              {ghostPreview.label ?? "Khung hình"}
-              {ghostPreview.duration != null && ` (${ghostPreview.duration}s)`}
-            </span>
-          </div>
+            aria-hidden
+          />
         )}
       </div>
     </div>

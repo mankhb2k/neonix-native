@@ -706,16 +706,13 @@ export function Tracks({ zoom }: Props) {
               <>
                 <div
                   ref={insertGhostRef}
-                  className="absolute z-30 h-8 -translate-y-1/2 flex items-center rounded bg-[#38383e] border border-[#4a4a52] px-2 text-[10px] font-semibold text-white/80 shadow-md pointer-events-none overflow-hidden will-change-[left]"
+                  className="absolute z-30 h-8 -translate-y-1/2 rounded bg-[#38383e] border border-[#4a4a52] shadow-md pointer-events-none overflow-hidden will-change-[left]"
                   style={{
                     top: indicatorTopPos,
                     width: dragGhostState.width,
                   }}
-                >
-                  <span className="truncate">
-                    {dragGhostState.label} ({dragGhostState.duration}s)
-                  </span>
-                </div>
+                  aria-hidden
+                />
                 <div
                   className="absolute z-40 h-px bg-[#14B8A6] pointer-events-none"
                   style={{
