@@ -12,6 +12,7 @@ import {
   Music,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { clearDragCursor, setDragCursor } from "@/lib/editor-drag-cursor";
 import { FRAME_LIBRARY_MIME, getFrame } from "@/lib/frame-library";
 import { AUDIO_LIBRARY_MIME } from "../../sidebar/AudioPanel/AudioPanel";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
@@ -39,7 +40,6 @@ export function Tracks({ zoom }: Props) {
   );
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
-  const setDragCursorPos = useEditorStore((s) => s.setDragCursorPos);
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -51,10 +51,6 @@ export function Tracks({ zoom }: Props) {
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState<number>(0);
-  const [mouseScreenPos, setMouseScreenPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
 
   // Track control states (CapCut style)
   const [videoLocked, setVideoLocked] = useState(false);
@@ -128,15 +124,15 @@ export function Tracks({ zoom }: Props) {
     event.dataTransfer.dropEffect = "copy";
     setDragOver(true);
     setIsOverTimeline(true);
-    setMouseScreenPos({ x: event.clientX, y: event.clientY });
     if (event.clientX > 0 && event.clientY > 0) {
-      setDragCursorPos({ x: event.clientX, y: event.clientY });
+      setDragCursor(event.clientX, event.clientY);
     }
 
     if (!rootRef.current) return;
     const rect = rootRef.current.getBoundingClientRect();
     const scrollLeft = rootRef.current.scrollLeft;
-    const mouseX = event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
+    const mouseX =
+      event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
     const mouseY = event.clientY - rect.top;
     const hoverTime = Math.max(0, mouseX / Math.max(pixelsPerSecond, 1));
     const left = hoverTime * pixelsPerSecond;
@@ -222,7 +218,6 @@ export function Tracks({ zoom }: Props) {
     setIsOverlayInsertLine(false);
     setTargetOverlayLayer(null);
     setDragGhostState(null);
-    setMouseScreenPos(null);
     setIsOverTimeline(false);
   }
 
@@ -231,7 +226,7 @@ export function Tracks({ zoom }: Props) {
     setDragOver(false);
     setIsOverTimeline(false);
     setActiveDragItem(null);
-    setDragCursorPos(null);
+    clearDragCursor();
 
     if (isOverlayInsertLine || targetOverlayLayer !== null) {
       const frameId =
@@ -304,7 +299,7 @@ export function Tracks({ zoom }: Props) {
         </div>
 
         {/* 1. TimeRuler Header Bar (Sticky Top 0, Z-Index 40) */}
-        <div className="sticky top-0 z-40 flex bg-[var(--bg-panel)] border-b border-[var(--border-subtle)]">
+        <div className="sticky top-0 z-40 flex bg-[var(--bg-panel)]">
           <div
             className="sticky left-0 z-40 shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
             style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
@@ -556,7 +551,9 @@ export function Tracks({ zoom }: Props) {
               <TrackLane
                 variant="secondary"
                 ghostPreview={
-                  dragGhostState?.targetTrack === "audio" ? dragGhostState : null
+                  dragGhostState?.targetTrack === "audio"
+                    ? dragGhostState
+                    : null
                 }
                 labelWidth={TIMELINE_LABEL_WIDTH}
                 canvasWidth={canvasWidth}

@@ -22,7 +22,7 @@ export function DesktopEditorShell({ initialProject }: Props) {
   const project = useEditorStore((s) => s.project);
 
   // Default widths in px (1rem = 16px)
-  const [sidebarWidth, setSidebarWidth] = useState(560); // 35rem
+  const [sidebarWidth, setSidebarWidth] = useState(580); // 35rem
   const [rightdockWidth, setRightdockWidth] = useState(600); // 37.5rem
   const [timelineHeight, setTimelineHeight] = useState(380); // 23.75rem
   const [activeResizer, setActiveResizer] = useState<

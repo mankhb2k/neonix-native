@@ -46,7 +46,6 @@ type EditorState = {
     name: string;
     duration: number;
   } | null;
-  dragCursorPos: { x: number; y: number } | null;
   isOverTimeline: boolean;
 
   // Các Action quản lý State
@@ -58,7 +57,6 @@ type EditorState = {
       duration: number;
     } | null,
   ) => void;
-  setDragCursorPos: (pos: { x: number; y: number } | null) => void;
   setIsOverTimeline: (over: boolean) => void;
   loadProject: (project: MotionProject) => void;
   selectScene: (sceneId: string) => void;
@@ -249,13 +247,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeSidebarTab: "frame",
   sidebarOpen: true,
 
-  // Trạng thái Drag Preview toàn cục
+  // Trạng thái Drag Preview toàn cục (cursor position: lib/editor-drag-cursor.ts)
   activeDragItem: null,
-  dragCursorPos: null,
   isOverTimeline: false,
 
   setActiveDragItem: (item) => set({ activeDragItem: item }),
-  setDragCursorPos: (pos) => set({ dragCursorPos: pos }),
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
 
   /** 3.1 Nạp dự án vào Editor Store */

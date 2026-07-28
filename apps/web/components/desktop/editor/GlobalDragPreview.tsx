@@ -1,16 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useLayoutEffect, useRef } from "react";
 import { Film, Music } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import {
+  bindDragPreviewElement,
+} from "@/lib/editor-drag-cursor";
 import { TIMELINE_ZOOM_DEFAULT, zoomToPixelsPerSecond } from "@/components/desktop/editor/timeline/timeline-scale";
 
 export function GlobalDragPreview() {
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
-  const dragCursorPos = useEditorStore((s) => s.dragCursorPos);
   const isOverTimeline = useEditorStore((s) => s.isOverTimeline);
+  const elRef = useRef<HTMLDivElement>(null);
 
-  if (!activeDragItem || !dragCursorPos) {
+  useLayoutEffect(() => {
+    if (!activeDragItem) {
+      bindDragPreviewElement(null);
+      return;
+    }
+    bindDragPreviewElement(elRef.current);
+    return () => {
+      bindDragPreviewElement(null);
+    };
+  }, [activeDragItem]);
+
+  if (!activeDragItem) {
     return null;
   }
 
@@ -19,13 +33,10 @@ export function GlobalDragPreview() {
 
   return (
     <div
-      className={`pointer-events-none fixed -translate-x-1/2 -translate-y-1/2 transition-none ${
+      ref={elRef}
+      className={`pointer-events-none fixed top-0 left-0 transition-none will-change-transform ${
         isOverTimeline ? "z-35" : "z-[9999]"
       }`}
-      style={{
-        left: dragCursorPos.x,
-        top: dragCursorPos.y,
-      }}
     >
       {!isOverTimeline ? (
         /* Thẻ thu nhỏ preview màu đen mờ khi rê ở Sidebar & bên ngoài Timeline */

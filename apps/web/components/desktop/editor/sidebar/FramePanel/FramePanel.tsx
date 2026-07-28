@@ -4,6 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
 import {
+  clearDragCursor,
+  setDragCursor,
+} from "@/lib/editor-drag-cursor";
+import {
   addFrame,
   FRAME_LIBRARY_MIME,
   listFrames,
@@ -30,7 +34,6 @@ export function FramePanel() {
   const [frames, setFrames] = useState<FrameDraft[]>([]);
 
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
-  const setDragCursorPos = useEditorStore((s) => s.setDragCursorPos);
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
 
   const refresh = useCallback(() => {
@@ -91,17 +94,17 @@ export function FramePanel() {
                     });
                     setIsOverTimeline(false);
                     if (event.clientX > 0 && event.clientY > 0) {
-                      setDragCursorPos({ x: event.clientX, y: event.clientY });
+                      setDragCursor(event.clientX, event.clientY);
                     }
                   }}
                   onDrag={(event) => {
                     if (event.clientX > 0 && event.clientY > 0) {
-                      setDragCursorPos({ x: event.clientX, y: event.clientY });
+                      setDragCursor(event.clientX, event.clientY);
                     }
                   }}
                   onDragEnd={() => {
                     setActiveDragItem(null);
-                    setDragCursorPos(null);
+                    clearDragCursor();
                     setIsOverTimeline(false);
                   }}
                   className="cursor-grab active:cursor-grabbing"
