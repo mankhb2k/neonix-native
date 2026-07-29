@@ -316,6 +316,20 @@ export function createOverlayLane(
   };
 }
 
+/** Drop overlay lanes that have no clips; keep main; renumber overlay order. */
+export function pruneEmptyOverlayLanes(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+): TimelineLane[] {
+  const used = new Set(clips.map((clip) => clip.laneId));
+  const main = lanes.find((lane) => lane.kind === "main") ?? ensureMainLane([]);
+  const overlays = lanes
+    .filter((lane) => lane.kind === "overlay" && used.has(lane.id))
+    .sort((a, b) => a.order - b.order)
+    .map((lane, index) => ({ ...lane, order: index }));
+  return [main, ...overlays];
+}
+
 /** Place on main without time-overlap. */
 export function resolveMainStartTime(
   clips: TimelineClip[],

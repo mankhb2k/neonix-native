@@ -216,8 +216,6 @@ export function useOverlayClipMove({
       return;
     }
 
-    const store = useEditorStore.getState();
-
     if (!session.started) {
       if (session.source === "main" && session.clickSeekTime != null) {
         usePlaybackClock.getState().seek(session.clickSeekTime);
@@ -226,6 +224,7 @@ export function useOverlayClipMove({
       return;
     }
 
+    const store = useEditorStore.getState();
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const startTime = ghostLeftRef.current / pps;
     const ui = moveUiRef.current;

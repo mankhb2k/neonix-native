@@ -56,7 +56,11 @@ export function Tracks({
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const overlayLanes = timelineLanes
-    .filter((lane) => lane.kind === "overlay")
+    .filter(
+      (lane) =>
+        lane.kind === "overlay" &&
+        timelineClips.some((clip) => clip.laneId === lane.id),
+    )
     .sort((a, b) => b.order - a.order);
   const mainLane = timelineLanes.find((lane) => lane.kind === "main");
   const maxOverlayOrder = overlayLanes.reduce(

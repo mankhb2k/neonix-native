@@ -21,6 +21,7 @@ import {
   findFreeOverlayLane,
   isMainLane,
   migrateLanesAndClips,
+  pruneEmptyOverlayLanes,
   resolveMainStartTime,
   reorderOverlayLane,
   shiftOverlayLaneOrders,
@@ -341,12 +342,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   /** 3.1 Nạp dự án vào Editor Store */
   loadProject: (input, overlayScenes = [], storedClips = [], storedLanes = []) => {
     const project = parseMotionProject(input);
-    const { lanes, clips } = migrateLanesAndClips(
+    const { lanes: migratedLanes, clips } = migrateLanesAndClips(
       project,
       overlayScenes,
       storedClips,
       storedLanes,
     );
+    const lanes = pruneEmptyOverlayLanes(migratedLanes, clips);
     const mainId = lanes.find((lane) => lane.kind === "main")?.id;
     const firstClip =
       clips.find((clip) => clip.laneId === mainId) ?? clips[0];
@@ -571,11 +573,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           timelineClips,
           lanes,
         );
+        const nextLanes = pruneEmptyOverlayLanes(lanes, timelineClips);
         return {
           project: nextProject,
-          timelineLanes: lanes,
+          timelineLanes: nextLanes,
           timelineClips,
-          overlayScenes: overlayScenesFromClips(timelineClips, lanes),
+          overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
           selectedClipId: clip.id,
           selectedSceneId: scene.id,
           selectedOverlayId: null,
@@ -614,10 +617,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         name: draft.name,
       };
       const timelineClips = [...state.timelineClips, clip];
+      const nextLanes = pruneEmptyOverlayLanes(lanes, timelineClips);
       return {
-        timelineLanes: lanes,
+        timelineLanes: nextLanes,
         timelineClips,
-        overlayScenes: overlayScenesFromClips(timelineClips, lanes),
+        overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
         selectedClipId: clip.id,
         selectedSceneId: null,
         selectedOverlayId: clip.id,
@@ -709,6 +713,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
 
       clips.push(moved);
+      lanes = pruneEmptyOverlayLanes(lanes, clips);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
       const movedOnMain = isMainLane(lanes, moved.laneId);
       const selectedScene = movedOnMain
