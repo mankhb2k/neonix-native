@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { ChevronDown, ChevronRight, ChevronUp, Layers, Plus } from "lucide-react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import {
   SidebarPanel,
   SidebarPanelContent,

@@ -7,7 +7,7 @@ import {
   deleteProject,
   saveProject,
   type StoredProject,
-} from "@/lib/project-storage";
+} from "@/lib/editor/project-storage";
 import {
   LayoutGrid,
   List,

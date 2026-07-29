@@ -2,7 +2,7 @@ import { parseMotionProject, type MotionProject } from "@motionvideo/motion-sche
 import {
   parseOverlayScenes,
   type OverlaySceneItem,
-} from "@/lib/overlay-scenes";
+} from "@/lib/editor/overlay-scenes";
 import {
   isMainLane,
   migrateLanesAndClips,
@@ -10,7 +10,7 @@ import {
   parseTimelineLanes,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/timeline-clips";
+} from "@/lib/editor/timeline-clips";
 
 const STORAGE_KEY = "motionvideo.projects";
 /** One-shot: wipe seeded hook/offer/cta (and any) timeline scenes → empty canvas. */

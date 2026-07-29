@@ -1,9 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import { clipsContentEndSeconds } from "@/lib/timeline-clips";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
 import { TimeRuler } from "./TimeRuler/TimeRuler";
 import { Tracks } from "./Tracks/Tracks";
 import { Playhead, clientXToTimelineTime } from "./Tracks/Playhead";

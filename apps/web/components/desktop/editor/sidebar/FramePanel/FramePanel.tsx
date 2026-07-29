@@ -2,18 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import {
   clearDragCursor,
   setDragCursor,
-} from "@/lib/editor-drag-cursor";
+} from "@/lib/editor/drag-cursor";
 import {
   addFrame,
   FRAME_LIBRARY_MIME,
   listFrames,
   removeFrame,
   type FrameDraft,
-} from "@/lib/frame-library";
+} from "@/lib/editor/frame-library";
 import { MediaItem } from "../MediaItem/MediaItem";
 import {
   SidebarPanel,

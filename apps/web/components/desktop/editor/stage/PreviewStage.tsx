@@ -4,10 +4,10 @@ import { memo, useMemo } from "react";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
 import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
-import { useEditorStore, nodeText } from "@/lib/store/editor-store";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/playback/time-frame";
-import type { TimelineClip } from "@/lib/timeline-clips";
+import { useEditorStore, nodeText } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
+import type { TimelineClip } from "@/lib/editor/timeline-clips";
 import {
   matrixToCss,
   previewParitySnapshot,

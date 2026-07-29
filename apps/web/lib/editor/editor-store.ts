@@ -9,29 +9,34 @@ import {
   type MotionScene,
 } from "@motionvideo/motion-schema";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
-import type { FrameDraft } from "@/lib/frame-library";
-import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
-import type { OverlaySceneItem } from "@/lib/overlay-scenes";
+import type { FrameDraft } from "@/lib/editor/frame-library";
+import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
+import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 import {
   TIMELINE_ZOOM_DEFAULT,
   TIMELINE_ZOOM_ON_PROJECT_LOAD,
 } from "@/components/desktop/editor/timeline/timeline-scale";
 import {
+  createAudioLane,
   createOverlayLane,
+  ensureAudioClipsFromTracks,
   ensureMainLane,
+  findFreeAudioLane,
   findFreeOverlayLane,
+  isAudioLane,
   isMainLane,
   migrateLanesAndClips,
-  pruneEmptyOverlayLanes,
+  pruneEmptyLanes,
   resolveMainStartTime,
   reorderOverlayLane,
+  shiftAudioLaneOrders,
   shiftOverlayLaneOrders,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/timeline-clips";
+} from "@/lib/editor/timeline-clips";
 
-export type { OverlaySceneItem } from "@/lib/overlay-scenes";
-export type { TimelineClip, TimelineLane } from "@/lib/timeline-clips";
+export type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
+export type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 
 /* ==========================================================================
    1. Các kiểu dữ liệu trạng thái (State Types)
@@ -115,12 +120,13 @@ type EditorState = {
     clipId: string,
     patch: {
       startTime: number;
-      track: "main" | "overlay";
+      track: "main" | "overlay" | "audio";
       laneId?: string;
       insertNewLane?: boolean;
       /** @deprecated */
       layerIndex?: number;
       insertNewLayer?: boolean;
+      insertOrder?: number;
     },
   ) => void;
   renameLane: (laneId: string, name: string) => void;
@@ -148,7 +154,26 @@ type EditorState = {
     layerIndex: number,
     insertNewLayer?: boolean,
   ) => void;
-  addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
+  addAudioTrack: (track: {
+    role: string;
+    assetId: string;
+    src?: string;
+    duration?: number;
+  }) => void;
+  addAudioClipFromLibrary: (
+    item: {
+      title: string;
+      assetId: string;
+      src?: string;
+      duration?: number;
+    },
+    target: {
+      startTime: number;
+      laneId?: string;
+      insertNewLane?: boolean;
+      insertOrder?: number;
+    },
+  ) => void;
   setExporting: (value: boolean) => void;
   setTimelineZoom: (zoom: number) => void;
 };
@@ -254,7 +279,10 @@ function overlayScenesFromClips(
 ): OverlaySceneItem[] {
   const orderByLane = new Map(lanes.map((lane) => [lane.id, lane.order]));
   return clips
-    .filter((clip) => !isMainLane(lanes, clip.laneId))
+    .filter(
+      (clip) =>
+        !isMainLane(lanes, clip.laneId) && !isAudioLane(lanes, clip.laneId),
+    )
     .map((clip) => ({
       id: clip.id,
       name: clip.name,
@@ -316,6 +344,40 @@ function resolveOverlayPlacement(
   return { lanes: nextLanes, laneId: created.id };
 }
 
+function resolveAudioPlacement(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  startTime: number,
+  duration: number,
+  preferredLaneId: string | null,
+  insertNew: boolean,
+  preferredInsertOrder?: number | null,
+): { lanes: TimelineLane[]; laneId: string } {
+  const result = findFreeAudioLane(
+    lanes,
+    clips,
+    startTime,
+    duration,
+    preferredLaneId,
+    insertNew,
+    preferredInsertOrder,
+  );
+  if (!result.createNew && result.laneId) {
+    return { lanes, laneId: result.laneId };
+  }
+  let nextLanes = shiftAudioLaneOrders(lanes, result.insertOrder, 1);
+  const created = createAudioLane(result.insertOrder);
+  nextLanes = [...nextLanes, created];
+  return { lanes: nextLanes, laneId: created.id };
+}
+
+function audioLaneIdByOrder(
+  lanes: TimelineLane[],
+  order: number,
+): string | undefined {
+  return lanes.find((lane) => lane.kind === "audio" && lane.order === order)?.id;
+}
+
 /* ==========================================================================
    3. Tạo Zustand Store chính (useEditorStore)
    ========================================================================== */
@@ -343,17 +405,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   /** 3.1 Nạp dự án vào Editor Store */
   loadProject: (input, overlayScenes = [], storedClips = [], storedLanes = []) => {
     const project = parseMotionProject(input);
-    const { lanes: migratedLanes, clips } = migrateLanesAndClips(
+    const { lanes: migratedLanes, clips: migratedClips } = migrateLanesAndClips(
       project,
       overlayScenes,
       storedClips,
       storedLanes,
     );
-    const lanes = pruneEmptyOverlayLanes(migratedLanes, clips);
+    const { lanes: withAudioLanes, clips: withAudioClips } =
+      ensureAudioClipsFromTracks(project, migratedLanes, migratedClips);
+    const lanes = pruneEmptyLanes(withAudioLanes, withAudioClips);
+    const clips = withAudioClips;
     const mainId = lanes.find((lane) => lane.kind === "main")?.id;
     const firstClip =
       clips.find((clip) => clip.laneId === mainId) ?? clips[0];
     const firstIsMain = firstClip ? isMainLane(lanes, firstClip.laneId) : false;
+    const firstIsAudio = firstClip ? isAudioLane(lanes, firstClip.laneId) : false;
     const firstScene = firstIsMain
       ? project.scenes.find((scene) => scene.id === firstClip!.sceneId)
       : undefined;
@@ -364,7 +430,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       timelineZoom: TIMELINE_ZOOM_ON_PROJECT_LOAD,
       selectedClipId: firstClip?.id ?? null,
       selectedSceneId: firstIsMain ? firstClip!.sceneId : null,
-      selectedOverlayId: firstIsMain ? null : (firstClip?.id ?? null),
+      selectedOverlayId:
+        firstIsMain || firstIsAudio || !firstClip ? null : firstClip.id,
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
       overlayScenes: overlayScenesFromClips(clips, lanes),
     });
@@ -400,13 +467,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const clip = state.timelineClips.find((candidate) => candidate.id === clipId);
     if (!clip) return;
     const onMain = isMainLane(state.timelineLanes, clip.laneId);
+    const onAudio = isAudioLane(state.timelineLanes, clip.laneId);
     const scene = onMain
       ? state.project?.scenes.find((candidate) => candidate.id === clip.sceneId)
       : undefined;
     set({
       selectedClipId: clip.id,
       selectedSceneId: onMain ? clip.sceneId : null,
-      selectedOverlayId: onMain ? null : clip.id,
+      selectedOverlayId: onMain || onAudio ? null : clip.id,
       selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
@@ -575,7 +643,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           timelineClips,
           lanes,
         );
-        const nextLanes = pruneEmptyOverlayLanes(lanes, timelineClips);
+        const nextLanes = pruneEmptyLanes(lanes, timelineClips);
         return {
           project: nextProject,
           timelineLanes: nextLanes,
@@ -619,7 +687,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         name: draft.name,
       };
       const timelineClips = [...state.timelineClips, clip];
-      const nextLanes = pruneEmptyOverlayLanes(lanes, timelineClips);
+      const nextLanes = pruneEmptyLanes(lanes, timelineClips);
       return {
         timelineLanes: nextLanes,
         timelineClips,
@@ -649,8 +717,63 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       let nextProject = project;
       let moved: TimelineClip;
       const existingOnMain = isMainLane(lanes, existing.laneId);
+      const existingOnAudio = isAudioLane(lanes, existing.laneId);
+
+      if (patch.track === "audio") {
+        if (!existingOnAudio) return state;
+        const insertNew =
+          patch.insertNewLane ?? patch.insertNewLayer ?? false;
+        const preferredLaneId = insertNew
+          ? null
+          : (patch.laneId ??
+            (patch.insertOrder != null
+              ? audioLaneIdByOrder(lanes, patch.insertOrder) ?? null
+              : existing.laneId));
+        const preferredInsertOrder = insertNew
+          ? (patch.insertOrder ?? patch.layerIndex ?? null)
+          : null;
+        const placement = resolveAudioPlacement(
+          lanes,
+          clips,
+          startTime,
+          existing.duration,
+          preferredLaneId,
+          insertNew,
+          preferredInsertOrder,
+        );
+        lanes = placement.lanes;
+        moved = {
+          ...existing,
+          laneId: placement.laneId,
+          startTime,
+          track: undefined,
+          layerIndex: undefined,
+        };
+        clips.push(moved);
+        lanes = pruneEmptyLanes(lanes, clips);
+        nextProject = {
+          ...project,
+          timeline: {
+            ...project.timeline,
+            audioTracks: project.timeline.audioTracks.map((track) =>
+              track.id === moved.id ? { ...track, start: startTime } : track,
+            ),
+          },
+        };
+        return {
+          project: nextProject,
+          timelineLanes: lanes,
+          timelineClips: clips,
+          overlayScenes: overlayScenesFromClips(clips, lanes),
+          selectedClipId: moved.id,
+          selectedSceneId: null,
+          selectedOverlayId: null,
+          selectedNodeId: null,
+        };
+      }
 
       if (patch.track === "overlay") {
+        if (existingOnAudio) return state;
         const insertNew =
           patch.insertNewLane ?? patch.insertNewLayer ?? false;
         const preferredLaneId = insertNew
@@ -687,6 +810,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           };
         }
       } else {
+        if (existingOnAudio) return state;
         let sceneId = existing.sceneId;
         if (!existingOnMain) {
           const scene = sceneFromFrameDraft({
@@ -715,7 +839,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
 
       clips.push(moved);
-      lanes = pruneEmptyOverlayLanes(lanes, clips);
+      lanes = pruneEmptyLanes(lanes, clips);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
       const movedOnMain = isMainLane(lanes, moved.laneId);
       const selectedScene = movedOnMain
@@ -786,53 +910,117 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  /** 3.21 Thêm đường Audio Track (nhạc nền, âm thanh) */
-  addAudioTrack: (track) => {
-    const project = get().project;
-    if (!project) return;
-    const assetId = track.assetId;
-    const existingAsset = project.assets.find((a) => a.id === assetId);
-    const audioAsset = existingAsset
-      ? null
-      : {
-          id: assetId,
-          assetType: "audio" as const,
-          uri:
-            track.src ||
-            "https://actions.google.com/sounds/v1/ambiences/outdoor_theme_park.ogg",
-          mimeType: "audio/mpeg" as const,
-          codec: "mp3",
-          duration: 10,
-          sampleRate: 44100,
-          channels: 2,
-        };
+  /** 3.21 Thêm audio clip + lane (CapCut-style dưới main) */
+  addAudioClipFromLibrary: (item, target) => {
+    set((state) => {
+      const project = state.project;
+      if (!project) return state;
 
-    const assets = audioAsset
-      ? [...project.assets, audioAsset]
-      : project.assets;
+      let lanes = state.timelineLanes.length
+        ? state.timelineLanes
+        : [ensureMainLane([])];
+      const mainLane = ensureMainLane(lanes);
+      if (!lanes.some((lane) => lane.id === mainLane.id)) {
+        lanes = [...lanes, mainLane];
+      }
 
-    const newTrack = {
-      id: uid("audio"),
-      role: "bgm" as const,
-      assetId,
-      start: 0,
-      trimStart: 0,
-      volume: 1,
-      loop: false,
-      fadeIn: 0,
-      fadeOut: 0,
-    };
+      const duration = Math.max(0.5, item.duration ?? 10);
+      const startTime = Math.max(0, target.startTime);
+      const insertNew = target.insertNewLane ?? false;
+      const preferredLaneId = insertNew ? null : (target.laneId ?? null);
+      const preferredInsertOrder = insertNew
+        ? (target.insertOrder ?? null)
+        : null;
+      const placement = resolveAudioPlacement(
+        lanes,
+        state.timelineClips,
+        startTime,
+        duration,
+        preferredLaneId,
+        insertNew,
+        preferredInsertOrder,
+      );
+      lanes = placement.lanes;
 
-    set({
-      project: {
-        ...project,
-        assets,
-        timeline: {
-          ...project.timeline,
-          audioTracks: [...project.timeline.audioTracks, newTrack],
+      const assetId = item.assetId;
+      const existingAsset = project.assets.find((a) => a.id === assetId);
+      const audioAsset = existingAsset
+        ? null
+        : {
+            id: assetId,
+            assetType: "audio" as const,
+            uri:
+              item.src ||
+              "https://actions.google.com/sounds/v1/ambiences/outdoor_theme_park.ogg",
+            mimeType: "audio/mpeg" as const,
+            codec: "mp3",
+            duration,
+            sampleRate: 44100,
+            channels: 2,
+          };
+      const assets = audioAsset
+        ? [...project.assets, audioAsset]
+        : project.assets.map((asset) =>
+            asset.id === assetId && asset.assetType === "audio"
+              ? { ...asset, duration: asset.duration ?? duration }
+              : asset,
+          );
+
+      const trackId = uid("audio");
+      const newTrack = {
+        id: trackId,
+        role: "bgm" as const,
+        assetId,
+        start: startTime,
+        trimStart: 0,
+        volume: 1,
+        loop: false,
+        fadeIn: 0,
+        fadeOut: 0,
+      };
+
+      const clip: TimelineClip = {
+        id: trackId,
+        sceneId: trackId,
+        laneId: placement.laneId,
+        startTime,
+        duration,
+        name: item.title,
+      };
+      const timelineClips = [...state.timelineClips, clip];
+      const nextLanes = pruneEmptyLanes(lanes, timelineClips);
+
+      return {
+        project: {
+          ...project,
+          assets,
+          timeline: {
+            ...project.timeline,
+            audioTracks: [...project.timeline.audioTracks, newTrack],
+          },
         },
-      },
+        timelineLanes: nextLanes,
+        timelineClips,
+        overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
+        selectedClipId: clip.id,
+        selectedSceneId: null,
+        selectedOverlayId: null,
+        selectedNodeId: null,
+      };
     });
+  },
+
+  /** Convenience: append audio at t=0 on a free audio lane. */
+  addAudioTrack: (track) => {
+    get().addAudioClipFromLibrary(
+      {
+        title: track.role,
+        assetId: track.assetId,
+        src: track.src,
+        duration: track.duration,
+      },
+      { startTime: 0, insertNewLane: false },
+    );
   },
 
   /** 3.22 Cập nhật trạng thái xuất file (Exporting) */

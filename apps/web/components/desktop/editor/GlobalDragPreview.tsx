@@ -2,11 +2,11 @@
 
 import React, { useLayoutEffect, useRef } from "react";
 import { Film, Music } from "lucide-react";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import {
   bindDragPreviewElement,
   setDragPreviewAnchor,
-} from "@/lib/editor-drag-cursor";
+} from "@/lib/editor/drag-cursor";
 import { zoomToPixelsPerSecond } from "@/components/desktop/editor/timeline/timeline-scale";
 
 /** Card outside timeline: w-32 h-20 → center on cursor */

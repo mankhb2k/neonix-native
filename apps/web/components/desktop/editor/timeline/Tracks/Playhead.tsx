@@ -7,7 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 
 /** Convert pointer X → timeline seconds (accounts for label gutter + horizontal scroll). */
 export function clientXToTimelineTime(

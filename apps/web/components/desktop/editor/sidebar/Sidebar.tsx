@@ -1,6 +1,6 @@
 "use client";
 
-import { useEditorStore, type SidebarTabId } from "@/lib/store/editor-store";
+import { useEditorStore, type SidebarTabId } from "@/lib/editor/editor-store";
 import { PanelHeader, TabsDesktop, type DesktopTabItem } from "@/components/ui";
 import {
   Layers,
@@ -14,6 +14,7 @@ import { LayersPanel } from "./LayersPanel/LayersPanel";
 import { UploadPanel } from "./UploadPanel/UploadPanel";
 import { ElementsPanel } from "./ElementsPanel/ElementsPanel";
 import { TextPanel } from "./TextPanel/TextPanel";
+import { StickersPanel } from "./StickersPanel/StickersPanel";
 import { AudioPanel } from "./AudioPanel/AudioPanel";
 
 const SIDEBAR_TABS: DesktopTabItem[] = [
@@ -45,7 +46,7 @@ export function Sidebar() {
         {activeSidebarTab === "elements" && <ElementsPanel />}
         {activeSidebarTab === "text" && <TextPanel />}
         {activeSidebarTab === "upload" && <UploadPanel />}
-        {activeSidebarTab === "stickers" && <ElementsPanel />}
+        {activeSidebarTab === "stickers" && <StickersPanel />}
         {activeSidebarTab === "audio" && <AudioPanel />}
       </div>
     </aside>

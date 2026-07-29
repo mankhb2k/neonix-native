@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
 import { EditorShell } from "@/components/editor/EditorShell";
-import { loadProject } from "@/lib/project-storage";
+import { loadProject } from "@/lib/editor/project-storage";
 import type { MotionProject } from "@motionvideo/motion-schema";
 
 export default function EditorPage() {

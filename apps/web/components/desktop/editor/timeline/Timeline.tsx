@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import { usePlaybackDriver } from "@/lib/playback/use-playback-driver";
-import { clipsContentEndSeconds } from "@/lib/timeline-clips";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { usePlaybackDriver } from "@/lib/editor/playback/use-playback-driver";
+import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
 import { TransportBar } from "./TransportBar/TransportBar";
 import { TimelineBoard } from "./TimelineBoard";
 

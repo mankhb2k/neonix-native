@@ -1,7 +1,7 @@
 import type { MotionProject } from "@motionvideo/motion-schema";
-import type { OverlaySceneItem } from "@/lib/overlay-scenes";
+import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 
-export type TimelineLaneKind = "main" | "overlay";
+export type TimelineLaneKind = "main" | "overlay" | "audio";
 
 export type TimelineLane = {
   id: string;
@@ -11,7 +11,7 @@ export type TimelineLane = {
 };
 
 /** @deprecated Prefer laneId; kept for migrate/parse of older saves. */
-export type TimelineTrackKind = "main" | "overlay";
+export type TimelineTrackKind = "main" | "overlay" | "audio";
 
 export type TimelineClip = {
   id: string;
@@ -42,7 +42,7 @@ export function parseTimelineLanes(input: unknown): TimelineLane[] {
     const row = item as Record<string, unknown>;
     if (
       typeof row.id !== "string" ||
-      (row.kind !== "main" && row.kind !== "overlay") ||
+      (row.kind !== "main" && row.kind !== "overlay" && row.kind !== "audio") ||
       typeof row.name !== "string" ||
       !validNumber(row.order)
     ) {
@@ -74,7 +74,8 @@ export function parseTimelineClips(input: unknown): TimelineClip[] {
       continue;
     }
     const hasLaneId = typeof row.laneId === "string";
-    const hasLegacyTrack = row.track === "main" || row.track === "overlay";
+    const hasLegacyTrack =
+      row.track === "main" || row.track === "overlay" || row.track === "audio";
     if (!hasLaneId && !hasLegacyTrack) continue;
     if (row.layerIndex !== undefined && (!validNumber(row.layerIndex) || row.layerIndex < 0)) {
       continue;
@@ -254,6 +255,14 @@ export function isMainLane(lanes: TimelineLane[], laneId: string): boolean {
   return laneKind(lanes, laneId) === "main";
 }
 
+export function isAudioLane(lanes: TimelineLane[], laneId: string): boolean {
+  return laneKind(lanes, laneId) === "audio";
+}
+
+export function isOverlayLane(lanes: TimelineLane[], laneId: string): boolean {
+  return laneKind(lanes, laneId) === "overlay";
+}
+
 /** Find overlay lane without time overlap, or signal create-new. */
 export function findFreeOverlayLane(
   lanes: TimelineLane[],
@@ -316,7 +325,7 @@ export function createOverlayLane(
   };
 }
 
-/** Drop overlay lanes that have no clips; keep main; renumber overlay order. */
+/** Drop overlay lanes that have no clips; keep main + audio; renumber overlay order. */
 export function pruneEmptyOverlayLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
@@ -327,7 +336,168 @@ export function pruneEmptyOverlayLanes(
     .filter((lane) => lane.kind === "overlay" && used.has(lane.id))
     .sort((a, b) => a.order - b.order)
     .map((lane, index) => ({ ...lane, order: index }));
-  return [main, ...overlays];
+  const audio = lanes
+    .filter((lane) => lane.kind === "audio")
+    .sort((a, b) => a.order - b.order);
+  return [main, ...overlays, ...audio];
+}
+
+/** Find audio lane without time overlap, or signal create-new. */
+export function findFreeAudioLane(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  startTime: number,
+  duration: number,
+  preferredLaneId: string | null,
+  insertNewLane: boolean,
+  preferredInsertOrder?: number | null,
+): { laneId: string | null; createNew: boolean; insertOrder: number } {
+  const audios = lanes
+    .filter((lane) => lane.kind === "audio")
+    .sort((a, b) => a.order - b.order);
+
+  if (insertNewLane) {
+    if (preferredInsertOrder != null && Number.isFinite(preferredInsertOrder)) {
+      return {
+        laneId: null,
+        createNew: true,
+        insertOrder: Math.max(0, Math.floor(preferredInsertOrder)),
+      };
+    }
+    const preferred = preferredLaneId
+      ? audios.find((lane) => lane.id === preferredLaneId)
+      : undefined;
+    const insertOrder = preferred ? preferred.order + 1 : audios.length;
+    return { laneId: null, createNew: true, insertOrder };
+  }
+
+  const isFree = (laneId: string) =>
+    !clips.some(
+      (clip) =>
+        clip.laneId === laneId &&
+        rangesOverlap(startTime, duration, clip.startTime, clip.duration),
+    );
+
+  if (preferredLaneId && isFree(preferredLaneId)) {
+    return { laneId: preferredLaneId, createNew: false, insertOrder: 0 };
+  }
+
+  for (const lane of audios) {
+    if (isFree(lane.id)) {
+      return { laneId: lane.id, createNew: false, insertOrder: 0 };
+    }
+  }
+
+  const maxOrder = audios.reduce((max, lane) => Math.max(max, lane.order), -1);
+  return { laneId: null, createNew: true, insertOrder: maxOrder + 1 };
+}
+
+export function createAudioLane(order: number, name?: string): TimelineLane {
+  return {
+    id: uid("lane"),
+    kind: "audio",
+    name: name ?? `Âm thanh ${order + 1}`,
+    order,
+  };
+}
+
+/** Drop empty audio lanes; keep main + overlay; renumber audio order. */
+export function pruneEmptyAudioLanes(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+): TimelineLane[] {
+  const used = new Set(clips.map((clip) => clip.laneId));
+  const main = lanes.find((lane) => lane.kind === "main") ?? ensureMainLane([]);
+  const overlays = lanes
+    .filter((lane) => lane.kind === "overlay")
+    .sort((a, b) => a.order - b.order);
+  const audios = lanes
+    .filter((lane) => lane.kind === "audio" && used.has(lane.id))
+    .sort((a, b) => a.order - b.order)
+    .map((lane, index) => ({ ...lane, order: index }));
+  return [main, ...overlays, ...audios];
+}
+
+/** Prune empty overlay and audio lanes in one pass. */
+export function pruneEmptyLanes(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+): TimelineLane[] {
+  return pruneEmptyAudioLanes(pruneEmptyOverlayLanes(lanes, clips), clips);
+}
+
+export function shiftAudioLaneOrders(
+  lanes: TimelineLane[],
+  fromOrder: number,
+  delta: number,
+): TimelineLane[] {
+  return lanes.map((lane) =>
+    lane.kind === "audio" && lane.order >= fromOrder
+      ? { ...lane, order: lane.order + delta }
+      : lane,
+  );
+}
+
+/**
+ * Ensure every schema audioTrack has a TimelineClip on an audio lane.
+ * Used on load for projects that only had flat audioTracks.
+ */
+export function ensureAudioClipsFromTracks(
+  project: MotionProject,
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+): { lanes: TimelineLane[]; clips: TimelineClip[] } {
+  const tracks = project.timeline.audioTracks ?? [];
+  if (tracks.length === 0) return { lanes, clips };
+
+  const clipIds = new Set(clips.map((clip) => clip.id));
+  const missing = tracks.filter((track) => !clipIds.has(track.id));
+  if (missing.length === 0) {
+    // Still ensure audio lanes exist for clips already pointing at audio tracks
+    const hasAudioClip = clips.some((clip) =>
+      tracks.some((track) => track.id === clip.id),
+    );
+    if (!hasAudioClip || lanes.some((lane) => lane.kind === "audio")) {
+      return { lanes, clips };
+    }
+  }
+
+  let nextLanes = [...lanes];
+  let audioLane = nextLanes.find((lane) => lane.kind === "audio");
+  if (!audioLane) {
+    audioLane = createAudioLane(0);
+    nextLanes = [...nextLanes, audioLane];
+  }
+
+  const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
+  const nextClips = [...clips];
+  for (const track of missing) {
+    const asset = assetsById.get(track.assetId);
+    const duration =
+      asset && "duration" in asset && typeof asset.duration === "number"
+        ? Math.max(0.5, asset.duration)
+        : 10;
+    nextClips.push({
+      id: track.id,
+      sceneId: track.id,
+      laneId: audioLane.id,
+      startTime: Math.max(0, track.start),
+      duration,
+      name: track.assetId,
+    });
+  }
+
+  // Re-home clips that match audio track ids but lack a valid audio laneId
+  const audioLaneIds = new Set(
+    nextLanes.filter((lane) => lane.kind === "audio").map((lane) => lane.id),
+  );
+  const remapped = nextClips.map((clip) => {
+    if (!tracks.some((track) => track.id === clip.id)) return clip;
+    if (audioLaneIds.has(clip.laneId)) return clip;
+    return { ...clip, laneId: audioLane!.id };
+  });
+
+  return { lanes: nextLanes, clips: remapped };
 }
 
 /** Place on main without time-overlap. */

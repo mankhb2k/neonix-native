@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useLayoutEffect, useRef } from "react";
-import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor-drag-cursor";
+import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor/drag-cursor";
 
 export type TrackVariant = "main" | "secondary" | "layer";
 
@@ -29,7 +29,7 @@ type TrackLaneProps = {
   borderClass?: string;
   /** Khối Ghost Preview hiển thị vị trí thả khi đang Drag */
   ghostPreview?: GhostPreviewInfo | null;
-  dataTrackType?: "main" | "overlay";
+  dataTrackType?: "main" | "overlay" | "audio";
   dataLaneId?: string;
   dataLaneOrder?: number;
   /** @deprecated Prefer dataLaneOrder */

@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { Music, Plus, Play, Pause } from "lucide-react";
-import { useEditorStore } from "@/lib/store/editor-store";
+import React, { useState, type DragEvent } from "react";
+import { Plus, Play, Pause } from "lucide-react";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import {
+  clearDragCursor,
+  setDragCursor,
+} from "@/lib/editor/drag-cursor";
 import {
   SidebarPanel,
   SidebarPanelHeader,
@@ -19,14 +23,74 @@ export const MOCK_AUDIO_ITEMS = [
   { id: "aud_4", title: "Happy Moments", artist: "INCO Studio", duration: "01:52" },
   { id: "aud_5", title: "Funk Music 10506", artist: "SonicMusic", duration: "02:13" },
   { id: "aud_6", title: "Fashion Funky Dance", artist: "SoundForYou", duration: "01:31" },
+  { id: "aud_7", title: "Upbeat Corporate", artist: "MotiClip Mock", duration: "01:20" },
+  { id: "aud_8", title: "Soft Ambient Pad", artist: "MotiClip Mock", duration: "02:45" },
+  { id: "aud_9", title: "Whoosh Transition", artist: "SFX Pack", duration: "00:03" },
 ];
+
+const EMPTY_DRAG_IMAGE =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+function parseDurationSec(duration: string): number {
+  const parts = duration.split(":").map(Number);
+  if (parts.length === 2 && parts.every((n) => Number.isFinite(n))) {
+    return Math.max(0.5, parts[0] * 60 + parts[1]);
+  }
+  return 10;
+}
 
 export function AudioPanel() {
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
+  const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
+  const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
   const [playingId, setPlayingId] = useState<string | null>(null);
 
   function togglePlay(id: string) {
     setPlayingId(playingId === id ? null : id);
+  }
+
+  function onDragStart(
+    event: DragEvent<HTMLDivElement>,
+    item: (typeof MOCK_AUDIO_ITEMS)[number],
+  ) {
+    const img = new Image();
+    img.src = EMPTY_DRAG_IMAGE;
+    event.dataTransfer.setDragImage(img, 0, 0);
+    const durationSec = parseDurationSec(item.duration);
+    event.dataTransfer.setData(AUDIO_LIBRARY_MIME, JSON.stringify(item));
+    event.dataTransfer.setData(
+      "application/json",
+      JSON.stringify({
+        id: item.id,
+        type: "audio",
+        name: item.title,
+        duration: durationSec,
+      }),
+    );
+    event.dataTransfer.setData("text/plain", item.title);
+    event.dataTransfer.effectAllowed = "copy";
+    setActiveDragItem({
+      id: item.id,
+      type: "audio",
+      name: item.title,
+      duration: durationSec,
+    });
+    setIsOverTimeline(false);
+    if (event.clientX > 0 && event.clientY > 0) {
+      setDragCursor(event.clientX, event.clientY);
+    }
+  }
+
+  function onDrag(event: DragEvent<HTMLDivElement>) {
+    if (event.clientX > 0 && event.clientY > 0) {
+      setDragCursor(event.clientX, event.clientY);
+    }
+  }
+
+  function onDragEnd() {
+    setActiveDragItem(null);
+    clearDragCursor();
+    setIsOverTimeline(false);
   }
 
   return (
@@ -43,28 +107,9 @@ export function AudioPanel() {
               <div
                 key={item.id}
                 draggable
-                onDragStart={(event) => {
-                  const img = new Image();
-                  img.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-                  event.dataTransfer.setDragImage(img, 0, 0);
-                  const parts = (item.duration || "").split(":").map(Number);
-                  const durationSec = parts.length === 2 ? parts[0] * 60 + parts[1] : 10;
-                  event.dataTransfer.setData(
-                    AUDIO_LIBRARY_MIME,
-                    JSON.stringify(item),
-                  );
-                  event.dataTransfer.setData(
-                    "application/json",
-                    JSON.stringify({
-                      id: item.id,
-                      type: "audio",
-                      name: item.title,
-                      duration: durationSec,
-                    }),
-                  );
-                  event.dataTransfer.setData("text/plain", item.title);
-                  event.dataTransfer.effectAllowed = "copy";
-                }}
+                onDragStart={(event) => onDragStart(event, item)}
+                onDrag={onDrag}
+                onDragEnd={onDragEnd}
                 className="group flex items-center justify-between gap-3 p-2 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-all cursor-grab active:cursor-grabbing select-none"
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -94,7 +139,11 @@ export function AudioPanel() {
                   size="xs"
                   variant="secondary"
                   onClick={() =>
-                    addAudioTrack({ role: item.title, assetId: item.title })
+                    addAudioTrack({
+                      role: item.title,
+                      assetId: item.id,
+                      duration: parseDurationSec(item.duration),
+                    })
                   }
                   leftIcon={<Plus size={13} />}
                   className="shrink-0 opacity-90 group-hover:opacity-100"

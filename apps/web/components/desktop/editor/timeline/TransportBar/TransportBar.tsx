@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import { clipsContentEndSeconds } from "@/lib/timeline-clips";
+import { Button } from "@/components/ui";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
 import {
   formatTimecode,
   TIMELINE_ZOOM_MAX,
   TIMELINE_ZOOM_MIN,
 } from "../timeline-scale";
 import { CurrentTimeDisplay } from "./CurrentTimeDisplay";
+import { EditActions, editActionIcon } from "./EditActions";
 
 type Props = {
   zoom: number;
@@ -62,47 +64,38 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
       <div />
       <div className="flex items-center justify-center gap-3">
         <CurrentTimeDisplay fps={fps} />
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
+          iconOnly
           aria-label={isPlaying ? "Pause" : "Play"}
           onClick={() => togglePlayback()}
-          className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--fg-muted)]"
-        >
-          {isPlaying ? (
-            <Pause size={14} strokeWidth={0} fill="currentColor" />
-          ) : (
-            <Play size={14} strokeWidth={0} fill="currentColor" className="ml-0.5" />
-          )}
-        </button>
+          leftIcon={
+            isPlaying ? (
+              <Pause size={14} strokeWidth={0} fill="currentColor" />
+            ) : (
+              <Play size={14} strokeWidth={0} fill="currentColor" className="ml-0.5" />
+            )
+          }
+        />
         <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
           {formatTimecode(contentEnd, fps)}
         </span>
       </div>
-      <div className="flex items-center justify-end gap-3">
-        <div className="flex items-center gap-1">
-          <button
+      <div className="flex items-center justify-end gap-2 text-[var(--fg-muted)]">
+        <EditActions />
+        <div className="h-4 w-px shrink-0 bg-[var(--border-subtle)]" aria-hidden />
+        <div className="flex items-center gap-1.5">
+          <Button
             type="button"
-            className="cursor-pointer rounded bg-transparent px-2 py-1 text-[12px] font-medium text-[var(--fg)] hover:bg-[var(--bg-hover)]"
-          >
-            Tách
-          </button>
-          <button
-            type="button"
-            className="cursor-pointer rounded bg-transparent px-2 py-1 text-[12px] font-medium text-[var(--fg)] hover:bg-[var(--bg-hover)]"
-          >
-            Xóa
-          </button>
-        </div>
-
-        <div className="flex items-center gap-1.5 text-[var(--fg-muted)]">
-          <button
-            type="button"
+            variant="ghost"
+            size="sm"
+            iconOnly
             aria-label="Thu nhỏ timeline"
             onClick={() => nudgeZoom(-8)}
-            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center border-0 bg-transparent p-0"
-          >
-            <ZoomOut size={14} strokeWidth={1.75} />
-          </button>
+            leftIcon={<ZoomOut {...editActionIcon} />}
+          />
           <input
             type="range"
             min={TIMELINE_ZOOM_MIN}
@@ -113,14 +106,15 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
             onChange={(event) => commitZoom(Number(event.target.value))}
             className="timeline-zoom-slider h-1 w-[88px] cursor-pointer accent-[var(--fg)]"
           />
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
+            iconOnly
             aria-label="Phóng to timeline"
             onClick={() => nudgeZoom(8)}
-            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center border-0 bg-transparent p-0"
-          >
-            <ZoomIn size={14} strokeWidth={1.75} />
-          </button>
+            leftIcon={<ZoomIn {...editActionIcon} />}
+          />
         </div>
       </div>
     </div>

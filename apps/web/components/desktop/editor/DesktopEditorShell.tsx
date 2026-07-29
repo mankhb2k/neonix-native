@@ -6,8 +6,8 @@ import {
   loadOverlayScenes,
   loadTimelineClips,
   loadTimelineLanes,
-} from "@/lib/project-storage";
-import { useEditorStore } from "@/lib/store/editor-store";
+} from "@/lib/editor/project-storage";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./stage/PreviewStage";
 import { RightDock } from "./inspector/RightDock";

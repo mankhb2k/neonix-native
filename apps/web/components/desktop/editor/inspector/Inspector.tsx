@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Eye } from "lucide-react";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import { listMotionBlocksByFamily } from "@motionvideo/template-library";
 import {
   PanelHeader,

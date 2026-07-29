@@ -8,9 +8,9 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import type { TimelineClip } from "@/lib/timeline-clips";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import type { TimelineClip } from "@/lib/editor/timeline-clips";
 import {
   bindDragGhostElement,
   clearDragCursor,
@@ -18,10 +18,12 @@ import {
   setDragGhostLayout,
   setDragPreviewAnchor,
   unbindDragGhostElementIf,
-} from "@/lib/editor-drag-cursor";
+} from "@/lib/editor/drag-cursor";
 import {
   collectVideoLanes,
+  collectAudioZoneLanes,
   resolveOverlayDragTarget,
+  resolveAudioDragTarget,
   INDICATOR_TOP_EPS_PX,
 } from "./overlay-drag-target";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
@@ -38,10 +40,11 @@ type UseOverlayClipMoveArgs = {
   workspaceRef: RefObject<HTMLDivElement | null>;
   pixelsPerSecond: number;
   maxOverlayOrder: number;
+  maxAudioOrder: number;
 };
 
 type MoveSession = {
-  source: "main" | "overlay";
+  source: "main" | "overlay" | "audio";
   id: string;
   name: string;
   duration: number;
@@ -57,7 +60,7 @@ type MoveSession = {
 };
 
 /**
- * Pointer-drag timeline clips (main + overlay free-place)
+ * Pointer-drag timeline clips (main + overlay + audio free-place)
  * with shared insert-line / gray ghost policy from sidebar drops.
  */
 export function useOverlayClipMove({
@@ -65,6 +68,7 @@ export function useOverlayClipMove({
   workspaceRef,
   pixelsPerSecond,
   maxOverlayOrder,
+  maxAudioOrder,
 }: UseOverlayClipMoveArgs) {
   const insertGhostRef = useRef<HTMLDivElement>(null);
   const moveUiRef = useRef({
@@ -80,12 +84,18 @@ export function useOverlayClipMove({
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
+  const maxAudioOrderRef = useRef(maxAudioOrder);
   pixelsPerSecondRef.current = pixelsPerSecond;
   maxOverlayOrderRef.current = maxOverlayOrder;
+  maxAudioOrderRef.current = maxAudioOrder;
 
   const [movingClipId, setMovingClipId] = useState<string | null>(null);
   const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
   const [targetOverlayLaneId, setTargetOverlayLaneId] = useState<string | null>(
+    null,
+  );
+  const [isAudioInsertLine, setIsAudioInsertLine] = useState(false);
+  const [targetAudioLaneId, setTargetAudioLaneId] = useState<string | null>(
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState(0);
@@ -93,8 +103,10 @@ export function useOverlayClipMove({
     null,
   );
 
+  const isInsertLine = isOverlayInsertLine || isAudioInsertLine;
+
   useLayoutEffect(() => {
-    if (!isOverlayInsertLine || !dragGhostState) {
+    if (!isInsertLine || !dragGhostState) {
       unbindDragGhostElementIf(insertGhostRef.current);
       return;
     }
@@ -104,7 +116,7 @@ export function useOverlayClipMove({
     return () => {
       unbindDragGhostElementIf(insertGhostRef.current);
     };
-  }, [isOverlayInsertLine, dragGhostState != null]);
+  }, [isInsertLine, dragGhostState != null]);
 
   function resetMoveUi() {
     moveUiRef.current = {
@@ -119,6 +131,8 @@ export function useOverlayClipMove({
     setMovingClipId(null);
     setIsOverlayInsertLine(false);
     setTargetOverlayLaneId(null);
+    setIsAudioInsertLine(false);
+    setTargetAudioLaneId(null);
     setDragGhostState(null);
     useEditorStore.getState().setIsOverTimeline(false);
     useEditorStore.getState().setActiveDragItem(null);
@@ -148,7 +162,7 @@ export function useOverlayClipMove({
       setDragPreviewAnchor(CYAN_ANCHOR_X, CYAN_ANCHOR_Y);
       useEditorStore.getState().setActiveDragItem({
         id: session.id,
-        type: "frame",
+        type: session.source === "audio" ? "audio" : "frame",
         name: session.name,
         duration: session.duration,
       });
@@ -164,18 +178,53 @@ export function useOverlayClipMove({
       setDragCursor(clientX, clientY);
     }
 
+    const isAudio = session.source === "audio";
     setDragGhostState({
       left,
       width: ghostWidth,
       label: session.name,
       duration: session.duration,
-      targetTrack: "video",
+      targetTrack: isAudio ? "audio" : "video",
     });
 
     const ws = workspaceRef.current;
     if (!ws) return;
 
     const wsTop = ws.getBoundingClientRect().top;
+
+    if (isAudio) {
+      const lanes = collectAudioZoneLanes(ws);
+      const target = resolveAudioDragTarget(
+        clientY,
+        lanes,
+        wsTop,
+        moveUiRef.current.isInsert,
+        maxAudioOrderRef.current,
+      );
+      if (!target) return;
+
+      const ui = moveUiRef.current;
+      const laneChanged = ui.laneId !== target.laneId;
+      const insertChanged = ui.isInsert !== target.isInsert;
+      const orderChanged = ui.insertOrder !== target.insertOrder;
+      const topChanged =
+        target.isInsert &&
+        Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
+      if (insertChanged || laneChanged || orderChanged || topChanged) {
+        ui.isInsert = target.isInsert;
+        ui.laneId = target.laneId;
+        ui.insertOrder = target.insertOrder;
+        ui.overMainBody = false;
+        if (insertChanged) setIsAudioInsertLine(target.isInsert);
+        if (laneChanged) setTargetAudioLaneId(target.laneId);
+        if (target.isInsert && (topChanged || insertChanged)) {
+          ui.indicatorTop = target.indicatorTop;
+          setIndicatorTopPos(target.indicatorTop);
+        }
+      }
+      return;
+    }
+
     const lanes = collectVideoLanes(ws);
     const target = resolveOverlayDragTarget(
       clientY,
@@ -228,6 +277,20 @@ export function useOverlayClipMove({
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const startTime = ghostLeftRef.current / pps;
     const ui = moveUiRef.current;
+
+    if (session.source === "audio") {
+      store.moveClip(session.id, {
+        track: "audio",
+        startTime,
+        laneId: ui.laneId ?? session.originLaneId,
+        insertNewLane: ui.isInsert,
+        ...(ui.isInsert && ui.insertOrder != null
+          ? { insertOrder: ui.insertOrder }
+          : {}),
+      });
+      resetMoveUi();
+      return;
+    }
 
     store.moveClip(session.id, ui.overMainBody
       ? { track: "main", startTime }
@@ -289,6 +352,8 @@ export function useOverlayClipMove({
       overMainBody: false,
     };
     setTargetOverlayLaneId(item.laneId);
+    setTargetAudioLaneId(null);
+    setIsAudioInsertLine(false);
 
     sessionRef.current = {
       source: "overlay",
@@ -327,6 +392,8 @@ export function useOverlayClipMove({
       overMainBody: true,
     };
     setTargetOverlayLaneId(null);
+    setTargetAudioLaneId(null);
+    setIsAudioInsertLine(false);
 
     sessionRef.current = {
       source: "main",
@@ -343,18 +410,61 @@ export function useOverlayClipMove({
     };
   }
 
+  function beginAudioPointerDown(
+    item: TimelineClip,
+    event: ReactPointerEvent,
+  ) {
+    if (useEditorStore.getState().activeDragItem) return;
+
+    event.stopPropagation();
+    event.preventDefault();
+    useEditorStore.getState().selectClip(item.id);
+
+    const pps = Math.max(pixelsPerSecondRef.current, 1);
+    const clipLeft = item.startTime * pps;
+    const pointerLeft = clientXToGhostLeft(event.clientX, 0);
+    const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
+
+    moveUiRef.current = {
+      isInsert: false,
+      laneId: item.laneId,
+      insertOrder: null,
+      indicatorTop: 0,
+      overMainBody: false,
+    };
+    setTargetAudioLaneId(item.laneId);
+    setTargetOverlayLaneId(null);
+    setIsOverlayInsertLine(false);
+
+    sessionRef.current = {
+      source: "audio",
+      id: item.id,
+      name: item.name,
+      duration: item.duration,
+      originLaneId: item.laneId,
+      pointerId: event.pointerId,
+      originX: event.clientX,
+      originY: event.clientY,
+      grabOffsetX,
+      started: false,
+    };
+  }
+
   return {
     /** @deprecated Prefer movingClipId */
     movingOverlayId: movingClipId,
     movingClipId,
     isOverlayInsertLine,
+    isAudioInsertLine,
     targetOverlayLaneId,
+    targetAudioLaneId,
     targetOverlayLayer: null as number | null,
     indicatorTopPos,
     dragGhostState,
     insertGhostRef,
     beginOverlayPointerDown,
     beginMainPointerDown,
+    beginAudioPointerDown,
     isMoving: movingClipId != null,
   };
 }

@@ -8,8 +8,8 @@ import { DesktopMenuBar, DesktopWindowControls } from "@/components/desktop/edit
 import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
 import { useIsDesktop } from "@/lib/desktop";
-import { saveProject } from "@/lib/project-storage";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { saveProject } from "@/lib/editor/project-storage";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import {
   parseMotionProject,
   serializeMotionProject,

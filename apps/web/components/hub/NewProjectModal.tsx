@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import { appHref } from "@/components/AppLink";
-import { createBlankProject } from "@/lib/create-blank-project";
-import { saveProject } from "@/lib/project-storage";
+import { createBlankProject } from "@/lib/editor/create-blank-project";
+import { saveProject } from "@/lib/editor/project-storage";
 
 type AspectRatio = "9:16" | "16:9" | "1:1";
 
