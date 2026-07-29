@@ -49,6 +49,41 @@ export function collectSceneLanes(scope: HTMLElement): VideoLaneHit[] {
   return out;
 }
 
+/** Cache lane rects relative to workspace — invalidate on scroll/resize. */
+export type RelativeLaneHit = {
+  relTop: number;
+  relBottom: number;
+  type: "overlay" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+export function cacheSceneLanesRelative(
+  scope: HTMLElement,
+  wsTop: number,
+): RelativeLaneHit[] {
+  return collectSceneLanes(scope).map((lane) => ({
+    relTop: lane.top - wsTop,
+    relBottom: lane.bottom - wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+export function absoluteSceneLanes(
+  cached: RelativeLaneHit[],
+  wsTop: number,
+): VideoLaneHit[] {
+  return cached.map((lane) => ({
+    top: lane.relTop + wsTop,
+    bottom: lane.relBottom + wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
 function gapMidInWs(
   upper: VideoLaneHit,
   lower: VideoLaneHit,
@@ -225,6 +260,40 @@ export function collectAudioZoneLanes(scope: HTMLElement): AudioLaneHit[] {
   }
   out.sort((a, b) => a.top - b.top);
   return out;
+}
+
+export type RelativeAudioLaneHit = {
+  relTop: number;
+  relBottom: number;
+  type: "audio" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+export function cacheAudioLanesRelative(
+  scope: HTMLElement,
+  wsTop: number,
+): RelativeAudioLaneHit[] {
+  return collectAudioZoneLanes(scope).map((lane) => ({
+    relTop: lane.top - wsTop,
+    relBottom: lane.bottom - wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+export function absoluteAudioLanes(
+  cached: RelativeAudioLaneHit[],
+  wsTop: number,
+): AudioLaneHit[] {
+  return cached.map((lane) => ({
+    top: lane.relTop + wsTop,
+    bottom: lane.relBottom + wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
 }
 
 function gapMidAudio(

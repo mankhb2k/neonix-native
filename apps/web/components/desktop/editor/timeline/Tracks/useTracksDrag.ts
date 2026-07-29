@@ -17,12 +17,16 @@ import {
   parseAudioLibraryPayload,
 } from "@/lib/editor/dnd/editor-drag-payload";
 import {
-  collectSceneLanes,
-  collectAudioZoneLanes,
+  cacheSceneLanesRelative,
+  cacheAudioLanesRelative,
+  absoluteSceneLanes,
+  absoluteAudioLanes,
   resolveOverlayDragTarget,
   resolveAudioDragTarget,
   CYAN_MODE_BELOW_RULER_TOP_PX,
   INDICATOR_TOP_EPS_PX,
+  type RelativeLaneHit,
+  type RelativeAudioLaneHit,
 } from "./lane-drop-target";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
@@ -68,16 +72,28 @@ export function useTracksDrag({
   const addAudioClipFromLibrary = useEditorStore((s) => s.addAudioClipFromLibrary);
 
   const insertGhostRef = useRef<HTMLDivElement>(null);
-  const dragUiRef = useRef({
+  const dragUiRef = useRef<{
+    dragOver: boolean;
+    isInsert: boolean;
+    laneId: string | null;
+    insertOrder: number | null;
+    indicatorTop: number;
+    ghostKey: string;
+    mode: "video" | "audio";
+  }>({
     dragOver: false,
     isInsert: false,
-    laneId: null as string | null,
-    insertOrder: null as number | null,
+    laneId: null,
+    insertOrder: null,
     indicatorTop: 0,
-    ghostKey: "" as string,
-    mode: "video" as "video" | "audio",
+    ghostKey: "",
+    mode: "video",
   });
   const ghostLeftRef = useRef(0);
+  const laneCacheRef = useRef<{
+    scene: RelativeLaneHit[] | null;
+    audio: RelativeAudioLaneHit[] | null;
+  }>({ scene: null, audio: null });
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -107,7 +123,7 @@ export function useTracksDrag({
   useLayoutEffect(() => {
     if (!isInsertLine || !dragGhostState) {
       unbindDragGhostElementIf(insertGhostRef.current);
-      return;
+      return () => undefined;
     }
     bindDragGhostElement(insertGhostRef.current, {
       leftOffset: TIMELINE_LABEL_WIDTH,
@@ -131,6 +147,7 @@ export function useTracksDrag({
     dragUiRef.current.isInsert = false;
     dragUiRef.current.laneId = null;
     dragUiRef.current.insertOrder = null;
+    laneCacheRef.current = { scene: null, audio: null };
     setIsOverlayInsertLine(false);
     setTargetOverlayLaneId(null);
     setIsAudioInsertLine(false);
@@ -143,7 +160,7 @@ export function useTracksDrag({
       return;
     }
     event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
+    Object.assign(event.dataTransfer, { dropEffect: "copy" as const });
   }
 
   function handleDragOver(event: DragEvent) {
@@ -153,7 +170,7 @@ export function useTracksDrag({
     }
 
     event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
+    Object.assign(event.dataTransfer, { dropEffect: "copy" as const });
     if (!dragUiRef.current.dragOver) {
       dragUiRef.current.dragOver = true;
       setDragOver(true);
@@ -215,7 +232,10 @@ export function useTracksDrag({
       }
       if (ws) {
         const wsTop = ws.getBoundingClientRect().top;
-        const lanes = collectAudioZoneLanes(ws);
+        if (!laneCacheRef.current.audio) {
+          laneCacheRef.current.audio = cacheAudioLanesRelative(ws, wsTop);
+        }
+        const lanes = absoluteAudioLanes(laneCacheRef.current.audio, wsTop);
         const target = resolveAudioDragTarget(
           event.clientY,
           lanes,
@@ -255,7 +275,10 @@ export function useTracksDrag({
       }
       if (ws) {
         const wsTop = ws.getBoundingClientRect().top;
-        const lanes = collectSceneLanes(ws);
+        if (!laneCacheRef.current.scene) {
+          laneCacheRef.current.scene = cacheSceneLanesRelative(ws, wsTop);
+        }
+        const lanes = absoluteSceneLanes(laneCacheRef.current.scene, wsTop);
         const target = resolveOverlayDragTarget(
           event.clientY,
           lanes,

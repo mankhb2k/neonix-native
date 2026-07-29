@@ -1,10 +1,14 @@
 /**
  * Preview compose — xác định lớp visual tại global time (Phase 6).
- * Thứ tự: project background → base → overlay theo lane.order tăng dần (z thấp → cao).
+ * Index memo theo clips/lanes; frame chỉ binary search (PERF).
  */
 
 import type { MotionScene } from "@motionvideo/motion-schema";
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+import type {
+  TimelineClip,
+  TimelineLane,
+  VisualTimelineLane,
+} from "@/lib/editor/timeline-clips";
 import { isSceneClip } from "@/lib/editor/timeline-clips";
 
 export type ComposedSceneLayer = {
@@ -14,6 +18,16 @@ export type ComposedSceneLayer = {
   /** Lane order — overlay cao hơn vẽ sau. Base dùng -1. */
   zOrder: number;
   role: "base" | "overlay";
+};
+
+export type VisualLaneIndex = {
+  baseLaneId: string | null;
+  baseVisible: boolean;
+  baseClips: TimelineClip[];
+  overlayLanes: Array<{
+    lane: VisualTimelineLane;
+    clips: TimelineClip[];
+  }>;
 };
 
 /** Clip chứa `time` (nửa khoảng [start, start+duration)). */
@@ -40,7 +54,6 @@ export function findActiveClipAtTime(
     }
   }
   if (!candidate) return undefined;
-  // Gap trên lane: không lấy clip trước đó nếu time nằm ngoài duration.
   if (!clipContainsTime(candidate, time)) return undefined;
   return candidate;
 }
@@ -54,6 +67,78 @@ function sortedSceneClipsOnLane(
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
 }
 
+/** Build index một lần khi clips/lanes đổi — frame chỉ composeAtTime. */
+export function buildVisualLaneIndex(
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+): VisualLaneIndex {
+  const baseLane = lanes.find(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  );
+  const overlayLanes = lanes
+    .filter(
+      (lane): lane is VisualTimelineLane =>
+        lane.kind === "visual" &&
+        lane.role === "overlay" &&
+        lane.visible !== false,
+    )
+    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id))
+    .map((lane) => ({
+      lane,
+      clips: sortedSceneClipsOnLane(clips, lane.id),
+    }));
+
+  return {
+    baseLaneId: baseLane?.id ?? null,
+    baseVisible: baseLane?.kind === "visual" ? baseLane.visible !== false : false,
+    baseClips: baseLane
+      ? sortedSceneClipsOnLane(clips, baseLane.id)
+      : [],
+    overlayLanes,
+  };
+}
+
+function localTimeOf(clip: TimelineClip, time: number): number {
+  return Math.min(
+    Math.max(0, time - clip.startTime),
+    Math.max(0, clip.duration - 1e-6),
+  );
+}
+
+/** Compose từ index đã memo — O(log n) per lane. */
+export function composeAtTime(
+  index: VisualLaneIndex,
+  time: number,
+): ComposedSceneLayer[] {
+  const layers: ComposedSceneLayer[] = [];
+  if (index.baseVisible && index.baseLaneId) {
+    const clip = findActiveClipAtTime(index.baseClips, time);
+    if (clip && isSceneClip(clip) && clip.sceneId) {
+      layers.push({
+        clipId: clip.id,
+        sceneId: clip.sceneId,
+        localTime: localTimeOf(clip, time),
+        zOrder: -1,
+        role: "base",
+      });
+    }
+  }
+
+  for (const { lane, clips } of index.overlayLanes) {
+    const clip = findActiveClipAtTime(clips, time);
+    if (!clip || !isSceneClip(clip) || !clip.sceneId) continue;
+    layers.push({
+      clipId: clip.id,
+      sceneId: clip.sceneId,
+      localTime: localTimeOf(clip, time),
+      zOrder: lane.order,
+      role: "overlay",
+    });
+  }
+
+  return layers;
+}
+
 /**
  * Compose visual layers tại `time`.
  * Lane `visible === false` bị bỏ qua. Base gap → chỉ còn background + overlay (nếu có).
@@ -63,57 +148,7 @@ export function composeVisualLayersAtTime(
   lanes: TimelineLane[],
   time: number,
 ): ComposedSceneLayer[] {
-  const layers: ComposedSceneLayer[] = [];
-  const baseLane = lanes.find(
-    (lane) => lane.kind === "visual" && lane.role === "base",
-  );
-  if (baseLane?.kind === "visual" && baseLane.visible !== false) {
-    const clip = findActiveClipAtTime(
-      sortedSceneClipsOnLane(clips, baseLane.id),
-      time,
-    );
-    if (clip && isSceneClip(clip) && clip.sceneId) {
-      layers.push({
-        clipId: clip.id,
-        sceneId: clip.sceneId,
-        localTime: Math.min(
-          Math.max(0, time - clip.startTime),
-          Math.max(0, clip.duration - 1e-6),
-        ),
-        zOrder: -1,
-        role: "base",
-      });
-    }
-  }
-
-  const overlayLanes = lanes
-    .filter(
-      (lane) =>
-        lane.kind === "visual" &&
-        lane.role === "overlay" &&
-        lane.visible !== false,
-    )
-    .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
-
-  for (const lane of overlayLanes) {
-    const clip = findActiveClipAtTime(
-      sortedSceneClipsOnLane(clips, lane.id),
-      time,
-    );
-    if (!clip || !isSceneClip(clip) || !clip.sceneId) continue;
-    layers.push({
-      clipId: clip.id,
-      sceneId: clip.sceneId,
-      localTime: Math.min(
-        Math.max(0, time - clip.startTime),
-        Math.max(0, clip.duration - 1e-6),
-      ),
-      zOrder: lane.order,
-      role: "overlay",
-    });
-  }
-
-  return layers;
+  return composeAtTime(buildVisualLaneIndex(clips, lanes), time);
 }
 
 export function resolveScene(

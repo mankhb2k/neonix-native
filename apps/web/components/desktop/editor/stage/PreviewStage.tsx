@@ -8,7 +8,8 @@ import { useEditorStore, nodeText } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 import {
-  composeVisualLayersAtTime,
+  composeAtTime,
+  buildVisualLaneIndex,
   resolveScene,
 } from "@/lib/editor/preview/compose-layers";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
@@ -109,10 +110,14 @@ const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
     [project.scenes],
   );
 
-  // Compose memo theo clips/lanes — lookup theo time mỗi frame (PERF-04).
+  // Index memo theo clips/lanes — frame chỉ composeAtTime (binary search).
+  const visualIndex = useMemo(
+    () => buildVisualLaneIndex(timelineClips, timelineLanes),
+    [timelineClips, timelineLanes],
+  );
   const composed = useMemo(
-    () => composeVisualLayersAtTime(timelineClips, timelineLanes, previewTime),
-    [timelineClips, timelineLanes, previewTime],
+    () => composeAtTime(visualIndex, previewTime),
+    [visualIndex, previewTime],
   );
 
   const stage = stageSizeForAspect(project.metadata.aspectRatio);

@@ -22,9 +22,15 @@ import {
 import {
   collectSceneLanes,
   collectAudioZoneLanes,
+  cacheSceneLanesRelative,
+  cacheAudioLanesRelative,
+  absoluteSceneLanes,
+  absoluteAudioLanes,
   resolveOverlayDragTarget,
   resolveAudioDragTarget,
   INDICATOR_TOP_EPS_PX,
+  type RelativeLaneHit,
+  type RelativeAudioLaneHit,
 } from "./lane-drop-target";
 import {
   shouldCommitPointerSession,
@@ -85,6 +91,11 @@ export function useTimelineClipMove({
   });
   const ghostLeftRef = useRef(0);
   const sessionRef = useRef<MoveSession | null>(null);
+  /** Cache lane rects lúc bắt đầu drag — invalidate khi scroll. */
+  const laneCacheRef = useRef<{
+    scene: RelativeLaneHit[] | null;
+    audio: RelativeAudioLaneHit[] | null;
+  }>({ scene: null, audio: null });
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -112,7 +123,7 @@ export function useTimelineClipMove({
   useLayoutEffect(() => {
     if (!isInsertLine || !dragGhostState) {
       unbindDragGhostElementIf(insertGhostRef.current);
-      return;
+      return () => undefined;
     }
     bindDragGhostElement(insertGhostRef.current, {
       leftOffset: TIMELINE_LABEL_WIDTH,
@@ -121,6 +132,23 @@ export function useTimelineClipMove({
       unbindDragGhostElementIf(insertGhostRef.current);
     };
   }, [isInsertLine, dragGhostState != null]);
+
+  // Invalidate lane rect cache khi scroll/resize workspace.
+  useEffect(() => {
+    const root = rootRef.current;
+    const ws = workspaceRef.current;
+    const invalidate = () => {
+      laneCacheRef.current = { scene: null, audio: null };
+    };
+    root?.addEventListener("scroll", invalidate, { passive: true });
+    ws?.addEventListener("scroll", invalidate, { passive: true });
+    window.addEventListener("resize", invalidate);
+    return () => {
+      root?.removeEventListener("scroll", invalidate);
+      ws?.removeEventListener("scroll", invalidate);
+      window.removeEventListener("resize", invalidate);
+    };
+  }, [rootRef, workspaceRef]);
 
   function resetMoveUi() {
     moveUiRef.current = {
@@ -132,6 +160,7 @@ export function useTimelineClipMove({
     };
     ghostLeftRef.current = 0;
     sessionRef.current = null;
+    laneCacheRef.current = { scene: null, audio: null };
     setMovingClipId(null);
     setIsOverlayInsertLine(false);
     setTargetOverlayLaneId(null);
@@ -179,6 +208,15 @@ export function useTimelineClipMove({
         duration: session.duration,
         targetTrack: session.source === "audio" ? "audio" : "video",
       });
+      // Cache lane rects relative — tránh querySelectorAll mỗi pointermove.
+      const wsEl = workspaceRef.current;
+      if (wsEl) {
+        const wsTop0 = wsEl.getBoundingClientRect().top;
+        laneCacheRef.current = {
+          scene: cacheSceneLanesRelative(wsEl, wsTop0),
+          audio: cacheAudioLanesRelative(wsEl, wsTop0),
+        };
+      }
     }
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
@@ -198,7 +236,10 @@ export function useTimelineClipMove({
     const wsTop = ws.getBoundingClientRect().top;
 
     if (isAudio) {
-      const lanes = collectAudioZoneLanes(ws);
+      const cached = laneCacheRef.current.audio;
+      const lanes = cached
+        ? absoluteAudioLanes(cached, wsTop)
+        : collectAudioZoneLanes(ws);
       const target = resolveAudioDragTarget(
         clientY,
         lanes,
@@ -230,7 +271,10 @@ export function useTimelineClipMove({
       return;
     }
 
-    const lanes = collectSceneLanes(ws);
+    const cached = laneCacheRef.current.scene;
+    const lanes = cached
+      ? absoluteSceneLanes(cached, wsTop)
+      : collectSceneLanes(ws);
     const target = resolveOverlayDragTarget(
       clientY,
       lanes,
