@@ -138,23 +138,30 @@ export function ContextMenuContent({
   React.useEffect(() => {
     if (!open) return;
 
+    const isOutside = (target: EventTarget | null) =>
+      !!menuRef.current && !menuRef.current.contains(target as Node);
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
-    const onPointerDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        close();
-      }
+    /** pointerdown (capture): timeline cancels mouse events via preventDefault. */
+    const onPointerDown = (e: PointerEvent) => {
+      if (isOutside(e.target)) close();
+    };
+    const onContextMenu = (e: MouseEvent) => {
+      if (isOutside(e.target)) close();
     };
     const onScroll = () => close();
 
     document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("contextmenu", onContextMenu, true);
     window.addEventListener("scroll", onScroll, true);
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("contextmenu", onContextMenu, true);
       window.removeEventListener("scroll", onScroll, true);
     };
   }, [open, close]);
