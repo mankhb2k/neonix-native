@@ -46,18 +46,19 @@ export function selectedClipIdsFrom(selection: EditorSelection): string[] {
 }
 
 /**
- * Scene đang edit: node selection, hoặc primary scene-clip trên base lane.
+ * Scene đang edit: node selection, hoặc primary scene-clip (base + overlay).
+ * Audio clip → null (Inspector không gắn scene).
  */
 export function selectedSceneIdFrom(
   selection: EditorSelection,
   clips: TimelineClip[] = [],
   lanes: TimelineLane[] = [],
 ): string | null {
+  void lanes;
   if (selection.kind === "node") return selection.sceneId;
   if (selection.kind !== "clips") return null;
   const clip = clips.find((c) => c.id === selection.primaryId);
   if (!clip || clip.kind !== "scene") return null;
-  if (!isMainLane(lanes, clip.laneId)) return null;
   return clip.sceneId || null;
 }
 

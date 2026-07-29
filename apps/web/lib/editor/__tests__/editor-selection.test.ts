@@ -62,9 +62,9 @@ describe("EditorSelection", () => {
     expect(selectedOverlayIdFrom(sel, clips, lanes)).toBeNull();
   });
 
-  it("derives overlay id from overlay clip selection", () => {
+  it("derives overlay id and sceneId from overlay clip selection", () => {
     const sel = selectionClips(["c2"]);
-    expect(selectedSceneIdFrom(sel, clips, lanes)).toBeNull();
+    expect(selectedSceneIdFrom(sel, clips, lanes)).toBe("s2");
     expect(selectedOverlayIdFrom(sel, clips, lanes)).toBe("c2");
   });
 
