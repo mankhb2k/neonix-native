@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, type RefObject, type KeyboardEvent } from "react";
+import { memo, useEffect, useRef, type RefObject, type KeyboardEvent } from "react";
 import {
   Film,
   Music,
@@ -15,19 +15,17 @@ import { TimelineWorkspaceContextMenu } from "./TimelineClipContextMenu";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
 type Props = {
-  zoom: number;
   scrollRef: RefObject<HTMLDivElement | null>;
   rulerHeaderRef: RefObject<HTMLDivElement | null>;
   viewWidth: number;
   pixelsPerSecond: number;
   canvasWidth: number;
-  contentEnd: number;
   onScrollLeft: (scrollLeft: number) => void;
   onScrubBlockedChange: (blocked: boolean) => void;
 };
 
 /** Scrollable track lanes only — TimeRuler / Playhead live in TimelineBoard. */
-export function Tracks({
+export const Tracks = memo(function Tracks({
   scrollRef,
   rulerHeaderRef,
   viewWidth,
@@ -427,4 +425,4 @@ export function Tracks({
       </div>
     </div>
   );
-}
+});

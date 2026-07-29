@@ -114,13 +114,11 @@ export function TimelineBoard({ zoom }: Props) {
       </div>
 
       <Tracks
-        zoom={zoom}
         scrollRef={tracksScrollRef}
         rulerHeaderRef={rulerHeaderRef}
         viewWidth={viewWidth}
         pixelsPerSecond={pixelsPerSecond}
         canvasWidth={canvasWidth}
-        contentEnd={contentEnd}
         onScrollLeft={setScrollLeft}
         onScrubBlockedChange={setScrubBlocked}
       />
