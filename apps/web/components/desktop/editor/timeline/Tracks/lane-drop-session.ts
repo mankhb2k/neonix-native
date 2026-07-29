@@ -19,16 +19,6 @@ import {
 } from "./lane-drop-target";
 import type { RefObject } from "react";
 
-export type LaneDropTarget =
-  | { type: "base"; startTime: number }
-  | { type: "lane"; laneId: string; startTime: number }
-  | {
-      type: "insert";
-      insertOrder: number;
-      startTime: number;
-      mode: "visual" | "audio";
-    };
-
 export type LaneRectCache = {
   scene: RelativeLaneHit[] | null;
   audio: RelativeAudioLaneHit[] | null;
