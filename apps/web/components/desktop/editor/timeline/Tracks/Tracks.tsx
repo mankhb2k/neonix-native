@@ -15,6 +15,7 @@ import { useEditorStore } from "@/lib/editor/editor-store";
 import { TrackLane } from "./TrackLane";
 import { useTracksDrag } from "./useTracksDrag";
 import { useOverlayClipMove } from "./useOverlayClipMove";
+import { useMarqueeSelect } from "./useMarqueeSelect";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
 type Props = {
@@ -42,8 +43,10 @@ export function Tracks({
   const projectId = useEditorStore((s) => s.project?.metadata.id);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
-  const selectedClipId = useEditorStore((s) => s.selectedClipId);
-  const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
+  const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
+  const clearTimelineSelection = useEditorStore(
+    (s) => s.clearTimelineSelection,
+  );
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
   const workspaceRef = useRef<HTMLDivElement>(null);
@@ -97,7 +100,10 @@ export function Tracks({
     maxAudioOrder,
   });
 
-  const scrubBlocked = clipMove.isMoving || activeDragItem != null;
+  const marquee = useMarqueeSelect({ workspaceRef });
+
+  const scrubBlocked =
+    clipMove.isMoving || activeDragItem != null || marquee.isMarqueeing;
   useEffect(() => {
     onScrubBlockedChange(scrubBlocked);
   }, [scrubBlocked, onScrubBlockedChange]);
@@ -128,10 +134,7 @@ export function Tracks({
 
   if (!projectId) {
     return (
-      <div
-        ref={scrollRef}
-        className="relative min-h-0 flex-1 overflow-auto"
-      />
+      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto" />
     );
   }
 
@@ -184,7 +187,11 @@ export function Tracks({
                     : "border-white/20 bg-white/[0.04] text-white/45"
                 }`}
               >
-                <Film size={16} strokeWidth={1.5} className="shrink-0 opacity-80" />
+                <Film
+                  size={16}
+                  strokeWidth={1.5}
+                  className="shrink-0 opacity-80"
+                />
                 <span className="text-[12px] font-medium tracking-wide truncate opacity-90">
                   Kéo khung hình hoặc phương tiện vào đây để bắt đầu tạo
                 </span>
@@ -195,12 +202,20 @@ export function Tracks({
           <div
             ref={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
-            onPointerDown={(event) => {
-              if (event.target === event.currentTarget) {
-                clearTimelineSelection();
-              }
-            }}
+            onPointerDown={marquee.onWorkspacePointerDown}
           >
+            {marquee.marqueeRect && (
+              <div
+                className="absolute z-50 pointer-events-none border border-white/10 bg-white/10"
+                style={{
+                  left: marquee.marqueeRect.left,
+                  top: marquee.marqueeRect.top,
+                  width: marquee.marqueeRect.width,
+                  height: marquee.marqueeRect.height,
+                }}
+                aria-hidden
+              />
+            )}
             {overlayLanes.map((lane) => {
               const layerItems = timelineClips.filter(
                 (clip) => clip.laneId === lane.id,
@@ -233,7 +248,7 @@ export function Tracks({
                   }
                 >
                   {layerItems.map((item) => {
-                    const active = selectedClipId === item.id;
+                    const active = selectedClipIds.includes(item.id);
                     const moving = clipMove.movingClipId === item.id;
                     if (moving) return null;
                     return (
@@ -346,7 +361,7 @@ export function Tracks({
               }
             >
               {mainClips.map((clip, index) => {
-                const active = selectedClipId === clip.id;
+                const active = selectedClipIds.includes(clip.id);
                 const moving = clipMove.movingClipId === clip.id;
                 if (moving) return null;
                 return (
@@ -452,7 +467,7 @@ export function Tracks({
                   }
                 >
                   {laneClips.map((clip) => {
-                    const active = selectedClipId === clip.id;
+                    const active = selectedClipIds.includes(clip.id);
                     const moving = clipMove.movingClipId === clip.id;
                     if (moving) return null;
                     return (

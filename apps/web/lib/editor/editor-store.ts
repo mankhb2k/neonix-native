@@ -56,6 +56,8 @@ type EditorState = {
   selectedSceneId: string | null;
   selectedOverlayId: string | null;
   selectedClipId: string | null;
+  /** Multi-select on timeline (marquee / shift). Primary = last id = selectedClipId. */
+  selectedClipIds: string[];
   selectedNodeId: string | null;
   isExporting: boolean;
   activeSidebarTab: SidebarTabId;
@@ -90,6 +92,7 @@ type EditorState = {
     timelineLanes?: TimelineLane[],
   ) => void;
   selectClip: (clipId: string) => void;
+  setSelectedClipIds: (clipIds: string[]) => void;
   selectScene: (sceneId: string) => void;
   selectOverlay: (overlayId: string) => void;
   clearTimelineSelection: () => void;
@@ -387,6 +390,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedSceneId: null,
   selectedOverlayId: null,
   selectedClipId: null,
+  selectedClipIds: [],
   selectedNodeId: null,
   isExporting: false,
   activeSidebarTab: "frame",
@@ -429,6 +433,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       timelineClips: clips,
       timelineZoom: TIMELINE_ZOOM_ON_PROJECT_LOAD,
       selectedClipId: firstClip?.id ?? null,
+      selectedClipIds: firstClip ? [firstClip.id] : [],
       selectedSceneId: firstIsMain ? firstClip!.sceneId : null,
       selectedOverlayId:
         firstIsMain || firstIsAudio || !firstClip ? null : firstClip.id,
@@ -448,6 +453,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedSceneId: sceneId,
       selectedOverlayId: null,
       selectedClipId: clip?.id ?? null,
+      selectedClipIds: clip ? [clip.id] : [],
       selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
@@ -458,20 +464,47 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedOverlayId: overlayId,
       selectedSceneId: null,
       selectedClipId: overlayId,
+      selectedClipIds: [overlayId],
       selectedNodeId: null,
     });
   },
 
   selectClip: (clipId) => {
+    get().setSelectedClipIds([clipId]);
+  },
+
+  setSelectedClipIds: (clipIds) => {
     const state = get();
-    const clip = state.timelineClips.find((candidate) => candidate.id === clipId);
-    if (!clip) return;
+    const unique = [...new Set(clipIds.filter(Boolean))];
+    const primaryId = unique[unique.length - 1] ?? null;
+    if (!primaryId) {
+      set({
+        selectedClipIds: [],
+        selectedClipId: null,
+        selectedSceneId: null,
+        selectedOverlayId: null,
+        selectedNodeId: null,
+      });
+      return;
+    }
+    const clip = state.timelineClips.find((candidate) => candidate.id === primaryId);
+    if (!clip) {
+      set({
+        selectedClipIds: unique,
+        selectedClipId: primaryId,
+        selectedSceneId: null,
+        selectedOverlayId: null,
+        selectedNodeId: null,
+      });
+      return;
+    }
     const onMain = isMainLane(state.timelineLanes, clip.laneId);
     const onAudio = isAudioLane(state.timelineLanes, clip.laneId);
     const scene = onMain
       ? state.project?.scenes.find((candidate) => candidate.id === clip.sceneId)
       : undefined;
     set({
+      selectedClipIds: unique,
       selectedClipId: clip.id,
       selectedSceneId: onMain ? clip.sceneId : null,
       selectedOverlayId: onMain || onAudio ? null : clip.id,
@@ -484,6 +517,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedSceneId: null,
       selectedOverlayId: null,
       selectedClipId: null,
+      selectedClipIds: [],
       selectedNodeId: null,
     });
   },
@@ -650,6 +684,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           timelineClips,
           overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
           selectedClipId: clip.id,
+          selectedClipIds: [clip.id],
           selectedSceneId: scene.id,
           selectedOverlayId: null,
           selectedNodeId: firstEditableNode(scene)?.id ?? null,
@@ -693,6 +728,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         timelineClips,
         overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
         selectedClipId: clip.id,
+        selectedClipIds: [clip.id],
         selectedSceneId: null,
         selectedOverlayId: clip.id,
         selectedNodeId: null,
@@ -766,6 +802,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           timelineClips: clips,
           overlayScenes: overlayScenesFromClips(clips, lanes),
           selectedClipId: moved.id,
+          selectedClipIds: [moved.id],
           selectedSceneId: null,
           selectedOverlayId: null,
           selectedNodeId: null,
@@ -851,6 +888,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         timelineClips: clips,
         overlayScenes: overlayScenesFromClips(clips, lanes),
         selectedClipId: moved.id,
+        selectedClipIds: [moved.id],
         selectedSceneId: movedOnMain ? moved.sceneId : null,
         selectedOverlayId: movedOnMain ? null : moved.id,
         selectedNodeId: firstEditableNode(selectedScene)?.id ?? null,
@@ -1003,6 +1041,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         timelineClips,
         overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
         selectedClipId: clip.id,
+        selectedClipIds: [clip.id],
         selectedSceneId: null,
         selectedOverlayId: null,
         selectedNodeId: null,
