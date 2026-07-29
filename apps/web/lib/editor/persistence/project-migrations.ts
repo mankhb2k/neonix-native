@@ -13,7 +13,7 @@ import {
 } from "@/lib/editor/timeline-clips";
 
 /** Phiên bản envelope persistence hiện tại. Tăng khi đổi schema lưu. */
-export const CURRENT_STORAGE_VERSION = 1;
+export const CURRENT_STORAGE_VERSION = 2;
 
 export type StoredProject = {
   /** Version envelope — thiếu thì coi là 0 (legacy). */
@@ -47,7 +47,7 @@ export function migrateStoredProject(record: StoredProject): StoredProject {
     };
   }
 
-  // v0 → v1: gắn storageVersion, chuẩn hóa clips/lanes qua migrator sẵn có.
+  // v0/v1 → v2: chuẩn hóa clips/lanes sang discriminated union.
   const { lanes, clips } = migrateLanesAndClips(
     record.project,
     record.overlayScenes ?? [],
@@ -72,16 +72,14 @@ export function overlaysFromClips(
   lanes: TimelineLane[],
 ): OverlaySceneItem[] {
   const overlayLaneIds = new Set(
-    lanes.filter((lane) => lane.kind === "overlay").map((lane) => lane.id),
+    lanes.filter((lane) => lane.kind === "visual" && lane.role === "overlay").map((lane) => lane.id),
   );
   const orderByLane = new Map(lanes.map((lane) => [lane.id, lane.order]));
 
   return clips
     .filter((clip) => {
-      // Ưu tiên lane overlay đã migrate.
+      if (clip.kind === "audio") return false;
       if (overlayLaneIds.has(clip.laneId)) return true;
-      // Legacy: chưa có lanes overlay — chỉ nhận track === "overlay".
-      if (overlayLaneIds.size === 0 && clip.track === "overlay") return true;
       return false;
     })
     .map((clip) => ({
@@ -89,7 +87,7 @@ export function overlaysFromClips(
       name: clip.name,
       duration: clip.duration,
       startTime: clip.startTime,
-      layerIndex: orderByLane.get(clip.laneId) ?? clip.layerIndex ?? 0,
+      layerIndex: orderByLane.get(clip.laneId) ?? 0,
     }));
 }
 

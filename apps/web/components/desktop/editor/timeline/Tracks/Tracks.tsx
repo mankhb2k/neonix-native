@@ -49,7 +49,8 @@ export const Tracks = memo(function Tracks({
   const overlayLanes = timelineLanes
     .filter(
       (lane) =>
-        lane.kind === "overlay" &&
+        lane.kind === "visual" &&
+        lane.role === "overlay" &&
         timelineClips.some((clip) => clip.laneId === lane.id),
     )
     .sort((a, b) => b.order - a.order);
@@ -61,7 +62,9 @@ export const Tracks = memo(function Tracks({
         timelineClips.some((clip) => clip.laneId === lane.id),
     )
     .sort((a, b) => a.order - b.order);
-  const mainLane = timelineLanes.find((lane) => lane.kind === "main");
+  const mainLane = timelineLanes.find(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  );
   const maxOverlayOrder = overlayLanes.reduce(
     (max, lane) => Math.max(max, lane.order),
     -1,

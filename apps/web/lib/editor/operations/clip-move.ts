@@ -37,9 +37,11 @@ export function resolveVisualPlacement(
     ? clips.filter((c) => c.id !== movingClipId)
     : clips;
 
-  // Base / main lane
   if (!target.laneId || isMainLane(lanes, target.laneId)) {
-    const mainId = lanes.find((l) => l.kind === "main")?.id ?? target.laneId ?? "";
+    const mainId =
+      lanes.find((l) => l.kind === "visual" && l.role === "base")?.id ??
+      target.laneId ??
+      "";
     return {
       laneId: mainId,
       startTime: resolveMainStartTime(others, lanes, startTime, duration),
@@ -95,7 +97,9 @@ export function createOverlayLaneAt(
 ): { lanes: TimelineLane[]; lane: TimelineLane } {
   const order =
     insertOrder ??
-    lanes.filter((l) => l.kind === "overlay").reduce((m, l) => Math.max(m, l.order), -1) + 1;
+    lanes
+      .filter((l) => l.kind === "visual" && l.role === "overlay")
+      .reduce((m, l) => Math.max(m, l.order), -1) + 1;
   let nextLanes = lanes;
   if (insertOrder != null) {
     nextLanes = shiftOverlayLaneOrders(lanes, insertOrder, 1);

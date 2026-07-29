@@ -1,15 +1,34 @@
 import { describe, expect, it } from "vitest";
 import { applyRippleAfter, resolveVisualPlacement } from "@/lib/editor/operations/clip-move";
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+import {
+  DEFAULT_VISUAL_POLICY,
+  type TimelineClip,
+  type TimelineLane,
+} from "@/lib/editor/timeline-clips";
 
 const lanes: TimelineLane[] = [
-  { id: "lane.main", kind: "main", name: "Main", order: -1 },
-  { id: "lane.ov.0", kind: "overlay", name: "Lớp 1", order: 0 },
+  {
+    id: "lane.main",
+    kind: "visual",
+    role: "base",
+    name: "Main",
+    order: -1,
+    policy: { ...DEFAULT_VISUAL_POLICY },
+  },
+  {
+    id: "lane.ov.0",
+    kind: "visual",
+    role: "overlay",
+    name: "Lớp 1",
+    order: 0,
+    policy: { ...DEFAULT_VISUAL_POLICY },
+  },
 ];
 
 const clips: TimelineClip[] = [
   {
     id: "c1",
+    kind: "scene",
     sceneId: "s1",
     laneId: "lane.main",
     startTime: 0,
@@ -18,6 +37,7 @@ const clips: TimelineClip[] = [
   },
   {
     id: "c2",
+    kind: "scene",
     sceneId: "s2",
     laneId: "lane.main",
     startTime: 2,

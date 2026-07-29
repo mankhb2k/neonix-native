@@ -1,30 +1,37 @@
 import type { MotionProject } from "@motionvideo/motion-schema";
 import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
+import {
+  DEFAULT_VISUAL_POLICY,
+  type AudioTimelineClip,
+  type SceneTimelineClip,
+  type TimelineClip,
+  type TimelineLane,
+  type TimelineTrackKind,
+  type VisualLanePolicy,
+} from "@/lib/editor/model/timeline-types";
 
-export type TimelineLaneKind = "main" | "overlay" | "audio";
+export type {
+  AudioTimelineClip,
+  AudioTimelineLane,
+  SceneTimelineClip,
+  TimelineClip,
+  TimelineLane,
+  TimelineTrackKind,
+  VisualLanePolicy,
+  VisualTimelineLane,
+} from "@/lib/editor/model/timeline-types";
 
-export type TimelineLane = {
-  id: string;
-  kind: TimelineLaneKind;
-  name: string;
-  order: number;
-};
+export {
+  DEFAULT_VISUAL_POLICY,
+  isAudioClip,
+  isBaseLaneObj,
+  isOverlayLaneObj,
+  isSceneClip,
+  isVisualLane,
+} from "@/lib/editor/model/timeline-types";
 
-/** @deprecated Prefer laneId; kept for migrate/parse of older saves. */
-export type TimelineTrackKind = "main" | "overlay" | "audio";
-
-export type TimelineClip = {
-  id: string;
-  sceneId: string;
-  laneId: string;
-  startTime: number;
-  duration: number;
-  name: string;
-  /** @deprecated migrated into laneId */
-  track?: TimelineTrackKind;
-  /** @deprecated migrated into lane */
-  layerIndex?: number;
-};
+/** Compatibility alias — UI cũ dùng TimelineLaneKind. */
+export type TimelineLaneKind = "visual" | "audio" | "main" | "overlay";
 
 function validNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -34,30 +41,98 @@ function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+function parsePolicy(raw: unknown): VisualLanePolicy {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_VISUAL_POLICY };
+  const row = raw as Record<string, unknown>;
+  return {
+    allowOverlap: false,
+    rippleMode: row.rippleMode === true,
+  };
+}
+
+/** Parse lane — chấp nhận legacy main/overlay/audio và visual+role. */
 export function parseTimelineLanes(input: unknown): TimelineLane[] {
   if (!Array.isArray(input)) return [];
   const lanes: TimelineLane[] = [];
   for (const item of input) {
     if (!item || typeof item !== "object") continue;
     const row = item as Record<string, unknown>;
-    if (
-      typeof row.id !== "string" ||
-      (row.kind !== "main" && row.kind !== "overlay" && row.kind !== "audio") ||
-      typeof row.name !== "string" ||
-      !validNumber(row.order)
-    ) {
+    if (typeof row.id !== "string" || typeof row.name !== "string" || !validNumber(row.order)) {
       continue;
     }
-    lanes.push({
-      id: row.id,
-      kind: row.kind,
-      name: row.name,
-      order: Math.floor(row.order),
-    });
+    const order = Math.floor(row.order);
+    const locked = row.locked === true;
+    const visible = row.visible !== false;
+    const muted = row.muted === true;
+
+    // Format mới
+    if (row.kind === "visual" && (row.role === "base" || row.role === "overlay")) {
+      lanes.push({
+        id: row.id,
+        kind: "visual",
+        role: row.role,
+        name: row.name,
+        order,
+        policy: parsePolicy(row.policy),
+        ...(locked ? { locked: true } : {}),
+        ...(row.visible === false ? { visible: false } : {}),
+      });
+      continue;
+    }
+    if (row.kind === "audio" || (row.kind === "audio" && row.role === "audio")) {
+      lanes.push({
+        id: row.id,
+        kind: "audio",
+        role: "audio",
+        name: row.name,
+        order,
+        ...(locked ? { locked: true } : {}),
+        ...(muted ? { muted: true } : {}),
+      });
+      continue;
+    }
+
+    // Legacy: main / overlay / audio
+    if (row.kind === "main") {
+      lanes.push({
+        id: row.id,
+        kind: "visual",
+        role: "base",
+        name: row.name,
+        order,
+        policy: { ...DEFAULT_VISUAL_POLICY },
+      });
+      continue;
+    }
+    if (row.kind === "overlay") {
+      lanes.push({
+        id: row.id,
+        kind: "visual",
+        role: "overlay",
+        name: row.name,
+        order,
+        policy: { ...DEFAULT_VISUAL_POLICY },
+        ...(visible === false ? { visible: false } : {}),
+        ...(locked ? { locked: true } : {}),
+      });
+      continue;
+    }
+    if (row.kind === "audio") {
+      lanes.push({
+        id: row.id,
+        kind: "audio",
+        role: "audio",
+        name: row.name,
+        order,
+        ...(locked ? { locked: true } : {}),
+        ...(muted ? { muted: true } : {}),
+      });
+    }
   }
   return lanes;
 }
 
+/** Parse clips — chấp nhận kind mới và legacy sceneId-only. */
 export function parseTimelineClips(input: unknown): TimelineClip[] {
   if (!Array.isArray(input)) return [];
   const clips: TimelineClip[] = [];
@@ -66,7 +141,6 @@ export function parseTimelineClips(input: unknown): TimelineClip[] {
     const row = item as Record<string, unknown>;
     if (
       typeof row.id !== "string" ||
-      typeof row.sceneId !== "string" ||
       typeof row.name !== "string" ||
       !validNumber(row.startTime) ||
       !validNumber(row.duration)
@@ -77,29 +151,101 @@ export function parseTimelineClips(input: unknown): TimelineClip[] {
     const hasLegacyTrack =
       row.track === "main" || row.track === "overlay" || row.track === "audio";
     if (!hasLaneId && !hasLegacyTrack) continue;
-    if (row.layerIndex !== undefined && (!validNumber(row.layerIndex) || row.layerIndex < 0)) {
+
+    const startTime = Math.max(0, row.startTime);
+    const duration = Math.max(0, row.duration);
+    const laneId = hasLaneId ? (row.laneId as string) : "";
+
+    // Audio clip mới
+    if (
+      row.kind === "audio" ||
+      row.track === "audio" ||
+      (typeof row.audioTrackId === "string" && typeof row.assetId === "string")
+    ) {
+      const audioTrackId =
+        typeof row.audioTrackId === "string"
+          ? row.audioTrackId
+          : typeof row.sceneId === "string"
+            ? row.sceneId
+            : row.id;
+      const assetId =
+        typeof row.assetId === "string"
+          ? row.assetId
+          : typeof row.name === "string"
+            ? row.name
+            : audioTrackId;
+      clips.push({
+        id: row.id,
+        kind: "audio",
+        sceneId: "",
+        audioTrackId,
+        assetId,
+        laneId,
+        startTime,
+        duration,
+        name: row.name,
+      });
       continue;
     }
+
+    // Scene clip (mặc định)
+    const sceneId =
+      typeof row.sceneId === "string"
+        ? row.sceneId
+        : row.id;
     clips.push({
       id: row.id,
-      sceneId: row.sceneId,
-      laneId: hasLaneId ? (row.laneId as string) : "",
-      startTime: Math.max(0, row.startTime),
-      duration: Math.max(0, row.duration),
+      kind: "scene",
+      sceneId,
+      laneId,
+      startTime,
+      duration,
       name: row.name,
-      ...(hasLegacyTrack ? { track: row.track as TimelineTrackKind } : {}),
-      ...(row.layerIndex === undefined
-        ? {}
-        : { layerIndex: Math.floor(row.layerIndex as number) }),
     });
   }
   return clips;
 }
 
 export function ensureMainLane(lanes: TimelineLane[]): TimelineLane {
-  const existing = lanes.find((lane) => lane.kind === "main");
+  const existing = lanes.find(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  );
   if (existing) return existing;
-  return { id: uid("lane"), kind: "main", name: "Main", order: -1 };
+  return {
+    id: uid("lane"),
+    kind: "visual",
+    role: "base",
+    name: "Main",
+    order: -1,
+    policy: { ...DEFAULT_VISUAL_POLICY },
+  };
+}
+
+/** Normalize raw stored clips that may still carry legacy fields into TimelineClip. */
+type LegacyClipInput = {
+  id: string;
+  sceneId?: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+  name: string;
+  track?: TimelineTrackKind;
+  layerIndex?: number;
+  kind?: "scene" | "audio";
+  audioTrackId?: string;
+  assetId?: string;
+};
+
+function toSceneClip(clip: LegacyClipInput, laneId: string): SceneTimelineClip {
+  return {
+    id: clip.id,
+    kind: "scene",
+    sceneId: clip.sceneId ?? clip.id,
+    laneId,
+    startTime: clip.startTime,
+    duration: clip.duration,
+    name: clip.name,
+  };
 }
 
 /** Build lanes + clips with laneId from legacy project / overlays / old clips. */
@@ -114,32 +260,55 @@ export function migrateLanesAndClips(
     storedClips.every((clip) => Boolean(clip.laneId))
   ) {
     const lanes = [...storedLanes];
-    if (!lanes.some((lane) => lane.kind === "main")) {
+    if (!lanes.some((lane) => lane.kind === "visual" && lane.role === "base")) {
       lanes.push(ensureMainLane(lanes));
     }
-    if (storedClips.length > 0 || storedLanes.some((l) => l.kind === "main")) {
+    if (
+      storedClips.length > 0 ||
+      storedLanes.some((l) => l.kind === "visual" && l.role === "base")
+    ) {
       return { lanes, clips: storedClips };
     }
   }
 
-  const legacyClips =
+  // Legacy path: giữ track/layerIndex để dựng overlay lanes.
+  const rawLegacy: LegacyClipInput[] =
     storedClips.length > 0
-      ? storedClips
-      : migrateClipsFromLegacy(project, overlays);
+      ? storedClips.map((c) => ({
+          id: c.id,
+          sceneId: c.kind === "scene" ? c.sceneId : c.id,
+          laneId: c.laneId,
+          startTime: c.startTime,
+          duration: c.duration,
+          name: c.name,
+          kind: c.kind,
+          ...(c.kind === "audio"
+            ? {
+                audioTrackId: c.audioTrackId,
+                assetId: c.assetId,
+                track: "audio" as const,
+              }
+            : {}),
+        }))
+      : migrateLegacyClipInputs(project, overlays);
 
-  const mainLane = ensureMainLane(storedLanes.filter((l) => l.kind === "main"));
+  const mainLane = ensureMainLane(
+    storedLanes.filter((l) => l.kind === "visual" && l.role === "base"),
+  );
   const layerToLane = new Map<number, TimelineLane>();
   const overlayLanes: TimelineLane[] = [];
 
-  for (const clip of legacyClips) {
+  for (const clip of rawLegacy) {
     if (clip.track === "overlay" || (clip.laneId === "" && clip.layerIndex != null)) {
       const idx = clip.layerIndex ?? 0;
       if (!layerToLane.has(idx)) {
         const lane: TimelineLane = {
           id: uid("lane"),
-          kind: "overlay",
+          kind: "visual",
+          role: "overlay",
           name: `Lớp ${idx + 1}`,
           order: idx,
+          policy: { ...DEFAULT_VISUAL_POLICY },
         };
         layerToLane.set(idx, lane);
         overlayLanes.push(lane);
@@ -147,47 +316,83 @@ export function migrateLanesAndClips(
     }
   }
 
-  // Prefer existing overlay lanes from storage if any
-  const existingOverlay = storedLanes.filter((l) => l.kind === "overlay");
+  const existingOverlay = storedLanes.filter(
+    (l) => l.kind === "visual" && l.role === "overlay",
+  );
   const lanes =
     existingOverlay.length > 0 && layerToLane.size === 0
       ? [mainLane, ...existingOverlay]
       : [mainLane, ...overlayLanes.sort((a, b) => a.order - b.order)];
 
-  const clips: TimelineClip[] = legacyClips.map((clip) => {
-    if (clip.laneId) {
-      return {
+  const clips: TimelineClip[] = rawLegacy.map((clip) => {
+    if (clip.kind === "audio" || clip.track === "audio") {
+      const audio: TimelineClip = {
         id: clip.id,
-        sceneId: clip.sceneId,
-        laneId: clip.laneId,
+        kind: "audio",
+        sceneId: "",
+        audioTrackId: clip.audioTrackId ?? clip.sceneId ?? clip.id,
+        assetId: clip.assetId ?? clip.name,
+        laneId: clip.laneId || "",
         startTime: clip.startTime,
         duration: clip.duration,
         name: clip.name,
       };
+      return audio;
     }
+    if (clip.laneId) return toSceneClip(clip, clip.laneId);
     if (clip.track === "overlay") {
       const idx = clip.layerIndex ?? 0;
       const lane = layerToLane.get(idx) ?? overlayLanes[0] ?? mainLane;
-      return {
-        id: clip.id,
-        sceneId: clip.sceneId,
-        laneId: lane.id,
-        startTime: clip.startTime,
-        duration: clip.duration,
-        name: clip.name,
-      };
+      return toSceneClip(clip, lane.id);
     }
-    return {
-      id: clip.id,
-      sceneId: clip.sceneId,
-      laneId: mainLane.id,
-      startTime: clip.startTime,
-      duration: clip.duration,
-      name: clip.name,
-    };
+    return toSceneClip(clip, mainLane.id);
   });
 
   return { lanes, clips };
+}
+
+/**
+ * Legacy → clip inputs kèm track/layerIndex (chưa gán laneId).
+ * Overlay sidecar không được đưa vào base sceneOrder.
+ */
+function migrateLegacyClipInputs(
+  project: MotionProject,
+  overlays: OverlaySceneItem[],
+): LegacyClipInput[] {
+  const overlayIds = new Set(overlays.map((item) => item.id));
+  const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
+  let startTime = 0;
+  const main = project.timeline.sceneOrder.flatMap((sceneId) => {
+    if (overlayIds.has(sceneId)) return [];
+    const scene = scenesById.get(sceneId);
+    if (!scene) return [];
+    const clip: LegacyClipInput = {
+      id: scene.id,
+      kind: "scene",
+      sceneId: scene.id,
+      laneId: "",
+      startTime,
+      duration: scene.duration,
+      name: scene.name ?? scene.semantic?.role ?? scene.id,
+      track: "main",
+    };
+    startTime += scene.duration;
+    return [clip];
+  });
+  const overlay = overlays.map(
+    (item): LegacyClipInput => ({
+      id: item.id,
+      kind: "scene",
+      sceneId: item.id,
+      laneId: "",
+      startTime: item.startTime,
+      duration: item.duration,
+      name: item.name,
+      track: "overlay",
+      layerIndex: item.layerIndex ?? 0,
+    }),
+  );
+  return [...main, ...overlay];
 }
 
 /** Converts the original scene sequence and overlay sidecar into unified clips (pre-lane). */
@@ -195,36 +400,9 @@ export function migrateClipsFromLegacy(
   project: MotionProject,
   overlays: OverlaySceneItem[],
 ): TimelineClip[] {
-  const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
-  let startTime = 0;
-  const main = project.timeline.sceneOrder.flatMap((sceneId) => {
-    const scene = scenesById.get(sceneId);
-    if (!scene) return [];
-    const clip: TimelineClip = {
-      id: scene.id,
-      sceneId: scene.id,
-      laneId: "",
-      track: "main",
-      startTime,
-      duration: scene.duration,
-      name: scene.name ?? scene.semantic?.role ?? scene.id,
-    };
-    startTime += scene.duration;
-    return [clip];
-  });
-  const overlay = overlays.map(
-    (item): TimelineClip => ({
-      id: item.id,
-      sceneId: item.id,
-      laneId: "",
-      track: "overlay",
-      layerIndex: item.layerIndex,
-      startTime: item.startTime,
-      duration: item.duration,
-      name: item.name,
-    }),
+  return migrateLegacyClipInputs(project, overlays).map((clip) =>
+    toSceneClip(clip, ""),
   );
-  return [...main, ...overlay];
 }
 
 export function clipsContentEndSeconds(clips: TimelineClip[]): number {
@@ -244,23 +422,29 @@ export function rangesOverlap(
   return aStart < bStart + bDur && bStart < aStart + aDur;
 }
 
-export function laneKind(
-  lanes: TimelineLane[],
-  laneId: string,
-): TimelineLaneKind | null {
-  return lanes.find((lane) => lane.id === laneId)?.kind ?? null;
-}
-
 export function isMainLane(lanes: TimelineLane[], laneId: string): boolean {
-  return laneKind(lanes, laneId) === "main";
+  const lane = lanes.find((l) => l.id === laneId);
+  return Boolean(lane && lane.kind === "visual" && lane.role === "base");
 }
 
 export function isAudioLane(lanes: TimelineLane[], laneId: string): boolean {
-  return laneKind(lanes, laneId) === "audio";
+  const lane = lanes.find((l) => l.id === laneId);
+  return Boolean(lane && lane.kind === "audio");
 }
 
 export function isOverlayLane(lanes: TimelineLane[], laneId: string): boolean {
-  return laneKind(lanes, laneId) === "overlay";
+  const lane = lanes.find((l) => l.id === laneId);
+  return Boolean(lane && lane.kind === "visual" && lane.role === "overlay");
+}
+
+export function laneRippleMode(lanes: TimelineLane[], laneId: string): boolean {
+  const lane = lanes.find((l) => l.id === laneId);
+  return Boolean(lane && lane.kind === "visual" && lane.policy.rippleMode);
+}
+
+export function isLaneLocked(lanes: TimelineLane[], laneId: string): boolean {
+  const lane = lanes.find((l) => l.id === laneId);
+  return Boolean(lane?.locked);
 }
 
 /** Find overlay lane without time overlap, or signal create-new. */
@@ -274,7 +458,7 @@ export function findFreeOverlayLane(
   preferredInsertOrder?: number | null,
 ): { laneId: string | null; createNew: boolean; insertOrder: number } {
   const overlays = lanes
-    .filter((lane) => lane.kind === "overlay")
+    .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
     .sort((a, b) => a.order - b.order);
 
   if (insertNewLane) {
@@ -313,27 +497,31 @@ export function findFreeOverlayLane(
   return { laneId: null, createNew: true, insertOrder: maxOrder + 1 };
 }
 
-export function createOverlayLane(
-  order: number,
-  name?: string,
-): TimelineLane {
+export function createOverlayLane(order: number, name?: string): TimelineLane {
   return {
     id: uid("lane"),
-    kind: "overlay",
+    kind: "visual",
+    role: "overlay",
     name: name ?? `Lớp ${order + 1}`,
     order,
+    policy: { ...DEFAULT_VISUAL_POLICY },
   };
 }
 
-/** Drop overlay lanes that have no clips; keep main + audio; renumber overlay order. */
+/** Drop overlay lanes that have no clips; keep base + audio; renumber overlay order. */
 export function pruneEmptyOverlayLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
   const used = new Set(clips.map((clip) => clip.laneId));
-  const main = lanes.find((lane) => lane.kind === "main") ?? ensureMainLane([]);
+  const main =
+    lanes.find((lane) => lane.kind === "visual" && lane.role === "base") ??
+    ensureMainLane([]);
   const overlays = lanes
-    .filter((lane) => lane.kind === "overlay" && used.has(lane.id))
+    .filter(
+      (lane) =>
+        lane.kind === "visual" && lane.role === "overlay" && used.has(lane.id),
+    )
     .sort((a, b) => a.order - b.order)
     .map((lane, index) => ({ ...lane, order: index }));
   const audio = lanes
@@ -342,7 +530,6 @@ export function pruneEmptyOverlayLanes(
   return [main, ...overlays, ...audio];
 }
 
-/** Find audio lane without time overlap, or signal create-new. */
 export function findFreeAudioLane(
   lanes: TimelineLane[],
   clips: TimelineClip[],
@@ -396,20 +583,22 @@ export function createAudioLane(order: number, name?: string): TimelineLane {
   return {
     id: uid("lane"),
     kind: "audio",
+    role: "audio",
     name: name ?? `Âm thanh ${order + 1}`,
     order,
   };
 }
 
-/** Drop empty audio lanes; keep main + overlay; renumber audio order. */
 export function pruneEmptyAudioLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
   const used = new Set(clips.map((clip) => clip.laneId));
-  const main = lanes.find((lane) => lane.kind === "main") ?? ensureMainLane([]);
+  const main =
+    lanes.find((lane) => lane.kind === "visual" && lane.role === "base") ??
+    ensureMainLane([]);
   const overlays = lanes
-    .filter((lane) => lane.kind === "overlay")
+    .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
     .sort((a, b) => a.order - b.order);
   const audios = lanes
     .filter((lane) => lane.kind === "audio" && used.has(lane.id))
@@ -418,7 +607,6 @@ export function pruneEmptyAudioLanes(
   return [main, ...overlays, ...audios];
 }
 
-/** Prune empty overlay and audio lanes in one pass. */
 export function pruneEmptyLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
@@ -440,7 +628,7 @@ export function shiftAudioLaneOrders(
 
 /**
  * Ensure every schema audioTrack has a TimelineClip on an audio lane.
- * Mỗi track được đặt vào lane trống; overlap → tạo lane mới (MODEL-03).
+ * Mỗi track đặt vào lane trống; overlap → tạo lane mới (MODEL-03).
  */
 export function ensureAudioClipsFromTracks(
   project: MotionProject,
@@ -453,8 +641,10 @@ export function ensureAudioClipsFromTracks(
   const clipIds = new Set(clips.map((clip) => clip.id));
   const missing = tracks.filter((track) => !clipIds.has(track.id));
   if (missing.length === 0) {
-    const hasAudioClip = clips.some((clip) =>
-      tracks.some((track) => track.id === clip.id),
+    const hasAudioClip = clips.some(
+      (clip) =>
+        clip.kind === "audio" &&
+        tracks.some((track) => track.id === clip.audioTrackId || track.id === clip.id),
     );
     if (!hasAudioClip || lanes.some((lane) => lane.kind === "audio")) {
       return { lanes, clips };
@@ -464,8 +654,6 @@ export function ensureAudioClipsFromTracks(
   let nextLanes = [...lanes];
   const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
   const nextClips = [...clips];
-
-  // Sort theo start để placement deterministic.
   const orderedMissing = [...missing].sort((a, b) => a.start - b.start);
 
   for (const track of orderedMissing) {
@@ -497,7 +685,10 @@ export function ensureAudioClipsFromTracks(
 
     nextClips.push({
       id: track.id,
-      sceneId: track.id,
+      kind: "audio",
+      sceneId: "",
+      audioTrackId: track.id,
+      assetId: track.assetId,
       laneId,
       startTime,
       duration,
@@ -505,12 +696,14 @@ export function ensureAudioClipsFromTracks(
     });
   }
 
-  // Re-home clips thiếu audio laneId hợp lệ.
   const audioLaneIds = new Set(
     nextLanes.filter((lane) => lane.kind === "audio").map((lane) => lane.id),
   );
   const remapped = nextClips.map((clip) => {
-    if (!tracks.some((track) => track.id === clip.id)) return clip;
+    if (clip.kind !== "audio") return clip;
+    if (!tracks.some((track) => track.id === clip.audioTrackId || track.id === clip.id)) {
+      return clip;
+    }
     if (audioLaneIds.has(clip.laneId)) return clip;
     const fallback = nextLanes.find((lane) => lane.kind === "audio");
     return fallback ? { ...clip, laneId: fallback.id } : clip;
@@ -519,14 +712,16 @@ export function ensureAudioClipsFromTracks(
   return { lanes: nextLanes, clips: remapped };
 }
 
-/** Place on main without time-overlap. */
+/** Place on base lane without time-overlap (trừ khi ripple). */
 export function resolveMainStartTime(
   clips: TimelineClip[],
   lanes: TimelineLane[],
   startTime: number,
   duration: number,
 ): number {
-  const mainId = lanes.find((lane) => lane.kind === "main")?.id;
+  const mainId = lanes.find(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  )?.id;
   const main = clips
     .filter((clip) => clip.laneId === mainId)
     .sort((a, b) => a.startTime - b.startTime);
@@ -544,7 +739,9 @@ export function shiftOverlayLaneOrders(
   delta: number,
 ): TimelineLane[] {
   return lanes.map((lane) =>
-    lane.kind === "overlay" && lane.order >= fromOrder
+    lane.kind === "visual" &&
+    lane.role === "overlay" &&
+    lane.order >= fromOrder
       ? { ...lane, order: lane.order + delta }
       : lane,
   );
@@ -555,21 +752,29 @@ export function reorderOverlayLane(
   laneId: string,
   newOrder: number,
 ): TimelineLane[] {
-  const target = lanes.find((lane) => lane.id === laneId && lane.kind === "overlay");
+  const target = lanes.find(
+    (lane) =>
+      lane.id === laneId && lane.kind === "visual" && lane.role === "overlay",
+  );
   if (!target) return lanes;
   const clamped = Math.max(0, Math.floor(newOrder));
   const others = lanes
-    .filter((lane) => lane.kind === "overlay" && lane.id !== laneId)
+    .filter(
+      (lane) =>
+        lane.kind === "visual" &&
+        lane.role === "overlay" &&
+        lane.id !== laneId,
+    )
     .sort((a, b) => a.order - b.order);
   others.splice(Math.min(clamped, others.length), 0, target);
   const remapped = others.map((lane, index) => ({ ...lane, order: index }));
   return lanes.map((lane) => {
-    if (lane.kind !== "overlay") return lane;
+    if (lane.kind !== "visual" || lane.role !== "overlay") return lane;
     return remapped.find((item) => item.id === lane.id) ?? lane;
   });
 }
 
-/** Legacy helper — maps preferred numeric layer to free overlay lane result. */
+/** @deprecated Prefer findFreeOverlayLane. */
 export function findFreeOverlayLayer(
   clips: TimelineClip[],
   startTime: number,
@@ -579,33 +784,8 @@ export function findFreeOverlayLayer(
 ): { layerIndex: number; insertNewLayer: boolean } {
   const requested = Math.max(0, Math.floor(preferredLayer));
   if (insertNewLayer) return { layerIndex: requested, insertNewLayer: true };
-
-  const byLane = new Map<string, TimelineClip[]>();
-  for (const clip of clips) {
-    if (!clip.laneId) continue;
-    const list = byLane.get(clip.laneId) ?? [];
-    list.push(clip);
-    byLane.set(clip.laneId, list);
-  }
-
-  // Fallback when only legacy layerIndex exists on clips
-  const overlays = clips.filter(
-    (clip) => clip.track === "overlay" || clip.layerIndex != null,
-  );
-  const isFree = (layerIndex: number) =>
-    !overlays.some(
-      (clip) =>
-        (clip.layerIndex ?? 0) === layerIndex &&
-        rangesOverlap(startTime, duration, clip.startTime, clip.duration),
-    );
-
-  if (isFree(requested)) return { layerIndex: requested, insertNewLayer: false };
-  const maxLayer = overlays.reduce(
-    (max, clip) => Math.max(max, clip.layerIndex ?? 0),
-    -1,
-  );
-  for (let layer = 0; layer <= maxLayer; layer++) {
-    if (isFree(layer)) return { layerIndex: layer, insertNewLayer: false };
-  }
-  return { layerIndex: maxLayer + 1, insertNewLayer: false };
+  void clips;
+  void startTime;
+  void duration;
+  return { layerIndex: requested, insertNewLayer: false };
 }

@@ -232,7 +232,9 @@ export function PreviewStage() {
     );
   }
 
-  const mainLaneId = timelineLanes.find((lane) => lane.kind === "main")?.id;
+  const mainLaneId = timelineLanes.find(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  )?.id;
   const brand = project.metadata.brand;
   const accent = brand.primaryColor ?? "#3f9a62";
 

@@ -1,6 +1,43 @@
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
 import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+import {
+  DEFAULT_VISUAL_POLICY,
+  type TimelineClip,
+  type TimelineLane,
+} from "@/lib/editor/timeline-clips";
+
+function baseLane(id = "lane.main"): TimelineLane {
+  return {
+    id,
+    kind: "visual",
+    role: "base",
+    name: "Main",
+    order: -1,
+    policy: { ...DEFAULT_VISUAL_POLICY },
+  };
+}
+
+function overlayLane(id: string, order: number, name: string): TimelineLane {
+  return {
+    id,
+    kind: "visual",
+    role: "overlay",
+    name,
+    order,
+    policy: { ...DEFAULT_VISUAL_POLICY },
+  };
+}
+
+function sceneClip(input: {
+  id: string;
+  sceneId: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+  name: string;
+}): TimelineClip {
+  return { kind: "scene", ...input };
+}
 
 /** Scene tối giản dùng trong fixture editor. */
 function scene(id: string, name: string, duration = 3) {
@@ -66,26 +103,24 @@ export function fixtureMainOnly() {
     scene("scene.main.a", "Intro", 2),
     scene("scene.main.b", "Body", 3),
   ]);
-  const lanes: TimelineLane[] = [
-    { id: "lane.main", kind: "main", name: "Main", order: -1 },
-  ];
+  const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [
-    {
+    sceneClip({
       id: "clip.main.a",
       sceneId: "scene.main.a",
       laneId: "lane.main",
       startTime: 0,
       duration: 2,
       name: "Intro",
-    },
-    {
+    }),
+    sceneClip({
       id: "clip.main.b",
       sceneId: "scene.main.b",
       laneId: "lane.main",
       startTime: 2,
       duration: 3,
       name: "Body",
-    },
+    }),
   ];
   return { project, clips, lanes, overlayScenes: [] as OverlaySceneItem[] };
 }
@@ -97,26 +132,26 @@ export function fixtureBasePlusOverlay() {
     scene("scene.overlay", "Overlay Scene", 2),
   ]);
   const lanes: TimelineLane[] = [
-    { id: "lane.main", kind: "main", name: "Main", order: -1 },
-    { id: "lane.overlay.0", kind: "overlay", name: "Lớp 1", order: 0 },
+    baseLane(),
+    overlayLane("lane.overlay.0", 0, "Lớp 1"),
   ];
   const clips: TimelineClip[] = [
-    {
+    sceneClip({
       id: "clip.base",
       sceneId: "scene.base",
       laneId: "lane.main",
       startTime: 0,
       duration: 4,
       name: "Base Scene",
-    },
-    {
+    }),
+    sceneClip({
       id: "clip.overlay",
       sceneId: "scene.overlay",
       laneId: "lane.overlay.0",
       startTime: 1,
       duration: 2,
       name: "Overlay Scene",
-    },
+    }),
   ];
   const overlayScenes: OverlaySceneItem[] = [
     {
@@ -199,59 +234,43 @@ export function fixtureMainPlusAudioOverlap() {
       ],
     },
   });
-  const lanes: TimelineLane[] = [
-    { id: "lane.main", kind: "main", name: "Main", order: -1 },
-  ];
+  const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [
-    {
+    sceneClip({
       id: "clip.main",
       sceneId: "scene.main",
       laneId: "lane.main",
       startTime: 0,
       duration: 6,
       name: "Main",
-    },
+    }),
   ];
   return { project, clips, lanes, overlayScenes: [] as OverlaySceneItem[] };
 }
 
-/** Legacy lưu bằng track/layerIndex thay vì laneId. */
+/** Legacy lưu bằng overlay sidecar + sceneOrder, chưa có clips/lanes. */
 export function fixtureLegacyTrackLayerIndex() {
+  // Legacy: scene vẫn nằm trong project (schema yêu cầu schedule);
+  // placement overlay lấy từ sidecar layerIndex, không từ sceneOrder.
   const project = baseProject("fixture.legacy-track", "Legacy Track", [
     scene("scene.main", "Main", 3),
     scene("scene.ov", "Overlay", 2),
   ]);
-  const clips: TimelineClip[] = [
-    {
-      id: "clip.main",
-      sceneId: "scene.main",
-      laneId: "",
-      startTime: 0,
-      duration: 3,
-      name: "Main",
-      track: "main",
-    },
-    {
-      id: "clip.ov",
-      sceneId: "scene.ov",
-      laneId: "",
-      startTime: 0.5,
-      duration: 2,
-      name: "Overlay",
-      track: "overlay",
-      layerIndex: 0,
-    },
-  ];
   const overlayScenes: OverlaySceneItem[] = [
     {
-      id: "clip.ov",
+      id: "scene.ov",
       name: "Overlay",
       duration: 2,
       startTime: 0.5,
       layerIndex: 0,
     },
   ];
-  return { project, clips, lanes: [] as TimelineLane[], overlayScenes };
+  return {
+    project,
+    clips: [] as TimelineClip[],
+    lanes: [] as TimelineLane[],
+    overlayScenes,
+  };
 }
 
 /** Nhiều scene/node để kiểm tra clone/remap reference. */
@@ -385,26 +404,24 @@ export function fixtureMultiSceneReferences() {
       events: [],
     },
   });
-  const lanes: TimelineLane[] = [
-    { id: "lane.main", kind: "main", name: "Main", order: -1 },
-  ];
+  const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [
-    {
+    sceneClip({
       id: "clip.a",
       sceneId: "scene.a",
       laneId: "lane.main",
       startTime: 0,
       duration: 2,
       name: "A",
-    },
-    {
+    }),
+    sceneClip({
       id: "clip.b",
       sceneId: "scene.b",
       laneId: "lane.main",
       startTime: 2,
       duration: 2,
       name: "B",
-    },
+    }),
   ];
   return { project, clips, lanes, overlayScenes: [] as OverlaySceneItem[] };
 }

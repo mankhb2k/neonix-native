@@ -23,9 +23,11 @@ export function LayersPanel() {
   );
   const [editingLaneId, setEditingLaneId] = useState<string | null>(null);
 
-  const mainLane = timelineLanes.find((lane) => lane.kind === "main");
+  const mainLane = timelineLanes.find(
+    (lane) => lane.kind === "visual" && lane.role === "base",
+  );
   const overlayLanes = [...timelineLanes]
-    .filter((lane) => lane.kind === "overlay")
+    .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
     .sort((a, b) => b.order - a.order);
   const orderedLanes = [
     ...overlayLanes,
@@ -103,11 +105,16 @@ export function LayersPanel() {
           ) : (
             orderedLanes.map((lane) => {
               const clips = clipsByLane.get(lane.id) ?? [];
-              if (clips.length === 0 && lane.kind === "overlay") return null;
+              if (
+                clips.length === 0 &&
+                lane.kind === "visual" &&
+                lane.role === "overlay"
+              )
+                return null;
               const expandable = clips.length >= 2;
               const expanded = expandable && expandedLaneIds.has(lane.id);
               const laneSelected = selectedLaneId === lane.id;
-              const isMain = lane.kind === "main";
+              const isMain = lane.kind === "visual" && lane.role === "base";
 
               return (
                 <div key={lane.id} className="flex flex-col gap-0.5">

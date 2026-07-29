@@ -7,8 +7,11 @@ import {
   fixtureMultiSceneReferences,
 } from "@/lib/editor/__fixtures__/projects";
 import {
+  DEFAULT_VISUAL_POLICY,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
+  type TimelineClip,
+  type TimelineLane,
 } from "@/lib/editor/timeline-clips";
 import {
   CURRENT_STORAGE_VERSION,
@@ -47,7 +50,8 @@ describe("editor persistence fixtures", () => {
     expect(fixtureMainOnly().project.scenes).toHaveLength(2);
     expect(fixtureBasePlusOverlay().clips).toHaveLength(2);
     expect(fixtureMainPlusAudioOverlap().project.timeline.audioTracks).toHaveLength(3);
-    expect(fixtureLegacyTrackLayerIndex().clips.every((c) => !c.laneId)).toBe(true);
+    expect(fixtureLegacyTrackLayerIndex().clips).toHaveLength(0);
+    expect(fixtureLegacyTrackLayerIndex().overlayScenes.length).toBeGreaterThan(0);
     expect(fixtureMultiSceneReferences().project.scenes).toHaveLength(2);
   });
 
@@ -98,7 +102,7 @@ describe("editor persistence fixtures", () => {
     const snap = loadEditorProjectSnapshot(fixture.project.metadata.id);
     expect(snap?.project.metadata.id).toBe(fixture.project.metadata.id);
     expect(snap?.timelineClips).toHaveLength(2);
-    expect(snap?.timelineLanes.some((l) => l.kind === "main")).toBe(true);
+    expect(snap?.timelineLanes.some((l) => l.kind === "visual" && l.role === "base")).toBe(true);
     expect(snap?.overlayScenes.every((o) => o.id === "clip.overlay")).toBe(true);
   });
 
@@ -118,14 +122,35 @@ describe("editor persistence fixtures", () => {
   });
 
   it("DATA-03: overlaysFromClips ignores audio lanes", () => {
-    const lanes = [
-      { id: "lane.main", kind: "main" as const, name: "Main", order: -1 },
-      { id: "lane.ov", kind: "overlay" as const, name: "Lớp 1", order: 0 },
-      { id: "lane.au", kind: "audio" as const, name: "Audio 1", order: 0 },
+    const lanes: TimelineLane[] = [
+      {
+        id: "lane.main",
+        kind: "visual",
+        role: "base",
+        name: "Main",
+        order: -1,
+        policy: { ...DEFAULT_VISUAL_POLICY },
+      },
+      {
+        id: "lane.ov",
+        kind: "visual",
+        role: "overlay",
+        name: "Lớp 1",
+        order: 0,
+        policy: { ...DEFAULT_VISUAL_POLICY },
+      },
+      {
+        id: "lane.au",
+        kind: "audio",
+        role: "audio",
+        name: "Audio 1",
+        order: 0,
+      },
     ];
-    const clips = [
+    const clips: TimelineClip[] = [
       {
         id: "c1",
+        kind: "scene",
         sceneId: "s1",
         laneId: "lane.ov",
         startTime: 0,
@@ -134,7 +159,10 @@ describe("editor persistence fixtures", () => {
       },
       {
         id: "audio.x",
-        sceneId: "audio.x",
+        kind: "audio",
+        sceneId: "",
+        audioTrackId: "audio.x",
+        assetId: "asset.x",
         laneId: "lane.au",
         startTime: 0,
         duration: 2,
@@ -204,8 +232,8 @@ describe("timeline migration fixtures", () => {
       fixture.clips,
       fixture.lanes,
     );
-    expect(lanes.some((l) => l.kind === "main")).toBe(true);
-    expect(lanes.some((l) => l.kind === "overlay")).toBe(true);
+    expect(lanes.some((l) => l.kind === "visual" && l.role === "base")).toBe(true);
+    expect(lanes.some((l) => l.kind === "visual" && l.role === "overlay")).toBe(true);
     expect(clips.every((c) => Boolean(c.laneId))).toBe(true);
   });
 
