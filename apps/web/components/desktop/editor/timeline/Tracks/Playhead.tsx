@@ -256,6 +256,8 @@ export function Playhead({
         aria-label="Playhead"
         aria-valuemin={0}
         aria-valuemax={duration}
+        // Initial/re-render value from store; ticks update the attribute imperatively.
+        aria-valuenow={usePlaybackClock.getState().currentTime}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none"
