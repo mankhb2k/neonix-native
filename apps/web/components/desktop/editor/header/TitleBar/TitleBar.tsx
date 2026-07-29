@@ -8,12 +8,14 @@ import { DesktopMenuBar, DesktopWindowControls } from "@/components/desktop/edit
 import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
 import { useIsDesktop } from "@/lib/desktop";
+import { buildExportProject } from "@/lib/editor/export/build-export-project";
+import {
+  buildEditorProjectEnvelope,
+  parseEditorImport,
+  serializeEditorProjectEnvelope,
+} from "@/lib/editor/export/editor-project-envelope";
 import { saveProject, trySaveProject } from "@/lib/editor/project-storage";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import {
-  parseMotionProject,
-  serializeMotionProject,
-} from "@motionvideo/motion-schema";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import {
   CloudCheck,
@@ -48,7 +50,13 @@ export function TitleBar() {
         setExportError(saved.error.message);
         return;
       }
-      const blob = await exportMotionProject(project);
+      // Bake timeline editor → MotionProject tuần tự (export ≠ raw editor IR).
+      const exportProject = buildExportProject({
+        project,
+        timelineClips,
+        timelineLanes,
+      });
+      const blob = await exportMotionProject(exportProject);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);
     } catch (err) {
@@ -60,7 +68,10 @@ export function TitleBar() {
 
   function handleDownloadMt() {
     if (!project) return;
-    const text = serializeMotionProject(project);
+    // Envelope giữ clips/lanes — roundtrip không mất placement.
+    const text = serializeEditorProjectEnvelope(
+      buildEditorProjectEnvelope({ project, timelineClips, timelineLanes }),
+    );
     downloadBlob(
       new Blob([text], { type: "application/json" }),
       `${project.metadata.id}.mt`,
@@ -71,15 +82,24 @@ export function TitleBar() {
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = parseMotionProject(JSON.parse(text) as unknown);
-      const check = validateMotionProjectPresets(parsed);
+      const imported = parseEditorImport(JSON.parse(text) as unknown);
+      const check = validateMotionProjectPresets(imported.project);
       if (!check.ok) {
         const detail = check.unknown.map((u) => u.preset).join(", ");
         setExportError(`Preset không hợp lệ: ${detail}`);
         return;
       }
-      saveProject(parsed, { overlayScenes: [], timelineClips: [], timelineLanes: [] });
-      loadProject(parsed, [], [], []);
+      saveProject(imported.project, {
+        overlayScenes: imported.overlayScenes,
+        timelineClips: imported.timelineClips,
+        timelineLanes: imported.timelineLanes,
+      });
+      loadProject(
+        imported.project,
+        imported.overlayScenes,
+        imported.timelineClips,
+        imported.timelineLanes,
+      );
       setExportError(null);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Import .mt thất bại");
