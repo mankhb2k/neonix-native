@@ -25,6 +25,7 @@ import {
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 
 type WorkspaceMenuProps = {
   children: ReactNode;
@@ -48,7 +49,12 @@ export function TimelineWorkspaceContextMenu({
   const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
   const timelineClipboard = useEditorStore((s) => s.timelineClipboard);
   const timelineClips = useEditorStore((s) => s.timelineClips);
-  const currentTime = usePlaybackClock((s) => s.currentTime);
+  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
+  // PERF-05: subscribe frame index thay vì raw currentTime.
+  const displayFrame = usePlaybackClock((s) =>
+    playbackFrameIndex(s.currentTime, fps),
+  );
+  const currentTime = displayFrame / Math.max(1, fps);
 
   const canPaste = (timelineClipboard?.length ?? 0) > 0;
   const canSplit = selectedClipIds.some((id) => {
@@ -93,7 +99,7 @@ export function TimelineWorkspaceContextMenu({
             shortcut="Ctrl+V"
             disabled={!canPaste}
             onSelect={() =>
-              useEditorStore.getState().pasteClips(currentTime)
+              useEditorStore.getState().pasteClips(usePlaybackClock.getState().currentTime)
             }
           >
             Dán
@@ -121,7 +127,7 @@ export function TimelineWorkspaceContextMenu({
               shortcut="Ctrl+V"
               disabled={!canPaste}
               onSelect={() =>
-                useEditorStore.getState().pasteClips(currentTime)
+                useEditorStore.getState().pasteClips(usePlaybackClock.getState().currentTime)
               }
             >
               Dán
@@ -141,7 +147,7 @@ export function TimelineWorkspaceContextMenu({
               shortcut="Ctrl+B"
               disabled={!canSplit}
               onSelect={() =>
-                useEditorStore.getState().splitSelectedClipsAt(currentTime)
+                useEditorStore.getState().splitSelectedClipsAt(usePlaybackClock.getState().currentTime)
               }
             >
               Tách tại playhead

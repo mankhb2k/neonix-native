@@ -15,9 +15,9 @@ import {
   type PreviewParityNode,
 } from "@/lib/runtime/preview-evaluate";
 
-function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
+function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
   if (node.type === "text") {
-    const scene = project.scenes[0];
+    // Dùng scene đang render — không hard-code scenes[0] (PERF-04).
     const authored = scene?.nodes.find((candidate) => candidate.id === node.id);
     return nodeText(authored) || node.id;
   }
@@ -26,23 +26,38 @@ function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
   return node.id;
 }
 
+function findMainClipAtTime(
+  sortedMainClips: TimelineClip[],
+  time: number,
+): TimelineClip | undefined {
+  // Binary search trên clips đã sort theo startTime.
+  let lo = 0;
+  let hi = sortedMainClips.length - 1;
+  let candidate: TimelineClip | undefined;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const clip = sortedMainClips[mid];
+    if (time < clip.startTime) {
+      hi = mid - 1;
+    } else {
+      candidate = clip;
+      lo = mid + 1;
+    }
+  }
+  if (!candidate) return undefined;
+  if (time < candidate.startTime + candidate.duration) return candidate;
+  return sortedMainClips[sortedMainClips.length - 1];
+}
+
 function sceneAtGlobalTime(
   scenes: MotionScene[],
-  timelineClips: TimelineClip[],
-  mainLaneId: string | undefined,
+  sortedMainClips: TimelineClip[],
+  scenesById: Map<string, MotionScene>,
   time: number,
 ): { scene: MotionScene; localTime: number; start: number } | null {
-  const mainClips = timelineClips
-    .filter((clip) => clip.laneId === mainLaneId)
-    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
-  const clip = mainClips.find((candidate) =>
-    time >= candidate.startTime && time < candidate.startTime + candidate.duration,
-  ) ?? (mainClips.length > 0 &&
-    time >= mainClips[mainClips.length - 1].startTime + mainClips[mainClips.length - 1].duration
-    ? mainClips[mainClips.length - 1]
-    : undefined);
+  const clip = findMainClipAtTime(sortedMainClips, time);
   if (!clip) return null;
-  const scene = scenes.find((candidate) => candidate.id === clip.sceneId);
+  const scene = scenesById.get(clip.sceneId) ?? scenes.find((s) => s.id === clip.sceneId);
   if (!scene) return null;
   return {
     scene,
@@ -51,10 +66,16 @@ function sceneAtGlobalTime(
   };
 }
 
-function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: MotionProject }) {
+function RuntimeLayer({
+  node,
+  scene,
+}: {
+  node: PreviewParityNode;
+  scene: MotionScene | null;
+}) {
   if (!node.visible || node.worldOpacity <= 0) return null;
   if (node.type === "group" || node.type === "bone" || node.type === "camera") return null;
-  const label = nodeLabel(node, project);
+  const label = nodeLabel(node, scene);
   const width = Math.max(8, node.transform.width || node.worldBounds.width);
   const height = Math.max(8, node.transform.height || node.worldBounds.height);
   return (
@@ -117,10 +138,23 @@ const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
     }
   }, [project]);
 
+  // Memo index — không filter/sort lại mỗi frame (PERF-04).
+  const sortedMainClips = useMemo(
+    () =>
+      timelineClips
+        .filter((clip) => clip.laneId === mainLaneId)
+        .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id)),
+    [timelineClips, mainLaneId],
+  );
+  const scenesById = useMemo(
+    () => new Map(project.scenes.map((scene) => [scene.id, scene])),
+    [project.scenes],
+  );
+
   const at = sceneAtGlobalTime(
     project.scenes,
-    timelineClips,
-    mainLaneId,
+    sortedMainClips,
+    scenesById,
     previewTime,
   );
   if (!at) return null;
@@ -144,21 +178,41 @@ const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
       }}
     >
       {snapshot?.nodes.map((node) => (
-        <RuntimeLayer key={node.id} node={node} project={project} />
+        <RuntimeLayer key={node.id} node={node} scene={scene} />
       ))}
     </div>
   );
 });
 
+/** Subscribe clock ở leaf — shell PreviewStage không re-render theo tick. */
+function PreviewClockBridge({
+  project,
+  timelineClips,
+  mainLaneId,
+}: {
+  project: MotionProject;
+  timelineClips: TimelineClip[];
+  mainLaneId: string | undefined;
+}) {
+  const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+  const frameIndex = usePlaybackClock((state) =>
+    playbackFrameIndex(state.currentTime, fps),
+  );
+  return (
+    <PreviewRuntimeCanvas
+      project={project}
+      timelineClips={timelineClips}
+      mainLaneId={mainLaneId}
+      frameIndex={frameIndex}
+      fps={fps}
+    />
+  );
+}
+
 export function PreviewStage() {
   const project = useEditorStore((state) => state.project);
   const timelineClips = useEditorStore((state) => state.timelineClips);
   const timelineLanes = useEditorStore((state) => state.timelineLanes);
-  const fps = project?.metadata.fps ?? 30;
-  const safeFps = Math.max(1, Math.round(fps));
-  const frameIndex = usePlaybackClock((state) =>
-    playbackFrameIndex(state.currentTime, safeFps),
-  );
 
   if (!project) {
     return (
@@ -208,12 +262,10 @@ export function PreviewStage() {
             justifyContent: "center",
           }}
         >
-          <PreviewRuntimeCanvas
+          <PreviewClockBridge
             project={project}
             timelineClips={timelineClips}
             mainLaneId={mainLaneId}
-            frameIndex={frameIndex}
-            fps={safeFps}
           />
         </div>
       </div>
