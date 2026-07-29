@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
 import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
 import { useEditorStore, nodeText } from "@/lib/store/editor-store";
+import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/playback/time-frame";
 import type { TimelineClip } from "@/lib/timeline-clips";
 import {
   matrixToCss,
@@ -90,20 +92,73 @@ function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: Mot
   );
 }
 
-export function PreviewStage() {
-  const project = useEditorStore((state) => state.project);
-  const timelineClips = useEditorStore((state) => state.timelineClips);
-  const timelineLanes = useEditorStore((state) => state.timelineLanes);
-  const currentTime = useEditorStore((state) => state.currentTime);
+type PreviewRuntimeCanvasProps = {
+  project: MotionProject;
+  timelineClips: TimelineClip[];
+  mainLaneId: string | undefined;
+  frameIndex: number;
+  fps: number;
+};
 
+/** Time-sensitive canvas — re-renders only when frameIndex / project / clips change. */
+const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
+  project,
+  timelineClips,
+  mainLaneId,
+  frameIndex,
+  fps,
+}: PreviewRuntimeCanvasProps) {
+  const previewTime = frameIndex / Math.max(1, fps);
   const compiled = useMemo(() => {
-    if (!project) return null;
     try {
       return compileMotionProject(project);
     } catch {
       return null;
     }
   }, [project]);
+
+  const at = sceneAtGlobalTime(
+    project.scenes,
+    timelineClips,
+    mainLaneId,
+    previewTime,
+  );
+  if (!at) return null;
+  const { scene, localTime } = at;
+  const stage = stageSizeForAspect(project.metadata.aspectRatio);
+  const frame = quantizeTimeToFrame(localTime, fps);
+  const snapshot = compiled
+    ? previewParitySnapshot(compiled, scene.id, frame.time)
+    : null;
+
+  return (
+    <div
+      data-testid="runtime-preview-canvas"
+      style={{
+        position: "relative",
+        width: stage.width,
+        height: stage.height,
+        transform: "scale(0.25)",
+        transformOrigin: "center center",
+        background: "rgba(0,0,0,0.18)",
+      }}
+    >
+      {snapshot?.nodes.map((node) => (
+        <RuntimeLayer key={node.id} node={node} project={project} />
+      ))}
+    </div>
+  );
+});
+
+export function PreviewStage() {
+  const project = useEditorStore((state) => state.project);
+  const timelineClips = useEditorStore((state) => state.timelineClips);
+  const timelineLanes = useEditorStore((state) => state.timelineLanes);
+  const fps = project?.metadata.fps ?? 30;
+  const safeFps = Math.max(1, Math.round(fps));
+  const frameIndex = usePlaybackClock((state) =>
+    playbackFrameIndex(state.currentTime, safeFps),
+  );
 
   if (!project) {
     return (
@@ -124,17 +179,8 @@ export function PreviewStage() {
   }
 
   const mainLaneId = timelineLanes.find((lane) => lane.kind === "main")?.id;
-  const at = sceneAtGlobalTime(project.scenes, timelineClips, mainLaneId, currentTime);
-  if (!at) return null;
-  const { scene, localTime } = at;
   const brand = project.metadata.brand;
   const accent = brand.primaryColor ?? "#3f9a62";
-  const fps = project.metadata.fps ?? 30;
-  const stage = stageSizeForAspect(project.metadata.aspectRatio);
-  const frame = quantizeTimeToFrame(localTime, fps);
-  const snapshot = compiled
-    ? previewParitySnapshot(compiled, scene.id, frame.time)
-    : null;
 
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-transparent min-h-0 overflow-hidden">
@@ -162,21 +208,13 @@ export function PreviewStage() {
             justifyContent: "center",
           }}
         >
-          <div
-            data-testid="runtime-preview-canvas"
-            style={{
-              position: "relative",
-              width: stage.width,
-              height: stage.height,
-              transform: "scale(0.25)",
-              transformOrigin: "center center",
-              background: "rgba(0,0,0,0.18)",
-            }}
-          >
-            {snapshot?.nodes.map((node) => (
-              <RuntimeLayer key={node.id} node={node} project={project} />
-            ))}
-          </div>
+          <PreviewRuntimeCanvas
+            project={project}
+            timelineClips={timelineClips}
+            mainLaneId={mainLaneId}
+            frameIndex={frameIndex}
+            fps={safeFps}
+          />
         </div>
       </div>
     </div>

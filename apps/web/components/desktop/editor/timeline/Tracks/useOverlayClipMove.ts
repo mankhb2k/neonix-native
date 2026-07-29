@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
 import type { TimelineClip } from "@/lib/timeline-clips";
 import {
   bindDragGhostElement,
@@ -219,7 +220,7 @@ export function useOverlayClipMove({
 
     if (!session.started) {
       if (session.source === "main" && session.clickSeekTime != null) {
-        store.setCurrentTime(session.clickSeekTime);
+        usePlaybackClock.getState().seek(session.clickSeekTime);
       }
       resetMoveUi();
       return;

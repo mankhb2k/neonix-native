@@ -1,6 +1,10 @@
 export function formatTimecode(totalSeconds: number, fps = 30): string {
   const safeFps = Math.max(1, Math.round(fps));
-  const totalFrames = Math.max(0, Math.round(totalSeconds * safeFps));
+  // Floor (not round) — same rule as preview frameIndex / quantizeTimeToFrame.
+  const totalFrames = Math.max(
+    0,
+    Math.floor(Math.max(0, totalSeconds) * safeFps + Number.EPSILON * 8),
+  );
   const frames = totalFrames % safeFps;
   const totalSecs = Math.floor(totalFrames / safeFps);
   const hours = Math.floor(totalSecs / 3600);
@@ -16,41 +20,33 @@ function pad2(n: number): string {
 }
 
 /**
- * CapCut ruler label (matches desktop CapCut ruler):
- * - On a frame within a second while zoomed in → `15f`
- * - Else CapCut uses **seconds:frames** (`03:00` = 3s), not MM:SS
- * - Past 60s → `MM:SS:FF` (e.g. `01:05:00`)
+ * CapCut ruler label — always **two fields** phút:giây (`MM:SS`),
+ * e.g. `03:00` = 3 phút, `18:00` = 18 phút. Zoom sâu mới dùng `15f`.
  */
 export function formatRulerLabel(
   totalFrames: number,
   fps: number,
-  labelEveryFrames: number,
+  _labelEveryFrames: number,
 ): string {
   const safeFps = Math.max(1, Math.round(fps));
   const frame = Math.max(0, Math.round(totalFrames));
   const frameInSecond = frame % safeFps;
-  const totalSecs = Math.floor(frame / safeFps);
 
-  // Sub-second zoom: unlabeled majors still use frame-in-second shorthand.
-  if (frameInSecond !== 0 && labelEveryFrames < safeFps) {
-    return `${frameInSecond}f`;
-  }
   if (frameInSecond !== 0) {
     return `${frameInSecond}f`;
   }
 
+  const totalSecs = Math.floor(frame / safeFps);
   const hours = Math.floor(totalSecs / 3600);
   const minutes = Math.floor((totalSecs % 3600) / 60);
   const seconds = totalSecs % 60;
 
   if (hours > 0) {
-    return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}:${pad2(0)}`;
+    return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
   }
-  if (totalSecs >= 60) {
-    return `${pad2(minutes)}:${pad2(seconds)}:${pad2(0)}`;
-  }
-  // CapCut short span: SS:FF (03:00 = 3 seconds)
-  return `${pad2(totalSecs)}:${pad2(0)}`;
+  // CapCut: MM:SS (phút:giây) — 18:00 = 18 phút
+  const totalMinutes = Math.floor(totalSecs / 60);
+  return `${pad2(totalMinutes)}:${pad2(seconds)}`;
 }
 
 export const TIMELINE_LABEL_WIDTH = 96;
@@ -58,10 +54,12 @@ export const TIMELINE_ZOOM_MIN = 0;
 export const TIMELINE_ZOOM_MAX = 100;
 export const TIMELINE_ZOOM_DEFAULT = 0;
 /**
- * CapCut min workspace ≈ duration video đầu × hệ số
- * (23s → ~1:30, 2ph → ~8ph).
+ * CapCut min workspace ≈ duration × hệ số; floor ~18 phút khi zoom out tối đa
+ * (screenshot CapCut: nhãn tới 18:00).
  */
 export const TIMELINE_MIN_SPAN_FACTOR = 4;
+/** CapCut empty/min zoom: viewport covers ~18 minutes. */
+export const TIMELINE_MIN_WORKSPACE_SECONDS = 18 * 60;
 /** Floor pps khi chưa đo viewport. */
 export const TIMELINE_PPS_MIN = 1.5;
 /**
@@ -71,20 +69,19 @@ export const TIMELINE_PPS_MIN = 1.5;
 export const TIMELINE_FRAMES_AT_MAX_ZOOM = 9;
 export const TIMELINE_PPS_MAX = 3600;
 /**
- * CapCut ruler is airy: ~120px+ between major labels (screenshot ~3s majors).
- * Was 96 — felt denser than CapCut.
+ * CapCut ruler is airy: ~160px between majors at min zoom → bước 3 phút.
  */
-const TARGET_LABEL_PX = 128;
+const TARGET_LABEL_PX = 160;
 /** Chỉ vẽ tick khi cách nhau ≥ mức này (px) — tránh rừng vạch. */
-const MIN_TICK_GAP_PX = 11;
+const MIN_TICK_GAP_PX = 8;
 /**
- * CapCut majors divided into equal slots (screenshot: 8 minor ticks → 9 gaps).
- * Prefer 9 (CapCut desktop), then 10, then coarser.
+ * CapCut zoom-out: 3 phút → **12 ô** (11 vạch nhỏ).
+ * Ưu tiên 12 trước 10 (10 ô = 9 vạch — lệch CapCut).
  */
-const PREFERRED_SUBDIVISIONS = [9, 10, 5, 4, 2] as const;
+const PREFERRED_SUBDIVISIONS = [12, 10, 9, 5, 4, 2] as const;
 
 /**
- * Zoom 0 = workspace (total content × 4, min 20s) vừa viewport,
+ * Zoom 0 = workspace (~18 phút min) vừa viewport,
  * Zoom 100 = ~9 frame đầy ngang (CapCut max).
  */
 export function zoomToPixelsPerSecond(
@@ -108,10 +105,13 @@ export function maxPixelsPerSecondForView(
   return (trackViewWidth / TIMELINE_FRAMES_AT_MAX_ZOOM) * safeFps;
 }
 
-/** Workspace = max(total × 4, 20s) — floor ≈ 4× một khung 5s. */
+/** Workspace = max(content × 4, ~18 phút) — khớp CapCut zoom out. */
 export function timelineWorkspaceSeconds(contentSeconds: number): number {
   const content = Math.max(0, contentSeconds);
-  return Math.max(content * TIMELINE_MIN_SPAN_FACTOR, 20);
+  return Math.max(
+    content * TIMELINE_MIN_SPAN_FACTOR,
+    TIMELINE_MIN_WORKSPACE_SECONDS,
+  );
 }
 
 /**
@@ -130,17 +130,24 @@ export function timelineContentEndSeconds(
   return Math.max(mainEnd, overlayEnd, 0);
 }
 
-/** Độ dài canvas thước: max(workspace, đủ phủ viewport). */
+/** Độ dài canvas thước: zoom out giữ ~18 phút; zoom in thu về content để tránh DOM khổng lồ. */
 export function timelineCanvasDuration(
   contentSeconds: number,
   pixelsPerSecond: number,
   trackViewWidth: number,
+  zoom = TIMELINE_ZOOM_DEFAULT,
 ): number {
   const viewportSeconds =
     trackViewWidth > 0 && pixelsPerSecond > 0
       ? trackViewWidth / pixelsPerSecond
       : 0;
-  return Math.max(timelineWorkspaceSeconds(contentSeconds), viewportSeconds);
+  const workspace = timelineWorkspaceSeconds(contentSeconds);
+  const contentPad = Math.max(contentSeconds + 30, viewportSeconds);
+  // Past ~25% zoom, full 18-minute × high pps creates multi‑100k px layouts (lag).
+  if (zoom >= 25) {
+    return Math.max(contentPad, viewportSeconds);
+  }
+  return Math.max(workspace, viewportSeconds);
 }
 
 export type CapCutRulerScale = {
@@ -151,7 +158,7 @@ export type CapCutRulerScale = {
   pixelsPerFrame: number;
 };
 
-/** Snap to CapCut-like intervals (incl. 3s majors from CapCut desktop). */
+/** Snap to CapCut-like intervals (3s…3 phút majors at min zoom). */
 function niceFrameStep(minFrames: number, fps: number): number {
   const safeFps = Math.max(1, Math.round(fps));
   const candidates = [
@@ -169,7 +176,9 @@ function niceFrameStep(minFrames: number, fps: number): number {
     safeFps * 30,
     safeFps * 60,
     safeFps * 120,
+    safeFps * 180, // 3 phút — CapCut zoom out
     safeFps * 300,
+    safeFps * 600,
   ]
     .filter((n, i, arr) => n >= 1 && arr.indexOf(n) === i)
     .sort((a, b) => a - b);
@@ -178,19 +187,27 @@ function niceFrameStep(minFrames: number, fps: number): number {
 }
 
 /**
- * CapCut: equal minor ticks between majors (e.g. 3s / 9 = 10f @30fps).
- * Returns frames between adjacent ticks.
+ * CapCut: equal minor ticks between majors.
+ * Force 12-way split when label is a multi-minute CapCut step (e.g. 3 phút)
+ * so we always get 11 minor ticks — not 9 from falling back to 10.
  */
 function tickStepForLabel(
   labelEveryFrames: number,
   pixelsPerFrame: number,
 ): number {
+  const gapOk = (tickEvery: number, minPx: number) =>
+    tickEvery >= 1 && tickEvery * pixelsPerFrame >= minPx;
+
+  // CapCut desktop: 3-minute majors → exactly 12 slots (15s).
+  if (labelEveryFrames % 12 === 0) {
+    const by12 = labelEveryFrames / 12;
+    if (gapOk(by12, 6)) return by12;
+  }
+
   for (const divisions of PREFERRED_SUBDIVISIONS) {
     if (labelEveryFrames % divisions !== 0) continue;
     const tickEvery = labelEveryFrames / divisions;
-    if (tickEvery >= 1 && tickEvery * pixelsPerFrame >= MIN_TICK_GAP_PX) {
-      return tickEvery;
-    }
+    if (gapOk(tickEvery, MIN_TICK_GAP_PX)) return tickEvery;
   }
   return labelEveryFrames;
 }

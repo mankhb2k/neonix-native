@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
 import { clipsContentEndSeconds } from "@/lib/timeline-clips";
 import { TimeRuler } from "./TimeRuler/TimeRuler";
 import { Tracks } from "./Tracks/Tracks";
@@ -21,14 +22,13 @@ type Props = {
 
 /**
  * Board under TransportBar: fixed TimeRuler + scrollable Tracks + viewport playhead.
- * Vertical scroll only affects Tracks; horizontal scroll syncs ruler via translateX.
+ * Does not subscribe to currentTime — playhead follows the playback clock imperatively.
  */
 export function TimelineBoard({ zoom }: Props) {
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
-  const currentTime = useEditorStore((s) => s.currentTime);
-  const setCurrentTime = useEditorStore((s) => s.setCurrentTime);
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
+  const seek = usePlaybackClock((s) => s.seek);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
@@ -58,12 +58,9 @@ export function TimelineBoard({ zoom }: Props) {
     contentEnd,
     pixelsPerSecond,
     trackViewWidth,
+    zoom,
   );
   const canvasWidth = rulerDuration * pixelsPerSecond;
-
-  /** Playhead X in board viewport (not content coordinates). */
-  const playheadLeft =
-    TIMELINE_LABEL_WIDTH + currentTime * pixelsPerSecond - scrollLeft;
 
   const seekEnabled = !scrubBlocked && activeDragItem == null;
 
@@ -72,18 +69,14 @@ export function TimelineBoard({ zoom }: Props) {
       ref={boardRef}
       className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-panel)]"
     >
-      {/* Viewport-fixed playhead — not inside Tracks scroll */}
       <Playhead
-        left={playheadLeft}
         labelWidth={TIMELINE_LABEL_WIDTH}
         pixelsPerSecond={pixelsPerSecond}
-        maxTime={contentEnd}
+        scrollLeft={scrollLeft}
         scrollContainerRef={tracksScrollRef}
         enabled={seekEnabled}
-        onSeek={setCurrentTime}
       />
 
-      {/* TimeRuler — fixed vertically; ticks scroll with tracks via translateX */}
       <div
         ref={rulerHeaderRef}
         className="z-30 flex shrink-0 overflow-hidden bg-[var(--bg-panel)]"
@@ -93,41 +86,33 @@ export function TimelineBoard({ zoom }: Props) {
           style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
         />
         <div className="min-w-0 flex-1 overflow-hidden">
-          <div
-            className="will-change-transform"
-            style={{
-              width: canvasWidth,
-              transform: `translateX(${-scrollLeft}px)`,
-            }}
-          >
-            <TimeRuler
-              duration={rulerDuration}
-              fps={fps}
-              pixelsPerSecond={pixelsPerSecond}
-              width={canvasWidth}
-              onSeekClick={
-                seekEnabled
-                  ? (clientX) => {
-                      const root = tracksScrollRef.current;
-                      if (!root) return;
-                      setCurrentTime(
-                        clientXToTimelineTime(
-                          clientX,
-                          root,
-                          TIMELINE_LABEL_WIDTH,
-                          pixelsPerSecond,
-                          contentEnd,
-                        ),
-                      );
-                    }
-                  : undefined
-              }
-            />
-          </div>
+          <TimeRuler
+            duration={rulerDuration}
+            fps={fps}
+            pixelsPerSecond={pixelsPerSecond}
+            viewWidth={trackViewWidth}
+            scrollLeft={scrollLeft}
+            onSeekClick={
+              seekEnabled
+                ? (clientX) => {
+                    const root = tracksScrollRef.current;
+                    if (!root) return;
+                    seek(
+                      clientXToTimelineTime(
+                        clientX,
+                        root,
+                        TIMELINE_LABEL_WIDTH,
+                        pixelsPerSecond,
+                        contentEnd,
+                      ),
+                    );
+                  }
+                : undefined
+            }
+          />
         </div>
       </div>
 
-      {/* Tracks only — vertical + horizontal scroll */}
       <Tracks
         zoom={zoom}
         scrollRef={tracksScrollRef}

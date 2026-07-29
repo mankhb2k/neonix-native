@@ -1,11 +1,13 @@
 "use client";
 
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
+import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
 
 /** Convert pointer X → timeline seconds (accounts for label gutter + horizontal scroll). */
 export function clientXToTimelineTime(
@@ -32,20 +34,16 @@ export function timelineTimeToViewportLeft(
 }
 
 type Props = {
-  /** Absolute left including label gutter (px) — used when not scrubbing. */
-  left: number;
   labelWidth: number;
   pixelsPerSecond: number;
-  maxTime: number;
+  scrollLeft: number;
   scrollContainerRef: RefObject<HTMLElement | null>;
   /** False while sidebar/clip drag is active. */
   enabled?: boolean;
-  onSeek: (time: number) => void;
 };
 
 const HIT_STRIP_WIDTH_PX = 14;
 
-/** CapCut inverted-house — solid fill, flat top flush to ruler edge. */
 function PlayheadHandleIcon() {
   return (
     <svg
@@ -65,31 +63,30 @@ function PlayheadHandleIcon() {
 }
 
 /**
- * CapCut-style playhead: white line + solid shield handle flush to ruler top.
- * Scrub = imperative transform only; Zustand seek commits on pointerup
- * (avoids PreviewStage/TransportBar re-render jank mid-drag).
+ * CapCut-style playhead driven by the canonical playback clock.
+ * Scrub coalesces pointermoves into one `seek()` per animation frame;
+ * position always applies via `translate3d` (no React layout for the hot path).
  */
 export function Playhead({
-  left,
   labelWidth,
   pixelsPerSecond,
-  maxTime,
+  scrollLeft,
   scrollContainerRef,
   enabled = true,
-  onSeek,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const pendingTimeRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const labelWidthRef = useRef(labelWidth);
   const ppsRef = useRef(pixelsPerSecond);
-  const maxTimeRef = useRef(maxTime);
-  const onSeekRef = useRef(onSeek);
+  const scrollLeftRef = useRef(scrollLeft);
   labelWidthRef.current = labelWidth;
   ppsRef.current = pixelsPerSecond;
-  maxTimeRef.current = maxTime;
-  onSeekRef.current = onSeek;
+  scrollLeftRef.current = scrollLeft;
+
+  const duration = usePlaybackClock((s) => s.duration);
 
   function applyVisualLeft(viewportLeft: number) {
     const el = rootRef.current;
@@ -97,39 +94,78 @@ export function Playhead({
     el.style.transform = `translate3d(${viewportLeft}px,0,0)`;
   }
 
-  useLayoutEffect(() => {
-    if (draggingRef.current) return;
-    applyVisualLeft(left);
-  }, [left]);
-
-  function scrubFromClientX(clientX: number): number | null {
-    const root = scrollContainerRef.current;
-    if (!root) return null;
-    const time = clientXToTimelineTime(
-      clientX,
-      root,
-      labelWidthRef.current,
-      ppsRef.current,
-      maxTimeRef.current,
-    );
+  function syncFromClock(time: number) {
     applyVisualLeft(
       timelineTimeToViewportLeft(
         time,
         labelWidthRef.current,
         ppsRef.current,
-        root.scrollLeft,
+        scrollLeftRef.current,
       ),
     );
+  }
+
+  useLayoutEffect(() => {
+    if (draggingRef.current) return;
+    syncFromClock(usePlaybackClock.getState().currentTime);
+  }, [labelWidth, pixelsPerSecond, scrollLeft]);
+
+  useEffect(() => {
+    syncFromClock(usePlaybackClock.getState().currentTime);
+    return usePlaybackClock.subscribe((state, prev) => {
+      if (state.currentTime === prev.currentTime) return;
+      if (draggingRef.current) return;
+      syncFromClock(state.currentTime);
+    });
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  function flushSeek() {
+    rafRef.current = null;
+    const time = pendingTimeRef.current;
+    if (time == null) return;
+    usePlaybackClock.getState().seek(time);
+    syncFromClock(time);
+  }
+
+  function scheduleSeek(time: number) {
     pendingTimeRef.current = time;
-    return time;
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(flushSeek);
+  }
+
+  function scrubFromClientX(clientX: number) {
+    const root = scrollContainerRef.current;
+    if (!root) return;
+    const clock = usePlaybackClock.getState();
+    const time = clientXToTimelineTime(
+      clientX,
+      root,
+      labelWidthRef.current,
+      ppsRef.current,
+      clock.duration,
+    );
+    syncFromClock(time);
+    scheduleSeek(time);
   }
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
     const time = pendingTimeRef.current;
     pendingTimeRef.current = null;
-    if (time != null) onSeekRef.current(time);
+    if (time != null) usePlaybackClock.getState().seek(time);
+    usePlaybackClock.getState().endScrub();
+    syncFromClock(usePlaybackClock.getState().currentTime);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -141,8 +177,8 @@ export function Playhead({
     event.preventDefault();
     event.stopPropagation();
     draggingRef.current = true;
+    usePlaybackClock.getState().beginScrub();
     event.currentTarget.setPointerCapture(event.pointerId);
-    // Visual only on down/move — store seek waits for pointerup.
     scrubFromClientX(event.clientX);
   }
 
@@ -162,7 +198,7 @@ export function Playhead({
         role="slider"
         aria-label="Playhead"
         aria-valuemin={0}
-        aria-valuemax={maxTime}
+        aria-valuemax={duration}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none"

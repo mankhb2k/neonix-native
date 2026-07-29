@@ -16,7 +16,6 @@ import {
   TIMELINE_ZOOM_DEFAULT,
 } from "@/components/desktop/editor/timeline/timeline-scale";
 import {
-  clipsContentEndSeconds,
   createOverlayLane,
   ensureMainLane,
   findFreeOverlayLane,
@@ -65,9 +64,7 @@ type EditorState = {
   } | null;
   isOverTimeline: boolean;
 
-  /** Shared playback / scrub clock (seconds on full main timeline) */
-  currentTime: number;
-  isPlaying: boolean;
+  /** Timeline zoom — playback clock lives in playback-clock-store. */
   timelineZoom: number;
 
   setActiveDragItem: (
@@ -151,9 +148,6 @@ type EditorState = {
   ) => void;
   addAudioTrack: (track: { role: string; assetId: string; src?: string }) => void;
   setExporting: (value: boolean) => void;
-  setCurrentTime: (time: number) => void;
-  setPlaying: (playing: boolean) => void;
-  togglePlaying: () => void;
   setTimelineZoom: (zoom: number) => void;
 };
 
@@ -338,19 +332,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   activeDragItem: null,
   isOverTimeline: false,
-  currentTime: 0,
-  isPlaying: false,
   timelineZoom: TIMELINE_ZOOM_DEFAULT,
 
   setActiveDragItem: (item) => set({ activeDragItem: item }),
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
-  setCurrentTime: (time) => {
-    const state = get();
-    const max = clipsContentEndSeconds(state.timelineClips);
-    set({ currentTime: Math.min(Math.max(0, time), max) });
-  },
-  setPlaying: (playing) => set({ isPlaying: playing }),
-  togglePlaying: () => set((state) => ({ isPlaying: !state.isPlaying })),
   setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),
 
   /** 3.1 Nạp dự án vào Editor Store */
@@ -378,8 +363,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedOverlayId: firstIsMain ? null : (firstClip?.id ?? null),
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
       overlayScenes: overlayScenesFromClips(clips, lanes),
-      currentTime: 0,
-      isPlaying: false,
     });
   },
 

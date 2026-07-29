@@ -1,13 +1,16 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
 import { useEditorStore } from "@/lib/store/editor-store";
+import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
 import { clipsContentEndSeconds } from "@/lib/timeline-clips";
 import {
   formatTimecode,
   TIMELINE_ZOOM_MAX,
   TIMELINE_ZOOM_MIN,
 } from "../timeline-scale";
+import { CurrentTimeDisplay } from "./CurrentTimeDisplay";
 
 type Props = {
   zoom: number;
@@ -17,27 +20,52 @@ type Props = {
 export function TransportBar({ zoom, onZoomChange }: Props) {
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
-  const currentTime = useEditorStore((s) => s.currentTime);
-  const isPlaying = useEditorStore((s) => s.isPlaying);
-  const togglePlaying = useEditorStore((s) => s.togglePlaying);
+  const mode = usePlaybackClock((s) => s.mode);
+  const togglePlayback = usePlaybackClock((s) => s.togglePlayback);
+  const isPlaying = mode === "playing";
 
   const contentEnd = clipsContentEndSeconds(timelineClips);
 
+  const [sliderZoom, setSliderZoom] = useState(zoom);
+  const pendingZoomRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setSliderZoom(zoom);
+  }, [zoom]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  function commitZoom(next: number) {
+    const clamped = Math.min(TIMELINE_ZOOM_MAX, Math.max(TIMELINE_ZOOM_MIN, next));
+    setSliderZoom(clamped);
+    pendingZoomRef.current = clamped;
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const value = pendingZoomRef.current;
+      pendingZoomRef.current = null;
+      if (value != null) onZoomChange(value);
+    });
+  }
+
   function nudgeZoom(delta: number) {
-    onZoomChange(Math.min(TIMELINE_ZOOM_MAX, Math.max(TIMELINE_ZOOM_MIN, zoom + delta)));
+    commitZoom(sliderZoom + delta);
   }
 
   return (
     <div className="grid h-[36px] shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] px-3">
       <div />
       <div className="flex items-center justify-center gap-3">
-        <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
-          {formatTimecode(currentTime, fps)}
-        </span>
+        <CurrentTimeDisplay fps={fps} />
         <button
           type="button"
           aria-label={isPlaying ? "Pause" : "Play"}
-          onClick={() => togglePlaying()}
+          onClick={() => togglePlayback()}
           className="inline-flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-[var(--fg-muted)]"
         >
           {isPlaying ? (
@@ -80,9 +108,9 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
             min={TIMELINE_ZOOM_MIN}
             max={TIMELINE_ZOOM_MAX}
             step={1}
-            value={zoom}
+            value={sliderZoom}
             aria-label="Zoom timeline"
-            onChange={(event) => onZoomChange(Number(event.target.value))}
+            onChange={(event) => commitZoom(Number(event.target.value))}
             className="timeline-zoom-slider h-1 w-[88px] cursor-pointer accent-[var(--fg)]"
           />
           <button
