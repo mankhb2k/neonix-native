@@ -70,6 +70,7 @@ test.describe("editor timeline persistence flow", () => {
           timelineClips: [
             {
               id: "clip.main",
+              kind: "scene",
               sceneId: "scene.main",
               laneId: "lane.main",
               startTime: 0,
@@ -77,7 +78,16 @@ test.describe("editor timeline persistence flow", () => {
               name: "E2E Clip",
             },
           ],
-          timelineLanes: [{ id: "lane.main", kind: "main", name: "Main", order: -1 }],
+          timelineLanes: [
+            {
+              id: "lane.main",
+              kind: "visual",
+              role: "base",
+              name: "Main",
+              order: -1,
+              policy: { allowOverlap: false, rippleMode: false },
+            },
+          ],
           overlayScenes: [],
         },
       },
@@ -89,6 +99,11 @@ test.describe("editor timeline persistence flow", () => {
     // Zoom load-project phải là 28 theo preference hiện tại.
     const zoomSlider = page.getByRole("slider", { name: /zoom timeline/i });
     await expect(zoomSlider).toHaveValue("28");
+
+    // Preview compose layers attribute present after bake-parity preview path.
+    await expect(page.getByTestId("runtime-preview-canvas")).toBeVisible({
+      timeout: 15_000,
+    });
 
     // Scrub: kéo playhead slider nếu có.
     const playhead = page.getByRole("slider").filter({ hasNot: zoomSlider }).first();
