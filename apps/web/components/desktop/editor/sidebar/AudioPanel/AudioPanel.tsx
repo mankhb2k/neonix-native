@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useState, type DragEvent } from "react";
-import { Plus, Play, Pause } from "lucide-react";
+import React, { type DragEvent } from "react";
+import { Plus } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import {
   clearDragCursor,
   setDragCursor,
 } from "@/lib/editor/drag-cursor";
+import {
+  AUDIO_LIBRARY_MIME,
+  normalizeAudioDurationSec,
+} from "@/lib/editor/dnd/editor-drag-payload";
 import {
   SidebarPanel,
   SidebarPanelHeader,
@@ -14,7 +18,8 @@ import {
 } from "../SidebarPanel/SidebarPanel";
 import { Search, Button } from "@/components/ui";
 
-export const AUDIO_LIBRARY_MIME = "application/x-moticlip-audio";
+/** Re-export để consumer cũ không gãy; nguồn sự thật ở lib/editor/dnd. */
+export { AUDIO_LIBRARY_MIME } from "@/lib/editor/dnd/editor-drag-payload";
 
 export const MOCK_AUDIO_ITEMS = [
   { id: "aud_1", title: "Colors Of Life", artist: "ARCStudio", duration: "02:00" },
@@ -31,23 +36,10 @@ export const MOCK_AUDIO_ITEMS = [
 const EMPTY_DRAG_IMAGE =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-function parseDurationSec(duration: string): number {
-  const parts = duration.split(":").map(Number);
-  if (parts.length === 2 && parts.every((n) => Number.isFinite(n))) {
-    return Math.max(0.5, parts[0] * 60 + parts[1]);
-  }
-  return 10;
-}
-
 export function AudioPanel() {
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
-  const [playingId, setPlayingId] = useState<string | null>(null);
-
-  function togglePlay(id: string) {
-    setPlayingId(playingId === id ? null : id);
-  }
 
   function onDragStart(
     event: DragEvent<HTMLDivElement>,
@@ -56,7 +48,7 @@ export function AudioPanel() {
     const img = new Image();
     img.src = EMPTY_DRAG_IMAGE;
     event.dataTransfer.setDragImage(img, 0, 0);
-    const durationSec = parseDurationSec(item.duration);
+    const durationSec = normalizeAudioDurationSec(item.duration);
     event.dataTransfer.setData(AUDIO_LIBRARY_MIME, JSON.stringify(item));
     event.dataTransfer.setData(
       "application/json",
@@ -101,58 +93,49 @@ export function AudioPanel() {
 
       <SidebarPanelContent>
         <div className="flex flex-col gap-2 min-w-0">
-          {MOCK_AUDIO_ITEMS.map((item) => {
-            const isPlaying = playingId === item.id;
-            return (
-              <div
-                key={item.id}
-                draggable
-                onDragStart={(event) => onDragStart(event, item)}
-                onDrag={onDrag}
-                onDragEnd={onDragEnd}
-                className="group flex items-center justify-between gap-3 p-2 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-all cursor-grab active:cursor-grabbing select-none"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => togglePlay(item.id)}
-                    className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[#27272A] text-[var(--fg-secondary)] hover:text-white transition-colors shrink-0 cursor-pointer"
-                  >
-                    {isPlaying ? (
-                      <Pause size={15} fill="currentColor" />
-                    ) : (
-                      <Play size={15} fill="currentColor" className="ml-0.5" />
-                    )}
-                  </button>
-
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-[12px] font-medium text-[var(--fg-primary)] truncate">
-                      {item.title}
-                    </span>
-                    <span className="text-[10px] text-[var(--fg-muted)] truncate">
-                      {item.artist} · {item.duration}
-                    </span>
-                  </div>
+          {MOCK_AUDIO_ITEMS.map((item) => (
+            <div
+              key={item.id}
+              draggable
+              onDragStart={(event) => onDragStart(event, item)}
+              onDrag={onDrag}
+              onDragEnd={onDragEnd}
+              className="group flex items-center justify-between gap-3 p-2 rounded-lg bg-[var(--bg-elevated)] border border-[var(--border-subtle)] hover:border-[var(--border-strong)] transition-all cursor-grab active:cursor-grabbing select-none"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-[#27272A] text-[var(--fg-secondary)] shrink-0">
+                  <span className="text-[10px] font-semibold tabular-nums">
+                    {item.duration}
+                  </span>
                 </div>
 
-                <Button
-                  size="xs"
-                  variant="secondary"
-                  onClick={() =>
-                    addAudioTrack({
-                      role: item.title,
-                      assetId: item.id,
-                      duration: parseDurationSec(item.duration),
-                    })
-                  }
-                  leftIcon={<Plus size={13} />}
-                  className="shrink-0 opacity-90 group-hover:opacity-100"
-                >
-                  Thêm
-                </Button>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[12px] font-medium text-[var(--fg-primary)] truncate">
+                    {item.title}
+                  </span>
+                  <span className="text-[10px] text-[var(--fg-muted)] truncate">
+                    {item.artist} · {item.duration}
+                  </span>
+                </div>
               </div>
-            );
-          })}
+
+              <Button
+                size="xs"
+                variant="secondary"
+                onClick={() =>
+                  addAudioTrack({
+                    role: item.title,
+                    assetId: item.id,
+                    duration: normalizeAudioDurationSec(item.duration),
+                  })
+                }
+                leftIcon={<Plus size={13} />}
+                className="shrink-0 opacity-90 group-hover:opacity-100"
+              >
+                Thêm
+              </Button>
+            </div>
+          ))}
         </div>
       </SidebarPanelContent>
     </SidebarPanel>

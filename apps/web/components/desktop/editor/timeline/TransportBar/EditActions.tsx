@@ -1,10 +1,11 @@
 "use client";
 
-import { Redo2, Scissors, Trash2, Undo2 } from "lucide-react";
+import { Scissors, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 
 /** Shared Lucide props for TransportBar edit icons. */
 export const editActionIcon = {
@@ -13,15 +14,20 @@ export const editActionIcon = {
 } as const;
 
 /**
- * Edit actions left of the zoom cluster: Undo · Redo · Split · Delete.
- * Undo/Redo stay placeholders until history lands.
+ * Edit actions: Split · Delete.
+ * Undo/Redo ẩn đến khi có command history thật (UX-01).
  */
 export function EditActions() {
   const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
   const timelineClips = useEditorStore((s) => s.timelineClips);
+  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const splitSelectedClipsAt = useEditorStore((s) => s.splitSelectedClipsAt);
   const deleteSelectedClips = useEditorStore((s) => s.deleteSelectedClips);
-  const currentTime = usePlaybackClock((s) => s.currentTime);
+  // Subscribe theo frame index — tránh re-render mỗi tick floating-point (PERF-05).
+  const displayFrame = usePlaybackClock((s) =>
+    playbackFrameIndex(s.currentTime, fps),
+  );
+  const currentTime = displayFrame / Math.max(1, fps);
 
   const hasSelection = selectedClipIds.length > 0;
   const canSplit = selectedClipIds.some((id) => {
@@ -36,31 +42,13 @@ export function EditActions() {
         variant="ghost"
         size="sm"
         iconOnly
-        disabled
-        aria-label="Hoàn tác"
-        title="Hoàn tác"
-        leftIcon={<Undo2 {...editActionIcon} />}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        iconOnly
-        disabled
-        aria-label="Làm lại"
-        title="Làm lại"
-        leftIcon={<Redo2 {...editActionIcon} />}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        iconOnly
         disabled={!canSplit}
         aria-label="Tách clip"
         title="Tách tại playhead (Ctrl+B)"
         leftIcon={<Scissors {...editActionIcon} />}
-        onClick={() => splitSelectedClipsAt(currentTime)}
+        onClick={() =>
+          splitSelectedClipsAt(usePlaybackClock.getState().currentTime)
+        }
       />
       <Button
         type="button"

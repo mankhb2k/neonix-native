@@ -4,10 +4,14 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 
 /** Convert pointer X → timeline seconds (accounts for label gutter + horizontal scroll). */
 export function clientXToTimelineTime(
@@ -31,6 +35,18 @@ export function timelineTimeToViewportLeft(
   scrollLeft: number,
 ): number {
   return labelWidth + time * Math.max(pixelsPerSecond, 1) - scrollLeft;
+}
+
+function formatTimecode(seconds: number, fps: number): string {
+  const totalFrames = playbackFrameIndex(seconds, fps);
+  const safeFps = Math.max(1, Math.round(fps));
+  const ff = totalFrames % safeFps;
+  const totalSeconds = Math.floor(totalFrames / safeFps);
+  const ss = totalSeconds % 60;
+  const mm = Math.floor(totalSeconds / 60) % 60;
+  const hh = Math.floor(totalSeconds / 3600);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`;
 }
 
 type Props = {
@@ -87,6 +103,8 @@ export function Playhead({
   scrollLeftRef.current = scrollLeft;
 
   const duration = usePlaybackClock((s) => s.duration);
+  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
+  const [ariaTime, setAriaTime] = useState(0);
 
   function applyVisualLeft(viewportLeft: number) {
     const el = rootRef.current;
@@ -103,6 +121,7 @@ export function Playhead({
         scrollLeftRef.current,
       ),
     );
+    setAriaTime(time);
   }
 
   useLayoutEffect(() => {
@@ -187,6 +206,32 @@ export function Playhead({
     scrubFromClientX(event.clientX);
   }
 
+  function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!enabled) return;
+    const clock = usePlaybackClock.getState();
+    const frameSec = 1 / Math.max(1, fps);
+    const step = event.shiftKey ? frameSec * 10 : frameSec;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      clock.seek(clock.currentTime - step);
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      clock.seek(clock.currentTime + step);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      clock.seek(0);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      clock.seek(clock.duration);
+    }
+  }
+
   return (
     <div
       ref={rootRef}
@@ -199,6 +244,8 @@ export function Playhead({
         aria-label="Playhead"
         aria-valuemin={0}
         aria-valuemax={duration}
+        aria-valuenow={ariaTime}
+        aria-valuetext={formatTimecode(ariaTime, fps)}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none"
@@ -208,6 +255,7 @@ export function Playhead({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onKeyDown={onKeyDown}
       />
 
       <div

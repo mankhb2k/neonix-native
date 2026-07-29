@@ -11,7 +11,11 @@ import {
 } from "@/lib/editor/drag-cursor";
 import { FRAME_LIBRARY_MIME } from "@/lib/editor/frame-library";
 import { resolveFrameDraft } from "@/lib/editor/sidebar-mock-library";
-import { AUDIO_LIBRARY_MIME } from "../../sidebar/AudioPanel/AudioPanel";
+import {
+  AUDIO_LIBRARY_MIME,
+  normalizeAudioDurationSec,
+  parseAudioLibraryPayload,
+} from "@/lib/editor/dnd/editor-drag-payload";
 import {
   collectVideoLanes,
   collectAudioZoneLanes,
@@ -47,18 +51,6 @@ function isEditorDragTypes(types: readonly string[]): boolean {
     types.includes("application/json") ||
     types.includes("text/plain")
   );
-}
-
-function parseAudioDuration(duration: string | number | undefined): number {
-  if (typeof duration === "number" && Number.isFinite(duration)) {
-    return Math.max(0.5, duration);
-  }
-  if (typeof duration !== "string") return 10;
-  const parts = duration.split(":").map(Number);
-  if (parts.length === 2 && parts.every((n) => Number.isFinite(n))) {
-    return Math.max(0.5, parts[0] * 60 + parts[1]);
-  }
-  return 10;
 }
 
 export function useTracksDrag({
@@ -345,6 +337,7 @@ export function useTracksDrag({
 
   function handleDrop(event: DragEvent) {
     event.preventDefault();
+    // DND-02: snapshot payload + active item TRƯỚC khi reset UI drag session.
     const dropMode = dragUiRef.current.mode;
     const dropInsert = dragUiRef.current.isInsert;
     const dropLaneId = dragUiRef.current.laneId;
@@ -352,94 +345,83 @@ export function useTracksDrag({
     const dropLeft = ghostLeftRef.current;
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const id = projectIdRef.current;
-
-    dragUiRef.current = {
-      dragOver: false,
-      isInsert: false,
-      laneId: null,
-      insertOrder: null,
-      indicatorTop: 0,
-      ghostKey: "",
-      mode: "video",
-    };
-    setDragOver(false);
-    setIsOverTimeline(false);
-    setActiveDragItem(null);
-    clearDragCursor();
-    setIsOverlayInsertLine(false);
-    setTargetOverlayLaneId(null);
-    setIsAudioInsertLine(false);
-    setTargetAudioLaneId(null);
-    setDragGhostState(null);
-
-    if (dropMode === "audio") {
-      const audioData = event.dataTransfer.getData(AUDIO_LIBRARY_MIME);
-      let title = "Âm thanh";
-      let assetId = `audio_${Date.now().toString(36)}`;
-      let duration = 10;
-      if (audioData) {
-        try {
-          const parsed = JSON.parse(audioData) as {
-            id?: string;
-            title?: string;
-            duration?: string | number;
-          };
-          if (parsed.title) title = parsed.title;
-          if (parsed.id) assetId = parsed.id;
-          duration = parseAudioDuration(parsed.duration);
-        } catch {
-          // keep defaults
-        }
-      } else {
-        const dragItem = useEditorStore.getState().activeDragItem;
-        if (dragItem?.type === "audio") {
-          title = dragItem.name;
-          assetId = dragItem.id;
-          duration = dragItem.duration;
-        }
-      }
-      addAudioClipFromLibrary(
-        { title, assetId, duration },
-        {
-          startTime: dropLeft / pps,
-          laneId: dropLaneId ?? undefined,
-          insertNewLane: dropInsert || dropLaneId == null,
-          ...(dropInsert && dropInsertOrder != null
-            ? { insertOrder: dropInsertOrder }
-            : {}),
-        },
-      );
-      return;
-    }
-
-    if (dropInsert || dropLaneId !== null) {
-      const frameId =
-        event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
-        event.dataTransfer.getData("text/plain");
-      if (frameId && id) {
-        const draft = resolveFrameDraft(id, frameId);
-        if (draft) {
-          addClipFromDraft(draft, {
-            track: "overlay",
-            startTime: dropLeft / pps,
-            laneId: dropLaneId ?? undefined,
-            insertNewLane: dropInsert,
-            ...(dropInsert && dropInsertOrder != null
-              ? { layerIndex: dropInsertOrder }
-              : {}),
-          });
-        }
-      }
-      return;
-    }
-
+    const activeDragItem = useEditorStore.getState().activeDragItem;
+    const audioRaw = event.dataTransfer.getData(AUDIO_LIBRARY_MIME);
     const frameId =
       event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
       event.dataTransfer.getData("text/plain");
-    if (!frameId || !id) return;
-    const draft = resolveFrameDraft(id, frameId);
-    if (!draft) return;
-    addClipFromDraft(draft, { track: "main" });
+
+    try {
+      if (dropMode === "audio") {
+        const parsed = audioRaw ? parseAudioLibraryPayload(audioRaw) : null;
+        let title = "Âm thanh";
+        let assetId = `audio_${Date.now().toString(36)}`;
+        let duration = 10;
+        if (parsed) {
+          title = parsed.title;
+          assetId = parsed.id;
+          duration = parsed.duration;
+        } else if (activeDragItem?.type === "audio") {
+          title = activeDragItem.name;
+          assetId = activeDragItem.id;
+          duration = normalizeAudioDurationSec(activeDragItem.duration);
+        }
+        addAudioClipFromLibrary(
+          { title, assetId, duration },
+          {
+            startTime: dropLeft / pps,
+            laneId: dropLaneId ?? undefined,
+            insertNewLane: dropInsert || dropLaneId == null,
+            ...(dropInsert && dropInsertOrder != null
+              ? { insertOrder: dropInsertOrder }
+              : {}),
+          },
+        );
+        return;
+      }
+
+      if (dropInsert || dropLaneId !== null) {
+        if (frameId && id) {
+          const draft = resolveFrameDraft(id, frameId);
+          if (draft) {
+            addClipFromDraft(draft, {
+              track: "overlay",
+              startTime: dropLeft / pps,
+              laneId: dropLaneId ?? undefined,
+              insertNewLane: dropInsert,
+              ...(dropInsert && dropInsertOrder != null
+                ? { layerIndex: dropInsertOrder }
+                : {}),
+            });
+          }
+        }
+        return;
+      }
+
+      if (!frameId || !id) return;
+      const draft = resolveFrameDraft(id, frameId);
+      if (!draft) return;
+      addClipFromDraft(draft, { track: "main" });
+    } finally {
+      dragUiRef.current = {
+        dragOver: false,
+        isInsert: false,
+        laneId: null,
+        insertOrder: null,
+        indicatorTop: 0,
+        ghostKey: "",
+        mode: "video",
+      };
+      setDragOver(false);
+      setIsOverTimeline(false);
+      setActiveDragItem(null);
+      clearDragCursor();
+      setIsOverlayInsertLine(false);
+      setTargetOverlayLaneId(null);
+      setIsAudioInsertLine(false);
+      setTargetAudioLaneId(null);
+      setDragGhostState(null);
+    }
   }
 
   return {

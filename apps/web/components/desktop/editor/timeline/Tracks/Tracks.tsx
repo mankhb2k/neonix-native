@@ -1,14 +1,8 @@
 "use client";
 
-import { useRef, useState, useEffect, type RefObject } from "react";
+import { useRef, useEffect, type RefObject, type KeyboardEvent } from "react";
 import {
   Film,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff,
-  Volume2,
-  VolumeX,
   Music,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
@@ -52,11 +46,6 @@ export function Tracks({
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
   const workspaceRef = useRef<HTMLDivElement>(null);
-
-  const [videoLocked, setVideoLocked] = useState(false);
-  const [videoVisible, setVideoVisible] = useState(true);
-  const [audioLocked, setAudioLocked] = useState(false);
-  const [audioMuted, setAudioMuted] = useState(false);
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const overlayLanes = timelineLanes
@@ -146,6 +135,15 @@ export function Tracks({
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
   const isTimelineEmpty = timelineClips.length === 0;
   const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
+
+  function onClipKeyDown(
+    clipId: string,
+    event: KeyboardEvent<HTMLDivElement>,
+  ) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    useEditorStore.getState().selectClip(clipId);
+  }
 
   return (
     <div
@@ -270,6 +268,7 @@ export function Tracks({
                         onPointerDown={(event) => {
                           clipMove.beginOverlayPointerDown(item, event);
                         }}
+                        onKeyDown={(event) => onClipKeyDown(item.id, event)}
                       >
                         <span className="truncate pointer-events-none">
                           {item.name} ({item.duration}s)
@@ -318,49 +317,13 @@ export function Tracks({
               labelWidth={TIMELINE_LABEL_WIDTH}
               canvasWidth={canvasWidth}
               leftControl={
-                <>
-                  <button
-                    type="button"
-                    className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                    title={mainLane?.name ?? "Khung hình / Video"}
-                  >
-                    <Film size={14} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVideoLocked(!videoLocked)}
-                    className={`p-1 transition-colors rounded cursor-pointer ${
-                      videoLocked
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                    }`}
-                    title={
-                      videoLocked ? "Mở khóa Track Video" : "Khóa Track Video"
-                    }
-                  >
-                    {videoLocked ? (
-                      <Lock size={14} strokeWidth={1.75} />
-                    ) : (
-                      <Unlock size={14} strokeWidth={1.75} />
-                    )}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVideoVisible(!videoVisible)}
-                    className={`p-1 transition-colors rounded cursor-pointer ${
-                      !videoVisible
-                        ? "text-[var(--accent)]"
-                        : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                    }`}
-                    title={videoVisible ? "Ẩn Track Video" : "Hiện Track Video"}
-                  >
-                    {videoVisible ? (
-                      <Eye size={14} strokeWidth={1.75} />
-                    ) : (
-                      <EyeOff size={14} strokeWidth={1.75} />
-                    )}
-                  </button>
-                </>
+                <button
+                  type="button"
+                  className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
+                  title={mainLane?.name ?? "Khung hình / Video"}
+                >
+                  <Film size={14} strokeWidth={1.5} />
+                </button>
               }
             >
               {mainClips.map((clip, index) => {
@@ -385,6 +348,7 @@ export function Tracks({
                     onPointerDown={(event) => {
                       clipMove.beginMainPointerDown(clip, event);
                     }}
+                    onKeyDown={(event) => onClipKeyDown(clip.id, event)}
                   >
                     <span className="block truncate font-semibold text-white pointer-events-none">
                       {index + 1}. {clip.name}
@@ -418,55 +382,13 @@ export function Tracks({
                   labelWidth={TIMELINE_LABEL_WIDTH}
                   canvasWidth={canvasWidth}
                   leftControl={
-                    <>
-                      <button
-                        type="button"
-                        className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                        title={lane.name}
-                      >
-                        <Music size={14} strokeWidth={1.5} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAudioLocked(!audioLocked)}
-                        className={`p-1 transition-colors rounded cursor-pointer ${
-                          audioLocked
-                            ? "text-[var(--accent)]"
-                            : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                        }`}
-                        title={
-                          audioLocked
-                            ? "Mở khóa Track Audio"
-                            : "Khóa Track Audio"
-                        }
-                      >
-                        {audioLocked ? (
-                          <Lock size={14} strokeWidth={1.75} />
-                        ) : (
-                          <Unlock size={14} strokeWidth={1.75} />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAudioMuted(!audioMuted)}
-                        className={`p-1 transition-colors rounded cursor-pointer ${
-                          audioMuted
-                            ? "text-[var(--accent)]"
-                            : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
-                        }`}
-                        title={
-                          audioMuted
-                            ? "Bật âm thanh Track"
-                            : "Tắt âm thanh Track"
-                        }
-                      >
-                        {audioMuted ? (
-                          <VolumeX size={14} strokeWidth={1.75} />
-                        ) : (
-                          <Volume2 size={14} strokeWidth={1.75} />
-                        )}
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
+                      title={lane.name}
+                    >
+                      <Music size={14} strokeWidth={1.5} />
+                    </button>
                   }
                 >
                   {laneClips.map((clip) => {
@@ -489,6 +411,7 @@ export function Tracks({
                         onPointerDown={(event) => {
                           clipMove.beginAudioPointerDown(clip, event);
                         }}
+                        onKeyDown={(event) => onClipKeyDown(clip.id, event)}
                       >
                         <span className="truncate pointer-events-none">
                           {clip.name}
