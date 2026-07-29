@@ -1,9 +1,7 @@
 /**
- * Interaction contracts cho clip move / marquee.
- * Pure helpers được export để Phase 2/3 gắn vào hooks mà không đổi semantics.
+ * Hợp đồng kết thúc pointer session: chỉ pointerup mới commit.
+ * pointercancel / Escape phải rollback.
  */
-
-/** pointercancel và Escape phải rollback; chỉ pointerup mới commit. */
 export type PointerSessionEndReason = "pointerup" | "pointercancel" | "escape";
 
 export function shouldCommitPointerSession(reason: PointerSessionEndReason): boolean {

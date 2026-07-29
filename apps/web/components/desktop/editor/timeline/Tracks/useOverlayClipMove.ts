@@ -26,6 +26,10 @@ import {
   resolveAudioDragTarget,
   INDICATOR_TOP_EPS_PX,
 } from "./overlay-drag-target";
+import {
+  shouldCommitPointerSession,
+  type PointerSessionEndReason,
+} from "@/lib/editor/pointer-session";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 import type { DragGhostState } from "./useTracksDrag";
 
@@ -306,6 +310,18 @@ export function useOverlayClipMove({
     resetMoveUi();
   }
 
+  function endPointerSession(reason: PointerSessionEndReason, pointerId?: number) {
+    const session = sessionRef.current;
+    if (!session) return;
+    if (pointerId != null && session.pointerId !== pointerId) return;
+    // UX-02: chỉ pointerup mới commit; cancel/Escape rollback.
+    if (shouldCommitPointerSession(reason)) {
+      commitMove();
+      return;
+    }
+    resetMoveUi();
+  }
+
   useEffect(() => {
     function onPointerMove(event: PointerEvent) {
       const session = sessionRef.current;
@@ -314,18 +330,29 @@ export function useOverlayClipMove({
     }
 
     function onPointerUp(event: PointerEvent) {
-      const session = sessionRef.current;
-      if (!session || event.pointerId !== session.pointerId) return;
-      commitMove();
+      endPointerSession("pointerup", event.pointerId);
+    }
+
+    function onPointerCancel(event: PointerEvent) {
+      endPointerSession("pointercancel", event.pointerId);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (!sessionRef.current) return;
+      event.preventDefault();
+      endPointerSession("escape");
     }
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
 

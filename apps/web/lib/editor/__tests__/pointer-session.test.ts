@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   selectionIdsEqual,
   shouldCommitPointerSession,
-} from "@/lib/editor/__tests__/pointer-session-contract";
+} from "@/lib/editor/pointer-session";
 
 describe("UX-02 pointer session contract", () => {
   it("commits only on pointerup", () => {

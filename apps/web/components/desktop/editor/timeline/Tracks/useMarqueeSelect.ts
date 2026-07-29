@@ -8,6 +8,11 @@ import {
   type RefObject,
 } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import {
+  selectionIdsEqual,
+  shouldCommitPointerSession,
+  type PointerSessionEndReason,
+} from "@/lib/editor/pointer-session";
 
 const MARQUEE_THRESHOLD_PX = 4;
 
@@ -23,6 +28,8 @@ type Session = {
   originClientX: number;
   originClientY: number;
   started: boolean;
+  /** Snapshot selection lúc bắt đầu — dùng để rollback khi cancel. */
+  selectionBefore: string[];
 };
 
 function rectsIntersect(
@@ -54,6 +61,7 @@ type Args = {
  */
 export function useMarqueeSelect({ workspaceRef }: Args) {
   const sessionRef = useRef<Session | null>(null);
+  const lastLiveIdsRef = useRef<string[]>([]);
   const [marqueeRect, setMarqueeRect] = useState<MarqueeRect | null>(null);
   const [isMarqueeing, setIsMarqueeing] = useState(false);
 
@@ -118,7 +126,11 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     return ids;
   }
 
-  function endSession(commit: boolean, clientX?: number, clientY?: number) {
+  function endSession(
+    reason: PointerSessionEndReason,
+    clientX?: number,
+    clientY?: number,
+  ) {
     const session = sessionRef.current;
     sessionRef.current = null;
     setMarqueeRect(null);
@@ -127,17 +139,26 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     if (!session) return;
 
     if (!session.started) {
-      useEditorStore.getState().clearTimelineSelection();
+      if (shouldCommitPointerSession(reason)) {
+        useEditorStore.getState().clearTimelineSelection();
+      }
       return;
     }
 
-    if (!commit || clientX == null || clientY == null) return;
+    // Cancel/Escape: khôi phục selection trước khi kéo marquee.
+    if (!shouldCommitPointerSession(reason)) {
+      useEditorStore.getState().setSelectedClipIds(session.selectionBefore);
+      return;
+    }
+
+    if (clientX == null || clientY == null) return;
     const ids = hitTestClientRect(
       session.originClientX,
       session.originClientY,
       clientX,
       clientY,
     );
+    lastLiveIdsRef.current = ids;
     useEditorStore.getState().setSelectedClipIds(ids);
   }
 
@@ -152,6 +173,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       originClientX: event.clientX,
       originClientY: event.clientY,
       started: false,
+      selectionBefore: [...useEditorStore.getState().selectedClipIds],
     };
   }
 
@@ -185,22 +207,41 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
         event.clientX,
         event.clientY,
       );
-      useEditorStore.getState().setSelectedClipIds(liveIds);
+      // Chỉ ghi store khi tập ID đổi — tránh render nóng thừa.
+      if (!selectionIdsEqual(liveIds, lastLiveIdsRef.current)) {
+        lastLiveIdsRef.current = liveIds;
+        useEditorStore.getState().setSelectedClipIds(liveIds);
+      }
     }
 
     function onPointerUp(event: PointerEvent) {
       const session = sessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
-      endSession(true, event.clientX, event.clientY);
+      endSession("pointerup", event.clientX, event.clientY);
+    }
+
+    function onPointerCancel(event: PointerEvent) {
+      const session = sessionRef.current;
+      if (!session || event.pointerId !== session.pointerId) return;
+      endSession("pointercancel");
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (!sessionRef.current) return;
+      event.preventDefault();
+      endSession("escape");
     }
 
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+      window.removeEventListener("keydown", onKeyDown);
     };
   }, []);
 
