@@ -11,22 +11,23 @@ import {
   migrateLanesAndClips,
 } from "@/lib/editor/timeline-clips";
 import {
+  CURRENT_STORAGE_VERSION,
   deleteProject,
   listProjects,
+  loadEditorProjectSnapshot,
   loadProject,
   loadTimelineClips,
+  migrateStoredProject,
+  overlaysFromClips,
   saveProject,
 } from "@/lib/editor/project-storage";
 
 const STORAGE_KEY = "motionvideo.projects";
-const EMPTY_TIMELINE_FLAG = "motionvideo.emptyTimeline.v1";
 
-function seedFixture(
-  fixture: ReturnType<typeof fixtureMainOnly>,
-  options?: { setEmptyFlag?: boolean },
-) {
+function seedFixture(fixture: ReturnType<typeof fixtureMainOnly>) {
   const record = {
     [fixture.project.metadata.id]: {
+      storageVersion: CURRENT_STORAGE_VERSION,
       savedAt: new Date().toISOString(),
       project: fixture.project,
       overlayScenes: fixture.overlayScenes,
@@ -35,11 +36,6 @@ function seedFixture(
     },
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(record));
-  if (options?.setEmptyFlag) {
-    window.localStorage.setItem(EMPTY_TIMELINE_FLAG, "1");
-  } else {
-    window.localStorage.removeItem(EMPTY_TIMELINE_FLAG);
-  }
 }
 
 describe("editor persistence fixtures", () => {
@@ -55,26 +51,34 @@ describe("editor persistence fixtures", () => {
     expect(fixtureMultiSceneReferences().project.scenes).toHaveLength(2);
   });
 
-  it("DATA-01: load path currently mutates storage when empty-timeline flag is missing", () => {
-    // Characterization: bug hiện tại — đọc storage có side effect phá hủy main timeline.
-    // Phase 1 sẽ đổi kỳ vọng thành: load không ghi lại localStorage.
+  it("DATA-01: load path does not mutate localStorage", () => {
     const fixture = fixtureMainOnly();
-    seedFixture(fixture, { setEmptyFlag: false });
+    // Seed legacy record không có storageVersion và không có empty-timeline flag.
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        [fixture.project.metadata.id]: {
+          savedAt: new Date().toISOString(),
+          project: fixture.project,
+          overlayScenes: fixture.overlayScenes,
+          timelineClips: fixture.clips,
+          timelineLanes: fixture.lanes,
+        },
+      }),
+    );
     const before = window.localStorage.getItem(STORAGE_KEY);
 
     const loaded = loadProject(fixture.project.metadata.id);
 
     const after = window.localStorage.getItem(STORAGE_KEY);
     expect(loaded).not.toBeNull();
-    // Bug hiện tại: scenes bị xóa sau lần load đầu.
-    expect(loaded!.scenes).toHaveLength(0);
-    expect(after).not.toBe(before);
-    expect(window.localStorage.getItem(EMPTY_TIMELINE_FLAG)).toBe("1");
+    expect(loaded!.scenes).toHaveLength(2);
+    expect(after).toBe(before);
   });
 
-  it("save → load roundtrip keeps document when empty-timeline flag already applied", () => {
+  it("save → load roundtrip keeps document", () => {
     const fixture = fixtureBasePlusOverlay();
-    seedFixture(fixture, { setEmptyFlag: true });
+    seedFixture(fixture);
 
     saveProject(fixture.project, {
       overlayScenes: fixture.overlayScenes,
@@ -86,6 +90,59 @@ describe("editor persistence fixtures", () => {
     const clips = loadTimelineClips(fixture.project.metadata.id);
     expect(loaded?.scenes.map((s) => s.id)).toEqual(["scene.base", "scene.overlay"]);
     expect(clips).toHaveLength(2);
+  });
+
+  it("loadEditorProjectSnapshot reads project + clips + lanes once", () => {
+    const fixture = fixtureBasePlusOverlay();
+    seedFixture(fixture);
+    const snap = loadEditorProjectSnapshot(fixture.project.metadata.id);
+    expect(snap?.project.metadata.id).toBe(fixture.project.metadata.id);
+    expect(snap?.timelineClips).toHaveLength(2);
+    expect(snap?.timelineLanes.some((l) => l.kind === "main")).toBe(true);
+    expect(snap?.overlayScenes.every((o) => o.id === "clip.overlay")).toBe(true);
+  });
+
+  it("migrateStoredProject is idempotent", () => {
+    const fixture = fixtureLegacyTrackLayerIndex();
+    const once = migrateStoredProject({
+      storageVersion: 0,
+      savedAt: "2026-01-01T00:00:00.000Z",
+      project: fixture.project,
+      overlayScenes: fixture.overlayScenes,
+      timelineClips: fixture.clips,
+      timelineLanes: fixture.lanes,
+    });
+    const twice = migrateStoredProject(once);
+    expect(twice).toEqual(once);
+    expect(twice.storageVersion).toBe(CURRENT_STORAGE_VERSION);
+  });
+
+  it("DATA-03: overlaysFromClips ignores audio lanes", () => {
+    const lanes = [
+      { id: "lane.main", kind: "main" as const, name: "Main", order: -1 },
+      { id: "lane.ov", kind: "overlay" as const, name: "Lớp 1", order: 0 },
+      { id: "lane.au", kind: "audio" as const, name: "Audio 1", order: 0 },
+    ];
+    const clips = [
+      {
+        id: "c1",
+        sceneId: "s1",
+        laneId: "lane.ov",
+        startTime: 0,
+        duration: 1,
+        name: "Ov",
+      },
+      {
+        id: "audio.x",
+        sceneId: "audio.x",
+        laneId: "lane.au",
+        startTime: 0,
+        duration: 2,
+        name: "Au",
+      },
+    ];
+    const overlays = overlaysFromClips(clips, lanes);
+    expect(overlays.map((o) => o.id)).toEqual(["c1"]);
   });
 
   it("corrupt record does not hide other valid projects", () => {
@@ -103,7 +160,6 @@ describe("editor persistence fixtures", () => {
         },
       }),
     );
-    window.localStorage.setItem(EMPTY_TIMELINE_FLAG, "1");
 
     const listed = listProjects();
     expect(listed.map((p) => p.project.metadata.id)).toEqual([good.project.metadata.id]);
@@ -131,7 +187,6 @@ describe("editor persistence fixtures", () => {
         },
       }),
     );
-    window.localStorage.setItem(EMPTY_TIMELINE_FLAG, "1");
 
     deleteProject(a.project.metadata.id);
     expect(listProjects().map((p) => p.project.metadata.id)).toEqual([
