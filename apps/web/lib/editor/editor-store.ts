@@ -16,11 +16,7 @@ import {
   selectedSceneIdFrom,
 } from "@/lib/editor/model/editor-selection";
 import {
-  applyRippleAfter,
-  createOverlayLaneAt,
-  resolveAudioPlacementIntent,
   resolveVisualPlacement,
-  type AudioPlacementIntent,
   type VisualPlacementIntent,
 } from "@/lib/editor/operations/clip-move";
 import {
@@ -31,14 +27,22 @@ import {
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
 import {
+  applyVisualPlacement,
+  audioLaneIdByOrder,
+  resolveAudioPlacement,
+  resolveOverlayPlacement,
+} from "@/lib/editor/store/internal/placement-adapter";
+import { resolveCollisionsAfterResize } from "@/lib/editor/store/internal/resize-collision";
+
+import {
   cloneSceneWithNewIds,
   mapNode,
   sceneFromFrameDraft,
   uid,
   updateVariable,
 } from "@/lib/editor/store/internal/scene-utils";
+import { rebuildMainProject } from "@/lib/editor/store/internal/timeline-project-sync";
 import {
-  createAudioLane,
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   ensureMainLane,
@@ -49,9 +53,7 @@ import {
   pruneEmptyLanes,
   resolveMainStartTime,
   reorderOverlayLane,
-  shiftAudioLaneOrders,
   type TimelineClip,
-  type TimelineLane,
 } from "@/lib/editor/timeline-clips";
 import {
   parseMotionProject,
@@ -75,231 +77,6 @@ export { nodeText } from "@/lib/editor/store/internal/scene-utils";
 /* ==========================================================================
    2. Các hàm trợ giúp xử lý nội bộ (Helper Utilities)
    ========================================================================== */
-
-/** Giữ mọi scene được visual clip tham chiếu; sceneOrder chỉ từ base lane. */
-function rebuildMainProject(
-  project: MotionProject,
-  clips: TimelineClip[],
-  lanes: TimelineLane[],
-): MotionProject {
-  const byId = new Map(project.scenes.map((scene) => [scene.id, scene]));
-  const mainId = lanes.find(
-    (lane) => lane.kind === "visual" && lane.role === "base",
-  )?.id;
-  const main = clips
-    .filter((clip): clip is Extract<TimelineClip, { kind: "scene" }> =>
-      clip.kind === "scene" && clip.laneId === mainId,
-    )
-    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
-  const sceneOrder = main
-    .map((clip) => clip.sceneId)
-    .filter((sceneId) => byId.has(sceneId));
-
-  // Overlay/base đều giữ scene content — không xóa khi đổi lane (MODEL-02).
-  const referenced = new Set(
-    clips
-      .filter((clip) => clip.kind === "scene")
-      .map((clip) => (clip.kind === "scene" ? clip.sceneId : ""))
-      .filter((sceneId) => sceneId && byId.has(sceneId)),
-  );
-  const orderedIds = [
-    ...sceneOrder,
-    ...[...referenced].filter((id) => !sceneOrder.includes(id)),
-  ];
-  return {
-    ...project,
-    scenes: orderedIds.map((sceneId) => byId.get(sceneId)!),
-    timeline: { ...project.timeline, sceneOrder },
-  };
-}
-
-function applyVisualPlacement(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-  intent: VisualPlacementIntent,
-  movingClipId?: string,
-): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
-  const resolved = resolveVisualPlacement(
-    lanes,
-    clips,
-    intent,
-    movingClipId,
-  );
-  if (resolved.status === "blocked") return null;
-  if (resolved.status === "create-lane") {
-    const created = createOverlayLaneAt(lanes, resolved.insertOrder);
-    return {
-      lanes: created.lanes,
-      laneId: created.lane.id,
-      startTime: resolved.startTime,
-    };
-  }
-  return {
-    lanes,
-    laneId: resolved.laneId,
-    startTime: resolved.startTime,
-  };
-}
-
-function applyAudioPlacement(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-  intent: AudioPlacementIntent,
-  movingClipId?: string,
-): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
-  const resolved = resolveAudioPlacementIntent(
-    lanes,
-    clips,
-    intent,
-    movingClipId,
-  );
-  if (resolved.status === "blocked") return null;
-  if (resolved.status === "create-lane") {
-    let nextLanes = shiftAudioLaneOrders(lanes, resolved.insertOrder, 1);
-    const created = createAudioLane(resolved.insertOrder);
-    nextLanes = [...nextLanes, created];
-    return {
-      lanes: nextLanes,
-      laneId: created.id,
-      startTime: resolved.startTime,
-    };
-  }
-  return {
-    lanes,
-    laneId: resolved.laneId,
-    startTime: resolved.startTime,
-  };
-}
-
-/** Map flags → intent rồi applyVisualPlacement (paste/duplicate helpers). */
-function resolveOverlayPlacement(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-  startTime: number,
-  duration: number,
-  preferredLaneId: string | null,
-  insertNew: boolean,
-  preferredInsertOrder?: number | null,
-  movingClipId?: string,
-): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
-  const intent: VisualPlacementIntent =
-    insertNew || !preferredLaneId
-      ? {
-          type: "new-overlay-lane",
-          insertOrder: preferredInsertOrder ?? 0,
-          startTime,
-          duration,
-        }
-      : {
-          type: "overlay-lane",
-          laneId: preferredLaneId,
-          startTime,
-          duration,
-        };
-  return applyVisualPlacement(lanes, clips, intent, movingClipId);
-}
-
-/** Sau resize: đẩy clip overlap trên cùng lane; ripple nếu policy bật. */
-function resolveCollisionsAfterResize(
-  clips: TimelineClip[],
-  lanes: TimelineLane[],
-  resizedClipId: string,
-): TimelineClip[] {
-  const resized = clips.find((clip) => clip.id === resizedClipId);
-  if (!resized) return clips;
-  const lane = lanes.find((l) => l.id === resized.laneId);
-  const rippleMode =
-    lane?.kind === "visual" ? Boolean(lane.policy.rippleMode) : false;
-  const others = clips
-    .filter(
-      (clip) =>
-        clip.laneId === resized.laneId &&
-        clip.id !== resized.id &&
-        clip.startTime >= resized.startTime,
-    )
-    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
-
-  let next = clips;
-  let cursor = resized.startTime + resized.duration;
-  for (const other of others) {
-    if (other.startTime >= cursor) {
-      cursor = other.startTime + other.duration;
-      continue;
-    }
-    const delta = cursor - other.startTime;
-    next = next.map((clip) =>
-      clip.id === other.id ? { ...clip, startTime: cursor } : clip,
-    );
-    if (rippleMode) {
-      next = applyRippleAfter(
-        next,
-        resized.laneId,
-        other.startTime + 1e-6,
-        delta,
-        true,
-      );
-    }
-    cursor += other.duration;
-  }
-  return next;
-}
-
-function resolveAudioPlacement(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-  startTime: number,
-  duration: number,
-  preferredLaneId: string | null,
-  insertNew: boolean,
-  preferredInsertOrder?: number | null,
-  movingClipId?: string,
-): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
-  if (insertNew) {
-    return applyAudioPlacement(
-      lanes,
-      clips,
-      {
-        type: "new-audio-lane",
-        insertOrder: preferredInsertOrder ?? 0,
-        startTime,
-        duration,
-      },
-      movingClipId,
-    );
-  }
-  if (!preferredLaneId) {
-    // Không có lane đích → tạo lane mới thay vì scan arbitrary.
-    return applyAudioPlacement(
-      lanes,
-      clips,
-      {
-        type: "new-audio-lane",
-        insertOrder: preferredInsertOrder ?? 0,
-        startTime,
-        duration,
-      },
-      movingClipId,
-    );
-  }
-  return applyAudioPlacement(
-    lanes,
-    clips,
-    {
-      type: "audio-lane",
-      laneId: preferredLaneId,
-      startTime,
-      duration,
-    },
-    movingClipId,
-  );
-}
-
-function audioLaneIdByOrder(
-  lanes: TimelineLane[],
-  order: number,
-): string | undefined {
-  return lanes.find((lane) => lane.kind === "audio" && lane.order === order)?.id;
-}
 
 function selectionStateForClip(clip: TimelineClip | undefined) {
   if (!clip) return { selection: selectionNone() };
