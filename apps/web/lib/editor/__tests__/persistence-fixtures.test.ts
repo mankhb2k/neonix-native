@@ -209,9 +209,7 @@ describe("timeline migration fixtures", () => {
     expect(clips.every((c) => Boolean(c.laneId))).toBe(true);
   });
 
-  it("MODEL-03: overlapping audio tracks currently collapse onto one audio lane", () => {
-    // Characterization: bug hiện tại — mọi missing track vào cùng một lane.
-    // Phase 5 sẽ tách lane khi overlap.
+  it("MODEL-03: overlapping audio tracks create separate lanes", () => {
     const fixture = fixtureMainPlusAudioOverlap();
     const { lanes, clips } = ensureAudioClipsFromTracks(
       fixture.project,
@@ -221,6 +219,7 @@ describe("timeline migration fixtures", () => {
     const audioLanes = lanes.filter((l) => l.kind === "audio");
     const audioClips = clips.filter((c) => audioLanes.some((l) => l.id === c.laneId));
     expect(audioClips).toHaveLength(3);
-    expect(audioLanes).toHaveLength(1);
+    // ba track overlap → cần > 1 audio lane
+    expect(audioLanes.length).toBeGreaterThan(1);
   });
 });
