@@ -3,6 +3,7 @@
 import { Scissors, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
@@ -18,7 +19,9 @@ export const editActionIcon = {
  * Undo/Redo ẩn đến khi có command history thật (UX-01).
  */
 export function EditActions() {
-  const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
+  const selectedClipIds = useEditorStore((s) =>
+    selectedClipIdsFrom(s.selection),
+  );
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const splitSelectedClipsAt = useEditorStore((s) => s.splitSelectedClipsAt);

@@ -23,6 +23,7 @@ import {
   ContextMenuSeparator,
 } from "@/components/ui";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
@@ -46,7 +47,9 @@ export function TimelineWorkspaceContextMenu({
 }: WorkspaceMenuProps) {
   const [target, setTarget] = useState<"clip" | "empty">("empty");
 
-  const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
+  const selectedClipIds = useEditorStore((s) =>
+    selectedClipIdsFrom(s.selection),
+  );
   const timelineClipboard = useEditorStore((s) => s.timelineClipboard);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
@@ -71,7 +74,7 @@ export function TimelineWorkspaceContextMenu({
     const clipId = el.closest("[data-clip-id]")?.getAttribute("data-clip-id");
     if (clipId) {
       const store = useEditorStore.getState();
-      if (!store.selectedClipIds.includes(clipId)) {
+      if (!selectedClipIdsFrom(store.selection).includes(clipId)) {
         store.selectClip(clipId);
       }
       setTarget("clip");

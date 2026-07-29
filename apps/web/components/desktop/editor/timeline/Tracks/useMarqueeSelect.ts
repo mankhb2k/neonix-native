@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import {
   selectionIdsEqual,
   shouldCommitPointerSession,
@@ -183,7 +184,9 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       originClientX: event.clientX,
       originClientY: event.clientY,
       started: false,
-      selectionBefore: [...useEditorStore.getState().selectedClipIds],
+      selectionBefore: [
+        ...selectedClipIdsFrom(useEditorStore.getState().selection),
+      ],
     };
   }
 

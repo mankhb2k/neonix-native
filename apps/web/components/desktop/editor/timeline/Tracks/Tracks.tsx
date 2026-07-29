@@ -6,6 +6,7 @@ import {
   Music,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import { TrackLane } from "./TrackLane";
 import { LaneFlagControls } from "./LaneFlagControls";
 import { useTracksDrag } from "./useTracksDrag";
@@ -38,7 +39,9 @@ export const Tracks = memo(function Tracks({
   const projectId = useEditorStore((s) => s.project?.metadata.id);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
-  const selectedClipIds = useEditorStore((s) => s.selectedClipIds);
+  const selectedClipIds = useEditorStore((s) =>
+    selectedClipIdsFrom(s.selection),
+  );
   const clearTimelineSelection = useEditorStore(
     (s) => s.clearTimelineSelection,
   );

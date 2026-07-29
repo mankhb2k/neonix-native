@@ -1,12 +1,22 @@
+import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
-import { isAudioLane, isMainLane } from "@/lib/editor/timeline-clips";
 import {
+  focusedNodeIdFrom,
   selectedClipIdFrom,
   selectedClipIdsFrom,
   selectedNodeIdFrom,
+  selectedOverlayIdFrom,
   selectedSceneIdFrom,
   type EditorSelection,
 } from "@/lib/editor/model/editor-selection";
+
+function firstEditableNodeId(scene: MotionScene | undefined): string | null {
+  if (!scene) return null;
+  const node = scene.nodes.find(
+    (n) => n.type === "text" || n.type === "shape" || n.type === "path",
+  );
+  return node?.id ?? null;
+}
 
 export function selectSelectedClipId(selection: EditorSelection): string | null {
   return selectedClipIdFrom(selection);
@@ -16,24 +26,35 @@ export function selectSelectedClipIds(selection: EditorSelection): string[] {
   return selectedClipIdsFrom(selection);
 }
 
-export function selectSelectedSceneId(selection: EditorSelection): string | null {
-  return selectedSceneIdFrom(selection);
+export function selectSelectedSceneId(
+  selection: EditorSelection,
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+): string | null {
+  return selectedSceneIdFrom(selection, clips, lanes);
 }
 
-export function selectSelectedNodeId(selection: EditorSelection): string | null {
-  return selectedNodeIdFrom(selection);
+export function selectSelectedNodeId(
+  selection: EditorSelection,
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+  project: MotionProject | null,
+): string | null {
+  const explicit = selectedNodeIdFrom(selection);
+  if (explicit) return explicit;
+  return focusedNodeIdFrom(
+    selection,
+    clips,
+    lanes,
+    project,
+    firstEditableNodeId,
+  );
 }
 
-/** Derive overlay id từ selection + clip/lane — không lưu riêng trong state. */
 export function selectSelectedOverlayId(
   selection: EditorSelection,
   clips: TimelineClip[],
   lanes: TimelineLane[],
 ): string | null {
-  const clipId = selectedClipIdFrom(selection);
-  if (!clipId) return null;
-  const clip = clips.find((c) => c.id === clipId);
-  if (!clip) return null;
-  if (isMainLane(lanes, clip.laneId) || isAudioLane(lanes, clip.laneId)) return null;
-  return clip.id;
+  return selectedOverlayIdFrom(selection, clips, lanes);
 }

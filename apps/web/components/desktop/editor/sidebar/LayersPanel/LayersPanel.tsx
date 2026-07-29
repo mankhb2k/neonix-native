@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, ChevronUp, Layers, Plus } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { selectedClipIdFrom } from "@/lib/editor/model/editor-selection";
 import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import {
   SidebarPanel,
@@ -13,7 +14,9 @@ import {
 export function LayersPanel() {
   const timelineClips = useEditorStore((state) => state.timelineClips);
   const timelineLanes = useEditorStore((state) => state.timelineLanes);
-  const selectedClipId = useEditorStore((state) => state.selectedClipId);
+  const selectedClipId = useEditorStore((state) =>
+    selectedClipIdFrom(state.selection),
+  );
   const selectClip = useEditorStore((state) => state.selectClip);
   const renameLane = useEditorStore((state) => state.renameLane);
   const reorderLane = useEditorStore((state) => state.reorderLane);

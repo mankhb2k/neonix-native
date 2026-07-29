@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Plus, Eye } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import {
+  selectSelectedNodeId,
+  selectSelectedSceneId,
+} from "@/lib/editor/model/editor-selectors";
 import { listMotionBlocksByFamily } from "@motionvideo/template-library";
 import {
   PanelHeader,
@@ -30,11 +34,24 @@ const INSPECTOR_TABS: DesktopTabItem[] = [
 ];
 
 export function Inspector() {
-  const scenes = useEditorStore((s) => s.project?.scenes);
-  const aspectRatio = useEditorStore((s) => s.project?.metadata.aspectRatio);
-  const brand = useEditorStore((s) => s.project?.metadata.brand);
-  const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
-  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
+  const project = useEditorStore((s) => s.project);
+  const scenes = project?.scenes;
+  const aspectRatio = project?.metadata.aspectRatio;
+  const brand = project?.metadata.brand;
+  const selection = useEditorStore((s) => s.selection);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
+  const timelineLanes = useEditorStore((s) => s.timelineLanes);
+  const selectedSceneId = selectSelectedSceneId(
+    selection,
+    timelineClips,
+    timelineLanes,
+  );
+  const selectedNodeId = selectSelectedNodeId(
+    selection,
+    timelineClips,
+    timelineLanes,
+    project,
+  );
   const updateBrand = useEditorStore((s) => s.updateBrand);
   const updateNodeText = useEditorStore((s) => s.updateNodeText);
   const updateNodeAnimation = useEditorStore((s) => s.updateNodeAnimation);

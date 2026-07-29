@@ -26,6 +26,14 @@ import {
   selectionHasLockedLane,
 } from "@/lib/editor/operations/lane-flags";
 import {
+  selectionClips,
+  selectionNone,
+  selectionNode,
+  selectedClipIdsFrom,
+  selectedSceneIdFrom,
+  type EditorSelection,
+} from "@/lib/editor/model/editor-selection";
+import {
   createAudioLane,
   createOverlayLane,
   clipsContentEndSeconds,
@@ -70,12 +78,8 @@ export type SidebarTabId =
 /** Cấu trúc State của Editor Zustand Store */
 type EditorState = {
   project: MotionProject | null;
-  selectedSceneId: string | null;
-  selectedOverlayId: string | null;
-  selectedClipId: string | null;
-  /** Multi-select on timeline (marquee / shift). Primary = last id = selectedClipId. */
-  selectedClipIds: string[];
-  selectedNodeId: string | null;
+  /** Selection gốc — clip/scene/overlay/node derive qua selector (STATE-02). */
+  selection: EditorSelection;
   isExporting: boolean;
   activeSidebarTab: SidebarTabId;
   timelineClips: TimelineClip[];
@@ -191,11 +195,6 @@ function uid(prefix: string): string {
 /** Trích xuất văn bản từ Node dạng Text */
 export function nodeText(node: MotionNode | undefined): string {
   return node?.type === "text" && typeof node.payload?.text === "string" ? node.payload.text : "";
-}
-
-/** Tìm Node đầu tiên có thể chỉnh sửa trong Scene (bỏ qua camera) */
-function firstEditableNode(scene: MotionScene | undefined): MotionNode | undefined {
-  return scene?.nodes.find((node) => node.type !== "camera");
 }
 
 /** Cập nhật biến số thuộc tính thương hiệu dự án */
@@ -399,32 +398,9 @@ function cloneSceneWithNewIds(scene: MotionScene): MotionScene {
   return cloned;
 }
 
-function selectionStateForClip(
-  clip: TimelineClip | undefined,
-  lanes: TimelineLane[],
-  project: MotionProject | null,
-) {
-  if (!clip) {
-    return {
-      selectedClipId: null as string | null,
-      selectedClipIds: [] as string[],
-      selectedSceneId: null as string | null,
-      selectedOverlayId: null as string | null,
-      selectedNodeId: null as string | null,
-    };
-  }
-  const onMain = isMainLane(lanes, clip.laneId);
-  const onAudio = isAudioLane(lanes, clip.laneId);
-  const scene = onMain
-    ? project?.scenes.find((candidate) => candidate.id === clip.sceneId)
-    : undefined;
-  return {
-    selectedClipId: clip.id,
-    selectedClipIds: [clip.id],
-    selectedSceneId: onMain ? clip.sceneId : null,
-    selectedOverlayId: onMain || onAudio ? null : clip.id,
-    selectedNodeId: firstEditableNode(scene)?.id ?? null,
-  };
+function selectionStateForClip(clip: TimelineClip | undefined) {
+  if (!clip) return { selection: selectionNone() };
+  return { selection: selectionClips([clip.id]) };
 }
 
 /* ==========================================================================
@@ -433,11 +409,7 @@ function selectionStateForClip(
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   project: null,
-  selectedSceneId: null,
-  selectedOverlayId: null,
-  selectedClipId: null,
-  selectedClipIds: [],
-  selectedNodeId: null,
+  selection: selectionNone(),
   isExporting: false,
   activeSidebarTab: "frame",
   timelineClips: [],
@@ -468,11 +440,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const mainId = lanes.find((lane) => lane.kind === "visual" && lane.role === "base")?.id;
     const firstClip =
       clips.find((clip) => clip.laneId === mainId) ?? clips[0];
-    const firstIsMain = firstClip ? isMainLane(lanes, firstClip.laneId) : false;
-    const firstIsAudio = firstClip ? isAudioLane(lanes, firstClip.laneId) : false;
-    const firstScene = firstIsMain
-      ? project.scenes.find((scene) => scene.id === firstClip!.sceneId)
-      : undefined;
 
     // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
     set({
@@ -480,12 +447,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       timelineLanes: lanes,
       timelineClips: clips,
       timelineZoom: TIMELINE_ZOOM_ON_PROJECT_LOAD,
-      selectedClipId: firstClip?.id ?? null,
-      selectedClipIds: firstClip ? [firstClip.id] : [],
-      selectedSceneId: firstIsMain ? firstClip!.sceneId : null,
-      selectedOverlayId:
-        firstIsMain || firstIsAudio || !firstClip ? null : firstClip.id,
-      selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
+      selection: firstClip ? selectionClips([firstClip.id]) : selectionNone(),
       activeDragItem: null,
       isOverTimeline: false,
       isExporting: false,
@@ -505,56 +467,40 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setSelectedClipIds: (clipIds) => {
-    const state = get();
     const unique = [...new Set(clipIds.filter(Boolean))];
-    const primaryId = unique[unique.length - 1] ?? null;
-    if (!primaryId) {
-      set({
-        selectedClipIds: [],
-        selectedClipId: null,
-        selectedSceneId: null,
-        selectedOverlayId: null,
-        selectedNodeId: null,
-      });
-      return;
-    }
-    const clip = state.timelineClips.find((candidate) => candidate.id === primaryId);
-    if (!clip) {
-      set({
-        selectedClipIds: unique,
-        selectedClipId: primaryId,
-        selectedSceneId: null,
-        selectedOverlayId: null,
-        selectedNodeId: null,
-      });
-      return;
-    }
-    const onMain = isMainLane(state.timelineLanes, clip.laneId);
-    const onAudio = isAudioLane(state.timelineLanes, clip.laneId);
-    const scene = onMain
-      ? state.project?.scenes.find((candidate) => candidate.id === clip.sceneId)
-      : undefined;
-    set({
-      selectedClipIds: unique,
-      selectedClipId: clip.id,
-      selectedSceneId: onMain ? clip.sceneId : null,
-      selectedOverlayId: onMain || onAudio ? null : clip.id,
-      selectedNodeId: firstEditableNode(scene)?.id ?? null,
-    });
+    set({ selection: selectionClips(unique) });
   },
 
   clearTimelineSelection: () => {
-    set({
-      selectedSceneId: null,
-      selectedOverlayId: null,
-      selectedClipId: null,
-      selectedClipIds: [],
-      selectedNodeId: null,
-    });
+    set({ selection: selectionNone() });
   },
 
   /** 3.3 Chọn Node (thành phần đồ họa) đang hoạt động */
-  selectNode: (nodeId) => set({ selectedNodeId: nodeId }),
+  selectNode: (nodeId) => {
+    set((state) => {
+      if (!nodeId) {
+        const current = state.selection;
+        if (current.kind !== "node") return state;
+        const clip = state.timelineClips.find(
+          (c) =>
+            c.kind === "scene" &&
+            c.sceneId === current.sceneId &&
+            isMainLane(state.timelineLanes, c.laneId),
+        );
+        return {
+          selection: clip ? selectionClips([clip.id]) : selectionNone(),
+        };
+      }
+      const sceneId =
+        selectedSceneIdFrom(
+          state.selection,
+          state.timelineClips,
+          state.timelineLanes,
+        ) ?? state.project?.scenes[0]?.id;
+      if (!sceneId) return state;
+      return { selection: selectionNode(sceneId, nodeId) };
+    });
+  },
 
   /** 3.4 Thay đổi Tab Sidebar đang hiển thị */
   setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
@@ -710,11 +656,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           project: nextProject,
           timelineLanes: nextLanes,
           timelineClips,
-          selectedClipId: clip.id,
-          selectedClipIds: [clip.id],
-          selectedSceneId: scene.id,
-          selectedOverlayId: null,
-          selectedNodeId: firstEditableNode(scene)?.id ?? null,
+          selection: selectionClips([clip.id]),
         };
       }
 
@@ -755,11 +697,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: nextLanes,
         timelineClips,
-        selectedClipId: clip.id,
-        selectedClipIds: [clip.id],
-        selectedSceneId: null,
-        selectedOverlayId: clip.id,
-        selectedNodeId: firstEditableNode(scene)?.id ?? null,
+        selection: selectionClips([clip.id]),
       };
     });
   },
@@ -833,11 +771,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           project: nextProject,
           timelineLanes: lanes,
           timelineClips: clips,
-          selectedClipId: moved.id,
-          selectedClipIds: [moved.id],
-          selectedSceneId: null,
-          selectedOverlayId: null,
-          selectedNodeId: null,
+          selection: selectionClips([moved.id]),
         };
       }
 
@@ -889,19 +823,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       clips.push(moved);
       lanes = pruneEmptyLanes(lanes, clips);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
-      const movedOnMain = isMainLane(lanes, moved.laneId);
-      const selectedScene = movedOnMain
-        ? nextProject.scenes.find((scene) => scene.id === moved.sceneId)
-        : undefined;
       return {
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        selectedClipId: moved.id,
-        selectedClipIds: [moved.id],
-        selectedSceneId: movedOnMain ? moved.sceneId : null,
-        selectedOverlayId: movedOnMain ? null : moved.id,
-        selectedNodeId: firstEditableNode(selectedScene)?.id ?? null,
+        selection: selectionClips([moved.id]),
       };
     });
   },
@@ -1000,11 +926,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         },
         timelineLanes: nextLanes,
         timelineClips,
-        selectedClipId: clip.id,
-        selectedClipIds: [clip.id],
-        selectedSceneId: null,
-        selectedOverlayId: null,
-        selectedNodeId: null,
+        selection: selectionClips([clip.id]),
       };
     });
   },
@@ -1024,7 +946,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   copySelectedClips: () => {
     const state = get();
-    const ids = state.selectedClipIds;
+    const ids = selectedClipIdsFrom(state.selection);
     if (ids.length === 0 || !state.project) return;
     const selected = state.timelineClips
       .filter((clip) => ids.includes(clip.id))
@@ -1098,7 +1020,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   deleteSelectedClips: () => {
     set((state) => {
       const project = state.project;
-      const ids = new Set(state.selectedClipIds);
+      const ids = new Set(selectedClipIdsFrom(state.selection));
       if (!project || ids.size === 0) return state;
       if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)) {
         return state;
@@ -1142,7 +1064,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: remaining,
-        ...selectionStateForClip(undefined, lanes, nextProject),
+        ...selectionStateForClip(undefined),
       };
     });
   },
@@ -1300,17 +1222,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        selectedClipIds: newIds,
-        selectedClipId: primary?.id ?? null,
-        selectedSceneId:
-          primary && isMainLane(lanes, primary.laneId) ? primary.sceneId : null,
-        selectedOverlayId:
-          primary &&
-          !isMainLane(lanes, primary.laneId) &&
-          !isAudioLane(lanes, primary.laneId)
-            ? primary.id
-            : null,
-        selectedNodeId: null,
+        selection: selectionClips(newIds),
       };
     });
   },
@@ -1325,7 +1237,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       let audioTracks = [...project.timeline.audioTracks];
       const newIds: string[] = [];
       const toDup = clips
-        .filter((c) => s.selectedClipIds.includes(c.id))
+        .filter((c) => selectedClipIdsFrom(s.selection).includes(c.id))
         .sort((a, b) => a.startTime - b.startTime);
 
       if (toDup.length === 0) return s;
@@ -1438,17 +1350,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        selectedClipIds: newIds,
-        selectedClipId: primary?.id ?? null,
-        selectedSceneId:
-          primary && isMainLane(lanes, primary.laneId) ? primary.sceneId : null,
-        selectedOverlayId:
-          primary &&
-          !isMainLane(lanes, primary.laneId) &&
-          !isAudioLane(lanes, primary.laneId)
-            ? primary.id
-            : null,
-        selectedNodeId: null,
+        selection: selectionClips(newIds),
       };
     });
   },
@@ -1461,14 +1363,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         selectionHasLockedLane(
           state.timelineClips,
           state.timelineLanes,
-          state.selectedClipIds,
+          selectedClipIdsFrom(state.selection),
         )
       ) {
         return state;
       }
       const t = Math.max(0, time);
       const selected = state.timelineClips.filter((clip) =>
-        state.selectedClipIds.includes(clip.id),
+        selectedClipIdsFrom(state.selection).includes(clip.id),
       );
       const splittable = selected.filter((clip) => playheadSplitsClip(clip, t));
       if (splittable.length === 0) return state;
@@ -1597,17 +1499,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        selectedClipIds: newSelection,
-        selectedClipId: primaryId,
-        selectedSceneId:
-          primary && isMainLane(lanes, primary.laneId) ? primary.sceneId : null,
-        selectedOverlayId:
-          primary &&
-          !isMainLane(lanes, primary.laneId) &&
-          !isAudioLane(lanes, primary.laneId)
-            ? primary.id
-            : null,
-        selectedNodeId: null,
+        selection: selectionClips(newSelection),
       };
     });
   },

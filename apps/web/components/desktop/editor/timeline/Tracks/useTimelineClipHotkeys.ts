@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 
@@ -21,16 +22,17 @@ export function useTimelineClipHotkeys(enabled: boolean) {
       if (isEditableTarget(event.target)) return;
       const mod = event.ctrlKey || event.metaKey;
       const store = useEditorStore.getState();
+      const selectedIds = selectedClipIdsFrom(store.selection);
       const playhead = usePlaybackClock.getState().currentTime;
 
       if (mod && event.key.toLowerCase() === "c") {
-        if (store.selectedClipIds.length === 0) return;
+        if (selectedIds.length === 0) return;
         event.preventDefault();
         store.copySelectedClips();
         return;
       }
       if (mod && event.key.toLowerCase() === "x") {
-        if (store.selectedClipIds.length === 0) return;
+        if (selectedIds.length === 0) return;
         event.preventDefault();
         store.cutSelectedClips();
         return;
@@ -42,7 +44,7 @@ export function useTimelineClipHotkeys(enabled: boolean) {
         return;
       }
       if (mod && event.key.toLowerCase() === "d") {
-        if (store.selectedClipIds.length === 0) return;
+        if (selectedIds.length === 0) return;
         event.preventDefault();
         store.duplicateSelectedClips();
         return;
@@ -52,7 +54,7 @@ export function useTimelineClipHotkeys(enabled: boolean) {
         (event.key.toLowerCase() === "b" ||
           (event.shiftKey && event.key.toLowerCase() === "s"))
       ) {
-        const canSplit = store.selectedClipIds.some((id) => {
+        const canSplit = selectedIds.some((id) => {
           const clip = store.timelineClips.find((c) => c.id === id);
           return clip ? playheadSplitsClip(clip, playhead) : false;
         });
@@ -62,7 +64,7 @@ export function useTimelineClipHotkeys(enabled: boolean) {
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
-        if (store.selectedClipIds.length === 0) return;
+        if (selectedIds.length === 0) return;
         event.preventDefault();
         store.deleteSelectedClips();
       }
