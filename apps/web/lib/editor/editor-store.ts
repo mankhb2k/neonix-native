@@ -2,17 +2,6 @@
 
 import { create } from "zustand";
 import {
-  parseMotionProject,
-  type AspectRatio,
-  type MotionNode,
-  type MotionProject,
-  type MotionScene,
-} from "@motionvideo/motion-schema";
-import { validateMotionProjectPresets } from "@motionvideo/template-library";
-import type { FrameDraft } from "@/lib/editor/frame-library";
-import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
-import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
-import {
   type ClipClipboardItem,
   MIN_CLIP_SLICE_SEC,
   playheadSplitsClip,
@@ -21,11 +10,14 @@ import {
   TIMELINE_ZOOM_DEFAULT,
   TIMELINE_ZOOM_ON_PROJECT_LOAD,
 } from "@/lib/editor/editor-preferences";
+import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import {
-  applyLaneFlagPatch,
-  isLaneLocked,
-  selectionHasLockedLane,
-} from "@/lib/editor/operations/lane-flags";
+  selectionClips,
+  selectionNone,
+  selectionNode,
+  selectedClipIdsFrom,
+  selectedSceneIdFrom,
+} from "@/lib/editor/model/editor-selection";
 import {
   applyRippleAfter,
   createOverlayLaneAt,
@@ -35,13 +27,11 @@ import {
   type VisualPlacementIntent,
 } from "@/lib/editor/operations/clip-move";
 import {
-  selectionClips,
-  selectionNone,
-  selectionNode,
-  selectedClipIdsFrom,
-  selectedSceneIdFrom,
-  type EditorSelection,
-} from "@/lib/editor/model/editor-selection";
+  applyLaneFlagPatch,
+  isLaneLocked,
+  selectionHasLockedLane,
+} from "@/lib/editor/operations/lane-flags";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   createAudioLane,
   clipsContentEndSeconds,
@@ -58,131 +48,25 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@/lib/editor/timeline-clips";
-import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import {
+  parseMotionProject,
+  type MotionNode,
+  type MotionProject,
+  type MotionScene,
+} from "@motionvideo/motion-schema";
+import { validateMotionProjectPresets } from "@motionvideo/template-library";
+import type { FrameDraft } from "@/lib/editor/frame-library";
+import type { EditorState } from "@/lib/editor/store/types";
 
 export type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 export type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
-
-/* ==========================================================================
-   1. Các kiểu dữ liệu trạng thái (State Types)
-   ========================================================================== */
-
-export type SidebarTabId =
-  | "frame"
-  | "elements"
-  | "text"
-  | "upload"
-  | "stickers"
-  | "audio";
-
-/** Cấu trúc State của Editor Zustand Store */
-type EditorState = {
-  project: MotionProject | null;
-  /** Selection gốc — clip/scene/overlay/node derive qua selector (STATE-02). */
-  selection: EditorSelection;
-  isExporting: boolean;
-  activeSidebarTab: SidebarTabId;
-  timelineClips: TimelineClip[];
-  timelineLanes: TimelineLane[];
-
-  activeDragItem: {
-    id: string;
-    type: "frame" | "audio";
-    name: string;
-    duration: number;
-  } | null;
-  isOverTimeline: boolean;
-
-  /** Timeline zoom — playback clock lives in playback-clock-store. */
-  timelineZoom: number;
-  /** Internal clipboard for timeline clips (Copy/Cut/Paste). */
-  timelineClipboard: ClipClipboardItem[] | null;
-
-  setActiveDragItem: (
-    item: {
-      id: string;
-      type: "frame" | "audio";
-      name: string;
-      duration: number;
-    } | null,
-  ) => void;
-  setIsOverTimeline: (over: boolean) => void;
-  loadProject: (
-    project: MotionProject,
-    overlayScenes?: OverlaySceneItem[],
-    timelineClips?: TimelineClip[],
-    timelineLanes?: TimelineLane[],
-  ) => void;
-  selectClip: (clipId: string) => void;
-  setSelectedClipIds: (clipIds: string[]) => void;
-  clearTimelineSelection: () => void;
-  selectNode: (nodeId: string | null) => void;
-  setActiveSidebarTab: (tab: SidebarTabId) => void;
-  updateBrand: (patch: Partial<MotionProject["metadata"]["brand"]>) => void;
-  updateSceneDuration: (sceneId: string, duration: number) => void;
-  updateNodeText: (sceneId: string, nodeId: string, text: string) => void;
-  updateNodePosition: (sceneId: string, nodeId: string, position: { x?: number; y?: number }) => void;
-  updateNodeAnimation: (sceneId: string, nodeId: string, patch: { presetId?: string; duration?: number; at?: number }) => void;
-  setAspectRatio: (aspectRatio: AspectRatio) => void;
-  addClipFromDraft: (
-    draft: FrameDraft,
-    target:
-      | { track: "main" }
-      | {
-          track: "overlay";
-          startTime: number;
-          laneId?: string;
-          insertNewLane?: boolean;
-          insertOrder?: number;
-        },
-  ) => void;
-  /** track "main" = UI Main lane (domain role `base`) — API name kept for callers. */
-  moveClip: (
-    clipId: string,
-    patch: {
-      startTime: number;
-      track: "main" | "overlay" | "audio";
-      laneId?: string;
-      insertNewLane?: boolean;
-      insertOrder?: number;
-    },
-  ) => void;
-  renameLane: (laneId: string, name: string) => void;
-  /** Phase 6 — flag lane thật (lock / visible / mute). */
-  updateLaneFlags: (
-    laneId: string,
-    patch: { locked?: boolean; visible?: boolean; muted?: boolean },
-  ) => void;
-  reorderLane: (laneId: string, newOrder: number) => void;
-  addAudioTrack: (track: {
-    role: string;
-    assetId: string;
-    src?: string;
-    duration?: number;
-  }) => void;
-  addAudioClipFromLibrary: (
-    item: {
-      title: string;
-      assetId: string;
-      src?: string;
-      duration?: number;
-    },
-    target: {
-      startTime: number;
-      laneId?: string;
-      insertNewLane?: boolean;
-      insertOrder?: number;
-    },
-  ) => void;
-  copySelectedClips: () => void;
-  cutSelectedClips: () => void;
-  pasteClips: (atTime?: number) => void;
-  deleteSelectedClips: () => void;
-  duplicateSelectedClips: () => void;
-  splitSelectedClipsAt: (time: number) => void;
-  setExporting: (value: boolean) => void;
-  setTimelineZoom: (zoom: number) => void;
-};
+export type {
+  EditorState,
+  EditorStore,
+  EditorStoreActions,
+  EditorStoreState,
+  SidebarTabId,
+} from "@/lib/editor/store/types";
 
 /* ==========================================================================
    2. Các hàm trợ giúp xử lý nội bộ (Helper Utilities)
