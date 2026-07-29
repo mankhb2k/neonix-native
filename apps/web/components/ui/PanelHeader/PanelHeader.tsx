@@ -25,13 +25,13 @@ export function PanelHeader({
   return (
     <div
       className={cn(
-        "flex h-[40px] min-h-[40px] shrink-0 items-center justify-between gap-2 px-3 select-none",
-        !noBorder && "border-b border-[var(--line-strong)]/40",
+        "flex h-[40px] min-h-[40px] max-h-[40px] shrink-0 items-center justify-between gap-2 px-3 select-none overflow-hidden",
+        !noBorder && "border-b border-[var(--border-subtle)]",
         className,
       )}
     >
       {title ? (
-        <div className="flex items-center gap-2 font-semibold text-[13px] text-[var(--fg)] truncate">
+        <div className="flex items-center gap-2 font-semibold text-[13px] text-[var(--fg-primary)] truncate">
           {title}
         </div>
       ) : children ? (

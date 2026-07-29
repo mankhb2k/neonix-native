@@ -1,195 +1,483 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
-import { useEditorStore } from "@/lib/store/editor-store";
-import { FRAME_LIBRARY_MIME, getFrame } from "@/lib/frame-library";
-import { TimeRuler } from "../TimeRuler/TimeRuler";
+import { useRef, useState, useEffect, type RefObject } from "react";
 import {
-  TIMELINE_LABEL_WIDTH,
-  TIMELINE_PPS_MIN,
-  maxPixelsPerSecondForView,
-  timelineCanvasDuration,
-  timelineWorkspaceSeconds,
-  zoomToPixelsPerSecond,
-} from "../timeline-scale";
+  Film,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Volume2,
+  VolumeX,
+  Music,
+} from "lucide-react";
+import { useEditorStore } from "@/lib/store/editor-store";
+import { TrackLane } from "./TrackLane";
+import { useTracksDrag } from "./useTracksDrag";
+import { useOverlayClipMove } from "./useOverlayClipMove";
+import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
 type Props = {
   zoom: number;
+  scrollRef: RefObject<HTMLDivElement | null>;
+  rulerHeaderRef: RefObject<HTMLDivElement | null>;
+  viewWidth: number;
+  pixelsPerSecond: number;
+  canvasWidth: number;
+  contentEnd: number;
+  onScrollLeft: (scrollLeft: number) => void;
+  onScrubBlockedChange: (blocked: boolean) => void;
 };
 
-export function Tracks({ zoom }: Props) {
-  const project = useEditorStore((s) => s.project);
-  const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
-  const selectScene = useEditorStore((s) => s.selectScene);
-  const addSceneFromFrame = useEditorStore((s) => s.addSceneFromFrame);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const [viewWidth, setViewWidth] = useState(0);
-  const [dragOver, setDragOver] = useState(false);
+/** Scrollable track lanes only — TimeRuler / Playhead live in TimelineBoard. */
+export function Tracks({
+  scrollRef,
+  rulerHeaderRef,
+  viewWidth,
+  pixelsPerSecond,
+  canvasWidth,
+  onScrollLeft,
+  onScrubBlockedChange,
+}: Props) {
+  const projectId = useEditorStore((s) => s.project?.metadata.id);
+  const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
+  const timelineLanes = useEditorStore((s) => s.timelineLanes);
+  const selectedClipId = useEditorStore((s) => s.selectedClipId);
+  const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
+  const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
-  // Re-bind when project appears: first paint often returns null (no DOM),
-  // so a mount-only effect would leave viewWidth stuck at 0 forever.
-  useLayoutEffect(() => {
-    const el = rootRef.current;
-    if (!el) return undefined;
-    const update = () => setViewWidth(el.clientWidth);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [project]);
+  const workspaceRef = useRef<HTMLDivElement>(null);
 
-  if (!project) {
-    return <div ref={rootRef} className="relative flex-1 overflow-auto" />;
-  }
+  const [videoLocked, setVideoLocked] = useState(false);
+  const [videoVisible, setVideoVisible] = useState(true);
+  const [audioLocked, setAudioLocked] = useState(false);
+  const [audioMuted, setAudioMuted] = useState(false);
 
-  const fps = project.metadata.fps ?? 30;
-  const total = project.scenes.reduce((sum, s) => sum + s.duration, 0);
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
-  const workspaceSeconds = timelineWorkspaceSeconds(total);
-  const floorPps =
-    trackViewWidth > 0
-      ? trackViewWidth / workspaceSeconds
-      : TIMELINE_PPS_MIN;
-  const ceilingPps = maxPixelsPerSecondForView(trackViewWidth, fps);
-  const pixelsPerSecond = zoomToPixelsPerSecond(zoom, floorPps, ceilingPps);
-  const rulerDuration = timelineCanvasDuration(
-    total,
-    pixelsPerSecond,
-    trackViewWidth,
+  const overlayLanes = timelineLanes
+    .filter(
+      (lane) =>
+        lane.kind === "overlay" &&
+        timelineClips.some((clip) => clip.laneId === lane.id),
+    )
+    .sort((a, b) => b.order - a.order);
+  const mainLane = timelineLanes.find((lane) => lane.kind === "main");
+  const maxOverlayOrder = overlayLanes.reduce(
+    (max, lane) => Math.max(max, lane.order),
+    -1,
   );
-  const canvasWidth = rulerDuration * pixelsPerSecond;
-  const playheadLeft = TIMELINE_LABEL_WIDTH;
-  const isEmpty = project.scenes.length === 0;
 
-  let cursor = 0;
-  const sceneBlocks = project.scenes.map((scene, index) => {
-    const left = cursor * pixelsPerSecond;
-    const width = Math.max(scene.duration * pixelsPerSecond, 8);
-    cursor += scene.duration;
-    return { scene, index, left, width };
+  const sidebarDrag = useTracksDrag({
+    rootRef: scrollRef,
+    rulerHeaderRef,
+    workspaceRef,
+    pixelsPerSecond,
+    maxOverlayOrder,
+    projectId: projectId ?? null,
   });
 
-  function handleDragOver(event: React.DragEvent) {
-    if (
-      !event.dataTransfer.types.includes(FRAME_LIBRARY_MIME) &&
-      !event.dataTransfer.types.includes("text/plain")
-    ) {
-      return;
-    }
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-    setDragOver(true);
+  const clipMove = useOverlayClipMove({
+    rootRef: scrollRef,
+    workspaceRef,
+    pixelsPerSecond,
+    maxOverlayOrder,
+  });
+
+  const scrubBlocked = clipMove.isMoving || activeDragItem != null;
+  useEffect(() => {
+    onScrubBlockedChange(scrubBlocked);
+  }, [scrubBlocked, onScrubBlockedChange]);
+
+  const isOverlayInsertLine = clipMove.isMoving
+    ? clipMove.isOverlayInsertLine
+    : sidebarDrag.isOverlayInsertLine;
+  const targetOverlayLaneId = clipMove.isMoving
+    ? clipMove.targetOverlayLaneId
+    : sidebarDrag.targetOverlayLaneId;
+  const indicatorTopPos = clipMove.isMoving
+    ? clipMove.indicatorTopPos
+    : sidebarDrag.indicatorTopPos;
+  const dragGhostState = clipMove.isMoving
+    ? clipMove.dragGhostState
+    : sidebarDrag.dragGhostState;
+  const insertGhostRef = clipMove.isMoving
+    ? clipMove.insertGhostRef
+    : sidebarDrag.insertGhostRef;
+  const dragOver = sidebarDrag.dragOver;
+
+  if (!projectId || !audioTracks) {
+    return (
+      <div
+        ref={scrollRef}
+        className="relative min-h-0 flex-1 overflow-auto"
+      />
+    );
   }
 
-  function handleDrop(event: React.DragEvent) {
-    event.preventDefault();
-    setDragOver(false);
-    const frameId =
-      event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
-      event.dataTransfer.getData("text/plain");
-    if (!frameId || !project) return;
-    const draft = getFrame(project.metadata.id, frameId);
-    if (!draft) return;
-    addSceneFromFrame(draft);
-  }
+  const mainClips = timelineClips
+    .filter((clip) => clip.laneId === mainLane?.id)
+    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+  const total = timelineClips.reduce(
+    (end, clip) => Math.max(end, clip.startTime + clip.duration),
+    0,
+  );
+  const isEmpty = timelineClips.length === 0;
+  const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
 
   return (
     <div
-      ref={rootRef}
-      className={`relative flex-1 overflow-auto ${
-        dragOver ? "outline outline-1 outline-[var(--accent)] outline-offset-[-1px]" : ""
+      ref={scrollRef}
+      className={`relative min-h-0 flex-1 overflow-auto transition-colors select-none ${
+        dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}
-      onDragOver={handleDragOver}
-      onDragLeave={() => setDragOver(false)}
-      onDrop={handleDrop}
+      onScroll={(event) => {
+        onScrollLeft(event.currentTarget.scrollLeft);
+      }}
+      onDragOver={sidebarDrag.handleDragOver}
+      onDragEnter={sidebarDrag.handleDragEnter}
+      onDragLeave={sidebarDrag.handleDragLeave}
+      onDrop={sidebarDrag.handleDrop}
+      onPointerDown={(event) => {
+        if (event.target === event.currentTarget) {
+          clearTimelineSelection();
+        }
+      }}
     >
       <div
-        className="relative min-h-full"
-        style={{ minWidth: TIMELINE_LABEL_WIDTH + canvasWidth }}
+        className="relative min-h-full flex flex-col flex-1"
+        style={{ minWidth: canvasMinWidth }}
       >
-        <div
-          className="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-[var(--fg)]"
-          style={{ left: playheadLeft }}
-        >
-          <div className="absolute top-0 left-1/2 flex h-3.5 min-w-3.5 -translate-x-1/2 items-center justify-center rounded-sm bg-[var(--fg)] px-1 font-mono text-[9px] font-semibold text-[var(--bg-panel)]">
-            0
-          </div>
-        </div>
+        {isEmpty ? (
+          <div className="flex flex-1 min-h-[160px] items-center pt-6 pb-12">
+            <div
+              className="sticky left-0 z-20 flex shrink-0 items-center justify-center gap-1.5 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2 h-full"
+              style={{ width: TIMELINE_LABEL_WIDTH }}
+            >
+              <button
+                type="button"
+                className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
+                title="Khung hình / Video"
+              >
+                <Film size={14} strokeWidth={1.5} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setVideoLocked(!videoLocked)}
+                className={`p-1 transition-colors rounded cursor-pointer ${
+                  videoLocked
+                    ? "text-[var(--accent)]"
+                    : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                }`}
+                title={videoLocked ? "Mở khóa Track Video" : "Khóa Track Video"}
+              >
+                {videoLocked ? (
+                  <Lock size={14} strokeWidth={1.75} />
+                ) : (
+                  <Unlock size={14} strokeWidth={1.75} />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setVideoVisible(!videoVisible)}
+                className={`p-1 transition-colors rounded cursor-pointer ${
+                  !videoVisible
+                    ? "text-[var(--accent)]"
+                    : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                }`}
+                title={videoVisible ? "Ẩn Track Video" : "Hiện Track Video"}
+              >
+                {videoVisible ? (
+                  <Eye size={14} strokeWidth={1.75} />
+                ) : (
+                  <EyeOff size={14} strokeWidth={1.75} />
+                )}
+              </button>
+            </div>
 
-        <div className="flex">
-          <div
-            className="sticky left-0 z-10 shrink-0 bg-[var(--bg-panel)]"
-            style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
-          />
-          <TimeRuler
-            duration={rulerDuration}
-            fps={fps}
-            pixelsPerSecond={pixelsPerSecond}
-            width={canvasWidth}
-          />
-        </div>
-
-        <div className="flex items-center gap-0 border-b border-[var(--line)]/60 py-1.5">
-          <div
-            className="sticky left-0 z-10 flex shrink-0 items-center bg-[var(--bg-panel)] px-2 text-[11px] text-[var(--fg-muted)]"
-            style={{ width: TIMELINE_LABEL_WIDTH }}
-          >
-            Video
-          </div>
-          <div className="relative h-10" style={{ width: canvasWidth }}>
-            {isEmpty ? (
-              <div className="flex h-full items-center px-2 text-[11px] text-[var(--fg-faint)]">
-                Kéo khung hình vào đây
+            <div
+              className="sticky flex items-center justify-center px-6"
+              style={{
+                left: TIMELINE_LABEL_WIDTH,
+                width:
+                  trackViewWidth > 0 ? trackViewWidth : "calc(100% - 96px)",
+              }}
+            >
+              <div
+                className={`flex h-11 w-full max-w-[480px] items-center justify-center gap-2.5 rounded-lg border border-dashed px-4 transition-all select-none ${
+                  dragOver
+                    ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)] scale-[1.01]"
+                    : "border-[var(--border-strong)] bg-[var(--bg-surface)] text-[var(--fg-muted)]"
+                }`}
+              >
+                <Film size={16} strokeWidth={1.5} className="shrink-0" />
+                <span className="text-[12px] font-medium tracking-wide truncate">
+                  Kéo khung hình hoặc phương tiện vào đây để bắt đầu tạo
+                </span>
               </div>
-            ) : (
-              sceneBlocks.map(({ scene, index, left, width }) => {
-                const active = selectedSceneId === scene.id;
-                return (
-                  <button
-                    key={scene.id}
-                    type="button"
-                    className={`absolute top-0 h-10 overflow-hidden rounded px-2 text-left text-[11px] ${
-                      active
-                        ? "border border-[var(--accent)] bg-[var(--bg-hover)] text-[var(--accent)]"
-                        : "border border-[var(--line-strong)] bg-[#27272A] text-[var(--fg-muted)]"
-                    }`}
-                    style={{ left, width }}
-                    onClick={() => selectScene(scene.id)}
-                  >
-                    <span className="block truncate font-medium">
-                      {index + 1}. {scene.semantic?.role ?? scene.name ?? scene.id}
-                    </span>
-                    <span className="block truncate opacity-70">{scene.duration}s</span>
-                  </button>
-                );
-              })
-            )}
+            </div>
           </div>
-        </div>
-
-        <div className="flex items-center gap-0 py-1.5">
+        ) : (
           <div
-            className="sticky left-0 z-10 flex shrink-0 items-center bg-[var(--bg-panel)] px-2 text-[11px] text-[var(--fg-muted)]"
-            style={{ width: TIMELINE_LABEL_WIDTH }}
+            ref={workspaceRef}
+            className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) {
+                clearTimelineSelection();
+              }
+            }}
           >
-            Audio
-          </div>
-          <div className="relative h-6" style={{ width: canvasWidth }}>
-            {project.timeline.audioTracks.length === 0 ? (
-              <span className="px-1 text-[10px] text-[var(--fg-faint)]">Chưa có audio</span>
-            ) : (
-              project.timeline.audioTracks.map((track) => (
-                <div
-                  key={track.id}
-                  className="absolute top-0 flex h-6 items-center rounded border border-[#0E7490] bg-[#164E63] px-2 text-[10px] text-white"
-                  style={{ left: 0, width: Math.max(80, Math.max(total, 1) * pixelsPerSecond) }}
+            {overlayLanes.map((lane) => {
+              const layerItems = timelineClips.filter(
+                (clip) => clip.laneId === lane.id,
+              );
+              return (
+                <TrackLane
+                  key={lane.id}
+                  variant="secondary"
+                  dataTrackType="overlay"
+                  dataLaneId={lane.id}
+                  dataLaneOrder={lane.order}
+                  ghostPreview={
+                    !isOverlayInsertLine && targetOverlayLaneId === lane.id
+                      ? dragGhostState
+                      : null
+                  }
+                  labelWidth={TIMELINE_LABEL_WIDTH}
+                  canvasWidth={canvasWidth}
+                  leftControl={
+                    <button
+                      type="button"
+                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer text-[11px] font-semibold truncate max-w-full"
+                      title={lane.name}
+                    >
+                      {lane.name}
+                    </button>
+                  }
                 >
-                  {track.role} · {track.assetId}
-                </div>
-              ))
+                  {layerItems.map((item) => {
+                    const active = selectedClipId === item.id;
+                    const moving = clipMove.movingClipId === item.id;
+                    if (moving) return null;
+                    return (
+                      <div
+                        key={item.id}
+                        data-clip-id={item.id}
+                        role="button"
+                        tabIndex={0}
+                        className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
+                          active ? "z-10 ring-2 ring-white" : ""
+                        }`}
+                        style={{
+                          left: item.startTime * pixelsPerSecond,
+                          width: Math.max(item.duration * pixelsPerSecond, 24),
+                        }}
+                        onPointerDown={(event) => {
+                          clipMove.beginOverlayPointerDown(item, event);
+                        }}
+                      >
+                        <span className="truncate pointer-events-none">
+                          {item.name} ({item.duration}s)
+                        </span>
+                      </div>
+                    );
+                  })}
+                </TrackLane>
+              );
+            })}
+
+            {isOverlayInsertLine && dragGhostState && (
+              <>
+                <div
+                  ref={insertGhostRef}
+                  className="absolute z-30 h-8 -translate-y-1/2 rounded bg-[#38383e] border border-[#4a4a52] shadow-md pointer-events-none overflow-hidden will-change-[left]"
+                  style={{
+                    top: indicatorTopPos,
+                    width: dragGhostState.width,
+                  }}
+                  aria-hidden
+                />
+                <div
+                  className="absolute z-40 h-px bg-[#14B8A6] pointer-events-none"
+                  style={{
+                    top: indicatorTopPos,
+                    left: TIMELINE_LABEL_WIDTH,
+                    width: Math.max(canvasWidth, trackViewWidth),
+                  }}
+                />
+              </>
+            )}
+
+            <TrackLane
+              variant="main"
+              dataTrackType="main"
+              dataLaneId={mainLane?.id}
+              ghostPreview={
+                !isOverlayInsertLine &&
+                targetOverlayLaneId === null &&
+                dragGhostState?.targetTrack === "video"
+                  ? dragGhostState
+                  : null
+              }
+              labelWidth={TIMELINE_LABEL_WIDTH}
+              canvasWidth={canvasWidth}
+              leftControl={
+                <>
+                  <button
+                    type="button"
+                    className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
+                    title={mainLane?.name ?? "Khung hình / Video"}
+                  >
+                    <Film size={14} strokeWidth={1.5} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoLocked(!videoLocked)}
+                    className={`p-1 transition-colors rounded cursor-pointer ${
+                      videoLocked
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                    }`}
+                    title={
+                      videoLocked ? "Mở khóa Track Video" : "Khóa Track Video"
+                    }
+                  >
+                    {videoLocked ? (
+                      <Lock size={14} strokeWidth={1.75} />
+                    ) : (
+                      <Unlock size={14} strokeWidth={1.75} />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoVisible(!videoVisible)}
+                    className={`p-1 transition-colors rounded cursor-pointer ${
+                      !videoVisible
+                        ? "text-[var(--accent)]"
+                        : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                    }`}
+                    title={videoVisible ? "Ẩn Track Video" : "Hiện Track Video"}
+                  >
+                    {videoVisible ? (
+                      <Eye size={14} strokeWidth={1.75} />
+                    ) : (
+                      <EyeOff size={14} strokeWidth={1.75} />
+                    )}
+                  </button>
+                </>
+              }
+            >
+              {mainClips.map((clip, index) => {
+                const active = selectedClipId === clip.id;
+                const moving = clipMove.movingClipId === clip.id;
+                if (moving) return null;
+                return (
+                  <div
+                    key={clip.id}
+                    data-clip-id={clip.id}
+                    role="button"
+                    tabIndex={0}
+                    className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
+                      active
+                        ? "z-10 bg-[var(--timeline-clip-frame-hover)] text-white shadow-md ring-2 ring-white"
+                        : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
+                    }`}
+                    style={{
+                      left: clip.startTime * pixelsPerSecond,
+                      width: Math.max(clip.duration * pixelsPerSecond, 8),
+                    }}
+                    onPointerDown={(event) => {
+                      clipMove.beginMainPointerDown(clip, event);
+                    }}
+                  >
+                    <span className="block truncate font-semibold text-white pointer-events-none">
+                      {index + 1}. {clip.name}
+                    </span>
+                    <span className="block truncate text-white/80 pointer-events-none">
+                      {clip.duration}s
+                    </span>
+                  </div>
+                );
+              })}
+            </TrackLane>
+
+            {audioTracks.length > 0 && (
+              <TrackLane
+                variant="secondary"
+                ghostPreview={
+                  dragGhostState?.targetTrack === "audio"
+                    ? dragGhostState
+                    : null
+                }
+                labelWidth={TIMELINE_LABEL_WIDTH}
+                canvasWidth={canvasWidth}
+                leftControl={
+                  <>
+                    <button
+                      type="button"
+                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
+                      title="Nhạc / Âm thanh"
+                    >
+                      <Music size={14} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAudioLocked(!audioLocked)}
+                      className={`p-1 transition-colors rounded cursor-pointer ${
+                        audioLocked
+                          ? "text-[var(--accent)]"
+                          : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                      }`}
+                      title={
+                        audioLocked ? "Mở khóa Track Audio" : "Khóa Track Audio"
+                      }
+                    >
+                      {audioLocked ? (
+                        <Lock size={14} strokeWidth={1.75} />
+                      ) : (
+                        <Unlock size={14} strokeWidth={1.75} />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAudioMuted(!audioMuted)}
+                      className={`p-1 transition-colors rounded cursor-pointer ${
+                        audioMuted
+                          ? "text-[var(--accent)]"
+                          : "text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+                      }`}
+                      title={
+                        audioMuted ? "Bật âm thanh Track" : "Tắt âm thanh Track"
+                      }
+                    >
+                      {audioMuted ? (
+                        <VolumeX size={14} strokeWidth={1.75} />
+                      ) : (
+                        <Volume2 size={14} strokeWidth={1.75} />
+                      )}
+                    </button>
+                  </>
+                }
+              >
+                {audioTracks.map((track) => (
+                  <div
+                    key={track.id}
+                    className="absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] hover:bg-[var(--timeline-clip-audio-hover)] px-2 text-[10px] font-medium text-white shadow-sm transition-colors"
+                    style={{
+                      left: 0,
+                      width: Math.max(
+                        120,
+                        Math.max(total, 1) * pixelsPerSecond,
+                      ),
+                    }}
+                  >
+                    🎵 {track.role}
+                  </div>
+                ))}
+              </TrackLane>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

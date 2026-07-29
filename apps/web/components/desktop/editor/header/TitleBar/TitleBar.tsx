@@ -24,6 +24,10 @@ import {
 
 export function TitleBar() {
   const project = useEditorStore((s) => s.project);
+  const brandName = useEditorStore((s) => s.project?.metadata.brand.name);
+  const overlayScenes = useEditorStore((s) => s.overlayScenes);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
+  const timelineLanes = useEditorStore((s) => s.timelineLanes);
   const isExporting = useEditorStore((s) => s.isExporting);
   const setExporting = useEditorStore((s) => s.setExporting);
   const updateBrand = useEditorStore((s) => s.updateBrand);
@@ -40,7 +44,7 @@ export function TitleBar() {
     setExportError(null);
     setExporting(true);
     try {
-      saveProject(project);
+      saveProject(project, { overlayScenes, timelineClips, timelineLanes });
       const blob = await exportMotionProject(project);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);
@@ -71,8 +75,8 @@ export function TitleBar() {
         setExportError(`Preset không hợp lệ: ${detail}`);
         return;
       }
-      saveProject(parsed);
-      loadProject(parsed);
+      saveProject(parsed, { overlayScenes: [], timelineClips: [], timelineLanes: [] });
+      loadProject(parsed, [], [], []);
       setExportError(null);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Import .mt thất bại");
@@ -86,7 +90,7 @@ export function TitleBar() {
   return (
     <>
       <div
-        className="desktop-titlebar flex h-[38px] items-center justify-between gap-3 border-b border-[var(--line)] pl-3 pr-0"
+        className="desktop-titlebar flex h-[38px] items-center justify-between gap-3 border-b border-[var(--border-subtle)] pl-3 pr-0"
         style={isDesktop ? ({ WebkitAppRegion: "drag" } as CSSProperties) : { paddingRight: 12 }}
       >
         <div className="flex min-w-0 items-center gap-2" style={noDrag}>
@@ -99,8 +103,8 @@ export function TitleBar() {
           {isDesktop ? <DesktopMenuBar /> : null}
 
           <input
-            className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg)] outline-none hover:border-[var(--line-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--line-strong)] focus:bg-[var(--bg-hover)]"
-            value={project?.metadata.brand.name ?? "Presentation 2"}
+            className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
+            value={brandName ?? "Presentation 2"}
             onChange={(e) => updateBrand({ name: e.target.value })}
             aria-label="Tên dự án"
             placeholder="Dự án không tên"
@@ -129,12 +133,12 @@ export function TitleBar() {
         </div>
 
         <div className="flex items-center gap-2" style={noDrag}>
-          <div className="flex w-[220px] items-center gap-1.5 rounded-md bg-[var(--bg-hover)] px-2.5 py-1 text-[var(--fg-muted)]">
+          <div className="flex w-[220px] items-center gap-1.5 rounded-md bg-[var(--bg-surface)] px-2.5 py-1 text-[var(--fg-muted)]">
             <Search size={14} strokeWidth={1.2} />
             <input
               type="text"
               placeholder="Tìm kiếm"
-              className="w-full border-none bg-transparent text-[12px] text-[var(--fg)] outline-none"
+              className="w-full border-none bg-transparent text-[12px] text-[var(--fg-secondary)] outline-none"
             />
           </div>
         </div>

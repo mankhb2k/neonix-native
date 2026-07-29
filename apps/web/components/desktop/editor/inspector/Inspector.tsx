@@ -30,7 +30,9 @@ const INSPECTOR_TABS: DesktopTabItem[] = [
 ];
 
 export function Inspector() {
-  const project = useEditorStore((s) => s.project);
+  const scenes = useEditorStore((s) => s.project?.scenes);
+  const aspectRatio = useEditorStore((s) => s.project?.metadata.aspectRatio);
+  const brand = useEditorStore((s) => s.project?.metadata.brand);
   const selectedSceneId = useEditorStore((s) => s.selectedSceneId);
   const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
   const updateBrand = useEditorStore((s) => s.updateBrand);
@@ -42,17 +44,17 @@ export function Inspector() {
 
   const [activeTab, setActiveTab] = useState("basic");
 
-  if (!project || !selectedSceneId) {
+  if (!scenes || !selectedSceneId || !aspectRatio || !brand) {
     return (
       <div className="flex flex-1 items-center justify-center px-4 text-center text-ui text-[var(--fg-muted)]">
-        {project && project.scenes.length === 0
+        {scenes && scenes.length === 0
           ? "Kéo khung hình vào timeline để bắt đầu chỉnh."
           : "Chọn một khung hình hoặc layer để chỉnh."}
       </div>
     );
   }
 
-  const scene = project.scenes.find((s) => s.id === selectedSceneId);
+  const scene = scenes.find((s) => s.id === selectedSceneId);
   const node = scene?.nodes.find((candidate) => candidate.id === selectedNodeId);
   const animation = scene?.clips.find((clip) => clip.targetId === node?.id && clip.source.kind === "preset");
   const defaultPreset = animationBlocks[0]?.preset ?? "fade-in";
@@ -121,9 +123,9 @@ export function Inspector() {
           <PropertySelect
             id="aspect"
             label="Tỉ lệ"
-            value={project.metadata.aspectRatio}
+            value={aspectRatio}
             onChange={(e) =>
-              setAspectRatio(e.target.value as typeof project.metadata.aspectRatio)
+              setAspectRatio(e.target.value as typeof aspectRatio)
             }
           >
             <option value="9:16">9:16</option>
@@ -145,13 +147,13 @@ export function Inspector() {
           <PropertyInput
             id="brand-name"
             label="Brand"
-            value={project.metadata.brand.name}
+            value={brand.name}
             onChange={(e) => updateBrand({ name: e.target.value })}
           />
           <PropertyColor
             id="brand-color"
             label="Màu brand"
-            value={project.metadata.brand.primaryColor ?? "#1A5D3A"}
+            value={brand.primaryColor ?? "#1A5D3A"}
             onChange={(value) => updateBrand({ primaryColor: value })}
           />
         </div>

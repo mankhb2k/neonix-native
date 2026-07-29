@@ -1,0 +1,71 @@
+"use client";
+
+import { useEffect } from "react";
+import { usePlaybackClock } from "./playback-clock-store";
+
+/**
+ * Absolute-time RAF driver for `mode === "playing"`.
+ * Does not advance the clock while scrubbing.
+ * Mount once under the editor timeline shell.
+ */
+export function usePlaybackDriver(): void {
+  useEffect(() => {
+    let raf = 0;
+    let running = false;
+    let startPerf = 0;
+    let startTimeline = 0;
+
+    const stop = () => {
+      running = false;
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+
+    const tick = (now: number) => {
+      const clock = usePlaybackClock.getState();
+      if (clock.mode !== "playing") {
+        stop();
+        return;
+      }
+      const next =
+        startTimeline +
+        ((now - startPerf) / 1000) * Math.max(0, clock.playbackRate);
+      if (next >= clock.duration) {
+        clock.seek(clock.duration);
+        clock.pause();
+        stop();
+        return;
+      }
+      clock.seek(next);
+      raf = requestAnimationFrame(tick);
+    };
+
+    const start = () => {
+      if (running) return;
+      const clock = usePlaybackClock.getState();
+      if (clock.mode !== "playing") return;
+      running = true;
+      startPerf = performance.now();
+      startTimeline = clock.currentTime;
+      raf = requestAnimationFrame(tick);
+    };
+
+    const unsub = usePlaybackClock.subscribe((state, prev) => {
+      if (state.mode === prev.mode) return;
+      if (state.mode === "playing") {
+        start();
+        return;
+      }
+      stop();
+    });
+
+    if (usePlaybackClock.getState().mode === "playing") start();
+
+    return () => {
+      unsub();
+      stop();
+    };
+  }, []);
+}

@@ -18,6 +18,7 @@ export interface TabsDesktopProps {
   onChange: (id: string) => void;
   className?: string;
   scrollAmount?: number;
+  stacked?: boolean;
 }
 
 export function TabsDesktop({
@@ -26,6 +27,7 @@ export function TabsDesktop({
   onChange,
   className,
   scrollAmount = 180,
+  stacked = false,
 }: TabsDesktopProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -63,7 +65,12 @@ export function TabsDesktop({
   }
 
   return (
-    <div className={cn("relative flex h-[38px] w-full items-center overflow-hidden select-none", className)}>
+    <div
+      className={cn(
+        "relative flex h-full w-full items-stretch overflow-hidden select-none",
+        className,
+      )}
+    >
       {/* Left Scroll Button */}
       {canScrollLeft ? (
         <div className="absolute top-0 bottom-0 left-0 z-20 flex items-center pr-3 pl-1 bg-gradient-to-r from-[var(--bg-panel)] via-[var(--bg-panel)]/90 to-transparent">
@@ -83,7 +90,7 @@ export function TabsDesktop({
       <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex h-full w-full items-center gap-1 overflow-x-auto px-2 no-scrollbar scroll-smooth"
+        className="flex h-full w-full items-stretch gap-1.5 overflow-x-auto px-2 no-scrollbar scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {items.map((item) => {
@@ -95,22 +102,23 @@ export function TabsDesktop({
               disabled={item.disabled}
               onClick={() => !item.disabled && onChange(item.id)}
               className={cn(
-                "relative flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-all cursor-pointer whitespace-nowrap",
+                stacked
+                  ? "flex shrink-0 h-full self-stretch flex-col items-center justify-center gap-0 px-2 py-0 text-[9px] font-medium transition-colors bg-transparent cursor-pointer whitespace-nowrap outline-none border-none"
+                  : "flex shrink-0 h-full self-stretch items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium transition-colors bg-transparent cursor-pointer whitespace-nowrap outline-none border-none",
                 isActive
-                  ? "bg-[var(--bg-hover)] text-[var(--accent-text)] font-semibold"
-                  : "text-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)]/50",
+                  ? "text-[var(--tab-fg-active)] font-semibold"
+                  : "text-[var(--tab-fg)] hover:text-[var(--tab-fg-hover)]",
                 item.disabled && "opacity-40 cursor-not-allowed",
               )}
             >
               {item.icon ? (
-                <span className="inline-flex items-center justify-center text-current">
+                <span className="inline-flex items-center justify-center text-current leading-none">
                   {item.icon}
                 </span>
               ) : null}
-              <span>{item.label}</span>
-              {isActive ? (
-                <span className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full bg-[var(--accent-text)]" />
-              ) : null}
+              <span className={stacked ? "text-[9px] leading-none tracking-tighter mt-[1px]" : ""}>
+                {item.label}
+              </span>
             </button>
           );
         })}
