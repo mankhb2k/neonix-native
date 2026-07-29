@@ -215,53 +215,42 @@ export function useTimelineClipMove({
       setDragCursor(clientX, clientY);
     }
 
-    const isAudio = session.source === "audio";
     const ws = workspaceRef.current;
     if (!ws) return;
 
-    if (isAudio) {
-      const target = resolveAudioDropAtPointer(
-        laneCacheRef.current,
-        ws,
-        clientY,
-        dropTargetRef.current.isInsert,
-        maxAudioOrderRef.current,
-      );
-      if (!target) return;
-
-      const ui = dropTargetRef.current;
-      const laneChanged = ui.laneId !== target.laneId;
-      const insertChanged = ui.isInsert !== target.isInsert;
-      const orderChanged = ui.insertOrder !== target.insertOrder;
-      const topChanged =
-        target.isInsert &&
-        Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
-      if (insertChanged || laneChanged || orderChanged || topChanged) {
-        ui.isInsert = target.isInsert;
-        ui.laneId = target.laneId;
-        ui.insertOrder = target.insertOrder;
-        ui.overMainBody = false;
-        if (insertChanged) setIsAudioInsertLine(target.isInsert);
-        if (laneChanged) setTargetAudioLaneId(target.laneId);
-        if (target.isInsert && (topChanged || insertChanged)) {
-          ui.indicatorTop = target.indicatorTop;
-          setIndicatorTopPos(target.indicatorTop);
-        }
-      }
-      return;
-    }
-
-    const target = resolveVisualDropAtPointer(
-      laneCacheRef.current,
-      ws,
-      clientY,
-      dropTargetRef.current.isInsert,
-      maxOverlayOrderRef.current,
-    );
+    const family = session.source === "audio" ? "audio" : "visual";
+    const target =
+      family === "audio"
+        ? resolveAudioDropAtPointer(
+            laneCacheRef.current,
+            ws,
+            clientY,
+            dropTargetRef.current.isInsert,
+            maxAudioOrderRef.current,
+          )
+        : resolveVisualDropAtPointer(
+            laneCacheRef.current,
+            ws,
+            clientY,
+            dropTargetRef.current.isInsert,
+            maxOverlayOrderRef.current,
+          );
     if (!target) return;
+    applyDropTargetUpdate(target, family);
+  }
 
+  function applyDropTargetUpdate(
+    target: {
+      isInsert: boolean;
+      laneId: string | null;
+      insertOrder: number | null;
+      indicatorTop: number;
+    },
+    family: "visual" | "audio",
+  ) {
     const ui = dropTargetRef.current;
-    const overMainBody = !target.isInsert && target.laneId == null;
+    const overMainBody =
+      family === "visual" && !target.isInsert && target.laneId == null;
     const laneChanged = ui.laneId !== target.laneId;
     const insertChanged = ui.isInsert !== target.isInsert;
     const orderChanged = ui.insertOrder !== target.insertOrder;
@@ -269,17 +258,25 @@ export function useTimelineClipMove({
     const topChanged =
       target.isInsert &&
       Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
-    if (insertChanged || laneChanged || orderChanged || topChanged || mainChanged) {
-      ui.isInsert = target.isInsert;
-      ui.laneId = target.laneId;
-      ui.insertOrder = target.insertOrder;
-      ui.overMainBody = overMainBody;
+    if (
+      !(insertChanged || laneChanged || orderChanged || topChanged || mainChanged)
+    ) {
+      return;
+    }
+    ui.isInsert = target.isInsert;
+    ui.laneId = target.laneId;
+    ui.insertOrder = target.insertOrder;
+    ui.overMainBody = overMainBody;
+    if (family === "audio") {
+      if (insertChanged) setIsAudioInsertLine(target.isInsert);
+      if (laneChanged) setTargetAudioLaneId(target.laneId);
+    } else {
       if (insertChanged) setIsOverlayInsertLine(target.isInsert);
       if (laneChanged) setTargetOverlayLaneId(target.laneId);
-      if (target.isInsert && (topChanged || insertChanged)) {
-        ui.indicatorTop = target.indicatorTop;
-        setIndicatorTopPos(target.indicatorTop);
-      }
+    }
+    if (target.isInsert && (topChanged || insertChanged)) {
+      ui.indicatorTop = target.indicatorTop;
+      setIndicatorTopPos(target.indicatorTop);
     }
   }
 
@@ -432,8 +429,9 @@ export function useTimelineClipMove({
     };
   }, []);
 
-  function beginOverlayPointerDown(
+  function beginClipPointerDown(
     item: TimelineClip,
+    family: "main" | "overlay" | "audio",
     event: ReactPointerEvent,
   ) {
     if (useEditorStore.getState().activeDragItem) return;
@@ -446,20 +444,29 @@ export function useTimelineClipMove({
     const clipLeft = item.startTime * pps;
     const pointerLeft = clientXToGhostLeft(event.clientX, 0);
     const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
+    const overMainBody = family === "main";
+    const seedLaneId = family === "main" ? null : item.laneId;
 
     dropTargetRef.current = {
       isInsert: false,
-      laneId: item.laneId,
+      laneId: seedLaneId,
       insertOrder: null,
       indicatorTop: 0,
-      overMainBody: false,
+      overMainBody,
     };
-    setTargetOverlayLaneId(item.laneId);
-    setTargetAudioLaneId(null);
-    setIsAudioInsertLine(false);
+
+    if (family === "audio") {
+      setTargetAudioLaneId(item.laneId);
+      setTargetOverlayLaneId(null);
+      setIsOverlayInsertLine(false);
+    } else {
+      setTargetOverlayLaneId(seedLaneId);
+      setTargetAudioLaneId(null);
+      setIsAudioInsertLine(false);
+    }
 
     sessionRef.current = {
-      source: "overlay",
+      source: family,
       id: item.id,
       name: item.name,
       duration: item.duration,
@@ -469,88 +476,29 @@ export function useTimelineClipMove({
       originY: event.clientY,
       grabOffsetX,
       started: false,
+      ...(family === "main" ? { clickSeekTime: item.startTime } : {}),
     };
+  }
+
+  function beginOverlayPointerDown(
+    item: TimelineClip,
+    event: ReactPointerEvent,
+  ) {
+    beginClipPointerDown(item, "overlay", event);
   }
 
   function beginMainPointerDown(
     item: TimelineClip,
     event: ReactPointerEvent,
   ) {
-    if (useEditorStore.getState().activeDragItem) return;
-
-    event.stopPropagation();
-    event.preventDefault();
-    useEditorStore.getState().selectClip(item.id);
-
-    const pps = Math.max(pixelsPerSecondRef.current, 1);
-    const clipLeft = item.startTime * pps;
-    const pointerLeft = clientXToGhostLeft(event.clientX, 0);
-    const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
-
-    dropTargetRef.current = {
-      isInsert: false,
-      laneId: null,
-      insertOrder: null,
-      indicatorTop: 0,
-      overMainBody: true,
-    };
-    setTargetOverlayLaneId(null);
-    setTargetAudioLaneId(null);
-    setIsAudioInsertLine(false);
-
-    sessionRef.current = {
-      source: "main",
-      id: item.id,
-      name: item.name,
-      duration: item.duration,
-      originLaneId: item.laneId,
-      pointerId: event.pointerId,
-      originX: event.clientX,
-      originY: event.clientY,
-      grabOffsetX,
-      started: false,
-      clickSeekTime: item.startTime,
-    };
+    beginClipPointerDown(item, "main", event);
   }
 
   function beginAudioPointerDown(
     item: TimelineClip,
     event: ReactPointerEvent,
   ) {
-    if (useEditorStore.getState().activeDragItem) return;
-
-    event.stopPropagation();
-    event.preventDefault();
-    useEditorStore.getState().selectClip(item.id);
-
-    const pps = Math.max(pixelsPerSecondRef.current, 1);
-    const clipLeft = item.startTime * pps;
-    const pointerLeft = clientXToGhostLeft(event.clientX, 0);
-    const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
-
-    dropTargetRef.current = {
-      isInsert: false,
-      laneId: item.laneId,
-      insertOrder: null,
-      indicatorTop: 0,
-      overMainBody: false,
-    };
-    setTargetAudioLaneId(item.laneId);
-    setTargetOverlayLaneId(null);
-    setIsOverlayInsertLine(false);
-
-    sessionRef.current = {
-      source: "audio",
-      id: item.id,
-      name: item.name,
-      duration: item.duration,
-      originLaneId: item.laneId,
-      pointerId: event.pointerId,
-      originX: event.clientX,
-      originY: event.clientY,
-      grabOffsetX,
-      started: false,
-    };
+    beginClipPointerDown(item, "audio", event);
   }
 
   return {
@@ -562,6 +510,7 @@ export function useTimelineClipMove({
     indicatorTopPos,
     dragGhostState,
     insertGhostRef,
+    beginClipPointerDown,
     beginOverlayPointerDown,
     beginMainPointerDown,
     beginAudioPointerDown,

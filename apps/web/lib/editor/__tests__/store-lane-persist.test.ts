@@ -167,7 +167,7 @@ describe("empty-lane persistence across move", () => {
     const emptySource = state.timelineLanes.find((l) => l.id === "lane.audio.0");
     expect(emptySource).toBeTruthy();
     expect(emptySource?.name).toBe("Audio Keep");
-    expect(emptySource?.muted).toBe(true);
+    expect(emptySource?.kind === "audio" && emptySource.muted).toBe(true);
 
     useEditorStore.getState().moveClip("a0", {
       track: "audio",
@@ -238,7 +238,7 @@ describe("empty-lane persistence across move", () => {
     );
     expect(emptySource).toBeTruthy();
     expect(emptySource?.name).toBe("Lớp Keep");
-    expect(emptySource?.visible).toBe(false);
+    expect(emptySource?.kind === "visual" && emptySource.visible).toBe(false);
 
     useEditorStore.getState().moveClip("ov.a", {
       track: "overlay",

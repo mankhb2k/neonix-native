@@ -1,14 +1,37 @@
 import { describe, expect, it } from "vitest";
 import {
+  audioDropPolicy,
   resolveAudioDragTarget,
+  resolveLaneDropTarget,
   resolveOverlayDragTarget,
+  visualDropPolicy,
   type AudioLaneHit,
+  type LaneHit,
   type VideoLaneHit,
 } from "@/components/desktop/editor/timeline/Tracks/lane-drop-target";
 
 const lanes: VideoLaneHit[] = [
   { top: 100, bottom: 140, type: "overlay", laneId: "ov1", order: 1 },
   { top: 140, bottom: 180, type: "main", laneId: "main", order: null },
+];
+
+const visualHits: LaneHit[] = [
+  {
+    top: 100,
+    bottom: 140,
+    family: "visual",
+    role: "overlay",
+    laneId: "ov1",
+    order: 1,
+  },
+  {
+    top: 140,
+    bottom: 180,
+    family: "visual",
+    role: "base",
+    laneId: "main",
+    order: null,
+  },
 ];
 
 describe("resolveOverlayDragTarget", () => {
@@ -47,6 +70,55 @@ describe("resolveOverlayDragTarget", () => {
     const target = resolveOverlayDragTarget(120, withPlaceholder, 100, false, 0);
     expect(target?.isInsert).toBe(true);
     expect(target?.insertOrder).toBe(0);
+  });
+});
+
+describe("resolveLaneDropTarget", () => {
+  it("visual hysteresis matches legacy overlay resolver", () => {
+    const unified = resolveLaneDropTarget(
+      120,
+      visualHits,
+      100,
+      false,
+      1,
+      visualDropPolicy,
+    );
+    const legacy = resolveOverlayDragTarget(120, lanes, 100, false, 1);
+    expect(unified?.isInsert).toBe(legacy?.isInsert);
+    expect(unified?.laneId).toBe(legacy?.laneId);
+    expect(unified?.insertOrder).toBe(legacy?.insertOrder);
+    expect(unified?.family).toBe("visual");
+  });
+
+  it("audio hysteresis keeps insert near edge after insert mode", () => {
+    const audioHits: LaneHit[] = [
+      {
+        top: 100,
+        bottom: 140,
+        family: "audio",
+        role: "base",
+        laneId: "main",
+        order: null,
+      },
+      {
+        top: 140,
+        bottom: 180,
+        family: "audio",
+        role: "audio",
+        laneId: "au0",
+        order: 0,
+      },
+    ];
+    const nearTop = resolveLaneDropTarget(
+      141,
+      audioHits,
+      100,
+      true,
+      0,
+      audioDropPolicy,
+    );
+    expect(nearTop?.isInsert).toBe(true);
+    expect(nearTop?.family).toBe("audio");
   });
 });
 
