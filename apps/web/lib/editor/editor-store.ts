@@ -7,6 +7,7 @@ import {
   playheadSplitsClip,
 } from "@/lib/editor/clip-clipboard";
 import { TIMELINE_ZOOM_ON_PROJECT_LOAD } from "@/lib/editor/editor-preferences";
+import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import {
   selectionClips,
   selectionNone,
