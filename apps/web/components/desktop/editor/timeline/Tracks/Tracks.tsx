@@ -243,7 +243,7 @@ export function Tracks({
                         role="button"
                         tabIndex={0}
                         className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
-                          active ? "z-10 ring-2 ring-white" : ""
+                          active ? "z-10 border-2 border-white" : ""
                         }`}
                         style={{
                           left: item.startTime * pixelsPerSecond,
@@ -355,10 +355,10 @@ export function Tracks({
                     data-clip-id={clip.id}
                     role="button"
                     tabIndex={0}
-                    className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] transition-all flex flex-col justify-center ${
+                    className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90 ${
                       active
-                        ? "z-10 bg-[var(--timeline-clip-frame-hover)] text-white shadow-md ring-2 ring-white"
-                        : "bg-[var(--timeline-clip-frame)] text-white/90 hover:bg-[var(--timeline-clip-frame-hover)]"
+                        ? "z-10 border-2 border-white text-white shadow-md"
+                        : ""
                     }`}
                     style={{
                       left: clip.startTime * pixelsPerSecond,
@@ -461,8 +461,8 @@ export function Tracks({
                         data-clip-id={clip.id}
                         role="button"
                         tabIndex={0}
-                        className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] hover:bg-[var(--timeline-clip-audio-hover)] px-2 text-[10px] font-medium text-white shadow-sm transition-colors overflow-hidden ${
-                          active ? "z-10 ring-2 ring-white" : ""
+                        className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm overflow-hidden ${
+                          active ? "z-10 border-2 border-white" : ""
                         }`}
                         style={{
                           left: clip.startTime * pixelsPerSecond,
