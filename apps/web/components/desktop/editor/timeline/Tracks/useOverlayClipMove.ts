@@ -170,6 +170,15 @@ export function useOverlayClipMove({
         name: session.name,
         duration: session.duration,
       });
+      // Cache kích thước ghost một lần khi session bắt đầu — không setState mỗi move.
+      const pps = Math.max(pixelsPerSecondRef.current, 1);
+      setDragGhostState({
+        left: 0,
+        width: Math.max(session.duration * pps, 24),
+        label: session.name,
+        duration: session.duration,
+        targetTrack: session.source === "audio" ? "audio" : "video",
+      });
     }
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
@@ -183,14 +192,6 @@ export function useOverlayClipMove({
     }
 
     const isAudio = session.source === "audio";
-    setDragGhostState({
-      left,
-      width: ghostWidth,
-      label: session.name,
-      duration: session.duration,
-      targetTrack: isAudio ? "audio" : "video",
-    });
-
     const ws = workspaceRef.current;
     if (!ws) return;
 
@@ -262,6 +263,21 @@ export function useOverlayClipMove({
     }
   }
 
+  const pendingPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const moveRafRef = useRef<number | null>(null);
+
+  function schedulePointerMove(clientX: number, clientY: number) {
+    // PERF-02: coalesce pointermove — tối đa một flush / animation frame.
+    pendingPointerRef.current = { x: clientX, y: clientY };
+    if (moveRafRef.current != null) return;
+    moveRafRef.current = requestAnimationFrame(() => {
+      moveRafRef.current = null;
+      const pending = pendingPointerRef.current;
+      if (!pending) return;
+      applyPointerMove(pending.x, pending.y);
+    });
+  }
+
   function commitMove() {
     const session = sessionRef.current;
     if (!session) {
@@ -326,14 +342,29 @@ export function useOverlayClipMove({
     function onPointerMove(event: PointerEvent) {
       const session = sessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
-      applyPointerMove(event.clientX, event.clientY);
+      schedulePointerMove(event.clientX, event.clientY);
     }
 
     function onPointerUp(event: PointerEvent) {
+      // Flush RAF còn treo trước khi commit.
+      if (moveRafRef.current != null) {
+        cancelAnimationFrame(moveRafRef.current);
+        moveRafRef.current = null;
+      }
+      const pending = pendingPointerRef.current;
+      if (pending) {
+        applyPointerMove(pending.x, pending.y);
+        pendingPointerRef.current = null;
+      }
       endPointerSession("pointerup", event.pointerId);
     }
 
     function onPointerCancel(event: PointerEvent) {
+      if (moveRafRef.current != null) {
+        cancelAnimationFrame(moveRafRef.current);
+        moveRafRef.current = null;
+      }
+      pendingPointerRef.current = null;
       endPointerSession("pointercancel", event.pointerId);
     }
 
@@ -341,6 +372,11 @@ export function useOverlayClipMove({
       if (event.key !== "Escape") return;
       if (!sessionRef.current) return;
       event.preventDefault();
+      if (moveRafRef.current != null) {
+        cancelAnimationFrame(moveRafRef.current);
+        moveRafRef.current = null;
+      }
+      pendingPointerRef.current = null;
       endPointerSession("escape");
     }
 
@@ -353,6 +389,7 @@ export function useOverlayClipMove({
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("keydown", onKeyDown);
+      if (moveRafRef.current != null) cancelAnimationFrame(moveRafRef.current);
     };
   }, []);
 

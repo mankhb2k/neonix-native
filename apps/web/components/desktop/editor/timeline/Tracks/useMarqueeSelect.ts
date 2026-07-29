@@ -94,24 +94,23 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     };
   }
 
-  function hitTestClientRect(
+  const clipRectsRef = useRef<{ id: string; left: number; top: number; right: number; bottom: number }[]>([]);
+  const pendingPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const marqueeRafRef = useRef<number | null>(null);
+
+  function hitTestCached(
     originX: number,
     originY: number,
     clientX: number,
     clientY: number,
   ): string[] {
-    const ws = workspaceRef.current;
-    if (!ws) return [];
     const left = Math.min(originX, clientX);
     const top = Math.min(originY, clientY);
     const right = Math.max(originX, clientX);
     const bottom = Math.max(originY, clientY);
     const box = { left, top, right, bottom };
     const ids: string[] = [];
-    for (const el of ws.querySelectorAll<HTMLElement>("[data-clip-id]")) {
-      const id = el.getAttribute("data-clip-id");
-      if (!id) continue;
-      const r = el.getBoundingClientRect();
+    for (const r of clipRectsRef.current) {
       if (
         rectsIntersect(box, {
           left: r.left,
@@ -120,10 +119,26 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
           bottom: r.bottom,
         })
       ) {
-        ids.push(id);
+        ids.push(r.id);
       }
     }
     return ids;
+  }
+
+  function cacheClipRects() {
+    const ws = workspaceRef.current;
+    if (!ws) {
+      clipRectsRef.current = [];
+      return;
+    }
+    const next: typeof clipRectsRef.current = [];
+    for (const el of ws.querySelectorAll<HTMLElement>("[data-clip-id]")) {
+      const id = el.getAttribute("data-clip-id");
+      if (!id) continue;
+      const r = el.getBoundingClientRect();
+      next.push({ id, left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+    }
+    clipRectsRef.current = next;
   }
 
   function endSession(
@@ -151,15 +166,10 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       return;
     }
 
-    if (clientX == null || clientY == null) return;
-    const ids = hitTestClientRect(
-      session.originClientX,
-      session.originClientY,
-      clientX,
-      clientY,
-    );
-    lastLiveIdsRef.current = ids;
-    useEditorStore.getState().setSelectedClipIds(ids);
+    // Dùng kết quả RAF cuối — không đo lại DOM ở pointerup (PERF-03).
+    if (lastLiveIdsRef.current.length > 0 || clientX != null) {
+      useEditorStore.getState().setSelectedClipIds(lastLiveIdsRef.current);
+    }
   }
 
   function onWorkspacePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
@@ -178,6 +188,33 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
   }
 
   useEffect(() => {
+    function flushMarqueeMove() {
+      marqueeRafRef.current = null;
+      const session = sessionRef.current;
+      const pending = pendingPointerRef.current;
+      if (!session || !pending) return;
+
+      setMarqueeRect(
+        buildMarquee(
+          session.originClientX,
+          session.originClientY,
+          pending.x,
+          pending.y,
+        ),
+      );
+
+      const liveIds = hitTestCached(
+        session.originClientX,
+        session.originClientY,
+        pending.x,
+        pending.y,
+      );
+      if (!selectionIdsEqual(liveIds, lastLiveIdsRef.current)) {
+        lastLiveIdsRef.current = liveIds;
+        useEditorStore.getState().setSelectedClipIds(liveIds);
+      }
+    }
+
     function onPointerMove(event: PointerEvent) {
       const session = sessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
@@ -190,39 +227,35 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
         }
         session.started = true;
         setIsMarqueeing(true);
+        // PERF-03: đo clip rect một lần khi bắt đầu marquee.
+        cacheClipRects();
+        lastLiveIdsRef.current = [];
       }
 
-      setMarqueeRect(
-        buildMarquee(
-          session.originClientX,
-          session.originClientY,
-          event.clientX,
-          event.clientY,
-        ),
-      );
-
-      const liveIds = hitTestClientRect(
-        session.originClientX,
-        session.originClientY,
-        event.clientX,
-        event.clientY,
-      );
-      // Chỉ ghi store khi tập ID đổi — tránh render nóng thừa.
-      if (!selectionIdsEqual(liveIds, lastLiveIdsRef.current)) {
-        lastLiveIdsRef.current = liveIds;
-        useEditorStore.getState().setSelectedClipIds(liveIds);
-      }
+      pendingPointerRef.current = { x: event.clientX, y: event.clientY };
+      if (marqueeRafRef.current != null) return;
+      marqueeRafRef.current = requestAnimationFrame(flushMarqueeMove);
     }
 
     function onPointerUp(event: PointerEvent) {
       const session = sessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
+      if (marqueeRafRef.current != null) {
+        cancelAnimationFrame(marqueeRafRef.current);
+        marqueeRafRef.current = null;
+        flushMarqueeMove();
+      }
       endSession("pointerup", event.clientX, event.clientY);
     }
 
     function onPointerCancel(event: PointerEvent) {
       const session = sessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
+      if (marqueeRafRef.current != null) {
+        cancelAnimationFrame(marqueeRafRef.current);
+        marqueeRafRef.current = null;
+      }
+      pendingPointerRef.current = null;
       endSession("pointercancel");
     }
 
@@ -230,6 +263,11 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       if (event.key !== "Escape") return;
       if (!sessionRef.current) return;
       event.preventDefault();
+      if (marqueeRafRef.current != null) {
+        cancelAnimationFrame(marqueeRafRef.current);
+        marqueeRafRef.current = null;
+      }
+      pendingPointerRef.current = null;
       endSession("escape");
     }
 
@@ -242,6 +280,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("keydown", onKeyDown);
+      if (marqueeRafRef.current != null) cancelAnimationFrame(marqueeRafRef.current);
     };
   }, []);
 
