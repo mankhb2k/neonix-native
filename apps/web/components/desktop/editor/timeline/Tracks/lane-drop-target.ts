@@ -144,6 +144,15 @@ function resolveInsideLane(
         indicatorTop: 0,
       };
     }
+    // Virtual empty placeholder (no laneId) → create lane on drop.
+    if (lane.type === "overlay") {
+      return {
+        isInsert: true,
+        laneId: null,
+        insertOrder: lane.order ?? 0,
+        indicatorTop: lane.top - wsTop,
+      };
+    }
     return { isInsert: false, laneId: null, insertOrder: null, indicatorTop: 0 };
   };
 

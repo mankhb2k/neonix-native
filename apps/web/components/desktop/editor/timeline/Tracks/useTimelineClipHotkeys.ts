@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
-import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 
 function isEditableTarget(target: EventTarget | null): boolean {
@@ -16,7 +16,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
 /** Global hotkeys for timeline clip clipboard / split / duplicate. */
 export function useTimelineClipHotkeys(enabled: boolean) {
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled) return undefined;
 
     function onKeyDown(event: KeyboardEvent) {
       if (isEditableTarget(event.target)) return;

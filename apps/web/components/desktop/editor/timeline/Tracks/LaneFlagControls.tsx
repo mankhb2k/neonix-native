@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { Eye, EyeOff, Lock, Unlock, Volume2, VolumeX } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import type { TimelineLane } from "@/lib/editor/timeline-clips";
+import type { ReactNode } from "react";
 
 type Props = {
   lane: TimelineLane;

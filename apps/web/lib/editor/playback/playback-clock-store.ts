@@ -7,8 +7,12 @@ type PlaybackClockState = {
   duration: number;
   mode: PlaybackMode;
   playbackRate: number;
+  /** Tăng khi user/API seek/reset — driver re-anchor khi đang playing. */
+  seekRevision: number;
 
   seek: (time: number) => void;
+  /** Chỉ advance thời gian (RAF driver) — không bump seekRevision. */
+  advancePlayback: (time: number) => void;
   setDuration: (duration: number) => void;
   /** Atomic reset khi load project — kể cả cùng metadata id. */
   reset: (input: { duration: number; currentTime?: number }) => void;
@@ -34,8 +38,17 @@ export const usePlaybackClock = create<PlaybackClockState>((set, get) => ({
   duration: 0,
   mode: "idle",
   playbackRate: 1,
+  seekRevision: 0,
 
   seek: (time) => {
+    const { duration, seekRevision } = get();
+    set({
+      currentTime: clampTime(time, duration),
+      seekRevision: seekRevision + 1,
+    });
+  },
+
+  advancePlayback: (time) => {
     const { duration } = get();
     set({ currentTime: clampTime(time, duration) });
   },
@@ -50,12 +63,13 @@ export const usePlaybackClock = create<PlaybackClockState>((set, get) => ({
 
   reset: ({ duration, currentTime = 0 }) => {
     const nextDuration = Math.max(0, Number.isFinite(duration) ? duration : 0);
-    set({
+    set((state) => ({
       duration: nextDuration,
       currentTime: clampTime(currentTime, nextDuration),
-      mode: "idle",
+      mode: "idle" as const,
       playbackRate: 1,
-    });
+      seekRevision: state.seekRevision + 1,
+    }));
   },
 
   play: () => {
@@ -63,7 +77,11 @@ export const usePlaybackClock = create<PlaybackClockState>((set, get) => ({
     if (duration <= 0) return;
     // Restart from start when pressing play at the end.
     if (currentTime >= duration) {
-      set({ currentTime: 0, mode: "playing" });
+      set((state) => ({
+        currentTime: 0,
+        mode: "playing" as const,
+        seekRevision: state.seekRevision + 1,
+      }));
       return;
     }
     set({ mode: "playing" });

@@ -142,11 +142,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     clipRectsRef.current = next;
   }
 
-  function endSession(
-    reason: PointerSessionEndReason,
-    clientX?: number,
-    clientY?: number,
-  ) {
+  function endSession(reason: PointerSessionEndReason, clientX?: number) {
     const session = sessionRef.current;
     sessionRef.current = null;
     setMarqueeRect(null);
@@ -190,6 +186,13 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     };
   }
 
+  const buildMarqueeRef = useRef(buildMarquee);
+  const cacheClipRectsRef = useRef(cacheClipRects);
+  const endSessionRef = useRef(endSession);
+  buildMarqueeRef.current = buildMarquee;
+  cacheClipRectsRef.current = cacheClipRects;
+  endSessionRef.current = endSession;
+
   useEffect(() => {
     function flushMarqueeMove() {
       marqueeRafRef.current = null;
@@ -198,7 +201,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       if (!session || !pending) return;
 
       setMarqueeRect(
-        buildMarquee(
+        buildMarqueeRef.current(
           session.originClientX,
           session.originClientY,
           pending.x,
@@ -231,7 +234,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
         session.started = true;
         setIsMarqueeing(true);
         // PERF-03: đo clip rect một lần khi bắt đầu marquee.
-        cacheClipRects();
+        cacheClipRectsRef.current();
         lastLiveIdsRef.current = [];
       }
 
@@ -248,7 +251,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
         marqueeRafRef.current = null;
         flushMarqueeMove();
       }
-      endSession("pointerup", event.clientX, event.clientY);
+      endSessionRef.current("pointerup", event.clientX);
     }
 
     function onPointerCancel(event: PointerEvent) {
@@ -259,7 +262,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
         marqueeRafRef.current = null;
       }
       pendingPointerRef.current = null;
-      endSession("pointercancel");
+      endSessionRef.current("pointercancel");
     }
 
     function onKeyDown(event: KeyboardEvent) {
@@ -271,7 +274,7 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
         marqueeRafRef.current = null;
       }
       pendingPointerRef.current = null;
-      endSession("escape");
+      endSessionRef.current("escape");
     }
 
     window.addEventListener("pointermove", onPointerMove);

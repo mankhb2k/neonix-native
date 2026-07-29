@@ -8,9 +8,6 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { useEditorStore } from "@/lib/editor/editor-store";
-import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import type { TimelineClip } from "@/lib/editor/timeline-clips";
 import {
   bindDragGhostElement,
   clearDragCursor,
@@ -19,25 +16,26 @@ import {
   setDragPreviewAnchor,
   unbindDragGhostElementIf,
 } from "@/lib/editor/drag-cursor";
-import {
-  collectSceneLanes,
-  collectAudioZoneLanes,
-  cacheSceneLanesRelative,
-  cacheAudioLanesRelative,
-  absoluteSceneLanes,
-  absoluteAudioLanes,
-  resolveOverlayDragTarget,
-  resolveAudioDragTarget,
-  INDICATOR_TOP_EPS_PX,
-  type RelativeLaneHit,
-  type RelativeAudioLaneHit,
-} from "./lane-drop-target";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   shouldCommitPointerSession,
   type PointerSessionEndReason,
 } from "@/lib/editor/pointer-session";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
+import {
+  bindLaneCacheInvalidation,
+  createEmptyLaneRectCache,
+  invalidateLaneRectCache,
+  resolveAudioDropAtPointer,
+  resolveVisualDropAtPointer,
+  type LaneRectCache,
+} from "./lane-drop-session";
+import {
+  INDICATOR_TOP_EPS_PX,
+} from "./lane-drop-target";
 import type { DragGhostState } from "./useTracksDrag";
+import type { TimelineClip } from "@/lib/editor/timeline-clips";
 
 /** Cyan h-8 vertically centered; left edge on cursor (same as sidebar timeline drag). */
 const CYAN_ANCHOR_X = 0;
@@ -45,7 +43,8 @@ const CYAN_ANCHOR_Y = 16;
 /** Start move only after this drag distance (keeps click = select). */
 const MOVE_THRESHOLD_PX = 4;
 
-type UseOverlayClipMoveArgs = {
+/** scrollContainerRef = timeline scroll root (historically rootRef). */
+type UseTimelineClipMoveArgs = {
   rootRef: RefObject<HTMLDivElement | null>;
   workspaceRef: RefObject<HTMLDivElement | null>;
   pixelsPerSecond: number;
@@ -74,14 +73,14 @@ type MoveSession = {
  * with shared insert-line / gray ghost policy from sidebar drops.
  */
 export function useTimelineClipMove({
-  rootRef,
+  rootRef: scrollContainerRef,
   workspaceRef,
   pixelsPerSecond,
   maxOverlayOrder,
   maxAudioOrder,
-}: UseOverlayClipMoveArgs) {
+}: UseTimelineClipMoveArgs) {
   const insertGhostRef = useRef<HTMLDivElement>(null);
-  const moveUiRef = useRef({
+  const dropTargetRef = useRef({
     isInsert: false,
     laneId: null as string | null,
     insertOrder: null as number | null,
@@ -91,11 +90,7 @@ export function useTimelineClipMove({
   });
   const ghostLeftRef = useRef(0);
   const sessionRef = useRef<MoveSession | null>(null);
-  /** Cache lane rects lúc bắt đầu drag — invalidate khi scroll. */
-  const laneCacheRef = useRef<{
-    scene: RelativeLaneHit[] | null;
-    audio: RelativeAudioLaneHit[] | null;
-  }>({ scene: null, audio: null });
+  const laneCacheRef = useRef<LaneRectCache>(createEmptyLaneRectCache());
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -119,39 +114,35 @@ export function useTimelineClipMove({
   );
 
   const isInsertLine = isOverlayInsertLine || isAudioInsertLine;
+  const hasDragGhost = dragGhostState != null;
 
   useLayoutEffect(() => {
-    if (!isInsertLine || !dragGhostState) {
-      unbindDragGhostElementIf(insertGhostRef.current);
-      return () => undefined;
+    const ghostEl = insertGhostRef.current;
+    if (!isInsertLine || !hasDragGhost) {
+      unbindDragGhostElementIf(ghostEl);
+      return undefined;
     }
-    bindDragGhostElement(insertGhostRef.current, {
+    bindDragGhostElement(ghostEl, {
       leftOffset: TIMELINE_LABEL_WIDTH,
     });
     return () => {
-      unbindDragGhostElementIf(insertGhostRef.current);
+      unbindDragGhostElementIf(ghostEl);
     };
-  }, [isInsertLine, dragGhostState != null]);
+  }, [isInsertLine, hasDragGhost]);
 
-  // Invalidate lane rect cache khi scroll/resize workspace.
-  useEffect(() => {
-    const root = rootRef.current;
-    const ws = workspaceRef.current;
-    const invalidate = () => {
-      laneCacheRef.current = { scene: null, audio: null };
-    };
-    root?.addEventListener("scroll", invalidate, { passive: true });
-    ws?.addEventListener("scroll", invalidate, { passive: true });
-    window.addEventListener("resize", invalidate);
-    return () => {
-      root?.removeEventListener("scroll", invalidate);
-      ws?.removeEventListener("scroll", invalidate);
-      window.removeEventListener("resize", invalidate);
-    };
-  }, [rootRef, workspaceRef]);
+  // Invalidate lane rect cache khi scroll/resize — pointermove sau sẽ recache.
+  useEffect(
+    () =>
+      bindLaneCacheInvalidation(
+        scrollContainerRef,
+        workspaceRef,
+        laneCacheRef.current,
+      ),
+    [scrollContainerRef, workspaceRef],
+  );
 
   function resetMoveUi() {
-    moveUiRef.current = {
+    dropTargetRef.current = {
       isInsert: false,
       laneId: null,
       insertOrder: null,
@@ -160,7 +151,7 @@ export function useTimelineClipMove({
     };
     ghostLeftRef.current = 0;
     sessionRef.current = null;
-    laneCacheRef.current = { scene: null, audio: null };
+    invalidateLaneRectCache(laneCacheRef.current);
     setMovingClipId(null);
     setIsOverlayInsertLine(false);
     setTargetOverlayLaneId(null);
@@ -173,7 +164,7 @@ export function useTimelineClipMove({
   }
 
   function clientXToGhostLeft(clientX: number, grabOffsetX: number): number {
-    const root = rootRef.current;
+    const root = scrollContainerRef.current;
     if (!root) return 0;
     const rect = root.getBoundingClientRect();
     const mouseX =
@@ -183,7 +174,7 @@ export function useTimelineClipMove({
 
   function applyPointerMove(clientX: number, clientY: number) {
     const session = sessionRef.current;
-    if (!session || !rootRef.current) return;
+    if (!session || !scrollContainerRef.current) return;
 
     if (!session.started) {
       const dx = clientX - session.originX;
@@ -208,15 +199,7 @@ export function useTimelineClipMove({
         duration: session.duration,
         targetTrack: session.source === "audio" ? "audio" : "video",
       });
-      // Cache lane rects relative — tránh querySelectorAll mỗi pointermove.
-      const wsEl = workspaceRef.current;
-      if (wsEl) {
-        const wsTop0 = wsEl.getBoundingClientRect().top;
-        laneCacheRef.current = {
-          scene: cacheSceneLanesRelative(wsEl, wsTop0),
-          audio: cacheAudioLanesRelative(wsEl, wsTop0),
-        };
-      }
+      invalidateLaneRectCache(laneCacheRef.current);
     }
 
     const pps = Math.max(pixelsPerSecondRef.current, 1);
@@ -233,23 +216,17 @@ export function useTimelineClipMove({
     const ws = workspaceRef.current;
     if (!ws) return;
 
-    const wsTop = ws.getBoundingClientRect().top;
-
     if (isAudio) {
-      const cached = laneCacheRef.current.audio;
-      const lanes = cached
-        ? absoluteAudioLanes(cached, wsTop)
-        : collectAudioZoneLanes(ws);
-      const target = resolveAudioDragTarget(
+      const target = resolveAudioDropAtPointer(
+        laneCacheRef.current,
+        ws,
         clientY,
-        lanes,
-        wsTop,
-        moveUiRef.current.isInsert,
+        dropTargetRef.current.isInsert,
         maxAudioOrderRef.current,
       );
       if (!target) return;
 
-      const ui = moveUiRef.current;
+      const ui = dropTargetRef.current;
       const laneChanged = ui.laneId !== target.laneId;
       const insertChanged = ui.isInsert !== target.isInsert;
       const orderChanged = ui.insertOrder !== target.insertOrder;
@@ -271,20 +248,16 @@ export function useTimelineClipMove({
       return;
     }
 
-    const cached = laneCacheRef.current.scene;
-    const lanes = cached
-      ? absoluteSceneLanes(cached, wsTop)
-      : collectSceneLanes(ws);
-    const target = resolveOverlayDragTarget(
+    const target = resolveVisualDropAtPointer(
+      laneCacheRef.current,
+      ws,
       clientY,
-      lanes,
-      wsTop,
-      moveUiRef.current.isInsert,
+      dropTargetRef.current.isInsert,
       maxOverlayOrderRef.current,
     );
     if (!target) return;
 
-    const ui = moveUiRef.current;
+    const ui = dropTargetRef.current;
     const overMainBody = !target.isInsert && target.laneId == null;
     const laneChanged = ui.laneId !== target.laneId;
     const insertChanged = ui.isInsert !== target.isInsert;
@@ -340,33 +313,42 @@ export function useTimelineClipMove({
     const store = useEditorStore.getState();
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const startTime = ghostLeftRef.current / pps;
-    const ui = moveUiRef.current;
+    const ui = dropTargetRef.current;
 
     if (session.source === "audio") {
-      store.moveClip(session.id, {
-        track: "audio",
-        startTime,
-        laneId: ui.laneId ?? session.originLaneId,
-        insertNewLane: ui.isInsert,
-        ...(ui.isInsert && ui.insertOrder != null
-          ? { insertOrder: ui.insertOrder }
-          : {}),
-      });
+      store.moveClip(session.id, ui.isInsert
+        ? {
+            track: "audio",
+            startTime,
+            insertNewLane: true,
+            ...(ui.insertOrder != null ? { insertOrder: ui.insertOrder } : {}),
+          }
+        : {
+            track: "audio",
+            startTime,
+            laneId: ui.laneId ?? session.originLaneId,
+          });
       resetMoveUi();
       return;
     }
 
-    store.moveClip(session.id, ui.overMainBody
-      ? { track: "main", startTime }
-      : {
-          track: "overlay",
-          startTime,
-          laneId: ui.laneId ?? session.originLaneId,
-          insertNewLane: ui.isInsert,
-          ...(ui.isInsert && ui.insertOrder != null
-            ? { insertOrder: ui.insertOrder }
-            : {}),
-        });
+    store.moveClip(
+      session.id,
+      ui.isInsert
+        ? {
+            track: "overlay",
+            startTime,
+            insertNewLane: true,
+            ...(ui.insertOrder != null ? { insertOrder: ui.insertOrder } : {}),
+          }
+        : ui.overMainBody
+          ? { track: "main", startTime }
+          : {
+              track: "overlay",
+              startTime,
+              laneId: ui.laneId ?? session.originLaneId,
+            },
+    );
     resetMoveUi();
   }
 
@@ -382,11 +364,18 @@ export function useTimelineClipMove({
     resetMoveUi();
   }
 
+  const applyPointerMoveRef = useRef(applyPointerMove);
+  const schedulePointerMoveRef = useRef(schedulePointerMove);
+  const endPointerSessionRef = useRef(endPointerSession);
+  applyPointerMoveRef.current = applyPointerMove;
+  schedulePointerMoveRef.current = schedulePointerMove;
+  endPointerSessionRef.current = endPointerSession;
+
   useEffect(() => {
     function onPointerMove(event: PointerEvent) {
       const session = sessionRef.current;
       if (!session || event.pointerId !== session.pointerId) return;
-      schedulePointerMove(event.clientX, event.clientY);
+      schedulePointerMoveRef.current(event.clientX, event.clientY);
     }
 
     function onPointerUp(event: PointerEvent) {
@@ -397,10 +386,10 @@ export function useTimelineClipMove({
       }
       const pending = pendingPointerRef.current;
       if (pending) {
-        applyPointerMove(pending.x, pending.y);
+        applyPointerMoveRef.current(pending.x, pending.y);
         pendingPointerRef.current = null;
       }
-      endPointerSession("pointerup", event.pointerId);
+      endPointerSessionRef.current("pointerup", event.pointerId);
     }
 
     function onPointerCancel(event: PointerEvent) {
@@ -409,7 +398,7 @@ export function useTimelineClipMove({
         moveRafRef.current = null;
       }
       pendingPointerRef.current = null;
-      endPointerSession("pointercancel", event.pointerId);
+      endPointerSessionRef.current("pointercancel", event.pointerId);
     }
 
     function onKeyDown(event: KeyboardEvent) {
@@ -421,7 +410,7 @@ export function useTimelineClipMove({
         moveRafRef.current = null;
       }
       pendingPointerRef.current = null;
-      endPointerSession("escape");
+      endPointerSessionRef.current("escape");
     }
 
     window.addEventListener("pointermove", onPointerMove);
@@ -452,7 +441,7 @@ export function useTimelineClipMove({
     const pointerLeft = clientXToGhostLeft(event.clientX, 0);
     const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
 
-    moveUiRef.current = {
+    dropTargetRef.current = {
       isInsert: false,
       laneId: item.laneId,
       insertOrder: null,
@@ -492,7 +481,7 @@ export function useTimelineClipMove({
     const pointerLeft = clientXToGhostLeft(event.clientX, 0);
     const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
 
-    moveUiRef.current = {
+    dropTargetRef.current = {
       isInsert: false,
       laneId: null,
       insertOrder: null,
@@ -533,7 +522,7 @@ export function useTimelineClipMove({
     const pointerLeft = clientXToGhostLeft(event.clientX, 0);
     const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
 
-    moveUiRef.current = {
+    dropTargetRef.current = {
       isInsert: false,
       laneId: item.laneId,
       insertOrder: null,

@@ -1,5 +1,3 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
-import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 import {
   DEFAULT_VISUAL_POLICY,
   type SceneTimelineClip,
@@ -8,6 +6,8 @@ import {
   type TimelineTrackKind,
   type VisualLanePolicy,
 } from "@/lib/editor/model/timeline-types";
+import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 export type {
   AudioTimelineClip,
@@ -703,7 +703,55 @@ export function ensureAudioClipsFromTracks(
   return { lanes: nextLanes, clips: resultClips };
 }
 
-/** Place on base lane without time-overlap (trừ khi ripple). */
+/**
+ * Đặt startTime trên một lane cố định: không overlap.
+ * True nearest-snap: so abs(desired - before) vs abs(desired - after).
+ */
+export function resolveLaneStartTimeNearest(
+  clipsOnLane: TimelineClip[],
+  desiredStart: number,
+  duration: number,
+): number {
+  const dur = Math.max(0, duration);
+  const sorted = [...clipsOnLane].sort(
+    (a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id),
+  );
+
+  const isFree = (start: number) =>
+    !sorted.some((clip) =>
+      rangesOverlap(start, dur, clip.startTime, clip.duration),
+    );
+
+  let t = Math.max(0, desiredStart);
+  if (isFree(t)) return t;
+
+  for (let guard = 0; guard < sorted.length + 4; guard += 1) {
+    const conflict = sorted.find((clip) =>
+      rangesOverlap(t, dur, clip.startTime, clip.duration),
+    );
+    if (!conflict) return t;
+
+    const conflictStart = conflict.startTime;
+    const conflictEnd = conflict.startTime + conflict.duration;
+    const before = Math.max(0, conflictStart - dur);
+    const after = conflictEnd;
+    const beforeFree = isFree(before);
+    const afterFree = isFree(after);
+    const pickBefore =
+      beforeFree &&
+      (!afterFree ||
+        Math.abs(desiredStart - before) <= Math.abs(desiredStart - after));
+
+    if (pickBefore) {
+      t = before;
+    } else {
+      t = after;
+    }
+  }
+  return t;
+}
+
+/** Place on base lane without time-overlap — nearest-snap trên base. */
 export function resolveMainStartTime(
   clips: TimelineClip[],
   lanes: TimelineLane[],
@@ -713,15 +761,8 @@ export function resolveMainStartTime(
   const mainId = lanes.find(
     (lane) => lane.kind === "visual" && lane.role === "base",
   )?.id;
-  const main = clips
-    .filter((clip) => clip.laneId === mainId)
-    .sort((a, b) => a.startTime - b.startTime);
-  let t = Math.max(0, startTime);
-  for (const clip of main) {
-    if (!rangesOverlap(t, duration, clip.startTime, clip.duration)) continue;
-    t = clip.startTime + clip.duration;
-  }
-  return t;
+  const main = clips.filter((clip) => clip.laneId === mainId);
+  return resolveLaneStartTimeNearest(main, startTime, duration);
 }
 
 export function shiftOverlayLaneOrders(

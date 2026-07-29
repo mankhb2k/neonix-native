@@ -29,7 +29,10 @@ import {
 import {
   applyRippleAfter,
   createOverlayLaneAt,
+  resolveAudioPlacementIntent,
   resolveVisualPlacement,
+  type AudioPlacementIntent,
+  type VisualPlacementIntent,
 } from "@/lib/editor/operations/clip-move";
 import {
   selectionClips,
@@ -44,7 +47,6 @@ import {
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   ensureMainLane,
-  findFreeAudioLane,
   isAudioLane,
   isMainLane,
   isOverlayLane,
@@ -134,6 +136,7 @@ type EditorState = {
           insertOrder?: number;
         },
   ) => void;
+  /** track "main" = UI Main lane (domain role `base`) — API name kept for callers. */
   moveClip: (
     clipId: string,
     patch: {
@@ -308,29 +311,20 @@ function rebuildMainProject(
   };
 }
 
-function resolveOverlayPlacement(
+function applyVisualPlacement(
   lanes: TimelineLane[],
   clips: TimelineClip[],
-  startTime: number,
-  duration: number,
-  preferredLaneId: string | null,
-  insertNew: boolean,
-  preferredInsertOrder?: number | null,
+  intent: VisualPlacementIntent,
   movingClipId?: string,
-): { lanes: TimelineLane[]; laneId: string; startTime: number } {
+): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
   const resolved = resolveVisualPlacement(
     lanes,
     clips,
-    {
-      laneId: preferredLaneId,
-      startTime,
-      duration,
-      insertNewLane: insertNew,
-      insertOrder: preferredInsertOrder ?? undefined,
-    },
+    intent,
     movingClipId,
   );
-  if (resolved.createLane) {
+  if (resolved.status === "blocked") return null;
+  if (resolved.status === "create-lane") {
     const created = createOverlayLaneAt(lanes, resolved.insertOrder);
     return {
       lanes: created.lanes,
@@ -343,6 +337,64 @@ function resolveOverlayPlacement(
     laneId: resolved.laneId,
     startTime: resolved.startTime,
   };
+}
+
+function applyAudioPlacement(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  intent: AudioPlacementIntent,
+  movingClipId?: string,
+): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
+  const resolved = resolveAudioPlacementIntent(
+    lanes,
+    clips,
+    intent,
+    movingClipId,
+  );
+  if (resolved.status === "blocked") return null;
+  if (resolved.status === "create-lane") {
+    let nextLanes = shiftAudioLaneOrders(lanes, resolved.insertOrder, 1);
+    const created = createAudioLane(resolved.insertOrder);
+    nextLanes = [...nextLanes, created];
+    return {
+      lanes: nextLanes,
+      laneId: created.id,
+      startTime: resolved.startTime,
+    };
+  }
+  return {
+    lanes,
+    laneId: resolved.laneId,
+    startTime: resolved.startTime,
+  };
+}
+
+/** Map flags → intent rồi applyVisualPlacement (paste/duplicate helpers). */
+function resolveOverlayPlacement(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  startTime: number,
+  duration: number,
+  preferredLaneId: string | null,
+  insertNew: boolean,
+  preferredInsertOrder?: number | null,
+  movingClipId?: string,
+): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
+  const intent: VisualPlacementIntent =
+    insertNew || !preferredLaneId
+      ? {
+          type: "new-overlay-lane",
+          insertOrder: preferredInsertOrder ?? 0,
+          startTime,
+          duration,
+        }
+      : {
+          type: "overlay-lane",
+          laneId: preferredLaneId,
+          startTime,
+          duration,
+        };
+  return applyVisualPlacement(lanes, clips, intent, movingClipId);
 }
 
 /** Sau resize: đẩy clip overlap trên cùng lane; ripple nếu policy bật. */
@@ -398,23 +450,46 @@ function resolveAudioPlacement(
   preferredLaneId: string | null,
   insertNew: boolean,
   preferredInsertOrder?: number | null,
-): { lanes: TimelineLane[]; laneId: string } {
-  const result = findFreeAudioLane(
+  movingClipId?: string,
+): { lanes: TimelineLane[]; laneId: string; startTime: number } | null {
+  if (insertNew) {
+    return applyAudioPlacement(
+      lanes,
+      clips,
+      {
+        type: "new-audio-lane",
+        insertOrder: preferredInsertOrder ?? 0,
+        startTime,
+        duration,
+      },
+      movingClipId,
+    );
+  }
+  if (!preferredLaneId) {
+    // Không có lane đích → tạo lane mới thay vì scan arbitrary.
+    return applyAudioPlacement(
+      lanes,
+      clips,
+      {
+        type: "new-audio-lane",
+        insertOrder: preferredInsertOrder ?? 0,
+        startTime,
+        duration,
+      },
+      movingClipId,
+    );
+  }
+  return applyAudioPlacement(
     lanes,
     clips,
-    startTime,
-    duration,
-    preferredLaneId,
-    insertNew,
-    preferredInsertOrder,
+    {
+      type: "audio-lane",
+      laneId: preferredLaneId,
+      startTime,
+      duration,
+    },
+    movingClipId,
   );
-  if (!result.createNew && result.laneId) {
-    return { lanes, laneId: result.laneId };
-  }
-  let nextLanes = shiftAudioLaneOrders(lanes, result.insertOrder, 1);
-  const created = createAudioLane(result.insertOrder);
-  nextLanes = [...nextLanes, created];
-  return { lanes: nextLanes, laneId: created.id };
 }
 
 function audioLaneIdByOrder(
@@ -736,22 +811,32 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
 
       const insertNew = target.insertNewLane ?? false;
-      const preferredLaneId = insertNew ? null : (target.laneId ?? null);
-      if (preferredLaneId && isLaneLocked(lanes, preferredLaneId)) {
-        return state;
-      }
-      const preferredInsertOrder = insertNew
-        ? (target.insertOrder ?? null)
-        : null;
-      const placement = resolveOverlayPlacement(
+      const intent: VisualPlacementIntent = insertNew
+        ? {
+            type: "new-overlay-lane",
+            insertOrder: target.insertOrder ?? 0,
+            startTime: Math.max(0, target.startTime),
+            duration,
+          }
+        : target.laneId
+          ? {
+              type: "overlay-lane",
+              laneId: target.laneId,
+              startTime: Math.max(0, target.startTime),
+              duration,
+            }
+          : {
+              type: "new-overlay-lane",
+              insertOrder: target.insertOrder ?? 0,
+              startTime: Math.max(0, target.startTime),
+              duration,
+            };
+      const placement = applyVisualPlacement(
         lanes,
         state.timelineClips,
-        Math.max(0, target.startTime),
-        duration,
-        preferredLaneId,
-        insertNew,
-        preferredInsertOrder,
+        intent,
       );
+      if (!placement) return state;
       lanes = placement.lanes;
       // Overlay cũng là scene thật trong editor document (MODEL-01/02).
       const scene = sceneFromFrameDraft(draft);
@@ -823,14 +908,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           preferredLaneId,
           insertNew,
           preferredInsertOrder,
+          clipId,
         );
+        if (!placement) return state;
         lanes = placement.lanes;
         if (existing.kind !== "audio") return state;
         moved = {
           ...existing,
           kind: "audio",
           laneId: placement.laneId,
-          startTime,
+          startTime: placement.startTime,
         };
         clips.push(moved);
         lanes = pruneEmptyLanes(lanes, clips);
@@ -840,7 +927,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             ...project.timeline,
             audioTracks: project.timeline.audioTracks.map((track) =>
               track.id === existing.audioTrackId || track.id === moved.id
-                ? { ...track, start: startTime }
+                ? { ...track, start: placement.startTime }
                 : track,
             ),
           },
@@ -856,54 +943,78 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (patch.track === "overlay") {
         if (existingOnAudio || existing.kind !== "scene") return state;
         const insertNew = patch.insertNewLane ?? false;
-        const preferredLaneId = insertNew
-          ? null
-          : (patch.laneId ??
-            (existingOnMain ? null : existing.laneId));
-        if (preferredLaneId && isLaneLocked(lanes, preferredLaneId)) {
-          return state;
+        const intent: VisualPlacementIntent = insertNew
+          ? {
+              type: "new-overlay-lane",
+              insertOrder: patch.insertOrder ?? 0,
+              startTime,
+              duration: existing.duration,
+            }
+          : {
+              type: "overlay-lane",
+              laneId:
+                patch.laneId ??
+                (existingOnMain ? "" : existing.laneId),
+              startTime,
+              duration: existing.duration,
+            };
+        if (intent.type === "overlay-lane" && !intent.laneId) {
+          // Main → overlay body không có laneId → tạo lane mới.
+          const placement = applyVisualPlacement(
+            lanes,
+            clips,
+            {
+              type: "new-overlay-lane",
+              insertOrder: patch.insertOrder ?? 0,
+              startTime,
+              duration: existing.duration,
+            },
+            clipId,
+          );
+          if (!placement) return state;
+          lanes = placement.lanes;
+          moved = {
+            ...existing,
+            kind: "scene",
+            sceneId: existing.sceneId,
+            laneId: placement.laneId,
+            startTime: placement.startTime,
+          };
+        } else {
+          const placement = applyVisualPlacement(
+            lanes,
+            clips,
+            intent,
+            clipId,
+          );
+          if (!placement) return state;
+          lanes = placement.lanes;
+          moved = {
+            ...existing,
+            kind: "scene",
+            sceneId: existing.sceneId,
+            laneId: placement.laneId,
+            startTime: placement.startTime,
+          };
         }
-        const preferredInsertOrder = insertNew
-          ? (patch.insertOrder ?? null)
-          : null;
-        const placement = resolveOverlayPlacement(
-          lanes,
-          clips,
-          startTime,
-          existing.duration,
-          preferredLaneId,
-          insertNew,
-          preferredInsertOrder,
-          clipId,
-        );
-        lanes = placement.lanes;
-        // Chỉ đổi lane/startTime — giữ nguyên sceneId/content (MODEL-02).
-        moved = {
-          ...existing,
-          kind: "scene",
-          sceneId: existing.sceneId,
-          laneId: placement.laneId,
-          startTime: placement.startTime,
-        };
       } else {
         if (existingOnAudio || existing.kind !== "scene") return state;
-        if (isLaneLocked(lanes, mainLane.id)) return state;
-        // Base placement — giữ nguyên scene, chỉ đổi lane + start.
         const placed = resolveVisualPlacement(
           lanes,
           clips,
           {
-            laneId: mainLane.id,
+            type: "base",
             startTime,
             duration: existing.duration,
           },
           clipId,
         );
+        if (placed.status !== "placed") return state;
         moved = {
           ...existing,
           kind: "scene",
           sceneId: existing.sceneId,
-          laneId: mainLane.id,
+          laneId: placed.laneId,
           startTime: placed.startTime,
         };
       }
@@ -937,19 +1048,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const duration = Math.max(0.5, item.duration ?? 10);
       const startTime = Math.max(0, target.startTime);
       const insertNew = target.insertNewLane ?? false;
-      const preferredLaneId = insertNew ? null : (target.laneId ?? null);
-      const preferredInsertOrder = insertNew
-        ? (target.insertOrder ?? null)
-        : null;
       const placement = resolveAudioPlacement(
         lanes,
         state.timelineClips,
         startTime,
         duration,
-        preferredLaneId,
-        insertNew,
-        preferredInsertOrder,
+        insertNew ? null : (target.laneId ?? null),
+        insertNew || !target.laneId,
+        insertNew ? (target.insertOrder ?? null) : null,
       );
+      if (!placement) return state;
       lanes = placement.lanes;
 
       const assetId = item.assetId;
@@ -981,7 +1089,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         id: trackId,
         role: "bgm" as const,
         assetId,
-        start: startTime,
+        start: placement.startTime,
         trimStart: 0,
         volume: 1,
         loop: false,
@@ -995,7 +1103,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         audioTrackId: trackId,
         assetId,
         laneId: placement.laneId,
-        startTime,
+        startTime: placement.startTime,
         duration,
         name: item.title,
       };
@@ -1217,9 +1325,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             startTime,
             item.duration,
             null,
-            false,
+            true,
             null,
           );
+          if (!placement) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
           audioTracks = [
@@ -1228,7 +1337,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               id: trackId,
               role: "bgm" as const,
               assetId: item.audioAssetId ?? item.name,
-              start: startTime,
+              start: placement.startTime,
               trimStart: 0,
               volume: 1,
               loop: false,
@@ -1242,7 +1351,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             audioTrackId: trackId,
             assetId: item.audioAssetId ?? item.name,
             laneId: placement.laneId,
-            startTime,
+            startTime: placement.startTime,
             duration: item.duration,
             name: item.name,
           };
@@ -1256,10 +1365,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             startTime,
             item.duration,
             null,
-            false,
+            true,
             null,
           );
-          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
+          if (!placement) continue;
           lanes = placement.lanes;
           const scene = cloneSceneWithNewIds({
             ...item.scene,
@@ -1285,10 +1394,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             startTime,
             item.duration,
             null,
-            false,
+            true,
             null,
           );
-          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
+          if (!placement) continue;
           lanes = placement.lanes;
           const scene = sceneFromFrameDraft({
             id: uid("draft"),
@@ -1385,7 +1494,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             false,
             null,
           );
-          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
+          if (!placement) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
           audioTracks = [
@@ -1397,7 +1506,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                 (clip.kind === "audio" ? clip.assetId : undefined) ??
                 track?.assetId ??
                 clip.name,
-              start: startTime,
+              start: placement.startTime,
               trimStart: 0,
               volume: 1,
               loop: false,
@@ -1414,7 +1523,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               track?.assetId ??
               clip.name,
             laneId: placement.laneId,
-            startTime,
+            startTime: placement.startTime,
             duration: clip.duration,
             name: clip.name,
           };
@@ -1431,7 +1540,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             false,
             null,
           );
-          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
+          if (!placement) continue;
           lanes = placement.lanes;
           const scene = scenes.find((sc) => sc.id === clip.sceneId);
           if (scene) {

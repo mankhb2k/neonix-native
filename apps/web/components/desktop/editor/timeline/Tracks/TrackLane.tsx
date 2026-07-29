@@ -22,12 +22,14 @@ type TrackLaneProps = {
   borderClass?: string;
   ghostPreview?: GhostPreviewInfo | null;
   dataTrackType?: "main" | "overlay" | "audio";
-  dataLaneId?: string;
+  dataLaneId?: string | null;
   dataLaneOrder?: number;
+  /** Virtual empty drop zone — không phải domain lane. */
+  dataPlaceholder?: boolean;
   labelWidth: number;
   canvasWidth: number;
   leftControl: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
 };
 
 export function TrackLane({
@@ -42,6 +44,7 @@ export function TrackLane({
   dataTrackType,
   dataLaneId,
   dataLaneOrder,
+  dataPlaceholder,
   labelWidth,
   canvasWidth,
   leftControl,
@@ -60,13 +63,14 @@ export function TrackLane({
   const showGhost = Boolean(ghostPreview);
 
   useLayoutEffect(() => {
+    const ghostEl = ghostRef.current;
     if (!showGhost) {
-      unbindDragGhostElementIf(ghostRef.current);
-      return;
+      unbindDragGhostElementIf(ghostEl);
+      return undefined;
     }
-    bindDragGhostElement(ghostRef.current);
+    bindDragGhostElement(ghostEl);
     return () => {
-      unbindDragGhostElementIf(ghostRef.current);
+      unbindDragGhostElementIf(ghostEl);
     };
   }, [showGhost]);
 
@@ -74,8 +78,9 @@ export function TrackLane({
     <div
       data-track-lane="true"
       data-track-type={dataTrackType}
-      data-lane-id={dataLaneId}
+      data-lane-id={dataLaneId ?? undefined}
       data-lane-order={dataLaneOrder}
+      data-placeholder={dataPlaceholder ? "true" : undefined}
       className={`group relative flex items-center ${resolvedHeightClass} ${bgClass} ${borderClass} transition-colors`}
     >
       <div

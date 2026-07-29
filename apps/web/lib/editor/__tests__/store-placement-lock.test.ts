@@ -100,4 +100,122 @@ describe("editor-store placement + lock", () => {
       ),
     ).toBe("scene.overlay");
   });
+
+  it("moveClip overlay→overlay changes laneId", () => {
+    const { project, clips, lanes } = fixtureBasePlusOverlay();
+    useEditorStore.getState().loadProject(project, [], clips, lanes);
+    // loadProject prune empty — gắn lane đích sau load.
+    useEditorStore.setState((s) => ({
+      timelineLanes: [
+        ...s.timelineLanes,
+        {
+          id: "lane.overlay.1",
+          kind: "visual",
+          role: "overlay",
+          order: 1,
+          name: "Lớp 2",
+          policy: { ...DEFAULT_VISUAL_POLICY },
+        },
+      ],
+    }));
+    useEditorStore.getState().moveClip("clip.overlay", {
+      track: "overlay",
+      startTime: 0,
+      laneId: "lane.overlay.1",
+    });
+    const moved = useEditorStore
+      .getState()
+      .timelineClips.find((c) => c.id === "clip.overlay");
+    expect(moved?.laneId).toBe("lane.overlay.1");
+  });
+
+  it("moveClip insertNewLane creates a new overlay lane", () => {
+    const originLaneId = useEditorStore
+      .getState()
+      .timelineClips.find((c) => c.id === "clip.overlay")?.laneId;
+    useEditorStore.getState().moveClip("clip.overlay", {
+      track: "overlay",
+      startTime: 0.5,
+      insertNewLane: true,
+      insertOrder: 1,
+    });
+    const moved = useEditorStore
+      .getState()
+      .timelineClips.find((c) => c.id === "clip.overlay");
+    expect(moved?.laneId).toBeTruthy();
+    expect(moved?.laneId).not.toBe(originLaneId);
+    const dest = useEditorStore
+      .getState()
+      .timelineLanes.find((l) => l.id === moved?.laneId);
+    expect(dest?.kind).toBe("visual");
+    expect(dest && dest.kind === "visual" ? dest.role : null).toBe("overlay");
+  });
+
+  it("audio body collision keeps laneId and snaps startTime", () => {
+    const { project } = fixtureBasePlusOverlay();
+    useEditorStore.getState().loadProject(
+      project,
+      [],
+      [
+        {
+          id: "clip.base",
+          kind: "scene",
+          sceneId: "scene.base",
+          laneId: "lane.main",
+          startTime: 0,
+          duration: 4,
+          name: "Base",
+        },
+        {
+          id: "a1",
+          kind: "audio",
+          audioTrackId: "a1",
+          assetId: "asset.a",
+          laneId: "lane.audio.0",
+          startTime: 0,
+          duration: 3,
+          name: "A1",
+        },
+        {
+          id: "a2",
+          kind: "audio",
+          audioTrackId: "a2",
+          assetId: "asset.b",
+          laneId: "lane.audio.0",
+          startTime: 5,
+          duration: 2,
+          name: "A2",
+        },
+      ],
+      [
+        {
+          id: "lane.main",
+          kind: "visual",
+          role: "base",
+          order: -1,
+          name: "Main",
+          policy: { ...DEFAULT_VISUAL_POLICY },
+        },
+        {
+          id: "lane.audio.0",
+          kind: "audio",
+          role: "audio",
+          order: 0,
+          name: "Audio 1",
+        },
+      ],
+    );
+    useEditorStore.getState().moveClip("a2", {
+      track: "audio",
+      startTime: 1,
+      laneId: "lane.audio.0",
+    });
+    const moved = useEditorStore.getState().timelineClips.find((c) => c.id === "a2");
+    expect(moved?.laneId).toBe("lane.audio.0");
+    expect(moved?.startTime).not.toBe(1);
+    // Nearest snap away from [0,3)
+    expect(
+      moved!.startTime >= 3 || moved!.startTime + moved!.duration <= 0,
+    ).toBe(true);
+  });
 });

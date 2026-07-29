@@ -1,10 +1,10 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
-  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
@@ -80,8 +80,7 @@ function PlayheadHandleIcon() {
 
 /**
  * CapCut-style playhead driven by the canonical playback clock.
- * Scrub coalesces pointermoves into one `seek()` per animation frame;
- * position always applies via `translate3d` (no React layout for the hot path).
+ * Hot path: transform + aria attributes via DOM — no React setState per tick.
  */
 export function Playhead({
   labelWidth,
@@ -91,6 +90,7 @@ export function Playhead({
   enabled = true,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const pendingTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -98,36 +98,47 @@ export function Playhead({
   const labelWidthRef = useRef(labelWidth);
   const ppsRef = useRef(pixelsPerSecond);
   const scrollLeftRef = useRef(scrollLeft);
+  const fpsRef = useRef(30);
   labelWidthRef.current = labelWidth;
   ppsRef.current = pixelsPerSecond;
   scrollLeftRef.current = scrollLeft;
 
   const duration = usePlaybackClock((s) => s.duration);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
-  const [ariaTime, setAriaTime] = useState(0);
+  fpsRef.current = fps;
 
-  function applyVisualLeft(viewportLeft: number) {
+  const applyVisualLeft = useCallback((viewportLeft: number) => {
     const el = rootRef.current;
     if (!el) return;
     el.style.transform = `translate3d(${viewportLeft}px,0,0)`;
-  }
+  }, []);
 
-  function syncFromClock(time: number) {
-    applyVisualLeft(
-      timelineTimeToViewportLeft(
-        time,
-        labelWidthRef.current,
-        ppsRef.current,
-        scrollLeftRef.current,
-      ),
-    );
-    setAriaTime(time);
-  }
+  const syncFromClock = useCallback(
+    (time: number) => {
+      applyVisualLeft(
+        timelineTimeToViewportLeft(
+          time,
+          labelWidthRef.current,
+          ppsRef.current,
+          scrollLeftRef.current,
+        ),
+      );
+      const slider = sliderRef.current;
+      if (slider) {
+        slider.setAttribute("aria-valuenow", String(time));
+        slider.setAttribute(
+          "aria-valuetext",
+          formatTimecode(time, fpsRef.current),
+        );
+      }
+    },
+    [applyVisualLeft],
+  );
 
   useLayoutEffect(() => {
     if (draggingRef.current) return;
     syncFromClock(usePlaybackClock.getState().currentTime);
-  }, [labelWidth, pixelsPerSecond, scrollLeft]);
+  }, [labelWidth, pixelsPerSecond, scrollLeft, syncFromClock]);
 
   useEffect(() => {
     syncFromClock(usePlaybackClock.getState().currentTime);
@@ -136,7 +147,7 @@ export function Playhead({
       if (draggingRef.current) return;
       syncFromClock(state.currentTime);
     });
-  }, []);
+  }, [syncFromClock]);
 
   useEffect(() => {
     return () => {
@@ -240,12 +251,12 @@ export function Playhead({
       aria-hidden={!enabled}
     >
       <div
+        ref={sliderRef}
         role="slider"
         aria-label="Playhead"
         aria-valuemin={0}
         aria-valuemax={duration}
-        aria-valuenow={ariaTime}
-        aria-valuetext={formatTimecode(ariaTime, fps)}
+        aria-valuenow={0}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none"

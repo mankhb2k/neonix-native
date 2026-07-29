@@ -1,20 +1,25 @@
 "use client";
 
-import { memo, useEffect, useRef, type RefObject, type KeyboardEvent } from "react";
+import { Film, Music } from "lucide-react";
 import {
-  Film,
-  Music,
-} from "lucide-react";
+  memo,
+  useEffect,
+  useMemo,
+  useRef,
+  type RefObject,
+  type KeyboardEvent,
+} from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
-import { TrackLane } from "./TrackLane";
+import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 import { LaneFlagControls } from "./LaneFlagControls";
-import { useTracksDrag } from "./useTracksDrag";
-import { useTimelineClipMove } from "./useTimelineClipMove";
+import { TimelineWorkspaceContextMenu } from "./TimelineWorkspaceContextMenu";
+import { TrackLane } from "./TrackLane";
 import { useMarqueeSelect } from "./useMarqueeSelect";
 import { useTimelineClipHotkeys } from "./useTimelineClipHotkeys";
-import { TimelineWorkspaceContextMenu } from "./TimelineClipContextMenu";
-import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
+import { useTimelineClipMove } from "./useTimelineClipMove";
+import { useTracksDrag } from "./useTracksDrag";
+import type { TimelineClip } from "@/lib/editor/timeline-clips";
 
 type Props = {
   scrollRef: RefObject<HTMLDivElement | null>;
@@ -50,22 +55,20 @@ export const Tracks = memo(function Tracks({
   const workspaceRef = useRef<HTMLDivElement>(null);
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
-  const overlayLanes = timelineLanes
-    .filter(
-      (lane) =>
-        lane.kind === "visual" &&
-        lane.role === "overlay" &&
-        timelineClips.some((clip) => clip.laneId === lane.id),
-    )
-    .sort((a, b) => b.order - a.order);
-  /** Audio = overlay dưới main: chỉ hiện lane khi đã có clip. */
-  const audioLanes = timelineLanes
-    .filter(
-      (lane) =>
-        lane.kind === "audio" &&
-        timelineClips.some((clip) => clip.laneId === lane.id),
-    )
-    .sort((a, b) => a.order - b.order);
+  const overlayLanes = useMemo(
+    () =>
+      timelineLanes
+        .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
+        .sort((a, b) => b.order - a.order),
+    [timelineLanes],
+  );
+  const audioLanes = useMemo(
+    () =>
+      timelineLanes
+        .filter((lane) => lane.kind === "audio")
+        .sort((a, b) => a.order - b.order),
+    [timelineLanes],
+  );
   const mainLane = timelineLanes.find(
     (lane) => lane.kind === "visual" && lane.role === "base",
   );
@@ -77,6 +80,30 @@ export const Tracks = memo(function Tracks({
     (max, lane) => Math.max(max, lane.order),
     -1,
   );
+
+  const clipsByLane = useMemo(() => {
+    const map = new Map<string, TimelineClip[]>();
+    for (const clip of timelineClips) {
+      const list = map.get(clip.laneId);
+      if (list) list.push(clip);
+      else map.set(clip.laneId, [clip]);
+    }
+    for (const list of map.values()) {
+      list.sort(
+        (a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id),
+      );
+    }
+    return map;
+  }, [timelineClips]);
+
+  const selectedClipIdSet = useMemo(
+    () => new Set(selectedClipIds),
+    [selectedClipIds],
+  );
+
+  // Virtual placeholders — drop target UI, không persist vào store.
+  const showOverlayPlaceholder = overlayLanes.length === 0;
+  const showAudioPlaceholder = audioLanes.length === 0;
 
   const sidebarDrag = useTracksDrag({
     rootRef: scrollRef,
@@ -135,9 +162,7 @@ export const Tracks = memo(function Tracks({
     );
   }
 
-  const mainClips = timelineClips
-    .filter((clip) => clip.laneId === mainLane?.id)
-    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+  const mainClips = mainLane ? (clipsByLane.get(mainLane.id) ?? []) : [];
   const isTimelineEmpty = timelineClips.length === 0;
   const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
 
@@ -178,7 +203,6 @@ export const Tracks = memo(function Tracks({
             workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col justify-center min-h-[160px] pt-6 pb-12"
           >
-            {/* CapCut-style empty: dashed opacity runway */}
             <div
               data-track-lane="true"
               data-track-type="main"
@@ -222,10 +246,25 @@ export const Tracks = memo(function Tracks({
                 aria-hidden
               />
             )}
+            {showOverlayPlaceholder ? (
+              <TrackLane
+                variant="secondary"
+                dataTrackType="overlay"
+                dataLaneId={null}
+                dataLaneOrder={0}
+                dataPlaceholder
+                ghostPreview={null}
+                labelWidth={TIMELINE_LABEL_WIDTH}
+                canvasWidth={canvasWidth}
+                leftControl={
+                  <span className="text-[10px] text-[var(--fg-muted)] px-1">
+                    Overlay
+                  </span>
+                }
+              />
+            ) : null}
             {overlayLanes.map((lane) => {
-              const layerItems = timelineClips.filter(
-                (clip) => clip.laneId === lane.id,
-              );
+              const layerItems = clipsByLane.get(lane.id) ?? [];
               return (
                 <TrackLane
                   key={lane.id}
@@ -257,13 +296,14 @@ export const Tracks = memo(function Tracks({
                   }
                 >
                   {layerItems.map((item) => {
-                    const active = selectedClipIds.includes(item.id);
+                    const active = selectedClipIdSet.has(item.id);
                     const moving = clipMove.movingClipId === item.id;
                     if (moving) return null;
                     return (
                       <div
                         key={item.id}
                         data-clip-id={item.id}
+                        data-lane-id={lane.id}
                         role="button"
                         tabIndex={0}
                         className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
@@ -338,13 +378,14 @@ export const Tracks = memo(function Tracks({
               }
             >
               {mainClips.map((clip, index) => {
-                const active = selectedClipIds.includes(clip.id);
+                const active = selectedClipIdSet.has(clip.id);
                 const moving = clipMove.movingClipId === clip.id;
                 if (moving) return null;
                 return (
                   <div
                     key={clip.id}
                     data-clip-id={clip.id}
+                    data-lane-id={mainLane?.id}
                     role="button"
                     tabIndex={0}
                     className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90 ${
@@ -373,9 +414,7 @@ export const Tracks = memo(function Tracks({
             </TrackLane>
 
             {audioLanes.map((lane) => {
-              const laneClips = timelineClips.filter(
-                (clip) => clip.laneId === lane.id,
-              );
+              const laneClips = clipsByLane.get(lane.id) ?? [];
               return (
                 <TrackLane
                   key={lane.id}
@@ -400,13 +439,14 @@ export const Tracks = memo(function Tracks({
                   }
                 >
                   {laneClips.map((clip) => {
-                    const active = selectedClipIds.includes(clip.id);
+                    const active = selectedClipIdSet.has(clip.id);
                     const moving = clipMove.movingClipId === clip.id;
                     if (moving) return null;
                     return (
                       <div
                         key={clip.id}
                         data-clip-id={clip.id}
+                        data-lane-id={lane.id}
                         role="button"
                         tabIndex={0}
                         className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm overflow-hidden ${
@@ -430,6 +470,23 @@ export const Tracks = memo(function Tracks({
                 </TrackLane>
               );
             })}
+            {showAudioPlaceholder ? (
+              <TrackLane
+                variant="secondary"
+                dataTrackType="audio"
+                dataLaneId={null}
+                dataLaneOrder={0}
+                dataPlaceholder
+                ghostPreview={null}
+                labelWidth={TIMELINE_LABEL_WIDTH}
+                canvasWidth={canvasWidth}
+                leftControl={
+                  <span className="p-1 text-[var(--fg-muted)]">
+                    <Music size={14} strokeWidth={1.5} />
+                  </span>
+                }
+              />
+            ) : null}
           </TimelineWorkspaceContextMenu>
         )}
       </div>

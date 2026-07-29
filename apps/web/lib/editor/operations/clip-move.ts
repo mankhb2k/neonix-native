@@ -1,77 +1,148 @@
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+/**
+ * Pure visual placement — tách ý định user khỏi auto-find lane trống.
+ */
+
 import {
   createOverlayLane,
-  findFreeOverlayLane,
-  isMainLane,
-  rangesOverlap,
+  isLaneLocked,
+  resolveLaneStartTimeNearest,
   resolveMainStartTime,
   shiftOverlayLaneOrders,
 } from "@/lib/editor/timeline-clips";
+import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 
-export type VisualPlacementTarget = {
-  laneId: string;
-  startTime: number;
-  createLane: boolean;
-  insertOrder?: number;
-};
+export type VisualPlacementIntent =
+  | { type: "base"; startTime: number; duration: number }
+  | {
+      type: "overlay-lane";
+      laneId: string;
+      startTime: number;
+      duration: number;
+    }
+  | {
+      type: "new-overlay-lane";
+      insertOrder: number;
+      startTime: number;
+      duration: number;
+    };
+
+/** Kết quả placement visual / audio (cùng shape). */
+export type PlacementResult =
+  | { status: "placed"; laneId: string; startTime: number }
+  | { status: "create-lane"; insertOrder: number; startTime: number }
+  | { status: "blocked"; reason: "locked" | "missing-lane" };
+
+export type VisualPlacementResult = PlacementResult;
+export type AudioPlacementResult = PlacementResult;
+
+export type AudioPlacementIntent =
+  | {
+      type: "audio-lane";
+      laneId: string;
+      startTime: number;
+      duration: number;
+    }
+  | {
+      type: "new-audio-lane";
+      insertOrder: number;
+      startTime: number;
+      duration: number;
+    };
+
+function clipsExcluding(
+  clips: TimelineClip[],
+  movingClipId?: string,
+): TimelineClip[] {
+  return movingClipId ? clips.filter((c) => c.id !== movingClipId) : clips;
+}
 
 /**
- * Pure placement cho visual clip (base + overlay dùng chung — MODEL-02).
- * Visual lane không cho overlap trong cùng lane.
+ * Pure placement cho visual clip (base + overlay).
+ * Không fallback sang lane khác khi target body bị collision — nearest-snap trên đúng lane.
  */
 export function resolveVisualPlacement(
   lanes: TimelineLane[],
   clips: TimelineClip[],
-  target: {
-    laneId: string | null;
-    startTime: number;
-    duration: number;
-    insertNewLane?: boolean;
-    insertOrder?: number;
-  },
+  intent: VisualPlacementIntent,
   movingClipId?: string,
-): VisualPlacementTarget {
-  const startTime = Math.max(0, target.startTime);
-  const duration = Math.max(0, target.duration);
-  const others = movingClipId
-    ? clips.filter((c) => c.id !== movingClipId)
-    : clips;
+): VisualPlacementResult {
+  const startTime = Math.max(0, intent.startTime);
+  const duration = Math.max(0, intent.duration);
+  const others = clipsExcluding(clips, movingClipId);
 
-  if (!target.laneId || isMainLane(lanes, target.laneId)) {
-    const mainId =
-      lanes.find((l) => l.kind === "visual" && l.role === "base")?.id ??
-      target.laneId ??
-      "";
+  if (intent.type === "new-overlay-lane") {
     return {
+      status: "create-lane",
+      insertOrder: Math.max(0, Math.floor(intent.insertOrder)),
+      startTime,
+    };
+  }
+
+  if (intent.type === "base") {
+    const mainId =
+      lanes.find((l) => l.kind === "visual" && l.role === "base")?.id ?? "";
+    if (!mainId) return { status: "blocked", reason: "missing-lane" };
+    if (isLaneLocked(lanes, mainId)) {
+      return { status: "blocked", reason: "locked" };
+    }
+    return {
+      status: "placed",
       laneId: mainId,
       startTime: resolveMainStartTime(others, lanes, startTime, duration),
-      createLane: false,
     };
   }
 
-  const resolved = findFreeOverlayLane(
-    lanes,
-    others,
-    startTime,
-    duration,
-    target.laneId,
-    Boolean(target.insertNewLane),
-    target.insertOrder ?? null,
-  );
-
-  if (resolved.createNew) {
-    return {
-      laneId: "",
-      startTime,
-      createLane: true,
-      insertOrder: resolved.insertOrder,
-    };
+  // overlay-lane — giữ đúng laneId.
+  const lane = lanes.find((l) => l.id === intent.laneId);
+  if (
+    !lane ||
+    lane.kind !== "visual" ||
+    lane.role !== "overlay"
+  ) {
+    return { status: "blocked", reason: "missing-lane" };
   }
-
+  if (isLaneLocked(lanes, intent.laneId)) {
+    return { status: "blocked", reason: "locked" };
+  }
+  const onLane = others.filter((c) => c.laneId === intent.laneId);
   return {
-    laneId: resolved.laneId ?? target.laneId,
-    startTime,
-    createLane: false,
+    status: "placed",
+    laneId: intent.laneId,
+    startTime: resolveLaneStartTimeNearest(onLane, startTime, duration),
+  };
+}
+
+/** Audio body = keep lane + nearest-snap; insert = create-lane. */
+export function resolveAudioPlacementIntent(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  intent: AudioPlacementIntent,
+  movingClipId?: string,
+): AudioPlacementResult {
+  const startTime = Math.max(0, intent.startTime);
+  const duration = Math.max(0, intent.duration);
+  const others = clipsExcluding(clips, movingClipId);
+
+  if (intent.type === "new-audio-lane") {
+    return {
+      status: "create-lane",
+      insertOrder: Math.max(0, Math.floor(intent.insertOrder)),
+      startTime,
+    };
+  }
+
+  const lane = lanes.find((l) => l.id === intent.laneId);
+  if (!lane || lane.kind !== "audio") {
+    return { status: "blocked", reason: "missing-lane" };
+  }
+  if (isLaneLocked(lanes, intent.laneId)) {
+    return { status: "blocked", reason: "locked" };
+  }
+  const onLane = others.filter((c) => c.laneId === intent.laneId);
+  return {
+    status: "placed",
+    laneId: intent.laneId,
+    startTime: resolveLaneStartTimeNearest(onLane, startTime, duration),
   };
 }
 
@@ -108,4 +179,4 @@ export function createOverlayLaneAt(
   return { lanes: [...nextLanes, lane], lane };
 }
 
-export { rangesOverlap };
+export { rangesOverlap } from "@/lib/editor/timeline-clips";

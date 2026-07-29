@@ -5,9 +5,8 @@ import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 
 /**
  * Absolute-time RAF driver for `mode === "playing"`.
- * Does not advance the clock while scrubbing.
+ * Re-anchors khi mode → playing hoặc seekRevision tăng (user seek khi đang play).
  * Mount once under the editor timeline shell.
- * Đặt ở hooks/editor — không nằm trong pure lib (ARCH-02).
  */
 export function usePlaybackDriver(): void {
   useEffect(() => {
@@ -22,6 +21,12 @@ export function usePlaybackDriver(): void {
         cancelAnimationFrame(raf);
         raf = 0;
       }
+    };
+
+    const reanchor = () => {
+      const clock = usePlaybackClock.getState();
+      startPerf = performance.now();
+      startTimeline = clock.currentTime;
     };
 
     const tick = (now: number) => {
@@ -39,7 +44,7 @@ export function usePlaybackDriver(): void {
         stop();
         return;
       }
-      clock.seek(next);
+      clock.advancePlayback(next);
       raf = requestAnimationFrame(tick);
     };
 
@@ -48,18 +53,27 @@ export function usePlaybackDriver(): void {
       const clock = usePlaybackClock.getState();
       if (clock.mode !== "playing") return;
       running = true;
-      startPerf = performance.now();
-      startTimeline = clock.currentTime;
+      reanchor();
       raf = requestAnimationFrame(tick);
     };
 
     const unsub = usePlaybackClock.subscribe((state, prev) => {
-      if (state.mode === prev.mode) return;
-      if (state.mode === "playing") {
-        start();
+      if (state.mode !== prev.mode) {
+        if (state.mode === "playing") {
+          start();
+          return;
+        }
+        stop();
         return;
       }
-      stop();
+      // Seek khi đang playing → reset anchor, không dừng RAF.
+      if (
+        state.mode === "playing" &&
+        state.seekRevision !== prev.seekRevision &&
+        running
+      ) {
+        reanchor();
+      }
     });
 
     if (usePlaybackClock.getState().mode === "playing") start();

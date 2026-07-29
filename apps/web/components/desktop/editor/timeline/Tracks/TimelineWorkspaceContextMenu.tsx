@@ -1,13 +1,6 @@
 "use client";
 
 import {
-  useState,
-  type ReactNode,
-  type RefObject,
-  type MouseEvent,
-  type PointerEvent as ReactPointerEvent,
-} from "react";
-import {
   Copy,
   ClipboardPaste,
   Scissors,
@@ -16,17 +9,23 @@ import {
   CopyPlus,
 } from "lucide-react";
 import {
+  useState,
+  type ReactNode,
+  type RefObject,
+  type MouseEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
+import {
   ContextMenu,
   ContextMenuTrigger,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
 } from "@/components/ui";
+import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
-import { playheadSplitsClip } from "@/lib/editor/clip-clipboard";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 
 type WorkspaceMenuProps = {
   children: ReactNode;
@@ -37,7 +36,7 @@ type WorkspaceMenuProps = {
 
 /**
  * One context menu for the whole tracks workspace (clip vs empty runway).
- * Avoids per-clip menus stacking open at once.
+ * Không subscribe playback clock khi đóng — canSplit tính lúc open.
  */
 export function TimelineWorkspaceContextMenu({
   children,
@@ -46,24 +45,14 @@ export function TimelineWorkspaceContextMenu({
   onWorkspacePointerDown,
 }: WorkspaceMenuProps) {
   const [target, setTarget] = useState<"clip" | "empty">("empty");
+  const [canSplit, setCanSplit] = useState(false);
 
   const selectedClipIds = useEditorStore((s) =>
     selectedClipIdsFrom(s.selection),
   );
   const timelineClipboard = useEditorStore((s) => s.timelineClipboard);
-  const timelineClips = useEditorStore((s) => s.timelineClips);
-  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
-  // PERF-05: subscribe frame index thay vì raw currentTime.
-  const displayFrame = usePlaybackClock((s) =>
-    playbackFrameIndex(s.currentTime, fps),
-  );
-  const currentTime = displayFrame / Math.max(1, fps);
 
   const canPaste = (timelineClipboard?.length ?? 0) > 0;
-  const canSplit = selectedClipIds.some((id) => {
-    const clip = timelineClips.find((c) => c.id === id);
-    return clip ? playheadSplitsClip(clip, currentTime) : false;
-  });
   const hasSelection = selectedClipIds.length > 0;
 
   function handleOpen(event: MouseEvent): boolean {
@@ -71,17 +60,26 @@ export function TimelineWorkspaceContextMenu({
     if (!(el instanceof Element)) return false;
     if (el.closest("button")) return false;
 
+    const store = useEditorStore.getState();
     const clipId = el.closest("[data-clip-id]")?.getAttribute("data-clip-id");
     if (clipId) {
-      const store = useEditorStore.getState();
       if (!selectedClipIdsFrom(store.selection).includes(clipId)) {
         store.selectClip(clipId);
       }
       setTarget("clip");
-      return true;
+    } else {
+      setTarget("empty");
     }
 
-    setTarget("empty");
+    const time = usePlaybackClock.getState().currentTime;
+    const ids = selectedClipIdsFrom(useEditorStore.getState().selection);
+    const clips = useEditorStore.getState().timelineClips;
+    setCanSplit(
+      ids.some((id) => {
+        const clip = clips.find((c) => c.id === id);
+        return clip ? playheadSplitsClip(clip, time) : false;
+      }),
+    );
     return true;
   }
 
@@ -102,7 +100,9 @@ export function TimelineWorkspaceContextMenu({
             shortcut="Ctrl+V"
             disabled={!canPaste}
             onSelect={() =>
-              useEditorStore.getState().pasteClips(usePlaybackClock.getState().currentTime)
+              useEditorStore
+                .getState()
+                .pasteClips(usePlaybackClock.getState().currentTime)
             }
           >
             Dán
@@ -130,7 +130,9 @@ export function TimelineWorkspaceContextMenu({
               shortcut="Ctrl+V"
               disabled={!canPaste}
               onSelect={() =>
-                useEditorStore.getState().pasteClips(usePlaybackClock.getState().currentTime)
+                useEditorStore
+                  .getState()
+                  .pasteClips(usePlaybackClock.getState().currentTime)
               }
             >
               Dán
@@ -150,7 +152,11 @@ export function TimelineWorkspaceContextMenu({
               shortcut="Ctrl+B"
               disabled={!canSplit}
               onSelect={() =>
-                useEditorStore.getState().splitSelectedClipsAt(usePlaybackClock.getState().currentTime)
+                useEditorStore
+                  .getState()
+                  .splitSelectedClipsAt(
+                    usePlaybackClock.getState().currentTime,
+                  )
               }
             >
               Tách tại playhead
