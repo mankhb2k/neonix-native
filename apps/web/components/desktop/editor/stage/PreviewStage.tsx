@@ -7,7 +7,11 @@ import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
 import { useEditorStore, nodeText } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
-import type { TimelineClip } from "@/lib/editor/timeline-clips";
+import {
+  composeVisualLayersAtTime,
+  resolveScene,
+} from "@/lib/editor/preview/compose-layers";
+import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 import {
   matrixToCss,
   previewParitySnapshot,
@@ -24,46 +28,6 @@ function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
   if (node.type === "shape" || node.type === "path") return node.type;
   if (node.type === "group" || node.type === "bone") return "";
   return node.id;
-}
-
-function findMainClipAtTime(
-  sortedMainClips: TimelineClip[],
-  time: number,
-): TimelineClip | undefined {
-  // Binary search trên clips đã sort theo startTime.
-  let lo = 0;
-  let hi = sortedMainClips.length - 1;
-  let candidate: TimelineClip | undefined;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    const clip = sortedMainClips[mid];
-    if (time < clip.startTime) {
-      hi = mid - 1;
-    } else {
-      candidate = clip;
-      lo = mid + 1;
-    }
-  }
-  if (!candidate) return undefined;
-  if (time < candidate.startTime + candidate.duration) return candidate;
-  return sortedMainClips[sortedMainClips.length - 1];
-}
-
-function sceneAtGlobalTime(
-  scenes: MotionScene[],
-  sortedMainClips: TimelineClip[],
-  scenesById: Map<string, MotionScene>,
-  time: number,
-): { scene: MotionScene; localTime: number; start: number } | null {
-  const clip = findMainClipAtTime(sortedMainClips, time);
-  if (!clip) return null;
-  const scene = scenesById.get(clip.sceneId) ?? scenes.find((s) => s.id === clip.sceneId);
-  if (!scene) return null;
-  return {
-    scene,
-    localTime: Math.min(Math.max(0, time - clip.startTime), clip.duration),
-    start: clip.startTime,
-  };
 }
 
 function RuntimeLayer({
@@ -116,18 +80,20 @@ function RuntimeLayer({
 type PreviewRuntimeCanvasProps = {
   project: MotionProject;
   timelineClips: TimelineClip[];
-  mainLaneId: string | undefined;
+  timelineLanes: TimelineLane[];
   frameIndex: number;
   fps: number;
+  backgroundColor: string;
 };
 
 /** Time-sensitive canvas — re-renders only when frameIndex / project / clips change. */
 const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
   project,
   timelineClips,
-  mainLaneId,
+  timelineLanes,
   frameIndex,
   fps,
+  backgroundColor,
 }: PreviewRuntimeCanvasProps) {
   const previewTime = frameIndex / Math.max(1, fps);
   const compiled = useMemo(() => {
@@ -138,48 +104,60 @@ const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
     }
   }, [project]);
 
-  // Memo index — không filter/sort lại mỗi frame (PERF-04).
-  const sortedMainClips = useMemo(
-    () =>
-      timelineClips
-        .filter((clip) => clip.laneId === mainLaneId)
-        .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id)),
-    [timelineClips, mainLaneId],
-  );
   const scenesById = useMemo(
     () => new Map(project.scenes.map((scene) => [scene.id, scene])),
     [project.scenes],
   );
 
-  const at = sceneAtGlobalTime(
-    project.scenes,
-    sortedMainClips,
-    scenesById,
-    previewTime,
+  // Compose memo theo clips/lanes — lookup theo time mỗi frame (PERF-04).
+  const composed = useMemo(
+    () => composeVisualLayersAtTime(timelineClips, timelineLanes, previewTime),
+    [timelineClips, timelineLanes, previewTime],
   );
-  if (!at) return null;
-  const { scene, localTime } = at;
+
   const stage = stageSizeForAspect(project.metadata.aspectRatio);
-  const frame = quantizeTimeToFrame(localTime, fps);
-  const snapshot = compiled
-    ? previewParitySnapshot(compiled, scene.id, frame.time)
-    : null;
 
   return (
     <div
       data-testid="runtime-preview-canvas"
+      data-compose-layers={composed.length}
       style={{
         position: "relative",
         width: stage.width,
         height: stage.height,
         transform: "scale(0.25)",
         transformOrigin: "center center",
-        background: "rgba(0,0,0,0.18)",
+        // Base gap / trống → hiện project background (brand).
+        background: backgroundColor,
       }}
     >
-      {snapshot?.nodes.map((node) => (
-        <RuntimeLayer key={node.id} node={node} scene={scene} />
-      ))}
+      {composed.map((layer) => {
+        const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
+        if (!scene || !compiled) return null;
+        const frame = quantizeTimeToFrame(layer.localTime, fps);
+        const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
+        return (
+          <div
+            key={`${layer.role}-${layer.clipId}`}
+            data-testid={`preview-layer-${layer.role}`}
+            data-scene-id={layer.sceneId}
+            data-z-order={layer.zOrder}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: layer.role === "base" ? 0 : 10 + layer.zOrder,
+            }}
+          >
+            {snapshot?.nodes.map((node) => (
+              <RuntimeLayer
+                key={`${layer.clipId}-${node.id}`}
+                node={node}
+                scene={scene}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 });
@@ -188,11 +166,13 @@ const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
 function PreviewClockBridge({
   project,
   timelineClips,
-  mainLaneId,
+  timelineLanes,
+  backgroundColor,
 }: {
   project: MotionProject;
   timelineClips: TimelineClip[];
-  mainLaneId: string | undefined;
+  timelineLanes: TimelineLane[];
+  backgroundColor: string;
 }) {
   const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
   const frameIndex = usePlaybackClock((state) =>
@@ -202,9 +182,10 @@ function PreviewClockBridge({
     <PreviewRuntimeCanvas
       project={project}
       timelineClips={timelineClips}
-      mainLaneId={mainLaneId}
+      timelineLanes={timelineLanes}
       frameIndex={frameIndex}
       fps={fps}
+      backgroundColor={backgroundColor}
     />
   );
 }
@@ -232,9 +213,6 @@ export function PreviewStage() {
     );
   }
 
-  const mainLaneId = timelineLanes.find(
-    (lane) => lane.kind === "visual" && lane.role === "base",
-  )?.id;
   const brand = project.metadata.brand;
   const accent = brand.primaryColor ?? "#3f9a62";
 
@@ -267,7 +245,8 @@ export function PreviewStage() {
           <PreviewClockBridge
             project={project}
             timelineClips={timelineClips}
-            mainLaneId={mainLaneId}
+            timelineLanes={timelineLanes}
+            backgroundColor={accent}
           />
         </div>
       </div>
