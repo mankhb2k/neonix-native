@@ -4,6 +4,7 @@ import type { EditorSelection } from "@/lib/editor/model/editor-selection";
 import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 import type { AspectRatio, MotionProject } from "@motionvideo/motion-schema";
+import type { StoreApi } from "zustand";
 
 export type SidebarTabId =
   | "frame"
@@ -130,3 +131,6 @@ export type EditorStore = EditorStoreState & EditorStoreActions;
 
 /** @deprecated Prefer EditorStore — alias for gradual migration. */
 export type EditorState = EditorStore;
+
+export type EditorStoreSet = StoreApi<EditorStore>["setState"];
+export type EditorStoreGet = StoreApi<EditorStore>["getState"];
