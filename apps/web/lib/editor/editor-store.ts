@@ -78,7 +78,6 @@ type EditorState = {
   selectedNodeId: string | null;
   isExporting: boolean;
   activeSidebarTab: SidebarTabId;
-  overlayScenes: OverlaySceneItem[];
   timelineClips: TimelineClip[];
   timelineLanes: TimelineLane[];
 
@@ -112,8 +111,6 @@ type EditorState = {
   ) => void;
   selectClip: (clipId: string) => void;
   setSelectedClipIds: (clipIds: string[]) => void;
-  selectScene: (sceneId: string) => void;
-  selectOverlay: (overlayId: string) => void;
   clearTimelineSelection: () => void;
   selectNode: (nodeId: string | null) => void;
   setActiveSidebarTab: (tab: SidebarTabId) => void;
@@ -123,7 +120,6 @@ type EditorState = {
   updateNodePosition: (sceneId: string, nodeId: string, position: { x?: number; y?: number }) => void;
   updateNodeAnimation: (sceneId: string, nodeId: string, patch: { presetId?: string; duration?: number; at?: number }) => void;
   setAspectRatio: (aspectRatio: AspectRatio) => void;
-  addSceneFromFrame: (draft: FrameDraft) => void;
   addClipFromDraft: (
     draft: FrameDraft,
     target:
@@ -133,9 +129,7 @@ type EditorState = {
           startTime: number;
           laneId?: string;
           insertNewLane?: boolean;
-          /** @deprecated map to lane order */
-          layerIndex?: number;
-          insertNewLayer?: boolean;
+          insertOrder?: number;
         },
   ) => void;
   moveClip: (
@@ -145,9 +139,6 @@ type EditorState = {
       track: "main" | "overlay" | "audio";
       laneId?: string;
       insertNewLane?: boolean;
-      /** @deprecated */
-      layerIndex?: number;
-      insertNewLayer?: boolean;
       insertOrder?: number;
     },
   ) => void;
@@ -158,29 +149,6 @@ type EditorState = {
     patch: { locked?: boolean; visible?: boolean; muted?: boolean },
   ) => void;
   reorderLane: (laneId: string, newOrder: number) => void;
-  addOverlaySceneFromFrame: (
-    draft: FrameDraft,
-    startTime: number,
-    layerIndex?: number,
-    insertNewLayer?: boolean,
-  ) => void;
-  moveOverlayScene: (
-    id: string,
-    patch: {
-      startTime: number;
-      layerIndex: number;
-      insertNewLayer?: boolean;
-    },
-  ) => void;
-  /** Magnetic reorder on main track by drop time (midpoint rule). */
-  reorderMainScene: (sceneId: string, dropTime: number) => void;
-  /** Lift a main scene into an overlay lane (removes from magnetic main). */
-  promoteMainSceneToOverlay: (
-    sceneId: string,
-    startTime: number,
-    layerIndex: number,
-    insertNewLayer?: boolean,
-  ) => void;
   addAudioTrack: (track: {
     role: string;
     assetId: string;
@@ -306,25 +274,6 @@ function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   };
 }
 
-function overlayScenesFromClips(
-  clips: TimelineClip[],
-  lanes: TimelineLane[],
-): OverlaySceneItem[] {
-  const orderByLane = new Map(lanes.map((lane) => [lane.id, lane.order]));
-  return clips
-    .filter(
-      (clip) =>
-        !isMainLane(lanes, clip.laneId) && !isAudioLane(lanes, clip.laneId),
-    )
-    .map((clip) => ({
-      id: clip.id,
-      name: clip.name,
-      duration: clip.duration,
-      startTime: clip.startTime,
-      layerIndex: orderByLane.get(clip.laneId) ?? 0,
-    }));
-}
-
 /** Giữ mọi scene được visual clip tham chiếu; sceneOrder chỉ từ base lane. */
 function rebuildMainProject(
   project: MotionProject,
@@ -358,13 +307,6 @@ function rebuildMainProject(
     scenes: orderedIds.map((sceneId) => byId.get(sceneId)!),
     timeline: { ...project.timeline, sceneOrder },
   };
-}
-
-function laneIdByOrder(lanes: TimelineLane[], order: number): string | undefined {
-  return lanes.find(
-    (lane) =>
-      lane.kind === "visual" && lane.role === "overlay" && lane.order === order,
-  )?.id;
 }
 
 function resolveOverlayPlacement(
@@ -498,7 +440,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedNodeId: null,
   isExporting: false,
   activeSidebarTab: "frame",
-  overlayScenes: [],
   timelineClips: [],
   timelineLanes: [ensureMainLane([])],
 
@@ -545,7 +486,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedOverlayId:
         firstIsMain || firstIsAudio || !firstClip ? null : firstClip.id,
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
-      overlayScenes: overlayScenesFromClips(clips, lanes),
       activeDragItem: null,
       isOverTimeline: false,
       isExporting: false,
@@ -557,33 +497,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     usePlaybackClock.getState().reset({
       duration: clipsContentEndSeconds(clips),
       currentTime: 0,
-    });
-  },
-
-  /** 3.2 Chọn Scene đang hoạt động (clear overlay selection) */
-  selectScene: (sceneId) => {
-    const state = get();
-    const scene = state.project?.scenes.find((candidate) => candidate.id === sceneId);
-    const mainId = state.timelineLanes.find((lane) => lane.kind === "visual" && lane.role === "base")?.id;
-    const clip = state.timelineClips.find((candidate) =>
-      candidate.laneId === mainId && candidate.sceneId === sceneId);
-    set({
-      selectedSceneId: sceneId,
-      selectedOverlayId: null,
-      selectedClipId: clip?.id ?? null,
-      selectedClipIds: clip ? [clip.id] : [],
-      selectedNodeId: firstEditableNode(scene)?.id ?? null,
-    });
-  },
-
-  /** Chọn overlay clip trên timeline (clear main scene selection) */
-  selectOverlay: (overlayId) => {
-    set({
-      selectedOverlayId: overlayId,
-      selectedSceneId: null,
-      selectedClipId: overlayId,
-      selectedClipIds: [overlayId],
-      selectedNodeId: null,
     });
   },
 
@@ -662,10 +575,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   reorderLane: (laneId, newOrder) => {
     set((state) => ({
       timelineLanes: reorderOverlayLane(state.timelineLanes, laneId, newOrder),
-      overlayScenes: overlayScenesFromClips(
-        state.timelineClips,
-        reorderOverlayLane(state.timelineLanes, laneId, newOrder),
-      ),
     }));
   },
 
@@ -697,7 +606,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             : scene),
         },
         timelineClips,
-        overlayScenes: overlayScenesFromClips(timelineClips, state.timelineLanes),
       };
     });
   },
@@ -764,11 +672,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (project) set({ project: { ...project, metadata: { ...project.metadata, aspectRatio } } });
   },
 
-  /** Thêm Scene từ Khung hình vào Main Track nối tiếp */
-  addSceneFromFrame: (draft) => {
-    get().addClipFromDraft(draft, { track: "main" });
-  },
-
   addClipFromDraft: (draft, target) => {
     set((state) => {
       const project = state.project;
@@ -807,7 +710,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           project: nextProject,
           timelineLanes: nextLanes,
           timelineClips,
-          overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
           selectedClipId: clip.id,
           selectedClipIds: [clip.id],
           selectedSceneId: scene.id,
@@ -816,16 +718,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         };
       }
 
-      const insertNew =
-        target.insertNewLane ?? target.insertNewLayer ?? false;
-      const preferredLaneId = insertNew
-        ? null
-        : (target.laneId ??
-          (target.layerIndex != null
-            ? laneIdByOrder(lanes, target.layerIndex) ?? null
-            : null));
+      const insertNew = target.insertNewLane ?? false;
+      const preferredLaneId = insertNew ? null : (target.laneId ?? null);
       const preferredInsertOrder = insertNew
-        ? (target.layerIndex ?? null)
+        ? (target.insertOrder ?? null)
         : null;
       const placement = resolveOverlayPlacement(
         lanes,
@@ -859,7 +755,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: nextLanes,
         timelineClips,
-        overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
         selectedClipId: clip.id,
         selectedClipIds: [clip.id],
         selectedSceneId: null,
@@ -894,8 +789,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       if (patch.track === "audio") {
         if (!existingOnAudio) return state;
-        const insertNew =
-          patch.insertNewLane ?? patch.insertNewLayer ?? false;
+        const insertNew = patch.insertNewLane ?? false;
         const preferredLaneId = insertNew
           ? null
           : (patch.laneId ??
@@ -903,7 +797,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               ? audioLaneIdByOrder(lanes, patch.insertOrder) ?? null
               : existing.laneId));
         const preferredInsertOrder = insertNew
-          ? (patch.insertOrder ?? patch.layerIndex ?? null)
+          ? (patch.insertOrder ?? null)
           : null;
         const placement = resolveAudioPlacement(
           lanes,
@@ -939,7 +833,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           project: nextProject,
           timelineLanes: lanes,
           timelineClips: clips,
-          overlayScenes: overlayScenesFromClips(clips, lanes),
           selectedClipId: moved.id,
           selectedClipIds: [moved.id],
           selectedSceneId: null,
@@ -950,16 +843,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       if (patch.track === "overlay") {
         if (existingOnAudio || existing.kind !== "scene") return state;
-        const insertNew =
-          patch.insertNewLane ?? patch.insertNewLayer ?? false;
+        const insertNew = patch.insertNewLane ?? false;
         const preferredLaneId = insertNew
           ? null
           : (patch.laneId ??
-            (patch.layerIndex != null
-              ? laneIdByOrder(lanes, patch.layerIndex) ?? null
-              : existingOnMain ? null : existing.laneId));
+            (existingOnMain ? null : existing.laneId));
         const preferredInsertOrder = insertNew
-          ? (patch.layerIndex ?? null)
+          ? (patch.insertOrder ?? null)
           : null;
         const placement = resolveOverlayPlacement(
           lanes,
@@ -1007,7 +897,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        overlayScenes: overlayScenesFromClips(clips, lanes),
         selectedClipId: moved.id,
         selectedClipIds: [moved.id],
         selectedSceneId: movedOnMain ? moved.sceneId : null,
@@ -1015,58 +904,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         selectedNodeId: firstEditableNode(selectedScene)?.id ?? null,
       };
     });
-  },
-
-  /**
-   * Thêm Khung hình vào tầng Overlay. insertNewLayer = true đẩy các tầng trên lên +1.
-   */
-  addOverlaySceneFromFrame: (
-    draft,
-    startTime,
-    layerIndex,
-    insertNewLayer = false,
-  ) => {
-    get().addClipFromDraft(draft, {
-      track: "overlay",
-      startTime,
-      layerIndex,
-      insertNewLayer,
-    });
-  },
-
-  /** Di chuyển overlay: đổi startTime / layer; insertNewLayer shift các tầng >= target */
-  moveOverlayScene: (id, patch) => {
-    get().moveClip(id, { ...patch, track: "overlay" });
-  },
-
-  /** Sắp xếp lại clip trên Main (magnetic) theo thời điểm thả */
-  reorderMainScene: (sceneId, dropTime) => {
-    const state = get();
-    const mainId = state.timelineLanes.find((lane) => lane.kind === "visual" && lane.role === "base")?.id;
-    const clip = state.timelineClips.find((candidate) =>
-      candidate.laneId === mainId && candidate.sceneId === sceneId);
-    if (clip) get().moveClip(clip.id, { track: "main", startTime: dropTime });
-  },
-
-  /** Đưa clip Main lên lane Overlay (xóa khỏi chuỗi magnetic) */
-  promoteMainSceneToOverlay: (
-    sceneId,
-    startTime,
-    layerIndex,
-    insertNewLayer = false,
-  ) => {
-    const state = get();
-    const mainId = state.timelineLanes.find((lane) => lane.kind === "visual" && lane.role === "base")?.id;
-    const clip = state.timelineClips.find((candidate) =>
-      candidate.laneId === mainId && candidate.sceneId === sceneId);
-    if (clip) {
-      get().moveClip(clip.id, {
-        track: "overlay",
-        startTime,
-        layerIndex,
-        insertNewLayer,
-      });
-    }
   },
 
   /** 3.21 Thêm audio clip + lane (CapCut-style dưới main) */
@@ -1163,7 +1000,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         },
         timelineLanes: nextLanes,
         timelineClips,
-        overlayScenes: overlayScenesFromClips(timelineClips, nextLanes),
         selectedClipId: clip.id,
         selectedClipIds: [clip.id],
         selectedSceneId: null,
@@ -1306,7 +1142,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: remaining,
-        overlayScenes: overlayScenesFromClips(remaining, lanes),
         ...selectionStateForClip(undefined, lanes, nextProject),
       };
     });
@@ -1465,7 +1300,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        overlayScenes: overlayScenesFromClips(clips, lanes),
         selectedClipIds: newIds,
         selectedClipId: primary?.id ?? null,
         selectedSceneId:
@@ -1604,7 +1438,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        overlayScenes: overlayScenesFromClips(clips, lanes),
         selectedClipIds: newIds,
         selectedClipId: primary?.id ?? null,
         selectedSceneId:
@@ -1764,7 +1597,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         project: nextProject,
         timelineLanes: lanes,
         timelineClips: clips,
-        overlayScenes: overlayScenesFromClips(clips, lanes),
         selectedClipIds: newSelection,
         selectedClipId: primaryId,
         selectedSceneId:

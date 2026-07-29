@@ -20,12 +20,12 @@ import {
   unbindDragGhostElementIf,
 } from "@/lib/editor/drag-cursor";
 import {
-  collectVideoLanes,
+  collectSceneLanes,
   collectAudioZoneLanes,
   resolveOverlayDragTarget,
   resolveAudioDragTarget,
   INDICATOR_TOP_EPS_PX,
-} from "./overlay-drag-target";
+} from "./lane-drop-target";
 import {
   shouldCommitPointerSession,
   type PointerSessionEndReason,
@@ -67,7 +67,7 @@ type MoveSession = {
  * Pointer-drag timeline clips (main + overlay + audio free-place)
  * with shared insert-line / gray ghost policy from sidebar drops.
  */
-export function useOverlayClipMove({
+export function useTimelineClipMove({
   rootRef,
   workspaceRef,
   pixelsPerSecond,
@@ -230,7 +230,7 @@ export function useOverlayClipMove({
       return;
     }
 
-    const lanes = collectVideoLanes(ws);
+    const lanes = collectSceneLanes(ws);
     const target = resolveOverlayDragTarget(
       clientY,
       lanes,
@@ -320,7 +320,7 @@ export function useOverlayClipMove({
           laneId: ui.laneId ?? session.originLaneId,
           insertNewLane: ui.isInsert,
           ...(ui.isInsert && ui.insertOrder != null
-            ? { layerIndex: ui.insertOrder }
+            ? { insertOrder: ui.insertOrder }
             : {}),
         });
     resetMoveUi();
@@ -515,14 +515,11 @@ export function useOverlayClipMove({
   }
 
   return {
-    /** @deprecated Prefer movingClipId */
-    movingOverlayId: movingClipId,
     movingClipId,
     isOverlayInsertLine,
     isAudioInsertLine,
     targetOverlayLaneId,
     targetAudioLaneId,
-    targetOverlayLayer: null as number | null,
     indicatorTopPos,
     dragGhostState,
     insertGhostRef,

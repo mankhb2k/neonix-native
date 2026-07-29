@@ -17,13 +17,13 @@ import {
   parseAudioLibraryPayload,
 } from "@/lib/editor/dnd/editor-drag-payload";
 import {
-  collectVideoLanes,
+  collectSceneLanes,
   collectAudioZoneLanes,
   resolveOverlayDragTarget,
   resolveAudioDragTarget,
   CYAN_MODE_BELOW_RULER_TOP_PX,
   INDICATOR_TOP_EPS_PX,
-} from "./overlay-drag-target";
+} from "./lane-drop-target";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
 export type DragGhostState = {
@@ -255,7 +255,7 @@ export function useTracksDrag({
       }
       if (ws) {
         const wsTop = ws.getBoundingClientRect().top;
-        const lanes = collectVideoLanes(ws);
+        const lanes = collectSceneLanes(ws);
         const target = resolveOverlayDragTarget(
           event.clientY,
           lanes,
@@ -390,7 +390,7 @@ export function useTracksDrag({
               laneId: dropLaneId ?? undefined,
               insertNewLane: dropInsert,
               ...(dropInsert && dropInsertOrder != null
-                ? { layerIndex: dropInsertOrder }
+                ? { insertOrder: dropInsertOrder }
                 : {}),
             });
           }

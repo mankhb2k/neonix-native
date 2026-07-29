@@ -9,7 +9,7 @@ import { useEditorStore } from "@/lib/editor/editor-store";
 import { TrackLane } from "./TrackLane";
 import { LaneFlagControls } from "./LaneFlagControls";
 import { useTracksDrag } from "./useTracksDrag";
-import { useOverlayClipMove } from "./useOverlayClipMove";
+import { useTimelineClipMove } from "./useTimelineClipMove";
 import { useMarqueeSelect } from "./useMarqueeSelect";
 import { useTimelineClipHotkeys } from "./useTimelineClipHotkeys";
 import { TimelineWorkspaceContextMenu } from "./TimelineClipContextMenu";
@@ -85,7 +85,7 @@ export const Tracks = memo(function Tracks({
     projectId: projectId ?? null,
   });
 
-  const clipMove = useOverlayClipMove({
+  const clipMove = useTimelineClipMove({
     rootRef: scrollRef,
     workspaceRef,
     pixelsPerSecond,

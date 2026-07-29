@@ -29,7 +29,7 @@ export type OverlayDragTarget = {
   indicatorTop: number;
 };
 
-export function collectVideoLanes(scope: HTMLElement): VideoLaneHit[] {
+export function collectSceneLanes(scope: HTMLElement): VideoLaneHit[] {
   const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
   const out: VideoLaneHit[] = [];
   for (const el of nodes) {
@@ -206,7 +206,7 @@ export type AudioDragTarget = {
   indicatorTop: number;
 };
 
-/** Collect main + audio lanes for below-main audio DnD (mirror of collectVideoLanes). */
+/** Collect main + audio lanes for below-main audio DnD (mirror of collectSceneLanes). */
 export function collectAudioZoneLanes(scope: HTMLElement): AudioLaneHit[] {
   const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
   const out: AudioLaneHit[] = [];

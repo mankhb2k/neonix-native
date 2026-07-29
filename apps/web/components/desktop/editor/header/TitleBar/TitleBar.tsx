@@ -25,7 +25,6 @@ import {
 export function TitleBar() {
   const project = useEditorStore((s) => s.project);
   const brandName = useEditorStore((s) => s.project?.metadata.brand.name);
-  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
   const isExporting = useEditorStore((s) => s.isExporting);
@@ -44,7 +43,7 @@ export function TitleBar() {
     setExportError(null);
     setExporting(true);
     try {
-      saveProject(project, { overlayScenes, timelineClips, timelineLanes });
+      saveProject(project, { timelineClips, timelineLanes });
       const blob = await exportMotionProject(project);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);

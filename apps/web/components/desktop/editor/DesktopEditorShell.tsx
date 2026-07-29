@@ -23,7 +23,6 @@ const AUTOSAVE_DEBOUNCE_MS = 400;
 export function DesktopEditorShell({ initialSnapshot }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
-  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
@@ -55,12 +54,12 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
     if (!project) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveProject(project, { overlayScenes, timelineClips, timelineLanes });
+      saveProject(project, { timelineClips, timelineLanes });
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [project, overlayScenes, timelineClips, timelineLanes]);
+  }, [project, timelineClips, timelineLanes]);
 
   const startSidebarResizing = useCallback(
     (e: React.PointerEvent) => {

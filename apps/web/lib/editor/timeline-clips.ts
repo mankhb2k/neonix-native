@@ -773,19 +773,3 @@ export function reorderOverlayLane(
     return remapped.find((item) => item.id === lane.id) ?? lane;
   });
 }
-
-/** @deprecated Prefer findFreeOverlayLane. */
-export function findFreeOverlayLayer(
-  clips: TimelineClip[],
-  startTime: number,
-  duration: number,
-  preferredLayer: number,
-  insertNewLayer: boolean,
-): { layerIndex: number; insertNewLayer: boolean } {
-  const requested = Math.max(0, Math.floor(preferredLayer));
-  if (insertNewLayer) return { layerIndex: requested, insertNewLayer: true };
-  void clips;
-  void startTime;
-  void duration;
-  return { layerIndex: requested, insertNewLayer: false };
-}
