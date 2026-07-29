@@ -42,6 +42,7 @@ export function Tracks({
   const projectId = useEditorStore((s) => s.project?.metadata.id);
   const audioTracks = useEditorStore((s) => s.project?.timeline.audioTracks);
   const timelineClips = useEditorStore((s) => s.timelineClips);
+  const timelineLanes = useEditorStore((s) => s.timelineLanes);
   const selectedClipId = useEditorStore((s) => s.selectedClipId);
   const clearTimelineSelection = useEditorStore((s) => s.clearTimelineSelection);
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
@@ -54,18 +55,21 @@ export function Tracks({
   const [audioMuted, setAudioMuted] = useState(false);
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
-  const uniqueLayers = Array.from(
-    new Set(timelineClips
-      .filter((clip) => clip.track === "overlay")
-      .map((clip) => clip.layerIndex ?? 0)),
-  ).sort((a, b) => b - a);
+  const overlayLanes = timelineLanes
+    .filter((lane) => lane.kind === "overlay")
+    .sort((a, b) => b.order - a.order);
+  const mainLane = timelineLanes.find((lane) => lane.kind === "main");
+  const maxOverlayOrder = overlayLanes.reduce(
+    (max, lane) => Math.max(max, lane.order),
+    -1,
+  );
 
   const sidebarDrag = useTracksDrag({
     rootRef: scrollRef,
     rulerHeaderRef,
     workspaceRef,
     pixelsPerSecond,
-    uniqueLayers,
+    maxOverlayOrder,
     projectId: projectId ?? null,
   });
 
@@ -73,7 +77,7 @@ export function Tracks({
     rootRef: scrollRef,
     workspaceRef,
     pixelsPerSecond,
-    uniqueLayers,
+    maxOverlayOrder,
   });
 
   const scrubBlocked = clipMove.isMoving || activeDragItem != null;
@@ -84,9 +88,9 @@ export function Tracks({
   const isOverlayInsertLine = clipMove.isMoving
     ? clipMove.isOverlayInsertLine
     : sidebarDrag.isOverlayInsertLine;
-  const targetOverlayLayer = clipMove.isMoving
-    ? clipMove.targetOverlayLayer
-    : sidebarDrag.targetOverlayLayer;
+  const targetOverlayLaneId = clipMove.isMoving
+    ? clipMove.targetOverlayLaneId
+    : sidebarDrag.targetOverlayLaneId;
   const indicatorTopPos = clipMove.isMoving
     ? clipMove.indicatorTopPos
     : sidebarDrag.indicatorTopPos;
@@ -108,7 +112,7 @@ export function Tracks({
   }
 
   const mainClips = timelineClips
-    .filter((clip) => clip.track === "main")
+    .filter((clip) => clip.laneId === mainLane?.id)
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
   const total = timelineClips.reduce(
     (end, clip) => Math.max(end, clip.startTime + clip.duration),
@@ -219,18 +223,19 @@ export function Tracks({
               }
             }}
           >
-            {uniqueLayers.map((layerIdx) => {
+            {overlayLanes.map((lane) => {
               const layerItems = timelineClips.filter(
-                (clip) => clip.track === "overlay" && (clip.layerIndex ?? 0) === layerIdx,
+                (clip) => clip.laneId === lane.id,
               );
               return (
                 <TrackLane
-                  key={`overlay-layer-${layerIdx}`}
+                  key={lane.id}
                   variant="secondary"
                   dataTrackType="overlay"
-                  dataLayerIndex={layerIdx}
+                  dataLaneId={lane.id}
+                  dataLaneOrder={lane.order}
                   ghostPreview={
-                    !isOverlayInsertLine && targetOverlayLayer === layerIdx
+                    !isOverlayInsertLine && targetOverlayLaneId === lane.id
                       ? dragGhostState
                       : null
                   }
@@ -239,10 +244,10 @@ export function Tracks({
                   leftControl={
                     <button
                       type="button"
-                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer text-[11px] font-mono font-semibold"
-                      title={`Frame phụ (Layer ${layerIdx + 1})`}
+                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer text-[11px] font-semibold truncate max-w-full"
+                      title={lane.name}
                     >
-                      L{layerIdx + 1}
+                      {lane.name}
                     </button>
                   }
                 >
@@ -302,9 +307,10 @@ export function Tracks({
             <TrackLane
               variant="main"
               dataTrackType="main"
+              dataLaneId={mainLane?.id}
               ghostPreview={
                 !isOverlayInsertLine &&
-                targetOverlayLayer === null &&
+                targetOverlayLaneId === null &&
                 dragGhostState?.targetTrack === "video"
                   ? dragGhostState
                   : null
@@ -316,7 +322,7 @@ export function Tracks({
                   <button
                     type="button"
                     className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                    title="Khung hình / Video"
+                    title={mainLane?.name ?? "Khung hình / Video"}
                   >
                     <Film size={14} strokeWidth={1.5} />
                   </button>

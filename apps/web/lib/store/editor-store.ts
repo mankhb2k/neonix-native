@@ -17,15 +17,20 @@ import {
 } from "@/components/desktop/editor/timeline/timeline-scale";
 import {
   clipsContentEndSeconds,
-  findFreeOverlayLayer,
-  migrateClipsFromLegacy,
+  createOverlayLane,
+  ensureMainLane,
+  findFreeOverlayLane,
+  isMainLane,
+  migrateLanesAndClips,
   resolveMainStartTime,
+  reorderOverlayLane,
+  shiftOverlayLaneOrders,
   type TimelineClip,
-  type TimelineTrackKind,
+  type TimelineLane,
 } from "@/lib/timeline-clips";
 
 export type { OverlaySceneItem } from "@/lib/overlay-scenes";
-export type { TimelineClip } from "@/lib/timeline-clips";
+export type { TimelineClip, TimelineLane } from "@/lib/timeline-clips";
 
 /* ==========================================================================
    1. Các kiểu dữ liệu trạng thái (State Types)
@@ -50,6 +55,7 @@ type EditorState = {
   activeSidebarTab: SidebarTabId;
   overlayScenes: OverlaySceneItem[];
   timelineClips: TimelineClip[];
+  timelineLanes: TimelineLane[];
 
   activeDragItem: {
     id: string;
@@ -77,6 +83,7 @@ type EditorState = {
     project: MotionProject,
     overlayScenes?: OverlaySceneItem[],
     timelineClips?: TimelineClip[],
+    timelineLanes?: TimelineLane[],
   ) => void;
   selectClip: (clipId: string) => void;
   selectScene: (sceneId: string) => void;
@@ -93,22 +100,32 @@ type EditorState = {
   addSceneFromFrame: (draft: FrameDraft) => void;
   addClipFromDraft: (
     draft: FrameDraft,
-    target: { track: "main" } | {
-      track: "overlay";
-      startTime: number;
-      layerIndex?: number;
-      insertNewLayer?: boolean;
-    },
+    target:
+      | { track: "main" }
+      | {
+          track: "overlay";
+          startTime: number;
+          laneId?: string;
+          insertNewLane?: boolean;
+          /** @deprecated map to lane order */
+          layerIndex?: number;
+          insertNewLayer?: boolean;
+        },
   ) => void;
   moveClip: (
     clipId: string,
     patch: {
       startTime: number;
-      track: TimelineTrackKind;
+      track: "main" | "overlay";
+      laneId?: string;
+      insertNewLane?: boolean;
+      /** @deprecated */
       layerIndex?: number;
       insertNewLayer?: boolean;
     },
   ) => void;
+  renameLane: (laneId: string, name: string) => void;
+  reorderLane: (laneId: string, newOrder: number) => void;
   addOverlaySceneFromFrame: (
     draft: FrameDraft,
     startTime: number,
@@ -235,23 +252,32 @@ function sceneFromFrameDraft(draft: FrameDraft): MotionScene {
   };
 }
 
-function overlayScenesFromClips(clips: TimelineClip[]): OverlaySceneItem[] {
+function overlayScenesFromClips(
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+): OverlaySceneItem[] {
+  const orderByLane = new Map(lanes.map((lane) => [lane.id, lane.order]));
   return clips
-    .filter((clip) => clip.track === "overlay")
+    .filter((clip) => !isMainLane(lanes, clip.laneId))
     .map((clip) => ({
       id: clip.id,
       name: clip.name,
       duration: clip.duration,
       startTime: clip.startTime,
-      layerIndex: clip.layerIndex ?? 0,
+      layerIndex: orderByLane.get(clip.laneId) ?? 0,
     }));
 }
 
 /** Keeps schema scenes exactly aligned with the main-track clips. */
-function rebuildMainProject(project: MotionProject, clips: TimelineClip[]): MotionProject {
+function rebuildMainProject(
+  project: MotionProject,
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+): MotionProject {
   const byId = new Map(project.scenes.map((scene) => [scene.id, scene]));
+  const mainId = lanes.find((lane) => lane.kind === "main")?.id;
   const main = clips
-    .filter((clip) => clip.track === "main")
+    .filter((clip) => clip.laneId === mainId)
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
   const sceneOrder = main
     .map((clip) => clip.sceneId)
@@ -261,6 +287,37 @@ function rebuildMainProject(project: MotionProject, clips: TimelineClip[]): Moti
     scenes: sceneOrder.map((sceneId) => byId.get(sceneId)!),
     timeline: { ...project.timeline, sceneOrder },
   };
+}
+
+function laneIdByOrder(lanes: TimelineLane[], order: number): string | undefined {
+  return lanes.find((lane) => lane.kind === "overlay" && lane.order === order)?.id;
+}
+
+function resolveOverlayPlacement(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  startTime: number,
+  duration: number,
+  preferredLaneId: string | null,
+  insertNew: boolean,
+  preferredInsertOrder?: number | null,
+): { lanes: TimelineLane[]; laneId: string } {
+  const result = findFreeOverlayLane(
+    lanes,
+    clips,
+    startTime,
+    duration,
+    preferredLaneId,
+    insertNew,
+    preferredInsertOrder,
+  );
+  if (!result.createNew && result.laneId) {
+    return { lanes, laneId: result.laneId };
+  }
+  let nextLanes = shiftOverlayLaneOrders(lanes, result.insertOrder, 1);
+  const created = createOverlayLane(result.insertOrder);
+  nextLanes = [...nextLanes, created];
+  return { lanes: nextLanes, laneId: created.id };
 }
 
 /* ==========================================================================
@@ -277,6 +334,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeSidebarTab: "frame",
   overlayScenes: [],
   timelineClips: [],
+  timelineLanes: [ensureMainLane([])],
 
   activeDragItem: null,
   isOverTimeline: false,
@@ -296,23 +354,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),
 
   /** 3.1 Nạp dự án vào Editor Store */
-  loadProject: (input, overlayScenes = [], storedClips = []) => {
+  loadProject: (input, overlayScenes = [], storedClips = [], storedLanes = []) => {
     const project = parseMotionProject(input);
-    const timelineClips = storedClips.length
-      ? storedClips
-      : migrateClipsFromLegacy(project, overlayScenes);
-    const firstClip = timelineClips.find((clip) => clip.track === "main") ?? timelineClips[0];
-    const firstScene = firstClip?.track === "main"
-      ? project.scenes.find((scene) => scene.id === firstClip.sceneId)
+    const { lanes, clips } = migrateLanesAndClips(
+      project,
+      overlayScenes,
+      storedClips,
+      storedLanes,
+    );
+    const mainId = lanes.find((lane) => lane.kind === "main")?.id;
+    const firstClip =
+      clips.find((clip) => clip.laneId === mainId) ?? clips[0];
+    const firstIsMain = firstClip ? isMainLane(lanes, firstClip.laneId) : false;
+    const firstScene = firstIsMain
+      ? project.scenes.find((scene) => scene.id === firstClip!.sceneId)
       : undefined;
     set({
       project,
-      timelineClips,
+      timelineLanes: lanes,
+      timelineClips: clips,
       selectedClipId: firstClip?.id ?? null,
-      selectedSceneId: firstClip?.track === "main" ? firstClip.sceneId : null,
-      selectedOverlayId: firstClip?.track === "overlay" ? firstClip.id : null,
+      selectedSceneId: firstIsMain ? firstClip!.sceneId : null,
+      selectedOverlayId: firstIsMain ? null : (firstClip?.id ?? null),
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
-      overlayScenes: overlayScenesFromClips(timelineClips),
+      overlayScenes: overlayScenesFromClips(clips, lanes),
       currentTime: 0,
       isPlaying: false,
     });
@@ -320,9 +385,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   /** 3.2 Chọn Scene đang hoạt động (clear overlay selection) */
   selectScene: (sceneId) => {
-    const scene = get().project?.scenes.find((candidate) => candidate.id === sceneId);
-    const clip = get().timelineClips.find((candidate) =>
-      candidate.track === "main" && candidate.sceneId === sceneId);
+    const state = get();
+    const scene = state.project?.scenes.find((candidate) => candidate.id === sceneId);
+    const mainId = state.timelineLanes.find((lane) => lane.kind === "main")?.id;
+    const clip = state.timelineClips.find((candidate) =>
+      candidate.laneId === mainId && candidate.sceneId === sceneId);
     set({
       selectedSceneId: sceneId,
       selectedOverlayId: null,
@@ -345,13 +412,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const state = get();
     const clip = state.timelineClips.find((candidate) => candidate.id === clipId);
     if (!clip) return;
-    const scene = clip.track === "main"
+    const onMain = isMainLane(state.timelineLanes, clip.laneId);
+    const scene = onMain
       ? state.project?.scenes.find((candidate) => candidate.id === clip.sceneId)
       : undefined;
     set({
       selectedClipId: clip.id,
-      selectedSceneId: clip.track === "main" ? clip.sceneId : null,
-      selectedOverlayId: clip.track === "overlay" ? clip.id : null,
+      selectedSceneId: onMain ? clip.sceneId : null,
+      selectedOverlayId: onMain ? null : clip.id,
       selectedNodeId: firstEditableNode(scene)?.id ?? null,
     });
   },
@@ -371,6 +439,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   /** 3.4 Thay đổi Tab Sidebar đang hiển thị */
   setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
 
+  renameLane: (laneId, name) => {
+    set((state) => ({
+      timelineLanes: state.timelineLanes.map((lane) =>
+        lane.id === laneId ? { ...lane, name } : lane),
+    }));
+  },
+
+  reorderLane: (laneId, newOrder) => {
+    set((state) => ({
+      timelineLanes: reorderOverlayLane(state.timelineLanes, laneId, newOrder),
+      overlayScenes: overlayScenesFromClips(
+        state.timelineClips,
+        reorderOverlayLane(state.timelineLanes, laneId, newOrder),
+      ),
+    }));
+  },
+
   /** 3.6 Cập nhật thông tin thương hiệu dự án */
   updateBrand: (patch) => {
     const project = get().project;
@@ -387,20 +472,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const project = get().project;
     if (!project) return;
     const nextDuration = Math.max(0.5, duration);
-    set((state) => ({
-      project: {
-        ...project,
-        scenes: project.scenes.map((scene) => scene.id === sceneId
-          ? { ...scene, duration: nextDuration }
-          : scene),
-      },
-      timelineClips: state.timelineClips.map((clip) => clip.sceneId === sceneId
+    set((state) => {
+      const timelineClips = state.timelineClips.map((clip) => clip.sceneId === sceneId
         ? { ...clip, duration: nextDuration }
-        : clip),
-      overlayScenes: overlayScenesFromClips(state.timelineClips.map((clip) => clip.sceneId === sceneId
-        ? { ...clip, duration: nextDuration }
-        : clip)),
-    }));
+        : clip);
+      return {
+        project: {
+          ...project,
+          scenes: project.scenes.map((scene) => scene.id === sceneId
+            ? { ...scene, duration: nextDuration }
+            : scene),
+        },
+        timelineClips,
+        overlayScenes: overlayScenesFromClips(timelineClips, state.timelineLanes),
+      };
+    });
   },
 
   /** 3.8 Cập nhật văn bản của Node */
@@ -474,16 +560,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const project = state.project;
       if (!project) return state;
+      let lanes = state.timelineLanes.length
+        ? state.timelineLanes
+        : [ensureMainLane([])];
+      const mainLane = ensureMainLane(lanes);
+      if (!lanes.some((lane) => lane.id === mainLane.id)) {
+        lanes = [...lanes, mainLane];
+      }
       const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
+
       if (target.track === "main") {
         const scene = sceneFromFrameDraft(draft);
         const startTime = state.timelineClips
-          .filter((clip) => clip.track === "main")
+          .filter((clip) => clip.laneId === mainLane.id)
           .reduce((end, clip) => Math.max(end, clip.startTime + clip.duration), 0);
         const clip: TimelineClip = {
           id: scene.id,
           sceneId: scene.id,
-          track: "main",
+          laneId: mainLane.id,
           startTime,
           duration: scene.duration,
           name: scene.name ?? scene.id,
@@ -492,11 +586,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const nextProject = rebuildMainProject(
           { ...project, scenes: [...project.scenes, scene] },
           timelineClips,
+          lanes,
         );
         return {
           project: nextProject,
+          timelineLanes: lanes,
           timelineClips,
-          overlayScenes: overlayScenesFromClips(timelineClips),
+          overlayScenes: overlayScenesFromClips(timelineClips, lanes),
           selectedClipId: clip.id,
           selectedSceneId: scene.id,
           selectedOverlayId: null,
@@ -504,35 +600,41 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         };
       }
 
-      const id = uid("overlay");
-      const layer = findFreeOverlayLayer(
+      const insertNew =
+        target.insertNewLane ?? target.insertNewLayer ?? false;
+      const preferredLaneId = insertNew
+        ? null
+        : (target.laneId ??
+          (target.layerIndex != null
+            ? laneIdByOrder(lanes, target.layerIndex) ?? null
+            : null));
+      const preferredInsertOrder = insertNew
+        ? (target.layerIndex ?? null)
+        : null;
+      const placement = resolveOverlayPlacement(
+        lanes,
         state.timelineClips,
         Math.max(0, target.startTime),
         duration,
-        target.layerIndex ?? 0,
-        target.insertNewLayer ?? false,
+        preferredLaneId,
+        insertNew,
+        preferredInsertOrder,
       );
-      let timelineClips = state.timelineClips;
-      if (layer.insertNewLayer) {
-        timelineClips = timelineClips.map((clip) =>
-          clip.track === "overlay" && (clip.layerIndex ?? 0) >= layer.layerIndex
-            ? { ...clip, layerIndex: (clip.layerIndex ?? 0) + 1 }
-            : clip,
-        );
-      }
+      lanes = placement.lanes;
+      const id = uid("overlay");
       const clip: TimelineClip = {
         id,
         sceneId: id,
-        track: "overlay",
-        layerIndex: layer.layerIndex,
+        laneId: placement.laneId,
         startTime: Math.max(0, target.startTime),
         duration,
         name: draft.name,
       };
-      timelineClips = [...timelineClips, clip];
+      const timelineClips = [...state.timelineClips, clip];
       return {
+        timelineLanes: lanes,
         timelineClips,
-        overlayScenes: overlayScenesFromClips(timelineClips),
+        overlayScenes: overlayScenesFromClips(timelineClips, lanes),
         selectedClipId: clip.id,
         selectedSceneId: null,
         selectedOverlayId: clip.id,
@@ -547,34 +649,49 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const existing = state.timelineClips.find((clip) => clip.id === clipId);
       if (!project || !existing) return state;
       const startTime = Math.max(0, patch.startTime);
+      let lanes = state.timelineLanes.length
+        ? state.timelineLanes
+        : [ensureMainLane([])];
+      const mainLane = ensureMainLane(lanes);
+      if (!lanes.some((lane) => lane.id === mainLane.id)) {
+        lanes = [...lanes, mainLane];
+      }
       let clips = state.timelineClips.filter((clip) => clip.id !== clipId);
       let nextProject = project;
       let moved: TimelineClip;
+      const existingOnMain = isMainLane(lanes, existing.laneId);
 
       if (patch.track === "overlay") {
-        const layer = findFreeOverlayLayer(
+        const insertNew =
+          patch.insertNewLane ?? patch.insertNewLayer ?? false;
+        const preferredLaneId = insertNew
+          ? null
+          : (patch.laneId ??
+            (patch.layerIndex != null
+              ? laneIdByOrder(lanes, patch.layerIndex) ?? null
+              : existingOnMain ? null : existing.laneId));
+        const preferredInsertOrder = insertNew
+          ? (patch.layerIndex ?? null)
+          : null;
+        const placement = resolveOverlayPlacement(
+          lanes,
           clips,
           startTime,
           existing.duration,
-          patch.layerIndex ?? existing.layerIndex ?? 0,
-          patch.insertNewLayer ?? false,
+          preferredLaneId,
+          insertNew,
+          preferredInsertOrder,
         );
-        if (layer.insertNewLayer) {
-          clips = clips.map((clip) =>
-            clip.track === "overlay" && (clip.layerIndex ?? 0) >= layer.layerIndex
-              ? { ...clip, layerIndex: (clip.layerIndex ?? 0) + 1 }
-              : clip,
-          );
-        }
+        lanes = placement.lanes;
         moved = {
           ...existing,
-          sceneId: existing.track === "main" ? existing.id : existing.sceneId,
-          track: "overlay",
-          layerIndex: layer.layerIndex,
+          sceneId: existingOnMain ? existing.id : existing.sceneId,
+          laneId: placement.laneId,
           startTime,
+          track: undefined,
+          layerIndex: undefined,
         };
-        // Overlay clips are intentionally shells, not MotionProject scenes.
-        if (existing.track === "main") {
+        if (existingOnMain) {
           nextProject = {
             ...project,
             scenes: project.scenes.filter((scene) => scene.id !== existing.sceneId),
@@ -582,7 +699,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
       } else {
         let sceneId = existing.sceneId;
-        if (existing.track === "overlay") {
+        if (!existingOnMain) {
           const scene = sceneFromFrameDraft({
             id: existing.id,
             name: existing.name,
@@ -594,27 +711,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         }
         moved = {
           ...existing,
-          id: existing.track === "overlay" ? sceneId : existing.id,
+          id: existingOnMain ? existing.id : sceneId,
           sceneId,
-          track: "main",
-          startTime: resolveMainStartTime(clips, startTime, existing.duration),
+          laneId: mainLane.id,
+          startTime: resolveMainStartTime(
+            clips,
+            lanes,
+            startTime,
+            existing.duration,
+          ),
+          track: undefined,
           layerIndex: undefined,
         };
       }
 
       clips.push(moved);
-      // Main keeps free startTime (gaps allowed); do not re-pack magnetically.
-      nextProject = rebuildMainProject(nextProject, clips);
-      const selectedScene = moved.track === "main"
+      nextProject = rebuildMainProject(nextProject, clips, lanes);
+      const movedOnMain = isMainLane(lanes, moved.laneId);
+      const selectedScene = movedOnMain
         ? nextProject.scenes.find((scene) => scene.id === moved.sceneId)
         : undefined;
       return {
         project: nextProject,
+        timelineLanes: lanes,
         timelineClips: clips,
-        overlayScenes: overlayScenesFromClips(clips),
+        overlayScenes: overlayScenesFromClips(clips, lanes),
         selectedClipId: moved.id,
-        selectedSceneId: moved.track === "main" ? moved.sceneId : null,
-        selectedOverlayId: moved.track === "overlay" ? moved.id : null,
+        selectedSceneId: movedOnMain ? moved.sceneId : null,
+        selectedOverlayId: movedOnMain ? null : moved.id,
         selectedNodeId: firstEditableNode(selectedScene)?.id ?? null,
       };
     });
@@ -644,8 +768,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   /** Sắp xếp lại clip trên Main (magnetic) theo thời điểm thả */
   reorderMainScene: (sceneId, dropTime) => {
-    const clip = get().timelineClips.find((candidate) =>
-      candidate.track === "main" && candidate.sceneId === sceneId);
+    const state = get();
+    const mainId = state.timelineLanes.find((lane) => lane.kind === "main")?.id;
+    const clip = state.timelineClips.find((candidate) =>
+      candidate.laneId === mainId && candidate.sceneId === sceneId);
     if (clip) get().moveClip(clip.id, { track: "main", startTime: dropTime });
   },
 
@@ -656,8 +782,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     layerIndex,
     insertNewLayer = false,
   ) => {
-    const clip = get().timelineClips.find((candidate) =>
-      candidate.track === "main" && candidate.sceneId === sceneId);
+    const state = get();
+    const mainId = state.timelineLanes.find((lane) => lane.kind === "main")?.id;
+    const clip = state.timelineClips.find((candidate) =>
+      candidate.laneId === mainId && candidate.sceneId === sceneId);
     if (clip) {
       get().moveClip(clip.id, {
         track: "overlay",

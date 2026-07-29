@@ -16,9 +16,10 @@ function pad2(n: number): string {
 }
 
 /**
- * CapCut ruler label:
- * - whole second → `HH:MM:SS` when zoomed into frames, else `MM:SS`
- * - mid-second   → `5f` / `15f` (frame index within that second)
+ * CapCut ruler label (matches desktop CapCut ruler):
+ * - On a frame within a second while zoomed in → `15f`
+ * - Else CapCut uses **seconds:frames** (`03:00` = 3s), not MM:SS
+ * - Past 60s → `MM:SS:FF` (e.g. `01:05:00`)
  */
 export function formatRulerLabel(
   totalFrames: number,
@@ -28,22 +29,28 @@ export function formatRulerLabel(
   const safeFps = Math.max(1, Math.round(fps));
   const frame = Math.max(0, Math.round(totalFrames));
   const frameInSecond = frame % safeFps;
+  const totalSecs = Math.floor(frame / safeFps);
 
-  if (frameInSecond === 0) {
-    const totalSecs = Math.floor(frame / safeFps);
-    const hours = Math.floor(totalSecs / 3600);
-    const minutes = Math.floor((totalSecs % 3600) / 60);
-    const seconds = totalSecs % 60;
-    if (labelEveryFrames < safeFps) {
-      return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
-    }
-    if (hours > 0) {
-      return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}`;
-    }
-    return `${pad2(minutes)}:${pad2(seconds)}`;
+  // Sub-second zoom: unlabeled majors still use frame-in-second shorthand.
+  if (frameInSecond !== 0 && labelEveryFrames < safeFps) {
+    return `${frameInSecond}f`;
+  }
+  if (frameInSecond !== 0) {
+    return `${frameInSecond}f`;
   }
 
-  return `${frameInSecond}f`;
+  const hours = Math.floor(totalSecs / 3600);
+  const minutes = Math.floor((totalSecs % 3600) / 60);
+  const seconds = totalSecs % 60;
+
+  if (hours > 0) {
+    return `${pad2(hours)}:${pad2(minutes)}:${pad2(seconds)}:${pad2(0)}`;
+  }
+  if (totalSecs >= 60) {
+    return `${pad2(minutes)}:${pad2(seconds)}:${pad2(0)}`;
+  }
+  // CapCut short span: SS:FF (03:00 = 3 seconds)
+  return `${pad2(totalSecs)}:${pad2(0)}`;
 }
 
 export const TIMELINE_LABEL_WIDTH = 96;
@@ -63,10 +70,18 @@ export const TIMELINE_PPS_MIN = 1.5;
  */
 export const TIMELINE_FRAMES_AT_MAX_ZOOM = 9;
 export const TIMELINE_PPS_MAX = 3600;
-/** Khoảng cách tối thiểu giữa 2 nhãn (px). */
-const TARGET_LABEL_PX = 96;
+/**
+ * CapCut ruler is airy: ~120px+ between major labels (screenshot ~3s majors).
+ * Was 96 — felt denser than CapCut.
+ */
+const TARGET_LABEL_PX = 128;
 /** Chỉ vẽ tick khi cách nhau ≥ mức này (px) — tránh rừng vạch. */
-const MIN_TICK_GAP_PX = 9;
+const MIN_TICK_GAP_PX = 11;
+/**
+ * CapCut majors divided into equal slots (screenshot: 8 minor ticks → 9 gaps).
+ * Prefer 9 (CapCut desktop), then 10, then coarser.
+ */
+const PREFERRED_SUBDIVISIONS = [9, 10, 5, 4, 2] as const;
 
 /**
  * Zoom 0 = workspace (total content × 4, min 20s) vừa viewport,
@@ -136,7 +151,7 @@ export type CapCutRulerScale = {
   pixelsPerFrame: number;
 };
 
-/** Snap to CapCut-like intervals (1,2,5,10,15,½s,1s,2s,5s,…). */
+/** Snap to CapCut-like intervals (incl. 3s majors from CapCut desktop). */
 function niceFrameStep(minFrames: number, fps: number): number {
   const safeFps = Math.max(1, Math.round(fps));
   const candidates = [
@@ -147,6 +162,7 @@ function niceFrameStep(minFrames: number, fps: number): number {
     Math.round(safeFps / 2),
     safeFps,
     safeFps * 2,
+    safeFps * 3,
     safeFps * 5,
     safeFps * 10,
     safeFps * 15,
@@ -162,7 +178,25 @@ function niceFrameStep(minFrames: number, fps: number): number {
 }
 
 /**
- * CapCut zoom math: nhãn thưa (~96px), tick từng frame chỉ khi mỗi frame ≥ ~9px.
+ * CapCut: equal minor ticks between majors (e.g. 3s / 9 = 10f @30fps).
+ * Returns frames between adjacent ticks.
+ */
+function tickStepForLabel(
+  labelEveryFrames: number,
+  pixelsPerFrame: number,
+): number {
+  for (const divisions of PREFERRED_SUBDIVISIONS) {
+    if (labelEveryFrames % divisions !== 0) continue;
+    const tickEvery = labelEveryFrames / divisions;
+    if (tickEvery >= 1 && tickEvery * pixelsPerFrame >= MIN_TICK_GAP_PX) {
+      return tickEvery;
+    }
+  }
+  return labelEveryFrames;
+}
+
+/**
+ * CapCut zoom math: nhãn thoáng (~128px), giữa hai nhãn chia đều (ưu tiên 10/9 ô).
  */
 export function capCutRulerScale(
   pixelsPerSecond: number,
@@ -175,22 +209,7 @@ export function capCutRulerScale(
     TARGET_LABEL_PX / Math.max(pixelsPerFrame, 0.001),
   );
   const labelEveryFrames = niceFrameStep(minFramesForLabel, safeFps);
-
-  const minFramesForTick = Math.max(
-    1,
-    MIN_TICK_GAP_PX / Math.max(pixelsPerFrame, 0.001),
-  );
-  let tickEveryFrames = niceFrameStep(minFramesForTick, safeFps);
-  if (tickEveryFrames > labelEveryFrames) {
-    tickEveryFrames = labelEveryFrames;
-  }
-  // Subdivide labels when room allows (CapCut: vạch nhỏ giữa các nhãn).
-  if (labelEveryFrames >= 5 && tickEveryFrames === labelEveryFrames) {
-    const subdivided = niceFrameStep(labelEveryFrames / 5, safeFps);
-    if (subdivided * pixelsPerFrame >= MIN_TICK_GAP_PX) {
-      tickEveryFrames = subdivided;
-    }
-  }
+  const tickEveryFrames = tickStepForLabel(labelEveryFrames, pixelsPerFrame);
 
   return { tickEveryFrames, labelEveryFrames, pixelsPerFrame };
 }

@@ -59,7 +59,6 @@ export function TimeRuler({
     >
       {ticks.map(({ frame, labeled }) => {
         const left = frame * pixelsPerFrame;
-        const isSecond = frame % safeFps === 0;
         return (
           <div
             key={frame}
@@ -69,10 +68,8 @@ export function TimeRuler({
             <div
               className={
                 labeled
-                  ? isSecond
-                    ? "h-3.5 w-px bg-[var(--fg-muted)]"
-                    : "h-3 w-px bg-[var(--fg-muted)]"
-                  : "h-2 w-px bg-[var(--line-strong)]/80"
+                  ? "h-3.5 w-px bg-[var(--fg-muted)]"
+                  : "h-2 w-px bg-[var(--fg-muted)]/55"
               }
             />
             {labeled ? (

@@ -27,10 +27,11 @@ function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
 function sceneAtGlobalTime(
   scenes: MotionScene[],
   timelineClips: TimelineClip[],
+  mainLaneId: string | undefined,
   time: number,
 ): { scene: MotionScene; localTime: number; start: number } | null {
   const mainClips = timelineClips
-    .filter((clip) => clip.track === "main")
+    .filter((clip) => clip.laneId === mainLaneId)
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
   const clip = mainClips.find((candidate) =>
     time >= candidate.startTime && time < candidate.startTime + candidate.duration,
@@ -92,6 +93,7 @@ function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: Mot
 export function PreviewStage() {
   const project = useEditorStore((state) => state.project);
   const timelineClips = useEditorStore((state) => state.timelineClips);
+  const timelineLanes = useEditorStore((state) => state.timelineLanes);
   const currentTime = useEditorStore((state) => state.currentTime);
 
   const compiled = useMemo(() => {
@@ -121,7 +123,8 @@ export function PreviewStage() {
     );
   }
 
-  const at = sceneAtGlobalTime(project.scenes, timelineClips, currentTime);
+  const mainLaneId = timelineLanes.find((lane) => lane.kind === "main")?.id;
+  const at = sceneAtGlobalTime(project.scenes, timelineClips, mainLaneId, currentTime);
   if (!at) return null;
   const { scene, localTime } = at;
   const brand = project.metadata.brand;

@@ -16,12 +16,16 @@ export type VideoLaneHit = {
   top: number;
   bottom: number;
   type: "overlay" | "main";
-  layerIndex: number | null;
+  laneId: string | null;
+  order: number | null;
 };
 
 export type OverlayDragTarget = {
   isInsert: boolean;
-  layer: number | null;
+  /** Existing overlay lane body; null = main body or insert-only. */
+  laneId: string | null;
+  /** When isInsert, order for the new overlay lane. */
+  insertOrder: number | null;
   indicatorTop: number;
 };
 
@@ -32,12 +36,13 @@ export function collectVideoLanes(scope: HTMLElement): VideoLaneHit[] {
     const type = el.getAttribute("data-track-type");
     if (type !== "overlay" && type !== "main") continue;
     const r = el.getBoundingClientRect();
-    const layerAttr = el.getAttribute("data-layer-index");
+    const orderAttr = el.getAttribute("data-lane-order");
     out.push({
       top: r.top,
       bottom: r.bottom,
       type,
-      layerIndex: layerAttr != null ? Number.parseInt(layerAttr, 10) : null,
+      laneId: el.getAttribute("data-lane-id"),
+      order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
     });
   }
   out.sort((a, b) => a.top - b.top);
@@ -70,26 +75,41 @@ function resolveInsideLane(
   const insertAbove = (): OverlayDragTarget => {
     const indicatorTop =
       prev != null ? gapMidInWs(prev, lane, wsTop) : lane.top - wsTop - 1;
-    if (lane.type === "overlay" && lane.layerIndex != null) {
-      return { isInsert: true, layer: lane.layerIndex + 1, indicatorTop };
+    if (lane.type === "overlay" && lane.order != null) {
+      return {
+        isInsert: true,
+        laneId: null,
+        insertOrder: lane.order + 1,
+        indicatorTop,
+      };
     }
-    return { isInsert: true, layer: 0, indicatorTop };
+    return { isInsert: true, laneId: null, insertOrder: 0, indicatorTop };
   };
 
   const insertBelow = (): OverlayDragTarget => {
-    if (lane.type !== "overlay" || lane.layerIndex == null) {
-      return { isInsert: false, layer: null, indicatorTop: 0 };
+    if (lane.type !== "overlay" || lane.order == null) {
+      return { isInsert: false, laneId: null, insertOrder: null, indicatorTop: 0 };
     }
     const indicatorTop =
       next != null ? gapMidInWs(lane, next, wsTop) : lane.bottom - wsTop - 1;
-    return { isInsert: true, layer: lane.layerIndex, indicatorTop };
+    return {
+      isInsert: true,
+      laneId: null,
+      insertOrder: lane.order,
+      indicatorTop,
+    };
   };
 
   const body = (): OverlayDragTarget => {
-    if (lane.type === "overlay" && lane.layerIndex != null) {
-      return { isInsert: false, layer: lane.layerIndex, indicatorTop: 0 };
+    if (lane.type === "overlay" && lane.laneId) {
+      return {
+        isInsert: false,
+        laneId: lane.laneId,
+        insertOrder: null,
+        indicatorTop: 0,
+      };
     }
-    return { isInsert: false, layer: null, indicatorTop: 0 };
+    return { isInsert: false, laneId: null, insertOrder: null, indicatorTop: 0 };
   };
 
   if (lane.type === "main") {
@@ -120,7 +140,7 @@ export function resolveOverlayDragTarget(
   lanes: VideoLaneHit[],
   wsTop: number,
   wasInsert: boolean,
-  maxOverlayLayer: number,
+  maxOverlayOrder: number,
 ): OverlayDragTarget | null {
   if (lanes.length === 0) return null;
 
@@ -128,7 +148,8 @@ export function resolveOverlayDragTarget(
   if (clientY < first.top) {
     return {
       isInsert: true,
-      layer: maxOverlayLayer + 1,
+      laneId: null,
+      insertOrder: maxOverlayOrder + 1,
       indicatorTop: first.top - wsTop - 1,
     };
   }
@@ -140,16 +161,18 @@ export function resolveOverlayDragTarget(
 
     // Gap → canonical "below upper" (never flip to "above lower")
     if (next && clientY > lane.bottom && clientY < next.top) {
-      if (lane.type === "overlay" && lane.layerIndex != null) {
+      if (lane.type === "overlay" && lane.order != null) {
         return {
           isInsert: true,
-          layer: lane.layerIndex,
+          laneId: null,
+          insertOrder: lane.order,
           indicatorTop: gapMidInWs(lane, next, wsTop),
         };
       }
       return {
         isInsert: true,
-        layer: 0,
+        laneId: null,
+        insertOrder: 0,
         indicatorTop: gapMidInWs(lane, next, wsTop),
       };
     }

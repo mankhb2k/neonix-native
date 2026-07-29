@@ -36,7 +36,7 @@ type UseOverlayClipMoveArgs = {
   rootRef: RefObject<HTMLDivElement | null>;
   workspaceRef: RefObject<HTMLDivElement | null>;
   pixelsPerSecond: number;
-  uniqueLayers: number[];
+  maxOverlayOrder: number;
 };
 
 type MoveSession = {
@@ -44,8 +44,7 @@ type MoveSession = {
   id: string;
   name: string;
   duration: number;
-  /** Layer at pointerdown (overlay) — used if hit-test never updates. */
-  originLayer: number;
+  originLaneId: string;
   pointerId: number;
   originX: number;
   originY: number;
@@ -57,19 +56,20 @@ type MoveSession = {
 };
 
 /**
- * Pointer-drag timeline clips (main magnetic + overlay free-place)
+ * Pointer-drag timeline clips (main + overlay free-place)
  * with shared insert-line / gray ghost policy from sidebar drops.
  */
 export function useOverlayClipMove({
   rootRef,
   workspaceRef,
   pixelsPerSecond,
-  uniqueLayers,
+  maxOverlayOrder,
 }: UseOverlayClipMoveArgs) {
   const insertGhostRef = useRef<HTMLDivElement>(null);
   const moveUiRef = useRef({
     isInsert: false,
-    layer: null as number | null,
+    laneId: null as string | null,
+    insertOrder: null as number | null,
     indicatorTop: 0,
     /** True only after hit-test reports main-track body (or seeded for main drag). */
     overMainBody: false,
@@ -78,13 +78,13 @@ export function useOverlayClipMove({
   const sessionRef = useRef<MoveSession | null>(null);
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
-  const uniqueLayersRef = useRef(uniqueLayers);
+  const maxOverlayOrderRef = useRef(maxOverlayOrder);
   pixelsPerSecondRef.current = pixelsPerSecond;
-  uniqueLayersRef.current = uniqueLayers;
+  maxOverlayOrderRef.current = maxOverlayOrder;
 
   const [movingClipId, setMovingClipId] = useState<string | null>(null);
   const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
-  const [targetOverlayLayer, setTargetOverlayLayer] = useState<number | null>(
+  const [targetOverlayLaneId, setTargetOverlayLaneId] = useState<string | null>(
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState(0);
@@ -108,7 +108,8 @@ export function useOverlayClipMove({
   function resetMoveUi() {
     moveUiRef.current = {
       isInsert: false,
-      layer: null,
+      laneId: null,
+      insertOrder: null,
       indicatorTop: 0,
       overMainBody: false,
     };
@@ -116,7 +117,7 @@ export function useOverlayClipMove({
     sessionRef.current = null;
     setMovingClipId(null);
     setIsOverlayInsertLine(false);
-    setTargetOverlayLayer(null);
+    setTargetOverlayLaneId(null);
     setDragGhostState(null);
     useEditorStore.getState().setIsOverTimeline(false);
     useEditorStore.getState().setActiveDragItem(null);
@@ -175,31 +176,31 @@ export function useOverlayClipMove({
 
     const wsTop = ws.getBoundingClientRect().top;
     const lanes = collectVideoLanes(ws);
-    const layers = uniqueLayersRef.current;
-    const maxOverlayLayer = layers.length > 0 ? Math.max(...layers) : 0;
     const target = resolveOverlayDragTarget(
       clientY,
       lanes,
       wsTop,
       moveUiRef.current.isInsert,
-      maxOverlayLayer,
+      maxOverlayOrderRef.current,
     );
     if (!target) return;
 
     const ui = moveUiRef.current;
-    const overMainBody = !target.isInsert && target.layer == null;
-    const layerChanged = ui.layer !== target.layer;
+    const overMainBody = !target.isInsert && target.laneId == null;
+    const laneChanged = ui.laneId !== target.laneId;
     const insertChanged = ui.isInsert !== target.isInsert;
+    const orderChanged = ui.insertOrder !== target.insertOrder;
     const mainChanged = ui.overMainBody !== overMainBody;
     const topChanged =
       target.isInsert &&
       Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
-    if (insertChanged || layerChanged || topChanged || mainChanged) {
+    if (insertChanged || laneChanged || orderChanged || topChanged || mainChanged) {
       ui.isInsert = target.isInsert;
-      ui.layer = target.layer;
+      ui.laneId = target.laneId;
+      ui.insertOrder = target.insertOrder;
       ui.overMainBody = overMainBody;
       if (insertChanged) setIsOverlayInsertLine(target.isInsert);
-      if (layerChanged) setTargetOverlayLayer(target.layer);
+      if (laneChanged) setTargetOverlayLaneId(target.laneId);
       if (target.isInsert && (topChanged || insertChanged)) {
         ui.indicatorTop = target.indicatorTop;
         setIndicatorTopPos(target.indicatorTop);
@@ -233,8 +234,11 @@ export function useOverlayClipMove({
       : {
           track: "overlay",
           startTime,
-          layerIndex: ui.layer ?? session.originLayer,
-          insertNewLayer: ui.isInsert,
+          laneId: ui.laneId ?? session.originLaneId,
+          insertNewLane: ui.isInsert,
+          ...(ui.isInsert && ui.insertOrder != null
+            ? { layerIndex: ui.insertOrder }
+            : {}),
         });
     resetMoveUi();
   }
@@ -279,18 +283,19 @@ export function useOverlayClipMove({
 
     moveUiRef.current = {
       isInsert: false,
-      layer: item.layerIndex ?? 0,
+      laneId: item.laneId,
+      insertOrder: null,
       indicatorTop: 0,
       overMainBody: false,
     };
-    setTargetOverlayLayer(item.layerIndex ?? 0);
+    setTargetOverlayLaneId(item.laneId);
 
     sessionRef.current = {
       source: "overlay",
       id: item.id,
       name: item.name,
       duration: item.duration,
-      originLayer: item.layerIndex ?? 0,
+      originLaneId: item.laneId,
       pointerId: event.pointerId,
       originX: event.clientX,
       originY: event.clientY,
@@ -316,18 +321,19 @@ export function useOverlayClipMove({
 
     moveUiRef.current = {
       isInsert: false,
-      layer: null,
+      laneId: null,
+      insertOrder: null,
       indicatorTop: 0,
       overMainBody: true,
     };
-    setTargetOverlayLayer(null);
+    setTargetOverlayLaneId(null);
 
     sessionRef.current = {
       source: "main",
       id: item.id,
       name: item.name,
       duration: item.duration,
-      originLayer: 0,
+      originLaneId: item.laneId,
       pointerId: event.pointerId,
       originX: event.clientX,
       originY: event.clientY,
@@ -342,7 +348,8 @@ export function useOverlayClipMove({
     movingOverlayId: movingClipId,
     movingClipId,
     isOverlayInsertLine,
-    targetOverlayLayer,
+    targetOverlayLaneId,
+    targetOverlayLayer: null as number | null,
     indicatorTopPos,
     dragGhostState,
     insertGhostRef,

@@ -33,7 +33,8 @@ type UseTracksDragArgs = {
   workspaceRef: RefObject<HTMLDivElement | null>;
   /** Live timeline scale — read via ref inside handlers to avoid stale closures. */
   pixelsPerSecond: number;
-  uniqueLayers: number[];
+  /** Max overlay lane order (for insert-above-first). */
+  maxOverlayOrder: number;
   projectId: string | null;
 };
 
@@ -51,7 +52,7 @@ export function useTracksDrag({
   rulerHeaderRef,
   workspaceRef,
   pixelsPerSecond,
-  uniqueLayers,
+  maxOverlayOrder,
   projectId,
 }: UseTracksDragArgs) {
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
@@ -63,23 +64,23 @@ export function useTracksDrag({
   const dragUiRef = useRef({
     dragOver: false,
     isInsert: false,
-    layer: null as number | null,
+    laneId: null as string | null,
+    insertOrder: null as number | null,
     indicatorTop: 0,
     ghostKey: "" as string,
   });
   const ghostLeftRef = useRef(0);
 
-  // Keep latest scale/layers/id for drag handlers without stale closures.
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
-  const uniqueLayersRef = useRef(uniqueLayers);
+  const maxOverlayOrderRef = useRef(maxOverlayOrder);
   const projectIdRef = useRef(projectId);
   pixelsPerSecondRef.current = pixelsPerSecond;
-  uniqueLayersRef.current = uniqueLayers;
+  maxOverlayOrderRef.current = maxOverlayOrder;
   projectIdRef.current = projectId;
 
   const [dragOver, setDragOver] = useState(false);
   const [isOverlayInsertLine, setIsOverlayInsertLine] = useState(false);
-  const [targetOverlayLayer, setTargetOverlayLayer] = useState<number | null>(
+  const [targetOverlayLaneId, setTargetOverlayLaneId] = useState<string | null>(
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState(0);
@@ -111,8 +112,6 @@ export function useTracksDrag({
 
   function handleDragOver(event: DragEvent) {
     const dragItem = useEditorStore.getState().activeDragItem;
-    // Trust store while dragging: always allow copy cursor on timeline.
-    // dataTransfer.types can flicker mid-drag and would show not-allowed.
     if (!dragItem && !isEditorDragTypes(Array.from(event.dataTransfer.types))) {
       return;
     }
@@ -144,11 +143,12 @@ export function useTracksDrag({
 
     const clearOverlayTarget = () => {
       const ui = dragUiRef.current;
-      if (ui.isInsert || ui.layer != null) {
+      if (ui.isInsert || ui.laneId != null || ui.insertOrder != null) {
         ui.isInsert = false;
-        ui.layer = null;
+        ui.laneId = null;
+        ui.insertOrder = null;
         setIsOverlayInsertLine(false);
-        setTargetOverlayLayer(null);
+        setTargetOverlayLaneId(null);
       }
     };
 
@@ -184,28 +184,28 @@ export function useTracksDrag({
       if (ws) {
         const wsTop = ws.getBoundingClientRect().top;
         const lanes = collectVideoLanes(ws);
-        const layers = uniqueLayersRef.current;
-        const maxOverlayLayer = layers.length > 0 ? Math.max(...layers) : 0;
         const target = resolveOverlayDragTarget(
           event.clientY,
           lanes,
           wsTop,
           dragUiRef.current.isInsert,
-          maxOverlayLayer,
+          maxOverlayOrderRef.current,
         );
         if (target) {
           const ui = dragUiRef.current;
-          const layerChanged = ui.layer !== target.layer;
+          const laneChanged = ui.laneId !== target.laneId;
           const insertChanged = ui.isInsert !== target.isInsert;
+          const orderChanged = ui.insertOrder !== target.insertOrder;
           const topChanged =
             target.isInsert &&
             Math.abs(ui.indicatorTop - target.indicatorTop) >
               INDICATOR_TOP_EPS_PX;
-          if (insertChanged || layerChanged || topChanged) {
+          if (insertChanged || laneChanged || orderChanged || topChanged) {
             ui.isInsert = target.isInsert;
-            ui.layer = target.layer;
+            ui.laneId = target.laneId;
+            ui.insertOrder = target.insertOrder;
             if (insertChanged) setIsOverlayInsertLine(target.isInsert);
-            if (layerChanged) setTargetOverlayLayer(target.layer);
+            if (laneChanged) setTargetOverlayLaneId(target.laneId);
             if (target.isInsert && (topChanged || insertChanged)) {
               ui.indicatorTop = target.indicatorTop;
               setIndicatorTopPos(target.indicatorTop);
@@ -250,13 +250,14 @@ export function useTracksDrag({
     dragUiRef.current = {
       dragOver: false,
       isInsert: false,
-      layer: null,
+      laneId: null,
+      insertOrder: null,
       indicatorTop: 0,
       ghostKey: "",
     };
     setDragOver(false);
     setIsOverlayInsertLine(false);
-    setTargetOverlayLayer(null);
+    setTargetOverlayLaneId(null);
     setDragGhostState(null);
     setIsOverTimeline(false);
   }
@@ -264,7 +265,8 @@ export function useTracksDrag({
   function handleDrop(event: DragEvent) {
     event.preventDefault();
     const dropInsert = dragUiRef.current.isInsert;
-    const dropLayer = dragUiRef.current.layer;
+    const dropLaneId = dragUiRef.current.laneId;
+    const dropInsertOrder = dragUiRef.current.insertOrder;
     const dropLeft = ghostLeftRef.current;
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const id = projectIdRef.current;
@@ -272,7 +274,8 @@ export function useTracksDrag({
     dragUiRef.current = {
       dragOver: false,
       isInsert: false,
-      layer: null,
+      laneId: null,
+      insertOrder: null,
       indicatorTop: 0,
       ghostKey: "",
     };
@@ -281,7 +284,7 @@ export function useTracksDrag({
     setActiveDragItem(null);
     clearDragCursor();
 
-    if (dropInsert || dropLayer !== null) {
+    if (dropInsert || dropLaneId !== null) {
       const frameId =
         event.dataTransfer.getData(FRAME_LIBRARY_MIME) ||
         event.dataTransfer.getData("text/plain");
@@ -291,13 +294,16 @@ export function useTracksDrag({
           addClipFromDraft(draft, {
             track: "overlay",
             startTime: dropLeft / pps,
-            layerIndex: dropLayer ?? 0,
-            insertNewLayer: dropInsert,
+            laneId: dropLaneId ?? undefined,
+            insertNewLane: dropInsert,
+            ...(dropInsert && dropInsertOrder != null
+              ? { layerIndex: dropInsertOrder }
+              : {}),
           });
         }
       }
       setIsOverlayInsertLine(false);
-      setTargetOverlayLayer(null);
+      setTargetOverlayLaneId(null);
       setDragGhostState(null);
       return;
     }
@@ -329,7 +335,9 @@ export function useTracksDrag({
   return {
     dragOver,
     isOverlayInsertLine,
-    targetOverlayLayer,
+    /** @deprecated use targetOverlayLaneId */
+    targetOverlayLayer: null as number | null,
+    targetOverlayLaneId,
     indicatorTopPos,
     dragGhostState,
     insertGhostRef,

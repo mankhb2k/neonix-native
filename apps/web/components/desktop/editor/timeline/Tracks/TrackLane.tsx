@@ -30,6 +30,9 @@ type TrackLaneProps = {
   /** Khối Ghost Preview hiển thị vị trí thả khi đang Drag */
   ghostPreview?: GhostPreviewInfo | null;
   dataTrackType?: "main" | "overlay";
+  dataLaneId?: string;
+  dataLaneOrder?: number;
+  /** @deprecated Prefer dataLaneOrder */
   dataLayerIndex?: number;
   labelWidth: number;
   canvasWidth: number;
@@ -48,6 +51,8 @@ export function TrackLane({
   borderClass = "",
   ghostPreview,
   dataTrackType,
+  dataLaneId,
+  dataLaneOrder,
   dataLayerIndex,
   labelWidth,
   canvasWidth,
@@ -82,6 +87,8 @@ export function TrackLane({
     <div
       data-track-lane="true"
       data-track-type={dataTrackType}
+      data-lane-id={dataLaneId}
+      data-lane-order={dataLaneOrder ?? dataLayerIndex}
       data-layer-index={dataLayerIndex}
       className={`group relative flex items-center ${resolvedHeightClass} ${bgClass} ${borderClass} transition-colors`}
     >

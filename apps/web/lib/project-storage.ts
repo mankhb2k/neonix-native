@@ -4,8 +4,12 @@ import {
   type OverlaySceneItem,
 } from "@/lib/overlay-scenes";
 import {
+  isMainLane,
+  migrateLanesAndClips,
   parseTimelineClips,
+  parseTimelineLanes,
   type TimelineClip,
+  type TimelineLane,
 } from "@/lib/timeline-clips";
 
 const STORAGE_KEY = "motionvideo.projects";
@@ -17,6 +21,7 @@ export type StoredProject = {
   project: MotionProject;
   overlayScenes?: OverlaySceneItem[];
   timelineClips?: TimelineClip[];
+  timelineLanes?: TimelineLane[];
 };
 
 function withEmptyTimeline(project: MotionProject): MotionProject {
@@ -42,6 +47,7 @@ function parseStored(): Record<string, StoredProject> {
         project?: unknown;
         overlayScenes?: unknown;
         timelineClips?: unknown;
+        timelineLanes?: unknown;
       }
     >;
     const migrated: Record<string, StoredProject> = {};
@@ -49,11 +55,13 @@ function parseStored(): Record<string, StoredProject> {
       try {
         const project = parseMotionProject(item.project);
         const timelineClips = parseTimelineClips(item.timelineClips);
+        const timelineLanes = parseTimelineLanes(item.timelineLanes);
         migrated[project.metadata.id] = {
           savedAt: typeof item.savedAt === "string" ? item.savedAt : new Date().toISOString(),
           project,
           overlayScenes: parseOverlayScenes(item.overlayScenes),
           ...(item.timelineClips === undefined ? {} : { timelineClips }),
+          ...(item.timelineLanes === undefined ? {} : { timelineLanes }),
         };
       } catch {
         // One corrupt item must not hide every valid project.
@@ -69,11 +77,18 @@ function emptyAllTimelines(projects: Record<string, StoredProject>): Record<stri
   const now = new Date().toISOString();
   const emptied: Record<string, StoredProject> = {};
   for (const [id, stored] of Object.entries(projects)) {
+    const lanes = stored.timelineLanes ?? [];
     emptied[id] = {
       savedAt: now,
       project: withEmptyTimeline(stored.project),
       overlayScenes: stored.overlayScenes ?? [],
-      timelineClips: stored.timelineClips?.filter((clip) => clip.track === "overlay") ?? [],
+      timelineClips:
+        stored.timelineClips?.filter((clip) => {
+          if (clip.track === "main") return false;
+          if (lanes.length > 0) return !isMainLane(lanes, clip.laneId);
+          return clip.track === "overlay";
+        }) ?? [],
+      timelineLanes: lanes,
     };
   }
   return emptied;
@@ -96,24 +111,29 @@ function writeAll(projects: Record<string, StoredProject>): void {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
 }
 
-function overlaysFromClips(clips: TimelineClip[]): OverlaySceneItem[] {
+function overlaysFromClips(
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+): OverlaySceneItem[] {
+  const orderByLane = new Map(lanes.map((lane) => [lane.id, lane.order]));
   return clips
-    .filter((clip) => clip.track === "overlay")
+    .filter((clip) => !isMainLane(lanes, clip.laneId))
     .map((clip) => ({
       id: clip.id,
       name: clip.name,
       duration: clip.duration,
       startTime: clip.startTime,
-      layerIndex: clip.layerIndex ?? 0,
+      layerIndex: orderByLane.get(clip.laneId) ?? 0,
     }));
 }
 
 type SaveProjectOptions = {
   overlayScenes?: OverlaySceneItem[];
   timelineClips?: TimelineClip[];
+  timelineLanes?: TimelineLane[];
 };
 
-/** Persist unified clips, retaining the legacy overlay sidecar for older readers. */
+/** Persist unified clips + lanes, retaining the legacy overlay sidecar for older readers. */
 export function saveProject(
   project: MotionProject,
   options: SaveProjectOptions | OverlaySceneItem[] = {},
@@ -122,18 +142,25 @@ export function saveProject(
   const projects = parseStored();
   const previous = projects[parsed.metadata.id];
   const opts = Array.isArray(options) ? { overlayScenes: options } : options;
-  const timelineClips = opts.timelineClips !== undefined
-    ? parseTimelineClips(opts.timelineClips)
-    : previous?.timelineClips;
+  const timelineClips =
+    opts.timelineClips !== undefined
+      ? parseTimelineClips(opts.timelineClips)
+      : previous?.timelineClips;
+  const timelineLanes =
+    opts.timelineLanes !== undefined
+      ? parseTimelineLanes(opts.timelineLanes)
+      : previous?.timelineLanes;
   projects[parsed.metadata.id] = {
     savedAt: new Date().toISOString(),
     project: parsed,
     ...(timelineClips !== undefined ? { timelineClips } : {}),
-    overlayScenes: opts.overlayScenes !== undefined
-      ? opts.overlayScenes
-      : timelineClips !== undefined
-        ? overlaysFromClips(timelineClips)
-        : (previous?.overlayScenes ?? []),
+    ...(timelineLanes !== undefined ? { timelineLanes } : {}),
+    overlayScenes:
+      opts.overlayScenes !== undefined
+        ? opts.overlayScenes
+        : timelineClips !== undefined
+          ? overlaysFromClips(timelineClips, timelineLanes ?? [])
+          : (previous?.overlayScenes ?? []),
   };
   writeAll(projects);
 }
@@ -154,6 +181,27 @@ export function loadOverlayScenes(id: string): OverlaySceneItem[] {
 export function loadTimelineClips(id: string): TimelineClip[] {
   const projects = readAll();
   return projects[id]?.timelineClips ?? [];
+}
+
+export function loadTimelineLanes(id: string): TimelineLane[] {
+  const projects = readAll();
+  return projects[id]?.timelineLanes ?? [];
+}
+
+/** Load clips+lanes with migration for legacy saves. */
+export function loadTimelineState(id: string): {
+  clips: TimelineClip[];
+  lanes: TimelineLane[];
+} {
+  const projects = readAll();
+  const stored = projects[id];
+  if (!stored) return { clips: [], lanes: [] };
+  return migrateLanesAndClips(
+    stored.project,
+    stored.overlayScenes ?? [],
+    stored.timelineClips ?? [],
+    stored.timelineLanes ?? [],
+  );
 }
 
 export function deleteProject(id: string): void {

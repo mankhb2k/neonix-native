@@ -27,6 +27,7 @@ export function TitleBar() {
   const brandName = useEditorStore((s) => s.project?.metadata.brand.name);
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const timelineClips = useEditorStore((s) => s.timelineClips);
+  const timelineLanes = useEditorStore((s) => s.timelineLanes);
   const isExporting = useEditorStore((s) => s.isExporting);
   const setExporting = useEditorStore((s) => s.setExporting);
   const updateBrand = useEditorStore((s) => s.updateBrand);
@@ -43,7 +44,7 @@ export function TitleBar() {
     setExportError(null);
     setExporting(true);
     try {
-      saveProject(project, { overlayScenes, timelineClips });
+      saveProject(project, { overlayScenes, timelineClips, timelineLanes });
       const blob = await exportMotionProject(project);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);
@@ -74,8 +75,8 @@ export function TitleBar() {
         setExportError(`Preset không hợp lệ: ${detail}`);
         return;
       }
-      saveProject(parsed, { overlayScenes: [], timelineClips: [] });
-      loadProject(parsed, [], []);
+      saveProject(parsed, { overlayScenes: [], timelineClips: [], timelineLanes: [] });
+      loadProject(parsed, [], [], []);
       setExportError(null);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Import .mt thất bại");

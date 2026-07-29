@@ -1,6 +1,11 @@
 "use client";
 
-import { useRef, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+} from "react";
 
 /** Convert pointer X → timeline seconds (accounts for label gutter + horizontal scroll). */
 export function clientXToTimelineTime(
@@ -16,8 +21,18 @@ export function clientXToTimelineTime(
   return Math.min(Math.max(0, time), Math.max(0, maxTime));
 }
 
+/** Viewport X of playhead within the timeline board. */
+export function timelineTimeToViewportLeft(
+  time: number,
+  labelWidth: number,
+  pixelsPerSecond: number,
+  scrollLeft: number,
+): number {
+  return labelWidth + time * Math.max(pixelsPerSecond, 1) - scrollLeft;
+}
+
 type Props = {
-  /** Absolute left including label gutter (px). */
+  /** Absolute left including label gutter (px) — used when not scrubbing. */
   left: number;
   labelWidth: number;
   pixelsPerSecond: number;
@@ -51,6 +66,8 @@ function PlayheadHandleIcon() {
 
 /**
  * CapCut-style playhead: white line + solid shield handle flush to ruler top.
+ * Scrub = imperative transform only; Zustand seek commits on pointerup
+ * (avoids PreviewStage/TransportBar re-render jank mid-drag).
  */
 export function Playhead({
   left,
@@ -61,25 +78,58 @@ export function Playhead({
   enabled = true,
   onSeek,
 }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const pendingTimeRef = useRef<number | null>(null);
 
-  function seekFromClientX(clientX: number) {
+  const labelWidthRef = useRef(labelWidth);
+  const ppsRef = useRef(pixelsPerSecond);
+  const maxTimeRef = useRef(maxTime);
+  const onSeekRef = useRef(onSeek);
+  labelWidthRef.current = labelWidth;
+  ppsRef.current = pixelsPerSecond;
+  maxTimeRef.current = maxTime;
+  onSeekRef.current = onSeek;
+
+  function applyVisualLeft(viewportLeft: number) {
+    const el = rootRef.current;
+    if (!el) return;
+    el.style.transform = `translate3d(${viewportLeft}px,0,0)`;
+  }
+
+  useLayoutEffect(() => {
+    if (draggingRef.current) return;
+    applyVisualLeft(left);
+  }, [left]);
+
+  function scrubFromClientX(clientX: number): number | null {
     const root = scrollContainerRef.current;
-    if (!root) return;
-    onSeek(
-      clientXToTimelineTime(
-        clientX,
-        root,
-        labelWidth,
-        pixelsPerSecond,
-        maxTime,
+    if (!root) return null;
+    const time = clientXToTimelineTime(
+      clientX,
+      root,
+      labelWidthRef.current,
+      ppsRef.current,
+      maxTimeRef.current,
+    );
+    applyVisualLeft(
+      timelineTimeToViewportLeft(
+        time,
+        labelWidthRef.current,
+        ppsRef.current,
+        root.scrollLeft,
       ),
     );
+    pendingTimeRef.current = time;
+    return time;
   }
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+    const time = pendingTimeRef.current;
+    pendingTimeRef.current = null;
+    if (time != null) onSeekRef.current(time);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -92,21 +142,22 @@ export function Playhead({
     event.stopPropagation();
     draggingRef.current = true;
     event.currentTarget.setPointerCapture(event.pointerId);
-    seekFromClientX(event.clientX);
+    // Visual only on down/move — store seek waits for pointerup.
+    scrubFromClientX(event.clientX);
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (!draggingRef.current) return;
-    seekFromClientX(event.clientX);
+    scrubFromClientX(event.clientX);
   }
 
   return (
     <div
-      className="pointer-events-none absolute bottom-0 top-0 z-50"
-      style={{ left }}
+      ref={rootRef}
+      className="pointer-events-none absolute bottom-0 top-0 z-50 will-change-transform"
+      style={{ left: 0 }}
       aria-hidden={!enabled}
     >
-      {/* Invisible hit strip — full height scrub */}
       <div
         role="slider"
         aria-label="Playhead"
@@ -123,13 +174,11 @@ export function Playhead({
         onPointerCancel={endDrag}
       />
 
-      {/* Visible 1px line — starts under tip of handle */}
       <div
         className="pointer-events-none absolute bottom-0 w-px -translate-x-1/2 bg-[var(--timeline-playhead)]"
         style={{ left: 0, top: 12 }}
       />
 
-      {/* Solid handle flush to top edge of TimeRuler — above sticky ruler bg */}
       <div
         className={`absolute top-0 left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none opacity-60"
