@@ -23,8 +23,14 @@ import {
 } from "@/lib/editor/editor-preferences";
 import {
   applyLaneFlagPatch,
+  isLaneLocked,
   selectionHasLockedLane,
 } from "@/lib/editor/operations/lane-flags";
+import {
+  applyRippleAfter,
+  createOverlayLaneAt,
+  resolveVisualPlacement,
+} from "@/lib/editor/operations/clip-move";
 import {
   selectionClips,
   selectionNone,
@@ -35,12 +41,10 @@ import {
 } from "@/lib/editor/model/editor-selection";
 import {
   createAudioLane,
-  createOverlayLane,
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   ensureMainLane,
   findFreeAudioLane,
-  findFreeOverlayLane,
   isAudioLane,
   isMainLane,
   isOverlayLane,
@@ -49,7 +53,6 @@ import {
   resolveMainStartTime,
   reorderOverlayLane,
   shiftAudioLaneOrders,
-  shiftOverlayLaneOrders,
   type TimelineClip,
   type TimelineLane,
 } from "@/lib/editor/timeline-clips";
@@ -279,7 +282,9 @@ function rebuildMainProject(
     (lane) => lane.kind === "visual" && lane.role === "base",
   )?.id;
   const main = clips
-    .filter((clip) => clip.kind === "scene" && clip.laneId === mainId)
+    .filter((clip): clip is Extract<TimelineClip, { kind: "scene" }> =>
+      clip.kind === "scene" && clip.laneId === mainId,
+    )
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
   const sceneOrder = main
     .map((clip) => clip.sceneId)
@@ -311,23 +316,78 @@ function resolveOverlayPlacement(
   preferredLaneId: string | null,
   insertNew: boolean,
   preferredInsertOrder?: number | null,
-): { lanes: TimelineLane[]; laneId: string } {
-  const result = findFreeOverlayLane(
+  movingClipId?: string,
+): { lanes: TimelineLane[]; laneId: string; startTime: number } {
+  const resolved = resolveVisualPlacement(
     lanes,
     clips,
-    startTime,
-    duration,
-    preferredLaneId,
-    insertNew,
-    preferredInsertOrder,
+    {
+      laneId: preferredLaneId,
+      startTime,
+      duration,
+      insertNewLane: insertNew,
+      insertOrder: preferredInsertOrder ?? undefined,
+    },
+    movingClipId,
   );
-  if (!result.createNew && result.laneId) {
-    return { lanes, laneId: result.laneId };
+  if (resolved.createLane) {
+    const created = createOverlayLaneAt(lanes, resolved.insertOrder);
+    return {
+      lanes: created.lanes,
+      laneId: created.lane.id,
+      startTime: resolved.startTime,
+    };
   }
-  let nextLanes = shiftOverlayLaneOrders(lanes, result.insertOrder, 1);
-  const created = createOverlayLane(result.insertOrder);
-  nextLanes = [...nextLanes, created];
-  return { lanes: nextLanes, laneId: created.id };
+  return {
+    lanes,
+    laneId: resolved.laneId,
+    startTime: resolved.startTime,
+  };
+}
+
+/** Sau resize: đẩy clip overlap trên cùng lane; ripple nếu policy bật. */
+function resolveCollisionsAfterResize(
+  clips: TimelineClip[],
+  lanes: TimelineLane[],
+  resizedClipId: string,
+): TimelineClip[] {
+  const resized = clips.find((clip) => clip.id === resizedClipId);
+  if (!resized) return clips;
+  const lane = lanes.find((l) => l.id === resized.laneId);
+  const rippleMode =
+    lane?.kind === "visual" ? Boolean(lane.policy.rippleMode) : false;
+  const others = clips
+    .filter(
+      (clip) =>
+        clip.laneId === resized.laneId &&
+        clip.id !== resized.id &&
+        clip.startTime >= resized.startTime,
+    )
+    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+
+  let next = clips;
+  let cursor = resized.startTime + resized.duration;
+  for (const other of others) {
+    if (other.startTime >= cursor) {
+      cursor = other.startTime + other.duration;
+      continue;
+    }
+    const delta = cursor - other.startTime;
+    next = next.map((clip) =>
+      clip.id === other.id ? { ...clip, startTime: cursor } : clip,
+    );
+    if (rippleMode) {
+      next = applyRippleAfter(
+        next,
+        resized.laneId,
+        other.startTime + 1e-6,
+        delta,
+        true,
+      );
+    }
+    cursor += other.duration;
+  }
+  return next;
 }
 
 function resolveAudioPlacement(
@@ -536,15 +596,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!project) return;
     const nextDuration = Math.max(0.5, duration);
     set((state) => {
-      const timelineClips = state.timelineClips.map((clip) => clip.sceneId === sceneId
-        ? { ...clip, duration: nextDuration }
-        : clip);
+      const affectedIds = state.timelineClips
+        .filter((clip) => clip.kind === "scene" && clip.sceneId === sceneId)
+        .map((clip) => clip.id);
+      let timelineClips = state.timelineClips.map((clip) =>
+        clip.kind === "scene" && clip.sceneId === sceneId
+          ? { ...clip, duration: nextDuration }
+          : clip,
+      );
+      for (const clipId of affectedIds) {
+        timelineClips = resolveCollisionsAfterResize(
+          timelineClips,
+          state.timelineLanes,
+          clipId,
+        );
+      }
       return {
         project: {
           ...project,
-          scenes: project.scenes.map((scene) => scene.id === sceneId
-            ? { ...scene, duration: nextDuration }
-            : scene),
+          scenes: project.scenes.map((scene) =>
+            scene.id === sceneId
+              ? { ...scene, duration: nextDuration }
+              : scene,
+          ),
         },
         timelineClips,
       };
@@ -627,10 +701,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
 
       if (target.track === "main") {
+        if (isLaneLocked(lanes, mainLane.id)) return state;
         const scene = sceneFromFrameDraft(draft);
-        const startTime = state.timelineClips
-          .filter((clip) => clip.laneId === mainLane.id)
-          .reduce((end, clip) => Math.max(end, clip.startTime + clip.duration), 0);
+        const startTime = resolveMainStartTime(
+          state.timelineClips,
+          lanes,
+          state.timelineClips
+            .filter((clip) => clip.laneId === mainLane.id)
+            .reduce((end, clip) => Math.max(end, clip.startTime + clip.duration), 0),
+          Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION),
+        );
         const clip: TimelineClip = {
           id: scene.id,
           kind: "scene",
@@ -657,6 +737,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       const insertNew = target.insertNewLane ?? false;
       const preferredLaneId = insertNew ? null : (target.laneId ?? null);
+      if (preferredLaneId && isLaneLocked(lanes, preferredLaneId)) {
+        return state;
+      }
       const preferredInsertOrder = insertNew
         ? (target.insertOrder ?? null)
         : null;
@@ -677,7 +760,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         kind: "scene",
         sceneId: scene.id,
         laneId: placement.laneId,
-        startTime: Math.max(0, target.startTime),
+        startTime: placement.startTime,
         duration: scene.duration,
         name: draft.name,
       };
@@ -777,6 +860,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           ? null
           : (patch.laneId ??
             (existingOnMain ? null : existing.laneId));
+        if (preferredLaneId && isLaneLocked(lanes, preferredLaneId)) {
+          return state;
+        }
         const preferredInsertOrder = insertNew
           ? (patch.insertOrder ?? null)
           : null;
@@ -788,6 +874,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           preferredLaneId,
           insertNew,
           preferredInsertOrder,
+          clipId,
         );
         lanes = placement.lanes;
         // Chỉ đổi lane/startTime — giữ nguyên sceneId/content (MODEL-02).
@@ -796,22 +883,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           kind: "scene",
           sceneId: existing.sceneId,
           laneId: placement.laneId,
-          startTime,
+          startTime: placement.startTime,
         };
       } else {
         if (existingOnAudio || existing.kind !== "scene") return state;
+        if (isLaneLocked(lanes, mainLane.id)) return state;
         // Base placement — giữ nguyên scene, chỉ đổi lane + start.
+        const placed = resolveVisualPlacement(
+          lanes,
+          clips,
+          {
+            laneId: mainLane.id,
+            startTime,
+            duration: existing.duration,
+          },
+          clipId,
+        );
         moved = {
           ...existing,
           kind: "scene",
           sceneId: existing.sceneId,
           laneId: mainLane.id,
-          startTime: resolveMainStartTime(
-            clips,
-            lanes,
-            startTime,
-            existing.duration,
-          ),
+          startTime: placed.startTime,
         };
       }
 
@@ -899,7 +992,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const clip: TimelineClip = {
         id: trackId,
         kind: "audio",
-        sceneId: "",
         audioTrackId: trackId,
         assetId,
         laneId: placement.laneId,
@@ -1008,6 +1100,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   cutSelectedClips: () => {
+    const state = get();
+    const ids = selectedClipIdsFrom(state.selection);
+    // Locked → no-op hoàn toàn (không copy rồi fail delete).
+    if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)) {
+      return;
+    }
     get().copySelectedClips();
     get().deleteSelectedClips();
   },
@@ -1088,18 +1186,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       for (const item of clipboard) {
         const startTime = pasteAt + item.offsetStart;
         if (item.kind === "main" && item.scene) {
+          if (isLaneLocked(lanes, mainLane.id)) continue;
           const scene = cloneSceneWithNewIds({
             ...item.scene,
             duration: item.duration,
             name: item.name,
           });
           scenes = [...scenes, scene];
+          const resolvedStart = resolveMainStartTime(
+            clips,
+            lanes,
+            startTime,
+            item.duration,
+          );
           const clip: TimelineClip = {
             id: scene.id,
             kind: "scene",
             sceneId: scene.id,
             laneId: mainLane.id,
-            startTime,
+            startTime: resolvedStart,
             duration: item.duration,
             name: item.name,
           };
@@ -1134,7 +1239,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const clip: TimelineClip = {
             id: trackId,
             kind: "audio",
-            sceneId: "",
             audioTrackId: trackId,
             assetId: item.audioAssetId ?? item.name,
             laneId: placement.laneId,
@@ -1155,6 +1259,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             false,
             null,
           );
+          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
           lanes = placement.lanes;
           const scene = cloneSceneWithNewIds({
             ...item.scene,
@@ -1167,7 +1272,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             kind: "scene",
             sceneId: scene.id,
             laneId: placement.laneId,
-            startTime,
+            startTime: placement.startTime,
             duration: item.duration,
             name: item.name,
           };
@@ -1183,6 +1288,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             false,
             null,
           );
+          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
           lanes = placement.lanes;
           const scene = sceneFromFrameDraft({
             id: uid("draft"),
@@ -1196,7 +1302,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             kind: "scene",
             sceneId: scene.id,
             laneId: placement.laneId,
-            startTime,
+            startTime: placement.startTime,
             duration: item.duration,
             name: item.name,
           };
@@ -1225,13 +1331,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((s) => {
       const project = s.project;
       if (!project) return s;
+      const selectedIds = selectedClipIdsFrom(s.selection);
+      if (selectionHasLockedLane(s.timelineClips, s.timelineLanes, selectedIds)) {
+        return s;
+      }
       let lanes = s.timelineLanes;
       let clips = [...s.timelineClips];
       let scenes = [...project.scenes];
       let audioTracks = [...project.timeline.audioTracks];
       const newIds: string[] = [];
       const toDup = clips
-        .filter((c) => selectedClipIdsFrom(s.selection).includes(c.id))
+        .filter((c) => selectedIds.includes(c.id))
         .sort((a, b) => a.startTime - b.startTime);
 
       if (toDup.length === 0) return s;
@@ -1239,22 +1349,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       for (const clip of toDup) {
         const startTime = clip.startTime + clip.duration;
         if (isMainLane(lanes, clip.laneId) && clip.kind === "scene") {
+          if (isLaneLocked(lanes, clip.laneId)) continue;
           const scene = scenes.find((sc) => sc.id === clip.sceneId);
           if (!scene) continue;
           const cloned = cloneSceneWithNewIds(scene);
           scenes = [...scenes, cloned];
+          const resolvedStart = resolveMainStartTime(
+            clips,
+            lanes,
+            startTime,
+            clip.duration,
+          );
           const next: TimelineClip = {
             id: cloned.id,
             kind: "scene",
             sceneId: cloned.id,
             laneId: clip.laneId,
-            startTime,
+            startTime: resolvedStart,
             duration: clip.duration,
             name: clip.name,
           };
           clips = [...clips, next];
           newIds.push(next.id);
         } else if (isAudioLane(lanes, clip.laneId)) {
+          if (isLaneLocked(lanes, clip.laneId)) continue;
           const trackIdKey =
             clip.kind === "audio" ? clip.audioTrackId ?? clip.id : clip.id;
           const track = audioTracks.find((t) => t.id === trackIdKey || t.id === clip.id);
@@ -1267,6 +1385,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             false,
             null,
           );
+          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
           audioTracks = [
@@ -1289,7 +1408,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const next: TimelineClip = {
             id: trackId,
             kind: "audio",
-            sceneId: "",
             audioTrackId: trackId,
             assetId:
               (clip.kind === "audio" ? clip.assetId : undefined) ??
@@ -1303,6 +1421,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           clips = [...clips, next];
           newIds.push(next.id);
         } else if (clip.kind === "scene") {
+          if (isLaneLocked(lanes, clip.laneId)) continue;
           const placement = resolveOverlayPlacement(
             lanes,
             clips,
@@ -1312,6 +1431,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             false,
             null,
           );
+          if (isLaneLocked(placement.lanes, placement.laneId)) continue;
           lanes = placement.lanes;
           const scene = scenes.find((sc) => sc.id === clip.sceneId);
           if (scene) {
@@ -1322,7 +1442,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
               kind: "scene",
               sceneId: cloned.id,
               laneId: placement.laneId,
-              startTime,
+              startTime: placement.startTime,
               duration: clip.duration,
               name: clip.name,
             };
@@ -1439,7 +1559,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const rightClip: TimelineClip = {
             id: trackId,
             kind: "audio",
-            sceneId: "",
             audioTrackId: trackId,
             assetId,
             laneId: clip.laneId,
