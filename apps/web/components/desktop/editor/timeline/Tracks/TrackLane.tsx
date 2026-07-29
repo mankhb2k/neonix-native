@@ -6,10 +6,7 @@ import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor/dra
 export type TrackVariant = "main" | "secondary" | "layer";
 
 export type GhostPreviewInfo = {
-  left: number;
   width: number;
-  label?: string;
-  duration?: number;
 };
 
 type TrackLaneProps = {

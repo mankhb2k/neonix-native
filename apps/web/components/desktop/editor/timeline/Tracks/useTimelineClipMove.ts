@@ -199,10 +199,7 @@ export function useTimelineClipMove({
       // Cache kích thước ghost một lần khi session bắt đầu — không setState mỗi move.
       const pps = Math.max(pixelsPerSecondRef.current, 1);
       setDragGhostState({
-        left: 0,
         width: Math.max(session.duration * pps, 24),
-        label: session.name,
-        duration: session.duration,
         targetTrack: session.source === "audio" ? "audio" : "video",
       });
       invalidateLaneRectCache(laneCacheRef.current);

@@ -36,11 +36,9 @@ import {
   INDICATOR_TOP_EPS_PX,
 } from "./lane-drop-target";
 
+/** Lane ghost preview — chỉ field UI thật sự render. */
 export type DragGhostState = {
-  left: number;
   width: number;
-  label: string;
-  duration: number;
   targetTrack: "video" | "audio";
 };
 
@@ -322,10 +320,7 @@ export function useTracksDrag({
     if (dragUiRef.current.ghostKey !== ghostKey) {
       dragUiRef.current.ghostKey = ghostKey;
       setDragGhostState({
-        left,
         width: ghostWidth,
-        label,
-        duration,
         targetTrack,
       });
     }
