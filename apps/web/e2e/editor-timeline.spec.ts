@@ -87,17 +87,18 @@ test.describe("editor timeline persistence flow", () => {
     await expect(page.getByText("E2E Clip").first()).toBeVisible({ timeout: 30_000 });
 
     // Zoom load-project phải là 28 theo preference hiện tại.
-    const zoomLabel = page.getByText(/28\s*%/i).first();
-    await expect(zoomLabel).toBeVisible();
+    const zoomSlider = page.getByRole("slider", { name: /zoom timeline/i });
+    await expect(zoomSlider).toHaveValue("28");
 
     // Scrub: kéo playhead slider nếu có.
-    const slider = page.getByRole("slider").first();
-    if (await slider.isVisible()) {
-      await slider.focus();
+    const playhead = page.getByRole("slider").filter({ hasNot: zoomSlider }).first();
+    if (await playhead.isVisible().catch(() => false)) {
+      await playhead.focus();
       await page.keyboard.press("ArrowRight");
     }
 
     await page.reload();
     await expect(page.getByText("E2E Clip").first()).toBeVisible({ timeout: 30_000 });
+    await expect(zoomSlider).toHaveValue("28");
   });
 });
