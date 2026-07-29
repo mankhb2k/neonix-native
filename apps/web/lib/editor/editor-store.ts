@@ -22,6 +22,10 @@ import {
   TIMELINE_ZOOM_ON_PROJECT_LOAD,
 } from "@/lib/editor/editor-preferences";
 import {
+  applyLaneFlagPatch,
+  selectionHasLockedLane,
+} from "@/lib/editor/operations/lane-flags";
+import {
   createAudioLane,
   createOverlayLane,
   clipsContentEndSeconds,
@@ -148,6 +152,11 @@ type EditorState = {
     },
   ) => void;
   renameLane: (laneId: string, name: string) => void;
+  /** Phase 6 — flag lane thật (lock / visible / mute). */
+  updateLaneFlags: (
+    laneId: string,
+    patch: { locked?: boolean; visible?: boolean; muted?: boolean },
+  ) => void;
   reorderLane: (laneId: string, newOrder: number) => void;
   addOverlaySceneFromFrame: (
     draft: FrameDraft,
@@ -644,6 +653,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }));
   },
 
+  updateLaneFlags: (laneId, patch) => {
+    set((state) => ({
+      timelineLanes: applyLaneFlagPatch(state.timelineLanes, laneId, patch),
+    }));
+  },
+
   reorderLane: (laneId, newOrder) => {
     set((state) => ({
       timelineLanes: reorderOverlayLane(state.timelineLanes, laneId, newOrder),
@@ -859,6 +874,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const project = state.project;
       const existing = state.timelineClips.find((clip) => clip.id === clipId);
       if (!project || !existing) return state;
+      // Lane locked → không move/placement (Phase 6).
+      if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, [clipId])) {
+        return state;
+      }
       const startTime = Math.max(0, patch.startTime);
       let lanes = state.timelineLanes.length
         ? state.timelineLanes
@@ -1245,6 +1264,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const project = state.project;
       const ids = new Set(state.selectedClipIds);
       if (!project || ids.size === 0) return state;
+      if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)) {
+        return state;
+      }
 
       const removed = state.timelineClips.filter((clip) => ids.has(clip.id));
       const remaining = state.timelineClips.filter((clip) => !ids.has(clip.id));
@@ -1602,6 +1624,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const project = state.project;
       if (!project) return state;
+      if (
+        selectionHasLockedLane(
+          state.timelineClips,
+          state.timelineLanes,
+          state.selectedClipIds,
+        )
+      ) {
+        return state;
+      }
       const t = Math.max(0, time);
       const selected = state.timelineClips.filter((clip) =>
         state.selectedClipIds.includes(clip.id),

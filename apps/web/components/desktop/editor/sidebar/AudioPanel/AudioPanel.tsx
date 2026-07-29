@@ -1,7 +1,7 @@
 "use client";
 
-import React, { type DragEvent } from "react";
-import { Plus } from "lucide-react";
+import React, { useEffect, useRef, useState, type DragEvent } from "react";
+import { Plus, Pause, Play } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import {
   clearDragCursor,
@@ -35,6 +35,58 @@ export const MOCK_AUDIO_ITEMS = [
 
 const EMPTY_DRAG_IMAGE =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+/** WAV ngắn — preview thật bằng HTMLAudioElement khi library chưa có URI asset. */
+const PREVIEW_TONE_WAV =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=";
+
+function LibraryAudioPreviewButton({ itemId }: { itemId: string }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      const audio = audioRef.current;
+      if (!audio) return;
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, []);
+
+  function toggle() {
+    if (playing && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setPlaying(false);
+      return;
+    }
+    if (!audioRef.current) {
+      audioRef.current = new Audio(PREVIEW_TONE_WAV);
+      audioRef.current.preload = "auto";
+      audioRef.current.addEventListener("ended", () => setPlaying(false));
+    }
+    void audioRef.current.play().then(
+      () => setPlaying(true),
+      () => setPlaying(false),
+    );
+  }
+
+  return (
+    <Button
+      size="xs"
+      variant="ghost"
+      aria-label={playing ? `Dừng ${itemId}` : `Nghe thử ${itemId}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        toggle();
+      }}
+      leftIcon={playing ? <Pause size={13} /> : <Play size={13} />}
+      className="shrink-0"
+    >
+      {playing ? "Dừng" : "Nghe"}
+    </Button>
+  );
+}
 
 export function AudioPanel() {
   const addAudioTrack = useEditorStore((s) => s.addAudioTrack);
@@ -119,21 +171,24 @@ export function AudioPanel() {
                 </div>
               </div>
 
-              <Button
-                size="xs"
-                variant="secondary"
-                onClick={() =>
-                  addAudioTrack({
-                    role: item.title,
-                    assetId: item.id,
-                    duration: normalizeAudioDurationSec(item.duration),
-                  })
-                }
-                leftIcon={<Plus size={13} />}
-                className="shrink-0 opacity-90 group-hover:opacity-100"
-              >
-                Thêm
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <LibraryAudioPreviewButton itemId={item.id} />
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  onClick={() =>
+                    addAudioTrack({
+                      role: item.title,
+                      assetId: item.id,
+                      duration: normalizeAudioDurationSec(item.duration),
+                    })
+                  }
+                  leftIcon={<Plus size={13} />}
+                  className="opacity-90 group-hover:opacity-100"
+                >
+                  Thêm
+                </Button>
+              </div>
             </div>
           ))}
         </div>

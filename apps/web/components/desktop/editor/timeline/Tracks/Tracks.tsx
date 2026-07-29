@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { TrackLane } from "./TrackLane";
+import { LaneFlagControls } from "./LaneFlagControls";
 import { useTracksDrag } from "./useTracksDrag";
 import { useOverlayClipMove } from "./useOverlayClipMove";
 import { useMarqueeSelect } from "./useMarqueeSelect";
@@ -240,13 +241,16 @@ export const Tracks = memo(function Tracks({
                   labelWidth={TIMELINE_LABEL_WIDTH}
                   canvasWidth={canvasWidth}
                   leftControl={
-                    <button
-                      type="button"
-                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer text-[11px] font-semibold truncate max-w-full"
-                      title={lane.name}
-                    >
-                      {lane.name}
-                    </button>
+                    lane.kind === "visual" ? (
+                      <LaneFlagControls
+                        lane={lane}
+                        leading={
+                          <span className="text-[11px] font-semibold truncate max-w-[3.5rem]">
+                            {lane.name}
+                          </span>
+                        }
+                      />
+                    ) : null
                   }
                 >
                   {layerItems.map((item) => {
@@ -318,13 +322,16 @@ export const Tracks = memo(function Tracks({
               labelWidth={TIMELINE_LABEL_WIDTH}
               canvasWidth={canvasWidth}
               leftControl={
-                <button
-                  type="button"
-                  className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                  title={mainLane?.name ?? "Khung hình / Video"}
-                >
-                  <Film size={14} strokeWidth={1.5} />
-                </button>
+                mainLane ? (
+                  <LaneFlagControls
+                    lane={mainLane}
+                    leading={<Film size={14} strokeWidth={1.5} />}
+                  />
+                ) : (
+                  <span className="p-1 text-[var(--fg-muted)]">
+                    <Film size={14} strokeWidth={1.5} />
+                  </span>
+                )
               }
             >
               {mainClips.map((clip, index) => {
@@ -383,13 +390,10 @@ export const Tracks = memo(function Tracks({
                   labelWidth={TIMELINE_LABEL_WIDTH}
                   canvasWidth={canvasWidth}
                   leftControl={
-                    <button
-                      type="button"
-                      className="p-1 text-[var(--fg-muted)] hover:text-[var(--fg-primary)] transition-colors rounded cursor-pointer"
-                      title={lane.name}
-                    >
-                      <Music size={14} strokeWidth={1.5} />
-                    </button>
+                    <LaneFlagControls
+                      lane={lane}
+                      leading={<Music size={14} strokeWidth={1.5} />}
+                    />
                   }
                 >
                   {laneClips.map((clip) => {
