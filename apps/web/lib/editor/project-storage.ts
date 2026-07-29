@@ -15,6 +15,9 @@ export {
   migrateStoredProject,
   overlaysFromClips,
   saveProject,
+  trySaveProject,
+  SaveProjectError,
+  isQuotaExceededError,
   type EditorProjectSnapshot,
   type StoredProject,
 } from "@/lib/editor/persistence/project-storage";

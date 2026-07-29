@@ -44,7 +44,8 @@ export function GlobalDragPreview() {
   }
 
   const pixelsPerSecond = zoomToPixelsPerSecond(timelineZoom);
-  const blockWidth = Math.max(activeDragItem.duration * pixelsPerSecond, 60);
+  // Đồng bộ min width với gray ghost trên track (SCALE / Phase 8).
+  const blockWidth = Math.max(activeDragItem.duration * pixelsPerSecond, 24);
 
   return (
     <div

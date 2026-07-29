@@ -8,7 +8,7 @@ import { DesktopMenuBar, DesktopWindowControls } from "@/components/desktop/edit
 import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
 import { useIsDesktop } from "@/lib/desktop";
-import { saveProject } from "@/lib/editor/project-storage";
+import { saveProject, trySaveProject } from "@/lib/editor/project-storage";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import {
   parseMotionProject,
@@ -43,7 +43,11 @@ export function TitleBar() {
     setExportError(null);
     setExporting(true);
     try {
-      saveProject(project, { timelineClips, timelineLanes });
+      const saved = trySaveProject(project, { timelineClips, timelineLanes });
+      if (!saved.ok) {
+        setExportError(saved.error.message);
+        return;
+      }
       const blob = await exportMotionProject(project);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);

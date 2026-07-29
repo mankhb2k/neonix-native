@@ -15,9 +15,14 @@ import {
   parseStoredProjectRecord,
   type StoredProject,
 } from "@/lib/editor/persistence/project-migrations";
+import {
+  isQuotaExceededError,
+  SaveProjectError,
+} from "@/lib/editor/persistence/storage-errors";
 
 export type { StoredProject } from "@/lib/editor/persistence/project-migrations";
 export { CURRENT_STORAGE_VERSION, migrateStoredProject, overlaysFromClips };
+export { SaveProjectError, isQuotaExceededError } from "@/lib/editor/persistence/storage-errors";
 
 const STORAGE_KEY = "motionvideo.projects";
 
@@ -49,8 +54,25 @@ function parseStored(): Record<string, StoredProject> {
   }
 }
 
+/** Ghi storage — bắt quota/write failure (Phase 8). */
 function writeAll(projects: Record<string, StoredProject>): void {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  if (typeof window === "undefined") {
+    throw new SaveProjectError("write", "localStorage unavailable");
+  }
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  } catch (error) {
+    if (isQuotaExceededError(error)) {
+      throw new SaveProjectError(
+        "quota",
+        "Không đủ dung lượng localStorage để lưu dự án.",
+      );
+    }
+    throw new SaveProjectError(
+      "write",
+      error instanceof Error ? error.message : "Ghi localStorage thất bại.",
+    );
+  }
 }
 
 type SaveProjectOptions = {
@@ -59,7 +81,9 @@ type SaveProjectOptions = {
   timelineLanes?: TimelineLane[];
 };
 
-/** Persist unified clips + lanes, retaining the legacy overlay sidecar for older readers. */
+/** Persist unified clips + lanes, retaining the legacy overlay sidecar for older readers.
+ * Throws SaveProjectError khi quota/write fail — caller nên catch (autosave không crash UI).
+ */
 export function saveProject(
   project: MotionProject,
   options: SaveProjectOptions | OverlaySceneItem[] = {},
@@ -92,6 +116,26 @@ export function saveProject(
     overlayScenes,
   };
   writeAll(projects);
+}
+
+/** saveProject an toàn cho autosave — nuốt lỗi, trả về ok/false. */
+export function trySaveProject(
+  project: MotionProject,
+  options: SaveProjectOptions | OverlaySceneItem[] = {},
+): { ok: true } | { ok: false; error: SaveProjectError } {
+  try {
+    saveProject(project, options);
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof SaveProjectError) return { ok: false, error };
+    return {
+      ok: false,
+      error: new SaveProjectError(
+        "write",
+        error instanceof Error ? error.message : "Ghi thất bại",
+      ),
+    };
+  }
 }
 
 /**

@@ -2,7 +2,6 @@ import type { MotionProject } from "@motionvideo/motion-schema";
 import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 import {
   DEFAULT_VISUAL_POLICY,
-  type AudioTimelineClip,
   type SceneTimelineClip,
   type TimelineClip,
   type TimelineLane,
@@ -447,9 +446,9 @@ export function isLaneLocked(lanes: TimelineLane[], laneId: string): boolean {
   return Boolean(lane?.locked);
 }
 
-/** Find overlay lane without time overlap, or signal create-new. */
-export function findFreeOverlayLane(
-  lanes: TimelineLane[],
+/** Generic free-lane — overlay và audio dùng chung thuật toán (CLEAN / Phase 7). */
+function findFreeLaneAmong(
+  candidates: TimelineLane[],
   clips: TimelineClip[],
   startTime: number,
   duration: number,
@@ -457,9 +456,7 @@ export function findFreeOverlayLane(
   insertNewLane: boolean,
   preferredInsertOrder?: number | null,
 ): { laneId: string | null; createNew: boolean; insertOrder: number } {
-  const overlays = lanes
-    .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
-    .sort((a, b) => a.order - b.order);
+  const sorted = [...candidates].sort((a, b) => a.order - b.order);
 
   if (insertNewLane) {
     if (preferredInsertOrder != null && Number.isFinite(preferredInsertOrder)) {
@@ -470,9 +467,9 @@ export function findFreeOverlayLane(
       };
     }
     const preferred = preferredLaneId
-      ? overlays.find((lane) => lane.id === preferredLaneId)
+      ? sorted.find((lane) => lane.id === preferredLaneId)
       : undefined;
-    const insertOrder = preferred ? preferred.order + 1 : overlays.length;
+    const insertOrder = preferred ? preferred.order + 1 : sorted.length;
     return { laneId: null, createNew: true, insertOrder };
   }
 
@@ -487,14 +484,35 @@ export function findFreeOverlayLane(
     return { laneId: preferredLaneId, createNew: false, insertOrder: 0 };
   }
 
-  for (const lane of overlays) {
+  for (const lane of sorted) {
     if (isFree(lane.id)) {
       return { laneId: lane.id, createNew: false, insertOrder: 0 };
     }
   }
 
-  const maxOrder = overlays.reduce((max, lane) => Math.max(max, lane.order), -1);
+  const maxOrder = sorted.reduce((max, lane) => Math.max(max, lane.order), -1);
   return { laneId: null, createNew: true, insertOrder: maxOrder + 1 };
+}
+
+/** Find overlay lane without time overlap, or signal create-new. */
+export function findFreeOverlayLane(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  startTime: number,
+  duration: number,
+  preferredLaneId: string | null,
+  insertNewLane: boolean,
+  preferredInsertOrder?: number | null,
+): { laneId: string | null; createNew: boolean; insertOrder: number } {
+  return findFreeLaneAmong(
+    lanes.filter((lane) => lane.kind === "visual" && lane.role === "overlay"),
+    clips,
+    startTime,
+    duration,
+    preferredLaneId,
+    insertNewLane,
+    preferredInsertOrder,
+  );
 }
 
 export function createOverlayLane(order: number, name?: string): TimelineLane {
@@ -508,8 +526,38 @@ export function createOverlayLane(order: number, name?: string): TimelineLane {
   };
 }
 
-/** Drop overlay lanes that have no clips; keep base + audio; renumber overlay order. */
-export function pruneEmptyOverlayLanes(
+export function findFreeAudioLane(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  startTime: number,
+  duration: number,
+  preferredLaneId: string | null,
+  insertNewLane: boolean,
+  preferredInsertOrder?: number | null,
+): { laneId: string | null; createNew: boolean; insertOrder: number } {
+  return findFreeLaneAmong(
+    lanes.filter((lane) => lane.kind === "audio"),
+    clips,
+    startTime,
+    duration,
+    preferredLaneId,
+    insertNewLane,
+    preferredInsertOrder,
+  );
+}
+
+export function createAudioLane(order: number, name?: string): TimelineLane {
+  return {
+    id: uid("lane"),
+    kind: "audio",
+    role: "audio",
+    name: name ?? `Âm thanh ${order + 1}`,
+    order,
+  };
+}
+
+/** Một pass prune — bỏ overlay/audio trống, giữ base, renumber order. */
+export function pruneEmptyLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
@@ -524,82 +572,6 @@ export function pruneEmptyOverlayLanes(
     )
     .sort((a, b) => a.order - b.order)
     .map((lane, index) => ({ ...lane, order: index }));
-  const audio = lanes
-    .filter((lane) => lane.kind === "audio")
-    .sort((a, b) => a.order - b.order);
-  return [main, ...overlays, ...audio];
-}
-
-export function findFreeAudioLane(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-  startTime: number,
-  duration: number,
-  preferredLaneId: string | null,
-  insertNewLane: boolean,
-  preferredInsertOrder?: number | null,
-): { laneId: string | null; createNew: boolean; insertOrder: number } {
-  const audios = lanes
-    .filter((lane) => lane.kind === "audio")
-    .sort((a, b) => a.order - b.order);
-
-  if (insertNewLane) {
-    if (preferredInsertOrder != null && Number.isFinite(preferredInsertOrder)) {
-      return {
-        laneId: null,
-        createNew: true,
-        insertOrder: Math.max(0, Math.floor(preferredInsertOrder)),
-      };
-    }
-    const preferred = preferredLaneId
-      ? audios.find((lane) => lane.id === preferredLaneId)
-      : undefined;
-    const insertOrder = preferred ? preferred.order + 1 : audios.length;
-    return { laneId: null, createNew: true, insertOrder };
-  }
-
-  const isFree = (laneId: string) =>
-    !clips.some(
-      (clip) =>
-        clip.laneId === laneId &&
-        rangesOverlap(startTime, duration, clip.startTime, clip.duration),
-    );
-
-  if (preferredLaneId && isFree(preferredLaneId)) {
-    return { laneId: preferredLaneId, createNew: false, insertOrder: 0 };
-  }
-
-  for (const lane of audios) {
-    if (isFree(lane.id)) {
-      return { laneId: lane.id, createNew: false, insertOrder: 0 };
-    }
-  }
-
-  const maxOrder = audios.reduce((max, lane) => Math.max(max, lane.order), -1);
-  return { laneId: null, createNew: true, insertOrder: maxOrder + 1 };
-}
-
-export function createAudioLane(order: number, name?: string): TimelineLane {
-  return {
-    id: uid("lane"),
-    kind: "audio",
-    role: "audio",
-    name: name ?? `Âm thanh ${order + 1}`,
-    order,
-  };
-}
-
-export function pruneEmptyAudioLanes(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-): TimelineLane[] {
-  const used = new Set(clips.map((clip) => clip.laneId));
-  const main =
-    lanes.find((lane) => lane.kind === "visual" && lane.role === "base") ??
-    ensureMainLane([]);
-  const overlays = lanes
-    .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
-    .sort((a, b) => a.order - b.order);
   const audios = lanes
     .filter((lane) => lane.kind === "audio" && used.has(lane.id))
     .sort((a, b) => a.order - b.order)
@@ -607,11 +579,20 @@ export function pruneEmptyAudioLanes(
   return [main, ...overlays, ...audios];
 }
 
-export function pruneEmptyLanes(
+/** @deprecated Prefer pruneEmptyLanes. */
+export function pruneEmptyOverlayLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
-  return pruneEmptyAudioLanes(pruneEmptyOverlayLanes(lanes, clips), clips);
+  return pruneEmptyLanes(lanes, clips);
+}
+
+/** @deprecated Prefer pruneEmptyLanes. */
+export function pruneEmptyAudioLanes(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+): TimelineLane[] {
+  return pruneEmptyLanes(lanes, clips);
 }
 
 export function shiftAudioLaneOrders(

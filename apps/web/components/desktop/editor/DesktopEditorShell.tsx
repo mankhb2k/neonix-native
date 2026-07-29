@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  saveProject,
+  trySaveProject,
   type EditorProjectSnapshot,
 } from "@/lib/editor/project-storage";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePanelResize } from "@/hooks/editor/use-panel-resize";
 import { Sidebar } from "./sidebar/Sidebar";
 import { PreviewStage } from "./stage/PreviewStage";
 import { RightDock } from "./inspector/RightDock";
@@ -33,8 +34,47 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
   const [activeResizer, setActiveResizer] = useState<
     "sidebar" | "rightDock" | "timeline" | null
   >(null);
+  const [saveWarning, setSaveWarning] = useState<string | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
+
+  const setSidebarActive = useCallback(
+    (active: boolean) => setActiveResizer(active ? "sidebar" : null),
+    [],
+  );
+  const setRightDockActive = useCallback(
+    (active: boolean) => setActiveResizer(active ? "rightDock" : null),
+    [],
+  );
+  const setTimelineActive = useCallback(
+    (active: boolean) => setActiveResizer(active ? "timeline" : null),
+    [],
+  );
+
+  const { onPointerDown: startSidebarResizing } = usePanelResize({
+    axis: "x",
+    value: sidebarWidth,
+    min: 320,
+    max: 800,
+    onChange: setSidebarWidth,
+    onActiveChange: setSidebarActive,
+  });
+  const { onPointerDown: startRightDockResizing } = usePanelResize({
+    axis: "x-inverted",
+    value: rightDockWidth,
+    min: 340,
+    max: 850,
+    onChange: setRightDockWidth,
+    onActiveChange: setRightDockActive,
+  });
+  const { onPointerDown: startTimelineResizing } = usePanelResize({
+    axis: "y-inverted",
+    value: timelineHeight,
+    min: 200,
+    max: 650,
+    onChange: setTimelineHeight,
+    onActiveChange: setTimelineActive,
+  });
 
   // Load once per project id từ snapshot đã đọc sẵn — không parse storage lại.
   useEffect(() => {
@@ -51,90 +91,20 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
 
   // Single autosave owner (debounced) — page.tsx must not also save.
   useEffect(() => {
-    if (!project) return;
+    if (!project) return undefined;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveProject(project, { timelineClips, timelineLanes });
+      const result = trySaveProject(project, { timelineClips, timelineLanes });
+      if (!result.ok) {
+        setSaveWarning(result.error.message);
+        return;
+      }
+      setSaveWarning(null);
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [project, timelineClips, timelineLanes]);
-
-  const startSidebarResizing = useCallback(
-    (e: React.PointerEvent) => {
-      e.preventDefault();
-      setActiveResizer("sidebar");
-      const startX = e.clientX;
-      const startWidth = sidebarWidth;
-
-      const onPointerMove = (moveEvent: PointerEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const newWidth = Math.min(800, Math.max(320, startWidth + deltaX));
-        setSidebarWidth(newWidth);
-      };
-
-      const onPointerUp = () => {
-        setActiveResizer(null);
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", onPointerUp);
-      };
-
-      window.addEventListener("pointermove", onPointerMove);
-      window.addEventListener("pointerup", onPointerUp);
-    },
-    [sidebarWidth],
-  );
-
-  const startRightDockResizing = useCallback(
-    (e: React.PointerEvent) => {
-      e.preventDefault();
-      setActiveResizer("rightDock");
-      const startX = e.clientX;
-      const startWidth = rightDockWidth;
-
-      const onPointerMove = (moveEvent: PointerEvent) => {
-        const deltaX = startX - moveEvent.clientX;
-        const newWidth = Math.min(850, Math.max(340, startWidth + deltaX));
-        setRightDockWidth(newWidth);
-      };
-
-      const onPointerUp = () => {
-        setActiveResizer(null);
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", onPointerUp);
-      };
-
-      window.addEventListener("pointermove", onPointerMove);
-      window.addEventListener("pointerup", onPointerUp);
-    },
-    [rightDockWidth],
-  );
-
-  const startTimelineResizing = useCallback(
-    (e: React.PointerEvent) => {
-      e.preventDefault();
-      setActiveResizer("timeline");
-      const startY = e.clientY;
-      const startHeight = timelineHeight;
-
-      const onPointerMove = (moveEvent: PointerEvent) => {
-        const deltaY = startY - moveEvent.clientY;
-        const newHeight = Math.min(650, Math.max(200, startHeight + deltaY));
-        setTimelineHeight(newHeight);
-      };
-
-      const onPointerUp = () => {
-        setActiveResizer(null);
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", onPointerUp);
-      };
-
-      window.addEventListener("pointermove", onPointerMove);
-      window.addEventListener("pointerup", onPointerUp);
-    },
-    [timelineHeight],
-  );
 
   return (
     <div
@@ -147,6 +117,15 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
       }`}
     >
       <Header />
+
+      {saveWarning ? (
+        <div
+          role="status"
+          className="absolute top-14 left-1/2 z-50 -translate-x-1/2 rounded-md bg-[#7f1d1d] px-3 py-1.5 text-[12px] text-white shadow-lg"
+        >
+          {saveWarning}
+        </div>
+      ) : null}
 
       <div
         className="flex-1 grid p-2 gap-2 overflow-hidden"

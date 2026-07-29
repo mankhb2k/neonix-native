@@ -44,7 +44,6 @@ import {
   isAudioLane,
   isMainLane,
   isOverlayLane,
-  isSceneClip,
   migrateLanesAndClips,
   pruneEmptyLanes,
   resolveMainStartTime,
@@ -55,10 +54,6 @@ import {
   type TimelineLane,
 } from "@/lib/editor/timeline-clips";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-
-function sceneIdOf(clip: TimelineClip): string | null {
-  return clip.kind === "scene" ? clip.sceneId : null;
-}
 
 export type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 export type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
@@ -719,7 +714,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (!lanes.some((lane) => lane.id === mainLane.id)) {
         lanes = [...lanes, mainLane];
       }
-      let clips = state.timelineClips.filter((clip) => clip.id !== clipId);
+      const clips = state.timelineClips.filter((clip) => clip.id !== clipId);
       let nextProject = project;
       let moved: TimelineClip;
       const existingOnMain = isMainLane(lanes, existing.laneId);
@@ -1217,7 +1212,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       };
       lanes = pruneEmptyLanes(lanes, clips);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
-      const primary = clips.find((c) => c.id === newIds[newIds.length - 1]);
       return {
         project: nextProject,
         timelineLanes: lanes,
@@ -1345,7 +1339,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       };
       lanes = pruneEmptyLanes(lanes, clips);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
-      const primary = clips.find((c) => c.id === newIds[newIds.length - 1]);
       return {
         project: nextProject,
         timelineLanes: lanes,
@@ -1493,8 +1486,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       };
       lanes = pruneEmptyLanes(lanes, clips);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
-      const primaryId = newSelection[newSelection.length - 1];
-      const primary = clips.find((c) => c.id === primaryId);
       return {
         project: nextProject,
         timelineLanes: lanes,
