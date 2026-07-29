@@ -38,8 +38,11 @@ export function selectedClipIdFrom(selection: EditorSelection): string | null {
   return selection.kind === "clips" ? selection.primaryId : null;
 }
 
+/** Mảng rỗng ổn định — tránh selector Zustand tạo [] mới mỗi lần (infinite re-render). */
+const EMPTY_CLIP_IDS: string[] = [];
+
 export function selectedClipIdsFrom(selection: EditorSelection): string[] {
-  return selection.kind === "clips" ? selection.ids : [];
+  return selection.kind === "clips" ? selection.ids : EMPTY_CLIP_IDS;
 }
 
 /**
