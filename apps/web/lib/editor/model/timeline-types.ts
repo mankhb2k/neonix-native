@@ -1,9 +1,6 @@
 /**
- * Domain timeline types — discriminated-by-kind model (Phase 5 / MODEL-01).
+ * Domain timeline types — discriminated union thật (scene | audio).
  * role nằm ở lane, không nằm ở clip.
- *
- * Clip dùng một shape phẳng + `kind` để TypeScript truy cập field an toàn;
- * runtime vẫn phân biệt scene vs audio qua `kind`.
  */
 
 export type VisualLanePolicy = {
@@ -47,34 +44,26 @@ export type LegacyTimelineLaneKind = "main" | "overlay" | "audio";
 /** @deprecated Prefer laneId; kept for migrate/parse of older saves. */
 export type TimelineTrackKind = "main" | "overlay" | "audio";
 
-export type TimelineClip = {
+type TimelineClipBase = {
   id: string;
-  kind: "scene" | "audio";
   laneId: string;
   startTime: number;
   duration: number;
   name: string;
-  /**
-   * Scene clips: id scene thật trong project.scenes.
-   * Audio clips: để "" — dùng audioTrackId/assetId (không sceneId giả).
-   */
-  sceneId: string;
-  /** Chỉ có ý nghĩa khi kind === "audio". */
-  audioTrackId?: string;
-  /** Chỉ có ý nghĩa khi kind === "audio". */
-  assetId?: string;
 };
 
-export type SceneTimelineClip = TimelineClip & {
+export type SceneTimelineClip = TimelineClipBase & {
   kind: "scene";
   sceneId: string;
 };
 
-export type AudioTimelineClip = TimelineClip & {
+export type AudioTimelineClip = TimelineClipBase & {
   kind: "audio";
   audioTrackId: string;
   assetId: string;
 };
+
+export type TimelineClip = SceneTimelineClip | AudioTimelineClip;
 
 export function isSceneClip(clip: TimelineClip): clip is SceneTimelineClip {
   return clip.kind === "scene";

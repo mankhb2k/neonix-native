@@ -160,7 +160,6 @@ describe("editor persistence fixtures", () => {
       {
         id: "audio.x",
         kind: "audio",
-        sceneId: "",
         audioTrackId: "audio.x",
         assetId: "asset.x",
         laneId: "lane.au",

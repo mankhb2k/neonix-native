@@ -176,7 +176,6 @@ export function parseTimelineClips(input: unknown): TimelineClip[] {
       clips.push({
         id: row.id,
         kind: "audio",
-        sceneId: "",
         audioTrackId,
         assetId,
         laneId,
@@ -328,7 +327,6 @@ export function migrateLanesAndClips(
       const audio: TimelineClip = {
         id: clip.id,
         kind: "audio",
-        sceneId: "",
         audioTrackId: clip.audioTrackId ?? clip.sceneId ?? clip.id,
         assetId: clip.assetId ?? clip.name,
         laneId: clip.laneId || "",
@@ -609,7 +607,7 @@ export function shiftAudioLaneOrders(
 
 /**
  * Ensure every schema audioTrack has a TimelineClip on an audio lane.
- * Mỗi track đặt vào lane trống; overlap → tạo lane mới (MODEL-03).
+ * Nếu có audio clip/track mà thiếu audio lane → tạo lane rồi remap (P2).
  */
 export function ensureAudioClipsFromTracks(
   project: MotionProject,
@@ -617,27 +615,18 @@ export function ensureAudioClipsFromTracks(
   clips: TimelineClip[],
 ): { lanes: TimelineLane[]; clips: TimelineClip[] } {
   const tracks = project.timeline.audioTracks ?? [];
-  if (tracks.length === 0) return { lanes, clips };
-
-  const clipIds = new Set(clips.map((clip) => clip.id));
-  const missing = tracks.filter((track) => !clipIds.has(track.id));
-  if (missing.length === 0) {
-    const hasAudioClip = clips.some(
-      (clip) =>
-        clip.kind === "audio" &&
-        tracks.some((track) => track.id === clip.audioTrackId || track.id === clip.id),
-    );
-    if (!hasAudioClip || lanes.some((lane) => lane.kind === "audio")) {
-      return { lanes, clips };
-    }
-  }
+  const hasAudioClips = clips.some((clip) => clip.kind === "audio");
+  if (tracks.length === 0 && !hasAudioClips) return { lanes, clips };
 
   let nextLanes = [...lanes];
   const assetsById = new Map(project.assets.map((asset) => [asset.id, asset]));
   const nextClips = [...clips];
-  const orderedMissing = [...missing].sort((a, b) => a.start - b.start);
+  const clipIds = new Set(nextClips.map((clip) => clip.id));
+  const missing = tracks
+    .filter((track) => !clipIds.has(track.id))
+    .sort((a, b) => a.start - b.start);
 
-  for (const track of orderedMissing) {
+  for (const track of missing) {
     const asset = assetsById.get(track.assetId);
     const duration =
       asset && "duration" in asset && typeof asset.duration === "number"
@@ -667,7 +656,6 @@ export function ensureAudioClipsFromTracks(
     nextClips.push({
       id: track.id,
       kind: "audio",
-      sceneId: "",
       audioTrackId: track.id,
       assetId: track.assetId,
       laneId,
@@ -677,20 +665,42 @@ export function ensureAudioClipsFromTracks(
     });
   }
 
-  const audioLaneIds = new Set(
-    nextLanes.filter((lane) => lane.kind === "audio").map((lane) => lane.id),
-  );
-  const remapped = nextClips.map((clip) => {
-    if (clip.kind !== "audio") return clip;
-    if (!tracks.some((track) => track.id === clip.audioTrackId || track.id === clip.id)) {
-      return clip;
+  // Remap / tạo lane cho audio clip thiếu lane hợp lệ.
+  const resultClips: TimelineClip[] = [];
+  for (const clip of nextClips) {
+    if (clip.kind !== "audio") {
+      resultClips.push(clip);
+      continue;
     }
-    if (audioLaneIds.has(clip.laneId)) return clip;
-    const fallback = nextLanes.find((lane) => lane.kind === "audio");
-    return fallback ? { ...clip, laneId: fallback.id } : clip;
-  });
+    const validIds = new Set(
+      nextLanes.filter((lane) => lane.kind === "audio").map((lane) => lane.id),
+    );
+    if (validIds.has(clip.laneId)) {
+      resultClips.push(clip);
+      continue;
+    }
 
-  return { lanes: nextLanes, clips: remapped };
+    const placement = findFreeAudioLane(
+      nextLanes,
+      resultClips,
+      clip.startTime,
+      clip.duration,
+      null,
+      false,
+    );
+    let laneId = placement.laneId;
+    if (placement.createNew || !laneId) {
+      const lane = createAudioLane(placement.insertOrder);
+      if (placement.insertOrder != null) {
+        nextLanes = shiftAudioLaneOrders(nextLanes, placement.insertOrder, 1);
+      }
+      nextLanes = [...nextLanes, lane];
+      laneId = lane.id;
+    }
+    resultClips.push({ ...clip, laneId });
+  }
+
+  return { lanes: nextLanes, clips: resultClips };
 }
 
 /** Place on base lane without time-overlap (trừ khi ripple). */
