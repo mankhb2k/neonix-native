@@ -16,6 +16,8 @@ import { TrackLane } from "./TrackLane";
 import { useTracksDrag } from "./useTracksDrag";
 import { useOverlayClipMove } from "./useOverlayClipMove";
 import { useMarqueeSelect } from "./useMarqueeSelect";
+import { useTimelineClipHotkeys } from "./useTimelineClipHotkeys";
+import { TimelineWorkspaceContextMenu } from "./TimelineClipContextMenu";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 
 type Props = {
@@ -101,6 +103,7 @@ export function Tracks({
   });
 
   const marquee = useMarqueeSelect({ workspaceRef });
+  useTimelineClipHotkeys(Boolean(projectId));
 
   const scrubBlocked =
     clipMove.isMoving || activeDragItem != null || marquee.isMarqueeing;
@@ -168,8 +171,8 @@ export function Tracks({
         style={{ minWidth: canvasMinWidth }}
       >
         {isTimelineEmpty ? (
-          <div
-            ref={workspaceRef}
+          <TimelineWorkspaceContextMenu
+            workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col justify-center min-h-[160px] pt-6 pb-12"
           >
             {/* CapCut-style empty: dashed opacity runway */}
@@ -197,12 +200,12 @@ export function Tracks({
                 </span>
               </div>
             </div>
-          </div>
+          </TimelineWorkspaceContextMenu>
         ) : (
-          <div
-            ref={workspaceRef}
+          <TimelineWorkspaceContextMenu
+            workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
-            onPointerDown={marquee.onWorkspacePointerDown}
+            onWorkspacePointerDown={marquee.onWorkspacePointerDown}
           >
             {marquee.marqueeRect && (
               <div
@@ -496,7 +499,7 @@ export function Tracks({
                 </TrackLane>
               );
             })}
-          </div>
+          </TimelineWorkspaceContextMenu>
         )}
       </div>
     </div>

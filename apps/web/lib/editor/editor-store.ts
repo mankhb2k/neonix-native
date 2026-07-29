@@ -13,6 +13,11 @@ import type { FrameDraft } from "@/lib/editor/frame-library";
 import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 import {
+  type ClipClipboardItem,
+  MIN_CLIP_SLICE_SEC,
+  playheadSplitsClip,
+} from "@/lib/editor/clip-clipboard";
+import {
   TIMELINE_ZOOM_DEFAULT,
   TIMELINE_ZOOM_ON_PROJECT_LOAD,
 } from "@/components/desktop/editor/timeline/timeline-scale";
@@ -75,6 +80,8 @@ type EditorState = {
 
   /** Timeline zoom — playback clock lives in playback-clock-store. */
   timelineZoom: number;
+  /** Internal clipboard for timeline clips (Copy/Cut/Paste). */
+  timelineClipboard: ClipClipboardItem[] | null;
 
   setActiveDragItem: (
     item: {
@@ -177,6 +184,12 @@ type EditorState = {
       insertOrder?: number;
     },
   ) => void;
+  copySelectedClips: () => void;
+  cutSelectedClips: () => void;
+  pasteClips: (atTime?: number) => void;
+  deleteSelectedClips: () => void;
+  duplicateSelectedClips: () => void;
+  splitSelectedClipsAt: (time: number) => void;
   setExporting: (value: boolean) => void;
   setTimelineZoom: (zoom: number) => void;
 };
@@ -381,6 +394,63 @@ function audioLaneIdByOrder(
   return lanes.find((lane) => lane.kind === "audio" && lane.order === order)?.id;
 }
 
+function cloneSceneWithNewIds(scene: MotionScene): MotionScene {
+  const cloned = JSON.parse(JSON.stringify(scene)) as MotionScene;
+  const idMap = new Map<string, string>();
+  const newSceneId = uid("scene");
+  idMap.set(scene.id, newSceneId);
+  cloned.id = newSceneId;
+  cloned.nodes = (cloned.nodes ?? []).map((node) => {
+    const nextId = uid("node");
+    idMap.set(node.id, nextId);
+    return { ...node, id: nextId };
+  });
+  cloned.nodes = cloned.nodes.map((node) => ({
+    ...node,
+    parentId:
+      node.parentId && idMap.has(node.parentId)
+        ? idMap.get(node.parentId)!
+        : node.parentId,
+  }));
+  cloned.clips = (cloned.clips ?? []).map((clip) => ({
+    ...clip,
+    id: uid("clip"),
+    targetId:
+      clip.targetId && idMap.has(clip.targetId)
+        ? idMap.get(clip.targetId)!
+        : clip.targetId,
+  }));
+  return cloned;
+}
+
+function selectionStateForClip(
+  clip: TimelineClip | undefined,
+  lanes: TimelineLane[],
+  project: MotionProject | null,
+) {
+  if (!clip) {
+    return {
+      selectedClipId: null as string | null,
+      selectedClipIds: [] as string[],
+      selectedSceneId: null as string | null,
+      selectedOverlayId: null as string | null,
+      selectedNodeId: null as string | null,
+    };
+  }
+  const onMain = isMainLane(lanes, clip.laneId);
+  const onAudio = isAudioLane(lanes, clip.laneId);
+  const scene = onMain
+    ? project?.scenes.find((candidate) => candidate.id === clip.sceneId)
+    : undefined;
+  return {
+    selectedClipId: clip.id,
+    selectedClipIds: [clip.id],
+    selectedSceneId: onMain ? clip.sceneId : null,
+    selectedOverlayId: onMain || onAudio ? null : clip.id,
+    selectedNodeId: firstEditableNode(scene)?.id ?? null,
+  };
+}
+
 /* ==========================================================================
    3. Tạo Zustand Store chính (useEditorStore)
    ========================================================================== */
@@ -401,6 +471,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   activeDragItem: null,
   isOverTimeline: false,
   timelineZoom: TIMELINE_ZOOM_DEFAULT,
+  timelineClipboard: null as ClipClipboardItem[] | null,
 
   setActiveDragItem: (item) => set({ activeDragItem: item }),
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
@@ -1060,6 +1131,483 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       },
       { startTime: 0, insertNewLane: false },
     );
+  },
+
+  copySelectedClips: () => {
+    const state = get();
+    const ids = state.selectedClipIds;
+    if (ids.length === 0 || !state.project) return;
+    const selected = state.timelineClips
+      .filter((clip) => ids.includes(clip.id))
+      .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
+    if (selected.length === 0) return;
+    const origin = selected[0].startTime;
+    const items: ClipClipboardItem[] = [];
+    for (const clip of selected) {
+      const kind = isMainLane(state.timelineLanes, clip.laneId)
+        ? "main"
+        : isAudioLane(state.timelineLanes, clip.laneId)
+          ? "audio"
+          : "overlay";
+      if (kind === "main") {
+        const scene = state.project.scenes.find((s) => s.id === clip.sceneId);
+        if (!scene) continue;
+        items.push({
+          kind,
+          name: clip.name,
+          duration: clip.duration,
+          offsetStart: clip.startTime - origin,
+          scene: JSON.parse(JSON.stringify(scene)) as MotionScene,
+        });
+      } else if (kind === "audio") {
+        const track = state.project.timeline.audioTracks.find(
+          (t) => t.id === clip.id,
+        );
+        items.push({
+          kind,
+          name: clip.name,
+          duration: clip.duration,
+          offsetStart: clip.startTime - origin,
+          audioAssetId: track?.assetId ?? clip.name,
+        });
+      } else {
+        items.push({
+          kind,
+          name: clip.name,
+          duration: clip.duration,
+          offsetStart: clip.startTime - origin,
+        });
+      }
+    }
+    set({ timelineClipboard: items });
+  },
+
+  cutSelectedClips: () => {
+    get().copySelectedClips();
+    get().deleteSelectedClips();
+  },
+
+  deleteSelectedClips: () => {
+    set((state) => {
+      const project = state.project;
+      const ids = new Set(state.selectedClipIds);
+      if (!project || ids.size === 0) return state;
+
+      const removed = state.timelineClips.filter((clip) => ids.has(clip.id));
+      const remaining = state.timelineClips.filter((clip) => !ids.has(clip.id));
+      const removedMainSceneIds = new Set(
+        removed
+          .filter((clip) => isMainLane(state.timelineLanes, clip.laneId))
+          .map((clip) => clip.sceneId),
+      );
+      const removedAudioIds = new Set(
+        removed
+          .filter((clip) => isAudioLane(state.timelineLanes, clip.laneId))
+          .map((clip) => clip.id),
+      );
+
+      let nextProject: MotionProject = {
+        ...project,
+        scenes: project.scenes.filter(
+          (scene) => !removedMainSceneIds.has(scene.id),
+        ),
+        timeline: {
+          ...project.timeline,
+          audioTracks: project.timeline.audioTracks.filter(
+            (track) => !removedAudioIds.has(track.id),
+          ),
+        },
+      };
+      const lanes = pruneEmptyLanes(state.timelineLanes, remaining);
+      nextProject = rebuildMainProject(nextProject, remaining, lanes);
+      return {
+        project: nextProject,
+        timelineLanes: lanes,
+        timelineClips: remaining,
+        overlayScenes: overlayScenesFromClips(remaining, lanes),
+        ...selectionStateForClip(undefined, lanes, nextProject),
+      };
+    });
+  },
+
+  pasteClips: (atTime = 0) => {
+    const clipboard = get().timelineClipboard;
+    if (!clipboard || clipboard.length === 0) return;
+    const pasteAt = Math.max(0, atTime);
+    const newIds: string[] = [];
+
+    set((state) => {
+      const project = state.project;
+      if (!project || !clipboard.length) return state;
+      let lanes = state.timelineLanes.length
+        ? state.timelineLanes
+        : [ensureMainLane([])];
+      const mainLane = ensureMainLane(lanes);
+      if (!lanes.some((lane) => lane.id === mainLane.id)) {
+        lanes = [...lanes, mainLane];
+      }
+      let clips = [...state.timelineClips];
+      let nextProject = project;
+      let scenes = [...project.scenes];
+      let audioTracks = [...project.timeline.audioTracks];
+
+      for (const item of clipboard) {
+        const startTime = pasteAt + item.offsetStart;
+        if (item.kind === "main" && item.scene) {
+          const scene = cloneSceneWithNewIds({
+            ...item.scene,
+            duration: item.duration,
+            name: item.name,
+          });
+          scenes = [...scenes, scene];
+          const clip: TimelineClip = {
+            id: scene.id,
+            sceneId: scene.id,
+            laneId: mainLane.id,
+            startTime,
+            duration: item.duration,
+            name: item.name,
+          };
+          clips = [...clips, clip];
+          newIds.push(clip.id);
+        } else if (item.kind === "audio") {
+          const placement = resolveAudioPlacement(
+            lanes,
+            clips,
+            startTime,
+            item.duration,
+            null,
+            false,
+            null,
+          );
+          lanes = placement.lanes;
+          const trackId = uid("audio");
+          audioTracks = [
+            ...audioTracks,
+            {
+              id: trackId,
+              role: "bgm" as const,
+              assetId: item.audioAssetId ?? item.name,
+              start: startTime,
+              trimStart: 0,
+              volume: 1,
+              loop: false,
+              fadeIn: 0,
+              fadeOut: 0,
+            },
+          ];
+          const clip: TimelineClip = {
+            id: trackId,
+            sceneId: trackId,
+            laneId: placement.laneId,
+            startTime,
+            duration: item.duration,
+            name: item.name,
+          };
+          clips = [...clips, clip];
+          newIds.push(clip.id);
+        } else {
+          const placement = resolveOverlayPlacement(
+            lanes,
+            clips,
+            startTime,
+            item.duration,
+            null,
+            false,
+            null,
+          );
+          lanes = placement.lanes;
+          const id = uid("overlay");
+          const clip: TimelineClip = {
+            id,
+            sceneId: id,
+            laneId: placement.laneId,
+            startTime,
+            duration: item.duration,
+            name: item.name,
+          };
+          clips = [...clips, clip];
+          newIds.push(clip.id);
+        }
+      }
+
+      nextProject = {
+        ...nextProject,
+        scenes,
+        timeline: { ...nextProject.timeline, audioTracks },
+      };
+      lanes = pruneEmptyLanes(lanes, clips);
+      nextProject = rebuildMainProject(nextProject, clips, lanes);
+      const primary = clips.find((c) => c.id === newIds[newIds.length - 1]);
+      return {
+        project: nextProject,
+        timelineLanes: lanes,
+        timelineClips: clips,
+        overlayScenes: overlayScenesFromClips(clips, lanes),
+        selectedClipIds: newIds,
+        selectedClipId: primary?.id ?? null,
+        selectedSceneId:
+          primary && isMainLane(lanes, primary.laneId) ? primary.sceneId : null,
+        selectedOverlayId:
+          primary &&
+          !isMainLane(lanes, primary.laneId) &&
+          !isAudioLane(lanes, primary.laneId)
+            ? primary.id
+            : null,
+        selectedNodeId: null,
+      };
+    });
+  },
+
+  duplicateSelectedClips: () => {
+    set((s) => {
+      const project = s.project;
+      if (!project) return s;
+      let lanes = s.timelineLanes;
+      let clips = [...s.timelineClips];
+      let scenes = [...project.scenes];
+      let audioTracks = [...project.timeline.audioTracks];
+      const newIds: string[] = [];
+      const toDup = clips
+        .filter((c) => s.selectedClipIds.includes(c.id))
+        .sort((a, b) => a.startTime - b.startTime);
+
+      if (toDup.length === 0) return s;
+
+      for (const clip of toDup) {
+        const startTime = clip.startTime + clip.duration;
+        if (isMainLane(lanes, clip.laneId)) {
+          const scene = scenes.find((sc) => sc.id === clip.sceneId);
+          if (!scene) continue;
+          const cloned = cloneSceneWithNewIds(scene);
+          scenes = [...scenes, cloned];
+          const next: TimelineClip = {
+            id: cloned.id,
+            sceneId: cloned.id,
+            laneId: clip.laneId,
+            startTime,
+            duration: clip.duration,
+            name: clip.name,
+          };
+          clips = [...clips, next];
+          newIds.push(next.id);
+        } else if (isAudioLane(lanes, clip.laneId)) {
+          const track = audioTracks.find((t) => t.id === clip.id);
+          const placement = resolveAudioPlacement(
+            lanes,
+            clips,
+            startTime,
+            clip.duration,
+            clip.laneId,
+            false,
+            null,
+          );
+          lanes = placement.lanes;
+          const trackId = uid("audio");
+          audioTracks = [
+            ...audioTracks,
+            {
+              id: trackId,
+              role: "bgm" as const,
+              assetId: track?.assetId ?? clip.name,
+              start: startTime,
+              trimStart: 0,
+              volume: 1,
+              loop: false,
+              fadeIn: 0,
+              fadeOut: 0,
+            },
+          ];
+          const next: TimelineClip = {
+            id: trackId,
+            sceneId: trackId,
+            laneId: placement.laneId,
+            startTime,
+            duration: clip.duration,
+            name: clip.name,
+          };
+          clips = [...clips, next];
+          newIds.push(next.id);
+        } else {
+          const placement = resolveOverlayPlacement(
+            lanes,
+            clips,
+            startTime,
+            clip.duration,
+            clip.laneId,
+            false,
+            null,
+          );
+          lanes = placement.lanes;
+          const id = uid("overlay");
+          const next: TimelineClip = {
+            id,
+            sceneId: id,
+            laneId: placement.laneId,
+            startTime,
+            duration: clip.duration,
+            name: clip.name,
+          };
+          clips = [...clips, next];
+          newIds.push(next.id);
+        }
+      }
+
+      let nextProject: MotionProject = {
+        ...project,
+        scenes,
+        timeline: { ...project.timeline, audioTracks },
+      };
+      lanes = pruneEmptyLanes(lanes, clips);
+      nextProject = rebuildMainProject(nextProject, clips, lanes);
+      const primary = clips.find((c) => c.id === newIds[newIds.length - 1]);
+      return {
+        project: nextProject,
+        timelineLanes: lanes,
+        timelineClips: clips,
+        overlayScenes: overlayScenesFromClips(clips, lanes),
+        selectedClipIds: newIds,
+        selectedClipId: primary?.id ?? null,
+        selectedSceneId:
+          primary && isMainLane(lanes, primary.laneId) ? primary.sceneId : null,
+        selectedOverlayId:
+          primary &&
+          !isMainLane(lanes, primary.laneId) &&
+          !isAudioLane(lanes, primary.laneId)
+            ? primary.id
+            : null,
+        selectedNodeId: null,
+      };
+    });
+  },
+
+  splitSelectedClipsAt: (time) => {
+    set((state) => {
+      const project = state.project;
+      if (!project) return state;
+      const t = Math.max(0, time);
+      const selected = state.timelineClips.filter((clip) =>
+        state.selectedClipIds.includes(clip.id),
+      );
+      const splittable = selected.filter((clip) => playheadSplitsClip(clip, t));
+      if (splittable.length === 0) return state;
+
+      let lanes = state.timelineLanes;
+      let clips = [...state.timelineClips];
+      let scenes = [...project.scenes];
+      let audioTracks = [...project.timeline.audioTracks];
+      const newSelection: string[] = [];
+
+      for (const clip of splittable) {
+        const leftDur = t - clip.startTime;
+        const rightDur = clip.startTime + clip.duration - t;
+        if (leftDur < MIN_CLIP_SLICE_SEC || rightDur < MIN_CLIP_SLICE_SEC) {
+          continue;
+        }
+
+        if (isMainLane(lanes, clip.laneId)) {
+          scenes = scenes.map((scene) =>
+            scene.id === clip.sceneId ? { ...scene, duration: leftDur } : scene,
+          );
+          const leftScene = scenes.find((s) => s.id === clip.sceneId);
+          if (!leftScene) continue;
+          const rightScene = cloneSceneWithNewIds({
+            ...leftScene,
+            duration: rightDur,
+          });
+          scenes = [...scenes, rightScene];
+          clips = clips.map((c) =>
+            c.id === clip.id ? { ...c, duration: leftDur } : c,
+          );
+          const rightClip: TimelineClip = {
+            id: rightScene.id,
+            sceneId: rightScene.id,
+            laneId: clip.laneId,
+            startTime: t,
+            duration: rightDur,
+            name: clip.name,
+          };
+          clips = [...clips, rightClip];
+          newSelection.push(clip.id, rightClip.id);
+        } else if (isAudioLane(lanes, clip.laneId)) {
+          const track = audioTracks.find((tr) => tr.id === clip.id);
+          clips = clips.map((c) =>
+            c.id === clip.id ? { ...c, duration: leftDur } : c,
+          );
+          const trackId = uid("audio");
+          audioTracks = [
+            ...audioTracks.map((tr) =>
+              tr.id === clip.id ? { ...tr, start: clip.startTime } : tr,
+            ),
+            {
+              id: trackId,
+              role: "bgm" as const,
+              assetId: track?.assetId ?? clip.name,
+              start: t,
+              trimStart: (track?.trimStart ?? 0) + leftDur,
+              volume: track?.volume ?? 1,
+              loop: false,
+              fadeIn: 0,
+              fadeOut: 0,
+            },
+          ];
+          const rightClip: TimelineClip = {
+            id: trackId,
+            sceneId: trackId,
+            laneId: clip.laneId,
+            startTime: t,
+            duration: rightDur,
+            name: clip.name,
+          };
+          clips = [...clips, rightClip];
+          newSelection.push(clip.id, rightClip.id);
+        } else {
+          clips = clips.map((c) =>
+            c.id === clip.id ? { ...c, duration: leftDur } : c,
+          );
+          const id = uid("overlay");
+          const rightClip: TimelineClip = {
+            id,
+            sceneId: id,
+            laneId: clip.laneId,
+            startTime: t,
+            duration: rightDur,
+            name: clip.name,
+          };
+          clips = [...clips, rightClip];
+          newSelection.push(clip.id, rightClip.id);
+        }
+      }
+
+      if (newSelection.length === 0) return state;
+
+      let nextProject: MotionProject = {
+        ...project,
+        scenes,
+        timeline: { ...project.timeline, audioTracks },
+      };
+      lanes = pruneEmptyLanes(lanes, clips);
+      nextProject = rebuildMainProject(nextProject, clips, lanes);
+      const primaryId = newSelection[newSelection.length - 1];
+      const primary = clips.find((c) => c.id === primaryId);
+      return {
+        project: nextProject,
+        timelineLanes: lanes,
+        timelineClips: clips,
+        overlayScenes: overlayScenesFromClips(clips, lanes),
+        selectedClipIds: newSelection,
+        selectedClipId: primaryId,
+        selectedSceneId:
+          primary && isMainLane(lanes, primary.laneId) ? primary.sceneId : null,
+        selectedOverlayId:
+          primary &&
+          !isMainLane(lanes, primary.laneId) &&
+          !isAudioLane(lanes, primary.laneId)
+            ? primary.id
+            : null,
+        selectedNodeId: null,
+      };
+    });
   },
 
   /** 3.22 Cập nhật trạng thái xuất file (Exporting) */
