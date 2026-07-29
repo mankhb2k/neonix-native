@@ -6,25 +6,25 @@ import {
   MIN_CLIP_SLICE_SEC,
   playheadSplitsClip,
 } from "@/lib/editor/clip-clipboard";
-import { TIMELINE_ZOOM_ON_PROJECT_LOAD } from "@/lib/editor/editor-preferences";
 import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import {
   selectionClips,
   selectionNone,
-  selectionNode,
   selectedClipIdsFrom,
-  selectedSceneIdFrom,
 } from "@/lib/editor/model/editor-selection";
 import {
   resolveVisualPlacement,
   type VisualPlacementIntent,
 } from "@/lib/editor/operations/clip-move";
 import {
-  applyLaneFlagPatch,
   isLaneLocked,
   selectionHasLockedLane,
 } from "@/lib/editor/operations/lane-flags";
-import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { createDocumentActions } from "@/lib/editor/store/actions/document-actions";
+import { createLaneActions } from "@/lib/editor/store/actions/lane-actions";
+import { createProjectLifecycleActions } from "@/lib/editor/store/actions/project-lifecycle-actions";
+import { createSelectionActions } from "@/lib/editor/store/actions/selection-actions";
+import { createUiActions } from "@/lib/editor/store/actions/ui-actions";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
 import {
   applyVisualPlacement,
@@ -33,26 +33,19 @@ import {
   resolveOverlayPlacement,
 } from "@/lib/editor/store/internal/placement-adapter";
 import { resolveCollisionsAfterResize } from "@/lib/editor/store/internal/resize-collision";
-
 import {
   cloneSceneWithNewIds,
-  mapNode,
   sceneFromFrameDraft,
   uid,
-  updateVariable,
 } from "@/lib/editor/store/internal/scene-utils";
 import { rebuildMainProject } from "@/lib/editor/store/internal/timeline-project-sync";
 import {
-  clipsContentEndSeconds,
-  ensureAudioClipsFromTracks,
   ensureMainLane,
   isAudioLane,
   isMainLane,
   isOverlayLane,
-  migrateLanesAndClips,
   pruneEmptyLanes,
   resolveMainStartTime,
-  reorderOverlayLane,
   type TimelineClip,
 } from "@/lib/editor/timeline-clips";
 import {
@@ -89,121 +82,11 @@ function selectionStateForClip(clip: TimelineClip | undefined) {
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   ...createInitialEditorState(),
-
-  setActiveDragItem: (item) => set({ activeDragItem: item }),
-  setIsOverTimeline: (over) => set({ isOverTimeline: over }),
-  setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),
-
-  /** 3.1 Nạp dự án vào Editor Store */
-  loadProject: (input, overlayScenes = [], storedClips = [], storedLanes = []) => {
-    const project = parseMotionProject(input);
-    const { lanes: migratedLanes, clips: migratedClips } = migrateLanesAndClips(
-      project,
-      overlayScenes,
-      storedClips,
-      storedLanes,
-    );
-    const { lanes: withAudioLanes, clips: withAudioClips } =
-      ensureAudioClipsFromTracks(project, migratedLanes, migratedClips);
-    const lanes = pruneEmptyLanes(withAudioLanes, withAudioClips);
-    const clips = withAudioClips;
-    const mainId = lanes.find((lane) => lane.kind === "visual" && lane.role === "base")?.id;
-    const firstClip =
-      clips.find((clip) => clip.laneId === mainId) ?? clips[0];
-
-    // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
-    set({
-      project,
-      timelineLanes: lanes,
-      timelineClips: clips,
-      timelineZoom: TIMELINE_ZOOM_ON_PROJECT_LOAD,
-      selection: firstClip ? selectionClips([firstClip.id]) : selectionNone(),
-      activeDragItem: null,
-      isOverTimeline: false,
-      isExporting: false,
-      // Clipboard: giữ xuyên project nếu payload self-contained; hiện reset an toàn.
-      timelineClipboard: null,
-    });
-
-    // Playback clock reset atomic — kể cả reload cùng project id (PLAY-01).
-    usePlaybackClock.getState().reset({
-      duration: clipsContentEndSeconds(clips),
-      currentTime: 0,
-    });
-  },
-
-  selectClip: (clipId) => {
-    get().setSelectedClipIds([clipId]);
-  },
-
-  setSelectedClipIds: (clipIds) => {
-    const unique = [...new Set(clipIds.filter(Boolean))];
-    set({ selection: selectionClips(unique) });
-  },
-
-  clearTimelineSelection: () => {
-    set({ selection: selectionNone() });
-  },
-
-  /** 3.3 Chọn Node (thành phần đồ họa) đang hoạt động */
-  selectNode: (nodeId) => {
-    set((state) => {
-      if (!nodeId) {
-        const current = state.selection;
-        if (current.kind !== "node") return state;
-        const clip = state.timelineClips.find(
-          (c) =>
-            c.kind === "scene" &&
-            c.sceneId === current.sceneId &&
-            isMainLane(state.timelineLanes, c.laneId),
-        );
-        return {
-          selection: clip ? selectionClips([clip.id]) : selectionNone(),
-        };
-      }
-      const sceneId =
-        selectedSceneIdFrom(
-          state.selection,
-          state.timelineClips,
-          state.timelineLanes,
-        ) ?? state.project?.scenes[0]?.id;
-      if (!sceneId) return state;
-      return { selection: selectionNode(sceneId, nodeId) };
-    });
-  },
-
-  /** 3.4 Thay đổi Tab Sidebar đang hiển thị */
-  setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
-
-  renameLane: (laneId, name) => {
-    set((state) => ({
-      timelineLanes: state.timelineLanes.map((lane) =>
-        lane.id === laneId ? { ...lane, name } : lane),
-    }));
-  },
-
-  updateLaneFlags: (laneId, patch) => {
-    set((state) => ({
-      timelineLanes: applyLaneFlagPatch(state.timelineLanes, laneId, patch),
-    }));
-  },
-
-  reorderLane: (laneId, newOrder) => {
-    set((state) => ({
-      timelineLanes: reorderOverlayLane(state.timelineLanes, laneId, newOrder),
-    }));
-  },
-
-  /** 3.6 Cập nhật thông tin thương hiệu dự án */
-  updateBrand: (patch) => {
-    const project = get().project;
-    if (!project) return;
-    const brand = { ...project.metadata.brand, ...patch };
-    let variables = project.variables;
-    if (patch.name !== undefined) variables = updateVariable({ ...project, variables }, "project.brandName", patch.name);
-    if (patch.primaryColor !== undefined) variables = updateVariable({ ...project, variables }, "project.primaryColor", patch.primaryColor);
-    set({ project: { ...project, metadata: { ...project.metadata, name: patch.name ?? project.metadata.name, brand }, variables } });
-  },
+  ...createUiActions(set),
+  ...createSelectionActions(set, get),
+  ...createLaneActions(set),
+  ...createDocumentActions(set, get),
+  ...createProjectLifecycleActions(set),
 
   /** 3.7 Cập nhật thời lượng của 1 Scene */
   updateSceneDuration: (sceneId, duration) => {
@@ -240,69 +123,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  /** 3.8 Cập nhật văn bản của Node */
-  updateNodeText: (sceneId, nodeId, text) => {
-    const project = get().project;
-    if (!project) return;
-    set({ project: mapNode(project, sceneId, nodeId, (node) => node.type === "text"
-      ? { ...node, payload: { ...node.payload, text } }
-      : node) });
-  },
 
-  /** 3.9 Cập nhật tọa độ X, Y của Node */
-  updateNodePosition: (sceneId, nodeId, position) => {
-    const project = get().project;
-    if (!project) return;
-    set({ project: mapNode(project, sceneId, nodeId, (node) => ({
-      ...node,
-      transform: { ...node.transform, x: position.x ?? node.transform.x, y: position.y ?? node.transform.y },
-    })) });
-  },
-
-  /** 3.10 Cập nhật hiệu ứng hoạt họa (Animation) cho Node */
-  updateNodeAnimation: (sceneId, nodeId, patch) => {
-    const project = get().project;
-    if (!project) return;
-    set({ project: {
-      ...project,
-      scenes: project.scenes.map((scene) => {
-        if (scene.id !== sceneId) return scene;
-        const existing = scene.clips.find((clip) => clip.targetId === nodeId && clip.source.kind === "preset");
-        if (!existing) {
-          return {
-            ...scene,
-            clips: [...scene.clips, {
-              id: uid("clip"),
-              targetId: nodeId,
-              schedule: { kind: "absolute", at: Math.max(0, patch.at ?? 0) },
-              duration: Math.max(0.1, patch.duration ?? 0.6),
-              playback: { iterations: 1, direction: "normal", rate: 1 },
-              source: { kind: "preset", presetId: patch.presetId ?? "fade-in" },
-            }],
-          };
-        }
-        return {
-          ...scene,
-          clips: scene.clips.map((clip) => clip.id !== existing.id ? clip : {
-            ...clip,
-            schedule: patch.at !== undefined ? { kind: "absolute" as const, at: Math.max(0, patch.at) } : clip.schedule,
-            duration: patch.duration !== undefined ? Math.max(0.1, patch.duration) : clip.duration,
-            source: clip.source.kind === "preset" && patch.presetId !== undefined
-              ? { ...clip.source, presetId: patch.presetId }
-              : clip.source,
-          }),
-        };
-      }),
-    } });
-  },
-
-  /** 3.11 Thay đổi tỷ lệ khung hình video (16:9, 9:16, 1:1, ...) */
-  setAspectRatio: (aspectRatio) => {
-    const project = get().project;
-    if (project) set({ project: { ...project, metadata: { ...project.metadata, aspectRatio } } });
-  },
-
-  addClipFromDraft: (draft, target) => {
+    addClipFromDraft: (draft, target) => {
     set((state) => {
       const project = state.project;
       if (!project) return state;
