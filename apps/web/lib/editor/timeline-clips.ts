@@ -554,30 +554,54 @@ export function createAudioLane(order: number, name?: string): TimelineLane {
   };
 }
 
-/** Một pass prune — bỏ overlay/audio trống, giữ base, renumber order. */
-export function pruneEmptyLanes(
-  lanes: TimelineLane[],
-  clips: TimelineClip[],
-): TimelineLane[] {
-  const used = new Set(clips.map((clip) => clip.laneId));
+/**
+ * Renumber overlay/audio orders; keep every lane including empty ones.
+ * Base lane is always retained (created if missing).
+ */
+export function normalizeLaneOrders(lanes: TimelineLane[]): TimelineLane[] {
   const main =
     lanes.find((lane) => lane.kind === "visual" && lane.role === "base") ??
     ensureMainLane([]);
   const overlays = lanes
-    .filter(
-      (lane) =>
-        lane.kind === "visual" && lane.role === "overlay" && used.has(lane.id),
-    )
+    .filter((lane) => lane.kind === "visual" && lane.role === "overlay")
     .sort((a, b) => a.order - b.order)
     .map((lane, index) => ({ ...lane, order: index }));
   const audios = lanes
-    .filter((lane) => lane.kind === "audio" && used.has(lane.id))
+    .filter((lane) => lane.kind === "audio")
     .sort((a, b) => a.order - b.order)
     .map((lane, index) => ({ ...lane, order: index }));
   return [main, ...overlays, ...audios];
 }
 
-/** @deprecated Prefer pruneEmptyLanes. */
+/**
+ * Explicit lane delete — never auto-prunes empty lanes.
+ * Blocks base and any lane that still has clips.
+ */
+export function removeLaneExplicitly(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+  laneId: string,
+): TimelineLane[] | "blocked" {
+  const lane = lanes.find((entry) => entry.id === laneId);
+  if (!lane) return "blocked";
+  if (lane.kind === "visual" && lane.role === "base") return "blocked";
+  if (clips.some((clip) => clip.laneId === laneId)) return "blocked";
+  return normalizeLaneOrders(lanes.filter((entry) => entry.id !== laneId));
+}
+
+/**
+ * @deprecated Empty lanes are persistent. Use {@link normalizeLaneOrders} instead.
+ * Kept as a thin wrapper that no longer drops unused lanes.
+ */
+export function pruneEmptyLanes(
+  lanes: TimelineLane[],
+  clips: TimelineClip[],
+): TimelineLane[] {
+  void clips;
+  return normalizeLaneOrders(lanes);
+}
+
+/** @deprecated Prefer normalizeLaneOrders. */
 export function pruneEmptyOverlayLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
@@ -585,7 +609,7 @@ export function pruneEmptyOverlayLanes(
   return pruneEmptyLanes(lanes, clips);
 }
 
-/** @deprecated Prefer pruneEmptyLanes. */
+/** @deprecated Prefer normalizeLaneOrders. */
 export function pruneEmptyAudioLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
