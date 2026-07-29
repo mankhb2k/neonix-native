@@ -8,7 +8,7 @@ import {
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
-  pruneEmptyLanes,
+  normalizeLaneOrders,
 } from "@/lib/editor/timeline-clips";
 import { parseMotionProject } from "@motionvideo/motion-schema";
 import type {
@@ -38,7 +38,7 @@ export function createProjectLifecycleActions(
         );
       const { lanes: withAudioLanes, clips: withAudioClips } =
         ensureAudioClipsFromTracks(project, migratedLanes, migratedClips);
-      const lanes = pruneEmptyLanes(withAudioLanes, withAudioClips);
+      const lanes = normalizeLaneOrders(withAudioLanes);
       const clips = withAudioClips;
       const mainId = lanes.find(
         (lane) => lane.kind === "visual" && lane.role === "base",

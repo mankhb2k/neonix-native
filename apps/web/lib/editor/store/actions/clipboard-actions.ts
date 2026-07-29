@@ -21,7 +21,7 @@ import {
   ensureMainLane,
   isAudioLane,
   isMainLane,
-  pruneEmptyLanes,
+  normalizeLaneOrders,
   resolveMainStartTime,
   type TimelineClip,
 } from "@/lib/editor/timeline-clips";
@@ -279,7 +279,7 @@ export function createClipboardActions(
           scenes,
           timeline: { ...nextProject.timeline, audioTracks },
         };
-        lanes = pruneEmptyLanes(lanes, clips);
+        lanes = normalizeLaneOrders(lanes);
         nextProject = rebuildMainProject(nextProject, clips, lanes);
         return {
           project: nextProject,
@@ -420,7 +420,7 @@ export function createClipboardActions(
           scenes,
           timeline: { ...project.timeline, audioTracks },
         };
-        lanes = pruneEmptyLanes(lanes, clips);
+        lanes = normalizeLaneOrders(lanes);
         nextProject = rebuildMainProject(nextProject, clips, lanes);
         return {
           project: nextProject,

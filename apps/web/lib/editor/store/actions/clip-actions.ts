@@ -33,7 +33,7 @@ import {
   isAudioLane,
   isMainLane,
   isOverlayLane,
-  pruneEmptyLanes,
+  normalizeLaneOrders,
   resolveMainStartTime,
   type TimelineClip,
 } from "@/lib/editor/timeline-clips";
@@ -135,7 +135,7 @@ export function createClipActions(
             timelineClips,
             lanes,
           );
-          const nextLanes = pruneEmptyLanes(lanes, timelineClips);
+          const nextLanes = normalizeLaneOrders(lanes);
           return {
             project: nextProject,
             timelineLanes: nextLanes,
@@ -189,7 +189,7 @@ export function createClipActions(
           timelineClips,
           lanes,
         );
-        const nextLanes = pruneEmptyLanes(lanes, timelineClips);
+        const nextLanes = normalizeLaneOrders(lanes);
         return {
           project: nextProject,
           timelineLanes: nextLanes,
@@ -254,7 +254,7 @@ export function createClipActions(
             startTime: placement.startTime,
           };
           clips.push(moved);
-          lanes = pruneEmptyLanes(lanes, clips);
+          lanes = normalizeLaneOrders(lanes);
           nextProject = {
             ...project,
             timeline: {
@@ -354,7 +354,7 @@ export function createClipActions(
         }
 
         clips.push(moved);
-        lanes = pruneEmptyLanes(lanes, clips);
+        lanes = normalizeLaneOrders(lanes);
         nextProject = rebuildMainProject(nextProject, clips, lanes);
         return {
           project: nextProject,
@@ -442,7 +442,7 @@ export function createClipActions(
           name: item.title,
         };
         const timelineClips = [...state.timelineClips, clip];
-        const nextLanes = pruneEmptyLanes(lanes, timelineClips);
+        const nextLanes = normalizeLaneOrders(lanes);
 
         return {
           project: {
@@ -514,7 +514,7 @@ export function createClipActions(
             ),
           },
         };
-        const lanes = pruneEmptyLanes(state.timelineLanes, remaining);
+        const lanes = normalizeLaneOrders(state.timelineLanes);
         nextProject = rebuildMainProject(nextProject, remaining, lanes);
         return {
           project: nextProject,
@@ -660,7 +660,7 @@ export function createClipActions(
           scenes,
           timeline: { ...project.timeline, audioTracks },
         };
-        lanes = pruneEmptyLanes(lanes, clips);
+        lanes = normalizeLaneOrders(lanes);
         nextProject = rebuildMainProject(nextProject, clips, lanes);
         return {
           project: nextProject,

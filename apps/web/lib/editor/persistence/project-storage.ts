@@ -4,7 +4,7 @@ import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 import {
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
-  pruneEmptyLanes,
+  normalizeLaneOrders,
   type TimelineClip,
   type TimelineLane,
 } from "@/lib/editor/timeline-clips";
@@ -158,7 +158,7 @@ export function loadEditorProjectSnapshot(id: string): EditorProjectSnapshot | n
     migratedLanes,
     migratedClips,
   );
-  const lanes = pruneEmptyLanes(withAudioLanes, withAudioClips);
+  const lanes = normalizeLaneOrders(withAudioLanes);
   const clips = withAudioClips;
 
   return {
