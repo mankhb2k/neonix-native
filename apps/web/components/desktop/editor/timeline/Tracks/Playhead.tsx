@@ -256,7 +256,6 @@ export function Playhead({
         aria-label="Playhead"
         aria-valuemin={0}
         aria-valuemax={duration}
-        aria-valuenow={0}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none"
