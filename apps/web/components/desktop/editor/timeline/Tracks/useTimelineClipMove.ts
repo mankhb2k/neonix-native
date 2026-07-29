@@ -141,6 +141,15 @@ export function useTimelineClipMove({
     [scrollContainerRef, workspaceRef],
   );
 
+  /** Clear store/global drag chrome without touching React local setters (safe on unmount). */
+  function cleanupExternalDragState() {
+    sessionRef.current = null;
+    useEditorStore.getState().setIsOverTimeline(false);
+    useEditorStore.getState().setActiveDragItem(null);
+    clearDragCursor();
+    unbindDragGhostElementIf(insertGhostRef.current);
+  }
+
   function resetMoveUi() {
     dropTargetRef.current = {
       isInsert: false,
@@ -150,7 +159,6 @@ export function useTimelineClipMove({
       overMainBody: false,
     };
     ghostLeftRef.current = 0;
-    sessionRef.current = null;
     invalidateLaneRectCache(laneCacheRef.current);
     setMovingClipId(null);
     setIsOverlayInsertLine(false);
@@ -158,9 +166,7 @@ export function useTimelineClipMove({
     setIsAudioInsertLine(false);
     setTargetAudioLaneId(null);
     setDragGhostState(null);
-    useEditorStore.getState().setIsOverTimeline(false);
-    useEditorStore.getState().setActiveDragItem(null);
-    clearDragCursor();
+    cleanupExternalDragState();
   }
 
   function clientXToGhostLeft(clientX: number, grabOffsetX: number): number {
@@ -423,6 +429,9 @@ export function useTimelineClipMove({
       window.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("keydown", onKeyDown);
       if (moveRafRef.current != null) cancelAnimationFrame(moveRafRef.current);
+      moveRafRef.current = null;
+      pendingPointerRef.current = null;
+      cleanupExternalDragState();
     };
   }, []);
 

@@ -1,6 +1,13 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type DragEvent, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type RefObject,
+} from "react";
 import {
   AUDIO_LIBRARY_MIME,
   normalizeAudioDurationSec,
@@ -151,6 +158,20 @@ export function useTracksDrag({
     setIsAudioInsertLine(false);
     setTargetAudioLaneId(null);
   }
+
+  /** Clear store/global drag chrome without local React setters (safe on unmount). */
+  function cleanupExternalDragState() {
+    useEditorStore.getState().setIsOverTimeline(false);
+    useEditorStore.getState().setActiveDragItem(null);
+    clearDragCursor();
+    unbindDragGhostElementIf(insertGhostRef.current);
+  }
+
+  useEffect(() => {
+    return () => {
+      cleanupExternalDragState();
+    };
+  }, []);
 
   function handleDragEnter(event: DragEvent) {
     const dragItem = useEditorStore.getState().activeDragItem;
