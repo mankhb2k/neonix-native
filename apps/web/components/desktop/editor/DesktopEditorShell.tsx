@@ -3,9 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   saveProject,
-  loadOverlayScenes,
-  loadTimelineClips,
-  loadTimelineLanes,
+  type EditorProjectSnapshot,
 } from "@/lib/editor/project-storage";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { Sidebar } from "./sidebar/Sidebar";
@@ -16,15 +14,13 @@ import { PanelHeader } from "@/components/ui";
 import { Header } from "./header/Header";
 import { GlobalDragPreview } from "./GlobalDragPreview";
 
-import type { MotionProject } from "@motionvideo/motion-schema";
-
 type Props = {
-  initialProject: MotionProject;
+  initialSnapshot: EditorProjectSnapshot;
 };
 
 const AUTOSAVE_DEBOUNCE_MS = 400;
 
-export function DesktopEditorShell({ initialProject }: Props) {
+export function DesktopEditorShell({ initialSnapshot }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
   const overlayScenes = useEditorStore((s) => s.overlayScenes);
@@ -41,18 +37,18 @@ export function DesktopEditorShell({ initialProject }: Props) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadedProjectIdRef = useRef<string | null>(null);
 
-  // Load once per project id — re-running would wipe in-memory clip moves.
+  // Load once per project id từ snapshot đã đọc sẵn — không parse storage lại.
   useEffect(() => {
-    const id = initialProject.metadata.id;
+    const id = initialSnapshot.project.metadata.id;
     if (loadedProjectIdRef.current === id) return;
     loadedProjectIdRef.current = id;
     loadProject(
-      initialProject,
-      loadOverlayScenes(id),
-      loadTimelineClips(id),
-      loadTimelineLanes(id),
+      initialSnapshot.project,
+      initialSnapshot.overlayScenes,
+      initialSnapshot.timelineClips,
+      initialSnapshot.timelineLanes,
     );
-  }, [initialProject, loadProject]);
+  }, [initialSnapshot, loadProject]);
 
   // Single autosave owner (debounced) — page.tsx must not also save.
   useEffect(() => {

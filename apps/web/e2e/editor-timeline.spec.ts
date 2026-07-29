@@ -59,12 +59,12 @@ test.describe("editor timeline persistence flow", () => {
 
     await page.addInitScript(
       ({ id, stored }) => {
-        window.localStorage.setItem("motionvideo.emptyTimeline.v1", "1");
         window.localStorage.setItem("motionvideo.projects", JSON.stringify({ [id]: stored }));
       },
       {
         id: projectId,
         stored: {
+          storageVersion: 1,
           savedAt: new Date().toISOString(),
           project,
           timelineClips: [

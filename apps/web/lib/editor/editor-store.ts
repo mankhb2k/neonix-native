@@ -24,6 +24,7 @@ import {
 import {
   createAudioLane,
   createOverlayLane,
+  clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   ensureMainLane,
   findFreeAudioLane,
@@ -39,6 +40,7 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@/lib/editor/timeline-clips";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 
 export type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
 export type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
@@ -498,6 +500,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const firstScene = firstIsMain
       ? project.scenes.find((scene) => scene.id === firstClip!.sceneId)
       : undefined;
+
+    // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
     set({
       project,
       timelineLanes: lanes,
@@ -510,6 +514,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         firstIsMain || firstIsAudio || !firstClip ? null : firstClip.id,
       selectedNodeId: firstEditableNode(firstScene)?.id ?? null,
       overlayScenes: overlayScenesFromClips(clips, lanes),
+      activeDragItem: null,
+      isOverTimeline: false,
+      isExporting: false,
+      // Clipboard: giữ xuyên project nếu payload self-contained; hiện reset an toàn.
+      timelineClipboard: null,
+    });
+
+    // Playback clock reset atomic — kể cả reload cùng project id (PLAY-01).
+    usePlaybackClock.getState().reset({
+      duration: clipsContentEndSeconds(clips),
+      currentTime: 0,
     });
   },
 

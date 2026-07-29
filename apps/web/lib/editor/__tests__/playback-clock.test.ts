@@ -26,6 +26,19 @@ describe("playback clock store", () => {
     expect(usePlaybackClock.getState().mode).toBe("playing");
   });
 
+  it("reset atomically sets duration, time and idle mode", () => {
+    usePlaybackClock.getState().setDuration(10);
+    usePlaybackClock.getState().seek(5);
+    usePlaybackClock.getState().play();
+    usePlaybackClock.getState().reset({ duration: 8, currentTime: 0 });
+    expect(usePlaybackClock.getState()).toMatchObject({
+      duration: 8,
+      currentTime: 0,
+      mode: "idle",
+      playbackRate: 1,
+    });
+  });
+
   it("beginScrub then endScrub returns to idle", () => {
     usePlaybackClock.getState().setDuration(10);
     usePlaybackClock.getState().beginScrub();

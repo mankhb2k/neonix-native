@@ -10,6 +10,8 @@ type PlaybackClockState = {
 
   seek: (time: number) => void;
   setDuration: (duration: number) => void;
+  /** Atomic reset khi load project — kể cả cùng metadata id. */
+  reset: (input: { duration: number; currentTime?: number }) => void;
   play: () => void;
   pause: () => void;
   beginScrub: () => void;
@@ -44,6 +46,16 @@ export const usePlaybackClock = create<PlaybackClockState>((set, get) => ({
       duration: nextDuration,
       currentTime: clampTime(state.currentTime, nextDuration),
     }));
+  },
+
+  reset: ({ duration, currentTime = 0 }) => {
+    const nextDuration = Math.max(0, Number.isFinite(duration) ? duration : 0);
+    set({
+      duration: nextDuration,
+      currentTime: clampTime(currentTime, nextDuration),
+      mode: "idle",
+      playbackRate: 1,
+    });
   },
 
   play: () => {

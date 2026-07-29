@@ -4,21 +4,24 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
 import { EditorShell } from "@/components/editor/EditorShell";
-import { loadProject } from "@/lib/editor/project-storage";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import {
+  loadEditorProjectSnapshot,
+  type EditorProjectSnapshot,
+} from "@/lib/editor/project-storage";
 
 export default function EditorPage() {
   const params = useParams<{ projectId: string }>();
-  const [initial, setInitial] = useState<MotionProject | null>(null);
+  const [snapshot, setSnapshot] = useState<EditorProjectSnapshot | null>(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    const found = loadProject(params.projectId);
+    // Một lần đọc storage duy nhất cho cả project + timeline (DATA-02).
+    const found = loadEditorProjectSnapshot(params.projectId);
     if (!found) {
       setMissing(true);
       return;
     }
-    setInitial(found);
+    setSnapshot(found);
   }, [params.projectId]);
 
   if (missing) {
@@ -37,7 +40,7 @@ export default function EditorPage() {
     );
   }
 
-  if (!initial) {
+  if (!snapshot) {
     return (
       <div className="mv-hub">
         <main className="mv-hub-main">
@@ -47,5 +50,5 @@ export default function EditorPage() {
     );
   }
 
-  return <EditorShell initialProject={initial} />;
+  return <EditorShell initialSnapshot={snapshot} />;
 }
