@@ -20,7 +20,7 @@ import {
 import {
   TIMELINE_ZOOM_DEFAULT,
   TIMELINE_ZOOM_ON_PROJECT_LOAD,
-} from "@/components/desktop/editor/timeline/timeline-scale";
+} from "@/lib/editor/editor-preferences";
 import {
   createAudioLane,
   createOverlayLane,

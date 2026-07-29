@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePlaybackClock } from "./playback-clock-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 
 /**
  * Absolute-time RAF driver for `mode === "playing"`.
  * Does not advance the clock while scrubbing.
  * Mount once under the editor timeline shell.
+ * Đặt ở hooks/editor — không nằm trong pure lib (ARCH-02).
  */
 export function usePlaybackDriver(): void {
   useEffect(() => {
