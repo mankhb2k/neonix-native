@@ -14,6 +14,7 @@ import { DEFAULT_FRAME_DURATION } from "@/lib/frame-library";
 import type { OverlaySceneItem } from "@/lib/overlay-scenes";
 import {
   TIMELINE_ZOOM_DEFAULT,
+  TIMELINE_ZOOM_ON_PROJECT_LOAD,
 } from "@/components/desktop/editor/timeline/timeline-scale";
 import {
   createOverlayLane,
@@ -360,6 +361,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       project,
       timelineLanes: lanes,
       timelineClips: clips,
+      timelineZoom: TIMELINE_ZOOM_ON_PROJECT_LOAD,
       selectedClipId: firstClip?.id ?? null,
       selectedSceneId: firstIsMain ? firstClip!.sceneId : null,
       selectedOverlayId: firstIsMain ? null : (firstClip?.id ?? null),

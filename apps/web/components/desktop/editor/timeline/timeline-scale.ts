@@ -53,6 +53,8 @@ export const TIMELINE_LABEL_WIDTH = 96;
 export const TIMELINE_ZOOM_MIN = 0;
 export const TIMELINE_ZOOM_MAX = 100;
 export const TIMELINE_ZOOM_DEFAULT = 0;
+/** Reset zoom mỗi lần load project vào editor. */
+export const TIMELINE_ZOOM_ON_PROJECT_LOAD = 28;
 /**
  * CapCut min workspace ≈ duration × hệ số; floor ~18 phút khi zoom out tối đa
  * (screenshot CapCut: nhãn tới 18:00).
