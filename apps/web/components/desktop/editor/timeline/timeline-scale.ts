@@ -31,8 +31,10 @@ function pad2(n: number): string {
 export function formatRulerLabel(
   totalFrames: number,
   fps: number,
-  _labelEveryFrames?: number,
+  // Kept for call-site compatibility (label density); unused in CapCut two-field format.
+  labelEveryFrames?: number,
 ): string {
+  void labelEveryFrames;
   const safeFps = Math.max(1, Math.round(fps));
   const frame = Math.max(0, Math.round(totalFrames));
   const frameInSecond = frame % safeFps;
@@ -193,7 +195,7 @@ function niceFrameStep(minFrames: number, fps: number): number {
     .filter((n, i, arr) => n >= 1 && arr.indexOf(n) === i)
     .sort((a, b) => a - b);
 
-  return candidates.find((n) => n >= minFrames) ?? candidates[candidates.length - 1]!;
+  return candidates.find((n) => n >= minFrames) ?? candidates[candidates.length - 1] ?? 1;
 }
 
 /**

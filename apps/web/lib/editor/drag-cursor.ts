@@ -13,7 +13,8 @@ let pendingCursor: { x: number; y: number } | null = null;
 let pendingGhost: { left: number; width: number } | null = null;
 
 function applyCursorTransform(el: HTMLElement, x: number, y: number): void {
-  el.style.transform = `translate3d(${x - previewOffsetX}px, ${y - previewOffsetY}px, 0)`;
+  const { style } = el;
+  style.transform = `translate3d(${x - previewOffsetX}px, ${y - previewOffsetY}px, 0)`;
 }
 
 function applyGhostLayout(
@@ -22,8 +23,9 @@ function applyGhostLayout(
   width: number,
   leftOffset: number,
 ): void {
-  el.style.left = `${left + leftOffset}px`;
-  el.style.width = `${width}px`;
+  const { style } = el;
+  style.left = `${left + leftOffset}px`;
+  style.width = `${width}px`;
 }
 
 function flush(): void {
