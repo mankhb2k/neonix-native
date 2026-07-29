@@ -6,10 +6,7 @@ import {
   MIN_CLIP_SLICE_SEC,
   playheadSplitsClip,
 } from "@/lib/editor/clip-clipboard";
-import {
-  TIMELINE_ZOOM_DEFAULT,
-  TIMELINE_ZOOM_ON_PROJECT_LOAD,
-} from "@/lib/editor/editor-preferences";
+import { TIMELINE_ZOOM_ON_PROJECT_LOAD } from "@/lib/editor/editor-preferences";
 import { DEFAULT_FRAME_DURATION } from "@/lib/editor/frame-library";
 import {
   selectionClips,
@@ -32,6 +29,7 @@ import {
   selectionHasLockedLane,
 } from "@/lib/editor/operations/lane-flags";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { createInitialEditorState } from "@/lib/editor/store/initial-state";
 import {
   createAudioLane,
   clipsContentEndSeconds,
@@ -422,17 +420,7 @@ function selectionStateForClip(clip: TimelineClip | undefined) {
    ========================================================================== */
 
 export const useEditorStore = create<EditorState>((set, get) => ({
-  project: null,
-  selection: selectionNone(),
-  isExporting: false,
-  activeSidebarTab: "frame",
-  timelineClips: [],
-  timelineLanes: [ensureMainLane([])],
-
-  activeDragItem: null,
-  isOverTimeline: false,
-  timelineZoom: TIMELINE_ZOOM_DEFAULT,
-  timelineClipboard: null as ClipClipboardItem[] | null,
+  ...createInitialEditorState(),
 
   setActiveDragItem: (item) => set({ activeDragItem: item }),
   setIsOverTimeline: (over) => set({ isOverTimeline: over }),
