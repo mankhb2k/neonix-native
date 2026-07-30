@@ -218,28 +218,28 @@ export const Tracks = memo(function Tracks({
         {isTimelineEmpty ? (
           <TimelineWorkspaceContextMenu
             workspaceRef={workspaceRef}
-            className="relative flex flex-1 flex-col justify-center min-h-[160px] pt-6 pb-12"
+            className="relative flex flex-1 flex-col pt-[40px] pb-10"
           >
             <div
               data-track-lane="true"
               data-track-type="main"
               data-lane-id={mainLane?.id}
-              className="flex items-center"
-              style={{ paddingLeft: TIMELINE_LABEL_WIDTH }}
+              className="flex items-center h-15"
+              style={{ width: Math.max(canvasWidth, trackViewWidth) }}
             >
               <div
-                className={`flex h-12 w-full max-w-[520px] items-center justify-center gap-2.5 rounded-md border border-dashed px-4 transition-all select-none ${
+                className={`flex h-full w-full items-center justify-start gap-2.5 rounded border border-dashed px-4 transition-all select-none ${
                   dragOver
                     ? "border-[var(--accent)]/70 bg-[var(--accent)]/10 text-[var(--accent)]"
-                    : "border-white/20 bg-white/[0.04] text-white/45"
+                    : "border-white/15 bg-white/[0.03] text-white/45"
                 }`}
               >
                 <Film
                   size={16}
                   strokeWidth={1.5}
-                  className="shrink-0 opacity-80"
+                  className="shrink-0 opacity-70 ml-1"
                 />
-                <span className="text-[12px] font-medium tracking-wide truncate opacity-90">
+                <span className="text-[12px] font-medium tracking-wide truncate opacity-80">
                   Kéo khung hình hoặc phương tiện vào đây để bắt đầu tạo
                 </span>
               </div>
