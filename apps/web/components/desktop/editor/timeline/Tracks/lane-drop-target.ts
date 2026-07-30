@@ -80,7 +80,8 @@ export type AudioDragTarget = {
   indicatorTop: number;
 };
 
-function videoHitToLane(hit: VideoLaneHit): LaneHit {
+/** Map DOM scene hits into shared LaneHit (visual family). */
+export function videoHitToLane(hit: VideoLaneHit): LaneHit {
   if (hit.type === "main") {
     return {
       laneId: hit.laneId,
@@ -101,7 +102,8 @@ function videoHitToLane(hit: VideoLaneHit): LaneHit {
   };
 }
 
-function audioHitToLane(hit: AudioLaneHit): LaneHit {
+/** Map DOM audio-zone hits into shared LaneHit (audio family). */
+export function audioHitToLane(hit: AudioLaneHit): LaneHit {
   if (hit.type === "main") {
     return {
       laneId: hit.laneId,

@@ -74,7 +74,7 @@ describe("resolveOverlayDragTarget", () => {
 });
 
 describe("resolveLaneDropTarget", () => {
-  it("visual hysteresis matches legacy overlay resolver", () => {
+  it("visual body matches legacy overlay resolver", () => {
     const unified = resolveLaneDropTarget(
       120,
       visualHits,
@@ -88,6 +88,56 @@ describe("resolveLaneDropTarget", () => {
     expect(unified?.laneId).toBe(legacy?.laneId);
     expect(unified?.insertOrder).toBe(legacy?.insertOrder);
     expect(unified?.family).toBe("visual");
+  });
+
+  it("visual hysteresis keeps insert near top edge after insert mode", () => {
+    // Overlay 100–140; ENTER=2, EXIT=10. clientY=105 → relY=5 (still insert while wasInsert).
+    const nearTop = resolveLaneDropTarget(
+      105,
+      visualHits,
+      100,
+      true,
+      1,
+      visualDropPolicy,
+    );
+    expect(nearTop?.isInsert).toBe(true);
+    expect(nearTop?.family).toBe("visual");
+  });
+
+  it("visual hysteresis exits insert once deep in body", () => {
+    // relY=15 > EXIT=10 → body while wasInsert.
+    const deepBody = resolveLaneDropTarget(
+      115,
+      visualHits,
+      100,
+      true,
+      1,
+      visualDropPolicy,
+    );
+    expect(deepBody).toEqual({
+      family: "visual",
+      isInsert: false,
+      laneId: "ov1",
+      insertOrder: null,
+      indicatorTop: 0,
+    });
+  });
+
+  it("visual base body sets overBaseBody", () => {
+    const onBase = resolveLaneDropTarget(
+      160,
+      visualHits,
+      100,
+      false,
+      1,
+      visualDropPolicy,
+    );
+    expect(onBase).toMatchObject({
+      family: "visual",
+      isInsert: false,
+      laneId: null,
+      overBaseBody: true,
+    });
   });
 
   it("audio hysteresis keeps insert near edge after insert mode", () => {

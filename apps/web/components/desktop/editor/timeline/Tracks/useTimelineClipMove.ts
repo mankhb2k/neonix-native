@@ -33,6 +33,7 @@ import {
 } from "./lane-drop-session";
 import {
   INDICATOR_TOP_EPS_PX,
+  type TimelineDropTarget,
 } from "./lane-drop-target";
 import type { DragGhostState } from "./useTracksDrag";
 import type { TimelineClip } from "@/lib/editor/timeline-clips";
@@ -80,13 +81,19 @@ export function useTimelineClipMove({
   maxAudioOrder,
 }: UseTimelineClipMoveArgs) {
   const insertGhostRef = useRef<HTMLDivElement>(null);
-  const dropTargetRef = useRef({
+  const dropTargetRef = useRef<{
+    isInsert: boolean;
+    laneId: string | null;
+    insertOrder: number | null;
+    indicatorTop: number;
+    /** True only after hit-test reports base body (or seeded for main drag). */
+    overBaseBody: boolean;
+  }>({
     isInsert: false,
-    laneId: null as string | null,
-    insertOrder: null as number | null,
+    laneId: null,
+    insertOrder: null,
     indicatorTop: 0,
-    /** True only after hit-test reports main-track body (or seeded for main drag). */
-    overMainBody: false,
+    overBaseBody: false,
   });
   const ghostLeftRef = useRef(0);
   const sessionRef = useRef<MoveSession | null>(null);
@@ -156,7 +163,7 @@ export function useTimelineClipMove({
       laneId: null,
       insertOrder: null,
       indicatorTop: 0,
-      overMainBody: false,
+      overBaseBody: false,
     };
     ghostLeftRef.current = 0;
     invalidateLaneRectCache(laneCacheRef.current);
@@ -236,38 +243,30 @@ export function useTimelineClipMove({
             maxOverlayOrderRef.current,
           );
     if (!target) return;
-    applyDropTargetUpdate(target, family);
+    applyDropTargetUpdate(target);
   }
 
-  function applyDropTargetUpdate(
-    target: {
-      isInsert: boolean;
-      laneId: string | null;
-      insertOrder: number | null;
-      indicatorTop: number;
-    },
-    family: "visual" | "audio",
-  ) {
+  /** Single path: TimelineDropTarget → dropTargetRef + insert-line / lane highlight. */
+  function applyDropTargetUpdate(target: TimelineDropTarget) {
     const ui = dropTargetRef.current;
-    const overMainBody =
-      family === "visual" && !target.isInsert && target.laneId == null;
+    const overBaseBody = Boolean(target.overBaseBody);
     const laneChanged = ui.laneId !== target.laneId;
     const insertChanged = ui.isInsert !== target.isInsert;
     const orderChanged = ui.insertOrder !== target.insertOrder;
-    const mainChanged = ui.overMainBody !== overMainBody;
+    const baseChanged = ui.overBaseBody !== overBaseBody;
     const topChanged =
       target.isInsert &&
       Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
     if (
-      !(insertChanged || laneChanged || orderChanged || topChanged || mainChanged)
+      !(insertChanged || laneChanged || orderChanged || topChanged || baseChanged)
     ) {
       return;
     }
     ui.isInsert = target.isInsert;
     ui.laneId = target.laneId;
     ui.insertOrder = target.insertOrder;
-    ui.overMainBody = overMainBody;
-    if (family === "audio") {
+    ui.overBaseBody = overBaseBody;
+    if (target.family === "audio") {
       if (insertChanged) setIsAudioInsertLine(target.isInsert);
       if (laneChanged) setTargetAudioLaneId(target.laneId);
     } else {
@@ -341,7 +340,7 @@ export function useTimelineClipMove({
             insertNewLane: true,
             ...(ui.insertOrder != null ? { insertOrder: ui.insertOrder } : {}),
           }
-        : ui.overMainBody
+        : ui.overBaseBody
           ? { track: "main", startTime }
           : {
               track: "overlay",
@@ -444,7 +443,7 @@ export function useTimelineClipMove({
     const clipLeft = item.startTime * pps;
     const pointerLeft = clientXToGhostLeft(event.clientX, 0);
     const grabOffsetX = Math.max(0, pointerLeft - clipLeft);
-    const overMainBody = family === "main";
+    const overBaseBody = family === "main";
     const seedLaneId = family === "main" ? null : item.laneId;
 
     dropTargetRef.current = {
@@ -452,7 +451,7 @@ export function useTimelineClipMove({
       laneId: seedLaneId,
       insertOrder: null,
       indicatorTop: 0,
-      overMainBody,
+      overBaseBody,
     };
 
     if (family === "audio") {
@@ -511,8 +510,11 @@ export function useTimelineClipMove({
     dragGhostState,
     insertGhostRef,
     beginClipPointerDown,
+    /** @deprecated Prefer beginClipPointerDown(clip, "overlay", event). */
     beginOverlayPointerDown,
+    /** @deprecated Prefer beginClipPointerDown(clip, "main", event). */
     beginMainPointerDown,
+    /** @deprecated Prefer beginClipPointerDown(clip, "audio", event). */
     beginAudioPointerDown,
     isMoving: movingClipId != null,
   };

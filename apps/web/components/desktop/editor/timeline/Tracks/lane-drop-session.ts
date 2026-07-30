@@ -6,16 +6,18 @@
 import {
   absoluteAudioLanes,
   absoluteSceneLanes,
+  audioDropPolicy,
+  audioHitToLane,
   cacheAudioLanesRelative,
   cacheSceneLanesRelative,
   collectAudioZoneLanes,
   collectSceneLanes,
-  resolveAudioDragTarget,
-  resolveOverlayDragTarget,
+  resolveLaneDropTarget,
+  videoHitToLane,
+  visualDropPolicy,
   type RelativeAudioLaneHit,
   type RelativeLaneHit,
-  type AudioDragTarget,
-  type OverlayDragTarget,
+  type TimelineDropTarget,
 } from "./lane-drop-target";
 import type { RefObject } from "react";
 
@@ -67,19 +69,20 @@ export function resolveVisualDropAtPointer(
   clientY: number,
   wasInsert: boolean,
   maxOverlayOrder: number,
-): OverlayDragTarget | null {
+): TimelineDropTarget | null {
   const wsTop = workspace.getBoundingClientRect().top;
   const relative = ensureSceneLaneCache(cache, workspace, wsTop);
   const lanes =
     relative.length > 0
       ? absoluteSceneLanes(relative, wsTop)
       : collectSceneLanes(workspace);
-  return resolveOverlayDragTarget(
+  return resolveLaneDropTarget(
     clientY,
-    lanes,
+    lanes.map(videoHitToLane),
     wsTop,
     wasInsert,
     maxOverlayOrder,
+    visualDropPolicy,
   );
 }
 
@@ -89,19 +92,20 @@ export function resolveAudioDropAtPointer(
   clientY: number,
   wasInsert: boolean,
   maxAudioOrder: number,
-): AudioDragTarget | null {
+): TimelineDropTarget | null {
   const wsTop = workspace.getBoundingClientRect().top;
   const relative = ensureAudioLaneCache(cache, workspace, wsTop);
   const lanes =
     relative.length > 0
       ? absoluteAudioLanes(relative, wsTop)
       : collectAudioZoneLanes(workspace);
-  return resolveAudioDragTarget(
+  return resolveLaneDropTarget(
     clientY,
-    lanes,
+    lanes.map(audioHitToLane),
     wsTop,
     wasInsert,
     maxAudioOrder,
+    audioDropPolicy,
   );
 }
 
