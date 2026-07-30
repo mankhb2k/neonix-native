@@ -1,8 +1,9 @@
 "use client";
 
 import { memo, type WheelEvent } from "react";
-import { Film, Music } from "lucide-react";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import { LaneFlagControls } from "./LaneFlagControls";
+import { LaneLeadingIcon, resolveLaneContentKind } from "./LaneLeadingIcon";
 import {
   buildTimelineLaneRows,
   TIMELINE_TOP_PADDING_PX,
@@ -22,6 +23,8 @@ export const TimelineLaneLabels = memo(function TimelineLaneLabels({
   scrollTop,
   onWheel,
 }: Props) {
+  const project = useEditorStore((s) => s.project);
+  const timelineClips = useEditorStore((s) => s.timelineClips);
   const rows = buildTimelineLaneRows(timelineLanes);
 
   return (
@@ -41,34 +44,25 @@ export const TimelineLaneLabels = memo(function TimelineLaneLabels({
           transform: `translate3d(0, ${-scrollTop}px, 0)`,
         }}
       >
-        {rows.map((row) => (
-          <div
-            key={row.id}
-            className={`flex shrink-0 items-center justify-center gap-1 px-2 ${row.heightClass}`}
-            style={{ width: labelWidth }}
-          >
-            {row.role === "base" ? (
+        {rows.map((row) => {
+          const contentKind = resolveLaneContentKind(
+            row.lane,
+            timelineClips,
+            project,
+          );
+          return (
+            <div
+              key={row.id}
+              className={`flex shrink-0 items-center justify-center px-2 ${row.heightClass}`}
+              style={{ width: labelWidth }}
+            >
               <LaneFlagControls
                 lane={row.lane}
-                leading={<Film size={14} strokeWidth={1.5} />}
+                leading={<LaneLeadingIcon kind={contentKind} />}
               />
-            ) : row.role === "audio" ? (
-              <LaneFlagControls
-                lane={row.lane}
-                leading={<Music size={14} strokeWidth={1.5} />}
-              />
-            ) : row.kind === "visual" ? (
-              <LaneFlagControls
-                lane={row.lane}
-                leading={
-                  <span className="text-[11px] font-semibold truncate max-w-[3.5rem]">
-                    {row.name}
-                  </span>
-                }
-              />
-            ) : null}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

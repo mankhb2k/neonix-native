@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 type Props = {
   lane: TimelineLane;
-  /** Icon chính (Film / Music / tên). */
+  /** Icon chính (video / TT / vuông / nốt nhạc). */
   leading: ReactNode;
 };
 
@@ -22,7 +22,7 @@ export function LaneFlagControls({ lane, leading }: Props) {
   const muted = lane.kind === "audio" && Boolean(lane.muted);
 
   return (
-    <div className="flex items-center gap-0.5 min-w-0">
+    <div className="flex items-center gap-4 min-w-0">
       <span className="shrink-0 flex items-center justify-center w-5 h-5 text-[var(--fg-muted)]">
         {leading}
       </span>
