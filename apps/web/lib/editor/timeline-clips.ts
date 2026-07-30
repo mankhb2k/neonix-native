@@ -317,10 +317,15 @@ export function migrateLanesAndClips(
   const existingOverlay = storedLanes.filter(
     (l) => l.kind === "visual" && l.role === "overlay",
   );
+  const existingAudio = storedLanes.filter((l) => l.kind === "audio");
   const lanes =
     existingOverlay.length > 0 && layerToLane.size === 0
-      ? [mainLane, ...existingOverlay]
-      : [mainLane, ...overlayLanes.sort((a, b) => a.order - b.order)];
+      ? [mainLane, ...existingOverlay, ...existingAudio]
+      : [
+          mainLane,
+          ...overlayLanes.sort((a, b) => a.order - b.order),
+          ...existingAudio,
+        ];
 
   const clips: TimelineClip[] = rawLegacy.map((clip) => {
     if (clip.kind === "audio" || clip.track === "audio") {

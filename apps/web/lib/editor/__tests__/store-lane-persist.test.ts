@@ -355,6 +355,175 @@ describe("empty-lane persistence across move", () => {
     );
   });
 
+  it("delete audio clip keeps empty audio lane", () => {
+    const { project } = fixtureBasePlusOverlay();
+    useEditorStore.getState().loadProject(
+      project,
+      [],
+      [
+        {
+          id: "clip.base",
+          kind: "scene",
+          sceneId: "scene.base",
+          laneId: "lane.main",
+          startTime: 0,
+          duration: 4,
+          name: "Base",
+        },
+        {
+          id: "a0",
+          kind: "audio",
+          audioTrackId: "a0",
+          assetId: "asset.a",
+          laneId: "lane.audio.0",
+          startTime: 0,
+          duration: 2,
+          name: "A",
+        },
+      ],
+      [baseLane(), audioLane("lane.audio.0", 0, "Audio Keep")],
+    );
+
+    useEditorStore.getState().selectClip("a0");
+    useEditorStore.getState().deleteSelectedClips();
+
+    const state = useEditorStore.getState();
+    expect(state.timelineClips.some((c) => c.id === "a0")).toBe(false);
+    const empty = state.timelineLanes.find((l) => l.id === "lane.audio.0");
+    expect(empty).toBeTruthy();
+    expect(empty?.kind).toBe("audio");
+    expect(empty?.name).toBe("Audio Keep");
+  });
+
+  it("audio insertNewLane keeps empty source lane", () => {
+    const { project } = fixtureBasePlusOverlay();
+    useEditorStore.getState().loadProject(
+      project,
+      [],
+      [
+        {
+          id: "clip.base",
+          kind: "scene",
+          sceneId: "scene.base",
+          laneId: "lane.main",
+          startTime: 0,
+          duration: 4,
+          name: "Base",
+        },
+        {
+          id: "a0",
+          kind: "audio",
+          audioTrackId: "a0",
+          assetId: "asset.a",
+          laneId: "lane.audio.0",
+          startTime: 0,
+          duration: 2,
+          name: "A",
+        },
+      ],
+      [baseLane(), audioLane("lane.audio.0", 0, "Audio Source")],
+    );
+
+    useEditorStore.getState().moveClip("a0", {
+      track: "audio",
+      startTime: 0,
+      insertNewLane: true,
+      insertOrder: 1,
+    });
+
+    const state = useEditorStore.getState();
+    const moved = state.timelineClips.find((c) => c.id === "a0");
+    expect(moved?.laneId).toBeTruthy();
+    expect(moved?.laneId).not.toBe("lane.audio.0");
+    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(true);
+    expect(
+      state.timelineLanes.filter((l) => l.kind === "audio").length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("audio insert onto empty lane reuses it instead of deleting source", () => {
+    const { project } = fixtureBasePlusOverlay();
+    useEditorStore.getState().loadProject(
+      project,
+      [],
+      [
+        {
+          id: "clip.base",
+          kind: "scene",
+          sceneId: "scene.base",
+          laneId: "lane.main",
+          startTime: 0,
+          duration: 4,
+          name: "Base",
+        },
+        {
+          id: "a0",
+          kind: "audio",
+          audioTrackId: "a0",
+          assetId: "asset.a",
+          laneId: "lane.audio.0",
+          startTime: 0,
+          duration: 2,
+          name: "A",
+        },
+      ],
+      [
+        baseLane(),
+        audioLane("lane.audio.0", 0, "Audio Source"),
+        audioLane("lane.audio.1", 1, "Audio Empty"),
+      ],
+    );
+
+    // Body-target move onto the empty lane — source must stay.
+    useEditorStore.getState().moveClip("a0", {
+      track: "audio",
+      startTime: 0,
+      laneId: "lane.audio.1",
+    });
+
+    const state = useEditorStore.getState();
+    expect(state.timelineClips.find((c) => c.id === "a0")?.laneId).toBe(
+      "lane.audio.1",
+    );
+    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(true);
+    expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
+      2,
+    );
+  });
+
+  it("library drop reuses empty audio lane at insert order", () => {
+    const { project } = fixtureBasePlusOverlay();
+    useEditorStore.getState().loadProject(
+      project,
+      [],
+      [
+        {
+          id: "clip.base",
+          kind: "scene",
+          sceneId: "scene.base",
+          laneId: "lane.main",
+          startTime: 0,
+          duration: 4,
+          name: "Base",
+        },
+      ],
+      [baseLane(), audioLane("lane.audio.0", 0, "Audio Empty")],
+    );
+
+    useEditorStore.getState().addAudioClipFromLibrary(
+      { title: "Bed", assetId: "asset.bed", duration: 2 },
+      { startTime: 0, insertNewLane: true, insertOrder: 0 },
+    );
+
+    const state = useEditorStore.getState();
+    expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
+      1,
+    );
+    expect(state.timelineClips.some((c) => c.laneId === "lane.audio.0")).toBe(
+      true,
+    );
+  });
+
   it("save/load snapshot keeps empty lanes after move", () => {
     const fixture = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(

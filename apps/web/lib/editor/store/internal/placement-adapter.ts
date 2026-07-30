@@ -54,6 +54,22 @@ export function applyAudioPlacement(
   );
   if (resolved.status === "blocked") return null;
   if (resolved.status === "create-lane") {
+    // Library/paste only — during move the source lane looks empty (clip excluded).
+    if (!movingClipId) {
+      const reusable = lanes.find(
+        (lane) =>
+          lane.kind === "audio" &&
+          lane.order === resolved.insertOrder &&
+          !clips.some((clip) => clip.laneId === lane.id),
+      );
+      if (reusable) {
+        return {
+          lanes,
+          laneId: reusable.id,
+          startTime: resolved.startTime,
+        };
+      }
+    }
     let nextLanes = shiftAudioLaneOrders(lanes, resolved.insertOrder, 1);
     const created = createAudioLane(resolved.insertOrder);
     nextLanes = [...nextLanes, created];
