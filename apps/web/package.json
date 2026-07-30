@@ -14,7 +14,9 @@
     "test:watch": "vitest",
     "storybook": "storybook dev -p 6006",
     "e2e": "playwright test",
-    "e2e:ui": "playwright test --ui"
+    "e2e:ui": "playwright test --ui",
+    "e2e:install": "playwright install chromium",
+    "e2e:timeline": "playwright test e2e/editor-timeline.spec.ts e2e/timeline"
   },
   "dependencies": {
     "@motionvideo/ai-planner": "workspace:*",

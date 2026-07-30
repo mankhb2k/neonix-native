@@ -20,7 +20,10 @@ export function CurrentTimeDisplay({ fps }: Props) {
   const displaySeconds = frameIndex / safeFps;
 
   return (
-    <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
+    <span
+      data-testid="timeline-current-time"
+      className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]"
+    >
       {formatTimecode(displaySeconds, safeFps)}
     </span>
   );

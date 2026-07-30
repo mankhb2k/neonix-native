@@ -105,12 +105,18 @@ test.describe("editor timeline persistence flow", () => {
       timeout: 15_000,
     });
 
-    // Scrub: kéo playhead slider nếu có.
-    const playhead = page.getByRole("slider").filter({ hasNot: zoomSlider }).first();
-    if (await playhead.isVisible().catch(() => false)) {
-      await playhead.focus();
-      await page.keyboard.press("ArrowRight");
-    }
+    // Scrub: Playhead slider must exist; assert aria-valuenow + timecode move.
+    const playhead = page.getByRole("slider", { name: "Playhead" });
+    await expect(playhead).toBeVisible();
+    const before = Number(await playhead.getAttribute("aria-valuenow"));
+    const timecode = page.getByTestId("timeline-current-time");
+    const beforeTc = await timecode.textContent();
+    await playhead.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect
+      .poll(async () => Number(await playhead.getAttribute("aria-valuenow")))
+      .toBeGreaterThan(before);
+    await expect(timecode).not.toHaveText(beforeTc ?? "");
 
     await page.reload();
     await expect(page.getByText("E2E Clip").first()).toBeVisible({ timeout: 30_000 });

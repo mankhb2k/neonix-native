@@ -304,6 +304,7 @@ export const Tracks = memo(function Tracks({
                         key={item.id}
                         data-clip-id={item.id}
                         data-lane-id={lane.id}
+                        data-start-time={String(item.startTime)}
                         role="button"
                         tabIndex={0}
                         className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
@@ -314,7 +315,7 @@ export const Tracks = memo(function Tracks({
                           width: Math.max(item.duration * pixelsPerSecond, 24),
                         }}
                         onPointerDown={(event) => {
-                          clipMove.beginOverlayPointerDown(item, event);
+                          clipMove.beginClipPointerDown(item, "overlay", event);
                         }}
                         onKeyDown={(event) => onClipKeyDown(item.id, event)}
                       >
@@ -386,6 +387,7 @@ export const Tracks = memo(function Tracks({
                     key={clip.id}
                     data-clip-id={clip.id}
                     data-lane-id={mainLane?.id}
+                    data-start-time={String(clip.startTime)}
                     role="button"
                     tabIndex={0}
                     className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90 ${
@@ -398,7 +400,7 @@ export const Tracks = memo(function Tracks({
                       width: Math.max(clip.duration * pixelsPerSecond, 8),
                     }}
                     onPointerDown={(event) => {
-                      clipMove.beginMainPointerDown(clip, event);
+                      clipMove.beginClipPointerDown(clip, "main", event);
                     }}
                     onKeyDown={(event) => onClipKeyDown(clip.id, event)}
                   >
@@ -447,6 +449,7 @@ export const Tracks = memo(function Tracks({
                         key={clip.id}
                         data-clip-id={clip.id}
                         data-lane-id={lane.id}
+                        data-start-time={String(clip.startTime)}
                         role="button"
                         tabIndex={0}
                         className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm overflow-hidden ${
@@ -457,7 +460,7 @@ export const Tracks = memo(function Tracks({
                           width: Math.max(clip.duration * pixelsPerSecond, 24),
                         }}
                         onPointerDown={(event) => {
-                          clipMove.beginAudioPointerDown(clip, event);
+                          clipMove.beginClipPointerDown(clip, "audio", event);
                         }}
                         onKeyDown={(event) => onClipKeyDown(clip.id, event)}
                       >
