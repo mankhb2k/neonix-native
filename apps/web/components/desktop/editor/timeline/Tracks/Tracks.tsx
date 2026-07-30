@@ -130,6 +130,7 @@ export const Tracks = memo(function Tracks({
     workspaceRef,
     autoScroll,
   });
+
   useTimelineClipHotkeys(Boolean(projectId));
 
   const scrubBlocked =
@@ -180,7 +181,6 @@ export const Tracks = memo(function Tracks({
       <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto" />
     );
   }
-
   const isTimelineEmpty = timelineClips.length === 0;
   const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
 
@@ -261,7 +261,6 @@ export const Tracks = memo(function Tracks({
               />
             )}
 
-            {/* Overlay lanes: rendered above Main (sorted descending by order) */}
             {overlayLanes.map((lane) => {
               const layerItems = clipsByLane.get(lane.id) ?? [];
               return (
@@ -353,7 +352,6 @@ export const Tracks = memo(function Tracks({
               </>
             )}
 
-            {/* Main lane */}
             <TrackLane
               variant="main"
               dataTrackType="main"
@@ -418,7 +416,6 @@ export const Tracks = memo(function Tracks({
               })}
             </TrackLane>
 
-            {/* Audio lanes: rendered below Main (sorted ascending by order) */}
             {audioLanes.map((lane) => {
               const laneClips = clipsByLane.get(lane.id) ?? [];
               return (
