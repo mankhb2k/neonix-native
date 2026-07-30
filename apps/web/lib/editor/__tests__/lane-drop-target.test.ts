@@ -47,13 +47,13 @@ describe("resolveOverlayDragTarget", () => {
 
   it("gap between lanes is insert", () => {
     const withGap: VideoLaneHit[] = [
-      { top: 100, bottom: 130, type: "overlay", laneId: "ov1", order: 1 },
+      { top: 100, bottom: 130, type: "overlay", laneId: "ov0", order: 0 },
       { top: 150, bottom: 190, type: "main", laneId: "main", order: null },
     ];
-    const target = resolveOverlayDragTarget(140, withGap, 100, false, 1);
+    const target = resolveOverlayDragTarget(140, withGap, 100, false, 0);
     expect(target?.isInsert).toBe(true);
     expect(target?.laneId).toBeNull();
-    expect(target?.insertOrder).toBe(1);
+    expect(target?.insertOrder).toBe(0);
   });
 
   it("main body is not insert", () => {
@@ -80,6 +80,128 @@ describe("resolveOverlayDragTarget", () => {
 });
 
 describe("resolveLaneDropTarget", () => {
+  it("maps overlay edges upward and audio edges downward from Main", () => {
+    const overlayStack: LaneHit[] = [
+      {
+        top: 100,
+        bottom: 140,
+        family: "visual",
+        role: "overlay",
+        laneId: "ov2",
+        order: 2,
+      },
+      {
+        top: 140,
+        bottom: 180,
+        family: "visual",
+        role: "overlay",
+        laneId: "ov1",
+        order: 1,
+      },
+      {
+        top: 180,
+        bottom: 220,
+        family: "visual",
+        role: "overlay",
+        laneId: "ov0",
+        order: 0,
+      },
+      {
+        top: 220,
+        bottom: 260,
+        family: "visual",
+        role: "base",
+        laneId: "main",
+        order: null,
+      },
+    ];
+    const audioStack: LaneHit[] = [
+      {
+        top: 100,
+        bottom: 140,
+        family: "audio",
+        role: "base",
+        laneId: "main",
+        order: null,
+      },
+      {
+        top: 140,
+        bottom: 180,
+        family: "audio",
+        role: "audio",
+        laneId: "au0",
+        order: 0,
+      },
+      {
+        top: 180,
+        bottom: 220,
+        family: "audio",
+        role: "audio",
+        laneId: "au1",
+        order: 1,
+      },
+      {
+        top: 220,
+        bottom: 260,
+        family: "audio",
+        role: "audio",
+        laneId: "au2",
+        order: 2,
+      },
+    ];
+
+    expect(
+      resolveLaneDropTarget(
+        141,
+        overlayStack,
+        100,
+        false,
+        2,
+        visualDropPolicy,
+      )?.insertOrder,
+    ).toBe(2);
+    expect(
+      resolveLaneDropTarget(
+        179,
+        overlayStack,
+        100,
+        false,
+        2,
+        visualDropPolicy,
+      )?.insertOrder,
+    ).toBe(1);
+    expect(
+      resolveLaneDropTarget(
+        181,
+        audioStack,
+        100,
+        false,
+        2,
+        audioDropPolicy,
+      )?.insertOrder,
+    ).toBe(1);
+    expect(
+      resolveLaneDropTarget(
+        219,
+        audioStack,
+        100,
+        false,
+        2,
+        audioDropPolicy,
+      )?.insertOrder,
+    ).toBe(2);
+    expect(
+      resolveLaneDropTarget(
+        280,
+        audioStack,
+        100,
+        false,
+        2,
+        audioDropPolicy,
+      )?.insertOrder,
+    ).toBe(3);
+  });
+
   it("visual with only Main inserts above it and never below it", () => {
     const mainOnly: LaneHit[] = [
       {

@@ -25,6 +25,7 @@ import { FRAME_LIBRARY_MIME } from "@/lib/editor/frame-library";
 import { resolveFrameDraft } from "@/lib/editor/sidebar-mock-library";
 import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 import {
+  bindLaneCacheInvalidation,
   createEmptyLaneRectCache,
   invalidateLaneRectCache,
   resolveAudioDropAtPointer,
@@ -34,7 +35,9 @@ import {
 import {
   CYAN_MODE_BELOW_RULER_TOP_PX,
   INDICATOR_TOP_EPS_PX,
+  type TimelineDropTarget,
 } from "./lane-drop-target";
+import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 
 /** Lane ghost preview — chỉ field UI thật sự render. */
 export type DragGhostState = {
@@ -52,6 +55,7 @@ type UseTracksDragArgs = {
   /** First visual clip must establish the single base lane, never an overlay. */
   visualBaseOnly: boolean;
   projectId: string | null;
+  autoScroll: TimelineAutoScrollController;
 };
 
 function isEditorDragTypes(types: readonly string[]): boolean {
@@ -72,6 +76,7 @@ export function useTracksDrag({
   maxAudioOrder,
   visualBaseOnly,
   projectId,
+  autoScroll,
 }: UseTracksDragArgs) {
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
   const setActiveDragItem = useEditorStore((s) => s.setActiveDragItem);
@@ -98,6 +103,14 @@ export function useTracksDrag({
   });
   const ghostLeftRef = useRef(0);
   const laneCacheRef = useRef<LaneRectCache>(createEmptyLaneRectCache());
+  const lastDragPointerRef = useRef<{
+    clientX: number;
+    clientY: number;
+    ghostWidth: number;
+  } | null>(null);
+  const refreshDragPositionRef = useRef<
+    (clientX: number, clientY: number, ghostWidth: number) => void
+  >(() => undefined);
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -182,9 +195,108 @@ export function useTracksDrag({
 
   useEffect(() => {
     return () => {
+      autoScroll.stop("sidebar-drag");
       cleanupExternalDragState();
     };
-  }, []);
+  }, [autoScroll]);
+
+  useEffect(
+    () =>
+      bindLaneCacheInvalidation(
+        rootRef,
+        workspaceRef,
+        laneCacheRef.current,
+        () => {
+          const last = lastDragPointerRef.current;
+          if (last) {
+            refreshDragPositionRef.current(
+              last.clientX,
+              last.clientY,
+              last.ghostWidth,
+            );
+          }
+        },
+      ),
+    [rootRef, workspaceRef],
+  );
+
+  function applyDropTarget(target: TimelineDropTarget) {
+    const ui = dragUiRef.current;
+    const laneChanged = ui.laneId !== target.laneId;
+    const insertChanged = ui.isInsert !== target.isInsert;
+    const orderChanged = ui.insertOrder !== target.insertOrder;
+    const topChanged =
+      target.isInsert &&
+      Math.abs(ui.indicatorTop - target.indicatorTop) >
+        INDICATOR_TOP_EPS_PX;
+    if (!(insertChanged || laneChanged || orderChanged || topChanged)) return;
+
+    ui.isInsert = target.isInsert;
+    ui.laneId = target.laneId;
+    ui.insertOrder = target.insertOrder;
+    setInsertTargetFamily(target.isInsert ? target.family : null);
+
+    if (target.family === "audio") {
+      clearVideoTarget();
+      if (insertChanged) setIsAudioInsertLine(target.isInsert);
+      if (laneChanged) setTargetAudioLaneId(target.laneId);
+    } else {
+      clearAudioTarget();
+      if (insertChanged) setIsOverlayInsertLine(target.isInsert);
+      if (laneChanged) setTargetOverlayLaneId(target.laneId);
+    }
+
+    if (target.isInsert && (topChanged || insertChanged)) {
+      ui.indicatorTop = target.indicatorTop;
+      setIndicatorTopPos(target.indicatorTop);
+    }
+  }
+
+  function refreshDragPosition(
+    clientX: number,
+    clientY: number,
+    ghostWidth: number,
+  ) {
+    const root = rootRef.current;
+    const ws = workspaceRef.current;
+    if (!root || !ws) return;
+
+    const bounds = root.getBoundingClientRect();
+    const mouseX =
+      clientX - bounds.left + root.scrollLeft - TIMELINE_LABEL_WIDTH;
+    const left = Math.max(0, mouseX);
+    ghostLeftRef.current = left;
+    setDragGhostLayout(left, ghostWidth);
+
+    const target =
+      dragUiRef.current.mode === "audio"
+        ? resolveAudioDropAtPointer(
+            laneCacheRef.current,
+            ws,
+            clientY,
+            dragUiRef.current.isInsert,
+            maxAudioOrderRef.current,
+          )
+        : visualBaseOnlyRef.current
+          ? {
+              family: "visual" as const,
+              isInsert: false,
+              laneId: null,
+              insertOrder: null,
+              indicatorTop: 0,
+              overBaseBody: true,
+            }
+          : resolveVisualDropAtPointer(
+              laneCacheRef.current,
+              ws,
+              clientY,
+              dragUiRef.current.isInsert,
+              maxOverlayOrderRef.current,
+            );
+    if (target) applyDropTarget(target);
+  }
+
+  refreshDragPositionRef.current = refreshDragPosition;
 
   function handleDragEnter(event: DragEvent) {
     const dragItem = useEditorStore.getState().activeDragItem;
@@ -205,18 +317,13 @@ export function useTracksDrag({
     Object.assign(event.dataTransfer, { dropEffect: "copy" as const });
     if (!dragUiRef.current.dragOver) {
       dragUiRef.current.dragOver = true;
+      invalidateLaneRectCache(laneCacheRef.current);
       setDragOver(true);
     }
 
     if (!rootRef.current) return;
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const rect = rootRef.current.getBoundingClientRect();
-    const scrollLeft = rootRef.current.scrollLeft;
-    const mouseX =
-      event.clientX - rect.left + scrollLeft - TIMELINE_LABEL_WIDTH;
-    const hoverTime = Math.max(0, mouseX / pps);
-    const left = hoverTime * pps;
-    ghostLeftRef.current = left;
 
     const rulerTop =
       rulerHeaderRef.current?.getBoundingClientRect().top ?? rect.top;
@@ -227,6 +334,8 @@ export function useTracksDrag({
     }
 
     if (!nextOver) {
+      autoScroll.stop("sidebar-drag");
+      lastDragPointerRef.current = null;
       if (event.clientX > 0 && event.clientY > 0) {
         setDragCursor(event.clientX, event.clientY);
       }
@@ -252,12 +361,10 @@ export function useTracksDrag({
     const targetTrack = isAudio ? "audio" : "video";
     const ghostKey = `${label}|${duration}|${ghostWidth}|${targetTrack}`;
 
-    setDragGhostLayout(left, ghostWidth);
     if (event.clientX > 0 && event.clientY > 0) {
       setDragCursor(event.clientX, event.clientY);
     }
 
-    const ws = workspaceRef.current;
     if (isAudio) {
       if (dragUiRef.current.mode !== "audio") {
         dragUiRef.current.mode = "audio";
@@ -265,38 +372,6 @@ export function useTracksDrag({
         dragUiRef.current.laneId = null;
         dragUiRef.current.insertOrder = null;
         clearVideoTarget();
-      }
-      if (ws) {
-        const target = resolveAudioDropAtPointer(
-          laneCacheRef.current,
-          ws,
-          event.clientY,
-          dragUiRef.current.isInsert,
-          maxAudioOrderRef.current,
-        );
-        if (target) {
-          const ui = dragUiRef.current;
-          const laneChanged = ui.laneId !== target.laneId;
-          const insertChanged = ui.isInsert !== target.isInsert;
-          const orderChanged = ui.insertOrder !== target.insertOrder;
-          const topChanged =
-            target.isInsert &&
-            Math.abs(ui.indicatorTop - target.indicatorTop) >
-              INDICATOR_TOP_EPS_PX;
-          if (insertChanged || laneChanged || orderChanged || topChanged) {
-            ui.isInsert = target.isInsert;
-            ui.laneId = target.laneId;
-            ui.insertOrder = target.insertOrder;
-            setInsertTargetFamily(target.isInsert ? target.family : null);
-            clearVideoTarget();
-            if (insertChanged) setIsAudioInsertLine(target.isInsert);
-            if (laneChanged) setTargetAudioLaneId(target.laneId);
-            if (target.isInsert && (topChanged || insertChanged)) {
-              ui.indicatorTop = target.indicatorTop;
-              setIndicatorTopPos(target.indicatorTop);
-            }
-          }
-        }
       }
     } else {
       if (dragUiRef.current.mode !== "video") {
@@ -306,50 +381,26 @@ export function useTracksDrag({
         dragUiRef.current.insertOrder = null;
         clearAudioTarget();
       }
-      if (ws) {
-        // A project without a base visual clip is still in base-only mode:
-        // any visual library drop establishes Main, regardless of pointer Y.
-        const target = visualBaseOnlyRef.current
-          ? {
-              family: "visual" as const,
-              isInsert: false,
-              laneId: null,
-              insertOrder: null,
-              indicatorTop: 0,
-              overBaseBody: true,
-            }
-          : resolveVisualDropAtPointer(
-              laneCacheRef.current,
-              ws,
-              event.clientY,
-              dragUiRef.current.isInsert,
-              maxOverlayOrderRef.current,
-            );
-        if (target) {
-          const ui = dragUiRef.current;
-          const laneChanged = ui.laneId !== target.laneId;
-          const insertChanged = ui.isInsert !== target.isInsert;
-          const orderChanged = ui.insertOrder !== target.insertOrder;
-          const topChanged =
-            target.isInsert &&
-            Math.abs(ui.indicatorTop - target.indicatorTop) >
-              INDICATOR_TOP_EPS_PX;
-          if (insertChanged || laneChanged || orderChanged || topChanged) {
-            ui.isInsert = target.isInsert;
-            ui.laneId = target.laneId;
-            ui.insertOrder = target.insertOrder;
-            setInsertTargetFamily(target.isInsert ? target.family : null);
-            clearAudioTarget();
-            if (insertChanged) setIsOverlayInsertLine(target.isInsert);
-            if (laneChanged) setTargetOverlayLaneId(target.laneId);
-            if (target.isInsert && (topChanged || insertChanged)) {
-              ui.indicatorTop = target.indicatorTop;
-              setIndicatorTopPos(target.indicatorTop);
-            }
-          }
-        }
-      }
     }
+
+    lastDragPointerRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      ghostWidth,
+    };
+    refreshDragPosition(event.clientX, event.clientY, ghostWidth);
+    autoScroll.updatePointer(
+      "sidebar-drag",
+      event.clientX,
+      event.clientY,
+      () => {
+        invalidateLaneRectCache(laneCacheRef.current);
+        const last = lastDragPointerRef.current;
+        if (last) {
+          refreshDragPosition(last.clientX, last.clientY, last.ghostWidth);
+        }
+      },
+    );
 
     if (dragUiRef.current.ghostKey !== ghostKey) {
       dragUiRef.current.ghostKey = ghostKey;
@@ -387,6 +438,9 @@ export function useTracksDrag({
       ghostKey: "",
       mode: "video",
     };
+    autoScroll.stop("sidebar-drag");
+    lastDragPointerRef.current = null;
+    invalidateLaneRectCache(laneCacheRef.current);
     setDragOver(false);
     setIsOverlayInsertLine(false);
     setTargetOverlayLaneId(null);
@@ -477,6 +531,9 @@ export function useTracksDrag({
       if (!draft) return;
       addClipFromDraft(draft, { track: "main" });
     } finally {
+      autoScroll.stop("sidebar-drag");
+      lastDragPointerRef.current = null;
+      invalidateLaneRectCache(laneCacheRef.current);
       dragUiRef.current = {
         dragOver: false,
         isInsert: false,

@@ -319,4 +319,62 @@ export function buildAudioCrossLaneProject(projectId = "e2e.editor.audio-cross")
   });
 }
 
+/** Enough audio lanes to force the tracks viewport to scroll vertically. */
+export function buildScrollableAudioProject(
+  projectId = "e2e.editor.audio-scroll",
+  laneCount = 8,
+) {
+  const laneIndexes = Array.from({ length: laneCount }, (_, index) => index);
+  return buildStoredProject({
+    projectId,
+    name: "E2E Scrollable Audio",
+    scenes: [scene("scene.main", "Main", 12)],
+    assets: laneIndexes.map((index) => ({
+      id: `asset.audio.${index}`,
+      assetType: "audio",
+      uri: `assets/audio-${index}.mp3`,
+      integrity: `sha256-e2e-audio-${index}`,
+      mimeType: "audio/mpeg",
+      duration: 2,
+      codec: "mp3",
+      sampleRate: 44100,
+      channels: 2,
+    })),
+    audioTracks: laneIndexes.map((index) => ({
+      id: `audio.${index}`,
+      role: "sfx",
+      assetId: `asset.audio.${index}`,
+      start: 0,
+      volume: 1,
+    })),
+    clips: [
+      sceneClip({
+        id: "clip.main",
+        sceneId: "scene.main",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 12,
+        name: "MainClip",
+      }),
+      ...laneIndexes.map((index) =>
+        audioClip({
+          id: `audio.${index}`,
+          audioTrackId: `audio.${index}`,
+          assetId: `asset.audio.${index}`,
+          laneId: `lane.audio.${index}`,
+          startTime: 0,
+          duration: 2,
+          name: `Audio ${index + 1}`,
+        }),
+      ),
+    ],
+    lanes: [
+      baseLane(),
+      ...laneIndexes.map((index) =>
+        audioLane(`lane.audio.${index}`, index, `Audio ${index + 1}`),
+      ),
+    ],
+  });
+}
+
 export { scene, textNode };

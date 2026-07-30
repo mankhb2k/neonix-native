@@ -22,7 +22,7 @@ test.describe("timeline persistence", () => {
     await expect(zoomSlider).toHaveValue("28");
   });
 
-  test("empty source lane after overlay move survives reload", async ({
+  test("empty source lane after overlay move stays pruned after reload", async ({
     page,
   }) => {
     const projectId = "e2e.timeline.persist-empty-lane";
@@ -34,17 +34,16 @@ test.describe("timeline persistence", () => {
 
     await expect(editor.clip("clip.ov")).toBeVisible({ timeout: 30_000 });
     await editor.dragClipToLane("clip.ov", "lane.overlay.1");
-    await editor.expectLaneExists("lane.overlay.0");
+    await editor.expectLaneRemoved("lane.overlay.0");
     await editor.expectStoredClipLane(
       projectId,
       "clip.ov",
       "lane.overlay.1",
     );
-    await editor.expectStoredLane(projectId, "lane.overlay.0");
 
     await editor.reload();
     await expect(editor.clip("clip.ov")).toBeVisible({ timeout: 30_000 });
     await editor.expectClipInLane("clip.ov", "lane.overlay.1");
-    await editor.expectLaneExists("lane.overlay.0");
+    await editor.expectLaneRemoved("lane.overlay.0");
   });
 });

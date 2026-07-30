@@ -16,6 +16,7 @@ import { LaneFlagControls } from "./LaneFlagControls";
 import { TimelineWorkspaceContextMenu } from "./TimelineWorkspaceContextMenu";
 import { TrackLane } from "./TrackLane";
 import { useMarqueeSelect } from "./useMarqueeSelect";
+import { useTimelineAutoScroll } from "./useTimelineAutoScroll";
 import { useTimelineClipHotkeys } from "./useTimelineClipHotkeys";
 import { useTimelineClipMove } from "./useTimelineClipMove";
 import { useTracksDrag } from "./useTracksDrag";
@@ -53,6 +54,7 @@ export const Tracks = memo(function Tracks({
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
 
   const workspaceRef = useRef<HTMLDivElement>(null);
+  const autoScroll = useTimelineAutoScroll(scrollRef);
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
   const overlayLanes = useMemo(
@@ -111,6 +113,7 @@ export const Tracks = memo(function Tracks({
     maxAudioOrder,
     visualBaseOnly: mainClips.length === 0,
     projectId: projectId ?? null,
+    autoScroll,
   });
 
   const clipMove = useTimelineClipMove({
@@ -119,9 +122,14 @@ export const Tracks = memo(function Tracks({
     pixelsPerSecond,
     maxOverlayOrder,
     maxAudioOrder,
+    autoScroll,
   });
 
-  const marquee = useMarqueeSelect({ workspaceRef });
+  const marquee = useMarqueeSelect({
+    rootRef: scrollRef,
+    workspaceRef,
+    autoScroll,
+  });
   useTimelineClipHotkeys(Boolean(projectId));
 
   const scrubBlocked =
@@ -185,6 +193,7 @@ export const Tracks = memo(function Tracks({
   return (
     <div
       ref={scrollRef}
+      data-testid="timeline-tracks-scroll"
       className={`relative min-h-0 flex-1 overflow-auto transition-colors select-none ${
         dragOver ? "bg-[var(--accent-soft)]/20" : ""
       }`}

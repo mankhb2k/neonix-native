@@ -35,6 +35,7 @@ import {
   INDICATOR_TOP_EPS_PX,
   type TimelineDropTarget,
 } from "./lane-drop-target";
+import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 import type { DragGhostState } from "./useTracksDrag";
 import type { TimelineClip } from "@/lib/editor/timeline-clips";
 
@@ -51,6 +52,7 @@ type UseTimelineClipMoveArgs = {
   pixelsPerSecond: number;
   maxOverlayOrder: number;
   maxAudioOrder: number;
+  autoScroll: TimelineAutoScrollController;
 };
 
 type MoveSession = {
@@ -79,6 +81,7 @@ export function useTimelineClipMove({
   pixelsPerSecond,
   maxOverlayOrder,
   maxAudioOrder,
+  autoScroll,
 }: UseTimelineClipMoveArgs) {
   const insertGhostRef = useRef<HTMLDivElement>(null);
   const dropTargetRef = useRef<{
@@ -98,6 +101,8 @@ export function useTimelineClipMove({
   const ghostLeftRef = useRef(0);
   const sessionRef = useRef<MoveSession | null>(null);
   const laneCacheRef = useRef<LaneRectCache>(createEmptyLaneRectCache());
+  const pendingPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const moveRafRef = useRef<number | null>(null);
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -153,6 +158,13 @@ export function useTimelineClipMove({
         scrollContainerRef,
         workspaceRef,
         laneCacheRef.current,
+        () => {
+          const session = sessionRef.current;
+          const pending = pendingPointerRef.current;
+          if (session?.started && pending) {
+            schedulePointerMoveRef.current(pending.x, pending.y);
+          }
+        },
       ),
     [scrollContainerRef, workspaceRef],
   );
@@ -167,6 +179,7 @@ export function useTimelineClipMove({
   }
 
   function resetMoveUi() {
+    autoScroll.stop("clip-move");
     dropTargetRef.current = {
       isInsert: false,
       laneId: null,
@@ -234,6 +247,11 @@ export function useTimelineClipMove({
     const ws = workspaceRef.current;
     if (!ws) return;
 
+    autoScroll.updatePointer("clip-move", clientX, clientY, () => {
+      invalidateLaneRectCache(laneCacheRef.current);
+      applyPointerMoveRef.current(clientX, clientY);
+    });
+
     const family = session.source === "audio" ? "audio" : "visual";
     const target =
       family === "audio"
@@ -298,9 +316,6 @@ export function useTimelineClipMove({
       setIndicatorTopPos(target.indicatorTop);
     }
   }
-
-  const pendingPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const moveRafRef = useRef<number | null>(null);
 
   function schedulePointerMove(clientX: number, clientY: number) {
     // PERF-02: coalesce pointermove — tối đa một flush / animation frame.
@@ -452,9 +467,10 @@ export function useTimelineClipMove({
       if (moveRafRef.current != null) cancelAnimationFrame(moveRafRef.current);
       moveRafRef.current = null;
       pendingPointerRef.current = null;
+      autoScroll.stop("clip-move");
       cleanupExternalDragState();
     };
-  }, []);
+  }, [autoScroll]);
 
   function beginClipPointerDown(
     item: TimelineClip,

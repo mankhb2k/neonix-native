@@ -478,7 +478,7 @@ describe("empty-lane auto-removal across move", () => {
     );
   });
 
-  it("audio insertNewLane keeps the source lane so vertical movement persists", () => {
+  it("audio insertNewLane removes an empty source and normalizes the new lane", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -518,14 +518,16 @@ describe("empty-lane auto-removal across move", () => {
     const moved = state.timelineClips.find((c) => c.id === "a0");
     expect(moved?.laneId).toBeTruthy();
     expect(moved?.laneId).not.toBe("lane.audio.0");
-    // An explicit vertical insertion retains the source row. Otherwise the
-    // new row would collapse into the same visual position after normalize.
+    // Empty lanes never persist. With no other source data the created lane
+    // is normalized back to order 0.
     expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(
-      true,
+      false,
     );
     expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
-      2,
+      1,
     );
+    const movedLane = state.timelineLanes.find((l) => l.id === moved?.laneId);
+    expect(movedLane?.order).toBe(0);
   });
 
   it("audio insert onto empty lane reuses it, deletes source after move", () => {

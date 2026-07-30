@@ -14,6 +14,7 @@ import {
   shouldCommitPointerSession,
   type PointerSessionEndReason,
 } from "@/lib/editor/pointer-session";
+import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 
 const MARQUEE_THRESHOLD_PX = 4;
 
@@ -28,6 +29,9 @@ type Session = {
   pointerId: number;
   originClientX: number;
   originClientY: number;
+  /** Stable origin in workspace/content coordinates. */
+  originWorkspaceX: number;
+  originWorkspaceY: number;
   started: boolean;
   /** Snapshot selection lúc bắt đầu — dùng để rollback khi cancel. */
   selectionBefore: string[];
@@ -54,13 +58,19 @@ function shouldIgnoreTarget(target: EventTarget | null): boolean {
 }
 
 type Args = {
+  rootRef: RefObject<HTMLDivElement | null>;
   workspaceRef: RefObject<HTMLDivElement | null>;
+  autoScroll: TimelineAutoScrollController;
 };
 
 /**
  * CapCut-style marquee: drag on empty track runway to multi-select clips.
  */
-export function useMarqueeSelect({ workspaceRef }: Args) {
+export function useMarqueeSelect({
+  rootRef,
+  workspaceRef,
+  autoScroll,
+}: Args) {
   const sessionRef = useRef<Session | null>(null);
   const lastLiveIdsRef = useRef<string[]>([]);
   const [marqueeRect, setMarqueeRect] = useState<MarqueeRect | null>(null);
@@ -76,22 +86,50 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     return { x: clientX - r.left, y: clientY - r.top };
   }
 
+  function getTrackBounds(): { maxWorkspaceY: number; maxScrollTop: number } | null {
+    const ws = workspaceRef.current;
+    const root = rootRef.current;
+    if (!ws || !root) return null;
+
+    const lanes = ws.querySelectorAll<HTMLElement>("[data-track-lane='true']");
+    if (lanes.length === 0) return null;
+
+    const lastLane = lanes[lanes.length - 1];
+    const wsRect = ws.getBoundingClientRect();
+    const lastLaneRect = lastLane.getBoundingClientRect();
+
+    const PADDING_BOTTOM = 16;
+    const maxWorkspaceY = lastLaneRect.bottom - wsRect.top + PADDING_BOTTOM;
+
+    const rootRect = root.getBoundingClientRect();
+    const lastLaneBottomInScrollContent =
+      lastLaneRect.bottom - rootRect.top + root.scrollTop;
+    const maxScrollTop = Math.max(
+      0,
+      lastLaneBottomInScrollContent + PADDING_BOTTOM - root.clientHeight,
+    );
+
+    return { maxWorkspaceY, maxScrollTop };
+  }
+
   function buildMarquee(
-    ox: number,
-    oy: number,
-    cx: number,
-    cy: number,
+    originWorkspaceX: number,
+    originWorkspaceY: number,
+    currentClientX: number,
+    currentClientY: number,
+    maxWorkspaceY?: number,
   ): MarqueeRect | null {
-    const a = clientToWorkspace(ox, oy);
-    const b = clientToWorkspace(cx, cy);
-    if (!a || !b) return null;
-    const left = Math.min(a.x, b.x);
-    const top = Math.min(a.y, b.y);
+    const current = clientToWorkspace(currentClientX, currentClientY);
+    if (!current) return null;
+    const targetY =
+      maxWorkspaceY != null ? Math.min(current.y, maxWorkspaceY) : current.y;
+    const left = Math.min(originWorkspaceX, current.x);
+    const top = Math.min(originWorkspaceY, targetY);
     return {
       left,
       top,
-      width: Math.abs(a.x - b.x),
-      height: Math.abs(a.y - b.y),
+      width: Math.abs(originWorkspaceX - current.x),
+      height: Math.abs(originWorkspaceY - targetY),
     };
   }
 
@@ -100,15 +138,20 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
   const marqueeRafRef = useRef<number | null>(null);
 
   function hitTestCached(
-    originX: number,
-    originY: number,
-    clientX: number,
-    clientY: number,
+    originWorkspaceX: number,
+    originWorkspaceY: number,
+    currentClientX: number,
+    currentClientY: number,
+    maxWorkspaceY?: number,
   ): string[] {
-    const left = Math.min(originX, clientX);
-    const top = Math.min(originY, clientY);
-    const right = Math.max(originX, clientX);
-    const bottom = Math.max(originY, clientY);
+    const current = clientToWorkspace(currentClientX, currentClientY);
+    if (!current) return [];
+    const targetY =
+      maxWorkspaceY != null ? Math.min(current.y, maxWorkspaceY) : current.y;
+    const left = Math.min(originWorkspaceX, current.x);
+    const top = Math.min(originWorkspaceY, targetY);
+    const right = Math.max(originWorkspaceX, current.x);
+    const bottom = Math.max(originWorkspaceY, targetY);
     const box = { left, top, right, bottom };
     const ids: string[] = [];
     for (const r of clipRectsRef.current) {
@@ -133,11 +176,18 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       return;
     }
     const next: typeof clipRectsRef.current = [];
+    const workspaceRect = ws.getBoundingClientRect();
     for (const el of ws.querySelectorAll<HTMLElement>("[data-clip-id]")) {
       const id = el.getAttribute("data-clip-id");
       if (!id) continue;
       const r = el.getBoundingClientRect();
-      next.push({ id, left: r.left, top: r.top, right: r.right, bottom: r.bottom });
+      next.push({
+        id,
+        left: r.left - workspaceRect.left,
+        top: r.top - workspaceRect.top,
+        right: r.right - workspaceRect.left,
+        bottom: r.bottom - workspaceRect.top,
+      });
     }
     clipRectsRef.current = next;
   }
@@ -145,6 +195,8 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
   function endSession(reason: PointerSessionEndReason, clientX?: number) {
     const session = sessionRef.current;
     sessionRef.current = null;
+    pendingPointerRef.current = null;
+    autoScroll.stop("marquee");
     setMarqueeRect(null);
     setIsMarqueeing(false);
 
@@ -174,11 +226,16 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
     if (useEditorStore.getState().activeDragItem) return;
     if (shouldIgnoreTarget(event.target)) return;
 
+    const origin = clientToWorkspace(event.clientX, event.clientY);
+    if (!origin) return;
+
     event.preventDefault();
     sessionRef.current = {
       pointerId: event.pointerId,
       originClientX: event.clientX,
       originClientY: event.clientY,
+      originWorkspaceX: origin.x,
+      originWorkspaceY: origin.y,
       started: false,
       selectionBefore: [
         ...selectedClipIdsFrom(useEditorStore.getState().selection),
@@ -188,9 +245,13 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
 
   const buildMarqueeRef = useRef(buildMarquee);
   const cacheClipRectsRef = useRef(cacheClipRects);
+  const hitTestCachedRef = useRef(hitTestCached);
+  const getTrackBoundsRef = useRef(getTrackBounds);
   const endSessionRef = useRef(endSession);
   buildMarqueeRef.current = buildMarquee;
   cacheClipRectsRef.current = cacheClipRects;
+  hitTestCachedRef.current = hitTestCached;
+  getTrackBoundsRef.current = getTrackBounds;
   endSessionRef.current = endSession;
 
   useEffect(() => {
@@ -200,20 +261,24 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       const pending = pendingPointerRef.current;
       if (!session || !pending) return;
 
+      const bounds = getTrackBoundsRef.current();
+
       setMarqueeRect(
         buildMarqueeRef.current(
-          session.originClientX,
-          session.originClientY,
+          session.originWorkspaceX,
+          session.originWorkspaceY,
           pending.x,
           pending.y,
+          bounds?.maxWorkspaceY,
         ),
       );
 
-      const liveIds = hitTestCached(
-        session.originClientX,
-        session.originClientY,
+      const liveIds = hitTestCachedRef.current(
+        session.originWorkspaceX,
+        session.originWorkspaceY,
         pending.x,
         pending.y,
+        bounds?.maxWorkspaceY,
       );
       if (!selectionIdsEqual(liveIds, lastLiveIdsRef.current)) {
         lastLiveIdsRef.current = liveIds;
@@ -239,8 +304,20 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       }
 
       pendingPointerRef.current = { x: event.clientX, y: event.clientY };
-      if (marqueeRafRef.current != null) return;
-      marqueeRafRef.current = requestAnimationFrame(flushMarqueeMove);
+      const bounds = getTrackBoundsRef.current();
+      autoScroll.updatePointer(
+        "marquee",
+        event.clientX,
+        event.clientY,
+        () => {
+          if (marqueeRafRef.current != null) return;
+          marqueeRafRef.current = requestAnimationFrame(flushMarqueeMove);
+        },
+        { maxScrollTop: bounds?.maxScrollTop },
+      );
+      if (marqueeRafRef.current == null) {
+        marqueeRafRef.current = requestAnimationFrame(flushMarqueeMove);
+      }
     }
 
     function onPointerUp(event: PointerEvent) {
@@ -277,18 +354,29 @@ export function useMarqueeSelect({ workspaceRef }: Args) {
       endSessionRef.current("escape");
     }
 
+    function onTimelineScroll() {
+      const session = sessionRef.current;
+      if (!session?.started || !pendingPointerRef.current) return;
+      if (marqueeRafRef.current != null) return;
+      marqueeRafRef.current = requestAnimationFrame(flushMarqueeMove);
+    }
+
+    const root = rootRef.current;
     window.addEventListener("pointermove", onPointerMove);
     window.addEventListener("pointerup", onPointerUp);
     window.addEventListener("pointercancel", onPointerCancel);
     window.addEventListener("keydown", onKeyDown);
+    root?.addEventListener("scroll", onTimelineScroll, { passive: true });
     return () => {
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("pointerup", onPointerUp);
       window.removeEventListener("pointercancel", onPointerCancel);
       window.removeEventListener("keydown", onKeyDown);
+      root?.removeEventListener("scroll", onTimelineScroll);
+      autoScroll.stop("marquee");
       if (marqueeRafRef.current != null) cancelAnimationFrame(marqueeRafRef.current);
     };
-  }, []);
+  }, [autoScroll, rootRef]);
 
   return {
     marqueeRect,

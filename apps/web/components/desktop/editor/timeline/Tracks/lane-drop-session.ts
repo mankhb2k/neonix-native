@@ -114,16 +114,27 @@ export function bindLaneCacheInvalidation(
   scrollContainerRef: RefObject<HTMLElement | null>,
   workspaceRef: RefObject<HTMLElement | null>,
   cache: LaneRectCache,
+  onInvalidated?: () => void,
 ): () => void {
-  const invalidate = () => invalidateLaneRectCache(cache);
+  const invalidate = () => {
+    invalidateLaneRectCache(cache);
+    onInvalidated?.();
+  };
   const root = scrollContainerRef.current;
   const ws = workspaceRef.current;
   root?.addEventListener("scroll", invalidate, { passive: true });
   ws?.addEventListener("scroll", invalidate, { passive: true });
   window.addEventListener("resize", invalidate);
+  const resizeObserver =
+    typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(invalidate);
+  if (root) resizeObserver?.observe(root);
+  if (ws) resizeObserver?.observe(ws);
   return () => {
     root?.removeEventListener("scroll", invalidate);
     ws?.removeEventListener("scroll", invalidate);
     window.removeEventListener("resize", invalidate);
+    resizeObserver?.disconnect();
   };
 }

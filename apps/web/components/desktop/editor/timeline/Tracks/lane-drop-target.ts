@@ -37,17 +37,21 @@ export type TimelineDropTarget = {
 
 export type LaneDropPolicy = {
   family: "visual" | "audio";
+  /** Direction in which lane order increases away from Main. */
+  outwardDirection: "up" | "down";
   /** Visual may land on base body; audio never targets base as a clip body. */
   allowBaseTarget: boolean;
 };
 
 export const visualDropPolicy: LaneDropPolicy = {
   family: "visual",
+  outwardDirection: "up",
   allowBaseTarget: true,
 };
 
 export const audioDropPolicy: LaneDropPolicy = {
   family: "audio",
+  outwardDirection: "down",
   allowBaseTarget: false,
 };
 
@@ -197,25 +201,15 @@ function gapMid(upper: LaneHit, lower: LaneHit, wsTop: number): number {
   return (upper.bottom + lower.top) / 2 - wsTop;
 }
 
-function insertOrderAbove(lane: LaneHit, policy: LaneDropPolicy): number {
-  if (policy.family === "visual") {
-    if (lane.role === "overlay" && lane.order != null) return lane.order + 1;
-    return 0;
-  }
-  if (lane.order != null) return lane.order;
-  return 0;
-}
-
-function insertOrderBelow(
+function insertOrderAtEdge(
   lane: LaneHit,
+  edge: "top" | "bottom",
   policy: LaneDropPolicy,
-): number | null {
-  if (policy.family === "visual") {
-    if (lane.role !== "overlay" || lane.order == null) return null;
-    return lane.order;
-  }
+): number {
   if (lane.order == null) return 0;
-  return lane.order + 1;
+  const isOutwardEdge =
+    policy.outwardDirection === "up" ? edge === "top" : edge === "bottom";
+  return isOutwardEdge ? lane.order + 1 : lane.order;
 }
 
 function resolveInsideLane(
@@ -235,37 +229,20 @@ function resolveInsideLane(
   const nearTopEnter = relY <= LANE_INSERT_ENTER_PX;
   const nearBottomEnter = relY >= h - LANE_INSERT_ENTER_PX;
 
-  const insertAbove = (): TimelineDropTarget => {
+  const insertAtEdge = (edge: "top" | "bottom"): TimelineDropTarget => {
+    const neighbor = edge === "top" ? prev : next;
     const indicatorTop =
-      prev != null ? gapMid(prev, lane, wsTop) : lane.top - wsTop - 1;
+      neighbor != null
+        ? edge === "top"
+          ? gapMid(neighbor, lane, wsTop)
+          : gapMid(lane, neighbor, wsTop)
+        : (edge === "top" ? lane.top : lane.bottom) - wsTop - 1;
     return {
       family,
       isInsert: true,
       laneId: null,
-      insertOrder: insertOrderAbove(lane, policy),
-      indicatorTop,
-    };
-  };
-
-  const insertBelow = (): TimelineDropTarget => {
-    const order = insertOrderBelow(lane, policy);
-    if (order == null) {
-      return {
-        family,
-        isInsert: false,
-        laneId: null,
-        insertOrder: null,
-        indicatorTop: 0,
-        overBaseBody: false,
-      };
-    }
-    const indicatorTop =
-      next != null ? gapMid(lane, next, wsTop) : lane.bottom - wsTop - 1;
-    return {
-      family,
-      isInsert: true,
-      laneId: null,
-      insertOrder: order,
+      insertOrder:
+        lane.role === "base" ? 0 : insertOrderAtEdge(lane, edge, policy),
       indicatorTop,
     };
   };
@@ -303,21 +280,26 @@ function resolveInsideLane(
   // Visual base: only top-edge insert with narrow band (4px).
   // Symmetric enter/exit — once pointer moves >4px from top, exit insert mode.
   // Never bottom-edge insert. Inside the body → target base.
-  if (family === "visual" && lane.role === "base") {
+  if (lane.role === "base") {
+    const outwardEdge = policy.outwardDirection === "up" ? "top" : "bottom";
+    if (!policy.allowBaseTarget) return insertAtEdge(outwardEdge);
     const baseBandPx = 4;
-    const nearBaseTop = relY <= baseBandPx;
-    if (nearBaseTop) return insertAbove();
+    const distanceFromOutwardEdge =
+      outwardEdge === "top" ? relY : h - relY;
+    if (distanceFromOutwardEdge <= baseBandPx) {
+      return insertAtEdge(outwardEdge);
+    }
     return body();
   }
 
   if (!wasInsert) {
-    if (nearTopEnter) return insertAbove();
-    if (nearBottomEnter) return insertBelow();
+    if (nearTopEnter) return insertAtEdge("top");
+    if (nearBottomEnter) return insertAtEdge("bottom");
     return body();
   }
   if (inBodyClear) return body();
-  if (relY < h / 2) return insertAbove();
-  return insertBelow();
+  if (relY < h / 2) return insertAtEdge("top");
+  return insertAtEdge("bottom");
 }
 
 /**
@@ -333,74 +315,32 @@ export function resolveLaneDropTarget(
   policy: LaneDropPolicy,
 ): TimelineDropTarget | null {
   if (lanes.length === 0) return null;
-
-  if (policy.family === "audio") {
-    return resolveAudioZone(clientY, lanes, wsTop, wasInsert, maxFamilyOrder);
-  }
-  return resolveVisualZone(clientY, lanes, wsTop, wasInsert, maxFamilyOrder);
+  return resolveStackZone(
+    clientY,
+    lanes,
+    wsTop,
+    wasInsert,
+    maxFamilyOrder,
+    policy,
+  );
 }
 
-function resolveVisualZone(
-  clientY: number,
-  lanes: LaneHit[],
+function isStackLane(lane: LaneHit, policy: LaneDropPolicy): boolean {
+  if (lane.role === "placeholder") return true;
+  return policy.family === "visual"
+    ? lane.role === "overlay"
+    : lane.role === "audio";
+}
+
+function targetAtBase(
+  base: LaneHit,
+  stackLanes: LaneHit[],
   wsTop: number,
-  wasInsert: boolean,
-  maxOverlayOrder: number,
-): TimelineDropTarget | null {
-  const policy = visualDropPolicy;
-  const first = lanes[0];
-  if (clientY < first.top) {
+  policy: LaneDropPolicy,
+): TimelineDropTarget {
+  if (policy.allowBaseTarget) {
     return {
-      family: "visual",
-      isInsert: true,
-      laneId: null,
-      insertOrder: maxOverlayOrder + 1,
-      indicatorTop: first.top - wsTop - 1,
-    };
-  }
-
-  for (let i = 0; i < lanes.length; i++) {
-    const lane = lanes[i];
-    const next = lanes[i + 1];
-    const prev = i > 0 ? lanes[i - 1] : undefined;
-
-    if (next && clientY > lane.bottom && clientY < next.top) {
-      if (lane.role === "overlay" && lane.order != null) {
-        return {
-          family: "visual",
-          isInsert: true,
-          laneId: null,
-          insertOrder: lane.order,
-          indicatorTop: gapMid(lane, next, wsTop),
-        };
-      }
-      return {
-        family: "visual",
-        isInsert: true,
-        laneId: null,
-        insertOrder: 0,
-        indicatorTop: gapMid(lane, next, wsTop),
-      };
-    }
-
-    if (clientY >= lane.top && clientY <= lane.bottom) {
-      return resolveInsideLane(
-        clientY,
-        lane,
-        next,
-        prev,
-        wsTop,
-        wasInsert,
-        policy,
-      );
-    }
-  }
-
-  const last = lanes[lanes.length - 1];
-  // Pointer below base lane → body (overBaseBody), never insert below base.
-  if (last.role === "base" && clientY > last.bottom) {
-    return {
-      family: "visual",
+      family: policy.family,
       isInsert: false,
       laneId: null,
       insertOrder: null,
@@ -408,27 +348,18 @@ function resolveVisualZone(
       overBaseBody: true,
     };
   }
-  const prev = lanes.length > 1 ? lanes[lanes.length - 2] : undefined;
-  return resolveInsideLane(
-    clientY,
-    last,
-    undefined,
-    prev,
-    wsTop,
-    wasInsert,
-    policy,
-  );
-}
-
-function insertBelowBase(
-  base: LaneHit,
-  next: LaneHit | undefined,
-  wsTop: number,
-): TimelineDropTarget {
-  const indicatorTop =
-    next != null ? gapMid(base, next, wsTop) : base.bottom - wsTop - 1;
+  const closest = [...stackLanes].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0),
+  )[0];
+  const indicatorTop = closest
+    ? policy.outwardDirection === "up"
+      ? gapMid(closest, base, wsTop)
+      : gapMid(base, closest, wsTop)
+    : (policy.outwardDirection === "up" ? base.top : base.bottom) -
+      wsTop -
+      1;
   return {
-    family: "audio",
+    family: policy.family,
     isInsert: true,
     laneId: null,
     insertOrder: 0,
@@ -436,38 +367,92 @@ function insertBelowBase(
   };
 }
 
-function resolveAudioZone(
+function targetBeyondOutermost(
+  base: LaneHit | undefined,
+  stackLanes: LaneHit[],
+  wsTop: number,
+  maxFamilyOrder: number,
+  policy: LaneDropPolicy,
+): TimelineDropTarget | null {
+  const outermost = [...stackLanes].sort(
+    (a, b) => (b.order ?? 0) - (a.order ?? 0),
+  )[0];
+  const boundary = outermost ?? base;
+  if (!boundary) return null;
+  return {
+    family: policy.family,
+    isInsert: true,
+    laneId: null,
+    insertOrder: maxFamilyOrder + 1,
+    indicatorTop:
+      (policy.outwardDirection === "up" ? boundary.top : boundary.bottom) -
+      wsTop -
+      1,
+  };
+}
+
+/**
+ * One resolver for both lane stacks. `order` is always distance from Main;
+ * overlay grows upward and audio grows downward.
+ */
+function resolveStackZone(
   clientY: number,
   lanes: LaneHit[],
   wsTop: number,
   wasInsert: boolean,
-  maxAudioOrder: number,
+  maxFamilyOrder: number,
+  policy: LaneDropPolicy,
 ): TimelineDropTarget | null {
-  const policy = audioDropPolicy;
-  const base = lanes.find((lane) => lane.role === "base");
-  const audios = lanes.filter(
-    (lane) => lane.role === "audio" || lane.role === "placeholder",
-  );
+  const ordered = lanes
+    .filter((lane) => lane.role === "base" || isStackLane(lane, policy))
+    .sort((a, b) => a.top - b.top);
+  if (ordered.length === 0) return null;
 
-  if (base && clientY <= base.bottom) {
-    return insertBelowBase(base, audios[0], wsTop);
+  const base = ordered.find((lane) => lane.role === "base");
+  const stackLanes = ordered.filter((lane) => isStackLane(lane, policy));
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+
+  if (clientY < first.top) {
+    if (policy.outwardDirection === "up") {
+      return targetBeyondOutermost(
+        base,
+        stackLanes,
+        wsTop,
+        maxFamilyOrder,
+        policy,
+      );
+    }
+    return base ? targetAtBase(base, stackLanes, wsTop, policy) : null;
   }
 
-  if (audios.length === 0 && base) {
-    return insertBelowBase(base, undefined, wsTop);
+  if (clientY > last.bottom) {
+    if (policy.outwardDirection === "down") {
+      return targetBeyondOutermost(
+        base,
+        stackLanes,
+        wsTop,
+        maxFamilyOrder,
+        policy,
+      );
+    }
+    return base ? targetAtBase(base, stackLanes, wsTop, policy) : null;
   }
 
-  for (let i = 0; i < audios.length; i++) {
-    const lane = audios[i];
-    const next = audios[i + 1];
-    const prev = i > 0 ? audios[i - 1] : (base ?? undefined);
+  for (let i = 0; i < ordered.length; i++) {
+    const lane = ordered[i];
+    const next = ordered[i + 1];
+    const prev = i > 0 ? ordered[i - 1] : undefined;
 
     if (next && clientY > lane.bottom && clientY < next.top) {
       return {
-        family: "audio",
+        family: policy.family,
         isInsert: true,
         laneId: null,
-        insertOrder: (lane.order ?? i) + 1,
+        insertOrder:
+          lane.role === "base" || next.role === "base"
+            ? 0
+            : insertOrderAtEdge(lane, "bottom", policy),
         indicatorTop: gapMid(lane, next, wsTop),
       };
     }
@@ -484,39 +469,7 @@ function resolveAudioZone(
       );
     }
   }
-
-  const last = audios[audios.length - 1];
-  if (last && clientY > last.bottom) {
-    return {
-      family: "audio",
-      isInsert: true,
-      laneId: null,
-      insertOrder: Math.max(maxAudioOrder + 1, (last.order ?? 0) + 1),
-      indicatorTop: last.bottom - wsTop - 1,
-    };
-  }
-
-  if (last) {
-    const prev =
-      audios.length > 1 ? audios[audios.length - 2] : (base ?? undefined);
-    return resolveInsideLane(
-      clientY,
-      last,
-      undefined,
-      prev,
-      wsTop,
-      wasInsert,
-      policy,
-    );
-  }
-
-  return {
-    family: "audio",
-    isInsert: true,
-    laneId: null,
-    insertOrder: 0,
-    indicatorTop: 0,
-  };
+  return null;
 }
 
 /**

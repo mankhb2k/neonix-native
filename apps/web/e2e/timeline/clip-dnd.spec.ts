@@ -41,10 +41,16 @@ test.describe("timeline cross-lane DnD", () => {
     expect(movedLaneId).toBeTruthy();
     expect(movedLaneId).not.toBe("lane.audio.0");
     expect(movedLaneId).not.toBe("lane.audio.1");
-    await editor.expectLaneExists("lane.audio.0");
+    await editor.expectLaneRemoved("lane.audio.0");
     await expect(
       page.locator('[data-track-lane][data-track-type="audio"]'),
-    ).toHaveCount(3);
+    ).toHaveCount(2);
+    const existingClipBox = await editor.clip("a1").boundingBox();
+    const movedClipBox = await clip.boundingBox();
+    if (!existingClipBox || !movedClipBox) {
+      throw new Error("missing audio clip boxes after drop");
+    }
+    expect(movedClipBox.y).toBeGreaterThan(existingClipBox.y);
   });
 
   test("overlay: move to dest lane, empty source lane removed, reload", async ({
