@@ -13,6 +13,7 @@ import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import {
   TIMELINE_LABEL_WIDTH,
+  TIMELINE_PLAYHEAD_GUTTER_PX,
   TIMELINE_TRACKS_ORIGIN_X,
 } from "../timeline-scale";
 import { TimelineWorkspaceContextMenu } from "./TimelineWorkspaceContextMenu";
@@ -182,7 +183,14 @@ export const Tracks = memo(function Tracks({
 
   if (!projectId) {
     return (
-      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto" />
+      <div className="relative min-h-0 flex-1">
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 z-30 bg-[var(--bg)]"
+          style={{ width: TIMELINE_PLAYHEAD_GUTTER_PX }}
+          aria-hidden
+        />
+        <div ref={scrollRef} className="relative min-h-0 h-full overflow-auto" />
+      </div>
     );
   }
   const isTimelineEmpty = timelineClips.length === 0;
@@ -195,27 +203,37 @@ export const Tracks = memo(function Tracks({
   }
 
   return (
-    <div
-      ref={scrollRef}
-      data-testid="timeline-tracks-scroll"
-      className="relative min-h-0 flex-1 overflow-x-scroll overflow-y-auto transition-colors select-none"
-      onScroll={(event) => {
-        onScrollLeft(event.currentTarget.scrollLeft);
-        onScrollTop?.(event.currentTarget.scrollTop);
-      }}
-      onDragOver={sidebarDrag.handleDragOver}
-      onDragEnter={sidebarDrag.handleDragEnter}
-      onDragLeave={sidebarDrag.handleDragLeave}
-      onDrop={sidebarDrag.handleDrop}
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) {
-          clearTimelineSelection();
-        }
-      }}
-    >
+    <div className="relative min-h-0 flex-1">
+      {/* Fixed at label edge — not a sticky scroll column */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-30 bg-[var(--bg)]"
+        style={{ width: TIMELINE_PLAYHEAD_GUTTER_PX }}
+        aria-hidden
+      />
+      <div
+        ref={scrollRef}
+        data-testid="timeline-tracks-scroll"
+        className="relative min-h-0 h-full overflow-x-scroll overflow-y-auto transition-colors select-none"
+        onScroll={(event) => {
+          onScrollLeft(event.currentTarget.scrollLeft);
+          onScrollTop?.(event.currentTarget.scrollTop);
+        }}
+        onDragOver={sidebarDrag.handleDragOver}
+        onDragEnter={sidebarDrag.handleDragEnter}
+        onDragLeave={sidebarDrag.handleDragLeave}
+        onDrop={sidebarDrag.handleDrop}
+        onPointerDown={(event) => {
+          if (event.target === event.currentTarget) {
+            clearTimelineSelection();
+          }
+        }}
+      >
       <div
         className="relative min-h-full flex flex-col flex-1"
-        style={{ minWidth: canvasMinWidth }}
+        style={{
+          minWidth: canvasMinWidth + TIMELINE_PLAYHEAD_GUTTER_PX,
+          paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX,
+        }}
       >
         {isTimelineEmpty ? (
           <TimelineWorkspaceContextMenu
@@ -451,6 +469,7 @@ export const Tracks = memo(function Tracks({
             })}
           </TimelineWorkspaceContextMenu>
         )}
+      </div>
       </div>
     </div>
   );

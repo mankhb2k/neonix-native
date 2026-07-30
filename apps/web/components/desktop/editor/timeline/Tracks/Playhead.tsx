@@ -11,8 +11,9 @@ import {
 } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 
-/** Convert pointer X → timeline seconds (scroll container is the tracks canvas). */
+/** Convert pointer X → timeline seconds (tracks column; subtract playhead gutter). */
 export function clientXToTimelineTime(
   clientX: number,
   scrollContainer: HTMLElement,
@@ -22,7 +23,11 @@ export function clientXToTimelineTime(
 ): number {
   void _tracksOriginX;
   const rect = scrollContainer.getBoundingClientRect();
-  const x = clientX - rect.left + scrollContainer.scrollLeft;
+  const x =
+    clientX -
+    rect.left +
+    scrollContainer.scrollLeft -
+    TIMELINE_PLAYHEAD_GUTTER_PX;
   const time = x / Math.max(pixelsPerSecond, 1);
   return Math.min(Math.max(0, time), Math.max(0, maxTime));
 }

@@ -26,7 +26,7 @@ type Props = {
 
 /**
  * Board under TransportBar: fixed TimeRuler + scrollable Tracks + viewport playhead.
- * Does not subscribe to currentTime — playhead follows the playback clock imperatively.
+ * Sticky edge stays at the label column; playhead gutter is an overlay inside tracks.
  */
 export function TimelineBoard({ zoom }: Props) {
   void zoom;
@@ -69,6 +69,7 @@ export function TimelineBoard({ zoom }: Props) {
   }, [projectId, timelineFitRevision]);
 
   const contentEnd = clipsContentEndSeconds(timelineClips);
+  // Visible time canvas = board − labels − gutter overlay.
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_TRACKS_ORIGIN_X);
 
   const anchorSeconds =
@@ -96,8 +97,6 @@ export function TimelineBoard({ zoom }: Props) {
 
   const seekEnabled = !scrubBlocked && activeDragItem == null;
 
-  const boardColumns = `${TIMELINE_LABEL_WIDTH}px ${TIMELINE_PLAYHEAD_GUTTER_PX}px minmax(0, 1fr)`;
-
   return (
     <div
       ref={boardRef}
@@ -111,53 +110,51 @@ export function TimelineBoard({ zoom }: Props) {
         enabled={seekEnabled}
       />
 
+      {/* Sticky at label: 2 columns — gutter is overlay inside the tracks column */}
       <div
         ref={rulerHeaderRef}
-        className="grid shrink-0 overflow-hidden bg-[var(--bg-panel)]"
-        style={{ gridTemplateColumns: boardColumns }}
+        className="grid shrink-0 grid-cols-[96px_minmax(0,1fr)] overflow-hidden bg-[var(--bg-panel)]"
       >
         <div
           className="relative z-50 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
-          style={{ height: 28 }}
+          style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
         />
-        {/* CapCut playhead gutter — t=0 handle sits here */}
-        <div
-          className="relative z-30 bg-[var(--bg)]"
-          style={{ height: 28 }}
-          aria-hidden
-        />
-        <div className="min-w-0 overflow-hidden">
-          <TimeRuler
-            duration={rulerDuration}
-            fps={fps}
-            pixelsPerSecond={pixelsPerSecond}
-            viewWidth={trackViewWidth}
-            scrollLeft={scrollLeft}
-            onSeekClick={
-              seekEnabled
-                ? (clientX) => {
-                    const root = tracksScrollRef.current;
-                    if (!root) return;
-                    seek(
-                      clientXToTimelineTime(
-                        clientX,
-                        root,
-                        TIMELINE_TRACKS_ORIGIN_X,
-                        pixelsPerSecond,
-                        contentEnd,
-                      ),
-                    );
-                  }
-                : undefined
-            }
+        <div className="relative min-w-0 overflow-hidden">
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 z-30 bg-[var(--bg)]"
+            style={{ width: TIMELINE_PLAYHEAD_GUTTER_PX }}
+            aria-hidden
           />
+          <div style={{ paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX }}>
+            <TimeRuler
+              duration={rulerDuration}
+              fps={fps}
+              pixelsPerSecond={pixelsPerSecond}
+              viewWidth={trackViewWidth}
+              scrollLeft={scrollLeft}
+              onSeekClick={
+                seekEnabled
+                  ? (clientX) => {
+                      const root = tracksScrollRef.current;
+                      if (!root) return;
+                      seek(
+                        clientXToTimelineTime(
+                          clientX,
+                          root,
+                          TIMELINE_TRACKS_ORIGIN_X,
+                          pixelsPerSecond,
+                          contentEnd,
+                        ),
+                      );
+                    }
+                  : undefined
+              }
+            />
+          </div>
         </div>
       </div>
 
-      <div
-        className="grid min-h-0 flex-1 overflow-hidden"
-        style={{ gridTemplateColumns: boardColumns }}
-      >
+      <div className="grid min-h-0 flex-1 grid-cols-[96px_minmax(0,1fr)] overflow-hidden">
         <TimelineLaneLabels
           labelWidth={TIMELINE_LABEL_WIDTH}
           timelineLanes={timelineLanes}
@@ -168,7 +165,6 @@ export function TimelineBoard({ zoom }: Props) {
             }
           }}
         />
-        <div className="min-h-0 bg-[var(--bg)]" aria-hidden />
         <Tracks
           scrollRef={tracksScrollRef}
           rulerHeaderRef={rulerHeaderRef}

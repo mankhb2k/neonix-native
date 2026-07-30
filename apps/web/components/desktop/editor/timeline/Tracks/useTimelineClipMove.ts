@@ -37,6 +37,7 @@ import {
 import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 import type { DragGhostState } from "./useTracksDrag";
 import type { TimelineClip } from "@/lib/editor/timeline-clips";
+import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 
 /** Cyan h-8 vertically centered; left edge on cursor (same as sidebar timeline drag). */
 const CYAN_ANCHOR_X = 0;
@@ -203,7 +204,8 @@ export function useTimelineClipMove({
     const root = scrollContainerRef.current;
     if (!root) return 0;
     const rect = root.getBoundingClientRect();
-    const mouseX = clientX - rect.left + root.scrollLeft;
+    const mouseX =
+      clientX - rect.left + root.scrollLeft - TIMELINE_PLAYHEAD_GUTTER_PX;
     return Math.max(0, mouseX - grabOffsetX);
   }
 

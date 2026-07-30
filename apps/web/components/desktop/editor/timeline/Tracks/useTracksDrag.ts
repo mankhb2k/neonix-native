@@ -37,6 +37,7 @@ import {
   type TimelineDropTarget,
 } from "./lane-drop-target";
 import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
+import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 
 /** Lane ghost preview — chỉ field UI thật sự render. */
 export type DragGhostState = {
@@ -262,7 +263,8 @@ export function useTracksDrag({
     if (!root || !ws) return;
 
     const bounds = root.getBoundingClientRect();
-    const mouseX = clientX - bounds.left + root.scrollLeft;
+    const mouseX =
+      clientX - bounds.left + root.scrollLeft - TIMELINE_PLAYHEAD_GUTTER_PX;
     const left = Math.max(0, mouseX);
     ghostLeftRef.current = left;
     setDragGhostLayout(left, ghostWidth);
