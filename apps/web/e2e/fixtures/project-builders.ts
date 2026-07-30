@@ -1,0 +1,331 @@
+/**
+ * Minimal MotionProject + timeline builders for Playwright seeding.
+ * Keep JSON plain — runs in Node and is serialized into page.addInitScript.
+ */
+
+export const STORAGE_KEY = "motionvideo.projects";
+export const STORAGE_VERSION = 1;
+
+const DEFAULT_POLICY = { allowOverlap: false, rippleMode: false } as const;
+
+export type StoredEditorProject = {
+  storageVersion: number;
+  savedAt: string;
+  project: Record<string, unknown>;
+  timelineClips: TimelineClipSeed[];
+  timelineLanes: TimelineLaneSeed[];
+  overlayScenes: unknown[];
+};
+
+export type TimelineLaneSeed = {
+  id: string;
+  kind: "visual" | "audio";
+  role: "base" | "overlay" | "audio";
+  name: string;
+  order: number;
+  policy?: typeof DEFAULT_POLICY;
+  locked?: boolean;
+  muted?: boolean;
+  visible?: boolean;
+};
+
+export type TimelineClipSeed = {
+  id: string;
+  kind: "scene" | "audio";
+  laneId: string;
+  startTime: number;
+  duration: number;
+  name: string;
+  sceneId?: string;
+  audioTrackId?: string;
+  assetId?: string;
+};
+
+function textNode(id: string, text: string) {
+  return {
+    id,
+    type: "text" as const,
+    parentId: null,
+    transform: {
+      x: 40,
+      y: 40,
+      width: 200,
+      height: 40,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0,
+      anchorY: 0,
+      opacity: 1,
+      visible: true,
+      flipX: false,
+      flipY: false,
+    },
+    payload: { text, fontSize: 24, fontWeight: 600, align: "left" as const },
+    style: { fill: "#111111" },
+  };
+}
+
+function scene(id: string, name: string, duration: number) {
+  return {
+    id,
+    duration,
+    nodes: [textNode(`${id}.title`, name)],
+    clips: [] as unknown[],
+  };
+}
+
+export function baseLane(id = "lane.main"): TimelineLaneSeed {
+  return {
+    id,
+    kind: "visual",
+    role: "base",
+    name: "Main",
+    order: -1,
+    policy: { ...DEFAULT_POLICY },
+  };
+}
+
+export function overlayLane(
+  id: string,
+  order: number,
+  name: string,
+): TimelineLaneSeed {
+  return {
+    id,
+    kind: "visual",
+    role: "overlay",
+    name,
+    order,
+    policy: { ...DEFAULT_POLICY },
+  };
+}
+
+export function audioLane(
+  id: string,
+  order: number,
+  name: string,
+): TimelineLaneSeed {
+  return {
+    id,
+    kind: "audio",
+    role: "audio",
+    name,
+    order,
+  };
+}
+
+export function sceneClip(input: {
+  id: string;
+  sceneId: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+  name: string;
+}): TimelineClipSeed {
+  return { kind: "scene", ...input };
+}
+
+export function audioClip(input: {
+  id: string;
+  audioTrackId: string;
+  assetId: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+  name: string;
+}): TimelineClipSeed {
+  return { kind: "audio", ...input };
+}
+
+export function buildStoredProject(input: {
+  projectId: string;
+  name: string;
+  scenes: ReturnType<typeof scene>[];
+  clips: TimelineClipSeed[];
+  lanes: TimelineLaneSeed[];
+  audioTracks?: Array<Record<string, unknown>>;
+  assets?: Array<Record<string, unknown>>;
+}): StoredEditorProject {
+  const project = {
+    format: "motion-project",
+    formatVersion: 2,
+    metadata: {
+      id: input.projectId,
+      name: input.name,
+      aspectRatio: "16:9",
+      fps: 30,
+      locale: "vi-VN",
+      brand: { name: "E2E", primaryColor: "#1A5D3A" },
+    },
+    dependencies: { components: [] },
+    assets: input.assets ?? [],
+    variables: [],
+    timeline: {
+      sceneOrder: input.scenes.map((s) => s.id),
+      audioTracks: input.audioTracks ?? [],
+    },
+    scenes: input.scenes,
+    bindings: [],
+    extensions: { constraints: [], events: [] },
+  };
+
+  return {
+    storageVersion: STORAGE_VERSION,
+    savedAt: new Date().toISOString(),
+    project,
+    timelineClips: input.clips,
+    timelineLanes: input.lanes,
+    overlayScenes: [],
+  };
+}
+
+/** Single base clip — persistence / scrub smoke. */
+export function buildMainOnlyProject(projectId = "e2e.editor.persistence") {
+  return buildStoredProject({
+    projectId,
+    name: "E2E Editor",
+    scenes: [scene("scene.main", "E2E Clip", 4)],
+    clips: [
+      sceneClip({
+        id: "clip.main",
+        sceneId: "scene.main",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 4,
+        name: "E2E Clip",
+      }),
+    ],
+    lanes: [baseLane()],
+  });
+}
+
+/** Two overlay lanes + base — cross-lane overlay DnD. */
+export function buildOverlayCrossLaneProject(
+  projectId = "e2e.editor.crosslane",
+) {
+  return buildStoredProject({
+    projectId,
+    name: "E2E Cross Lane Overlay",
+    scenes: [
+      scene("scene.main", "Main", 4),
+      scene("scene.ov", "OvClip", 2),
+      scene("scene.ov2", "DestClip", 1),
+    ],
+    clips: [
+      sceneClip({
+        id: "clip.main",
+        sceneId: "scene.main",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 4,
+        name: "MainClip",
+      }),
+      sceneClip({
+        id: "clip.ov",
+        sceneId: "scene.ov",
+        laneId: "lane.overlay.0",
+        startTime: 0,
+        duration: 2,
+        name: "OvClip",
+      }),
+      sceneClip({
+        id: "clip.dest",
+        sceneId: "scene.ov2",
+        laneId: "lane.overlay.1",
+        startTime: 3,
+        duration: 1,
+        name: "DestClip",
+      }),
+    ],
+    lanes: [
+      baseLane(),
+      overlayLane("lane.overlay.0", 0, "Lớp 1"),
+      overlayLane("lane.overlay.1", 1, "Lớp 2"),
+    ],
+  });
+}
+
+/** Two audio lanes + base — cross-lane audio DnD. */
+export function buildAudioCrossLaneProject(projectId = "e2e.editor.audio-cross") {
+  return buildStoredProject({
+    projectId,
+    name: "E2E Cross Lane Audio",
+    scenes: [scene("scene.main", "Main", 6)],
+    assets: [
+      {
+        id: "asset.audio.a",
+        assetType: "audio",
+        uri: "assets/a.mp3",
+        integrity: "sha256-e2e-a",
+        mimeType: "audio/mpeg",
+        duration: 2,
+        codec: "mp3",
+        sampleRate: 44100,
+        channels: 2,
+      },
+      {
+        id: "asset.audio.b",
+        assetType: "audio",
+        uri: "assets/b.mp3",
+        integrity: "sha256-e2e-b",
+        mimeType: "audio/mpeg",
+        duration: 2,
+        codec: "mp3",
+        sampleRate: 44100,
+        channels: 2,
+      },
+    ],
+    audioTracks: [
+      {
+        id: "a0",
+        role: "sfx",
+        assetId: "asset.audio.a",
+        start: 0,
+        volume: 1,
+      },
+      {
+        id: "a1",
+        role: "sfx",
+        assetId: "asset.audio.b",
+        start: 3,
+        volume: 1,
+      },
+    ],
+    clips: [
+      sceneClip({
+        id: "clip.main",
+        sceneId: "scene.main",
+        laneId: "lane.main",
+        startTime: 0,
+        duration: 6,
+        name: "MainClip",
+      }),
+      audioClip({
+        id: "a0",
+        audioTrackId: "a0",
+        assetId: "asset.audio.a",
+        laneId: "lane.audio.0",
+        startTime: 0,
+        duration: 2,
+        name: "AudioA",
+      }),
+      audioClip({
+        id: "a1",
+        audioTrackId: "a1",
+        assetId: "asset.audio.b",
+        laneId: "lane.audio.1",
+        startTime: 3,
+        duration: 2,
+        name: "AudioB",
+      }),
+    ],
+    lanes: [
+      baseLane(),
+      audioLane("lane.audio.0", 0, "Audio 1"),
+      audioLane("lane.audio.1", 1, "Audio 2"),
+    ],
+  });
+}
+
+export { scene, textNode };
