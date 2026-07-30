@@ -42,6 +42,9 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
     };
   }, []);
 
+  const timelineZoomMode = useEditorStore((s) => s.timelineZoomMode);
+  const fitTimeline = useEditorStore((s) => s.fitTimeline);
+
   function commitZoom(next: number) {
     const clamped = Math.min(TIMELINE_ZOOM_MAX, Math.max(TIMELINE_ZOOM_MIN, next));
     setSliderZoom(clamped);
@@ -86,7 +89,7 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
       <div className="flex items-center justify-end gap-2 text-[var(--fg-muted)]">
         <EditActions />
         <div className="h-4 w-px shrink-0 bg-[var(--border-subtle)]" aria-hidden />
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" title="Double click slider to Fit">
           <Button
             type="button"
             variant="ghost"
@@ -104,6 +107,9 @@ export function TransportBar({ zoom, onZoomChange }: Props) {
             value={sliderZoom}
             aria-label="Zoom timeline"
             onChange={(event) => commitZoom(Number(event.target.value))}
+            onDoubleClick={() => {
+              fitTimeline();
+            }}
             className="timeline-zoom-slider h-1 w-[88px] cursor-pointer accent-[var(--fg)]"
           />
           <Button
