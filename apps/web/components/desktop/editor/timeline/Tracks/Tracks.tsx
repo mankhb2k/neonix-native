@@ -348,7 +348,7 @@ export const Tracks = memo(function Tracks({
                   className="absolute z-40 h-px bg-[#14B8A6] pointer-events-none"
                   style={{
                     top: indicatorTopPos,
-                    left: TIMELINE_LABEL_WIDTH,
+                    left: 0,
                     width: Math.max(canvasWidth, trackViewWidth),
                   }}
                 />

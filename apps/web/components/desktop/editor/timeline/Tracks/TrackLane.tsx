@@ -80,13 +80,15 @@ export function TrackLane({
       data-placeholder={dataPlaceholder ? "true" : undefined}
       className={`group relative flex items-center ${resolvedHeightClass} ${bgClass} ${borderClass} transition-colors`}
     >
-      <div
-        className="sticky left-0 z-20 flex h-full shrink-0 items-center justify-center gap-1 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2"
-        style={{ width: labelWidth }}
-        data-marquee-ignore="true"
-      >
-        {leftControl}
-      </div>
+      {leftControl && (
+        <div
+          className="sticky left-0 z-20 flex h-full shrink-0 items-center justify-center gap-1 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2"
+          style={{ width: labelWidth }}
+          data-marquee-ignore="true"
+        >
+          {leftControl}
+        </div>
+      )}
 
       <div
         className="relative h-full flex-1 flex items-center py-[1px]"

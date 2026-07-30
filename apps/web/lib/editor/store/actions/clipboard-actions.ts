@@ -279,13 +279,24 @@ export function createClipboardActions(
           scenes,
           timeline: { ...nextProject.timeline, audioTracks },
         };
+        const wasEmpty = state.timelineClips.length === 0;
         lanes = normalizeLaneOrders(lanes);
         nextProject = rebuildMainProject(nextProject, clips, lanes);
+        const firstPastedClip = clips[state.timelineClips.length];
         return {
           project: nextProject,
           timelineLanes: lanes,
           timelineClips: clips,
           selection: selectionClips(newIds),
+          ...(wasEmpty && firstPastedClip
+            ? {
+                timelineFitAnchorSeconds: firstPastedClip.duration,
+                timelineZoomMode: "fit",
+                timelineZoomScale: 1.0,
+                timelineZoom: 50,
+                timelineFitRevision: state.timelineFitRevision + 1,
+              }
+            : {}),
         };
       });
     },

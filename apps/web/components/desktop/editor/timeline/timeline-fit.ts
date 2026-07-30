@@ -5,8 +5,10 @@ export const TIMELINE_MIN_FIT_SPAN_SECONDS = 3;
 export const TIMELINE_FIT_ZOOM_SCALE = 1;
 export const ZOOM_OCTAVES = 4;
 
-export function timelineFitSpanSeconds(anchorDuration: number): number {
-  if (anchorDuration <= 0) return TIMELINE_EMPTY_SPAN_SECONDS;
+export function timelineFitSpanSeconds(anchorDuration: number | null): number {
+  if (anchorDuration == null || anchorDuration <= 0) {
+    return TIMELINE_EMPTY_SPAN_SECONDS;
+  }
   return Math.max(
     TIMELINE_MIN_FIT_SPAN_SECONDS,
     anchorDuration * TIMELINE_INITIAL_SPAN_FACTOR,
@@ -62,15 +64,13 @@ export type TimelineClipLike = {
 
 export function resolveFitAnchorSeconds(
   clips: ReadonlyArray<TimelineClipLike>,
-): number {
+): number | null {
   if (!clips || clips.length === 0) {
-    return TIMELINE_EMPTY_SPAN_SECONDS;
+    return null;
   }
   const sorted = [...clips].sort(
     (a, b) => (a.startTime ?? 0) - (b.startTime ?? 0),
   );
   const first = sorted[0];
-  return first && first.duration > 0
-    ? first.duration
-    : TIMELINE_EMPTY_SPAN_SECONDS;
+  return first && first.duration > 0 ? first.duration : null;
 }

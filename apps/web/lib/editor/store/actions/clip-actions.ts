@@ -135,6 +135,7 @@ export function createClipActions(
             duration: scene.duration,
             name: scene.name ?? scene.id,
           };
+          const wasEmpty = state.timelineClips.length === 0;
           const timelineClips = [...state.timelineClips, clip];
           const nextProject = rebuildMainProject(
             { ...project, scenes: [...project.scenes, scene] },
@@ -147,6 +148,15 @@ export function createClipActions(
             timelineLanes: nextLanes,
             timelineClips,
             selection: selectionClips([clip.id]),
+            ...(wasEmpty
+              ? {
+                  timelineFitAnchorSeconds: clip.duration,
+                  timelineZoomMode: "fit",
+                  timelineZoomScale: 1.0,
+                  timelineZoom: 50,
+                  timelineFitRevision: state.timelineFitRevision + 1,
+                }
+              : {}),
           };
         }
 
@@ -189,6 +199,7 @@ export function createClipActions(
           duration: scene.duration,
           name: draft.name,
         };
+        const wasEmpty = state.timelineClips.length === 0;
         const timelineClips = [...state.timelineClips, clip];
         const nextProject = rebuildMainProject(
           { ...project, scenes: [...project.scenes, scene] },
@@ -201,6 +212,15 @@ export function createClipActions(
           timelineLanes: nextLanes,
           timelineClips,
           selection: selectionClips([clip.id]),
+          ...(wasEmpty
+            ? {
+                timelineFitAnchorSeconds: clip.duration,
+                timelineZoomMode: "fit",
+                timelineZoomScale: 1.0,
+                timelineZoom: 50,
+                timelineFitRevision: state.timelineFitRevision + 1,
+              }
+            : {}),
         };
       });
     },
@@ -449,6 +469,7 @@ export function createClipActions(
           duration,
           name: item.title,
         };
+        const wasEmpty = state.timelineClips.length === 0;
         const timelineClips = [...state.timelineClips, clip];
         const nextLanes = normalizeLaneOrders(lanes);
 
@@ -464,6 +485,15 @@ export function createClipActions(
           timelineLanes: nextLanes,
           timelineClips,
           selection: selectionClips([clip.id]),
+          ...(wasEmpty
+            ? {
+                timelineFitAnchorSeconds: clip.duration,
+                timelineZoomMode: "fit",
+                timelineZoomScale: 1.0,
+                timelineZoom: 50,
+                timelineFitRevision: state.timelineFitRevision + 1,
+              }
+            : {}),
         };
       });
     },
@@ -528,11 +558,21 @@ export function createClipActions(
         };
         const lanes = pruneEmptyLanes(state.timelineLanes, remaining);
         nextProject = rebuildMainProject(nextProject, remaining, lanes);
+        const isEmpty = remaining.length === 0;
         return {
           project: nextProject,
           timelineLanes: lanes,
           timelineClips: remaining,
           selection: selectionNone(),
+          ...(isEmpty
+            ? {
+                timelineFitAnchorSeconds: null,
+                timelineZoomMode: "fit",
+                timelineZoomScale: 1.0,
+                timelineZoom: 50,
+                timelineFitRevision: state.timelineFitRevision + 1,
+              }
+            : {}),
         };
       });
     },

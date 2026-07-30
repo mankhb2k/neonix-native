@@ -17,6 +17,7 @@ describe("Timeline Fit Math & Baselines", () => {
     expect(timelineFitSpanSeconds(10)).toBe(30);
     expect(timelineFitSpanSeconds(30)).toBe(90);
     expect(timelineFitSpanSeconds(0)).toBe(TIMELINE_EMPTY_SPAN_SECONDS);
+    expect(timelineFitSpanSeconds(null)).toBe(TIMELINE_EMPTY_SPAN_SECONDS);
   });
 
   it("calculates fitPixelsPerSecond so that anchor clip occupies exactly 1/3 of content viewport", () => {
@@ -51,7 +52,7 @@ describe("Timeline Fit Math & Baselines", () => {
   });
 
   it("resolves project fit anchor correctly from timeline clips/scenes", () => {
-    expect(resolveFitAnchorSeconds([])).toBe(TIMELINE_EMPTY_SPAN_SECONDS);
+    expect(resolveFitAnchorSeconds([])).toBeNull();
     expect(resolveFitAnchorSeconds([{ startTime: 0, duration: 8 }])).toBe(8);
   });
 });

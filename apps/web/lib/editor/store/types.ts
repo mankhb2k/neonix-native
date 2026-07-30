@@ -38,6 +38,7 @@ export type EditorStoreState = {
   timelineZoomMode: "fit" | "manual";
   timelineZoomScale: number;
   timelineFitAnchorSeconds: number | null;
+  timelineFitRevision: number;
   /** Internal clipboard for timeline clips (Copy/Cut/Paste). */
   timelineClipboard: ClipClipboardItem[] | null;
 };

@@ -49,7 +49,7 @@ export function createProjectLifecycleActions(
       const anchorSeconds = resolveFitAnchorSeconds(clips);
 
       // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
-      set({
+      set((state) => ({
         project,
         timelineLanes: lanes,
         timelineClips: clips,
@@ -57,13 +57,14 @@ export function createProjectLifecycleActions(
         timelineZoomMode: "fit",
         timelineZoomScale: 1.0,
         timelineFitAnchorSeconds: anchorSeconds,
+        timelineFitRevision: state.timelineFitRevision + 1,
         selection: firstClip ? selectionClips([firstClip.id]) : selectionNone(),
         activeDragItem: null,
         isOverTimeline: false,
         isExporting: false,
         // Clipboard: giữ xuyên project nếu payload self-contained; hiện reset an toàn.
         timelineClipboard: null,
-      });
+      }));
 
       // Playback clock reset atomic — kể cả reload cùng project id (PLAY-01).
       usePlaybackClock.getState().reset({

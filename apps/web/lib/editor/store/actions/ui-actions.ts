@@ -34,13 +34,14 @@ export function createUiActions(
       });
     },
     fitTimeline: () => {
-      const clips = get().timelineClips;
-      const anchorSeconds = resolveFitAnchorSeconds(clips);
+      const state = get();
+      const anchorSeconds = resolveFitAnchorSeconds(state.timelineClips);
       set({
         timelineZoom: 50,
         timelineZoomMode: "fit",
         timelineZoomScale: 1.0,
         timelineFitAnchorSeconds: anchorSeconds,
+        timelineFitRevision: state.timelineFitRevision + 1,
       });
     },
     setExporting: (value) => set({ isExporting: value }),

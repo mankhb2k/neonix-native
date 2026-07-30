@@ -18,6 +18,7 @@ export function createInitialEditorState(): EditorStoreState {
     timelineZoomMode: "fit",
     timelineZoomScale: 1.0,
     timelineFitAnchorSeconds: null,
+    timelineFitRevision: 0,
     timelineClipboard: null as ClipClipboardItem[] | null,
   };
 }

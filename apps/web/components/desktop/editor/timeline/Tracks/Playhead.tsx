@@ -21,8 +21,9 @@ export function clientXToTimelineTime(
   pixelsPerSecond: number,
   maxTime: number,
 ): number {
+  void labelWidth;
   const rect = scrollContainer.getBoundingClientRect();
-  const x = clientX - rect.left + scrollContainer.scrollLeft - labelWidth;
+  const x = clientX - rect.left + scrollContainer.scrollLeft;
   const time = x / Math.max(pixelsPerSecond, 1);
   return Math.min(Math.max(0, time), Math.max(0, maxTime));
 }
