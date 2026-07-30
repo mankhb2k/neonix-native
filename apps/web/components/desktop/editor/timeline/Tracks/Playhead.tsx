@@ -61,7 +61,7 @@ type Props = {
 
 const HIT_STRIP_WIDTH_PX = 14;
 
-function PlayheadHandleIcon() {
+function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
   return (
     <svg
       width="11"
@@ -69,7 +69,7 @@ function PlayheadHandleIcon() {
       viewBox="0 0 11 13"
       fill="none"
       aria-hidden
-      className="text-[var(--timeline-playhead)]"
+      className={isMuted ? "text-white/35" : "text-[var(--timeline-playhead)]"}
     >
       <path
         d="M0 0h11v7.5L5.5 13 0 7.5V0z"
@@ -106,6 +106,7 @@ export function Playhead({
 
   const duration = usePlaybackClock((s) => s.duration);
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
+  const isTimelineEmpty = useEditorStore((s) => s.timelineClips.length === 0);
   fpsRef.current = fps;
 
   const applyVisualLeft = useCallback((viewportLeft: number) => {
@@ -127,62 +128,59 @@ export function Playhead({
       const slider = sliderRef.current;
       if (slider) {
         slider.setAttribute("aria-valuenow", String(time));
-        slider.setAttribute(
-          "aria-valuetext",
-          formatTimecode(time, fpsRef.current),
-        );
       }
     },
     [applyVisualLeft],
   );
 
-  useLayoutEffect(() => {
-    if (draggingRef.current) return;
-    syncFromClock(usePlaybackClock.getState().currentTime);
-  }, [labelWidth, pixelsPerSecond, scrollLeft, syncFromClock]);
-
   useEffect(() => {
-    syncFromClock(usePlaybackClock.getState().currentTime);
     return usePlaybackClock.subscribe((state, prev) => {
-      if (state.currentTime === prev.currentTime) return;
-      if (draggingRef.current) return;
-      syncFromClock(state.currentTime);
+      if (state.currentTime !== prev.currentTime) {
+        syncFromClock(state.currentTime);
+      }
     });
   }, [syncFromClock]);
 
-  useEffect(() => {
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+  useLayoutEffect(() => {
+    syncFromClock(usePlaybackClock.getState().currentTime);
+  }, [scrollLeft, pixelsPerSecond, labelWidth, syncFromClock]);
 
-  function flushSeek() {
-    rafRef.current = null;
-    const time = pendingTimeRef.current;
-    if (time == null) return;
-    usePlaybackClock.getState().seek(time);
-    syncFromClock(time);
-  }
-
-  function scheduleSeek(time: number) {
+  const scheduleSeek = (time: number) => {
     pendingTimeRef.current = time;
     if (rafRef.current != null) return;
-    rafRef.current = requestAnimationFrame(flushSeek);
-  }
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const t = pendingTimeRef.current;
+      if (t != null) {
+        usePlaybackClock.getState().seek(t);
+      }
+    });
+  };
 
-  function scrubFromClientX(clientX: number) {
+  const scrubFromClientX = (clientX: number) => {
     const root = scrollContainerRef.current;
     if (!root) return;
-    const clock = usePlaybackClock.getState();
     const time = clientXToTimelineTime(
       clientX,
       root,
       labelWidthRef.current,
       ppsRef.current,
-      clock.duration,
+      clockDurationMax(
+        labelWidthRef.current,
+        ppsRef.current,
+        usePlaybackClock.getState().duration,
+      ),
     );
     syncFromClock(time);
     scheduleSeek(time);
+  };
+
+  function clockDurationMax(
+    _labelWidth: number,
+    _pps: number,
+    clockDuration: number,
+  ): number {
+    return Math.max(0, clockDuration);
   }
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
@@ -247,7 +245,7 @@ export function Playhead({
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none absolute bottom-0 top-0 z-30 will-change-transform"
+      className="pointer-events-none absolute bottom-0 top-0 z-40 will-change-transform"
       style={{ left: 0 }}
       aria-hidden={!enabled}
     >
@@ -257,7 +255,6 @@ export function Playhead({
         aria-label="Playhead"
         aria-valuemin={0}
         aria-valuemax={duration}
-        // Initial/re-render value from store; ticks update the attribute imperatively.
         aria-valuenow={usePlaybackClock.getState().currentTime}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
@@ -272,7 +269,9 @@ export function Playhead({
       />
 
       <div
-        className="pointer-events-none absolute bottom-0 w-px -translate-x-1/2 bg-[var(--timeline-playhead)]"
+        className={`pointer-events-none absolute bottom-0 w-px -translate-x-1/2 transition-colors duration-200 ${
+          isTimelineEmpty ? "bg-white/30" : "bg-[var(--timeline-playhead)]"
+        }`}
         style={{ left: 0, top: 12 }}
       />
 
@@ -286,7 +285,7 @@ export function Playhead({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        <PlayheadHandleIcon />
+        <PlayheadHandleIcon isMuted={isTimelineEmpty} />
       </div>
     </div>
   );
