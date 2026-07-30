@@ -1,4 +1,4 @@
-import { TIMELINE_ZOOM_ON_PROJECT_LOAD } from "@/lib/editor/editor-preferences";
+import { resolveFitAnchorSeconds } from "@/components/desktop/editor/timeline/timeline-fit";
 import {
   selectionClips,
   selectionNone,
@@ -46,12 +46,17 @@ export function createProjectLifecycleActions(
       const firstClip =
         clips.find((clip) => clip.laneId === mainId) ?? clips[0];
 
+      const anchorSeconds = resolveFitAnchorSeconds(clips);
+
       // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
       set({
         project,
         timelineLanes: lanes,
         timelineClips: clips,
-        timelineZoom: TIMELINE_ZOOM_ON_PROJECT_LOAD,
+        timelineZoom: 50,
+        timelineZoomMode: "fit",
+        timelineZoomScale: 1.0,
+        timelineFitAnchorSeconds: anchorSeconds,
         selection: firstClip ? selectionClips([firstClip.id]) : selectionNone(),
         activeDragItem: null,
         isOverTimeline: false,

@@ -35,6 +35,9 @@ export type EditorStoreState = {
 
   /** Timeline zoom — playback clock lives in playback-clock-store. */
   timelineZoom: number;
+  timelineZoomMode: "fit" | "manual";
+  timelineZoomScale: number;
+  timelineFitAnchorSeconds: number | null;
   /** Internal clipboard for timeline clips (Copy/Cut/Paste). */
   timelineClipboard: ClipClipboardItem[] | null;
 };
@@ -125,6 +128,7 @@ export type EditorStoreActions = {
   splitSelectedClipsAt: (time: number) => void;
   setExporting: (value: boolean) => void;
   setTimelineZoom: (zoom: number) => void;
+  fitTimeline: () => void;
 };
 
 export type EditorStore = EditorStoreState & EditorStoreActions;

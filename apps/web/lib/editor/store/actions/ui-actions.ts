@@ -1,5 +1,10 @@
+import {
+  resolveFitAnchorSeconds,
+  sliderValueToZoomScale,
+} from "@/components/desktop/editor/timeline/timeline-fit";
 import type {
   EditorStoreActions,
+  EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
 
@@ -8,15 +13,36 @@ export type UiActions = Pick<
   | "setActiveDragItem"
   | "setIsOverTimeline"
   | "setTimelineZoom"
+  | "fitTimeline"
   | "setExporting"
   | "setActiveSidebarTab"
 >;
 
-export function createUiActions(set: EditorStoreSet): UiActions {
+export function createUiActions(
+  set: EditorStoreSet,
+  get: EditorStoreGet,
+): UiActions {
   return {
     setActiveDragItem: (item) => set({ activeDragItem: item }),
     setIsOverTimeline: (over) => set({ isOverTimeline: over }),
-    setTimelineZoom: (zoom) => set({ timelineZoom: zoom }),
+    setTimelineZoom: (zoom) => {
+      const scale = sliderValueToZoomScale(zoom);
+      set({
+        timelineZoom: zoom,
+        timelineZoomMode: "manual",
+        timelineZoomScale: scale,
+      });
+    },
+    fitTimeline: () => {
+      const clips = get().timelineClips;
+      const anchorSeconds = resolveFitAnchorSeconds(clips);
+      set({
+        timelineZoom: 50,
+        timelineZoomMode: "fit",
+        timelineZoomScale: 1.0,
+        timelineFitAnchorSeconds: anchorSeconds,
+      });
+    },
     setExporting: (value) => set({ isExporting: value }),
     setActiveSidebarTab: (tab) => set({ activeSidebarTab: tab }),
   };

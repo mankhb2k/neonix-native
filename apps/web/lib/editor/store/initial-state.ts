@@ -14,7 +14,10 @@ export function createInitialEditorState(): EditorStoreState {
     timelineLanes: [ensureMainLane([])],
     activeDragItem: null,
     isOverTimeline: false,
-    timelineZoom: TIMELINE_ZOOM_DEFAULT,
+    timelineZoom: 50,
+    timelineZoomMode: "fit",
+    timelineZoomScale: 1.0,
+    timelineFitAnchorSeconds: null,
     timelineClipboard: null as ClipClipboardItem[] | null,
   };
 }

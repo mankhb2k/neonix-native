@@ -13,7 +13,7 @@ import type { EditorStore } from "@/lib/editor/store/types";
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
   ...createInitialEditorState(),
-  ...createUiActions(set),
+  ...createUiActions(set, get),
   ...createSelectionActions(set, get),
   ...createLaneActions(set),
   ...createDocumentActions(set, get),

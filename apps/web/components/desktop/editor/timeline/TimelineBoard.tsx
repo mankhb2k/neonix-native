@@ -8,16 +8,17 @@ import { TimeRuler } from "./TimeRuler/TimeRuler";
 import { Tracks } from "./Tracks/Tracks";
 import { Playhead, clientXToTimelineTime } from "./Tracks/Playhead";
 import {
+  fitPixelsPerSecond,
+  resolveFitAnchorSeconds,
+  timelineExtentSeconds,
+  timelineFitSpanSeconds,
+} from "./timeline-fit";
+import {
   TIMELINE_LABEL_WIDTH,
-  TIMELINE_PPS_MIN,
-  maxPixelsPerSecondForView,
-  timelineCanvasDuration,
-  timelineWorkspaceSeconds,
-  zoomToPixelsPerSecond,
 } from "./timeline-scale";
 
 type Props = {
-  zoom: number;
+  zoom?: number;
 };
 
 /**
@@ -26,6 +27,10 @@ type Props = {
  */
 export function TimelineBoard({ zoom }: Props) {
   const timelineClips = useEditorStore((s) => s.timelineClips);
+  const timelineZoomScale = useEditorStore((s) => s.timelineZoomScale ?? 1.0);
+  const timelineFitAnchorSeconds = useEditorStore(
+    (s) => s.timelineFitAnchorSeconds,
+  );
   const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
   const activeDragItem = useEditorStore((s) => s.activeDragItem);
   const seek = usePlaybackClock((s) => s.seek);
@@ -49,18 +54,27 @@ export function TimelineBoard({ zoom }: Props) {
 
   const contentEnd = clipsContentEndSeconds(timelineClips);
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
-  const workspaceSeconds = timelineWorkspaceSeconds(contentEnd);
-  const floorPps =
-    trackViewWidth > 0 ? trackViewWidth / workspaceSeconds : TIMELINE_PPS_MIN;
-  const ceilingPps = maxPixelsPerSecondForView(trackViewWidth, fps);
-  const pixelsPerSecond = zoomToPixelsPerSecond(zoom, floorPps, ceilingPps);
-  const rulerDuration = timelineCanvasDuration(
+
+  const anchorSeconds =
+    timelineFitAnchorSeconds ?? resolveFitAnchorSeconds(timelineClips);
+  const fitSpan = timelineFitSpanSeconds(anchorSeconds);
+  const fitPps = fitPixelsPerSecond(trackViewWidth, fitSpan);
+  const pixelsPerSecond = fitPps * timelineZoomScale;
+
+  const visibleDuration =
+    trackViewWidth > 0 ? trackViewWidth / pixelsPerSecond : fitSpan;
+  const isFirstClip = timelineClips.length <= 1;
+  const extentSeconds = timelineExtentSeconds(
     contentEnd,
-    pixelsPerSecond,
-    trackViewWidth,
-    zoom,
+    fitSpan,
+    visibleDuration,
+    isFirstClip,
   );
-  const canvasWidth = rulerDuration * pixelsPerSecond;
+  const rulerDuration = extentSeconds;
+  const canvasWidth = Math.max(
+    trackViewWidth,
+    extentSeconds * pixelsPerSecond,
+  );
 
   const seekEnabled = !scrubBlocked && activeDragItem == null;
 
