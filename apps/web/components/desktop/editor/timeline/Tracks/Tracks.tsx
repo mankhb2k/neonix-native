@@ -184,6 +184,8 @@ export const Tracks = memo(function Tracks({
     : sidebarDrag.insertGhostRef;
   const dragOver = sidebarDrag.dragOver;
 
+  const isScrubbingRef = useRef(false);
+
   if (!projectId) {
     return (
       <div className="relative min-h-0 flex-1">
@@ -198,8 +200,6 @@ export const Tracks = memo(function Tracks({
   }
   const isTimelineEmpty = timelineClips.length === 0;
   const canvasMinWidth = canvasWidth;
-
-  const isScrubbingRef = useRef(false);
 
   const seekEmptySpace = (clientX: number) => {
     const root = scrollRef.current;
