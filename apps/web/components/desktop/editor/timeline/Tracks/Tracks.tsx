@@ -196,7 +196,7 @@ export const Tracks = memo(function Tracks({
     <div
       ref={scrollRef}
       data-testid="timeline-tracks-scroll"
-      className="relative min-h-0 flex-1 overflow-auto transition-colors select-none"
+      className="relative min-h-0 flex-1 overflow-x-scroll overflow-y-auto transition-colors select-none"
       onScroll={(event) => {
         onScrollLeft(event.currentTarget.scrollLeft);
         onScrollTop?.(event.currentTarget.scrollTop);
