@@ -184,7 +184,7 @@ export const Tracks = memo(function Tracks({
     );
   }
   const isTimelineEmpty = timelineClips.length === 0;
-  const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
+  const canvasMinWidth = canvasWidth;
 
   function onClipKeyDown(clipId: string, event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Enter" && event.key !== " ") return;
