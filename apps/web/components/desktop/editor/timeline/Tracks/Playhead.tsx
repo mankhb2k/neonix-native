@@ -247,7 +247,7 @@ export function Playhead({
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none absolute bottom-0 top-0 z-50 will-change-transform"
+      className="pointer-events-none absolute bottom-0 top-0 z-30 will-change-transform"
       style={{ left: 0 }}
       aria-hidden={!enabled}
     >

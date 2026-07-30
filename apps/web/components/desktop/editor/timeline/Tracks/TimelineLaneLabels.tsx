@@ -26,7 +26,7 @@ export const TimelineLaneLabels = memo(function TimelineLaneLabels({
 
   return (
     <div
-      className="relative shrink-0 overflow-hidden bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] select-none"
+      className="relative z-40 shrink-0 overflow-hidden bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] select-none"
       style={{ width: labelWidth }}
       data-marquee-ignore="true"
       onWheel={(event: WheelEvent<HTMLDivElement>) => {

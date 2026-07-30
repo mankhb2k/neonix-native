@@ -111,7 +111,7 @@ export function TimelineBoard({ zoom }: Props) {
         className="z-30 flex shrink-0 overflow-hidden bg-[var(--bg-panel)]"
       >
         <div
-          className="shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
+          className="relative z-40 shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
           style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
         />
         <div className="min-w-0 flex-1 overflow-hidden">
