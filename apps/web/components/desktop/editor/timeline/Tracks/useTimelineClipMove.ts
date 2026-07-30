@@ -22,7 +22,6 @@ import {
   shouldCommitPointerSession,
   type PointerSessionEndReason,
 } from "@/lib/editor/pointer-session";
-import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 import {
   bindLaneCacheInvalidation,
   createEmptyLaneRectCache,
@@ -144,7 +143,8 @@ export function useTimelineClipMove({
       return undefined;
     }
     bindDragGhostElement(ghostEl, {
-      leftOffset: TIMELINE_LABEL_WIDTH,
+      // Ghost lives inside Tracks canvas (labels/gutter are sibling columns).
+      leftOffset: 0,
     });
     return () => {
       unbindDragGhostElementIf(ghostEl);

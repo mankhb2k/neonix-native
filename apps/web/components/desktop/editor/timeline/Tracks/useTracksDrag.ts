@@ -23,7 +23,6 @@ import {
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { FRAME_LIBRARY_MIME } from "@/lib/editor/frame-library";
 import { resolveFrameDraft } from "@/lib/editor/sidebar-mock-library";
-import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
 import {
   bindLaneCacheInvalidation,
   createEmptyLaneRectCache,
@@ -156,7 +155,8 @@ export function useTracksDrag({
       return undefined;
     }
     bindDragGhostElement(ghostEl, {
-      leftOffset: TIMELINE_LABEL_WIDTH,
+      // Ghost lives inside Tracks canvas (labels/gutter are sibling columns).
+      leftOffset: 0,
     });
     return () => {
       unbindDragGhostElementIf(ghostEl);

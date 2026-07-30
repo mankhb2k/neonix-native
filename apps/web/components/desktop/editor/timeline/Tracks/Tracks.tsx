@@ -1,6 +1,6 @@
 "use client";
 
-import { Film, Music } from "lucide-react";
+import { Film } from "lucide-react";
 import {
   memo,
   useEffect,
@@ -11,8 +11,10 @@ import {
 } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
-import { TIMELINE_LABEL_WIDTH } from "../timeline-scale";
-import { LaneFlagControls } from "./LaneFlagControls";
+import {
+  TIMELINE_LABEL_WIDTH,
+  TIMELINE_TRACKS_ORIGIN_X,
+} from "../timeline-scale";
 import { TimelineWorkspaceContextMenu } from "./TimelineWorkspaceContextMenu";
 import { TrackLane } from "./TrackLane";
 import { useMarqueeSelect } from "./useMarqueeSelect";
@@ -58,7 +60,7 @@ export const Tracks = memo(function Tracks({
   const workspaceRef = useRef<HTMLDivElement>(null);
   const autoScroll = useTimelineAutoScroll(scrollRef);
 
-  const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
+  const trackViewWidth = Math.max(0, viewWidth - TIMELINE_TRACKS_ORIGIN_X);
   const overlayLanes = useMemo(
     () =>
       timelineLanes

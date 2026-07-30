@@ -3,7 +3,6 @@ import { STORAGE_KEY } from "../fixtures/project-builders";
 
 /** Match DesktopEditorShell AUTOSAVE_DEBOUNCE_MS (+ buffer for slow CI). */
 const AUTOSAVE_WAIT_MS = 900;
-const LABEL_WIDTH_PX = 96;
 
 /**
  * Page object for MotiClip desktop editor timeline interactions.
@@ -78,10 +77,10 @@ export class EditorPage {
       throw new Error(`missing boxes for ${clipId} → ${destLaneId}`);
     }
 
-    // Drop in lane body canvas (past label) at an early start time.
+    // Drop in lane body at an early start time (labels are a sibling column).
     const startX = clipBox.x + Math.min(24, clipBox.width / 2);
     const startY = clipBox.y + clipBox.height / 2;
-    const targetX = destBox.x + LABEL_WIDTH_PX + 40;
+    const targetX = destBox.x + 40;
     const targetY = destBox.y + destBox.height / 2;
 
     await this.page.mouse.move(startX, startY);

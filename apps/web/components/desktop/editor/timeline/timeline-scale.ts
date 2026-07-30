@@ -57,6 +57,11 @@ export function formatRulerLabel(
 }
 
 export const TIMELINE_LABEL_WIDTH = 96;
+/** CapCut-style dark strip between lane labels and clip canvas — room for playhead at t=0. */
+export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
+/** Viewport X where timeline time 0 begins (labels + gutter). */
+export const TIMELINE_TRACKS_ORIGIN_X =
+  TIMELINE_LABEL_WIDTH + TIMELINE_PLAYHEAD_GUTTER_PX;
 export {
   TIMELINE_ZOOM_MIN,
   TIMELINE_ZOOM_MAX,

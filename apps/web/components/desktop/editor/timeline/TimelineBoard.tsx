@@ -4,10 +4,6 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
-import { TimeRuler } from "./TimeRuler/TimeRuler";
-import { Tracks } from "./Tracks/Tracks";
-import { TimelineLaneLabels } from "./Tracks/TimelineLaneLabels";
-import { Playhead, clientXToTimelineTime } from "./Tracks/Playhead";
 import {
   fitPixelsPerSecond,
   resolveFitAnchorSeconds,
@@ -16,7 +12,13 @@ import {
 } from "./timeline-fit";
 import {
   TIMELINE_LABEL_WIDTH,
+  TIMELINE_PLAYHEAD_GUTTER_PX,
+  TIMELINE_TRACKS_ORIGIN_X,
 } from "./timeline-scale";
+import { TimeRuler } from "./TimeRuler/TimeRuler";
+import { Playhead, clientXToTimelineTime } from "./Tracks/Playhead";
+import { TimelineLaneLabels } from "./Tracks/TimelineLaneLabels";
+import { Tracks } from "./Tracks/Tracks";
 
 type Props = {
   zoom?: number;
@@ -27,6 +29,7 @@ type Props = {
  * Does not subscribe to currentTime — playhead follows the playback clock imperatively.
  */
 export function TimelineBoard({ zoom }: Props) {
+  void zoom;
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
   const timelineZoomScale = useEditorStore((s) => s.timelineZoomScale ?? 1.0);
@@ -66,7 +69,7 @@ export function TimelineBoard({ zoom }: Props) {
   }, [projectId, timelineFitRevision]);
 
   const contentEnd = clipsContentEndSeconds(timelineClips);
-  const trackViewWidth = Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
+  const trackViewWidth = Math.max(0, viewWidth - TIMELINE_TRACKS_ORIGIN_X);
 
   const anchorSeconds =
     timelineFitAnchorSeconds ?? resolveFitAnchorSeconds(timelineClips);
@@ -93,13 +96,15 @@ export function TimelineBoard({ zoom }: Props) {
 
   const seekEnabled = !scrubBlocked && activeDragItem == null;
 
+  const boardColumns = `${TIMELINE_LABEL_WIDTH}px ${TIMELINE_PLAYHEAD_GUTTER_PX}px minmax(0, 1fr)`;
+
   return (
     <div
       ref={boardRef}
       className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-panel)]"
     >
       <Playhead
-        labelWidth={TIMELINE_LABEL_WIDTH}
+        tracksOriginX={TIMELINE_TRACKS_ORIGIN_X}
         pixelsPerSecond={pixelsPerSecond}
         scrollLeft={scrollLeft}
         scrollContainerRef={tracksScrollRef}
@@ -108,13 +113,20 @@ export function TimelineBoard({ zoom }: Props) {
 
       <div
         ref={rulerHeaderRef}
-        className="flex shrink-0 overflow-hidden bg-[var(--bg-panel)]"
+        className="grid shrink-0 overflow-hidden bg-[var(--bg-panel)]"
+        style={{ gridTemplateColumns: boardColumns }}
       >
         <div
-          className="relative z-50 shrink-0 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
-          style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
+          className="relative z-50 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)]"
+          style={{ height: 28 }}
         />
-        <div className="min-w-0 flex-1 overflow-hidden">
+        {/* CapCut playhead gutter — t=0 handle sits here */}
+        <div
+          className="relative z-30 bg-[var(--bg)]"
+          style={{ height: 28 }}
+          aria-hidden
+        />
+        <div className="min-w-0 overflow-hidden">
           <TimeRuler
             duration={rulerDuration}
             fps={fps}
@@ -130,7 +142,7 @@ export function TimelineBoard({ zoom }: Props) {
                       clientXToTimelineTime(
                         clientX,
                         root,
-                        TIMELINE_LABEL_WIDTH,
+                        TIMELINE_TRACKS_ORIGIN_X,
                         pixelsPerSecond,
                         contentEnd,
                       ),
@@ -142,7 +154,10 @@ export function TimelineBoard({ zoom }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-[96px_minmax(0,1fr)] min-h-0 flex-1 overflow-hidden">
+      <div
+        className="grid min-h-0 flex-1 overflow-hidden"
+        style={{ gridTemplateColumns: boardColumns }}
+      >
         <TimelineLaneLabels
           labelWidth={TIMELINE_LABEL_WIDTH}
           timelineLanes={timelineLanes}
@@ -153,6 +168,7 @@ export function TimelineBoard({ zoom }: Props) {
             }
           }}
         />
+        <div className="min-h-0 bg-[var(--bg)]" aria-hidden />
         <Tracks
           scrollRef={tracksScrollRef}
           rulerHeaderRef={rulerHeaderRef}

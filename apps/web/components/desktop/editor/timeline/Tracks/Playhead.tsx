@@ -11,47 +11,35 @@ import {
 } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 
-/** Convert pointer X → timeline seconds (accounts for label gutter + horizontal scroll). */
+/** Convert pointer X → timeline seconds (scroll container is the tracks canvas). */
 export function clientXToTimelineTime(
   clientX: number,
   scrollContainer: HTMLElement,
-  labelWidth: number,
+  _tracksOriginX: number,
   pixelsPerSecond: number,
   maxTime: number,
 ): number {
-  void labelWidth;
+  void _tracksOriginX;
   const rect = scrollContainer.getBoundingClientRect();
   const x = clientX - rect.left + scrollContainer.scrollLeft;
   const time = x / Math.max(pixelsPerSecond, 1);
   return Math.min(Math.max(0, time), Math.max(0, maxTime));
 }
 
-/** Viewport X of playhead within the timeline board. */
+/** Viewport X of playhead within the timeline board (labels + gutter + time). */
 export function timelineTimeToViewportLeft(
   time: number,
-  labelWidth: number,
+  tracksOriginX: number,
   pixelsPerSecond: number,
   scrollLeft: number,
 ): number {
-  return labelWidth + time * Math.max(pixelsPerSecond, 1) - scrollLeft;
-}
-
-function formatTimecode(seconds: number, fps: number): string {
-  const totalFrames = playbackFrameIndex(seconds, fps);
-  const safeFps = Math.max(1, Math.round(fps));
-  const ff = totalFrames % safeFps;
-  const totalSeconds = Math.floor(totalFrames / safeFps);
-  const ss = totalSeconds % 60;
-  const mm = Math.floor(totalSeconds / 60) % 60;
-  const hh = Math.floor(totalSeconds / 3600);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(hh)}:${pad(mm)}:${pad(ss)}:${pad(ff)}`;
+  return tracksOriginX + time * Math.max(pixelsPerSecond, 1) - scrollLeft;
 }
 
 type Props = {
-  labelWidth: number;
+  /** Board X where t=0 sits (label column + playhead gutter). */
+  tracksOriginX: number;
   pixelsPerSecond: number;
   scrollLeft: number;
   scrollContainerRef: RefObject<HTMLElement | null>;
@@ -71,10 +59,7 @@ function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
       aria-hidden
       className={isMuted ? "text-white/35" : "text-[var(--timeline-playhead)]"}
     >
-      <path
-        d="M0 0h11v7.5L5.5 13 0 7.5V0z"
-        fill="currentColor"
-      />
+      <path d="M0 0h11v7.5L5.5 13 0 7.5V0z" fill="currentColor" />
     </svg>
   );
 }
@@ -84,7 +69,7 @@ function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
  * Hot path: transform + aria attributes via DOM — no React setState per tick.
  */
 export function Playhead({
-  labelWidth,
+  tracksOriginX,
   pixelsPerSecond,
   scrollLeft,
   scrollContainerRef,
@@ -96,11 +81,11 @@ export function Playhead({
   const pendingTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const labelWidthRef = useRef(labelWidth);
+  const tracksOriginXRef = useRef(tracksOriginX);
   const ppsRef = useRef(pixelsPerSecond);
   const scrollLeftRef = useRef(scrollLeft);
   const fpsRef = useRef(30);
-  labelWidthRef.current = labelWidth;
+  tracksOriginXRef.current = tracksOriginX;
   ppsRef.current = pixelsPerSecond;
   scrollLeftRef.current = scrollLeft;
 
@@ -120,7 +105,7 @@ export function Playhead({
       applyVisualLeft(
         timelineTimeToViewportLeft(
           time,
-          labelWidthRef.current,
+          tracksOriginXRef.current,
           ppsRef.current,
           scrollLeftRef.current,
         ),
@@ -143,7 +128,7 @@ export function Playhead({
 
   useLayoutEffect(() => {
     syncFromClock(usePlaybackClock.getState().currentTime);
-  }, [scrollLeft, pixelsPerSecond, labelWidth, syncFromClock]);
+  }, [scrollLeft, pixelsPerSecond, tracksOriginX, syncFromClock]);
 
   const scheduleSeek = (time: number) => {
     pendingTimeRef.current = time;
@@ -163,25 +148,13 @@ export function Playhead({
     const time = clientXToTimelineTime(
       clientX,
       root,
-      labelWidthRef.current,
+      tracksOriginXRef.current,
       ppsRef.current,
-      clockDurationMax(
-        labelWidthRef.current,
-        ppsRef.current,
-        usePlaybackClock.getState().duration,
-      ),
+      Math.max(0, usePlaybackClock.getState().duration),
     );
     syncFromClock(time);
     scheduleSeek(time);
   };
-
-  function clockDurationMax(
-    _labelWidth: number,
-    _pps: number,
-    clockDuration: number,
-  ): number {
-    return Math.max(0, clockDuration);
-  }
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (!draggingRef.current) return;
