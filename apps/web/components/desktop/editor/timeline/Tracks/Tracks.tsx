@@ -29,6 +29,7 @@ type Props = {
   pixelsPerSecond: number;
   canvasWidth: number;
   onScrollLeft: (scrollLeft: number) => void;
+  onScrollTop?: (scrollTop: number) => void;
   onScrubBlockedChange: (blocked: boolean) => void;
 };
 
@@ -40,6 +41,7 @@ export const Tracks = memo(function Tracks({
   pixelsPerSecond,
   canvasWidth,
   onScrollLeft,
+  onScrollTop,
   onScrubBlockedChange,
 }: Props) {
   const projectId = useEditorStore((s) => s.project?.metadata.id);
@@ -197,6 +199,7 @@ export const Tracks = memo(function Tracks({
       className="relative min-h-0 flex-1 overflow-auto transition-colors select-none"
       onScroll={(event) => {
         onScrollLeft(event.currentTarget.scrollLeft);
+        onScrollTop?.(event.currentTarget.scrollTop);
       }}
       onDragOver={sidebarDrag.handleDragOver}
       onDragEnter={sidebarDrag.handleDragEnter}
