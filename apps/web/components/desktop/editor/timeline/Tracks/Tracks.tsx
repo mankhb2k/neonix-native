@@ -278,11 +278,10 @@ export const Tracks = memo(function Tracks({
         onDragEnter={sidebarDrag.handleDragEnter}
         onDragLeave={sidebarDrag.handleDragLeave}
         onDrop={sidebarDrag.handleDrop}
-        onPointerDown={(event) => {
-          if (event.target === event.currentTarget) {
-            useEditorStore.getState().clearTimelineSelection();
-          }
-        }}
+        onPointerDown={handleEmptyWorkspacePointerDown}
+        onPointerMove={handleEmptyWorkspacePointerMove}
+        onPointerUp={handleEmptyWorkspacePointerUp}
+        onPointerCancel={handleEmptyWorkspacePointerUp}
       >
       <div
         className="relative min-h-full flex flex-col flex-1"
