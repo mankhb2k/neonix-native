@@ -200,7 +200,7 @@ export function buildMainOnlyProject(projectId = "e2e.editor.persistence") {
   });
 }
 
-/** Two overlay lanes + base — cross-lane overlay DnD. */
+/** Two overlay lanes + base — cross-lane overlay DnD (dest lane starts empty). */
 export function buildOverlayCrossLaneProject(
   projectId = "e2e.editor.crosslane",
 ) {
@@ -210,7 +210,6 @@ export function buildOverlayCrossLaneProject(
     scenes: [
       scene("scene.main", "Main", 4),
       scene("scene.ov", "OvClip", 2),
-      scene("scene.ov2", "DestClip", 1),
     ],
     clips: [
       sceneClip({
@@ -228,14 +227,6 @@ export function buildOverlayCrossLaneProject(
         startTime: 0,
         duration: 2,
         name: "OvClip",
-      }),
-      sceneClip({
-        id: "clip.dest",
-        sceneId: "scene.ov2",
-        laneId: "lane.overlay.1",
-        startTime: 3,
-        duration: 1,
-        name: "DestClip",
       }),
     ],
     lanes: [

@@ -19,14 +19,19 @@ export const test = base.extend<EditorFixtures>({
 
 export { expect };
 
-/** Seed localStorage then open the editor for a stored project. */
+/**
+ * Seed localStorage then open the editor.
+ * Uses evaluate (not addInitScript) so seeds do not accumulate across tests
+ * in the same worker.
+ */
 export async function openSeededEditor(
   page: Page,
   projectId: string,
   stored: StoredEditorProject,
 ): Promise<EditorPage> {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.addInitScript(
+  await page.goto("/app");
+  await page.evaluate(
     ({ key, id, record }) => {
       window.localStorage.setItem(key, JSON.stringify({ [id]: record }));
     },
