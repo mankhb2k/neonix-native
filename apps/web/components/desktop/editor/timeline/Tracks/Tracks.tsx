@@ -184,8 +184,6 @@ export const Tracks = memo(function Tracks({
     : sidebarDrag.insertGhostRef;
   const dragOver = sidebarDrag.dragOver;
 
-  const isScrubbingRef = useRef(false);
-
   if (!projectId) {
     return (
       <div className="relative min-h-0 flex-1">
@@ -228,27 +226,6 @@ export const Tracks = memo(function Tracks({
     ) {
       useEditorStore.getState().clearTimelineSelection();
       seekEmptySpace(event.clientX);
-      isScrubbingRef.current = true;
-      event.currentTarget.setPointerCapture(event.pointerId);
-    }
-  };
-
-  const handleEmptyWorkspacePointerMove = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    if (isScrubbingRef.current && event.buttons === 1) {
-      seekEmptySpace(event.clientX);
-    }
-  };
-
-  const handleEmptyWorkspacePointerUp = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    if (isScrubbingRef.current) {
-      isScrubbingRef.current = false;
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
     }
   };
 
@@ -279,9 +256,6 @@ export const Tracks = memo(function Tracks({
         onDragLeave={sidebarDrag.handleDragLeave}
         onDrop={sidebarDrag.handleDrop}
         onPointerDown={handleEmptyWorkspacePointerDown}
-        onPointerMove={handleEmptyWorkspacePointerMove}
-        onPointerUp={handleEmptyWorkspacePointerUp}
-        onPointerCancel={handleEmptyWorkspacePointerUp}
       >
       <div
         className="relative min-h-full flex flex-col flex-1"
@@ -295,9 +269,6 @@ export const Tracks = memo(function Tracks({
             workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10"
             onWorkspacePointerDown={handleEmptyWorkspacePointerDown}
-            onPointerMove={handleEmptyWorkspacePointerMove}
-            onPointerUp={handleEmptyWorkspacePointerUp}
-            onPointerCancel={handleEmptyWorkspacePointerUp}
           >
             <div
               data-track-lane="true"
@@ -329,9 +300,6 @@ export const Tracks = memo(function Tracks({
             workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
             onWorkspacePointerDown={handleEmptyWorkspacePointerDown}
-            onPointerMove={handleEmptyWorkspacePointerMove}
-            onPointerUp={handleEmptyWorkspacePointerUp}
-            onPointerCancel={handleEmptyWorkspacePointerUp}
           >
             {marquee.marqueeRect && (
               <div
