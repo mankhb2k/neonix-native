@@ -203,7 +203,7 @@ export function useTimelineClipMove({
     const root = scrollContainerRef.current;
     if (!root) return 0;
     const rect = root.getBoundingClientRect();
-    const mouseX = clientX - rect.left + root.scrollLeft - TIMELINE_LABEL_WIDTH;
+    const mouseX = clientX - rect.left + root.scrollLeft;
     return Math.max(0, mouseX - grabOffsetX);
   }
 

@@ -262,8 +262,7 @@ export function useTracksDrag({
     if (!root || !ws) return;
 
     const bounds = root.getBoundingClientRect();
-    const mouseX =
-      clientX - bounds.left + root.scrollLeft - TIMELINE_LABEL_WIDTH;
+    const mouseX = clientX - bounds.left + root.scrollLeft;
     const left = Math.max(0, mouseX);
     ghostLeftRef.current = left;
     setDragGhostLayout(left, ghostWidth);
