@@ -49,6 +49,8 @@ type UseTracksDragArgs = {
   pixelsPerSecond: number;
   maxOverlayOrder: number;
   maxAudioOrder: number;
+  /** First visual clip must establish the single base lane, never an overlay. */
+  visualBaseOnly: boolean;
   projectId: string | null;
 };
 
@@ -68,6 +70,7 @@ export function useTracksDrag({
   pixelsPerSecond,
   maxOverlayOrder,
   maxAudioOrder,
+  visualBaseOnly,
   projectId,
 }: UseTracksDragArgs) {
   const setIsOverTimeline = useEditorStore((s) => s.setIsOverTimeline);
@@ -99,10 +102,12 @@ export function useTracksDrag({
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
   const maxAudioOrderRef = useRef(maxAudioOrder);
+  const visualBaseOnlyRef = useRef(visualBaseOnly);
   const projectIdRef = useRef(projectId);
   pixelsPerSecondRef.current = pixelsPerSecond;
   maxOverlayOrderRef.current = maxOverlayOrder;
   maxAudioOrderRef.current = maxAudioOrder;
+  visualBaseOnlyRef.current = visualBaseOnly;
   projectIdRef.current = projectId;
 
   const [dragOver, setDragOver] = useState(false);
@@ -115,11 +120,20 @@ export function useTracksDrag({
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState(0);
+  /** Family that produced the current insertion indicator. Never share an audio
+   * indicator with a visual drag (or vice versa). */
+  const [insertTargetFamily, setInsertTargetFamily] = useState<
+    "visual" | "audio" | null
+  >(null);
   const [dragGhostState, setDragGhostState] = useState<DragGhostState | null>(
     null,
   );
 
-  const isInsertLine = isOverlayInsertLine || isAudioInsertLine;
+  const dragFamily =
+    dragGhostState?.targetTrack === "audio" ? "audio" : "visual";
+  const isInsertLine =
+    (isOverlayInsertLine || isAudioInsertLine) &&
+    insertTargetFamily === dragFamily;
   const hasDragGhost = dragGhostState != null;
 
   useLayoutEffect(() => {
@@ -155,6 +169,7 @@ export function useTracksDrag({
     setTargetOverlayLaneId(null);
     setIsAudioInsertLine(false);
     setTargetAudioLaneId(null);
+    setInsertTargetFamily(null);
   }
 
   /** Clear store/global drag chrome without local React setters (safe on unmount). */
@@ -224,8 +239,12 @@ export function useTracksDrag({
     }
 
     const types = Array.from(event.dataTransfer.types);
-    const isAudio =
-      dragItem?.type === "audio" || types.includes(AUDIO_LIBRARY_MIME);
+    // Store payload is authoritative. DataTransfer is only a fallback for
+    // external/native drags; otherwise a stale MIME must not turn a frame
+    // into an audio drop target.
+    const isAudio = dragItem
+      ? dragItem.type === "audio"
+      : types.includes(AUDIO_LIBRARY_MIME);
     const duration = dragItem?.duration ?? 5;
     const label =
       dragItem?.name ?? (isAudio ? "Âm thanh" : "Khung hình");
@@ -268,6 +287,8 @@ export function useTracksDrag({
             ui.isInsert = target.isInsert;
             ui.laneId = target.laneId;
             ui.insertOrder = target.insertOrder;
+            setInsertTargetFamily(target.isInsert ? target.family : null);
+            clearVideoTarget();
             if (insertChanged) setIsAudioInsertLine(target.isInsert);
             if (laneChanged) setTargetAudioLaneId(target.laneId);
             if (target.isInsert && (topChanged || insertChanged)) {
@@ -286,13 +307,24 @@ export function useTracksDrag({
         clearAudioTarget();
       }
       if (ws) {
-        const target = resolveVisualDropAtPointer(
-          laneCacheRef.current,
-          ws,
-          event.clientY,
-          dragUiRef.current.isInsert,
-          maxOverlayOrderRef.current,
-        );
+        // A project without a base visual clip is still in base-only mode:
+        // any visual library drop establishes Main, regardless of pointer Y.
+        const target = visualBaseOnlyRef.current
+          ? {
+              family: "visual" as const,
+              isInsert: false,
+              laneId: null,
+              insertOrder: null,
+              indicatorTop: 0,
+              overBaseBody: true,
+            }
+          : resolveVisualDropAtPointer(
+              laneCacheRef.current,
+              ws,
+              event.clientY,
+              dragUiRef.current.isInsert,
+              maxOverlayOrderRef.current,
+            );
         if (target) {
           const ui = dragUiRef.current;
           const laneChanged = ui.laneId !== target.laneId;
@@ -306,6 +338,8 @@ export function useTracksDrag({
             ui.isInsert = target.isInsert;
             ui.laneId = target.laneId;
             ui.insertOrder = target.insertOrder;
+            setInsertTargetFamily(target.isInsert ? target.family : null);
+            clearAudioTarget();
             if (insertChanged) setIsOverlayInsertLine(target.isInsert);
             if (laneChanged) setTargetOverlayLaneId(target.laneId);
             if (target.isInsert && (topChanged || insertChanged)) {
@@ -358,6 +392,7 @@ export function useTracksDrag({
     setTargetOverlayLaneId(null);
     setIsAudioInsertLine(false);
     setTargetAudioLaneId(null);
+    setInsertTargetFamily(null);
     setDragGhostState(null);
     setIsOverTimeline(false);
   }
@@ -459,6 +494,7 @@ export function useTracksDrag({
       setTargetOverlayLaneId(null);
       setIsAudioInsertLine(false);
       setTargetAudioLaneId(null);
+      setInsertTargetFamily(null);
       setDragGhostState(null);
     }
   }
@@ -467,6 +503,7 @@ export function useTracksDrag({
     dragOver,
     isOverlayInsertLine,
     isAudioInsertLine,
+    insertTargetFamily,
     isInsertLine,
     targetOverlayLaneId,
     targetAudioLaneId,

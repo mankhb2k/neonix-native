@@ -116,11 +116,20 @@ export function useTimelineClipMove({
     null,
   );
   const [indicatorTopPos, setIndicatorTopPos] = useState(0);
+  /** Family that owns the insertion line. Prevents stale audio UI appearing
+   * during a visual clip drag and the reverse. */
+  const [insertTargetFamily, setInsertTargetFamily] = useState<
+    "visual" | "audio" | null
+  >(null);
   const [dragGhostState, setDragGhostState] = useState<DragGhostState | null>(
     null,
   );
 
-  const isInsertLine = isOverlayInsertLine || isAudioInsertLine;
+  const dragFamily =
+    dragGhostState?.targetTrack === "audio" ? "audio" : "visual";
+  const isInsertLine =
+    (isOverlayInsertLine || isAudioInsertLine) &&
+    insertTargetFamily === dragFamily;
   const hasDragGhost = dragGhostState != null;
 
   useLayoutEffect(() => {
@@ -172,6 +181,7 @@ export function useTimelineClipMove({
     setTargetOverlayLaneId(null);
     setIsAudioInsertLine(false);
     setTargetAudioLaneId(null);
+    setInsertTargetFamily(null);
     setDragGhostState(null);
     cleanupExternalDragState();
   }
@@ -180,8 +190,7 @@ export function useTimelineClipMove({
     const root = scrollContainerRef.current;
     if (!root) return 0;
     const rect = root.getBoundingClientRect();
-    const mouseX =
-      clientX - rect.left + root.scrollLeft - TIMELINE_LABEL_WIDTH;
+    const mouseX = clientX - rect.left + root.scrollLeft - TIMELINE_LABEL_WIDTH;
     return Math.max(0, mouseX - grabOffsetX);
   }
 
@@ -258,7 +267,13 @@ export function useTimelineClipMove({
       target.isInsert &&
       Math.abs(ui.indicatorTop - target.indicatorTop) > INDICATOR_TOP_EPS_PX;
     if (
-      !(insertChanged || laneChanged || orderChanged || topChanged || baseChanged)
+      !(
+        insertChanged ||
+        laneChanged ||
+        orderChanged ||
+        topChanged ||
+        baseChanged
+      )
     ) {
       return;
     }
@@ -267,12 +282,17 @@ export function useTimelineClipMove({
     ui.insertOrder = target.insertOrder;
     ui.overBaseBody = overBaseBody;
     if (target.family === "audio") {
+      setIsOverlayInsertLine(false);
+      setTargetOverlayLaneId(null);
       if (insertChanged) setIsAudioInsertLine(target.isInsert);
       if (laneChanged) setTargetAudioLaneId(target.laneId);
     } else {
+      setIsAudioInsertLine(false);
+      setTargetAudioLaneId(null);
       if (insertChanged) setIsOverlayInsertLine(target.isInsert);
       if (laneChanged) setTargetOverlayLaneId(target.laneId);
     }
+    setInsertTargetFamily(target.isInsert ? target.family : null);
     if (target.isInsert && (topChanged || insertChanged)) {
       ui.indicatorTop = target.indicatorTop;
       setIndicatorTopPos(target.indicatorTop);
@@ -315,18 +335,23 @@ export function useTimelineClipMove({
     const ui = dropTargetRef.current;
 
     if (session.source === "audio") {
-      store.moveClip(session.id, ui.isInsert
-        ? {
-            track: "audio",
-            startTime,
-            insertNewLane: true,
-            ...(ui.insertOrder != null ? { insertOrder: ui.insertOrder } : {}),
-          }
-        : {
-            track: "audio",
-            startTime,
-            laneId: ui.laneId ?? session.originLaneId,
-          });
+      store.moveClip(
+        session.id,
+        ui.isInsert
+          ? {
+              track: "audio",
+              startTime,
+              insertNewLane: true,
+              ...(ui.insertOrder != null
+                ? { insertOrder: ui.insertOrder }
+                : {}),
+            }
+          : {
+              track: "audio",
+              startTime,
+              laneId: ui.laneId ?? session.originLaneId,
+            },
+      );
       resetMoveUi();
       return;
     }
@@ -351,7 +376,10 @@ export function useTimelineClipMove({
     resetMoveUi();
   }
 
-  function endPointerSession(reason: PointerSessionEndReason, pointerId?: number) {
+  function endPointerSession(
+    reason: PointerSessionEndReason,
+    pointerId?: number,
+  ) {
     const session = sessionRef.current;
     if (!session) return;
     if (pointerId != null && session.pointerId !== pointerId) return;
@@ -433,7 +461,12 @@ export function useTimelineClipMove({
     family: "main" | "overlay" | "audio",
     event: ReactPointerEvent,
   ) {
-    if (useEditorStore.getState().activeDragItem) return;
+    if (useEditorStore.getState().activeDragItem) {
+      // Clean up stale activeDragItem from a previous canceled sidebar drag
+      // so that timeline clip drags are not permanently blocked.
+      useEditorStore.getState().setActiveDragItem(null);
+      clearDragCursor();
+    }
 
     event.stopPropagation();
     event.preventDefault();
@@ -453,6 +486,11 @@ export function useTimelineClipMove({
       indicatorTop: 0,
       overBaseBody,
     };
+    setIsOverlayInsertLine(false);
+    setTargetOverlayLaneId(null);
+    setIsAudioInsertLine(false);
+    setTargetAudioLaneId(null);
+    setInsertTargetFamily(null);
 
     if (family === "audio") {
       setTargetAudioLaneId(item.laneId);
@@ -486,17 +524,11 @@ export function useTimelineClipMove({
     beginClipPointerDown(item, "overlay", event);
   }
 
-  function beginMainPointerDown(
-    item: TimelineClip,
-    event: ReactPointerEvent,
-  ) {
+  function beginMainPointerDown(item: TimelineClip, event: ReactPointerEvent) {
     beginClipPointerDown(item, "main", event);
   }
 
-  function beginAudioPointerDown(
-    item: TimelineClip,
-    event: ReactPointerEvent,
-  ) {
+  function beginAudioPointerDown(item: TimelineClip, event: ReactPointerEvent) {
     beginClipPointerDown(item, "audio", event);
   }
 
@@ -504,6 +536,7 @@ export function useTimelineClipMove({
     movingClipId,
     isOverlayInsertLine,
     isAudioInsertLine,
+    insertTargetFamily,
     targetOverlayLaneId,
     targetAudioLaneId,
     indicatorTopPos,

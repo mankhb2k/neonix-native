@@ -6,11 +6,16 @@
 /** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
 export const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
 /** Enter insert-line mode only when within this many px of a lane edge */
-export const OVERLAY_EDGE_ENTER_PX = 2;
+export const LANE_INSERT_ENTER_PX = 12;
 /** Exit insert-line only when this far into the lane body (hysteresis) */
-export const OVERLAY_EDGE_EXIT_PX = 10;
+export const LANE_INSERT_EXIT_PX = 16;
 /** Skip indicator setState when Y barely moved (cuts dragover re-renders) */
 export const INDICATOR_TOP_EPS_PX = 0.5;
+
+/** @deprecated Use LANE_INSERT_ENTER_PX instead. */
+export const OVERLAY_EDGE_ENTER_PX = LANE_INSERT_ENTER_PX;
+/** @deprecated Use LANE_INSERT_EXIT_PX instead. */
+export const OVERLAY_EDGE_EXIT_PX = LANE_INSERT_EXIT_PX;
 
 export type LaneHit = {
   laneId: string | null;
@@ -201,7 +206,10 @@ function insertOrderAbove(lane: LaneHit, policy: LaneDropPolicy): number {
   return 0;
 }
 
-function insertOrderBelow(lane: LaneHit, policy: LaneDropPolicy): number | null {
+function insertOrderBelow(
+  lane: LaneHit,
+  policy: LaneDropPolicy,
+): number | null {
   if (policy.family === "visual") {
     if (lane.role !== "overlay" || lane.order == null) return null;
     return lane.order;
@@ -223,9 +231,9 @@ function resolveInsideLane(
   const relY = clientY - lane.top;
   const h = Math.max(lane.bottom - lane.top, 1);
   const inBodyClear =
-    relY > OVERLAY_EDGE_EXIT_PX && relY < h - OVERLAY_EDGE_EXIT_PX;
-  const nearTopEnter = relY <= OVERLAY_EDGE_ENTER_PX;
-  const nearBottomEnter = relY >= h - OVERLAY_EDGE_ENTER_PX;
+    relY > LANE_INSERT_EXIT_PX && relY < h - LANE_INSERT_EXIT_PX;
+  const nearTopEnter = relY <= LANE_INSERT_ENTER_PX;
+  const nearBottomEnter = relY >= h - LANE_INSERT_ENTER_PX;
 
   const insertAbove = (): TimelineDropTarget => {
     const indicatorTop =
@@ -292,14 +300,14 @@ function resolveInsideLane(
     };
   };
 
-  // Visual base: only top-edge insert; never bottom-edge insert.
+  // Visual base: only top-edge insert with narrow band (4px).
+  // Symmetric enter/exit — once pointer moves >4px from top, exit insert mode.
+  // Never bottom-edge insert. Inside the body → target base.
   if (family === "visual" && lane.role === "base") {
-    if (!wasInsert) {
-      if (nearTopEnter) return insertAbove();
-      return body();
-    }
-    if (relY > OVERLAY_EDGE_EXIT_PX) return body();
-    return insertAbove();
+    const baseBandPx = 4;
+    const nearBaseTop = relY <= baseBandPx;
+    if (nearBaseTop) return insertAbove();
+    return body();
   }
 
   if (!wasInsert) {
@@ -389,6 +397,17 @@ function resolveVisualZone(
   }
 
   const last = lanes[lanes.length - 1];
+  // Pointer below base lane → body (overBaseBody), never insert below base.
+  if (last.role === "base" && clientY > last.bottom) {
+    return {
+      family: "visual",
+      isInsert: false,
+      laneId: null,
+      insertOrder: null,
+      indicatorTop: 0,
+      overBaseBody: true,
+    };
+  }
   const prev = lanes.length > 1 ? lanes[lanes.length - 2] : undefined;
   return resolveInsideLane(
     clientY,

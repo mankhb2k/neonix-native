@@ -21,9 +21,11 @@ export class EditorPage {
         timeout: 30_000,
       });
     } else {
-      await expect(this.page.getByTestId("runtime-preview-canvas")).toBeVisible({
-        timeout: 30_000,
-      });
+      await expect(this.page.getByTestId("runtime-preview-canvas")).toBeVisible(
+        {
+          timeout: 30_000,
+        },
+      );
     }
   }
 
@@ -52,14 +54,16 @@ export class EditorPage {
 
   async expectClipInLane(clipId: string, laneId: string) {
     await expect(
-      this.page.locator(
-        `[data-clip-id="${clipId}"][data-lane-id="${laneId}"]`,
-      ),
+      this.page.locator(`[data-clip-id="${clipId}"][data-lane-id="${laneId}"]`),
     ).toBeVisible({ timeout: 10_000 });
   }
 
   async expectLaneExists(laneId: string) {
     await expect(this.lane(laneId)).toBeVisible({ timeout: 10_000 });
+  }
+
+  async expectLaneRemoved(laneId: string) {
+    await expect(this.lane(laneId)).toBeHidden({ timeout: 10_000 });
   }
 
   async dragClipToLane(clipId: string, destLaneId: string) {

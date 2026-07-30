@@ -100,10 +100,7 @@ export const Tracks = memo(function Tracks({
     () => new Set(selectedClipIds),
     [selectedClipIds],
   );
-
-  // Virtual placeholders — drop target UI, không persist vào store.
-  const showOverlayPlaceholder = overlayLanes.length === 0;
-  const showAudioPlaceholder = audioLanes.length === 0;
+  const mainClips = mainLane ? (clipsByLane.get(mainLane.id) ?? []) : [];
 
   const sidebarDrag = useTracksDrag({
     rootRef: scrollRef,
@@ -112,6 +109,7 @@ export const Tracks = memo(function Tracks({
     pixelsPerSecond,
     maxOverlayOrder,
     maxAudioOrder,
+    visualBaseOnly: mainClips.length === 0,
     projectId: projectId ?? null,
   });
 
@@ -132,13 +130,12 @@ export const Tracks = memo(function Tracks({
     onScrubBlockedChange(scrubBlocked);
   }, [scrubBlocked, onScrubBlockedChange]);
 
-  const isOverlayInsertLine = clipMove.isMoving
+  const rawOverlayInsertLine = clipMove.isMoving
     ? clipMove.isOverlayInsertLine
     : sidebarDrag.isOverlayInsertLine;
-  const isAudioInsertLine = clipMove.isMoving
+  const rawAudioInsertLine = clipMove.isMoving
     ? clipMove.isAudioInsertLine
     : sidebarDrag.isAudioInsertLine;
-  const isInsertLine = isOverlayInsertLine || isAudioInsertLine;
   const targetOverlayLaneId = clipMove.isMoving
     ? clipMove.targetOverlayLaneId
     : sidebarDrag.targetOverlayLaneId;
@@ -151,6 +148,20 @@ export const Tracks = memo(function Tracks({
   const dragGhostState = clipMove.isMoving
     ? clipMove.dragGhostState
     : sidebarDrag.dragGhostState;
+  const insertTargetFamily = clipMove.isMoving
+    ? clipMove.insertTargetFamily
+    : sidebarDrag.insertTargetFamily;
+  const dragFamily =
+    dragGhostState?.targetTrack === "audio" ? "audio" : "visual";
+  const isOverlayInsertLine =
+    rawOverlayInsertLine &&
+    insertTargetFamily === "visual" &&
+    dragFamily === "visual";
+  const isAudioInsertLine =
+    rawAudioInsertLine &&
+    insertTargetFamily === "audio" &&
+    dragFamily === "audio";
+  const isInsertLine = isOverlayInsertLine || isAudioInsertLine;
   const insertGhostRef = clipMove.isMoving
     ? clipMove.insertGhostRef
     : sidebarDrag.insertGhostRef;
@@ -162,14 +173,10 @@ export const Tracks = memo(function Tracks({
     );
   }
 
-  const mainClips = mainLane ? (clipsByLane.get(mainLane.id) ?? []) : [];
   const isTimelineEmpty = timelineClips.length === 0;
   const canvasMinWidth = TIMELINE_LABEL_WIDTH + canvasWidth;
 
-  function onClipKeyDown(
-    clipId: string,
-    event: KeyboardEvent<HTMLDivElement>,
-  ) {
+  function onClipKeyDown(clipId: string, event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     useEditorStore.getState().selectClip(clipId);
@@ -246,23 +253,8 @@ export const Tracks = memo(function Tracks({
                 aria-hidden
               />
             )}
-            {showOverlayPlaceholder ? (
-              <TrackLane
-                variant="secondary"
-                dataTrackType="overlay"
-                dataLaneId={null}
-                dataLaneOrder={0}
-                dataPlaceholder
-                ghostPreview={null}
-                labelWidth={TIMELINE_LABEL_WIDTH}
-                canvasWidth={canvasWidth}
-                leftControl={
-                  <span className="text-[10px] text-[var(--fg-muted)] px-1">
-                    Overlay
-                  </span>
-                }
-              />
-            ) : null}
+
+            {/* Overlay lanes: rendered above Main (sorted descending by order) */}
             {overlayLanes.map((lane) => {
               const layerItems = clipsByLane.get(lane.id) ?? [];
               return (
@@ -333,6 +325,7 @@ export const Tracks = memo(function Tracks({
               <>
                 <div
                   ref={insertGhostRef}
+                  data-drop-family={insertTargetFamily ?? undefined}
                   className="absolute z-30 h-8 -translate-y-1/2 rounded bg-[#38383e] border border-[#4a4a52] shadow-md pointer-events-none overflow-hidden will-change-[left]"
                   style={{
                     top: indicatorTopPos,
@@ -341,6 +334,8 @@ export const Tracks = memo(function Tracks({
                   aria-hidden
                 />
                 <div
+                  data-testid="timeline-insert-indicator"
+                  data-drop-family={insertTargetFamily ?? undefined}
                   className="absolute z-40 h-px bg-[#14B8A6] pointer-events-none"
                   style={{
                     top: indicatorTopPos,
@@ -351,6 +346,7 @@ export const Tracks = memo(function Tracks({
               </>
             )}
 
+            {/* Main lane */}
             <TrackLane
               variant="main"
               dataTrackType="main"
@@ -415,6 +411,7 @@ export const Tracks = memo(function Tracks({
               })}
             </TrackLane>
 
+            {/* Audio lanes: rendered below Main (sorted ascending by order) */}
             {audioLanes.map((lane) => {
               const laneClips = clipsByLane.get(lane.id) ?? [];
               return (
@@ -473,23 +470,6 @@ export const Tracks = memo(function Tracks({
                 </TrackLane>
               );
             })}
-            {showAudioPlaceholder ? (
-              <TrackLane
-                variant="secondary"
-                dataTrackType="audio"
-                dataLaneId={null}
-                dataLaneOrder={0}
-                dataPlaceholder
-                ghostPreview={null}
-                labelWidth={TIMELINE_LABEL_WIDTH}
-                canvasWidth={canvasWidth}
-                leftControl={
-                  <span className="p-1 text-[var(--fg-muted)]">
-                    <Music size={14} strokeWidth={1.5} />
-                  </span>
-                }
-              />
-            ) : null}
           </TimelineWorkspaceContextMenu>
         )}
       </div>

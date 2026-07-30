@@ -67,13 +67,89 @@ describe("resolveOverlayDragTarget", () => {
       { top: 100, bottom: 140, type: "overlay", laneId: null, order: 0 },
       { top: 140, bottom: 180, type: "main", laneId: "main", order: null },
     ];
-    const target = resolveOverlayDragTarget(120, withPlaceholder, 100, false, 0);
+    const target = resolveOverlayDragTarget(
+      120,
+      withPlaceholder,
+      100,
+      false,
+      0,
+    );
     expect(target?.isInsert).toBe(true);
     expect(target?.insertOrder).toBe(0);
   });
 });
 
 describe("resolveLaneDropTarget", () => {
+  it("visual with only Main inserts above it and never below it", () => {
+    const mainOnly: LaneHit[] = [
+      {
+        top: 140,
+        bottom: 200,
+        family: "visual",
+        role: "base",
+        laneId: "main",
+        order: null,
+      },
+    ];
+
+    const aboveMain = resolveLaneDropTarget(
+      120,
+      mainOnly,
+      100,
+      false,
+      -1,
+      visualDropPolicy,
+    );
+    expect(aboveMain).toMatchObject({
+      family: "visual",
+      isInsert: true,
+      insertOrder: 0,
+      indicatorTop: 39,
+    });
+
+    const belowMain = resolveLaneDropTarget(
+      220,
+      mainOnly,
+      100,
+      false,
+      -1,
+      visualDropPolicy,
+    );
+    expect(belowMain).toMatchObject({
+      family: "visual",
+      isInsert: false,
+      overBaseBody: true,
+    });
+  });
+
+  it("audio with only Main inserts below it", () => {
+    const mainOnly: LaneHit[] = [
+      {
+        top: 140,
+        bottom: 200,
+        family: "audio",
+        role: "base",
+        laneId: "main",
+        order: null,
+      },
+    ];
+
+    const target = resolveLaneDropTarget(
+      220,
+      mainOnly,
+      100,
+      false,
+      -1,
+      audioDropPolicy,
+    );
+    expect(target).toMatchObject({
+      family: "audio",
+      isInsert: true,
+      insertOrder: 0,
+      indicatorTop: 99,
+    });
+  });
+
   it("visual body matches legacy overlay resolver", () => {
     const unified = resolveLaneDropTarget(
       120,
@@ -105,9 +181,9 @@ describe("resolveLaneDropTarget", () => {
   });
 
   it("visual hysteresis exits insert once deep in body", () => {
-    // relY=15 > EXIT=10 → body while wasInsert.
+    // relY=20 > LANE_INSERT_EXIT_PX=16 → body while wasInsert.
     const deepBody = resolveLaneDropTarget(
-      115,
+      120,
       visualHits,
       100,
       true,

@@ -1,8 +1,5 @@
 import { test as base, expect, type Page } from "@playwright/test";
-import {
-  STORAGE_KEY,
-  type StoredEditorProject,
-} from "./project-builders";
+import { STORAGE_KEY, type StoredEditorProject } from "./project-builders";
 import { EditorPage } from "../pages/editor.page";
 
 type EditorFixtures = {
@@ -31,6 +28,8 @@ export async function openSeededEditor(
 ): Promise<EditorPage> {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/app");
+  // Reset all localStorage to prevent cross-test pollution.
+  await page.evaluate(() => window.localStorage.clear());
   await page.evaluate(
     ({ key, id, record }) => {
       window.localStorage.setItem(key, JSON.stringify({ [id]: record }));

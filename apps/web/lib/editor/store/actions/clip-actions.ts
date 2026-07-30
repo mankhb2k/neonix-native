@@ -34,6 +34,7 @@ import {
   isMainLane,
   isOverlayLane,
   normalizeLaneOrders,
+  pruneEmptyLanes,
   resolveMainStartTime,
   type TimelineClip,
 } from "@/lib/editor/timeline-clips";
@@ -95,7 +96,6 @@ export function createClipActions(
       });
     },
 
-
     addClipFromDraft: (draft, target) => {
       set((state) => {
         const project = state.project;
@@ -107,7 +107,10 @@ export function createClipActions(
         if (!lanes.some((lane) => lane.id === mainLane.id)) {
           lanes = [...lanes, mainLane];
         }
-        const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
+        const duration = Math.max(
+          0.5,
+          draft.duration || DEFAULT_FRAME_DURATION,
+        );
 
         if (target.track === "main") {
           if (isLaneLocked(lanes, mainLane.id)) return state;
@@ -117,7 +120,10 @@ export function createClipActions(
             lanes,
             state.timelineClips
               .filter((clip) => clip.laneId === mainLane.id)
-              .reduce((end, clip) => Math.max(end, clip.startTime + clip.duration), 0),
+              .reduce(
+                (end, clip) => Math.max(end, clip.startTime + clip.duration),
+                0,
+              ),
             Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION),
           );
           const clip: TimelineClip = {
@@ -205,7 +211,11 @@ export function createClipActions(
         const existing = state.timelineClips.find((clip) => clip.id === clipId);
         if (!project || !existing) return state;
         // Lane locked → không move/placement (Phase 6).
-        if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, [clipId])) {
+        if (
+          selectionHasLockedLane(state.timelineClips, state.timelineLanes, [
+            clipId,
+          ])
+        ) {
           return state;
         }
         const startTime = Math.max(0, patch.startTime);
@@ -229,7 +239,7 @@ export function createClipActions(
             ? null
             : (patch.laneId ??
               (patch.insertOrder != null
-                ? audioLaneIdByOrder(lanes, patch.insertOrder) ?? null
+                ? (audioLaneIdByOrder(lanes, patch.insertOrder) ?? null)
                 : existing.laneId));
           const preferredInsertOrder = insertNew
             ? (patch.insertOrder ?? null)
@@ -254,7 +264,7 @@ export function createClipActions(
             startTime: placement.startTime,
           };
           clips.push(moved);
-          lanes = normalizeLaneOrders(lanes);
+          lanes = pruneEmptyLanes(lanes, clips);
           nextProject = {
             ...project,
             timeline: {
@@ -286,9 +296,7 @@ export function createClipActions(
               }
             : {
                 type: "overlay-lane",
-                laneId:
-                  patch.laneId ??
-                  (existingOnMain ? "" : existing.laneId),
+                laneId: patch.laneId ?? (existingOnMain ? "" : existing.laneId),
                 startTime,
                 duration: existing.duration,
               };
@@ -354,7 +362,7 @@ export function createClipActions(
         }
 
         clips.push(moved);
-        lanes = normalizeLaneOrders(lanes);
+        lanes = pruneEmptyLanes(lanes, clips);
         nextProject = rebuildMainProject(nextProject, clips, lanes);
         return {
           project: nextProject,
@@ -478,12 +486,16 @@ export function createClipActions(
         const project = state.project;
         const ids = new Set(selectedClipIdsFrom(state.selection));
         if (!project || ids.size === 0) return state;
-        if (selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)) {
+        if (
+          selectionHasLockedLane(state.timelineClips, state.timelineLanes, ids)
+        ) {
           return state;
         }
 
         const removed = state.timelineClips.filter((clip) => ids.has(clip.id));
-        const remaining = state.timelineClips.filter((clip) => !ids.has(clip.id));
+        const remaining = state.timelineClips.filter(
+          (clip) => !ids.has(clip.id),
+        );
         const removedMainSceneIds = new Set(
           removed
             .filter(
@@ -514,7 +526,7 @@ export function createClipActions(
             ),
           },
         };
-        const lanes = normalizeLaneOrders(state.timelineLanes);
+        const lanes = pruneEmptyLanes(state.timelineLanes, remaining);
         nextProject = rebuildMainProject(nextProject, remaining, lanes);
         return {
           project: nextProject,
@@ -542,7 +554,9 @@ export function createClipActions(
         const selected = state.timelineClips.filter((clip) =>
           selectedClipIdsFrom(state.selection).includes(clip.id),
         );
-        const splittable = selected.filter((clip) => playheadSplitsClip(clip, t));
+        const splittable = selected.filter((clip) =>
+          playheadSplitsClip(clip, t),
+        );
         if (splittable.length === 0) return state;
 
         let lanes = state.timelineLanes;
@@ -560,7 +574,9 @@ export function createClipActions(
 
           if (isMainLane(lanes, clip.laneId) && clip.kind === "scene") {
             scenes = scenes.map((scene) =>
-              scene.id === clip.sceneId ? { ...scene, duration: leftDur } : scene,
+              scene.id === clip.sceneId
+                ? { ...scene, duration: leftDur }
+                : scene,
             );
             const leftScene = scenes.find((s) => s.id === clip.sceneId);
             if (!leftScene) continue;
@@ -585,7 +601,7 @@ export function createClipActions(
             newSelection.push(clip.id, rightClip.id);
           } else if (isAudioLane(lanes, clip.laneId)) {
             const trackIdKey =
-              clip.kind === "audio" ? clip.audioTrackId ?? clip.id : clip.id;
+              clip.kind === "audio" ? (clip.audioTrackId ?? clip.id) : clip.id;
             const track = audioTracks.find(
               (tr) => tr.id === trackIdKey || tr.id === clip.id,
             );
@@ -627,7 +643,9 @@ export function createClipActions(
             newSelection.push(clip.id, rightClip.id);
           } else if (clip.kind === "scene") {
             scenes = scenes.map((scene) =>
-              scene.id === clip.sceneId ? { ...scene, duration: leftDur } : scene,
+              scene.id === clip.sceneId
+                ? { ...scene, duration: leftDur }
+                : scene,
             );
             const leftScene = scenes.find((s) => s.id === clip.sceneId);
             if (!leftScene) continue;
@@ -669,6 +687,6 @@ export function createClipActions(
           selection: selectionClips(newSelection),
         };
       });
-    }
+    },
   };
 }

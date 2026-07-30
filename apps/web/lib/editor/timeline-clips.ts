@@ -56,7 +56,11 @@ export function parseTimelineLanes(input: unknown): TimelineLane[] {
   for (const item of input) {
     if (!item || typeof item !== "object") continue;
     const row = item as Record<string, unknown>;
-    if (typeof row.id !== "string" || typeof row.name !== "string" || !validNumber(row.order)) {
+    if (
+      typeof row.id !== "string" ||
+      typeof row.name !== "string" ||
+      !validNumber(row.order)
+    ) {
       continue;
     }
     const order = Math.floor(row.order);
@@ -65,7 +69,10 @@ export function parseTimelineLanes(input: unknown): TimelineLane[] {
     const muted = row.muted === true;
 
     // Format mới
-    if (row.kind === "visual" && (row.role === "base" || row.role === "overlay")) {
+    if (
+      row.kind === "visual" &&
+      (row.role === "base" || row.role === "overlay")
+    ) {
       lanes.push({
         id: row.id,
         kind: "visual",
@@ -78,7 +85,10 @@ export function parseTimelineLanes(input: unknown): TimelineLane[] {
       });
       continue;
     }
-    if (row.kind === "audio" || (row.kind === "audio" && row.role === "audio")) {
+    if (
+      row.kind === "audio" ||
+      (row.kind === "audio" && row.role === "audio")
+    ) {
       lanes.push({
         id: row.id,
         kind: "audio",
@@ -187,10 +197,7 @@ export function parseTimelineClips(input: unknown): TimelineClip[] {
     }
 
     // Scene clip (mặc định)
-    const sceneId =
-      typeof row.sceneId === "string"
-        ? row.sceneId
-        : row.id;
+    const sceneId = typeof row.sceneId === "string" ? row.sceneId : row.id;
     clips.push({
       id: row.id,
       kind: "scene",
@@ -297,7 +304,10 @@ export function migrateLanesAndClips(
   const overlayLanes: TimelineLane[] = [];
 
   for (const clip of rawLegacy) {
-    if (clip.track === "overlay" || (clip.laneId === "" && clip.layerIndex != null)) {
+    if (
+      clip.track === "overlay" ||
+      (clip.laneId === "" && clip.layerIndex != null)
+    ) {
       const idx = clip.layerIndex ?? 0;
       if (!layerToLane.has(idx)) {
         const lane: TimelineLane = {
@@ -595,31 +605,47 @@ export function removeLaneExplicitly(
 }
 
 /**
- * @deprecated Empty lanes are persistent. Use {@link normalizeLaneOrders} instead.
- * Kept as a thin wrapper that no longer drops unused lanes.
+ * Remove empty overlay and audio lanes (lanes with zero clips).
+ * Base lane is always retained. Clips are used to determine emptiness.
  */
 export function pruneEmptyLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
-  void clips;
-  return normalizeLaneOrders(lanes);
+  const usedLaneIds = new Set(clips.map((clip) => clip.laneId));
+  const populated = lanes.filter(
+    (lane) =>
+      (lane.kind === "visual" && lane.role === "base") ||
+      usedLaneIds.has(lane.id),
+  );
+  return normalizeLaneOrders(populated);
 }
 
-/** @deprecated Prefer normalizeLaneOrders. */
+/** Remove empty overlay lanes only. Base + audio lanes are retained. */
 export function pruneEmptyOverlayLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
-  return pruneEmptyLanes(lanes, clips);
+  const usedLaneIds = new Set(clips.map((clip) => clip.laneId));
+  const populated = lanes.filter(
+    (lane) =>
+      lane.kind !== "visual" ||
+      lane.role !== "overlay" ||
+      usedLaneIds.has(lane.id),
+  );
+  return normalizeLaneOrders(populated);
 }
 
-/** @deprecated Prefer normalizeLaneOrders. */
+/** Remove empty audio lanes only. Base + overlay lanes are retained. */
 export function pruneEmptyAudioLanes(
   lanes: TimelineLane[],
   clips: TimelineClip[],
 ): TimelineLane[] {
-  return pruneEmptyLanes(lanes, clips);
+  const usedLaneIds = new Set(clips.map((clip) => clip.laneId));
+  const populated = lanes.filter(
+    (lane) => lane.kind !== "audio" || usedLaneIds.has(lane.id),
+  );
+  return normalizeLaneOrders(populated);
 }
 
 export function shiftAudioLaneOrders(
@@ -800,9 +826,7 @@ export function shiftOverlayLaneOrders(
   delta: number,
 ): TimelineLane[] {
   return lanes.map((lane) =>
-    lane.kind === "visual" &&
-    lane.role === "overlay" &&
-    lane.order >= fromOrder
+    lane.kind === "visual" && lane.role === "overlay" && lane.order >= fromOrder
       ? { ...lane, order: lane.order + delta }
       : lane,
   );
@@ -822,9 +846,7 @@ export function reorderOverlayLane(
   const others = lanes
     .filter(
       (lane) =>
-        lane.kind === "visual" &&
-        lane.role === "overlay" &&
-        lane.id !== laneId,
+        lane.kind === "visual" && lane.role === "overlay" && lane.id !== laneId,
     )
     .sort((a, b) => a.order - b.order);
   others.splice(Math.min(clamped, others.length), 0, target);

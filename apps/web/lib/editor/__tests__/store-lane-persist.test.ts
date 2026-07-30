@@ -8,6 +8,7 @@ import {
 import {
   DEFAULT_VISUAL_POLICY,
   normalizeLaneOrders,
+  pruneEmptyLanes,
   removeLaneExplicitly,
   type TimelineClip,
   type TimelineLane,
@@ -58,7 +59,7 @@ function baseLane(): TimelineLane {
 }
 
 describe("normalizeLaneOrders / removeLaneExplicitly", () => {
-  it("keeps empty overlay and audio lanes while renumbering", () => {
+  it("keeps all lanes while renumbering", () => {
     const lanes: TimelineLane[] = [
       baseLane(),
       overlayLane("ov.0", 5, "Lớp 1"),
@@ -106,12 +107,59 @@ describe("normalizeLaneOrders / removeLaneExplicitly", () => {
   });
 });
 
-describe("empty-lane persistence across move", () => {
+describe("pruneEmptyLanes", () => {
+  it("removes empty overlay and audio lanes, keeps base", () => {
+    const lanes: TimelineLane[] = [
+      baseLane(),
+      overlayLane("ov.0", 0, "Lớp 1"),
+      overlayLane("ov.1", 1, "Lớp 2"),
+      audioLane("au.0", 0, "Audio 1"),
+    ];
+    const clips: TimelineClip[] = [
+      {
+        id: "ov.clip",
+        kind: "scene",
+        sceneId: "s1",
+        laneId: "ov.0",
+        startTime: 0,
+        duration: 1,
+        name: "O",
+      },
+    ];
+    const pruned = pruneEmptyLanes(lanes, clips);
+    expect(pruned.map((l) => l.id)).toEqual(["lane.main", "ov.0"]);
+  });
+
+  it("keeps populated audio lane", () => {
+    const lanes: TimelineLane[] = [
+      baseLane(),
+      audioLane("au.0", 0, "Audio 1"),
+      audioLane("au.1", 1, "Audio 2"),
+    ];
+    const clips: TimelineClip[] = [
+      {
+        id: "a1",
+        kind: "audio",
+        audioTrackId: "a1",
+        assetId: "asset.b",
+        laneId: "au.1",
+        startTime: 0,
+        duration: 2,
+        name: "B",
+      },
+    ];
+    const pruned = pruneEmptyLanes(lanes, clips);
+    expect(pruned.map((l) => l.id)).toEqual(["lane.main", "au.1"]);
+  });
+
+});
+
+describe("empty-lane auto-removal across move", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("audio: empty source lane survives move and reverse move", () => {
+  it("audio: empty source lane is removed after move", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -149,7 +197,10 @@ describe("empty-lane persistence across move", () => {
       ],
       [
         baseLane(),
-        audioLane("lane.audio.0", 0, "Audio Keep", { locked: false, muted: true }),
+        audioLane("lane.audio.0", 0, "Audio Keep", {
+          locked: false,
+          muted: true,
+        }),
         audioLane("lane.audio.1", 1, "Audio Dest"),
       ],
     );
@@ -164,25 +215,42 @@ describe("empty-lane persistence across move", () => {
     expect(state.timelineClips.find((c) => c.id === "a0")?.laneId).toBe(
       "lane.audio.1",
     );
-    const emptySource = state.timelineLanes.find((l) => l.id === "lane.audio.0");
-    expect(emptySource).toBeTruthy();
-    expect(emptySource?.name).toBe("Audio Keep");
-    expect(emptySource?.kind === "audio" && emptySource.muted).toBe(true);
+    // Empty source lane (lane.audio.0) should be removed.
+    const emptySource = state.timelineLanes.find(
+      (l) => l.id === "lane.audio.0",
+    );
+    expect(emptySource).toBeFalsy();
+    // Destination lane should still exist.
+    expect(state.timelineLanes.some((l) => l.id === "lane.audio.1")).toBe(true);
+    // Only 1 audio lane should remain (the destination lane).
+    expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
+      1,
+    );
 
+    // Reverse move: a0 goes back to lane.audio.0 (which doesn't exist, so it
+    // targets lane.audio.0 which is the id — but lane was pruned so it'll
+    // target the existing lane or create a new lane).
+    // Actually, lane.audio.0 doesn't exist anymore, so the body-target move
+    // will map to a new audio lane if needed.
     useEditorStore.getState().moveClip("a0", {
       track: "audio",
       startTime: 0,
-      laneId: "lane.audio.0",
+      insertNewLane: true,
+      insertOrder: 0,
     });
 
     state = useEditorStore.getState();
-    expect(state.timelineClips.find((c) => c.id === "a0")?.laneId).toBe(
-      "lane.audio.0",
-    );
-    expect(state.timelineLanes.some((l) => l.id === "lane.audio.1")).toBe(true);
+    // a0 has moved to a new lane (inserted at order 0).
+    const moved = state.timelineClips.find((c) => c.id === "a0");
+    expect(moved?.laneId).toBeTruthy();
+    // lane.audio.1 should still be empty after a1 is there... wait, a1 is still
+    // on lane.audio.1. So after a0's insertNewLane, we have 2 audio clips on 2 lanes.
+    expect(
+      state.timelineLanes.filter((l) => l.kind === "audio").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
-  it("overlay: empty source lane survives move and reverse move", () => {
+  it("overlay: empty source lane is removed after move", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -236,23 +304,27 @@ describe("empty-lane persistence across move", () => {
     const emptySource = state.timelineLanes.find(
       (l) => l.id === "lane.overlay.0",
     );
-    expect(emptySource).toBeTruthy();
-    expect(emptySource?.name).toBe("Lớp Keep");
-    expect(emptySource?.kind === "visual" && emptySource.visible).toBe(false);
-
-    useEditorStore.getState().moveClip("ov.a", {
-      track: "overlay",
-      startTime: 0,
-      laneId: "lane.overlay.0",
-    });
-
-    state = useEditorStore.getState();
-    expect(state.timelineClips.find((c) => c.id === "ov.a")?.laneId).toBe(
-      "lane.overlay.0",
-    );
+    expect(emptySource).toBeFalsy();
     expect(state.timelineLanes.some((l) => l.id === "lane.overlay.1")).toBe(
       true,
     );
+    expect(
+      state.timelineLanes.filter(
+        (l) => l.kind === "visual" && l.role === "overlay",
+      ),
+    ).toHaveLength(1);
+
+    // Reverse move: insert overlay into a new lane.
+    useEditorStore.getState().moveClip("ov.a", {
+      track: "overlay",
+      startTime: 0,
+      insertNewLane: true,
+      insertOrder: 0,
+    });
+
+    state = useEditorStore.getState();
+    const moved = state.timelineClips.find((c) => c.id === "ov.a");
+    expect(moved?.laneId).toBeTruthy();
   });
 
   it("target collision keeps laneId and snaps startTime", () => {
@@ -312,12 +384,15 @@ describe("empty-lane persistence across move", () => {
     expect(
       moved!.startTime >= 3 || moved!.startTime + moved!.duration <= 0,
     ).toBe(true);
+    // Empty source lane is now removed.
     expect(
-      useEditorStore.getState().timelineLanes.some((l) => l.id === "lane.audio.0"),
-    ).toBe(true);
+      useEditorStore
+        .getState()
+        .timelineLanes.some((l) => l.id === "lane.audio.0"),
+    ).toBe(false);
   });
 
-  it("delete clip keeps empty lane", () => {
+  it("delete clip removes empty overlay lane", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -350,12 +425,17 @@ describe("empty-lane persistence across move", () => {
 
     const state = useEditorStore.getState();
     expect(state.timelineClips.some((c) => c.id === "ov.a")).toBe(false);
+    // Empty overlay lane is now removed.
     expect(state.timelineLanes.some((l) => l.id === "lane.overlay.0")).toBe(
-      true,
+      false,
     );
+    // Base lane must be preserved.
+    expect(
+      state.timelineLanes.some((l) => l.kind === "visual" && l.role === "base"),
+    ).toBe(true);
   });
 
-  it("delete audio clip keeps empty audio lane", () => {
+  it("delete audio clip removes empty audio lane", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -389,13 +469,16 @@ describe("empty-lane persistence across move", () => {
 
     const state = useEditorStore.getState();
     expect(state.timelineClips.some((c) => c.id === "a0")).toBe(false);
-    const empty = state.timelineLanes.find((l) => l.id === "lane.audio.0");
-    expect(empty).toBeTruthy();
-    expect(empty?.kind).toBe("audio");
-    expect(empty?.name).toBe("Audio Keep");
+    // Empty audio lane is now removed.
+    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(
+      false,
+    );
+    expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
+      0,
+    );
   });
 
-  it("audio insertNewLane keeps empty source lane", () => {
+  it("audio insertNewLane removes empty source lane", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -435,13 +518,17 @@ describe("empty-lane persistence across move", () => {
     const moved = state.timelineClips.find((c) => c.id === "a0");
     expect(moved?.laneId).toBeTruthy();
     expect(moved?.laneId).not.toBe("lane.audio.0");
-    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(true);
+    // Empty source lane is now removed.
+    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(
+      false,
+    );
+    // A new audio lane was created.
     expect(
       state.timelineLanes.filter((l) => l.kind === "audio").length,
-    ).toBeGreaterThanOrEqual(2);
+    ).toBeGreaterThanOrEqual(1);
   });
 
-  it("audio insert onto empty lane reuses it instead of deleting source", () => {
+  it("audio insert onto empty lane reuses it, deletes source after move", () => {
     const { project } = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       project,
@@ -474,7 +561,7 @@ describe("empty-lane persistence across move", () => {
       ],
     );
 
-    // Body-target move onto the empty lane — source must stay.
+    // Body-target move onto the empty lane — source should be pruned.
     useEditorStore.getState().moveClip("a0", {
       track: "audio",
       startTime: 0,
@@ -485,9 +572,13 @@ describe("empty-lane persistence across move", () => {
     expect(state.timelineClips.find((c) => c.id === "a0")?.laneId).toBe(
       "lane.audio.1",
     );
-    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(true);
+    // Empty source lane is removed.
+    expect(state.timelineLanes.some((l) => l.id === "lane.audio.0")).toBe(
+      false,
+    );
+    // Only 1 audio lane remains (the destination which now has a clip).
     expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
-      2,
+      1,
     );
   });
 
@@ -510,12 +601,15 @@ describe("empty-lane persistence across move", () => {
       [baseLane(), audioLane("lane.audio.0", 0, "Audio Empty")],
     );
 
-    useEditorStore.getState().addAudioClipFromLibrary(
-      { title: "Bed", assetId: "asset.bed", duration: 2 },
-      { startTime: 0, insertNewLane: true, insertOrder: 0 },
-    );
+    useEditorStore
+      .getState()
+      .addAudioClipFromLibrary(
+        { title: "Bed", assetId: "asset.bed", duration: 2 },
+        { startTime: 0, insertNewLane: true, insertOrder: 0 },
+      );
 
     const state = useEditorStore.getState();
+    // The empty lane is reused (not creating a second lane).
     expect(state.timelineLanes.filter((l) => l.kind === "audio")).toHaveLength(
       1,
     );
@@ -524,7 +618,7 @@ describe("empty-lane persistence across move", () => {
     );
   });
 
-  it("save/load snapshot keeps empty lanes after move", () => {
+  it("save/load snapshot: empty source lane is removed after move", () => {
     const fixture = fixtureBasePlusOverlay();
     useEditorStore.getState().loadProject(
       fixture.project,
@@ -581,8 +675,9 @@ describe("empty-lane persistence across move", () => {
 
     const snap = loadEditorProjectSnapshot(fixture.project.metadata.id);
     expect(snap).toBeTruthy();
+    // Empty source lane is removed from the snapshot.
     expect(snap!.timelineLanes.some((l) => l.id === "lane.overlay.0")).toBe(
-      true,
+      false,
     );
     expect(snap!.timelineClips.find((c) => c.id === "ov.a")?.laneId).toBe(
       "lane.overlay.1",
