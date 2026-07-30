@@ -25,7 +25,7 @@ type TrackLaneProps = {
   dataPlaceholder?: boolean;
   labelWidth: number;
   canvasWidth: number;
-  leftControl: React.ReactNode;
+  leftControl?: React.ReactNode;
   children?: React.ReactNode;
 };
 

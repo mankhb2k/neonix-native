@@ -283,18 +283,6 @@ export const Tracks = memo(function Tracks({
                   }
                   labelWidth={TIMELINE_LABEL_WIDTH}
                   canvasWidth={canvasWidth}
-                  leftControl={
-                    lane.kind === "visual" ? (
-                      <LaneFlagControls
-                        lane={lane}
-                        leading={
-                          <span className="text-[11px] font-semibold truncate max-w-[3.5rem]">
-                            {lane.name}
-                          </span>
-                        }
-                      />
-                    ) : null
-                  }
                 >
                   {layerItems.map((item) => {
                     const active = selectedClipIdSet.has(item.id);
@@ -369,18 +357,6 @@ export const Tracks = memo(function Tracks({
               }
               labelWidth={TIMELINE_LABEL_WIDTH}
               canvasWidth={canvasWidth}
-              leftControl={
-                mainLane ? (
-                  <LaneFlagControls
-                    lane={mainLane}
-                    leading={<Film size={14} strokeWidth={1.5} />}
-                  />
-                ) : (
-                  <span className="p-1 text-[var(--fg-muted)]">
-                    <Film size={14} strokeWidth={1.5} />
-                  </span>
-                )
-              }
             >
               {mainClips.map((clip, index) => {
                 const active = selectedClipIdSet.has(clip.id);
@@ -437,12 +413,6 @@ export const Tracks = memo(function Tracks({
                   }
                   labelWidth={TIMELINE_LABEL_WIDTH}
                   canvasWidth={canvasWidth}
-                  leftControl={
-                    <LaneFlagControls
-                      lane={lane}
-                      leading={<Music size={14} strokeWidth={1.5} />}
-                    />
-                  }
                 >
                   {laneClips.map((clip) => {
                     const active = selectedClipIdSet.has(clip.id);
