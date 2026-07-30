@@ -204,10 +204,7 @@ export const Tracks = memo(function Tracks({
   const seekEmptySpace = (clientX: number) => {
     const root = scrollRef.current;
     if (!root) return;
-    const maxTime = Math.max(
-      usePlaybackClock.getState().duration,
-      canvasWidth / Math.max(pixelsPerSecond, 1),
-    );
+    const maxTime = usePlaybackClock.getState().duration;
     const time = clientXToTimelineTime(
       clientX,
       root,
