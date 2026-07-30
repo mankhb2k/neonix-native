@@ -5,6 +5,48 @@ import {
 } from "../fixtures/project-builders";
 
 test.describe("timeline cross-lane DnD", () => {
+  test("audio: drag below the last audio lane creates a lower lane", async ({
+    page,
+  }) => {
+    const projectId = "e2e.timeline.audio-insert-below";
+    const stored = buildAudioCrossLaneProject(projectId);
+    const editor = await openSeededEditor(page, projectId, stored);
+    const clip = editor.clip("a0");
+    const lastLane = editor.lane("lane.audio.1");
+    await expect(clip).toBeVisible({ timeout: 30_000 });
+    const clipBox = await clip.boundingBox();
+    const lastLaneBox = await lastLane.boundingBox();
+    if (!clipBox || !lastLaneBox) throw new Error("missing audio drag boxes");
+
+    const startX = clipBox.x + Math.min(24, clipBox.width / 2);
+    const startY = clipBox.y + clipBox.height / 2;
+    const targetX = lastLaneBox.x + 136;
+    const targetY = lastLaneBox.y + lastLaneBox.height + 24;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + 8, startY + 8, { steps: 4 });
+    await page.mouse.move(targetX, targetY, { steps: 20 });
+
+    const indicator = page.getByTestId("timeline-insert-indicator");
+    await expect(indicator).toHaveAttribute("data-drop-family", "audio");
+    const indicatorBox = await indicator.boundingBox();
+    if (!indicatorBox) throw new Error("missing audio insert indicator");
+    expect(indicatorBox.y).toBeGreaterThanOrEqual(
+      lastLaneBox.y + lastLaneBox.height - 2,
+    );
+
+    await page.mouse.up();
+    await expect(clip).toBeVisible();
+    const movedLaneId = await clip.getAttribute("data-lane-id");
+    expect(movedLaneId).toBeTruthy();
+    expect(movedLaneId).not.toBe("lane.audio.0");
+    expect(movedLaneId).not.toBe("lane.audio.1");
+    await editor.expectLaneExists("lane.audio.0");
+    await expect(
+      page.locator('[data-track-lane][data-track-type="audio"]'),
+    ).toHaveCount(3);
+  });
+
   test("overlay: move to dest lane, empty source lane removed, reload", async ({
     page,
   }) => {

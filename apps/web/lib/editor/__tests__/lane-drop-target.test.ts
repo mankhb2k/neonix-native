@@ -264,4 +264,14 @@ describe("resolveAudioDragTarget", () => {
     const nearTop = resolveAudioDragTarget(141, audioLanes, 100, true, 0);
     expect(nearTop?.isInsert).toBe(true);
   });
+
+  it("inserts a new lane below the last audio lane", () => {
+    const target = resolveAudioDragTarget(210, audioLanes, 100, false, 0);
+    expect(target).toEqual({
+      isInsert: true,
+      laneId: null,
+      insertOrder: 1,
+      indicatorTop: 79,
+    });
+  });
 });

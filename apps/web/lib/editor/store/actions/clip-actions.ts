@@ -264,7 +264,12 @@ export function createClipActions(
             startTime: placement.startTime,
           };
           clips.push(moved);
-          lanes = pruneEmptyLanes(lanes, clips);
+          // Inserting an audio lane is an explicit vertical placement. Keep
+          // the emptied source lane so moving the last/only clip downward is
+          // visually observable instead of collapsing back to the same row.
+          lanes = insertNew
+            ? normalizeLaneOrders(lanes)
+            : pruneEmptyLanes(lanes, clips);
           nextProject = {
             ...project,
             timeline: {
