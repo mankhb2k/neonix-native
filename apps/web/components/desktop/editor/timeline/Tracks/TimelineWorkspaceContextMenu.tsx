@@ -32,6 +32,9 @@ type WorkspaceMenuProps = {
   className?: string;
   workspaceRef: RefObject<HTMLDivElement | null>;
   onWorkspacePointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerMove?: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerUp?: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  onPointerCancel?: (event: ReactPointerEvent<HTMLDivElement>) => void;
 };
 
 /**
@@ -43,6 +46,9 @@ export function TimelineWorkspaceContextMenu({
   className,
   workspaceRef,
   onWorkspacePointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
 }: WorkspaceMenuProps) {
   const [target, setTarget] = useState<"clip" | "empty">("empty");
   const [canSplit, setCanSplit] = useState(false);
@@ -85,14 +91,21 @@ export function TimelineWorkspaceContextMenu({
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger
-        ref={workspaceRef}
+      <div
         className={className}
-        onOpen={handleOpen}
-        onPointerDown={onWorkspacePointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
       >
-        {children}
-      </ContextMenuTrigger>
+        <ContextMenuTrigger
+          ref={workspaceRef}
+          className="flex flex-1 flex-col h-full w-full"
+          onOpen={handleOpen}
+          onPointerDown={onWorkspacePointerDown}
+        >
+          {children}
+        </ContextMenuTrigger>
+      </div>
       <ContextMenuContent className="min-w-[220px]">
         {target === "empty" ? (
           <ContextMenuItem

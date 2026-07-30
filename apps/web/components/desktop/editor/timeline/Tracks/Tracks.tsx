@@ -8,9 +8,12 @@ import {
   useRef,
   type RefObject,
   type KeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { clientXToTimelineTime } from "./Playhead";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
@@ -196,6 +199,62 @@ export const Tracks = memo(function Tracks({
   const isTimelineEmpty = timelineClips.length === 0;
   const canvasMinWidth = canvasWidth;
 
+  const isScrubbingRef = useRef(false);
+
+  const seekEmptySpace = (clientX: number) => {
+    const root = scrollRef.current;
+    if (!root) return;
+    const maxTime = Math.max(
+      usePlaybackClock.getState().duration,
+      canvasWidth / Math.max(pixelsPerSecond, 1),
+    );
+    const time = clientXToTimelineTime(
+      clientX,
+      root,
+      TIMELINE_LABEL_WIDTH,
+      pixelsPerSecond,
+      maxTime,
+    );
+    usePlaybackClock.getState().seek(time);
+  };
+
+  const handleEmptyWorkspacePointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    marquee.onWorkspacePointerDown(event);
+    const target = event.target as HTMLElement | null;
+    if (
+      target &&
+      !target.closest("[data-clip-id]") &&
+      !target.closest("button") &&
+      event.button === 0
+    ) {
+      useEditorStore.getState().clearTimelineSelection();
+      seekEmptySpace(event.clientX);
+      isScrubbingRef.current = true;
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+  };
+
+  const handleEmptyWorkspacePointerMove = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (isScrubbingRef.current && event.buttons === 1) {
+      seekEmptySpace(event.clientX);
+    }
+  };
+
+  const handleEmptyWorkspacePointerUp = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (isScrubbingRef.current) {
+      isScrubbingRef.current = false;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    }
+  };
+
   function onClipKeyDown(clipId: string, event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
@@ -224,7 +283,7 @@ export const Tracks = memo(function Tracks({
         onDrop={sidebarDrag.handleDrop}
         onPointerDown={(event) => {
           if (event.target === event.currentTarget) {
-            clearTimelineSelection();
+            useEditorStore.getState().clearTimelineSelection();
           }
         }}
       >
@@ -239,6 +298,10 @@ export const Tracks = memo(function Tracks({
           <TimelineWorkspaceContextMenu
             workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10"
+            onWorkspacePointerDown={handleEmptyWorkspacePointerDown}
+            onPointerMove={handleEmptyWorkspacePointerMove}
+            onPointerUp={handleEmptyWorkspacePointerUp}
+            onPointerCancel={handleEmptyWorkspacePointerUp}
           >
             <div
               data-track-lane="true"
@@ -269,7 +332,10 @@ export const Tracks = memo(function Tracks({
           <TimelineWorkspaceContextMenu
             workspaceRef={workspaceRef}
             className="relative flex flex-1 flex-col pt-[40px] pb-10 space-y-[2px]"
-            onWorkspacePointerDown={marquee.onWorkspacePointerDown}
+            onWorkspacePointerDown={handleEmptyWorkspacePointerDown}
+            onPointerMove={handleEmptyWorkspacePointerMove}
+            onPointerUp={handleEmptyWorkspacePointerUp}
+            onPointerCancel={handleEmptyWorkspacePointerUp}
           >
             {marquee.marqueeRect && (
               <div
