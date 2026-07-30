@@ -35,6 +35,7 @@ export function rebuildMainProject(
   return {
     ...project,
     scenes: orderedIds.map((sceneId) => byId.get(sceneId)!),
-    timeline: { ...project.timeline, sceneOrder },
+    // Schema requires every scene in `scenes` to appear in sceneOrder.
+    timeline: { ...project.timeline, sceneOrder: orderedIds },
   };
 }

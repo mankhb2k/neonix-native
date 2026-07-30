@@ -402,8 +402,10 @@ describe("empty-lane persistence across move", () => {
       laneId: "lane.overlay.1",
     });
 
-    const { timelineClips, timelineLanes } = useEditorStore.getState();
-    saveProject(fixture.project, {
+    const { project, timelineClips, timelineLanes } = useEditorStore.getState();
+    expect(project).not.toBeNull();
+    // Store project must remain schema-valid so autosave can persist moves.
+    saveProject(project!, {
       timelineClips,
       timelineLanes,
     });
