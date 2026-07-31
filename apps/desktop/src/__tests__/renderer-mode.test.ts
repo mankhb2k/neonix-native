@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   getRendererMode,
   setPackagedHint,
@@ -6,13 +6,25 @@ import {
 } from "../shared/renderer-mode";
 
 describe("getRendererMode", () => {
-  afterEach(() => {
-    delete process.env.MOTIONVIDEO_RENDERER;
-    delete process.env.MOTIONVIDEO_VITE_PROD;
+  beforeEach(() => {
+    // Windows: `delete process.env.X` may not clear inherited vars.
+    process.env.MOTIONVIDEO_RENDERER = "";
+    process.env.MOTIONVIDEO_VITE_PROD = "";
     setPackagedHint(false);
   });
 
-  it("defaults to vite when env is unset", () => {
+  afterEach(() => {
+    process.env.MOTIONVIDEO_RENDERER = "";
+    process.env.MOTIONVIDEO_VITE_PROD = "";
+    setPackagedHint(false);
+  });
+
+  it("defaults to legacy when env is unset (unpackaged)", () => {
+    expect(getRendererMode()).toBe("legacy");
+  });
+
+  it("defaults to vite when packaged and env is unset", () => {
+    setPackagedHint(true);
     expect(getRendererMode()).toBe("vite");
   });
 
@@ -28,9 +40,16 @@ describe("getRendererMode", () => {
 });
 
 describe("useViteProductionBundle", () => {
+  beforeEach(() => {
+    // Windows: `delete process.env.X` may not clear inherited vars.
+    process.env.MOTIONVIDEO_RENDERER = "";
+    process.env.MOTIONVIDEO_VITE_PROD = "";
+    setPackagedHint(false);
+  });
+
   afterEach(() => {
-    delete process.env.MOTIONVIDEO_RENDERER;
-    delete process.env.MOTIONVIDEO_VITE_PROD;
+    process.env.MOTIONVIDEO_RENDERER = "";
+    process.env.MOTIONVIDEO_VITE_PROD = "";
     setPackagedHint(false);
   });
 
@@ -39,7 +58,8 @@ describe("useViteProductionBundle", () => {
     expect(useViteProductionBundle()).toBe(true);
   });
 
-  it("is true when MOTIONVIDEO_VITE_PROD=1", () => {
+  it("is true when MOTIONVIDEO_VITE_PROD=1 and renderer=vite", () => {
+    process.env.MOTIONVIDEO_RENDERER = "vite";
     process.env.MOTIONVIDEO_VITE_PROD = "1";
     expect(useViteProductionBundle()).toBe(true);
   });

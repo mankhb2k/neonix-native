@@ -12,14 +12,17 @@ export function getPackagedHint(): boolean {
 }
 
 /**
- * Default is Vite (Phase 12 cutover).
- * Opt-in rollback: MOTIONVIDEO_RENDERER=legacy (Next URL).
+ * Unpackaged default is `legacy` until review remediation gates pass
+ * (timeline parity + packaged export + IPC/FS hardening).
+ * Packaged builds still load Vite (`app://`) unless MOTIONVIDEO_RENDERER=legacy.
+ * Opt-in Vite unpackaged: MOTIONVIDEO_RENDERER=vite.
  */
 export function getRendererMode(): RendererMode {
-  const env = process.env.MOTIONVIDEO_RENDERER;
+  const env = (process.env.MOTIONVIDEO_RENDERER ?? "").trim();
   if (env === "legacy") return "legacy";
   if (env === "vite") return "vite";
-  return "vite";
+  if (packagedHint) return "vite";
+  return "legacy";
 }
 
 /** Simulated or real packaged Vite load via app:// protocol. */

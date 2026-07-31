@@ -1,24 +1,29 @@
-# ADR-002: Vite desktop renderer is the source of truth
+# ADR-002: Vite desktop renderer direction (cutover blocked)
 
-- **Status:** Accepted
+- **Status:** Accepted direction; **production cutover blocked** (2026-07-31 review remediation)
 - **Date:** 2026-07-31
-- **Context:** Phases 0–11 delivered a Vite Electron shell with project I/O, timeline/stage MVP, assets, inspector, export jobs, perf hardening, and Windows packaging. Unpackaged default was still Next (`legacy`) until Phase 12.
+- **Amended:** Wave 0 — unpackaged default reverted to `legacy` until remediation gates pass
+
+## Context
+
+Phases 0–12 delivered a Vite Electron shell, `editor-core`, packaging, and a temporary default-Vite cutover. A defect review found release blockers: packaged export (tsx/repo paths), document two-way sync, typed IPC over Electron, read-only timeline, and FS capability width.
 
 ## Decision
 
-1. **Desktop product path uses the Vite renderer by default** (`getRendererMode()` → `vite` when `MOTIONVIDEO_RENDERER` is unset).
-2. **Packaged apps** continue to load `app://bundle` (offline Vite bundle).
-3. **Legacy Next-in-Electron remains opt-in** via `MOTIONVIDEO_RENDERER=legacy` for canary / rollback during the freeze window — not the production default.
-4. **`apps/web` product surfaces stay**; this ADR does **not** remove the web editor.
-5. **Desktop-only UI under `apps/web/components/desktop/**` is frozen** for new desktop features; cleanup/deletion is a **separate follow-up PR** after canary stability (REFACTOR: cutover ≠ delete legacy).
+1. **Direction:** Vite + `editor-core` remain the long-term desktop source of truth.
+2. **Unpackaged default:** `getRendererMode()` → **`legacy`** when `MOTIONVIDEO_RENDERER` is unset (developer machines with Next).
+3. **Vite opt-in (unpackaged):** `MOTIONVIDEO_RENDERER=vite` / `pnpm dev:desktop:vite`.
+4. **Packaged apps** still load `app://bundle` (no Next in the artifact) but are **not** production-ready until remediation waves A–D gates pass.
+5. **Production rollback** = reinstall the **previous verified installer**, not legacy env inside the current package.
+6. **`apps/web` product surfaces stay**; desktop-only web cleanup remains a later PR.
 
 ## Rollback
 
-- Dev / unpackaged: set `MOTIONVIDEO_RENDERER=legacy` and run Next on `:3000` (`pnpm dev:desktop:legacy`).
-- Release: ship or reinstall the previous installer; project files keep atomic-write backups / migration safety from earlier phases.
+- Dev: default legacy + Next `:3000`, or explicit `MOTIONVIDEO_RENDERER=legacy`.
+- Release: previous installer; project atomic-write backups unchanged.
 
 ## Consequences
 
-- Root `pnpm dev:desktop` boots Vite + Electron.
-- Support logs should include `version`, `packaged`, `renderer` (and startup timing where available).
-- Do not gate new desktop UX on the Next desktop tree; implement in `apps/desktop/renderer` + `packages/editor-core`.
+- Root `pnpm dev:desktop` boots legacy Electron + Next.
+- Do not claim Phase 12 production cutover until timeline MVP, packaged export, `IpcResult`, and FS capabilities land.
+- New desktop UX continues in `apps/desktop/renderer` + `packages/editor-core`.

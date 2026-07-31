@@ -1,27 +1,15 @@
 # MotionVideo Desktop (Electron + Vite)
 
-Electron shell với Vite renderer **mặc định** (Phase 12). Legacy Next vẫn opt-in để rollback canary.
+Electron shell với hai renderer. **Production cutover Vite đang bị chặn** (review remediation): unpackaged default = **legacy** (Next). Vite là opt-in cho tới khi timeline parity + packaged export + IPC/FS gates đạt.
 
 | Mode | Flag | Loads |
 |---|---|---|
-| **Vite** (default) | unset hoặc `MOTIONVIDEO_RENDERER=vite` | Vite dev server hoặc `app://bundle/` |
-| **Legacy** (rollback) | `MOTIONVIDEO_RENDERER=legacy` | Next.js URL |
+| **Legacy** (unpackaged default) | unset hoặc `MOTIONVIDEO_RENDERER=legacy` | Next.js URL |
+| **Vite** (opt-in / packaged) | `MOTIONVIDEO_RENDERER=vite` hoặc packaged app | Vite dev server hoặc `app://bundle/` |
 
-Migration: [`REFACTOR-VITE.md`](../../REFACTOR-VITE.md) · Cutover: [`docs/migration/vite-phase-12/cutover.md`](../../docs/migration/vite-phase-12/cutover.md).
+Migration: [`REFACTOR-VITE.md`](../../REFACTOR-VITE.md) · Cutover status: [`docs/migration/vite-phase-12/cutover.md`](../../docs/migration/vite-phase-12/cutover.md).
 
-## Dev — Vite (default)
-
-Một lệnh (Vite `:5173` + Electron):
-
-```bash
-pnpm dev:desktop
-# hoặc
-pnpm --filter @motionvideo/desktop dev
-```
-
-Mặc định URL: `http://127.0.0.1:5173/` (ghi đè bằng `MOTIONVIDEO_VITE_URL`).
-
-## Dev — Legacy rollback (Next)
+## Dev — Legacy (default unpackaged)
 
 Terminal A — Next trên `:3000`:
 
@@ -29,13 +17,23 @@ Terminal A — Next trên `:3000`:
 pnpm dev
 ```
 
-Terminal B — Electron legacy:
+Terminal B — Electron:
 
 ```bash
-pnpm dev:desktop:legacy
+pnpm dev:desktop
 # hoặc
-pnpm --filter @motionvideo/desktop dev:legacy
+pnpm --filter @motionvideo/desktop dev
 ```
+
+## Dev — Vite renderer (opt-in)
+
+```bash
+pnpm dev:desktop:vite
+# hoặc
+pnpm --filter @motionvideo/desktop dev:vite
+```
+
+Mặc định URL: `http://127.0.0.1:5173/` (ghi đè bằng `MOTIONVIDEO_VITE_URL`).
 
 ## Simulated production (không cần Vite/Next)
 
@@ -47,9 +45,9 @@ Build renderer → `dist-renderer/`, Electron load `app://bundle/index.html` v�
 
 ## Env
 
-| Env | Default | Meaning |
+| Env | Default (unpackaged) | Meaning |
 |---|---|---|
-| `MOTIONVIDEO_RENDERER` | `vite` | `legacy` \| `vite` |
+| `MOTIONVIDEO_RENDERER` | `legacy` | `legacy` \| `vite` |
 | `MOTIONVIDEO_DESKTOP_URL` | `http://localhost:3000/app` | Legacy Next URL |
 | `MOTIONVIDEO_VITE_URL` | `http://127.0.0.1:5173/` | Vite dev URL |
 | `MOTIONVIDEO_VITE_PROD` | unset | `1` = dùng `app://bundle` dù unpackaged |
@@ -58,8 +56,8 @@ Build renderer → `dist-renderer/`, Electron load `app://bundle/index.html` v�
 
 | Script | Role |
 |---|---|
-| `dev` / `dev:vite` | Concurrent Vite + Electron (default) |
-| `dev:legacy` | Electron + Next URL (`MOTIONVIDEO_RENDERER=legacy`) |
+| `dev` / `dev:legacy` | Electron + Next URL (default unpackaged) |
+| `dev:vite` | Concurrent Vite + Electron (opt-in) |
 | `build` / `build:desktop` | main + preload + renderer |
 | `build:release` / `pack` / `dist` | Release artifact (use `pnpm run pack`) |
 | `start:prod` | Full build + prod-sim Vite (`app://`) |
@@ -100,3 +98,5 @@ pnpm --filter @motionvideo/desktop test
 - Production CSP không `unsafe-eval`
 
 See Phase 11: [`docs/migration/vite-phase-11/security-packaging.md`](../../docs/migration/vite-phase-11/security-packaging.md).
+
+**Release rollback:** previous installer — not `MOTIONVIDEO_RENDERER=legacy` inside a packaged build (no Next server in the artifact).

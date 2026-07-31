@@ -1,6 +1,6 @@
 # Kế hoạch refactor Desktop Editor sang React + Vite
 
-> Trạng thái: Phase 12 MVP partial — default renderer = Vite (ADR-002); legacy opt-in rollback; web desktop cleanup deferred; Phase 5 interaction slices còn mở  
+> Trạng thái: Phase 12 **cutover BLOCKED** (Wave 0) — unpackaged default = legacy; Vite opt-in; remediation Waves A–F for sync/IPC/FS/export/timeline  
 > Phạm vi: desktop editor, Electron main/preload, Vite renderer và các package trực tiếp phục vụ editor  
 > Không thuộc phạm vi hiện tại: xây editor web mới, đồng bộ feature parity cho web, SEO/dashboard/marketplace
 
@@ -927,12 +927,13 @@ Renderer Vite an toàn và hoạt động đúng trong artifact đóng gói.
 
 ## Phase 12 — Cutover và dọn legacy
 
-### Status (MVP partial — 2026-07)
+### Status (cutover BLOCKED — Wave 0)
 
-- Default renderer = **Vite** ([ADR-002](docs/ADR/002-vite-renderer-source-of-truth.md)); rollback `MOTIONVIDEO_RENDERER=legacy`
-- Scripts: `dev:desktop` → Vite; `dev:desktop:legacy` → Next-in-Electron
+- Unpackaged default = **legacy**; Vite opt-in (`dev:desktop:vite`)
+- Packaged still Vite `app://` but **not** production-ready
+- Production rollback = previous installer ([ADR-002](docs/ADR/002-vite-renderer-source-of-truth.md))
 - Checklist: [docs/migration/vite-phase-12/cutover.md](docs/migration/vite-phase-12/cutover.md)
-- **Deferred:** delete `apps/web` desktop-only components (separate PR); full interaction parity; packaged export worker
+- **Remediation:** Waves A–F (document sync, IpcResult, FS caps, packaged export, timeline MVP, …)
 
 ### Mục tiêu
 

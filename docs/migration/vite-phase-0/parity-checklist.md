@@ -8,7 +8,7 @@ Fixtures: [`fixtures/`](./fixtures/) · Goldens: [`goldens/`](./goldens/) · Sho
 |---|---|---|---|---|---|
 | P0-SHELL-01 | Electron boots frameless window | — | pass | pass | Phase 12 default Vite |
 | P0-SHELL-02 | `MOTIONVIDEO_RENDERER=legacy` loads Next URL | — | pass | n/a | Rollback path retained |
-| P0-SHELL-02b | Default / unset loads Vite | — | n/a | pass | Phase 12 cutover |
+| P0-SHELL-02b | Default / unset loads Vite | — | n/a | blocked | Wave 0: unpackaged default reverted to legacy |
 | P0-SHELL-03 | Close-save handshake before quit | — | pass | pass | |
 | P0-SHELL-04 | Window minimize / maximize / close IPC | — | pass | pass | |
 | P0-DOC-01 | Open seeded small project | `fixtures/small.project.json` | pass | pass | Shell + project I/O |

@@ -94,7 +94,8 @@ function applyMetadata(node: MotionNode, patch: MetadataPatch): MotionNode {
   if (patch.name !== undefined) {
     const name = patch.name.trim();
     if (!name) {
-      const { name: _drop, ...rest } = next;
+      const rest = { ...next };
+      delete (rest as { name?: string }).name;
       next = rest as MotionNode;
     } else {
       next = { ...next, name: name.slice(0, MOTION_V2_LIMITS.idLength) };
