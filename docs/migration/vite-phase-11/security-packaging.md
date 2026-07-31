@@ -32,7 +32,7 @@ pnpm --filter @motionvideo/desktop run dist   # Windows NSIS installer
 ```
 
 - `rendererRoot` for asar: `configurePackagedRendererRoot(app.getAppPath())` → `dist-renderer` inside asar
-- **Export (Wave C):** `build:export-cli` bundles CLI into `resources/export-cli`; electron-builder `extraResources` copies it beside the asar. Packaged spawn uses `ELECTRON_RUN_AS_NODE` + `cli-export.cjs` (no repo/`tsx`).
+- **Export:** `build:export-cli` bundles CLI + **platform canvas native** + **ffmpeg binary** into `resources/export-cli`; `extraResources` copies beside asar. Packaged spawn uses `ELECTRON_RUN_AS_NODE` + `FFMPEG_BIN`. Gate: `pnpm test:export-cli` before `pack`/`dist`.
 
 ### Lightweight secrets / artifact note
 

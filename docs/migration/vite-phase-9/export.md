@@ -20,6 +20,8 @@
 - [x] Desktop bake port + `ExportControls` (`EXPORT_ENABLED`)
 - [x] Unit tests: overwrite deny, mock complete, cancel, jobId-before-events, missing packaged CLI
 - [x] Packaged CLI bundle: `pnpm build:export-cli` → `extraResources/export-cli`
+- [x] Native canvas platform package + `ffmpeg.exe` copied beside CLI (hard-fail if missing)
+- [x] Packaged runtime smoke: `pnpm test:export-cli` (ELECTRON_RUN_AS_NODE + encode)
 - [x] Export presets (`preview` / `fhd` / `fhd24`) via `MOTIONVIDEO_EXPORT_FPS` / `SCALE`
 - [ ] Electron `utilityProcess` migration
 - [ ] BullMQ / cloud upload
@@ -36,13 +38,13 @@
 
 ### Packaged
 
-1. `pnpm --filter @motionvideo/desktop run pack`
-2. Confirm `release/win-unpacked/resources/export-cli/cli-export.cjs` exists
-3. Run unpacked app → Export… — must not fail with “missing tsx”
-4. Low-res encode completes or fails with typed `EXPORT_FAILED`
+1. `pnpm --filter @motionvideo/desktop run test:export-cli` — must PASS (canvas + ffmpeg + encode)
+2. `pnpm --filter @motionvideo/desktop run pack`
+3. Confirm `release/win-unpacked/resources/export-cli/` has `cli-export.cjs`, `ffmpeg.exe`, and `@napi-rs/canvas-win32-*`
+4. Run unpacked app → Export… — must not fail with missing tsx / native binding
 
 ## Automated
 
 `pnpm --filter @motionvideo/desktop test` — `export-jobs`, IPC schema  
-`pnpm --filter @motionvideo/desktop run build:export-cli`  
+`pnpm --filter @motionvideo/desktop run test:export-cli` — natives + encode smoke  
 `pnpm --filter @motionvideo/render-worker typecheck`

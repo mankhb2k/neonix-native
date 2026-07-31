@@ -124,6 +124,15 @@ export function createExportProcessManager(
       if (!childEnv.MOTIONVIDEO_REPO_ROOT) {
         childEnv.MOTIONVIDEO_REPO_ROOT = input.repoRoot;
       }
+      const ffmpegName = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
+      const ffmpegBin = path.join(cwd, ffmpegName);
+      if (fs.existsSync(ffmpegBin)) {
+        childEnv.FFMPEG_BIN = ffmpegBin;
+      }
+      const nodeModules = path.join(cwd, "node_modules");
+      if (fs.existsSync(nodeModules)) {
+        childEnv.NODE_PATH = nodeModules;
+      }
     } else if (options.packaged) {
       return Promise.resolve({
         ok: false,

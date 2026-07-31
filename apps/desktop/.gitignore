@@ -2,6 +2,9 @@ dist/
 dist-renderer/
 resources/export-cli/cli-export.cjs
 resources/export-cli/frame-worker.cjs
+resources/export-cli/ffmpeg
+resources/export-cli/ffmpeg.exe
 resources/export-cli/node_modules/
 resources/export-cli/package.json
+resources/export-cli/_smoke_probe_*.cjs
 *.log
