@@ -1,5 +1,5 @@
 /**
- * Basic timeline hotkeys (Wave D subset).
+ * Basic timeline hotkeys (Wave D + clipboard).
  */
 
 import { useEffect } from "react";
@@ -11,6 +11,9 @@ type Args = {
   onUndo: () => void;
   onRedo: () => void;
   onExecute: (command: TimelineCommand, label: string) => void;
+  onCopy?: () => void;
+  onCut?: () => void;
+  onPaste?: () => void;
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -26,6 +29,9 @@ export function useTimelineHotkeys({
   onUndo,
   onRedo,
   onExecute,
+  onCopy,
+  onCut,
+  onPaste,
 }: Args): void {
   useEffect(() => {
     if (!enabled) return undefined;
@@ -47,6 +53,21 @@ export function useTimelineHotkeys({
         onRedo();
         return;
       }
+      if (mod && event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        onCopy?.();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "x") {
+        event.preventDefault();
+        onCut?.();
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        onPaste?.();
+        return;
+      }
       if (mod && event.key.toLowerCase() === "b") {
         event.preventDefault();
         onExecute(
@@ -63,5 +84,14 @@ export function useTimelineHotkeys({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [enabled, getPlayheadTime, onUndo, onRedo, onExecute]);
+  }, [
+    enabled,
+    getPlayheadTime,
+    onUndo,
+    onRedo,
+    onExecute,
+    onCopy,
+    onCut,
+    onPaste,
+  ]);
 }

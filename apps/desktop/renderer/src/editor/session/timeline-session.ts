@@ -13,9 +13,12 @@ import {
   redoHistory,
   replaceOrPushHistory,
   resolveFitAnchorSeconds,
+  selectionHasLockedLane,
   selectionNone,
+  selectedClipIdsFrom,
   sliderValueToZoomScale,
   undoHistory,
+  type ClipClipboardItem,
   type DocumentPropertyCommand,
   type EditorSelection,
   type HistoryState,
@@ -24,9 +27,10 @@ import {
   type TimelineDocument,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
 import { loadTimelineFromDocumentJson } from "../document/load-envelope";
 import { serializeProjectIntoDocumentJson } from "../document/serialize-envelope";
+import { buildClipboardFromSelection } from "./build-clipboard";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 export type TimelineZoomMode = "manual" | "fit";
 
@@ -45,6 +49,7 @@ export type TimelineSessionState = {
   documentRevision: number;
   loadError: string | null;
   selection: EditorSelection;
+  clipboard: ClipClipboardItem[];
   history: HistoryState;
   /** Last JSON emitted by a session mutation (property/undo/redo). */
   sessionDocumentJson: string | null;
@@ -60,6 +65,9 @@ export type TimelineSessionEvent =
   | { type: "CLEAR_ERROR" }
   | { type: "SET_SELECTION"; selection: EditorSelection }
   | { type: "SET_PROJECT_NAME"; name: string; entryId: string }
+  | { type: "COPY_SELECTION" }
+  | { type: "CUT_SELECTION"; entryId: string }
+  | { type: "SET_CLIPBOARD"; clipboard: ClipClipboardItem[] }
   | {
       type: "EXECUTE_PROPERTY_COMMAND";
       command: DocumentPropertyCommand;
@@ -94,6 +102,7 @@ function applyDocument(
   | "project"
   | "clips"
   | "lanes"
+  | "projectName"
   | "sessionDocumentJson"
   | "baseDocumentJson"
   | "documentRevision"
@@ -108,6 +117,7 @@ function applyDocument(
     project: document.project,
     clips: document.clips,
     lanes: document.lanes,
+    projectName: document.project.metadata.name?.trim() || "Untitled",
     sessionDocumentJson,
     baseDocumentJson: sessionDocumentJson,
     documentRevision: state.documentRevision + 1,
@@ -130,6 +140,7 @@ export function createInitialTimelineSession(): TimelineSessionState {
     documentRevision: 0,
     loadError: null,
     selection: selectionNone(),
+    clipboard: [],
     history: createHistoryState(),
     sessionDocumentJson: null,
     baseDocumentJson: null,
@@ -161,6 +172,7 @@ export function reduceTimelineSession(
           documentRevision: state.documentRevision + 1,
           loadError: null,
           selection: selectionNone(),
+          clipboard: [],
           history: createHistoryState(),
           sessionDocumentJson: event.documentJson,
           baseDocumentJson: event.documentJson,
@@ -223,6 +235,40 @@ export function reduceTimelineSession(
       return { ...state, loadError: null };
     case "SET_SELECTION":
       return { ...state, selection: event.selection };
+    case "COPY_SELECTION": {
+      const clipboard = buildClipboardFromSelection({
+        selection: state.selection,
+        clips: state.clips,
+        lanes: state.lanes,
+        project: state.project,
+      });
+      return { ...state, clipboard, loadError: null };
+    }
+    case "SET_CLIPBOARD":
+      return { ...state, clipboard: event.clipboard, loadError: null };
+    case "CUT_SELECTION": {
+      const ids = selectedClipIdsFrom(state.selection);
+      if (
+        ids.length === 0 ||
+        selectionHasLockedLane(state.clips, state.lanes, ids)
+      ) {
+        return state;
+      }
+      const clipboard = buildClipboardFromSelection({
+        selection: state.selection,
+        clips: state.clips,
+        lanes: state.lanes,
+        project: state.project,
+      });
+      if (clipboard.length === 0) return state;
+      const withClipboard = { ...state, clipboard };
+      return reduceTimelineSession(withClipboard, {
+        type: "EXECUTE_TIMELINE_COMMAND",
+        command: { type: "delete-selected-clips" },
+        label: "Cut clips",
+        entryId: event.entryId,
+      });
+    }
     case "SET_PROJECT_NAME": {
       const before = toDocument(state);
       const baseJson = state.baseDocumentJson;
@@ -317,6 +363,7 @@ export function reduceTimelineSession(
         before,
         event.command,
         state.selection,
+        state.clipboard,
       );
       if (result.status !== "applied") {
         return {
@@ -339,6 +386,7 @@ export function reduceTimelineSession(
         ...state,
         ...applied,
         selection: afterSelection,
+        clipboard: result.clipboard ?? state.clipboard,
         history,
         loadError: null,
       };
