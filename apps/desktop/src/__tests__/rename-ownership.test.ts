@@ -74,4 +74,27 @@ describe("rename document ownership (UI-0)", () => {
     expect(session.history.past.length).toBe(before + 1);
     expect(session.projectName).toBe("Final Name");
   });
+
+  it("UNDO/REDO syncs projectName from document metadata", () => {
+    const blank = buildBlankDesktopProject({
+      name: "Original",
+      createId: (p) => `${p}_undo`,
+    });
+    let session = createInitialTimelineSession();
+    session = reduceTimelineSession(session, {
+      type: "REPLACE_DOCUMENT",
+      documentJson: blank.documentJson,
+    });
+    session = reduceTimelineSession(session, {
+      type: "SET_PROJECT_NAME",
+      name: "Renamed",
+      entryId: "rename_undo",
+    });
+    expect(session.projectName).toBe("Renamed");
+    session = reduceTimelineSession(session, { type: "UNDO" });
+    expect(session.projectName).toBe("Original");
+    expect(session.project?.metadata.name).toBe("Original");
+    session = reduceTimelineSession(session, { type: "REDO" });
+    expect(session.projectName).toBe("Renamed");
+  });
 });

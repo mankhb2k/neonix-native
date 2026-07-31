@@ -76,6 +76,33 @@ describe("strict timeline parse (UI-0)", () => {
     ).toThrow(/order/);
   });
 
+  it("rejects wrong-typed optional booleans instead of canonicalizing", () => {
+    expect(() =>
+      parseTimelineLanesStrict([
+        {
+          id: "l1",
+          kind: "visual",
+          role: "base",
+          name: "Main",
+          order: 0,
+          locked: "yes",
+        },
+      ]),
+    ).toThrow(/locked.*boolean/i);
+    expect(() =>
+      parseTimelineLanesStrict([
+        {
+          id: "l1",
+          kind: "audio",
+          role: "audio",
+          name: "A",
+          order: 1,
+          muted: 1,
+        },
+      ]),
+    ).toThrow(/muted.*boolean/i);
+  });
+
   it("does not clamp negative times — rejects them", () => {
     expect(() =>
       parseTimelineClipsStrict([

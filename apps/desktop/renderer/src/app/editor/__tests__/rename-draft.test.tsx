@@ -1,5 +1,6 @@
 /**
  * Project name input commits once on blur — not per keystroke.
+ * Escape rolls back without committing.
  * @vitest-environment happy-dom
  */
 
@@ -30,6 +31,7 @@ function RenameHarness({
   );
   const [draft, setDraft] = useState(session.projectName);
   const dirty = useRef(false);
+  const skipCommit = useRef(false);
   useEffect(() => {
     if (!dirty.current) setDraft(session.projectName);
   }, [session.projectName]);
@@ -41,6 +43,23 @@ function RenameHarness({
     onRenameCount(renameCount);
   }, [renameCount, onRenameCount]);
 
+  const commit = () => {
+    if (skipCommit.current) {
+      skipCommit.current = false;
+      return;
+    }
+    dirty.current = false;
+    if ((draft.trim() || "Untitled") === session.projectName) {
+      setDraft(session.projectName);
+      return;
+    }
+    dispatch({
+      type: "SET_PROJECT_NAME",
+      name: draft,
+      entryId: `rename_${renameCount + 1}`,
+    });
+  };
+
   return (
     <input
       aria-label="Project name"
@@ -49,17 +68,15 @@ function RenameHarness({
         dirty.current = true;
         setDraft(e.target.value);
       }}
-      onBlur={() => {
-        dirty.current = false;
-        if ((draft.trim() || "Untitled") === session.projectName) {
+      onBlur={() => commit()}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          skipCommit.current = true;
+          dirty.current = false;
           setDraft(session.projectName);
-          return;
+          (e.target as HTMLInputElement).blur();
         }
-        dispatch({
-          type: "SET_PROJECT_NAME",
-          name: draft,
-          entryId: `rename_${renameCount + 1}`,
-        });
       }}
     />
   );
@@ -87,5 +104,24 @@ describe("rename draft commit", () => {
     expect(Math.max(0, ...counts, 0)).toBe(0);
     fireEvent.blur(input);
     expect(Math.max(0, ...counts)).toBe(1);
+  });
+
+  it("Escape rolls back draft and does not commit on blur", () => {
+    const blank = buildBlankDesktopProject({
+      name: "Original",
+      createId: (p) => `${p}_esc`,
+    });
+    const counts: number[] = [];
+    render(
+      <RenameHarness
+        documentJson={blank.documentJson}
+        onRenameCount={(n) => counts.push(n)}
+      />,
+    );
+    const input = screen.getByLabelText("Project name") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "Temp" } });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(input.value).toBe("Original");
+    expect(Math.max(0, ...counts, 0)).toBe(0);
   });
 });

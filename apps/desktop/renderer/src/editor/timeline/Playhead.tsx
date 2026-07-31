@@ -81,6 +81,15 @@ export function Playhead({
     });
   }, [clock, syncFromClock]);
 
+  const dragCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    return () => {
+      dragCleanupRef.current?.();
+      dragCleanupRef.current = null;
+    };
+  }, [clock]);
+
   const seekFromClientX = (clientX: number) => {
     const scroll = scrollContainerRef.current;
     if (!scroll) return;
@@ -98,6 +107,7 @@ export function Playhead({
     if (!enabled || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    dragCleanupRef.current?.();
     draggingRef.current = true;
     clock.getState().beginScrub();
     seekFromClientX(event.clientX);
@@ -110,7 +120,9 @@ export function Playhead({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
       window.removeEventListener("pointercancel", onUp);
+      dragCleanupRef.current = null;
     };
+    dragCleanupRef.current = onUp;
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
     window.addEventListener("pointercancel", onUp);

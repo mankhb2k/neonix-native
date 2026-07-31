@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AssetRepository } from "../../infrastructure/repositories/asset-repository";
+import { DesktopIpcError, DesktopIpcErrorCode } from "../../../../src/shared/ipc/errors";
 import {
   appendAssetsToDocumentJson,
   listEnvelopeAssets,
   updateAssetUriInDocumentJson,
   type DocumentAssetEntry,
 } from "./document-assets";
-import { DesktopIpcError, DesktopIpcErrorCode } from "../../../../src/shared/ipc/errors";
+import type { AssetRepository } from "../../infrastructure/repositories/asset-repository";
 import "./asset-panel.css";
 
 type Props = {
@@ -17,6 +17,11 @@ type Props = {
   assetsApi: AssetRepository;
   disabled?: boolean;
   onDocumentChange: (json: string) => void;
+  /** Optional — reserved for library drag commit from media tiles. */
+  onExecuteTimeline?: (
+    command: import("@motionvideo/editor-core").TimelineCommand,
+    label: string,
+  ) => void;
 };
 
 function assetManifestKey(assets: DocumentAssetEntry[]): string {
@@ -38,9 +43,18 @@ export function AssetPanel({
     () => (assetsProp ? null : listEnvelopeAssets(documentJson)),
     [assetsProp, documentJson],
   );
-  const assets = assetsProp ?? assetsFromJson ?? [];
+  const assets = useMemo(
+    () => assetsProp ?? assetsFromJson ?? [],
+    [assetsProp, assetsFromJson],
+  );
   const manifestKey = useMemo(() => assetManifestKey(assets), [assets]);
-  const stableAssets = useMemo(() => assets, [manifestKey]);
+  const stableAssetsRef = useRef(assets);
+  const prevManifestKeyRef = useRef(manifestKey);
+  if (prevManifestKeyRef.current !== manifestKey) {
+    prevManifestKeyRef.current = manifestKey;
+    stableAssetsRef.current = assets;
+  }
+  const stableAssets = stableAssetsRef.current;
   const documentJsonRef = useRef(documentJson);
   documentJsonRef.current = documentJson;
 
@@ -115,7 +129,9 @@ export function AssetPanel({
     return () => {
       cancelled = true;
     };
-  }, [assetsApi, manifestKey, projectPath, stableAssets]);
+    // stableAssets identity is keyed by manifestKey via ref — intentionally omit from deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- manifestKey gates asset identity
+  }, [assetsApi, manifestKey, projectPath]);
 
   async function handleImport() {
     if (!projectPath) return;

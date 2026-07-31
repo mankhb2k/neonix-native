@@ -5,6 +5,14 @@ import {
   type VisualLanePolicy,
 } from "../model/timeline-types";
 
+/** Strict: absent/undefined ok; present non-boolean → throw. */
+function assertOptionalBoolean(value: unknown, path: string): void {
+  if (value === undefined) return;
+  if (typeof value !== "boolean") {
+    throw new TimelineParseError(`${path} must be a boolean when present.`);
+  }
+}
+
 function validNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
@@ -153,6 +161,7 @@ export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
         `timelineLanes[${i}].order must be a finite integer.`,
       );
     }
+    assertOptionalBoolean(row.locked, `timelineLanes[${i}].locked`);
     const locked = row.locked === true;
     if (row.kind === "visual") {
       if (row.role !== "base" && row.role !== "overlay") {
@@ -169,6 +178,13 @@ export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
         row.policy && typeof row.policy === "object"
           ? (row.policy as Record<string, unknown>)
           : null;
+      if (policyRaw) {
+        assertOptionalBoolean(
+          policyRaw.rippleMode,
+          `timelineLanes[${i}].policy.rippleMode`,
+        );
+      }
+      assertOptionalBoolean(row.visible, `timelineLanes[${i}].visible`);
       lanes.push({
         id: row.id,
         kind: "visual",
@@ -190,6 +206,7 @@ export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
           `timelineLanes[${i}].role must be "audio" when set on audio lanes.`,
         );
       }
+      assertOptionalBoolean(row.muted, `timelineLanes[${i}].muted`);
       lanes.push({
         id: row.id,
         kind: "audio",
