@@ -163,6 +163,8 @@ function PreviewClockBridge({
   scale: number;
 }) {
   const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+  // Frame index still drives compose; canvas is memoized to limit DOM churn.
+  // Full imperative compose (no React frame subscription) remains a follow-up.
   const frameIndex = usePlaybackClock((state) =>
     playbackFrameIndex(state.currentTime, fps),
   );

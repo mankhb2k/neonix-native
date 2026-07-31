@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import { DesktopApp } from "./app/DesktopApp";
 import { createDesktopApiClient } from "./infrastructure/desktop-api-client";
+import "./ui/theme/utilities.css";
 import "./styles/base.css";
 import "./app/diagnostics/diagnostics.css";
 

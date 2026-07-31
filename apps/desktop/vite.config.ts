@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
 import { PROD_RENDERER_CSP } from "./src/shared/renderer-mode";
 
@@ -11,13 +12,13 @@ export default defineConfig({
   root: path.resolve(__dirname, "renderer"),
   base: "./",
   plugins: [
+    tailwindcss(),
     react(),
     {
       name: "motionvideo-prod-csp",
       transformIndexHtml: {
         order: "post",
         handler(html) {
-          // Replace meta CSP with production policy (no Vite-dev host).
           return html.replace(
             /<meta\s+http-equiv="Content-Security-Policy"[^>]*>/i,
             `<meta http-equiv="Content-Security-Policy" content="${PROD_RENDERER_CSP}" />`,
@@ -39,7 +40,6 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist-renderer"),
     emptyOutDir: true,
-    // Production builds omit maps unless MOTIONVIDEO_SOURCEMAP=1 (release always omits).
     sourcemap: !isRelease && process.env.MOTIONVIDEO_SOURCEMAP === "1",
   },
 });

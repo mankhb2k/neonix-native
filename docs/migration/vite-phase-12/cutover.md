@@ -52,12 +52,13 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 
 ## Known gaps (honest)
 
-- UI port in progress (UI-1…UI-8): Hub/layout/timeline visual/sidebar/inspector not full parity
+- UI port: UI-0…UI-7 landed (Hub/layout/sidebar/inspector chrome); UI-6 advanced timeline scaffolded; UI-8 soak checklist open
 - Timeline: marquee / lane reorder / library DnD still follow-ups (UI-6)
-- Playhead / PreviewStage React clock subscription (UI-4 hot path)
+- PreviewStage still React-subscribes frame index (imperative compose follow-up)
 - Export preset `4k` and recovery journal not enabled yet
 - No release-level legacy rollback inside packaged artifact
 - Production cutover still blocked until UI-8 soak / product sign-off
+- `apps/web/components/desktop/**` frozen — see FREEZE.md
 
 ## Automated
 

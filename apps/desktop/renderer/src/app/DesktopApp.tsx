@@ -5,7 +5,8 @@ import { createProjectRepository } from "../infrastructure/repositories/project-
 import { DiagnosticsScreen } from "./diagnostics/DiagnosticsScreen";
 import { EditingWorkspace } from "./editor/EditingWorkspace";
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
-import { HomeScreen } from "./home/HomeScreen";
+import { UiGallery } from "./gallery/UiGallery";
+import { HubScreen } from "./hub/HubScreen";
 import { TitleBar } from "./shell/TitleBar";
 import {
   createInitialAppState,
@@ -202,17 +203,34 @@ export function DesktopApp({ api }: Props) {
       ? state.projectName
       : "MotionVideo";
 
+  const showGallery =
+    typeof window !== "undefined" &&
+    (window.location.search.includes("gallery=1") ||
+      window.location.hash === "#gallery");
+
   return (
     <ErrorBoundary>
       <div className="app-shell">
         <TitleBar api={api} title={title} dirty={state.dirty} />
-        {state.showDiagnostics ? (
+        {showGallery ? (
+          <UiGallery
+            onClose={() => {
+              const url = new URL(window.location.href);
+              url.searchParams.delete("gallery");
+              url.hash = "";
+              window.history.replaceState({}, "", url.toString());
+              window.location.reload();
+            }}
+          />
+        ) : null}
+        {!showGallery && state.showDiagnostics ? (
           <DiagnosticsScreen
             api={api}
             onBack={() => dispatch({ type: "SHOW_DIAGNOSTICS", show: false })}
           />
         ) : null}
-        {!state.showDiagnostics &&
+        {!showGallery &&
+        !state.showDiagnostics &&
         (state.phase === "booting" || state.phase === "error") ? (
           <main className="home">
             {state.phase === "booting" ? (
@@ -222,11 +240,12 @@ export function DesktopApp({ api }: Props) {
             )}
           </main>
         ) : null}
-        {!state.showDiagnostics &&
+        {!showGallery &&
+        !state.showDiagnostics &&
         (state.phase === "home" ||
           state.phase === "opening" ||
           (state.phase === "editing" && !state.documentJson)) ? (
-          <HomeScreen
+          <HubScreen
             recent={state.recent}
             error={state.error}
             busy={state.phase === "opening"}
@@ -239,7 +258,8 @@ export function DesktopApp({ api }: Props) {
             onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
           />
         ) : null}
-        {!state.showDiagnostics &&
+        {!showGallery &&
+        !state.showDiagnostics &&
         state.documentJson &&
         (state.phase === "editing" || state.phase === "saving") ? (
           <EditingWorkspace

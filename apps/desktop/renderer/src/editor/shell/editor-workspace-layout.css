@@ -1,0 +1,56 @@
+.editor-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w, 260px) 4px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-app);
+}
+
+.editor-layout--with-inspector {
+  grid-template-columns:
+    var(--sidebar-w, 260px) 4px minmax(0, 1fr) 4px var(--inspector-w, 300px);
+}
+
+.editor-layout__sidebar,
+.editor-layout__inspector {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg-panel);
+}
+
+.editor-layout__center {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 4px var(--timeline-h, 240px);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-layout__stage,
+.editor-layout__timeline {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-layout__resize {
+  background: var(--border-strong);
+  opacity: 0.35;
+}
+
+.editor-layout__resize:hover,
+.editor-layout__resize:active {
+  opacity: 0.9;
+  background: var(--accent);
+}
+
+.editor-layout__resize--v {
+  cursor: col-resize;
+}
+
+.editor-layout__resize--h {
+  cursor: row-resize;
+}

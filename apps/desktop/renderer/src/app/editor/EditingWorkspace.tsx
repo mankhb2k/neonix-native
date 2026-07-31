@@ -14,10 +14,11 @@ import {
 } from "@motionvideo/editor-core";
 import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 import { AssetPanel } from "../../editor/assets/AssetPanel";
+import { listEnvelopeAssets } from "../../editor/assets/document-assets";
 import { EXPORT_ENABLED } from "../../editor/export/feature-flag";
 import { ExportControls } from "../../editor/export/ExportControls";
 import { INSPECTOR_ENABLED } from "../../editor/inspector/feature-flag";
-import { InspectorPanel } from "../../editor/inspector/InspectorPanel";
+import { InspectorDock } from "../../editor/inspector/InspectorDock";
 import {
   createPlaybackClockStore,
   PlaybackClockContext,
@@ -27,6 +28,8 @@ import {
   createInitialTimelineSession,
   reduceTimelineSession,
 } from "../../editor/session/timeline-session";
+import { EditorWorkspaceLayout } from "../../editor/shell/EditorWorkspaceLayout";
+import { EditorSidebar } from "../../editor/sidebar/EditorSidebar";
 import { PreviewStage } from "../../editor/stage/PreviewStage";
 import { TransportBar } from "../../editor/stage/TransportBar";
 import { TimelineViewport } from "../../editor/timeline/TimelineViewport";
@@ -137,6 +140,10 @@ function EditingWorkspaceInner({
   });
 
   const sessionJson = session.sessionDocumentJson ?? documentJson;
+  const sessionAssets = useMemo(
+    () => listEnvelopeAssets(sessionJson),
+    [session.documentRevision, sessionJson],
+  );
 
   const [nameDraft, setNameDraft] = useState(session.projectName);
   const nameDraftDirtyRef = useRef(false);
@@ -271,86 +278,95 @@ function EditingWorkspaceInner({
         />
       </label>
 
-      <div
-        className={
-          INSPECTOR_ENABLED
-            ? "editor-shell__workspace editor-shell__workspace--with-inspector"
-            : "editor-shell__workspace"
+      <EditorWorkspaceLayout
+        showInspector={INSPECTOR_ENABLED}
+        sidebar={
+          <EditorSidebar
+            media={
+              <AssetPanel
+                projectPath={path}
+                documentJson={sessionJson}
+                assets={sessionAssets}
+                assetsApi={assetsApi}
+                disabled={saving}
+                onDocumentChange={(json) =>
+                  dispatch({ type: "APPLY_DOCUMENT_JSON", documentJson: json })
+                }
+              />
+            }
+            lanes={session.lanes}
+            selection={session.selection}
+            onSelect={(selection) =>
+              dispatch({ type: "SET_SELECTION", selection })
+            }
+          />
         }
-      >
-        <AssetPanel
-          projectPath={path}
-          documentJson={sessionJson}
-          assetsApi={assetsApi}
-          disabled={saving}
-          onDocumentChange={(json) =>
-            dispatch({ type: "APPLY_DOCUMENT_JSON", documentJson: json })
-          }
-        />
-        <div className="editor-shell__main-column">
-          <div className="editor-shell__stage">
-            <PreviewStage
-              project={session.project}
-              clips={session.clips}
-              lanes={session.lanes}
-            />
-          </div>
-          <div className="editor-shell__timeline">
-            <TimelineViewport
-              projectId={session.projectId}
-              clips={session.clips}
-              lanes={session.lanes}
-              fps={session.fps}
-              timelineZoomScale={session.timelineZoomScale}
-              timelineFitAnchorSeconds={session.timelineFitAnchorSeconds}
-              timelineFitRevision={session.timelineFitRevision}
-              selection={session.selection}
-              disabled={saving || Boolean(session.loadError)}
-              onSelect={(selection) =>
-                dispatch({ type: "SET_SELECTION", selection })
-              }
-              onExecute={executeTimeline}
-            />
-          </div>
-        </div>
-        {INSPECTOR_ENABLED ? (
-          <InspectorPanel
+        stage={
+          <PreviewStage
             project={session.project}
             clips={session.clips}
             lanes={session.lanes}
+          />
+        }
+        timeline={
+          <TimelineViewport
+            projectId={session.projectId}
+            clips={session.clips}
+            lanes={session.lanes}
+            fps={session.fps}
+            timelineZoomScale={session.timelineZoomScale}
+            timelineFitAnchorSeconds={session.timelineFitAnchorSeconds}
+            timelineFitRevision={session.timelineFitRevision}
             selection={session.selection}
             disabled={saving || Boolean(session.loadError)}
             onSelect={(selection) =>
               dispatch({ type: "SET_SELECTION", selection })
             }
-            onExecute={({ command, label, coalesceKey, entryId }) => {
-              if (!entryId) propertyEntrySeq += 1;
-              dispatch({
-                type: "EXECUTE_PROPERTY_COMMAND",
-                command,
-                label,
-                coalesceKey,
-                entryId: entryId ?? `prop_${propertyEntrySeq}`,
-              });
-            }}
+            onExecute={executeTimeline}
           />
-        ) : null}
-      </div>
+        }
+        inspector={
+          INSPECTOR_ENABLED ? (
+            <InspectorDock
+              project={session.project}
+              clips={session.clips}
+              lanes={session.lanes}
+              selection={session.selection}
+              disabled={saving || Boolean(session.loadError)}
+              onSelect={(selection) =>
+                dispatch({ type: "SET_SELECTION", selection })
+              }
+              onExecute={({ command, label, coalesceKey, entryId }) => {
+                if (!entryId) propertyEntrySeq += 1;
+                dispatch({
+                  type: "EXECUTE_PROPERTY_COMMAND",
+                  command,
+                  label,
+                  coalesceKey,
+                  entryId: entryId ?? `prop_${propertyEntrySeq}`,
+                });
+              }}
+            />
+          ) : undefined
+        }
+      />
 
-      <details className="editor-shell__json">
-        <summary>Document JSON (debug)</summary>
-        <textarea
-          value={sessionJson}
-          spellCheck={false}
-          onChange={(e) =>
-            dispatch({
-              type: "APPLY_DOCUMENT_JSON",
-              documentJson: e.target.value,
-            })
-          }
-          disabled={saving}
-        />
-      </details>
+      {import.meta.env.DEV ? (
+        <details className="editor-shell__json">
+          <summary>Document JSON (debug)</summary>
+          <textarea
+            value={sessionJson}
+            spellCheck={false}
+            onChange={(e) =>
+              dispatch({
+                type: "APPLY_DOCUMENT_JSON",
+                documentJson: e.target.value,
+              })
+            }
+            disabled={saving}
+          />
+        </details>
+      ) : null}
     </main>
   );
 }

@@ -12,6 +12,8 @@ import "./asset-panel.css";
 type Props = {
   projectPath: string | null;
   documentJson: string;
+  /** Prefer session-provided assets to avoid reparsing full JSON on every mutation. */
+  assets?: DocumentAssetEntry[];
   assetsApi: AssetRepository;
   disabled?: boolean;
   onDocumentChange: (json: string) => void;
@@ -27,13 +29,17 @@ function assetManifestKey(assets: DocumentAssetEntry[]): string {
 export function AssetPanel({
   projectPath,
   documentJson,
+  assets: assetsProp,
   assetsApi,
   disabled,
   onDocumentChange,
 }: Props) {
-  const assets = useMemo(() => listEnvelopeAssets(documentJson), [documentJson]);
+  const assetsFromJson = useMemo(
+    () => (assetsProp ? null : listEnvelopeAssets(documentJson)),
+    [assetsProp, documentJson],
+  );
+  const assets = assetsProp ?? assetsFromJson ?? [];
   const manifestKey = useMemo(() => assetManifestKey(assets), [assets]);
-  // Recompute assets only when manifest (id+uri+type) changes — not every timeline edit.
   const stableAssets = useMemo(() => assets, [manifestKey]);
   const documentJsonRef = useRef(documentJson);
   documentJsonRef.current = documentJson;

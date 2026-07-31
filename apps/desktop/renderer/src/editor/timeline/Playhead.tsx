@@ -1,6 +1,6 @@
 /**
- * CapCut-style playhead for Vite timeline (Wave D).
- * Hot path: transform via DOM — no React setState per playback tick.
+ * CapCut-style playhead for Vite timeline.
+ * Hot path: imperative DOM transform only — no React subscription to currentTime.
  */
 
 import {
@@ -11,10 +11,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import {
-  usePlaybackClockApi,
-  usePlaybackClock,
-} from "../playback/playback-clock-store";
+import { usePlaybackClockApi } from "../playback/playback-clock-store";
 import {
   clientXToTimelineTime,
   timelineTimeToViewportLeft,
@@ -49,8 +46,6 @@ export function Playhead({
   maxTimeRef.current = maxTime;
 
   const clock = usePlaybackClockApi();
-  const currentTime = usePlaybackClock((s) => s.currentTime);
-  const seekRevision = usePlaybackClock((s) => s.seekRevision);
 
   const applyVisualLeft = useCallback((viewportLeft: number) => {
     const el = rootRef.current;
@@ -72,15 +67,16 @@ export function Playhead({
     [applyVisualLeft],
   );
 
+  // Layout/scroll changes: sync once from store without React tick subscription.
   useLayoutEffect(() => {
     if (draggingRef.current) return;
-    syncFromClock(currentTime);
-  }, [currentTime, seekRevision, scrollLeft, pixelsPerSecond, tracksOriginX, syncFromClock]);
+    syncFromClock(clock.getState().currentTime);
+  }, [scrollLeft, pixelsPerSecond, tracksOriginX, clock, syncFromClock]);
 
   useEffect(() => {
     return clock.subscribe((state) => {
       if (draggingRef.current) return;
-      if (state.mode !== "playing") return;
+      // Always imperative — paused seeks + playing ticks.
       syncFromClock(state.currentTime);
     });
   }, [clock, syncFromClock]);

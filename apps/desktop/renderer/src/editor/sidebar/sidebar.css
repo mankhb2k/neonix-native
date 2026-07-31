@@ -1,0 +1,56 @@
+.editor-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-panel);
+}
+
+.editor-sidebar__tabs {
+  height: 40px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.editor-sidebar__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.editor-sidebar__layers {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.editor-sidebar__lane {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.editor-sidebar__lane:hover {
+  background: var(--bg-hover);
+}
+
+.editor-sidebar__lane-meta,
+.editor-sidebar__hint {
+  font-size: 11px;
+  color: var(--fg-muted);
+}
+
+.editor-sidebar__hint {
+  margin: 12px;
+}
