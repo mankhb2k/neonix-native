@@ -7,9 +7,10 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
+import { usePlaybackClockApi } from "../playback/playback-clock-store";
 import { ClipStrip } from "./ClipStrip";
+import { usePointerSessionHost } from "./interactions/use-pointer-session";
 import { Playhead } from "./Playhead";
-import { TimeRuler } from "./TimeRuler";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
@@ -17,10 +18,9 @@ import {
   laneRowHeightPx,
 } from "./timeline-scale";
 import { clientXToTimelineTime } from "./timeline-seek";
+import { TimeRuler } from "./TimeRuler";
 import { useVisibleTimeline } from "./use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
-import { usePlaybackClockApi } from "../playback/playback-clock-store";
-import { usePointerSessionHost } from "./interactions/use-pointer-session";
 import "./timeline-layout.css";
 
 type Props = {

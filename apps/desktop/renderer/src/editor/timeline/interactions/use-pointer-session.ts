@@ -5,14 +5,14 @@
 
 import { useEffect, useRef } from "react";
 import {
+  shouldCommitPointerSession,
+  type PointerSessionEndReason,
+} from "./pointer-session";
+import {
   PointerSessionController,
   type PointerPos,
   type PointerSessionConfig,
 } from "./pointer-session-controller";
-import {
-  shouldCommitPointerSession,
-  type PointerSessionEndReason,
-} from "./pointer-session";
 
 export type ActivePointerGesture = {
   controller: PointerSessionController<unknown>;

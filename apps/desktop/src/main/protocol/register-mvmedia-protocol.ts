@@ -1,7 +1,7 @@
-import { net, protocol } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { net, protocol } from "electron";
 import { resolveContainedPath } from "../../shared/assets/resolve-asset-path";
 import {
   MVMEDIA_PROTOCOL,

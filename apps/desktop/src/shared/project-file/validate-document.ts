@@ -3,10 +3,6 @@
  */
 
 import {
-  parseMotionProject,
-  type MotionProject,
-} from "@motionvideo/motion-schema";
-import {
   parseTimelineClipsStrict,
   parseTimelineLanesStrict,
   TimelineParseError,
@@ -14,6 +10,10 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
+import {
+  parseMotionProject,
+  type MotionProject,
+} from "@motionvideo/motion-schema";
 import {
   parseDesktopProjectFile,
   ProjectFileParseError,

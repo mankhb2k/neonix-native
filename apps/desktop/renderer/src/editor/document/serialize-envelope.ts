@@ -2,12 +2,12 @@
  * Rewrite envelope project from a MotionProject (property/command mutations).
  */
 
-import type { MotionProject } from "@motionvideo/motion-schema";
-import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import {
   parseDesktopProjectFile,
   serializeDesktopProjectEnvelope,
 } from "../../../../src/shared/project-file/envelope";
+import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 export function serializeProjectIntoDocumentJson(
   baseDocumentJson: string,

@@ -1,9 +1,9 @@
-import { formatTimecode } from "../timeline/timeline-scale";
 import {
   usePlaybackClock,
   usePlaybackClockApi,
 } from "../playback/playback-clock-store";
 import { playbackFrameIndex, playbackFrameTime } from "../playback/time-frame";
+import { formatTimecode } from "../timeline/timeline-scale";
 import "./transport.css";
 
 type Props = {

@@ -10,12 +10,7 @@ import {
   DesktopIpcError,
   DesktopIpcErrorCode,
 } from "../../shared/ipc/errors";
-import type {
-  ProjectOpenResult,
-  SaveProjectResult,
-} from "../../shared/ipc/contracts";
 import {
-  parseDesktopProjectFile,
   ProjectFileParseError,
   projectIdFromEnvelope,
   projectNameFromEnvelope,
@@ -23,6 +18,10 @@ import {
   type DesktopProjectEnvelope,
 } from "../../shared/project-file/envelope";
 import { validateDesktopDocumentJson } from "../../shared/project-file/validate-document";
+import type {
+  ProjectOpenResult,
+  SaveProjectResult,
+} from "../../shared/ipc/contracts";
 
 export type ProjectFileFs = {
   existsSync(p: string): boolean;
@@ -109,7 +108,7 @@ export function createProjectFileService(
         name: projectNameFromEnvelope(envelope),
       };
     } catch (error) {
-      mapParseError(error);
+      return mapParseError(error);
     }
   }
 

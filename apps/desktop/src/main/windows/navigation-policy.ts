@@ -38,7 +38,7 @@ export function isAllowedNavigation(
     if (!legacy) return false;
     return (
       parsed.origin === legacy.origin ||
-      parsed.href.startsWith(legacy.origin + "/")
+      parsed.href.startsWith(`${legacy.origin  }/`)
     );
   }
 

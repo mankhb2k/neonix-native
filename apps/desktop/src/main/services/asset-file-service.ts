@@ -11,14 +11,6 @@ import {
   resolveContainedPath,
   toPosixRelative,
 } from "../../shared/assets/resolve-asset-path";
-import type {
-  AssetType,
-  ImportedAsset,
-  ListMissingAssetsRequest,
-  ListMissingAssetsResult,
-  RelinkAssetResult,
-  ResolvedAsset,
-} from "../../shared/ipc/contracts";
 import {
   DesktopIpcError,
   DesktopIpcErrorCode,
@@ -29,6 +21,14 @@ import {
   mimeForExt,
 } from "../protocol/mvmedia-registry";
 import { probeMediaFile } from "./media-probe";
+import type {
+  AssetType,
+  ImportedAsset,
+  ListMissingAssetsRequest,
+  ListMissingAssetsResult,
+  RelinkAssetResult,
+  ResolvedAsset,
+} from "../../shared/ipc/contracts";
 
 export type AssetFileFs = {
   existsSync(p: string): boolean;

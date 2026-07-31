@@ -3,11 +3,11 @@
  * with probed metadata when available (Wave E).
  */
 
-import type { AssetType, ImportedAsset } from "../../../../src/shared/ipc/contracts";
 import {
   parseDesktopProjectFile,
   serializeDesktopProjectEnvelope,
 } from "../../../../src/shared/project-file/envelope";
+import type { AssetType, ImportedAsset } from "../../../../src/shared/ipc/contracts";
 
 export type DocumentAssetEntry = {
   id: string;

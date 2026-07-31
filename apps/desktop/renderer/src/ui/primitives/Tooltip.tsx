@@ -23,7 +23,7 @@ export function Tooltip({
   children,
   className,
 }: TooltipProps) {
-  if (!content) return <>{children}</>;
+  if (!content) return children;
 
   return (
     <div

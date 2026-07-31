@@ -2,13 +2,13 @@
  * Preview compose — visual layers at global time.
  */
 
-import type { MotionScene } from "@motionvideo/motion-schema";
 import {
   isSceneClip,
   type TimelineClip,
   type TimelineLane,
   type VisualTimelineLane,
 } from "@motionvideo/editor-core";
+import type { MotionScene } from "@motionvideo/motion-schema";
 
 export type ComposedSceneLayer = {
   clipId: string;

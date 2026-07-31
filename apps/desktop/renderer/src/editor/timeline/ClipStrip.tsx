@@ -2,7 +2,6 @@
  * Interactive clip strip — select / same-lane move / edge trim (Wave D + Wave 4 dispose).
  */
 
-import type { PointerEvent as ReactPointerEvent } from "react";
 import { useState } from "react";
 import {
   MIN_CLIP_SLICE_SEC,
@@ -14,6 +13,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import type { BeginGesture } from "./interactions/use-pointer-session";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 const DRAG_THRESHOLD_PX = 3;
 

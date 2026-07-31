@@ -6,12 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { BrowserWindow, dialog, type SaveDialogOptions, type SaveDialogReturnValue } from "electron";
-import type {
-  CancelExportInput,
-  ExportEvent,
-  ExportJob,
-  StartExportRequest,
-} from "../../shared/ipc/contracts";
+import { resolveExportPreset } from "../../shared/export/presets";
 import {
   DesktopIpcError,
   DesktopIpcErrorCode,
@@ -20,7 +15,12 @@ import {
   createExportProcessManager,
   type ExportProcessManager,
 } from "../utility-processes/export-process-manager";
-import { resolveExportPreset } from "../../shared/export/presets";
+import type {
+  CancelExportInput,
+  ExportEvent,
+  ExportJob,
+  StartExportRequest,
+} from "../../shared/ipc/contracts";
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 

@@ -2,11 +2,11 @@
  * Pure desktop app state machine (Phase 4 shell — no timeline).
  */
 
-import type { RecentProject } from "../../../../src/shared/ipc/contracts";
 import {
   parseDesktopProjectFile,
   projectNameFromEnvelope,
 } from "../../../../src/shared/project-file/envelope";
+import type { RecentProject } from "../../../../src/shared/ipc/contracts";
 
 export type AppPhase =
   | "booting"

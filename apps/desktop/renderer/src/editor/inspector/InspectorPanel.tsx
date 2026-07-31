@@ -10,10 +10,10 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
 import { BooleanPropertyEditor } from "./property-editors/BooleanPropertyEditor";
 import { NumberPropertyEditor } from "./property-editors/NumberPropertyEditor";
 import { StringPropertyEditor } from "./property-editors/StringPropertyEditor";
+import type { MotionProject } from "@motionvideo/motion-schema";
 import "./inspector.css";
 
 type Props = {

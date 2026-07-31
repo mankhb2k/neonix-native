@@ -1,6 +1,6 @@
 import { createContext, useContext } from "react";
-import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand/react";
+import { createStore, type StoreApi } from "zustand/vanilla";
 
 export type PlaybackMode = "idle" | "playing" | "scrubbing";
 

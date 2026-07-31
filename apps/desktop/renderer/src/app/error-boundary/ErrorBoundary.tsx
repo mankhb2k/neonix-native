@@ -16,6 +16,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
+    // Error boundary diagnostics — allow console in catch path.
+    // eslint-disable-next-line no-console -- surface renderer crash details
     console.error("[renderer]", error, info.componentStack);
   }
 

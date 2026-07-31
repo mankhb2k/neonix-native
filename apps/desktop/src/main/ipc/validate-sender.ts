@@ -1,10 +1,10 @@
-import type { IpcMainInvokeEvent } from "electron";
 import { BrowserWindow } from "electron";
 import {
   DesktopIpcError,
   DesktopIpcErrorCode,
 } from "../../shared/ipc/errors";
 import { isAllowedNavigation } from "../windows/navigation-policy";
+import type { IpcMainInvokeEvent } from "electron";
 
 /**
  * Ensure the invoke comes from one of our BrowserWindows and an allowed URL.

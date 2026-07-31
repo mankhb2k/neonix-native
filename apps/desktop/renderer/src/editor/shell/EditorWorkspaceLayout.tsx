@@ -1,5 +1,5 @@
-import type { CSSProperties, ReactNode } from "react";
 import { usePanelResize } from "./use-panel-resize";
+import type { CSSProperties, ReactNode } from "react";
 import "./editor-workspace-layout.css";
 
 type Props = {

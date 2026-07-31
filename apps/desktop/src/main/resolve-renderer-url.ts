@@ -1,11 +1,11 @@
 import { app } from "electron";
-import { appBundleIndexUrl } from "./protocol/register-app-protocol";
 import {
   DEFAULT_LEGACY_URL,
   DEFAULT_VITE_DEV_URL,
   getRendererMode,
   useViteProductionBundle,
 } from "../shared/renderer-mode";
+import { appBundleIndexUrl } from "./protocol/register-app-protocol";
 
 export function resolveRendererUrl(isPackaged: boolean = app.isPackaged): string {
   const mode = getRendererMode();
