@@ -1,5 +1,5 @@
 /**
- * Full document validation before atomic save (Wave E).
+ * Full document validation before atomic save / on open (Wave 3).
  */
 
 import {
@@ -7,6 +7,9 @@ import {
   type MotionProject,
 } from "@motionvideo/motion-schema";
 import {
+  parseTimelineClipsStrict,
+  parseTimelineLanesStrict,
+  TimelineParseError,
   validateTimelineDocument,
   type TimelineClip,
   type TimelineLane,
@@ -20,6 +23,8 @@ import {
 export function validateDesktopDocumentJson(documentJson: string): {
   envelope: DesktopProjectEnvelope;
   project: MotionProject;
+  clips: TimelineClip[];
+  lanes: TimelineLane[];
 } {
   let envelope: DesktopProjectEnvelope;
   try {
@@ -44,8 +49,26 @@ export function validateDesktopDocumentJson(documentJson: string): {
     );
   }
 
-  const clips = envelope.timelineClips as TimelineClip[];
-  const lanes = envelope.timelineLanes as TimelineLane[];
+  let clips: TimelineClip[];
+  let lanes: TimelineLane[];
+  try {
+    lanes = parseTimelineLanesStrict(envelope.timelineLanes);
+    clips = parseTimelineClipsStrict(envelope.timelineClips);
+  } catch (error) {
+    throw new ProjectFileParseError(
+      "CORRUPT_FILE",
+      error instanceof TimelineParseError
+        ? error.message
+        : error instanceof Error
+          ? error.message
+          : "Invalid timeline structure.",
+    );
+  }
+
+  // Canonicalize parsed structure back onto the envelope.
+  envelope.timelineClips = clips;
+  envelope.timelineLanes = lanes;
+
   const validation = validateTimelineDocument({
     project,
     clips,
@@ -60,5 +83,5 @@ export function validateDesktopDocumentJson(documentJson: string): {
     );
   }
 
-  return { envelope, project };
+  return { envelope, project, clips, lanes };
 }

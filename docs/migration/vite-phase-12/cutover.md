@@ -48,7 +48,6 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 ## Known gaps (honest)
 
 - Timeline: marquee / lane reorder / library DnD still follow-ups
-- Structural clip/lane parse on save still incomplete (Wave 3)
 - No release-level legacy rollback inside packaged artifact
 - Production cutover still blocked until soak / product sign-off
 

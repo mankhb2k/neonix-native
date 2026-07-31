@@ -101,7 +101,7 @@ export function createProjectFileService(
       );
     }
     try {
-      const envelope = parseDesktopProjectFile(text);
+      const { envelope } = validateDesktopDocumentJson(text);
       return {
         envelope,
         documentJson: serializeDesktopProjectEnvelope(envelope),

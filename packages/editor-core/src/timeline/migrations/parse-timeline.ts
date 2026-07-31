@@ -110,6 +110,64 @@ export function parseTimelineLanes(input: unknown): TimelineLane[] {
   return lanes;
 }
 
+export class TimelineParseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TimelineParseError";
+  }
+}
+
+function assertArray(input: unknown, label: string): unknown[] {
+  if (!Array.isArray(input)) {
+    throw new TimelineParseError(`${label} must be an array.`);
+  }
+  return input;
+}
+
+/** Strict lane parse — rejects malformed rows (for open/save validation). */
+export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
+  const items = assertArray(input, "timelineLanes");
+  const lanes: TimelineLane[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item || typeof item !== "object") {
+      throw new TimelineParseError(`timelineLanes[${i}] is not an object.`);
+    }
+    const before = lanes.length;
+    const parsed = parseTimelineLanes([item]);
+    if (parsed.length !== 1) {
+      throw new TimelineParseError(
+        `timelineLanes[${i}] is not a valid TimelineLane.`,
+      );
+    }
+    if (lanes.length !== before) {
+      /* unreachable */
+    }
+    lanes.push(parsed[0]!);
+  }
+  return lanes;
+}
+
+/** Strict clip parse — rejects malformed rows (for open/save validation). */
+export function parseTimelineClipsStrict(input: unknown): TimelineClip[] {
+  const items = assertArray(input, "timelineClips");
+  const clips: TimelineClip[] = [];
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (!item || typeof item !== "object") {
+      throw new TimelineParseError(`timelineClips[${i}] is not an object.`);
+    }
+    const parsed = parseTimelineClips([item]);
+    if (parsed.length !== 1) {
+      throw new TimelineParseError(
+        `timelineClips[${i}] is not a valid TimelineClip.`,
+      );
+    }
+    clips.push(parsed[0]!);
+  }
+  return clips;
+}
+
 /** Parse clips — chấp nhận kind mới và legacy sceneId-only. */
 export function parseTimelineClips(input: unknown): TimelineClip[] {
   if (!Array.isArray(input)) return [];

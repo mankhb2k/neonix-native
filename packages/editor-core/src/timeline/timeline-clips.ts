@@ -35,7 +35,7 @@ function uid(prefix: string): string {
 /* 1. RE-EXPORTS FROM SUB-MODULES (MIGRATION, PARSER, PLACEMENT)              */
 /* ========================================================================== */
 
-export { parseTimelineClips, parseTimelineLanes } from "./migrations/parse-timeline";
+export { parseTimelineClips, parseTimelineLanes, parseTimelineClipsStrict, parseTimelineLanesStrict, TimelineParseError } from "./migrations/parse-timeline";
 export {
   ensureAudioClipsFromTracks,
   ensureBaseLane,
