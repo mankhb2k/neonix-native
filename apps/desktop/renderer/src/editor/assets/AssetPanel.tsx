@@ -145,6 +145,9 @@ export function AssetPanel({
           uri: result.uri,
           assetType: result.assetType,
           mimeType: result.mimeType,
+          width: result.width,
+          height: result.height,
+          duration: result.duration,
         }),
       );
     } catch (err) {

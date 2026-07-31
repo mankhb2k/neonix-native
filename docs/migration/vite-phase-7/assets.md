@@ -19,10 +19,11 @@
 - [x] `mvmedia` privileged protocol + CSP `img-src` / `media-src`
 - [x] Renderer `AssetRepository` + `AssetPanel` (import / missing / relink)
 - [x] Merge into `documentJson` with V2-compatible placeholder metadata
+- [x] Relink returns/merges probed `width` / `height` / `duration`; keeps prior when probe omits
 - [x] Unit tests: path containment, copy import, move folder, missing, relink
 - [ ] Thumbnail / waveform disk cache (follow-up)
 - [ ] Timeline media drop / clip URIs (Phase 5+)
-- [ ] ffprobe real dimensions / duration (follow-up)
+- [ ] ffprobe real dimensions / duration beyond current import probe (follow-up)
 
 ## Manual smoke
 

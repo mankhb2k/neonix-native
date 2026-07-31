@@ -81,6 +81,9 @@ export type RelinkAssetResult = {
   assetType: AssetType;
   mimeType?: string;
   absolutePath?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
 };
 
 export type AssetManifestEntry = {

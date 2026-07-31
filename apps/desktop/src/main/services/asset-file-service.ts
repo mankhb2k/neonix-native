@@ -297,6 +297,9 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
         assetType: imported.assetType,
         mimeType: imported.mimeType,
         absolutePath: imported.absolutePath,
+        ...(imported.width != null ? { width: imported.width } : {}),
+        ...(imported.height != null ? { height: imported.height } : {}),
+        ...(imported.duration != null ? { duration: imported.duration } : {}),
       };
     },
 

@@ -170,14 +170,30 @@ export function updateAssetUriInDocumentJson(
       typeof row === "object" &&
       (row as { id?: unknown }).id === assetId,
   );
+  const prev =
+    index >= 0 && assets[index] && typeof assets[index] === "object"
+      ? (assets[index] as Record<string, unknown>)
+      : null;
+  const prevWidth =
+    typeof prev?.width === "number" && Number.isFinite(prev.width)
+      ? prev.width
+      : undefined;
+  const prevHeight =
+    typeof prev?.height === "number" && Number.isFinite(prev.height)
+      ? prev.height
+      : undefined;
+  const prevDuration =
+    typeof prev?.duration === "number" && Number.isFinite(prev.duration)
+      ? prev.duration
+      : undefined;
   const docAsset = toDocumentAsset({
     id: assetId,
     uri: next.uri,
     assetType: next.assetType,
     mimeType: next.mimeType,
-    width: next.width,
-    height: next.height,
-    duration: next.duration,
+    width: next.width ?? prevWidth,
+    height: next.height ?? prevHeight,
+    duration: next.duration ?? prevDuration,
   });
   if (index >= 0) {
     assets[index] = docAsset;
