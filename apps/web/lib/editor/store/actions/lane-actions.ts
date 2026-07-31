@@ -1,7 +1,6 @@
-import { applyLaneFlagPatch } from "@/lib/editor/operations/lane-flags";
-import { reorderOverlayLane } from "@/lib/editor/timeline-clips";
 import type {
   EditorStoreActions,
+  EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
 
@@ -10,30 +9,21 @@ export type LaneActions = Pick<
   "renameLane" | "updateLaneFlags" | "reorderLane"
 >;
 
-export function createLaneActions(set: EditorStoreSet): LaneActions {
+export function createLaneActions(
+  _set: EditorStoreSet,
+  get: EditorStoreGet,
+): LaneActions {
   return {
     renameLane: (laneId, name) => {
-      set((state) => ({
-        timelineLanes: state.timelineLanes.map((lane) =>
-          lane.id === laneId ? { ...lane, name } : lane,
-        ),
-      }));
+      get().executeTimelineCommand({ type: "rename-lane", laneId, name });
     },
 
     updateLaneFlags: (laneId, patch) => {
-      set((state) => ({
-        timelineLanes: applyLaneFlagPatch(state.timelineLanes, laneId, patch),
-      }));
+      get().executeTimelineCommand({ type: "update-lane-flags", laneId, patch });
     },
 
     reorderLane: (laneId, newOrder) => {
-      set((state) => ({
-        timelineLanes: reorderOverlayLane(
-          state.timelineLanes,
-          laneId,
-          newOrder,
-        ),
-      }));
+      get().executeTimelineCommand({ type: "reorder-lane", laneId, newOrder });
     },
   };
 }

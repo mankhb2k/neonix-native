@@ -53,6 +53,18 @@ export {
   visualCompositionIndex,
 } from "@/lib/editor/timeline/indexes";
 
+// Command Pattern & Application Boundary
+export type {
+  ClipMovePatch,
+  CommandResult,
+  PlacementTarget,
+  TimelineCommand,
+  TimelineDomainEvent,
+  TimelineLaneFlags,
+} from "@/lib/editor/timeline/commands/command-types";
+
+export { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
+
 // Canonical Domain Helpers & Predicates
 export {
   clipsContentEndSeconds,

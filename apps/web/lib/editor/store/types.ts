@@ -6,6 +6,11 @@ import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 import type { AspectRatio, MotionProject } from "@motionvideo/motion-schema";
 import type { StoreApi } from "zustand";
 
+import type {
+  CommandResult,
+  TimelineCommand,
+} from "@/lib/editor/timeline/commands/command-types";
+
 export type SidebarTabId =
   | "frame"
   | "elements"
@@ -44,6 +49,7 @@ export type EditorStoreState = {
 };
 
 export type EditorStoreActions = {
+  executeTimelineCommand: (command: TimelineCommand) => CommandResult;
   setActiveDragItem: (item: EditorDragItem | null) => void;
   setIsOverTimeline: (over: boolean) => void;
   loadProject: (
