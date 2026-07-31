@@ -1,9 +1,10 @@
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
-import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
-import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
-import { usePlaybackClock } from "../playback/playback-clock-store";
+import {
+  usePlaybackClockApi,
+} from "../playback/playback-clock-store";
 import { playbackFrameIndex } from "../playback/time-frame";
 import {
   buildVisualLaneIndex,
@@ -16,6 +17,7 @@ import {
   stageSizeForAspect,
   type PreviewParityNode,
 } from "../preview/preview-evaluate";
+import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
 import "./stage-layout.css";
 
 function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
@@ -163,11 +165,18 @@ function PreviewClockBridge({
   scale: number;
 }) {
   const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
-  // Frame index still drives compose; canvas is memoized to limit DOM churn.
-  // Full imperative compose (no React frame subscription) remains a follow-up.
-  const frameIndex = usePlaybackClock((state) =>
-    playbackFrameIndex(state.currentTime, fps),
+  const clock = usePlaybackClockApi();
+  const [frameIndex, setFrameIndex] = useState(() =>
+    playbackFrameIndex(clock.getState().currentTime, fps),
   );
+
+  useEffect(() => {
+    return clock.subscribe((state) => {
+      const next = playbackFrameIndex(state.currentTime, fps);
+      setFrameIndex((prev) => (prev === next ? prev : next));
+    });
+  }, [clock, fps]);
+
   return (
     <PreviewRuntimeCanvas
       project={project}

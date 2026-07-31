@@ -14,8 +14,9 @@
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
     "e2e:timeline": "pnpm --filter @motionvideo/web e2e:timeline",
     "build": "pnpm -r run build",
-    "lint": "pnpm --filter @motionvideo/web lint",
+    "lint": "pnpm --filter @motionvideo/web lint && pnpm --filter @motionvideo/desktop lint",
     "lint:web": "pnpm --filter @motionvideo/web lint",
+    "lint:desktop": "pnpm --filter @motionvideo/desktop lint",
     "typecheck": "pnpm -r run typecheck",
     "validate:v2-fixtures": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-motion-v2-fixtures.ts",
     "update:v2-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-goldens.ts",
@@ -32,5 +33,10 @@
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
+  },
+  "pnpm": {
+    "overrides": {
+      "enhanced-resolve": "5.18.0"
+    }
   }
 }

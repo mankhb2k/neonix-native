@@ -1,11 +1,11 @@
 # Web desktop UI freeze notice
 
-Vite desktop (`apps/desktop/renderer`) is the source of truth for desktop UI going forward.
+Vite desktop (`apps/desktop/renderer`) is the **default** desktop UI (`pnpm dev:desktop`).
 
-`apps/web/components/desktop/**` is **frozen** for new features:
+`apps/web/components/desktop/**` is **frozen**:
 
 - Do not add new desktop-only features on Next.
-- Bugfixes on legacy path only until packaged cutover + soak complete.
-- After a stable Vite release, delete this tree (see UI-8 checklist).
+- Bugfixes on the legacy path only (`pnpm dev:desktop:legacy`).
+- After soak + stable release, delete this tree.
 
 See [`docs/migration/vite-ui/README.md`](../../docs/migration/vite-ui/README.md).
