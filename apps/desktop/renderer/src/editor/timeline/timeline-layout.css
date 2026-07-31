@@ -95,7 +95,6 @@
 .timeline-clip-strip {
   position: absolute;
   inset: 0;
-  pointer-events: none;
   overflow: hidden;
 }
 
@@ -106,6 +105,67 @@
   background: color-mix(in srgb, var(--accent, #3d8b6e) 55%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--accent, #3d8b6e) 80%, var(--border));
   opacity: 0.9;
+  cursor: grab;
+  user-select: none;
+}
+
+.timeline-clip-strip__clip--selected {
+  outline: 2px solid color-mix(in srgb, var(--accent, #3d8b6e) 90%, white);
+  outline-offset: 0;
+  z-index: 1;
+}
+
+.timeline-clip-strip__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  z-index: 2;
+}
+
+.timeline-clip-strip__handle--left {
+  left: 0;
+}
+
+.timeline-clip-strip__handle--right {
+  right: 0;
+}
+
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 14px;
+  margin-left: -7px;
+  z-index: 5;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.timeline-playhead__head {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  width: 11px;
+  height: 13px;
+  transform: translateX(-50%);
+  background: var(--accent, #3d8b6e);
+  clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
+  pointer-events: auto;
+  cursor: ew-resize;
+}
+
+.timeline-playhead__line {
+  position: absolute;
+  top: 14px;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: var(--accent, #3d8b6e);
+  pointer-events: none;
 }
 
 .timeline-board__empty {

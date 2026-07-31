@@ -1,6 +1,14 @@
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
+import {
+  selectedClipIdsFrom,
+  selectionNone,
+  type EditorSelection,
+  type TimelineClip,
+  type TimelineCommand,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 import { ClipStrip } from "./ClipStrip";
+import { Playhead } from "./Playhead";
 import { TimeRuler } from "./TimeRuler";
 import {
   TIMELINE_LABEL_WIDTH,
@@ -8,8 +16,10 @@ import {
   TIMELINE_TRACKS_ORIGIN_X,
   laneRowHeightPx,
 } from "./timeline-scale";
+import { clientXToTimelineTime } from "./timeline-seek";
 import { useVisibleTimeline } from "./use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
+import { usePlaybackClockApi } from "../playback/playback-clock-store";
 import "./timeline-layout.css";
 
 type Props = {
@@ -20,6 +30,10 @@ type Props = {
   timelineZoomScale: number;
   timelineFitAnchorSeconds: number | null;
   timelineFitRevision: number;
+  selection: EditorSelection;
+  disabled?: boolean;
+  onSelect: (selection: EditorSelection) => void;
+  onExecute: (command: TimelineCommand, label: string) => void;
 };
 
 export function TimelineViewport({
@@ -30,12 +44,17 @@ export function TimelineViewport({
   timelineZoomScale,
   timelineFitAnchorSeconds,
   timelineFitRevision,
+  selection,
+  disabled,
+  onSelect,
+  onExecute,
 }: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  const clock = usePlaybackClockApi();
 
   const scrollLeftRafRef = useRef<number | null>(null);
   const scrollTopRafRef = useRef<number | null>(null);
@@ -121,12 +140,18 @@ export function TimelineViewport({
     return map;
   }, [clips, lanes]);
 
+  const pinIds = useMemo(
+    () => new Set(selectedClipIdsFrom(selection)),
+    [selection],
+  );
+
   const { clipsForLane } = useVisibleTimeline({
     scrollLeft,
     viewWidth: trackViewWidth,
     pixelsPerSecond: layout.pixelsPerSecond,
     lanes: sortedLanes,
     clipsByLane: clipsByLaneMap,
+    pinIds,
   });
 
   const totalLaneHeight = sortedLanes.reduce(
@@ -134,11 +159,29 @@ export function TimelineViewport({
     0,
   );
 
-  // scrollTop reserved for future vertical lane windowing
+  const seekToClientX = useCallback(
+    (clientX: number) => {
+      const scroll = tracksScrollRef.current;
+      if (!scroll || disabled) return;
+      const time = clientXToTimelineTime(
+        clientX,
+        scroll,
+        layout.pixelsPerSecond,
+        layout.extentSeconds,
+      );
+      clock.getState().seek(time);
+    },
+    [clock, disabled, layout.extentSeconds, layout.pixelsPerSecond],
+  );
+
   void scrollTop;
 
   return (
-    <div ref={boardRef} className="timeline-board" data-testid="timeline-viewport">
+    <div
+      ref={boardRef}
+      className="timeline-board"
+      data-testid="timeline-viewport"
+    >
       <div className="timeline-board__ruler-row">
         <div
           className="timeline-board__corner"
@@ -160,6 +203,7 @@ export function TimelineViewport({
               pixelsPerSecond={layout.pixelsPerSecond}
               viewWidth={trackViewWidth}
               scrollLeft={scrollLeft}
+              onSeekClick={disabled ? undefined : seekToClientX}
             />
           </div>
         </div>
@@ -193,6 +237,12 @@ export function TimelineViewport({
           ref={tracksScrollRef}
           className="timeline-board__tracks"
           onScroll={onScroll}
+          onPointerDown={(event) => {
+            if (disabled || event.button !== 0) return;
+            if ((event.target as HTMLElement).closest("[data-clip-id]")) return;
+            onSelect(selectionNone());
+            seekToClientX(event.clientX);
+          }}
         >
           {sortedLanes.length === 0 ? (
             <p className="timeline-board__empty">No lanes in this project.</p>
@@ -202,6 +252,7 @@ export function TimelineViewport({
               style={{
                 width: Math.max(layout.canvasWidth, trackViewWidth),
                 height: Math.max(totalLaneHeight, 1),
+                paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX,
               }}
             >
               {sortedLanes.map((lane) => {
@@ -216,8 +267,13 @@ export function TimelineViewport({
                   >
                     <ClipStrip
                       clips={visibleClips}
+                      lane={lane}
                       pixelsPerSecond={layout.pixelsPerSecond}
                       laneHeight={h}
+                      selection={selection}
+                      disabled={disabled}
+                      onSelect={onSelect}
+                      onExecute={onExecute}
                     />
                   </div>
                 );
@@ -226,6 +282,15 @@ export function TimelineViewport({
           )}
         </div>
       </div>
+
+      <Playhead
+        tracksOriginX={TIMELINE_TRACKS_ORIGIN_X}
+        pixelsPerSecond={layout.pixelsPerSecond}
+        scrollLeft={scrollLeft}
+        scrollContainerRef={tracksScrollRef}
+        maxTime={layout.extentSeconds}
+        enabled={!disabled}
+      />
     </div>
   );
 }

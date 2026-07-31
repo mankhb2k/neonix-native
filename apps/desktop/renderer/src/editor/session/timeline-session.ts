@@ -1,6 +1,6 @@
 /**
  * Per-instance timeline session — document read model + zoom/fit +
- * selection + property command/history bus.
+ * selection + property/timeline command history bus.
  */
 
 import {
@@ -8,6 +8,8 @@ import {
   canUndo,
   createHistoryState,
   executePropertyCommand,
+  executeTimelineCommand,
+  pushHistory,
   redoHistory,
   replaceOrPushHistory,
   resolveFitAnchorSeconds,
@@ -18,6 +20,7 @@ import {
   type EditorSelection,
   type HistoryState,
   type TimelineClip,
+  type TimelineCommand,
   type TimelineDocument,
   type TimelineLane,
 } from "@motionvideo/editor-core";
@@ -61,6 +64,12 @@ export type TimelineSessionEvent =
       command: DocumentPropertyCommand;
       label: string;
       coalesceKey?: string;
+      entryId: string;
+    }
+  | {
+      type: "EXECUTE_TIMELINE_COMMAND";
+      command: TimelineCommand;
+      label?: string;
       entryId: string;
     }
   | { type: "UNDO" }
@@ -164,7 +173,6 @@ export function reduceTimelineSession(
       }
     }
     case "APPLY_DOCUMENT_JSON": {
-      // External merge (assets/debug) — keep selection/history.
       try {
         const loaded = loadTimelineFromDocumentJson(event.documentJson);
         return {
@@ -248,6 +256,45 @@ export function reduceTimelineSession(
       return {
         ...state,
         ...applied,
+        history,
+        loadError: null,
+      };
+    }
+    case "EXECUTE_TIMELINE_COMMAND": {
+      const before = toDocument(state);
+      const baseJson = state.baseDocumentJson;
+      if (!before || !baseJson) {
+        return {
+          ...state,
+          loadError: "No document loaded for timeline edit.",
+        };
+      }
+      const result = executeTimelineCommand(
+        before,
+        event.command,
+        state.selection,
+      );
+      if (result.status !== "applied") {
+        return {
+          ...state,
+          loadError: result.message,
+        };
+      }
+      const afterSelection = result.selection ?? state.selection;
+      const applied = applyDocument(state, result.document, baseJson);
+      const history = pushHistory(state.history, {
+        id: event.entryId,
+        timestamp: Date.now(),
+        label: event.label ?? event.command.type,
+        before,
+        after: result.document,
+        beforeSelection: state.selection,
+        afterSelection,
+      });
+      return {
+        ...state,
+        ...applied,
+        selection: afterSelection,
         history,
         loadError: null,
       };

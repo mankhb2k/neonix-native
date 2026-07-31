@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import {
   canRedo,
   canUndo,
   clipsContentEndSeconds,
+  type TimelineCommand,
 } from "@motionvideo/editor-core";
 import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 import { AssetPanel } from "../../editor/assets/AssetPanel";
@@ -23,6 +24,7 @@ import { PreviewStage } from "../../editor/stage/PreviewStage";
 import { TransportBar } from "../../editor/stage/TransportBar";
 import { TimelineViewport } from "../../editor/timeline/TimelineViewport";
 import { TimelineZoomControls } from "../../editor/timeline/TimelineZoomControls";
+import { useTimelineHotkeys } from "../../editor/timeline/use-timeline-hotkeys";
 import { createAssetRepository } from "../../infrastructure/repositories/asset-repository";
 
 type Props = {
@@ -44,6 +46,7 @@ type Props = {
 };
 
 let propertyEntrySeq = 0;
+let timelineEntrySeq = 0;
 
 function EditingWorkspaceInner({
   api,
@@ -105,6 +108,29 @@ function EditingWorkspaceInner({
       clock.getState().pause();
     };
   }, [clock]);
+
+  const executeTimeline = useCallback((command: TimelineCommand, label: string) => {
+    timelineEntrySeq += 1;
+    dispatch({
+      type: "EXECUTE_TIMELINE_COMMAND",
+      command,
+      label,
+      entryId: `tl_${timelineEntrySeq}`,
+    });
+  }, []);
+
+  const getPlayheadTime = useCallback(
+    () => clock.getState().currentTime,
+    [clock],
+  );
+
+  useTimelineHotkeys({
+    enabled: !saving && !session.loadError && Boolean(session.project),
+    getPlayheadTime,
+    onUndo: () => dispatch({ type: "UNDO" }),
+    onRedo: () => dispatch({ type: "REDO" }),
+    onExecute: executeTimeline,
+  });
 
   const sessionJson = session.sessionDocumentJson ?? documentJson;
 
@@ -231,6 +257,12 @@ function EditingWorkspaceInner({
               timelineZoomScale={session.timelineZoomScale}
               timelineFitAnchorSeconds={session.timelineFitAnchorSeconds}
               timelineFitRevision={session.timelineFitRevision}
+              selection={session.selection}
+              disabled={saving || Boolean(session.loadError)}
+              onSelect={(selection) =>
+                dispatch({ type: "SET_SELECTION", selection })
+              }
+              onExecute={executeTimeline}
             />
           </div>
         </div>
