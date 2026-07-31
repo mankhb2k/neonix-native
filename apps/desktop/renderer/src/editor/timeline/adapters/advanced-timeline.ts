@@ -24,9 +24,18 @@ export const ADVANCED_TIMELINE_BEHAVIORS: AdvancedTimelineBehavior[] = [
   "drag-preview",
 ];
 
-/** Behaviors already covered by existing session/hotkeys (partial). */
+/** Behaviors already covered by Vite adapters / session (partial → growing). */
 export function isBehaviorScaffolded(
   behavior: AdvancedTimelineBehavior,
 ): boolean {
-  return behavior === "clipboard";
+  return (
+    behavior === "clipboard" ||
+    behavior === "library-dnd" ||
+    behavior === "lane-drop" ||
+    behavior === "auto-scroll" ||
+    behavior === "drag-preview" ||
+    behavior === "lane-reorder" ||
+    behavior === "cross-lane-move" ||
+    behavior === "marquee"
+  );
 }
