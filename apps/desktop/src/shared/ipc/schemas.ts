@@ -8,55 +8,61 @@ export const confirmCloseSchema = z.object({
   ok: z.boolean(),
 });
 
-export const openPathSchema = z.object({
-  path: z.string().min(1),
-});
+/** Open a path already registered in the main recent list (by id only). */
+export const saveProjectSchema = z
+  .object({
+    documentJson: z.string().min(1),
+  })
+  .strict();
 
-export const saveProjectSchema = z.object({
-  path: z.string().min(1).optional(),
-  documentJson: z.string().min(1),
-});
+export const openRecentSchema = z
+  .object({
+    id: z.string().min(1),
+  })
+  .strict();
 
 export const saveProjectAsSchema = z.object({
   suggestedName: z.string().min(1).optional(),
   documentJson: z.string().min(1),
 });
 
-export const importFilesSchema = z.object({
-  projectPath: z.string().min(1),
-  paths: z.array(z.string().min(1)).optional(),
-});
+/** Import always uses a main dialog; project path comes from main session. */
+export const importFilesSchema = emptyPayloadSchema;
 
-export const resolveAssetSchema = z.object({
-  projectPath: z.string().min(1),
-  assetId: z.string().min(1),
-  uri: z.string().min(1),
-});
+export const resolveAssetSchema = z
+  .object({
+    assetId: z.string().min(1),
+    uri: z.string().min(1),
+  })
+  .strict();
 
-export const relinkAssetSchema = z.object({
-  projectPath: z.string().min(1),
-  assetId: z.string().min(1),
-  newPath: z.string().min(1).optional(),
-});
+/** Relink always uses a main dialog; project path from session. */
+export const relinkAssetSchema = z
+  .object({
+    assetId: z.string().min(1),
+  })
+  .strict();
 
-export const listMissingAssetsSchema = z.object({
-  projectPath: z.string().min(1),
-  assets: z.array(
-    z.object({
-      id: z.string().min(1),
-      uri: z.string().min(1),
-    }),
-  ),
-});
+export const listMissingAssetsSchema = z
+  .object({
+    assets: z.array(
+      z.object({
+        id: z.string().min(1),
+        uri: z.string().min(1),
+      }),
+    ),
+  })
+  .strict();
 
-export const startExportSchema = z.object({
-  projectId: z.string().min(1),
-  projectJson: z.string().min(1),
-  projectPath: z.string().min(1).optional(),
-  outputPath: z.string().min(1).optional(),
-  overwrite: z.boolean().optional(),
-  presetId: z.string().min(1).optional(),
-});
+export const startExportSchema = z
+  .object({
+    projectId: z.string().min(1),
+    /** Baked MotionProject JSON (not desktop envelope). */
+    projectJson: z.string().min(1),
+    overwrite: z.boolean().optional(),
+    presetId: z.string().min(1).optional(),
+  })
+  .strict();
 
 export const cancelExportSchema = z.object({
   jobId: z.string().min(1),

@@ -25,7 +25,7 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 - [x] ADR-002 amended (cutover blocked)
 - [x] Document ownership / two-way sync fixed (Wave A)
 - [x] `IpcResult<T>` across real Electron IPC (Wave A)
-- [ ] FS capability tokens / no arbitrary absolute paths (Wave B)
+- [x] FS capability tokens / no arbitrary absolute paths (Wave B)
 - [ ] Packaged export without repo/`tsx` (Wave C)
 - [ ] Timeline interaction MVP (Wave D)
 - [ ] Re-enable production cutover only after gates above

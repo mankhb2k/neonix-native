@@ -22,7 +22,7 @@ function fakeBridge(): MotionVideoDesktopBridge {
     project: {
       create: async () => ({ projectId: "", documentJson: "{}", name: "" }),
       open: async () => null,
-      openPath: async () => ({ path: "", projectId: "", documentJson: "{}" }),
+      openRecent: async () => ({ path: "", projectId: "", documentJson: "{}" }),
       save: async () => ({ path: "" }),
       saveAs: async () => ({ path: "" }),
       getRecent: async () => [],
@@ -61,7 +61,7 @@ describe("preload bridge shape", () => {
     expect(typeof bridge.window.minimize).toBe("function");
     expect(typeof bridge.project.open).toBe("function");
     expect(typeof bridge.project.create).toBe("function");
-    expect(typeof bridge.project.openPath).toBe("function");
+    expect(typeof bridge.project.openRecent).toBe("function");
     expect(typeof bridge.assets.importFiles).toBe("function");
     expect(typeof bridge.assets.listMissing).toBe("function");
     expect(typeof bridge.export.subscribe).toBe("function");

@@ -16,7 +16,7 @@ import {
   emptyPayloadSchema,
   importFilesSchema,
   listMissingAssetsSchema,
-  openPathSchema,
+  openRecentSchema,
   relinkAssetSchema,
   resolveAssetSchema,
   saveProjectAsSchema,
@@ -34,6 +34,12 @@ import { createAssetFileService } from "../services/asset-file-service";
 import { createExportService } from "../services/export-service";
 import { createDisabledProjectJournal } from "../services/project-journal-service";
 import { createProjectFileService } from "../services/project-file-service";
+import {
+  clearProjectSession,
+  getProjectSession,
+  requireProjectSession,
+  setProjectSession,
+} from "../services/project-session";
 import { createRecentProjectService } from "../services/recent-project-service";
 import { allowWindowClose } from "../windows/create-main-window";
 import { validateSender } from "./validate-sender";
@@ -215,8 +221,9 @@ export function registerIpcHandlers(
     ],
     [
       IpcChannels.projectNew,
-      (_event, payload) => {
+      (event, payload) => {
         parsePayload(emptyPayloadSchema, payload);
+        clearProjectSession(event.sender.id);
         const blank = buildBlankDesktopProject();
         journal.record({
           type: "new",
@@ -242,6 +249,10 @@ export function registerIpcHandlers(
           name: projectNameFromEnvelope(envelope),
           path: opened.path,
         });
+        setProjectSession(event.sender.id, {
+          path: opened.path,
+          projectId: opened.projectId,
+        });
         journal.record({
           type: "open",
           path: opened.path,
@@ -252,15 +263,26 @@ export function registerIpcHandlers(
       },
     ],
     [
-      IpcChannels.projectOpenPath,
+      IpcChannels.projectOpenRecent,
       (_event, payload) => {
-        const { path: filePath } = parsePayload(openPathSchema, payload);
-        const opened = projects.openPath(filePath);
+        const { id } = parsePayload(openRecentSchema, payload);
+        const entry = recent.list().find((item) => item.id === id);
+        if (!entry) {
+          throw new DesktopIpcError(
+            DesktopIpcErrorCode.VALIDATION,
+            "Recent project not found.",
+          );
+        }
+        const opened = projects.openPath(entry.path);
         const envelope = parseDesktopProjectFile(opened.documentJson);
         recent.touch({
           id: opened.projectId,
           name: projectNameFromEnvelope(envelope),
           path: opened.path,
+        });
+        setProjectSession(_event.sender.id, {
+          path: opened.path,
+          projectId: opened.projectId,
         });
         journal.record({
           type: "open",
@@ -275,16 +297,22 @@ export function registerIpcHandlers(
       IpcChannels.projectSave,
       async (event, payload) => {
         const input = parsePayload(saveProjectSchema, payload);
-        if (!input.path) {
+        const session = getProjectSession(event.sender.id);
+        if (!session) {
           const saved = await projects.saveAsViaDialog(
             input.documentJson,
             undefined,
             senderWindow(event),
           );
           touchRecent(saved.path, input.documentJson);
+          const envelope = parseDesktopProjectFile(input.documentJson);
+          setProjectSession(event.sender.id, {
+            path: saved.path,
+            projectId: projectIdFromEnvelope(envelope),
+          });
           return saved;
         }
-        const saved = projects.saveAtomic(input.path, input.documentJson);
+        const saved = projects.saveAtomic(session.path, input.documentJson);
         touchRecent(saved.path, input.documentJson);
         return saved;
       },
@@ -299,6 +327,11 @@ export function registerIpcHandlers(
           senderWindow(event),
         );
         touchRecent(saved.path, input.documentJson);
+        const envelope = parseDesktopProjectFile(input.documentJson);
+        setProjectSession(event.sender.id, {
+          path: saved.path,
+          projectId: projectIdFromEnvelope(envelope),
+        });
         journal.record({
           type: "saveAs",
           path: saved.path,
@@ -317,20 +350,22 @@ export function registerIpcHandlers(
     [
       IpcChannels.assetsImportFiles,
       async (event, payload) => {
-        const input = parsePayload(importFilesSchema, payload);
+        parsePayload(importFilesSchema, payload);
+        const session = requireProjectSession(event.sender.id);
         return assets.importFiles(
-          input.projectPath,
-          input.paths,
+          session.path,
+          undefined,
           senderWindow(event),
         );
       },
     ],
     [
       IpcChannels.assetsResolveUrl,
-      (_event, payload) => {
+      (event, payload) => {
         const input = parsePayload(resolveAssetSchema, payload);
+        const session = requireProjectSession(event.sender.id);
         return assets.resolveUrl(
-          input.projectPath,
+          session.path,
           input.assetId,
           input.uri,
         );
@@ -340,26 +375,43 @@ export function registerIpcHandlers(
       IpcChannels.assetsRelink,
       async (event, payload) => {
         const input = parsePayload(relinkAssetSchema, payload);
+        const session = requireProjectSession(event.sender.id);
         return assets.relink(
-          input.projectPath,
+          session.path,
           input.assetId,
-          input.newPath,
+          undefined,
           senderWindow(event),
         );
       },
     ],
     [
       IpcChannels.assetsListMissing,
-      (_event, payload) => {
+      (event, payload) => {
         const input = parsePayload(listMissingAssetsSchema, payload);
-        return assets.listMissing(input);
+        const session = requireProjectSession(event.sender.id);
+        return assets.listMissing({
+          projectPath: session.path,
+          assets: input.assets,
+        });
       },
     ],
     [
       IpcChannels.exportStart,
       async (event, payload) => {
         const input = parsePayload(startExportSchema, payload);
-        return exports.start(input, senderWindow(event));
+        const session = getProjectSession(event.sender.id);
+        return exports.start(
+          {
+            projectId: input.projectId,
+            projectJson: input.projectJson,
+            overwrite: input.overwrite,
+            presetId: input.presetId,
+            projectPath: session?.path,
+            // Output always via dialog — never trust renderer absolute paths.
+            outputPath: undefined,
+          },
+          senderWindow(event),
+        );
       },
     ],
     [

@@ -28,9 +28,9 @@ describe("IpcChannels", () => {
     expect(new Set(values).size).toBe(values.length);
   });
 
-  it("INVOKE_CHANNELS includes project.new and openPath", () => {
+  it("INVOKE_CHANNELS includes project.new and openRecent", () => {
     expect(INVOKE_CHANNELS).toContain(IpcChannels.projectNew);
-    expect(INVOKE_CHANNELS).toContain(IpcChannels.projectOpenPath);
+    expect(INVOKE_CHANNELS).toContain(IpcChannels.projectOpenRecent);
     expect(INVOKE_CHANNELS).toContain(IpcChannels.assetsListMissing);
   });
 });
@@ -61,35 +61,42 @@ describe("IPC schemas", () => {
       startExportSchema.safeParse({
         projectId: "p1",
         projectJson: "{}",
-        projectPath: "/p/a.mt",
         overwrite: true,
       }).success,
     ).toBe(true);
+    expect(
+      startExportSchema.safeParse({
+        projectId: "p1",
+        projectJson: "{}",
+        outputPath: "/tmp/out.mp4",
+      }).success,
+    ).toBe(false);
     expect(startExportSchema.safeParse({}).success).toBe(false);
     expect(cancelExportSchema.safeParse({ jobId: "j1" }).success).toBe(true);
   });
 
   it("validates assets import/resolve/relink/listMissing", () => {
+    expect(importFilesSchema.safeParse(undefined).success).toBe(true);
     expect(
-      importFilesSchema.safeParse({ projectPath: "/p/a.mt" }).success,
+      resolveAssetSchema.safeParse({
+        assetId: "asset_1",
+        uri: "assets/x.png",
+      }).success,
     ).toBe(true);
-    expect(importFilesSchema.safeParse({}).success).toBe(false);
     expect(
       resolveAssetSchema.safeParse({
         projectPath: "/p/a.mt",
         assetId: "asset_1",
         uri: "assets/x.png",
       }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       relinkAssetSchema.safeParse({
-        projectPath: "/p/a.mt",
         assetId: "asset_1",
       }).success,
     ).toBe(true);
     expect(
       listMissingAssetsSchema.safeParse({
-        projectPath: "/p/a.mt",
         assets: [{ id: "a", uri: "assets/x.png" }],
       }).success,
     ).toBe(true);

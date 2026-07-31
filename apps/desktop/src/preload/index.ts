@@ -48,15 +48,13 @@ function buildDesktopApi(): MotionVideoDesktopBridge {
     project: {
       create: () => invoke(IpcChannels.projectNew),
       open: () => invoke(IpcChannels.projectOpen),
-      openPath: (filePath) =>
-        invoke(IpcChannels.projectOpenPath, { path: filePath }),
+      openRecent: (id) => invoke(IpcChannels.projectOpenRecent, { id }),
       save: (input) => invoke(IpcChannels.projectSave, input),
       saveAs: (input) => invoke(IpcChannels.projectSaveAs, input),
       getRecent: () => invoke(IpcChannels.projectGetRecent),
     },
     assets: {
-      importFiles: (input) =>
-        invoke(IpcChannels.assetsImportFiles, input),
+      importFiles: () => invoke(IpcChannels.assetsImportFiles),
       resolveUrl: (input) => invoke(IpcChannels.assetsResolveUrl, input),
       relink: (input) => invoke(IpcChannels.assetsRelink, input),
       listMissing: (input) => invoke(IpcChannels.assetsListMissing, input),

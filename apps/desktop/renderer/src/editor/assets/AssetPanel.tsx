@@ -56,7 +56,6 @@ export function AssetPanel({
       }
       try {
         const { missing } = await assetsApi.listMissing({
-          projectPath,
           assets: entries,
         });
         if (cancelled) return;
@@ -73,7 +72,6 @@ export function AssetPanel({
             if (!row || row.assetType !== "image") return;
             try {
               const resolved = await assetsApi.resolveUrl({
-                projectPath,
                 assetId: entry.id,
                 uri: entry.uri,
               });
@@ -101,7 +99,7 @@ export function AssetPanel({
     setBusy(true);
     setError(null);
     try {
-      const imported = await assetsApi.importFiles({ projectPath });
+      const imported = await assetsApi.importFiles();
       if (imported.length === 0) return;
       onDocumentChange(appendAssetsToDocumentJson(documentJson, imported));
     } catch (err) {
@@ -122,7 +120,7 @@ export function AssetPanel({
     setBusy(true);
     setError(null);
     try {
-      const result = await assetsApi.relink({ projectPath, assetId });
+      const result = await assetsApi.relink({ assetId });
       onDocumentChange(
         updateAssetUriInDocumentJson(documentJson, assetId, {
           uri: result.uri,

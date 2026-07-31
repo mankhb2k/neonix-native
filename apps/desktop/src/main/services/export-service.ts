@@ -10,7 +10,7 @@ import type {
   CancelExportInput,
   ExportEvent,
   ExportJob,
-  StartExportInput,
+  StartExportRequest,
 } from "../../shared/ipc/contracts";
 import {
   DesktopIpcError,
@@ -117,7 +117,7 @@ export function createExportService(options: ExportServiceOptions) {
   }
 
   async function resolveOutputPath(
-    input: StartExportInput,
+    input: StartExportRequest,
     parent: BrowserWindow | null,
   ): Promise<string> {
     if (input.outputPath) {
@@ -156,7 +156,7 @@ export function createExportService(options: ExportServiceOptions) {
   }
 
   async function start(
-    input: StartExportInput,
+    input: StartExportRequest,
     parent: BrowserWindow | null,
   ): Promise<ExportJob> {
     let projectPayload: unknown;

@@ -32,7 +32,6 @@ export type ProjectNewResult = {
 };
 
 export type SaveProjectInput = {
-  path?: string;
   documentJson: string;
 };
 
@@ -47,11 +46,8 @@ export type SaveProjectResult = {
 
 export type AssetType = "image" | "svg" | "video" | "audio" | "font" | "unknown";
 
-export type ImportFilesInput = {
-  /** Absolute path to the saved .mt project file (required). */
-  projectPath: string;
-  paths?: string[];
-};
+/** Import uses main dialog; project path comes from main session. */
+export type ImportFilesInput = void | Record<string, never> | null | undefined;
 
 export type ImportedAsset = {
   id: string;
@@ -66,7 +62,6 @@ export type ImportedAsset = {
 };
 
 export type ResolveAssetInput = {
-  projectPath: string;
   assetId: string;
   uri: string;
 };
@@ -77,10 +72,7 @@ export type ResolvedAsset = {
 };
 
 export type RelinkAssetInput = {
-  projectPath: string;
   assetId: string;
-  /** Absolute path to replacement file; omit to open a picker in main. */
-  newPath?: string;
 };
 
 export type RelinkAssetResult = {
@@ -97,8 +89,12 @@ export type AssetManifestEntry = {
 };
 
 export type ListMissingAssetsInput = {
-  projectPath: string;
   assets: AssetManifestEntry[];
+};
+
+/** Main-service form — project path resolved from session, not IPC. */
+export type ListMissingAssetsRequest = ListMissingAssetsInput & {
+  projectPath: string;
 };
 
 export type MissingAsset = {
@@ -114,13 +110,15 @@ export type StartExportInput = {
   projectId: string;
   /** Baked MotionProject JSON (not desktop envelope). */
   projectJson: string;
-  /** Saved .mt path — dirname used as assetBaseDir when present. */
-  projectPath?: string;
-  /** Destination MP4; omit to open a Save dialog in main. */
-  outputPath?: string;
-  /** When false (default), refuse to overwrite an existing outputPath. */
+  /** When false (default), refuse to overwrite an existing dialog-chosen path. */
   overwrite?: boolean;
   presetId?: string;
+};
+
+/** Main-service form — session path + optional dialog-bypass for tests. */
+export type StartExportRequest = StartExportInput & {
+  projectPath?: string;
+  outputPath?: string;
 };
 
 export type ExportJob = {
@@ -169,13 +167,13 @@ export type DesktopAPI = {
   project: {
     create(): Promise<ProjectNewResult>;
     open(): Promise<ProjectOpenResult | null>;
-    openPath(path: string): Promise<ProjectOpenResult>;
+    openRecent(id: string): Promise<ProjectOpenResult>;
     save(input: SaveProjectInput): Promise<SaveProjectResult>;
     saveAs(input: SaveProjectAsInput): Promise<SaveProjectResult>;
     getRecent(): Promise<RecentProject[]>;
   };
   assets: {
-    importFiles(input: ImportFilesInput): Promise<ImportedAsset[]>;
+    importFiles(input?: ImportFilesInput): Promise<ImportedAsset[]>;
     resolveUrl(input: ResolveAssetInput): Promise<ResolvedAsset>;
     relink(input: RelinkAssetInput): Promise<RelinkAssetResult>;
     listMissing(input: ListMissingAssetsInput): Promise<ListMissingAssetsResult>;

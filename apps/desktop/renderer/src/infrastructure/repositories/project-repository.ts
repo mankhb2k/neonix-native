@@ -12,11 +12,8 @@ export type ProjectRepository = {
     name: string;
   }>;
   open(): Promise<ProjectOpenResult | null>;
-  openPath(path: string): Promise<ProjectOpenResult>;
-  save(input: {
-    path?: string;
-    documentJson: string;
-  }): Promise<SaveProjectResult>;
+  openRecent(id: string): Promise<ProjectOpenResult>;
+  save(input: { documentJson: string }): Promise<SaveProjectResult>;
   saveAs(input: {
     suggestedName?: string;
     documentJson: string;
@@ -28,7 +25,7 @@ export function createProjectRepository(api: DesktopAPI): ProjectRepository {
   return {
     newProject: () => api.project.create(),
     open: () => api.project.open(),
-    openPath: (filePath) => api.project.openPath(filePath),
+    openRecent: (id) => api.project.openRecent(id),
     save: (input) => api.project.save(input),
     saveAs: (input) => api.project.saveAs(input),
     getRecent: () => api.project.getRecent(),

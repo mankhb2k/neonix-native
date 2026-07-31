@@ -68,7 +68,6 @@ export function DesktopApp({ api }: Props) {
     try {
       const result = current.path
         ? await repo.save({
-            path: current.path,
             documentJson: current.documentJson,
           })
         : await repo.saveAs({
@@ -148,10 +147,10 @@ export function DesktopApp({ api }: Props) {
     }
   };
 
-  const onOpenRecent = async (path: string) => {
+  const onOpenRecent = async (item: { id: string }) => {
     dispatch({ type: "OPEN_START" });
     try {
-      const opened = await repo.openPath(path);
+      const opened = await repo.openRecent(item.id);
       dispatch({
         type: "OPEN_SUCCESS",
         path: opened.path,
@@ -233,7 +232,7 @@ export function DesktopApp({ api }: Props) {
             busy={state.phase === "opening"}
             onNew={() => void onNew()}
             onOpen={() => void onOpen()}
-            onOpenRecent={(item) => void onOpenRecent(item.path)}
+            onOpenRecent={(item) => void onOpenRecent(item)}
             onDiagnostics={() =>
               dispatch({ type: "SHOW_DIAGNOSTICS", show: true })
             }

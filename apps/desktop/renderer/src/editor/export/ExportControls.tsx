@@ -106,7 +106,6 @@ export function ExportControls({
       const job = await api.export.start({
         projectId: baked.metadata.id,
         projectJson: serializeMotionProject(baked),
-        projectPath,
       });
       jobIdRef.current = job.id;
       setJobId(job.id);

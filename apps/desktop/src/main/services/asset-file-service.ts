@@ -14,7 +14,7 @@ import {
 import type {
   AssetType,
   ImportedAsset,
-  ListMissingAssetsInput,
+  ListMissingAssetsRequest,
   ListMissingAssetsResult,
   RelinkAssetResult,
   ResolvedAsset,
@@ -267,7 +267,7 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
       };
     },
 
-    listMissing(input: ListMissingAssetsInput): ListMissingAssetsResult {
+    listMissing(input: ListMissingAssetsRequest): ListMissingAssetsResult {
       assertProjectFileExists(io, input.projectPath);
       const projectDir = projectDirOf(input.projectPath);
       const missing: ListMissingAssetsResult["missing"] = [];

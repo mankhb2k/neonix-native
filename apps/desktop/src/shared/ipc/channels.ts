@@ -12,7 +12,7 @@ export const IpcChannels = {
 
   projectNew: "desktop:project.new",
   projectOpen: "desktop:project.open",
-  projectOpenPath: "desktop:project.openPath",
+  projectOpenRecent: "desktop:project.openRecent",
   projectSave: "desktop:project.save",
   projectSaveAs: "desktop:project.saveAs",
   projectGetRecent: "desktop:project.getRecent",
@@ -39,7 +39,7 @@ export const INVOKE_CHANNELS: readonly IpcChannel[] = [
   IpcChannels.confirmClose,
   IpcChannels.projectNew,
   IpcChannels.projectOpen,
-  IpcChannels.projectOpenPath,
+  IpcChannels.projectOpenRecent,
   IpcChannels.projectSave,
   IpcChannels.projectSaveAs,
   IpcChannels.projectGetRecent,
