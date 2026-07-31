@@ -283,6 +283,48 @@ export default tseslint.config(
     },
   },
   {
+    files: ["lib/editor/timeline/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["react", "react-dom", "react-dom/*", "zustand", "zustand/*"],
+              message: "lib/editor/timeline/ must be pure domain logic — no React or Zustand allowed.",
+            },
+            {
+              group: ["@/components/**", "@/app/**", "@/hooks/**"],
+              message: "lib/editor/timeline/ must not import components, app, or hooks.",
+            },
+          ],
+        },
+      ],
+      "no-restricted-globals": [
+        "error",
+        { name: "window", message: "lib/editor/timeline/ must be pure domain — no DOM globals." },
+        { name: "document", message: "lib/editor/timeline/ must be pure domain — no DOM globals." },
+        { name: "HTMLElement", message: "lib/editor/timeline/ must be pure domain — no DOM globals." },
+      ],
+    },
+  },
+  {
+    files: ["components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/editor/store/internal/**"],
+              message: "Components must import timeline public API (@/lib/editor/timeline) — do not import store/internal directly.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["hooks/**/*.{ts,tsx}"],
     rules: {
       ...appLayerRestrictions,

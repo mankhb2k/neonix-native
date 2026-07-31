@@ -272,7 +272,6 @@ export function ensureAudioClipsFromTracks(
       startTime,
       duration,
       null,
-      false,
     );
 
     let laneId = placement.laneId;
@@ -318,7 +317,6 @@ export function ensureAudioClipsFromTracks(
       clip.startTime,
       clip.duration,
       null,
-      false,
     );
     let laneId = placement.laneId;
     if (placement.createNew || !laneId) {
@@ -341,7 +339,6 @@ function findFreeAudioLaneLocal(
   startTime: number,
   duration: number,
   preferredLaneId: string | null,
-  insertNewLane: boolean,
 ): { laneId: string | null; createNew: boolean; insertOrder: number } {
   const sorted = lanes
     .filter((l) => l.kind === "audio")

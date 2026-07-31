@@ -1,12 +1,4 @@
-import {
-  DEFAULT_VISUAL_POLICY,
-  type TimelineClip,
-  type TimelineLane,
-} from "@/lib/editor/model/timeline-types";
-
-function uid(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
-}
+import type { TimelineClip, TimelineLane } from "@/lib/editor/model/timeline-types";
 
 export function rangesOverlap(
   aStart: number,

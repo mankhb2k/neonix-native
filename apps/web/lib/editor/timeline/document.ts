@@ -1,5 +1,5 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/model/timeline-types";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 /**
  * TimelineDocument — domain aggregate gom project, lanes, clips.
