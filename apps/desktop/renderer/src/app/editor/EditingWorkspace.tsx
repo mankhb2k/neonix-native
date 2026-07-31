@@ -12,11 +12,10 @@ import {
   clipsContentEndSeconds,
   type TimelineCommand,
 } from "@motionvideo/editor-core";
-import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 import { AssetPanel } from "../../editor/assets/AssetPanel";
 import { listEnvelopeAssets } from "../../editor/assets/document-assets";
-import { EXPORT_ENABLED } from "../../editor/export/feature-flag";
 import { ExportControls } from "../../editor/export/ExportControls";
+import { EXPORT_ENABLED } from "../../editor/export/feature-flag";
 import { INSPECTOR_ENABLED } from "../../editor/inspector/feature-flag";
 import { InspectorDock } from "../../editor/inspector/InspectorDock";
 import {
@@ -36,6 +35,9 @@ import { TimelineViewport } from "../../editor/timeline/TimelineViewport";
 import { TimelineZoomControls } from "../../editor/timeline/TimelineZoomControls";
 import { useTimelineHotkeys } from "../../editor/timeline/use-timeline-hotkeys";
 import { createAssetRepository } from "../../infrastructure/repositories/asset-repository";
+import { EditorHeader } from "./EditorHeader";
+import type { EditorActions } from "./editor-actions";
+import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 
 type Props = {
   api: DesktopAPI;
@@ -137,16 +139,28 @@ function EditingWorkspaceInner({
     onUndo: () => dispatch({ type: "UNDO" }),
     onRedo: () => dispatch({ type: "REDO" }),
     onExecute: executeTimeline,
+    onCopy: () => dispatch({ type: "COPY_SELECTION" }),
+    onCut: () => {
+      timelineEntrySeq += 1;
+      dispatch({ type: "CUT_SELECTION", entryId: `cut_${timelineEntrySeq}` });
+    },
+    onPaste: () => {
+      executeTimeline(
+        { type: "paste-clips", atTime: getPlayheadTime() },
+        "Paste clips",
+      );
+    },
   });
 
   const sessionJson = session.sessionDocumentJson ?? documentJson;
   const sessionAssets = useMemo(
     () => listEnvelopeAssets(sessionJson),
-    [session.documentRevision, sessionJson],
+    [sessionJson],
   );
 
   const [nameDraft, setNameDraft] = useState(session.projectName);
   const nameDraftDirtyRef = useRef(false);
+  const skipNameCommitRef = useRef(false);
 
   useEffect(() => {
     if (nameDraftDirtyRef.current) return;
@@ -154,6 +168,10 @@ function EditingWorkspaceInner({
   }, [session.projectName]);
 
   const commitProjectName = useCallback(() => {
+    if (skipNameCommitRef.current) {
+      skipNameCommitRef.current = false;
+      return;
+    }
     nameDraftDirtyRef.current = false;
     const next = nameDraft;
     if ((next.trim() || "Untitled") === session.projectName) {
@@ -173,64 +191,87 @@ function EditingWorkspaceInner({
     setNameDraft(session.projectName);
   }, [session.projectName]);
 
+  const editorActions: EditorActions = useMemo(
+    () => ({
+      goHome: onCloseToHome,
+      save: onSave,
+      saveAs: onSaveAs,
+      undo: () => dispatch({ type: "UNDO" }),
+      redo: () => dispatch({ type: "REDO" }),
+      fitTimeline: () => dispatch({ type: "FIT_TIMELINE" }),
+      setZoom: (zoom) => dispatch({ type: "SET_ZOOM", zoom }),
+      executeTimeline,
+      canUndo: canUndo(session.history),
+      canRedo: canRedo(session.history),
+      canSave: dirty || !path,
+      saving: Boolean(saving),
+      dirty,
+      path,
+      projectName: session.projectName,
+      nameDraft,
+      setNameDraft: (value) => {
+        nameDraftDirtyRef.current = true;
+        setNameDraft(value);
+      },
+      commitProjectName,
+      rollbackProjectName,
+      skipNameCommit: () => {
+        skipNameCommitRef.current = true;
+      },
+    }),
+    [
+      onCloseToHome,
+      onSave,
+      onSaveAs,
+      executeTimeline,
+      session.history,
+      session.projectName,
+      dirty,
+      path,
+      saving,
+      nameDraft,
+      commitProjectName,
+      rollbackProjectName,
+    ],
+  );
+
   return (
     <main className="editor-shell">
-      <div className="editor-shell__toolbar">
-        <button type="button" className="btn" onClick={onCloseToHome}>
-          ← Home
-        </button>
-        <button
-          type="button"
-          className="btn btn--primary"
-          disabled={saving || (!dirty && Boolean(path))}
-          onClick={onSave}
-        >
-          Save
-        </button>
-        <button type="button" className="btn" disabled={saving} onClick={onSaveAs}>
-          Save As…
-        </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={saving || !canUndo(session.history)}
-          onClick={() => dispatch({ type: "UNDO" })}
-        >
-          Undo
-        </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={saving || !canRedo(session.history)}
-          onClick={() => dispatch({ type: "REDO" })}
-        >
-          Redo
-        </button>
-        {EXPORT_ENABLED ? (
-          <ExportControls
-            api={api}
-            project={session.project}
-            clips={session.clips}
-            lanes={session.lanes}
-            projectPath={path}
+      <EditorHeader
+        actions={editorActions}
+        exportSlot={
+          EXPORT_ENABLED ? (
+            <ExportControls
+              api={api}
+              project={session.project}
+              clips={session.clips}
+              lanes={session.lanes}
+              projectPath={path}
+              disabled={saving || Boolean(session.loadError)}
+              dirty={dirty}
+              onRequestSave={() => {
+                commitProjectName();
+                onSave();
+              }}
+            />
+          ) : null
+        }
+        transportSlot={
+          <TransportBar
+            fps={session.fps}
             disabled={saving || Boolean(session.loadError)}
-            dirty={dirty}
-            onRequestSave={onSave}
           />
-        ) : null}
-        <TransportBar fps={session.fps} disabled={saving || Boolean(session.loadError)} />
-        <TimelineZoomControls
-          zoom={session.timelineZoom}
-          zoomMode={session.timelineZoomMode}
-          disabled={saving || Boolean(session.loadError)}
-          onZoomChange={(zoom) => dispatch({ type: "SET_ZOOM", zoom })}
-          onFit={() => dispatch({ type: "FIT_TIMELINE" })}
-        />
-        <span className="editor-shell__meta">
-          {path ?? "Unsaved"}
-          {dirty ? " (unsaved changes)" : ""}
-        </span>
-      </div>
+        }
+        zoomSlot={
+          <TimelineZoomControls
+            zoom={session.timelineZoom}
+            zoomMode={session.timelineZoomMode}
+            disabled={saving || Boolean(session.loadError)}
+            onZoomChange={editorActions.setZoom}
+            onFit={editorActions.fitTimeline}
+          />
+        }
+      />
 
       {error ? (
         <p className="editor-shell__error" role="alert">
@@ -254,30 +295,6 @@ function EditingWorkspaceInner({
         </p>
       ) : null}
 
-      <label className="editor-shell__field">
-        <span>Project name</span>
-        <input
-          aria-label="Project name"
-          value={nameDraft}
-          onChange={(e) => {
-            nameDraftDirtyRef.current = true;
-            setNameDraft(e.target.value);
-          }}
-          onBlur={() => commitProjectName()}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              (e.target as HTMLInputElement).blur();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              rollbackProjectName();
-              (e.target as HTMLInputElement).blur();
-            }
-          }}
-          disabled={saving}
-        />
-      </label>
-
       <EditorWorkspaceLayout
         showInspector={INSPECTOR_ENABLED}
         sidebar={
@@ -292,6 +309,7 @@ function EditingWorkspaceInner({
                 onDocumentChange={(json) =>
                   dispatch({ type: "APPLY_DOCUMENT_JSON", documentJson: json })
                 }
+                onExecuteTimeline={executeTimeline}
               />
             }
             lanes={session.lanes}
@@ -299,6 +317,8 @@ function EditingWorkspaceInner({
             onSelect={(selection) =>
               dispatch({ type: "SET_SELECTION", selection })
             }
+            onExecuteTimeline={executeTimeline}
+            assets={sessionAssets}
           />
         }
         stage={
