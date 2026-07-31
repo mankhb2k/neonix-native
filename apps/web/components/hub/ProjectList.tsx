@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
-import { listProjects, type StoredProject } from "@/lib/project-storage";
+import { listProjects, type StoredProject } from "@/lib/editor/project-storage";
 import { Plus } from "lucide-react";
 
 type Props = {

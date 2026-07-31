@@ -7,8 +7,8 @@ import { DesktopHub, DesktopTitleStrip } from "@/components/desktop/hub";
 import { useIsDesktop } from "@/lib/desktop";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
 import { ProjectList } from "@/components/hub/ProjectList";
-import { createBlankProject } from "@/lib/create-blank-project";
-import { saveProject } from "@/lib/project-storage";
+import { createBlankProject } from "@/lib/editor/create-blank-project";
+import { saveProject } from "@/lib/editor/project-storage";
 import { marketingUrl } from "@/lib/hosts";
 import { Plus, Smartphone, Tv, Square } from "lucide-react";
 

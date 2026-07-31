@@ -148,7 +148,11 @@ export default tseslint.config(
       "node_modules/**",
       "next-env.d.ts",
       "eslint.config.mjs",
+      "postcss.config.mjs",
       "public/**",
+      "e2e/**",
+      "playwright.config.ts",
+      "vitest.config.ts",
     ],
   },
   eslint.configs.recommended,
@@ -272,6 +276,48 @@ export default tseslint.config(
             {
               group: ["@motion-canvas/*", "**/render-worker/**"],
               message: "Store holds Motion JSON only — no render engine.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["lib/editor/timeline/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["react", "react-dom", "react-dom/*", "zustand", "zustand/*"],
+              message: "lib/editor/timeline/ must be pure domain logic — no React or Zustand allowed.",
+            },
+            {
+              group: ["@/components/**", "@/app/**", "@/hooks/**"],
+              message: "lib/editor/timeline/ must not import components, app, or hooks.",
+            },
+          ],
+        },
+      ],
+      "no-restricted-globals": [
+        "error",
+        { name: "window", message: "lib/editor/timeline/ must be pure domain — no DOM globals." },
+        { name: "document", message: "lib/editor/timeline/ must be pure domain — no DOM globals." },
+        { name: "HTMLElement", message: "lib/editor/timeline/ must be pure domain — no DOM globals." },
+      ],
+    },
+  },
+  {
+    files: ["components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/editor/store/internal/**"],
+              message: "Components must import timeline public API (@/lib/editor/timeline) — do not import store/internal directly.",
             },
           ],
         },

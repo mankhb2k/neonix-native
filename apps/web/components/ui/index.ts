@@ -6,3 +6,7 @@ export * from "./PanelHeader/PanelHeader";
 export * from "./Search/Search";
 export * from "./ContextMenu/ContextMenu";
 export * from "./PropertyField/PropertyField";
+export * from "./PropertyField/ColorPropertyInput";
+export * from "./PropertyField/SliderPropertyInput";
+export * from "./KeyframeToggle/KeyframeToggle";
+export * from "./SegmentedControl/SegmentedControl";

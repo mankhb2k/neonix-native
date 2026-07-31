@@ -1,0 +1,598 @@
+/**
+ * Pure lane drag targeting for the timeline.
+ * Shared hit-test + insert-line hysteresis for visual (above base) and audio (below base).
+ */
+
+/* ========================================================================== */
+/* 1. HYSTERESIS CONFIG & CONSTANTS                                          */
+/* ========================================================================== */
+
+/** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
+export const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
+/** Enter insert-line mode only when within this many px of a lane edge */
+export const LANE_INSERT_ENTER_PX = 12;
+/** Exit insert-line only when this far into the lane body (hysteresis) */
+export const LANE_INSERT_EXIT_PX = 16;
+/** Skip indicator setState when Y barely moved (cuts dragover re-renders) */
+export const INDICATOR_TOP_EPS_PX = 0.5;
+
+/** @deprecated Use LANE_INSERT_ENTER_PX instead. */
+export const OVERLAY_EDGE_ENTER_PX = LANE_INSERT_ENTER_PX;
+/** @deprecated Use LANE_INSERT_EXIT_PX instead. */
+export const OVERLAY_EDGE_EXIT_PX = LANE_INSERT_EXIT_PX;
+
+/* ========================================================================== */
+/* 2. HIT TYPES & POLICIES                                                   */
+/* ========================================================================== */
+
+export type LaneHit = {
+  laneId: string | null;
+  family: "visual" | "audio";
+  role: "base" | "overlay" | "audio" | "placeholder";
+  order: number | null;
+  top: number;
+  bottom: number;
+};
+
+export type TimelineDropTarget = {
+  family: "visual" | "audio";
+  isInsert: boolean;
+  laneId: string | null;
+  insertOrder: number | null;
+  indicatorTop: number;
+  overBaseBody?: boolean;
+};
+
+export type LaneDropPolicy = {
+  family: "visual" | "audio";
+  /** Direction in which lane order increases away from Main. */
+  outwardDirection: "up" | "down";
+  /** Visual may land on base body; audio never targets base as a clip body. */
+  allowBaseTarget: boolean;
+};
+
+export const visualDropPolicy: LaneDropPolicy = {
+  family: "visual",
+  outwardDirection: "up",
+  allowBaseTarget: true,
+};
+
+export const audioDropPolicy: LaneDropPolicy = {
+  family: "audio",
+  outwardDirection: "down",
+  allowBaseTarget: false,
+};
+
+/** @deprecated Prefer LaneHit — kept for call-site compatibility. */
+export type VideoLaneHit = {
+  top: number;
+  bottom: number;
+  type: "overlay" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+/** @deprecated Prefer TimelineDropTarget. */
+export type OverlayDragTarget = {
+  isInsert: boolean;
+  laneId: string | null;
+  insertOrder: number | null;
+  indicatorTop: number;
+};
+
+/** @deprecated Prefer LaneHit. */
+export type AudioLaneHit = {
+  top: number;
+  bottom: number;
+  type: "audio" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+/** @deprecated Prefer TimelineDropTarget. */
+export type AudioDragTarget = {
+  isInsert: boolean;
+  laneId: string | null;
+  insertOrder: number | null;
+  indicatorTop: number;
+};
+
+/* ========================================================================== */
+/* 3. DOM LANE COLLECTORS & CONVERTERS                                       */
+/* ========================================================================== */
+
+/** Map DOM scene hits into shared LaneHit (visual family). */
+export function videoHitToLane(hit: VideoLaneHit): LaneHit {
+  if (hit.type === "main") {
+    return {
+      laneId: hit.laneId,
+      family: "visual",
+      role: "base",
+      order: hit.order,
+      top: hit.top,
+      bottom: hit.bottom,
+    };
+  }
+  return {
+    laneId: hit.laneId,
+    family: "visual",
+    role: hit.laneId ? "overlay" : "placeholder",
+    order: hit.order,
+    top: hit.top,
+    bottom: hit.bottom,
+  };
+}
+
+/** Map DOM audio-zone hits into shared LaneHit (audio family). */
+export function audioHitToLane(hit: AudioLaneHit): LaneHit {
+  if (hit.type === "main") {
+    return {
+      laneId: hit.laneId,
+      family: "audio",
+      role: "base",
+      order: hit.order,
+      top: hit.top,
+      bottom: hit.bottom,
+    };
+  }
+  return {
+    laneId: hit.laneId,
+    family: "audio",
+    role: hit.laneId ? "audio" : "placeholder",
+    order: hit.order,
+    top: hit.top,
+    bottom: hit.bottom,
+  };
+}
+
+export function collectSceneLanes(scope: HTMLElement): VideoLaneHit[] {
+  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+  const out: VideoLaneHit[] = [];
+  for (const el of nodes) {
+    const rawRole = el.getAttribute("data-track-role");
+    const rawType = el.getAttribute("data-track-type");
+    const isBase = rawRole === "base" || rawType === "main";
+    const isOverlay = rawRole === "overlay" || rawType === "overlay";
+    if (!isBase && !isOverlay) continue;
+    const type: "main" | "overlay" = isBase ? "main" : "overlay";
+    const r = el.getBoundingClientRect();
+    const orderAttr = el.getAttribute("data-lane-order");
+    out.push({
+      top: r.top,
+      bottom: r.bottom,
+      type,
+      laneId: el.getAttribute("data-lane-id"),
+      order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
+    });
+  }
+  out.sort((a, b) => a.top - b.top);
+  return out;
+}
+
+/** Cache lane rects relative to workspace — invalidate on scroll/resize. */
+export type RelativeLaneHit = {
+  relTop: number;
+  relBottom: number;
+  type: "overlay" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+export function cacheSceneLanesRelative(
+  scope: HTMLElement,
+  wsTop: number,
+): RelativeLaneHit[] {
+  return collectSceneLanes(scope).map((lane) => ({
+    relTop: lane.top - wsTop,
+    relBottom: lane.bottom - wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+export function absoluteSceneLanes(
+  cached: RelativeLaneHit[],
+  wsTop: number,
+): VideoLaneHit[] {
+  return cached.map((lane) => ({
+    top: lane.relTop + wsTop,
+    bottom: lane.relBottom + wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+/** Collect main + audio lanes for below-main audio DnD (mirror of collectSceneLanes). */
+export function collectAudioZoneLanes(scope: HTMLElement): AudioLaneHit[] {
+  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+  const out: AudioLaneHit[] = [];
+  for (const el of nodes) {
+    const rawRole = el.getAttribute("data-track-role");
+    const rawType = el.getAttribute("data-track-type");
+    const isAudio = rawRole === "audio" || rawType === "audio";
+    const isBase = rawRole === "base" || rawType === "main";
+    if (!isAudio && !isBase) continue;
+    const type: "audio" | "main" = isBase ? "main" : "audio";
+    const r = el.getBoundingClientRect();
+    const orderAttr = el.getAttribute("data-lane-order");
+    out.push({
+      top: r.top,
+      bottom: r.bottom,
+      type,
+      laneId: el.getAttribute("data-lane-id"),
+      order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
+    });
+  }
+  out.sort((a, b) => a.top - b.top);
+  return out;
+}
+
+export type RelativeAudioLaneHit = {
+  relTop: number;
+  relBottom: number;
+  type: "audio" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+export function cacheAudioLanesRelative(
+  scope: HTMLElement,
+  wsTop: number,
+): RelativeAudioLaneHit[] {
+  return collectAudioZoneLanes(scope).map((lane) => ({
+    relTop: lane.top - wsTop,
+    relBottom: lane.bottom - wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+export function absoluteAudioLanes(
+  cached: RelativeAudioLaneHit[],
+  wsTop: number,
+): AudioLaneHit[] {
+  return cached.map((lane) => ({
+    top: lane.relTop + wsTop,
+    bottom: lane.relBottom + wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+/* ========================================================================== */
+/* 4. CORE DROP TARGET RESOLUTION MATH                                       */
+/* ========================================================================== */
+
+function gapMid(upper: LaneHit, lower: LaneHit, wsTop: number): number {
+  return (upper.bottom + lower.top) / 2 - wsTop;
+}
+
+function insertOrderAtEdge(
+  lane: LaneHit,
+  edge: "top" | "bottom",
+  policy: LaneDropPolicy,
+): number {
+  if (lane.order == null) return 0;
+  const isOutwardEdge =
+    policy.outwardDirection === "up" ? edge === "top" : edge === "bottom";
+  return isOutwardEdge ? lane.order + 1 : lane.order;
+}
+
+function resolveInsideLane(
+  clientY: number,
+  lane: LaneHit,
+  next: LaneHit | undefined,
+  prev: LaneHit | undefined,
+  wsTop: number,
+  wasInsert: boolean,
+  policy: LaneDropPolicy,
+): TimelineDropTarget {
+  const family = policy.family;
+  const relY = clientY - lane.top;
+  const h = Math.max(lane.bottom - lane.top, 1);
+  const inBodyClear =
+    relY > LANE_INSERT_EXIT_PX && relY < h - LANE_INSERT_EXIT_PX;
+  const nearTopEnter = relY <= LANE_INSERT_ENTER_PX;
+  const nearBottomEnter = relY >= h - LANE_INSERT_ENTER_PX;
+
+  const insertAtEdge = (edge: "top" | "bottom"): TimelineDropTarget => {
+    const neighbor = edge === "top" ? prev : next;
+    const indicatorTop =
+      neighbor != null
+        ? edge === "top"
+          ? gapMid(neighbor, lane, wsTop)
+          : gapMid(lane, neighbor, wsTop)
+        : (edge === "top" ? lane.top : lane.bottom) - wsTop - 1;
+    return {
+      family,
+      isInsert: true,
+      laneId: null,
+      insertOrder:
+        lane.role === "base" ? 0 : insertOrderAtEdge(lane, edge, policy),
+      indicatorTop,
+    };
+  };
+
+  const body = (): TimelineDropTarget => {
+    if (lane.role === "base") {
+      return {
+        family,
+        isInsert: false,
+        laneId: null,
+        insertOrder: null,
+        indicatorTop: 0,
+        overBaseBody: policy.allowBaseTarget,
+      };
+    }
+    if (lane.laneId) {
+      return {
+        family,
+        isInsert: false,
+        laneId: lane.laneId,
+        insertOrder: null,
+        indicatorTop: 0,
+      };
+    }
+    // Virtual empty placeholder (no laneId) → create lane on drop.
+    return {
+      family,
+      isInsert: true,
+      laneId: null,
+      insertOrder: lane.order ?? 0,
+      indicatorTop: lane.top - wsTop,
+    };
+  };
+
+  // Visual base: only top-edge insert with narrow band (4px).
+  // Symmetric enter/exit — once pointer moves >4px from top, exit insert mode.
+  // Never bottom-edge insert. Inside the body → target base.
+  if (lane.role === "base") {
+    const outwardEdge = policy.outwardDirection === "up" ? "top" : "bottom";
+    if (!policy.allowBaseTarget) return insertAtEdge(outwardEdge);
+    const baseBandPx = 4;
+    const distanceFromOutwardEdge =
+      outwardEdge === "top" ? relY : h - relY;
+    if (distanceFromOutwardEdge <= baseBandPx) {
+      return insertAtEdge(outwardEdge);
+    }
+    return body();
+  }
+
+  if (!wasInsert) {
+    if (nearTopEnter) return insertAtEdge("top");
+    if (nearBottomEnter) return insertAtEdge("bottom");
+    return body();
+  }
+  if (inBodyClear) return body();
+  if (relY < h / 2) return insertAtEdge("top");
+  return insertAtEdge("bottom");
+}
+
+/**
+ * Shared rect-based hit test. Gaps between lanes map to "insert below upper"
+ * so the cyan line target does not flip each pixel.
+ */
+export function resolveLaneDropTarget(
+  clientY: number,
+  lanes: LaneHit[],
+  wsTop: number,
+  wasInsert: boolean,
+  maxFamilyOrder: number,
+  policy: LaneDropPolicy,
+): TimelineDropTarget | null {
+  if (lanes.length === 0) return null;
+  return resolveStackZone(
+    clientY,
+    lanes,
+    wsTop,
+    wasInsert,
+    maxFamilyOrder,
+    policy,
+  );
+}
+
+function isStackLane(lane: LaneHit, policy: LaneDropPolicy): boolean {
+  if (lane.role === "placeholder") return true;
+  return policy.family === "visual"
+    ? lane.role === "overlay"
+    : lane.role === "audio";
+}
+
+function targetAtBase(
+  base: LaneHit,
+  stackLanes: LaneHit[],
+  wsTop: number,
+  policy: LaneDropPolicy,
+): TimelineDropTarget {
+  if (policy.allowBaseTarget) {
+    return {
+      family: policy.family,
+      isInsert: false,
+      laneId: null,
+      insertOrder: null,
+      indicatorTop: 0,
+      overBaseBody: true,
+    };
+  }
+  const closest = [...stackLanes].sort(
+    (a, b) => (a.order ?? 0) - (b.order ?? 0),
+  )[0];
+  const indicatorTop = closest
+    ? policy.outwardDirection === "up"
+      ? gapMid(closest, base, wsTop)
+      : gapMid(base, closest, wsTop)
+    : (policy.outwardDirection === "up" ? base.top : base.bottom) -
+      wsTop -
+      1;
+  return {
+    family: policy.family,
+    isInsert: true,
+    laneId: null,
+    insertOrder: 0,
+    indicatorTop,
+  };
+}
+
+function targetBeyondOutermost(
+  base: LaneHit | undefined,
+  stackLanes: LaneHit[],
+  wsTop: number,
+  maxFamilyOrder: number,
+  policy: LaneDropPolicy,
+): TimelineDropTarget | null {
+  const outermost = [...stackLanes].sort(
+    (a, b) => (b.order ?? 0) - (a.order ?? 0),
+  )[0];
+  const boundary = outermost ?? base;
+  if (!boundary) return null;
+  return {
+    family: policy.family,
+    isInsert: true,
+    laneId: null,
+    insertOrder: maxFamilyOrder + 1,
+    indicatorTop:
+      (policy.outwardDirection === "up" ? boundary.top : boundary.bottom) -
+      wsTop -
+      1,
+  };
+}
+
+/**
+ * One resolver for both lane stacks. `order` is always distance from Main;
+ * overlay grows upward and audio grows downward.
+ */
+function resolveStackZone(
+  clientY: number,
+  lanes: LaneHit[],
+  wsTop: number,
+  wasInsert: boolean,
+  maxFamilyOrder: number,
+  policy: LaneDropPolicy,
+): TimelineDropTarget | null {
+  const ordered = lanes
+    .filter((lane) => lane.role === "base" || isStackLane(lane, policy))
+    .sort((a, b) => a.top - b.top);
+  if (ordered.length === 0) return null;
+
+  const base = ordered.find((lane) => lane.role === "base");
+  const stackLanes = ordered.filter((lane) => isStackLane(lane, policy));
+  const first = ordered[0];
+  const last = ordered[ordered.length - 1];
+
+  if (clientY < first.top) {
+    if (policy.outwardDirection === "up") {
+      return targetBeyondOutermost(
+        base,
+        stackLanes,
+        wsTop,
+        maxFamilyOrder,
+        policy,
+      );
+    }
+    return base ? targetAtBase(base, stackLanes, wsTop, policy) : null;
+  }
+
+  if (clientY > last.bottom) {
+    if (policy.outwardDirection === "down") {
+      return targetBeyondOutermost(
+        base,
+        stackLanes,
+        wsTop,
+        maxFamilyOrder,
+        policy,
+      );
+    }
+    return base ? targetAtBase(base, stackLanes, wsTop, policy) : null;
+  }
+
+  for (let i = 0; i < ordered.length; i++) {
+    const lane = ordered[i];
+    const next = ordered[i + 1];
+    const prev = i > 0 ? ordered[i - 1] : undefined;
+
+    if (next && clientY > lane.bottom && clientY < next.top) {
+      return {
+        family: policy.family,
+        isInsert: true,
+        laneId: null,
+        insertOrder:
+          lane.role === "base" || next.role === "base"
+            ? 0
+            : insertOrderAtEdge(lane, "bottom", policy),
+        indicatorTop: gapMid(lane, next, wsTop),
+      };
+    }
+
+    if (clientY >= lane.top && clientY <= lane.bottom) {
+      return resolveInsideLane(
+        clientY,
+        lane,
+        next,
+        prev,
+        wsTop,
+        wasInsert,
+        policy,
+      );
+    }
+  }
+  return null;
+}
+
+/* ========================================================================== */
+/* 5. LEGACY WRAPPERS & ADAPTERS                                             */
+/* ========================================================================== */
+
+function toLegacyTarget(target: TimelineDropTarget): OverlayDragTarget {
+  return {
+    isInsert: target.isInsert,
+    laneId: target.laneId,
+    insertOrder: target.insertOrder,
+    indicatorTop: target.indicatorTop,
+  };
+}
+
+/**
+ * @deprecated Prefer {@link resolveLaneDropTarget} with {@link visualDropPolicy}.
+ */
+export function resolveOverlayDragTarget(
+  clientY: number,
+  lanes: VideoLaneHit[],
+  wsTop: number,
+  wasInsert: boolean,
+  maxOverlayOrder: number,
+): OverlayDragTarget | null {
+  const target = resolveLaneDropTarget(
+    clientY,
+    lanes.map(videoHitToLane),
+    wsTop,
+    wasInsert,
+    maxOverlayOrder,
+    visualDropPolicy,
+  );
+  return target ? toLegacyTarget(target) : null;
+}
+
+/**
+ * @deprecated Prefer {@link resolveLaneDropTarget} with {@link audioDropPolicy}.
+ */
+export function resolveAudioDragTarget(
+  clientY: number,
+  lanes: AudioLaneHit[],
+  wsTop: number,
+  wasInsert: boolean,
+  maxAudioOrder: number,
+): AudioDragTarget | null {
+  const target = resolveLaneDropTarget(
+    clientY,
+    lanes.map(audioHitToLane),
+    wsTop,
+    wasInsert,
+    maxAudioOrder,
+    audioDropPolicy,
+  );
+  return target ? toLegacyTarget(target) : null;
+}

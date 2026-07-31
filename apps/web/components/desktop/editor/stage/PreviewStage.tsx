@@ -4,10 +4,15 @@ import { memo, useMemo } from "react";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
 import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
-import { useEditorStore, nodeText } from "@/lib/store/editor-store";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/playback/time-frame";
-import type { TimelineClip } from "@/lib/timeline-clips";
+import { useEditorStore, nodeText } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
+import {
+  composeAtTime,
+  buildVisualLaneIndex,
+  resolveScene,
+} from "@/lib/editor/preview/compose-layers";
+import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 import {
   matrixToCss,
   previewParitySnapshot,
@@ -15,9 +20,9 @@ import {
   type PreviewParityNode,
 } from "@/lib/runtime/preview-evaluate";
 
-function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
+function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
   if (node.type === "text") {
-    const scene = project.scenes[0];
+    // Dùng scene đang render — không hard-code scenes[0] (PERF-04).
     const authored = scene?.nodes.find((candidate) => candidate.id === node.id);
     return nodeText(authored) || node.id;
   }
@@ -26,35 +31,16 @@ function nodeLabel(node: PreviewParityNode, project: MotionProject): string {
   return node.id;
 }
 
-function sceneAtGlobalTime(
-  scenes: MotionScene[],
-  timelineClips: TimelineClip[],
-  mainLaneId: string | undefined,
-  time: number,
-): { scene: MotionScene; localTime: number; start: number } | null {
-  const mainClips = timelineClips
-    .filter((clip) => clip.laneId === mainLaneId)
-    .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
-  const clip = mainClips.find((candidate) =>
-    time >= candidate.startTime && time < candidate.startTime + candidate.duration,
-  ) ?? (mainClips.length > 0 &&
-    time >= mainClips[mainClips.length - 1].startTime + mainClips[mainClips.length - 1].duration
-    ? mainClips[mainClips.length - 1]
-    : undefined);
-  if (!clip) return null;
-  const scene = scenes.find((candidate) => candidate.id === clip.sceneId);
-  if (!scene) return null;
-  return {
-    scene,
-    localTime: Math.min(Math.max(0, time - clip.startTime), clip.duration),
-    start: clip.startTime,
-  };
-}
-
-function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: MotionProject }) {
+function RuntimeLayer({
+  node,
+  scene,
+}: {
+  node: PreviewParityNode;
+  scene: MotionScene | null;
+}) {
   if (!node.visible || node.worldOpacity <= 0) return null;
   if (node.type === "group" || node.type === "bone" || node.type === "camera") return null;
-  const label = nodeLabel(node, project);
+  const label = nodeLabel(node, scene);
   const width = Math.max(8, node.transform.width || node.worldBounds.width);
   const height = Math.max(8, node.transform.height || node.worldBounds.height);
   return (
@@ -95,18 +81,20 @@ function RuntimeLayer({ node, project }: { node: PreviewParityNode; project: Mot
 type PreviewRuntimeCanvasProps = {
   project: MotionProject;
   timelineClips: TimelineClip[];
-  mainLaneId: string | undefined;
+  timelineLanes: TimelineLane[];
   frameIndex: number;
   fps: number;
+  backgroundColor: string;
 };
 
 /** Time-sensitive canvas — re-renders only when frameIndex / project / clips change. */
 const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
   project,
   timelineClips,
-  mainLaneId,
+  timelineLanes,
   frameIndex,
   fps,
+  backgroundColor,
 }: PreviewRuntimeCanvasProps) {
   const previewTime = frameIndex / Math.max(1, fps);
   const compiled = useMemo(() => {
@@ -117,48 +105,100 @@ const PreviewRuntimeCanvas = memo(function PreviewRuntimeCanvas({
     }
   }, [project]);
 
-  const at = sceneAtGlobalTime(
-    project.scenes,
-    timelineClips,
-    mainLaneId,
-    previewTime,
+  const scenesById = useMemo(
+    () => new Map(project.scenes.map((scene) => [scene.id, scene])),
+    [project.scenes],
   );
-  if (!at) return null;
-  const { scene, localTime } = at;
+
+  // Index memo theo clips/lanes — frame chỉ composeAtTime (binary search).
+  const visualIndex = useMemo(
+    () => buildVisualLaneIndex(timelineClips, timelineLanes),
+    [timelineClips, timelineLanes],
+  );
+  const composed = useMemo(
+    () => composeAtTime(visualIndex, previewTime),
+    [visualIndex, previewTime],
+  );
+
   const stage = stageSizeForAspect(project.metadata.aspectRatio);
-  const frame = quantizeTimeToFrame(localTime, fps);
-  const snapshot = compiled
-    ? previewParitySnapshot(compiled, scene.id, frame.time)
-    : null;
 
   return (
     <div
       data-testid="runtime-preview-canvas"
+      data-compose-layers={composed.length}
       style={{
         position: "relative",
         width: stage.width,
         height: stage.height,
         transform: "scale(0.25)",
         transformOrigin: "center center",
-        background: "rgba(0,0,0,0.18)",
+        // Base gap / trống → hiện project background (brand).
+        background: backgroundColor,
       }}
     >
-      {snapshot?.nodes.map((node) => (
-        <RuntimeLayer key={node.id} node={node} project={project} />
-      ))}
+      {composed.map((layer) => {
+        const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
+        if (!scene || !compiled) return null;
+        const frame = quantizeTimeToFrame(layer.localTime, fps);
+        const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
+        return (
+          <div
+            key={`${layer.role}-${layer.clipId}`}
+            data-testid={`preview-layer-${layer.role}`}
+            data-scene-id={layer.sceneId}
+            data-z-order={layer.zOrder}
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: layer.role === "base" ? 0 : 10 + layer.zOrder,
+            }}
+          >
+            {snapshot?.nodes.map((node) => (
+              <RuntimeLayer
+                key={`${layer.clipId}-${node.id}`}
+                node={node}
+                scene={scene}
+              />
+            ))}
+          </div>
+        );
+      })}
     </div>
   );
 });
+
+/** Subscribe clock ở leaf — shell PreviewStage không re-render theo tick. */
+function PreviewClockBridge({
+  project,
+  timelineClips,
+  timelineLanes,
+  backgroundColor,
+}: {
+  project: MotionProject;
+  timelineClips: TimelineClip[];
+  timelineLanes: TimelineLane[];
+  backgroundColor: string;
+}) {
+  const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+  const frameIndex = usePlaybackClock((state) =>
+    playbackFrameIndex(state.currentTime, fps),
+  );
+  return (
+    <PreviewRuntimeCanvas
+      project={project}
+      timelineClips={timelineClips}
+      timelineLanes={timelineLanes}
+      frameIndex={frameIndex}
+      fps={fps}
+      backgroundColor={backgroundColor}
+    />
+  );
+}
 
 export function PreviewStage() {
   const project = useEditorStore((state) => state.project);
   const timelineClips = useEditorStore((state) => state.timelineClips);
   const timelineLanes = useEditorStore((state) => state.timelineLanes);
-  const fps = project?.metadata.fps ?? 30;
-  const safeFps = Math.max(1, Math.round(fps));
-  const frameIndex = usePlaybackClock((state) =>
-    playbackFrameIndex(state.currentTime, safeFps),
-  );
 
   if (!project) {
     return (
@@ -178,7 +218,6 @@ export function PreviewStage() {
     );
   }
 
-  const mainLaneId = timelineLanes.find((lane) => lane.kind === "main")?.id;
   const brand = project.metadata.brand;
   const accent = brand.primaryColor ?? "#3f9a62";
 
@@ -208,12 +247,11 @@ export function PreviewStage() {
             justifyContent: "center",
           }}
         >
-          <PreviewRuntimeCanvas
+          <PreviewClockBridge
             project={project}
             timelineClips={timelineClips}
-            mainLaneId={mainLaneId}
-            frameIndex={frameIndex}
-            fps={safeFps}
+            timelineLanes={timelineLanes}
+            backgroundColor={accent}
           />
         </div>
       </div>

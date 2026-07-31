@@ -1,74 +1,70 @@
-import React from "react";
+"use client";
+
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui";
+import { MOCK_IMAGES, MOCK_VIDEOS } from "@/lib/editor/sidebar-mock-library";
+import { LibraryDragSource } from "../LibraryDragSource";
 import { MediaItem } from "../MediaItem/MediaItem";
-import { SidebarPanel, SidebarPanelHeader, SidebarPanelContent } from "../SidebarPanel/SidebarPanel";
+import {
+  SidebarPanel,
+  SidebarPanelHeader,
+  SidebarPanelContent,
+} from "../SidebarPanel/SidebarPanel";
 
-const UPLOAD_ITEMS = [
-  {
-    title: "test-1.mp4",
-    duration: "00:22",
-    thumbnailUrl: "https://images.unsplash.com/photo-1518131672697-613becd4fab5?w=200&h=150&fit=crop",
-  },
-  {
-    title: "Killua Zoldyck.jpg",
-    isAdded: true,
-    thumbnailUrl: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=200&h=150&fit=crop",
-  },
-  {
-    title: "UpscaleImage_6|2...",
-    logoText: "KLING AI",
-  },
-  {
-    title: "Kling-AI.png",
-    logoText: "KLING AI",
-  },
-  {
-    title: "imagine-logo-alt.w...",
-    logoText: "ImagineArt",
-  },
-  {
-    title: "UpscaleImage_4|2...",
-    logoText: "ImagineArt",
-  },
-  {
-    title: "Untitled-design-4...",
-    logoText: "ImagineArt",
-  },
-  {
-    title: "UpscaleImage_2|2...",
-    logoText: "DALL·E 3",
-  },
-  {
-    title: "images.png",
-    logoText: "DALL·E 3",
-  },
-  {
-    title: "UpscaleImage_1_2...",
-    thumbnailUrl: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200&h=150&fit=crop",
-  },
-];
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 export function UploadPanel() {
   return (
     <SidebarPanel>
       <SidebarPanelHeader>
-        <Button variant="outline" size="md" className="w-full" leftIcon={<Upload size={14} />}>
+        <Button
+          variant="outline"
+          size="md"
+          className="w-full"
+          leftIcon={<Upload size={14} />}
+        >
           Tải tệp
         </Button>
       </SidebarPanelHeader>
       <SidebarPanelContent>
-        <div className="grid grid-cols-[repeat(auto-fill,128px)] gap-3 justify-start min-w-0">
-          {UPLOAD_ITEMS.map((item, i) => (
-            <MediaItem
-              key={i}
-              title={item.title}
-              duration={item.duration}
-              isAdded={item.isAdded}
-              thumbnailUrl={item.thumbnailUrl}
-              logoText={item.logoText}
-            />
-          ))}
+        <div className="flex flex-col gap-4 min-w-0">
+          <section className="flex flex-col gap-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fg-muted)] px-0.5">
+              Video
+            </h3>
+            <div className="grid grid-cols-[repeat(auto-fill,128px)] gap-3 justify-start">
+              {MOCK_VIDEOS.map((item) => (
+                <LibraryDragSource key={item.id} draft={item}>
+                  <MediaItem
+                    title={item.name}
+                    duration={formatDuration(item.duration)}
+                    thumbnailUrl={item.thumbnailUrl}
+                  />
+                </LibraryDragSource>
+              ))}
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <h3 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--fg-muted)] px-0.5">
+              Hình ảnh
+            </h3>
+            <div className="grid grid-cols-[repeat(auto-fill,128px)] gap-3 justify-start">
+              {MOCK_IMAGES.map((item) => (
+                <LibraryDragSource key={item.id} draft={item}>
+                  <MediaItem
+                    title={item.name}
+                    duration={formatDuration(item.duration)}
+                    thumbnailUrl={item.thumbnailUrl}
+                  />
+                </LibraryDragSource>
+              ))}
+            </div>
+          </section>
         </div>
       </SidebarPanelContent>
     </SidebarPanel>

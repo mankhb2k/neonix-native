@@ -1,7 +1,7 @@
 "use client";
 
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/playback/time-frame";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 import { formatTimecode } from "../timeline-scale";
 
 type Props = {
@@ -20,7 +20,10 @@ export function CurrentTimeDisplay({ fps }: Props) {
   const displaySeconds = frameIndex / safeFps;
 
   return (
-    <span className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]">
+    <span
+      data-testid="timeline-current-time"
+      className="font-mono text-[13px] tabular-nums text-[var(--fg-secondary)]"
+    >
       {formatTimecode(displaySeconds, safeFps)}
     </span>
   );

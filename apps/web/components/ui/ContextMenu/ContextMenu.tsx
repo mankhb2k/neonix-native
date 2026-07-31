@@ -15,6 +15,9 @@ const ContextMenuContext = React.createContext<ContextMenuContextValue | null>(
   null
 );
 
+/** Ensures only one context menu is open app-wide. */
+const openMenus = new Set<() => void>();
+
 function useContextMenu() {
   const ctx = React.useContext(ContextMenuContext);
   if (!ctx) {
@@ -31,16 +34,33 @@ export function ContextMenu({ children }: ContextMenuProps) {
   const [open, setOpen] = React.useState(false);
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
 
+  const close = React.useCallback(() => setOpen(false), []);
+
+  React.useEffect(() => {
+    openMenus.add(close);
+    return () => {
+      openMenus.delete(close);
+    };
+  }, [close]);
+
+  const openAt = React.useCallback(
+    (x: number, y: number) => {
+      for (const other of openMenus) {
+        if (other !== close) other();
+      }
+      setPosition({ x, y });
+      setOpen(true);
+    },
+    [close],
+  );
+
   return (
     <ContextMenuContext.Provider
       value={{
         open,
         position,
-        openAt: (x, y) => {
-          setPosition({ x, y });
-          setOpen(true);
-        },
-        close: () => setOpen(false),
+        openAt,
+        close,
       }}
     >
       {children}
@@ -51,33 +71,51 @@ export function ContextMenu({ children }: ContextMenuProps) {
 export interface ContextMenuTriggerProps {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
   disabled?: boolean;
-  onOpen?: () => void;
+  /** Return false to cancel opening. */
+  onOpen?: (event: React.MouseEvent) => boolean | void;
+  onPointerDown?: React.PointerEventHandler<HTMLDivElement>;
+  "data-clip-id"?: string;
 }
 
-export function ContextMenuTrigger({
-  children,
-  className,
-  disabled = false,
-  onOpen,
-}: ContextMenuTriggerProps) {
+export const ContextMenuTrigger = React.forwardRef<
+  HTMLDivElement,
+  ContextMenuTriggerProps
+>(function ContextMenuTrigger(
+  {
+    children,
+    className,
+    style,
+    disabled = false,
+    onOpen,
+    onPointerDown,
+    "data-clip-id": dataClipId,
+  },
+  ref,
+) {
   const { openAt } = useContextMenu();
 
   return (
     <div
+      ref={ref}
       className={cn(className)}
+      style={style}
+      data-clip-id={dataClipId}
+      onPointerDown={onPointerDown}
       onContextMenu={(e) => {
         if (disabled) return;
         e.preventDefault();
         e.stopPropagation();
-        onOpen?.();
+        if (onOpen?.(e) === false) return;
         openAt(e.clientX, e.clientY);
       }}
     >
       {children}
     </div>
   );
-}
+});
+
 
 export interface ContextMenuContentProps {
   children: React.ReactNode;
@@ -100,23 +138,30 @@ export function ContextMenuContent({
   React.useEffect(() => {
     if (!open) return;
 
+    const isOutside = (target: EventTarget | null) =>
+      !!menuRef.current && !menuRef.current.contains(target as Node);
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") close();
     };
-    const onPointerDown = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        close();
-      }
+    /** pointerdown (capture): timeline cancels mouse events via preventDefault. */
+    const onPointerDown = (e: PointerEvent) => {
+      if (isOutside(e.target)) close();
+    };
+    const onContextMenu = (e: MouseEvent) => {
+      if (isOutside(e.target)) close();
     };
     const onScroll = () => close();
 
     document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("contextmenu", onContextMenu, true);
     window.addEventListener("scroll", onScroll, true);
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("contextmenu", onContextMenu, true);
       window.removeEventListener("scroll", onScroll, true);
     };
   }, [open, close]);

@@ -1,0 +1,62 @@
+name: Web E2E
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/web-e2e.yml"
+  push:
+    branches: [main, master, dev]
+    paths:
+      - "apps/web/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/web-e2e.yml"
+
+concurrency:
+  group: web-e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck web
+        run: pnpm --filter @motionvideo/web typecheck
+
+      - name: Unit tests
+        run: pnpm --filter @motionvideo/web test
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @motionvideo/web exec playwright install --with-deps chromium
+
+      - name: Chromium E2E (timeline)
+        run: pnpm --filter @motionvideo/web e2e:timeline
+        env:
+          CI: true
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          retention-days: 7
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results

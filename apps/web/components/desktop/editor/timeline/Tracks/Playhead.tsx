@@ -1,40 +1,50 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { usePlaybackClock } from "@/lib/playback/playback-clock-store";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 
-/** Convert pointer X → timeline seconds (accounts for label gutter + horizontal scroll). */
+/** Convert pointer X → timeline seconds (tracks column; subtract playhead gutter). */
 export function clientXToTimelineTime(
   clientX: number,
   scrollContainer: HTMLElement,
-  labelWidth: number,
+  _tracksOriginX: number,
   pixelsPerSecond: number,
   maxTime: number,
 ): number {
+  void _tracksOriginX;
   const rect = scrollContainer.getBoundingClientRect();
-  const x = clientX - rect.left + scrollContainer.scrollLeft - labelWidth;
+  const x =
+    clientX -
+    rect.left +
+    scrollContainer.scrollLeft -
+    TIMELINE_PLAYHEAD_GUTTER_PX;
   const time = x / Math.max(pixelsPerSecond, 1);
   return Math.min(Math.max(0, time), Math.max(0, maxTime));
 }
 
-/** Viewport X of playhead within the timeline board. */
+/** Viewport X of playhead within the timeline board (labels + gutter + time). */
 export function timelineTimeToViewportLeft(
   time: number,
-  labelWidth: number,
+  tracksOriginX: number,
   pixelsPerSecond: number,
   scrollLeft: number,
 ): number {
-  return labelWidth + time * Math.max(pixelsPerSecond, 1) - scrollLeft;
+  return tracksOriginX + time * Math.max(pixelsPerSecond, 1) - scrollLeft;
 }
 
 type Props = {
-  labelWidth: number;
+  /** Board X where t=0 sits (label column + playhead gutter). */
+  tracksOriginX: number;
   pixelsPerSecond: number;
   scrollLeft: number;
   scrollContainerRef: RefObject<HTMLElement | null>;
@@ -44,7 +54,7 @@ type Props = {
 
 const HIT_STRIP_WIDTH_PX = 14;
 
-function PlayheadHandleIcon() {
+function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
   return (
     <svg
       width="11"
@@ -52,107 +62,104 @@ function PlayheadHandleIcon() {
       viewBox="0 0 11 13"
       fill="none"
       aria-hidden
-      className="text-[var(--timeline-playhead)]"
+      className={isMuted ? "text-white/35" : "text-[var(--timeline-playhead)]"}
     >
-      <path
-        d="M0 0h11v7.5L5.5 13 0 7.5V0z"
-        fill="currentColor"
-      />
+      <path d="M0 0h11v7.5L5.5 13 0 7.5V0z" fill="currentColor" />
     </svg>
   );
 }
 
 /**
  * CapCut-style playhead driven by the canonical playback clock.
- * Scrub coalesces pointermoves into one `seek()` per animation frame;
- * position always applies via `translate3d` (no React layout for the hot path).
+ * Hot path: transform + aria attributes via DOM — no React setState per tick.
  */
 export function Playhead({
-  labelWidth,
+  tracksOriginX,
   pixelsPerSecond,
   scrollLeft,
   scrollContainerRef,
   enabled = true,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
   const pendingTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  const labelWidthRef = useRef(labelWidth);
+  const tracksOriginXRef = useRef(tracksOriginX);
   const ppsRef = useRef(pixelsPerSecond);
   const scrollLeftRef = useRef(scrollLeft);
-  labelWidthRef.current = labelWidth;
+  const fpsRef = useRef(30);
+  tracksOriginXRef.current = tracksOriginX;
   ppsRef.current = pixelsPerSecond;
   scrollLeftRef.current = scrollLeft;
 
   const duration = usePlaybackClock((s) => s.duration);
+  const fps = useEditorStore((s) => s.project?.metadata.fps ?? 30);
+  const isTimelineEmpty = useEditorStore((s) => s.timelineClips.length === 0);
+  fpsRef.current = fps;
 
-  function applyVisualLeft(viewportLeft: number) {
+  const applyVisualLeft = useCallback((viewportLeft: number) => {
     const el = rootRef.current;
     if (!el) return;
     el.style.transform = `translate3d(${viewportLeft}px,0,0)`;
-  }
+  }, []);
 
-  function syncFromClock(time: number) {
-    applyVisualLeft(
-      timelineTimeToViewportLeft(
-        time,
-        labelWidthRef.current,
-        ppsRef.current,
-        scrollLeftRef.current,
-      ),
-    );
-  }
+  const syncFromClock = useCallback(
+    (time: number) => {
+      applyVisualLeft(
+        timelineTimeToViewportLeft(
+          time,
+          tracksOriginXRef.current,
+          ppsRef.current,
+          scrollLeftRef.current,
+        ),
+      );
+      const slider = sliderRef.current;
+      if (slider) {
+        slider.setAttribute("aria-valuenow", String(time));
+      }
+    },
+    [applyVisualLeft],
+  );
+
+  useEffect(() => {
+    return usePlaybackClock.subscribe((state, prev) => {
+      if (state.currentTime !== prev.currentTime) {
+        syncFromClock(state.currentTime);
+      }
+    });
+  }, [syncFromClock]);
 
   useLayoutEffect(() => {
-    if (draggingRef.current) return;
     syncFromClock(usePlaybackClock.getState().currentTime);
-  }, [labelWidth, pixelsPerSecond, scrollLeft]);
+  }, [scrollLeft, pixelsPerSecond, tracksOriginX, syncFromClock]);
 
-  useEffect(() => {
-    syncFromClock(usePlaybackClock.getState().currentTime);
-    return usePlaybackClock.subscribe((state, prev) => {
-      if (state.currentTime === prev.currentTime) return;
-      if (draggingRef.current) return;
-      syncFromClock(state.currentTime);
-    });
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
-
-  function flushSeek() {
-    rafRef.current = null;
-    const time = pendingTimeRef.current;
-    if (time == null) return;
-    usePlaybackClock.getState().seek(time);
-    syncFromClock(time);
-  }
-
-  function scheduleSeek(time: number) {
+  const scheduleSeek = (time: number) => {
     pendingTimeRef.current = time;
     if (rafRef.current != null) return;
-    rafRef.current = requestAnimationFrame(flushSeek);
-  }
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const t = pendingTimeRef.current;
+      if (t != null) {
+        usePlaybackClock.getState().seek(t);
+      }
+    });
+  };
 
-  function scrubFromClientX(clientX: number) {
+  const scrubFromClientX = (clientX: number) => {
     const root = scrollContainerRef.current;
     if (!root) return;
-    const clock = usePlaybackClock.getState();
     const time = clientXToTimelineTime(
       clientX,
       root,
-      labelWidthRef.current,
+      tracksOriginXRef.current,
       ppsRef.current,
-      clock.duration,
+      Math.max(0, usePlaybackClock.getState().duration),
     );
     syncFromClock(time);
     scheduleSeek(time);
-  }
+  };
 
   function endDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (!draggingRef.current) return;
@@ -187,18 +194,46 @@ export function Playhead({
     scrubFromClientX(event.clientX);
   }
 
+  function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!enabled) return;
+    const clock = usePlaybackClock.getState();
+    const frameSec = 1 / Math.max(1, fps);
+    const step = event.shiftKey ? frameSec * 10 : frameSec;
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      clock.seek(clock.currentTime - step);
+      return;
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      clock.seek(clock.currentTime + step);
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      clock.seek(0);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      clock.seek(clock.duration);
+    }
+  }
+
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none absolute bottom-0 top-0 z-50 will-change-transform"
+      className="pointer-events-none absolute bottom-0 top-0 z-40 will-change-transform"
       style={{ left: 0 }}
       aria-hidden={!enabled}
     >
       <div
+        ref={sliderRef}
         role="slider"
         aria-label="Playhead"
         aria-valuemin={0}
         aria-valuemax={duration}
+        aria-valuenow={usePlaybackClock.getState().currentTime}
         tabIndex={enabled ? 0 : -1}
         className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
           enabled ? "pointer-events-auto" : "pointer-events-none"
@@ -208,10 +243,13 @@ export function Playhead({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onKeyDown={onKeyDown}
       />
 
       <div
-        className="pointer-events-none absolute bottom-0 w-px -translate-x-1/2 bg-[var(--timeline-playhead)]"
+        className={`pointer-events-none absolute bottom-0 w-px -translate-x-1/2 transition-colors duration-200 ${
+          isTimelineEmpty ? "bg-white/30" : "bg-[var(--timeline-playhead)]"
+        }`}
         style={{ left: 0, top: 12 }}
       />
 
@@ -225,7 +263,7 @@ export function Playhead({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
       >
-        <PlayheadHandleIcon />
+        <PlayheadHandleIcon isMuted={isTimelineEmpty} />
       </div>
     </div>
   );

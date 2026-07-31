@@ -8,26 +8,33 @@ import { DesktopMenuBar, DesktopWindowControls } from "@/components/desktop/edit
 import { Button, Tooltip } from "@/components/ui";
 import { downloadBlob, exportMotionProject } from "@/lib/api/export";
 import { useIsDesktop } from "@/lib/desktop";
-import { saveProject } from "@/lib/project-storage";
-import { useEditorStore } from "@/lib/store/editor-store";
+import { buildExportProject } from "@/lib/editor/export/build-export-project";
 import {
-  parseMotionProject,
-  serializeMotionProject,
-} from "@motionvideo/motion-schema";
+  buildEditorProjectEnvelope,
+  parseEditorImport,
+  serializeEditorProjectEnvelope,
+} from "@/lib/editor/export/editor-project-envelope";
+import { saveProject, trySaveProject } from "@/lib/editor/project-storage";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
 import {
   CloudCheck,
   Search,
   Gem,
   Upload,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 
 export function TitleBar() {
   const project = useEditorStore((s) => s.project);
   const brandName = useEditorStore((s) => s.project?.metadata.brand.name);
-  const overlayScenes = useEditorStore((s) => s.overlayScenes);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
+  const canUndo = useEditorStore((s) => s.canUndo);
+  const canRedo = useEditorStore((s) => s.canRedo);
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
   const isExporting = useEditorStore((s) => s.isExporting);
   const setExporting = useEditorStore((s) => s.setExporting);
   const updateBrand = useEditorStore((s) => s.updateBrand);
@@ -44,8 +51,18 @@ export function TitleBar() {
     setExportError(null);
     setExporting(true);
     try {
-      saveProject(project, { overlayScenes, timelineClips, timelineLanes });
-      const blob = await exportMotionProject(project);
+      const saved = trySaveProject(project, { timelineClips, timelineLanes });
+      if (!saved.ok) {
+        setExportError(saved.error.message);
+        return;
+      }
+      // Bake timeline editor → MotionProject tuần tự (export ≠ raw editor IR).
+      const exportProject = buildExportProject({
+        project,
+        timelineClips,
+        timelineLanes,
+      });
+      const blob = await exportMotionProject(exportProject);
       const name = `${project.metadata.brand.name.replace(/[^\w-]+/g, "_") || "motion"}.mp4`;
       downloadBlob(blob, name);
     } catch (err) {
@@ -57,7 +74,10 @@ export function TitleBar() {
 
   function handleDownloadMt() {
     if (!project) return;
-    const text = serializeMotionProject(project);
+    // Envelope giữ clips/lanes — roundtrip không mất placement.
+    const text = serializeEditorProjectEnvelope(
+      buildEditorProjectEnvelope({ project, timelineClips, timelineLanes }),
+    );
     downloadBlob(
       new Blob([text], { type: "application/json" }),
       `${project.metadata.id}.mt`,
@@ -68,15 +88,24 @@ export function TitleBar() {
     if (!file) return;
     try {
       const text = await file.text();
-      const parsed = parseMotionProject(JSON.parse(text) as unknown);
-      const check = validateMotionProjectPresets(parsed);
+      const imported = parseEditorImport(JSON.parse(text) as unknown);
+      const check = validateMotionProjectPresets(imported.project);
       if (!check.ok) {
         const detail = check.unknown.map((u) => u.preset).join(", ");
         setExportError(`Preset không hợp lệ: ${detail}`);
         return;
       }
-      saveProject(parsed, { overlayScenes: [], timelineClips: [], timelineLanes: [] });
-      loadProject(parsed, [], [], []);
+      saveProject(imported.project, {
+        overlayScenes: imported.overlayScenes,
+        timelineClips: imported.timelineClips,
+        timelineLanes: imported.timelineLanes,
+      });
+      loadProject(
+        imported.project,
+        imported.overlayScenes,
+        imported.timelineClips,
+        imported.timelineLanes,
+      );
       setExportError(null);
     } catch (err) {
       setExportError(err instanceof Error ? err.message : "Import .mt thất bại");
@@ -109,6 +138,33 @@ export function TitleBar() {
             aria-label="Tên dự án"
             placeholder="Dự án không tên"
           />
+
+          <div className="flex items-center gap-0.5">
+            <Tooltip content="Hoàn tác (Ctrl+Z)" side="bottom">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                disabled={!canUndo}
+                onClick={undo}
+                aria-label="Hoàn tác (Ctrl+Z)"
+              >
+                <Undo2 size={14} strokeWidth={1.5} />
+              </Button>
+            </Tooltip>
+            <Tooltip content="Làm lại (Ctrl+Y)" side="bottom">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                disabled={!canRedo}
+                onClick={redo}
+                aria-label="Làm lại (Ctrl+Y)"
+              >
+                <Redo2 size={14} strokeWidth={1.5} />
+              </Button>
+            </Tooltip>
+          </div>
 
           <Tooltip content="Đã lưu tự động vào đám mây" side="bottom">
             <span className="mv-ppt-saved-icon">

@@ -1,43 +1,36 @@
 "use client";
 
 import React, { useLayoutEffect, useRef } from "react";
-import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor-drag-cursor";
+import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor/drag-cursor";
+
+import type { TrackFamily, TimelineLaneRole } from "@/lib/editor/model/timeline-types";
 
 export type TrackVariant = "main" | "secondary" | "layer";
 
 export type GhostPreviewInfo = {
-  left: number;
   width: number;
-  label?: string;
-  duration?: number;
 };
 
 type TrackLaneProps = {
-  /** Track variant: "main" (Frame chính), "secondary" (Frame phụ & Audio), "layer" (Dành riêng cho Layer trong Frame) */
   variant?: TrackVariant;
-  /** 1. Chiều cao riêng cho Frame chính (Default: "h-12") */
   mainTrackHeight?: string;
-  /** 2. Chiều cao riêng cho Frame phụ & Audio (Default: "h-7") */
   secondaryTrackHeight?: string;
-  /** 3. Chiều cao riêng dành cho các Layer trong Frame (Default: "h-6") */
   layerTrackHeight?: string;
-  /** Prop thiết kế sẵn dành riêng chứa thông tin các Layer trong Frame (Dành cho sử dụng tương lai) */
-  frameLayers?: any[];
-  /** Override tùy chỉnh trực tiếp height class */
   heightClass?: string;
   bgClass?: string;
   borderClass?: string;
-  /** Khối Ghost Preview hiển thị vị trí thả khi đang Drag */
   ghostPreview?: GhostPreviewInfo | null;
-  dataTrackType?: "main" | "overlay";
-  dataLaneId?: string;
+  dataTrackType?: "main" | "overlay" | "audio";
+  dataTrackFamily?: TrackFamily;
+  dataTrackRole?: TimelineLaneRole;
+  dataLaneId?: string | null;
   dataLaneOrder?: number;
-  /** @deprecated Prefer dataLaneOrder */
-  dataLayerIndex?: number;
+  /** Virtual empty drop zone — không phải domain lane. */
+  dataPlaceholder?: boolean;
   labelWidth: number;
   canvasWidth: number;
-  leftControl: React.ReactNode;
-  children: React.ReactNode;
+  leftControl?: React.ReactNode;
+  children?: React.ReactNode;
 };
 
 export function TrackLane({
@@ -45,15 +38,16 @@ export function TrackLane({
   mainTrackHeight = "h-15",
   secondaryTrackHeight = "h-12",
   layerTrackHeight = "h-6",
-  frameLayers = [],
   heightClass,
   bgClass = "bg-[var(--timeline-track-lane)]",
   borderClass = "",
   ghostPreview,
   dataTrackType,
+  dataTrackFamily,
+  dataTrackRole,
   dataLaneId,
   dataLaneOrder,
-  dataLayerIndex,
+  dataPlaceholder,
   labelWidth,
   canvasWidth,
   leftControl,
@@ -61,7 +55,6 @@ export function TrackLane({
 }: TrackLaneProps) {
   const ghostRef = useRef<HTMLDivElement>(null);
 
-  // Tự động chọn class chiều cao dựa trên variant và 3 props chiều cao riêng biệt
   const resolvedHeightClass =
     heightClass ??
     (variant === "main"
@@ -73,41 +66,54 @@ export function TrackLane({
   const showGhost = Boolean(ghostPreview);
 
   useLayoutEffect(() => {
+    const ghostEl = ghostRef.current;
     if (!showGhost) {
-      unbindDragGhostElementIf(ghostRef.current);
-      return;
+      unbindDragGhostElementIf(ghostEl);
+      return undefined;
     }
-    bindDragGhostElement(ghostRef.current);
+    bindDragGhostElement(ghostEl);
     return () => {
-      unbindDragGhostElementIf(ghostRef.current);
+      unbindDragGhostElementIf(ghostEl);
     };
   }, [showGhost]);
+
+  const resolvedFamily =
+    dataTrackFamily ?? (dataTrackType === "audio" ? "audio" : "visual");
+  const resolvedRole =
+    dataTrackRole ??
+    (dataTrackType === "main"
+      ? "base"
+      : dataTrackType === "overlay"
+        ? "overlay"
+        : "audio");
 
   return (
     <div
       data-track-lane="true"
       data-track-type={dataTrackType}
-      data-lane-id={dataLaneId}
-      data-lane-order={dataLaneOrder ?? dataLayerIndex}
-      data-layer-index={dataLayerIndex}
+      data-track-family={resolvedFamily}
+      data-track-role={resolvedRole}
+      data-lane-id={dataLaneId ?? undefined}
+      data-lane-order={dataLaneOrder}
+      data-placeholder={dataPlaceholder ? "true" : undefined}
       className={`group relative flex items-center ${resolvedHeightClass} ${bgClass} ${borderClass} transition-colors`}
     >
-      {/* Sticky Left Control Sidebar */}
-      <div
-        className="sticky left-0 z-20 flex h-full shrink-0 items-center justify-center gap-1 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2"
-        style={{ width: labelWidth }}
-      >
-        {leftControl}
-      </div>
+      {leftControl && (
+        <div
+          className="sticky left-0 z-20 flex h-full shrink-0 items-center justify-center gap-1 bg-[var(--bg-panel)] border-r border-[var(--border-subtle)] px-2"
+          style={{ width: labelWidth }}
+          data-marquee-ignore="true"
+        >
+          {leftControl}
+        </div>
+      )}
 
-      {/* Runway Canvas Strip with vertical padding & centered content */}
       <div
         className="relative h-full flex-1 flex items-center py-[1px]"
         style={{ width: canvasWidth }}
       >
         {children}
 
-        {/* Gray drop ghost — left/width driven imperatively (synced with cyan rAF) */}
         {ghostPreview && (
           <div
             ref={ghostRef}

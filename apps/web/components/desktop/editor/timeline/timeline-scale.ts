@@ -1,3 +1,8 @@
+import {
+  TIMELINE_ZOOM_DEFAULT,
+  TIMELINE_ZOOM_MAX,
+} from "@/lib/editor/editor-preferences";
+
 export function formatTimecode(totalSeconds: number, fps = 30): string {
   const safeFps = Math.max(1, Math.round(fps));
   // Floor (not round) — same rule as preview frameIndex / quantizeTimeToFrame.
@@ -26,8 +31,10 @@ function pad2(n: number): string {
 export function formatRulerLabel(
   totalFrames: number,
   fps: number,
-  _labelEveryFrames: number,
+  // Kept for call-site compatibility (label density); unused in CapCut two-field format.
+  labelEveryFrames?: number,
 ): string {
+  void labelEveryFrames;
   const safeFps = Math.max(1, Math.round(fps));
   const frame = Math.max(0, Math.round(totalFrames));
   const frameInSecond = frame % safeFps;
@@ -50,11 +57,17 @@ export function formatRulerLabel(
 }
 
 export const TIMELINE_LABEL_WIDTH = 96;
-export const TIMELINE_ZOOM_MIN = 0;
-export const TIMELINE_ZOOM_MAX = 100;
-export const TIMELINE_ZOOM_DEFAULT = 0;
-/** Reset zoom mỗi lần load project vào editor. */
-export const TIMELINE_ZOOM_ON_PROJECT_LOAD = 28;
+/** CapCut-style dark strip between lane labels and clip canvas — room for playhead at t=0. */
+export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
+/** Viewport X where timeline time 0 begins (labels + gutter). */
+export const TIMELINE_TRACKS_ORIGIN_X =
+  TIMELINE_LABEL_WIDTH + TIMELINE_PLAYHEAD_GUTTER_PX;
+export {
+  TIMELINE_ZOOM_MIN,
+  TIMELINE_ZOOM_MAX,
+  TIMELINE_ZOOM_DEFAULT,
+  TIMELINE_ZOOM_ON_PROJECT_LOAD,
+} from "@/lib/editor/editor-preferences";
 /**
  * CapCut min workspace ≈ duration × hệ số; floor ~18 phút khi zoom out tối đa
  * (screenshot CapCut: nhãn tới 18:00).
@@ -132,7 +145,7 @@ export function timelineContentEndSeconds(
   return Math.max(mainEnd, overlayEnd, 0);
 }
 
-/** Độ dài canvas thước: zoom out giữ ~18 phút; zoom in thu về content để tránh DOM khổng lồ. */
+/** Độ dài canvas thước: interpolate liên tục theo zoom — tránh nhảy tại ngưỡng 25 (SCALE-01). */
 export function timelineCanvasDuration(
   contentSeconds: number,
   pixelsPerSecond: number,
@@ -145,11 +158,13 @@ export function timelineCanvasDuration(
       : 0;
   const workspace = timelineWorkspaceSeconds(contentSeconds);
   const contentPad = Math.max(contentSeconds + 30, viewportSeconds);
-  // Past ~25% zoom, full 18-minute × high pps creates multi‑100k px layouts (lag).
-  if (zoom >= 25) {
-    return Math.max(contentPad, viewportSeconds);
-  }
-  return Math.max(workspace, viewportSeconds);
+  const fullCanvas = Math.max(workspace, viewportSeconds);
+  const compactCanvas = Math.max(contentPad, viewportSeconds);
+
+  // Blend 0→1 giữa zoom 20–30 thay vì hard cut tại 25.
+  const t = Math.min(1, Math.max(0, (zoom - 20) / 10));
+  const smooth = t * t * (3 - 2 * t); // smoothstep
+  return fullCanvas + (compactCanvas - fullCanvas) * smooth;
 }
 
 export type CapCutRulerScale = {
@@ -185,7 +200,7 @@ function niceFrameStep(minFrames: number, fps: number): number {
     .filter((n, i, arr) => n >= 1 && arr.indexOf(n) === i)
     .sort((a, b) => a - b);
 
-  return candidates.find((n) => n >= minFrames) ?? candidates[candidates.length - 1]!;
+  return candidates.find((n) => n >= minFrames) ?? candidates[candidates.length - 1] ?? 1;
 }
 
 /**
