@@ -27,6 +27,8 @@ import { createAssetRepository } from "../../infrastructure/repositories/asset-r
 
 type Props = {
   api: DesktopAPI;
+  /** Stable identity for open/new project — drives REPLACE_DOCUMENT. */
+  projectId: string;
   projectName: string;
   path: string | null;
   documentJson: string;
@@ -45,6 +47,7 @@ let propertyEntrySeq = 0;
 
 function EditingWorkspaceInner({
   api,
+  projectId,
   projectName,
   path,
   documentJson,
@@ -65,39 +68,45 @@ function EditingWorkspaceInner({
     createInitialTimelineSession,
   );
   const assetsApi = useMemo(() => createAssetRepository(api), [api]);
-  const skipReplaceRef = useRef(false);
+  const loadedProjectIdRef = useRef<string | null>(null);
+  const needsPlaybackResetRef = useRef(false);
 
   usePlaybackDriver(clock);
 
+  // Session owns the in-editor document. Load from parent only on project switch.
   useEffect(() => {
-    if (skipReplaceRef.current) {
-      skipReplaceRef.current = false;
+    if (loadedProjectIdRef.current === projectId) return;
+    loadedProjectIdRef.current = projectId;
+    needsPlaybackResetRef.current = true;
+    dispatch({ type: "REPLACE_DOCUMENT", documentJson });
+  }, [projectId, documentJson]);
+
+  // Emit session mutations to parent (single direction).
+  useEffect(() => {
+    const json = session.sessionDocumentJson;
+    if (!json || json === documentJson) return;
+    onDocumentChange(json);
+  }, [session.sessionDocumentJson, documentJson, onDocumentChange]);
+
+  // Reset playhead only on project open/switch; otherwise clamp duration in place.
+  useEffect(() => {
+    if (!session.project) return;
+    const duration = clipsContentEndSeconds(session.clips);
+    if (needsPlaybackResetRef.current) {
+      needsPlaybackResetRef.current = false;
+      clock.getState().reset({ duration, currentTime: 0 });
       return;
     }
-    if (documentJson === session.sessionDocumentJson) return;
-    dispatch({ type: "REPLACE_DOCUMENT", documentJson });
-  }, [documentJson, session.sessionDocumentJson]);
-
-  useEffect(() => {
-    if (
-      session.sessionDocumentJson &&
-      session.sessionDocumentJson !== documentJson
-    ) {
-      skipReplaceRef.current = true;
-      onDocumentChange(session.sessionDocumentJson);
-    }
-  }, [documentJson, onDocumentChange, session.sessionDocumentJson]);
-
-  useEffect(() => {
-    const duration = clipsContentEndSeconds(session.clips);
-    clock.getState().reset({ duration, currentTime: 0 });
-  }, [clock, session.documentRevision, session.clips]);
+    clock.getState().setDuration(duration);
+  }, [clock, session.documentRevision, session.clips, session.project]);
 
   useEffect(() => {
     return () => {
       clock.getState().pause();
     };
   }, [clock]);
+
+  const sessionJson = session.sessionDocumentJson ?? documentJson;
 
   return (
     <main className="editor-shell">
@@ -198,10 +207,12 @@ function EditingWorkspaceInner({
       >
         <AssetPanel
           projectPath={path}
-          documentJson={documentJson}
+          documentJson={sessionJson}
           assetsApi={assetsApi}
           disabled={saving}
-          onDocumentChange={onDocumentChange}
+          onDocumentChange={(json) =>
+            dispatch({ type: "APPLY_DOCUMENT_JSON", documentJson: json })
+          }
         />
         <div className="editor-shell__main-column">
           <div className="editor-shell__stage">
@@ -250,9 +261,14 @@ function EditingWorkspaceInner({
       <details className="editor-shell__json">
         <summary>Document JSON (debug)</summary>
         <textarea
-          value={documentJson}
+          value={sessionJson}
           spellCheck={false}
-          onChange={(e) => onDocumentChange(e.target.value)}
+          onChange={(e) =>
+            dispatch({
+              type: "APPLY_DOCUMENT_JSON",
+              documentJson: e.target.value,
+            })
+          }
           disabled={saving}
         />
       </details>

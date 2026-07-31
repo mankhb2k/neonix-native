@@ -51,6 +51,7 @@ export type TimelineSessionState = {
 
 export type TimelineSessionEvent =
   | { type: "REPLACE_DOCUMENT"; documentJson: string }
+  | { type: "APPLY_DOCUMENT_JSON"; documentJson: string }
   | { type: "SET_ZOOM"; zoom: number }
   | { type: "FIT_TIMELINE" }
   | { type: "CLEAR_ERROR" }
@@ -159,6 +160,33 @@ export function reduceTimelineSession(
           ...state,
           loadError:
             error instanceof Error ? error.message : "Failed to load timeline.",
+        };
+      }
+    }
+    case "APPLY_DOCUMENT_JSON": {
+      // External merge (assets/debug) — keep selection/history.
+      try {
+        const loaded = loadTimelineFromDocumentJson(event.documentJson);
+        return {
+          ...state,
+          projectId: loaded.projectId,
+          projectName: loaded.projectName,
+          fps: loaded.fps,
+          project: loaded.project,
+          clips: loaded.clips,
+          lanes: loaded.lanes,
+          documentRevision: state.documentRevision + 1,
+          loadError: null,
+          sessionDocumentJson: event.documentJson,
+          baseDocumentJson: event.documentJson,
+        };
+      } catch (error) {
+        return {
+          ...state,
+          loadError:
+            error instanceof Error
+              ? error.message
+              : "Failed to apply document JSON.",
         };
       }
     }

@@ -9,7 +9,6 @@ import {
   DesktopIpcError,
   DesktopIpcErrorCode,
   serializeDesktopIpcError,
-  type DesktopIpcErrorPayload,
 } from "../../shared/ipc/errors";
 import {
   cancelExportSchema,
@@ -79,7 +78,8 @@ function wrapHandler(
   return async (event, payload) => {
     try {
       validateSender(event);
-      return await handler(event, payload);
+      const value = await handler(event, payload);
+      return { ok: true as const, value };
     } catch (error) {
       const desktopError =
         error instanceof DesktopIpcError
@@ -88,12 +88,10 @@ function wrapHandler(
               DesktopIpcErrorCode.INTERNAL,
               error instanceof Error ? error.message : String(error),
             );
-      const payload = serializeDesktopIpcError(desktopError);
-      const err = new Error(payload.message) as Error & DesktopIpcErrorPayload;
-      err.__desktopIpcError = true;
-      err.code = payload.code;
-      err.details = payload.details;
-      throw err;
+      return {
+        ok: false as const,
+        error: serializeDesktopIpcError(desktopError),
+      };
     }
   };
 }

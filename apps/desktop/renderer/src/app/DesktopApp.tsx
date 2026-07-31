@@ -245,6 +245,7 @@ export function DesktopApp({ api }: Props) {
         (state.phase === "editing" || state.phase === "saving") ? (
           <EditingWorkspace
             api={api}
+            projectId={state.projectId ?? "untitled"}
             projectName={state.projectName}
             path={state.path}
             documentJson={state.documentJson}

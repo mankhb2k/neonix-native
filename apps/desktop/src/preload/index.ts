@@ -7,18 +7,21 @@ import type {
   MotionVideoDesktopBridge,
 } from "../shared/ipc/contracts";
 import {
-  DesktopIpcError,
   desktopIpcErrorFromUnknown,
-  isDesktopIpcErrorPayload,
+  isIpcResult,
+  unwrapIpcResult,
+  type IpcResult,
 } from "../shared/ipc/errors";
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   try {
-    return (await ipcRenderer.invoke(channel, payload)) as T;
-  } catch (error) {
-    if (isDesktopIpcErrorPayload(error)) {
-      throw new DesktopIpcError(error.code, error.message, error.details);
+    const raw = await ipcRenderer.invoke(channel, payload);
+    if (!isIpcResult(raw)) {
+      // Backward-compat: plain values (should not happen after Wave A).
+      return raw as T;
     }
+    return unwrapIpcResult(raw as IpcResult<T>);
+  } catch (error) {
     throw desktopIpcErrorFromUnknown(error);
   }
 }

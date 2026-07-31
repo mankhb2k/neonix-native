@@ -91,3 +91,35 @@ export function desktopIpcErrorFromUnknown(error: unknown): DesktopIpcError {
     error instanceof Error ? error.message : String(error),
   );
 }
+
+/** Electron strips custom Error fields across IPC — return this envelope instead. */
+export type IpcResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; error: DesktopIpcErrorPayload };
+
+export function ipcOk<T>(value: T): IpcResult<T> {
+  return { ok: true, value };
+}
+
+export function ipcErr(error: DesktopIpcError): IpcResult<never> {
+  return { ok: false, error: serializeDesktopIpcError(error) };
+}
+
+export function isIpcResult(value: unknown): value is IpcResult<unknown> {
+  if (typeof value !== "object" || value === null) return false;
+  const row = value as { ok?: unknown };
+  if (row.ok === true) return "value" in row;
+  if (row.ok === false) {
+    return isDesktopIpcErrorPayload((row as { error?: unknown }).error);
+  }
+  return false;
+}
+
+export function unwrapIpcResult<T>(result: IpcResult<T>): T {
+  if (result.ok) return result.value;
+  throw new DesktopIpcError(
+    result.error.code,
+    result.error.message,
+    result.error.details,
+  );
+}

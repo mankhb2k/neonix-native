@@ -4,8 +4,12 @@ import {
   DesktopIpcError,
   DesktopIpcErrorCode,
   desktopIpcErrorFromUnknown,
+  ipcErr,
+  ipcOk,
   isDesktopIpcErrorPayload,
+  isIpcResult,
   serializeDesktopIpcError,
+  unwrapIpcResult,
 } from "../shared/ipc/errors";
 import {
   cancelExportSchema,
@@ -126,5 +130,24 @@ describe("DesktopIpcError", () => {
   it("includes Phase 7 asset error codes", () => {
     expect(DesktopIpcErrorCode.MISSING_ASSET).toBe("MISSING_ASSET");
     expect(DesktopIpcErrorCode.PATH_DENIED).toBe("PATH_DENIED");
+  });
+
+  it("unwraps IpcResult envelopes (Electron-safe)", () => {
+    const ok = ipcOk({ n: 1 });
+    expect(unwrapIpcResult(ok)).toEqual({ n: 1 });
+
+    const err = ipcErr(
+      new DesktopIpcError(DesktopIpcErrorCode.CANCELLED, "cancelled"),
+    );
+    expect(isIpcResult(err)).toBe(true);
+    try {
+      unwrapIpcResult(err);
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(DesktopIpcError);
+      expect((error as DesktopIpcError).code).toBe(
+        DesktopIpcErrorCode.CANCELLED,
+      );
+    }
   });
 });
