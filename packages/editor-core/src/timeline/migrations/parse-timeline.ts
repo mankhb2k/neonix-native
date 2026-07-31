@@ -124,7 +124,10 @@ function assertArray(input: unknown, label: string): unknown[] {
   return input;
 }
 
-/** Strict lane parse — rejects malformed rows (for open/save validation). */
+/** Soft minimum for strict open/save — matches editor slice floor. */
+const MIN_CLIP_DURATION_STRICT = 0.05;
+
+/** Strict lane parse — canonical visual/audio only; no legacy migrate or soft defaults. */
 export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
   const items = assertArray(input, "timelineLanes");
   const lanes: TimelineLane[] = [];
@@ -133,22 +136,79 @@ export function parseTimelineLanesStrict(input: unknown): TimelineLane[] {
     if (!item || typeof item !== "object") {
       throw new TimelineParseError(`timelineLanes[${i}] is not an object.`);
     }
-    const before = lanes.length;
-    const parsed = parseTimelineLanes([item]);
-    if (parsed.length !== 1) {
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== "string" || row.id.length === 0) {
+      throw new TimelineParseError(`timelineLanes[${i}].id must be a non-empty string.`);
+    }
+    if (typeof row.name !== "string" || row.name.length === 0) {
       throw new TimelineParseError(
-        `timelineLanes[${i}] is not a valid TimelineLane.`,
+        `timelineLanes[${i}].name must be a non-empty string.`,
       );
     }
-    if (lanes.length !== before) {
-      /* unreachable */
+    if (
+      !validNumber(row.order) ||
+      !Number.isInteger(row.order)
+    ) {
+      throw new TimelineParseError(
+        `timelineLanes[${i}].order must be a finite integer.`,
+      );
     }
-    lanes.push(parsed[0]!);
+    const locked = row.locked === true;
+    if (row.kind === "visual") {
+      if (row.role !== "base" && row.role !== "overlay") {
+        throw new TimelineParseError(
+          `timelineLanes[${i}].role must be "base" or "overlay" for visual lanes.`,
+        );
+      }
+      if (row.policy != null && typeof row.policy !== "object") {
+        throw new TimelineParseError(
+          `timelineLanes[${i}].policy must be an object when present.`,
+        );
+      }
+      const policyRaw =
+        row.policy && typeof row.policy === "object"
+          ? (row.policy as Record<string, unknown>)
+          : null;
+      lanes.push({
+        id: row.id,
+        kind: "visual",
+        role: row.role,
+        name: row.name,
+        order: row.order,
+        policy: {
+          allowOverlap: false,
+          rippleMode: policyRaw?.rippleMode === true,
+        },
+        ...(locked ? { locked: true } : {}),
+        ...(row.visible === false ? { visible: false } : {}),
+      });
+      continue;
+    }
+    if (row.kind === "audio") {
+      if (row.role != null && row.role !== "audio") {
+        throw new TimelineParseError(
+          `timelineLanes[${i}].role must be "audio" when set on audio lanes.`,
+        );
+      }
+      lanes.push({
+        id: row.id,
+        kind: "audio",
+        role: "audio",
+        name: row.name,
+        order: row.order,
+        ...(locked ? { locked: true } : {}),
+        ...(row.muted === true ? { muted: true } : {}),
+      });
+      continue;
+    }
+    throw new TimelineParseError(
+      `timelineLanes[${i}].kind must be "visual" or "audio" (legacy kinds rejected).`,
+    );
   }
   return lanes;
 }
 
-/** Strict clip parse — rejects malformed rows (for open/save validation). */
+/** Strict clip parse — canonical scene/audio only; no clamp, invent, or legacy track. */
 export function parseTimelineClipsStrict(input: unknown): TimelineClip[] {
   const items = assertArray(input, "timelineClips");
   const clips: TimelineClip[] = [];
@@ -157,13 +217,76 @@ export function parseTimelineClipsStrict(input: unknown): TimelineClip[] {
     if (!item || typeof item !== "object") {
       throw new TimelineParseError(`timelineClips[${i}] is not an object.`);
     }
-    const parsed = parseTimelineClips([item]);
-    if (parsed.length !== 1) {
+    const row = item as Record<string, unknown>;
+    if (typeof row.id !== "string" || row.id.length === 0) {
+      throw new TimelineParseError(`timelineClips[${i}].id must be a non-empty string.`);
+    }
+    if (typeof row.name !== "string" || row.name.length === 0) {
       throw new TimelineParseError(
-        `timelineClips[${i}] is not a valid TimelineClip.`,
+        `timelineClips[${i}].name must be a non-empty string.`,
       );
     }
-    clips.push(parsed[0]!);
+    if (typeof row.laneId !== "string" || row.laneId.length === 0) {
+      throw new TimelineParseError(
+        `timelineClips[${i}].laneId must be a non-empty string.`,
+      );
+    }
+    if (!validNumber(row.startTime) || row.startTime < 0) {
+      throw new TimelineParseError(
+        `timelineClips[${i}].startTime must be a finite number >= 0.`,
+      );
+    }
+    if (
+      !validNumber(row.duration) ||
+      row.duration < MIN_CLIP_DURATION_STRICT
+    ) {
+      throw new TimelineParseError(
+        `timelineClips[${i}].duration must be a finite number >= ${MIN_CLIP_DURATION_STRICT}.`,
+      );
+    }
+    if (row.kind === "scene") {
+      if (typeof row.sceneId !== "string" || row.sceneId.length === 0) {
+        throw new TimelineParseError(
+          `timelineClips[${i}].sceneId must be a non-empty string.`,
+        );
+      }
+      clips.push({
+        id: row.id,
+        kind: "scene",
+        sceneId: row.sceneId,
+        laneId: row.laneId,
+        startTime: row.startTime,
+        duration: row.duration,
+        name: row.name,
+      });
+      continue;
+    }
+    if (row.kind === "audio") {
+      if (typeof row.audioTrackId !== "string" || row.audioTrackId.length === 0) {
+        throw new TimelineParseError(
+          `timelineClips[${i}].audioTrackId must be a non-empty string.`,
+        );
+      }
+      if (typeof row.assetId !== "string" || row.assetId.length === 0) {
+        throw new TimelineParseError(
+          `timelineClips[${i}].assetId must be a non-empty string.`,
+        );
+      }
+      clips.push({
+        id: row.id,
+        kind: "audio",
+        audioTrackId: row.audioTrackId,
+        assetId: row.assetId,
+        laneId: row.laneId,
+        startTime: row.startTime,
+        duration: row.duration,
+        name: row.name,
+      });
+      continue;
+    }
+    throw new TimelineParseError(
+      `timelineClips[${i}].kind must be "scene" or "audio".`,
+    );
   }
   return clips;
 }

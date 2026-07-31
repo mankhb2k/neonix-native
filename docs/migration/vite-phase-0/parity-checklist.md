@@ -15,26 +15,29 @@ Fixtures: [`fixtures/`](./fixtures/) · Goldens: [`goldens/`](./goldens/) · Sho
 | P0-DOC-02 | Open medium (overlay + audio) | `fixtures/medium.project.json` | pass | | Partial |
 | P0-DOC-03 | Open large (dense timeline) | `fixtures/large.project.json` | pass | | Partial (virtualization MVP) |
 | P0-DOC-04 | Persistence envelope `storageVersion: 2` | fixtures | pass | pass | |
-| P0-CMD-01 | Move clip | `goldens/move-clip.after.json` | pass | | Phase 5 open |
-| P0-CMD-02 | Trim / resize clip | `goldens/trim-clip.after.json` | pass | | Phase 5 open |
-| P0-CMD-03 | Split at playhead | `goldens/split-clip.after.json` | pass | | Phase 5 open |
-| P0-CMD-04 | Duplicate selection | `goldens/duplicate-clip.after.json` | pass | | Phase 5 open |
-| P0-CMD-05 | Delete selection | `goldens/delete-clip.after.json` | pass | | Phase 5 open |
-| P0-CMD-06 | Undo after move | `goldens/undo-after-move.after.json` | pass | | Phase 5 open |
-| P0-CMD-07 | Redo after undo | `goldens/redo-after-undo.after.json` | pass | | Phase 5 open |
-| P0-CMD-08 | Lane lock flag | `goldens/lane-lock.after.json` | pass | | Phase 5 open |
-| P0-CMD-09 | Lane reorder | `goldens/lane-reorder.after.json` | pass | | Phase 5 open |
+| P0-CMD-01 | Move clip | `goldens/move-clip.after.json` | pass | pass | Session + ClipStrip (same-lane) |
+| P0-CMD-02 | Trim / resize clip | `goldens/trim-clip.after.json` | pass | pass | |
+| P0-CMD-03 | Split at playhead | `goldens/split-clip.after.json` | pass | pass | Hotkeys |
+| P0-CMD-04 | Duplicate selection | `goldens/duplicate-clip.after.json` | pass | | UI-6 |
+| P0-CMD-05 | Delete selection | `goldens/delete-clip.after.json` | pass | pass | Hotkeys |
+| P0-CMD-06 | Undo after move | `goldens/undo-after-move.after.json` | pass | pass | |
+| P0-CMD-07 | Redo after undo | `goldens/redo-after-undo.after.json` | pass | pass | |
+| P0-CMD-08 | Lane lock flag | `goldens/lane-lock.after.json` | pass | | UI-4/5 |
+| P0-CMD-09 | Lane reorder | `goldens/lane-reorder.after.json` | pass | | UI-6 |
 | P0-TL-01 | Timeline ruler + clips render | screenshots/timeline | pass | pass | Read-only MVP |
 | P0-TL-02 | Virtualization DOM budget (unit) | large / vitest | pass | pass | Phase 10 |
-| P0-TL-03 | DnD + auto-scroll (e2e suite) | e2e/timeline | pass | | Phase 5 open |
-| P0-KB-01 | Undo/redo/clipboard/split/delete hotkeys | shortcut matrix | pass | | Phase 5 open |
-| P0-KB-02 | Playhead arrow / Home / End | shortcut matrix | pass | | Phase 5 open |
-| P0-KB-03 | Space is **not** play/pause | shortcut matrix | pass | | |
+| P0-TL-03 | DnD + auto-scroll (e2e suite) | e2e/timeline | pass | | UI-6 |
+| P0-KB-01 | Undo/redo/clipboard/split/delete hotkeys | shortcut matrix | pass | pass | Clipboard partial |
+| P0-KB-02 | Playhead arrow / Home / End | shortcut matrix | pass | pass | |
+| P0-KB-03 | Space is **not** play/pause | shortcut matrix | pass | pass | |
 | P0-PB-01 | Transport play/pause + seek | e2e playback | pass | pass | Phase 6 MVP |
 | P0-PB-02 | Preview stage shows scene | screenshots/stage | pass | pass | Phase 6 MVP |
-| P0-WS-01 | Workspace layout (sidebar/stage/timeline) | screenshots/workspace | pass | pass | |
+| P0-WS-01 | Workspace layout (sidebar/stage/timeline) | screenshots/workspace | pass | partial | UI-3 layout port |
 | P0-EXP-01 | Export via web HTTP | feature inventory | pass | n/a | Desktop jobs Phase 9 |
 | P0-FS-01 | Native project open/save | — | n/a (localStorage) | pass | Phase 4 |
+| P0-UI-00 | Rename draft commit (blur) | vitest | n/a | pass | UI-0 |
+| P0-UI-00b | Single pointer host ownership | vitest happy-dom | n/a | pass | UI-0 |
+| P0-UI-00c | Strict timeline schema (no soft fix) | vitest | n/a | pass | UI-0 |
 
 ## How to update
 

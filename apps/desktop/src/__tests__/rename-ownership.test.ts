@@ -9,25 +9,7 @@ import {
   reduceTimelineSession,
 } from "../../renderer/src/editor/session/timeline-session";
 
-describe("rename document ownership (Wave 2)", () => {
-  it("SET_NAME does not mutate parent documentJson", () => {
-    const blank = buildBlankDesktopProject({
-      name: "Original",
-      createId: (p) => `${p}_rn`,
-    });
-    let app = createInitialAppState();
-    app = reduceAppState(app, {
-      type: "NEW_PROJECT",
-      projectId: blank.projectId,
-      documentJson: blank.documentJson,
-      name: "Original",
-    });
-    const before = app.documentJson;
-    app = reduceAppState(app, { type: "SET_NAME", name: "Renamed UI" });
-    expect(app.projectName).toBe("Renamed UI");
-    expect(app.documentJson).toBe(before);
-  });
-
+describe("rename document ownership (UI-0)", () => {
   it("session rename emits new name and parent sync does not revert", () => {
     const blank = buildBlankDesktopProject({
       name: "Original",
@@ -57,7 +39,6 @@ describe("rename document ownership (Wave 2)", () => {
       documentJson: blank.documentJson,
       name: "Original",
     });
-    // Parent receives session emit (one-way).
     app = reduceAppState(app, {
       type: "SET_DOCUMENT_JSON",
       documentJson: session.sessionDocumentJson!,
@@ -65,16 +46,32 @@ describe("rename document ownership (Wave 2)", () => {
     expect(app.projectName).toBe("Session Name");
     expect(app.documentJson).toContain("Session Name");
 
-    // Stale session emit must not overwrite a newer parent doc after projectId-stable load.
-    // Simulate: session still holds renamed JSON; if parent had been mutated by old SET_NAME,
-    // emitting stale JSON would revert. With session ownership, emit is the source of truth.
     const stale = blank.documentJson;
     expect(stale).toContain("Original");
-    // Session keeps renamed JSON; parent sync from session wins.
     app = reduceAppState(app, {
       type: "SET_DOCUMENT_JSON",
       documentJson: session.sessionDocumentJson!,
     });
     expect(app.projectName).toBe("Session Name");
+  });
+
+  it("one SET_PROJECT_NAME creates a single history entry", () => {
+    const blank = buildBlankDesktopProject({
+      name: "Original",
+      createId: (p) => `${p}_hist`,
+    });
+    let session = createInitialTimelineSession();
+    session = reduceTimelineSession(session, {
+      type: "REPLACE_DOCUMENT",
+      documentJson: blank.documentJson,
+    });
+    const before = session.history.past.length;
+    session = reduceTimelineSession(session, {
+      type: "SET_PROJECT_NAME",
+      name: "Final Name",
+      entryId: "rename_commit",
+    });
+    expect(session.history.past.length).toBe(before + 1);
+    expect(session.projectName).toBe("Final Name");
   });
 });

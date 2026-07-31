@@ -4,7 +4,7 @@ import {
   resetActivePointerSessionToken,
 } from "../../renderer/src/editor/timeline/interactions/pointer-session-controller";
 
-describe("pointer session lifecycle (Wave 4)", () => {
+describe("pointer session lifecycle (UI-0)", () => {
   it("releases global token on cancel so a new gesture can start", () => {
     resetActivePointerSessionToken();
     const first = new PointerSessionController({
@@ -27,27 +27,29 @@ describe("pointer session lifecycle (Wave 4)", () => {
     second.cancel();
   });
 
-  it("dispose path cancels without commit and frees the token", () => {
+  it("owner cancel frees token; foreign dispose must not clear active token", () => {
     resetActivePointerSessionToken();
-    const onCommit = vi.fn();
     const onCancel = vi.fn();
-    const controller = new PointerSessionController({
-      name: "dispose",
+    const owner = new PointerSessionController({
+      name: "owner",
       onStart: () => ({ v: 1 }),
-      onCommit,
       onCancel,
     });
-    expect(controller.start({ x: 0, y: 0 })).toBe(true);
+    expect(owner.start({ x: 0, y: 0 })).toBe(true);
 
-    // Host dispose: cancel + reset global token (listeners removed by host).
-    controller.cancel();
-    resetActivePointerSessionToken();
+    // Simulate foreign host unmount: it has no local gesture — must NOT reset token.
+    // Only the owning controller.cancel() releases the token.
+    const foreign = new PointerSessionController({
+      name: "foreign",
+      onStart: () => ({}),
+    });
+    expect(foreign.start({ x: 1, y: 1 })).toBe(false);
 
+    owner.cancel();
     expect(onCancel).toHaveBeenCalledOnce();
-    expect(onCommit).not.toHaveBeenCalled();
 
     const next = new PointerSessionController({
-      name: "after-dispose",
+      name: "after-owner",
       onStart: () => ({}),
     });
     expect(next.start({ x: 3, y: 3 })).toBe(true);

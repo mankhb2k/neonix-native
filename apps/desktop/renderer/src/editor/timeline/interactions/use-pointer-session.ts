@@ -1,11 +1,11 @@
 /**
- * React host for pointer sessions — disposes listeners + global token on unmount.
+ * React host for pointer sessions — one host per TimelineViewport.
+ * Unmount only cancels the gesture this host owns (never nukes a foreign token).
  */
 
 import { useEffect, useRef } from "react";
 import {
   PointerSessionController,
-  resetActivePointerSessionToken,
   type PointerPos,
   type PointerSessionConfig,
 } from "./pointer-session-controller";
@@ -19,9 +19,14 @@ export type ActivePointerGesture = {
   dispose: () => void;
 };
 
+export type BeginGesture = <TState, TResult>(
+  config: PointerSessionConfig<TState, TResult>,
+  initialPos: PointerPos,
+  bindTarget?: HTMLElement | null,
+) => PointerSessionController<TState, TResult> | null;
+
 /**
- * Owns the active gesture for a component tree.
- * Cleanup on unmount cancels the session and removes window listeners.
+ * Owns the active gesture for a component tree (place once on TimelineViewport).
  */
 export function usePointerSessionHost() {
   const activeRef = useRef<ActivePointerGesture | null>(null);
@@ -43,10 +48,10 @@ export function usePointerSessionHost() {
 
   useEffect(() => {
     return () => {
+      // Only dispose this host's gesture — do not reset the global token
+      // (another host must never clear a foreign active session).
       clearActive("pointercancel");
-      resetActivePointerSessionToken();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/unmount only
   }, []);
 
   function beginGesture<TState, TResult>(
@@ -67,7 +72,10 @@ export function usePointerSessionHost() {
       window.removeEventListener("pointercancel", onCancel);
       window.removeEventListener("lostpointercapture", onLostCapture);
       window.removeEventListener("keydown", onKey);
-      if (activeRef.current?.controller === (controller as unknown as PointerSessionController<unknown>)) {
+      if (
+        activeRef.current?.controller ===
+        (controller as unknown as PointerSessionController<unknown>)
+      ) {
         activeRef.current = null;
       }
       controller.flushPendingUpdate();

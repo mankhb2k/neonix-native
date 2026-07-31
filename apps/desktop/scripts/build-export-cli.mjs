@@ -123,49 +123,22 @@ function copyCanvasNative() {
   return dest;
 }
 
-function ensureFfmpegInstalled() {
+function copyFfmpegBinary() {
   let ffmpegPath;
   try {
     ffmpegPath = require("ffmpeg-static");
   } catch (error) {
     throw new Error(
-      `ffmpeg-static not resolvable: ${error instanceof Error ? error.message : String(error)}`,
+      `ffmpeg-static not resolvable: ${error instanceof Error ? error.message : String(error)}. ` +
+        `Run pnpm install (with lifecycle scripts) so the binary is present; release builds do not download.`,
     );
   }
-  if (typeof ffmpegPath === "string" && fs.existsSync(ffmpegPath)) {
-    return ffmpegPath;
-  }
-
-  const pkgJson = require.resolve("ffmpeg-static/package.json", {
-    paths: [path.join(repoRoot, "apps", "render-worker"), repoRoot],
-  });
-  const pkgDir = path.dirname(pkgJson);
-  const installJs = path.join(pkgDir, "install.js");
-  console.info(
-    `[build-export-cli] ffmpeg binary missing; running ${installJs}`,
-  );
-  const { spawnSync } = require("node:child_process");
-  const result = spawnSync(process.execPath, [installJs], {
-    cwd: pkgDir,
-    stdio: "inherit",
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    throw new Error(
-      `ffmpeg-static install.js failed with status ${result.status ?? "?"}`,
-    );
-  }
-  ffmpegPath = require("ffmpeg-static");
   if (typeof ffmpegPath !== "string" || !fs.existsSync(ffmpegPath)) {
     throw new Error(
-      `ffmpeg-static still missing after install (got ${String(ffmpegPath)}).`,
+      `ffmpeg-static binary missing at ${String(ffmpegPath)}. ` +
+        `Ensure ffmpeg-static postinstall ran (pnpm install / CI cache). Release builds fail-fast and do not download.`,
     );
   }
-  return ffmpegPath;
-}
-
-function copyFfmpegBinary() {
-  const ffmpegPath = ensureFfmpegInstalled();
   const ext = process.platform === "win32" ? ".exe" : "";
   const destName = `ffmpeg${ext}`;
   const dest = path.join(outDir, destName);

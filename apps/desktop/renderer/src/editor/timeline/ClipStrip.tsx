@@ -13,7 +13,7 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import { usePointerSessionHost } from "./interactions/use-pointer-session";
+import type { BeginGesture } from "./interactions/use-pointer-session";
 
 const DRAG_THRESHOLD_PX = 3;
 
@@ -42,6 +42,7 @@ type Props = {
   laneHeight: number;
   selection: EditorSelection;
   disabled?: boolean;
+  beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
 };
@@ -53,6 +54,7 @@ export function ClipStrip({
   laneHeight,
   selection,
   disabled,
+  beginGesture,
   onSelect,
   onExecute,
 }: Props) {
@@ -61,7 +63,6 @@ export function ClipStrip({
   const height = Math.max(8, laneHeight - padY * 2);
   const selected = new Set(selectedClipIdsFrom(selection));
   const [preview, setPreview] = useState<Preview | null>(null);
-  const { beginGesture } = usePointerSessionHost();
 
   const beginMove = (
     event: ReactPointerEvent<HTMLElement>,

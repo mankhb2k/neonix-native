@@ -22,6 +22,7 @@
 - [x] Packaged CLI bundle: `pnpm build:export-cli` → `extraResources/export-cli`
 - [x] Native canvas platform package + `ffmpeg.exe` copied beside CLI (hard-fail if missing)
 - [x] Packaged runtime smoke: `pnpm test:export-cli` (ELECTRON_RUN_AS_NODE + encode)
+- [x] `ffmpeg-static` binary must already exist from install/CI cache — build does **not** run `install.js`
 - [x] Export presets (`preview` / `fhd` / `fhd24`) via `MOTIONVIDEO_EXPORT_FPS` / `SCALE`
 - [ ] Electron `utilityProcess` migration
 - [ ] BullMQ / cloud upload

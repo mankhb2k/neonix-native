@@ -24,13 +24,18 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 - [x] Startup log: version / packaged / renderer / startupMs
 - [x] ADR-002 amended (cutover blocked)
 - [x] Document ownership / rename via session (post-review Wave 2)
+- [x] Rename draft commit on blur/Enter (UI-0) — no per-keystroke history
+- [x] Single TimelineViewport pointer host (UI-0)
+- [x] Strict timeline schema (no soft canonicalize on open/save) (UI-0)
 - [x] `IpcResult<T>` across real Electron IPC (Wave A)
 - [x] FS capability tokens / no arbitrary absolute paths (Wave B)
 - [x] Packaged export natives + CLI smoke (post-review Wave 1)
+- [x] Export build fail-fast if ffmpeg binary missing (no mid-pack download) (UI-0)
 - [x] Timeline interaction MVP (Wave D)
 - [x] Async IO / save validation / asset probe (Wave E)
 - [x] Export presets + overlap cull (Wave F)
-- [ ] Re-enable production cutover only after gates above + soak
+- [ ] UI visual parity Hub → Inspector (UI-1…UI-7)
+- [ ] Re-enable production cutover only after UI-8 + soak
 
 ## Rollback steps (dev)
 
@@ -47,15 +52,17 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 
 ## Known gaps (honest)
 
-- Timeline: marquee / lane reorder / library DnD still follow-ups
-- Playhead / PreviewStage still subscribe React to clock ticks (render-storm profile deferred)
+- UI port in progress (UI-1…UI-8): Hub/layout/timeline visual/sidebar/inspector not full parity
+- Timeline: marquee / lane reorder / library DnD still follow-ups (UI-6)
+- Playhead / PreviewStage React clock subscription (UI-4 hot path)
 - Export preset `4k` and recovery journal not enabled yet
 - No release-level legacy rollback inside packaged artifact
-- Production cutover still blocked until soak / product sign-off
+- Production cutover still blocked until UI-8 soak / product sign-off
 
 ## Automated
 
 ```bash
 pnpm --filter @motionvideo/desktop test
 pnpm --filter @motionvideo/desktop typecheck
+pnpm --filter @motionvideo/desktop lint
 ```

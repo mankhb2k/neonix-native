@@ -20,6 +20,7 @@ import { clientXToTimelineTime } from "./timeline-seek";
 import { useVisibleTimeline } from "./use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
 import { usePlaybackClockApi } from "../playback/playback-clock-store";
+import { usePointerSessionHost } from "./interactions/use-pointer-session";
 import "./timeline-layout.css";
 
 type Props = {
@@ -55,6 +56,7 @@ export function TimelineViewport({
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
   const clock = usePlaybackClockApi();
+  const { beginGesture } = usePointerSessionHost();
 
   const scrollLeftRafRef = useRef<number | null>(null);
   const scrollTopRafRef = useRef<number | null>(null);
@@ -272,6 +274,7 @@ export function TimelineViewport({
                       laneHeight={h}
                       selection={selection}
                       disabled={disabled}
+                      beginGesture={beginGesture}
                       onSelect={onSelect}
                       onExecute={onExecute}
                     />

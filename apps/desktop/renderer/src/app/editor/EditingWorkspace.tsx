@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import {
   canRedo,
   canUndo,
@@ -131,6 +138,34 @@ function EditingWorkspaceInner({
 
   const sessionJson = session.sessionDocumentJson ?? documentJson;
 
+  const [nameDraft, setNameDraft] = useState(session.projectName);
+  const nameDraftDirtyRef = useRef(false);
+
+  useEffect(() => {
+    if (nameDraftDirtyRef.current) return;
+    setNameDraft(session.projectName);
+  }, [session.projectName]);
+
+  const commitProjectName = useCallback(() => {
+    nameDraftDirtyRef.current = false;
+    const next = nameDraft;
+    if ((next.trim() || "Untitled") === session.projectName) {
+      setNameDraft(session.projectName);
+      return;
+    }
+    renameEntrySeq += 1;
+    dispatch({
+      type: "SET_PROJECT_NAME",
+      name: next,
+      entryId: `rename_${renameEntrySeq}`,
+    });
+  }, [nameDraft, session.projectName]);
+
+  const rollbackProjectName = useCallback(() => {
+    nameDraftDirtyRef.current = false;
+    setNameDraft(session.projectName);
+  }, [session.projectName]);
+
   return (
     <main className="editor-shell">
       <div className="editor-shell__toolbar">
@@ -215,14 +250,22 @@ function EditingWorkspaceInner({
       <label className="editor-shell__field">
         <span>Project name</span>
         <input
-          value={session.projectName}
+          aria-label="Project name"
+          value={nameDraft}
           onChange={(e) => {
-            renameEntrySeq += 1;
-            dispatch({
-              type: "SET_PROJECT_NAME",
-              name: e.target.value,
-              entryId: `rename_${renameEntrySeq}`,
-            });
+            nameDraftDirtyRef.current = true;
+            setNameDraft(e.target.value);
+          }}
+          onBlur={() => commitProjectName()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              (e.target as HTMLInputElement).blur();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              rollbackProjectName();
+              (e.target as HTMLInputElement).blur();
+            }
           }}
           disabled={saving}
         />

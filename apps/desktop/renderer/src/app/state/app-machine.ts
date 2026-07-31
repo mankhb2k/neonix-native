@@ -47,7 +47,6 @@ export type AppEvent =
   | { type: "OPEN_CANCEL" }
   | { type: "OPEN_ERROR"; message: string }
   | { type: "SET_DOCUMENT_JSON"; documentJson: string }
-  | { type: "SET_NAME"; name: string }
   | { type: "SAVE_START" }
   | { type: "SAVE_SUCCESS"; path: string; documentJson: string }
   | { type: "SAVE_ERROR"; message: string }
@@ -135,9 +134,6 @@ export function reduceAppState(state: AppState, event: AppEvent): AppState {
         projectName: nameFromDocument(event.documentJson, state.projectName),
         dirty: true,
       };
-    case "SET_NAME":
-      // Display-only. Document JSON is owned by the editor session.
-      return { ...state, projectName: event.name };
     case "SAVE_START":
       return { ...state, phase: "saving", error: null };
     case "SAVE_SUCCESS":
