@@ -29,6 +29,30 @@ export {
   isVisualLane,
 } from "@/lib/editor/model/timeline-types";
 
+// TimelineDocument Aggregate & Validation
+export type {
+  TimelineDocument,
+  TimelineValidationResult,
+  TimelineViolation,
+  TimelineViolationReason,
+} from "@/lib/editor/timeline/document";
+
+export {
+  documentFromStoreState,
+  storeStateFromDocument,
+  validateTimelineDocument,
+} from "@/lib/editor/timeline/document";
+
+// Index Builders & Selectors
+export type { VisualLayerIndexItem } from "@/lib/editor/timeline/indexes";
+export {
+  clipsById,
+  clipsByLane,
+  contentEndSeconds,
+  lanesById,
+  visualCompositionIndex,
+} from "@/lib/editor/timeline/indexes";
+
 // Canonical Domain Helpers & Predicates
 export {
   clipsContentEndSeconds,
