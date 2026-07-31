@@ -81,6 +81,45 @@ export {
   undoHistory,
 } from "@/lib/editor/timeline/history/history-manager";
 
+// Timeline Geometry & Interaction Sessions (State Machines)
+export type {
+  LaneLayoutRect,
+  TimelineGeometryConfig,
+} from "@/lib/editor/timeline/geometry/timeline-geometry";
+
+export { TimelineGeometry } from "@/lib/editor/timeline/geometry/timeline-geometry";
+
+export type {
+  PointerPos,
+  PointerSessionConfig,
+  SessionState,
+} from "@/lib/editor/timeline/sessions/pointer-session-controller";
+
+export { PointerSessionController } from "@/lib/editor/timeline/sessions/pointer-session-controller";
+
+export type { MoveSessionState } from "@/lib/editor/timeline/sessions/clip-move-session";
+export {
+  buildClipMovePatch,
+  createClipMoveSessionState,
+  updateClipMoveSessionState,
+} from "@/lib/editor/timeline/sessions/clip-move-session";
+
+export type { LibraryDropSessionState } from "@/lib/editor/timeline/sessions/library-drop-session";
+export {
+  buildPlacementTarget,
+  createLibraryDropSessionState,
+  updateLibraryDropSessionState,
+} from "@/lib/editor/timeline/sessions/library-drop-session";
+
+export type {
+  MarqueeBox,
+  MarqueeSessionState,
+} from "@/lib/editor/timeline/sessions/marquee-select-session";
+export {
+  createMarqueeSessionState,
+  updateMarqueeSessionState,
+} from "@/lib/editor/timeline/sessions/marquee-select-session";
+
 // Canonical Domain Helpers & Predicates
 export {
   clipsContentEndSeconds,
