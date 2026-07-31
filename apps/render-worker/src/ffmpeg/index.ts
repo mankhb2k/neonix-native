@@ -50,7 +50,9 @@ export async function encodeOutputs(
   assetBaseDir = REPO_ROOT,
 ): Promise<EncodedFile[]> {
   const ffmpeg = resolveFfmpegPath();
-  const outDir = path.join(REPO_ROOT, "tmp");
+  const outDir = process.env.MOTIONVIDEO_EXPORT_OUT_DIR
+    ? path.resolve(process.env.MOTIONVIDEO_EXPORT_OUT_DIR)
+    : path.join(REPO_ROOT, "tmp");
   await mkdir(outDir, { recursive: true });
   const outPath = path.join(outDir, `${renderResult.projectId}.mp4`);
   const pattern = path.join(renderResult.framesDir, "frame_%06d.png");

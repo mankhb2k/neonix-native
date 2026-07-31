@@ -896,7 +896,7 @@ Checklist: [`docs/migration/vite-phase-10/performance.md`](docs/migration/vite-p
 - Packager: electron-builder Windows `dir` / NSIS (`pack` / `dist`)
 - Artifact harden: release sourcemaps off, prod HTML/session CSP, `app://` refuses `.map`, packaged → Vite (`app://bundle`)
 - Checklist + smoke: [docs/migration/vite-phase-11/security-packaging.md](docs/migration/vite-phase-11/security-packaging.md)
-- **Deferred / later:** unpackaged already cut over (Phase 12); auto-update, OS deep-links / `.mt` association, packaged export worker, multi-OS matrix, code signing
+- **Deferred / later:** auto-update, OS deep-links / `.mt` association, multi-OS matrix, code signing
 
 ### Mục tiêu
 

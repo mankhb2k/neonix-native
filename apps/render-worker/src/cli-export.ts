@@ -13,7 +13,10 @@ import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "../../..");
+/** Dev: monorepo root. Packaged CLI: prefer env / ignore fixtures when unset. */
+const REPO_ROOT = process.env.MOTIONVIDEO_REPO_ROOT
+  ? path.resolve(process.env.MOTIONVIDEO_REPO_ROOT)
+  : path.resolve(__dirname, "../../..");
 
 function emitProgress(stage: string, ratio: number): void {
   process.stderr.write(`progress\t${stage}\t${ratio}\n`);

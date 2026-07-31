@@ -39,6 +39,9 @@ export type ExportServiceOptions = {
   fs?: ExportServiceFs;
   processManager?: ExportProcessManager;
   repoRoot: string;
+  /** Packaged app resources root (process.resourcesPath). */
+  resourcesRoot?: string;
+  packaged?: boolean;
   fixturesAssetBase?: string;
   timeoutMs?: number;
   createJobId?: () => string;
@@ -74,7 +77,9 @@ type JobRecord = {
 
 export function createExportService(options: ExportServiceOptions) {
   const io = options.fs ?? defaultFs();
-  const manager = options.processManager ?? createExportProcessManager();
+  const manager =
+    options.processManager ??
+    createExportProcessManager({ packaged: options.packaged });
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const uid = options.createJobId ?? createJobId;
   const showSaveDialog: ShowSaveDialogFn =
@@ -86,6 +91,10 @@ export function createExportService(options: ExportServiceOptions) {
   const fixturesBase =
     options.fixturesAssetBase ??
     path.join(options.repoRoot, "docs", "fixtures", "v2");
+  const workerRoot =
+    options.packaged && options.resourcesRoot
+      ? options.resourcesRoot
+      : options.repoRoot;
 
   const jobs = new Map<string, JobRecord>();
 
@@ -194,109 +203,109 @@ export function createExportService(options: ExportServiceOptions) {
     };
     jobs.set(jobId, rec);
 
-    emit({
-      type: "progress",
-      jobId,
-      ratio: 0.05,
-      sequence: nextSequence(jobId),
-      message: "Starting export…",
-    });
-
-    rec.timeout = setTimeout(() => {
+    // Return job id before any events so the renderer can subscribe first.
+    setImmediate(() => {
       const current = jobs.get(jobId);
       if (!current || current.cancelled) return;
-      manager.cancel(jobId);
+
       emit({
-        type: "failed",
+        type: "progress",
         jobId,
-        message: "Export timed out.",
+        ratio: 0.05,
         sequence: nextSequence(jobId),
+        message: "Starting export…",
       });
-      finishJob(jobId);
-    }, timeoutMs);
 
-    void (async () => {
-      try {
-        emit({
-          type: "progress",
-          jobId,
-          ratio: 0.2,
-          sequence: nextSequence(jobId),
-          message: "Rendering…",
-        });
-
-        const result = await manager.startJob({
-          jobId,
-          projectJsonPath,
-          outDir: path.join(tempDir, "work"),
-          assetBaseDir,
-          outputPath,
-          repoRoot: options.repoRoot,
-          onStderrLine: (line) => {
-            if (jobs.get(jobId)?.cancelled) return;
-            if (!line.startsWith("progress\t")) return;
-            const parts = line.split("\t");
-            const stage = parts[1] ?? "working";
-            const ratio = Number(parts[2]);
-            if (!Number.isFinite(ratio)) return;
-            emit({
-              type: "progress",
-              jobId,
-              ratio: Math.min(0.95, Math.max(0.2, ratio)),
-              sequence: nextSequence(jobId),
-              message: stage,
-            });
-          },
-        });
-
-        const current = jobs.get(jobId);
-        if (!current) return;
-        if (current.cancelled || (!result.ok && result.error === "cancelled")) {
-          emit({
-            type: "cancelled",
-            jobId,
-            sequence: nextSequence(jobId),
-          });
-          finishJob(jobId);
-          return;
-        }
-
-        if (!result.ok) {
-          emit({
-            type: "failed",
-            jobId,
-            message: result.error,
-            sequence: nextSequence(jobId),
-          });
-          finishJob(jobId);
-          return;
-        }
-
-        emit({
-          type: "progress",
-          jobId,
-          ratio: 0.95,
-          sequence: nextSequence(jobId),
-          message: "Finishing…",
-        });
-        emit({
-          type: "completed",
-          jobId,
-          outputPath: result.mp4Path,
-          sequence: nextSequence(jobId),
-        });
-        finishJob(jobId);
-      } catch (err) {
-        if (!jobs.has(jobId)) return;
+      current.timeout = setTimeout(() => {
+        const live = jobs.get(jobId);
+        if (!live || live.cancelled) return;
+        manager.cancel(jobId);
         emit({
           type: "failed",
           jobId,
-          message: err instanceof Error ? err.message : String(err),
+          message: "Export timed out.",
           sequence: nextSequence(jobId),
         });
         finishJob(jobId);
-      }
-    })();
+      }, timeoutMs);
+
+      void (async () => {
+        try {
+          emit({
+            type: "progress",
+            jobId,
+            ratio: 0.2,
+            sequence: nextSequence(jobId),
+            message: "Rendering…",
+          });
+
+          const result = await manager.startJob({
+            jobId,
+            projectJsonPath,
+            outDir: path.join(tempDir, "work"),
+            assetBaseDir,
+            outputPath,
+            repoRoot: workerRoot,
+            onStderrLine: (line) => {
+              if (jobs.get(jobId)?.cancelled) return;
+              if (!line.startsWith("progress\t")) return;
+              const parts = line.split("\t");
+              const stage = parts[1] ?? "working";
+              const ratio = Number(parts[2]);
+              if (!Number.isFinite(ratio)) return;
+              emit({
+                type: "progress",
+                jobId,
+                ratio: Math.min(0.95, Math.max(0.2, ratio)),
+                sequence: nextSequence(jobId),
+                message: stage,
+              });
+            },
+          });
+
+          const live = jobs.get(jobId);
+          if (!live) return;
+          if (live.cancelled || (!result.ok && result.error === "cancelled")) {
+            emit({
+              type: "cancelled",
+              jobId,
+              sequence: nextSequence(jobId),
+            });
+            finishJob(jobId);
+            return;
+          }
+
+          if (!result.ok) {
+            emit({
+              type: "failed",
+              jobId,
+              message: result.error,
+              sequence: nextSequence(jobId),
+            });
+            finishJob(jobId);
+            return;
+          }
+
+          emit({
+            type: "completed",
+            jobId,
+            outputPath: result.mp4Path,
+            sequence: nextSequence(jobId),
+          });
+          finishJob(jobId);
+        } catch (error) {
+          if (!jobs.has(jobId)) return;
+          emit({
+            type: "failed",
+            jobId,
+            message:
+              error instanceof Error ? error.message : String(error),
+            sequence: nextSequence(jobId),
+          });
+          finishJob(jobId);
+        }
+      })();
+    });
 
     return { id: jobId };
   }

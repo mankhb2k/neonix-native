@@ -26,7 +26,7 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 - [x] Document ownership / two-way sync fixed (Wave A)
 - [x] `IpcResult<T>` across real Electron IPC (Wave A)
 - [x] FS capability tokens / no arbitrary absolute paths (Wave B)
-- [ ] Packaged export without repo/`tsx` (Wave C)
+- [x] Packaged export without repo/`tsx` (Wave C)
 - [ ] Timeline interaction MVP (Wave D)
 - [ ] Re-enable production cutover only after gates above
 
@@ -45,10 +45,8 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 
 ## Known gaps (honest)
 
-- Phase 5 timeline interaction still incomplete (display-only clips)
-- Packaged export fails without repo/`tsx` until Wave C
-- Typed IPC custom fields stripped by Electron until Wave A
-- Dual document sync can revert edits until Wave A
+- Phase 5 timeline interaction still incomplete (display-only clips) — Wave D
+- Export presets still hard-coded low-res — Wave F
 - No release-level legacy rollback inside packaged artifact
 
 ## Automated

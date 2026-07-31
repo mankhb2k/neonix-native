@@ -137,6 +137,8 @@ export function registerIpcHandlers(
 
   const exports = createExportService({
     repoRoot,
+    packaged: ctx.packaged,
+    resourcesRoot: ctx.packaged ? process.resourcesPath : undefined,
     emit: broadcastExportEvent,
   });
 

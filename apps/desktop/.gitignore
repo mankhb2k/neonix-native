@@ -1,3 +1,7 @@
 dist/
 dist-renderer/
+resources/export-cli/cli-export.cjs
+resources/export-cli/frame-worker.cjs
+resources/export-cli/node_modules/
+resources/export-cli/package.json
 *.log

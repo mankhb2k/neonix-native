@@ -45,6 +45,50 @@ describe("export-service path policy", () => {
     });
   });
 
+  it("returns jobId before any progress events", async () => {
+    const events: ExportEvent[] = [];
+    let resolveStart!: (v: { ok: true; mp4Path: string }) => void;
+    const started = new Promise<{ ok: true; mp4Path: string }>((r) => {
+      resolveStart = r;
+    });
+
+    const service = createExportService({
+      repoRoot: "D:\\repo",
+      timeoutMs: 5_000,
+      emit: (e) => events.push(e),
+      createJobId: () => "export_race",
+      fs: {
+        existsSync: () => false,
+        mkdirSync: () => undefined,
+        writeFileSync: () => undefined,
+        rmSync: () => undefined,
+      },
+      processManager: {
+        startJob: async () => started,
+        cancel: () => true,
+        disposeAll: () => undefined,
+        isActive: () => false,
+      },
+    });
+
+    const job = await service.start(
+      {
+        projectId: "p1",
+        projectJson: JSON.stringify({ metadata: { id: "p1" } }),
+        outputPath: "D:\\out\\race.mp4",
+        overwrite: true,
+      },
+      null,
+    );
+    expect(job.id).toBe("export_race");
+    expect(events).toEqual([]);
+
+    resolveStart({ ok: true, mp4Path: "D:\\out\\race.mp4" });
+    await vi.waitFor(() => {
+      expect(events.some((e) => e.type === "completed")).toBe(true);
+    });
+  });
+
   it("starts a job and emits completed after mock CLI", async () => {
     const events: ExportEvent[] = [];
     const written: string[] = [];
@@ -93,6 +137,25 @@ describe("export-service path policy", () => {
       outputPath: "D:\\out\\final.mp4",
     });
     expect(done && "sequence" in done && done.sequence).toBeGreaterThan(0);
+  });
+});
+
+describe("export-process-manager packaged", () => {
+  it("fails clearly when packaged CLI is missing", async () => {
+    const manager = createExportProcessManager({ packaged: true });
+    const result = await manager.startJob({
+      jobId: "missing-cli",
+      projectJsonPath: "/tmp/p.json",
+      outDir: "/tmp/out",
+      assetBaseDir: "/tmp/assets",
+      outputPath: "/tmp/out.mp4",
+      repoRoot: "/tmp/empty-resources",
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/Packaged export CLI missing/);
+      expect(result.error).not.toMatch(/tsx/i);
+    }
   });
 });
 

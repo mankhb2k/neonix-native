@@ -1,8 +1,11 @@
 /**
- * Spawns render-worker cli-export as a child process (Phase 9 MVP).
+ * Spawns render-worker cli-export as a child process.
+ * Packaged: Electron as Node (`ELECTRON_RUN_AS_NODE`) + bundled CLI.
+ * Dev: tsx + TypeScript source in the repo.
  */
 
 import { spawn, type ChildProcess } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 
 export type ExportCliResult =
@@ -15,8 +18,10 @@ export type StartExportChildInput = {
   outDir: string;
   assetBaseDir: string;
   outputPath: string;
-  /** Absolute path to repo root (for locating tsx + cli). */
+  /** Absolute path to repo root (dev) or resources root (packaged). */
   repoRoot: string;
+  /** When set, prefer this CLI entry (packaged bundle). */
+  cliEntry?: string;
   env?: NodeJS.ProcessEnv;
   onStderrLine?: (line: string) => void;
 };
@@ -25,6 +30,8 @@ export type SpawnFn = typeof spawn;
 
 export type ExportProcessManagerOptions = {
   spawnFn?: SpawnFn;
+  /** true → ELECTRON_RUN_AS_NODE + bundled CLI when available */
+  packaged?: boolean;
 };
 
 type ActiveJob = {
@@ -58,20 +65,25 @@ function parseLastJsonLine(stdout: string): ExportCliResult {
   return { ok: false, error: "Export CLI produced no JSON result." };
 }
 
+function resolveTsx(repoRoot: string): string {
+  const bin = process.platform === "win32" ? "tsx.cmd" : "tsx";
+  return path.join(repoRoot, "node_modules", ".bin", bin);
+}
+
+function resolveDevCli(repoRoot: string): string {
+  return path.join(repoRoot, "apps", "render-worker", "src", "cli-export.ts");
+}
+
+function resolvePackagedCli(resourcesRoot: string): string | null {
+  const candidate = path.join(resourcesRoot, "export-cli", "cli-export.cjs");
+  return fs.existsSync(candidate) ? candidate : null;
+}
+
 export function createExportProcessManager(
   options: ExportProcessManagerOptions = {},
 ) {
   const spawnFn = options.spawnFn ?? spawn;
   const jobs = new Map<string, ActiveJob>();
-
-  function resolveTsx(repoRoot: string): string {
-    const bin = process.platform === "win32" ? "tsx.cmd" : "tsx";
-    return path.join(repoRoot, "node_modules", ".bin", bin);
-  }
-
-  function resolveCli(repoRoot: string): string {
-    return path.join(repoRoot, "apps", "render-worker", "src", "cli-export.ts");
-  }
 
   function startJob(input: StartExportChildInput): Promise<ExportCliResult> {
     if (jobs.has(input.jobId)) {
@@ -81,25 +93,50 @@ export function createExportProcessManager(
       });
     }
 
-    const tsxBin = resolveTsx(input.repoRoot);
-    const script = resolveCli(input.repoRoot);
-    const workerDir = path.join(input.repoRoot, "apps", "render-worker");
+    const packagedCli =
+      input.cliEntry ??
+      (options.packaged ? resolvePackagedCli(input.repoRoot) : null);
+
+    let command: string;
+    let args: string[];
+    let cwd: string;
+    const childEnv: NodeJS.ProcessEnv = {
+      ...process.env,
+      ...input.env,
+      MOTIONVIDEO_EXPORT_OUT_DIR: input.outDir,
+      MOTIONVIDEO_EXPORT_ASSET_BASE: input.assetBaseDir,
+      MOTIONVIDEO_EXPORT_MP4_PATH: input.outputPath,
+    };
+
+    if (packagedCli) {
+      command = process.execPath;
+      args = [packagedCli, input.projectJsonPath];
+      cwd = path.dirname(packagedCli);
+      childEnv.ELECTRON_RUN_AS_NODE = "1";
+      if (!childEnv.MOTIONVIDEO_REPO_ROOT) {
+        childEnv.MOTIONVIDEO_REPO_ROOT = input.repoRoot;
+      }
+    } else if (options.packaged) {
+      return Promise.resolve({
+        ok: false,
+        error:
+          "Packaged export CLI missing (resources/export-cli/cli-export.cjs). Rebuild with build:export-cli.",
+      });
+    } else {
+      command = resolveTsx(input.repoRoot);
+      args = [resolveDevCli(input.repoRoot), input.projectJsonPath];
+      cwd = path.join(input.repoRoot, "apps", "render-worker");
+    }
 
     return new Promise((resolve) => {
       let stdout = "";
       let stderr = "";
       let settled = false;
 
-      const child = spawnFn(tsxBin, [script, input.projectJsonPath], {
-        cwd: workerDir,
-        env: {
-          ...process.env,
-          ...input.env,
-          MOTIONVIDEO_EXPORT_OUT_DIR: input.outDir,
-          MOTIONVIDEO_EXPORT_ASSET_BASE: input.assetBaseDir,
-          MOTIONVIDEO_EXPORT_MP4_PATH: input.outputPath,
-        },
-        shell: process.platform === "win32",
+      const child = spawnFn(command, args, {
+        cwd,
+        env: childEnv,
+        shell: process.platform === "win32" && !packagedCli,
       });
 
       const active: ActiveJob = { child, cancelled: false };
@@ -131,8 +168,7 @@ export function createExportProcessManager(
       });
 
       child.on("close", (code) => {
-        const job = jobs.get(input.jobId);
-        if (job?.cancelled || active.cancelled) {
+        if (active.cancelled) {
           finish({ ok: false, error: "cancelled" });
           return;
         }

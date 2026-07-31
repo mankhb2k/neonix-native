@@ -5,7 +5,7 @@
 - **Packager:** electron-builder (Windows `dir` / optional NSIS) — not Electron Forge
 - **Packaged renderer:** always Vite via `app://bundle` (`setPackagedHint` → prod bundle)
 - **Default renderer (Phase 12):** `vite` unpackaged and packaged; rollback with `MOTIONVIDEO_RENDERER=legacy`
-- **Deferred:** auto-update, OS `.mt` association / deep links, packaged export CLI worker, macOS/Linux installers, code signing, strict https domain allowlist
+- **Deferred:** auto-update, OS `.mt` association / deep links, macOS/Linux installers, code signing, strict https domain allowlist
 
 ## Artifact hardening checklist
 
@@ -32,7 +32,7 @@ pnpm --filter @motionvideo/desktop run dist   # Windows NSIS installer
 ```
 
 - `rendererRoot` for asar: `configurePackagedRendererRoot(app.getAppPath())` → `dist-renderer` inside asar
-- **Export:** still needs repo/`tsx` in unpackaged/dev; packaged export may fail until a follow-up ships a bundled worker — does **not** block shell smoke
+- **Export (Wave C):** `build:export-cli` bundles CLI into `resources/export-cli`; electron-builder `extraResources` copies it beside the asar. Packaged spawn uses `ELECTRON_RUN_AS_NODE` + `cli-export.cjs` (no repo/`tsx`).
 
 ### Lightweight secrets / artifact note
 
@@ -49,7 +49,7 @@ Before shipping a build, spot-check `release/**` (or asar extract) for:
 3. Confirm Vite UI loads **without** Vite (`5173`) or Next (`3000`) servers
 4. Open / save a `.mt` project
 5. DevTools: no Node/`require` in renderer; CSP has no `unsafe-eval`
-6. Export may error in packaged builds — expected for this MVP
+6. Export: confirm `resources/export-cli/cli-export.cjs` present; export must not mention missing `tsx`
 
 ## Automated
 
