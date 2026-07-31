@@ -27,6 +27,7 @@ type Props = {
     command: DocumentPropertyCommand;
     label: string;
     coalesceKey?: string;
+    entryId?: string;
   }) => void;
 };
 
@@ -89,6 +90,7 @@ export function InspectorPanel({
     prop: PropertyDefinition,
     raw: unknown,
     coalesce?: boolean,
+    entryId?: string,
   ) {
     if (!context) return;
     const validated = prop.validate
@@ -102,6 +104,7 @@ export function InspectorPanel({
       coalesceKey: coalesce
         ? `scrub:${prop.id}:${selectionFingerprint(selection)}`
         : undefined,
+      entryId,
     });
   }
 
@@ -195,8 +198,12 @@ export function InspectorPanel({
                       value={value as number}
                       disabled={disabled}
                       step={prop.id.includes("opacity") ? 0.01 : 1}
-                      onPreview={(n) => commitProperty(prop, n, true)}
-                      onCommit={(n) => commitProperty(prop, n, true)}
+                      onPreview={(n, gestureId) =>
+                        commitProperty(prop, n, true, gestureId)
+                      }
+                      onCommit={(n, gestureId) =>
+                        commitProperty(prop, n, true, gestureId)
+                      }
                     />
                   );
                 }

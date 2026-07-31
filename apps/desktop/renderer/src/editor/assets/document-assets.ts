@@ -1,6 +1,6 @@
 /**
  * Merge ImportedAsset / Relink results into desktop envelope project.assets
- * with V2-compatible placeholder metadata (ffprobe deferred).
+ * with probed metadata when available (Wave E).
  */
 
 import type { AssetType, ImportedAsset } from "../../../../src/shared/ipc/contracts";
@@ -20,6 +20,7 @@ export type DocumentAssetEntry = {
 function placeholderFields(
   assetType: AssetType,
   mimeType: string | undefined,
+  probed?: { width?: number; height?: number; duration?: number },
 ): Record<string, unknown> {
   switch (assetType) {
     case "image": {
@@ -30,8 +31,8 @@ function placeholderFields(
       const hasAlpha = mime !== "image/jpeg";
       return {
         mimeType: mime,
-        width: 1,
-        height: 1,
+        width: probed?.width && probed.width > 0 ? probed.width : 1,
+        height: probed?.height && probed.height > 0 ? probed.height : 1,
         pixelFormat: hasAlpha ? "rgba" : "rgb",
         hasAlpha,
       };
@@ -40,9 +41,10 @@ function placeholderFields(
       const mime = mimeType === "video/webm" ? "video/webm" : "video/mp4";
       return {
         mimeType: mime,
-        width: 1920,
-        height: 1080,
-        duration: 1,
+        width: probed?.width && probed.width > 0 ? probed.width : 1920,
+        height: probed?.height && probed.height > 0 ? probed.height : 1080,
+        duration:
+          probed?.duration && probed.duration > 0 ? probed.duration : 1,
         fps: 30,
         videoCodec: "unknown",
         pixelFormat: "yuv420p",
@@ -58,7 +60,8 @@ function placeholderFields(
           : "audio/mpeg";
       return {
         mimeType: mime,
-        duration: 1,
+        duration:
+          probed?.duration && probed.duration > 0 ? probed.duration : 1,
         codec: "unknown",
         sampleRate: 44100,
         channels: 2,
@@ -67,8 +70,8 @@ function placeholderFields(
     case "svg":
       return {
         mimeType: "image/svg+xml",
-        width: 1,
-        height: 1,
+        width: probed?.width && probed.width > 0 ? probed.width : 1,
+        height: probed?.height && probed.height > 0 ? probed.height : 1,
         viewBox: "0 0 1 1",
         sanitized: true,
       };
@@ -90,12 +93,19 @@ export function toDocumentAsset(imported: {
   uri: string;
   assetType: AssetType;
   mimeType?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
 }): DocumentAssetEntry {
   return {
     id: imported.id,
     uri: imported.uri,
     assetType: imported.assetType,
-    ...placeholderFields(imported.assetType, imported.mimeType),
+    ...placeholderFields(imported.assetType, imported.mimeType, {
+      width: imported.width,
+      height: imported.height,
+      duration: imported.duration,
+    }),
   };
 }
 
@@ -141,7 +151,14 @@ export function appendAssetsToDocumentJson(
 export function updateAssetUriInDocumentJson(
   documentJson: string,
   assetId: string,
-  next: { uri: string; assetType: AssetType; mimeType?: string },
+  next: {
+    uri: string;
+    assetType: AssetType;
+    mimeType?: string;
+    width?: number;
+    height?: number;
+    duration?: number;
+  },
 ): string {
   const envelope = parseDesktopProjectFile(documentJson);
   const assets = Array.isArray(envelope.project.assets)
@@ -158,6 +175,9 @@ export function updateAssetUriInDocumentJson(
     uri: next.uri,
     assetType: next.assetType,
     mimeType: next.mimeType,
+    width: next.width,
+    height: next.height,
+    duration: next.duration,
   });
   if (index >= 0) {
     assets[index] = docAsset;

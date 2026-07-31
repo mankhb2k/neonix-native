@@ -7,8 +7,8 @@ type Props = {
   value: number | MixedValue;
   disabled?: boolean;
   step?: number;
-  onPreview: (value: number) => void;
-  onCommit: (value: number) => void;
+  onPreview: (value: number, gestureId: string) => void;
+  onCommit: (value: number, gestureId?: string) => void;
 };
 
 export function NumberPropertyEditor({
@@ -24,6 +24,7 @@ export function NumberPropertyEditor({
   const scrubbing = useRef(false);
   const startX = useRef(0);
   const startValue = useRef(0);
+  const gestureIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (scrubbing.current) return;
@@ -42,26 +43,29 @@ export function NumberPropertyEditor({
     scrubbing.current = true;
     startX.current = e.clientX;
     startValue.current = typeof value === "number" ? value : 0;
+    gestureIdRef.current = `scrub_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLSpanElement>) => {
-    if (!scrubbing.current) return;
+    if (!scrubbing.current || !gestureIdRef.current) return;
     const delta = e.clientX - startX.current;
     const next = startValue.current + delta * step;
     setDraft(String(Math.round(next * 1000) / 1000));
-    onPreview(next);
+    onPreview(next, gestureIdRef.current);
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLSpanElement>) => {
     if (!scrubbing.current) return;
     scrubbing.current = false;
+    const gestureId = gestureIdRef.current;
+    gestureIdRef.current = null;
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
       /* ignore */
     }
     const n = parseDraft();
-    if (n !== null) onCommit(n);
+    if (n !== null) onCommit(n, gestureId ?? undefined);
   };
 
   return (

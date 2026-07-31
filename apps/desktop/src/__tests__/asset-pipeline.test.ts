@@ -160,18 +160,46 @@ describe("asset-file-service", () => {
     );
   });
 
-  it("resolveUrl throws MISSING_ASSET when file absent", async () => {
-    const { projectPath } = makeProject();
-    const service = createAssetFileService();
-    expect(() =>
-      service.resolveUrl(projectPath, "asset_x", "assets/nope.png"),
-    ).toThrow(DesktopIpcError);
-    try {
-      service.resolveUrl(projectPath, "asset_x", "assets/nope.png");
-    } catch (err) {
-      expect((err as DesktopIpcError).code).toBe(
-        DesktopIpcErrorCode.MISSING_ASSET,
-      );
-    }
+  it("rolls back earlier copies when a later import fails", async () => {
+    const { dir, projectPath, source } = makeProject();
+    const second = path.join(dir, "second.png");
+    fs.writeFileSync(second, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    let copies = 0;
+    const service = createAssetFileService({
+      createId: () => `asset_rb_${++copies}`,
+      fs: {
+        existsSync: fs.existsSync,
+        mkdir: async (p, opts) => {
+          await fs.promises.mkdir(p, opts);
+        },
+        copyFile: async (src, dest) => {
+          copies += 1;
+          if (copies > 2) {
+            throw new Error("simulated copy failure");
+          }
+          await fs.promises.copyFile(src, dest);
+        },
+        unlink: (p) => fs.promises.unlink(p),
+      },
+      probeMedia: async () => ({}),
+    });
+
+    await expect(
+      service.importFiles(projectPath, [source, second], null),
+    ).rejects.toThrow(/simulated copy failure/);
+    expect(fs.existsSync(path.join(projectAssetsDir(projectPath), "source.png"))).toBe(
+      false,
+    );
+  });
+
+  it("attaches probed image dimensions when available", async () => {
+    const { projectPath, source } = makeProject();
+    const service = createAssetFileService({
+      createId: () => "asset_probe",
+      probeMedia: async () => ({ width: 640, height: 360 }),
+    });
+    const [imported] = await service.importFiles(projectPath, [source], null);
+    expect(imported?.width).toBe(640);
+    expect(imported?.height).toBe(360);
   });
 });

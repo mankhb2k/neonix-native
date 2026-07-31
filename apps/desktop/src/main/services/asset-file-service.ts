@@ -28,11 +28,13 @@ import {
   ensureProjectMediaToken,
   mimeForExt,
 } from "../protocol/mvmedia-registry";
+import { probeMediaFile } from "./media-probe";
 
 export type AssetFileFs = {
   existsSync(p: string): boolean;
-  mkdirSync(p: string, opts?: { recursive?: boolean }): void;
-  copyFileSync(src: string, dest: string): void;
+  mkdir(p: string, opts?: { recursive?: boolean }): Promise<void>;
+  copyFile(src: string, dest: string): Promise<void>;
+  unlink(p: string): Promise<void>;
 };
 
 const MEDIA_FILTERS = [
@@ -60,10 +62,11 @@ const EXT_PROBE: Record<
 function defaultFs(): AssetFileFs {
   return {
     existsSync: fs.existsSync,
-    mkdirSync: (p, opts) => {
-      fs.mkdirSync(p, opts);
+    mkdir: async (p, opts) => {
+      await fs.promises.mkdir(p, opts);
     },
-    copyFileSync: fs.copyFileSync,
+    copyFile: (src, dest) => fs.promises.copyFile(src, dest),
+    unlink: (p) => fs.promises.unlink(p),
   };
 }
 
@@ -122,11 +125,13 @@ export type AssetFileServiceOptions = {
   fs?: AssetFileFs;
   createId?: () => string;
   showOpenDialog?: ShowOpenDialogFn;
+  probeMedia?: typeof probeMediaFile;
 };
 
 export function createAssetFileService(options: AssetFileServiceOptions = {}) {
   const io = options.fs ?? defaultFs();
   const uid = options.createId ?? createAssetId;
+  const probe = options.probeMedia ?? probeMediaFile;
   const showOpenDialog: ShowOpenDialogFn =
     options.showOpenDialog ??
     ((browserWindow, opts) =>
@@ -168,11 +173,11 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
     return result.filePaths[0];
   }
 
-  function copyIntoAssets(
+  async function copyIntoAssets(
     projectPath: string,
     sourcePath: string,
     preferredId?: string,
-  ): ImportedAsset {
+  ): Promise<ImportedAsset> {
     assertProjectFileExists(io, projectPath);
     const absSource = path.resolve(sourcePath);
     if (!io.existsSync(absSource)) {
@@ -183,10 +188,10 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
     }
 
     const assetsDir = projectAssetsDir(projectPath);
-    io.mkdirSync(assetsDir, { recursive: true });
+    await io.mkdir(assetsDir, { recursive: true });
 
     const dest = uniqueDestPath(io, assetsDir, path.basename(absSource));
-    io.copyFileSync(absSource, dest);
+    await io.copyFile(absSource, dest);
 
     const projectDir = projectDirOf(projectPath);
     const uri = toPosixRelative(projectDir, dest);
@@ -197,20 +202,30 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
       );
     }
 
-    const probe = probeExtension(dest);
-    if (probe.assetType === "unknown") {
+    const extProbe = probeExtension(dest);
+    if (extProbe.assetType === "unknown") {
+      try {
+        await io.unlink(dest);
+      } catch {
+        /* ignore */
+      }
       throw new DesktopIpcError(
         DesktopIpcErrorCode.VALIDATION,
         `Unsupported media type: ${path.extname(dest)}`,
       );
     }
 
+    const meta = await probe(dest, extProbe.assetType);
+
     return {
       id: preferredId ?? uid(),
       uri,
-      assetType: probe.assetType,
-      mimeType: probe.mimeType,
+      assetType: extProbe.assetType,
+      mimeType: extProbe.mimeType,
       absolutePath: dest,
+      ...(meta.width != null ? { width: meta.width } : {}),
+      ...(meta.height != null ? { height: meta.height } : {}),
+      ...(meta.duration != null ? { duration: meta.duration } : {}),
     };
   }
 
@@ -222,7 +237,25 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
     ): Promise<ImportedAsset[]> {
       const sources =
         paths && paths.length > 0 ? paths : await pickSourcePaths(parent);
-      return sources.map((src) => copyIntoAssets(projectPath, src));
+      const imported: ImportedAsset[] = [];
+      const copiedPaths: string[] = [];
+      try {
+        for (const src of sources) {
+          const item = await copyIntoAssets(projectPath, src);
+          imported.push(item);
+          if (item.absolutePath) copiedPaths.push(item.absolutePath);
+        }
+        return imported;
+      } catch (error) {
+        for (const dest of copiedPaths) {
+          try {
+            await io.unlink(dest);
+          } catch {
+            /* best-effort rollback */
+          }
+        }
+        throw error;
+      }
     },
 
     resolveUrl(
@@ -257,7 +290,7 @@ export function createAssetFileService(options: AssetFileServiceOptions = {}) {
         newPath && newPath.length > 0
           ? newPath
           : await pickRelinkPath(parent);
-      const imported = copyIntoAssets(projectPath, source, assetId);
+      const imported = await copyIntoAssets(projectPath, source, assetId);
       return {
         assetId: imported.id,
         uri: imported.uri,

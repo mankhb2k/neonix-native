@@ -276,14 +276,14 @@ function EditingWorkspaceInner({
             onSelect={(selection) =>
               dispatch({ type: "SET_SELECTION", selection })
             }
-            onExecute={({ command, label, coalesceKey }) => {
-              propertyEntrySeq += 1;
+            onExecute={({ command, label, coalesceKey, entryId }) => {
+              if (!entryId) propertyEntrySeq += 1;
               dispatch({
                 type: "EXECUTE_PROPERTY_COMMAND",
                 command,
                 label,
                 coalesceKey,
-                entryId: `prop_${propertyEntrySeq}`,
+                entryId: entryId ?? `prop_${propertyEntrySeq}`,
               });
             }}
           />

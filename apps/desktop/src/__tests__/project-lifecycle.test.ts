@@ -59,7 +59,7 @@ describe("parseDesktopProjectFile", () => {
 });
 
 describe("project-file-service atomic save", () => {
-  it("writes via temp rename and keeps original on rename failure", () => {
+  it("writes via temp rename and keeps original on rename failure", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-project-"));
     const filePath = path.join(dir, "demo.mt");
     const { documentJson } = buildBlankDesktopProject({ name: "Original" });
@@ -74,9 +74,11 @@ describe("project-file-service atomic save", () => {
       },
     });
 
-    expect(() => service.saveAtomic(filePath, next)).toThrow(DesktopIpcError);
+    await expect(service.saveAtomic(filePath, next)).rejects.toBeInstanceOf(
+      DesktopIpcError,
+    );
     try {
-      service.saveAtomic(filePath, next);
+      await service.saveAtomic(filePath, next);
     } catch (error) {
       expect(error).toBeInstanceOf(DesktopIpcError);
       expect((error as DesktopIpcError).code).toBe(
@@ -87,7 +89,7 @@ describe("project-file-service atomic save", () => {
     expect(fs.readFileSync(filePath, "utf8")).toBe(original);
   });
 
-  it("creates .bak and can reopen after successful overwrite", () => {
+  it("creates .bak and can reopen after successful overwrite", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-project-"));
     const filePath = path.join(dir, "demo.mt");
     const first = buildBlankDesktopProject({ name: "V1" });
@@ -95,7 +97,7 @@ describe("project-file-service atomic save", () => {
 
     const second = buildBlankDesktopProject({ name: "V2" });
     const service = createProjectFileService();
-    service.saveAtomic(filePath, second.documentJson);
+    await service.saveAtomic(filePath, second.documentJson);
 
     expect(fs.existsSync(`${filePath}.bak`)).toBe(true);
     const bak = parseDesktopProjectFile(fs.readFileSync(`${filePath}.bak`, "utf8"));
@@ -105,6 +107,20 @@ describe("project-file-service atomic save", () => {
     expect(parseDesktopProjectFile(reopened.documentJson).project.metadata.name).toBe(
       "V2",
     );
+  });
+
+  it("rejects save when MotionProject body is invalid", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-project-"));
+    const filePath = path.join(dir, "demo.mt");
+    const blank = buildBlankDesktopProject({ name: "Bad" });
+    const broken = JSON.parse(blank.documentJson) as {
+      project: { format: string };
+    };
+    broken.project.format = "not-a-motion-project";
+    const service = createProjectFileService();
+    await expect(
+      service.saveAtomic(filePath, `${JSON.stringify(broken)}\n`),
+    ).rejects.toMatchObject({ code: DesktopIpcErrorCode.CORRUPT_FILE });
   });
 
   it("maps corrupt file on openPath", () => {

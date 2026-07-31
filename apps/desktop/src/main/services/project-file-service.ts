@@ -22,17 +22,19 @@ import {
   serializeDesktopProjectEnvelope,
   type DesktopProjectEnvelope,
 } from "../../shared/project-file/envelope";
+import { validateDesktopDocumentJson } from "../../shared/project-file/validate-document";
 
 export type ProjectFileFs = {
   existsSync(p: string): boolean;
   readFileSync(p: string, encoding: BufferEncoding): string;
-  writeFileSync(p: string, data: string | Buffer): void;
-  copyFileSync(src: string, dest: string): void;
-  renameSync(src: string, dest: string): void;
-  unlinkSync(p: string): void;
-  openSync(p: string, flags: string): number;
-  fsyncSync(fd: number): void;
-  closeSync(fd: number): void;
+  writeFile(p: string, data: string | Buffer): Promise<void>;
+  copyFile(src: string, dest: string): Promise<void>;
+  rename(src: string, dest: string): Promise<void>;
+  unlink(p: string): Promise<void>;
+  open(p: string, flags: string): Promise<{
+    sync(): Promise<void>;
+    close(): Promise<void>;
+  }>;
 };
 
 export type ProjectFileServiceOptions = {
@@ -62,13 +64,17 @@ function defaultFs(): ProjectFileFs {
   return {
     existsSync: fs.existsSync,
     readFileSync: (p, encoding) => fs.readFileSync(p, encoding),
-    writeFileSync: (p, data) => fs.writeFileSync(p, data),
-    copyFileSync: fs.copyFileSync,
-    renameSync: fs.renameSync,
-    unlinkSync: fs.unlinkSync,
-    openSync: (p, flags) => fs.openSync(p, flags),
-    fsyncSync: fs.fsyncSync,
-    closeSync: fs.closeSync,
+    writeFile: (p, data) => fs.promises.writeFile(p, data),
+    copyFile: (src, dest) => fs.promises.copyFile(src, dest),
+    rename: (src, dest) => fs.promises.rename(src, dest),
+    unlink: (p) => fs.promises.unlink(p),
+    open: async (p, flags) => {
+      const handle = await fs.promises.open(p, flags);
+      return {
+        sync: () => handle.sync(),
+        close: () => handle.close(),
+      };
+    },
   };
 }
 
@@ -107,13 +113,13 @@ export function createProjectFileService(
     }
   }
 
-  function saveAtomic(
+  async function saveAtomic(
     filePath: string,
     documentJson: string,
-  ): SaveProjectResult {
-    // Validate before touching disk.
+  ): Promise<SaveProjectResult> {
+    // Validate envelope + MotionProject + timeline before touching disk.
     try {
-      parseDesktopProjectFile(documentJson);
+      validateDesktopDocumentJson(documentJson);
     } catch (error) {
       mapParseError(error);
     }
@@ -125,27 +131,27 @@ export function createProjectFileService(
 
     try {
       if (io.existsSync(filePath)) {
-        io.copyFileSync(filePath, bakPath);
+        await io.copyFile(filePath, bakPath);
       }
 
-      io.writeFileSync(tmpPath, documentJson);
-      const fd = io.openSync(tmpPath, "r");
+      await io.writeFile(tmpPath, documentJson);
+      const handle = await io.open(tmpPath, "r");
       try {
         try {
-          io.fsyncSync(fd);
+          await handle.sync();
         } catch {
           /* Some platforms/temp dirs deny fsync; data is still on disk. */
         }
       } finally {
-        io.closeSync(fd);
+        await handle.close();
       }
 
       options.beforeRename?.(tmpPath, filePath);
-      io.renameSync(tmpPath, filePath);
+      await io.rename(tmpPath, filePath);
       return { path: filePath };
     } catch (error) {
       try {
-        if (io.existsSync(tmpPath)) io.unlinkSync(tmpPath);
+        if (io.existsSync(tmpPath)) await io.unlink(tmpPath);
       } catch {
         /* ignore cleanup */
       }
@@ -185,7 +191,7 @@ export function createProjectFileService(
     parent?: BrowserWindow | null,
   ): Promise<SaveProjectResult> {
     try {
-      parseDesktopProjectFile(documentJson);
+      validateDesktopDocumentJson(documentJson);
     } catch (error) {
       mapParseError(error);
     }

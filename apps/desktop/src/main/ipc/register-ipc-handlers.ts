@@ -314,7 +314,7 @@ export function registerIpcHandlers(
           });
           return saved;
         }
-        const saved = projects.saveAtomic(session.path, input.documentJson);
+        const saved = await projects.saveAtomic(session.path, input.documentJson);
         touchRecent(saved.path, input.documentJson);
         return saved;
       },
