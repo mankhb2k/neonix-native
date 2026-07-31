@@ -4,7 +4,7 @@ import {
   selectionNode,
   selectedSceneIdFrom,
 } from "@/lib/editor/model/editor-selection";
-import { isMainLane } from "@/lib/editor/timeline-clips";
+import { isBaseLane } from "@/lib/editor/timeline-clips";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -46,7 +46,7 @@ export function createSelectionActions(
             (c) =>
               c.kind === "scene" &&
               c.sceneId === current.sceneId &&
-              isMainLane(state.timelineLanes, c.laneId),
+              isBaseLane(state.timelineLanes, c.laneId),
           );
           return {
             selection: clip ? selectionClips([clip.id]) : selectionNone(),

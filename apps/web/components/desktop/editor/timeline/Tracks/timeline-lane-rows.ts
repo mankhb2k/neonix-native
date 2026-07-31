@@ -1,6 +1,8 @@
 import type { TimelineLane } from "@/lib/editor/timeline-clips";
 
-export const MAIN_LANE_HEIGHT_PX = 60;
+export const BASE_LANE_HEIGHT_PX = 60;
+/** @deprecated Prefer BASE_LANE_HEIGHT_PX */
+export const MAIN_LANE_HEIGHT_PX = BASE_LANE_HEIGHT_PX;
 export const SECONDARY_LANE_HEIGHT_PX = 48;
 export const LAYER_LANE_HEIGHT_PX = 24;
 export const LANE_GAP_PX = 2;
@@ -21,7 +23,7 @@ export type TimelineLaneRow = {
 export function buildTimelineLaneRows(
   timelineLanes: ReadonlyArray<TimelineLane>,
 ): TimelineLaneRow[] {
-  const mainLane = timelineLanes.find(
+  const baseLane = timelineLanes.find(
     (l) => l.kind === "visual" && l.role === "base",
   );
   const overlayLanes = timelineLanes
@@ -46,16 +48,16 @@ export function buildTimelineLaneRows(
     });
   }
 
-  if (mainLane) {
+  if (baseLane) {
     rows.push({
-      id: mainLane.id,
+      id: baseLane.id,
       kind: "visual",
       role: "base",
-      order: mainLane.order,
-      name: mainLane.name,
-      height: MAIN_LANE_HEIGHT_PX,
+      order: baseLane.order,
+      name: baseLane.name,
+      height: BASE_LANE_HEIGHT_PX,
       heightClass: "h-15",
-      lane: mainLane,
+      lane: baseLane,
     });
   }
 

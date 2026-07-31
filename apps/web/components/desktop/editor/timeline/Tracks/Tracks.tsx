@@ -273,6 +273,8 @@ export const Tracks = memo(function Tracks({
             <div
               data-track-lane="true"
               data-track-type="main"
+              data-track-family="visual"
+              data-track-role="base"
               data-lane-id={mainLane?.id}
               className="flex items-center h-15"
               style={{ width: Math.max(canvasWidth, trackViewWidth) }}

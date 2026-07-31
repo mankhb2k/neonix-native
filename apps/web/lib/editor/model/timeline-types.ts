@@ -15,10 +15,15 @@ export const DEFAULT_VISUAL_POLICY: VisualLanePolicy = {
   rippleMode: false,
 };
 
+export type TrackFamily = "visual" | "audio";
+export type VisualTrackRole = "base" | "overlay";
+export type AudioTrackRole = "audio";
+export type TimelineLaneRole = VisualTrackRole | AudioTrackRole;
+
 export type VisualTimelineLane = {
   id: string;
   kind: "visual";
-  role: "base" | "overlay";
+  role: VisualTrackRole;
   order: number;
   name: string;
   policy: VisualLanePolicy;
@@ -29,7 +34,7 @@ export type VisualTimelineLane = {
 export type AudioTimelineLane = {
   id: string;
   kind: "audio";
-  role: "audio";
+  role: AudioTrackRole;
   order: number;
   name: string;
   locked?: boolean;

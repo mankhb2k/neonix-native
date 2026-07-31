@@ -29,9 +29,9 @@ import {
 } from "@/lib/editor/store/internal/scene-utils";
 import { rebuildMainProject } from "@/lib/editor/store/internal/timeline-project-sync";
 import {
-  ensureMainLane,
+  ensureBaseLane,
   isAudioLane,
-  isMainLane,
+  isBaseLane,
   isOverlayLane,
   normalizeLaneOrders,
   pruneEmptyLanes,
@@ -61,6 +61,10 @@ export function createClipActions(
   get: EditorStoreGet,
 ): ClipActions {
   return {
+    /* ========================================================================== */
+    /* 1. SCENE DURATION & METADATA                                               */
+    /* ========================================================================== */
+
     /** 3.7 Cập nhật thời lượng của 1 Scene */
     updateSceneDuration: (sceneId, duration) => {
       const project = get().project;
@@ -96,16 +100,20 @@ export function createClipActions(
       });
     },
 
+    /* ========================================================================== */
+    /* 2. CLIP ADDITION (DRAFT / LIBRARY / TRACKS)                                */
+    /* ========================================================================== */
+
     addClipFromDraft: (draft, target) => {
       set((state) => {
         const project = state.project;
         if (!project) return state;
         let lanes = state.timelineLanes.length
           ? state.timelineLanes
-          : [ensureMainLane([])];
-        const mainLane = ensureMainLane(lanes);
-        if (!lanes.some((lane) => lane.id === mainLane.id)) {
-          lanes = [...lanes, mainLane];
+          : [ensureBaseLane([])];
+        const baseLane = ensureBaseLane(lanes);
+        if (!lanes.some((lane) => lane.id === baseLane.id)) {
+          lanes = [...lanes, baseLane];
         }
         const duration = Math.max(
           0.5,
@@ -113,13 +121,13 @@ export function createClipActions(
         );
 
         if (target.track === "main") {
-          if (isLaneLocked(lanes, mainLane.id)) return state;
+          if (isLaneLocked(lanes, baseLane.id)) return state;
           const scene = sceneFromFrameDraft(draft);
           const startTime = resolveMainStartTime(
             state.timelineClips,
             lanes,
             state.timelineClips
-              .filter((clip) => clip.laneId === mainLane.id)
+              .filter((clip) => clip.laneId === baseLane.id)
               .reduce(
                 (end, clip) => Math.max(end, clip.startTime + clip.duration),
                 0,
@@ -130,7 +138,7 @@ export function createClipActions(
             id: scene.id,
             kind: "scene",
             sceneId: scene.id,
-            laneId: mainLane.id,
+            laneId: baseLane.id,
             startTime,
             duration: scene.duration,
             name: scene.name ?? scene.id,
@@ -225,174 +233,6 @@ export function createClipActions(
       });
     },
 
-    moveClip: (clipId, patch) => {
-      set((state) => {
-        const project = state.project;
-        const existing = state.timelineClips.find((clip) => clip.id === clipId);
-        if (!project || !existing) return state;
-        // Lane locked → không move/placement (Phase 6).
-        if (
-          selectionHasLockedLane(state.timelineClips, state.timelineLanes, [
-            clipId,
-          ])
-        ) {
-          return state;
-        }
-        const startTime = Math.max(0, patch.startTime);
-        let lanes = state.timelineLanes.length
-          ? state.timelineLanes
-          : [ensureMainLane([])];
-        const mainLane = ensureMainLane(lanes);
-        if (!lanes.some((lane) => lane.id === mainLane.id)) {
-          lanes = [...lanes, mainLane];
-        }
-        const clips = state.timelineClips.filter((clip) => clip.id !== clipId);
-        let nextProject = project;
-        let moved: TimelineClip;
-        const existingOnMain = isMainLane(lanes, existing.laneId);
-        const existingOnAudio = isAudioLane(lanes, existing.laneId);
-
-        if (patch.track === "audio") {
-          if (!existingOnAudio) return state;
-          const insertNew = patch.insertNewLane ?? false;
-          const preferredLaneId = insertNew
-            ? null
-            : (patch.laneId ??
-              (patch.insertOrder != null
-                ? (audioLaneIdByOrder(lanes, patch.insertOrder) ?? null)
-                : existing.laneId));
-          const preferredInsertOrder = insertNew
-            ? (patch.insertOrder ?? null)
-            : null;
-          const placement = resolveAudioPlacement(
-            lanes,
-            clips,
-            startTime,
-            existing.duration,
-            preferredLaneId,
-            insertNew,
-            preferredInsertOrder,
-            clipId,
-          );
-          if (!placement) return state;
-          lanes = placement.lanes;
-          if (existing.kind !== "audio") return state;
-          moved = {
-            ...existing,
-            kind: "audio",
-            laneId: placement.laneId,
-            startTime: placement.startTime,
-          };
-          clips.push(moved);
-          lanes = pruneEmptyLanes(lanes, clips);
-          nextProject = {
-            ...project,
-            timeline: {
-              ...project.timeline,
-              audioTracks: project.timeline.audioTracks.map((track) =>
-                track.id === existing.audioTrackId || track.id === moved.id
-                  ? { ...track, start: placement.startTime }
-                  : track,
-              ),
-            },
-          };
-          return {
-            project: nextProject,
-            timelineLanes: lanes,
-            timelineClips: clips,
-            selection: selectionClips([moved.id]),
-          };
-        }
-
-        if (patch.track === "overlay") {
-          if (existingOnAudio || existing.kind !== "scene") return state;
-          const insertNew = patch.insertNewLane ?? false;
-          const intent: VisualPlacementIntent = insertNew
-            ? {
-                type: "new-overlay-lane",
-                insertOrder: patch.insertOrder ?? 0,
-                startTime,
-                duration: existing.duration,
-              }
-            : {
-                type: "overlay-lane",
-                laneId: patch.laneId ?? (existingOnMain ? "" : existing.laneId),
-                startTime,
-                duration: existing.duration,
-              };
-          if (intent.type === "overlay-lane" && !intent.laneId) {
-            // Main → overlay body không có laneId → tạo lane mới.
-            const placement = applyVisualPlacement(
-              lanes,
-              clips,
-              {
-                type: "new-overlay-lane",
-                insertOrder: patch.insertOrder ?? 0,
-                startTime,
-                duration: existing.duration,
-              },
-              clipId,
-            );
-            if (!placement) return state;
-            lanes = placement.lanes;
-            moved = {
-              ...existing,
-              kind: "scene",
-              sceneId: existing.sceneId,
-              laneId: placement.laneId,
-              startTime: placement.startTime,
-            };
-          } else {
-            const placement = applyVisualPlacement(
-              lanes,
-              clips,
-              intent,
-              clipId,
-            );
-            if (!placement) return state;
-            lanes = placement.lanes;
-            moved = {
-              ...existing,
-              kind: "scene",
-              sceneId: existing.sceneId,
-              laneId: placement.laneId,
-              startTime: placement.startTime,
-            };
-          }
-        } else {
-          if (existingOnAudio || existing.kind !== "scene") return state;
-          const placed = resolveVisualPlacement(
-            lanes,
-            clips,
-            {
-              type: "base",
-              startTime,
-              duration: existing.duration,
-            },
-            clipId,
-          );
-          if (placed.status !== "placed") return state;
-          moved = {
-            ...existing,
-            kind: "scene",
-            sceneId: existing.sceneId,
-            laneId: placed.laneId,
-            startTime: placed.startTime,
-          };
-        }
-
-        clips.push(moved);
-        lanes = pruneEmptyLanes(lanes, clips);
-        nextProject = rebuildMainProject(nextProject, clips, lanes);
-        return {
-          project: nextProject,
-          timelineLanes: lanes,
-          timelineClips: clips,
-          selection: selectionClips([moved.id]),
-        };
-      });
-    },
-
     /** 3.21 Thêm audio clip + lane (CapCut-style dưới main) */
     addAudioClipFromLibrary: (item, target) => {
       set((state) => {
@@ -401,10 +241,10 @@ export function createClipActions(
 
         let lanes = state.timelineLanes.length
           ? state.timelineLanes
-          : [ensureMainLane([])];
-        const mainLane = ensureMainLane(lanes);
-        if (!lanes.some((lane) => lane.id === mainLane.id)) {
-          lanes = [...lanes, mainLane];
+          : [ensureBaseLane([])];
+        const baseLane = ensureBaseLane(lanes);
+        if (!lanes.some((lane) => lane.id === baseLane.id)) {
+          lanes = [...lanes, baseLane];
         }
 
         const duration = Math.max(0.5, item.duration ?? 10);
@@ -511,6 +351,182 @@ export function createClipActions(
       );
     },
 
+    /* ========================================================================== */
+    /* 3. CLIP MOVEMENT & RE-PLACEMENT                                            */
+    /* ========================================================================== */
+
+    moveClip: (clipId, patch) => {
+      set((state) => {
+        const project = state.project;
+        const existing = state.timelineClips.find((clip) => clip.id === clipId);
+        if (!project || !existing) return state;
+        // Lane locked → không move/placement (Phase 6).
+        if (
+          selectionHasLockedLane(state.timelineClips, state.timelineLanes, [
+            clipId,
+          ])
+        ) {
+          return state;
+        }
+        const startTime = Math.max(0, patch.startTime);
+        let lanes = state.timelineLanes.length
+          ? state.timelineLanes
+          : [ensureBaseLane([])];
+        const baseLane = ensureBaseLane(lanes);
+        if (!lanes.some((lane) => lane.id === baseLane.id)) {
+          lanes = [...lanes, baseLane];
+        }
+        const clips = state.timelineClips.filter((clip) => clip.id !== clipId);
+        let nextProject = project;
+        let moved: TimelineClip;
+        const existingOnBase = isBaseLane(lanes, existing.laneId);
+        const existingOnAudio = isAudioLane(lanes, existing.laneId);
+
+        if (patch.track === "audio") {
+          if (!existingOnAudio) return state;
+          const insertNew = patch.insertNewLane ?? false;
+          const preferredLaneId = insertNew
+            ? null
+            : (patch.laneId ??
+              (patch.insertOrder != null
+                ? (audioLaneIdByOrder(lanes, patch.insertOrder) ?? null)
+                : existing.laneId));
+          const preferredInsertOrder = insertNew
+            ? (patch.insertOrder ?? null)
+            : null;
+          const placement = resolveAudioPlacement(
+            lanes,
+            clips,
+            startTime,
+            existing.duration,
+            preferredLaneId,
+            insertNew,
+            preferredInsertOrder,
+            clipId,
+          );
+          if (!placement) return state;
+          lanes = placement.lanes;
+          if (existing.kind !== "audio") return state;
+          moved = {
+            ...existing,
+            kind: "audio",
+            laneId: placement.laneId,
+            startTime: placement.startTime,
+          };
+          clips.push(moved);
+          lanes = pruneEmptyLanes(lanes, clips);
+          nextProject = {
+            ...project,
+            timeline: {
+              ...project.timeline,
+              audioTracks: project.timeline.audioTracks.map((track) =>
+                track.id === existing.audioTrackId || track.id === moved.id
+                  ? { ...track, start: placement.startTime }
+                  : track,
+              ),
+            },
+          };
+          return {
+            project: nextProject,
+            timelineLanes: lanes,
+            timelineClips: clips,
+            selection: selectionClips([moved.id]),
+          };
+        }
+
+        if (patch.track === "overlay") {
+          if (existingOnAudio || existing.kind !== "scene") return state;
+          const insertNew = patch.insertNewLane ?? false;
+          const intent: VisualPlacementIntent = insertNew
+            ? {
+                type: "new-overlay-lane",
+                insertOrder: patch.insertOrder ?? 0,
+                startTime,
+                duration: existing.duration,
+              }
+            : {
+                type: "overlay-lane",
+                laneId: patch.laneId ?? (existingOnBase ? "" : existing.laneId),
+                startTime,
+                duration: existing.duration,
+              };
+          if (intent.type === "overlay-lane" && !intent.laneId) {
+            // Main → overlay body không có laneId → tạo lane mới.
+            const placement = applyVisualPlacement(
+              lanes,
+              clips,
+              {
+                type: "new-overlay-lane",
+                insertOrder: patch.insertOrder ?? 0,
+                startTime,
+                duration: existing.duration,
+              },
+              clipId,
+            );
+            if (!placement) return state;
+            lanes = placement.lanes;
+            moved = {
+              ...existing,
+              kind: "scene",
+              sceneId: existing.sceneId,
+              laneId: placement.laneId,
+              startTime: placement.startTime,
+            };
+          } else {
+            const placement = applyVisualPlacement(
+              lanes,
+              clips,
+              intent,
+              clipId,
+            );
+            if (!placement) return state;
+            lanes = placement.lanes;
+            moved = {
+              ...existing,
+              kind: "scene",
+              sceneId: existing.sceneId,
+              laneId: placement.laneId,
+              startTime: placement.startTime,
+            };
+          }
+        } else {
+          if (existingOnAudio || existing.kind !== "scene") return state;
+          const placed = resolveVisualPlacement(
+            lanes,
+            clips,
+            {
+              type: "base",
+              startTime,
+              duration: existing.duration,
+            },
+            clipId,
+          );
+          if (placed.status !== "placed") return state;
+          moved = {
+            ...existing,
+            kind: "scene",
+            sceneId: existing.sceneId,
+            laneId: placed.laneId,
+            startTime: placed.startTime,
+          };
+        }
+
+        clips.push(moved);
+        lanes = pruneEmptyLanes(lanes, clips);
+        nextProject = rebuildMainProject(nextProject, clips, lanes);
+        return {
+          project: nextProject,
+          timelineLanes: lanes,
+          timelineClips: clips,
+          selection: selectionClips([moved.id]),
+        };
+      });
+    },
+
+    /* ========================================================================== */
+    /* 4. CLIP DELETION & SPLITTING                                               */
+    /* ========================================================================== */
+
     deleteSelectedClips: () => {
       set((state) => {
         const project = state.project;
@@ -531,7 +547,7 @@ export function createClipActions(
             .filter(
               (clip) =>
                 clip.kind === "scene" &&
-                (isMainLane(state.timelineLanes, clip.laneId) ||
+                (isBaseLane(state.timelineLanes, clip.laneId) ||
                   isOverlayLane(state.timelineLanes, clip.laneId)),
             )
             .map((clip) => (clip.kind === "scene" ? clip.sceneId : "")),
@@ -612,7 +628,7 @@ export function createClipActions(
             continue;
           }
 
-          if (isMainLane(lanes, clip.laneId) && clip.kind === "scene") {
+          if (isBaseLane(lanes, clip.laneId) && clip.kind === "scene") {
             scenes = scenes.map((scene) =>
               scene.id === clip.sceneId
                 ? { ...scene, duration: leftDur }

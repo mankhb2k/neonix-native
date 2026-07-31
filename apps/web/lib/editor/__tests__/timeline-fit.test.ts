@@ -8,7 +8,7 @@ import {
   sliderValueToZoomScale,
   zoomScaleToSliderValue,
   resolveFitAnchorSeconds,
-} from "../../../components/desktop/editor/timeline/timeline-fit";
+} from "../timeline-fit";
 
 describe("Timeline Fit Math & Baselines", () => {
   it("calculates initial fit span for various clip durations according to 1/3 policy", () => {

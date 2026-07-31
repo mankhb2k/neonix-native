@@ -1,4 +1,4 @@
-import { resolveFitAnchorSeconds } from "@/components/desktop/editor/timeline/timeline-fit";
+import { resolveFitAnchorSeconds } from "@/lib/editor/timeline-fit";
 import {
   selectionClips,
   selectionNone,

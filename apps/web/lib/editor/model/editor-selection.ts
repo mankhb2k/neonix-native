@@ -3,7 +3,7 @@
  */
 import type { MotionProject } from "@motionvideo/motion-schema";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
-import { isAudioLane, isMainLane } from "@/lib/editor/timeline-clips";
+import { isAudioLane, isBaseLane } from "@/lib/editor/timeline-clips";
 
 export type EditorSelection =
   | { kind: "none" }
@@ -76,7 +76,7 @@ export function selectedOverlayIdFrom(
   if (!clipId) return null;
   const clip = clips.find((c) => c.id === clipId);
   if (!clip) return null;
-  if (isMainLane(lanes, clip.laneId) || isAudioLane(lanes, clip.laneId)) {
+  if (isBaseLane(lanes, clip.laneId) || isAudioLane(lanes, clip.laneId)) {
     return null;
   }
   return clip.id;

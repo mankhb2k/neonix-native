@@ -3,6 +3,10 @@
  * Shared hit-test + insert-line hysteresis for visual (above base) and audio (below base).
  */
 
+/* ========================================================================== */
+/* 1. HYSTERESIS CONFIG & CONSTANTS                                          */
+/* ========================================================================== */
+
 /** px below TimeRuler top border — single threshold for card↔cyan (enter & exit) */
 export const CYAN_MODE_BELOW_RULER_TOP_PX = 16;
 /** Enter insert-line mode only when within this many px of a lane edge */
@@ -16,6 +20,10 @@ export const INDICATOR_TOP_EPS_PX = 0.5;
 export const OVERLAY_EDGE_ENTER_PX = LANE_INSERT_ENTER_PX;
 /** @deprecated Use LANE_INSERT_EXIT_PX instead. */
 export const OVERLAY_EDGE_EXIT_PX = LANE_INSERT_EXIT_PX;
+
+/* ========================================================================== */
+/* 2. HIT TYPES & POLICIES                                                   */
+/* ========================================================================== */
 
 export type LaneHit = {
   laneId: string | null;
@@ -89,6 +97,10 @@ export type AudioDragTarget = {
   indicatorTop: number;
 };
 
+/* ========================================================================== */
+/* 3. DOM LANE COLLECTORS & CONVERTERS                                       */
+/* ========================================================================== */
+
 /** Map DOM scene hits into shared LaneHit (visual family). */
 export function videoHitToLane(hit: VideoLaneHit): LaneHit {
   if (hit.type === "main") {
@@ -133,21 +145,16 @@ export function audioHitToLane(hit: AudioLaneHit): LaneHit {
   };
 }
 
-function toLegacyTarget(target: TimelineDropTarget): OverlayDragTarget {
-  return {
-    isInsert: target.isInsert,
-    laneId: target.laneId,
-    insertOrder: target.insertOrder,
-    indicatorTop: target.indicatorTop,
-  };
-}
-
 export function collectSceneLanes(scope: HTMLElement): VideoLaneHit[] {
   const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
   const out: VideoLaneHit[] = [];
   for (const el of nodes) {
-    const type = el.getAttribute("data-track-type");
-    if (type !== "overlay" && type !== "main") continue;
+    const rawRole = el.getAttribute("data-track-role");
+    const rawType = el.getAttribute("data-track-type");
+    const isBase = rawRole === "base" || rawType === "main";
+    const isOverlay = rawRole === "overlay" || rawType === "overlay";
+    if (!isBase && !isOverlay) continue;
+    const type: "main" | "overlay" = isBase ? "main" : "overlay";
     const r = el.getBoundingClientRect();
     const orderAttr = el.getAttribute("data-lane-order");
     out.push({
@@ -196,6 +203,69 @@ export function absoluteSceneLanes(
     order: lane.order,
   }));
 }
+
+/** Collect main + audio lanes for below-main audio DnD (mirror of collectSceneLanes). */
+export function collectAudioZoneLanes(scope: HTMLElement): AudioLaneHit[] {
+  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
+  const out: AudioLaneHit[] = [];
+  for (const el of nodes) {
+    const rawRole = el.getAttribute("data-track-role");
+    const rawType = el.getAttribute("data-track-type");
+    const isAudio = rawRole === "audio" || rawType === "audio";
+    const isBase = rawRole === "base" || rawType === "main";
+    if (!isAudio && !isBase) continue;
+    const type: "audio" | "main" = isBase ? "main" : "audio";
+    const r = el.getBoundingClientRect();
+    const orderAttr = el.getAttribute("data-lane-order");
+    out.push({
+      top: r.top,
+      bottom: r.bottom,
+      type,
+      laneId: el.getAttribute("data-lane-id"),
+      order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
+    });
+  }
+  out.sort((a, b) => a.top - b.top);
+  return out;
+}
+
+export type RelativeAudioLaneHit = {
+  relTop: number;
+  relBottom: number;
+  type: "audio" | "main";
+  laneId: string | null;
+  order: number | null;
+};
+
+export function cacheAudioLanesRelative(
+  scope: HTMLElement,
+  wsTop: number,
+): RelativeAudioLaneHit[] {
+  return collectAudioZoneLanes(scope).map((lane) => ({
+    relTop: lane.top - wsTop,
+    relBottom: lane.bottom - wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+export function absoluteAudioLanes(
+  cached: RelativeAudioLaneHit[],
+  wsTop: number,
+): AudioLaneHit[] {
+  return cached.map((lane) => ({
+    top: lane.relTop + wsTop,
+    bottom: lane.relBottom + wsTop,
+    type: lane.type,
+    laneId: lane.laneId,
+    order: lane.order,
+  }));
+}
+
+/* ========================================================================== */
+/* 4. CORE DROP TARGET RESOLUTION MATH                                       */
+/* ========================================================================== */
 
 function gapMid(upper: LaneHit, lower: LaneHit, wsTop: number): number {
   return (upper.bottom + lower.top) / 2 - wsTop;
@@ -472,6 +542,19 @@ function resolveStackZone(
   return null;
 }
 
+/* ========================================================================== */
+/* 5. LEGACY WRAPPERS & ADAPTERS                                             */
+/* ========================================================================== */
+
+function toLegacyTarget(target: TimelineDropTarget): OverlayDragTarget {
+  return {
+    isInsert: target.isInsert,
+    laneId: target.laneId,
+    insertOrder: target.insertOrder,
+    indicatorTop: target.indicatorTop,
+  };
+}
+
 /**
  * @deprecated Prefer {@link resolveLaneDropTarget} with {@link visualDropPolicy}.
  */
@@ -491,65 +574,6 @@ export function resolveOverlayDragTarget(
     visualDropPolicy,
   );
   return target ? toLegacyTarget(target) : null;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Audio collectors — zone below base.                                        */
-/* -------------------------------------------------------------------------- */
-
-/** Collect main + audio lanes for below-main audio DnD (mirror of collectSceneLanes). */
-export function collectAudioZoneLanes(scope: HTMLElement): AudioLaneHit[] {
-  const nodes = scope.querySelectorAll<HTMLElement>("[data-track-lane]");
-  const out: AudioLaneHit[] = [];
-  for (const el of nodes) {
-    const type = el.getAttribute("data-track-type");
-    if (type !== "audio" && type !== "main") continue;
-    const r = el.getBoundingClientRect();
-    const orderAttr = el.getAttribute("data-lane-order");
-    out.push({
-      top: r.top,
-      bottom: r.bottom,
-      type,
-      laneId: el.getAttribute("data-lane-id"),
-      order: orderAttr != null ? Number.parseInt(orderAttr, 10) : null,
-    });
-  }
-  out.sort((a, b) => a.top - b.top);
-  return out;
-}
-
-export type RelativeAudioLaneHit = {
-  relTop: number;
-  relBottom: number;
-  type: "audio" | "main";
-  laneId: string | null;
-  order: number | null;
-};
-
-export function cacheAudioLanesRelative(
-  scope: HTMLElement,
-  wsTop: number,
-): RelativeAudioLaneHit[] {
-  return collectAudioZoneLanes(scope).map((lane) => ({
-    relTop: lane.top - wsTop,
-    relBottom: lane.bottom - wsTop,
-    type: lane.type,
-    laneId: lane.laneId,
-    order: lane.order,
-  }));
-}
-
-export function absoluteAudioLanes(
-  cached: RelativeAudioLaneHit[],
-  wsTop: number,
-): AudioLaneHit[] {
-  return cached.map((lane) => ({
-    top: lane.relTop + wsTop,
-    bottom: lane.relBottom + wsTop,
-    type: lane.type,
-    laneId: lane.laneId,
-    order: lane.order,
-  }));
 }
 
 /**

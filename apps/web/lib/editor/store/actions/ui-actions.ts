@@ -1,7 +1,7 @@
 import {
   resolveFitAnchorSeconds,
   sliderValueToZoomScale,
-} from "@/components/desktop/editor/timeline/timeline-fit";
+} from "@/lib/editor/timeline-fit";
 import type {
   EditorStoreActions,
   EditorStoreGet,

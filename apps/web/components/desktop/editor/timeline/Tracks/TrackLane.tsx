@@ -3,6 +3,8 @@
 import React, { useLayoutEffect, useRef } from "react";
 import { bindDragGhostElement, unbindDragGhostElementIf } from "@/lib/editor/drag-cursor";
 
+import type { TrackFamily, TimelineLaneRole } from "@/lib/editor/model/timeline-types";
+
 export type TrackVariant = "main" | "secondary" | "layer";
 
 export type GhostPreviewInfo = {
@@ -19,6 +21,8 @@ type TrackLaneProps = {
   borderClass?: string;
   ghostPreview?: GhostPreviewInfo | null;
   dataTrackType?: "main" | "overlay" | "audio";
+  dataTrackFamily?: TrackFamily;
+  dataTrackRole?: TimelineLaneRole;
   dataLaneId?: string | null;
   dataLaneOrder?: number;
   /** Virtual empty drop zone — không phải domain lane. */
@@ -39,6 +43,8 @@ export function TrackLane({
   borderClass = "",
   ghostPreview,
   dataTrackType,
+  dataTrackFamily,
+  dataTrackRole,
   dataLaneId,
   dataLaneOrder,
   dataPlaceholder,
@@ -71,10 +77,22 @@ export function TrackLane({
     };
   }, [showGhost]);
 
+  const resolvedFamily =
+    dataTrackFamily ?? (dataTrackType === "audio" ? "audio" : "visual");
+  const resolvedRole =
+    dataTrackRole ??
+    (dataTrackType === "main"
+      ? "base"
+      : dataTrackType === "overlay"
+        ? "overlay"
+        : "audio");
+
   return (
     <div
       data-track-lane="true"
       data-track-type={dataTrackType}
+      data-track-family={resolvedFamily}
+      data-track-role={resolvedRole}
       data-lane-id={dataLaneId ?? undefined}
       data-lane-order={dataLaneOrder}
       data-placeholder={dataPlaceholder ? "true" : undefined}

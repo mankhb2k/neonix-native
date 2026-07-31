@@ -18,9 +18,9 @@ import {
 } from "@/lib/editor/store/internal/scene-utils";
 import { rebuildMainProject } from "@/lib/editor/store/internal/timeline-project-sync";
 import {
-  ensureMainLane,
+  ensureBaseLane,
   isAudioLane,
-  isMainLane,
+  isBaseLane,
   normalizeLaneOrders,
   resolveMainStartTime,
   type TimelineClip,
@@ -45,6 +45,10 @@ export function createClipboardActions(
   get: EditorStoreGet,
 ): ClipboardActions {
   return {
+    /* ========================================================================== */
+    /* 1. COPY & CUT OPERATIONS                                                   */
+    /* ========================================================================== */
+
     copySelectedClips: () => {
       const state = get();
       const ids = selectedClipIdsFrom(state.selection);
@@ -56,7 +60,7 @@ export function createClipboardActions(
       const origin = selected[0].startTime;
       const items: ClipClipboardItem[] = [];
       for (const clip of selected) {
-        const kind = isMainLane(state.timelineLanes, clip.laneId)
+        const kind = isBaseLane(state.timelineLanes, clip.laneId)
           ? "main"
           : isAudioLane(state.timelineLanes, clip.laneId)
             ? "audio"
@@ -124,6 +128,10 @@ export function createClipboardActions(
       get().deleteSelectedClips();
     },
 
+    /* ========================================================================== */
+    /* 2. PASTE & DUPLICATE OPERATIONS                                            */
+    /* ========================================================================== */
+
     pasteClips: (atTime = 0) => {
       const clipboard = get().timelineClipboard;
       if (!clipboard || clipboard.length === 0) return;
@@ -135,10 +143,10 @@ export function createClipboardActions(
         if (!project || !clipboard.length) return state;
         let lanes = state.timelineLanes.length
           ? state.timelineLanes
-          : [ensureMainLane([])];
-        const mainLane = ensureMainLane(lanes);
-        if (!lanes.some((lane) => lane.id === mainLane.id)) {
-          lanes = [...lanes, mainLane];
+          : [ensureBaseLane([])];
+        const baseLane = ensureBaseLane(lanes);
+        if (!lanes.some((lane) => lane.id === baseLane.id)) {
+          lanes = [...lanes, baseLane];
         }
         let clips = [...state.timelineClips];
         let nextProject = project;
@@ -148,7 +156,7 @@ export function createClipboardActions(
         for (const item of clipboard) {
           const startTime = pasteAt + item.offsetStart;
           if (item.kind === "main" && item.scene) {
-            if (isLaneLocked(lanes, mainLane.id)) continue;
+            if (isLaneLocked(lanes, baseLane.id)) continue;
             const scene = cloneSceneWithNewIds({
               ...item.scene,
               duration: item.duration,
@@ -165,7 +173,7 @@ export function createClipboardActions(
               id: scene.id,
               kind: "scene",
               sceneId: scene.id,
-              laneId: mainLane.id,
+              laneId: baseLane.id,
               startTime: resolvedStart,
               duration: item.duration,
               name: item.name,
@@ -322,7 +330,7 @@ export function createClipboardActions(
 
         for (const clip of toDup) {
           const startTime = clip.startTime + clip.duration;
-          if (isMainLane(lanes, clip.laneId) && clip.kind === "scene") {
+          if (isBaseLane(lanes, clip.laneId) && clip.kind === "scene") {
             if (isLaneLocked(lanes, clip.laneId)) continue;
             const scene = scenes.find((sc) => sc.id === clip.sceneId);
             if (!scene) continue;
@@ -440,6 +448,6 @@ export function createClipboardActions(
           selection: selectionClips(newIds),
         };
       });
-    }
+    },
   };
 }
