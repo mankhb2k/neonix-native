@@ -1,7 +1,7 @@
-import { net, protocol, type CustomScheme } from "electron";
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { net, protocol, type CustomScheme } from "electron";
 import {
   APP_HOST,
   APP_PROTOCOL,
@@ -42,12 +42,12 @@ export function registerAppSchemePrivileged(): void {
 
 type RendererRootResolver = () => string;
 
-let rendererRootResolver: RendererRootResolver = defaultRendererRoot;
-
-function defaultRendererRoot(): string {
-  // dist/main/protocol → apps/desktop/dist-renderer (unpackaged)
-  return path.resolve(__dirname, "../../..", "dist-renderer");
-}
+/** Placeholder until `configureDesktopPaths` / packaged configure runs. */
+let rendererRootResolver: RendererRootResolver = () => {
+  throw new Error(
+    "rendererRoot not configured — call configureDesktopPaths before registering app protocol",
+  );
+};
 
 /** Override for tests or packaged layout injection. */
 export function setRendererRootResolver(resolver: RendererRootResolver): void {
@@ -55,7 +55,11 @@ export function setRendererRootResolver(resolver: RendererRootResolver): void {
 }
 
 export function resetRendererRootResolver(): void {
-  rendererRootResolver = defaultRendererRoot;
+  rendererRootResolver = () => {
+    throw new Error(
+      "rendererRoot not configured — call configureDesktopPaths before registering app protocol",
+    );
+  };
 }
 
 export function rendererRoot(): string {
@@ -140,7 +144,7 @@ export function appBundleIndexUrl(): string {
 
 /**
  * Packaged asar layout: dist-renderer next to package.json inside app.asar.
- * Call after app is ready / isPackaged is known.
+ * Prefer `configureDesktopPaths` which also sets repo/resources roots.
  */
 export function configurePackagedRendererRoot(appPath: string): void {
   setRendererRootResolver(() => path.join(appPath, "dist-renderer"));

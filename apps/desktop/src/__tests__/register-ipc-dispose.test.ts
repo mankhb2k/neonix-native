@@ -53,6 +53,7 @@ describe("registerIpcHandlers dispose", () => {
       appVersion: "0.0.1",
       packaged: false,
       userDataPath: "/tmp/motionvideo-test-userdata",
+      repoRoot: "/tmp/motionvideo-fake-repo",
     });
 
     expect(handle.mock.calls.length).toBe(INVOKE_CHANNELS.length);

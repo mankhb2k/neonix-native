@@ -1,9 +1,9 @@
-import { app, BrowserWindow } from "electron";
 import fs from "node:fs";
 import path from "node:path";
+import { app, BrowserWindow } from "electron";
 import { IpcChannels } from "../../shared/ipc/channels";
-import { attachNavigationPolicy } from "./navigation-policy";
 import { resolveRendererUrl } from "../resolve-renderer-url";
+import { attachNavigationPolicy } from "./navigation-policy";
 
 /** Window ids allowed to close after renderer flushed save. */
 const pendingCloseAllow = new Set<number>();
@@ -41,7 +41,8 @@ function toggleDevTools(win: BrowserWindow): void {
 }
 
 function preloadPath(): string {
-  return path.join(__dirname, "../../preload/index.js");
+  // build:main/preload emit beside each other under dist/
+  return path.join(__dirname, "../preload/index.js");
 }
 
 export function prepareWindowChrome(): void {

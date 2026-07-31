@@ -13,7 +13,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": false,
-    "noEmit": false
+    "noEmit": true
   },
   "include": ["src/main/**/*.ts", "src/shared/**/*.ts"]
 }

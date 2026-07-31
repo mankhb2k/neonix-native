@@ -1,5 +1,4 @@
 import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from "electron";
-import type { ZodTypeAny } from "zod";
 import {
   INVOKE_CHANNELS,
   IpcChannels,
@@ -13,6 +12,7 @@ import {
 import {
   cancelExportSchema,
   confirmCloseSchema,
+  createProjectSchema,
   emptyPayloadSchema,
   importFilesSchema,
   listMissingAssetsSchema,
@@ -32,8 +32,8 @@ import {
 import { getRendererMode } from "../../shared/renderer-mode";
 import { createAssetFileService } from "../services/asset-file-service";
 import { createExportService } from "../services/export-service";
-import { createDisabledProjectJournal } from "../services/project-journal-service";
 import { createProjectFileService } from "../services/project-file-service";
+import { createDisabledProjectJournal } from "../services/project-journal-service";
 import {
   clearProjectSession,
   getProjectSession,
@@ -43,25 +43,21 @@ import {
 import { createRecentProjectService } from "../services/recent-project-service";
 import { allowWindowClose } from "../windows/create-main-window";
 import { validateSender } from "./validate-sender";
-import path from "node:path";
 import type { ExportEvent } from "../../shared/ipc/contracts";
+import type { ZodTypeAny } from "zod";
 
 export type RegisterIpcHandlersContext = {
   appVersion: string;
   packaged: boolean;
   userDataPath?: string;
+  /** Injected DesktopPaths — never infer from __dirname. */
+  repoRoot: string;
+  resourcesRoot?: string;
 };
 
 export type RegisteredIpcHandlers = {
   dispose: () => void;
 };
-
-function notImplemented(feature: string): never {
-  throw new DesktopIpcError(
-    DesktopIpcErrorCode.NOT_IMPLEMENTED,
-    `${feature} is not implemented yet (Phase 4/9).`,
-  );
-}
 
 function parsePayload<T extends ZodTypeAny>(
   schema: T,
@@ -124,8 +120,9 @@ export function registerIpcHandlers(
   });
   const journal = createDisabledProjectJournal();
 
-  // dist/main/ipc → apps/desktop/dist/main/ipc → repo root
-  const repoRoot = path.resolve(__dirname, "../../../../..");
+  const repoRoot = ctx.repoRoot;
+  const resourcesRoot =
+    ctx.resourcesRoot ?? (ctx.packaged ? process.resourcesPath : undefined);
 
   function broadcastExportEvent(event: ExportEvent): void {
     for (const win of BrowserWindow.getAllWindows()) {
@@ -138,7 +135,7 @@ export function registerIpcHandlers(
   const exports = createExportService({
     repoRoot,
     packaged: ctx.packaged,
-    resourcesRoot: ctx.packaged ? process.resourcesPath : undefined,
+    resourcesRoot,
     emit: broadcastExportEvent,
   });
 
@@ -149,6 +146,7 @@ export function registerIpcHandlers(
         id: projectIdFromEnvelope(envelope),
         name: projectNameFromEnvelope(envelope),
         path: filePath,
+        aspectRatio: envelope.project.metadata.aspectRatio,
       });
       journal.record({
         type: "save",
@@ -224,9 +222,12 @@ export function registerIpcHandlers(
     [
       IpcChannels.projectNew,
       (event, payload) => {
-        parsePayload(emptyPayloadSchema, payload);
+        const input = parsePayload(createProjectSchema, payload) ?? {};
         clearProjectSession(event.sender.id);
-        const blank = buildBlankDesktopProject();
+        const blank = buildBlankDesktopProject({
+          name: input.name,
+          aspectRatio: input.aspectRatio,
+        });
         journal.record({
           type: "new",
           projectId: blank.projectId,
@@ -236,6 +237,7 @@ export function registerIpcHandlers(
           projectId: blank.projectId,
           documentJson: blank.documentJson,
           name: blank.envelope.project.metadata.name,
+          aspectRatio: blank.envelope.project.metadata.aspectRatio,
         };
       },
     ],
@@ -250,6 +252,7 @@ export function registerIpcHandlers(
           id: opened.projectId,
           name: projectNameFromEnvelope(envelope),
           path: opened.path,
+          aspectRatio: envelope.project.metadata.aspectRatio,
         });
         setProjectSession(event.sender.id, {
           path: opened.path,
@@ -281,6 +284,7 @@ export function registerIpcHandlers(
           id: opened.projectId,
           name: projectNameFromEnvelope(envelope),
           path: opened.path,
+          aspectRatio: envelope.project.metadata.aspectRatio,
         });
         setProjectSession(_event.sender.id, {
           path: opened.path,
