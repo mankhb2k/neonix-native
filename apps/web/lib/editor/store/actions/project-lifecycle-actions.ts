@@ -13,6 +13,7 @@ import {
 import { parseMotionProject } from "@motionvideo/motion-schema";
 import type {
   EditorStoreActions,
+  EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
 
@@ -20,6 +21,7 @@ export type ProjectLifecycleActions = Pick<EditorStoreActions, "loadProject">;
 
 export function createProjectLifecycleActions(
   set: EditorStoreSet,
+  get: EditorStoreGet,
 ): ProjectLifecycleActions {
   return {
     loadProject: (
@@ -64,7 +66,10 @@ export function createProjectLifecycleActions(
         isExporting: false,
         // Clipboard: giữ xuyên project nếu payload self-contained; hiện reset an toàn.
         timelineClipboard: null,
+        canUndo: false,
+        canRedo: false,
       }));
+      get().clearHistory();
 
       // Playback clock reset atomic — kể cả reload cùng project id (PLAY-01).
       usePlaybackClock.getState().reset({

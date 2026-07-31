@@ -65,6 +65,22 @@ export type {
 
 export { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
 
+// History Seam & Undo/Redo Engine
+export type {
+  HistoryEntry,
+  HistoryState,
+} from "@/lib/editor/timeline/history/history-types";
+
+export {
+  canRedo,
+  canUndo,
+  clearHistory,
+  createHistoryState,
+  pushHistory,
+  redoHistory,
+  undoHistory,
+} from "@/lib/editor/timeline/history/history-manager";
+
 // Canonical Domain Helpers & Predicates
 export {
   clipsContentEndSeconds,

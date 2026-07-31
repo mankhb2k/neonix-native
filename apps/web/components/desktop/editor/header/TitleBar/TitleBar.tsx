@@ -22,6 +22,8 @@ import {
   Search,
   Gem,
   Upload,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 
 export function TitleBar() {
@@ -29,6 +31,10 @@ export function TitleBar() {
   const brandName = useEditorStore((s) => s.project?.metadata.brand.name);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
+  const canUndo = useEditorStore((s) => s.canUndo);
+  const canRedo = useEditorStore((s) => s.canRedo);
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
   const isExporting = useEditorStore((s) => s.isExporting);
   const setExporting = useEditorStore((s) => s.setExporting);
   const updateBrand = useEditorStore((s) => s.updateBrand);
@@ -132,6 +138,33 @@ export function TitleBar() {
             aria-label="Tên dự án"
             placeholder="Dự án không tên"
           />
+
+          <div className="flex items-center gap-0.5">
+            <Tooltip content="Hoàn tác (Ctrl+Z)" side="bottom">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                disabled={!canUndo}
+                onClick={undo}
+                aria-label="Hoàn tác (Ctrl+Z)"
+              >
+                <Undo2 size={14} strokeWidth={1.5} />
+              </Button>
+            </Tooltip>
+            <Tooltip content="Làm lại (Ctrl+Y)" side="bottom">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                disabled={!canRedo}
+                onClick={redo}
+                aria-label="Làm lại (Ctrl+Y)"
+              >
+                <Redo2 size={14} strokeWidth={1.5} />
+              </Button>
+            </Tooltip>
+          </div>
 
           <Tooltip content="Đã lưu tự động vào đám mây" side="bottom">
             <span className="mv-ppt-saved-icon">

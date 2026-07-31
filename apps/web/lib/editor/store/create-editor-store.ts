@@ -10,14 +10,59 @@ import { createSelectionActions } from "@/lib/editor/store/actions/selection-act
 import { createUiActions } from "@/lib/editor/store/actions/ui-actions";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
 import type { EditorStore } from "@/lib/editor/store/types";
-
-import { documentFromStoreState } from "@/lib/editor/timeline/document";
 import { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
+import { documentFromStoreState } from "@/lib/editor/timeline/document";
+import {
+  canRedo,
+  canUndo,
+  clearHistory,
+  createHistoryState,
+  pushHistory,
+  redoHistory,
+  undoHistory,
+} from "@/lib/editor/timeline/history/history-manager";
+import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
 
 export function createEditorStore(initialState?: Partial<EditorStore>) {
+  let historyState = createHistoryState();
+
   return create<EditorStore>((set, get) => ({
     ...createInitialEditorState(),
     ...initialState,
+    undo: () => {
+      const res = undoHistory(historyState);
+      if (res.entry) {
+        historyState = res.state;
+        const entry = res.entry;
+        set({
+          project: entry.before.project,
+          timelineLanes: entry.before.lanes,
+          timelineClips: entry.before.clips,
+          ...(entry.beforeSelection ? { selection: entry.beforeSelection } : {}),
+          canUndo: canUndo(historyState),
+          canRedo: canRedo(historyState),
+        });
+      }
+    },
+    redo: () => {
+      const res = redoHistory(historyState);
+      if (res.entry) {
+        historyState = res.state;
+        const entry = res.entry;
+        set({
+          project: entry.after.project,
+          timelineLanes: entry.after.lanes,
+          timelineClips: entry.after.clips,
+          ...(entry.afterSelection ? { selection: entry.afterSelection } : {}),
+          canUndo: canUndo(historyState),
+          canRedo: canRedo(historyState),
+        });
+      }
+    },
+    clearHistory: () => {
+      historyState = clearHistory();
+      set({ canUndo: false, canRedo: false });
+    },
     executeTimelineCommand: (command) => {
       const state = get();
       const doc = documentFromStoreState(state);
@@ -28,14 +73,31 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           message: "Project chưa được nạp vào store.",
         };
       }
+      const beforeDoc = doc;
+      const beforeSelection = state.selection;
       const wasEmpty = state.timelineClips.length === 0;
+
       const result = executeTimelineCommand(
         doc,
         command,
         state.selection,
         state.timelineClipboard ?? [],
       );
+
       if (result.status === "applied") {
+        const afterDoc = result.document;
+        const afterSelection = result.selection ?? state.selection;
+        const entry: HistoryEntry = {
+          id: `hist_${Math.random().toString(36).slice(2, 9)}`,
+          timestamp: Date.now(),
+          label: command.type,
+          before: beforeDoc,
+          after: afterDoc,
+          beforeSelection,
+          afterSelection,
+        };
+        historyState = pushHistory(historyState, entry);
+
         const isEmptyNow = result.document.clips.length === 0;
         const addedFirstClip = wasEmpty && !isEmptyNow;
         const firstClip = result.document.clips[0];
@@ -44,6 +106,8 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           project: result.document.project,
           timelineLanes: result.document.lanes,
           timelineClips: result.document.clips,
+          canUndo: canUndo(historyState),
+          canRedo: canRedo(historyState),
           ...(result.selection ? { selection: result.selection } : {}),
           ...(isEmptyNow
             ? {
@@ -70,7 +134,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     ...createSelectionActions(set, get),
     ...createLaneActions(set, get),
     ...createDocumentActions(set, get),
-    ...createProjectLifecycleActions(set),
+    ...createProjectLifecycleActions(set, get),
     ...createClipActions(set, get),
     ...createClipboardActions(set, get),
   }));

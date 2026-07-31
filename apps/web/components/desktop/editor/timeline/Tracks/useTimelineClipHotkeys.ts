@@ -13,7 +13,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return target.isContentEditable;
 }
 
-/** Global hotkeys for timeline clip clipboard / split / duplicate. */
+/** Global hotkeys for timeline clip clipboard / split / duplicate / delete / undo / redo. */
 export function useTimelineClipHotkeys(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return undefined;
@@ -25,6 +25,27 @@ export function useTimelineClipHotkeys(enabled: boolean) {
       const selectedIds = selectedClipIdsFrom(store.selection);
       const playhead = usePlaybackClock.getState().currentTime;
 
+      // Undo / Redo Hotkeys (Ctrl+Z, Cmd+Z, Ctrl+Y, Cmd+Shift+Z)
+      if (mod && event.key.toLowerCase() === "z") {
+        if (event.shiftKey) {
+          if (!store.canRedo) return;
+          event.preventDefault();
+          store.redo();
+        } else {
+          if (!store.canUndo) return;
+          event.preventDefault();
+          store.undo();
+        }
+        return;
+      }
+      if (mod && event.key.toLowerCase() === "y") {
+        if (!store.canRedo) return;
+        event.preventDefault();
+        store.redo();
+        return;
+      }
+
+      // Copy / Cut / Paste / Duplicate
       if (mod && event.key.toLowerCase() === "c") {
         if (selectedIds.length === 0) return;
         event.preventDefault();
@@ -63,7 +84,13 @@ export function useTimelineClipHotkeys(enabled: boolean) {
         store.splitSelectedClipsAt(playhead);
         return;
       }
-      if (event.key === "Delete" || event.key === "Backspace") {
+
+      // Delete Hotkeys (Delete, Del, Backspace)
+      if (
+        event.key === "Delete" ||
+        event.key === "Backspace" ||
+        event.key === "Del"
+      ) {
         if (selectedIds.length === 0) return;
         event.preventDefault();
         store.deleteSelectedClips();

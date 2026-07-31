@@ -46,10 +46,17 @@ export type EditorStoreState = {
   timelineFitRevision: number;
   /** Internal clipboard for timeline clips (Copy/Cut/Paste). */
   timelineClipboard: ClipClipboardItem[] | null;
+
+  /** Undo / Redo runtime state */
+  canUndo: boolean;
+  canRedo: boolean;
 };
 
 export type EditorStoreActions = {
   executeTimelineCommand: (command: TimelineCommand) => CommandResult;
+  undo: () => void;
+  redo: () => void;
+  clearHistory: () => void;
   setActiveDragItem: (item: EditorDragItem | null) => void;
   setIsOverTimeline: (over: boolean) => void;
   loadProject: (

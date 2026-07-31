@@ -20,5 +20,7 @@ export function createInitialEditorState(): EditorStoreState {
     timelineFitAnchorSeconds: null,
     timelineFitRevision: 0,
     timelineClipboard: null as ClipClipboardItem[] | null,
+    canUndo: false,
+    canRedo: false,
   };
 }
