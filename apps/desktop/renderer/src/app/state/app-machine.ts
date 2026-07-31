@@ -135,23 +135,9 @@ export function reduceAppState(state: AppState, event: AppEvent): AppState {
         projectName: nameFromDocument(event.documentJson, state.projectName),
         dirty: true,
       };
-    case "SET_NAME": {
-      if (!state.documentJson) return state;
-      try {
-        const envelope = parseDesktopProjectFile(state.documentJson);
-        envelope.project.metadata.name = event.name;
-        envelope.project.metadata.brand.name = event.name;
-        const documentJson = `${JSON.stringify(envelope, null, 2)}\n`;
-        return {
-          ...state,
-          documentJson,
-          projectName: event.name,
-          dirty: true,
-        };
-      } catch {
-        return { ...state, projectName: event.name, dirty: true };
-      }
-    }
+    case "SET_NAME":
+      // Display-only. Document JSON is owned by the editor session.
+      return { ...state, projectName: event.name };
     case "SAVE_START":
       return { ...state, phase: "saving", error: null };
     case "SAVE_SUCCESS":

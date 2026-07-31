@@ -31,13 +31,11 @@ type Props = {
   api: DesktopAPI;
   /** Stable identity for open/new project — drives REPLACE_DOCUMENT. */
   projectId: string;
-  projectName: string;
   path: string | null;
   documentJson: string;
   dirty: boolean;
   error: string | null;
   saving?: boolean;
-  onRename: (name: string) => void;
   onDocumentChange: (json: string) => void;
   onSave: () => void;
   onSaveAs: () => void;
@@ -47,17 +45,16 @@ type Props = {
 
 let propertyEntrySeq = 0;
 let timelineEntrySeq = 0;
+let renameEntrySeq = 0;
 
 function EditingWorkspaceInner({
   api,
   projectId,
-  projectName,
   path,
   documentJson,
   dirty,
   error,
   saving,
-  onRename,
   onDocumentChange,
   onSave,
   onSaveAs,
@@ -218,8 +215,15 @@ function EditingWorkspaceInner({
       <label className="editor-shell__field">
         <span>Project name</span>
         <input
-          value={projectName}
-          onChange={(e) => onRename(e.target.value)}
+          value={session.projectName}
+          onChange={(e) => {
+            renameEntrySeq += 1;
+            dispatch({
+              type: "SET_PROJECT_NAME",
+              name: e.target.value,
+              entryId: `rename_${renameEntrySeq}`,
+            });
+          }}
           disabled={saving}
         />
       </label>

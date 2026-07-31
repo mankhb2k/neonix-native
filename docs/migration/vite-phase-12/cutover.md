@@ -23,7 +23,7 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 - [x] Root `dev:desktop` → legacy; `dev:desktop:vite` → Vite
 - [x] Startup log: version / packaged / renderer / startupMs
 - [x] ADR-002 amended (cutover blocked)
-- [ ] Document ownership / rename via session (post-review Wave 2)
+- [x] Document ownership / rename via session (post-review Wave 2)
 - [x] `IpcResult<T>` across real Electron IPC (Wave A)
 - [x] FS capability tokens / no arbitrary absolute paths (Wave B)
 - [x] Packaged export natives + CLI smoke (post-review Wave 1)
@@ -47,8 +47,8 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 
 ## Known gaps (honest)
 
-- Rename can revert until session owns `SET_PROJECT_NAME` (Wave 2)
 - Timeline: marquee / lane reorder / library DnD still follow-ups
+- Structural clip/lane parse on save still incomplete (Wave 3)
 - No release-level legacy rollback inside packaged artifact
 - Production cutover still blocked until soak / product sign-off
 

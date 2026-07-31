@@ -245,13 +245,11 @@ export function DesktopApp({ api }: Props) {
           <EditingWorkspace
             api={api}
             projectId={state.projectId ?? "untitled"}
-            projectName={state.projectName}
             path={state.path}
             documentJson={state.documentJson}
             dirty={state.dirty}
             error={state.error}
             saving={state.phase === "saving"}
-            onRename={(name) => dispatch({ type: "SET_NAME", name })}
             onDocumentChange={(documentJson) =>
               dispatch({ type: "SET_DOCUMENT_JSON", documentJson })
             }

@@ -59,6 +59,7 @@ export type TimelineSessionEvent =
   | { type: "FIT_TIMELINE" }
   | { type: "CLEAR_ERROR" }
   | { type: "SET_SELECTION"; selection: EditorSelection }
+  | { type: "SET_PROJECT_NAME"; name: string; entryId: string }
   | {
       type: "EXECUTE_PROPERTY_COMMAND";
       command: DocumentPropertyCommand;
@@ -222,6 +223,49 @@ export function reduceTimelineSession(
       return { ...state, loadError: null };
     case "SET_SELECTION":
       return { ...state, selection: event.selection };
+    case "SET_PROJECT_NAME": {
+      const before = toDocument(state);
+      const baseJson = state.baseDocumentJson;
+      if (!before || !baseJson || !state.project) {
+        return {
+          ...state,
+          loadError: "No document loaded for rename.",
+        };
+      }
+      const trimmed = event.name.trim() || "Untitled";
+      const nextProject = {
+        ...state.project,
+        metadata: {
+          ...state.project.metadata,
+          name: trimmed,
+          brand: {
+            ...state.project.metadata.brand,
+            name: trimmed,
+          },
+        },
+      };
+      const after: TimelineDocument = {
+        ...before,
+        project: nextProject,
+      };
+      const applied = applyDocument(state, after, baseJson);
+      const history = pushHistory(state.history, {
+        id: event.entryId,
+        timestamp: Date.now(),
+        label: "Rename project",
+        before,
+        after,
+        beforeSelection: state.selection,
+        afterSelection: state.selection,
+      });
+      return {
+        ...state,
+        ...applied,
+        projectName: trimmed,
+        history,
+        loadError: null,
+      };
+    }
     case "EXECUTE_PROPERTY_COMMAND": {
       const before = toDocument(state);
       const baseJson = state.baseDocumentJson;
