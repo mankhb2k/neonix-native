@@ -22,5 +22,7 @@ export function createInitialEditorState(): EditorStoreState {
     timelineClipboard: null as ClipClipboardItem[] | null,
     canUndo: false,
     canRedo: false,
+    dirtyRevision: 0,
+    savedRevision: 0,
   };
 }

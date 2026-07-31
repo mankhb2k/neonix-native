@@ -1,0 +1,244 @@
+{
+  "storageVersion": 2,
+  "savedAt": "2026-07-31T00:00:00.000Z",
+  "project": {
+    "format": "motion-project",
+    "formatVersion": 2,
+    "metadata": {
+      "id": "vite-phase0.medium",
+      "name": "Phase0 Medium",
+      "aspectRatio": "16:9",
+      "fps": 30,
+      "locale": "vi-VN",
+      "brand": {
+        "name": "Base + Overlay",
+        "primaryColor": "#1A5D3A",
+        "fontFamily": "Be Vietnam Pro"
+      }
+    },
+    "dependencies": {
+      "components": []
+    },
+    "assets": [
+      {
+        "id": "asset.audio.a",
+        "uri": "assets/bed.mp3",
+        "integrity": "sha256-phase0-audio-a",
+        "assetType": "audio",
+        "mimeType": "audio/mpeg",
+        "duration": 3,
+        "codec": "mp3",
+        "sampleRate": 44100,
+        "channels": 2
+      },
+      {
+        "id": "asset.audio.b",
+        "uri": "assets/sfx.mp3",
+        "integrity": "sha256-phase0-audio-b",
+        "assetType": "audio",
+        "mimeType": "audio/mpeg",
+        "duration": 2,
+        "codec": "mp3",
+        "sampleRate": 44100,
+        "channels": 2
+      }
+    ],
+    "variables": [],
+    "timeline": {
+      "sceneOrder": [
+        "scene.base",
+        "scene.overlay"
+      ],
+      "audioTracks": [
+        {
+          "id": "audio.a",
+          "role": "bgm",
+          "assetId": "asset.audio.a",
+          "start": 0,
+          "trimStart": 0,
+          "volume": 1,
+          "loop": false,
+          "fadeIn": 0,
+          "fadeOut": 0
+        },
+        {
+          "id": "audio.b",
+          "role": "sfx",
+          "assetId": "asset.audio.b",
+          "start": 1.5,
+          "trimStart": 0,
+          "volume": 0.8,
+          "loop": false,
+          "fadeIn": 0,
+          "fadeOut": 0
+        }
+      ]
+    },
+    "scenes": [
+      {
+        "id": "scene.base",
+        "duration": 4,
+        "nodes": [
+          {
+            "id": "scene.base.title",
+            "type": "text",
+            "parentId": null,
+            "transform": {
+              "x": 40,
+              "y": 40,
+              "width": 200,
+              "height": 40,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "anchorX": 0,
+              "anchorY": 0,
+              "opacity": 1,
+              "visible": true,
+              "flipX": false,
+              "flipY": false
+            },
+            "payload": {
+              "text": "Base Scene",
+              "fontSize": 24,
+              "fontWeight": 600,
+              "align": "left"
+            },
+            "style": {
+              "fill": "#111111"
+            }
+          }
+        ],
+        "clips": []
+      },
+      {
+        "id": "scene.overlay",
+        "duration": 2,
+        "nodes": [
+          {
+            "id": "scene.overlay.title",
+            "type": "text",
+            "parentId": null,
+            "transform": {
+              "x": 40,
+              "y": 40,
+              "width": 200,
+              "height": 40,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "anchorX": 0,
+              "anchorY": 0,
+              "opacity": 1,
+              "visible": true,
+              "flipX": false,
+              "flipY": false
+            },
+            "payload": {
+              "text": "Overlay Scene",
+              "fontSize": 24,
+              "fontWeight": 600,
+              "align": "left"
+            },
+            "style": {
+              "fill": "#111111"
+            }
+          }
+        ],
+        "clips": []
+      }
+    ],
+    "bindings": [],
+    "extensions": {
+      "constraints": [],
+      "events": []
+    }
+  },
+  "timelineClips": [
+    {
+      "kind": "scene",
+      "id": "clip.base",
+      "sceneId": "scene.base",
+      "laneId": "lane.main",
+      "startTime": 0,
+      "duration": 4,
+      "name": "Base Scene"
+    },
+    {
+      "kind": "scene",
+      "id": "clip.overlay",
+      "sceneId": "scene.overlay",
+      "laneId": "lane.overlay.0",
+      "startTime": 1,
+      "duration": 2,
+      "name": "Overlay Scene"
+    },
+    {
+      "kind": "audio",
+      "id": "clip.audio.a",
+      "audioTrackId": "audio.a",
+      "assetId": "asset.audio.a",
+      "laneId": "lane.audio.0",
+      "startTime": 0,
+      "duration": 3,
+      "name": "Bed"
+    },
+    {
+      "kind": "audio",
+      "id": "clip.audio.b",
+      "audioTrackId": "audio.b",
+      "assetId": "asset.audio.b",
+      "laneId": "lane.audio.1",
+      "startTime": 1.5,
+      "duration": 2,
+      "name": "Sfx"
+    }
+  ],
+  "timelineLanes": [
+    {
+      "id": "lane.main",
+      "kind": "visual",
+      "role": "base",
+      "name": "Main",
+      "order": -1,
+      "policy": {
+        "allowOverlap": false,
+        "rippleMode": false
+      }
+    },
+    {
+      "id": "lane.overlay.0",
+      "kind": "visual",
+      "role": "overlay",
+      "name": "Lớp 1",
+      "order": 0,
+      "policy": {
+        "allowOverlap": false,
+        "rippleMode": false
+      }
+    },
+    {
+      "id": "lane.audio.0",
+      "kind": "audio",
+      "role": "audio",
+      "name": "Audio 1",
+      "order": 0
+    },
+    {
+      "id": "lane.audio.1",
+      "kind": "audio",
+      "role": "audio",
+      "name": "Audio 2",
+      "order": 1
+    }
+  ],
+  "overlayScenes": [
+    {
+      "id": "clip.overlay",
+      "name": "Overlay Scene",
+      "duration": 2,
+      "startTime": 1,
+      "layerIndex": 0
+    }
+  ]
+}

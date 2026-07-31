@@ -19,12 +19,17 @@ import {
   isQuotaExceededError,
   SaveProjectError,
 } from "@/lib/editor/persistence/storage-errors";
+import { getProjectStorageAdapter } from "@/lib/editor/persistence/storage-adapter";
 
 export type { StoredProject } from "@/lib/editor/persistence/project-migrations";
 export { CURRENT_STORAGE_VERSION, migrateStoredProject, overlaysFromClips };
 export { SaveProjectError, isQuotaExceededError } from "@/lib/editor/persistence/storage-errors";
-
-const STORAGE_KEY = "motionvideo.projects";
+export {
+  createLocalStorageProjectAdapter,
+  getProjectStorageAdapter,
+  setProjectStorageAdapterForTests,
+  type ProjectStorageAdapter,
+} from "@/lib/editor/persistence/storage-adapter";
 
 export type EditorProjectSnapshot = {
   project: MotionProject;
@@ -34,63 +39,27 @@ export type EditorProjectSnapshot = {
   overlayScenes: OverlaySceneItem[];
 };
 
-/** Đọc storage thuần — không ghi ngược, không destructive migration. */
-function parseStored(): Record<string, StoredProject> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<
-      string,
-      unknown
-    >;
-    const migrated: Record<string, StoredProject> = {};
-    for (const item of Object.values(raw)) {
-      const parsed = parseStoredProjectRecord(item);
-      if (!parsed) continue;
-      migrated[parsed.project.metadata.id] = parsed;
-    }
-    return migrated;
-  } catch {
-    return {};
-  }
-}
-
-/** Ghi storage — bắt quota/write failure (Phase 8). */
-function writeAll(projects: Record<string, StoredProject>): void {
-  if (typeof window === "undefined") {
-    throw new SaveProjectError("write", "localStorage unavailable");
-  }
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-  } catch (error) {
-    if (isQuotaExceededError(error)) {
-      throw new SaveProjectError(
-        "quota",
-        "Không đủ dung lượng localStorage để lưu dự án.",
-      );
-    }
-    throw new SaveProjectError(
-      "write",
-      error instanceof Error ? error.message : "Ghi localStorage thất bại.",
-    );
-  }
-}
-
 type SaveProjectOptions = {
   overlayScenes?: OverlaySceneItem[];
   timelineClips?: TimelineClip[];
   timelineLanes?: TimelineLane[];
 };
 
-/** Persist unified clips + lanes, retaining the legacy overlay sidecar for older readers.
- * Throws SaveProjectError khi quota/write fail — caller nên catch (autosave không crash UI).
- */
+function loadStored(id: string): StoredProject | null {
+  const adapter = getProjectStorageAdapter();
+  const raw = adapter.get(id);
+  if (!raw) return null;
+  return parseStoredProjectRecord(raw);
+}
+
+/** Persist one project — does not rewrite other projects. */
 export function saveProject(
   project: MotionProject,
   options: SaveProjectOptions | OverlaySceneItem[] = {},
 ): void {
   const parsed = parseMotionProject(project);
-  const projects = parseStored();
-  const previous = projects[parsed.metadata.id];
+  const adapter = getProjectStorageAdapter();
+  const previous = loadStored(parsed.metadata.id);
   const opts = Array.isArray(options) ? { overlayScenes: options } : options;
   const timelineClips =
     opts.timelineClips !== undefined
@@ -107,7 +76,7 @@ export function saveProject(
         ? overlaysFromClips(timelineClips, timelineLanes ?? [])
         : (previous?.overlayScenes ?? []);
 
-  projects[parsed.metadata.id] = {
+  const stored: StoredProject = {
     storageVersion: CURRENT_STORAGE_VERSION,
     savedAt: new Date().toISOString(),
     project: parsed,
@@ -115,7 +84,7 @@ export function saveProject(
     ...(timelineLanes !== undefined ? { timelineLanes } : {}),
     overlayScenes,
   };
-  writeAll(projects);
+  adapter.set(parsed.metadata.id, stored);
 }
 
 /** saveProject an toàn cho autosave — nuốt lỗi, trả về ok/false. */
@@ -140,11 +109,10 @@ export function trySaveProject(
 
 /**
  * Load đầy đủ snapshot editor trong một lần đọc storage.
- * Không mutate localStorage.
+ * Không mutate localStorage (migrate in-memory only).
  */
 export function loadEditorProjectSnapshot(id: string): EditorProjectSnapshot | null {
-  const projects = parseStored();
-  const stored = projects[id];
+  const stored = loadStored(id);
   if (!stored) return null;
 
   const { lanes: migratedLanes, clips: migratedClips } = migrateLanesAndClips(
@@ -177,7 +145,6 @@ export function loadOverlayScenes(id: string): OverlaySceneItem[] {
   return loadEditorProjectSnapshot(id)?.overlayScenes ?? [];
 }
 
-/** Returns no clips for legacy projects; the editor migrates their sidecar once. */
 export function loadTimelineClips(id: string): TimelineClip[] {
   return loadEditorProjectSnapshot(id)?.timelineClips ?? [];
 }
@@ -186,7 +153,6 @@ export function loadTimelineLanes(id: string): TimelineLane[] {
   return loadEditorProjectSnapshot(id)?.timelineLanes ?? [];
 }
 
-/** Load clips+lanes with migration for legacy saves. */
 export function loadTimelineState(id: string): {
   clips: TimelineClip[];
   lanes: TimelineLane[];
@@ -197,11 +163,15 @@ export function loadTimelineState(id: string): {
 }
 
 export function deleteProject(id: string): void {
-  const projects = parseStored();
-  delete projects[id];
-  writeAll(projects);
+  getProjectStorageAdapter().delete(id);
 }
 
 export function listProjects(): StoredProject[] {
-  return Object.values(parseStored()).sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  const adapter = getProjectStorageAdapter();
+  const out: StoredProject[] = [];
+  for (const id of adapter.listIds()) {
+    const stored = loadStored(id);
+    if (stored) out.push(stored);
+  }
+  return out.sort((a, b) => b.savedAt.localeCompare(a.savedAt));
 }

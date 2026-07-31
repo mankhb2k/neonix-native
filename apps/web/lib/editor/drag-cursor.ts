@@ -12,6 +12,9 @@ let rafId = 0;
 let pendingCursor: { x: number; y: number } | null = null;
 let pendingGhost: { left: number; width: number } | null = null;
 
+/** Session that currently owns the cursor; only that token may clear. */
+let ownerToken: string | null = null;
+
 function applyCursorTransform(el: HTMLElement, x: number, y: number): void {
   const { style } = el;
   style.transform = `translate3d(${x - previewOffsetX}px, ${y - previewOffsetY}px, 0)`;
@@ -86,6 +89,11 @@ export function unbindDragGhostElementIf(el: HTMLElement | null): void {
   }
 }
 
+/** Claim cursor ownership for an interaction session. */
+export function acquireDragCursor(token: string): void {
+  ownerToken = token;
+}
+
 /** Cursor client coordinates — preview top-left = (x - offsetX, y - offsetY). */
 export function setDragCursor(x: number, y: number): void {
   pendingCursor = { x, y };
@@ -97,7 +105,19 @@ export function setDragGhostLayout(left: number, width: number): void {
   scheduleFlush();
 }
 
-export function clearDragCursor(): void {
+/**
+ * Clear cursor chrome. When `token` is provided, only the owning session may clear
+ * (old session cleanup cannot wipe a newer session).
+ */
+export function clearDragCursor(token?: string): void {
+  if (token != null && ownerToken != null && token !== ownerToken) {
+    return;
+  }
+  if (token != null && ownerToken === token) {
+    ownerToken = null;
+  } else if (token == null) {
+    ownerToken = null;
+  }
   if (rafId) {
     cancelAnimationFrame(rafId);
     rafId = 0;
@@ -106,4 +126,9 @@ export function clearDragCursor(): void {
   pendingGhost = null;
   previewOffsetX = 0;
   previewOffsetY = 0;
+}
+
+/** @internal test helper */
+export function getDragCursorOwnerToken(): string | null {
+  return ownerToken;
 }

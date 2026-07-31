@@ -13,20 +13,23 @@ import {
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { documentFromStoreState } from "@/lib/editor/timeline/document";
+import { clipsByLane as buildClipsByLane } from "@/lib/editor/timeline/indexes";
 import { clientXToTimelineTime } from "./Playhead";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
   TIMELINE_TRACKS_ORIGIN_X,
 } from "../timeline-scale";
+import { TimelineClipItem } from "../components/TimelineClipItem";
+import { TimelineLaneView } from "../components/TimelineLaneView";
+import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { TimelineWorkspaceContextMenu } from "./TimelineWorkspaceContextMenu";
-import { TrackLane } from "./TrackLane";
 import { useMarqueeSelect } from "./useMarqueeSelect";
 import { useTimelineAutoScroll } from "./useTimelineAutoScroll";
 import { useTimelineClipHotkeys } from "./useTimelineClipHotkeys";
 import { useTimelineClipMove } from "./useTimelineClipMove";
 import { useTracksDrag } from "./useTracksDrag";
-import type { TimelineClip } from "@/lib/editor/timeline-clips";
 
 type Props = {
   scrollRef: RefObject<HTMLDivElement | null>;
@@ -34,6 +37,8 @@ type Props = {
   viewWidth: number;
   pixelsPerSecond: number;
   canvasWidth: number;
+  scrollLeft: number;
+  scrollTop: number;
   onScrollLeft: (scrollLeft: number) => void;
   onScrollTop?: (scrollTop: number) => void;
   onScrubBlockedChange: (blocked: boolean) => void;
@@ -46,6 +51,8 @@ export const Tracks = memo(function Tracks({
   viewWidth,
   pixelsPerSecond,
   canvasWidth,
+  scrollLeft,
+  scrollTop,
   onScrollLeft,
   onScrollTop,
   onScrubBlockedChange,
@@ -92,7 +99,14 @@ export const Tracks = memo(function Tracks({
   );
 
   const clipsByLane = useMemo(() => {
-    const map = new Map<string, TimelineClip[]>();
+    const project = useEditorStore.getState().project;
+    const doc = documentFromStoreState({
+      project,
+      timelineClips,
+      timelineLanes,
+    });
+    if (doc) return buildClipsByLane(doc);
+    const map = new Map<string, typeof timelineClips>();
     for (const clip of timelineClips) {
       const list = map.get(clip.laneId);
       if (list) list.push(clip);
@@ -104,13 +118,12 @@ export const Tracks = memo(function Tracks({
       );
     }
     return map;
-  }, [timelineClips]);
+  }, [timelineClips, timelineLanes]);
 
   const selectedClipIdSet = useMemo(
     () => new Set(selectedClipIds),
     [selectedClipIds],
   );
-  const mainClips = mainLane ? (clipsByLane.get(mainLane.id) ?? []) : [];
 
   const sidebarDrag = useTracksDrag({
     rootRef: scrollRef,
@@ -119,7 +132,7 @@ export const Tracks = memo(function Tracks({
     pixelsPerSecond,
     maxOverlayOrder,
     maxAudioOrder,
-    visualBaseOnly: mainClips.length === 0,
+    visualBaseOnly: (mainLane ? (clipsByLane.get(mainLane.id)?.length ?? 0) : 0) === 0,
     projectId: projectId ?? null,
     autoScroll,
   });
@@ -131,6 +144,23 @@ export const Tracks = memo(function Tracks({
     maxOverlayOrder,
     maxAudioOrder,
     autoScroll,
+  });
+
+  const pinIds = useMemo(() => {
+    const pins = new Set(selectedClipIds);
+    if (clipMove.movingClipId) pins.add(clipMove.movingClipId);
+    return pins;
+  }, [selectedClipIds, clipMove.movingClipId]);
+
+  const { clipsForLane } = useVisibleTimeline({
+    scrollLeft,
+    scrollTop,
+    viewWidth: trackViewWidth,
+    viewHeight: scrollRef.current?.clientHeight ?? 400,
+    pixelsPerSecond,
+    lanes: timelineLanes,
+    clipsByLane,
+    pinIds,
   });
 
   const marquee = useMarqueeSelect({
@@ -229,7 +259,10 @@ export const Tracks = memo(function Tracks({
     }
   };
 
-  function onClipKeyDown(clipId: string, event: KeyboardEvent<HTMLDivElement>) {
+  function onClipKeyDown(
+    clipId: string,
+    event: KeyboardEvent<HTMLDivElement>,
+  ) {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     useEditorStore.getState().selectClip(clipId);
@@ -317,14 +350,13 @@ export const Tracks = memo(function Tracks({
             )}
 
             {overlayLanes.map((lane) => {
-              const layerItems = clipsByLane.get(lane.id) ?? [];
+              const layerItems = clipsForLane(lane.id);
               return (
-                <TrackLane
+                <TimelineLaneView
                   key={lane.id}
-                  variant="secondary"
-                  dataTrackType="overlay"
-                  dataLaneId={lane.id}
-                  dataLaneOrder={lane.order}
+                  laneId={lane.id}
+                  order={lane.order}
+                  trackType="overlay"
                   ghostPreview={
                     !isOverlayInsertLine &&
                     !isAudioInsertLine &&
@@ -337,36 +369,26 @@ export const Tracks = memo(function Tracks({
                   canvasWidth={canvasWidth}
                 >
                   {layerItems.map((item) => {
-                    const active = selectedClipIdSet.has(item.id);
-                    const moving = clipMove.movingClipId === item.id;
-                    if (moving) return null;
+                    if (clipMove.movingClipId === item.id) return null;
                     return (
-                      <div
+                      <TimelineClipItem
                         key={item.id}
-                        data-clip-id={item.id}
-                        data-lane-id={lane.id}
-                        data-start-time={String(item.startTime)}
-                        role="button"
-                        tabIndex={0}
-                        className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm overflow-hidden ${
-                          active ? "z-10 border-2 border-white" : ""
-                        }`}
-                        style={{
-                          left: item.startTime * pixelsPerSecond,
-                          width: Math.max(item.duration * pixelsPerSecond, 24),
-                        }}
+                        id={item.id}
+                        laneId={lane.id}
+                        startTime={item.startTime}
+                        duration={item.duration}
+                        name={item.name}
+                        selected={selectedClipIdSet.has(item.id)}
+                        pixelsPerSecond={pixelsPerSecond}
+                        variant="overlay"
                         onPointerDown={(event) => {
                           clipMove.beginClipPointerDown(item, "overlay", event);
                         }}
                         onKeyDown={(event) => onClipKeyDown(item.id, event)}
-                      >
-                        <span className="truncate pointer-events-none">
-                          {item.name} ({item.duration}s)
-                        </span>
-                      </div>
+                      />
                     );
                   })}
-                </TrackLane>
+                </TimelineLaneView>
               );
             })}
 
@@ -395,10 +417,9 @@ export const Tracks = memo(function Tracks({
               </>
             )}
 
-            <TrackLane
-              variant="main"
-              dataTrackType="main"
-              dataLaneId={mainLane?.id}
+            <TimelineLaneView
+              laneId={mainLane?.id}
+              trackType="main"
               ghostPreview={
                 !isOverlayInsertLine &&
                 !isAudioInsertLine &&
@@ -410,52 +431,41 @@ export const Tracks = memo(function Tracks({
               labelWidth={TIMELINE_LABEL_WIDTH}
               canvasWidth={canvasWidth}
             >
-              {mainClips.map((clip, index) => {
-                const active = selectedClipIdSet.has(clip.id);
-                const moving = clipMove.movingClipId === clip.id;
-                if (moving) return null;
+              {(mainLane ? clipsForLane(mainLane.id) : []).map((clip) => {
+                if (clipMove.movingClipId === clip.id) return null;
+                const allMain = mainLane
+                  ? (clipsByLane.get(mainLane.id) ?? [])
+                  : [];
+                const indexLabel = allMain.findIndex((c) => c.id === clip.id) + 1;
                 return (
-                  <div
+                  <TimelineClipItem
                     key={clip.id}
-                    data-clip-id={clip.id}
-                    data-lane-id={mainLane?.id}
-                    data-start-time={String(clip.startTime)}
-                    role="button"
-                    tabIndex={0}
-                    className={`absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90 ${
-                      active
-                        ? "z-10 border-2 border-white text-white shadow-md"
-                        : ""
-                    }`}
-                    style={{
-                      left: clip.startTime * pixelsPerSecond,
-                      width: Math.max(clip.duration * pixelsPerSecond, 8),
-                    }}
+                    id={clip.id}
+                    laneId={mainLane?.id}
+                    startTime={clip.startTime}
+                    duration={clip.duration}
+                    name={clip.name}
+                    selected={selectedClipIdSet.has(clip.id)}
+                    pixelsPerSecond={pixelsPerSecond}
+                    variant="main"
+                    indexLabel={indexLabel}
                     onPointerDown={(event) => {
                       clipMove.beginClipPointerDown(clip, "main", event);
                     }}
                     onKeyDown={(event) => onClipKeyDown(clip.id, event)}
-                  >
-                    <span className="block truncate font-semibold text-white pointer-events-none">
-                      {index + 1}. {clip.name}
-                    </span>
-                    <span className="block truncate text-white/80 pointer-events-none">
-                      {clip.duration}s
-                    </span>
-                  </div>
+                  />
                 );
               })}
-            </TrackLane>
+            </TimelineLaneView>
 
             {audioLanes.map((lane) => {
-              const laneClips = clipsByLane.get(lane.id) ?? [];
+              const laneClips = clipsForLane(lane.id);
               return (
-                <TrackLane
+                <TimelineLaneView
                   key={lane.id}
-                  variant="secondary"
-                  dataTrackType="audio"
-                  dataLaneId={lane.id}
-                  dataLaneOrder={lane.order}
+                  laneId={lane.id}
+                  order={lane.order}
+                  trackType="audio"
                   ghostPreview={
                     !isAudioInsertLine &&
                     targetAudioLaneId === lane.id &&
@@ -467,36 +477,26 @@ export const Tracks = memo(function Tracks({
                   canvasWidth={canvasWidth}
                 >
                   {laneClips.map((clip) => {
-                    const active = selectedClipIdSet.has(clip.id);
-                    const moving = clipMove.movingClipId === clip.id;
-                    if (moving) return null;
+                    if (clipMove.movingClipId === clip.id) return null;
                     return (
-                      <div
+                      <TimelineClipItem
                         key={clip.id}
-                        data-clip-id={clip.id}
-                        data-lane-id={lane.id}
-                        data-start-time={String(clip.startTime)}
-                        role="button"
-                        tabIndex={0}
-                        className={`absolute top-0 bottom-0 my-auto flex h-[90%] items-center rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm overflow-hidden ${
-                          active ? "z-10 border-2 border-white" : ""
-                        }`}
-                        style={{
-                          left: clip.startTime * pixelsPerSecond,
-                          width: Math.max(clip.duration * pixelsPerSecond, 24),
-                        }}
+                        id={clip.id}
+                        laneId={lane.id}
+                        startTime={clip.startTime}
+                        duration={clip.duration}
+                        name={clip.name}
+                        selected={selectedClipIdSet.has(clip.id)}
+                        pixelsPerSecond={pixelsPerSecond}
+                        variant="audio"
                         onPointerDown={(event) => {
                           clipMove.beginClipPointerDown(clip, "audio", event);
                         }}
                         onKeyDown={(event) => onClipKeyDown(clip.id, event)}
-                      >
-                        <span className="truncate pointer-events-none">
-                          {clip.name}
-                        </span>
-                      </div>
+                      />
                     );
                   })}
-                </TrackLane>
+                </TimelineLaneView>
               );
             })}
           </TimelineWorkspaceContextMenu>

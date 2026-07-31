@@ -23,6 +23,8 @@ export type AutoScrollOptions = {
 
 type AutoScrollSession = {
   owner: TimelineAutoScrollOwner;
+  /** Optional session token — stop only clears if token matches (or omitted). */
+  sessionToken?: string;
   clientX: number;
   clientY: number;
   onScrolled: () => void;
@@ -35,9 +37,9 @@ export type TimelineAutoScrollController = {
     clientX: number,
     clientY: number,
     onScrolled: () => void,
-    options?: AutoScrollOptions,
+    options?: AutoScrollOptions & { sessionToken?: string },
   ) => void;
-  stop: (owner: TimelineAutoScrollOwner) => void;
+  stop: (owner: TimelineAutoScrollOwner, sessionToken?: string) => void;
 };
 
 /** Quadratic edge acceleration: slow on entry, fast at the viewport edge. */
@@ -141,22 +143,40 @@ export function useTimelineAutoScroll(
       clientX: number,
       clientY: number,
       onScrolled: () => void,
-      options?: AutoScrollOptions,
+      options?: AutoScrollOptions & { sessionToken?: string },
     ) => {
-      sessionRef.current = { owner, clientX, clientY, onScrolled, options };
+      sessionRef.current = {
+        owner,
+        clientX,
+        clientY,
+        onScrolled,
+        options,
+        sessionToken: options?.sessionToken,
+      };
       scheduleFrame();
     },
     [scheduleFrame],
   );
 
-  const stop = useCallback((owner: TimelineAutoScrollOwner) => {
-    if (sessionRef.current?.owner !== owner) return;
-    sessionRef.current = null;
-    if (frameRef.current != null) {
-      cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-  }, []);
+  const stop = useCallback(
+    (owner: TimelineAutoScrollOwner, sessionToken?: string) => {
+      const current = sessionRef.current;
+      if (!current || current.owner !== owner) return;
+      if (
+        sessionToken != null &&
+        current.sessionToken != null &&
+        current.sessionToken !== sessionToken
+      ) {
+        return;
+      }
+      sessionRef.current = null;
+      if (frameRef.current != null) {
+        cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+    },
+    [],
+  );
 
   useEffect(
     () => () => {

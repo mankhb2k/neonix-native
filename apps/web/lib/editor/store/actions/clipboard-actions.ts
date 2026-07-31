@@ -74,6 +74,12 @@ export function createClipboardActions(
               (clip.kind === "audio" ? clip.assetId : undefined) ??
               track?.assetId ??
               clip.name,
+            trimStart: track?.trimStart ?? 0,
+            volume: track?.volume ?? 1,
+            fadeIn: track?.fadeIn ?? 0,
+            fadeOut: track?.fadeOut ?? 0,
+            loop: track?.loop ?? false,
+            audioRole: track?.role,
           });
         } else {
           // Overlay: copy scene content nếu có (self-contained clipboard).

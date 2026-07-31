@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 import {
+  acquireDragCursor,
   bindDragGhostElement,
   clearDragCursor,
   setDragCursor,
@@ -19,9 +20,11 @@ import {
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
-  shouldCommitPointerSession,
-  type PointerSessionEndReason,
-} from "@/lib/editor/pointer-session";
+  buildClipMovePatch,
+  createClipMoveSessionState,
+  updateClipMoveSessionState,
+  type MoveSessionState,
+} from "@/lib/editor/timeline/sessions/clip-move-session";
 import {
   bindLaneCacheInvalidation,
   createEmptyLaneRectCache,
@@ -34,6 +37,8 @@ import {
   INDICATOR_TOP_EPS_PX,
   type TimelineDropTarget,
 } from "./lane-drop-target";
+import { DomGeometryAdapter } from "../interactions/dom-geometry-adapter";
+import { usePointerSession } from "../interactions/use-pointer-session";
 import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 import type { DragGhostState } from "./useTracksDrag";
 import type { TimelineClip } from "@/lib/editor/timeline-clips";
@@ -67,6 +72,8 @@ type MoveSession = {
   /** Pointer X offset inside the clip (so drop keeps grab point). */
   grabOffsetX: number;
   started: boolean;
+  cursorToken: string | null;
+  domain: MoveSessionState;
   /** Seek playhead here on pure click (main clips). */
   clickSeekTime?: number;
 };
@@ -101,8 +108,12 @@ export function useTimelineClipMove({
   const ghostLeftRef = useRef(0);
   const sessionRef = useRef<MoveSession | null>(null);
   const laneCacheRef = useRef<LaneRectCache>(createEmptyLaneRectCache());
-  const pendingPointerRef = useRef<{ x: number; y: number } | null>(null);
-  const moveRafRef = useRef<number | null>(null);
+  if (!laneCacheRef.current.adapter) {
+    laneCacheRef.current.adapter = new DomGeometryAdapter({
+      pixelsPerSecond,
+    });
+  }
+  laneCacheRef.current.adapter.setPixelsPerSecond(pixelsPerSecond);
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -137,6 +148,29 @@ export function useTimelineClipMove({
     insertTargetFamily === dragFamily;
   const hasDragGhost = dragGhostState != null;
 
+  const applyPointerMoveRef = useRef<(x: number, y: number) => void>(
+    () => undefined,
+  );
+  const commitMoveRef = useRef<() => void>(() => undefined);
+  const resetMoveUiRef = useRef<() => void>(() => undefined);
+
+  const pointerSession = usePointerSession({
+    name: "clip-move",
+    onStart: () => ({}),
+    onUpdate: (pos) => {
+      applyPointerMoveRef.current(pos.x, pos.y);
+      return {};
+    },
+    onCommit: () => {
+      commitMoveRef.current();
+    },
+    onCancel: () => {
+      resetMoveUiRef.current();
+    },
+  });
+  const pointerSessionRef = useRef(pointerSession);
+  pointerSessionRef.current = pointerSession;
+
   useLayoutEffect(() => {
     const ghostEl = insertGhostRef.current;
     if (!isInsertLine || !hasDragGhost) {
@@ -161,9 +195,11 @@ export function useTimelineClipMove({
         laneCacheRef.current,
         () => {
           const session = sessionRef.current;
-          const pending = pendingPointerRef.current;
-          if (session?.started && pending) {
-            schedulePointerMoveRef.current(pending.x, pending.y);
+          if (session?.started) {
+            const token = pointerSessionRef.current.token();
+            if (token) {
+              /* keep moving via next pointer update */
+            }
           }
         },
       ),
@@ -172,15 +208,17 @@ export function useTimelineClipMove({
 
   /** Clear store/global drag chrome without touching React local setters (safe on unmount). */
   function cleanupExternalDragState() {
+    const token = sessionRef.current?.cursorToken ?? undefined;
     sessionRef.current = null;
     useEditorStore.getState().setIsOverTimeline(false);
     useEditorStore.getState().setActiveDragItem(null);
-    clearDragCursor();
+    clearDragCursor(token);
     unbindDragGhostElementIf(insertGhostRef.current);
   }
 
   function resetMoveUi() {
-    autoScroll.stop("clip-move");
+    const token = sessionRef.current?.cursorToken ?? undefined;
+    autoScroll.stop("clip-move", token);
     dropTargetRef.current = {
       isInsert: false,
       laneId: null,
@@ -199,6 +237,7 @@ export function useTimelineClipMove({
     setDragGhostState(null);
     cleanupExternalDragState();
   }
+  resetMoveUiRef.current = resetMoveUi;
 
   function clientXToGhostLeft(clientX: number, grabOffsetX: number): number {
     const root = scrollContainerRef.current;
@@ -218,6 +257,9 @@ export function useTimelineClipMove({
       const dy = clientY - session.originY;
       if (dx * dx + dy * dy < MOVE_THRESHOLD_PX * MOVE_THRESHOLD_PX) return;
       session.started = true;
+      const token = pointerSessionRef.current.token() ?? `clip-move_${session.id}`;
+      session.cursorToken = token;
+      acquireDragCursor(token);
       setMovingClipId(session.id);
       useEditorStore.getState().setIsOverTimeline(true);
       setDragPreviewAnchor(CYAN_ANCHOR_X, CYAN_ANCHOR_Y);
@@ -252,7 +294,7 @@ export function useTimelineClipMove({
     autoScroll.updatePointer("clip-move", clientX, clientY, () => {
       invalidateLaneRectCache(laneCacheRef.current);
       applyPointerMoveRef.current(clientX, clientY);
-    });
+    }, { sessionToken: session.cursorToken ?? undefined });
 
     const family = session.source === "audio" ? "audio" : "visual";
     const target =
@@ -273,7 +315,24 @@ export function useTimelineClipMove({
           );
     if (!target) return;
     applyDropTargetUpdate(target);
+
+    const startTime = left / pps;
+    const track =
+      target.family === "audio"
+        ? "audio"
+        : target.overBaseBody
+          ? "main"
+          : "overlay";
+    session.domain = updateClipMoveSessionState(
+      session.domain,
+      startTime,
+      target.isInsert ? null : (target.laneId ?? session.originLaneId),
+      track,
+      target.isInsert,
+      target.insertOrder,
+    );
   }
+  applyPointerMoveRef.current = applyPointerMove;
 
   /** Single path: TimelineDropTarget → dropTargetRef + insert-line / lane highlight. */
   function applyDropTargetUpdate(target: TimelineDropTarget) {
@@ -319,18 +378,6 @@ export function useTimelineClipMove({
     }
   }
 
-  function schedulePointerMove(clientX: number, clientY: number) {
-    // PERF-02: coalesce pointermove — tối đa một flush / animation frame.
-    pendingPointerRef.current = { x: clientX, y: clientY };
-    if (moveRafRef.current != null) return;
-    moveRafRef.current = requestAnimationFrame(() => {
-      moveRafRef.current = null;
-      const pending = pendingPointerRef.current;
-      if (!pending) return;
-      applyPointerMove(pending.x, pending.y);
-    });
-  }
-
   function commitMove() {
     const session = sessionRef.current;
     if (!session) {
@@ -350,129 +397,33 @@ export function useTimelineClipMove({
     const pps = Math.max(pixelsPerSecondRef.current, 1);
     const startTime = ghostLeftRef.current / pps;
     const ui = dropTargetRef.current;
-
-    if (session.source === "audio") {
-      store.moveClip(
-        session.id,
-        ui.isInsert
-          ? {
-              track: "audio",
-              startTime,
-              insertNewLane: true,
-              ...(ui.insertOrder != null
-                ? { insertOrder: ui.insertOrder }
-                : {}),
-            }
-          : {
-              track: "audio",
-              startTime,
-              laneId: ui.laneId ?? session.originLaneId,
-            },
-      );
-      resetMoveUi();
-      return;
-    }
-
-    store.moveClip(
-      session.id,
-      ui.isInsert
-        ? {
-            track: "overlay",
-            startTime,
-            insertNewLane: true,
-            ...(ui.insertOrder != null ? { insertOrder: ui.insertOrder } : {}),
-          }
-        : ui.overBaseBody
-          ? { track: "main", startTime }
-          : {
-              track: "overlay",
-              startTime,
-              laneId: ui.laneId ?? session.originLaneId,
-            },
+    const track =
+      session.source === "audio"
+        ? "audio"
+        : ui.isInsert
+          ? "overlay"
+          : ui.overBaseBody
+            ? "main"
+            : "overlay";
+    session.domain = updateClipMoveSessionState(
+      session.domain,
+      startTime,
+      ui.isInsert ? null : (ui.laneId ?? session.originLaneId),
+      track,
+      ui.isInsert,
+      ui.insertOrder,
     );
+    const patch = buildClipMovePatch(session.domain);
+    store.moveClip(session.id, {
+      track,
+      startTime,
+      laneId: patch.laneId ?? undefined,
+      insertNewLane: patch.insertNewLane,
+      insertOrder: patch.insertOrder ?? undefined,
+    });
     resetMoveUi();
   }
-
-  function endPointerSession(
-    reason: PointerSessionEndReason,
-    pointerId?: number,
-  ) {
-    const session = sessionRef.current;
-    if (!session) return;
-    if (pointerId != null && session.pointerId !== pointerId) return;
-    // UX-02: chỉ pointerup mới commit; cancel/Escape rollback.
-    if (shouldCommitPointerSession(reason)) {
-      commitMove();
-      return;
-    }
-    resetMoveUi();
-  }
-
-  const applyPointerMoveRef = useRef(applyPointerMove);
-  const schedulePointerMoveRef = useRef(schedulePointerMove);
-  const endPointerSessionRef = useRef(endPointerSession);
-  applyPointerMoveRef.current = applyPointerMove;
-  schedulePointerMoveRef.current = schedulePointerMove;
-  endPointerSessionRef.current = endPointerSession;
-
-  useEffect(() => {
-    function onPointerMove(event: PointerEvent) {
-      const session = sessionRef.current;
-      if (!session || event.pointerId !== session.pointerId) return;
-      schedulePointerMoveRef.current(event.clientX, event.clientY);
-    }
-
-    function onPointerUp(event: PointerEvent) {
-      // Flush RAF còn treo trước khi commit.
-      if (moveRafRef.current != null) {
-        cancelAnimationFrame(moveRafRef.current);
-        moveRafRef.current = null;
-      }
-      const pending = pendingPointerRef.current;
-      if (pending) {
-        applyPointerMoveRef.current(pending.x, pending.y);
-        pendingPointerRef.current = null;
-      }
-      endPointerSessionRef.current("pointerup", event.pointerId);
-    }
-
-    function onPointerCancel(event: PointerEvent) {
-      if (moveRafRef.current != null) {
-        cancelAnimationFrame(moveRafRef.current);
-        moveRafRef.current = null;
-      }
-      pendingPointerRef.current = null;
-      endPointerSessionRef.current("pointercancel", event.pointerId);
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      if (!sessionRef.current) return;
-      event.preventDefault();
-      if (moveRafRef.current != null) {
-        cancelAnimationFrame(moveRafRef.current);
-        moveRafRef.current = null;
-      }
-      pendingPointerRef.current = null;
-      endPointerSessionRef.current("escape");
-    }
-
-    window.addEventListener("pointermove", onPointerMove);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointercancel", onPointerCancel);
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", onPointerUp);
-      window.removeEventListener("pointercancel", onPointerCancel);
-      window.removeEventListener("keydown", onKeyDown);
-      if (moveRafRef.current != null) cancelAnimationFrame(moveRafRef.current);
-      moveRafRef.current = null;
-      pendingPointerRef.current = null;
-      autoScroll.stop("clip-move");
-      cleanupExternalDragState();
-    };
-  }, [autoScroll]);
+  commitMoveRef.current = commitMove;
 
   function beginClipPointerDown(
     item: TimelineClip,
@@ -520,6 +471,13 @@ export function useTimelineClipMove({
       setIsAudioInsertLine(false);
     }
 
+    const started = pointerSession.begin({
+      target: event.currentTarget,
+      pointerId: event.pointerId,
+      pos: { x: event.clientX, y: event.clientY },
+    });
+    if (!started) return;
+
     sessionRef.current = {
       source: family,
       id: item.id,
@@ -531,6 +489,13 @@ export function useTimelineClipMove({
       originY: event.clientY,
       grabOffsetX,
       started: false,
+      cursorToken: null,
+      domain: createClipMoveSessionState(
+        item.id,
+        item.startTime,
+        item.laneId,
+        family,
+      ),
       ...(family === "main" ? { clickSeekTime: item.startTime } : {}),
     };
   }

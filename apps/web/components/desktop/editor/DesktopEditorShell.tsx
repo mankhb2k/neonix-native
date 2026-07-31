@@ -26,7 +26,11 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
   const project = useEditorStore((s) => s.project);
   const timelineClips = useEditorStore((s) => s.timelineClips);
   const timelineLanes = useEditorStore((s) => s.timelineLanes);
+  const dirtyRevision = useEditorStore((s) => s.dirtyRevision);
+  const savedRevision = useEditorStore((s) => s.savedRevision);
+  const markDocumentSaved = useEditorStore((s) => s.markDocumentSaved);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
+  const isDirty = dirtyRevision !== savedRevision;
 
   const [sidebarWidth, setSidebarWidth] = useState(580);
   const [rightDockWidth, setRightDockWidth] = useState(600);
@@ -89,9 +93,9 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
     );
   }, [initialSnapshot, loadProject]);
 
-  // Single autosave owner (debounced) — page.tsx must not also save.
+  // Single autosave owner — only when dirty; debounce off the interaction hot path.
   useEffect(() => {
-    if (!project) return undefined;
+    if (!project || !isDirty) return undefined;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       const result = trySaveProject(project, { timelineClips, timelineLanes });
@@ -99,12 +103,45 @@ export function DesktopEditorShell({ initialSnapshot }: Props) {
         setSaveWarning(result.error.message);
         return;
       }
+      markDocumentSaved();
       setSaveWarning(null);
     }, AUTOSAVE_DEBOUNCE_MS);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [project, timelineClips, timelineLanes]);
+  }, [project, timelineClips, timelineLanes, isDirty, markDocumentSaved]);
+
+  // Desktop close-save handshake: flush dirty then confirm close.
+  useEffect(() => {
+    const api = window.motionvideoDesktop;
+    if (!api?.onRequestCloseSave || !api.confirmClose) return undefined;
+    return api.onRequestCloseSave(() => {
+      void (async () => {
+        if (saveTimerRef.current) {
+          clearTimeout(saveTimerRef.current);
+          saveTimerRef.current = null;
+        }
+        const state = useEditorStore.getState();
+        if (
+          state.project &&
+          state.dirtyRevision !== state.savedRevision
+        ) {
+          const result = trySaveProject(state.project, {
+            timelineClips: state.timelineClips,
+            timelineLanes: state.timelineLanes,
+          });
+          if (!result.ok) {
+            setSaveWarning(result.error.message);
+            // Still allow close after failed save? Plan: flush or discard.
+            // Keep window open so user sees the warning.
+            return;
+          }
+          state.markDocumentSaved();
+        }
+        await api.confirmClose?.(true);
+      })();
+    });
+  }, []);
 
   return (
     <div

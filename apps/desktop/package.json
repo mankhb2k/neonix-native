@@ -2,18 +2,87 @@
   "name": "@motionvideo/desktop",
   "version": "0.0.1",
   "private": true,
-  "description": "Electron shell for the MotionVideo editor (dev loads Next; prod ships build output).",
-  "main": "dist/main.js",
+  "description": "Electron shell + Vite renderer for MotionVideo (legacy Next still available).",
+  "author": "MotionVideo",
+  "main": "dist/main/index.js",
   "scripts": {
-    "dev": "pnpm build && electron .",
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "start": "electron ."
+    "dev": "concurrently -k -n renderer,electron -c cyan,magenta \"pnpm dev:renderer\" \"pnpm dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "pnpm build:main && pnpm build:preload && wait-on http://127.0.0.1:5173 && electron .",
+    "dev:vite": "pnpm run dev",
+    "dev:legacy": "pnpm build:main && pnpm build:preload && cross-env MOTIONVIDEO_RENDERER=legacy electron .",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:preload": "esbuild src/preload/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js --sourcemap",
+    "build:renderer": "vite build",
+    "build:main:release": "tsc -p tsconfig.main.release.json",
+    "build:preload:release": "esbuild src/preload/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js",
+    "build:renderer:release": "cross-env MOTIONVIDEO_RELEASE=1 vite build",
+    "build": "pnpm build:main && pnpm build:preload && pnpm build:renderer",
+    "build:release": "pnpm build:main:release && pnpm build:preload:release && pnpm build:renderer:release",
+    "build:desktop": "pnpm build",
+    "pack": "pnpm build:release && electron-builder --win dir",
+    "dist": "pnpm build:release && electron-builder --win nsis",
+    "electron:pack": "pnpm run pack",
+    "electron:dist": "pnpm run dist",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit && tsc -p tsconfig.renderer.json --noEmit",
+    "test": "vitest run",
+    "start": "electron .",
+    "start:prod": "pnpm build && cross-env MOTIONVIDEO_VITE_PROD=1 electron .",
+    "start:vite:prod": "pnpm run start:prod"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@motionvideo/editor-core": "workspace:*",
+    "@motionvideo/motion-compiler": "workspace:*",
+    "@motionvideo/motion-runtime": "workspace:*",
+    "@motionvideo/motion-schema": "workspace:*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.2",
+    "zustand": "^5.0.14"
+  },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.5.2",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "electron": "^37.2.5",
-    "typescript": "^5.8.2"
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.25.12",
+    "typescript": "^5.8.2",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.10",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "app.motionvideo.desktop",
+    "productName": "MotionVideo",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.map",
+      "dist-renderer/**/*",
+      "!dist-renderer/**/*.map",
+      "package.json"
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }

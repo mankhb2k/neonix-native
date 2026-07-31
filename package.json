@@ -6,6 +6,8 @@
     "preinstall": "npx only-allow pnpm",
     "dev": "pnpm --filter @motionvideo/web dev",
     "dev:desktop": "pnpm --filter @motionvideo/desktop dev",
+    "dev:desktop:legacy": "pnpm --filter @motionvideo/desktop dev:legacy",
+    "dev:desktop:vite": "pnpm --filter @motionvideo/desktop dev:vite",
     "dev:desktop:next": "pnpm --filter @motionvideo/web dev:desktop",
     "dev:worker": "pnpm --filter @motionvideo/render-worker dev",
     "e2e:render": "pnpm --filter @motionvideo/render-worker e2e",

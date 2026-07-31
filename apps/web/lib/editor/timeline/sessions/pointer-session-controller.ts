@@ -32,8 +32,27 @@ export class PointerSessionController<TState, TResult = void> {
     return this.state === "active";
   }
 
+  public get token(): string {
+    return this.sessionToken;
+  }
+
   public get currentSessionState(): TState | null {
     return this.currentState;
+  }
+
+  /** Flush pending RAF update synchronously (e.g. before commit on pointerup). */
+  public flushPendingUpdate(): void {
+    if (this.rafId !== null && typeof cancelAnimationFrame !== "undefined") {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    if (this.pendingPos && this.state === "active" && this.config.onUpdate) {
+      this.currentState = this.config.onUpdate(
+        this.pendingPos,
+        this.currentState!,
+      );
+      this.pendingPos = null;
+    }
   }
 
   public start(initialPos: PointerPos): boolean {

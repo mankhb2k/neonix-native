@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
@@ -45,7 +45,31 @@ export function TimelineBoard({ zoom }: Props) {
   const rulerHeaderRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
   const [scrubBlocked, setScrubBlocked] = useState(false);
+
+  const scrollLeftRafRef = useRef<number | null>(null);
+  const scrollTopRafRef = useRef<number | null>(null);
+  const pendingScrollLeftRef = useRef(0);
+  const pendingScrollTopRef = useRef(0);
+
+  const onScrollLeft = useCallback((next: number) => {
+    pendingScrollLeftRef.current = next;
+    if (scrollLeftRafRef.current != null) return;
+    scrollLeftRafRef.current = requestAnimationFrame(() => {
+      scrollLeftRafRef.current = null;
+      setScrollLeft(pendingScrollLeftRef.current);
+    });
+  }, []);
+
+  const onScrollTopThrottled = useCallback((next: number) => {
+    pendingScrollTopRef.current = next;
+    if (scrollTopRafRef.current != null) return;
+    scrollTopRafRef.current = requestAnimationFrame(() => {
+      scrollTopRafRef.current = null;
+      setScrollTop(pendingScrollTopRef.current);
+    });
+  }, []);
 
   const timelineFitRevision = useEditorStore((s) => s.timelineFitRevision);
   const projectId = useEditorStore((s) => s.project?.metadata.id);
@@ -66,6 +90,7 @@ export function TimelineBoard({ zoom }: Props) {
     root.scrollLeft = 0;
     root.scrollTop = 0;
     setScrollLeft(0);
+    setScrollTop(0);
   }, [projectId, timelineFitRevision]);
 
   const contentEnd = clipsContentEndSeconds(timelineClips);
@@ -92,8 +117,6 @@ export function TimelineBoard({ zoom }: Props) {
     trackViewWidth,
     extentSeconds * pixelsPerSecond,
   );
-
-  const [scrollTop, setScrollTop] = useState(0);
 
   const seekEnabled = !scrubBlocked && activeDragItem == null;
 
@@ -171,8 +194,10 @@ export function TimelineBoard({ zoom }: Props) {
           viewWidth={viewWidth}
           pixelsPerSecond={pixelsPerSecond}
           canvasWidth={canvasWidth}
-          onScrollLeft={setScrollLeft}
-          onScrollTop={setScrollTop}
+          scrollLeft={scrollLeft}
+          scrollTop={scrollTop}
+          onScrollLeft={onScrollLeft}
+          onScrollTop={onScrollTopThrottled}
           onScrubBlockedChange={setScrubBlocked}
         />
       </div>

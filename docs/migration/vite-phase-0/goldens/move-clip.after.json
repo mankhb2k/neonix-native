@@ -1,0 +1,143 @@
+{
+  "project": {
+    "format": "motion-project",
+    "formatVersion": 2,
+    "metadata": {
+      "id": "fixture.main-only",
+      "name": "Main Only",
+      "aspectRatio": "16:9",
+      "fps": 30,
+      "locale": "vi-VN",
+      "brand": {
+        "name": "Main Only",
+        "primaryColor": "#1A5D3A",
+        "fontFamily": "Be Vietnam Pro"
+      }
+    },
+    "dependencies": {
+      "components": []
+    },
+    "assets": [],
+    "variables": [],
+    "timeline": {
+      "sceneOrder": [
+        "scene.main.a",
+        "scene.main.b"
+      ],
+      "audioTracks": []
+    },
+    "scenes": [
+      {
+        "id": "scene.main.a",
+        "duration": 2,
+        "nodes": [
+          {
+            "id": "scene.main.a.title",
+            "type": "text",
+            "parentId": null,
+            "transform": {
+              "x": 40,
+              "y": 40,
+              "width": 200,
+              "height": 40,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "anchorX": 0,
+              "anchorY": 0,
+              "opacity": 1,
+              "visible": true,
+              "flipX": false,
+              "flipY": false
+            },
+            "payload": {
+              "text": "Intro",
+              "fontSize": 24,
+              "fontWeight": 600,
+              "align": "left"
+            },
+            "style": {
+              "fill": "#111111"
+            }
+          }
+        ],
+        "clips": []
+      },
+      {
+        "id": "scene.main.b",
+        "duration": 3,
+        "nodes": [
+          {
+            "id": "scene.main.b.title",
+            "type": "text",
+            "parentId": null,
+            "transform": {
+              "x": 40,
+              "y": 40,
+              "width": 200,
+              "height": 40,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "anchorX": 0,
+              "anchorY": 0,
+              "opacity": 1,
+              "visible": true,
+              "flipX": false,
+              "flipY": false
+            },
+            "payload": {
+              "text": "Body",
+              "fontSize": 24,
+              "fontWeight": 600,
+              "align": "left"
+            },
+            "style": {
+              "fill": "#111111"
+            }
+          }
+        ],
+        "clips": []
+      }
+    ],
+    "bindings": [],
+    "extensions": {
+      "constraints": [],
+      "events": []
+    }
+  },
+  "clips": [
+    {
+      "kind": "scene",
+      "id": "clip.main.a",
+      "sceneId": "scene.main.a",
+      "laneId": "lane.main",
+      "startTime": 0,
+      "duration": 2,
+      "name": "Intro"
+    },
+    {
+      "kind": "scene",
+      "id": "clip.main.b",
+      "sceneId": "scene.main.b",
+      "laneId": "lane.main",
+      "startTime": 3,
+      "duration": 3,
+      "name": "Body"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "lane.main",
+      "kind": "visual",
+      "role": "base",
+      "name": "Main",
+      "order": -1,
+      "policy": {
+        "allowOverlap": false,
+        "rippleMode": false
+      }
+    }
+  ],
+  "transitions": []
+}

@@ -1,2 +1,3 @@
 dist/
+dist-renderer/
 *.log

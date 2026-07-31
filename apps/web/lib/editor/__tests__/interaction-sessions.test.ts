@@ -49,6 +49,54 @@ describe("TimelineGeometry Engine", () => {
     const hitOverlay = geo.hitTestLane(60); // 60 + 10 = 70 -> ov.0
     expect(hitOverlay?.laneId).toBe("ov.0");
   });
+
+  it("maps client X to time and reports visible range with overscan", () => {
+    const geo = new TimelineGeometry({
+      pixelsPerSecond: 100,
+      scrollLeft: 200,
+      scrollTop: 0,
+      containerWidth: 400,
+      containerHeight: 300,
+      laneRects: [],
+      contentOriginClientX: 100,
+      overscanPx: 120,
+    });
+    expect(geo.clientPointToTime(100)).toBe(2);
+    expect(geo.visibleTimeRange()).toEqual({
+      start: 0.8,
+      end: 7.2,
+    });
+  });
+
+  it("filters hitTestLane by family when provided", () => {
+    const geo = new TimelineGeometry({
+      pixelsPerSecond: 100,
+      scrollLeft: 0,
+      scrollTop: 0,
+      containerWidth: 1000,
+      containerHeight: 400,
+      laneRects: [
+        {
+          laneId: "base",
+          top: 0,
+          height: 60,
+          order: -1,
+          kind: "visual",
+          role: "base",
+        },
+        {
+          laneId: "au0",
+          top: 0,
+          height: 60,
+          order: 0,
+          kind: "audio",
+          role: "audio",
+        },
+      ],
+    });
+    expect(geo.hitTestLane(30, "audio")?.laneId).toBe("au0");
+    expect(geo.hitTestLane(30, "visual")?.laneId).toBe("base");
+  });
 });
 
 describe("PointerSessionController Lifecycle", () => {

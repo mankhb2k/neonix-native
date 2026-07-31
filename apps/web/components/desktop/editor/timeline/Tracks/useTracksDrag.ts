@@ -14,6 +14,7 @@ import {
   parseAudioLibraryPayload,
 } from "@/lib/editor/dnd/editor-drag-payload";
 import {
+  acquireDragCursor,
   bindDragGhostElement,
   clearDragCursor,
   setDragCursor,
@@ -23,6 +24,11 @@ import {
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { FRAME_LIBRARY_MIME } from "@/lib/editor/frame-library";
 import { resolveFrameDraft } from "@/lib/editor/sidebar-mock-library";
+import {
+  buildPlacementTarget,
+  createLibraryDropSessionState,
+  updateLibraryDropSessionState,
+} from "@/lib/editor/timeline/sessions/library-drop-session";
 import {
   bindLaneCacheInvalidation,
   createEmptyLaneRectCache,
@@ -36,6 +42,7 @@ import {
   INDICATOR_TOP_EPS_PX,
   type TimelineDropTarget,
 } from "./lane-drop-target";
+import { DomGeometryAdapter } from "../interactions/dom-geometry-adapter";
 import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 
@@ -103,14 +110,22 @@ export function useTracksDrag({
   });
   const ghostLeftRef = useRef(0);
   const laneCacheRef = useRef<LaneRectCache>(createEmptyLaneRectCache());
+  if (!laneCacheRef.current.adapter) {
+    laneCacheRef.current.adapter = new DomGeometryAdapter({
+      pixelsPerSecond,
+    });
+  }
+  laneCacheRef.current.adapter.setPixelsPerSecond(pixelsPerSecond);
   const lastDragPointerRef = useRef<{
     clientX: number;
     clientY: number;
     ghostWidth: number;
   } | null>(null);
+  const dragOverRafRef = useRef<number | null>(null);
   const refreshDragPositionRef = useRef<
     (clientX: number, clientY: number, ghostWidth: number) => void
   >(() => undefined);
+  const sidebarCursorTokenRef = useRef<string | null>(null);
 
   const pixelsPerSecondRef = useRef(pixelsPerSecond);
   const maxOverlayOrderRef = useRef(maxOverlayOrder);
@@ -363,6 +378,11 @@ export function useTracksDrag({
     const ghostKey = `${label}|${duration}|${ghostWidth}|${targetTrack}`;
 
     if (event.clientX > 0 && event.clientY > 0) {
+      if (!sidebarCursorTokenRef.current) {
+        const token = `sidebar-drag_${Date.now().toString(36)}`;
+        sidebarCursorTokenRef.current = token;
+        acquireDragCursor(token);
+      }
       setDragCursor(event.clientX, event.clientY);
     }
 
@@ -389,19 +409,35 @@ export function useTracksDrag({
       clientY: event.clientY,
       ghostWidth,
     };
-    refreshDragPosition(event.clientX, event.clientY, ghostWidth);
-    autoScroll.updatePointer(
-      "sidebar-drag",
-      event.clientX,
-      event.clientY,
-      () => {
-        invalidateLaneRectCache(laneCacheRef.current);
-        const last = lastDragPointerRef.current;
-        if (last) {
-          refreshDragPosition(last.clientX, last.clientY, last.ghostWidth);
-        }
-      },
-    );
+    // RAF coalesce dragover hit-test — at most one measure flush per frame.
+    if (dragOverRafRef.current == null) {
+      dragOverRafRef.current = requestAnimationFrame(() => {
+        dragOverRafRef.current = null;
+        const pending = lastDragPointerRef.current;
+        if (!pending) return;
+        refreshDragPositionRef.current(
+          pending.clientX,
+          pending.clientY,
+          pending.ghostWidth,
+        );
+        autoScroll.updatePointer(
+          "sidebar-drag",
+          pending.clientX,
+          pending.clientY,
+          () => {
+            invalidateLaneRectCache(laneCacheRef.current);
+            const again = lastDragPointerRef.current;
+            if (!again) return;
+            refreshDragPositionRef.current(
+              again.clientX,
+              again.clientY,
+              again.ghostWidth,
+            );
+          },
+          { sessionToken: sidebarCursorTokenRef.current ?? undefined },
+        );
+      });
+    }
 
     if (dragUiRef.current.ghostKey !== ghostKey) {
       dragUiRef.current.ghostKey = ghostKey;
@@ -483,20 +519,29 @@ export function useTracksDrag({
           assetId = activeDragItem.id;
           duration = normalizeAudioDurationSec(activeDragItem.duration);
         }
+        let dropState = createLibraryDropSessionState(
+          "audio",
+          assetId,
+          title,
+          duration,
+          "audio",
+        );
+        dropState = updateLibraryDropSessionState(
+          dropState,
+          dropLeft / pps,
+          dropInsert ? null : dropLaneId,
+          "audio",
+          dropInsert || dropLaneId == null,
+          dropInsertOrder,
+        );
         addAudioClipFromLibrary(
           { title, assetId, duration },
-          dropInsert || dropLaneId == null
-            ? {
-                startTime: dropLeft / pps,
-                insertNewLane: true,
-                ...(dropInsertOrder != null
-                  ? { insertOrder: dropInsertOrder }
-                  : {}),
-              }
-            : {
-                startTime: dropLeft / pps,
-                laneId: dropLaneId,
-              },
+          {
+            startTime: dropState.targetStartTime,
+            laneId: dropState.targetLaneId ?? undefined,
+            insertNewLane: dropState.insertNewLane,
+            insertOrder: dropState.insertOrder ?? undefined,
+          },
         );
         return;
       }
@@ -505,23 +550,29 @@ export function useTracksDrag({
         if (frameId && id) {
           const draft = resolveFrameDraft(id, frameId);
           if (draft) {
-            addClipFromDraft(
-              draft,
-              dropInsert
-                ? {
-                    track: "overlay",
-                    startTime: dropLeft / pps,
-                    insertNewLane: true,
-                    ...(dropInsertOrder != null
-                      ? { insertOrder: dropInsertOrder }
-                      : {}),
-                  }
-                : {
-                    track: "overlay",
-                    startTime: dropLeft / pps,
-                    laneId: dropLaneId ?? undefined,
-                  },
+            let dropState = createLibraryDropSessionState(
+              "frame",
+              frameId,
+              draft.name,
+              draft.duration,
+              "overlay",
             );
+            dropState = updateLibraryDropSessionState(
+              dropState,
+              dropLeft / pps,
+              dropInsert ? null : dropLaneId,
+              "overlay",
+              dropInsert,
+              dropInsertOrder,
+            );
+            const target = buildPlacementTarget(dropState);
+            addClipFromDraft(draft, {
+              track: "overlay",
+              startTime: target.startTime ?? dropLeft / pps,
+              laneId: target.laneId ?? undefined,
+              insertNewLane: target.insertNewLane,
+              insertOrder: target.insertOrder ?? undefined,
+            });
           }
         }
         return;
@@ -532,9 +583,18 @@ export function useTracksDrag({
       if (!draft) return;
       addClipFromDraft(draft, { track: "main" });
     } finally {
-      autoScroll.stop("sidebar-drag");
+      autoScroll.stop(
+        "sidebar-drag",
+        sidebarCursorTokenRef.current ?? undefined,
+      );
+      if (dragOverRafRef.current != null) {
+        cancelAnimationFrame(dragOverRafRef.current);
+        dragOverRafRef.current = null;
+      }
       lastDragPointerRef.current = null;
       invalidateLaneRectCache(laneCacheRef.current);
+      clearDragCursor(sidebarCursorTokenRef.current ?? undefined);
+      sidebarCursorTokenRef.current = null;
       dragUiRef.current = {
         dragOver: false,
         isInsert: false,
@@ -547,7 +607,6 @@ export function useTracksDrag({
       setDragOver(false);
       setIsOverTimeline(false);
       setActiveDragItem(null);
-      clearDragCursor();
       setIsOverlayInsertLine(false);
       setTargetOverlayLaneId(null);
       setIsAudioInsertLine(false);

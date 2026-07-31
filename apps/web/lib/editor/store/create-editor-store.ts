@@ -38,6 +38,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           project: entry.before.project,
           timelineLanes: entry.before.lanes,
           timelineClips: entry.before.clips,
+          dirtyRevision: get().dirtyRevision + 1,
           ...(entry.beforeSelection ? { selection: entry.beforeSelection } : {}),
           canUndo: canUndo(historyState),
           canRedo: canRedo(historyState),
@@ -53,6 +54,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           project: entry.after.project,
           timelineLanes: entry.after.lanes,
           timelineClips: entry.after.clips,
+          dirtyRevision: get().dirtyRevision + 1,
           ...(entry.afterSelection ? { selection: entry.afterSelection } : {}),
           canUndo: canUndo(historyState),
           canRedo: canRedo(historyState),
@@ -106,6 +108,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           project: result.document.project,
           timelineLanes: result.document.lanes,
           timelineClips: result.document.clips,
+          dirtyRevision: state.dirtyRevision + 1,
           canUndo: canUndo(historyState),
           canRedo: canRedo(historyState),
           ...(result.selection ? { selection: result.selection } : {}),
@@ -129,6 +132,10 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         });
       }
       return result;
+    },
+    markDocumentSaved: () => {
+      const { dirtyRevision } = get();
+      set({ savedRevision: dirtyRevision });
     },
     ...createUiActions(set, get),
     ...createSelectionActions(set, get),

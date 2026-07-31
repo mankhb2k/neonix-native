@@ -4,7 +4,7 @@
  * Internal store helpers (store/internal/*) MUST NOT be exported here.
  */
 
-// Model Types & Discriminated Unions
+// Pure domain — @motionvideo/editor-core (web paths re-export for compat)
 export type {
   AudioTrackRole,
   AudioTimelineClip,
@@ -18,7 +18,33 @@ export type {
   VisualTrackRole,
   VisualLanePolicy,
   VisualTimelineLane,
-} from "@/lib/editor/model/timeline-types";
+  TimelineDocument,
+  TimelineTransition,
+  TimelineValidationResult,
+  TimelineViolation,
+  TimelineViolationReason,
+  VisualLayerIndexItem,
+  ClipCapability,
+  ClipMovePatch,
+  CommandResult,
+  PlacementTarget,
+  TimelineCommand,
+  TimelineDomainEvent,
+  TimelineLaneFlags,
+  HistoryEntry,
+  HistoryState,
+  LaneLayoutRect,
+  TimelineGeometryConfig,
+  AudioDragTarget,
+  AudioLaneHit,
+  LaneDropPolicy,
+  LaneHit,
+  OverlayDragTarget,
+  TimelineDropTarget,
+  VideoLaneHit,
+  SnapTimeResult,
+  SnappingPolicy,
+} from "@motionvideo/editor-core";
 
 export {
   DEFAULT_VISUAL_POLICY,
@@ -27,51 +53,20 @@ export {
   isOverlayLaneObj,
   isSceneClip,
   isVisualLane,
-} from "@/lib/editor/model/timeline-types";
-
-// TimelineDocument Aggregate & Validation
-export type {
-  TimelineDocument,
-  TimelineValidationResult,
-  TimelineViolation,
-  TimelineViolationReason,
-} from "@/lib/editor/timeline/document";
-
-export {
   documentFromStoreState,
   storeStateFromDocument,
   validateTimelineDocument,
-} from "@/lib/editor/timeline/document";
-
-// Index Builders & Selectors
-export type { VisualLayerIndexItem } from "@/lib/editor/timeline/indexes";
-export {
+  assertNever,
+  clipCapabilities,
   clipsById,
   clipsByLane,
   contentEndSeconds,
   lanesById,
   visualCompositionIndex,
-} from "@/lib/editor/timeline/indexes";
-
-// Command Pattern & Application Boundary
-export type {
-  ClipMovePatch,
-  CommandResult,
-  PlacementTarget,
-  TimelineCommand,
-  TimelineDomainEvent,
-  TimelineLaneFlags,
-} from "@/lib/editor/timeline/commands/command-types";
-
-export { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
-
-// History Seam & Undo/Redo Engine
-export type {
-  HistoryEntry,
-  HistoryState,
-} from "@/lib/editor/timeline/history/history-types";
-
-export {
+  clipsIntersectingRange,
+  clipsVisibleWithPins,
+  visibleTimeRange,
+  executeTimelineCommand,
   canRedo,
   canUndo,
   clearHistory,
@@ -79,16 +74,51 @@ export {
   pushHistory,
   redoHistory,
   undoHistory,
-} from "@/lib/editor/timeline/history/history-manager";
+  TimelineGeometry,
+  clipsContentEndSeconds,
+  createAudioLane,
+  createOverlayLane,
+  ensureBaseLane,
+  isAudioLane,
+  isBaseLane,
+  isLaneLocked,
+  isOverlayLane,
+  laneRippleMode,
+  normalizeLaneOrders,
+  pruneEmptyLanes,
+  rangesOverlap,
+  removeLaneExplicitly,
+  resolveLaneStartTimeNearest,
+  resolveMainStartTime,
+  fitPixelsPerSecond,
+  resolveFitAnchorSeconds,
+  sliderValueToZoomScale,
+  TIMELINE_EMPTY_SPAN_SECONDS,
+  TIMELINE_FIT_ZOOM_SCALE,
+  TIMELINE_INITIAL_CLIP_RATIO,
+  TIMELINE_INITIAL_SPAN_FACTOR,
+  TIMELINE_MIN_FIT_SPAN_SECONDS,
+  timelineExtentSeconds,
+  timelineFitSpanSeconds,
+  ZOOM_OCTAVES,
+  zoomScaleToSliderValue,
+  CYAN_MODE_BELOW_RULER_TOP_PX,
+  INDICATOR_TOP_EPS_PX,
+  LANE_INSERT_ENTER_PX,
+  LANE_INSERT_EXIT_PX,
+  audioDropPolicy,
+  audioHitToLane,
+  resolveAudioDragTarget,
+  resolveLaneDropTarget,
+  resolveOverlayDragTarget,
+  videoHitToLane,
+  visualDropPolicy,
+  defaultSnappingPolicy,
+  getSnappingPolicy,
+  setSnappingPolicy,
+} from "@motionvideo/editor-core";
 
-// Timeline Geometry & Interaction Sessions (State Machines)
-export type {
-  LaneLayoutRect,
-  TimelineGeometryConfig,
-} from "@/lib/editor/timeline/geometry/timeline-geometry";
-
-export { TimelineGeometry } from "@/lib/editor/timeline/geometry/timeline-geometry";
-
+// Interaction sessions stay in web (DOM / pointer machines)
 export type {
   PointerPos,
   PointerSessionConfig,
@@ -119,38 +149,3 @@ export {
   createMarqueeSessionState,
   updateMarqueeSessionState,
 } from "@/lib/editor/timeline/sessions/marquee-select-session";
-
-// Canonical Domain Helpers & Predicates
-export {
-  clipsContentEndSeconds,
-  createAudioLane,
-  createOverlayLane,
-  ensureBaseLane,
-  isAudioLane,
-  isBaseLane,
-  isLaneLocked,
-  isOverlayLane,
-  laneRippleMode,
-  normalizeLaneOrders,
-  pruneEmptyLanes,
-  rangesOverlap,
-  removeLaneExplicitly,
-  resolveLaneStartTimeNearest,
-  resolveMainStartTime,
-} from "@/lib/editor/timeline-clips";
-
-// Zoom & Fit Policies
-export {
-  fitPixelsPerSecond,
-  resolveFitAnchorSeconds,
-  sliderValueToZoomScale,
-  TIMELINE_EMPTY_SPAN_SECONDS,
-  TIMELINE_FIT_ZOOM_SCALE,
-  TIMELINE_INITIAL_CLIP_RATIO,
-  TIMELINE_INITIAL_SPAN_FACTOR,
-  TIMELINE_MIN_FIT_SPAN_SECONDS,
-  timelineExtentSeconds,
-  timelineFitSpanSeconds,
-  ZOOM_OCTAVES,
-  zoomScaleToSliderValue,
-} from "@/lib/editor/timeline/policies/zoom-fit-policy";

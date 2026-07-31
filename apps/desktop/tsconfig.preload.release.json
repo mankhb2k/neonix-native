@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.preload.json",
+  "compilerOptions": {
+    "sourceMap": false
+  }
+}

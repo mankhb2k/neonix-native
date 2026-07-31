@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "generate:vite-phase0": "tsx --tsconfig tsconfig.json scripts/generate-vite-phase0-baselines.ts",
     "storybook": "storybook dev -p 6006",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
@@ -20,6 +21,7 @@
   },
   "dependencies": {
     "@motionvideo/ai-planner": "workspace:*",
+    "@motionvideo/editor-core": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
@@ -52,6 +54,7 @@
     "eslint-plugin-import": "^2.31.0",
     "happy-dom": "^20.11.1",
     "storybook": "^10.5.3",
+    "tsx": "^4.23.1",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
     "vitest": "^4.1.10"
