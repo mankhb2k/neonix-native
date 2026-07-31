@@ -4,6 +4,14 @@ export const emptyPayloadSchema = z
   .union([z.undefined(), z.null()])
   .optional();
 
+export const createProjectSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    aspectRatio: z.enum(["16:9", "9:16", "1:1"]).optional(),
+  })
+  .strict()
+  .optional();
+
 export const confirmCloseSchema = z.object({
   ok: z.boolean(),
 });

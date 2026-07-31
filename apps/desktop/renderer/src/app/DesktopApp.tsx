@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import type { DesktopAPI } from "../../../src/shared/ipc/contracts";
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../../src/shared/ipc/errors";
 import { createProjectRepository } from "../infrastructure/repositories/project-repository";
 import { DiagnosticsScreen } from "./diagnostics/DiagnosticsScreen";
@@ -12,6 +11,7 @@ import {
   createInitialAppState,
   reduceAppState,
 } from "./state/app-machine";
+import type { DesktopAPI } from "../../../src/shared/ipc/contracts";
 
 type Props = {
   api: DesktopAPI;
@@ -114,9 +114,9 @@ export function DesktopApp({ api }: Props) {
     });
   }, [api, performSave]);
 
-  const onNew = async () => {
+  const onNew = async (input?: import("../../../src/shared/ipc/contracts").CreateProjectInput) => {
     try {
-      const blank = await repo.newProject();
+      const blank = await repo.newProject(input);
       dispatch({
         type: "NEW_PROJECT",
         projectId: blank.projectId,
@@ -204,6 +204,7 @@ export function DesktopApp({ api }: Props) {
       : "MotionVideo";
 
   const showGallery =
+    import.meta.env.DEV &&
     typeof window !== "undefined" &&
     (window.location.search.includes("gallery=1") ||
       window.location.hash === "#gallery");

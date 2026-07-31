@@ -16,6 +16,7 @@ export type RecentProject = {
   name: string;
   path: string;
   openedAt: string;
+  aspectRatio?: string;
 };
 
 export type ProjectOpenResult = {
@@ -29,6 +30,12 @@ export type ProjectNewResult = {
   projectId: string;
   documentJson: string;
   name: string;
+  aspectRatio?: string;
+};
+
+export type CreateProjectInput = {
+  name?: string;
+  aspectRatio?: "16:9" | "9:16" | "1:1";
 };
 
 export type SaveProjectInput = {
@@ -168,7 +175,7 @@ export type DesktopAPI = {
     confirmClose(ok: boolean): Promise<void>;
   };
   project: {
-    create(): Promise<ProjectNewResult>;
+    create(input?: CreateProjectInput): Promise<ProjectNewResult>;
     open(): Promise<ProjectOpenResult | null>;
     openRecent(id: string): Promise<ProjectOpenResult>;
     save(input: SaveProjectInput): Promise<SaveProjectResult>;

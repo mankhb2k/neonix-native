@@ -82,6 +82,7 @@ export function createRecentProjectService(
     name: string;
     path: string;
     openedAt?: string;
+    aspectRatio?: string;
   }): RecentProject[] {
     const openedAt = input.openedAt ?? new Date().toISOString();
     const next: RecentProject = {
@@ -89,6 +90,7 @@ export function createRecentProjectService(
       name: input.name,
       path: input.path,
       openedAt,
+      ...(input.aspectRatio ? { aspectRatio: input.aspectRatio } : {}),
     };
     const others = readAll().filter(
       (item) => item.path !== next.path && item.id !== next.id,

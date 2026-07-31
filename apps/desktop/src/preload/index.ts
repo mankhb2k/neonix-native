@@ -1,17 +1,17 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 import { IpcChannels } from "../shared/ipc/channels";
-import type {
-  DesktopAPI,
-  DesktopInfo,
-  ExportEvent,
-  MotionVideoDesktopBridge,
-} from "../shared/ipc/contracts";
 import {
   desktopIpcErrorFromUnknown,
   isIpcResult,
   unwrapIpcResult,
   type IpcResult,
 } from "../shared/ipc/errors";
+import type {
+  DesktopAPI,
+  DesktopInfo,
+  ExportEvent,
+  MotionVideoDesktopBridge,
+} from "../shared/ipc/contracts";
 
 async function invoke<T>(channel: string, payload?: unknown): Promise<T> {
   try {
@@ -46,7 +46,7 @@ function buildDesktopApi(): MotionVideoDesktopBridge {
       confirmClose: (ok) => invoke<void>(IpcChannels.confirmClose, { ok }),
     },
     project: {
-      create: () => invoke(IpcChannels.projectNew),
+      create: (input) => invoke(IpcChannels.projectNew, input ?? {}),
       open: () => invoke(IpcChannels.projectOpen),
       openRecent: (id) => invoke(IpcChannels.projectOpenRecent, { id }),
       save: (input) => invoke(IpcChannels.projectSave, input),

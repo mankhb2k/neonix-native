@@ -169,10 +169,12 @@ function createId(prefix: string): string {
 /** In-memory blank project (not written to disk until save/saveAs). */
 export function buildBlankDesktopProject(input?: {
   name?: string;
+  aspectRatio?: "16:9" | "9:16" | "1:1";
   createId?: (prefix: string) => string;
 }): { envelope: DesktopProjectEnvelope; documentJson: string; projectId: string } {
   const uid = input?.createId ?? createId;
   const name = input?.name?.trim() || "Untitled";
+  const aspectRatio = input?.aspectRatio ?? "16:9";
   const projectId = uid("proj");
   const envelope: DesktopProjectEnvelope = {
     format: EDITOR_PROJECT_FORMAT,
@@ -183,7 +185,7 @@ export function buildBlankDesktopProject(input?: {
       metadata: {
         id: projectId,
         name,
-        aspectRatio: "16:9",
+        aspectRatio,
         fps: 30,
         locale: "vi-VN",
         brand: {
