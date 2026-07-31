@@ -96,15 +96,21 @@ export function HubRecentGrid({ recent, busy, onNew, onOpenRecent }: Props) {
       <div className="flex-1 overflow-auto p-5">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-start gap-3 text-[var(--fg-muted)]">
-            <p className="m-0">No recent projects yet.</p>
-            <Button
-              variant="primary"
-              disabled={busy}
-              leftIcon={<Plus size={14} />}
-              onClick={onNew}
-            >
-              Create your first project
-            </Button>
+            <p className="m-0">
+              {recent.length === 0
+                ? "No recent projects yet."
+                : "No projects match your search."}
+            </p>
+            {recent.length === 0 ? (
+              <Button
+                variant="primary"
+                disabled={busy}
+                leftIcon={<Plus size={14} />}
+                onClick={onNew}
+              >
+                Create your first project
+              </Button>
+            ) : null}
           </div>
         ) : (
           <ul
