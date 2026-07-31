@@ -51,10 +51,17 @@ describe("clipsIntersectingRange", () => {
     ]);
   });
 
-  it("includes long clips that span the window", () => {
-    expect(clipsIntersectingRange(clips, 21, 22).map((c) => c.id)).toEqual([
-      "d",
-    ]);
+  it("keeps long overlapping clips that start before the window", () => {
+    // Classic overlap bug: short clip ends before rangeStart while an earlier
+    // long clip still covers the window — must not skip the long clip.
+    const overlapping = [
+      scene("long", 0, 10),
+      scene("short", 1, 0.5),
+      scene("later", 5, 1),
+    ];
+    expect(
+      clipsIntersectingRange(overlapping, 2, 3).map((c) => c.id),
+    ).toEqual(["long"]);
   });
 
   it("returns empty for empty input", () => {

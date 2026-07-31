@@ -22,6 +22,8 @@ export type StartExportChildInput = {
   repoRoot: string;
   /** When set, prefer this CLI entry (packaged bundle). */
   cliEntry?: string;
+  fps?: number;
+  scale?: number;
   env?: NodeJS.ProcessEnv;
   onStderrLine?: (line: string) => void;
 };
@@ -107,6 +109,12 @@ export function createExportProcessManager(
       MOTIONVIDEO_EXPORT_ASSET_BASE: input.assetBaseDir,
       MOTIONVIDEO_EXPORT_MP4_PATH: input.outputPath,
     };
+    if (input.fps != null) {
+      childEnv.MOTIONVIDEO_EXPORT_FPS = String(input.fps);
+    }
+    if (input.scale != null) {
+      childEnv.MOTIONVIDEO_EXPORT_SCALE = String(input.scale);
+    }
 
     if (packagedCli) {
       command = process.execPath;

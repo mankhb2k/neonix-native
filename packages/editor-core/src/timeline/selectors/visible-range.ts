@@ -1,6 +1,6 @@
 /**
  * Visible-range queries for timeline virtualization.
- * O(log n + k) intersection over clips sorted by startTime.
+ * Overlap-safe via prefix-max end times + binary search.
  */
 
 import type { TimelineClip } from "../model/timeline-types";
@@ -24,18 +24,31 @@ export function visibleTimeRange(input: VisibleTimeRangeInput): {
   return { start, end };
 }
 
-/** First index where clip.startTime + clip.duration > rangeStart (lower bound). */
-function lowerBoundIntersecting(
-  sortedClips: TimelineClip[],
+/**
+ * Prefix maximum of clip end times for clips sorted by startTime.
+ * maxEndPrefix[i] = max(start+duration) over clips[0..i].
+ */
+export function buildMaxEndPrefix(sortedClips: TimelineClip[]): number[] {
+  const out: number[] = new Array(sortedClips.length);
+  let maxEnd = 0;
+  for (let i = 0; i < sortedClips.length; i++) {
+    const clip = sortedClips[i]!;
+    maxEnd = Math.max(maxEnd, clip.startTime + clip.duration);
+    out[i] = maxEnd;
+  }
+  return out;
+}
+
+/** First index where some clip in [0..i] ends after rangeStart. */
+function lowerBoundByMaxEnd(
+  maxEndPrefix: number[],
   rangeStart: number,
 ): number {
   let lo = 0;
-  let hi = sortedClips.length;
+  let hi = maxEndPrefix.length;
   while (lo < hi) {
     const mid = (lo + hi) >> 1;
-    const clip = sortedClips[mid];
-    const end = clip.startTime + clip.duration;
-    if (end <= rangeStart) lo = mid + 1;
+    if (maxEndPrefix[mid]! <= rangeStart) lo = mid + 1;
     else hi = mid;
   }
   return lo;
@@ -43,18 +56,20 @@ function lowerBoundIntersecting(
 
 /**
  * Clips intersecting [start, end) from a list sorted by startTime ascending.
- * Walks forward until startTime >= end.
+ * Correct under overlap (unlike end-time binary search on the clip alone).
  */
 export function clipsIntersectingRange(
   sortedClips: TimelineClip[],
   start: number,
   end: number,
+  maxEndPrefix?: number[],
 ): TimelineClip[] {
   if (sortedClips.length === 0 || end <= start) return [];
+  const prefix = maxEndPrefix ?? buildMaxEndPrefix(sortedClips);
   const out: TimelineClip[] = [];
-  const i0 = lowerBoundIntersecting(sortedClips, start);
+  const i0 = lowerBoundByMaxEnd(prefix, start);
   for (let i = i0; i < sortedClips.length; i++) {
-    const clip = sortedClips[i];
+    const clip = sortedClips[i]!;
     if (clip.startTime >= end) break;
     if (clip.startTime + clip.duration > start) {
       out.push(clip);

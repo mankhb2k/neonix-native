@@ -20,6 +20,7 @@ import {
   createExportProcessManager,
   type ExportProcessManager,
 } from "../utility-processes/export-process-manager";
+import { resolveExportPreset } from "../../shared/export/presets";
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -186,6 +187,14 @@ export function createExportService(options: ExportServiceOptions) {
 
     const outputPath = await resolveOutputPath(input, parent);
     const jobId = uid();
+    const preset = resolveExportPreset(input.presetId);
+    const projectFps =
+      typeof (projectPayload as { metadata?: { fps?: unknown } }).metadata
+        ?.fps === "number"
+        ? (projectPayload as { metadata: { fps: number } }).metadata.fps
+        : 30;
+    const exportFps = preset.fps ?? projectFps;
+    const exportScale = preset.scale;
     const tempDir = path.join(os.tmpdir(), "moticlip-export", jobId);
     io.mkdirSync(tempDir, { recursive: true });
     const projectJsonPath = path.join(tempDir, "project.json");
@@ -246,6 +255,8 @@ export function createExportService(options: ExportServiceOptions) {
             assetBaseDir,
             outputPath,
             repoRoot: workerRoot,
+            fps: exportFps,
+            scale: exportScale,
             onStderrLine: (line) => {
               if (jobs.get(jobId)?.cancelled) return;
               if (!line.startsWith("progress\t")) return;

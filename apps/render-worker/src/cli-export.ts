@@ -60,6 +60,8 @@ async function readInput(): Promise<unknown> {
  * - MOTIONVIDEO_EXPORT_OUT_DIR — work dir (default repo tmp/)
  * - MOTIONVIDEO_EXPORT_ASSET_BASE — assetBaseDir (default docs/fixtures/v2)
  * - MOTIONVIDEO_EXPORT_MP4_PATH — copy final MP4 here after encode
+ * - MOTIONVIDEO_EXPORT_FPS — render fps (default 24)
+ * - MOTIONVIDEO_EXPORT_SCALE — scale vs FHD (default 0.5)
  *
  * Prints JSON { ok, mp4Path, projectId } to stdout.
  */
@@ -85,6 +87,14 @@ async function main() {
   const finalMp4Path = process.env.MOTIONVIDEO_EXPORT_MP4_PATH
     ? path.resolve(process.env.MOTIONVIDEO_EXPORT_MP4_PATH)
     : undefined;
+  const fpsEnv = Number(process.env.MOTIONVIDEO_EXPORT_FPS);
+  const scaleEnv = Number(process.env.MOTIONVIDEO_EXPORT_SCALE);
+  const fps =
+    Number.isFinite(fpsEnv) && fpsEnv > 0
+      ? fpsEnv
+      : (project.metadata.fps ?? 24);
+  const scale =
+    Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
 
   await mkdir(outDir, { recursive: true });
   const mtPath = path.join(outDir, `${project.metadata.id}.mt`);
@@ -95,8 +105,8 @@ async function main() {
 
   emitProgress("rendering", 0.45);
   const rendered = await renderCompiledProject(compiled, {
-    fps: 24,
-    scale: 0.5,
+    fps,
+    scale,
     outDir: path.join(outDir, "frames", project.metadata.id),
     assetBaseDir,
   });

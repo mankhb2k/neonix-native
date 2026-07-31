@@ -28,7 +28,9 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 - [x] FS capability tokens / no arbitrary absolute paths (Wave B)
 - [x] Packaged export without repo/`tsx` (Wave C)
 - [x] Timeline interaction MVP (Wave D)
-- [ ] Re-enable production cutover only after gates above
+- [x] Async IO / save validation / asset probe (Wave E)
+- [x] Export presets + overlap cull (Wave F)
+- [ ] Re-enable production cutover only after gates above + soak
 
 ## Rollback steps (dev)
 
@@ -45,9 +47,9 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 
 ## Known gaps (honest)
 
-- Timeline: marquee / lane reorder / library DnD still follow-ups (Wave D shipped select/move/trim/split/playhead/hotkeys)
-- Export presets still hard-coded low-res — Wave F
+- Timeline: marquee / lane reorder / library DnD still follow-ups
 - No release-level legacy rollback inside packaged artifact
+- Production cutover still blocked until soak / product sign-off
 
 ## Automated
 

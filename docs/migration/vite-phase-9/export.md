@@ -20,10 +20,10 @@
 - [x] Desktop bake port + `ExportControls` (`EXPORT_ENABLED`)
 - [x] Unit tests: overwrite deny, mock complete, cancel, jobId-before-events, missing packaged CLI
 - [x] Packaged CLI bundle: `pnpm build:export-cli` → `extraResources/export-cli`
+- [x] Export presets (`preview` / `fhd` / `fhd24`) via `MOTIONVIDEO_EXPORT_FPS` / `SCALE`
 - [ ] Electron `utilityProcess` migration
 - [ ] BullMQ / cloud upload
 - [ ] Frame-level progress / raw frame IPC
-- [ ] Full-res export presets (Wave F)
 
 ## Manual smoke
 

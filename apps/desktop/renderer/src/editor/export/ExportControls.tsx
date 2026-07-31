@@ -9,6 +9,11 @@ import {
   DesktopIpcError,
   DesktopIpcErrorCode,
 } from "../../../../src/shared/ipc/errors";
+import {
+  DEFAULT_EXPORT_PRESET_ID,
+  EXPORT_PRESETS,
+  type ExportPresetId,
+} from "../../../../src/shared/export/presets";
 import { buildExportProject } from "./build-export-project";
 import "./export-controls.css";
 
@@ -38,6 +43,9 @@ export function ExportControls({
   const [ratio, setRatio] = useState(0);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [presetId, setPresetId] = useState<ExportPresetId>(
+    DEFAULT_EXPORT_PRESET_ID,
+  );
   const busy = Boolean(jobId);
 
   useEffect(() => {
@@ -106,6 +114,7 @@ export function ExportControls({
       const job = await api.export.start({
         projectId: baked.metadata.id,
         projectJson: serializeMotionProject(baked),
+        presetId,
       });
       jobIdRef.current = job.id;
       setJobId(job.id);
@@ -135,6 +144,20 @@ export function ExportControls({
 
   return (
     <div className="export-controls">
+      <label className="export-controls__preset">
+        <span className="export-controls__preset-label">Preset</span>
+        <select
+          value={presetId}
+          disabled={disabled || busy || !project}
+          onChange={(e) => setPresetId(e.target.value as ExportPresetId)}
+        >
+          {EXPORT_PRESETS.map((preset) => (
+            <option key={preset.id} value={preset.id}>
+              {preset.label}
+            </option>
+          ))}
+        </select>
+      </label>
       {!busy ? (
         <button
           type="button"
