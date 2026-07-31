@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AssetRepository } from "../../infrastructure/repositories/asset-repository";
 import {
   appendAssetsToDocumentJson,
@@ -17,6 +17,13 @@ type Props = {
   onDocumentChange: (json: string) => void;
 };
 
+function assetManifestKey(assets: DocumentAssetEntry[]): string {
+  return assets
+    .map((a) => `${a.id}\0${a.uri}\0${a.assetType}`)
+    .sort()
+    .join("|");
+}
+
 export function AssetPanel({
   projectPath,
   documentJson,
@@ -24,18 +31,21 @@ export function AssetPanel({
   disabled,
   onDocumentChange,
 }: Props) {
-  const [assets, setAssets] = useState<DocumentAssetEntry[]>([]);
+  const assets = useMemo(() => listEnvelopeAssets(documentJson), [documentJson]);
+  const manifestKey = useMemo(() => assetManifestKey(assets), [assets]);
+  // Recompute assets only when manifest (id+uri+type) changes — not every timeline edit.
+  const stableAssets = useMemo(() => assets, [manifestKey]);
+  const documentJsonRef = useRef(documentJson);
+  documentJsonRef.current = documentJson;
+
   const [missingIds, setMissingIds] = useState<Set<string>>(new Set());
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previewCacheRef = useRef<Record<string, string>>({});
 
   const saved = Boolean(projectPath);
   const canEdit = saved && !disabled && !busy;
-
-  useEffect(() => {
-    setAssets(listEnvelopeAssets(documentJson));
-  }, [documentJson]);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,20 +53,23 @@ export function AssetPanel({
       if (!projectPath) {
         setMissingIds(new Set());
         setPreviews({});
+        previewCacheRef.current = {};
         return;
       }
-      const entries = listEnvelopeAssets(documentJson).map((a) => ({
+      const entries = stableAssets.map((a) => ({
         id: a.id,
         uri: a.uri,
+        assetType: a.assetType,
       }));
       if (entries.length === 0) {
         setMissingIds(new Set());
         setPreviews({});
+        previewCacheRef.current = {};
         return;
       }
       try {
         const { missing } = await assetsApi.listMissing({
-          assets: entries,
+          assets: entries.map(({ id, uri }) => ({ id, uri })),
         });
         if (cancelled) return;
         const missingSet = new Set(missing.map((m) => m.id));
@@ -66,15 +79,19 @@ export function AssetPanel({
         await Promise.all(
           entries.map(async (entry) => {
             if (missingSet.has(entry.id)) return;
-            const row = listEnvelopeAssets(documentJson).find(
-              (a) => a.id === entry.id,
-            );
-            if (!row || row.assetType !== "image") return;
+            if (entry.assetType !== "image") return;
+            const cacheKey = `${entry.id}:${entry.uri}`;
+            const cached = previewCacheRef.current[cacheKey];
+            if (cached) {
+              nextPreviews[entry.id] = cached;
+              return;
+            }
             try {
               const resolved = await assetsApi.resolveUrl({
                 assetId: entry.id,
                 uri: entry.uri,
               });
+              previewCacheRef.current[cacheKey] = resolved.url;
               nextPreviews[entry.id] = resolved.url;
             } catch {
               /* ignore preview failures */
@@ -92,7 +109,7 @@ export function AssetPanel({
     return () => {
       cancelled = true;
     };
-  }, [assetsApi, documentJson, projectPath]);
+  }, [assetsApi, manifestKey, projectPath, stableAssets]);
 
   async function handleImport() {
     if (!projectPath) return;
@@ -101,7 +118,9 @@ export function AssetPanel({
     try {
       const imported = await assetsApi.importFiles();
       if (imported.length === 0) return;
-      onDocumentChange(appendAssetsToDocumentJson(documentJson, imported));
+      onDocumentChange(
+        appendAssetsToDocumentJson(documentJsonRef.current, imported),
+      );
     } catch (err) {
       if (
         err instanceof DesktopIpcError &&
@@ -122,7 +141,7 @@ export function AssetPanel({
     try {
       const result = await assetsApi.relink({ assetId });
       onDocumentChange(
-        updateAssetUriInDocumentJson(documentJson, assetId, {
+        updateAssetUriInDocumentJson(documentJsonRef.current, assetId, {
           uri: result.uri,
           assetType: result.assetType,
           mimeType: result.mimeType,
@@ -168,11 +187,11 @@ export function AssetPanel({
         </p>
       ) : null}
 
-      {assets.length === 0 ? (
+      {stableAssets.length === 0 ? (
         <p className="asset-panel__empty">No assets yet.</p>
       ) : (
         <ul className="asset-panel__list">
-          {assets.map((asset) => {
+          {stableAssets.map((asset) => {
             const missing = missingIds.has(asset.id);
             const preview = previews[asset.id];
             return (

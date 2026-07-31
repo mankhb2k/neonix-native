@@ -48,6 +48,8 @@ See [ADR-002](../../ADR/002-vite-renderer-source-of-truth.md).
 ## Known gaps (honest)
 
 - Timeline: marquee / lane reorder / library DnD still follow-ups
+- Playhead / PreviewStage still subscribe React to clock ticks (render-storm profile deferred)
+- Export preset `4k` and recovery journal not enabled yet
 - No release-level legacy rollback inside packaged artifact
 - Production cutover still blocked until soak / product sign-off
 

@@ -81,21 +81,54 @@ export function clipsIntersectingRange(
 /**
  * Union of range-intersecting clips with pinned IDs (selected / moving).
  * Pins may lie outside the visible window.
+ * Prefer passing a prebuilt LaneTimelineIndex to avoid O(N) prefix rebuild on scroll.
  */
+export type LaneTimelineIndex = {
+  clips: TimelineClip[];
+  maxEndPrefix: number[];
+  clipsById: Map<string, TimelineClip>;
+};
+
+export function buildLaneTimelineIndex(
+  sortedClips: TimelineClip[],
+): LaneTimelineIndex {
+  const clipsById = new Map<string, TimelineClip>();
+  for (const clip of sortedClips) {
+    clipsById.set(clip.id, clip);
+  }
+  return {
+    clips: sortedClips,
+    maxEndPrefix: buildMaxEndPrefix(sortedClips),
+    clipsById,
+  };
+}
+
 export function clipsVisibleWithPins(
   sortedClips: TimelineClip[],
   start: number,
   end: number,
   pinIds: ReadonlySet<string>,
+  index?: LaneTimelineIndex,
 ): TimelineClip[] {
-  const visible = clipsIntersectingRange(sortedClips, start, end);
+  const prefix = index?.maxEndPrefix;
+  const visible = clipsIntersectingRange(sortedClips, start, end, prefix);
   if (pinIds.size === 0) return visible;
   const seen = new Set(visible.map((c) => c.id));
   const extra: TimelineClip[] = [];
-  for (const clip of sortedClips) {
-    if (pinIds.has(clip.id) && !seen.has(clip.id)) {
-      extra.push(clip);
-      seen.add(clip.id);
+  if (index) {
+    for (const id of pinIds) {
+      const clip = index.clipsById.get(id);
+      if (clip && !seen.has(clip.id)) {
+        extra.push(clip);
+        seen.add(clip.id);
+      }
+    }
+  } else {
+    for (const clip of sortedClips) {
+      if (pinIds.has(clip.id) && !seen.has(clip.id)) {
+        extra.push(clip);
+        seen.add(clip.id);
+      }
     }
   }
   if (extra.length === 0) return visible;

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildLaneTimelineIndex,
+  buildMaxEndPrefix,
   clipsIntersectingRange,
   clipsVisibleWithPins,
   visibleTimeRange,
@@ -84,5 +86,31 @@ describe("clipsVisibleWithPins", () => {
       new Set(["c"]),
     ).map((c) => c.id);
     expect(ids).toEqual(["a", "c"]);
+  });
+
+  it("reuses LaneTimelineIndex prefix across scroll queries", () => {
+    const index = buildLaneTimelineIndex(clips);
+    const prefixRef = index.maxEndPrefix;
+    expect(prefixRef).toEqual(buildMaxEndPrefix(clips));
+
+    const windows = [
+      [0, 2],
+      [40, 55],
+      [90, 110],
+      [0, 120],
+    ] as const;
+    for (const [start, end] of windows) {
+      const withIndex = clipsVisibleWithPins(
+        clips,
+        start,
+        end,
+        new Set(["c"]),
+        index,
+      );
+      const rebuilt = clipsVisibleWithPins(clips, start, end, new Set(["c"]));
+      expect(withIndex.map((c) => c.id)).toEqual(rebuilt.map((c) => c.id));
+    }
+    // Prefix array identity is stable — scroll must not rebuild via index.
+    expect(index.maxEndPrefix).toBe(prefixRef);
   });
 });

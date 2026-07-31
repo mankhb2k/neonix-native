@@ -1,12 +1,14 @@
 /**
- * Visible-range virtualization for desktop timeline (Phase 10).
- * Display-only cull — no hit-testing/drag.
+ * Visible-range virtualization for desktop timeline.
+ * Lane indexes (prefix-max) are built once per clipsByLane reference.
  */
 
 import { useMemo } from "react";
 import {
+  buildLaneTimelineIndex,
   clipsVisibleWithPins,
   visibleTimeRange,
+  type LaneTimelineIndex,
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
@@ -35,6 +37,14 @@ export function useVisibleTimeline({
 } {
   const pins = pinIds ?? EMPTY_PINS;
 
+  const indexesByLane = useMemo(() => {
+    const map = new Map<string, LaneTimelineIndex>();
+    for (const [laneId, clips] of clipsByLane) {
+      map.set(laneId, buildLaneTimelineIndex(clips));
+    }
+    return map;
+  }, [clipsByLane]);
+
   const timeRange = useMemo(
     () =>
       visibleTimeRange({
@@ -51,17 +61,19 @@ export function useVisibleTimeline({
     return (laneId: string): TimelineClip[] => {
       let cached = cache.get(laneId);
       if (cached) return cached;
-      const all = clipsByLane.get(laneId) ?? [];
+      const index = indexesByLane.get(laneId);
+      const all = index?.clips ?? clipsByLane.get(laneId) ?? [];
       cached = clipsVisibleWithPins(
         all,
         timeRange.start,
         timeRange.end,
         pins,
+        index,
       );
       cache.set(laneId, cached);
       return cached;
     };
-  }, [clipsByLane, timeRange.start, timeRange.end, pins]);
+  }, [clipsByLane, indexesByLane, timeRange.start, timeRange.end, pins]);
 
   void lanes;
   return { timeRange, clipsForLane };
