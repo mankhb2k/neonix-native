@@ -25,9 +25,11 @@ export type EditorActions = {
   commitProjectName: () => void;
   rollbackProjectName: () => void;
   skipNameCommit: () => void;
+  /** Flush name draft and return document JSON to persist. */
+  flushDocumentSnapshot: () => string;
 };
 
 export function flushNameThen(actions: EditorActions, next: () => void): void {
-  actions.commitProjectName();
+  void actions.flushDocumentSnapshot();
   next();
 }

@@ -62,36 +62,38 @@ export function DesktopApp({ api }: Props) {
     }
   }, [repo]);
 
-  const performSave = useCallback(async (): Promise<boolean> => {
-    const current = stateRef.current;
-    if (!current.documentJson) return false;
-    dispatch({ type: "SAVE_START" });
-    try {
-      const result = current.path
-        ? await repo.save({
-            documentJson: current.documentJson,
-          })
-        : await repo.saveAs({
-            suggestedName: current.projectName,
-            documentJson: current.documentJson,
-          });
-      dispatch({
-        type: "SAVE_SUCCESS",
-        path: result.path,
-        documentJson: current.documentJson,
-      });
-      await refreshRecent();
-      return true;
-    } catch (err) {
-      const message = errorMessage(err);
-      if (!message) {
-        dispatch({ type: "SAVE_CANCEL" });
+  const performSave = useCallback(
+    async (documentJson?: string): Promise<boolean> => {
+      const current = stateRef.current;
+      const json = documentJson ?? current.documentJson;
+      if (!json) return false;
+      dispatch({ type: "SAVE_START" });
+      try {
+        const result = current.path
+          ? await repo.save({ documentJson: json })
+          : await repo.saveAs({
+              suggestedName: current.projectName,
+              documentJson: json,
+            });
+        dispatch({
+          type: "SAVE_SUCCESS",
+          path: result.path,
+          documentJson: json,
+        });
+        await refreshRecent();
+        return true;
+      } catch (err) {
+        const message = errorMessage(err);
+        if (!message) {
+          dispatch({ type: "SAVE_CANCEL" });
+          return false;
+        }
+        dispatch({ type: "SAVE_ERROR", message });
         return false;
       }
-      dispatch({ type: "SAVE_ERROR", message });
-      return false;
-    }
-  }, [repo, refreshRecent]);
+    },
+    [repo, refreshRecent],
+  );
 
   useEffect(() => {
     return api.window.onRequestCloseSave(() => {
@@ -114,21 +116,28 @@ export function DesktopApp({ api }: Props) {
     });
   }, [api, performSave]);
 
-  const onNew = async (input?: import("../../../src/shared/ipc/contracts").CreateProjectInput) => {
-    try {
-      const blank = await repo.newProject(input);
-      dispatch({
-        type: "NEW_PROJECT",
-        projectId: blank.projectId,
-        documentJson: blank.documentJson,
-        name: blank.name,
-      });
-    } catch (err) {
-      dispatch({ type: "OPEN_ERROR", message: errorMessage(err) });
-    }
-  };
+  const onNew = useCallback(
+    async (
+      input?: import("../../../src/shared/ipc/contracts").CreateProjectInput,
+    ): Promise<boolean> => {
+      try {
+        const blank = await repo.newProject(input);
+        dispatch({
+          type: "NEW_PROJECT",
+          projectId: blank.projectId,
+          documentJson: blank.documentJson,
+          name: blank.name,
+        });
+        return true;
+      } catch (err) {
+        dispatch({ type: "OPEN_ERROR", message: errorMessage(err) });
+        return false;
+      }
+    },
+    [repo],
+  );
 
-  const onOpen = async () => {
+  const onOpen = useCallback(async () => {
     dispatch({ type: "OPEN_START" });
     try {
       const opened = await repo.open();
@@ -146,47 +155,54 @@ export function DesktopApp({ api }: Props) {
     } catch (err) {
       dispatch({ type: "OPEN_ERROR", message: errorMessage(err) });
     }
-  };
+  }, [repo, refreshRecent]);
 
-  const onOpenRecent = async (item: { id: string }) => {
-    dispatch({ type: "OPEN_START" });
-    try {
-      const opened = await repo.openRecent(item.id);
-      dispatch({
-        type: "OPEN_SUCCESS",
-        path: opened.path,
-        projectId: opened.projectId,
-        documentJson: opened.documentJson,
-      });
-      await refreshRecent();
-    } catch (err) {
-      dispatch({ type: "OPEN_ERROR", message: errorMessage(err) });
-    }
-  };
+  const onOpenRecent = useCallback(
+    async (item: { id: string }) => {
+      dispatch({ type: "OPEN_START" });
+      try {
+        const opened = await repo.openRecent(item.id);
+        dispatch({
+          type: "OPEN_SUCCESS",
+          path: opened.path,
+          projectId: opened.projectId,
+          documentJson: opened.documentJson,
+        });
+        await refreshRecent();
+      } catch (err) {
+        dispatch({ type: "OPEN_ERROR", message: errorMessage(err) });
+      }
+    },
+    [repo, refreshRecent],
+  );
 
-  const onSaveAs = async () => {
-    const current = stateRef.current;
-    if (!current.documentJson) return;
-    dispatch({ type: "SAVE_START" });
-    try {
-      const result = await repo.saveAs({
-        suggestedName: current.projectName,
-        documentJson: current.documentJson,
-      });
-      dispatch({
-        type: "SAVE_SUCCESS",
-        path: result.path,
-        documentJson: current.documentJson,
-      });
-      await refreshRecent();
-    } catch (err) {
-      const message = errorMessage(err);
-      if (!message) dispatch({ type: "SAVE_CANCEL" });
-      else dispatch({ type: "SAVE_ERROR", message });
-    }
-  };
+  const onSaveAs = useCallback(
+    async (documentJson?: string) => {
+      const current = stateRef.current;
+      const json = documentJson ?? current.documentJson;
+      if (!json) return;
+      dispatch({ type: "SAVE_START" });
+      try {
+        const result = await repo.saveAs({
+          suggestedName: current.projectName,
+          documentJson: json,
+        });
+        dispatch({
+          type: "SAVE_SUCCESS",
+          path: result.path,
+          documentJson: json,
+        });
+        await refreshRecent();
+      } catch (err) {
+        const message = errorMessage(err);
+        if (!message) dispatch({ type: "SAVE_CANCEL" });
+        else dispatch({ type: "SAVE_ERROR", message });
+      }
+    },
+    [repo, refreshRecent],
+  );
 
-  const onCloseToHome = async () => {
+  const onCloseToHome = useCallback(async () => {
     const current = stateRef.current;
     if (current.dirty) {
       const leave = window.confirm(
@@ -196,7 +212,7 @@ export function DesktopApp({ api }: Props) {
     }
     const recent = await refreshRecent();
     dispatch({ type: "GO_HOME", recent });
-  };
+  }, [refreshRecent]);
 
   const title =
     state.phase === "editing" || state.phase === "saving"
@@ -250,7 +266,7 @@ export function DesktopApp({ api }: Props) {
             recent={state.recent}
             error={state.error}
             busy={state.phase === "opening"}
-            onNew={() => void onNew()}
+            onNew={onNew}
             onOpen={() => void onOpen()}
             onOpenRecent={(item) => void onOpenRecent(item)}
             onDiagnostics={() =>
@@ -274,8 +290,8 @@ export function DesktopApp({ api }: Props) {
             onDocumentChange={(documentJson) =>
               dispatch({ type: "SET_DOCUMENT_JSON", documentJson })
             }
-            onSave={() => void performSave()}
-            onSaveAs={() => void onSaveAs()}
+            onSave={(documentJson) => void performSave(documentJson)}
+            onSaveAs={(documentJson) => void onSaveAs(documentJson)}
             onCloseToHome={() => void onCloseToHome()}
             onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
           />

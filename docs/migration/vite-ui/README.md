@@ -1,23 +1,31 @@
-# Vite UI correctness → parity
+# Vite UI migration
 
-Default `dev:desktop` / `@motionvideo/desktop` `dev` now launches the **Vite** renderer. Legacy Next remains via `dev:desktop:legacy` / `dev:legacy`.
+**Default:** `pnpm dev:desktop` launches the Vite renderer. Legacy Next remains via `dev:desktop:legacy` / `MOTIONVIDEO_RENDERER=legacy`.
+
+## Gate A (P0–P2) status
 
 | Area | Status |
 |------|--------|
-| DesktopPaths (no `__dirname` depth walks) | done |
-| Rename Escape / undo name / AssetPanel cache | done |
-| Design tokens single source + Dialog/Select | done |
-| EditorHeader + EditorActions facade | done |
-| Hub create `{ name, aspectRatio }` + sort/grid | done |
-| Sidebar Layers/Media/Text/Elements/Audio | done (commands only) |
-| Library drag session | done |
-| Session clipboard + Ctrl+C/X/V | done |
-| Preview frame-gated React updates | done (Pixi still follow-up) |
-| Web `components/desktop` | frozen — not deleted |
+| Create Project `{name, aspectRatio}` | done |
+| Library pointer session + drop-zone | done |
+| Typed LibraryPayload / shape+image scenes | done |
+| Atomic Save snapshot after rename | done |
+| Layers min (select/rename/flags) | done |
+| Preview StageRendererPort (no React/frame) | done |
+| Vite default unified | done |
+| Sidebar panel file split | done |
 
-Do **not** import from `apps/web`. Inspector remains shell-only.
+## Parity waves (after Gate A)
 
-## Soak / remaining
+| Wave | Focus | Status |
+|------|--------|--------|
+| N2 | Screenshot baselines + parity contract | contract + baselines folder |
+| N3 | Unified chrome / Hub polish | menus via EditorActions |
+| N5 | Drop geometry lane/time | wired + ghost/auto-scroll |
+| N6 | Layers tree / reorder / marquee / cross-lane | Vite adapters |
+| N7 | Pixi port + fixtures 100/500/2000 | fixtures + backend seam (DOM default) |
+| N8 | Packaged soak; then delete web desktop | checklist — delete deferred until soak |
 
-- Screenshot baselines, packaged smoke, large fixtures, full Pixi stage
-- After soak: delete `apps/web/components/desktop/**`
+See also [PARITY_CONTRACT.md](./PARITY_CONTRACT.md), [N8_QA_CUTOVER.md](./N8_QA_CUTOVER.md).
+
+Do **not** import from `apps/web`. Inspector remains shell-only until deeper property work.

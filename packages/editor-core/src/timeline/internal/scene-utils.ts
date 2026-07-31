@@ -57,6 +57,97 @@ export function mapNode(
   };
 }
 
+const CENTER_TRANSFORM = {
+  x: 540,
+  y: 960,
+  width: 900,
+  height: 180,
+  rotation: 0,
+  scaleX: 1,
+  scaleY: 1,
+  anchorX: 0.5,
+  anchorY: 0.5,
+  opacity: 1,
+  visible: true,
+  flipX: false,
+  flipY: false,
+} as const;
+
+const MEDIA_TRANSFORM = {
+  ...CENTER_TRANSFORM,
+  width: 1080,
+  height: 1080,
+} as const;
+
+const SHAPE_TRANSFORM = {
+  ...CENTER_TRANSFORM,
+  width: 420,
+  height: 420,
+} as const;
+
+function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
+  const kind = draft.kind ?? "text";
+
+  if (kind === "shape") {
+    const shape =
+      draft.shape === "circle"
+        ? ({ shape: "ellipse" } as const)
+        : ({ shape: "rectangle", cornerRadius: 0 } as const);
+    return {
+      id: nodeId,
+      type: "shape",
+      parentId: null,
+      zIndex: 0,
+      transform: { ...SHAPE_TRANSFORM },
+      payload: shape,
+      style: { fill: "#4A90D9" },
+    };
+  }
+
+  if (kind === "image" && draft.assetId) {
+    return {
+      id: nodeId,
+      type: "image",
+      parentId: null,
+      zIndex: 0,
+      transform: { ...MEDIA_TRANSFORM },
+      payload: {
+        assetId: draft.assetId,
+        fit: "contain",
+      },
+    };
+  }
+
+  if (kind === "video" && draft.assetId) {
+    return {
+      id: nodeId,
+      type: "video",
+      parentId: null,
+      zIndex: 0,
+      transform: { ...MEDIA_TRANSFORM },
+      payload: {
+        assetId: draft.assetId,
+        fit: "contain",
+        muted: true,
+      },
+    };
+  }
+
+  return {
+    id: nodeId,
+    type: "text",
+    parentId: null,
+    zIndex: 0,
+    transform: { ...CENTER_TRANSFORM },
+    payload: {
+      text: draft.text || draft.name,
+      fontSize: 64,
+      fontWeight: 600,
+      align: "center",
+    },
+  };
+}
+
 /** Chuyển đổi FrameDraft từ thư viện thành một MotionScene hoàn chỉnh */
 export function sceneFromFrameDraft(
   draft: FrameDraft,
@@ -66,39 +157,12 @@ export function sceneFromFrameDraft(
   const nodeId = createId("node");
   const clipId = createId("clip");
   const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
+  const node = nodeFromDraft(draft, nodeId);
   return {
     id: sceneId,
     name: draft.name,
     duration,
-    nodes: [
-      {
-        id: nodeId,
-        type: "text",
-        parentId: null,
-        zIndex: 0,
-        transform: {
-          x: 540,
-          y: 960,
-          width: 900,
-          height: 180,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-        },
-        payload: {
-          text: draft.text || draft.name,
-          fontSize: 64,
-          fontWeight: 600,
-          align: "center",
-        },
-      },
-    ],
+    nodes: [node],
     clips: [
       {
         id: clipId,

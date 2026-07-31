@@ -47,6 +47,62 @@ describe("Pure Command Runner Engine", () => {
     }
   });
 
+  it("add-clip-draft with shape kind emits a shape node", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+
+    const result = executeTimelineCommand(doc, {
+      type: "add-clip-draft",
+      draft: {
+        id: "draft.shape",
+        name: "Rectangle",
+        text: "Rectangle",
+        duration: 3,
+        kind: "shape",
+        shape: "rect",
+      },
+      target: { track: "main" },
+    });
+
+    expect(result.status).toBe("applied");
+    if (result.status === "applied") {
+      const scene = result.document.project.scenes.at(-1);
+      const node = scene?.nodes[0];
+      expect(node?.type).toBe("shape");
+      if (node?.type === "shape") {
+        expect(node.payload.shape).toBe("rectangle");
+      }
+    }
+  });
+
+  it("add-clip-draft with image kind emits an image node", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+
+    const result = executeTimelineCommand(doc, {
+      type: "add-clip-draft",
+      draft: {
+        id: "draft.img",
+        name: "Photo",
+        text: "Photo",
+        duration: 3,
+        kind: "image",
+        assetId: "asset.photo",
+      },
+      target: { track: "main" },
+    });
+
+    expect(result.status).toBe("applied");
+    if (result.status === "applied") {
+      const scene = result.document.project.scenes.at(-1);
+      const node = scene?.nodes[0];
+      expect(node?.type).toBe("image");
+      if (node?.type === "image") {
+        expect(node.payload.assetId).toBe("asset.photo");
+      }
+    }
+  });
+
   it("executes move-clip to overlay lane", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };

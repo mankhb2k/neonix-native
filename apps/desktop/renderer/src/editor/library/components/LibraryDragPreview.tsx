@@ -1,19 +1,19 @@
 import { useEffect, useState } from "react";
 import {
-  getLibraryDragSession,
-  subscribeLibraryDrag,
-  type LibraryDragSession,
+  getSession,
+  subscribe,
+  type LibraryDragSessionState,
 } from "../interactions/library-drag-session";
 
-/** Floating preview — session UI only, never written into the document. */
+/** Floating preview — only while phase === 'dragging'. Session UI only. */
 export function LibraryDragPreview() {
-  const [session, setSession] = useState<LibraryDragSession | null>(() =>
-    getLibraryDragSession(),
+  const [session, setSession] = useState<LibraryDragSessionState>(() =>
+    getSession(),
   );
 
-  useEffect(() => subscribeLibraryDrag(setSession), []);
+  useEffect(() => subscribe(setSession), []);
 
-  if (!session?.active) return null;
+  if (session.phase !== "dragging" || !session.item) return null;
 
   return (
     <div

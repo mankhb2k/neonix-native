@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  DEFAULT_FRAME_DURATION,
+  type TimelineCommand,
+} from "@motionvideo/editor-core";
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../../../src/shared/ipc/errors";
+import { commitLibraryPayload } from "../library/adapters/commit-library-payload";
+import { useLibraryPointerGesture } from "../sidebar/shared/use-library-pointer-gesture";
 import {
   appendAssetsToDocumentJson,
   listEnvelopeAssets,
@@ -7,6 +13,8 @@ import {
   type DocumentAssetEntry,
 } from "./document-assets";
 import type { AssetRepository } from "../../infrastructure/repositories/asset-repository";
+import type { LibraryCommitPoint } from "../library/adapters/commit-library-payload";
+import type { LibraryPayload } from "../library/model/library-payload";
 import "./asset-panel.css";
 
 type Props = {
@@ -17,12 +25,147 @@ type Props = {
   assetsApi: AssetRepository;
   disabled?: boolean;
   onDocumentChange: (json: string) => void;
-  /** Optional — reserved for library drag commit from media tiles. */
-  onExecuteTimeline?: (
-    command: import("@motionvideo/editor-core").TimelineCommand,
-    label: string,
-  ) => void;
+  /** Commit image/video library drops onto the timeline. */
+  onExecuteTimeline?: (command: TimelineCommand, label: string) => void;
 };
+
+function mediaPayload(
+  asset: DocumentAssetEntry,
+): Extract<LibraryPayload, { kind: "image" | "video" }> | null {
+  if (asset.assetType !== "image" && asset.assetType !== "video") return null;
+  const label = asset.uri.split("/").pop() ?? asset.id;
+  const duration =
+    typeof asset.duration === "number" && asset.duration > 0
+      ? asset.duration
+      : DEFAULT_FRAME_DURATION;
+  if (asset.assetType === "image") {
+    return {
+      kind: "image",
+      id: asset.id,
+      label,
+      assetId: asset.id,
+      uri: asset.uri,
+      duration,
+    };
+  }
+  return {
+    kind: "video",
+    id: asset.id,
+    label,
+    assetId: asset.id,
+    uri: asset.uri,
+    duration,
+  };
+}
+
+function MediaAssetRow({
+  asset,
+  missing,
+  preview,
+  canEdit,
+  onRelink,
+  onCommit,
+}: {
+  asset: DocumentAssetEntry;
+  missing: boolean;
+  preview?: string;
+  canEdit: boolean;
+  onRelink: (assetId: string) => void;
+  onCommit?: (payload: LibraryPayload, point: LibraryCommitPoint) => void;
+}) {
+  const payload = mediaPayload(asset);
+  const draggable = Boolean(payload && onCommit && !missing);
+
+  return (
+    <li className="asset-panel__item">
+      {draggable && payload && onCommit ? (
+        <MediaDragHit payload={payload} preview={preview} onCommit={onCommit} />
+      ) : (
+        <div className="asset-panel__drag-hit">
+          <AssetThumb preview={preview} assetType={asset.assetType} />
+          <AssetMeta asset={asset} missing={missing} />
+        </div>
+      )}
+      {missing && canEdit ? (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => void onRelink(asset.id)}
+        >
+          Relink…
+        </button>
+      ) : null}
+    </li>
+  );
+}
+
+function MediaDragHit({
+  payload,
+  preview,
+  onCommit,
+}: {
+  payload: Extract<LibraryPayload, { kind: "image" | "video" }>;
+  preview?: string;
+  onCommit: (payload: LibraryPayload, point: LibraryCommitPoint) => void;
+}) {
+  const { onPointerDown } = useLibraryPointerGesture(payload, onCommit);
+  return (
+    <button
+      type="button"
+      className="asset-panel__drag-hit"
+      onPointerDown={onPointerDown}
+      title="Drag to timeline or click to add"
+    >
+      <AssetThumb preview={preview} assetType={payload.kind} />
+      <div className="asset-panel__meta">
+        <div className="asset-panel__name" title={payload.label}>
+          {payload.label}
+        </div>
+        <div className="asset-panel__sub">{payload.kind}</div>
+      </div>
+    </button>
+  );
+}
+
+function AssetThumb({
+  preview,
+  assetType,
+}: {
+  preview?: string;
+  assetType: string;
+}) {
+  return (
+    <div className="asset-panel__thumb">
+      {preview ? (
+        <img src={preview} alt="" />
+      ) : (
+        <span className="asset-panel__thumb-fallback">
+          {String(assetType).slice(0, 1).toUpperCase()}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function AssetMeta({
+  asset,
+  missing,
+}: {
+  asset: DocumentAssetEntry;
+  missing: boolean;
+}) {
+  return (
+    <div className="asset-panel__meta">
+      <div className="asset-panel__name" title={asset.uri}>
+        {asset.uri.split("/").pop() ?? asset.uri}
+      </div>
+      <div className="asset-panel__sub">
+        {asset.assetType}
+        {missing ? <span className="asset-panel__badge">Missing</span> : null}
+      </div>
+    </div>
+  );
+}
 
 function assetManifestKey(assets: DocumentAssetEntry[]): string {
   return assets
@@ -38,6 +181,7 @@ export function AssetPanel({
   assetsApi,
   disabled,
   onDocumentChange,
+  onExecuteTimeline,
 }: Props) {
   const assetsFromJson = useMemo(
     () => (assetsProp ? null : listEnvelopeAssets(documentJson)),
@@ -216,43 +360,23 @@ export function AssetPanel({
         <p className="asset-panel__empty">No assets yet.</p>
       ) : (
         <ul className="asset-panel__list">
-          {stableAssets.map((asset) => {
-            const missing = missingIds.has(asset.id);
-            const preview = previews[asset.id];
-            return (
-              <li key={asset.id} className="asset-panel__item">
-                <div className="asset-panel__thumb">
-                  {preview ? (
-                    <img src={preview} alt="" />
-                  ) : (
-                    <span className="asset-panel__thumb-fallback">
-                      {String(asset.assetType).slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                </div>
-                <div className="asset-panel__meta">
-                  <div className="asset-panel__name" title={asset.uri}>
-                    {asset.uri.split("/").pop() ?? asset.uri}
-                  </div>
-                  <div className="asset-panel__sub">
-                    {asset.assetType}
-                    {missing ? (
-                      <span className="asset-panel__badge">Missing</span>
-                    ) : null}
-                  </div>
-                </div>
-                {missing && canEdit ? (
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => void handleRelink(asset.id)}
-                  >
-                    Relink…
-                  </button>
-                ) : null}
-              </li>
-            );
-          })}
+          {stableAssets.map((asset) => (
+            <MediaAssetRow
+              key={asset.id}
+              asset={asset}
+              missing={missingIds.has(asset.id)}
+              preview={previews[asset.id]}
+              canEdit={canEdit}
+              onRelink={(id) => void handleRelink(id)}
+              onCommit={
+                onExecuteTimeline
+                  ? (payload, point) => {
+                      commitLibraryPayload(payload, point, onExecuteTimeline);
+                    }
+                  : undefined
+              }
+            />
+          ))}
         </ul>
       )}
     </aside>

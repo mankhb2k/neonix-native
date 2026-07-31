@@ -36,6 +36,7 @@ import { TimelineZoomControls } from "../../editor/timeline/TimelineZoomControls
 import { useTimelineHotkeys } from "../../editor/timeline/use-timeline-hotkeys";
 import { createAssetRepository } from "../../infrastructure/repositories/asset-repository";
 import { EditorHeader } from "./EditorHeader";
+import { resolveFlushedDocumentJson } from "./flush-document-snapshot";
 import type { EditorActions } from "./editor-actions";
 import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 
@@ -49,8 +50,8 @@ type Props = {
   error: string | null;
   saving?: boolean;
   onDocumentChange: (json: string) => void;
-  onSave: () => void;
-  onSaveAs: () => void;
+  onSave: (documentJson: string) => void;
+  onSaveAs: (documentJson: string) => void;
   onCloseToHome: () => void;
   onClearError: () => void;
 };
@@ -191,11 +192,52 @@ function EditingWorkspaceInner({
     setNameDraft(session.projectName);
   }, [session.projectName]);
 
+  /** Flush rename draft and return the JSON snapshot to persist (sync when no rename). */
+  const flushDocumentSnapshot = useCallback((): string => {
+    const currentDocumentJson = session.sessionDocumentJson ?? documentJson;
+    const skipNameCommit = skipNameCommitRef.current;
+    if (skipNameCommit) {
+      skipNameCommitRef.current = false;
+    }
+
+    let renamedDocumentJson: string | null = null;
+    const trimmed = nameDraft.trim() || "Untitled";
+    const nameDraftDirty = nameDraftDirtyRef.current;
+    if (
+      !skipNameCommit &&
+      nameDraftDirty &&
+      trimmed !== session.projectName
+    ) {
+      nameDraftDirtyRef.current = false;
+      renameEntrySeq += 1;
+      const entryId = `rename_${renameEntrySeq}`;
+      const event = {
+        type: "SET_PROJECT_NAME" as const,
+        name: nameDraft,
+        entryId,
+      };
+      const nextState = reduceTimelineSession(session, event);
+      dispatch(event);
+      renamedDocumentJson = nextState.sessionDocumentJson ?? documentJson;
+    } else {
+      nameDraftDirtyRef.current = false;
+    }
+
+    return resolveFlushedDocumentJson({
+      skipNameCommit,
+      nameDraftDirty,
+      nameDraft,
+      projectName: session.projectName,
+      renamedDocumentJson,
+      currentDocumentJson,
+    });
+  }, [documentJson, nameDraft, session]);
+
   const editorActions: EditorActions = useMemo(
     () => ({
       goHome: onCloseToHome,
-      save: onSave,
-      saveAs: onSaveAs,
+      save: () => onSave(flushDocumentSnapshot()),
+      saveAs: () => onSaveAs(flushDocumentSnapshot()),
       undo: () => dispatch({ type: "UNDO" }),
       redo: () => dispatch({ type: "REDO" }),
       fitTimeline: () => dispatch({ type: "FIT_TIMELINE" }),
@@ -218,11 +260,13 @@ function EditingWorkspaceInner({
       skipNameCommit: () => {
         skipNameCommitRef.current = true;
       },
+      flushDocumentSnapshot,
     }),
     [
       onCloseToHome,
       onSave,
       onSaveAs,
+      flushDocumentSnapshot,
       executeTimeline,
       session.history,
       session.projectName,
@@ -250,8 +294,7 @@ function EditingWorkspaceInner({
               disabled={saving || Boolean(session.loadError)}
               dirty={dirty}
               onRequestSave={() => {
-                commitProjectName();
-                onSave();
+                onSave(flushDocumentSnapshot());
               }}
             />
           ) : null
@@ -313,6 +356,7 @@ function EditingWorkspaceInner({
               />
             }
             lanes={session.lanes}
+            clips={session.clips}
             selection={session.selection}
             onSelect={(selection) =>
               dispatch({ type: "SET_SELECTION", selection })

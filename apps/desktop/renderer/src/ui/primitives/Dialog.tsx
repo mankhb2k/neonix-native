@@ -21,23 +21,30 @@ export function Dialog({
   className,
 }: DialogProps) {
   const panelRef = React.useRef<HTMLDivElement>(null);
+  const onCloseRef = React.useRef(onClose);
+  onCloseRef.current = onClose;
+  const titleId = React.useId();
 
   React.useEffect(() => {
     if (!open) return undefined;
+    const close = () => onCloseRef.current();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        close();
       }
     };
     window.addEventListener("keydown", onKey);
     const prev = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
+    const focusTimer = window.setTimeout(() => {
+      panelRef.current?.focus();
+    }, 0);
     return () => {
+      window.clearTimeout(focusTimer);
       window.removeEventListener("keydown", onKey);
       prev?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || typeof document === "undefined") return null;
 
@@ -47,19 +54,19 @@ export function Dialog({
         type="button"
         className="ui-dialog-backdrop__scrim"
         aria-label="Close dialog"
-        onClick={onClose}
+        onClick={() => onCloseRef.current()}
       />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="ui-dialog-title"
+        aria-labelledby={titleId}
         tabIndex={-1}
         className={cn("ui-dialog", className)}
       >
         <header className="ui-dialog__header">
-          <h2 id="ui-dialog-title">{title}</h2>
-          <IconButton aria-label="Close" onClick={onClose}>
+          <h2 id={titleId}>{title}</h2>
+          <IconButton aria-label="Close" onClick={() => onCloseRef.current()}>
             ×
           </IconButton>
         </header>

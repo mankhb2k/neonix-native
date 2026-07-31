@@ -51,12 +51,36 @@
 
 .asset-panel__item {
   display: grid;
-  grid-template-columns: 40px 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 8px;
   align-items: center;
   padding: 6px;
   border-radius: 6px;
   background: var(--bg);
+}
+
+.asset-panel__drag-hit {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: grab;
+}
+
+.asset-panel__drag-hit:disabled,
+div.asset-panel__drag-hit {
+  cursor: default;
+}
+
+.asset-panel__drag-hit:active:not(:disabled) {
+  cursor: grabbing;
 }
 
 .asset-panel__thumb {

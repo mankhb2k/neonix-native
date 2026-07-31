@@ -19,8 +19,8 @@ describe("getRendererMode", () => {
     setPackagedHint(false);
   });
 
-  it("defaults to legacy when env is unset (unpackaged)", () => {
-    expect(getRendererMode()).toBe("legacy");
+  it("defaults to vite when env is unset (unpackaged)", () => {
+    expect(getRendererMode()).toBe("vite");
   });
 
   it("defaults to vite when packaged and env is unset", () => {
