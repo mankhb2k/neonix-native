@@ -1,8 +1,9 @@
 /**
- * Interactive clip strip — select / same-lane move / edge trim (Wave D).
+ * Interactive clip strip — select / same-lane move / edge trim (Wave D + Wave 4 dispose).
  */
 
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { useState } from "react";
 import {
   MIN_CLIP_SLICE_SEC,
   selectedClipIdsFrom,
@@ -12,8 +13,7 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import { PointerSessionController } from "./interactions/pointer-session-controller";
-import { shouldCommitPointerSession } from "./interactions/pointer-session";
+import { usePointerSessionHost } from "./interactions/use-pointer-session";
 
 const DRAG_THRESHOLD_PX = 3;
 
@@ -61,20 +61,7 @@ export function ClipStrip({
   const height = Math.max(8, laneHeight - padY * 2);
   const selected = new Set(selectedClipIdsFrom(selection));
   const [preview, setPreview] = useState<Preview | null>(null);
-  const sessionRef = useRef<PointerSessionController<unknown> | null>(null);
-
-  const endSession = (reason: "pointerup" | "pointercancel" | "escape") => {
-    const session = sessionRef.current;
-    if (!session || !session.isRunning) return;
-    session.flushPendingUpdate();
-    if (shouldCommitPointerSession(reason)) {
-      session.commit();
-    } else {
-      session.cancel();
-    }
-    sessionRef.current = null;
-    setPreview(null);
-  };
+  const { beginGesture } = usePointerSessionHost();
 
   const beginMove = (
     event: ReactPointerEvent<HTMLElement>,
@@ -97,71 +84,47 @@ export function ClipStrip({
 
     const originX = event.clientX;
     const originStart = clip.startTime;
-    let dragged = false;
 
     type MoveState = { startTime: number; moved: boolean };
-    const controller = new PointerSessionController<MoveState, void>({
-      name: `move-${clip.id}`,
-      onStart: () => ({ startTime: originStart, moved: false }),
-      onUpdate: (pos, state) => {
-        const dx = pos.x - originX;
-        if (!state.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return state;
-        const nextStart = Math.max(0, originStart + dx / pps);
-        setPreview({ kind: "move", clipId: clip.id, startTime: nextStart });
-        return { startTime: nextStart, moved: true };
-      },
-      onCommit: (state) => {
-        if (!state.moved) return;
-        onExecute(
-          {
-            type: "move-clip",
-            clipId: clip.id,
-            patch: {
-              startTime: state.startTime,
-              track: trackForLane(lane),
-              laneId: lane.id,
+    const started = beginGesture<MoveState, void>(
+      {
+        name: `move-${clip.id}`,
+        onStart: () => ({ startTime: originStart, moved: false }),
+        onUpdate: (pos, state) => {
+          const dx = pos.x - originX;
+          if (!state.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return state;
+          const nextStart = Math.max(0, originStart + dx / pps);
+          setPreview({ kind: "move", clipId: clip.id, startTime: nextStart });
+          return { startTime: nextStart, moved: true };
+        },
+        onCommit: (state) => {
+          setPreview(null);
+          if (!state.moved) return;
+          onExecute(
+            {
+              type: "move-clip",
+              clipId: clip.id,
+              patch: {
+                startTime: state.startTime,
+                track: trackForLane(lane),
+                laneId: lane.id,
+              },
             },
-          },
-          "Move clip",
-        );
+            "Move clip",
+          );
+        },
+        onCancel: () => setPreview(null),
       },
-      onCancel: () => setPreview(null),
-    });
-
-    if (!controller.start({ x: event.clientX, y: event.clientY })) return;
-    sessionRef.current = controller as PointerSessionController<unknown>;
-    const target = event.currentTarget;
-    target.setPointerCapture(event.pointerId);
-
-    const onMove = (ev: PointerEvent) => {
-      dragged = true;
-      controller.update({ x: ev.clientX, y: ev.clientY });
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("keydown", onKey);
-      endSession("pointerup");
-      void dragged;
-    };
-    const onCancel = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("keydown", onKey);
-      endSession("pointercancel");
-    };
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") {
-        ev.preventDefault();
-        onCancel();
+      { x: event.clientX, y: event.clientY },
+      event.currentTarget,
+    );
+    if (started) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
       }
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onCancel);
-    window.addEventListener("keydown", onKey);
+    }
   };
 
   const beginTrim = (
@@ -180,65 +143,51 @@ export function ClipStrip({
     const originEnd = originStart + originDur;
 
     type TrimState = { startTime: number; duration: number };
-    const controller = new PointerSessionController<TrimState, void>({
-      name: `trim-${clip.id}-${edge}`,
-      onStart: () => ({ startTime: originStart, duration: originDur }),
-      onUpdate: (pos) => {
-        const dx = (pos.x - originX) / pps;
-        let startTime = originStart;
-        let duration = originDur;
-        if (edge === "right") {
-          duration = Math.max(MIN_CLIP_SLICE_SEC, originDur + dx);
-        } else {
-          const nextStart = Math.min(
-            originEnd - MIN_CLIP_SLICE_SEC,
-            Math.max(0, originStart + dx),
+    const started = beginGesture<TrimState, void>(
+      {
+        name: `trim-${clip.id}-${edge}`,
+        onStart: () => ({ startTime: originStart, duration: originDur }),
+        onUpdate: (pos) => {
+          const dx = (pos.x - originX) / pps;
+          let startTime = originStart;
+          let duration = originDur;
+          if (edge === "right") {
+            duration = Math.max(MIN_CLIP_SLICE_SEC, originDur + dx);
+          } else {
+            const nextStart = Math.min(
+              originEnd - MIN_CLIP_SLICE_SEC,
+              Math.max(0, originStart + dx),
+            );
+            startTime = nextStart;
+            duration = originEnd - nextStart;
+          }
+          setPreview({ kind: "trim", clipId: clip.id, startTime, duration });
+          return { startTime, duration };
+        },
+        onCommit: (state) => {
+          setPreview(null);
+          onExecute(
+            {
+              type: "clip/trim",
+              clipId: clip.id,
+              startTime: state.startTime,
+              duration: state.duration,
+            },
+            "Trim clip",
           );
-          startTime = nextStart;
-          duration = originEnd - nextStart;
-        }
-        setPreview({ kind: "trim", clipId: clip.id, startTime, duration });
-        return { startTime, duration };
+        },
+        onCancel: () => setPreview(null),
       },
-      onCommit: (state) => {
-        onExecute(
-          {
-            type: "clip/trim",
-            clipId: clip.id,
-            startTime: state.startTime,
-            duration: state.duration,
-          },
-          "Trim clip",
-        );
-      },
-      onCancel: () => setPreview(null),
-    });
-
-    if (!controller.start({ x: event.clientX, y: event.clientY })) return;
-    sessionRef.current = controller as PointerSessionController<unknown>;
-    event.currentTarget.setPointerCapture(event.pointerId);
-
-    const onMove = (ev: PointerEvent) =>
-      controller.update({ x: ev.clientX, y: ev.clientY });
-    const cleanup = (reason: "pointerup" | "pointercancel") => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onCancel);
-      window.removeEventListener("keydown", onKey);
-      endSession(reason);
-    };
-    const onUp = () => cleanup("pointerup");
-    const onCancel = () => cleanup("pointercancel");
-    const onKey = (ev: KeyboardEvent) => {
-      if (ev.key === "Escape") {
-        ev.preventDefault();
-        onCancel();
+      { x: event.clientX, y: event.clientY },
+      event.currentTarget,
+    );
+    if (started) {
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
       }
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onCancel);
-    window.addEventListener("keydown", onKey);
+    }
   };
 
   return (
