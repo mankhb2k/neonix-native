@@ -33,9 +33,17 @@ export function usePanelResize() {
     startY: number;
     origin: PanelLayoutPrefs;
   } | null>(null);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    savePanelLayoutPrefs(layout);
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      savePanelLayoutPrefs(layout);
+      persistTimerRef.current = null;
+    }, 200);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
   }, [layout]);
 
   const onPointerMove = useCallback((ev: PointerEvent) => {

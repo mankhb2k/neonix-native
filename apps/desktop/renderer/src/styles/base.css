@@ -1,16 +1,3 @@
-:root {
-  color-scheme: dark;
-  --bg: #0a0a0b;
-  --fg: #f4f4f5;
-  --muted: #a1a1aa;
-  --accent: #3dd68c;
-  --panel: #141416;
-  --border: #27272a;
-  --danger: #f87171;
-  --hover: #1c1c1f;
-  font-family: "Segoe UI", "Be Vietnam Pro", system-ui, sans-serif;
-}
-
 * {
   box-sizing: border-box;
 }
@@ -26,6 +13,8 @@ body,
 
 body {
   min-height: 100vh;
+  font-family: var(--font-sans, "Be Vietnam Pro", "Segoe UI", sans-serif);
+  color-scheme: dark;
 }
 
 button {
@@ -40,6 +29,82 @@ a,
   border: none;
   padding: 0;
   text-decoration: underline;
+}
+
+.ui-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+}
+
+.ui-dialog-backdrop__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: default;
+}
+
+.ui-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 32px));
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 10px);
+  background: var(--panel);
+  color: var(--fg);
+  outline: none;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.ui-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-dialog__header h2 {
+  margin: 0;
+  font-size: var(--fs-title, 13px);
+  font-weight: var(--fw-semibold, 600);
+}
+
+.ui-dialog__body {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.ui-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.ui-select {
+  display: grid;
+  gap: 6px;
+}
+
+.ui-select__label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ui-select__control {
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 
 .app-shell {
@@ -219,6 +284,23 @@ a,
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.editor-shell__field--inline {
+  display: inline-flex;
+  margin: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .editor-shell__meta {

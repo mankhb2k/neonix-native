@@ -1,6 +1,9 @@
 export { cn } from "./cn";
 export { Button, type ButtonProps } from "./primitives/Button";
+export { Dialog, type DialogProps } from "./primitives/Dialog";
+export { IconButton, type IconButtonProps } from "./primitives/IconButton";
 export { PanelHeader, type PanelHeaderProps } from "./primitives/PanelHeader";
+export { Select, type SelectOption, type SelectProps } from "./primitives/Select";
 export {
   TabsDesktop,
   type DesktopTabItem,
