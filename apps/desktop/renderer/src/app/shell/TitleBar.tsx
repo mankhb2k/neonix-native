@@ -30,6 +30,11 @@ export function TitleBar({ api, title, dirty }: Props) {
           {dirty ? " •" : ""}
         </span>
       </div>
+      <div
+        id="desktop-titlebar-menu-portal"
+        className="titlebar__menu-portal"
+        style={{ WebkitAppRegion: "no-drag" } as CSSProperties}
+      />
       {!isMac ? (
         <div
           className="titlebar__controls"

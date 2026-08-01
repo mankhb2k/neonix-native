@@ -117,11 +117,25 @@ a,
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   height: 38px;
   padding: 0 8px 0 12px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--bg-panel, #1c1c1e);
   user-select: none;
+}
+
+.titlebar__menu-portal {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.titlebar__menu {
+  display: flex;
+  align-items: center;
 }
 
 .titlebar__brand {

@@ -1,9 +1,80 @@
 {
-  "status": "partial",
-  "sizes": [
-    "1280x720",
-    "1920x1080"
-  ],
-  "note": "Wire Playwright against Vite desktop; do not claim cutover until PNGs exist.",
-  "generatedAt": "2026-08-01T03:55:47.872Z"
+  "status": "partial-fixtures",
+  "note": "Solid PNG fixtures at target dimensions. Replace with Playwright captures of Vite desktop for true parity.",
+  "tolerance": {
+    "maxPixelDiffRatio": 0.02
+  },
+  "generatedAt": "2026-08-01T04:22:26.147Z",
+  "files": [
+    {
+      "name": "hub-empty-1280.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "fa65f54da582e8376b291b8c78adb8a39c1b76d048e5c8a511adbd8e04461ffd",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "hub-empty-1920.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "00f97ab4c38af2dbc9122b6c481db049a11ba9d93e2d0daf3a1d24e56b49c952",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "hub-recent-1280.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "fa65f54da582e8376b291b8c78adb8a39c1b76d048e5c8a511adbd8e04461ffd",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "hub-recent-1920.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "00f97ab4c38af2dbc9122b6c481db049a11ba9d93e2d0daf3a1d24e56b49c952",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "editor-shell-1280.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "fa65f54da582e8376b291b8c78adb8a39c1b76d048e5c8a511adbd8e04461ffd",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "editor-shell-1920.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "00f97ab4c38af2dbc9122b6c481db049a11ba9d93e2d0daf3a1d24e56b49c952",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "sidebar-layers-1280.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "fa65f54da582e8376b291b8c78adb8a39c1b76d048e5c8a511adbd8e04461ffd",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "sidebar-layers-1920.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "00f97ab4c38af2dbc9122b6c481db049a11ba9d93e2d0daf3a1d24e56b49c952",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "timeline-empty-1280.png",
+      "width": 1280,
+      "height": 720,
+      "sha256": "fa65f54da582e8376b291b8c78adb8a39c1b76d048e5c8a511adbd8e04461ffd",
+      "kind": "fixture-solid"
+    },
+    {
+      "name": "timeline-empty-1920.png",
+      "width": 1920,
+      "height": 1080,
+      "sha256": "00f97ab4c38af2dbc9122b6c481db049a11ba9d93e2d0daf3a1d24e56b49c952",
+      "kind": "fixture-solid"
+    }
+  ]
 }

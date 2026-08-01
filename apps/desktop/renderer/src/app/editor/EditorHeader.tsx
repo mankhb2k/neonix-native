@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "../../ui";
 import { EditorMenuBar } from "./EditorMenuBar";
 import type { EditorActions } from "./editor-actions";
@@ -10,15 +11,29 @@ type Props = {
   zoomSlot?: ReactNode;
 };
 
+/**
+ * Editor toolbar chrome. File/Edit/View menus portal into the TitleBar
+ * portal host for a single top chrome strip.
+ */
 export function EditorHeader({
   actions,
   exportSlot,
   transportSlot,
   zoomSlot,
 }: Props) {
+  const [menuHost, setMenuHost] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setMenuHost(document.getElementById("desktop-titlebar-menu-portal"));
+  }, []);
+
   return (
     <div className="editor-shell__chrome">
-      <EditorMenuBar actions={actions} />
+      {menuHost
+        ? createPortal(<EditorMenuBar actions={actions} />, menuHost)
+        : (
+            <EditorMenuBar actions={actions} />
+          )}
       <div className="editor-shell__toolbar" role="toolbar" aria-label="Editor">
         <Button type="button" variant="ghost" onClick={actions.closeProject}>
           ← Home

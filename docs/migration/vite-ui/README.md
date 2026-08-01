@@ -19,8 +19,8 @@
 
 | Wave | Focus | Status |
 |------|--------|--------|
-| N2 / G4 | Screenshot baselines + parity contract | **partial** — contract + folder; PNGs manual |
-| N3 / G4 | Unified chrome / Hub polish | **partial** — menus via EditorActions; TitleBar still separate |
+| N2 / G4 / H4 | Screenshot baselines + parity contract | **partial** — solid PNG fixtures @ 1280/1920; Playwright captures later |
+| N3 / G4 / H4 | Unified chrome / Hub polish | **partial** — menus portal into TitleBar (`#desktop-titlebar-menu-portal`) |
 | N5 | Drop geometry lane/time | done (typed ghost + auto-scroll near zone) |
 | N6 / G3 | Layers tree / reorder / marquee / cross-lane | **partial** — adapters + context menu; lane drag-reorder DOM later |
 | N7 / G2 | Pixi + fixtures/benchmark | **partial** — G2/H2 StageRenderer CI gate (not Electron 60fps); Pixi post-baseline |
