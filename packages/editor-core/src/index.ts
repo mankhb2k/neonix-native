@@ -52,6 +52,11 @@ export {
   applyRippleAfter,
   createOverlayLaneAt,
 } from "./operations/clip-move";
+export {
+  moveClipGroup,
+  trackKindForLane,
+  type ClipGroupMove,
+} from "./operations/clip-move-group";
 
 export type { LaneFlagPatch } from "./operations/lane-flags";
 export {

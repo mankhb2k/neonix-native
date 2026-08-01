@@ -9,6 +9,13 @@ import {
   type TimelineTrackKind,
 } from "@motionvideo/editor-core";
 
+export type ClipMovePreviewMember = {
+  clipId: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+};
+
 export type ClipMovePreview = {
   clipId: string;
   originLaneId: string;
@@ -16,6 +23,8 @@ export type ClipMovePreview = {
   startTime: number;
   duration: number;
   valid: boolean;
+  /** Secondary selected clips (time-shift on home lanes). */
+  members?: ClipMovePreviewMember[];
 };
 
 export type ClipMoveDropTarget = {

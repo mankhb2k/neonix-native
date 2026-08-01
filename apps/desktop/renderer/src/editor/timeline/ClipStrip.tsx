@@ -103,14 +103,25 @@ export const ClipStrip = memo(function ClipStrip({
 
     const additive = event.metaKey || event.ctrlKey;
     const already = selected.has(clip.id);
+    let nextSelected = [...selected];
     if (additive) {
-      const next = already
-        ? [...selected].filter((id) => id !== clip.id)
-        : [...selected, clip.id];
-      onSelect(selectionClips(next));
+      nextSelected = already
+        ? nextSelected.filter((id) => id !== clip.id)
+        : [...nextSelected, clip.id];
+      onSelect(selectionClips(nextSelected));
     } else if (!already) {
-      onSelect(selectionClips([clip.id]));
+      nextSelected = [clip.id];
+      onSelect(selectionClips(nextSelected));
     }
+    if (!nextSelected.includes(clip.id)) {
+      nextSelected = [clip.id];
+    }
+    /** Freeze group at gesture start (primary first). */
+    const groupIds = [
+      clip.id,
+      ...nextSelected.filter((id) => id !== clip.id),
+    ];
+    const isGroup = groupIds.length > 1;
 
     const originX = event.clientX;
     const originStart = clip.startTime;
@@ -119,6 +130,16 @@ export const ClipStrip = memo(function ClipStrip({
     const duration = clip.duration;
     const originContentX = pointerContentXAtPoint(originX) ?? 0;
     const grabOffsetSec = originContentX / pps - originStart;
+    const catalog = allClips ?? clips;
+    const minStartInGroup = Math.min(
+      ...groupIds.map(
+        (id) => catalog.find((c) => c.id === id)?.startTime ?? originStart,
+      ),
+    );
+    const groupIdSet = new Set(groupIds);
+    const snapPoints = catalog
+      .filter((c) => !groupIdSet.has(c.id))
+      .flatMap((c) => [c.startTime, c.startTime + c.duration]);
 
     type MoveState = {
       startTime: number;
@@ -126,6 +147,7 @@ export const ClipStrip = memo(function ClipStrip({
       track: TrackKind;
       moved: boolean;
       valid: boolean;
+      groupDelta: number;
     };
     beginGesture<MoveState, void>(
       {
@@ -136,6 +158,7 @@ export const ClipStrip = memo(function ClipStrip({
           track: originTrack,
           moved: false,
           valid: true,
+          groupDelta: 0,
         }),
         onUpdate: (pos, state) => {
           const dx = pos.x - originX;
@@ -143,10 +166,14 @@ export const ClipStrip = memo(function ClipStrip({
           autoScrollTimelineNearEdge(pos.x, pos.y);
           const contentX = pointerContentXAtPoint(pos.x);
           const geo = resolveDropGeometryAtPoint(pos.x, pos.y);
-          const catalog = allClips ?? clips;
-          const snapPoints = catalog
-            .filter((c) => c.id !== clip.id)
-            .flatMap((c) => [c.startTime, c.startTime + c.duration]);
+          // Multi-select: time-only on home lanes; cross-lane only for single.
+          const drop = isGroup
+            ? geo
+              ? { laneId: originLaneId, track: originTrack }
+              : null
+            : geo
+              ? { laneId: geo.laneId, track: geo.track }
+              : null;
           const resolved = resolveClipMoveDrag({
             clipId: clip.id,
             clip,
@@ -157,32 +184,49 @@ export const ClipStrip = memo(function ClipStrip({
             pointerContentX: contentX ?? originContentX,
             pixelsPerSecond: pps,
             duration,
-            drop: geo
-              ? { laneId: geo.laneId, track: geo.track }
-              : null,
+            drop,
             snapPoints,
           });
-          setLocalPreview(resolved.preview);
-          onMovePreviewChange?.(resolved.preview);
+          const rawDelta = resolved.commit.startTime - originStart;
+          const groupDelta = Math.max(rawDelta, -minStartInGroup);
+          const primaryStart = originStart + groupDelta;
+          const members = isGroup
+            ? groupIds
+                .filter((id) => id !== clip.id)
+                .map((id) => {
+                  const c = catalog.find((x) => x.id === id);
+                  if (!c || !c.laneId) return null;
+                  return {
+                    clipId: id,
+                    laneId: c.laneId,
+                    startTime: c.startTime + groupDelta,
+                    duration: c.duration,
+                  };
+                })
+                .filter((m): m is NonNullable<typeof m> => m != null)
+            : undefined;
+          const preview = {
+            ...resolved.preview,
+            startTime: primaryStart,
+            laneId: isGroup ? originLaneId : resolved.preview.laneId,
+            valid: resolved.commit.valid,
+            members,
+          };
+          setLocalPreview(preview);
+          onMovePreviewChange?.(preview);
           return {
-            startTime: resolved.commit.startTime,
-            laneId: resolved.commit.laneId,
-            track: resolved.commit.track,
+            startTime: primaryStart,
+            laneId: isGroup ? originLaneId : resolved.commit.laneId,
+            track: isGroup ? originTrack : resolved.commit.track,
             moved: true,
             valid: resolved.commit.valid,
+            groupDelta,
           };
         },
         onCommit: (state) => {
           clearMovePreview();
           if (!state.moved || !state.valid) return;
-          const selectedIds = selectedClipIdsFrom(selection);
-          const group =
-            selectedIds.length > 1 && selectedIds.includes(clip.id)
-              ? selectedIds
-              : [clip.id];
-          const catalog = allClips ?? clips;
-          const delta = state.startTime - originStart;
-          if (group.length === 1) {
+          if (!isGroup) {
             onExecute(
               {
                 type: "move-clip",
@@ -197,20 +241,16 @@ export const ClipStrip = memo(function ClipStrip({
             );
             return;
           }
-          const moves = group
+          const moves = groupIds
             .map((id) => {
               const c = catalog.find((x) => x.id === id);
-              if (!c) return null;
-              const isPrimary = id === clip.id;
+              if (!c || !c.laneId) return null;
+              // Omit track → atomic keep-lane in moveClipGroup.
               return {
                 clipId: id,
                 patch: {
-                  startTime: Math.max(
-                    0,
-                    isPrimary ? state.startTime : c.startTime + delta,
-                  ),
-                  track: isPrimary ? state.track : undefined,
-                  laneId: isPrimary ? state.laneId : c.laneId,
+                  startTime: c.startTime + state.groupDelta,
+                  laneId: c.laneId,
                 },
               };
             })
@@ -309,6 +349,9 @@ export const ClipStrip = memo(function ClipStrip({
         let dragInvalid = false;
         let crossLaneOrigin = false;
 
+        const memberPreview = activeMove?.members?.find(
+          (m) => m.clipId === clip.id,
+        );
         if (activeMove?.clipId === clip.id) {
           isDragging = true;
           dragInvalid = !activeMove.valid;
@@ -319,6 +362,11 @@ export const ClipStrip = memo(function ClipStrip({
             // Keep origin silhouette; ghost renders on the target lane.
             crossLaneOrigin = true;
           }
+        } else if (memberPreview && memberPreview.laneId === lane.id) {
+          isDragging = true;
+          dragInvalid = !(activeMove?.valid ?? true);
+          start = memberPreview.startTime;
+          duration = memberPreview.duration;
         } else if (trimPreview?.clipId === clip.id) {
           start = trimPreview.startTime;
           duration = trimPreview.duration;

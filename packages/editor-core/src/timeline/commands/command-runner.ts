@@ -15,6 +15,10 @@ import {
   type VisualPlacementIntent,
 } from "../../operations/clip-move";
 import {
+  moveClipGroup,
+  trackKindForLane,
+} from "../../operations/clip-move-group";
+import {
   applyLaneFlagPatch,
   isLaneLocked,
   selectionHasLockedLane,
@@ -307,9 +311,12 @@ export function executeTimelineCommand(
       const otherClips = clips.filter((c) => c.id !== command.clipId);
       const existingOnBase = isBaseLane(lanes, existing.laneId);
       const existingOnAudio = isAudioLane(lanes, existing.laneId);
+      /** Omitted track = keep current lane family (not force base). */
+      const effectiveTrack =
+        command.patch.track ?? trackKindForLane(lanes, existing.laneId);
       let moved: TimelineClip;
 
-      if (command.patch.track === "audio") {
+      if (effectiveTrack === "audio") {
         if (!existingOnAudio) {
           return { status: "rejected", reason: "collision", message: "Clip visual không thể chuyển sang audio lane." };
         }
@@ -358,7 +365,7 @@ export function executeTimelineCommand(
         return finish(nextProject, lanes, otherClips, selectionClips([moved.id]), events);
       }
 
-      if (command.patch.track === "overlay") {
+      if (effectiveTrack === "overlay") {
         if (existingOnAudio || existing.kind !== "scene") {
           return { status: "rejected", reason: "collision", message: "Audio clip không thể di chuyển lên overlay lane." };
         }
@@ -372,7 +379,9 @@ export function executeTimelineCommand(
             }
           : {
               type: "overlay-lane",
-              laneId: command.patch.laneId ?? (existingOnBase ? "" : existing.laneId),
+              laneId:
+                command.patch.laneId ??
+                (existingOnBase ? "" : existing.laneId),
               startTime,
               duration: existing.duration,
             };
@@ -431,44 +440,10 @@ export function executeTimelineCommand(
     }
 
     case "move-clips": {
-      if (!command.moves.length) {
-        return {
-          status: "rejected",
-          reason: "empty_selection",
-          message: "Không có clip nào để di chuyển.",
-        };
-      }
-      let workingDoc: TimelineDocument = {
-        project: nextProject,
-        lanes,
-        clips,
-      };
-      let workingSelection = selection;
-      const allEvents: TimelineDomainEvent[] = [];
-      const movedIds: string[] = [];
-      for (const move of command.moves) {
-        const step = executeTimelineCommand(
-          workingDoc,
-          { type: "move-clip", clipId: move.clipId, patch: move.patch },
-          workingSelection,
-          clipboard,
-          ctx,
-        );
-        if (step.status !== "applied" || !step.document) {
-          return step;
-        }
-        workingDoc = step.document;
-        workingSelection = step.selection ?? workingSelection;
-        if (step.events) allEvents.push(...step.events);
-        movedIds.push(move.clipId);
-      }
-      return {
-        status: "applied",
-        document: workingDoc,
-        selection: selectionClips(movedIds),
-        events: allEvents,
-        clipboard,
-      };
+      return moveClipGroup(
+        { project: nextProject, lanes, clips, transitions },
+        command.moves,
+      );
     }
 
     case "delete-selected-clips": {
