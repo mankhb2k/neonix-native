@@ -1,5 +1,5 @@
 /**
- * Stage renderer factory — DOM default; Canvas2D as `canvas-experimental` (P21).
+ * Stage renderer factory — DOM default; Canvas2D as `canvas-experimental` (P21/B4).
  * `"pixi"` remains a deprecated alias of canvas-experimental.
  */
 
@@ -22,13 +22,18 @@ function resolveBackend(
   return "dom";
 }
 
+/**
+ * Sync factory — DOM only. Experimental backends must use
+ * {@link createStageRendererLazy}.
+ */
 export function createStageRenderer(
   host: HTMLElement,
   backend: StageRendererBackend = STAGE_RENDERER_BACKEND,
 ): StageRendererPort {
-  if (resolveBackend(backend) === "canvas-experimental") {
-    // Sync callers stay on DOM; use createStageRendererLazy for experimental.
-    return createDomStageRenderer(host);
+  if (resolveBackend(backend) !== "dom") {
+    throw new Error(
+      `createStageRenderer sync only supports "dom"; use createStageRendererLazy(host, "${backend === "pixi" ? "canvas-experimental" : backend}") for canvas-experimental.`,
+    );
   }
   return createDomStageRenderer(host);
 }
@@ -51,6 +56,8 @@ export function prefetchPixiStageRenderer(): void {
 }
 
 /** @deprecated Prefer createStageRendererLazy(..., "canvas-experimental") */
-export function createPixiStageRenderer(host: HTMLElement): StageRendererPort {
-  return createStageRenderer(host, "canvas-experimental");
+export function createPixiStageRenderer(_host: HTMLElement): never {
+  throw new Error(
+    'createPixiStageRenderer is deprecated; use createStageRendererLazy(host, "canvas-experimental").',
+  );
 }

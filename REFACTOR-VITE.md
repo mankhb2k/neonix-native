@@ -1,7 +1,7 @@
 # Kế hoạch refactor Desktop Editor sang React + Vite
 
-> **Trạng thái (P22):** Vite là renderer **mặc định** (`pnpm dev:desktop`). Cutover xóa `apps/web/components/desktop/**` vẫn **BLOCKED** — cần soak manual + một release ổn định + approve riêng.  
-> Phạm vi: desktop editor, Electron main/preload, Vite renderer và các package trực tiếp phục vụ editor  
+> **Trạng thái (P22):** Vite là renderer **mặc định** (`pnpm dev:desktop`). Cutover xóa `apps/web/components/desktop/**` vẫn **BLOCKED** — cần soak manual + một release ổn định + approve riêng.
+> Phạm vi: desktop editor, Electron main/preload, Vite renderer và các package trực tiếp phục vụ editor
 > Không thuộc phạm vi hiện tại: xây editor web mới, đồng bộ feature parity cho web, SEO/dashboard/marketplace
 
 ### Status snapshot (P13–P21)

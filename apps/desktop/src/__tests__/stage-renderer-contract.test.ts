@@ -1,5 +1,5 @@
 /**
- * Shared StageRendererPort contract — DOM vs canvas-experimental (P21).
+ * Shared StageRendererPort contract — DOM vs canvas-experimental (P21/B4).
  * @vitest-environment happy-dom
  */
 
@@ -10,6 +10,7 @@ import {
 } from "../../renderer/src/editor/preview/compose-layers";
 import { createDomStageRenderer } from "../../renderer/src/editor/stage/stage-renderer-port";
 import { createCanvasStageRenderer } from "../../renderer/src/editor/stage/canvas-stage-renderer";
+import { createStageRenderer } from "../../renderer/src/editor/stage/pixi-stage-renderer";
 import { buildStagePaintFixture } from "../../renderer/src/editor/stage/preview-fixtures";
 
 describe("StageRendererPort contract DOM vs canvas-experimental", () => {
@@ -47,32 +48,47 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     canvas.paintFrame(30);
     dom.dispose();
     canvas.dispose();
-    // Idempotent dispose
     dom.dispose();
     canvas.dispose();
   });
 
-  it("canvas paintFrame is frame-sensitive via composeAtTime", () => {
+  it("sync createStageRenderer rejects canvas-experimental (use lazy)", () => {
+    expect(() => createStageRenderer(host(), "canvas-experimental")).toThrow(
+      /createStageRendererLazy/,
+    );
+    expect(() => createStageRenderer(host(), "pixi")).toThrow(
+      /createStageRendererLazy/,
+    );
+    const dom = createStageRenderer(host(), "dom");
+    dom.dispose();
+  });
+
+  it("canvas paintFrame changes painted node count across frames", () => {
     const fixture = buildStagePaintFixture(8);
     const clips = fixture.clips.map((c, i) =>
-      i === 0 ? { ...c, startTime: 0, duration: 0.5 } : { ...c, startTime: 10, duration: 1 },
+      i === 0
+        ? { ...c, startTime: 0, duration: 0.5 }
+        : { ...c, startTime: 10, duration: 1 },
     );
     const doc = { ...fixture, clips };
     const index = buildVisualLaneIndex(doc.clips, doc.lanes);
     const fps = Math.max(1, Math.round(doc.project.metadata.fps ?? 30));
-    const layersAt0 = composeAtTime(index, 0 / fps);
-    const layersAtFar = composeAtTime(index, 60 / fps);
-    expect(layersAt0.length).toBeGreaterThan(0);
-    expect(layersAtFar.length).toBe(0);
+    expect(composeAtTime(index, 0 / fps).length).toBeGreaterThan(0);
+    expect(composeAtTime(index, 60 / fps).length).toBe(0);
 
     const h = host();
-    const canvas = createCanvasStageRenderer(h);
+    const canvas = createCanvasStageRenderer(h) as ReturnType<
+      typeof createCanvasStageRenderer
+    > & {
+      getPaintStats: () => { frameIndex: number; nodeCount: number };
+    };
+    canvas.setBackground("#111111");
     canvas.setDocument(doc);
     canvas.paintFrame(0);
-    expect(h.querySelector("canvas")).toBeTruthy();
+    expect(canvas.getPaintStats().nodeCount).toBeGreaterThan(0);
     canvas.paintFrame(60);
+    expect(canvas.getPaintStats().nodeCount).toBe(0);
     expect(h.querySelector("canvas")).toBeTruthy();
-    canvas.dispose();
     canvas.dispose();
   });
 
@@ -91,7 +107,6 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     dom.paintFrame(0);
     canvas.paintFrame(0);
 
-    // DOM surfaces text labels from scene nodes; canvas mounts a canvas element.
     expect(domHost.textContent?.length ?? 0).toBeGreaterThan(0);
     expect(canvasHost.querySelector("canvas")).toBeTruthy();
 

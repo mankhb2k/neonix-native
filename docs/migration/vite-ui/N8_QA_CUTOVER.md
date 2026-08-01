@@ -15,8 +15,10 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 - [x] `pnpm --filter @motionvideo/desktop test:export-cli`
 - [x] `pnpm --filter @motionvideo/desktop test:desktop-paths`
 - [x] `pnpm --filter @motionvideo/desktop test:web-ban`
-- [x] Production UI baselines: `pnpm --filter @motionvideo/desktop capture:baselines` + `compare:baselines`  
-  (`VITE_ENABLE_UI_FIXTURES=1` only for fixture seed; release builds ignore `?fixture=`)
+- [x] Production UI baselines: `pnpm --filter @motionvideo/desktop capture:baselines` + `compare:baselines`
+  (`VITE_ENABLE_UI_FIXTURES=1` only for fixture seed; release builds ignore `?fixture=`; promote with `PROMOTE_BASELINES=1`)
+
+**Note:** main renderer bundle still warns &gt;500 kB minified — tracked, not a cutover blocker. DOM remains default stage backend.
 
 ## Pack soak (H5 — 2026-08-01)
 

@@ -128,6 +128,10 @@ export function createCanvasStageRenderer(host: HTMLElement): StageRendererPort 
       rebuildFrame(frameIndex);
       paint();
     },
+    /** Test/contract helper — node count after last rebuild. */
+    getPaintStats() {
+      return { frameIndex: lastFrame, nodeCount: nodes.length };
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
