@@ -3,16 +3,13 @@
  */
 
 import {
-  selectedClipIdsFrom,
-  type EditorSelection,
-  type TimelineCommand,
-} from "@motionvideo/editor-core";
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "../../ui";
+import { buildTimelineContextActions } from "./timeline-context-actions";
+import type { EditorSelection, TimelineCommand } from "@motionvideo/editor-core";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -40,7 +37,16 @@ export function TimelineContextMenu({
   onExecute,
   getPlayheadTime,
 }: Props) {
-  const hasSelection = selectedClipIdsFrom(selection).length > 0;
+  const actions = buildTimelineContextActions({
+    selection,
+    disabled,
+    canPaste,
+    onCopy,
+    onCut,
+    onPaste,
+    onExecute,
+    getPlayheadTime,
+  });
 
   return (
     <ContextMenu>
@@ -48,54 +54,15 @@ export function TimelineContextMenu({
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent className="timeline-context-menu">
-        <ContextMenuItem
-          disabled={!hasSelection || disabled}
-          onSelect={() => onCopy?.()}
-        >
-          Copy
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!hasSelection || disabled}
-          onSelect={() => onCut?.()}
-        >
-          Cut
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!canPaste || disabled}
-          onSelect={() => onPaste?.()}
-        >
-          Paste
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!hasSelection || disabled}
-          onSelect={() =>
-            onExecute({ type: "delete-selected-clips" }, "Delete clips")
-          }
-        >
-          Delete
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!hasSelection || disabled}
-          onSelect={() =>
-            onExecute(
-              { type: "duplicate-selected-clips" },
-              "Duplicate clips",
-            )
-          }
-        >
-          Duplicate
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!hasSelection || disabled}
-          onSelect={() =>
-            onExecute(
-              { type: "split-selected-clips", time: getPlayheadTime() },
-              "Split clips",
-            )
-          }
-        >
-          Split
-        </ContextMenuItem>
+        {actions.map((action) => (
+          <ContextMenuItem
+            key={action.id}
+            disabled={action.disabled}
+            onSelect={() => action.run()}
+          >
+            {action.label}
+          </ContextMenuItem>
+        ))}
       </ContextMenuContent>
     </ContextMenu>
   );

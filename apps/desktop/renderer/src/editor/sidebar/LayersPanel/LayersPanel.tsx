@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  clipAcceptsLane,
   selectionClips,
   type EditorSelection,
   type TimelineClip,
@@ -75,12 +76,6 @@ export function LayersPanel({
       { type: "reorder-lane", laneId, newOrder: target.order },
       direction < 0 ? "Move lane up" : "Move lane down",
     );
-  };
-
-  /** scene↔visual, audio↔audio — not mere adjacent index. */
-  const clipAcceptsLane = (clip: TimelineClip, target: TimelineLane) => {
-    if (clip.kind === "audio") return target.kind === "audio";
-    return target.kind === "visual";
   };
 
   const canMoveClipAcrossLane = (

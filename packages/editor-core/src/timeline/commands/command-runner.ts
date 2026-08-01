@@ -430,6 +430,47 @@ export function executeTimelineCommand(
       return finish(nextProject, lanes, otherClips, selectionClips([moved.id]), events);
     }
 
+    case "move-clips": {
+      if (!command.moves.length) {
+        return {
+          status: "rejected",
+          reason: "empty_selection",
+          message: "Không có clip nào để di chuyển.",
+        };
+      }
+      let workingDoc: TimelineDocument = {
+        project: nextProject,
+        lanes,
+        clips,
+      };
+      let workingSelection = selection;
+      const allEvents: TimelineDomainEvent[] = [];
+      const movedIds: string[] = [];
+      for (const move of command.moves) {
+        const step = executeTimelineCommand(
+          workingDoc,
+          { type: "move-clip", clipId: move.clipId, patch: move.patch },
+          workingSelection,
+          clipboard,
+          ctx,
+        );
+        if (step.status !== "applied" || !step.document) {
+          return step;
+        }
+        workingDoc = step.document;
+        workingSelection = step.selection ?? workingSelection;
+        if (step.events) allEvents.push(...step.events);
+        movedIds.push(move.clipId);
+      }
+      return {
+        status: "applied",
+        document: workingDoc,
+        selection: selectionClips(movedIds),
+        events: allEvents,
+        clipboard,
+      };
+    }
+
     case "delete-selected-clips": {
       const ids = new Set(selectedClipIdsFrom(selection));
       if (ids.size === 0) {

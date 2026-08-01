@@ -582,6 +582,7 @@ export function TimelineViewport({
                     >
                       <ClipStrip
                         clips={visibleClips}
+                        allClips={clips}
                         lane={lane}
                         pixelsPerSecond={layout.pixelsPerSecond}
                         laneHeight={h}

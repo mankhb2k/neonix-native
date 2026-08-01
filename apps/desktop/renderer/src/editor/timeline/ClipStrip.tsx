@@ -52,6 +52,8 @@ function isMovePreview(preview: Preview | null): preview is ClipMovePreview {
 
 type Props = {
   clips: TimelineClip[];
+  /** Full document clips for multi-select move. */
+  allClips?: TimelineClip[];
   lane: TimelineLane;
   pixelsPerSecond: number;
   laneHeight: number;
@@ -68,6 +70,7 @@ type Props = {
 /** Receives visibility-culled `clips` only — parent owns full document arrays. */
 export const ClipStrip = memo(function ClipStrip({
   clips,
+  allClips,
   lane,
   pixelsPerSecond,
   laneHeight,
@@ -140,6 +143,10 @@ export const ClipStrip = memo(function ClipStrip({
           autoScrollTimelineNearEdge(pos.x, pos.y);
           const contentX = pointerContentXAtPoint(pos.x);
           const geo = resolveDropGeometryAtPoint(pos.x, pos.y);
+          const catalog = allClips ?? clips;
+          const snapPoints = catalog
+            .filter((c) => c.id !== clip.id)
+            .flatMap((c) => [c.startTime, c.startTime + c.duration]);
           const resolved = resolveClipMoveDrag({
             clipId: clip.id,
             clip,
@@ -153,6 +160,7 @@ export const ClipStrip = memo(function ClipStrip({
             drop: geo
               ? { laneId: geo.laneId, track: geo.track }
               : null,
+            snapPoints,
           });
           setLocalPreview(resolved.preview);
           onMovePreviewChange?.(resolved.preview);
@@ -167,18 +175,47 @@ export const ClipStrip = memo(function ClipStrip({
         onCommit: (state) => {
           clearMovePreview();
           if (!state.moved || !state.valid) return;
-          onExecute(
-            {
-              type: "move-clip",
-              clipId: clip.id,
-              patch: {
-                startTime: state.startTime,
-                track: state.track,
-                laneId: state.laneId,
+          const selectedIds = selectedClipIdsFrom(selection);
+          const group =
+            selectedIds.length > 1 && selectedIds.includes(clip.id)
+              ? selectedIds
+              : [clip.id];
+          const catalog = allClips ?? clips;
+          const delta = state.startTime - originStart;
+          if (group.length === 1) {
+            onExecute(
+              {
+                type: "move-clip",
+                clipId: clip.id,
+                patch: {
+                  startTime: state.startTime,
+                  track: state.track,
+                  laneId: state.laneId,
+                },
               },
-            },
-            "Move clip",
-          );
+              "Move clip",
+            );
+            return;
+          }
+          const moves = group
+            .map((id) => {
+              const c = catalog.find((x) => x.id === id);
+              if (!c) return null;
+              const isPrimary = id === clip.id;
+              return {
+                clipId: id,
+                patch: {
+                  startTime: Math.max(
+                    0,
+                    isPrimary ? state.startTime : c.startTime + delta,
+                  ),
+                  track: isPrimary ? state.track : undefined,
+                  laneId: isPrimary ? state.laneId : c.laneId,
+                },
+              };
+            })
+            .filter((m): m is NonNullable<typeof m> => m != null);
+          onExecute({ type: "move-clips", moves }, "Move clips");
         },
         onCancel: () => clearMovePreview(),
       },

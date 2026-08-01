@@ -2,7 +2,12 @@
  * Pure clip-move drag resolution — ghost preview and commit share one result.
  */
 
-import type { TimelineClip, TimelineTrackKind } from "@motionvideo/editor-core";
+import {
+  clipAcceptsTrack,
+  getSnappingPolicy,
+  type TimelineClip,
+  type TimelineTrackKind,
+} from "@motionvideo/editor-core";
 
 export type ClipMovePreview = {
   clipId: string;
@@ -31,6 +36,9 @@ export type ClipMoveDragInput = {
   duration: number;
   /** null when pointer is outside the timeline drop zone. */
   drop: ClipMoveDropTarget | null;
+  /** Optional live snap points (playhead, clip edges). */
+  snapPoints?: number[];
+  snapThresholdSec?: number;
 };
 
 export type ClipMoveDragCommit = {
@@ -46,22 +54,24 @@ export type ClipMoveDragResult = {
   commit: ClipMoveDragCommit;
 };
 
-export function clipAcceptsTrack(
-  clip: Pick<TimelineClip, "kind">,
-  track: TimelineTrackKind,
-): boolean {
-  if (clip.kind === "audio") return track === "audio";
-  return track === "main" || track === "overlay";
-}
+export { clipAcceptsTrack };
 
 export function resolveClipMoveDrag(
   input: ClipMoveDragInput,
 ): ClipMoveDragResult {
   const pps = Math.max(1e-6, input.pixelsPerSecond);
-  const startTime = Math.max(
+  let startTime = Math.max(
     0,
     input.pointerContentX / pps - input.grabOffsetSec,
   );
+  if (input.snapPoints?.length) {
+    const snapped = getSnappingPolicy().findNearestSnapTime(
+      startTime,
+      input.snapPoints,
+      input.snapThresholdSec ?? 0.08,
+    );
+    startTime = Math.max(0, snapped.time);
+  }
 
   let previewLaneId = input.originLaneId;
   let commitLaneId = input.originLaneId;

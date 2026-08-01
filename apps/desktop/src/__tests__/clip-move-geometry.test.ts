@@ -81,4 +81,15 @@ describe("resolveClipMoveDrag", () => {
     expect(afterScroll.commit.startTime).toBe(3);
     expect(afterScroll.commit.valid).toBe(true);
   });
+
+  it("snaps startTime to nearest snap point within threshold", () => {
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 305, // raw = 3.05 - 0.5 = 2.55
+      drop: { laneId: "lane-v", track: "main" },
+      snapPoints: [2.5, 4],
+      snapThresholdSec: 0.1,
+    });
+    expect(result.commit.startTime).toBe(2.5);
+  });
 });

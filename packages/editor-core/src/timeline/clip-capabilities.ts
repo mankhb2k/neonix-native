@@ -1,5 +1,27 @@
 import { assertNever } from "./assert-never";
-import type { TimelineClip } from "./model/timeline-types";
+import type {
+  TimelineClip,
+  TimelineLane,
+  TimelineTrackKind,
+} from "./model/timeline-types";
+
+/** Clip family ↔ track kind (main/overlay/audio). */
+export function clipAcceptsTrack(
+  clip: Pick<TimelineClip, "kind">,
+  track: TimelineTrackKind,
+): boolean {
+  if (clip.kind === "audio") return track === "audio";
+  return track === "main" || track === "overlay";
+}
+
+/** Clip family ↔ lane kind (visual/audio). */
+export function clipAcceptsLane(
+  clip: Pick<TimelineClip, "kind">,
+  lane: Pick<TimelineLane, "kind">,
+): boolean {
+  if (clip.kind === "audio") return lane.kind === "audio";
+  return lane.kind === "visual";
+}
 
 export type ClipCapability = {
   kind: TimelineClip["kind"];

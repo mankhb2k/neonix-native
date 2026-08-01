@@ -43,6 +43,10 @@ export type TimelineCommand =
   | { type: "add-audio-clip"; item: AudioLibraryItem; target: PlacementTarget }
   | { type: "move-clip"; clipId: string; patch: ClipMovePatch }
   | {
+      type: "move-clips";
+      moves: Array<{ clipId: string; patch: ClipMovePatch }>;
+    }
+  | {
       type: "clip/trim";
       clipId: string;
       duration: number;
