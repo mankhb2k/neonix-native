@@ -13,35 +13,28 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import {
+  resolveClipMoveDrag,
+  type ClipMovePreview,
+} from "./clip-move-geometry";
+import {
   autoScrollTimelineNearEdge,
+  pointerContentXAtPoint,
   resolveDropGeometryAtPoint,
 } from "./drop-host";
 import type { BeginGesture } from "./interactions/use-pointer-session";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
+export type { ClipMovePreview };
+
 const DRAG_THRESHOLD_PX = 3;
 
 type TrackKind = "main" | "overlay" | "audio";
-
-export type ClipMovePreview = {
-  clipId: string;
-  originLaneId: string;
-  laneId: string;
-  startTime: number;
-  duration: number;
-  valid: boolean;
-};
 
 function trackForLane(lane: TimelineLane | undefined): TrackKind {
   if (!lane) return "main";
   if (lane.kind === "audio") return "audio";
   if (lane.role === "base") return "main";
   return "overlay";
-}
-
-function clipAcceptsTrack(clip: TimelineClip, track: TrackKind): boolean {
-  if (clip.kind === "audio") return track === "audio";
-  return track === "main" || track === "overlay";
 }
 
 type Preview =
@@ -120,6 +113,8 @@ export function ClipStrip({
     const originLaneId = lane.id;
     const originTrack = trackForLane(lane);
     const duration = clip.duration;
+    const originContentX = pointerContentXAtPoint(originX) ?? 0;
+    const grabOffsetSec = originContentX / pps - originStart;
 
     type MoveState = {
       startTime: number;
@@ -142,44 +137,35 @@ export function ClipStrip({
           const dx = pos.x - originX;
           if (!state.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return state;
           autoScrollTimelineNearEdge(pos.x, pos.y);
-          const nextStart = Math.max(0, originStart + dx / pps);
-          let laneId = originLaneId;
-          let track = originTrack;
-          let valid = true;
+          const contentX = pointerContentXAtPoint(pos.x);
           const geo = resolveDropGeometryAtPoint(pos.x, pos.y);
-          if (geo) {
-            if (clipAcceptsTrack(clip, geo.track)) {
-              laneId = geo.laneId;
-              track = geo.track;
-              valid = true;
-            } else {
-              // Highlight incompatible target; commit keeps origin lane.
-              laneId = geo.laneId;
-              track = originTrack;
-              valid = false;
-            }
-          }
-          const preview: ClipMovePreview = {
+          const resolved = resolveClipMoveDrag({
             clipId: clip.id,
+            clip,
+            originStartTime: originStart,
             originLaneId,
-            laneId,
-            startTime: nextStart,
+            originTrack,
+            grabOffsetSec,
+            pointerContentX: contentX ?? originContentX,
+            pixelsPerSecond: pps,
             duration,
-            valid,
-          };
-          setLocalPreview(preview);
-          onMovePreviewChange?.(preview);
+            drop: geo
+              ? { laneId: geo.laneId, track: geo.track }
+              : null,
+          });
+          setLocalPreview(resolved.preview);
+          onMovePreviewChange?.(resolved.preview);
           return {
-            startTime: nextStart,
-            laneId: valid ? laneId : originLaneId,
-            track: valid ? track : originTrack,
+            startTime: resolved.commit.startTime,
+            laneId: resolved.commit.laneId,
+            track: resolved.commit.track,
             moved: true,
-            valid,
+            valid: resolved.commit.valid,
           };
         },
         onCommit: (state) => {
           clearMovePreview();
-          if (!state.moved) return;
+          if (!state.moved || !state.valid) return;
           onExecute(
             {
               type: "move-clip",

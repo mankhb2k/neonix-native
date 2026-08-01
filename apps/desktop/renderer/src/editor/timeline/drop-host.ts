@@ -5,6 +5,7 @@
 
 import { payloadAcceptsTrack } from "../library/adapters/drop-compatibility";
 import {
+  contentXFromPointer,
   hitTimelineDropZone,
   resolveTimelineDropGeometry,
   type TimelineDropGeometry,
@@ -34,6 +35,16 @@ export function setTimelineDropHost(next: TimelineDropHost | null): void {
 
 export function getTimelineDropHost(): TimelineDropHost | null {
   return host;
+}
+
+/** Content-space X under the pointer using the registered drop host scroll. */
+export function pointerContentXAtPoint(clientX: number): number | null {
+  if (!host) return null;
+  return contentXFromPointer({
+    clientX,
+    scrollEl: host.scrollEl,
+    tracksOriginX: host.tracksOriginX,
+  });
 }
 
 export function resolveDropGeometryAtPoint(

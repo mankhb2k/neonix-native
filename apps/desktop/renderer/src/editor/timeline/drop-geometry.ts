@@ -34,6 +34,18 @@ export function hitTimelineDropZone(
   return Boolean(el?.closest('[data-timeline-drop-zone="true"]'));
 }
 
+/** Content-space X (seconds = x / pps) from pointer + scroll container. */
+export function contentXFromPointer(input: {
+  clientX: number;
+  scrollEl: HTMLElement;
+  tracksOriginX: number;
+}): number {
+  const rect = input.scrollEl.getBoundingClientRect();
+  return (
+    input.clientX - rect.left + input.scrollEl.scrollLeft - input.tracksOriginX
+  );
+}
+
 function trackForLane(lane: TimelineLane): "main" | "overlay" | "audio" {
   if (lane.kind === "audio") return "audio";
   if (lane.kind === "visual" && lane.role === "base") return "main";
@@ -46,8 +58,11 @@ export function resolveTimelineDropGeometry(
   const rect = input.scrollEl.getBoundingClientRect();
   const y =
     input.clientY - rect.top + input.scrollEl.scrollTop - input.lanesTop;
-  const x =
-    input.clientX - rect.left + input.scrollEl.scrollLeft - input.tracksOriginX;
+  const x = contentXFromPointer({
+    clientX: input.clientX,
+    scrollEl: input.scrollEl,
+    tracksOriginX: input.tracksOriginX,
+  });
   if (y < 0 || input.lanes.length === 0) return null;
 
   const sorted = [...input.lanes].sort((a, b) => a.order - b.order);

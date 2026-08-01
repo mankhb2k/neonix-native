@@ -47,4 +47,28 @@ describe("PointerSessionController pendingPos", () => {
 
     controller.cancel();
   });
+
+  it("clears pendingPos on non-RAF path so flush does not double-apply", () => {
+    vi.stubGlobal("requestAnimationFrame", undefined);
+    vi.stubGlobal("cancelAnimationFrame", undefined);
+
+    const updates: Array<{ x: number; y: number }> = [];
+    const controller = new PointerSessionController<{ n: number }, void>({
+      name: "no-raf",
+      onStart: () => ({ n: 0 }),
+      onUpdate: (pos, state) => {
+        updates.push(pos);
+        return { n: state.n + 1 };
+      },
+    });
+
+    expect(controller.start({ x: 0, y: 0 })).toBe(true);
+    controller.update({ x: 5, y: 6 });
+    expect(updates).toEqual([{ x: 5, y: 6 }]);
+
+    controller.flushPendingUpdate();
+    expect(updates).toHaveLength(1);
+
+    controller.cancel();
+  });
 });

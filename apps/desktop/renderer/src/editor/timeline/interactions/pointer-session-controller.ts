@@ -77,7 +77,9 @@ export class PointerSessionController<TState, TResult = void> {
           }
         });
       } else if (this.config.onUpdate) {
-        this.currentState = this.config.onUpdate(pos, this.currentState!);
+        const next = this.pendingPos;
+        this.pendingPos = null;
+        this.currentState = this.config.onUpdate(next, this.currentState!);
       }
     }
   }
