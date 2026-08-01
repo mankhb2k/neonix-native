@@ -19,7 +19,7 @@
 
 | Wave | Focus | Status |
 |------|--------|--------|
-| N2 / G4 / H4 / P20 | Screenshot baselines + parity contract | done — production Hub/Editor captures behind `VITE_ENABLE_UI_FIXTURES` |
+| N2 / G4 / H4 / P20 | Screenshot baselines + parity contract | **partial** — candidate/reference pixel-diff (B1); promote with `PROMOTE_BASELINES=1` |
 | N3 / G4 / H4 | Unified chrome / Hub polish | **partial** — menus portal into TitleBar; no menu fallback flash |
 | N5 | Drop geometry lane/time | done (typed ghost + auto-scroll near zone) |
 | N6 / G3 | Layers tree / reorder / marquee / cross-lane | **partial** — adapters + context menu; lane drag-reorder DOM later |

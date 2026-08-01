@@ -21,6 +21,8 @@ type Props = {
   clips: TimelineClip[];
   selection: EditorSelection;
   assets?: DocumentAssetEntry[];
+  /** Fixture / deep-link: open Layers or Media on mount. */
+  initialTab?: string;
   onSelect: (selection: EditorSelection) => void;
   onExecuteTimeline: (command: TimelineCommand, label: string) => void;
 };
@@ -31,13 +33,18 @@ export function EditorSidebar({
   clips,
   selection,
   assets = [],
+  initialTab = "media",
   onSelect,
   onExecuteTimeline,
 }: Props) {
-  const [tab, setTab] = useState("media");
+  const [tab, setTab] = useState(initialTab);
 
   return (
-    <aside className="editor-sidebar" aria-label="Editor sidebar">
+    <aside
+      className="editor-sidebar"
+      aria-label="Editor sidebar"
+      data-sidebar-tab={tab}
+    >
       <PanelHeader title="Library" />
       <div className="editor-sidebar__tabs">
         <TabsDesktop

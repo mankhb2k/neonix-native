@@ -70,6 +70,10 @@ type Props = {
   onSaveAs: (snapshot: EditorSessionSnapshot) => void;
   onCloseToHome: () => void;
   onClearError: () => void;
+  /** UI fixture: force sidebar tab. */
+  initialSidebarTab?: "layers" | "media";
+  /** UI fixture: mark timeline region for capture focus. */
+  timelineFocus?: boolean;
 };
 
 let propertyEntrySeq = 0;
@@ -91,6 +95,8 @@ function EditingWorkspaceInner({
   onSaveAs,
   onCloseToHome,
   onClearError,
+  initialSidebarTab,
+  timelineFocus,
   clock,
 }: Props & { clock: ReturnType<typeof createPlaybackClockStore> }) {
   const [session, dispatch] = useReducer(
@@ -350,7 +356,12 @@ function EditingWorkspaceInner({
   );
 
   return (
-    <main className="editor-shell">
+    <main
+      className={
+        timelineFocus ? "editor-shell editor-shell--timeline-focus" : "editor-shell"
+      }
+      data-timeline-focus={timelineFocus ? "true" : undefined}
+    >
       <EditorHeader
         actions={editorActions}
         exportSlot={
@@ -430,6 +441,7 @@ function EditingWorkspaceInner({
             lanes={session.lanes}
             clips={session.clips}
             selection={session.selection}
+            initialTab={initialSidebarTab}
             onSelect={(selection) =>
               dispatch({ type: "SET_SELECTION", selection })
             }

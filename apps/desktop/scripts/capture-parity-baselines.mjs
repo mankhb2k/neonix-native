@@ -150,6 +150,9 @@ function wait(ms) {
 }
 
 async function captureWithElectron() {
+  const cleanEnv = { ...process.env, VITE_ENABLE_UI_FIXTURES: "1" };
+  delete cleanEnv.ELECTRON_RUN_AS_NODE;
+
   await new Promise((resolve, reject) => {
     const child = spawn(
       process.platform === "win32" ? "pnpm.cmd" : "pnpm",
@@ -158,7 +161,7 @@ async function captureWithElectron() {
         cwd: desktopRoot,
         stdio: "inherit",
         shell: true,
-        env: { ...process.env, VITE_ENABLE_UI_FIXTURES: "1" },
+        env: cleanEnv,
       },
     );
     child.on("exit", (code) =>
@@ -166,6 +169,7 @@ async function captureWithElectron() {
     );
   });
 
+  const promote = process.env.PROMOTE_BASELINES === "1";
   await new Promise((resolve, reject) => {
     const child = spawn(
       process.platform === "win32" ? "pnpm.cmd" : "pnpm",
@@ -174,7 +178,10 @@ async function captureWithElectron() {
         cwd: desktopRoot,
         stdio: "inherit",
         shell: true,
-        env: { ...process.env, VITE_ENABLE_UI_FIXTURES: "1" },
+        env: {
+          ...cleanEnv,
+          ...(promote ? { PROMOTE_BASELINES: "1" } : {}),
+        },
       },
     );
     child.on("exit", (code) =>
@@ -184,11 +191,16 @@ async function captureWithElectron() {
     );
   });
 
-  // Manifest written by electron script; return file list from disk.
-  const { readFileSync } = await import("node:fs");
-  const manifest = JSON.parse(
-    readFileSync(join(outDir, "manifest.json"), "utf8"),
+  // Prefer candidate manifest; fall back to reference after promote.
+  const { readFileSync, existsSync } = await import("node:fs");
+  const candidateManifest = join(
+    desktopRoot,
+    "tmp/baseline-candidates/manifest.json",
   );
+  const path = existsSync(candidateManifest)
+    ? candidateManifest
+    : join(outDir, "manifest.json");
+  const manifest = JSON.parse(readFileSync(path, "utf8"));
   return manifest.files ?? [];
 }
 

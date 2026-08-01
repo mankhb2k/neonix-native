@@ -1,9 +1,14 @@
 /**
- * Seeds real Hub / EditingWorkspace for visual baselines (P20).
+ * Seeds real Hub / EditingWorkspace for visual baselines (P20/B1).
  * Only loaded when VITE_ENABLE_UI_FIXTURES=1.
  */
 
-import { buildBlankDesktopProject } from "../../../../src/shared/project-file/envelope";
+import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
+import {
+  buildBlankDesktopProject,
+  serializeDesktopProjectEnvelope,
+  type DesktopProjectEnvelope,
+} from "../../../../src/shared/project-file/envelope";
 import type { UiFixtureId } from "./ui-fixture";
 import type { RecentProject } from "../../../../src/shared/ipc/contracts";
 
@@ -19,7 +24,90 @@ export type ProductionUiSeed =
       projectId: string;
       projectName: string;
       documentJson: string;
+      /** Force sidebar tab when EditingWorkspace mounts. */
+      initialSidebarTab?: "layers" | "media";
+      /** Emphasize timeline region for capture. */
+      timelineFocus?: boolean;
     };
+
+function withSceneClip(
+  envelope: DesktopProjectEnvelope,
+  name: string,
+): DesktopProjectEnvelope {
+  const laneId =
+    (envelope.timelineLanes[0] as { id?: string } | undefined)?.id ??
+    stableId("lane");
+  const sceneId = stableId("scene");
+  const clipId = stableId("clip");
+  return {
+    ...envelope,
+    project: {
+      ...envelope.project,
+      timeline: {
+        ...envelope.project.timeline,
+        sceneOrder: [sceneId],
+      },
+      scenes: [
+        {
+          id: sceneId,
+          name: "Fixture Scene",
+          duration: 4,
+          nodes: [
+            {
+              id: stableId("node"),
+              type: "text",
+              parentId: null,
+              zIndex: 0,
+              transform: {
+                x: 80,
+                y: 60,
+                width: 240,
+                height: 48,
+                rotation: 0,
+                scaleX: 1,
+                scaleY: 1,
+                anchorX: 0,
+                anchorY: 0,
+                opacity: 1,
+                visible: true,
+                flipX: false,
+                flipY: false,
+              },
+              payload: {
+                text: name,
+                fontSize: 28,
+                fontWeight: 600,
+                align: "left",
+              },
+            },
+          ],
+          clips: [],
+        },
+      ],
+    },
+    timelineLanes: [
+      {
+        id: laneId,
+        kind: "visual",
+        role: "base",
+        name: "Main",
+        order: -1,
+        policy: { ...DEFAULT_VISUAL_POLICY },
+      },
+    ],
+    timelineClips: [
+      {
+        id: clipId,
+        kind: "scene",
+        sceneId,
+        laneId,
+        startTime: 0,
+        duration: 4,
+        name: "Fixture Clip",
+      },
+    ],
+  };
+}
 
 export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
   if (fixture === "hub-empty") {
@@ -45,20 +133,30 @@ export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
     };
   }
 
+  const projectName =
+    fixture === "timeline-empty"
+      ? "Fixture Timeline"
+      : fixture === "sidebar-layers"
+        ? "Fixture Layers"
+        : "Fixture Editor";
+
   const built = buildBlankDesktopProject({
-    name:
-      fixture === "timeline-empty"
-        ? "Fixture Timeline"
-        : fixture === "sidebar-layers"
-          ? "Fixture Layers"
-          : "Fixture Editor",
+    name: projectName,
     createId: stableId,
   });
+
+  let envelope = built.envelope;
+  if (fixture === "editor-shell" || fixture === "sidebar-layers") {
+    envelope = withSceneClip(envelope, projectName);
+  }
+
   return {
     kind: "editor",
     projectId: built.projectId,
-    projectName: built.envelope.project.metadata.name,
-    documentJson: built.documentJson,
+    projectName: envelope.project.metadata.name,
+    documentJson: serializeDesktopProjectEnvelope(envelope),
+    initialSidebarTab: fixture === "sidebar-layers" ? "layers" : "media",
+    timelineFocus: fixture === "timeline-empty",
   };
 }
 

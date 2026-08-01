@@ -74,7 +74,11 @@ export function HubScreen({
   const dialogBusy = busy || creating;
 
   return (
-    <main className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#18181a]">
+    <main
+      className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-[#18181a]"
+      data-hub-screen="true"
+      data-hub-recent-count={String(recent.length)}
+    >
       <PanelHeader
         title="Projects"
         actions={

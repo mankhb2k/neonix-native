@@ -265,6 +265,8 @@ export function DesktopApp({ api }: Props) {
     (window.location.search.includes("gallery=1") ||
       window.location.hash === "#gallery");
   const uiFixture = uiFixturesEnabled() ? readUiFixtureId() : null;
+  const fixtureSeed =
+    uiFixture && uiFixturesEnabled() ? seedProductionUi(uiFixture) : null;
   const appReady =
     state.phase !== "booting" &&
     (uiFixture
@@ -342,6 +344,16 @@ export function DesktopApp({ api }: Props) {
             error={state.error}
             saving={state.phase === "saving"}
             sessionHandleRef={sessionHandleRef}
+            initialSidebarTab={
+              fixtureSeed?.kind === "editor"
+                ? fixtureSeed.initialSidebarTab
+                : undefined
+            }
+            timelineFocus={
+              fixtureSeed?.kind === "editor"
+                ? fixtureSeed.timelineFocus
+                : undefined
+            }
             onDocumentChange={(documentJson) =>
               dispatch({ type: "SET_DOCUMENT_JSON", documentJson })
             }

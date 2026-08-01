@@ -393,6 +393,12 @@ a,
   gap: 8px;
   padding: 0 16px 16px;
   min-height: 0;
+  overflow: hidden;
+}
+
+.editor-shell--timeline-focus [data-testid="timeline-viewport"] {
+  outline: 2px solid color-mix(in srgb, var(--accent, #3d8bfd) 70%, transparent);
+  outline-offset: -2px;
 }
 
 .editor-shell__chrome {

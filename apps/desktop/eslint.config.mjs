@@ -158,6 +158,7 @@ export default tseslint.config(
       "dist-renderer/**",
       "release/**",
       "resources/**",
+      "tmp/**",
       "node_modules/**",
       "eslint.config.mjs",
       "vite.config.ts",
