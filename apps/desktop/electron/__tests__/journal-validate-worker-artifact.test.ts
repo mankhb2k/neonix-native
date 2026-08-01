@@ -1,0 +1,90 @@
+/**
+ * Requires `pnpm build:main` so dist/main/journal-validate-worker.js exists.
+ * Asserts packaged-bound worker path can validate a >1MB document via worker.
+ */
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+import { buildBlankDesktopProject } from "../../shared/project-file/envelope";
+import {
+  JOURNAL_VALIDATE_OFFLOAD_BYTES,
+  validateAndHashDocument,
+} from "../main/services/journal-document-validate";
+
+const desktopRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+);
+const workerDist = path.join(
+  desktopRoot,
+  "dist",
+  "main",
+  "journal-validate-worker.js",
+);
+
+function inflateToBytes(base: string, targetBytes: number): string {
+  const envelope = JSON.parse(base) as {
+    project: {
+      scenes: Array<Record<string, unknown>>;
+      timeline: { sceneOrder: string[]; audioTracks: unknown[] };
+    };
+  };
+  const id = "scene_artifact";
+  const node = {
+    id: "node_artifact",
+    type: "text",
+    parentId: null,
+    zIndex: 0,
+    transform: {
+      x: 1,
+      y: 1,
+      width: 10,
+      height: 10,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      opacity: 1,
+      visible: true,
+      flipX: false,
+      flipY: false,
+    },
+    payload: { text: "", fontSize: 12, fontWeight: 400, align: "left" },
+  };
+  envelope.project.scenes = [
+    { id, name: "Artifact", duration: 1, nodes: [node], clips: [] },
+  ];
+  envelope.project.timeline.sceneOrder = [id];
+  let json = JSON.stringify(envelope);
+  const deficit = targetBytes - Buffer.byteLength(json, "utf8");
+  if (deficit > 0) {
+    (node.payload as { text: string }).text = "x".repeat(deficit);
+    json = JSON.stringify(envelope);
+  }
+  return json;
+}
+
+describe("journal validate worker artifact", () => {
+  it("loads dist worker for documents ≥1MB with via===worker", async () => {
+    expect(fs.existsSync(workerDist)).toBe(true);
+    const blank = buildBlankDesktopProject({ name: "Artifact" });
+    const doc = inflateToBytes(
+      blank.documentJson,
+      JOURNAL_VALIDATE_OFFLOAD_BYTES + 64_000,
+    );
+    expect(Buffer.byteLength(doc, "utf8")).toBeGreaterThan(
+      JOURNAL_VALIDATE_OFFLOAD_BYTES,
+    );
+
+    const result = await validateAndHashDocument(doc, {
+      workerPath: workerDist,
+      offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.via).toBe("worker");
+    expect(result.hash).toMatch(/^[a-f0-9]{64}$/);
+  }, 60_000);
+});

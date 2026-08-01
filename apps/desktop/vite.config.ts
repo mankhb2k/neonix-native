@@ -2,14 +2,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
-import { PROD_RENDERER_CSP } from "./src/shared/renderer-mode";
+import { PROD_RENDERER_CSP } from "./shared/renderer-mode";
 
 const isRelease =
   process.env.MOTIONVIDEO_RELEASE === "1" ||
   process.env.MOTIONVIDEO_RELEASE === "true";
 
 export default defineConfig({
-  root: path.resolve(__dirname, "renderer"),
+  root: path.resolve(__dirname, "gui"),
   base: "./",
   plugins: [
     tailwindcss(),
@@ -29,7 +29,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      "@renderer": path.resolve(__dirname, "renderer/src"),
+      "@gui": path.resolve(__dirname, "gui"),
     },
   },
   server: {

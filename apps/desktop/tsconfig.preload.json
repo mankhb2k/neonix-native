@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src",
     "module": "CommonJS",
     "moduleResolution": "node",
     "target": "ES2022",
@@ -15,5 +14,5 @@
     "declaration": false,
     "noEmit": false
   },
-  "include": ["src/preload/**/*.ts", "src/shared/**/*.ts"]
+  "include": ["electron/preload/**/*.ts", "shared/**/*.ts"]
 }
