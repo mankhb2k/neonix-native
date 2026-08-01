@@ -24,7 +24,7 @@
 | N5 | Drop geometry lane/time | done (typed ghost + auto-scroll near zone) |
 | N6 / G3 | Layers tree / reorder / marquee / cross-lane | **partial** — adapters + context menu; lane drag-reorder DOM later |
 | N7 / G2 | Pixi + fixtures/benchmark | **partial** — G2/H2 StageRenderer CI gate (not Electron 60fps); Pixi post-baseline |
-| N8 / G5 | Packaged soak; delete web desktop | **partial** — use `pnpm pack`; delete after soak |
+| N8 / G5 / H5 | Packaged soak; delete web desktop | **partial** — `pnpm run pack` OK (`win-unpacked`); delete after manual soak |
 
 See [PARITY_CONTRACT.md](./PARITY_CONTRACT.md), [N8_QA_CUTOVER.md](./N8_QA_CUTOVER.md), G1–G5 plan.
 

@@ -37,14 +37,14 @@ import { TimelineViewport } from "../../editor/timeline/TimelineViewport";
 import { TimelineZoomControls } from "../../editor/timeline/TimelineZoomControls";
 import { useTimelineHotkeys } from "../../editor/timeline/use-timeline-hotkeys";
 import { createAssetRepository } from "../../infrastructure/repositories/asset-repository";
-import { EditorHeader } from "./EditorHeader";
-import { resolveFlushedDocumentJson } from "./flush-document-snapshot";
-import type { EditorActions } from "./editor-actions";
 import {
   resolveFlushedProjectName,
   type EditorSessionHandle,
   type EditorSessionSnapshot,
 } from "./editor-session-handle";
+import { EditorHeader } from "./EditorHeader";
+import { resolveFlushedDocumentJson } from "./flush-document-snapshot";
+import type { EditorActions } from "./editor-actions";
 import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 
 const ExportControls = lazy(() =>

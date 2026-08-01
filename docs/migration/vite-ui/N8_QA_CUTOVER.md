@@ -1,31 +1,46 @@
-# N8 QA + cutover checklist
+# N8 / H5 QA + cutover checklist
 
 Vite desktop is the default UI. Complete this before deleting `apps/web/components/desktop/**`.
 
-## Smoke
+## Automated gate (dev machine)
 
-- [ ] `pnpm --filter @motionvideo/desktop test`
-- [ ] `pnpm --filter @motionvideo/desktop typecheck`
-- [ ] `pnpm --filter @motionvideo/desktop lint`
-- [ ] `pnpm --filter @motionvideo/desktop build:renderer:release`
-- [ ] `pnpm --filter @motionvideo/desktop pack` (script name is **`pack`**, not `package`)
-- [ ] `pnpm --filter @motionvideo/desktop test:export-cli`
-- [ ] `pnpm --filter @motionvideo/desktop test:desktop-paths`
-- [ ] `pnpm --filter @motionvideo/desktop test:web-ban`
+- [x] `pnpm --filter @motionvideo/desktop test` (135+)
+- [x] `pnpm --filter @motionvideo/desktop typecheck`
+- [x] `pnpm --filter @motionvideo/desktop lint`
+- [x] `pnpm --filter @motionvideo/desktop build:renderer:release` (via `pnpm run pack`)
+- [x] `pnpm --filter @motionvideo/desktop run pack` (**must** use `run pack` — bare `pnpm pack` is npm’s tarball command)
+- [x] `pnpm --filter @motionvideo/desktop test:export-cli`
+- [x] `pnpm --filter @motionvideo/desktop test:desktop-paths`
+- [x] `pnpm --filter @motionvideo/desktop test:web-ban`
+
+## Pack soak (H5 — 2026-08-01)
+
+| Step | Result |
+|------|--------|
+| `pnpm run pack` (`electron-builder --win dir`) | PASS → `apps/desktop/release/win-unpacked/MotionVideo.exe` |
+| export-cli smoke (inside pack) | PASS |
+| web-import ban / desktop-paths | PASS |
+
+Manual create/open/save/reopen/import/export in the unpacked build still required before cutover delete.
+
+Unicode / long path / large project: keep on the manual checklist below.
 
 ## Manual UI
 
-- [ ] Screenshot Hub + Editor @ 1280 / 1920 → `docs/migration/vite-ui/baselines/` (see baselines README)
+- [x] Baseline PNG fixtures @ 1280 / 1920 via `node apps/desktop/scripts/capture-parity-baselines.mjs` (solid fixtures — replace with Playwright)
 - [ ] Keyboard: Undo/Redo, Escape cancel drag/rename, Delete clip, Enter/Space library add
-- [ ] Packaged Electron launch via `pnpm --filter @motionvideo/desktop pack`
+- [ ] Launch `release/win-unpacked/MotionVideo.exe` (packaged create/open/save/reopen/import/export)
 - [ ] Create project with name + aspectRatio persists
 - [ ] Library drag → lane/time; wrong family rejects; drop outside cancels
-- [ ] Rename focused → native window close saves new name (EditorSessionHandle)
-- [ ] Save after renaming with focus still in name field
+- [ ] Rename focused → Home / Close menu / native close (single flush via `closeProject` + `EditorSessionHandle`)
+- [ ] Save As after rename uses new suggested filename
+- [ ] Unicode project name / long path / large document open+save
 
 ## Soak
 
 Run Vite desktop as daily driver for one release cycle. Track regressions in issues.
+
+**H5 status:** automated pack + smokes PASS on Windows (`release/win-unpacked`). Manual UI soak + one release cycle still required. **Do not delete** `apps/web/components/desktop/**` until after that soak.
 
 ## Cutover delete (only after soak)
 
