@@ -44,6 +44,7 @@ export default defineConfig({
           name: "dom",
           environment: "happy-dom",
           include: [
+            "renderer/src/**/*.test.ts",
             "renderer/src/**/*.test.tsx",
             "src/**/stage-renderer-benchmark.test.ts",
           ],

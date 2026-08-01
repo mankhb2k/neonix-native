@@ -44,9 +44,15 @@ function isRenderableNode(node: PreviewParityNode): boolean {
   );
 }
 
-function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
+type SceneNode = MotionScene["nodes"][number];
+type SceneNodeMap = Map<string, SceneNode>;
+
+function nodeLabel(
+  node: PreviewParityNode,
+  sceneNodes: SceneNodeMap | null,
+): string {
   if (node.type === "text") {
-    const authored = scene?.nodes.find((candidate) => candidate.id === node.id);
+    const authored = sceneNodes?.get(node.id);
     return nodeText(authored) || node.id;
   }
   if (node.type === "shape" || node.type === "path") return node.type;
@@ -73,7 +79,7 @@ function applyStaticNodeChrome(el: HTMLDivElement, node: PreviewParityNode): voi
 function syncNodeElement(
   el: HTMLDivElement,
   node: PreviewParityNode,
-  scene: MotionScene | null,
+  sceneNodes: SceneNodeMap | null,
   clipId: string,
 ): void {
   /* eslint-disable no-param-reassign */
@@ -86,7 +92,7 @@ function syncNodeElement(
   el.style.visibility =
     !node.visible || node.worldOpacity <= 0 ? "hidden" : "visible";
   el.dataset.clipId = clipId;
-  const label = nodeLabel(node, scene);
+  const label = nodeLabel(node, sceneNodes);
   if (el.textContent !== label) el.textContent = label;
   /* eslint-enable no-param-reassign */
 }
@@ -102,6 +108,8 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   /** Invalidated only by setDocument. */
   let compiled: NormalizedMotionProjectV2 | null = null;
   let scenesById: Map<string, MotionScene> = new Map();
+  /** Per-scene nodeId → authored node; avoids scene.nodes.find in paintFrame. */
+  let sceneNodeMaps: Map<string, SceneNodeMap> = new Map();
   let visualIndex: VisualLaneIndex | null = null;
 
   const layerEls = new Map<string, HTMLDivElement>();
@@ -166,6 +174,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
 
       const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
       if (!scene) continue;
+      const sceneNodes = sceneNodeMaps.get(scene.id) ?? null;
 
       const frame = quantizeTimeToFrame(layer.localTime, fps);
       const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
@@ -183,7 +192,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
         } else if (el.parentElement !== layerEl) {
           layerEl.appendChild(el);
         }
-        syncNodeElement(el, node, scene, layer.clipId);
+        syncNodeElement(el, node, sceneNodes, layer.clipId);
       }
     }
 
@@ -210,6 +219,12 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
         compiled = null;
       }
       scenesById = new Map(project.scenes.map((s) => [s.id, s]));
+      sceneNodeMaps = new Map(
+        project.scenes.map((s) => [
+          s.id,
+          new Map(s.nodes.map((n) => [n.id, n])),
+        ]),
+      );
       visualIndex = buildVisualLaneIndex(clips, lanes);
       clearDomCaches();
       if (lastFrame >= 0) paintFrame(lastFrame);
@@ -229,6 +244,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       project = null;
       compiled = null;
       scenesById = new Map();
+      sceneNodeMaps = new Map();
       visualIndex = null;
       clips = [];
       lanes = [];

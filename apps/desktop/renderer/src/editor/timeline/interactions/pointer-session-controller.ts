@@ -43,11 +43,9 @@ export class PointerSessionController<TState, TResult = void> {
       this.rafId = null;
     }
     if (this.pendingPos && this.state === "active" && this.config.onUpdate) {
-      this.currentState = this.config.onUpdate(
-        this.pendingPos,
-        this.currentState!,
-      );
+      const pos = this.pendingPos;
       this.pendingPos = null;
+      this.currentState = this.config.onUpdate(pos, this.currentState!);
     }
   }
 
@@ -73,10 +71,9 @@ export class PointerSessionController<TState, TResult = void> {
             this.state === "active" &&
             this.config.onUpdate
           ) {
-            this.currentState = this.config.onUpdate(
-              this.pendingPos,
-              this.currentState!,
-            );
+            const pos = this.pendingPos;
+            this.pendingPos = null;
+            this.currentState = this.config.onUpdate(pos, this.currentState!);
           }
         });
       } else if (this.config.onUpdate) {

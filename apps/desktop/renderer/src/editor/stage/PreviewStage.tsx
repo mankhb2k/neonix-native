@@ -25,11 +25,19 @@ export function PreviewStage({ project, clips, lanes }: Props) {
   );
   const [scale, setScale] = useState(0.25);
   const clock = usePlaybackClockApi();
+  const projectAvailable = project !== null;
+  const aspectRatio = project?.metadata.aspectRatio;
+  const background = project?.metadata.brand?.primaryColor ?? "#0c0c0e";
+  const fps = project
+    ? Math.max(1, Math.round(project.metadata.fps ?? 30))
+    : 30;
+  const fpsRef = useRef(fps);
+  fpsRef.current = fps;
 
   useLayoutEffect(() => {
     const el = hostRef.current;
-    if (!el || !project) return undefined;
-    const stage = stageSizeForAspect(project.metadata.aspectRatio);
+    if (!el || !aspectRatio) return undefined;
+    const stage = stageSizeForAspect(aspectRatio);
     const update = () => {
       const pad = 48;
       const availW = Math.max(80, el.clientWidth - pad);
@@ -41,41 +49,49 @@ export function PreviewStage({ project, clips, lanes }: Props) {
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [project]);
+  }, [aspectRatio]);
 
+  // Mount once when a project becomes available (remount only if clock identity changes).
   useEffect(() => {
+    if (!projectAvailable) return undefined;
     const mount = mountRef.current;
-    if (!mount || !project) return undefined;
+    if (!mount) return undefined;
     const renderer = createStageRenderer(mount);
     rendererRef.current = renderer;
-    renderer.setBackground(project.metadata.brand?.primaryColor ?? "#0c0c0e");
-    renderer.setDocument({ project, clips, lanes });
-    renderer.setScale(scale);
-    const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
-    renderer.paintFrame(playbackFrameIndex(clock.getState().currentTime, fps));
     return () => {
       renderer.dispose();
       rendererRef.current = null;
     };
-    // scale applied separately so resize does not remount the renderer
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount on document identity
-  }, [project, clips, lanes, clock]);
+  }, [projectAvailable, clock]);
+
+  useEffect(() => {
+    if (!project) return;
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    renderer.setDocument({ project, clips, lanes });
+    renderer.paintFrame(
+      playbackFrameIndex(clock.getState().currentTime, fps),
+    );
+  }, [project, clips, lanes, clock, fps]);
+
+  useEffect(() => {
+    rendererRef.current?.setBackground(background);
+  }, [background]);
 
   useEffect(() => {
     rendererRef.current?.setScale(scale);
   }, [scale]);
 
   useEffect(() => {
-    if (!project) return undefined;
-    const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+    if (!projectAvailable) return undefined;
     let last = -1;
     return clock.subscribe((state) => {
-      const frame = playbackFrameIndex(state.currentTime, fps);
+      const frame = playbackFrameIndex(state.currentTime, fpsRef.current);
       if (frame === last) return;
       last = frame;
       rendererRef.current?.paintFrame(frame);
     });
-  }, [clock, project]);
+  }, [clock, projectAvailable]);
 
   if (!project) {
     return (
