@@ -442,7 +442,8 @@ export function executeTimelineCommand(
     case "move-clips": {
       return moveClipGroup(
         { project: nextProject, lanes, clips, transitions },
-        command.moves,
+        command.clipIds,
+        command.deltaTime,
       );
     }
 

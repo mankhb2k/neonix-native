@@ -5,6 +5,7 @@
 import { memo, useState } from "react";
 import {
   MIN_CLIP_SLICE_SEC,
+  resolveClipGroupMove,
   selectedClipIdsFrom,
   selectionClips,
   type EditorSelection,
@@ -55,6 +56,8 @@ type Props = {
   clips: TimelineClip[];
   /** Full document clips for multi-select move. */
   allClips?: TimelineClip[];
+  /** Full lane list for group collision preview. */
+  lanes: TimelineLane[];
   lane: TimelineLane;
   pixelsPerSecond: number;
   laneHeight: number;
@@ -72,6 +75,7 @@ type Props = {
 export const ClipStrip = memo(function ClipStrip({
   clips,
   allClips,
+  lanes,
   lane,
   pixelsPerSecond,
   laneHeight,
@@ -192,6 +196,7 @@ export const ClipStrip = memo(function ClipStrip({
           const rawDelta = resolved.commit.startTime - originStart;
           const groupDelta = Math.max(rawDelta, -minStartInGroup);
           const primaryStart = originStart + groupDelta;
+          let groupValid = resolved.commit.valid;
           const members = isGroup
             ? groupIds
                 .filter((id) => id !== clip.id)
@@ -207,11 +212,19 @@ export const ClipStrip = memo(function ClipStrip({
                 })
                 .filter((m): m is NonNullable<typeof m> => m != null)
             : undefined;
+          if (isGroup && groupValid && geo) {
+            const core = resolveClipGroupMove(
+              { clips: catalog, lanes },
+              groupIds,
+              groupDelta,
+            );
+            groupValid = core.valid && resolved.commit.valid;
+          }
           const preview = {
             ...resolved.preview,
             startTime: primaryStart,
             laneId: isGroup ? originLaneId : resolved.preview.laneId,
-            valid: resolved.commit.valid,
+            valid: isGroup ? groupValid : resolved.commit.valid,
             members,
           };
           setLocalPreview(preview);
@@ -221,7 +234,7 @@ export const ClipStrip = memo(function ClipStrip({
             laneId: isGroup ? originLaneId : resolved.commit.laneId,
             track: isGroup ? originTrack : resolved.commit.track,
             moved: true,
-            valid: resolved.commit.valid,
+            valid: isGroup ? groupValid : resolved.commit.valid,
             groupDelta,
           };
         },
@@ -243,21 +256,14 @@ export const ClipStrip = memo(function ClipStrip({
             );
             return;
           }
-          const moves = groupIds
-            .map((id) => {
-              const c = catalog.find((x) => x.id === id);
-              if (!c || !c.laneId) return null;
-              // Omit track → atomic keep-lane in moveClipGroup.
-              return {
-                clipId: id,
-                patch: {
-                  startTime: c.startTime + state.groupDelta,
-                  laneId: c.laneId,
-                },
-              };
-            })
-            .filter((m): m is NonNullable<typeof m> => m != null);
-          onExecute({ type: "move-clips", moves }, "Move clips");
+          onExecute(
+            {
+              type: "move-clips",
+              clipIds: groupIds,
+              deltaTime: state.groupDelta,
+            },
+            "Move clips",
+          );
         },
         onCancel: () => clearMovePreview(),
       },

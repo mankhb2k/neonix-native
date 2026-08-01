@@ -54,8 +54,10 @@ export {
 } from "./operations/clip-move";
 export {
   moveClipGroup,
+  resolveClipGroupMove,
   trackKindForLane,
-  type ClipGroupMove,
+  type ClipGroupMoveResolve,
+  type ClipGroupPlacement,
 } from "./operations/clip-move-group";
 
 export type { LaneFlagPatch } from "./operations/lane-flags";

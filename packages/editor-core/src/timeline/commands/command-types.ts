@@ -44,7 +44,9 @@ export type TimelineCommand =
   | { type: "move-clip"; clipId: string; patch: ClipMovePatch }
   | {
       type: "move-clips";
-      moves: Array<{ clipId: string; patch: ClipMovePatch }>;
+      /** Primary is clipIds[0]; shared time delta applied on home lanes. */
+      clipIds: string[];
+      deltaTime: number;
     }
   | {
       type: "clip/trim";
@@ -100,6 +102,7 @@ export type CommandResult =
         | "empty_selection"
         | "empty_clipboard"
         | "invalid_document"
+        | "duplicate_clip"
         | "unknown_command";
       message: string;
     };

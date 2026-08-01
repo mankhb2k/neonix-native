@@ -1,6 +1,8 @@
 /**
  * Atomic multi-clip move — one transaction, group excluded from collision set,
  * shared time delta clamp (preserves relative spacing).
+ *
+ * Command seam: `{ type: "move-clips"; clipIds; deltaTime }` (B3).
  */
 
 import { selectionClips } from "../selection/editor-selection";
@@ -11,23 +13,16 @@ import {
   isAudioLane,
   isBaseLane,
   isLaneLocked,
-  isOverlayLane,
   pruneEmptyLanes,
   type TimelineClip,
   type TimelineLane,
   type TimelineTrackKind,
 } from "../timeline/timeline-clips";
 import type {
-  ClipMovePatch,
   CommandResult,
   TimelineDomainEvent,
 } from "../timeline/commands/command-types";
 import { selectionHasLockedLane } from "./lane-flags";
-
-export type ClipGroupMove = {
-  clipId: string;
-  patch: ClipMovePatch;
-};
 
 export function trackKindForLane(
   lanes: TimelineLane[],
@@ -62,162 +57,177 @@ function laneBlocked(
   );
 }
 
-function familyOk(
-  clip: TimelineClip,
-  track: TimelineTrackKind,
-  lanes: TimelineLane[],
-  existingLaneId: string,
-): boolean {
-  const onAudio = isAudioLane(lanes, existingLaneId);
-  if (track === "audio") return onAudio && clip.kind === "audio";
-  if (onAudio || clip.kind !== "scene") return false;
-  return track === "main" || track === "overlay";
-}
+export type ClipGroupPlacement = {
+  clipId: string;
+  startTime: number;
+  laneId: string;
+  duration: number;
+  track: TimelineTrackKind;
+};
+
+export type ClipGroupMoveRejectReason =
+  | "locked"
+  | "collision"
+  | "missing_clip"
+  | "missing_lane"
+  | "empty_selection"
+  | "duplicate_clip"
+  | "invalid_document";
+
+export type ClipGroupMoveResolve =
+  | {
+      valid: true;
+      groupDelta: number;
+      placements: ClipGroupPlacement[];
+    }
+  | {
+      valid: false;
+      reason: ClipGroupMoveRejectReason;
+      message: string;
+      groupDelta: number;
+      placements: ClipGroupPlacement[];
+    };
 
 /**
- * Apply all moves against a frozen non-group clip set, then one rebuild.
- * Re-clamps to a shared groupDelta from the first move (primary).
+ * Pure resolve for preview + commit — time-only keep-lane group shift.
  */
-export function moveClipGroup(
-  doc: TimelineDocument,
-  moves: ClipGroupMove[],
-): CommandResult {
-  if (!moves.length) {
-    return {
-      status: "rejected",
-      reason: "empty_selection",
-      message: "Không có clip nào để di chuyển.",
-    };
+export function resolveClipGroupMove(
+  doc: Pick<TimelineDocument, "clips" | "lanes">,
+  clipIds: string[],
+  deltaTime: number,
+): ClipGroupMoveResolve {
+  const empty: ClipGroupMoveResolve = {
+    valid: false,
+    reason: "empty_selection",
+    message: "Không có clip nào để di chuyển.",
+    groupDelta: 0,
+    placements: [],
+  };
+  if (!clipIds.length) return empty;
+
+  const dup = new Set<string>();
+  for (const id of clipIds) {
+    if (dup.has(id)) {
+      return {
+        valid: false,
+        reason: "duplicate_clip",
+        message: "Danh sách clip bị trùng.",
+        groupDelta: 0,
+        placements: [],
+      };
+    }
+    dup.add(id);
   }
 
-  const { project, lanes } = doc;
-  const clips = [...doc.clips];
-  const groupIds = new Set(moves.map((m) => m.clipId));
+  const { lanes } = doc;
+  const clips = doc.clips;
+  const groupIds = new Set(clipIds);
 
-  for (const move of moves) {
-    if (!clips.some((c) => c.id === move.clipId)) {
+  for (const id of clipIds) {
+    if (!clips.some((c) => c.id === id)) {
       return {
-        status: "rejected",
+        valid: false,
         reason: "missing_clip",
         message: "Clip không tồn tại.",
+        groupDelta: 0,
+        placements: [],
       };
     }
   }
 
   if (selectionHasLockedLane(clips, lanes, groupIds)) {
     return {
-      status: "rejected",
+      valid: false,
       reason: "locked",
       message: "Lane bị khóa.",
+      groupDelta: 0,
+      placements: [],
     };
   }
 
-  const primary = moves[0]!;
-  const primaryClip = clips.find((c) => c.id === primary.clipId)!;
-  const rawDelta = primary.patch.startTime - primaryClip.startTime;
   let minStart = Infinity;
-  for (const id of groupIds) {
+  for (const id of clipIds) {
     const c = clips.find((x) => x.id === id)!;
     minStart = Math.min(minStart, c.startTime);
   }
-  const groupDelta = Math.max(rawDelta, -minStart);
+  const groupDelta = Math.max(deltaTime, -minStart);
 
-  type Planned = {
-    existing: TimelineClip;
-    startTime: number;
-    laneId: string;
-    track: TimelineTrackKind;
-    fromLaneId: string;
-  };
-
-  const planned: Planned[] = [];
-  for (const move of moves) {
-    const existing = clips.find((c) => c.id === move.clipId)!;
-    const startTime = existing.startTime + groupDelta;
-    const keepLane = move.patch.track == null;
-    const track: TimelineTrackKind = keepLane
-      ? trackKindForLane(lanes, existing.laneId)
-      : move.patch.track!;
-    const laneId = keepLane
-      ? existing.laneId
-      : (move.patch.laneId ?? existing.laneId);
-
-    if (!familyOk(existing, track, lanes, existing.laneId)) {
+  const placements: ClipGroupPlacement[] = [];
+  for (const id of clipIds) {
+    const existing = clips.find((c) => c.id === id)!;
+    if (isLaneLocked(lanes, existing.laneId)) {
       return {
-        status: "rejected",
-        reason: "collision",
-        message: "Clip không tương thích với lane đích.",
-      };
-    }
-
-    // Group move: time-shift on explicit lane; cross-lane only when caller
-    // sets track+laneId (single-clip uses move-clip). Multi-select keeps home.
-    const targetLaneId = keepLane ? existing.laneId : laneId;
-    if (!lanes.some((l) => l.id === targetLaneId)) {
-      return {
-        status: "rejected",
-        reason: "missing_lane",
-        message: "Lane đích không tồn tại.",
-      };
-    }
-    if (isLaneLocked(lanes, targetLaneId)) {
-      return {
-        status: "rejected",
+        valid: false,
         reason: "locked",
         message: "Lane bị khóa.",
+        groupDelta,
+        placements,
       };
     }
-    if (
-      !keepLane &&
-      trackKindForLane(lanes, targetLaneId) !== track &&
-      !(track === "main" && isBaseLane(lanes, targetLaneId)) &&
-      !(track === "overlay" && isOverlayLane(lanes, targetLaneId))
-    ) {
-      return {
-        status: "rejected",
-        reason: "collision",
-        message: "Track/lane không khớp.",
-      };
-    }
-
-    planned.push({
-      existing,
-      startTime,
-      laneId: targetLaneId,
-      track,
-      fromLaneId: existing.laneId,
+    placements.push({
+      clipId: id,
+      startTime: existing.startTime + groupDelta,
+      laneId: existing.laneId,
+      duration: existing.duration,
+      track: trackKindForLane(lanes, existing.laneId),
     });
   }
 
   const frozenOthers = clips.filter((c) => !groupIds.has(c.id));
-  for (const p of planned) {
-    if (laneBlocked(frozenOthers, p.laneId, p.startTime, p.existing.duration)) {
+  for (const p of placements) {
+    if (laneBlocked(frozenOthers, p.laneId, p.startTime, p.duration)) {
       return {
-        status: "rejected",
+        valid: false,
         reason: "collision",
         message: "Va chạm với clip ngoài nhóm.",
+        groupDelta,
+        placements,
       };
     }
   }
 
-  // Intra-group: relative spacing preserved via shared delta — skip mutual checks.
+  return { valid: true, groupDelta, placements };
+}
+
+/**
+ * Apply resolved group move → one rebuild / CommandResult.
+ */
+export function moveClipGroup(
+  doc: TimelineDocument,
+  clipIds: string[],
+  deltaTime: number,
+): CommandResult {
+  const resolved = resolveClipGroupMove(doc, clipIds, deltaTime);
+  if (!resolved.valid) {
+    return {
+      status: "rejected",
+      reason: resolved.reason,
+      message: resolved.message,
+    };
+  }
+
+  const { project, lanes } = doc;
+  const clips = [...doc.clips];
+  const groupIds = new Set(clipIds);
+  const byId = new Map(clips.map((c) => [c.id, c]));
 
   const movedById = new Map<string, TimelineClip>();
   const events: TimelineDomainEvent[] = [];
-  for (const p of planned) {
+  for (const p of resolved.placements) {
+    const existing = byId.get(p.clipId)!;
     let moved: TimelineClip;
-    if (p.existing.kind === "audio") {
+    if (existing.kind === "audio") {
       moved = {
-        ...p.existing,
+        ...existing,
         kind: "audio",
         laneId: p.laneId,
         startTime: p.startTime,
       };
     } else {
       moved = {
-        ...p.existing,
+        ...existing,
         kind: "scene",
-        sceneId: p.existing.sceneId,
+        sceneId: existing.sceneId,
         laneId: p.laneId,
         startTime: p.startTime,
       };
@@ -226,13 +236,13 @@ export function moveClipGroup(
     events.push({
       type: "clip-moved",
       clipId: moved.id,
-      fromLaneId: p.fromLaneId,
+      fromLaneId: existing.laneId,
       toLaneId: moved.laneId,
     });
   }
 
-  let nextClips = clips.map((c) => movedById.get(c.id) ?? c);
-  let nextLanes = pruneEmptyLanes(lanes, nextClips);
+  const nextClips = clips.map((c) => movedById.get(c.id) ?? c);
+  const nextLanes = pruneEmptyLanes(lanes, nextClips);
   let nextProject = rebuildMainProject(project, nextClips, nextLanes);
   nextProject = {
     ...nextProject,

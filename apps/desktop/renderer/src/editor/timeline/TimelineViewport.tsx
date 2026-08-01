@@ -623,6 +623,7 @@ export function TimelineViewport({
                       <ClipStrip
                         clips={visibleClips}
                         allClips={clips}
+                        lanes={lanes}
                         lane={lane}
                         pixelsPerSecond={layout.pixelsPerSecond}
                         laneHeight={h}
