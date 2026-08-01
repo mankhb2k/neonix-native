@@ -187,6 +187,108 @@ a,
   border-color: var(--muted);
 }
 
+/* P15 deterministic screenshot fixtures */
+.fixture-surface {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: linear-gradient(160deg, #141416 0%, #1c1c20 55%, #121214 100%);
+  color: #f2f2f4;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.fixture-surface__chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 38px;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-panel, #1c1c1e);
+}
+
+.fixture-surface__brand {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.fixture-surface__label {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.fixture-surface__hub {
+  padding: 48px 56px;
+  max-width: 720px;
+}
+
+.fixture-surface__hub h1 {
+  font-size: 40px;
+  margin: 0 0 16px;
+}
+
+.fixture-surface__muted {
+  opacity: 0.55;
+}
+
+.fixture-surface__list {
+  margin: 0 0 24px;
+  padding-left: 18px;
+}
+
+.fixture-surface__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.fixture-surface__actions button {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #2a2a2e;
+  color: inherit;
+  border-radius: 6px;
+  padding: 8px 16px;
+}
+
+.fixture-surface__editor {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 1fr 160px;
+  min-height: 0;
+}
+
+.fixture-surface__sidebar {
+  grid-row: 1 / 3;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
+  background: #18181a;
+}
+
+.fixture-surface__sidebar--focus {
+  outline: 2px solid #5b8def;
+  outline-offset: -2px;
+}
+
+.fixture-surface__stage {
+  display: grid;
+  place-items: center;
+  background: #0e0e10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fixture-surface__timeline {
+  grid-column: 2;
+  display: grid;
+  place-items: center;
+  background: #161618;
+}
+
+.fixture-surface__timeline--focus {
+  outline: 2px solid #5b8def;
+  outline-offset: -2px;
+}
+
 .btn:disabled {
   opacity: 0.5;
   cursor: default;

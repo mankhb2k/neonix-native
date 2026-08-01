@@ -1,18 +1,36 @@
 /**
- * Capture / generate parity baseline PNGs at 1280×720 and 1920×1080.
- * Without Playwright, writes solid-color fixture PNGs so the baselines folder
- * contains real image files (replace with headed screenshots when wired).
+ * Capture parity baseline PNGs at 1280×720 and 1920×1080.
+ *
+ * Default / --placeholders: solid PNGs under baselines/placeholders/
+ * --electron: Playwright Chromium against Vite preview with ?fixture=
+ *   (fixture DOM is the deterministic capture surface; Electron shell
+ *   uses the same FixtureSurface when ?fixture= is set).
  */
 
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { deflateSync } from "node:zlib";
-import { mkdirSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
-const outDir = join(root, "docs/migration/vite-ui/baselines");
+const require = createRequire(import.meta.url);
+const desktopRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = join(desktopRoot, "../..");
+const outDir = join(repoRoot, "docs/migration/vite-ui/baselines");
+const placeholderDir = join(outDir, "placeholders");
 mkdirSync(outDir, { recursive: true });
+mkdirSync(placeholderDir, { recursive: true });
+
+const wantElectron = process.argv.includes("--electron");
+const wantPlaceholdersOnly = process.argv.includes("--placeholders");
 
 function crc32(buf) {
   let c = ~0;
@@ -34,7 +52,6 @@ function chunk(type, data) {
   return Buffer.concat([len, typeBuf, data, crc]);
 }
 
-/** Minimal RGB PNG (solid color) — real PNG bytes for baseline slots. */
 function solidPng(width, height, rgb = [0x18, 0x18, 0x1a]) {
   const raw = Buffer.alloc((width * 3 + 1) * height);
   for (let y = 0; y < height; y += 1) {
@@ -76,36 +93,140 @@ const sizes = [
   { w: 1920, h: 1080, tag: "1920" },
 ];
 
-const files = [];
-for (const surface of surfaces) {
-  for (const { w, h, tag } of sizes) {
-    const name = `${surface}-${tag}.png`;
-    const buf = solidPng(w, h);
-    writeFileSync(join(outDir, name), buf);
-    files.push({
-      name,
-      width: w,
-      height: h,
-      sha256: createHash("sha256").update(buf).digest("hex"),
-      kind: "fixture-solid",
-    });
+function writePlaceholders() {
+  const files = [];
+  for (const surface of surfaces) {
+    for (const { w, h, tag } of sizes) {
+      const name = `${surface}-${tag}.png`;
+      const buf = solidPng(w, h);
+      writeFileSync(join(placeholderDir, name), buf);
+      // Migrate any root solid baseline into placeholders.
+      const rootPath = join(outDir, name);
+      if (existsSync(rootPath) && !wantElectron) {
+        try {
+          renameSync(rootPath, join(placeholderDir, name));
+        } catch {
+          copyFileSync(rootPath, join(placeholderDir, name));
+        }
+      }
+      files.push({
+        name,
+        width: w,
+        height: h,
+        sha256: createHash("sha256").update(buf).digest("hex"),
+        kind: "fixture-solid-placeholder",
+      });
+    }
   }
+  return files;
 }
 
-const manifest = {
-  status: "partial-fixtures",
-  note: "Solid PNG fixtures at target dimensions. Replace with Playwright captures of Vite desktop for true parity.",
-  tolerance: { maxPixelDiffRatio: 0.02 },
-  generatedAt: new Date().toISOString(),
-  files,
-};
+async function resolvePlaywright() {
+  const candidates = [
+    join(repoRoot, "node_modules/playwright"),
+    join(
+      repoRoot,
+      "node_modules/.pnpm/playwright@1.62.0/node_modules/playwright",
+    ),
+    join(
+      repoRoot,
+      "node_modules/.pnpm/@playwright+test@1.62.0/node_modules/playwright",
+    ),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {
+      /* try next */
+    }
+  }
+  throw new Error(
+    "playwright not found in pnpm store — run from monorepo with @playwright/test installed",
+  );
+}
 
-writeFileSync(
-  join(outDir, "manifest.json"),
-  `${JSON.stringify(manifest, null, 2)}\n`,
-  "utf8",
-);
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
-console.log(
-  `[capture-parity-baselines] Wrote ${files.length} PNG fixtures + manifest.json under ${outDir}`,
-);
+async function captureWithElectron() {
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+      ["build:renderer"],
+      { cwd: desktopRoot, stdio: "inherit", shell: true },
+    );
+    child.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`build:renderer exit ${code}`)),
+    );
+  });
+
+  await new Promise((resolve, reject) => {
+    const child = spawn(
+      process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+      ["exec", "electron", "scripts/electron-capture-baselines.cjs"],
+      { cwd: desktopRoot, stdio: "inherit", shell: true },
+    );
+    child.on("exit", (code) =>
+      code === 0
+        ? resolve()
+        : reject(new Error(`electron-capture exit ${code}`)),
+    );
+  });
+
+  // Manifest written by electron script; return file list from disk.
+  const { readFileSync } = await import("node:fs");
+  const manifest = JSON.parse(
+    readFileSync(join(outDir, "manifest.json"), "utf8"),
+  );
+  return manifest.files ?? [];
+}
+
+const placeholderFiles = writePlaceholders();
+
+if (wantPlaceholdersOnly) {
+  writeFileSync(
+    join(outDir, "manifest.json"),
+    `${JSON.stringify(
+      {
+        status: "placeholders-only",
+        note: "Solid PNGs live under placeholders/. Run with --electron for fixture captures.",
+        tolerance: { maxPixelDiffRatio: 0.02 },
+        generatedAt: new Date().toISOString(),
+        placeholders: placeholderFiles,
+        files: [],
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  console.log(`[capture-parity-baselines] placeholders → ${placeholderDir}`);
+  process.exit(0);
+}
+
+if (wantElectron || !wantPlaceholdersOnly) {
+  try {
+    const files = await captureWithElectron();
+    console.log(
+      `[capture-parity-baselines] Wrote ${files.length} Electron fixture captures + placeholders`,
+    );
+  } catch (err) {
+    console.error("[capture-parity-baselines] capture failed:", err);
+    writeFileSync(
+      join(outDir, "manifest.json"),
+      `${JSON.stringify(
+        {
+          status: "partial-fixtures",
+          note: String(err),
+          tolerance: { maxPixelDiffRatio: 0.02 },
+          generatedAt: new Date().toISOString(),
+          placeholders: placeholderFiles,
+          files: [],
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    process.exitCode = 1;
+  }
+}

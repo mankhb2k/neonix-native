@@ -29,11 +29,10 @@ export function EditorHeader({
 
   return (
     <div className="editor-shell__chrome">
+      {/* Wait for TitleBar portal host — avoid dual-mount flash. */}
       {menuHost
         ? createPortal(<EditorMenuBar actions={actions} />, menuHost)
-        : (
-            <EditorMenuBar actions={actions} />
-          )}
+        : null}
       <div className="editor-shell__toolbar" role="toolbar" aria-label="Editor">
         <Button type="button" variant="ghost" onClick={actions.closeProject}>
           ← Home

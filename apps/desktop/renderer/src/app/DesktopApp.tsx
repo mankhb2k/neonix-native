@@ -3,6 +3,8 @@ import { DesktopIpcError, DesktopIpcErrorCode } from "../../../src/shared/ipc/er
 import { createProjectRepository } from "../infrastructure/repositories/project-repository";
 import { EditingWorkspace } from "./editor/EditingWorkspace";
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
+import { FixtureSurface } from "./fixtures/FixtureSurface";
+import { readUiFixtureId } from "./fixtures/ui-fixture";
 import { HubScreen } from "./hub/HubScreen";
 import { TitleBar } from "./shell/TitleBar";
 import {
@@ -245,12 +247,14 @@ export function DesktopApp({ api }: Props) {
     typeof window !== "undefined" &&
     (window.location.search.includes("gallery=1") ||
       window.location.hash === "#gallery");
+  const uiFixture = readUiFixtureId();
 
   return (
     <ErrorBoundary>
       <div className="app-shell">
         <TitleBar api={api} title={title} dirty={state.dirty} />
-        {showGallery ? (
+        {uiFixture ? <FixtureSurface fixture={uiFixture} /> : null}
+        {!uiFixture && showGallery ? (
           <Suspense fallback={<p className="home__muted">Loading gallery…</p>}>
             <UiGallery
               onClose={() => {
@@ -263,7 +267,7 @@ export function DesktopApp({ api }: Props) {
             />
           </Suspense>
         ) : null}
-        {!showGallery && state.showDiagnostics ? (
+        {!uiFixture && !showGallery && state.showDiagnostics ? (
           <Suspense fallback={<p className="home__muted">Loading diagnostics…</p>}>
             <DiagnosticsScreen
               api={api}
@@ -271,7 +275,8 @@ export function DesktopApp({ api }: Props) {
             />
           </Suspense>
         ) : null}
-        {!showGallery &&
+        {!uiFixture &&
+        !showGallery &&
         !state.showDiagnostics &&
         (state.phase === "booting" || state.phase === "error") ? (
           <main className="home">
@@ -282,7 +287,8 @@ export function DesktopApp({ api }: Props) {
             )}
           </main>
         ) : null}
-        {!showGallery &&
+        {!uiFixture &&
+        !showGallery &&
         !state.showDiagnostics &&
         (state.phase === "home" ||
           state.phase === "opening" ||
@@ -300,7 +306,8 @@ export function DesktopApp({ api }: Props) {
             onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
           />
         ) : null}
-        {!showGallery &&
+        {!uiFixture &&
+        !showGallery &&
         !state.showDiagnostics &&
         state.documentJson &&
         (state.phase === "editing" || state.phase === "saving") ? (
