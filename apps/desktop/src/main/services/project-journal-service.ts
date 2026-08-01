@@ -846,16 +846,20 @@ export function createProjectJournalService(
     }
     if (validated.fallbackFrom) {
       const detail = { fallbackFrom: validated.fallbackFrom };
-      if (options.onValidateDiagnostic) {
-        options.onValidateDiagnostic(
-          "journal autosave used sync fallback after worker issue",
-          detail,
-        );
-      } else {
-        console.warn(
-          "[journal] autosave used sync fallback after worker issue",
-          detail,
-        );
+      try {
+        if (options.onValidateDiagnostic) {
+          options.onValidateDiagnostic(
+            "journal autosave used sync fallback after worker issue",
+            detail,
+          );
+        } else {
+          console.warn(
+            "[journal] autosave used sync fallback after worker issue",
+            detail,
+          );
+        }
+      } catch {
+        /* diagnostics must never break autosave */
       }
     }
     const documentJsonHash = validated.hash;

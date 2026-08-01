@@ -107,6 +107,19 @@ function isCurrent(slotKey: string | undefined, revision: number): boolean {
   return coalesceSlots.get(slotKey)?.revision === revision;
 }
 
+function safeDiagnostic(
+  onDiagnostic: ((message: string, detail?: unknown) => void) | undefined,
+  message: string,
+  detail?: unknown,
+): void {
+  if (!onDiagnostic) return;
+  try {
+    onDiagnostic(message, detail);
+  } catch {
+    /* diagnostics must never break autosave / recovery */
+  }
+}
+
 function terminateSlotWorker(slotKey: string | undefined): void {
   if (!slotKey) return;
   const slot = coalesceSlots.get(slotKey);
@@ -187,7 +200,7 @@ function validateAndHashInWorker(
     };
 
     const timer = setTimeout(() => {
-      options.onDiagnostic?.("journal-validate worker timeout", {
+      safeDiagnostic(options.onDiagnostic, "journal-validate worker timeout", {
         timeoutMs: options.timeoutMs,
       });
       finish({
@@ -292,7 +305,8 @@ async function runValidateAndHash(
       return workerResult;
     }
     // worker_failure / timeout → sync fallback so large projects keep autosaving.
-    options.onDiagnostic?.(
+    safeDiagnostic(
+      options.onDiagnostic,
       `journal-validate falling back to sync after ${workerResult.kind}`,
       { error: workerResult.error },
     );
@@ -345,6 +359,7 @@ export async function validateAndHashDocument(
       const slot = coalesceSlots.get(coalesceKey);
       if (slot?.revision === revision) {
         terminateSlotWorker(coalesceKey);
+        coalesceSlots.delete(coalesceKey);
       }
     }
   }
@@ -356,4 +371,9 @@ export function resetJournalValidateCoalesceForTests(): void {
     terminateSlotWorker(key);
   }
   coalesceSlots.clear();
+}
+
+/** Test helper — map size after cleanup. */
+export function journalValidateCoalesceSizeForTests(): number {
+  return coalesceSlots.size;
 }

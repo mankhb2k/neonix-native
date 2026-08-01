@@ -33,6 +33,7 @@
     "lint:ci": "eslint . --max-warnings 0",
     "test:desktop-paths": "pnpm build:main && node scripts/smoke-desktop-paths.mjs",
     "test:journal-worker": "pnpm build:main && node scripts/smoke-journal-validate-worker.mjs",
+    "test:journal-worker:packaged": "node scripts/smoke-journal-validate-worker-packaged.mjs",
     "test:web-ban": "node scripts/probe-web-import-ban.mjs && node scripts/probe-legacy-desktop-protected.mjs",
     "test": "vitest run --project node --project dom",
     "test:perf": "vitest run --project perf",

@@ -10,6 +10,7 @@ import { clearAllProjectMediaTokens } from "./protocol/mvmedia-registry";
 import { registerAppProtocolHandler } from "./protocol/register-app-protocol";
 import { registerDesktopSchemesPrivileged } from "./protocol/register-desktop-schemes";
 import { registerMvmediaProtocolHandler } from "./protocol/register-mvmedia-protocol";
+import { runJournalWorkerSmokeProbe } from "./services/journal-worker-smoke-probe";
 import {
   createMainWindow,
   prepareWindowChrome,
@@ -23,6 +24,19 @@ const bootStartedAt = Date.now();
 let disposeIpc: (() => void) | undefined;
 
 app.whenReady().then(() => {
+  // Packaged journal-worker smoke: validate >1MB via worker, write report, exit.
+  if (process.env.MOTIONVIDEO_JOURNAL_WORKER_SMOKE === "1") {
+    void runJournalWorkerSmokeProbe()
+      .then((code) => {
+        app.exit(code);
+      })
+      .catch((error: unknown) => {
+        console.error("[journal-worker-smoke] probe crashed", error);
+        app.exit(1);
+      });
+    return;
+  }
+
   Menu.setApplicationMenu(null);
   prepareWindowChrome();
 

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { buildBlankDesktopProject } from "../shared/project-file/envelope";
 import {
   JOURNAL_VALIDATE_OFFLOAD_BYTES,
+  journalValidateCoalesceSizeForTests,
   resetJournalValidateCoalesceForTests,
   resolveJournalValidateWorkerPath,
   validateAndHashDocument,
@@ -155,5 +156,29 @@ setInterval(() => {}, 1 << 30);
         /* ignore */
       }
     }
+  });
+
+  it("deletes coalesce slot after successful validation", async () => {
+    await validateAndHashDocument(
+      buildBlankDesktopProject({ name: "Cleanup" }).documentJson,
+      { coalesceKey: "cleanup-key", syncOnly: true },
+    );
+    expect(journalValidateCoalesceSizeForTests()).toBe(0);
+  });
+
+  it("keeps autosave validate path when diagnostic callback throws", async () => {
+    const blank = buildBlankDesktopProject({ name: "DiagThrow" });
+    const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+    const result = await validateAndHashDocument(doc, {
+      workerPath: path.join(os.tmpdir(), "missing-journal-worker.js"),
+      offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,
+      onDiagnostic: () => {
+        throw new Error("logger boom");
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.via).toBe("sync");
+    expect(result.fallbackFrom).toBe("worker_failure");
   });
 });

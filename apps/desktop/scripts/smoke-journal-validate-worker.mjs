@@ -1,14 +1,14 @@
 /**
- * Artifact smoke: after build:main, dist worker must validate >1MB docs with via===worker.
- * Also checks asar → asar.unpacked path rewrite used in packaged Electron.
+ * Dist artifact smoke (not full packaged Electron).
+ * Packaged Electron smoke: `pnpm test:journal-worker:packaged`
  *
  *   pnpm --filter @motionvideo/desktop test:journal-worker
  */
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runVitest } from "./lib/spawn-tool.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, "..");
@@ -65,17 +65,15 @@ if (!fs.existsSync(unpackedBeside)) {
   fail("asar-unpacked-layout", { unpackedBeside });
 }
 
-const vitest = spawnSync(
-  "pnpm",
+const vitest = runVitest(
+  desktopRoot,
   [
-    "exec",
-    "vitest",
     "run",
     "--project",
     "node",
     "src/__tests__/journal-validate-worker-artifact.test.ts",
   ],
-  { cwd: desktopRoot, shell: true, encoding: "utf8" },
+  { cwd: desktopRoot },
 );
 if (vitest.status !== 0) {
   fail("artifact-vitest", {
@@ -87,7 +85,7 @@ if (vitest.status !== 0) {
 ok({
   workerDist,
   asarUnpackedSim: unpackedBeside,
-  note: "dist worker loads for >1MB; package.json asarUnpack includes journal-validate-worker.js",
+  note: "dist artifact only — use test:journal-worker:packaged for electron-builder dir smoke",
 });
 
 try {

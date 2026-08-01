@@ -1,10 +1,11 @@
 /**
- * Engineering diagnostic bench — NOT a release performance acceptance gate.
+ * Engineering diagnostic bench — NOT a production performance acceptance gate.
  * Soft main-thread budget is JOURNAL_VALIDATE_SOFT_BUDGET_MS (100ms).
  * Production offloads docs ≥ JOURNAL_VALIDATE_OFFLOAD_BYTES via worker thread.
  *
- * Writes JSON artifact to tmp/journal-autosave-bench.json for machine-specific
- * release benchmarking thresholds (separate from CI soft ceilings).
+ * Writes JSON artifact to tmp/journal-autosave-bench.json with median/p95 per
+ * size for machine-specific CI or release-benchmark thresholds. Do not claim
+ * production FPS or ship gates from this suite alone.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -174,7 +175,8 @@ describe("journal autosave size bench", () => {
         {
           kind: "journal-autosave-bench",
           acceptance: false,
-          note: "Diagnostic only. Set machine-specific release thresholds from this artifact.",
+          diagnosticOnly: true,
+          note: "Diagnostic median/p95 only. Do not use as production performance claim. Set machine-specific release thresholds from this artifact on target hardware.",
           softBudgetMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS,
           offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,
           recordedAt: new Date().toISOString(),

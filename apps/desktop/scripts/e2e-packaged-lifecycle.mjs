@@ -14,6 +14,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { runPnpm, runVitest } from "./lib/spawn-tool.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(__dirname, "..");
@@ -45,24 +46,23 @@ function ensureBuild() {
   const cli = path.join(desktopRoot, "resources", "export-cli", "cli-export.cjs");
   const steps = [];
   if (!fs.existsSync(mainJs) || !fs.existsSync(preloadJs)) {
-    steps.push(["pnpm", ["build:main"], desktopRoot]);
-    steps.push(["pnpm", ["build:preload"], desktopRoot]);
+    steps.push(["build:main"]);
+    steps.push(["build:preload"]);
   }
   // Always rebuild renderer so fixture close-save wiring matches source.
-  steps.push([
-    "pnpm",
-    ["build:renderer"],
-    desktopRoot,
-    { VITE_ENABLE_UI_FIXTURES: "1" },
-  ]);
+  steps.push(["build:renderer"]);
   if (!fs.existsSync(cli)) {
-    steps.push(["pnpm", ["build:export-cli"], desktopRoot]);
+    steps.push(["build:export-cli"]);
   }
-  for (const [cmd, args, cwd, extraEnv] of steps) {
-    const r = spawnSync(cmd, args, {
-      cwd,
-      env: { ...process.env, ...(extraEnv ?? {}) },
-      shell: true,
+  for (const args of steps) {
+    const r = runPnpm(args, {
+      cwd: desktopRoot,
+      env: {
+        ...process.env,
+        ...(args[0] === "build:renderer"
+          ? { VITE_ENABLE_UI_FIXTURES: "1" }
+          : {}),
+      },
       stdio: "inherit",
     });
     if (r.status !== 0) fail(`build-failed:${args.join(" ")}`);
@@ -73,17 +73,15 @@ ensureBuild();
 
 // --- 1) Real file IO via vitest + project-file-service ---
 {
-  const vitest = spawnSync(
-    "pnpm",
+  const vitest = runVitest(
+    desktopRoot,
     [
-      "exec",
-      "vitest",
       "run",
       "--project",
       "node",
       "src/__tests__/lifecycle-file-io.test.ts",
     ],
-    { cwd: desktopRoot, shell: true, encoding: "utf8" },
+    { cwd: desktopRoot },
   );
   if (vitest.status !== 0) {
     fail("lifecycle-file-io-vitest", {
@@ -438,6 +436,6 @@ ok({
   ],
   exportBytes: fs.statSync(expResult.mp4Path ?? exportOut).size,
   window: windowResult,
-  note: "Vite prod lifecycle E2E (not NSIS packaged). Envelope via lifecycle-file-io.test.ts. Journal worker artifact: pnpm test:journal-worker.",
+  note: "Vite prod lifecycle E2E (not NSIS packaged). Envelope via lifecycle-file-io.test.ts. Dist worker: pnpm test:journal-worker. Packaged dir worker: pnpm test:journal-worker:packaged.",
   hash: createHash("sha256").update("e2e-lifecycle").digest("hex").slice(0, 8),
 });
