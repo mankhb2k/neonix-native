@@ -38,9 +38,9 @@ import { createExportService } from "../services/export-service";
 import { createProjectFileService } from "../services/project-file-service";
 import { createProjectJournalService } from "../services/project-journal-service";
 import {
-  clearProjectSession,
+  assertSessionProjectId,
   getProjectSession,
-  requireProjectSession,
+  requireSavedProjectSession,
   setProjectSession,
 } from "../services/project-session";
 import { createRecentProjectService } from "../services/recent-project-service";
@@ -228,9 +228,10 @@ export function registerIpcHandlers(
     projectId?: string,
   ): { projectId?: string; path?: string } {
     const session = getProjectSession(event.sender.id);
+    assertSessionProjectId(session, projectId);
     return {
-      path: session?.path,
-      projectId: projectId ?? session?.projectId,
+      path: session?.path ?? undefined,
+      projectId: session?.projectId ?? projectId,
     };
   }
 
@@ -298,10 +299,13 @@ export function registerIpcHandlers(
       IpcChannels.projectNew,
       async (event, payload) => {
         const input = parsePayload(createProjectSchema, payload) ?? {};
-        clearProjectSession(event.sender.id);
         const blank = buildBlankDesktopProject({
           name: input.name,
           aspectRatio: input.aspectRatio,
+        });
+        setProjectSession(event.sender.id, {
+          path: null,
+          projectId: blank.projectId,
         });
         await journal.record({
           type: "new",
@@ -387,7 +391,7 @@ export function registerIpcHandlers(
       async (event, payload) => {
         const input = parsePayload(saveProjectSchema, payload);
         const session = getProjectSession(event.sender.id);
-        if (!session) {
+        if (!session?.path) {
           const saved = await projects.saveAsViaDialog(
             input.documentJson,
             undefined,
@@ -397,7 +401,7 @@ export function registerIpcHandlers(
           const envelope = parseDesktopProjectFile(input.documentJson);
           setProjectSession(event.sender.id, {
             path: saved.path,
-            projectId: projectIdFromEnvelope(envelope),
+            projectId: session?.projectId ?? projectIdFromEnvelope(envelope),
           });
           return saved;
         }
@@ -450,8 +454,9 @@ export function registerIpcHandlers(
         const input = parsePayload(journalRecordSchema, payload);
         if (!journal.enabled) return { recorded: false };
         const locator = journalLocatorFromEvent(event, input.projectId);
+        const projectId = locator.projectId ?? input.projectId;
         const { seq } = await journal.recordHistory({
-          projectId: input.projectId,
+          projectId,
           path: locator.path,
           entryId: input.entryId,
           label: input.label,
@@ -466,8 +471,9 @@ export function registerIpcHandlers(
         const input = parsePayload(journalAutosaveSchema, payload);
         if (!journal.enabled) return { saved: false };
         const locator = journalLocatorFromEvent(event, input.projectId);
+        const projectId = locator.projectId ?? input.projectId;
         const { seq } = await journal.writeAutosaveSnapshot({
-          projectId: input.projectId,
+          projectId,
           path: locator.path,
           documentJson: input.documentJson,
         });
@@ -492,7 +498,7 @@ export function registerIpcHandlers(
       IpcChannels.assetsImportFiles,
       async (event, payload) => {
         parsePayload(importFilesSchema, payload);
-        const session = requireProjectSession(event.sender.id);
+        const session = requireSavedProjectSession(event.sender.id);
         return assets.importFiles(
           session.path,
           undefined,
@@ -504,7 +510,7 @@ export function registerIpcHandlers(
       IpcChannels.assetsResolveUrl,
       (event, payload) => {
         const input = parsePayload(resolveAssetSchema, payload);
-        const session = requireProjectSession(event.sender.id);
+        const session = requireSavedProjectSession(event.sender.id);
         return assets.resolveUrl(
           session.path,
           input.assetId,
@@ -516,7 +522,7 @@ export function registerIpcHandlers(
       IpcChannels.assetsRelink,
       async (event, payload) => {
         const input = parsePayload(relinkAssetSchema, payload);
-        const session = requireProjectSession(event.sender.id);
+        const session = requireSavedProjectSession(event.sender.id);
         return assets.relink(
           session.path,
           input.assetId,
@@ -529,7 +535,7 @@ export function registerIpcHandlers(
       IpcChannels.assetsListMissing,
       (event, payload) => {
         const input = parsePayload(listMissingAssetsSchema, payload);
-        const session = requireProjectSession(event.sender.id);
+        const session = requireSavedProjectSession(event.sender.id);
         return assets.listMissing({
           projectPath: session.path,
           assets: input.assets,
@@ -547,7 +553,7 @@ export function registerIpcHandlers(
             projectJson: input.projectJson,
             overwrite: input.overwrite,
             presetId: input.presetId,
-            projectPath: session?.path,
+            projectPath: session?.path ?? undefined,
             // Output always via dialog — never trust renderer absolute paths.
             outputPath: undefined,
           },

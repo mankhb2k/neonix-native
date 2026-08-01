@@ -789,28 +789,52 @@ export function createProjectJournalService(
     return enqueue(async () => {
       const fromDir = dirForProjectId(input.from.projectId);
       const toDir = dirForPath(input.to.path);
-      bumpKeys({ projectId: input.from.projectId, path: input.to.path });
-      if (io.existsSync(fromDir) && fromDir !== toDir) {
+      if (!io.existsSync(fromDir) || fromDir === toDir) {
+        return;
+      }
+
+      const staging = `${toDir}.migrating.${process.pid}`;
+      try {
+        if (io.existsSync(staging)) {
+          await removeDir(staging);
+        }
+        io.mkdirSync(root, { recursive: true });
+        // Copy/rename to staging first — never delete source until commit succeeds.
+        await rename(fromDir, staging);
+        const stagedMeta = readMeta(staging);
+        if (!stagedMeta) {
+          // Roll back staging → source
+          await rename(staging, fromDir);
+          throw new Error("Journal migrate failed: staged meta unreadable.");
+        }
+        await writeMetaAtomic(staging, {
+          ...stagedMeta,
+          projectId: input.to.projectId,
+          path: input.to.path,
+          updatedAt: now().toISOString(),
+        });
         if (io.existsSync(toDir)) {
           await removeDir(toDir);
         }
+        await rename(staging, toDir);
+        bumpKeys({ projectId: input.from.projectId, path: input.to.path });
+        // fromDir already moved; ensure id-key gone if rename left residue
+        await removeDir(dirForProjectId(input.from.projectId));
+      } catch (error) {
+        // Best-effort restore source if still on staging
         try {
-          io.mkdirSync(root, { recursive: true });
-          await rename(fromDir, toDir);
+          if (io.existsSync(staging) && !io.existsSync(fromDir)) {
+            await rename(staging, fromDir);
+          } else if (io.existsSync(staging)) {
+            await removeDir(staging);
+          }
         } catch {
-          await removeDir(fromDir);
+          /* keep failure primary */
         }
-        const meta = readMeta(toDir);
-        if (meta) {
-          await writeMetaAtomic(toDir, {
-            ...meta,
-            projectId: input.to.projectId,
-            path: input.to.path,
-            updatedAt: now().toISOString(),
-          });
-        }
+        throw error instanceof Error
+          ? error
+          : new Error("Journal migrate failed.");
       }
-      await removeDir(dirForProjectId(input.from.projectId));
     });
   }
 

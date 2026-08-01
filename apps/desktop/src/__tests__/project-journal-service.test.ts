@@ -7,6 +7,7 @@ import {
   createDisabledProjectJournal,
   createProjectJournalService,
   hashDocumentJson,
+  journalKeyFor,
 } from "../main/services/project-journal-service";
 
 describe("project-journal-service", () => {
@@ -380,5 +381,56 @@ describe("project-journal-service", () => {
     expect(offer).not.toBeNull();
     const recovered = await crashing.recover({ path: filePath });
     expect(recovered?.documentJson).toBe(prior);
+  });
+
+  it("migrateJournal keeps source when commit rename fails", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-mig-"));
+    const blank = buildBlankDesktopProject({ name: "Mig" });
+    const destPath = path.join(dir, "dest.mt");
+    const toDir = path.join(
+      dir,
+      "project-journals",
+      journalKeyFor({ path: destPath })!,
+    );
+    const realRename = fs.renameSync.bind(fs);
+    const journal = createProjectJournalService({
+      userDataPath: dir,
+      fs: {
+        existsSync: fs.existsSync.bind(fs),
+        mkdirSync: (p, opts) => fs.mkdirSync(p, opts),
+        readFileSync: (p, enc) => fs.readFileSync(p, enc),
+        writeFileSync: (p, data) => fs.writeFileSync(p, data),
+        appendFileSync: (p, data) => fs.appendFileSync(p, data),
+        readdirSync: (p) => fs.readdirSync(p),
+        unlinkSync: (p) => fs.unlinkSync(p),
+        rmSync: (p, opts) => fs.rmSync(p, opts),
+        renameSync: (from, to) => {
+          if (to === toDir) {
+            throw new Error("commit rename failed");
+          }
+          realRename(from, to);
+        },
+      },
+    });
+    await journal.bind({ projectId: blank.projectId });
+    await journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      documentJson: buildBlankDesktopProject({ name: "Snap" }).documentJson,
+    });
+    await journal.flush();
+
+    await expect(
+      journal.migrateJournal({
+        from: { projectId: blank.projectId },
+        to: { path: destPath, projectId: blank.projectId },
+      }),
+    ).rejects.toThrow(/commit rename failed/);
+
+    expect(
+      journal.peekRecovery({
+        projectId: blank.projectId,
+        documentJson: blank.documentJson,
+      }),
+    ).not.toBeNull();
   });
 });

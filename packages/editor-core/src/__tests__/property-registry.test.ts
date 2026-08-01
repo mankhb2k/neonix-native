@@ -416,6 +416,57 @@ describe("Logic-2 property domain depth", () => {
         v: 1,
       }).status,
     ).toBe("rejected");
+
+    expect(
+      executePropertyCommand(doc, {
+        type: "set-node-effects",
+        targets,
+        patch: { op: "upsert-blur", effectId: "b1", radius: Number.NaN },
+      }).status,
+    ).toBe("rejected");
+
+    expect(
+      executePropertyCommand(doc, {
+        type: "set-property-keyframe",
+        targets,
+        property: "transform.x",
+        t: 86_401,
+        v: 1,
+      }).status,
+    ).toBe("rejected");
+  });
+
+  it("allocates distinct keyframe clip ids for properties that sanitize alike", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const a = executePropertyCommand(doc, {
+      type: "set-property-keyframe",
+      targets,
+      property: "a.b",
+      t: 0,
+      v: 1,
+    });
+    expect(a.status).toBe("applied");
+    if (a.status !== "applied") return;
+    const b = executePropertyCommand(a.document, {
+      type: "set-property-keyframe",
+      targets,
+      property: "a-b",
+      t: 0,
+      v: 2,
+    });
+    expect(b.status).toBe("applied");
+    if (b.status !== "applied") return;
+    const sceneClips = b.document.project.scenes[0]!.clips;
+    const kfClips = sceneClips.filter((c) => c.id.startsWith("kf_"));
+    expect(kfClips.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(kfClips.map((c) => c.id)).size).toBe(kfClips.length);
   });
 });
 

@@ -43,6 +43,7 @@ export function VectorPropertyEditor({
   }, [value, mixed]);
 
   function commit() {
+    if (x.trim() === "" || y.trim() === "") return;
     const nx = Number(x);
     const ny = Number(y);
     if (!Number.isFinite(nx) || !Number.isFinite(ny)) return;

@@ -346,11 +346,35 @@ function applyAudioTrack(
   };
 }
 
+function allocateUniqueClipId(
+  existingIds: Set<string>,
+  nodeId: string,
+  property: string,
+): string {
+  const maxLen = MOTION_V2_LIMITS.idLength;
+  const sanitized = property.replace(/\W+/g, "_");
+  // Include a short property fingerprint so a.b vs a-b do not collide after sanitize.
+  let hash = 0;
+  for (let i = 0; i < property.length; i += 1) {
+    hash = (hash * 31 + property.charCodeAt(i)) >>> 0;
+  }
+  const fingerprint = hash.toString(36).slice(0, 6);
+  const prefix = `kf_${nodeId}_`.slice(0, Math.max(8, maxLen - 24));
+  const base = `${prefix}${sanitized}_${fingerprint}`.slice(0, maxLen);
+  if (!existingIds.has(base)) return base;
+  for (let n = 2; n < 10_000; n += 1) {
+    const suffix = `_${n}`;
+    const candidate = `${base.slice(0, Math.max(1, maxLen - suffix.length))}${suffix}`;
+    if (!existingIds.has(candidate)) return candidate;
+  }
+  return `${prefix}${fingerprint}_${Date.now()}`.slice(0, maxLen);
+}
+
 function upsertKeyframeOnScene(
   project: MotionProject,
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "set-property-keyframe" }>,
-): { project: MotionProject; missing: boolean } {
+): { project: MotionProject; missing: boolean; invalid?: string } {
   const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
   if (sceneIdx < 0) return { project, missing: true };
   const scene = project.scenes[sceneIdx]!;
@@ -365,8 +389,9 @@ function upsertKeyframeOnScene(
       c.source.tracks.some((tr) => tr.property === command.property),
   );
   if (clipIdx < 0) {
+    const existingIds = new Set(clips.map((c) => c.id));
     clips.push({
-      id: `kf_${target.nodeId}_${command.property.replace(/\W+/g, "_")}`,
+      id: allocateUniqueClipId(existingIds, target.nodeId, command.property),
       targetId: target.nodeId,
       schedule: { kind: "absolute", at: 0 },
       duration: Math.max(scene.duration, command.t + 0.001),
@@ -379,7 +404,7 @@ function upsertKeyframeOnScene(
             property: command.property,
             keys: [
               {
-                t: Math.max(0, command.t),
+                t: command.t,
                 v: command.v,
                 easing: command.easing,
               },
@@ -391,22 +416,34 @@ function upsertKeyframeOnScene(
   } else {
     const clip = clips[clipIdx]!;
     if (clip.source.kind !== "tracks") return { project, missing: true };
+    let overflow = false;
     const tracks = clip.source.tracks.map((tr) => {
       if (tr.property !== command.property) return tr;
       const keys = [...tr.keys];
       const keyIdx = keys.findIndex((k) => Math.abs(k.t - command.t) < 1e-6);
       const key = {
-        t: Math.max(0, command.t),
+        t: command.t,
         v: command.v,
         easing: command.easing,
       };
       if (keyIdx >= 0) keys[keyIdx] = key;
       else {
+        if (keys.length >= MOTION_V2_LIMITS.keysPerTrack) {
+          overflow = true;
+          return tr;
+        }
         keys.push(key);
         keys.sort((a, b) => a.t - b.t);
       }
       return { ...tr, keys };
     });
+    if (overflow) {
+      return {
+        project,
+        missing: false,
+        invalid: `Keyframe track exceeds keysPerTrack (${MOTION_V2_LIMITS.keysPerTrack}).`,
+      };
+    }
     clips[clipIdx] = {
       ...clip,
       source: { kind: "tracks", tracks },
@@ -422,11 +459,12 @@ function upsertKeyframeOnScene(
 function applyKeyframe(
   project: MotionProject,
   command: Extract<DocumentPropertyCommand, { type: "set-property-keyframe" }>,
-): { project: MotionProject; missing: boolean } {
+): { project: MotionProject; missing: boolean; invalid?: string } {
   let next = project;
   for (const target of command.targets) {
     const step = upsertKeyframeOnScene(next, target, command);
     if (step.missing) return { project: next, missing: true };
+    if (step.invalid) return { project: next, missing: false, invalid: step.invalid };
     next = step.project;
   }
   return { project: next, missing: false };
@@ -675,6 +713,14 @@ export function executePropertyCommand(
           message: "No node targets for property command.",
         };
       }
+      if (command.patch.op === "upsert-blur") {
+        if (!command.patch.effectId?.trim()) {
+          return rejectedInvalid("Effect id is required.");
+        }
+        if (!Number.isFinite(command.patch.radius)) {
+          return rejectedInvalid("Blur radius must be a finite number.");
+        }
+      }
       result = applyToTargets(document.project, command.targets, (node) =>
         applyEffects(node, command.patch),
       );
@@ -695,10 +741,21 @@ export function executePropertyCommand(
       if (!Number.isFinite(command.t)) {
         return rejectedInvalid("Keyframe time must be a finite number.");
       }
+      if (command.t < 0 || command.t > MOTION_V2_LIMITS.mediaDurationSeconds) {
+        return rejectedInvalid(
+          `Keyframe time must be within 0..${MOTION_V2_LIMITS.mediaDurationSeconds}.`,
+        );
+      }
       if (typeof command.v === "number" && !Number.isFinite(command.v)) {
         return rejectedInvalid("Keyframe value must be finite when numeric.");
       }
-      result = applyKeyframe(document.project, command);
+      {
+        const kf = applyKeyframe(document.project, command);
+        if (kf.invalid) {
+          return rejectedInvalid(kf.invalid);
+        }
+        result = kf;
+      }
       events = [
         {
           type: "property-keyframe-changed",

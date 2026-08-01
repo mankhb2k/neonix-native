@@ -64,6 +64,8 @@ type Props = {
   dirty: boolean;
   error: string | null;
   saving?: boolean;
+  /** Bumped on Save/Discard — late history IPC must match. */
+  journalEpoch?: number;
   sessionHandleRef?: MutableRefObject<EditorSessionHandle | null>;
   /** Prefer over mutating sessionHandleRef when lint forbids param reassignment. */
   onSessionHandle?: (handle: EditorSessionHandle | null) => void;
@@ -90,6 +92,7 @@ function EditingWorkspaceInner({
   dirty,
   error,
   saving,
+  journalEpoch = 0,
   sessionHandleRef,
   onSessionHandle,
   onDocumentChange,
@@ -132,6 +135,8 @@ function EditingWorkspaceInner({
     session.history.past[session.history.past.length - 1]?.id ?? null;
   const lastHistoryLabel =
     session.history.past[session.history.past.length - 1]?.label ?? "edit";
+  const journalEpochRef = useRef(journalEpoch);
+  journalEpochRef.current = journalEpoch;
   useEffect(() => {
     if (uiFixturesEnabled()) return undefined;
     if (!dirty || saving) return undefined;
@@ -139,10 +144,13 @@ function EditingWorkspaceInner({
     const json = session.sessionDocumentJson;
     const entryId = lastHistoryId;
     const label = lastHistoryLabel;
+    const epochAtSchedule = journalEpochRef.current;
+    let cancelled = false;
     const timer = window.setTimeout(() => {
       void (async () => {
         try {
           const documentJsonHash = await sha256Hex(json);
+          if (cancelled || journalEpochRef.current !== epochAtSchedule) return;
           await api.journal.record({
             projectId,
             entryId,
@@ -154,12 +162,16 @@ function EditingWorkspaceInner({
         }
       })();
     }, 400);
-    return () => window.clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [
     api,
     projectId,
     dirty,
     saving,
+    journalEpoch,
     lastHistoryId,
     lastHistoryLabel,
     session.sessionDocumentJson,

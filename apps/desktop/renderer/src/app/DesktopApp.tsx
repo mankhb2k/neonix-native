@@ -1,10 +1,14 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../../src/shared/ipc/errors";
 import { createProjectRepository } from "../infrastructure/repositories/project-repository";
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
 import { seedProductionUi, uiFixturesEnabled } from "./fixtures/seed-production-ui";
 import { readUiFixtureId } from "./fixtures/ui-fixture";
 import { HubScreen } from "./hub/HubScreen";
+import {
+  createJournalAutosaveTimers,
+  type JournalAutosaveTimers,
+} from "./journal-autosave-timers";
 import { TitleBar } from "./shell/TitleBar";
 import {
   createInitialAppState,
@@ -13,8 +17,8 @@ import {
 import type { EditorSessionHandle } from "./editor/editor-session-handle";
 import type { DesktopAPI } from "../../../src/shared/ipc/contracts";
 
-const JOURNAL_AUTOSAVE_MAX_MS = 45_000;
-const JOURNAL_AUTOSAVE_IDLE_MS = 3_000;
+export const JOURNAL_AUTOSAVE_MAX_MS = 45_000;
+export const JOURNAL_AUTOSAVE_IDLE_MS = 3_000;
 
 const DiagnosticsScreen = lazy(() =>
   import("./diagnostics/DiagnosticsScreen").then((m) => ({
@@ -49,15 +53,14 @@ export function DesktopApp({ api }: Props) {
   stateRef.current = state;
   const sessionHandleRef = useRef<EditorSessionHandle | null>(null);
   const journalEpochRef = useRef(0);
-  const idleAutosaveTimerRef = useRef<number | null>(null);
+  const [journalEpoch, setJournalEpoch] = useState(0);
+  const autosaveTimersRef = useRef<JournalAutosaveTimers | null>(null);
   const repo = useMemo(() => createProjectRepository(api), [api]);
 
   const bumpJournalEpoch = useCallback(() => {
     journalEpochRef.current += 1;
-    if (idleAutosaveTimerRef.current != null) {
-      window.clearTimeout(idleAutosaveTimerRef.current);
-      idleAutosaveTimerRef.current = null;
-    }
+    setJournalEpoch(journalEpochRef.current);
+    autosaveTimersRef.current?.stop();
   }, []);
 
   const runAutosave = useCallback(
@@ -67,6 +70,7 @@ export function DesktopApp({ api }: Props) {
       if (cur.phase === "saving") return;
       if (!cur.dirty || !cur.documentJson || !cur.projectId) return;
       const epoch = journalEpochRef.current;
+      if (journalEpochRef.current !== epoch) return;
       void api.journal
         .autosave({
           projectId: cur.projectId,
@@ -84,16 +88,35 @@ export function DesktopApp({ api }: Props) {
     [api],
   );
 
-  const scheduleIdleAutosave = useCallback(() => {
-    if (uiFixturesEnabled()) return;
-    if (idleAutosaveTimerRef.current != null) {
-      window.clearTimeout(idleAutosaveTimerRef.current);
+  // Keep a stable timer controller for the editing session lifetime of dirty docs.
+  useEffect(() => {
+    if (uiFixturesEnabled()) return undefined;
+    if (state.phase !== "editing" || !state.dirty || !state.projectId) {
+      autosaveTimersRef.current?.stop();
+      autosaveTimersRef.current = null;
+      return undefined;
     }
-    idleAutosaveTimerRef.current = window.setTimeout(() => {
-      idleAutosaveTimerRef.current = null;
-      runAutosave("idle");
-    }, JOURNAL_AUTOSAVE_IDLE_MS);
-  }, [runAutosave]);
+    const timers = createJournalAutosaveTimers(
+      () => runAutosave("idle"),
+      () => runAutosave("max"),
+      { idleMs: JOURNAL_AUTOSAVE_IDLE_MS, maxMs: JOURNAL_AUTOSAVE_MAX_MS },
+    );
+    autosaveTimersRef.current = timers;
+    timers.startMax();
+    return () => {
+      timers.stop();
+      if (autosaveTimersRef.current === timers) {
+        autosaveTimersRef.current = null;
+      }
+    };
+  }, [state.phase, state.dirty, state.projectId, runAutosave]);
+
+  // Idle debounce only — may reset on every documentJson change without touching max.
+  useEffect(() => {
+    if (uiFixturesEnabled()) return;
+    if (state.phase !== "editing" || !state.dirty || !state.projectId) return;
+    autosaveTimersRef.current?.pokeIdle();
+  }, [state.phase, state.dirty, state.projectId, state.documentJson]);
 
   useEffect(() => {
     let cancelled = false;
@@ -206,33 +229,6 @@ export function DesktopApp({ api }: Props) {
       })();
     });
   }, [api, performSave]);
-
-  // Crash-recovery: idle (3s) + max interval (45s) full snapshots when dirty.
-  useEffect(() => {
-    if (uiFixturesEnabled()) return undefined;
-    if (state.phase !== "editing") return undefined;
-    if (!state.dirty || !state.projectId) return undefined;
-
-    scheduleIdleAutosave();
-    const maxTimer = window.setInterval(() => {
-      runAutosave("max");
-    }, JOURNAL_AUTOSAVE_MAX_MS);
-    return () => {
-      window.clearInterval(maxTimer);
-      if (idleAutosaveTimerRef.current != null) {
-        window.clearTimeout(idleAutosaveTimerRef.current);
-        idleAutosaveTimerRef.current = null;
-      }
-    };
-  }, [
-    api,
-    state.phase,
-    state.dirty,
-    state.projectId,
-    state.documentJson,
-    scheduleIdleAutosave,
-    runAutosave,
-  ]);
 
   const onNew = useCallback(
     async (
@@ -434,6 +430,7 @@ export function DesktopApp({ api }: Props) {
               dirty={state.dirty}
               error={state.error}
               saving={state.phase === "saving"}
+              journalEpoch={journalEpoch}
               sessionHandleRef={sessionHandleRef}
               initialSidebarTab={
                 fixtureSeed?.kind === "editor"

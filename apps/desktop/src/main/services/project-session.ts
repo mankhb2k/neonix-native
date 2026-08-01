@@ -1,12 +1,13 @@
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../shared/ipc/errors";
 
 /**
- * Main-owned open project path per BrowserWindow / webContents.
+ * Main-owned open project identity per BrowserWindow / webContents.
+ * path may be null for unsaved projects; projectId is always bound.
  * Renderer must not supply absolute paths for save/import/export.
  */
 
 export type ProjectSession = {
-  path: string;
+  path: string | null;
   projectId: string;
 };
 
@@ -40,4 +41,38 @@ export function requireProjectSession(
     );
   }
   return session;
+}
+
+/** Session with a saved path (assets/export require disk location). */
+export function requireSavedProjectSession(
+  webContentsId: number,
+): ProjectSession & { path: string } {
+  const session = requireProjectSession(webContentsId);
+  if (!session.path) {
+    throw new DesktopIpcError(
+      DesktopIpcErrorCode.VALIDATION,
+      "No open project session. Save the project first, or open a .mt file.",
+    );
+  }
+  return session as ProjectSession & { path: string };
+}
+
+/** Reject renderer-supplied projectId that does not match the bound session. */
+export function assertSessionProjectId(
+  session: ProjectSession | null,
+  projectId: string | undefined,
+): void {
+  if (!projectId) return;
+  if (!session) {
+    throw new DesktopIpcError(
+      DesktopIpcErrorCode.VALIDATION,
+      "No open project session for journal operation.",
+    );
+  }
+  if (session.projectId !== projectId) {
+    throw new DesktopIpcError(
+      DesktopIpcErrorCode.VALIDATION,
+      "Journal projectId does not match the active session.",
+    );
+  }
 }
