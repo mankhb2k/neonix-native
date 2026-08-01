@@ -1,5 +1,5 @@
 /**
- * Interactive clip strip — select / same-lane move / edge trim (Wave D + Wave 4 dispose).
+ * Interactive clip strip — select / move (incl. cross-lane) / edge trim.
  */
 
 import { useState } from "react";
@@ -12,6 +12,7 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
+import { resolveDropGeometryAtPoint } from "./drop-host";
 import type { BeginGesture } from "./interactions/use-pointer-session";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -24,6 +25,11 @@ function trackForLane(lane: TimelineLane | undefined): TrackKind {
   if (lane.kind === "audio") return "audio";
   if (lane.role === "base") return "main";
   return "overlay";
+}
+
+function clipAcceptsTrack(clip: TimelineClip, track: TrackKind): boolean {
+  if (clip.kind === "audio") return track === "audio";
+  return track === "main" || track === "overlay";
 }
 
 type Preview =
@@ -85,18 +91,37 @@ export function ClipStrip({
 
     const originX = event.clientX;
     const originStart = clip.startTime;
+    const originLaneId = lane.id;
+    const originTrack = trackForLane(lane);
 
-    type MoveState = { startTime: number; moved: boolean };
+    type MoveState = {
+      startTime: number;
+      laneId: string;
+      track: TrackKind;
+      moved: boolean;
+    };
     const started = beginGesture<MoveState, void>(
       {
         name: `move-${clip.id}`,
-        onStart: () => ({ startTime: originStart, moved: false }),
+        onStart: () => ({
+          startTime: originStart,
+          laneId: originLaneId,
+          track: originTrack,
+          moved: false,
+        }),
         onUpdate: (pos, state) => {
           const dx = pos.x - originX;
           if (!state.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return state;
           const nextStart = Math.max(0, originStart + dx / pps);
+          let laneId = originLaneId;
+          let track = originTrack;
+          const geo = resolveDropGeometryAtPoint(pos.x, pos.y);
+          if (geo && clipAcceptsTrack(clip, geo.track)) {
+            laneId = geo.laneId;
+            track = geo.track;
+          }
           setPreview({ kind: "move", clipId: clip.id, startTime: nextStart });
-          return { startTime: nextStart, moved: true };
+          return { startTime: nextStart, laneId, track, moved: true };
         },
         onCommit: (state) => {
           setPreview(null);
@@ -107,8 +132,8 @@ export function ClipStrip({
               clipId: clip.id,
               patch: {
                 startTime: state.startTime,
-                track: trackForLane(lane),
-                laneId: lane.id,
+                track: state.track,
+                laneId: state.laneId,
               },
             },
             "Move clip",

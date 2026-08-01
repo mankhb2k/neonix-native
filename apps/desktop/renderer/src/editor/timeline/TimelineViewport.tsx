@@ -12,9 +12,11 @@ import { subscribe as subscribeLibraryDrag } from "../library/interactions/libra
 import { usePlaybackClockApi } from "../playback/playback-clock-store";
 import { ClipStrip } from "./ClipStrip";
 import {
+  autoScrollTimelineNearEdge,
   resolveDropGeometryAtPoint,
   setTimelineDropHost,
   type TimelineDropHost,
+  type ValidatedDropGeometry,
 } from "./drop-host";
 import { usePointerSessionHost } from "./interactions/use-pointer-session";
 import {
@@ -30,11 +32,13 @@ import {
   laneRowHeightPx,
 } from "./timeline-scale";
 import { clientXToTimelineTime } from "./timeline-seek";
+import { TimelineContextMenu } from "./TimelineContextMenu";
 import { TimeRuler } from "./TimeRuler";
 import { useVisibleTimeline } from "./use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
-import type { TimelineDropGeometry } from "./drop-geometry";
 import "./timeline-layout.css";
+
+const MARQUEE_THRESHOLD_PX = 3;
 
 type Props = {
   projectId: string | null;
@@ -46,8 +50,12 @@ type Props = {
   timelineFitRevision: number;
   selection: EditorSelection;
   disabled?: boolean;
+  canPaste?: boolean;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
+  onCopy?: () => void;
+  onCut?: () => void;
+  onPaste?: () => void;
 };
 
 export function TimelineViewport({
@@ -60,15 +68,21 @@ export function TimelineViewport({
   timelineFitRevision,
   selection,
   disabled,
+  canPaste,
   onSelect,
   onExecute,
+  onCopy,
+  onCut,
+  onPaste,
 }: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
-  const [dropGhost, setDropGhost] = useState<TimelineDropGeometry | null>(null);
+  const [dropGhost, setDropGhost] = useState<ValidatedDropGeometry | null>(
+    null,
+  );
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const clock = usePlaybackClockApi();
   const { beginGesture } = usePointerSessionHost();
@@ -77,6 +91,28 @@ export function TimelineViewport({
   const scrollTopRafRef = useRef<number | null>(null);
   const pendingScrollLeftRef = useRef(0);
   const pendingScrollTopRef = useRef(0);
+  const dropGhostRafRef = useRef<number | null>(null);
+  const pendingDropGhostRef = useRef<ValidatedDropGeometry | null | undefined>(
+    undefined,
+  );
+
+  const flushDropGhost = useCallback(() => {
+    dropGhostRafRef.current = null;
+    if (pendingDropGhostRef.current === undefined) return;
+    const next = pendingDropGhostRef.current;
+    pendingDropGhostRef.current = undefined;
+    setDropGhost(next);
+  }, []);
+
+  const scheduleDropGhost = useCallback(
+    (next: ValidatedDropGeometry | null) => {
+      pendingDropGhostRef.current = next;
+      if (dropGhostRafRef.current == null) {
+        dropGhostRafRef.current = requestAnimationFrame(flushDropGhost);
+      }
+    },
+    [flushDropGhost],
+  );
 
   const onScroll = useCallback(() => {
     const root = tracksScrollRef.current;
@@ -116,6 +152,15 @@ export function TimelineViewport({
     setScrollLeft(0);
     setScrollTop(0);
   }, [projectId, timelineFitRevision]);
+
+  useEffect(() => {
+    return () => {
+      if (dropGhostRafRef.current != null) {
+        cancelAnimationFrame(dropGhostRafRef.current);
+        dropGhostRafRef.current = null;
+      }
+    };
+  }, []);
 
   const trackViewWidth = Math.max(0, viewWidth - TIMELINE_TRACKS_ORIGIN_X);
 
@@ -191,6 +236,11 @@ export function TimelineViewport({
     [clock, disabled, layout.extentSeconds, layout.pixelsPerSecond],
   );
 
+  const getPlayheadTime = useCallback(
+    () => clock.getState().currentTime,
+    [clock],
+  );
+
   useLayoutEffect(() => {
     const scrollEl = tracksScrollRef.current;
     if (!scrollEl) {
@@ -213,14 +263,17 @@ export function TimelineViewport({
   useEffect(() => {
     return subscribeLibraryDrag((session) => {
       if (session.phase !== "dragging") {
-        setDropGhost(null);
+        scheduleDropGhost(null);
         return;
       }
-      setDropGhost(
-        resolveDropGeometryAtPoint(session.clientX, session.clientY),
+      const geo = resolveDropGeometryAtPoint(
+        session.clientX,
+        session.clientY,
+        session.item,
       );
+      scheduleDropGhost(geo);
     });
-  }, []);
+  }, [scheduleDropGhost]);
 
   const beginMarquee = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -231,58 +284,100 @@ export function TimelineViewport({
         x: event.clientX - rect.left + scroll.scrollLeft,
         y: event.clientY - rect.top + scroll.scrollTop,
       };
-      setMarquee(normalizeMarquee(origin, origin));
+      const existingIds = selectedClipIdsFrom(selection);
+      let shiftHeld = event.shiftKey;
 
-      const onMove = (ev: PointerEvent) => {
-        const next = {
-          x: ev.clientX - rect.left + scroll.scrollLeft,
-          y: ev.clientY - rect.top + scroll.scrollTop,
-        };
-        setMarquee(normalizeMarquee(origin, next));
-      };
-
-      const onUp = (ev: PointerEvent) => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        const end = {
-          x: ev.clientX - rect.left + scroll.scrollLeft,
-          y: ev.clientY - rect.top + scroll.scrollTop,
-        };
-        const box = normalizeMarquee(origin, end);
-        setMarquee(null);
-
-        const hitBoxes: Array<{
-          id: string;
-          left: number;
-          top: number;
-          right: number;
-          bottom: number;
-        }> = [];
-        let laneTop = 0;
-        for (const lane of sortedLanes) {
-          const h = laneRowHeightPx(lane);
-          for (const clip of clipsByLaneMap.get(lane.id) ?? []) {
-            const left =
-              TIMELINE_PLAYHEAD_GUTTER_PX +
-              clip.startTime * layout.pixelsPerSecond;
-            const right = left + clip.duration * layout.pixelsPerSecond;
-            hitBoxes.push({
-              id: clip.id,
-              left,
-              top: laneTop,
-              right,
-              bottom: laneTop + h,
-            });
-          }
-          laneTop += h;
+      const onShiftKey = (ev: KeyboardEvent) => {
+        if (ev.key === "Shift") {
+          shiftHeld = ev.type === "keydown" || ev.shiftKey;
         }
-        onSelect(selectionClips(clipIdsInMarquee(box, hitBoxes)));
       };
 
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
+      type MarqueeState = { box: MarqueeRect; moved: boolean };
+
+      beginGesture<MarqueeState, void>(
+        {
+          name: "marquee",
+          onStart: () => {
+            window.addEventListener("keydown", onShiftKey);
+            window.addEventListener("keyup", onShiftKey);
+            const box = normalizeMarquee(origin, origin);
+            setMarquee(box);
+            return { box, moved: false };
+          },
+          onUpdate: (pos) => {
+            autoScrollTimelineNearEdge(pos.x, pos.y);
+            const r = scroll.getBoundingClientRect();
+            const next = {
+              x: pos.x - r.left + scroll.scrollLeft,
+              y: pos.y - r.top + scroll.scrollTop,
+            };
+            const box = normalizeMarquee(origin, next);
+            const moved =
+              Math.hypot(next.x - origin.x, next.y - origin.y) >=
+              MARQUEE_THRESHOLD_PX;
+            setMarquee(box);
+            return { box, moved };
+          },
+          onCommit: (state) => {
+            window.removeEventListener("keydown", onShiftKey);
+            window.removeEventListener("keyup", onShiftKey);
+            setMarquee(null);
+            if (!state.moved) return;
+
+            const hitBoxes: Array<{
+              id: string;
+              left: number;
+              top: number;
+              right: number;
+              bottom: number;
+            }> = [];
+            let laneTop = 0;
+            for (const lane of sortedLanes) {
+              const h = laneRowHeightPx(lane);
+              for (const clip of clipsByLaneMap.get(lane.id) ?? []) {
+                const left =
+                  TIMELINE_PLAYHEAD_GUTTER_PX +
+                  clip.startTime * layout.pixelsPerSecond;
+                const right = left + clip.duration * layout.pixelsPerSecond;
+                hitBoxes.push({
+                  id: clip.id,
+                  left,
+                  top: laneTop,
+                  right,
+                  bottom: laneTop + h,
+                });
+              }
+              laneTop += h;
+            }
+            const hits = clipIdsInMarquee(state.box, hitBoxes);
+            if (shiftHeld) {
+              onSelect(
+                selectionClips([...new Set([...existingIds, ...hits])]),
+              );
+            } else {
+              onSelect(selectionClips(hits));
+            }
+          },
+          onCancel: () => {
+            window.removeEventListener("keydown", onShiftKey);
+            window.removeEventListener("keyup", onShiftKey);
+            setMarquee(null);
+          },
+        },
+        { x: event.clientX, y: event.clientY },
+        event.currentTarget,
+      );
     },
-    [clipsByLaneMap, disabled, layout.pixelsPerSecond, onSelect, sortedLanes],
+    [
+      beginGesture,
+      clipsByLaneMap,
+      disabled,
+      layout.pixelsPerSecond,
+      onSelect,
+      selection,
+      sortedLanes,
+    ],
   );
 
   void scrollTop;
@@ -354,90 +449,107 @@ export function TimelineViewport({
           </div>
         </div>
 
-        <div
-          ref={tracksScrollRef}
-          className="timeline-board__tracks"
-          data-timeline-drop-zone="true"
-          data-pixels-per-second={layout.pixelsPerSecond}
-          onScroll={onScroll}
-          onPointerDown={(event) => {
-            if (disabled || event.button !== 0) return;
-            if ((event.target as HTMLElement).closest("[data-clip-id]")) return;
-            if (event.shiftKey) {
-              beginMarquee(event);
-              return;
-            }
-            onSelect(selectionNone());
-            seekToClientX(event.clientX);
-          }}
+        <TimelineContextMenu
+          className="timeline-board__tracks-ctx"
+          selection={selection}
+          disabled={disabled}
+          canPaste={canPaste}
+          onCopy={onCopy}
+          onCut={onCut}
+          onPaste={onPaste}
+          onExecute={onExecute}
+          getPlayheadTime={getPlayheadTime}
         >
-          {sortedLanes.length === 0 ? (
-            <p className="timeline-board__empty">No lanes in this project.</p>
-          ) : (
-            <div
-              className="timeline-board__canvas"
-              style={{
-                width: Math.max(layout.canvasWidth, trackViewWidth),
-                height: Math.max(totalLaneHeight, 1),
-                paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX,
-                position: "relative",
-              }}
-            >
-              {sortedLanes.map((lane) => {
-                const h = laneRowHeightPx(lane);
-                const visibleClips = clipsForLane(lane.id);
-                return (
+          <div
+            ref={tracksScrollRef}
+            className="timeline-board__tracks"
+            data-timeline-drop-zone="true"
+            data-pixels-per-second={layout.pixelsPerSecond}
+            onScroll={onScroll}
+            onPointerDown={(event) => {
+              if (disabled || event.button !== 0) return;
+              if ((event.target as HTMLElement).closest("[data-clip-id]"))
+                return;
+              if (event.shiftKey) {
+                beginMarquee(event);
+                return;
+              }
+              onSelect(selectionNone());
+              seekToClientX(event.clientX);
+            }}
+          >
+            {sortedLanes.length === 0 ? (
+              <p className="timeline-board__empty">No lanes in this project.</p>
+            ) : (
+              <div
+                className="timeline-board__canvas"
+                style={{
+                  width: Math.max(layout.canvasWidth, trackViewWidth),
+                  height: Math.max(totalLaneHeight, 1),
+                  paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX,
+                  position: "relative",
+                }}
+              >
+                {sortedLanes.map((lane) => {
+                  const h = laneRowHeightPx(lane);
+                  const visibleClips = clipsForLane(lane.id);
+                  return (
+                    <div
+                      key={lane.id}
+                      className="timeline-board__lane-band"
+                      style={{ height: h }}
+                      data-lane-id={lane.id}
+                    >
+                      <ClipStrip
+                        clips={visibleClips}
+                        lane={lane}
+                        pixelsPerSecond={layout.pixelsPerSecond}
+                        laneHeight={h}
+                        selection={selection}
+                        disabled={disabled}
+                        beginGesture={beginGesture}
+                        onSelect={onSelect}
+                        onExecute={onExecute}
+                      />
+                    </div>
+                  );
+                })}
+                {dropGhost ? (
                   <div
-                    key={lane.id}
-                    className="timeline-board__lane-band"
-                    style={{ height: h }}
-                    data-lane-id={lane.id}
+                    className={
+                      dropGhost.valid
+                        ? "timeline-board__drop-ghost"
+                        : "timeline-board__drop-ghost timeline-board__drop-ghost--invalid"
+                    }
+                    aria-hidden
+                    style={{
+                      top: ghostLaneTop,
+                      left: dropGhost.startTime * layout.pixelsPerSecond,
+                      height: laneRowHeightPx(
+                        sortedLanes.find((l) => l.id === dropGhost.laneId) ??
+                          sortedLanes[0]!,
+                      ),
+                    }}
                   >
-                    <ClipStrip
-                      clips={visibleClips}
-                      lane={lane}
-                      pixelsPerSecond={layout.pixelsPerSecond}
-                      laneHeight={h}
-                      selection={selection}
-                      disabled={disabled}
-                      beginGesture={beginGesture}
-                      onSelect={onSelect}
-                      onExecute={onExecute}
-                    />
+                    <div className="timeline-board__insert-line" />
                   </div>
-                );
-              })}
-              {dropGhost ? (
-                <div
-                  className="timeline-board__drop-ghost"
-                  aria-hidden
-                  style={{
-                    top: ghostLaneTop,
-                    left: dropGhost.startTime * layout.pixelsPerSecond,
-                    height: laneRowHeightPx(
-                      sortedLanes.find((l) => l.id === dropGhost.laneId) ??
-                        sortedLanes[0]!,
-                    ),
-                  }}
-                >
-                  <div className="timeline-board__insert-line" />
-                </div>
-              ) : null}
-              {marquee ? (
-                <div
-                  className="timeline-board__marquee"
-                  aria-hidden
-                  style={{
-                    left: marquee.left,
-                    top: marquee.top,
-                    width: marquee.right - marquee.left,
-                    height: marquee.bottom - marquee.top,
-                  }}
-                />
-              ) : null}
-            </div>
-          )}
-        </div>
+                ) : null}
+                {marquee ? (
+                  <div
+                    className="timeline-board__marquee"
+                    aria-hidden
+                    style={{
+                      left: marquee.left,
+                      top: marquee.top,
+                      width: marquee.right - marquee.left,
+                      height: marquee.bottom - marquee.top,
+                    }}
+                  />
+                ) : null}
+              </div>
+            )}
+          </div>
+        </TimelineContextMenu>
       </div>
 
       <Playhead

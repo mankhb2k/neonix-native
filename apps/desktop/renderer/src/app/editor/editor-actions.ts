@@ -13,6 +13,9 @@ export type EditorActions = {
   fitTimeline: () => void;
   setZoom: (zoom: number) => void;
   executeTimeline: (command: TimelineCommand, label: string) => void;
+  copySelection: () => void;
+  cutSelection: () => void;
+  pasteSelection: () => void;
   canUndo: boolean;
   canRedo: boolean;
   canSave: boolean;
