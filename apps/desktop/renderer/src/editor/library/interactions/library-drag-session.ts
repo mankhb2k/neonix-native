@@ -1,7 +1,7 @@
 /**
  * Pointer drag session for library → timeline.
  * State machine: idle → pressed → dragging → committed|cancelled (via idle).
- * UI-only until end() commits; never writes into the document directly.
+ * Owner token prevents foreign unmount from cancelling another gesture.
  */
 
 import type { LibraryPayload } from "../model/library-payload";
@@ -20,6 +20,8 @@ export type LibraryDragSessionState = {
   clientY: number;
   originX: number;
   originY: number;
+  ownerId: string | null;
+  pointerId: number | null;
 };
 
 export type LibraryDragEndResult =
@@ -50,17 +52,24 @@ const IDLE: LibraryDragSessionState = {
   clientY: 0,
   originX: 0,
   originY: 0,
+  ownerId: null,
+  pointerId: null,
 };
 
 let current: LibraryDragSessionState = IDLE;
 const listeners = new Set<Listener>();
 let disposeAttached: (() => void) | null = null;
+let ownerSeq = 0;
+
+export function createLibraryDragOwnerId(): string {
+  ownerSeq += 1;
+  return `lib_drag_${ownerSeq}`;
+}
 
 function emit(): void {
   for (const listener of listeners) listener(current);
 }
 
-/** Notify subscribers only when preview-relevant (dragging moves / phase changes). */
 function emitIfNeeded(
   prev: LibraryDragSessionState,
   next: LibraryDragSessionState,
@@ -100,10 +109,6 @@ export function subscribeLibraryDrag(listener: Listener): () => void {
   return subscribe(listener);
 }
 
-/**
- * Attach window listeners and return a dispose that removes the same function refs.
- * Also stored for dispose() so Escape/unmount can tear down safely.
- */
 export function attachWindowListeners(
   handlers: WindowListenerHandlers,
 ): () => void {
@@ -127,7 +132,6 @@ export function attachWindowListeners(
   return cleanup;
 }
 
-/** Remove any listeners previously attached via attachWindowListeners. */
 export function dispose(): void {
   disposeAttached?.();
   disposeAttached = null;
@@ -137,6 +141,8 @@ export function beginPress(
   item: LibraryPayload,
   x: number,
   y: number,
+  ownerId: string,
+  pointerId: number | null = null,
 ): void {
   setState({
     phase: "pressed",
@@ -145,6 +151,8 @@ export function beginPress(
     clientY: y,
     originX: x,
     originY: y,
+    ownerId,
+    pointerId,
   });
 }
 
@@ -173,12 +181,6 @@ export function move(x: number, y: number): void {
   });
 }
 
-/**
- * End the press/drag.
- * - pressed (click, never crossed threshold) → commit
- * - dragging + over timeline drop zone → commit
- * - dragging + outside → cancel
- */
 export function end(
   clientX: number,
   clientY: number,
@@ -212,6 +214,8 @@ export function end(
       clientY,
       originX: current.originX,
       originY: current.originY,
+      ownerId: current.ownerId,
+      pointerId: current.pointerId,
     });
     setState(IDLE);
     return {
@@ -230,13 +234,18 @@ export function end(
     clientY,
     originX: current.originX,
     originY: current.originY,
+    ownerId: current.ownerId,
+    pointerId: current.pointerId,
   });
   setState(IDLE);
   return { kind: "cancel" };
 }
 
-/** Cancel on Escape / pointercancel / unmount. */
-export function cancel(): void {
+/** Cancel only if owner matches (or owner omitted for Escape/global cancel). */
+export function cancel(ownerId?: string): void {
+  if (ownerId != null && current.ownerId != null && current.ownerId !== ownerId) {
+    return;
+  }
   dispose();
   if (current.phase === "idle") return;
   setState({

@@ -1,17 +1,25 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../../src/shared/ipc/errors";
 import { createProjectRepository } from "../infrastructure/repositories/project-repository";
-import { DiagnosticsScreen } from "./diagnostics/DiagnosticsScreen";
 import { EditingWorkspace } from "./editor/EditingWorkspace";
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
-import { UiGallery } from "./gallery/UiGallery";
 import { HubScreen } from "./hub/HubScreen";
 import { TitleBar } from "./shell/TitleBar";
 import {
   createInitialAppState,
   reduceAppState,
 } from "./state/app-machine";
+import type { EditorSessionHandle } from "./editor/editor-session-handle";
 import type { DesktopAPI } from "../../../src/shared/ipc/contracts";
+
+const DiagnosticsScreen = lazy(() =>
+  import("./diagnostics/DiagnosticsScreen").then((m) => ({
+    default: m.DiagnosticsScreen,
+  })),
+);
+const UiGallery = lazy(() =>
+  import("./gallery/UiGallery").then((m) => ({ default: m.UiGallery })),
+);
 
 type Props = {
   api: DesktopAPI;
@@ -30,6 +38,7 @@ export function DesktopApp({ api }: Props) {
   const [state, dispatch] = useReducer(reduceAppState, undefined, createInitialAppState);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const sessionHandleRef = useRef<EditorSessionHandle | null>(null);
   const repo = useMemo(() => createProjectRepository(api), [api]);
 
   useEffect(() => {
@@ -97,8 +106,10 @@ export function DesktopApp({ api }: Props) {
 
   useEffect(() => {
     return api.window.onRequestCloseSave(() => {
-      const current = stateRef.current;
-      if (!current.dirty) {
+      const handle = sessionHandleRef.current;
+      const snap = handle?.flushSnapshot();
+      const dirty = snap?.dirty ?? stateRef.current.dirty;
+      if (!dirty) {
         void api.window.confirmClose(true);
         return;
       }
@@ -110,7 +121,7 @@ export function DesktopApp({ api }: Props) {
         return;
       }
       void (async () => {
-        const saved = await performSave();
+        const saved = await performSave(snap?.documentJson);
         void api.window.confirmClose(saved);
       })();
     });
@@ -203,8 +214,9 @@ export function DesktopApp({ api }: Props) {
   );
 
   const onCloseToHome = useCallback(async () => {
-    const current = stateRef.current;
-    if (current.dirty) {
+    const snap = sessionHandleRef.current?.flushSnapshot();
+    const dirty = snap?.dirty ?? stateRef.current.dirty;
+    if (dirty) {
       const leave = window.confirm(
         "Discard unsaved changes and return to Home?",
       );
@@ -230,21 +242,25 @@ export function DesktopApp({ api }: Props) {
       <div className="app-shell">
         <TitleBar api={api} title={title} dirty={state.dirty} />
         {showGallery ? (
-          <UiGallery
-            onClose={() => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("gallery");
-              url.hash = "";
-              window.history.replaceState({}, "", url.toString());
-              window.location.reload();
-            }}
-          />
+          <Suspense fallback={<p className="home__muted">Loading gallery…</p>}>
+            <UiGallery
+              onClose={() => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete("gallery");
+                url.hash = "";
+                window.history.replaceState({}, "", url.toString());
+                window.location.reload();
+              }}
+            />
+          </Suspense>
         ) : null}
         {!showGallery && state.showDiagnostics ? (
-          <DiagnosticsScreen
-            api={api}
-            onBack={() => dispatch({ type: "SHOW_DIAGNOSTICS", show: false })}
-          />
+          <Suspense fallback={<p className="home__muted">Loading diagnostics…</p>}>
+            <DiagnosticsScreen
+              api={api}
+              onBack={() => dispatch({ type: "SHOW_DIAGNOSTICS", show: false })}
+            />
+          </Suspense>
         ) : null}
         {!showGallery &&
         !state.showDiagnostics &&
@@ -287,6 +303,7 @@ export function DesktopApp({ api }: Props) {
             dirty={state.dirty}
             error={state.error}
             saving={state.phase === "saving"}
+            sessionHandleRef={sessionHandleRef}
             onDocumentChange={(documentJson) =>
               dispatch({ type: "SET_DOCUMENT_JSON", documentJson })
             }

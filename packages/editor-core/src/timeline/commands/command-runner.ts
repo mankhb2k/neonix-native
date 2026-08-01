@@ -29,6 +29,7 @@ import { resolveCollisionsAfterResize } from "../internal/resize-collision";
 import {
   cloneSceneWithNewIds,
   sceneFromFrameDraft,
+  stageSizeForAspect,
 } from "../internal/scene-utils";
 import { rebuildMainProject } from "../internal/timeline-project-sync";
 import {
@@ -42,7 +43,7 @@ import {
   isOverlayLane,
   normalizeLaneOrders,
   pruneEmptyLanes,
-  reorderOverlayLane,
+  reorderLaneInFamily,
   resolveMainStartTime,
   type TimelineClip,
   type TimelineLane,
@@ -131,7 +132,10 @@ export function executeTimelineCommand(
         if (isLaneLocked(lanes, baseLane.id)) {
           return { status: "rejected", reason: "locked", message: "Base lane bị khóa." };
         }
-        const scene = sceneFromFrameDraft(command.draft, ctx.createId);
+        const composition = stageSizeForAspect(
+          project.metadata.aspectRatio ?? "16:9",
+        );
+        const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
         const startTime = resolveMainStartTime(
           clips,
           lanes,
@@ -187,7 +191,10 @@ export function executeTimelineCommand(
         return { status: "rejected", reason: "collision", message: "Không thể thêm clip lên overlay lane." };
       }
       lanes = placement.lanes;
-      const scene = sceneFromFrameDraft(command.draft, ctx.createId);
+      const composition = stageSizeForAspect(
+        project.metadata.aspectRatio ?? "16:9",
+      );
+      const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
       const clip: TimelineClip = {
         id: uid("clip"),
         kind: "scene",
@@ -794,7 +801,19 @@ export function executeTimelineCommand(
     }
 
     case "reorder-lane": {
-      lanes = reorderOverlayLane(lanes, command.laneId, command.newOrder);
+      const reordered = reorderLaneInFamily(
+        lanes,
+        command.laneId,
+        command.newOrder,
+      );
+      if (reordered === "blocked") {
+        return {
+          status: "rejected",
+          reason: "missing_lane",
+          message: "Lane không thể sắp xếp lại.",
+        };
+      }
+      lanes = reordered;
       events.push({ type: "lane-updated", laneId: command.laneId });
       break;
     }

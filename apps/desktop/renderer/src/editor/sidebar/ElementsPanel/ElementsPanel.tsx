@@ -32,12 +32,13 @@ function ElementPresetButton({
   payload: LibraryPayload;
   onCommit: (payload: LibraryPayload, point: LibraryCommitPoint) => void;
 }) {
-  const { onPointerDown } = useLibraryPointerGesture(payload, onCommit);
+  const { onPointerDown, onKeyDown } = useLibraryPointerGesture(payload, onCommit);
   return (
     <button
       type="button"
       className="editor-sidebar__preset"
       onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
     >
       {payload.label}
     </button>

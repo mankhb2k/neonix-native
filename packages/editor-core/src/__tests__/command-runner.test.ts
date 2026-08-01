@@ -171,4 +171,43 @@ describe("Pure Command Runner Engine", () => {
       expect(result.reason).toBe("locked");
     }
   });
+
+  it("rejects reorder-lane on base lane", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const base = lanes.find((l) => l.kind === "visual" && l.role === "base");
+    expect(base).toBeTruthy();
+    const result = executeTimelineCommand(
+      { project, clips, lanes },
+      { type: "reorder-lane", laneId: base!.id, newOrder: 0 },
+    );
+    expect(result.status).toBe("rejected");
+  });
+
+  it("centers new draft using project aspect ratio", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const wide = {
+      ...project,
+      metadata: { ...project.metadata, aspectRatio: "16:9" as const },
+    };
+    const result = executeTimelineCommand(
+      { project: wide, clips, lanes },
+      {
+        type: "add-clip-draft",
+        draft: {
+          id: "d.center",
+          name: "T",
+          text: "T",
+          duration: 2,
+          kind: "text",
+        },
+        target: { track: "main" },
+      },
+    );
+    expect(result.status).toBe("applied");
+    if (result.status === "applied") {
+      const node = result.document.project.scenes.at(-1)?.nodes[0];
+      expect(node?.transform.x).toBe(960);
+      expect(node?.transform.y).toBe(540);
+    }
+  });
 });

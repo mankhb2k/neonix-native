@@ -8,17 +8,19 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 - [ ] `pnpm --filter @motionvideo/desktop typecheck`
 - [ ] `pnpm --filter @motionvideo/desktop lint`
 - [ ] `pnpm --filter @motionvideo/desktop build:renderer:release`
-- [ ] `node apps/desktop/scripts/smoke-export-cli.mjs` (when export fixtures available)
-- [ ] `node apps/desktop/scripts/smoke-desktop-paths.mjs`
-- [ ] `node apps/desktop/scripts/probe-web-import-ban.mjs`
+- [ ] `pnpm --filter @motionvideo/desktop pack` (script name is **`pack`**, not `package`)
+- [ ] `pnpm --filter @motionvideo/desktop test:export-cli`
+- [ ] `pnpm --filter @motionvideo/desktop test:desktop-paths`
+- [ ] `pnpm --filter @motionvideo/desktop test:web-ban`
 
 ## Manual UI
 
-- [ ] Screenshot Hub + Editor @ 1280 / 1920 → `docs/migration/vite-ui/baselines/`
-- [ ] Keyboard: Undo/Redo, Escape cancel drag/rename, Delete clip
-- [ ] Packaged Electron launch (`pnpm --filter @motionvideo/desktop package` or release script)
+- [ ] Screenshot Hub + Editor @ 1280 / 1920 → `docs/migration/vite-ui/baselines/` (see baselines README)
+- [ ] Keyboard: Undo/Redo, Escape cancel drag/rename, Delete clip, Enter/Space library add
+- [ ] Packaged Electron launch via `pnpm --filter @motionvideo/desktop pack`
 - [ ] Create project with name + aspectRatio persists
-- [ ] Library drag → lane/time placement; drop outside cancels
+- [ ] Library drag → lane/time; wrong family rejects; drop outside cancels
+- [ ] Rename focused → native window close saves new name (EditorSessionHandle)
 - [ ] Save after renaming with focus still in name field
 
 ## Soak

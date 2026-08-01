@@ -108,12 +108,13 @@ function MediaDragHit({
   preview?: string;
   onCommit: (payload: LibraryPayload, point: LibraryCommitPoint) => void;
 }) {
-  const { onPointerDown } = useLibraryPointerGesture(payload, onCommit);
+  const { onPointerDown, onKeyDown } = useLibraryPointerGesture(payload, onCommit);
   return (
     <button
       type="button"
       className="asset-panel__drag-hit"
       onPointerDown={onPointerDown}
+      onKeyDown={onKeyDown}
       title="Drag to timeline or click to add"
     >
       <AssetThumb preview={preview} assetType={payload.kind} />

@@ -20,7 +20,8 @@ export function commitLibraryPayload(
 ): void {
   let target: PlacementTarget | undefined;
   if (point?.mode === "drag") {
-    target = resolveLibraryPlacement(point.clientX, point.clientY);
+    target = resolveLibraryPlacement(point.clientX, point.clientY, payload);
+    if (!target) return;
   }
   const { command, label } = payloadToTimelineCommand(payload, target);
   onExecuteTimeline(command, label);

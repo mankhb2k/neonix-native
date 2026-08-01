@@ -1,10 +1,13 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
   useReducer,
   useRef,
   useState,
+  type MutableRefObject,
 } from "react";
 import {
   canRedo,
@@ -14,7 +17,6 @@ import {
 } from "@motionvideo/editor-core";
 import { AssetPanel } from "../../editor/assets/AssetPanel";
 import { listEnvelopeAssets } from "../../editor/assets/document-assets";
-import { ExportControls } from "../../editor/export/ExportControls";
 import { EXPORT_ENABLED } from "../../editor/export/feature-flag";
 import { INSPECTOR_ENABLED } from "../../editor/inspector/feature-flag";
 import { InspectorDock } from "../../editor/inspector/InspectorDock";
@@ -38,7 +40,14 @@ import { createAssetRepository } from "../../infrastructure/repositories/asset-r
 import { EditorHeader } from "./EditorHeader";
 import { resolveFlushedDocumentJson } from "./flush-document-snapshot";
 import type { EditorActions } from "./editor-actions";
+import type { EditorSessionHandle } from "./editor-session-handle";
 import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
+
+const ExportControls = lazy(() =>
+  import("../../editor/export/ExportControls").then((m) => ({
+    default: m.ExportControls,
+  })),
+);
 
 type Props = {
   api: DesktopAPI;
@@ -49,6 +58,9 @@ type Props = {
   dirty: boolean;
   error: string | null;
   saving?: boolean;
+  sessionHandleRef?: MutableRefObject<EditorSessionHandle | null>;
+  /** Prefer over mutating sessionHandleRef when lint forbids param reassignment. */
+  onSessionHandle?: (handle: EditorSessionHandle | null) => void;
   onDocumentChange: (json: string) => void;
   onSave: (documentJson: string) => void;
   onSaveAs: (documentJson: string) => void;
@@ -68,6 +80,8 @@ function EditingWorkspaceInner({
   dirty,
   error,
   saving,
+  sessionHandleRef,
+  onSessionHandle,
   onDocumentChange,
   onSave,
   onSaveAs,
@@ -134,23 +148,31 @@ function EditingWorkspaceInner({
     [clock],
   );
 
+  const copySelection = useCallback(() => {
+    dispatch({ type: "COPY_SELECTION" });
+  }, []);
+
+  const cutSelection = useCallback(() => {
+    timelineEntrySeq += 1;
+    dispatch({ type: "CUT_SELECTION", entryId: `cut_${timelineEntrySeq}` });
+  }, []);
+
+  const pasteSelection = useCallback(() => {
+    executeTimeline(
+      { type: "paste-clips", atTime: getPlayheadTime() },
+      "Paste clips",
+    );
+  }, [executeTimeline, getPlayheadTime]);
+
   useTimelineHotkeys({
     enabled: !saving && !session.loadError && Boolean(session.project),
     getPlayheadTime,
     onUndo: () => dispatch({ type: "UNDO" }),
     onRedo: () => dispatch({ type: "REDO" }),
     onExecute: executeTimeline,
-    onCopy: () => dispatch({ type: "COPY_SELECTION" }),
-    onCut: () => {
-      timelineEntrySeq += 1;
-      dispatch({ type: "CUT_SELECTION", entryId: `cut_${timelineEntrySeq}` });
-    },
-    onPaste: () => {
-      executeTimeline(
-        { type: "paste-clips", atTime: getPlayheadTime() },
-        "Paste clips",
-      );
-    },
+    onCopy: copySelection,
+    onCut: cutSelection,
+    onPaste: pasteSelection,
   });
 
   const sessionJson = session.sessionDocumentJson ?? documentJson;
@@ -233,6 +255,38 @@ function EditingWorkspaceInner({
     });
   }, [documentJson, nameDraft, session]);
 
+  const flushSnapshot = useCallback((): {
+    documentJson: string;
+    dirty: boolean;
+  } => {
+    const pendingNameDirty =
+      nameDraftDirtyRef.current &&
+      !skipNameCommitRef.current &&
+      (nameDraft.trim() || "Untitled") !== session.projectName;
+    const documentJsonOut = flushDocumentSnapshot();
+    return {
+      documentJson: documentJsonOut,
+      dirty: dirty || pendingNameDirty || !path,
+    };
+  }, [dirty, flushDocumentSnapshot, nameDraft, path, session.projectName]);
+
+  useEffect(() => {
+    const handle: EditorSessionHandle = { flushSnapshot };
+    onSessionHandle?.(handle);
+    if (sessionHandleRef) {
+      // Register for native close; ref identity is owned by DesktopApp.
+      // eslint-disable-next-line no-param-reassign -- intentional handle registry
+      sessionHandleRef.current = handle;
+    }
+    return () => {
+      onSessionHandle?.(null);
+      if (sessionHandleRef?.current === handle) {
+        // eslint-disable-next-line no-param-reassign -- intentional handle registry
+        sessionHandleRef.current = null;
+      }
+    };
+  }, [flushSnapshot, onSessionHandle, sessionHandleRef]);
+
   const editorActions: EditorActions = useMemo(
     () => ({
       goHome: onCloseToHome,
@@ -243,6 +297,9 @@ function EditingWorkspaceInner({
       fitTimeline: () => dispatch({ type: "FIT_TIMELINE" }),
       setZoom: (zoom) => dispatch({ type: "SET_ZOOM", zoom }),
       executeTimeline,
+      copySelection,
+      cutSelection,
+      pasteSelection,
       canUndo: canUndo(session.history),
       canRedo: canRedo(session.history),
       canSave: dirty || !path,
@@ -268,6 +325,9 @@ function EditingWorkspaceInner({
       onSaveAs,
       flushDocumentSnapshot,
       executeTimeline,
+      copySelection,
+      cutSelection,
+      pasteSelection,
       session.history,
       session.projectName,
       dirty,
@@ -285,18 +345,20 @@ function EditingWorkspaceInner({
         actions={editorActions}
         exportSlot={
           EXPORT_ENABLED ? (
-            <ExportControls
-              api={api}
-              project={session.project}
-              clips={session.clips}
-              lanes={session.lanes}
-              projectPath={path}
-              disabled={saving || Boolean(session.loadError)}
-              dirty={dirty}
-              onRequestSave={() => {
-                onSave(flushDocumentSnapshot());
-              }}
-            />
+            <Suspense fallback={null}>
+              <ExportControls
+                api={api}
+                project={session.project}
+                clips={session.clips}
+                lanes={session.lanes}
+                projectPath={path}
+                disabled={saving || Boolean(session.loadError)}
+                dirty={dirty}
+                onRequestSave={() => {
+                  onSave(flushDocumentSnapshot());
+                }}
+              />
+            </Suspense>
           ) : null
         }
         transportSlot={
@@ -383,10 +445,14 @@ function EditingWorkspaceInner({
             timelineFitRevision={session.timelineFitRevision}
             selection={session.selection}
             disabled={saving || Boolean(session.loadError)}
+            canPaste={session.clipboard.length > 0}
             onSelect={(selection) =>
               dispatch({ type: "SET_SELECTION", selection })
             }
             onExecute={executeTimeline}
+            onCopy={copySelection}
+            onCut={cutSelection}
+            onPaste={pasteSelection}
           />
         }
         inspector={

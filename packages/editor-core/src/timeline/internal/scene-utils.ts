@@ -57,36 +57,58 @@ export function mapNode(
   };
 }
 
-const CENTER_TRANSFORM = {
-  x: 540,
-  y: 960,
-  width: 900,
-  height: 180,
-  rotation: 0,
-  scaleX: 1,
-  scaleY: 1,
-  anchorX: 0.5,
-  anchorY: 0.5,
-  opacity: 1,
-  visible: true,
-  flipX: false,
-  flipY: false,
-} as const;
+export type CompositionSize = {
+  width: number;
+  height: number;
+};
 
-const MEDIA_TRANSFORM = {
-  ...CENTER_TRANSFORM,
-  width: 1080,
-  height: 1080,
-} as const;
+/** Stage size for project aspect ratio (matches desktop preview). */
+export function stageSizeForAspect(aspectRatio: string): CompositionSize {
+  switch (aspectRatio) {
+    case "16:9":
+      return { width: 1920, height: 1080 };
+    case "1:1":
+      return { width: 1080, height: 1080 };
+    case "9:16":
+    default:
+      return { width: 1080, height: 1920 };
+  }
+}
 
-const SHAPE_TRANSFORM = {
-  ...CENTER_TRANSFORM,
-  width: 420,
-  height: 420,
-} as const;
+const DEFAULT_COMPOSITION: CompositionSize = { width: 1920, height: 1080 };
 
-function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
+function baseTransform(
+  composition: CompositionSize,
+  width: number,
+  height: number,
+) {
+  return {
+    x: composition.width / 2,
+    y: composition.height / 2,
+    width,
+    height,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    anchorX: 0.5,
+    anchorY: 0.5,
+    opacity: 1,
+    visible: true,
+    flipX: false,
+    flipY: false,
+  };
+}
+
+function nodeFromDraft(
+  draft: FrameDraft,
+  nodeId: string,
+  composition: CompositionSize,
+): MotionNode {
   const kind = draft.kind ?? "text";
+  const textW = Math.min(900, composition.width * 0.7);
+  const textH = Math.min(180, composition.height * 0.2);
+  const mediaSide = Math.min(composition.width, composition.height) * 0.75;
+  const shapeSide = Math.min(420, mediaSide * 0.55);
 
   if (kind === "shape") {
     const shape =
@@ -98,7 +120,7 @@ function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
       type: "shape",
       parentId: null,
       zIndex: 0,
-      transform: { ...SHAPE_TRANSFORM },
+      transform: baseTransform(composition, shapeSide, shapeSide),
       payload: shape,
       style: { fill: "#4A90D9" },
     };
@@ -110,7 +132,7 @@ function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
       type: "image",
       parentId: null,
       zIndex: 0,
-      transform: { ...MEDIA_TRANSFORM },
+      transform: baseTransform(composition, mediaSide, mediaSide),
       payload: {
         assetId: draft.assetId,
         fit: "contain",
@@ -124,7 +146,7 @@ function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
       type: "video",
       parentId: null,
       zIndex: 0,
-      transform: { ...MEDIA_TRANSFORM },
+      transform: baseTransform(composition, mediaSide, mediaSide),
       payload: {
         assetId: draft.assetId,
         fit: "contain",
@@ -138,7 +160,7 @@ function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
     type: "text",
     parentId: null,
     zIndex: 0,
-    transform: { ...CENTER_TRANSFORM },
+    transform: baseTransform(composition, textW, textH),
     payload: {
       text: draft.text || draft.name,
       fontSize: 64,
@@ -152,12 +174,13 @@ function nodeFromDraft(draft: FrameDraft, nodeId: string): MotionNode {
 export function sceneFromFrameDraft(
   draft: FrameDraft,
   createId: CommandContext["createId"] = defaultCreateId,
+  composition: CompositionSize = DEFAULT_COMPOSITION,
 ): MotionScene {
   const sceneId = createId("scene");
   const nodeId = createId("node");
   const clipId = createId("clip");
   const duration = Math.max(0.5, draft.duration || DEFAULT_FRAME_DURATION);
-  const node = nodeFromDraft(draft, nodeId);
+  const node = nodeFromDraft(draft, nodeId, composition);
   return {
     id: sceneId,
     name: draft.name,

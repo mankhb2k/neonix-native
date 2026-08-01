@@ -195,6 +195,36 @@ export function reorderOverlayLane(
   });
 }
 
+/** Reorder within family: overlay↔overlay or audio↔audio. Base is never moved. */
+export function reorderLaneInFamily(
+  lanes: TimelineLane[],
+  laneId: string,
+  newOrder: number,
+): TimelineLane[] | "blocked" {
+  const target = lanes.find((lane) => lane.id === laneId);
+  if (!target) return "blocked";
+  if (target.kind === "visual" && target.role === "base") return "blocked";
+
+  if (target.kind === "visual" && target.role === "overlay") {
+    return reorderOverlayLane(lanes, laneId, newOrder);
+  }
+
+  if (target.kind === "audio") {
+    const clamped = Math.max(0, Math.floor(newOrder));
+    const others = lanes
+      .filter((lane) => lane.kind === "audio" && lane.id !== laneId)
+      .sort((a, b) => a.order - b.order);
+    others.splice(Math.min(clamped, others.length), 0, target);
+    const remapped = others.map((lane, index) => ({ ...lane, order: index }));
+    return lanes.map((lane) => {
+      if (lane.kind !== "audio") return lane;
+      return remapped.find((item) => item.id === lane.id) ?? lane;
+    });
+  }
+
+  return "blocked";
+}
+
 /**
  * Explicit lane delete — never auto-prunes empty lanes.
  * Blocks base and any lane that still has clips.

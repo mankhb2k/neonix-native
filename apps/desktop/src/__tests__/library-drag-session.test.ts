@@ -26,7 +26,7 @@ describe("library-drag-session", () => {
   });
 
   it("stays pressed until 4px threshold, then dragging", () => {
-    beginPress(SAMPLE, 100, 100);
+    beginPress(SAMPLE, 100, 100, "owner-a");
     expect(getSession().phase).toBe("pressed");
 
     move(102, 101);
@@ -38,7 +38,7 @@ describe("library-drag-session", () => {
   });
 
   it("cancel clears session (Escape / pointercancel path)", () => {
-    beginPress(SAMPLE, 10, 10);
+    beginPress(SAMPLE, 10, 10, "owner-a");
     move(20, 20);
     expect(getSession().phase).toBe("dragging");
     cancel();
@@ -47,7 +47,7 @@ describe("library-drag-session", () => {
   });
 
   it("drop outside timeline cancels", () => {
-    beginPress(SAMPLE, 0, 0);
+    beginPress(SAMPLE, 0, 0, "owner-a");
     move(10, 0);
     const result = end(50, 50, false);
     expect(result).toEqual({ kind: "cancel" });
@@ -55,7 +55,7 @@ describe("library-drag-session", () => {
   });
 
   it("one commit on click (pressed, no drag)", () => {
-    beginPress(SAMPLE, 5, 5);
+    beginPress(SAMPLE, 5, 5, "owner-a");
     const result = end(5, 5, false);
     expect(result).toEqual({
       kind: "commit",
@@ -68,7 +68,7 @@ describe("library-drag-session", () => {
   });
 
   it("one commit when dragging over drop zone", () => {
-    beginPress(SAMPLE, 0, 0);
+    beginPress(SAMPLE, 0, 0, "owner-a");
     move(8, 0);
     const result = end(100, 100, true);
     expect(result).toEqual({
@@ -85,7 +85,7 @@ describe("library-drag-session", () => {
     const unsub = subscribe((s) => seen.push(s.phase));
     seen.length = 0;
 
-    beginPress(SAMPLE, 0, 0);
+    beginPress(SAMPLE, 0, 0, "owner-a");
     expect(seen).toEqual(["pressed"]);
     seen.length = 0;
 

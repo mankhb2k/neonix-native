@@ -21,8 +21,16 @@ type Props = {
   onExecuteTimeline: (command: TimelineCommand, label: string) => void;
 };
 
+type LaneFamily = "base" | "overlay" | "audio";
+
 function clipLabel(clip: TimelineClip): string {
   return clip.name || (clip.kind === "scene" ? clip.sceneId : "Audio");
+}
+
+function laneFamily(lane: TimelineLane): LaneFamily {
+  if (lane.kind === "audio") return "audio";
+  if (lane.role === "base") return "base";
+  return "overlay";
 }
 
 export function LayersPanel({
@@ -41,10 +49,27 @@ export function LayersPanel({
     onSelect(selectionClips(ids));
   };
 
+  const familySiblings = (lane: TimelineLane) => {
+    const family = laneFamily(lane);
+    if (family === "base") return [lane];
+    return sorted.filter((l) => laneFamily(l) === family);
+  };
+
+  const canMoveLane = (lane: TimelineLane, direction: -1 | 1) => {
+    if (laneFamily(lane) === "base") return false;
+    const siblings = familySiblings(lane);
+    if (siblings.length < 2) return false;
+    const index = siblings.findIndex((l) => l.id === lane.id);
+    if (index < 0) return false;
+    return index + direction >= 0 && index + direction < siblings.length;
+  };
+
   const moveLane = (laneId: string, direction: -1 | 1) => {
-    const index = sorted.findIndex((l) => l.id === laneId);
-    if (index < 0) return;
-    const target = sorted[index + direction];
+    const lane = sorted.find((l) => l.id === laneId);
+    if (!lane || !canMoveLane(lane, direction)) return;
+    const siblings = familySiblings(lane);
+    const index = siblings.findIndex((l) => l.id === laneId);
+    const target = siblings[index + direction];
     if (!target) return;
     onExecuteTimeline(
       { type: "reorder-lane", laneId, newOrder: target.order },
@@ -100,6 +125,8 @@ export function LayersPanel({
           laneClipIds.length > 0 &&
           laneClipIds.every((id) => selection.ids.includes(id));
         const isExpanded = expanded[lane.id] ?? true;
+        const canMoveUp = canMoveLane(lane, -1);
+        const canMoveDown = canMoveLane(lane, 1);
 
         return (
           <li key={lane.id}>
@@ -170,7 +197,7 @@ export function LayersPanel({
                       type="button"
                       className="editor-sidebar__flag"
                       title="Move lane up"
-                      disabled={laneIndex === 0}
+                      disabled={!canMoveUp}
                       onClick={() => moveLane(lane.id, -1)}
                     >
                       ↑
@@ -179,7 +206,7 @@ export function LayersPanel({
                       type="button"
                       className="editor-sidebar__flag"
                       title="Move lane down"
-                      disabled={laneIndex === sorted.length - 1}
+                      disabled={!canMoveDown}
                       onClick={() => moveLane(lane.id, 1)}
                     >
                       ↓

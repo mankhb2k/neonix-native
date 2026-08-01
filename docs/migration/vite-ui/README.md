@@ -9,23 +9,23 @@
 | Create Project `{name, aspectRatio}` | done |
 | Library pointer session + drop-zone | done |
 | Typed LibraryPayload / shape+image scenes | done |
-| Atomic Save snapshot after rename | done |
+| Atomic Save snapshot after rename | **partial** — toolbar/export done; native close via `EditorSessionHandle` (G1) |
 | Layers min (select/rename/flags) | done |
-| Preview StageRendererPort (no React/frame) | done |
+| Preview StageRendererPort (no React/frame) | **partial** — G2 DOM cache/diff; Pixi not production |
 | Vite default unified | done |
 | Sidebar panel file split | done |
 
-## Parity waves (after Gate A)
+## Parity / G waves
 
 | Wave | Focus | Status |
 |------|--------|--------|
-| N2 | Screenshot baselines + parity contract | contract + baselines folder |
-| N3 | Unified chrome / Hub polish | menus via EditorActions |
-| N5 | Drop geometry lane/time | wired + ghost/auto-scroll |
-| N6 | Layers tree / reorder / marquee / cross-lane | Vite adapters |
-| N7 | Pixi port + fixtures 100/500/2000 | fixtures + backend seam (DOM default) |
-| N8 | Packaged soak; then delete web desktop | checklist — delete deferred until soak |
+| N2 / G4 | Screenshot baselines + parity contract | **partial** — contract + folder; PNGs manual |
+| N3 / G4 | Unified chrome / Hub polish | **partial** — menus via EditorActions; TitleBar still separate |
+| N5 | Drop geometry lane/time | done (typed ghost + auto-scroll near zone) |
+| N6 / G3 | Layers tree / reorder / marquee / cross-lane | **partial** — adapters + context menu; lane drag-reorder DOM later |
+| N7 / G2 | Pixi + fixtures/benchmark | **partial** — DOM cache + paint bench; Pixi post-baseline |
+| N8 / G5 | Packaged soak; delete web desktop | **partial** — use `pnpm pack`; delete after soak |
 
-See also [PARITY_CONTRACT.md](./PARITY_CONTRACT.md), [N8_QA_CUTOVER.md](./N8_QA_CUTOVER.md).
+See [PARITY_CONTRACT.md](./PARITY_CONTRACT.md), [N8_QA_CUTOVER.md](./N8_QA_CUTOVER.md), G1–G5 plan.
 
 Do **not** import from `apps/web`. Inspector remains shell-only until deeper property work.

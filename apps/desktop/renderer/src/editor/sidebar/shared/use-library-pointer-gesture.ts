@@ -1,13 +1,18 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import {
   attachWindowListeners,
   beginPress,
   cancel,
+  createLibraryDragOwnerId,
   dispose,
   end,
+  getSession,
   move,
 } from "../../library/interactions/library-drag-session";
-import { autoScrollTimelineNearEdge } from "../../timeline/drop-host";
+import {
+  autoScrollTimelineNearEdge,
+  resolveLibraryPlacement,
+} from "../../timeline/drop-host";
 import type { LibraryCommitPoint } from "../../library/adapters/commit-library-payload";
 import type { LibraryPayload } from "../../library/model/library-payload";
 
@@ -21,27 +26,29 @@ function isOverTimelineDropZone(clientX: number, clientY: number): boolean {
 
 /**
  * Pointer gesture for library tiles.
- * Drag past threshold then drop on timeline → commit with placement.
- * Plain click (no drag) → single commit (default track).
- * Never fires both.
+ * Drag past threshold then drop on compatible timeline lane → commit.
+ * Plain click / Enter / Space → single commit (default track).
  */
 export function useLibraryPointerGesture(
   payload: LibraryPayload,
   onCommit: (payload: LibraryPayload, point: LibraryCommitPoint) => void,
 ): {
   onPointerDown: (event: ReactPointerEvent) => void;
+  onKeyDown: (event: ReactKeyboardEvent) => void;
 } {
   const payloadRef = useRef(payload);
   payloadRef.current = payload;
   const onCommitRef = useRef(onCommit);
   onCommitRef.current = onCommit;
   const disposeRef = useRef<(() => void) | null>(null);
+  const ownerIdRef = useRef(createLibraryDragOwnerId());
 
   useEffect(() => {
+    const ownerId = ownerIdRef.current;
     return () => {
       disposeRef.current?.();
       disposeRef.current = null;
-      cancel();
+      cancel(ownerId);
     };
   }, []);
 
@@ -50,11 +57,19 @@ export function useLibraryPointerGesture(
     event.preventDefault();
 
     disposeRef.current?.();
-    beginPress(payloadRef.current, event.clientX, event.clientY);
+    beginPress(
+      payloadRef.current,
+      event.clientX,
+      event.clientY,
+      ownerIdRef.current,
+      event.pointerId,
+    );
 
     const onMove = (ev: PointerEvent) => {
       move(ev.clientX, ev.clientY);
-      autoScrollTimelineNearEdge(ev.clientX, ev.clientY);
+      if (getSession().phase === "dragging") {
+        autoScrollTimelineNearEdge(ev.clientX, ev.clientY);
+      }
     };
 
     const tearDown = () => {
@@ -63,12 +78,20 @@ export function useLibraryPointerGesture(
     };
 
     const onUp = (ev: PointerEvent) => {
+      const phase = getSession().phase;
+      const over = isOverTimelineDropZone(ev.clientX, ev.clientY);
+      let allowDrop = over;
+      if (phase === "dragging") {
+        allowDrop = Boolean(
+          resolveLibraryPlacement(
+            ev.clientX,
+            ev.clientY,
+            payloadRef.current,
+          ),
+        );
+      }
       tearDown();
-      const result = end(
-        ev.clientX,
-        ev.clientY,
-        isOverTimelineDropZone(ev.clientX, ev.clientY),
-      );
+      const result = end(ev.clientX, ev.clientY, allowDrop);
       if (result.kind === "commit") {
         onCommitRef.current(result.item, {
           clientX: result.clientX,
@@ -80,27 +103,36 @@ export function useLibraryPointerGesture(
 
     const onCancel = () => {
       tearDown();
-      cancel();
+      cancel(ownerIdRef.current);
     };
 
-    const onKeyDown = (ev: KeyboardEvent) => {
+    const onKeyDownWin = (ev: KeyboardEvent) => {
       if (ev.key !== "Escape") return;
       tearDown();
-      cancel();
+      cancel(ownerIdRef.current);
     };
 
     disposeRef.current = attachWindowListeners({
       onMove,
       onUp,
       onCancel,
-      onKeyDown,
+      onKeyDown: onKeyDownWin,
     });
   };
 
-  return { onPointerDown };
+  const onKeyDown = (event: ReactKeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onCommitRef.current(payloadRef.current, {
+      clientX: 0,
+      clientY: 0,
+      mode: "click",
+    });
+  };
+
+  return { onPointerDown, onKeyDown };
 }
 
-/** Explicit dispose helper for callers that manage their own teardown. */
 export function disposeLibraryPointerGesture(): void {
   dispose();
   cancel();

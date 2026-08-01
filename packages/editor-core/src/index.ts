@@ -69,6 +69,8 @@ export {
   mapNode,
   sceneFromFrameDraft,
   cloneSceneWithNewIds,
+  stageSizeForAspect,
+  type CompositionSize,
 } from "./timeline/internal/scene-utils";
 export {
   applyVisualPlacement,

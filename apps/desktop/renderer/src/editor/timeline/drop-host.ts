@@ -3,11 +3,13 @@
  * live TimelineViewport without prop-drilling lanes through every panel.
  */
 
+import { payloadAcceptsTrack } from "../library/adapters/drop-compatibility";
 import {
   hitTimelineDropZone,
   resolveTimelineDropGeometry,
   type TimelineDropGeometry,
 } from "./drop-geometry";
+import type { LibraryPayload } from "../library/model/library-payload";
 import type { PlacementTarget, TimelineLane } from "@motionvideo/editor-core";
 
 export type TimelineDropHost = {
@@ -18,6 +20,10 @@ export type TimelineDropHost = {
   laneHeightFor?: (lane: TimelineLane) => number;
   pixelsPerSecond: number;
   tracksOriginX: number;
+};
+
+export type ValidatedDropGeometry = TimelineDropGeometry & {
+  valid: boolean;
 };
 
 let host: TimelineDropHost | null = null;
@@ -33,10 +39,11 @@ export function getTimelineDropHost(): TimelineDropHost | null {
 export function resolveDropGeometryAtPoint(
   clientX: number,
   clientY: number,
-): TimelineDropGeometry | null {
+  payload?: LibraryPayload | null,
+): ValidatedDropGeometry | null {
   if (!host) return null;
   if (!hitTimelineDropZone(clientX, clientY)) return null;
-  return resolveTimelineDropGeometry({
+  const geo = resolveTimelineDropGeometry({
     clientX,
     clientY,
     scrollEl: host.scrollEl,
@@ -47,19 +54,42 @@ export function resolveDropGeometryAtPoint(
     pixelsPerSecond: host.pixelsPerSecond,
     tracksOriginX: host.tracksOriginX,
   });
+  if (!geo) return null;
+  const valid = payload
+    ? payloadAcceptsTrack(payload, geo.track)
+    : true;
+  return { ...geo, valid };
 }
 
 export function resolveLibraryPlacement(
   clientX: number,
   clientY: number,
+  payload?: LibraryPayload | null,
 ): PlacementTarget | undefined {
-  const geo = resolveDropGeometryAtPoint(clientX, clientY);
-  if (!geo) return undefined;
+  const geo = resolveDropGeometryAtPoint(clientX, clientY, payload);
+  if (!geo || !geo.valid) return undefined;
   return {
     track: geo.track,
     laneId: geo.laneId,
     startTime: geo.startTime,
   };
+}
+
+/** True when pointer is within `pad` of the registered timeline scroll rect. */
+export function isPointerNearTimeline(
+  clientX: number,
+  clientY: number,
+  padPx = 48,
+): boolean {
+  const scroll = host?.scrollEl;
+  if (!scroll) return false;
+  const rect = scroll.getBoundingClientRect();
+  return (
+    clientX >= rect.left - padPx &&
+    clientX <= rect.right + padPx &&
+    clientY >= rect.top - padPx &&
+    clientY <= rect.bottom + padPx
+  );
 }
 
 /** Edge auto-scroll while dragging near the timeline viewport edges. */
@@ -69,6 +99,7 @@ export function autoScrollTimelineNearEdge(
   edgePx = 40,
   stepPx = 14,
 ): void {
+  if (!isPointerNearTimeline(clientX, clientY)) return;
   const scroll = host?.scrollEl;
   if (!scroll) return;
   const rect = scroll.getBoundingClientRect();
