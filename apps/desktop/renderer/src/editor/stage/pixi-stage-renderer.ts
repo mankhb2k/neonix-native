@@ -1,6 +1,6 @@
 /**
- * Stage renderer factory — DOM default; Canvas2D behind the Pixi seam (P17).
- * `createStageRendererLazy` / `prefetchPixiStageRenderer` code-split the canvas chunk.
+ * Stage renderer factory — DOM default; Canvas2D as `canvas-experimental` (P21).
+ * `"pixi"` remains a deprecated alias of canvas-experimental.
  */
 
 import {
@@ -8,40 +8,49 @@ import {
   type StageRendererPort,
 } from "./stage-renderer-port";
 
-export type StageRendererBackend = "dom" | "pixi";
+export type StageRendererBackend = "dom" | "canvas-experimental" | "pixi";
 
-/** Active backend — DOM default until Canvas/Pixi soak completes. */
+/** Active backend — DOM default until canvas-experimental contract + soak. */
 export const STAGE_RENDERER_BACKEND: StageRendererBackend = "dom";
+
+function resolveBackend(
+  backend: StageRendererBackend,
+): "dom" | "canvas-experimental" {
+  if (backend === "pixi" || backend === "canvas-experimental") {
+    return "canvas-experimental";
+  }
+  return "dom";
+}
 
 export function createStageRenderer(
   host: HTMLElement,
   backend: StageRendererBackend = STAGE_RENDERER_BACKEND,
 ): StageRendererPort {
-  if (backend === "pixi") {
-    // Sync callers stay on DOM; flip via createStageRendererLazy + backend "pixi".
+  if (resolveBackend(backend) === "canvas-experimental") {
+    // Sync callers stay on DOM; use createStageRendererLazy for experimental.
     return createDomStageRenderer(host);
   }
   return createDomStageRenderer(host);
 }
 
-/** Code-split canvas/Pixi seam. */
+/** Code-split canvas-experimental seam. */
 export async function createStageRendererLazy(
   host: HTMLElement,
   backend: StageRendererBackend = STAGE_RENDERER_BACKEND,
 ): Promise<StageRendererPort> {
-  if (backend === "pixi") {
+  if (resolveBackend(backend) === "canvas-experimental") {
     const { createCanvasStageRenderer } = await import("./canvas-stage-renderer");
     return createCanvasStageRenderer(host);
   }
   return createDomStageRenderer(host);
 }
 
-/** Prefetch canvas chunk (idle after editor mount). */
+/** Prefetch canvas-experimental chunk (idle after editor mount). */
 export function prefetchPixiStageRenderer(): void {
   void import("./canvas-stage-renderer");
 }
 
-/** @deprecated Prefer createStageRendererLazy(..., "pixi") */
+/** @deprecated Prefer createStageRendererLazy(..., "canvas-experimental") */
 export function createPixiStageRenderer(host: HTMLElement): StageRendererPort {
-  return createStageRenderer(host, "pixi");
+  return createStageRenderer(host, "canvas-experimental");
 }

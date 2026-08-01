@@ -1,8 +1,13 @@
 /**
- * Canvas2D StageRendererPort — alternate backend behind the Pixi seam (P17).
- * Lazy-loaded so the default DOM path can code-split this chunk.
+ * Canvas2D StageRendererPort — `canvas-experimental` backend (P21).
+ * Uses composeAtTime(frame) so paint differs across frames when clips change.
  */
 
+import {
+  buildVisualLaneIndex,
+  composeAtTime,
+  type VisualLaneIndex,
+} from "../preview/compose-layers";
 import type { StageRendererPort } from "./stage-renderer-port";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-schema";
@@ -14,6 +19,7 @@ type NodePaint = {
   w: number;
   h: number;
   fill: string;
+  visible: boolean;
 };
 
 function colorForId(id: string): string {
@@ -32,40 +38,62 @@ export function createCanvasStageRenderer(host: HTMLElement): StageRendererPort 
 
   let project: MotionProject | null = null;
   let clips: TimelineClip[] = [];
+  let lanes: TimelineLane[] = [];
+  let laneIndex: VisualLaneIndex | null = null;
   let bg = "#111";
   let scale = 1;
   let disposed = false;
+  let lastFrame = 0;
   let nodes: NodePaint[] = [];
+  let fps = 30;
+
+  const paint = () => {
+    if (disposed || !ctx) return;
+    const w = host.clientWidth;
+    const h = host.clientHeight;
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+    for (const n of nodes) {
+      if (!n.visible) continue;
+      ctx.fillStyle = n.fill;
+      ctx.fillRect(n.x, n.y, n.w, n.h);
+    }
+  };
 
   const resize = () => {
+    if (disposed) return;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(1, host.clientWidth);
     const h = Math.max(1, host.clientHeight);
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paint();
   };
   resize();
   const ro = new ResizeObserver(resize);
   ro.observe(host);
 
-  const rebuild = () => {
+  const rebuildFrame = (frameIndex: number) => {
     nodes = [];
-    if (!project) return;
+    if (!project || !laneIndex) return;
+    const time = frameIndex / Math.max(1, fps);
+    const layers = composeAtTime(laneIndex, time);
     const scenes = new Map(project.scenes.map((s) => [s.id, s]));
     let i = 0;
-    for (const clip of clips) {
-      if (clip.kind !== "scene") continue;
-      const scene = scenes.get(clip.sceneId);
+    for (const layer of layers) {
+      const scene = scenes.get(layer.sceneId);
       if (!scene) continue;
       for (const node of scene.nodes) {
+        const t = node.transform;
         nodes.push({
-          id: `${clip.id}:${node.id}`,
-          x: (40 + (i % 8) * 28) * scale,
-          y: (40 + Math.floor(i / 8) * 28) * scale,
-          w: 72 * scale,
-          h: 48 * scale,
+          id: `${layer.clipId}:${node.id}`,
+          x: ((t?.x ?? 40) + (i % 8) * 4) * scale,
+          y: ((t?.y ?? 40) + Math.floor(i / 8) * 4) * scale,
+          w: Math.max(4, (t?.width ?? 72) * scale),
+          h: Math.max(4, (t?.height ?? 48) * scale),
           fill: colorForId(node.id),
+          visible: t?.visible !== false && (t?.opacity ?? 1) > 0.01,
         });
         i += 1;
       }
@@ -77,28 +105,31 @@ export function createCanvasStageRenderer(host: HTMLElement): StageRendererPort 
       if (disposed) return;
       project = next.project;
       clips = next.clips;
-      void (next.lanes as TimelineLane[]);
-      rebuild();
+      lanes = next.lanes;
+      fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+      laneIndex = buildVisualLaneIndex(clips, lanes);
+      rebuildFrame(lastFrame);
+      paint();
     },
     setBackground(color) {
+      if (disposed) return;
       bg = color;
+      paint();
     },
     setScale(next) {
+      if (disposed) return;
       scale = Math.max(0.01, next);
-      rebuild();
+      rebuildFrame(lastFrame);
+      paint();
     },
-    paintFrame(_frameIndex) {
-      if (disposed || !ctx) return;
-      const w = host.clientWidth;
-      const h = host.clientHeight;
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, w, h);
-      for (const n of nodes) {
-        ctx.fillStyle = n.fill;
-        ctx.fillRect(n.x, n.y, n.w, n.h);
-      }
+    paintFrame(frameIndex) {
+      if (disposed) return;
+      lastFrame = frameIndex;
+      rebuildFrame(frameIndex);
+      paint();
     },
     dispose() {
+      if (disposed) return;
       disposed = true;
       ro.disconnect();
       host.replaceChildren();

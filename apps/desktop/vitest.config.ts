@@ -40,7 +40,10 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["src/**/*.test.ts"],
-          exclude: PERF_FILES,
+          exclude: [
+            ...PERF_FILES,
+            "src/**/stage-renderer-contract.test.ts",
+          ],
         },
       },
       {
@@ -52,6 +55,7 @@ export default defineConfig({
           include: [
             "renderer/src/**/*.test.ts",
             "renderer/src/**/*.test.tsx",
+            "src/**/stage-renderer-contract.test.ts",
           ],
         },
       },

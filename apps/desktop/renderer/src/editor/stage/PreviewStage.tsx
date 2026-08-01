@@ -73,11 +73,13 @@ export function PreviewStage({ project, clips, lanes }: Props) {
     let cancelled = false;
     let renderer: StageRendererPort | null = null;
     void createStageRendererLazy(mount, STAGE_RENDERER_BACKEND).then((r) => {
+      // Assign first so cleanup can own dispose; re-check cancelled after assign.
+      renderer = r;
       if (cancelled) {
+        renderer = null;
         r.dispose();
         return;
       }
-      renderer = r;
       rendererRef.current = r;
       const p = projectRef.current;
       if (p) {
@@ -96,9 +98,11 @@ export function PreviewStage({ project, clips, lanes }: Props) {
     });
     return () => {
       cancelled = true;
-      renderer?.dispose();
-      rendererRef.current?.dispose();
+      const active = rendererRef.current ?? renderer;
       rendererRef.current = null;
+      renderer = null;
+      // Idempotent StageRendererPort.dispose — call at most once per mount.
+      active?.dispose();
     };
   }, [projectAvailable, clock]);
 
