@@ -11,6 +11,20 @@ import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { validateDesktopDocumentJson } from "../../shared/project-file/validate-document";
+import {
+  JOURNAL_VALIDATE_OFFLOAD_BYTES,
+  validateAndHashDocument,
+  type JournalValidateHashResult,
+  type ValidateAndHashDocumentOptions,
+} from "./journal-document-validate";
+import { hashDocumentJson } from "./project-journal-hash";
+
+export { hashDocumentJson } from "./project-journal-hash";
+export {
+  JOURNAL_VALIDATE_OFFLOAD_BYTES,
+  JOURNAL_VALIDATE_SOFT_BUDGET_MS,
+  JOURNAL_VALIDATE_WORKER_TIMEOUT_MS,
+} from "./journal-document-validate";
 
 const META_FILE = "meta.json";
 const ENTRIES_FILE = "entries.ndjson";
@@ -54,7 +68,10 @@ export type JournalStatus = {
   hasRecoverableSnapshot: boolean;
   snapshotAt?: string;
   diskDocumentHash?: string;
+  /** Latest known document hash (history and/or autosave). */
   journalDocumentHash?: string;
+  /** Hash of bytes currently stored in snapshotFile (dedupe key). */
+  snapshotDocumentHash?: string;
 };
 
 export type JournalRecoveryOffer = {
@@ -124,6 +141,19 @@ export type ProjectJournalServiceOptions = {
   fs?: ProjectJournalFs;
   now?: () => Date;
   beforeSnapshotCommit?: (tmpPath: string, finalPath: string) => void;
+  /** Force sync validate+hash (tests / when worker unavailable). */
+  validateSyncOnly?: boolean;
+  /** Override offload size threshold (default 1MiB). */
+  validateOffloadBytes?: number;
+  /**
+   * Inject validate+hash (tests). Must honor options.coalesceKey semantics when
+   * provided by writeAutosaveSnapshot.
+   */
+  validateAndHash?: (
+    documentJson: string,
+    options?: ValidateAndHashDocumentOptions,
+  ) => Promise<JournalValidateHashResult>;
+  onValidateDiagnostic?: (message: string, detail?: unknown) => void;
 };
 
 type JournalMeta = {
@@ -132,7 +162,10 @@ type JournalMeta = {
   dirty: boolean;
   lastSeq: number;
   diskDocumentHash?: string;
+  /** Latest history/document hash (may be ahead of on-disk snapshot). */
   journalDocumentHash?: string;
+  /** Hash of the committed snapshot file contents only. */
+  snapshotDocumentHash?: string;
   snapshotAt?: string;
   snapshotFile?: string;
   corrupt?: boolean;
@@ -165,10 +198,6 @@ function defaultFs(): ProjectJournalFs {
     },
     rm: (p, opts) => fsp.rm(p, opts),
   };
-}
-
-export function hashDocumentJson(documentJson: string): string {
-  return createHash("sha256").update(documentJson).digest("hex");
 }
 
 /** Path key wins when both present — use clearBoth for save/discard. */
@@ -357,7 +386,7 @@ export function createProjectJournalService(
 
   /**
    * Reconcile crash leftovers: orphan `.migrating.*` (safe to drop — source was copied)
-   * and `.bak.*` when destination key is missing.
+   * and `.bak.*` (restore if dest missing/corrupt; drop if dest healthy).
    */
   function reconcileOrphans(): void {
     if (!io.existsSync(root)) return;
@@ -373,20 +402,44 @@ export function createProjectJournalService(
         continue;
       }
       const bak = name.match(/^(.*)\.bak\.\d+$/);
-      if (bak) {
-        const dest = path.join(root, bak[1]!);
-        if (!io.existsSync(dest)) {
-          try {
-            if (io.renameSync) io.renameSync(full, dest);
-          } catch {
-            /* best-effort */
-          }
+      if (!bak) continue;
+      const dest = path.join(root, bak[1]!);
+      if (!io.existsSync(dest)) {
+        try {
+          if (io.renameSync) io.renameSync(full, dest);
+        } catch {
+          /* best-effort */
         }
+        continue;
+      }
+      if (journalDirHealthy(dest)) {
+        try {
+          io.rmSync(full, { recursive: true, force: true });
+        } catch {
+          /* best-effort */
+        }
+        continue;
+      }
+      // Dest exists but is corrupt — quarantine and restore backup.
+      const quarantine = `${dest}.corrupt.${process.pid}`;
+      try {
+        if (io.existsSync(quarantine)) {
+          io.rmSync(quarantine, { recursive: true, force: true });
+        }
+        if (io.renameSync) {
+          io.renameSync(dest, quarantine);
+          io.renameSync(full, dest);
+        }
+        try {
+          io.rmSync(quarantine, { recursive: true, force: true });
+        } catch {
+          /* leave quarantine for inspection */
+        }
+      } catch {
+        /* best-effort */
       }
     }
   }
-
-  reconcileOrphans();
 
   function readMeta(dir: string): JournalMeta | null {
     const file = metaPath(dir);
@@ -407,6 +460,10 @@ export function createProjectJournalService(
         journalDocumentHash:
           typeof row.journalDocumentHash === "string"
             ? row.journalDocumentHash
+            : undefined,
+        snapshotDocumentHash:
+          typeof row.snapshotDocumentHash === "string"
+            ? row.snapshotDocumentHash
             : undefined,
         snapshotAt:
           typeof row.snapshotAt === "string" ? row.snapshotAt : undefined,
@@ -477,6 +534,7 @@ export function createProjectJournalService(
       lastSeq: meta?.lastSeq ?? 0,
       diskDocumentHash: meta?.diskDocumentHash,
       journalDocumentHash: undefined,
+      snapshotDocumentHash: undefined,
       snapshotAt: undefined,
       snapshotFile: undefined,
       corrupt: true,
@@ -500,6 +558,16 @@ export function createProjectJournalService(
       return false;
     }
   }
+
+  /** Dest journal is usable: meta readable, not corrupt, and snapshot pointer (if any) valid. */
+  function journalDirHealthy(dir: string): boolean {
+    const meta = readMeta(dir);
+    if (!meta || meta.corrupt) return false;
+    if (meta.snapshotFile) return snapshotIsValid(dir, meta);
+    return true;
+  }
+
+  reconcileOrphans();
 
   async function bind(input: {
     projectId: string;
@@ -535,6 +603,7 @@ export function createProjectJournalService(
         lastSeq: 0,
         diskDocumentHash: diskHash,
         journalDocumentHash: diskHash,
+        snapshotDocumentHash: undefined,
         snapshotAt: undefined,
         snapshotFile: undefined,
         corrupt: false,
@@ -575,6 +644,7 @@ export function createProjectJournalService(
       snapshotAt: meta.snapshotAt,
       diskDocumentHash: meta.diskDocumentHash,
       journalDocumentHash: meta.journalDocumentHash,
+      snapshotDocumentHash: meta.snapshotDocumentHash,
     };
   }
 
@@ -611,14 +681,16 @@ export function createProjectJournalService(
       const diskHash = input.documentJson
         ? hashDocumentJson(input.documentJson)
         : meta.diskDocumentHash;
-      const journalHash = meta.journalDocumentHash ?? hashDocumentJson(documentJson);
-      if (diskHash && diskHash === journalHash) continue;
+      // Offer compares disk to recoverable snapshot bytes — not history-ahead hash.
+      const snapshotHash =
+        meta.snapshotDocumentHash ?? hashDocumentJson(documentJson);
+      if (diskHash && diskHash === snapshotHash) continue;
 
       return {
         projectId: meta.projectId ?? input.projectId,
         path: meta.path ?? input.path,
         snapshotAt: meta.snapshotAt,
-        journalDocumentHash: journalHash,
+        journalDocumentHash: snapshotHash,
         diskDocumentHash: diskHash,
       };
     }
@@ -651,6 +723,7 @@ export function createProjectJournalService(
             dirty: true,
             corrupt: false,
             journalDocumentHash: hashDocumentJson(documentJson),
+            snapshotDocumentHash: hashDocumentJson(documentJson),
             updatedAt: now().toISOString(),
           });
           return { documentJson, projectId: meta.projectId };
@@ -743,15 +816,49 @@ export function createProjectJournalService(
   async function writeAutosaveSnapshot(
     input: JournalSnapshotInput,
   ): Promise<JournalWriteResult> {
-    // Full validate/hash on main is OK for typical projects; large docs should
-    // move parse/hash to a utility process when bench exceeds soft ceiling.
-    if (!isValidDocumentJson(input.documentJson)) {
-      throw new Error("Autosave documentJson failed validation.");
-    }
+    // Capture generation BEFORE await validate — worker/sync may take a long
+    // time; Save/Discard bumps generation and must invalidate this request.
     const key = journalKeyFor(input);
     if (!key) throw new Error("Journal locator missing projectId/path.");
-    const documentJsonHash = hashDocumentJson(input.documentJson);
     const genCaptured = genOf(key);
+
+    const runValidate =
+      options.validateAndHash ?? validateAndHashDocument;
+    const validated = await runValidate(input.documentJson, {
+      syncOnly: options.validateSyncOnly,
+      offloadBytes: options.validateOffloadBytes ?? JOURNAL_VALIDATE_OFFLOAD_BYTES,
+      coalesceKey: key,
+      onDiagnostic: options.onValidateDiagnostic,
+    });
+
+    if (genOf(key) !== genCaptured) {
+      return { seq: 0 };
+    }
+    if (!validated.ok) {
+      if (validated.kind === "superseded") {
+        return { seq: 0 };
+      }
+      throw new Error(
+        validated.kind === "invalid_document"
+          ? "Autosave documentJson failed validation."
+          : `Autosave validate failed (${validated.kind}): ${validated.error}`,
+      );
+    }
+    if (validated.fallbackFrom) {
+      const detail = { fallbackFrom: validated.fallbackFrom };
+      if (options.onValidateDiagnostic) {
+        options.onValidateDiagnostic(
+          "journal autosave used sync fallback after worker issue",
+          detail,
+        );
+      } else {
+        console.warn(
+          "[journal] autosave used sync fallback after worker issue",
+          detail,
+        );
+      }
+    }
+    const documentJsonHash = validated.hash;
     return enqueue(async () => {
       if (genOf(key) !== genCaptured) {
         return { seq: 0 };
@@ -766,8 +873,10 @@ export function createProjectJournalService(
         lastSeq: 0,
         updatedAt: now().toISOString(),
       };
+      // Dedupe against snapshot bytes only — history may advance journalDocumentHash
+      // while snapshotFile still holds an older document.
       if (
-        meta.journalDocumentHash === documentJsonHash &&
+        meta.snapshotDocumentHash === documentJsonHash &&
         meta.snapshotFile &&
         io.existsSync(path.join(snapshotsDir(dir), meta.snapshotFile))
       ) {
@@ -815,6 +924,7 @@ export function createProjectJournalService(
         corrupt: false,
         lastSeq: seq,
         journalDocumentHash: documentJsonHash,
+        snapshotDocumentHash: documentJsonHash,
         snapshotAt: now().toISOString(),
         snapshotFile: name,
         updatedAt: now().toISOString(),
@@ -872,6 +982,12 @@ export function createProjectJournalService(
         if (!stagedMeta) {
           await removeDir(staging);
           throw new Error("Journal migrate failed: staged meta unreadable.");
+        }
+        if (stagedMeta.snapshotFile && !snapshotIsValid(staging, stagedMeta)) {
+          await removeDir(staging);
+          throw new Error(
+            "Journal migrate failed: staged snapshot missing or corrupt.",
+          );
         }
         await writeMetaAtomic(staging, {
           ...stagedMeta,

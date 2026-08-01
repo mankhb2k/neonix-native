@@ -11,10 +11,10 @@
     "dev:electron": "pnpm build:main && pnpm build:preload && wait-on http://127.0.0.1:5173 && cross-env MOTIONVIDEO_RENDERER=vite electron .",
     "dev:vite": "concurrently -k -n renderer,electron -c cyan,magenta \"pnpm dev:renderer\" \"pnpm dev:electron\"",
     "dev:legacy": "pnpm build:main && pnpm build:preload && cross-env MOTIONVIDEO_RENDERER=legacy electron .",
-    "build:main": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js --sourcemap",
+    "build:main": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js --sourcemap && esbuild src/main/services/journal-validate-worker.ts --bundle --platform=node --format=cjs --outfile=dist/main/journal-validate-worker.js --sourcemap",
     "build:preload": "esbuild src/preload/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js --sourcemap",
     "build:renderer": "vite build",
-    "build:main:release": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js",
+    "build:main:release": "esbuild src/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js && esbuild src/main/services/journal-validate-worker.ts --bundle --platform=node --format=cjs --outfile=dist/main/journal-validate-worker.js",
     "build:preload:release": "esbuild src/preload/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js",
     "build:renderer:release": "cross-env MOTIONVIDEO_RELEASE=1 vite build",
     "build": "pnpm build:main && pnpm build:preload && pnpm build:renderer",
@@ -32,6 +32,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:ci": "eslint . --max-warnings 0",
     "test:desktop-paths": "pnpm build:main && node scripts/smoke-desktop-paths.mjs",
+    "test:journal-worker": "pnpm build:main && node scripts/smoke-journal-validate-worker.mjs",
     "test:web-ban": "node scripts/probe-web-import-ban.mjs && node scripts/probe-legacy-desktop-protected.mjs",
     "test": "vitest run --project node --project dom",
     "test:perf": "vitest run --project perf",
@@ -103,6 +104,9 @@
       "package.json"
     ],
     "asar": true,
+    "asarUnpack": [
+      "dist/main/journal-validate-worker.js"
+    ],
     "npmRebuild": false,
     "extraResources": [
       {

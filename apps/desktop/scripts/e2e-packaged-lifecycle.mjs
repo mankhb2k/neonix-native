@@ -438,6 +438,6 @@ ok({
   ],
   exportBytes: fs.statSync(expResult.mp4Path ?? exportOut).size,
   window: windowResult,
-  note: "Vite prod lifecycle E2E (not NSIS packaged). Envelope via lifecycle-file-io.test.ts.",
+  note: "Vite prod lifecycle E2E (not NSIS packaged). Envelope via lifecycle-file-io.test.ts. Journal worker artifact: pnpm test:journal-worker.",
   hash: createHash("sha256").update("e2e-lifecycle").digest("hex").slice(0, 8),
 });

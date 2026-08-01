@@ -412,6 +412,200 @@ describe("project-journal-service", () => {
     expect(files).toHaveLength(1);
   });
 
+  it("does not write autosave after Save when validation was already in flight", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-gen-race-"));
+    let release!: (result: {
+      ok: true;
+      hash: string;
+      via: "sync";
+    }) => void;
+    const deferred = new Promise<{
+      ok: true;
+      hash: string;
+      via: "sync";
+    }>((resolve) => {
+      release = resolve;
+    });
+    const journal = createProjectJournalService({
+      userDataPath: dir,
+      validateAndHash: async () => deferred,
+    });
+    const blank = buildBlankDesktopProject({ name: "Race" });
+    const filePath = path.join(dir, "race.mt");
+    fs.writeFileSync(filePath, blank.documentJson);
+    await journal.bind({
+      projectId: blank.projectId,
+      path: filePath,
+      documentJson: blank.documentJson,
+    });
+
+    const staleDoc = buildBlankDesktopProject({ name: "Stale" }).documentJson;
+    const autosavePromise = journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      path: filePath,
+      documentJson: staleDoc,
+    });
+
+    await journal.record({
+      type: "save",
+      path: filePath,
+      projectId: blank.projectId,
+      at: new Date().toISOString(),
+    });
+    await journal.flush();
+
+    release({
+      ok: true,
+      hash: hashDocumentJson(staleDoc),
+      via: "sync",
+    });
+    const result = await autosavePromise;
+    await journal.flush();
+    expect(result.seq).toBe(0);
+    expect(
+      journal.peekRecovery({
+        path: filePath,
+        documentJson: blank.documentJson,
+      }),
+    ).toBeNull();
+    const journalsRoot = path.join(dir, "project-journals");
+    expect(fs.existsSync(journalsRoot) ? fs.readdirSync(journalsRoot) : []).toEqual(
+      [],
+    );
+  });
+
+  it("autosaves after history when journal hash advances ahead of snapshot", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-hist-snap-"));
+    const journal = createProjectJournalService({ userDataPath: dir });
+    const blank = buildBlankDesktopProject({ name: "A" });
+    await journal.bind({ projectId: blank.projectId });
+    const docA = buildBlankDesktopProject({ name: "SnapA" }).documentJson;
+    const docB = buildBlankDesktopProject({ name: "SnapB" }).documentJson;
+    await journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      documentJson: docA,
+    });
+    await journal.recordHistory({
+      projectId: blank.projectId,
+      entryId: "h-b",
+      label: "Edit B",
+      documentJsonHash: hashDocumentJson(docB),
+    });
+    const stAfterHistory = journal.status({ projectId: blank.projectId });
+    expect(stAfterHistory.journalDocumentHash).toBe(hashDocumentJson(docB));
+    expect(stAfterHistory.snapshotDocumentHash).toBe(hashDocumentJson(docA));
+
+    const writeB = await journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      documentJson: docB,
+    });
+    await journal.flush();
+    expect(writeB.seq).toBeGreaterThan(stAfterHistory.lastSeq);
+
+    const recovered = await journal.recover({ projectId: blank.projectId });
+    expect(recovered?.documentJson).toBe(docB);
+  });
+
+  it("reconcile drops orphan backup when destination is healthy", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-bak-"));
+    const blank = buildBlankDesktopProject({ name: "Bak" });
+    const destPath = path.join(dir, "dest.mt");
+    const key = journalKeyFor({ path: destPath })!;
+    const journalsRoot = path.join(dir, "project-journals");
+    const destDir = path.join(journalsRoot, key);
+    const bakDir = path.join(journalsRoot, `${key}.bak.99999`);
+
+    const seed = createProjectJournalService({ userDataPath: dir });
+    await seed.bind({ projectId: blank.projectId, path: destPath });
+    await seed.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      path: destPath,
+      documentJson: buildBlankDesktopProject({ name: "Live" }).documentJson,
+    });
+    await seed.flush();
+
+    // Simulate crash after commit: dest healthy + leftover backup.
+    fs.cpSync(destDir, bakDir, { recursive: true });
+    expect(fs.existsSync(bakDir)).toBe(true);
+
+    createProjectJournalService({ userDataPath: dir });
+    expect(fs.existsSync(destDir)).toBe(true);
+    expect(fs.existsSync(bakDir)).toBe(false);
+  });
+
+  it("reconcile restores backup when destination is corrupt", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-bak-bad-"));
+    const blank = buildBlankDesktopProject({ name: "BakBad" });
+    const destPath = path.join(dir, "dest.mt");
+    const key = journalKeyFor({ path: destPath })!;
+    const journalsRoot = path.join(dir, "project-journals");
+    const destDir = path.join(journalsRoot, key);
+    const bakDir = path.join(journalsRoot, `${key}.bak.99999`);
+    const goodDoc = buildBlankDesktopProject({ name: "GoodSnap" }).documentJson;
+
+    const seed = createProjectJournalService({ userDataPath: dir });
+    await seed.bind({ projectId: blank.projectId, path: destPath });
+    await seed.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      path: destPath,
+      documentJson: goodDoc,
+    });
+    await seed.flush();
+    fs.cpSync(destDir, bakDir, { recursive: true });
+
+    // Corrupt destination snapshot pointer.
+    const metaPath = path.join(destDir, "meta.json");
+    const meta = JSON.parse(fs.readFileSync(metaPath, "utf8")) as {
+      snapshotFile?: string;
+    };
+    meta.snapshotFile = "snapshot-missing.json";
+    fs.writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`);
+
+    const restored = createProjectJournalService({ userDataPath: dir });
+    expect(fs.existsSync(bakDir)).toBe(false);
+    const recovered = await restored.recover({ path: destPath });
+    expect(recovered?.documentJson).toBe(goodDoc);
+  });
+
+  it("migrateJournal rejects staging with corrupt snapshot pointer", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-mig-bad-"));
+    const blank = buildBlankDesktopProject({ name: "MigBad" });
+    const destPath = path.join(dir, "dest.mt");
+    const journal = createProjectJournalService({ userDataPath: dir });
+    await journal.bind({ projectId: blank.projectId });
+    await journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      documentJson: buildBlankDesktopProject({ name: "Snap" }).documentJson,
+    });
+    await journal.flush();
+
+    const fromDir = path.join(
+      dir,
+      "project-journals",
+      journalKeyFor({ projectId: blank.projectId })!,
+    );
+    const metaPath = path.join(fromDir, "meta.json");
+    const meta = JSON.parse(fs.readFileSync(metaPath, "utf8")) as {
+      snapshotFile?: string;
+    };
+    meta.snapshotFile = "snapshot-gone.json";
+    fs.writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`);
+
+    await expect(
+      journal.migrateJournal({
+        from: { projectId: blank.projectId },
+        to: { path: destPath, projectId: blank.projectId },
+      }),
+    ).rejects.toThrow(/staged snapshot missing or corrupt/);
+
+    expect(
+      journal.peekRecovery({
+        projectId: blank.projectId,
+        documentJson: blank.documentJson,
+      }),
+    ).toBeNull();
+  });
+
   it("migrateJournal keeps source when commit rename fails", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-mig-"));
     const blank = buildBlankDesktopProject({ name: "Mig" });

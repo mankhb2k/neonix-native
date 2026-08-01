@@ -37,6 +37,7 @@ export type JournalStatusResult = {
   snapshotAt?: string;
   diskDocumentHash?: string;
   journalDocumentHash?: string;
+  snapshotDocumentHash?: string;
 };
 
 export type JournalRecordInput = {
