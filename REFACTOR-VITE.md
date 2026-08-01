@@ -1,8 +1,25 @@
 # Kế hoạch refactor Desktop Editor sang React + Vite
 
-> Trạng thái: Phase 12 **cutover BLOCKED** (Wave 0) — unpackaged default = legacy; Vite opt-in; remediation Waves A–F for sync/IPC/FS/export/timeline  
+> **Trạng thái (P22):** Vite là renderer **mặc định** (`pnpm dev:desktop`). Cutover xóa `apps/web/components/desktop/**` vẫn **BLOCKED** — cần soak manual + một release ổn định + approve riêng.  
 > Phạm vi: desktop editor, Electron main/preload, Vite renderer và các package trực tiếp phục vụ editor  
 > Không thuộc phạm vi hiện tại: xây editor web mới, đồng bộ feature parity cho web, SEO/dashboard/marketplace
+
+### Status snapshot (P13–P21)
+
+| Phase | Focus | Status |
+|-------|--------|--------|
+| P13 | Clip move drag resolve / invalid no-op | done |
+| P14 | `test` vs `test:perf`; vertical lane windowing | done |
+| P15→P20 | Visual baselines | done — **production UI** + `VITE_ENABLE_UI_FIXTURES`; FixtureSurface mock không còn gate |
+| P16 | Lane policy / multi-move / snap preview | done |
+| P17→P21 | Stage backend | done — DOM default; `canvas-experimental` (+ deprecated `"pixi"` alias); contract tests |
+| P18 | Atomic `moveClipGroup` + keep-lane omit-track | done |
+| P19 | Snap index @ gesture start; pin lanes; `test:perf:electron` | done (chưa claim 60fps) |
+| P20 | Real Hub/Editor baselines, `frame: false`, compare script | done |
+| P21 | Canvas compose/`frameIndex`, resize/bg/scale repaint, idempotent dispose | done |
+| P22 | Docs / soak / Inspector seam | this update — **no legacy delete** |
+
+QA checklist: [docs/migration/vite-ui/N8_QA_CUTOVER.md](docs/migration/vite-ui/N8_QA_CUTOVER.md).
 
 ## 1. Quyết định kiến trúc
 
@@ -927,28 +944,28 @@ Renderer Vite an toàn và hoạt động đúng trong artifact đóng gói.
 
 ## Phase 12 — Cutover và dọn legacy
 
-### Status (cutover BLOCKED — Wave 0)
+### Status (cutover BLOCKED — P22)
 
-- Unpackaged default = **legacy**; Vite opt-in (`dev:desktop:vite`)
-- Packaged still Vite `app://` but **not** production-ready
+- Unpackaged + packaged default = **Vite** (`pnpm dev:desktop` / `app://`)
+- Legacy opt-in: `dev:desktop:legacy` / `MOTIONVIDEO_RENDERER=legacy`
+- **Do not delete** `apps/web/components/desktop/**` until manual soak + one stable release + explicit approve (separate commit)
 - Production rollback = previous installer ([ADR-002](docs/ADR/002-vite-renderer-source-of-truth.md))
-- Checklist: [docs/migration/vite-phase-12/cutover.md](docs/migration/vite-phase-12/cutover.md)
-- **Remediation:** Waves A–F (document sync, IpcResult, FS caps, packaged export, timeline MVP, …)
+- Checklist: [docs/migration/vite-ui/N8_QA_CUTOVER.md](docs/migration/vite-ui/N8_QA_CUTOVER.md), [docs/migration/vite-phase-12/cutover.md](docs/migration/vite-phase-12/cutover.md)
+- Stage: DOM default; `canvas-experimental` behind flag/lazy seam only
 
 ### Mục tiêu
 
-Vite trở thành renderer mặc định mà vẫn có rollback release-level.
+Vite là renderer mặc định; legacy web-desktop chỉ còn baseline tham chiếu cho tới khi cutover delete được approve.
 
 ### Công việc
 
-- Chạy parity test cuối với fixture và workflow thật.
-- Chuyển default `MOTIONVIDEO_RENDERER` sang `vite`.
+- Chạy parity / soak cuối với workflow thật (N8 checklist).
 - Giữ opt-in legacy trong một giai đoạn nội bộ/canary.
 - Theo dõi crash, save failure, export failure và startup time.
 - Đóng băng desktop feature mới trên editor Next.
-- Sau khi ổn định, xóa desktop-only components khỏi `apps/web` bằng PR riêng.
+- Sau khi ổn định, xóa desktop-only components khỏi `apps/web` bằng PR riêng (không gộp vào P18–P22).
 - Không xóa web editor nếu vẫn cần tham chiếu hoặc sản phẩm web hiện hữu.
-- Viết ADR ghi nhận Vite renderer là source of truth.
+- ADR: Vite renderer là source of truth (ADR-002).
 
 ### Exit criteria
 
