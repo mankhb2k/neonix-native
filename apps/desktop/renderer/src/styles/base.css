@@ -274,16 +274,9 @@ a,
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px 20px 20px;
-  min-height: 0;
-}
-
-.editor-shell__toolbar {
-  display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-  align-items: center;
+  padding: 0 16px 16px;
+  min-height: 0;
 }
 
 .editor-shell__chrome {
@@ -291,6 +284,16 @@ a,
   flex-direction: column;
   gap: 4px;
   width: 100%;
+  padding-top: 4px;
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  padding-bottom: 8px;
+}
+
+.editor-shell__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .editor-menubar {

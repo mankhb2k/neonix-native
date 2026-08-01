@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { EditorActions } from "./editor-actions";
 
 type Props = {
@@ -5,11 +6,39 @@ type Props = {
 };
 
 /**
- * Editor menus routed through EditorActions (N3) — no fake IPC.
+ * Editor menus routed through EditorActions — no fake IPC.
+ * Outside click / Escape closes open menus.
  */
 export function EditorMenuBar({ actions }: Props) {
+  const rootRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const onPointer = (ev: PointerEvent) => {
+      const root = rootRef.current;
+      if (!root) return;
+      if (root.contains(ev.target as Node)) return;
+      for (const details of root.querySelectorAll("details[open]")) {
+        details.removeAttribute("open");
+      }
+    };
+    const onKey = (ev: KeyboardEvent) => {
+      if (ev.key !== "Escape") return;
+      const root = rootRef.current;
+      if (!root) return;
+      for (const details of root.querySelectorAll("details[open]")) {
+        details.removeAttribute("open");
+      }
+    };
+    window.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
   return (
-    <nav className="editor-menubar" aria-label="Editor menu">
+    <nav ref={rootRef} className="editor-menubar" aria-label="Editor menu">
       <details className="editor-menubar__menu">
         <summary className="editor-menubar__trigger">File</summary>
         <div className="editor-menubar__panel" role="menu">
@@ -59,6 +88,30 @@ export function EditorMenuBar({ actions }: Props) {
             onClick={actions.redo}
           >
             Redo
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={actions.saving}
+            onClick={actions.copySelection}
+          >
+            Copy
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={actions.saving}
+            onClick={actions.cutSelection}
+          >
+            Cut
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={actions.saving}
+            onClick={actions.pasteSelection}
+          >
+            Paste
           </button>
         </div>
       </details>
