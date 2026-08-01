@@ -7,7 +7,7 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 - [x] `pnpm --filter @motionvideo/editor-core test`
 - [x] `pnpm --filter @motionvideo/desktop test` (unit; excludes `test:perf`)
 - [x] `pnpm --filter @motionvideo/desktop test:perf` (happy-dom regression only — **not** 60fps acceptance)
-- [x] `pnpm --filter @motionvideo/desktop test:perf:electron` (paint/drag harness; optional on CI)
+- [x] `pnpm --filter @motionvideo/desktop test:perf:electron` (B2: visible window + rAF/drag thresholds — engineering gate, **not** 60fps acceptance)
 - [x] `pnpm --filter @motionvideo/desktop typecheck`
 - [x] `pnpm --filter @motionvideo/desktop lint`
 - [x] `pnpm --filter @motionvideo/desktop build:renderer:release` (via `pnpm run pack`)
@@ -31,8 +31,8 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 | Phase | Notes |
 |-------|--------|
 | P18 | Atomic `moveClipGroup`; `move-clip` omit-track = keep-lane; multi-select time-only on home lanes |
-| P19 | Snap points built once at gesture start; pin origin/target/member lanes; electron perf harness |
-| P20 | Real Hub / EditingWorkspace seed; Electron capture `frame: false`; compare script |
+| P19 | Snap index @ gesture start; pin lanes; electron harness with visible window + thresholds (not 60fps) |
+| P20 | Production UI seeds + candidate/reference compare (**partial** until soak); promote via `PROMOTE_BASELINES=1` |
 | P21 | Backend id `canvas-experimental` (`"pixi"` alias); DOM↔Canvas contract tests; idempotent dispose |
 | P22 | This checklist + REFACTOR-VITE status + Inspector seam below |
 
