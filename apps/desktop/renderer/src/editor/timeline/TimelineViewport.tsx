@@ -36,6 +36,7 @@ import { TimelineContextMenu } from "./TimelineContextMenu";
 import { TimeRuler } from "./TimeRuler";
 import { useVisibleTimeline } from "./use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
+import { visibleLaneWindow } from "./visible-lane-window";
 import "./timeline-layout.css";
 
 const MARQUEE_THRESHOLD_PX = 3;
@@ -78,6 +79,7 @@ export function TimelineViewport({
   const boardRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
   const [viewWidth, setViewWidth] = useState(0);
+  const [trackViewHeight, setTrackViewHeight] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
   const [dropGhost, setDropGhost] = useState<ValidatedDropGeometry | null>(
@@ -140,6 +142,16 @@ export function TimelineViewport({
     const el = boardRef.current;
     if (!el) return undefined;
     const update = () => setViewWidth(el.clientWidth);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = tracksScrollRef.current;
+    if (!el) return undefined;
+    const update = () => setTrackViewHeight(el.clientHeight);
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
@@ -383,7 +395,59 @@ export function TimelineViewport({
     ],
   );
 
-  void scrollTop;
+  const laneHeights = useMemo(
+    () => sortedLanes.map((lane) => laneRowHeightPx(lane)),
+    [sortedLanes],
+  );
+
+  const laneWindow = useMemo(
+    () =>
+      visibleLaneWindow({
+        scrollTop,
+        viewHeight: trackViewHeight,
+        laneHeights,
+      }),
+    [scrollTop, trackViewHeight, laneHeights],
+  );
+
+  const mountedLanes = useMemo(() => {
+    let start = laneWindow.startIndex;
+    let end = laneWindow.endIndex;
+    if (clipMovePreview) {
+      const originIdx = sortedLanes.findIndex(
+        (l) => l.id === clipMovePreview.originLaneId,
+      );
+      const targetIdx = sortedLanes.findIndex(
+        (l) => l.id === clipMovePreview.laneId,
+      );
+      if (originIdx >= 0) {
+        start = Math.min(start, originIdx);
+        end = Math.max(end, originIdx);
+      }
+      if (targetIdx >= 0) {
+        start = Math.min(start, targetIdx);
+        end = Math.max(end, targetIdx);
+      }
+    }
+    if (end < start || start >= sortedLanes.length) return [];
+    return sortedLanes.slice(start, end + 1);
+  }, [
+    sortedLanes,
+    laneWindow.startIndex,
+    laneWindow.endIndex,
+    clipMovePreview,
+  ]);
+
+  const mountedOffsetTop = useMemo(() => {
+    if (mountedLanes.length === 0) return laneWindow.offsetTop;
+    const firstId = mountedLanes[0]!.id;
+    let top = 0;
+    for (const lane of sortedLanes) {
+      if (lane.id === firstId) break;
+      top += laneRowHeightPx(lane);
+    }
+    return top;
+  }, [mountedLanes, sortedLanes, laneWindow.offsetTop]);
 
   const ghostLaneTop = useMemo(() => {
     if (!dropGhost) return 0;
@@ -439,7 +503,8 @@ export function TimelineViewport({
           }}
         >
           <div style={{ transform: `translateY(${-scrollTop}px)` }}>
-            {sortedLanes.map((lane) => (
+            <div style={{ height: mountedOffsetTop }} aria-hidden />
+            {mountedLanes.map((lane) => (
               <div
                 key={lane.id}
                 className="timeline-board__label"
@@ -449,6 +514,17 @@ export function TimelineViewport({
                 {lane.name}
               </div>
             ))}
+            <div
+              style={{
+                height: Math.max(
+                  0,
+                  laneWindow.totalHeight -
+                    mountedOffsetTop -
+                    mountedLanes.reduce((s, l) => s + laneRowHeightPx(l), 0),
+                ),
+              }}
+              aria-hidden
+            />
           </div>
         </div>
 
@@ -493,7 +569,8 @@ export function TimelineViewport({
                   position: "relative",
                 }}
               >
-                {sortedLanes.map((lane) => {
+                <div style={{ height: mountedOffsetTop }} aria-hidden />
+                {mountedLanes.map((lane) => {
                   const h = laneRowHeightPx(lane);
                   const visibleClips = clipsForLane(lane.id);
                   return (
@@ -510,7 +587,12 @@ export function TimelineViewport({
                         laneHeight={h}
                         selection={selection}
                         disabled={disabled}
-                        movePreview={clipMovePreview}
+                        movePreview={
+                          clipMovePreview?.laneId === lane.id ||
+                          clipMovePreview?.originLaneId === lane.id
+                            ? clipMovePreview
+                            : null
+                        }
                         onMovePreviewChange={setClipMovePreview}
                         beginGesture={beginGesture}
                         onSelect={onSelect}
@@ -519,6 +601,20 @@ export function TimelineViewport({
                     </div>
                   );
                 })}
+                <div
+                  style={{
+                    height: Math.max(
+                      0,
+                      laneWindow.totalHeight -
+                        mountedOffsetTop -
+                        mountedLanes.reduce(
+                          (s, l) => s + laneRowHeightPx(l),
+                          0,
+                        ),
+                    ),
+                  }}
+                  aria-hidden
+                />
                 {dropGhost ? (
                   <div
                     className={

@@ -31,7 +31,9 @@
     "lint:ci": "eslint . --max-warnings 0",
     "test:desktop-paths": "pnpm build:main && node scripts/smoke-desktop-paths.mjs",
     "test:web-ban": "node scripts/probe-web-import-ban.mjs",
-    "test": "vitest run",
+    "test": "vitest run --project node --project dom",
+    "test:perf": "vitest run --project perf",
+    "test:perf:electron": "node -e \"console.log('[test:perf:electron] TODO: Chromium acceptance gate (not happy-dom)')\"",
     "start": "electron .",
     "start:prod": "pnpm build && cross-env MOTIONVIDEO_VITE_PROD=1 electron .",
     "start:vite:prod": "pnpm run start:prod"

@@ -23,6 +23,12 @@ const sharedAlias = {
   ),
 };
 
+const PERF_FILES = [
+  "src/**/stage-renderer-benchmark.test.ts",
+  "src/**/performance-virtualization.test.ts",
+  "src/**/visible-lane-window.test.ts",
+];
+
 export default defineConfig({
   plugins: [react()],
   test: {
@@ -34,7 +40,7 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["src/**/*.test.ts"],
-          exclude: ["src/**/stage-renderer-benchmark.test.ts"],
+          exclude: PERF_FILES,
         },
       },
       {
@@ -46,8 +52,18 @@ export default defineConfig({
           include: [
             "renderer/src/**/*.test.ts",
             "renderer/src/**/*.test.tsx",
-            "src/**/stage-renderer-benchmark.test.ts",
           ],
+        },
+      },
+      {
+        plugins: [react()],
+        resolve: { alias: sharedAlias },
+        test: {
+          name: "perf",
+          environment: "happy-dom",
+          include: PERF_FILES,
+          // Happy-dom regression only — not Electron 60fps acceptance.
+          testTimeout: 60_000,
         },
       },
     ],

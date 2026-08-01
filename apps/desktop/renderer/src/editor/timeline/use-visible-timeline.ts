@@ -14,6 +14,7 @@ import {
 } from "@motionvideo/editor-core";
 
 export const TIMELINE_CLIP_OVERSCAN_PX = 120;
+export { TIMELINE_LANE_OVERSCAN_PX, visibleLaneWindow } from "./visible-lane-window";
 
 export type UseVisibleTimelineArgs = {
   scrollLeft: number;

@@ -2,7 +2,7 @@
  * Interactive clip strip — select / move (incl. cross-lane) / edge trim.
  */
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import {
   MIN_CLIP_SLICE_SEC,
   selectedClipIdsFrom,
@@ -65,7 +65,8 @@ type Props = {
   onExecute: (command: TimelineCommand, label: string) => void;
 };
 
-export function ClipStrip({
+/** Receives visibility-culled `clips` only — parent owns full document arrays. */
+export const ClipStrip = memo(function ClipStrip({
   clips,
   lane,
   pixelsPerSecond,
@@ -349,4 +350,4 @@ export function ClipStrip({
       ) : null}
     </div>
   );
-}
+});
