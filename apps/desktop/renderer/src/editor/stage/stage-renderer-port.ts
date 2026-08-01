@@ -1,5 +1,6 @@
 /**
  * Imperative stage renderer port — React owns mount/revision; ticks paint DOM.
+ * G2: compile + lane index once per setDocument; paintFrame diffs keyed layer/node DOM.
  */
 
 import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
@@ -9,6 +10,7 @@ import {
   buildVisualLaneIndex,
   composeAtTime,
   resolveScene,
+  type VisualLaneIndex,
 } from "../preview/compose-layers";
 import {
   matrixToCss,
@@ -16,7 +18,7 @@ import {
   stageSizeForAspect,
   type PreviewParityNode,
 } from "../preview/preview-evaluate";
-import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-schema";
 
 export type StageRendererPort = {
   setDocument(input: {
@@ -30,6 +32,18 @@ export type StageRendererPort = {
   dispose(): void;
 };
 
+function nodeDomKey(clipId: string, nodeId: string): string {
+  return `${clipId}\0${nodeId}`;
+}
+
+function isRenderableNode(node: PreviewParityNode): boolean {
+  return (
+    node.type !== "group" &&
+    node.type !== "bone" &&
+    node.type !== "camera"
+  );
+}
+
 function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
   if (node.type === "text") {
     const authored = scene?.nodes.find((candidate) => candidate.id === node.id);
@@ -40,26 +54,12 @@ function nodeLabel(node: PreviewParityNode, scene: MotionScene | null): string {
   return node.id;
 }
 
-function appendNode(
-  parent: HTMLElement,
-  node: PreviewParityNode,
-  scene: MotionScene | null,
-  clipId: string,
-): void {
-  if (!node.visible || node.worldOpacity <= 0) return;
-  if (node.type === "group" || node.type === "bone" || node.type === "camera") {
-    return;
-  }
-  const el = document.createElement("div");
+function applyStaticNodeChrome(el: HTMLDivElement, node: PreviewParityNode): void {
+  /* Imperative DOM paint — mutate element styles intentionally. */
+  /* eslint-disable no-param-reassign */
   el.dataset.testid = `runtime-node-${node.id}`;
   el.dataset.nodeType = node.type;
   el.className = "preview-layer-node";
-  const width = Math.max(8, node.transform.width || node.worldBounds.width);
-  const height = Math.max(8, node.transform.height || node.worldBounds.height);
-  el.style.width = `${width}px`;
-  el.style.height = `${height}px`;
-  el.style.opacity = String(node.worldOpacity);
-  el.style.transform = matrixToCss(node.worldMatrix);
   el.style.justifyContent = node.type === "text" ? "flex-start" : "center";
   el.style.fontSize = node.type === "text" ? "42px" : "18px";
   el.style.background =
@@ -67,9 +67,28 @@ function appendNode(
   el.style.border =
     node.type === "text" ? "none" : "1px solid rgba(255,255,255,0.35)";
   el.style.padding = node.type === "text" ? "0 12px" : "0";
-  el.textContent = nodeLabel(node, scene);
+  /* eslint-enable no-param-reassign */
+}
+
+function syncNodeElement(
+  el: HTMLDivElement,
+  node: PreviewParityNode,
+  scene: MotionScene | null,
+  clipId: string,
+): void {
+  /* eslint-disable no-param-reassign */
+  const width = Math.max(8, node.transform.width || node.worldBounds.width);
+  const height = Math.max(8, node.transform.height || node.worldBounds.height);
+  el.style.width = `${width}px`;
+  el.style.height = `${height}px`;
+  el.style.opacity = String(node.worldOpacity);
+  el.style.transform = matrixToCss(node.worldMatrix);
+  el.style.visibility =
+    !node.visible || node.worldOpacity <= 0 ? "hidden" : "visible";
   el.dataset.clipId = clipId;
-  parent.appendChild(el);
+  const label = nodeLabel(node, scene);
+  if (el.textContent !== label) el.textContent = label;
+  /* eslint-enable no-param-reassign */
 }
 
 export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
@@ -80,49 +99,103 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   let background = "#000";
   let lastFrame = -1;
 
+  /** Invalidated only by setDocument. */
+  let compiled: NormalizedMotionProjectV2 | null = null;
+  let scenesById: Map<string, MotionScene> = new Map();
+  let visualIndex: VisualLaneIndex | null = null;
+
+  const layerEls = new Map<string, HTMLDivElement>();
+  const nodeEls = new Map<string, HTMLDivElement>();
+
   const canvas = document.createElement("div");
   canvas.dataset.testid = "runtime-preview-canvas";
   canvas.className = "preview-canvas";
   host.appendChild(canvas);
 
+  const applyCanvasChrome = (stage?: { width: number; height: number }) => {
+    if (stage) {
+      canvas.style.width = `${stage.width}px`;
+      canvas.style.height = `${stage.height}px`;
+    }
+    canvas.style.transform = `scale(${scale})`;
+    canvas.style.background = background;
+  };
+
+  const clearDomCaches = () => {
+    for (const el of nodeEls.values()) el.remove();
+    for (const el of layerEls.values()) el.remove();
+    nodeEls.clear();
+    layerEls.clear();
+    canvas.replaceChildren();
+  };
+
   const paintFrame = (frameIndex: number) => {
-    if (!project) return;
+    if (!project || !visualIndex) return;
     lastFrame = frameIndex;
     const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
     const previewTime = frameIndex / fps;
-    let compiled;
-    try {
-      compiled = compileMotionProject(project);
-    } catch {
-      canvas.replaceChildren();
+    const stage = stageSizeForAspect(project.metadata.aspectRatio);
+    applyCanvasChrome(stage);
+
+    if (!compiled) {
+      clearDomCaches();
+      canvas.dataset.composeLayers = "0";
       return;
     }
-    const scenesById = new Map(project.scenes.map((s) => [s.id, s]));
-    const visualIndex = buildVisualLaneIndex(clips, lanes);
+
     const composed = composeAtTime(visualIndex, previewTime);
-    const stage = stageSizeForAspect(project.metadata.aspectRatio);
     canvas.dataset.composeLayers = String(composed.length);
-    canvas.style.width = `${stage.width}px`;
-    canvas.style.height = `${stage.height}px`;
-    canvas.style.transform = `scale(${scale})`;
-    canvas.style.background = background;
-    canvas.replaceChildren();
+
+    const liveLayerKeys = new Set<string>();
+    const liveNodeKeys = new Set<string>();
+
     for (const layer of composed) {
-      const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
-      if (!scene || !compiled) continue;
-      const frame = quantizeTimeToFrame(layer.localTime, fps);
-      const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
-      const layerEl = document.createElement("div");
+      liveLayerKeys.add(layer.clipId);
+      let layerEl = layerEls.get(layer.clipId);
+      if (!layerEl) {
+        layerEl = document.createElement("div");
+        layerEl.className = "preview-compose-layer";
+        canvas.appendChild(layerEl);
+        layerEls.set(layer.clipId, layerEl);
+      }
       layerEl.dataset.testid = `preview-layer-${layer.role}`;
       layerEl.dataset.sceneId = layer.sceneId;
-      layerEl.className = "preview-compose-layer";
       layerEl.style.zIndex = String(
         layer.role === "base" ? 0 : 10 + layer.zOrder,
       );
-      for (const node of snapshot?.nodes ?? []) {
-        appendNode(layerEl, node, scene, layer.clipId);
+
+      const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
+      if (!scene) continue;
+
+      const frame = quantizeTimeToFrame(layer.localTime, fps);
+      const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
+
+      for (const node of snapshot.nodes) {
+        if (!isRenderableNode(node)) continue;
+        const key = nodeDomKey(layer.clipId, node.id);
+        liveNodeKeys.add(key);
+        let el = nodeEls.get(key);
+        if (!el) {
+          el = document.createElement("div");
+          applyStaticNodeChrome(el, node);
+          layerEl.appendChild(el);
+          nodeEls.set(key, el);
+        } else if (el.parentElement !== layerEl) {
+          layerEl.appendChild(el);
+        }
+        syncNodeElement(el, node, scene, layer.clipId);
       }
-      canvas.appendChild(layerEl);
+    }
+
+    for (const [key, el] of nodeEls) {
+      if (liveNodeKeys.has(key)) continue;
+      el.remove();
+      nodeEls.delete(key);
+    }
+    for (const [key, el] of layerEls) {
+      if (liveLayerKeys.has(key)) continue;
+      el.remove();
+      layerEls.delete(key);
     }
   };
 
@@ -131,20 +204,34 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       project = input.project;
       clips = input.clips;
       lanes = input.lanes;
+      try {
+        compiled = compileMotionProject(project);
+      } catch {
+        compiled = null;
+      }
+      scenesById = new Map(project.scenes.map((s) => [s.id, s]));
+      visualIndex = buildVisualLaneIndex(clips, lanes);
+      clearDomCaches();
       if (lastFrame >= 0) paintFrame(lastFrame);
     },
     setScale(next) {
       scale = next;
-      if (lastFrame >= 0) paintFrame(lastFrame);
+      applyCanvasChrome();
     },
     setBackground(color) {
       background = color;
-      if (lastFrame >= 0) paintFrame(lastFrame);
+      applyCanvasChrome();
     },
     paintFrame,
     dispose() {
+      clearDomCaches();
       canvas.remove();
       project = null;
+      compiled = null;
+      scenesById = new Map();
+      visualIndex = null;
+      clips = [];
+      lanes = [];
     },
   };
 }

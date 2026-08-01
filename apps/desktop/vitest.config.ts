@@ -34,6 +34,7 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["src/**/*.test.ts"],
+          exclude: ["src/**/stage-renderer-benchmark.test.ts"],
         },
       },
       {
@@ -42,7 +43,10 @@ export default defineConfig({
         test: {
           name: "dom",
           environment: "happy-dom",
-          include: ["renderer/src/**/*.test.tsx"],
+          include: [
+            "renderer/src/**/*.test.tsx",
+            "src/**/stage-renderer-benchmark.test.ts",
+          ],
         },
       },
     ],
