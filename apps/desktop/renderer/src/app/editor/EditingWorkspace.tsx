@@ -40,7 +40,11 @@ import { createAssetRepository } from "../../infrastructure/repositories/asset-r
 import { EditorHeader } from "./EditorHeader";
 import { resolveFlushedDocumentJson } from "./flush-document-snapshot";
 import type { EditorActions } from "./editor-actions";
-import type { EditorSessionHandle } from "./editor-session-handle";
+import {
+  resolveFlushedProjectName,
+  type EditorSessionHandle,
+  type EditorSessionSnapshot,
+} from "./editor-session-handle";
 import type { DesktopAPI } from "../../../../src/shared/ipc/contracts";
 
 const ExportControls = lazy(() =>
@@ -62,8 +66,8 @@ type Props = {
   /** Prefer over mutating sessionHandleRef when lint forbids param reassignment. */
   onSessionHandle?: (handle: EditorSessionHandle | null) => void;
   onDocumentChange: (json: string) => void;
-  onSave: (documentJson: string) => void;
-  onSaveAs: (documentJson: string) => void;
+  onSave: (snapshot: EditorSessionSnapshot) => void;
+  onSaveAs: (snapshot: EditorSessionSnapshot) => void;
   onCloseToHome: () => void;
   onClearError: () => void;
 };
@@ -255,17 +259,23 @@ function EditingWorkspaceInner({
     });
   }, [documentJson, nameDraft, session]);
 
-  const flushSnapshot = useCallback((): {
-    documentJson: string;
-    dirty: boolean;
-  } => {
+  const flushSnapshot = useCallback((): EditorSessionSnapshot => {
+    const skipNameCommit = skipNameCommitRef.current;
+    const nameDraftDirty = nameDraftDirtyRef.current;
     const pendingNameDirty =
-      nameDraftDirtyRef.current &&
-      !skipNameCommitRef.current &&
+      nameDraftDirty &&
+      !skipNameCommit &&
       (nameDraft.trim() || "Untitled") !== session.projectName;
+    const projectName = resolveFlushedProjectName({
+      skipNameCommit,
+      nameDraftDirty,
+      nameDraft,
+      projectName: session.projectName,
+    });
     const documentJsonOut = flushDocumentSnapshot();
     return {
       documentJson: documentJsonOut,
+      projectName,
       dirty: dirty || pendingNameDirty || !path,
     };
   }, [dirty, flushDocumentSnapshot, nameDraft, path, session.projectName]);
@@ -274,7 +284,6 @@ function EditingWorkspaceInner({
     const handle: EditorSessionHandle = { flushSnapshot };
     onSessionHandle?.(handle);
     if (sessionHandleRef) {
-      // Register for native close; ref identity is owned by DesktopApp.
       // eslint-disable-next-line no-param-reassign -- intentional handle registry
       sessionHandleRef.current = handle;
     }
@@ -289,9 +298,10 @@ function EditingWorkspaceInner({
 
   const editorActions: EditorActions = useMemo(
     () => ({
+      closeProject: onCloseToHome,
       goHome: onCloseToHome,
-      save: () => onSave(flushDocumentSnapshot()),
-      saveAs: () => onSaveAs(flushDocumentSnapshot()),
+      save: () => onSave(flushSnapshot()),
+      saveAs: () => onSaveAs(flushSnapshot()),
       undo: () => dispatch({ type: "UNDO" }),
       redo: () => dispatch({ type: "REDO" }),
       fitTimeline: () => dispatch({ type: "FIT_TIMELINE" }),
@@ -317,13 +327,13 @@ function EditingWorkspaceInner({
       skipNameCommit: () => {
         skipNameCommitRef.current = true;
       },
-      flushDocumentSnapshot,
+      flushDocumentSnapshot: () => flushSnapshot().documentJson,
     }),
     [
       onCloseToHome,
       onSave,
       onSaveAs,
-      flushDocumentSnapshot,
+      flushSnapshot,
       executeTimeline,
       copySelection,
       cutSelection,
@@ -354,9 +364,9 @@ function EditingWorkspaceInner({
                 projectPath={path}
                 disabled={saving || Boolean(session.loadError)}
                 dirty={dirty}
-                onRequestSave={() => {
-                  onSave(flushDocumentSnapshot());
-                }}
+                  onRequestSave={() => {
+                    onSave(flushSnapshot());
+                  }}
               />
             </Suspense>
           ) : null

@@ -61,10 +61,7 @@ export function EditorMenuBar({ actions }: Props) {
           <button
             type="button"
             role="menuitem"
-            onClick={() => {
-              void actions.flushDocumentSnapshot();
-              actions.goHome();
-            }}
+            onClick={actions.closeProject}
           >
             Close Project
           </button>

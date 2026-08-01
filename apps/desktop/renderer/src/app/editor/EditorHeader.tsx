@@ -1,7 +1,7 @@
+import type { ReactNode } from "react";
 import { Button } from "../../ui";
 import { EditorMenuBar } from "./EditorMenuBar";
 import type { EditorActions } from "./editor-actions";
-import type { ReactNode } from "react";
 
 type Props = {
   actions: EditorActions;
@@ -20,14 +20,7 @@ export function EditorHeader({
     <div className="editor-shell__chrome">
       <EditorMenuBar actions={actions} />
       <div className="editor-shell__toolbar" role="toolbar" aria-label="Editor">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            void actions.flushDocumentSnapshot();
-            actions.goHome();
-          }}
-        >
+        <Button type="button" variant="ghost" onClick={actions.closeProject}>
           ← Home
         </Button>
         <Button

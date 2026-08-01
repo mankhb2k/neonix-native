@@ -5,6 +5,9 @@ import type { TimelineCommand } from "@motionvideo/editor-core";
  * must call through here instead of dispatching ad hoc.
  */
 export type EditorActions = {
+  /** Close to Home — DesktopApp owns flush/dirty confirm (do not pre-flush). */
+  closeProject: () => void;
+  /** @deprecated Prefer closeProject — same as closeProject. */
   goHome: () => void;
   save: () => void;
   saveAs: () => void;
@@ -28,11 +31,6 @@ export type EditorActions = {
   commitProjectName: () => void;
   rollbackProjectName: () => void;
   skipNameCommit: () => void;
-  /** Flush name draft and return document JSON to persist. */
+  /** Flush name draft and return document JSON (Save/Export path). Prefer prepare via DesktopApp for close. */
   flushDocumentSnapshot: () => string;
 };
-
-export function flushNameThen(actions: EditorActions, next: () => void): void {
-  void actions.flushDocumentSnapshot();
-  next();
-}

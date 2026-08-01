@@ -72,16 +72,20 @@ export function DesktopApp({ api }: Props) {
   }, [repo]);
 
   const performSave = useCallback(
-    async (documentJson?: string): Promise<boolean> => {
+    async (snapshot?: {
+      documentJson: string;
+      projectName?: string;
+    }): Promise<boolean> => {
       const current = stateRef.current;
-      const json = documentJson ?? current.documentJson;
+      const json = snapshot?.documentJson ?? current.documentJson;
+      const suggestedName = snapshot?.projectName ?? current.projectName;
       if (!json) return false;
       dispatch({ type: "SAVE_START" });
       try {
         const result = current.path
           ? await repo.save({ documentJson: json })
           : await repo.saveAs({
-              suggestedName: current.projectName,
+              suggestedName,
               documentJson: json,
             });
         dispatch({
@@ -121,7 +125,11 @@ export function DesktopApp({ api }: Props) {
         return;
       }
       void (async () => {
-        const saved = await performSave(snap?.documentJson);
+        const saved = await performSave(
+          snap
+            ? { documentJson: snap.documentJson, projectName: snap.projectName }
+            : undefined,
+        );
         void api.window.confirmClose(saved);
       })();
     });
@@ -188,14 +196,15 @@ export function DesktopApp({ api }: Props) {
   );
 
   const onSaveAs = useCallback(
-    async (documentJson?: string) => {
+    async (snapshot?: { documentJson: string; projectName?: string }) => {
       const current = stateRef.current;
-      const json = documentJson ?? current.documentJson;
+      const json = snapshot?.documentJson ?? current.documentJson;
+      const suggestedName = snapshot?.projectName ?? current.projectName;
       if (!json) return;
       dispatch({ type: "SAVE_START" });
       try {
         const result = await repo.saveAs({
-          suggestedName: current.projectName,
+          suggestedName,
           documentJson: json,
         });
         dispatch({
@@ -307,8 +316,8 @@ export function DesktopApp({ api }: Props) {
             onDocumentChange={(documentJson) =>
               dispatch({ type: "SET_DOCUMENT_JSON", documentJson })
             }
-            onSave={(documentJson) => void performSave(documentJson)}
-            onSaveAs={(documentJson) => void onSaveAs(documentJson)}
+            onSave={(snapshot) => void performSave(snapshot)}
+            onSaveAs={(snapshot) => void onSaveAs(snapshot)}
             onCloseToHome={() => void onCloseToHome()}
             onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
           />
