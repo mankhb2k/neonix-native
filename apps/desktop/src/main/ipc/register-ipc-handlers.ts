@@ -38,6 +38,7 @@ import { createExportService } from "../services/export-service";
 import { createProjectFileService } from "../services/project-file-service";
 import { createProjectJournalService } from "../services/project-journal-service";
 import {
+  assertDocumentMatchesSession,
   assertSessionProjectId,
   getProjectSession,
   requireSavedProjectSession,
@@ -391,6 +392,8 @@ export function registerIpcHandlers(
       async (event, payload) => {
         const input = parsePayload(saveProjectSchema, payload);
         const session = getProjectSession(event.sender.id);
+        const envelope = parseDesktopProjectFile(input.documentJson);
+        assertDocumentMatchesSession(session, projectIdFromEnvelope(envelope));
         if (!session?.path) {
           const saved = await projects.saveAsViaDialog(
             input.documentJson,
@@ -398,7 +401,6 @@ export function registerIpcHandlers(
             senderWindow(event),
           );
           await touchRecent(saved.path, input.documentJson);
-          const envelope = parseDesktopProjectFile(input.documentJson);
           setProjectSession(event.sender.id, {
             path: saved.path,
             projectId: session?.projectId ?? projectIdFromEnvelope(envelope),
@@ -414,13 +416,15 @@ export function registerIpcHandlers(
       IpcChannels.projectSaveAs,
       async (event, payload) => {
         const input = parsePayload(saveProjectAsSchema, payload);
+        const session = getProjectSession(event.sender.id);
+        const envelope = parseDesktopProjectFile(input.documentJson);
+        assertDocumentMatchesSession(session, projectIdFromEnvelope(envelope));
         const saved = await projects.saveAsViaDialog(
           input.documentJson,
           input.suggestedName,
           senderWindow(event),
         );
         await touchRecent(saved.path, input.documentJson);
-        const envelope = parseDesktopProjectFile(input.documentJson);
         setProjectSession(event.sender.id, {
           path: saved.path,
           projectId: projectIdFromEnvelope(envelope),

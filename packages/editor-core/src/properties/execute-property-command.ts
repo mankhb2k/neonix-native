@@ -346,6 +346,16 @@ function applyAudioTrack(
   };
 }
 
+function clampKeyframeClipDuration(
+  currentDuration: number,
+  keyTime: number,
+): number {
+  return Math.min(
+    MOTION_V2_LIMITS.mediaDurationSeconds,
+    Math.max(currentDuration, keyTime + 0.001),
+  );
+}
+
 function allocateUniqueClipId(
   existingIds: Set<string>,
   nodeId: string,
@@ -394,7 +404,7 @@ function upsertKeyframeOnScene(
       id: allocateUniqueClipId(existingIds, target.nodeId, command.property),
       targetId: target.nodeId,
       schedule: { kind: "absolute", at: 0 },
-      duration: Math.max(scene.duration, command.t + 0.001),
+      duration: clampKeyframeClipDuration(scene.duration, command.t),
       playback: { iterations: 1, direction: "normal", rate: 1 },
       source: {
         kind: "tracks",
@@ -447,7 +457,7 @@ function upsertKeyframeOnScene(
     clips[clipIdx] = {
       ...clip,
       source: { kind: "tracks", tracks },
-      duration: Math.max(clip.duration, command.t + 0.001),
+      duration: clampKeyframeClipDuration(clip.duration, command.t),
     };
   }
 

@@ -69,15 +69,10 @@ export function DesktopApp({ api }: Props) {
       const cur = stateRef.current;
       if (cur.phase === "saving") return;
       if (!cur.dirty || !cur.documentJson || !cur.projectId) return;
-      const epoch = journalEpochRef.current;
-      if (journalEpochRef.current !== epoch) return;
       void api.journal
         .autosave({
           projectId: cur.projectId,
           documentJson: cur.documentJson,
-        })
-        .then(() => {
-          if (journalEpochRef.current !== epoch) return;
         })
         .catch((err: unknown) => {
           // Best-effort diagnostics; journal must not throw into the UI loop.

@@ -76,3 +76,19 @@ export function assertSessionProjectId(
     );
   }
 }
+
+/**
+ * Ensure document envelope metadata.id matches the active session before Save.
+ */
+export function assertDocumentMatchesSession(
+  session: ProjectSession | null,
+  documentProjectId: string,
+): void {
+  if (!session) return;
+  if (session.projectId !== documentProjectId) {
+    throw new DesktopIpcError(
+      DesktopIpcErrorCode.VALIDATION,
+      "Document projectId does not match the active session.",
+    );
+  }
+}

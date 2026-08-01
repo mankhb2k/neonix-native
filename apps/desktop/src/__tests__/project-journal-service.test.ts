@@ -383,6 +383,35 @@ describe("project-journal-service", () => {
     expect(recovered?.documentJson).toBe(prior);
   });
 
+  it("skips duplicate autosave when document hash is unchanged", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-dedupe-"));
+    const journal = createProjectJournalService({ userDataPath: dir });
+    const blank = buildBlankDesktopProject({ name: "Dedupe" });
+    await journal.bind({ projectId: blank.projectId });
+    const snap = buildBlankDesktopProject({ name: "Same" }).documentJson;
+    const a = await journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      documentJson: snap,
+    });
+    const b = await journal.writeAutosaveSnapshot({
+      projectId: blank.projectId,
+      documentJson: snap,
+    });
+    await journal.flush();
+    expect(b.seq).toBe(a.seq);
+    expect(journal.status({ projectId: blank.projectId }).lastSeq).toBe(a.seq);
+    const snapDir = path.join(
+      dir,
+      "project-journals",
+      journalKeyFor({ projectId: blank.projectId })!,
+      "snapshots",
+    );
+    const files = fs
+      .readdirSync(snapDir)
+      .filter((name) => name.startsWith("snapshot-") && name.endsWith(".json"));
+    expect(files).toHaveLength(1);
+  });
+
   it("migrateJournal keeps source when commit rename fails", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-journal-mig-"));
     const blank = buildBlankDesktopProject({ name: "Mig" });

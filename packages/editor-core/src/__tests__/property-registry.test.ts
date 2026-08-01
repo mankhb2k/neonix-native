@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  MOTION_V2_LIMITS,
+  parseMotionProject,
+} from "@motionvideo/motion-schema";
+import {
   createHistoryState,
   executePropertyCommand,
   PROPERTY_REGISTRY,
@@ -467,6 +471,37 @@ describe("Logic-2 property domain depth", () => {
     const kfClips = sceneClips.filter((c) => c.id.startsWith("kf_"));
     expect(kfClips.length).toBeGreaterThanOrEqual(2);
     expect(new Set(kfClips.map((c) => c.id)).size).toBe(kfClips.length);
+  });
+
+  it("clamps keyframe clip duration at mediaDurationSeconds boundary", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const t = MOTION_V2_LIMITS.mediaDurationSeconds;
+    const result = executePropertyCommand(doc, {
+      type: "set-property-keyframe",
+      targets,
+      property: "transform.x",
+      t,
+      v: 42,
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const kf = result.document.project.scenes[0]!.clips.find(
+      (c) =>
+        c.source.kind === "tracks" &&
+        c.source.tracks.some((tr) => tr.property === "transform.x"),
+    );
+    expect(kf).toBeTruthy();
+    expect(kf!.duration).toBeLessThanOrEqual(
+      MOTION_V2_LIMITS.mediaDurationSeconds,
+    );
+    expect(() => parseMotionProject(result.document.project)).not.toThrow();
   });
 });
 

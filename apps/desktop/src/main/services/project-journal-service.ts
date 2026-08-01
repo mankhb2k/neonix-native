@@ -332,6 +332,62 @@ export function createProjectJournalService(
     }
   }
 
+  function isDir(p: string): boolean {
+    try {
+      io.readdirSync(p);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Deep copy journal dir; source remains intact (crash-safe migrate). */
+  async function copyDirRecursive(src: string, dest: string): Promise<void> {
+    io.mkdirSync(dest, { recursive: true });
+    for (const name of io.readdirSync(src)) {
+      const from = path.join(src, name);
+      const to = path.join(dest, name);
+      if (isDir(from)) {
+        await copyDirRecursive(from, to);
+      } else {
+        await writeFile(to, io.readFileSync(from, "utf8"));
+      }
+    }
+  }
+
+  /**
+   * Reconcile crash leftovers: orphan `.migrating.*` (safe to drop — source was copied)
+   * and `.bak.*` when destination key is missing.
+   */
+  function reconcileOrphans(): void {
+    if (!io.existsSync(root)) return;
+    for (const name of io.readdirSync(root)) {
+      const full = path.join(root, name);
+      if (!isDir(full)) continue;
+      if (/\.migrating\.\d+$/.test(name)) {
+        try {
+          io.rmSync(full, { recursive: true, force: true });
+        } catch {
+          /* best-effort */
+        }
+        continue;
+      }
+      const bak = name.match(/^(.*)\.bak\.\d+$/);
+      if (bak) {
+        const dest = path.join(root, bak[1]!);
+        if (!io.existsSync(dest)) {
+          try {
+            if (io.renameSync) io.renameSync(full, dest);
+          } catch {
+            /* best-effort */
+          }
+        }
+      }
+    }
+  }
+
+  reconcileOrphans();
+
   function readMeta(dir: string): JournalMeta | null {
     const file = metaPath(dir);
     if (!io.existsSync(file)) return null;
@@ -687,11 +743,14 @@ export function createProjectJournalService(
   async function writeAutosaveSnapshot(
     input: JournalSnapshotInput,
   ): Promise<JournalWriteResult> {
+    // Full validate/hash on main is OK for typical projects; large docs should
+    // move parse/hash to a utility process when bench exceeds soft ceiling.
     if (!isValidDocumentJson(input.documentJson)) {
       throw new Error("Autosave documentJson failed validation.");
     }
     const key = journalKeyFor(input);
     if (!key) throw new Error("Journal locator missing projectId/path.");
+    const documentJsonHash = hashDocumentJson(input.documentJson);
     const genCaptured = genOf(key);
     return enqueue(async () => {
       if (genOf(key) !== genCaptured) {
@@ -707,6 +766,13 @@ export function createProjectJournalService(
         lastSeq: 0,
         updatedAt: now().toISOString(),
       };
+      if (
+        meta.journalDocumentHash === documentJsonHash &&
+        meta.snapshotFile &&
+        io.existsSync(path.join(snapshotsDir(dir), meta.snapshotFile))
+      ) {
+        return { seq: meta.lastSeq };
+      }
       const seq = meta.lastSeq + 1;
       const name = `snapshot-${String(seq).padStart(6, "0")}.json`;
       const snapPath = path.join(snapshotsDir(dir), name);
@@ -741,7 +807,6 @@ export function createProjectJournalService(
         await clearBothImpl({ path: input.path, projectId: input.projectId });
         return { seq: 0 };
       }
-      const documentJsonHash = hashDocumentJson(input.documentJson);
       await writeMetaAtomic(dir, {
         ...meta,
         projectId: input.projectId,
@@ -794,17 +859,18 @@ export function createProjectJournalService(
       }
 
       const staging = `${toDir}.migrating.${process.pid}`;
+      const backup = `${toDir}.bak.${process.pid}`;
+      let backedUp = false;
       try {
         if (io.existsSync(staging)) {
           await removeDir(staging);
         }
         io.mkdirSync(root, { recursive: true });
-        // Copy/rename to staging first — never delete source until commit succeeds.
-        await rename(fromDir, staging);
+        // Copy — never move source until destination is committed.
+        await copyDirRecursive(fromDir, staging);
         const stagedMeta = readMeta(staging);
         if (!stagedMeta) {
-          // Roll back staging → source
-          await rename(staging, fromDir);
+          await removeDir(staging);
           throw new Error("Journal migrate failed: staged meta unreadable.");
         }
         await writeMetaAtomic(staging, {
@@ -814,23 +880,26 @@ export function createProjectJournalService(
           updatedAt: now().toISOString(),
         });
         if (io.existsSync(toDir)) {
-          await removeDir(toDir);
+          if (io.existsSync(backup)) await removeDir(backup);
+          await rename(toDir, backup);
+          backedUp = true;
         }
         await rename(staging, toDir);
         bumpKeys({ projectId: input.from.projectId, path: input.to.path });
-        // fromDir already moved; ensure id-key gone if rename left residue
-        await removeDir(dirForProjectId(input.from.projectId));
+        await removeDir(fromDir);
+        if (backedUp) await removeDir(backup);
       } catch (error) {
-        // Best-effort restore source if still on staging
         try {
-          if (io.existsSync(staging) && !io.existsSync(fromDir)) {
-            await rename(staging, fromDir);
-          } else if (io.existsSync(staging)) {
-            await removeDir(staging);
+          if (io.existsSync(staging)) await removeDir(staging);
+          if (backedUp && io.existsSync(backup) && !io.existsSync(toDir)) {
+            await rename(backup, toDir);
+          } else if (backedUp && io.existsSync(backup) && io.existsSync(toDir)) {
+            await removeDir(backup);
           }
         } catch {
           /* keep failure primary */
         }
+        // Source must remain — never deleted on failure path.
         throw error instanceof Error
           ? error
           : new Error("Journal migrate failed.");
