@@ -154,7 +154,12 @@ async function captureWithElectron() {
     const child = spawn(
       process.platform === "win32" ? "pnpm.cmd" : "pnpm",
       ["build:renderer"],
-      { cwd: desktopRoot, stdio: "inherit", shell: true },
+      {
+        cwd: desktopRoot,
+        stdio: "inherit",
+        shell: true,
+        env: { ...process.env, VITE_ENABLE_UI_FIXTURES: "1" },
+      },
     );
     child.on("exit", (code) =>
       code === 0 ? resolve() : reject(new Error(`build:renderer exit ${code}`)),
@@ -165,7 +170,12 @@ async function captureWithElectron() {
     const child = spawn(
       process.platform === "win32" ? "pnpm.cmd" : "pnpm",
       ["exec", "electron", "scripts/electron-capture-baselines.cjs"],
-      { cwd: desktopRoot, stdio: "inherit", shell: true },
+      {
+        cwd: desktopRoot,
+        stdio: "inherit",
+        shell: true,
+        env: { ...process.env, VITE_ENABLE_UI_FIXTURES: "1" },
+      },
     );
     child.on("exit", (code) =>
       code === 0

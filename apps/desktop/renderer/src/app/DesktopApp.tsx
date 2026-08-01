@@ -3,7 +3,7 @@ import { DesktopIpcError, DesktopIpcErrorCode } from "../../../src/shared/ipc/er
 import { createProjectRepository } from "../infrastructure/repositories/project-repository";
 import { EditingWorkspace } from "./editor/EditingWorkspace";
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
-import { FixtureSurface } from "./fixtures/FixtureSurface";
+import { seedProductionUi, uiFixturesEnabled } from "./fixtures/seed-production-ui";
 import { readUiFixtureId } from "./fixtures/ui-fixture";
 import { HubScreen } from "./hub/HubScreen";
 import { TitleBar } from "./shell/TitleBar";
@@ -45,6 +45,23 @@ export function DesktopApp({ api }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+    const fixtureId = uiFixturesEnabled() ? readUiFixtureId() : null;
+    if (fixtureId) {
+      const seed = seedProductionUi(fixtureId);
+      if (seed.kind === "hub") {
+        dispatch({ type: "BOOT_DONE", recent: seed.recent });
+      } else {
+        dispatch({
+          type: "NEW_PROJECT",
+          projectId: seed.projectId,
+          documentJson: seed.documentJson,
+          name: seed.projectName,
+        });
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
     void repo
       .getRecent()
       .then((recent) => {
@@ -247,14 +264,22 @@ export function DesktopApp({ api }: Props) {
     typeof window !== "undefined" &&
     (window.location.search.includes("gallery=1") ||
       window.location.hash === "#gallery");
-  const uiFixture = readUiFixtureId();
+  const uiFixture = uiFixturesEnabled() ? readUiFixtureId() : null;
+  const appReady =
+    state.phase !== "booting" &&
+    (uiFixture
+      ? state.phase === "home" || state.phase === "editing"
+      : true);
 
   return (
     <ErrorBoundary>
-      <div className="app-shell">
+      <div
+        className="app-shell"
+        data-app-ready={appReady ? "true" : "false"}
+        data-ui-fixture={uiFixture ?? undefined}
+      >
         <TitleBar api={api} title={title} dirty={state.dirty} />
-        {uiFixture ? <FixtureSurface fixture={uiFixture} /> : null}
-        {!uiFixture && showGallery ? (
+        {showGallery ? (
           <Suspense fallback={<p className="home__muted">Loading gallery…</p>}>
             <UiGallery
               onClose={() => {
@@ -267,7 +292,7 @@ export function DesktopApp({ api }: Props) {
             />
           </Suspense>
         ) : null}
-        {!uiFixture && !showGallery && state.showDiagnostics ? (
+        {!showGallery && state.showDiagnostics ? (
           <Suspense fallback={<p className="home__muted">Loading diagnostics…</p>}>
             <DiagnosticsScreen
               api={api}
@@ -275,8 +300,7 @@ export function DesktopApp({ api }: Props) {
             />
           </Suspense>
         ) : null}
-        {!uiFixture &&
-        !showGallery &&
+        {!showGallery &&
         !state.showDiagnostics &&
         (state.phase === "booting" || state.phase === "error") ? (
           <main className="home">
@@ -287,8 +311,7 @@ export function DesktopApp({ api }: Props) {
             )}
           </main>
         ) : null}
-        {!uiFixture &&
-        !showGallery &&
+        {!showGallery &&
         !state.showDiagnostics &&
         (state.phase === "home" ||
           state.phase === "opening" ||
@@ -306,8 +329,7 @@ export function DesktopApp({ api }: Props) {
             onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
           />
         ) : null}
-        {!uiFixture &&
-        !showGallery &&
+        {!showGallery &&
         !state.showDiagnostics &&
         state.documentJson &&
         (state.phase === "editing" || state.phase === "saving") ? (

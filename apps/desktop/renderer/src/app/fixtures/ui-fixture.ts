@@ -1,5 +1,6 @@
 /**
- * Deterministic UI fixture mode for visual baselines (?fixture= or env).
+ * Deterministic UI fixture ids for visual baselines (?fixture=).
+ * Active only when VITE_ENABLE_UI_FIXTURES=1 (see seed-production-ui).
  */
 
 export const UI_FIXTURE_IDS = [
@@ -14,13 +15,9 @@ export type UiFixtureId = (typeof UI_FIXTURE_IDS)[number];
 
 export function readUiFixtureId(): UiFixtureId | null {
   if (typeof window === "undefined") return null;
+  if (import.meta.env.VITE_ENABLE_UI_FIXTURES !== "1") return null;
   const fromQuery = new URLSearchParams(window.location.search).get("fixture");
-  const fromEnv =
-    typeof import.meta !== "undefined" &&
-    typeof import.meta.env?.VITE_UI_FIXTURE === "string"
-      ? import.meta.env.VITE_UI_FIXTURE
-      : null;
-  const raw = fromQuery || fromEnv;
+  const raw = fromQuery;
   if (!raw) return null;
   return (UI_FIXTURE_IDS as readonly string[]).includes(raw)
     ? (raw as UiFixtureId)

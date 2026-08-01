@@ -1,81 +1,81 @@
 {
-  "status": "electron-captured",
-  "note": "Captured FixtureSurface via Electron BrowserWindow + dist-renderer (?fixture=).",
+  "status": "electron-production-ui",
+  "note": "Captured real HubScreen / EditingWorkspace with VITE_ENABLE_UI_FIXTURES=1 and frame:false.",
   "tolerance": {
     "maxPixelDiffRatio": 0.02
   },
-  "generatedAt": "2026-08-01T05:00:08.501Z",
+  "generatedAt": "2026-08-01T05:48:44.970Z",
   "placeholders": "baselines/placeholders/",
   "files": [
     {
       "name": "hub-empty-1280.png",
       "width": 1280,
       "height": 720,
-      "sha256": "7a941ae4de8caad1b81f69c092845f4783fd0dade560e151673602710727a5eb",
-      "kind": "fixture-electron"
+      "sha256": "6e285ff4ef39640f7bee2bb11e77044c849e59fbf094e96b1b9a6bd0f1c76e5a",
+      "kind": "production-ui-electron"
     },
     {
       "name": "hub-empty-1920.png",
       "width": 1920,
       "height": 1080,
-      "sha256": "0e2e4df07e2a6f97ec2b64a75afbd157469ccc5470ac310e385ba827e359dcd8",
-      "kind": "fixture-electron"
+      "sha256": "08beca0392caf94e2915e68a27397fdfb5bd07fdee25eacafceddcf7a13ee179",
+      "kind": "production-ui-electron"
     },
     {
       "name": "hub-recent-1280.png",
       "width": 1280,
       "height": 720,
-      "sha256": "903662fe17950fb3bfd9574c2cc869b0e0b65ccaa8353206932d1614b8a7e87c",
-      "kind": "fixture-electron"
+      "sha256": "720e091c739d668af069cc984b6c3e68ceee32b1fb355d789db8bf499a176fa1",
+      "kind": "production-ui-electron"
     },
     {
       "name": "hub-recent-1920.png",
       "width": 1920,
       "height": 1080,
-      "sha256": "976666a42f9d659c7e3c80757c720ff0e388ddf80c6ef295f59844721ce1fa26",
-      "kind": "fixture-electron"
+      "sha256": "08beca0392caf94e2915e68a27397fdfb5bd07fdee25eacafceddcf7a13ee179",
+      "kind": "production-ui-electron"
     },
     {
       "name": "editor-shell-1280.png",
       "width": 1280,
       "height": 720,
-      "sha256": "69844d8a54ba33af65abdfcbdb67f53d573c51c909700b2e5f45b18724ce76d6",
-      "kind": "fixture-electron"
+      "sha256": "720e091c739d668af069cc984b6c3e68ceee32b1fb355d789db8bf499a176fa1",
+      "kind": "production-ui-electron"
     },
     {
       "name": "editor-shell-1920.png",
       "width": 1920,
       "height": 1080,
-      "sha256": "9060894045fbd0987b2cc2e3ae5a8762ea7daad8d0581b7f6e4fbacb042fbd51",
-      "kind": "fixture-electron"
+      "sha256": "7c760fcc440de30300b0dccdf90ed05fd1a8e58d338dbd962b5f598f45e15b0e",
+      "kind": "production-ui-electron"
     },
     {
       "name": "sidebar-layers-1280.png",
       "width": 1280,
       "height": 720,
-      "sha256": "14b1be17ee47d5e6db3db102d591115acdba7cf30fae4850e6aa3b187da7a1e3",
-      "kind": "fixture-electron"
+      "sha256": "f954ce4b2afddc99bbbb3971d94cd08bd4b0c57e3aca3a7bb23a4ed83dfe8469",
+      "kind": "production-ui-electron"
     },
     {
       "name": "sidebar-layers-1920.png",
       "width": 1920,
       "height": 1080,
-      "sha256": "fdb16c2e1f78f56b3c302f83bc7f9edbd60c8a4169e5ccc47a541e163127f3e0",
-      "kind": "fixture-electron"
+      "sha256": "08beca0392caf94e2915e68a27397fdfb5bd07fdee25eacafceddcf7a13ee179",
+      "kind": "production-ui-electron"
     },
     {
       "name": "timeline-empty-1280.png",
       "width": 1280,
       "height": 720,
-      "sha256": "b09a890e40090bac16a16780e7348c8dfa6ade145dbcdcc4faf884666a99c949",
-      "kind": "fixture-electron"
+      "sha256": "5bc33a1a491d03c8f5b9333595eb29ed9087457196eeef8d9f64dab22e2cc035",
+      "kind": "production-ui-electron"
     },
     {
       "name": "timeline-empty-1920.png",
       "width": 1920,
       "height": 1080,
-      "sha256": "bfdb3f087603c4a6683a9cf19e179bdba2b8abd2035d65f68e49decb43f29c98",
-      "kind": "fixture-electron"
+      "sha256": "08beca0392caf94e2915e68a27397fdfb5bd07fdee25eacafceddcf7a13ee179",
+      "kind": "production-ui-electron"
     }
   ]
 }

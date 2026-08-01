@@ -77,9 +77,21 @@ app.whenReady().then(async () => {
 
 writeFileSync(join(desktopRoot, "tmp/perf-electron-runner.cjs"), runnerSrc);
 
-await run(process.platform === "win32" ? "pnpm.cmd" : "pnpm", [
-  "build:renderer",
-]);
+await new Promise((resolve, reject) => {
+  const child = spawn(
+    process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+    ["build:renderer"],
+    {
+      cwd: desktopRoot,
+      stdio: "inherit",
+      shell: true,
+      env: { ...process.env, VITE_ENABLE_UI_FIXTURES: "1" },
+    },
+  );
+  child.on("exit", (code) =>
+    code === 0 ? resolve() : reject(new Error(`build:renderer exit ${code}`)),
+  );
+});
 await run(process.platform === "win32" ? "pnpm.cmd" : "pnpm", [
   "exec",
   "electron",

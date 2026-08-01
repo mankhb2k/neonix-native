@@ -1,7 +1,8 @@
 /**
- * Capture FixtureSurface screenshots via Electron (no Playwright browsers).
+ * Capture production Hub/Editor screenshots via Electron (P20).
+ * Requires dist-renderer built with VITE_ENABLE_UI_FIXTURES=1.
+ *
  * Usage: electron scripts/electron-capture-baselines.cjs
- * (cwd = apps/desktop; dist-renderer must exist)
  */
 
 const { app, BrowserWindow } = require("electron");
@@ -40,6 +41,8 @@ app.whenReady().then(async () => {
         width: w,
         height: h,
         show: false,
+        frame: false,
+        backgroundColor: "#0A0A0B",
         webPreferences: {
           contextIsolation: true,
           nodeIntegration: false,
@@ -47,13 +50,26 @@ app.whenReady().then(async () => {
       });
       const url = `${pathToFileURL(indexHtml).href}?fixture=${surface}`;
       await win.loadURL(url);
-      await sleep(400);
-      try {
-        await win.webContents.executeJavaScript(
-          `document.querySelector('[data-fixture="${surface}"]') != null`,
+      const ready = await win.webContents
+        .executeJavaScript(
+          `new Promise((resolve) => {
+            const start = Date.now();
+            const tick = () => {
+              const el = document.querySelector('[data-app-ready="true"][data-ui-fixture="${surface}"]');
+              if (el) resolve(true);
+              else if (Date.now() - start > 8000) resolve(false);
+              else requestAnimationFrame(tick);
+            };
+            tick();
+          })`,
+        )
+        .catch(() => false);
+      if (!ready) {
+        console.error(
+          `[electron-capture-baselines] fixture not ready: ${surface}`,
         );
-      } catch {
-        /* continue */
+        app.exit(1);
+        return;
       }
       await sleep(200);
       const image = await win.webContents.capturePage();
@@ -65,7 +81,7 @@ app.whenReady().then(async () => {
         width: w,
         height: h,
         sha256: createHash("sha256").update(buf).digest("hex"),
-        kind: "fixture-electron",
+        kind: "production-ui-electron",
       });
       win.destroy();
     }
@@ -75,8 +91,8 @@ app.whenReady().then(async () => {
     join(outDir, "manifest.json"),
     `${JSON.stringify(
       {
-        status: "electron-captured",
-        note: "Captured FixtureSurface via Electron BrowserWindow + dist-renderer (?fixture=).",
+        status: "electron-production-ui",
+        note: "Captured real HubScreen / EditingWorkspace with VITE_ENABLE_UI_FIXTURES=1 and frame:false.",
         tolerance: { maxPixelDiffRatio: 0.02 },
         generatedAt: new Date().toISOString(),
         placeholders: "baselines/placeholders/",
@@ -86,7 +102,6 @@ app.whenReady().then(async () => {
       2,
     )}\n`,
   );
-  // eslint-disable-next-line no-console
   console.log(
     `[electron-capture-baselines] Wrote ${files.length} PNGs under ${outDir}`,
   );
