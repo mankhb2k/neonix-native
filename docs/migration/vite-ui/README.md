@@ -19,12 +19,12 @@
 
 | Wave | Focus | Status |
 |------|--------|--------|
-| N2 / G4 / H4 | Screenshot baselines + parity contract | **partial** — solid PNG fixtures @ 1280/1920; Playwright captures later |
-| N3 / G4 / H4 | Unified chrome / Hub polish | **partial** — menus portal into TitleBar (`#desktop-titlebar-menu-portal`) |
+| N2 / G4 / H4 / P15 | Screenshot baselines + parity contract | **partial** — Electron FixtureSurface PNGs; placeholders under `baselines/placeholders/` |
+| N3 / G4 / H4 / P15 | Unified chrome / Hub polish | **partial** — menus portal into TitleBar; no menu fallback flash |
 | N5 | Drop geometry lane/time | done (typed ghost + auto-scroll near zone) |
 | N6 / G3 | Layers tree / reorder / marquee / cross-lane | **partial** — adapters + context menu; lane drag-reorder DOM later |
-| N7 / G2 / P14 | Pixi + fixtures/benchmark | **partial** — `test:perf` (happy-dom); vertical+horizontal cull; Pixi later |
-| N8 / G5 / H5 | Packaged soak; delete web desktop | **partial** — `pnpm run pack` OK (`win-unpacked`); delete after manual soak |
+| N7 / G2 / P14 / P17 | Pixi + fixtures/benchmark | **partial** — `test:perf`; canvas seam lazy; DOM default |
+| N8 / G5 / H5 / P17 | Packaged soak; delete web desktop | **partial** — pack OK; delete after manual soak + stable release |
 
 See [PARITY_CONTRACT.md](./PARITY_CONTRACT.md), [N8_QA_CUTOVER.md](./N8_QA_CUTOVER.md), G1–G5 plan.
 

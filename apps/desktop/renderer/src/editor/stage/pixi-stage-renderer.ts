@@ -1,15 +1,16 @@
 /**
- * N7 Pixi / canvas backend entry.
- * Pixi is post-DOM-baseline: land after DomStageRenderer cache/diff (G2) proves
- * the StageRendererPort contract under fixture load. Until then, always delegate
- * to createDomStageRenderer so PreviewStage keeps DOM as the default backend.
+ * Stage renderer factory — DOM default; Canvas2D behind the Pixi seam (P17).
+ * `createStageRendererLazy` / `prefetchPixiStageRenderer` code-split the canvas chunk.
  */
 
-import { createDomStageRenderer, type StageRendererPort } from "./stage-renderer-port";
+import {
+  createDomStageRenderer,
+  type StageRendererPort,
+} from "./stage-renderer-port";
 
 export type StageRendererBackend = "dom" | "pixi";
 
-/** Active backend — DOM default; flip to pixi only after Pixi host + soak. */
+/** Active backend — DOM default until Canvas/Pixi soak completes. */
 export const STAGE_RENDERER_BACKEND: StageRendererBackend = "dom";
 
 export function createStageRenderer(
@@ -17,13 +18,30 @@ export function createStageRenderer(
   backend: StageRendererBackend = STAGE_RENDERER_BACKEND,
 ): StageRendererPort {
   if (backend === "pixi") {
-    // Post-DOM-baseline: Pixi Application host replaces this delegate later.
+    // Sync callers stay on DOM; flip via createStageRendererLazy + backend "pixi".
     return createDomStageRenderer(host);
   }
   return createDomStageRenderer(host);
 }
 
-/** @deprecated Prefer createStageRenderer */
+/** Code-split canvas/Pixi seam. */
+export async function createStageRendererLazy(
+  host: HTMLElement,
+  backend: StageRendererBackend = STAGE_RENDERER_BACKEND,
+): Promise<StageRendererPort> {
+  if (backend === "pixi") {
+    const { createCanvasStageRenderer } = await import("./canvas-stage-renderer");
+    return createCanvasStageRenderer(host);
+  }
+  return createDomStageRenderer(host);
+}
+
+/** Prefetch canvas chunk (idle after editor mount). */
+export function prefetchPixiStageRenderer(): void {
+  void import("./canvas-stage-renderer");
+}
+
+/** @deprecated Prefer createStageRendererLazy(..., "pixi") */
 export function createPixiStageRenderer(host: HTMLElement): StageRendererPort {
   return createStageRenderer(host, "pixi");
 }

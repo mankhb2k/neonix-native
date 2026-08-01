@@ -2,7 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePlaybackClockApi } from "../playback/playback-clock-store";
 import { playbackFrameIndex } from "../playback/time-frame";
 import { stageSizeForAspect } from "../preview/preview-evaluate";
-import { createStageRenderer } from "./pixi-stage-renderer";
+import {
+  createStageRendererLazy,
+  prefetchPixiStageRenderer,
+  STAGE_RENDERER_BACKEND,
+} from "./pixi-stage-renderer";
+import type { StageRendererPort } from "./stage-renderer-port";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import "./stage-layout.css";
@@ -20,9 +25,7 @@ type Props = {
 export function PreviewStage({ project, clips, lanes }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
-  const rendererRef = useRef<ReturnType<typeof createStageRenderer> | null>(
-    null,
-  );
+  const rendererRef = useRef<StageRendererPort | null>(null);
   const [scale, setScale] = useState(0.25);
   const clock = usePlaybackClockApi();
   const projectAvailable = project !== null;
@@ -51,15 +54,50 @@ export function PreviewStage({ project, clips, lanes }: Props) {
     return () => observer.disconnect();
   }, [aspectRatio]);
 
+  const projectRef = useRef(project);
+  const clipsRef = useRef(clips);
+  const lanesRef = useRef(lanes);
+  const backgroundRef = useRef(background);
+  const scaleRef = useRef(scale);
+  projectRef.current = project;
+  clipsRef.current = clips;
+  lanesRef.current = lanes;
+  backgroundRef.current = background;
+  scaleRef.current = scale;
+
   // Mount once when a project becomes available (remount only if clock identity changes).
   useEffect(() => {
     if (!projectAvailable) return undefined;
     const mount = mountRef.current;
     if (!mount) return undefined;
-    const renderer = createStageRenderer(mount);
-    rendererRef.current = renderer;
+    let cancelled = false;
+    let renderer: StageRendererPort | null = null;
+    void createStageRendererLazy(mount, STAGE_RENDERER_BACKEND).then((r) => {
+      if (cancelled) {
+        r.dispose();
+        return;
+      }
+      renderer = r;
+      rendererRef.current = r;
+      const p = projectRef.current;
+      if (p) {
+        r.setDocument({
+          project: p,
+          clips: clipsRef.current,
+          lanes: lanesRef.current,
+        });
+        r.setBackground(backgroundRef.current);
+        r.setScale(scaleRef.current);
+        r.paintFrame(
+          playbackFrameIndex(clock.getState().currentTime, fpsRef.current),
+        );
+      }
+      prefetchPixiStageRenderer();
+    });
     return () => {
-      renderer.dispose();
+      cancelled = true;
+      renderer?.dispose();
+      rendererRef.current?.dispose();
       rendererRef.current = null;
     };
   }, [projectAvailable, clock]);

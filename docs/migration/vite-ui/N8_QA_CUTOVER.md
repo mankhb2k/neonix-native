@@ -1,10 +1,11 @@
-# N8 / H5 QA + cutover checklist
+# N8 / H5 / P17 QA + cutover checklist
 
 Vite desktop is the default UI. Complete this before deleting `apps/web/components/desktop/**`.
 
 ## Automated gate (dev machine)
 
-- [x] `pnpm --filter @motionvideo/desktop test` (135+)
+- [x] `pnpm --filter @motionvideo/desktop test` (unit; excludes `test:perf`)
+- [x] `pnpm --filter @motionvideo/desktop test:perf` (happy-dom regression only)
 - [x] `pnpm --filter @motionvideo/desktop typecheck`
 - [x] `pnpm --filter @motionvideo/desktop lint`
 - [x] `pnpm --filter @motionvideo/desktop build:renderer:release` (via `pnpm run pack`)
@@ -12,6 +13,7 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 - [x] `pnpm --filter @motionvideo/desktop test:export-cli`
 - [x] `pnpm --filter @motionvideo/desktop test:desktop-paths`
 - [x] `pnpm --filter @motionvideo/desktop test:web-ban`
+- [x] Electron fixture baselines via `node apps/desktop/scripts/capture-parity-baselines.mjs --electron`
 
 ## Pack soak (H5 — 2026-08-01)
 
@@ -21,28 +23,26 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 | export-cli smoke (inside pack) | PASS |
 | web-import ban / desktop-paths | PASS |
 
-Manual create/open/save/reopen/import/export in the unpacked build still required before cutover delete.
+## P17 status
 
-Unicode / long path / large project: keep on the manual checklist below.
+- Canvas2D stage backend behind Pixi seam (`createStageRendererLazy` + `canvas-stage-renderer`); default remains DOM.
+- Prefetch canvas chunk after editor mount.
+- Manual packaged soak still required. **Do not delete** `apps/web/components/desktop/**`.
 
-## Manual UI
+## Manual UI / soak checklist
 
-- [x] Baseline PNG fixtures @ 1280 / 1920 via `node apps/desktop/scripts/capture-parity-baselines.mjs` (solid fixtures — replace with Playwright)
+- [x] Baseline PNGs @ 1280 / 1920 — Electron `FixtureSurface` captures (not solid placeholders)
 - [ ] Keyboard: Undo/Redo, Escape cancel drag/rename, Delete clip, Enter/Space library add
-- [ ] Launch `release/win-unpacked/MotionVideo.exe` (packaged create/open/save/reopen/import/export)
+- [ ] Launch `release/win-unpacked/MotionVideo.exe` (create/open/save/reopen/import/export)
 - [ ] Create project with name + aspectRatio persists
 - [ ] Library drag → lane/time; wrong family rejects; drop outside cancels
-- [ ] Rename focused → Home / Close menu / native close (single flush via `closeProject` + `EditorSessionHandle`)
+- [ ] Clip drag: incompatible / outside = no commit; auto-scroll keeps time under cursor
+- [ ] Rename focused → Home / Close menu / native close (single flush)
 - [ ] Save As after rename uses new suggested filename
 - [ ] Unicode project name / long path / large document open+save
+- [ ] Missing media, OS file drag, playback, export, close-with-unsaved
 
-## Soak
-
-Run Vite desktop as daily driver for one release cycle. Track regressions in issues.
-
-**H5 status:** automated pack + smokes PASS on Windows (`release/win-unpacked`). Manual UI soak + one release cycle still required. **Do not delete** `apps/web/components/desktop/**` until after that soak.
-
-## Cutover delete (only after soak)
+## Cutover delete (only after soak + one stable release)
 
 1. Confirm FREEZE notice + no open blockers.
 2. Delete `apps/web/components/desktop/**`.
