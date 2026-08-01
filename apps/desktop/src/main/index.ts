@@ -24,7 +24,7 @@ const bootStartedAt = Date.now();
 let disposeIpc: (() => void) | undefined;
 
 app.whenReady().then(() => {
-  // Packaged journal-worker smoke: validate >1MB via worker, write report, exit.
+  // Harness-only: require SMOKE=1 + hex token. Report path forced under temp.
   if (process.env.MOTIONVIDEO_JOURNAL_WORKER_SMOKE === "1") {
     void runJournalWorkerSmokeProbe()
       .then((code) => {

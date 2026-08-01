@@ -1,7 +1,8 @@
 /**
  * Real packaged Electron smoke (electron-builder --win dir, not NSIS).
- * Launches the unpacked executable with MOTIONVIDEO_JOURNAL_WORKER_SMOKE=1,
- * asserts validate+hash for a >1MB document reports via===worker from asar.unpacked.
+ * Launches the unpacked executable with smoke env + harness nonce,
+ * asserts validate+hash for a >1MB document reports via===worker,
+ * and requires a clean process exit (status 0, no signal, no spawn error).
  *
  *   pnpm --filter @motionvideo/desktop test:journal-worker:packaged
  *
@@ -9,7 +10,9 @@
  *   MOTIONVIDEO_SKIP_PACK=1 pnpm test:journal-worker:packaged
  */
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -23,11 +26,6 @@ const outReport = path.join(
   desktopRoot,
   "tmp",
   "journal-validate-worker-packaged-smoke.json",
-);
-const probeOut = path.join(
-  desktopRoot,
-  "tmp",
-  "journal-worker-smoke-packaged-probe.json",
 );
 const winUnpacked = path.join(desktopRoot, "release", "win-unpacked");
 const productExe = path.join(winUnpacked, "MotionVideo.exe");
@@ -99,6 +97,11 @@ if (!fs.existsSync(unpackedWorker)) {
   fail("missing-asar-unpacked-worker", { unpackedWorker });
 }
 
+const smokeToken = crypto.randomBytes(16).toString("hex");
+const probeOut = path.join(
+  os.tmpdir(),
+  `mv-journal-worker-smoke-${smokeToken}.json`,
+);
 try {
   fs.unlinkSync(probeOut);
 } catch {
@@ -108,6 +111,7 @@ try {
 const env = {
   ...process.env,
   MOTIONVIDEO_JOURNAL_WORKER_SMOKE: "1",
+  MOTIONVIDEO_JOURNAL_WORKER_SMOKE_TOKEN: smokeToken,
   MOTIONVIDEO_JOURNAL_WORKER_SMOKE_OUT: probeOut,
 };
 delete env.ELECTRON_RUN_AS_NODE;
@@ -123,6 +127,29 @@ const run = spawnSync(productExe, [], {
   shell: false,
   timeout: 120_000,
 });
+
+if (run.error) {
+  fail("spawn-error", {
+    error: run.error.message,
+    status: run.status,
+    signal: run.signal,
+  });
+}
+if (run.signal) {
+  fail("process-signal", {
+    signal: run.signal,
+    status: run.status,
+    stdout: (run.stdout || "").slice(-2000),
+    stderr: (run.stderr || "").slice(-2000),
+  });
+}
+if (run.status !== 0) {
+  fail("process-nonzero-exit", {
+    status: run.status,
+    stdout: (run.stdout || "").slice(-2000),
+    stderr: (run.stderr || "").slice(-2000),
+  });
+}
 
 if (!fs.existsSync(probeOut)) {
   fail("missing-probe-report", {
@@ -155,7 +182,15 @@ if (!probe.ok) {
 ok({
   productExe,
   unpackedWorker,
+  probeOut,
   probe,
   exitStatus: run.status,
+  signal: run.signal,
   note: "electron-builder --win dir unpacked smoke (not NSIS)",
 });
+
+try {
+  fs.unlinkSync(probeOut);
+} catch {
+  /* ignore */
+}

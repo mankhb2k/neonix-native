@@ -1,6 +1,7 @@
 /**
  * Packaged-app probe for journal validate worker.
- * Triggered when MOTIONVIDEO_JOURNAL_WORKER_SMOKE=1 before UI boot.
+ * Triggered only when MOTIONVIDEO_JOURNAL_WORKER_SMOKE=1 and a harness token is set.
+ * Report path is forced under Electron temp (harness may pass a temp filename/path).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -11,6 +12,7 @@ import {
   resolveJournalValidateWorkerPath,
   validateAndHashDocument,
 } from "./journal-document-validate";
+import { resolveJournalWorkerSmokeOutPath } from "./journal-worker-smoke-path";
 
 function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
@@ -56,9 +58,17 @@ function inflateToBytes(base: string, targetBytes: number): string {
 }
 
 export async function runJournalWorkerSmokeProbe(): Promise<number> {
-  const outPath =
-    process.env.MOTIONVIDEO_JOURNAL_WORKER_SMOKE_OUT?.trim() ||
-    path.join(app.getPath("temp"), "journal-worker-smoke-packaged.json");
+  const outPath = resolveJournalWorkerSmokeOutPath({
+    token: process.env.MOTIONVIDEO_JOURNAL_WORKER_SMOKE_TOKEN,
+    requestedOut: process.env.MOTIONVIDEO_JOURNAL_WORKER_SMOKE_OUT,
+    tempRoot: app.getPath("temp"),
+  });
+  if (!outPath) {
+    console.error(
+      "[journal-worker-smoke] refused: missing/invalid token or out path outside temp",
+    );
+    return 1;
+  }
 
   const workerPath = resolveJournalValidateWorkerPath();
   const blank = buildBlankDesktopProject({ name: "PackagedSmoke" });
@@ -84,6 +94,7 @@ export async function runJournalWorkerSmokeProbe(): Promise<number> {
     fallbackFrom: result.ok ? result.fallbackFrom ?? null : null,
     error: result.ok ? null : result.error,
     kind: result.ok ? null : result.kind,
+    smokeTokenPresent: true,
     recordedAt: new Date().toISOString(),
   };
 

@@ -6,11 +6,13 @@ import { buildBlankDesktopProject } from "../shared/project-file/envelope";
 import {
   JOURNAL_VALIDATE_OFFLOAD_BYTES,
   journalValidateCoalesceSizeForTests,
+  journalValidateNextTokenForTests,
   resetJournalValidateCoalesceForTests,
   resolveJournalValidateWorkerPath,
   validateAndHashDocument,
   validateAndHashDocumentSync,
 } from "../main/services/journal-document-validate";
+import { resolveJournalWorkerSmokeOutPath } from "../main/services/journal-worker-smoke-path";
 
 function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
@@ -124,6 +126,76 @@ describe("journal-document-validate", () => {
     }
   });
 
+  it("A/B/C: late worker A exit after B completes and C starts cannot ABA", async () => {
+    const hangWorker = path.join(
+      os.tmpdir(),
+      `mv-aba-worker-${process.pid}.cjs`,
+    );
+    fs.writeFileSync(
+      hangWorker,
+      `
+const { parentPort } = require("worker_threads");
+// Stay alive until terminated — exit arrives after superseding requests.
+setInterval(() => {}, 1 << 30);
+`,
+      "utf8",
+    );
+    try {
+      const key = "aba-coalesce";
+      const docA = inflateToBytes(
+        buildBlankDesktopProject({ name: "ABA-A" }).documentJson,
+        JOURNAL_VALIDATE_OFFLOAD_BYTES,
+      );
+      const docB = buildBlankDesktopProject({ name: "ABA-B" }).documentJson;
+      const docC = buildBlankDesktopProject({ name: "ABA-C" }).documentJson;
+      const tokenBeforeA = journalValidateNextTokenForTests();
+
+      const requestA = validateAndHashDocument(docA, {
+        coalesceKey: key,
+        workerPath: hangWorker,
+        offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,
+        timeoutMs: 5_000,
+      });
+      // Let A register its worker before B supersedes.
+      await new Promise((r) => setTimeout(r, 30));
+
+      const requestB = await validateAndHashDocument(docB, {
+        coalesceKey: key,
+        syncOnly: true,
+      });
+      expect(requestB.ok).toBe(true);
+      expect(journalValidateCoalesceSizeForTests()).toBe(0);
+
+      const tokenBeforeC = journalValidateNextTokenForTests();
+      expect(tokenBeforeC).toBeGreaterThan(tokenBeforeA);
+
+      const requestC = await validateAndHashDocument(docC, {
+        coalesceKey: key,
+        syncOnly: true,
+      });
+      expect(requestC.ok).toBe(true);
+      if (requestC.ok) {
+        expect(requestC.hash).toBe(
+          (validateAndHashDocumentSync(docC) as { hash: string }).hash,
+        );
+      }
+
+      const resultA = await requestA;
+      expect(resultA.ok).toBe(false);
+      if (!resultA.ok) {
+        expect(resultA.kind).toBe("superseded");
+      }
+      // Tokens keep advancing — never rewind to A's identity after delete.
+      expect(journalValidateNextTokenForTests()).toBeGreaterThan(tokenBeforeC);
+    } finally {
+      try {
+        fs.unlinkSync(hangWorker);
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+
   it("times out a hung worker and falls back to sync", async () => {
     const hangWorker = path.join(
       os.tmpdir(),
@@ -180,5 +252,29 @@ setInterval(() => {}, 1 << 30);
     if (!result.ok) return;
     expect(result.via).toBe("sync");
     expect(result.fallbackFrom).toBe("worker_failure");
+  });
+
+  it("smoke out path requires harness token and stays under temp", () => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "mv-smoke-temp-"));
+    const token = "a".repeat(32);
+    expect(
+      resolveJournalWorkerSmokeOutPath({
+        token: null,
+        tempRoot,
+      }),
+    ).toBeNull();
+    expect(
+      resolveJournalWorkerSmokeOutPath({
+        token,
+        requestedOut: path.join(tempRoot, "..", "escape.json"),
+        tempRoot,
+      }),
+    ).toBeNull();
+    const okPath = resolveJournalWorkerSmokeOutPath({
+      token,
+      requestedOut: path.join(tempRoot, "probe.json"),
+      tempRoot,
+    });
+    expect(okPath).toBe(path.resolve(tempRoot, "probe.json"));
   });
 });

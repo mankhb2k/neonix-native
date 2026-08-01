@@ -408,9 +408,16 @@ await new Promise((resolve, reject) => {
     cwd: desktopRoot,
     env,
     stdio: "inherit",
-    shell: process.platform === "win32",
+    shell: false,
   });
-  child.on("exit", (code) => {
+  child.on("error", (err) => {
+    reject(err);
+  });
+  child.on("exit", (code, signal) => {
+    if (signal) {
+      reject(new Error(`window-probe-signal-${signal}`));
+      return;
+    }
     if (code === 0) resolve();
     else reject(new Error(`window-probe-exit-${code}`));
   });

@@ -5,6 +5,8 @@
  *
  * Worker infrastructure failures fall back to sync so large projects keep autosaving.
  * Per coalesceKey: latest-wins — a newer request cancels the prior in-flight worker.
+ *
+ * Coalesce tokens are process-global and never reused (avoids ABA after slot delete).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -54,11 +56,14 @@ export type ValidateAndHashDocumentOptions = {
 };
 
 type CoalesceSlot = {
-  revision: number;
+  /** Process-monotonic identity — never recycled after slot deletion. */
+  token: number;
   worker: Worker | null;
 };
 
 const coalesceSlots = new Map<string, CoalesceSlot>();
+/** Monotonic; never reset on slot delete (prevents ABA with late worker exit). */
+let nextCoalesceToken = 1;
 
 export function resolveJournalValidateWorkerPath(
   existsSync: (p: string) => boolean = fs.existsSync,
@@ -102,9 +107,9 @@ export function validateAndHashDocumentSync(
   }
 }
 
-function isCurrent(slotKey: string | undefined, revision: number): boolean {
+function isCurrent(slotKey: string | undefined, token: number): boolean {
   if (!slotKey) return true;
-  return coalesceSlots.get(slotKey)?.revision === revision;
+  return coalesceSlots.get(slotKey)?.token === token;
 }
 
 function safeDiagnostic(
@@ -125,7 +130,7 @@ function terminateSlotWorker(slotKey: string | undefined): void {
   const slot = coalesceSlots.get(slotKey);
   if (!slot?.worker) return;
   const worker = slot.worker;
-  coalesceSlots.set(slotKey, { revision: slot.revision, worker: null });
+  coalesceSlots.set(slotKey, { token: slot.token, worker: null });
   void worker.terminate();
 }
 
@@ -135,7 +140,7 @@ function validateAndHashInWorker(
   options: {
     timeoutMs: number;
     coalesceKey?: string;
-    revision: number;
+    token: number;
     onDiagnostic?: (message: string, detail?: unknown) => void;
   },
 ): Promise<JournalValidateHashResult> {
@@ -158,9 +163,9 @@ function validateAndHashInWorker(
 
     if (options.coalesceKey) {
       const slot = coalesceSlots.get(options.coalesceKey);
-      if (slot && slot.revision === options.revision) {
+      if (slot && slot.token === options.token) {
         coalesceSlots.set(options.coalesceKey, {
-          revision: slot.revision,
+          token: slot.token,
           worker,
         });
       }
@@ -169,9 +174,10 @@ function validateAndHashInWorker(
     const cleanup = () => {
       if (options.coalesceKey) {
         const slot = coalesceSlots.get(options.coalesceKey);
-        if (slot?.worker === worker) {
+        // Only clear our own worker handle — never touch a newer request's worker.
+        if (slot?.token === options.token && slot.worker === worker) {
           coalesceSlots.set(options.coalesceKey, {
-            revision: slot.revision,
+            token: slot.token,
             worker: null,
           });
         }
@@ -186,7 +192,7 @@ function validateAndHashInWorker(
       cleanup();
       if (
         options.coalesceKey &&
-        !isCurrent(options.coalesceKey, options.revision)
+        !isCurrent(options.coalesceKey, options.token)
       ) {
         resolve({
           ok: false,
@@ -225,7 +231,6 @@ function validateAndHashInWorker(
         });
         return;
       }
-      // Worker reported document invalid (or malformed reply treated as invalid).
       const error =
         msg &&
         typeof msg === "object" &&
@@ -267,7 +272,7 @@ async function runValidateAndHash(
   documentJson: string,
   options: ValidateAndHashDocumentOptions,
   coalesceKey: string | undefined,
-  revision: number,
+  token: number,
 ): Promise<JournalValidateHashResult> {
   const offloadBytes = options.offloadBytes ?? JOURNAL_VALIDATE_OFFLOAD_BYTES;
   const bytes = Buffer.byteLength(documentJson, "utf8");
@@ -278,7 +283,7 @@ async function runValidateAndHash(
   const timeoutMs = options.timeoutMs ?? JOURNAL_VALIDATE_WORKER_TIMEOUT_MS;
 
   if (!options.syncOnly && workerPath && bytes >= offloadBytes) {
-    if (!isCurrent(coalesceKey, revision)) {
+    if (!isCurrent(coalesceKey, token)) {
       return {
         ok: false,
         error: "Validation superseded by a newer autosave.",
@@ -289,10 +294,10 @@ async function runValidateAndHash(
     const workerResult = await validateAndHashInWorker(documentJson, workerPath, {
       timeoutMs,
       coalesceKey,
-      revision,
+      token,
       onDiagnostic: options.onDiagnostic,
     });
-    if (!isCurrent(coalesceKey, revision)) {
+    if (!isCurrent(coalesceKey, token)) {
       return {
         ok: false,
         error: "Validation superseded by a newer autosave.",
@@ -312,7 +317,7 @@ async function runValidateAndHash(
     );
     const syncResult = validateAndHashDocumentSync(documentJson);
     if (!syncResult.ok) return syncResult;
-    if (!isCurrent(coalesceKey, revision)) {
+    if (!isCurrent(coalesceKey, token)) {
       return {
         ok: false,
         error: "Validation superseded by a newer autosave.",
@@ -328,7 +333,7 @@ async function runValidateAndHash(
     };
   }
 
-  if (!isCurrent(coalesceKey, revision)) {
+  if (!isCurrent(coalesceKey, token)) {
     return {
       ok: false,
       error: "Validation superseded by a newer autosave.",
@@ -344,20 +349,20 @@ export async function validateAndHashDocument(
   options: ValidateAndHashDocumentOptions = {},
 ): Promise<JournalValidateHashResult> {
   const coalesceKey = options.coalesceKey;
-  let revision = 0;
+  let token = 0;
   if (coalesceKey) {
-    const prev = coalesceSlots.get(coalesceKey);
-    revision = (prev?.revision ?? 0) + 1;
+    token = nextCoalesceToken;
+    nextCoalesceToken += 1;
     terminateSlotWorker(coalesceKey);
-    coalesceSlots.set(coalesceKey, { revision, worker: null });
+    coalesceSlots.set(coalesceKey, { token, worker: null });
   }
 
   try {
-    return await runValidateAndHash(documentJson, options, coalesceKey, revision);
+    return await runValidateAndHash(documentJson, options, coalesceKey, token);
   } finally {
     if (coalesceKey) {
       const slot = coalesceSlots.get(coalesceKey);
-      if (slot?.revision === revision) {
+      if (slot?.token === token) {
         terminateSlotWorker(coalesceKey);
         coalesceSlots.delete(coalesceKey);
       }
@@ -365,7 +370,7 @@ export async function validateAndHashDocument(
   }
 }
 
-/** Test helper — clear coalesce state between cases. */
+/** Test helper — clear coalesce state between cases (does not rewind tokens). */
 export function resetJournalValidateCoalesceForTests(): void {
   for (const key of [...coalesceSlots.keys()]) {
     terminateSlotWorker(key);
@@ -376,4 +381,9 @@ export function resetJournalValidateCoalesceForTests(): void {
 /** Test helper — map size after cleanup. */
 export function journalValidateCoalesceSizeForTests(): number {
   return coalesceSlots.size;
+}
+
+/** Test helper — next token that will be issued (monotonic). */
+export function journalValidateNextTokenForTests(): number {
+  return nextCoalesceToken;
 }
