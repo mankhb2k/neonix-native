@@ -10,7 +10,7 @@ import {
 } from "@motionvideo/editor-core";
 import { subscribe as subscribeLibraryDrag } from "../library/interactions/library-drag-session";
 import { usePlaybackClockApi } from "../playback/playback-clock-store";
-import { ClipStrip } from "./ClipStrip";
+import { ClipStrip, type ClipMovePreview } from "./ClipStrip";
 import {
   autoScrollTimelineNearEdge,
   resolveDropGeometryAtPoint,
@@ -83,6 +83,8 @@ export function TimelineViewport({
   const [dropGhost, setDropGhost] = useState<ValidatedDropGeometry | null>(
     null,
   );
+  const [clipMovePreview, setClipMovePreview] =
+    useState<ClipMovePreview | null>(null);
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const clock = usePlaybackClockApi();
   const { beginGesture } = usePointerSessionHost();
@@ -367,6 +369,7 @@ export function TimelineViewport({
         },
         { x: event.clientX, y: event.clientY },
         event.currentTarget,
+        event.pointerId,
       );
     },
     [
@@ -507,6 +510,8 @@ export function TimelineViewport({
                         laneHeight={h}
                         selection={selection}
                         disabled={disabled}
+                        movePreview={clipMovePreview}
+                        onMovePreviewChange={setClipMovePreview}
                         beginGesture={beginGesture}
                         onSelect={onSelect}
                         onExecute={onExecute}

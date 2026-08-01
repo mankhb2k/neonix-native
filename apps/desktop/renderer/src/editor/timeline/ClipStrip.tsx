@@ -12,13 +12,25 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import { resolveDropGeometryAtPoint } from "./drop-host";
+import {
+  autoScrollTimelineNearEdge,
+  resolveDropGeometryAtPoint,
+} from "./drop-host";
 import type { BeginGesture } from "./interactions/use-pointer-session";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 const DRAG_THRESHOLD_PX = 3;
 
 type TrackKind = "main" | "overlay" | "audio";
+
+export type ClipMovePreview = {
+  clipId: string;
+  originLaneId: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+  valid: boolean;
+};
 
 function trackForLane(lane: TimelineLane | undefined): TrackKind {
   if (!lane) return "main";
@@ -33,13 +45,17 @@ function clipAcceptsTrack(clip: TimelineClip, track: TrackKind): boolean {
 }
 
 type Preview =
-  | { kind: "move"; clipId: string; startTime: number }
+  | ClipMovePreview
   | {
       kind: "trim";
       clipId: string;
       startTime: number;
       duration: number;
     };
+
+function isMovePreview(preview: Preview | null): preview is ClipMovePreview {
+  return preview != null && !("kind" in preview);
+}
 
 type Props = {
   clips: TimelineClip[];
@@ -48,6 +64,9 @@ type Props = {
   laneHeight: number;
   selection: EditorSelection;
   disabled?: boolean;
+  /** Shared cross-lane move ghost (owned by TimelineViewport). */
+  movePreview?: ClipMovePreview | null;
+  onMovePreviewChange?: (preview: ClipMovePreview | null) => void;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
@@ -60,6 +79,8 @@ export function ClipStrip({
   laneHeight,
   selection,
   disabled,
+  movePreview = null,
+  onMovePreviewChange,
   beginGesture,
   onSelect,
   onExecute,
@@ -68,7 +89,12 @@ export function ClipStrip({
   const padY = 4;
   const height = Math.max(8, laneHeight - padY * 2);
   const selected = new Set(selectedClipIdsFrom(selection));
-  const [preview, setPreview] = useState<Preview | null>(null);
+  const [localPreview, setLocalPreview] = useState<Preview | null>(null);
+
+  const clearMovePreview = () => {
+    setLocalPreview(null);
+    onMovePreviewChange?.(null);
+  };
 
   const beginMove = (
     event: ReactPointerEvent<HTMLElement>,
@@ -93,14 +119,16 @@ export function ClipStrip({
     const originStart = clip.startTime;
     const originLaneId = lane.id;
     const originTrack = trackForLane(lane);
+    const duration = clip.duration;
 
     type MoveState = {
       startTime: number;
       laneId: string;
       track: TrackKind;
       moved: boolean;
+      valid: boolean;
     };
-    const started = beginGesture<MoveState, void>(
+    beginGesture<MoveState, void>(
       {
         name: `move-${clip.id}`,
         onStart: () => ({
@@ -108,23 +136,49 @@ export function ClipStrip({
           laneId: originLaneId,
           track: originTrack,
           moved: false,
+          valid: true,
         }),
         onUpdate: (pos, state) => {
           const dx = pos.x - originX;
           if (!state.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return state;
+          autoScrollTimelineNearEdge(pos.x, pos.y);
           const nextStart = Math.max(0, originStart + dx / pps);
           let laneId = originLaneId;
           let track = originTrack;
+          let valid = true;
           const geo = resolveDropGeometryAtPoint(pos.x, pos.y);
-          if (geo && clipAcceptsTrack(clip, geo.track)) {
-            laneId = geo.laneId;
-            track = geo.track;
+          if (geo) {
+            if (clipAcceptsTrack(clip, geo.track)) {
+              laneId = geo.laneId;
+              track = geo.track;
+              valid = true;
+            } else {
+              // Highlight incompatible target; commit keeps origin lane.
+              laneId = geo.laneId;
+              track = originTrack;
+              valid = false;
+            }
           }
-          setPreview({ kind: "move", clipId: clip.id, startTime: nextStart });
-          return { startTime: nextStart, laneId, track, moved: true };
+          const preview: ClipMovePreview = {
+            clipId: clip.id,
+            originLaneId,
+            laneId,
+            startTime: nextStart,
+            duration,
+            valid,
+          };
+          setLocalPreview(preview);
+          onMovePreviewChange?.(preview);
+          return {
+            startTime: nextStart,
+            laneId: valid ? laneId : originLaneId,
+            track: valid ? track : originTrack,
+            moved: true,
+            valid,
+          };
         },
         onCommit: (state) => {
-          setPreview(null);
+          clearMovePreview();
           if (!state.moved) return;
           onExecute(
             {
@@ -139,18 +193,12 @@ export function ClipStrip({
             "Move clip",
           );
         },
-        onCancel: () => setPreview(null),
+        onCancel: () => clearMovePreview(),
       },
       { x: event.clientX, y: event.clientY },
       event.currentTarget,
+      event.pointerId,
     );
-    if (started) {
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
   };
 
   const beginTrim = (
@@ -169,7 +217,7 @@ export function ClipStrip({
     const originEnd = originStart + originDur;
 
     type TrimState = { startTime: number; duration: number };
-    const started = beginGesture<TrimState, void>(
+    beginGesture<TrimState, void>(
       {
         name: `trim-${clip.id}-${edge}`,
         onStart: () => ({ startTime: originStart, duration: originDur }),
@@ -187,11 +235,16 @@ export function ClipStrip({
             startTime = nextStart;
             duration = originEnd - nextStart;
           }
-          setPreview({ kind: "trim", clipId: clip.id, startTime, duration });
+          setLocalPreview({
+            kind: "trim",
+            clipId: clip.id,
+            startTime,
+            duration,
+          });
           return { startTime, duration };
         },
         onCommit: (state) => {
-          setPreview(null);
+          setLocalPreview(null);
           onExecute(
             {
               type: "clip/trim",
@@ -202,45 +255,68 @@ export function ClipStrip({
             "Trim clip",
           );
         },
-        onCancel: () => setPreview(null),
+        onCancel: () => setLocalPreview(null),
       },
       { x: event.clientX, y: event.clientY },
       event.currentTarget,
+      event.pointerId,
     );
-    if (started) {
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        /* ignore */
-      }
-    }
   };
+
+  const activeMove =
+    movePreview ??
+    (isMovePreview(localPreview) ? localPreview : null);
+  const trimPreview =
+    localPreview && "kind" in localPreview && localPreview.kind === "trim"
+      ? localPreview
+      : null;
+
+  const showTargetGhost =
+    activeMove != null &&
+    activeMove.laneId === lane.id &&
+    activeMove.originLaneId !== lane.id;
 
   return (
     <div className="timeline-clip-strip" data-testid="timeline-clip-strip-root">
       {clips.map((clip) => {
         let start = clip.startTime;
         let duration = clip.duration;
-        if (preview?.clipId === clip.id) {
-          if (preview.kind === "move") start = preview.startTime;
-          else {
-            start = preview.startTime;
-            duration = preview.duration;
+        let isDragging = false;
+        let dragInvalid = false;
+        let crossLaneOrigin = false;
+
+        if (activeMove?.clipId === clip.id) {
+          isDragging = true;
+          dragInvalid = !activeMove.valid;
+          if (activeMove.laneId === lane.id) {
+            start = activeMove.startTime;
+            duration = activeMove.duration;
+          } else if (activeMove.originLaneId === lane.id) {
+            // Keep origin silhouette; ghost renders on the target lane.
+            crossLaneOrigin = true;
           }
+        } else if (trimPreview?.clipId === clip.id) {
+          start = trimPreview.startTime;
+          duration = trimPreview.duration;
         }
+
         const left = start * pps;
         const width = Math.max(2, duration * pps);
         const isSelected = selected.has(clip.id);
+        const classNames = ["timeline-clip-strip__clip"];
+        if (isSelected) classNames.push("timeline-clip-strip__clip--selected");
+        if (isDragging) classNames.push("timeline-clip-strip__clip--dragging");
+        if (dragInvalid) classNames.push("timeline-clip-strip__clip--invalid");
+        if (crossLaneOrigin) {
+          classNames.push("timeline-clip-strip__clip--cross-lane-origin");
+        }
+
         return (
           <div
             key={clip.id}
             role="button"
             tabIndex={disabled ? -1 : 0}
-            className={
-              isSelected
-                ? "timeline-clip-strip__clip timeline-clip-strip__clip--selected"
-                : "timeline-clip-strip__clip"
-            }
+            className={classNames.join(" ")}
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
             style={{ left, width, top: padY, height }}
@@ -268,6 +344,23 @@ export function ClipStrip({
           </div>
         );
       })}
+      {showTargetGhost && activeMove ? (
+        <div
+          className={
+            activeMove.valid
+              ? "timeline-clip-strip__clip timeline-clip-strip__clip--ghost"
+              : "timeline-clip-strip__clip timeline-clip-strip__clip--ghost timeline-clip-strip__clip--invalid"
+          }
+          aria-hidden
+          data-testid="timeline-clip-move-ghost"
+          style={{
+            left: activeMove.startTime * pps,
+            width: Math.max(2, activeMove.duration * pps),
+            top: padY,
+            height,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

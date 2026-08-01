@@ -77,12 +77,29 @@ export function LayersPanel({
     );
   };
 
+  /** scene↔visual, audio↔audio — not mere adjacent index. */
+  const clipAcceptsLane = (clip: TimelineClip, target: TimelineLane) => {
+    if (clip.kind === "audio") return target.kind === "audio";
+    return target.kind === "visual";
+  };
+
+  const canMoveClipAcrossLane = (
+    clip: TimelineClip,
+    direction: -1 | 1,
+  ): boolean => {
+    const index = sorted.findIndex((l) => l.id === clip.laneId);
+    if (index < 0) return false;
+    const target = sorted[index + direction];
+    if (!target) return false;
+    return clipAcceptsLane(clip, target);
+  };
+
   const moveClipAcrossLane = (
     clip: TimelineClip,
     direction: -1 | 1,
   ) => {
+    if (!canMoveClipAcrossLane(clip, direction)) return;
     const index = sorted.findIndex((l) => l.id === clip.laneId);
-    if (index < 0) return;
     const target = sorted[index + direction];
     if (!target) return;
     const track =
@@ -91,8 +108,6 @@ export function LayersPanel({
         : target.kind === "visual" && target.role === "base"
           ? "main"
           : "overlay";
-    if (clip.kind === "audio" && track !== "audio") return;
-    if (clip.kind === "scene" && track === "audio") return;
     onExecuteTimeline(
       {
         type: "move-clip",
@@ -115,7 +130,7 @@ export function LayersPanel({
 
   return (
     <ul className="editor-sidebar__layers">
-      {sorted.map((lane, laneIndex) => {
+      {sorted.map((lane) => {
         const laneClips = clips
           .filter((c) => c.laneId === lane.id)
           .sort((a, b) => a.startTime - b.startTime);
@@ -324,13 +339,13 @@ export function LayersPanel({
                               Select
                             </ContextMenuItem>
                             <ContextMenuItem
-                              disabled={laneIndex === 0}
+                              disabled={!canMoveClipAcrossLane(clip, -1)}
                               onSelect={() => moveClipAcrossLane(clip, -1)}
                             >
                               Move to lane above
                             </ContextMenuItem>
                             <ContextMenuItem
-                              disabled={laneIndex === sorted.length - 1}
+                              disabled={!canMoveClipAcrossLane(clip, 1)}
                               onSelect={() => moveClipAcrossLane(clip, 1)}
                             >
                               Move to lane below
