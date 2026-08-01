@@ -34,6 +34,29 @@ export const saveProjectAsSchema = z.object({
   documentJson: z.string().min(1),
 });
 
+export const journalLocatorSchema = z
+  .object({
+    projectId: z.string().min(1).optional(),
+  })
+  .strict()
+  .optional();
+
+export const journalRecordSchema = z
+  .object({
+    projectId: z.string().min(1),
+    entryId: z.string().min(1),
+    label: z.string(),
+    documentJsonHash: z.string().min(1),
+  })
+  .strict();
+
+export const journalAutosaveSchema = z
+  .object({
+    projectId: z.string().min(1),
+    documentJson: z.string().min(1),
+  })
+  .strict();
+
 /** Import always uses a main dialog; project path comes from main session. */
 export const importFilesSchema = emptyPayloadSchema;
 

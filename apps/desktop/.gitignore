@@ -1,5 +1,7 @@
 dist/
 dist-renderer/
+.deps-sharp/
+tmp/
 resources/export-cli/cli-export.cjs
 resources/export-cli/frame-worker.cjs
 resources/export-cli/ffmpeg

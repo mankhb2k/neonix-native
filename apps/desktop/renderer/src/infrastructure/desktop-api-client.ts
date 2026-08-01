@@ -27,6 +27,7 @@ export function createDesktopApiClient(
     app: bridge.app,
     window: bridge.window,
     project: bridge.project,
+    journal: bridge.journal,
     assets: bridge.assets,
     export: bridge.export,
   };

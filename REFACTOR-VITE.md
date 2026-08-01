@@ -1,23 +1,17 @@
 # Kế hoạch refactor Desktop Editor sang React + Vite
 
-> **Trạng thái (P22):** Vite là renderer **mặc định** (`pnpm dev:desktop`). Cutover xóa `apps/web/components/desktop/**` vẫn **BLOCKED** — cần soak manual + một release ổn định + approve riêng.
+> **Trạng thái (UI-0.1):** Vite là renderer **mặc định**. `apps/web/components/desktop/**` **không được xóa** cho đến khi owner approve tường minh — không tự động sau soak. Dòng “delete this tree” trong FREEZE.md là **stale** (không sửa file đó khi tree còn protected).
 > Phạm vi: desktop editor, Electron main/preload, Vite renderer và các package trực tiếp phục vụ editor
 > Không thuộc phạm vi hiện tại: xây editor web mới, đồng bộ feature parity cho web, SEO/dashboard/marketplace
 
-### Status snapshot (P13–P21)
+### Status snapshot (P13–P22 + UI-0 / UI-0.1)
 
 | Phase | Focus | Status |
 |-------|--------|--------|
-| P13 | Clip move drag resolve / invalid no-op | done |
-| P14 | `test` vs `test:perf`; vertical lane windowing | done |
-| P15→P20 | Visual baselines | done — **production UI** + `VITE_ENABLE_UI_FIXTURES`; FixtureSurface mock không còn gate |
-| P16 | Lane policy / multi-move / snap preview | done |
-| P17→P21 | Stage backend | done — DOM default; `canvas-experimental` (+ deprecated `"pixi"` alias); contract tests |
-| P18 | Atomic `moveClipGroup` + keep-lane omit-track | done |
-| P19 | Snap index @ gesture start; pin lanes; `test:perf:electron` | done (chưa claim 60fps) |
-| P20 | Real Hub/Editor baselines, `frame: false`, compare script | done |
-| P21 | Canvas compose/`frameIndex`, resize/bg/scale repaint, idempotent dispose | done |
-| P22 | Docs / soak / Inspector seam | this update — **no legacy delete** |
+| P13–P22 | Timeline correctness, group move, baselines, canvas-experimental, docs | done |
+| UI-0 | Viewport lock, typecheck, exact-size baselines, real pixel-diff, perf mutation | done |
+| UI-0.1 | QA honesty (real pointer drag), group-move plan, RAF cleanup, dual baselines, protected legacy CI | this wave |
+| UI-1…UI-6 | Visual port (tokens → chrome → timeline → hub → inspector → soak) | **deferred** |
 
 QA checklist: [docs/migration/vite-ui/N8_QA_CUTOVER.md](docs/migration/vite-ui/N8_QA_CUTOVER.md).
 
@@ -33,7 +27,7 @@ Chiến lược triển khai là **hybrid migration**:
 4. Tách document/command/timeline core thành package framework-independent.
 5. Chuyển từng vertical slice sang renderer mới, khóa behavior bằng test và fixture.
 6. Chỉ đổi renderer mặc định của Electron sau khi đạt các quality gate.
-7. Xóa legacy desktop-in-web sau một giai đoạn ổn định và vẫn giữ khả năng rollback.
+7. Giữ legacy desktop-in-web song song làm visual specification; **không** xóa tự động — chỉ khi owner approve tường minh.
 
 Không thực hiện big-bang rewrite toàn bộ editor. Không tạo nhiều package chỉ để mô phỏng kiến trúc tương lai của web.
 
@@ -948,14 +942,14 @@ Renderer Vite an toàn và hoạt động đúng trong artifact đóng gói.
 
 - Unpackaged + packaged default = **Vite** (`pnpm dev:desktop` / `app://`)
 - Legacy opt-in: `dev:desktop:legacy` / `MOTIONVIDEO_RENDERER=legacy`
-- **Do not delete** `apps/web/components/desktop/**` until manual soak + one stable release + explicit approve (separate commit)
+- **Do not delete** `apps/web/components/desktop/**` until explicit owner approve (no automatic cleanup phase; FREEZE.md delete line is stale)
 - Production rollback = previous installer ([ADR-002](docs/ADR/002-vite-renderer-source-of-truth.md))
 - Checklist: [docs/migration/vite-ui/N8_QA_CUTOVER.md](docs/migration/vite-ui/N8_QA_CUTOVER.md), [docs/migration/vite-phase-12/cutover.md](docs/migration/vite-phase-12/cutover.md)
 - Stage: DOM default; `canvas-experimental` behind flag/lazy seam only
 
 ### Mục tiêu
 
-Vite là renderer mặc định; legacy web-desktop chỉ còn baseline tham chiếu cho tới khi cutover delete được approve.
+Vite là renderer mặc định; legacy web-desktop là baseline tham chiếu UI/UX (song song mãi cho tới owner approve).
 
 ### Công việc
 
@@ -963,7 +957,7 @@ Vite là renderer mặc định; legacy web-desktop chỉ còn baseline tham chi
 - Giữ opt-in legacy trong một giai đoạn nội bộ/canary.
 - Theo dõi crash, save failure, export failure và startup time.
 - Đóng băng desktop feature mới trên editor Next.
-- Sau khi ổn định, xóa desktop-only components khỏi `apps/web` bằng PR riêng (không gộp vào P18–P22).
+- **Không** lên lịch xóa `apps/web/components/desktop/**` trong roadmap UI-0…UI-6; CI (`probe-legacy-desktop-protected`) fail nếu PR xóa path này.
 - Không xóa web editor nếu vẫn cần tham chiếu hoặc sản phẩm web hiện hữu.
 - ADR: Vite renderer là source of truth (ADR-002).
 

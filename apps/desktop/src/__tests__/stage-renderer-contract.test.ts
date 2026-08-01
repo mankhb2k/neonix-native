@@ -10,7 +10,10 @@ import {
 } from "../../renderer/src/editor/preview/compose-layers";
 import { createDomStageRenderer } from "../../renderer/src/editor/stage/stage-renderer-port";
 import { createCanvasStageRenderer } from "../../renderer/src/editor/stage/canvas-stage-renderer";
-import { createStageRenderer } from "../../renderer/src/editor/stage/pixi-stage-renderer";
+import {
+  createStageRenderer,
+  resolveStageBackend,
+} from "../../renderer/src/editor/stage/stage-renderer-factory";
 import { buildStagePaintFixture } from "../../renderer/src/editor/stage/preview-fixtures";
 
 describe("StageRendererPort contract DOM vs canvas-experimental", () => {
@@ -56,11 +59,17 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     expect(() => createStageRenderer(host(), "canvas-experimental")).toThrow(
       /createStageRendererLazy/,
     );
+    expect(resolveStageBackend("pixi")).toBe("canvas-experimental");
     expect(() => createStageRenderer(host(), "pixi")).toThrow(
       /createStageRendererLazy/,
     );
     const dom = createStageRenderer(host(), "dom");
     dom.dispose();
+  });
+
+  it("production backend is DOM (Logic-4 honesty)", () => {
+    expect(resolveStageBackend("dom")).toBe("dom");
+    expect(resolveStageBackend(undefined)).toBe("dom");
   });
 
   it("canvas paintFrame changes painted node count across frames", () => {
@@ -77,11 +86,7 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     expect(composeAtTime(index, 60 / fps).length).toBe(0);
 
     const h = host();
-    const canvas = createCanvasStageRenderer(h) as ReturnType<
-      typeof createCanvasStageRenderer
-    > & {
-      getPaintStats: () => { frameIndex: number; nodeCount: number };
-    };
+    const canvas = createCanvasStageRenderer(h);
     canvas.setBackground("#111111");
     canvas.setDocument(doc);
     canvas.paintFrame(0);

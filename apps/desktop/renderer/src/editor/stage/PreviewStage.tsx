@@ -4,9 +4,9 @@ import { playbackFrameIndex } from "../playback/time-frame";
 import { stageSizeForAspect } from "../preview/preview-evaluate";
 import {
   createStageRendererLazy,
-  prefetchPixiStageRenderer,
+  prefetchCanvasStageRenderer,
   STAGE_RENDERER_BACKEND,
-} from "./pixi-stage-renderer";
+} from "./stage-renderer-factory";
 import type { StageRendererPort } from "./stage-renderer-port";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-schema";
@@ -94,7 +94,7 @@ export function PreviewStage({ project, clips, lanes }: Props) {
           playbackFrameIndex(clock.getState().currentTime, fpsRef.current),
         );
       }
-      prefetchPixiStageRenderer();
+      prefetchCanvasStageRenderer();
     });
     return () => {
       cancelled = true;

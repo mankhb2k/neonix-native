@@ -11,6 +11,7 @@ vi.mock("electron", () => ({
   dialog: {
     showOpenDialog: vi.fn(async () => ({ canceled: true, filePaths: [] })),
     showSaveDialog: vi.fn(async () => ({ canceled: true })),
+    showMessageBox: vi.fn(async () => ({ response: 1 })),
   },
   BrowserWindow: {
     fromWebContents: vi.fn(() => ({

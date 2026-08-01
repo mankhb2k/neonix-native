@@ -1,100 +1,80 @@
 {
   "status": "electron-production-ui",
-  "note": "Reference goldens promoted from candidates. Compare against tmp/baseline-candidates.",
+  "note": "Reference goldens at exact requested sizes. Compare via sharp PNG pixel-diff.",
   "tolerance": {
     "maxPixelDiffRatio": 0.02
   },
-  "generatedAt": "2026-08-01T06:38:09.270Z",
+  "generatedAt": "2026-08-01T08:35:38.806Z",
   "placeholders": "baselines/placeholders/",
   "files": [
     {
       "name": "hub-empty-1280.png",
       "width": 1280,
       "height": 720,
-      "requestedWidth": 1280,
-      "requestedHeight": 720,
       "sha256": "6e285ff4ef39640f7bee2bb11e77044c849e59fbf094e96b1b9a6bd0f1c76e5a",
       "kind": "production-ui-electron"
     },
     {
       "name": "hub-empty-1920.png",
       "width": 1920,
-      "height": 1032,
-      "requestedWidth": 1920,
-      "requestedHeight": 1080,
-      "sha256": "03ed42979f6309908017b75d03e12573c95265cf45d9bc07335d92d945d82b68",
+      "height": 1080,
+      "sha256": "771bda23c3334d985d3b5d42540ec025c13ed1811eca420fe1bcad34622d5ad6",
       "kind": "production-ui-electron"
     },
     {
       "name": "hub-recent-1280.png",
       "width": 1280,
       "height": 720,
-      "requestedWidth": 1280,
-      "requestedHeight": 720,
       "sha256": "b9a7a8cb4cbb1d848f90f923d3be61fd3e668ee8ecd21a876152358b278642e8",
       "kind": "production-ui-electron"
     },
     {
       "name": "hub-recent-1920.png",
       "width": 1920,
-      "height": 1032,
-      "requestedWidth": 1920,
-      "requestedHeight": 1080,
-      "sha256": "eb7df268bfab210b5be03fdfe3198242999851ec63c8f954181adc62f4004fe0",
+      "height": 1080,
+      "sha256": "24ee2a37737f7ec16a21c55d982cc8fd6a46b8e5ca2209636ae50bf7a5cf0eb7",
       "kind": "production-ui-electron"
     },
     {
       "name": "editor-shell-1280.png",
       "width": 1280,
       "height": 720,
-      "requestedWidth": 1280,
-      "requestedHeight": 720,
-      "sha256": "655830cc439ad506fbfe8742c3a959383405165031bacef6423a7e060cddbca4",
+      "sha256": "0f3d64492ab7bd959c5cb49bf344f9b68f69b96068ac2f3cbb76eaced8ebc6f5",
       "kind": "production-ui-electron"
     },
     {
       "name": "editor-shell-1920.png",
       "width": 1920,
-      "height": 1032,
-      "requestedWidth": 1920,
-      "requestedHeight": 1080,
-      "sha256": "1f99d223d9d485c121824a32da6b632b9771256f0211e6aca84347561c0ff4da",
+      "height": 1080,
+      "sha256": "0cd1f62ea332365820e4d181702a98d2f9f925b02a9a020514bee67f01b48ea7",
       "kind": "production-ui-electron"
     },
     {
       "name": "sidebar-layers-1280.png",
       "width": 1280,
       "height": 720,
-      "requestedWidth": 1280,
-      "requestedHeight": 720,
-      "sha256": "391d6d28f5b2f2e7fe1e3feafd56c41d1ffbf2d76bab2eb63a1a144d829606b7",
+      "sha256": "a4ba29179f2ae675a5c76f63c69ed590adfa3bad5ea5e573d0c6641112c8860b",
       "kind": "production-ui-electron"
     },
     {
       "name": "sidebar-layers-1920.png",
       "width": 1920,
-      "height": 1032,
-      "requestedWidth": 1920,
-      "requestedHeight": 1080,
-      "sha256": "d54bfa92ae6b4680c83497874a8002b281aee847894a3a1c0a6629d088c9ea6e",
+      "height": 1080,
+      "sha256": "7680fe6046dde93c5ea711e1fcb7a79981163e541c2851be1e0e9513ee5c9e3b",
       "kind": "production-ui-electron"
     },
     {
       "name": "timeline-empty-1280.png",
       "width": 1280,
       "height": 720,
-      "requestedWidth": 1280,
-      "requestedHeight": 720,
-      "sha256": "d454ef99d85cf2f27298214366ea0e5d5a0ea1685bc077e70d6ceffd500ad2e6",
+      "sha256": "6796f6b70afccbeb617f5432c8d089ea4c21813ca0d3d32e924fbcd67bfc2dbf",
       "kind": "production-ui-electron"
     },
     {
       "name": "timeline-empty-1920.png",
       "width": 1920,
-      "height": 1032,
-      "requestedWidth": 1920,
-      "requestedHeight": 1080,
-      "sha256": "4654e2e5ccb23083db71a5642373f1f433ba7215186be152e75f2f814a15482f",
+      "height": 1080,
+      "sha256": "ac2d2f8edb33d7bcf55102ab963172ffe516a3c98bf672d98a293d0cb017171c",
       "kind": "production-ui-electron"
     }
   ]

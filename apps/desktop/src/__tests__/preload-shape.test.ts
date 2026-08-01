@@ -27,6 +27,18 @@ function fakeBridge(): MotionVideoDesktopBridge {
       saveAs: async () => ({ path: "" }),
       getRecent: async () => [],
     },
+    journal: {
+      status: async () => ({
+        enabled: false,
+        dirty: false,
+        lastSeq: 0,
+        hasRecoverableSnapshot: false,
+      }),
+      record: async () => ({ recorded: false }),
+      autosave: async () => ({ saved: false }),
+      recover: async () => null,
+      discard: async () => undefined,
+    },
     assets: {
       importFiles: async () => [],
       resolveUrl: async () => ({ assetId: "", url: "" }),

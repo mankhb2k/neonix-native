@@ -14,7 +14,7 @@
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
     "e2e:timeline": "pnpm --filter @motionvideo/web e2e:timeline",
     "build": "pnpm -r run build",
-    "lint": "pnpm --filter @motionvideo/web lint && pnpm --filter @motionvideo/desktop lint",
+    "lint": "pnpm --filter @motionvideo/web lint && pnpm --filter @motionvideo/desktop lint && pnpm --filter @motionvideo/editor-core lint",
     "lint:web": "pnpm --filter @motionvideo/web lint",
     "lint:desktop": "pnpm --filter @motionvideo/desktop lint",
     "typecheck": "pnpm -r run typecheck",

@@ -22,13 +22,25 @@ type NodePaint = {
   visible: boolean;
 };
 
+export type CanvasPaintStats = {
+  frameIndex: number;
+  nodeCount: number;
+};
+
+/** Canvas backend port — includes test/contract paint stats (not on StageRendererPort). */
+export type CanvasStageRendererPort = StageRendererPort & {
+  getPaintStats(): CanvasPaintStats;
+};
+
 function colorForId(id: string): string {
   let h = 0;
   for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) >>> 0;
   return `hsl(${h % 360} 42% 48%)`;
 }
 
-export function createCanvasStageRenderer(host: HTMLElement): StageRendererPort {
+export function createCanvasStageRenderer(
+  host: HTMLElement,
+): CanvasStageRendererPort {
   const canvas = document.createElement("canvas");
   canvas.style.width = "100%";
   canvas.style.height = "100%";

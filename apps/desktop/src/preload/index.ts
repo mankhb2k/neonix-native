@@ -53,6 +53,13 @@ function buildDesktopApi(): MotionVideoDesktopBridge {
       saveAs: (input) => invoke(IpcChannels.projectSaveAs, input),
       getRecent: () => invoke(IpcChannels.projectGetRecent),
     },
+    journal: {
+      status: (input) => invoke(IpcChannels.journalStatus, input ?? {}),
+      record: (input) => invoke(IpcChannels.journalRecord, input),
+      autosave: (input) => invoke(IpcChannels.journalAutosave, input),
+      recover: (input) => invoke(IpcChannels.journalRecover, input ?? {}),
+      discard: (input) => invoke(IpcChannels.journalDiscard, input ?? {}),
+    },
     assets: {
       importFiles: () => invoke(IpcChannels.assetsImportFiles),
       resolveUrl: (input) => invoke(IpcChannels.assetsResolveUrl, input),

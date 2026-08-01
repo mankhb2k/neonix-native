@@ -3,6 +3,7 @@
  * shared time delta clamp (preserves relative spacing).
  *
  * Command seam: `{ type: "move-clips"; clipIds; deltaTime }` (B3).
+ * UI-0.1: `createClipGroupMovePlan` reuses indexes across pointer frames.
  */
 
 import { selectionClips } from "../selection/editor-selection";
@@ -33,28 +34,48 @@ export function trackKindForLane(
   return "overlay";
 }
 
-function rangesOverlap(
-  aStart: number,
-  aDur: number,
-  bStart: number,
-  bDur: number,
-): boolean {
-  const aEnd = aStart + aDur;
-  const bEnd = bStart + bDur;
-  return aStart < bEnd - 1e-9 && bStart < aEnd - 1e-9;
+type LaneInterval = { startTime: number; duration: number; endTime: number };
+
+type LaneIntervalIndex = {
+  /** Sorted by startTime ascending. */
+  intervals: LaneInterval[];
+  /** maxEndPrefix[i] = max endTime among intervals[0..i]. */
+  maxEndPrefix: number[];
+};
+
+function buildLaneIntervalIndex(raw: LaneInterval[]): LaneIntervalIndex {
+  const intervals = [...raw].sort((a, b) => a.startTime - b.startTime);
+  const maxEndPrefix: number[] = [];
+  let maxEnd = -Infinity;
+  for (let i = 0; i < intervals.length; i += 1) {
+    maxEnd = Math.max(maxEnd, intervals[i]!.endTime);
+    maxEndPrefix.push(maxEnd);
+  }
+  return { intervals, maxEndPrefix };
 }
 
-function laneBlocked(
-  others: TimelineClip[],
-  laneId: string,
+/**
+ * O(log N): intervals with startTime < queryEnd that also extend past queryStart.
+ * Uses sorted starts + prefix max end.
+ */
+function laneBlockedIntervals(
+  index: LaneIntervalIndex | undefined,
   startTime: number,
   duration: number,
 ): boolean {
-  return others.some(
-    (c) =>
-      c.laneId === laneId &&
-      rangesOverlap(c.startTime, c.duration, startTime, duration),
-  );
+  if (!index?.intervals.length) return false;
+  const queryEnd = startTime + duration;
+  const { intervals, maxEndPrefix } = index;
+  // First index with startTime >= queryEnd → candidates are [0, lo)
+  let lo = 0;
+  let hi = intervals.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (intervals[mid]!.startTime < queryEnd) lo = mid + 1;
+    else hi = mid;
+  }
+  if (lo === 0) return false;
+  return maxEndPrefix[lo - 1]! > startTime + 1e-9;
 }
 
 export type ClipGroupPlacement = {
@@ -88,14 +109,29 @@ export type ClipGroupMoveResolve =
       placements: ClipGroupPlacement[];
     };
 
-/**
- * Pure resolve for preview + commit — time-only keep-lane group shift.
- */
-export function resolveClipGroupMove(
+export type ClipGroupMovePlan = {
+  clipIds: readonly string[];
+  clipById: ReadonlyMap<string, TimelineClip>;
+  /** Origin placements (startTime before delta). */
+  origins: readonly ClipGroupPlacement[];
+  minStart: number;
+  resolve: (deltaTime: number) => ClipGroupMoveResolve;
+};
+
+type PlanBuildFail = {
+  ok: false;
+  resolve: ClipGroupMoveResolve;
+};
+
+type PlanBuildOk = {
+  ok: true;
+  plan: ClipGroupMovePlan;
+};
+
+function buildClipGroupMovePlan(
   doc: Pick<TimelineDocument, "clips" | "lanes">,
   clipIds: string[],
-  deltaTime: number,
-): ClipGroupMoveResolve {
+): PlanBuildFail | PlanBuildOk {
   const empty: ClipGroupMoveResolve = {
     valid: false,
     reason: "empty_selection",
@@ -103,17 +139,22 @@ export function resolveClipGroupMove(
     groupDelta: 0,
     placements: [],
   };
-  if (!clipIds.length) return empty;
+  if (!clipIds.length) {
+    return { ok: false, resolve: empty };
+  }
 
   const dup = new Set<string>();
   for (const id of clipIds) {
     if (dup.has(id)) {
       return {
-        valid: false,
-        reason: "duplicate_clip",
-        message: "Danh sách clip bị trùng.",
-        groupDelta: 0,
-        placements: [],
+        ok: false,
+        resolve: {
+          valid: false,
+          reason: "duplicate_clip",
+          message: "Danh sách clip bị trùng.",
+          groupDelta: 0,
+          placements: [],
+        },
       };
     }
     dup.add(id);
@@ -121,72 +162,146 @@ export function resolveClipGroupMove(
 
   const { lanes } = doc;
   const clips = doc.clips;
+  const clipById = new Map(clips.map((c) => [c.id, c]));
   const groupIds = new Set(clipIds);
 
   for (const id of clipIds) {
-    if (!clips.some((c) => c.id === id)) {
+    if (!clipById.has(id)) {
       return {
-        valid: false,
-        reason: "missing_clip",
-        message: "Clip không tồn tại.",
-        groupDelta: 0,
-        placements: [],
+        ok: false,
+        resolve: {
+          valid: false,
+          reason: "missing_clip",
+          message: "Clip không tồn tại.",
+          groupDelta: 0,
+          placements: [],
+        },
       };
     }
   }
 
   if (selectionHasLockedLane(clips, lanes, groupIds)) {
     return {
-      valid: false,
-      reason: "locked",
-      message: "Lane bị khóa.",
-      groupDelta: 0,
-      placements: [],
+      ok: false,
+      resolve: {
+        valid: false,
+        reason: "locked",
+        message: "Lane bị khóa.",
+        groupDelta: 0,
+        placements: [],
+      },
     };
   }
 
   let minStart = Infinity;
+  const origins: ClipGroupPlacement[] = [];
   for (const id of clipIds) {
-    const c = clips.find((x) => x.id === id)!;
-    minStart = Math.min(minStart, c.startTime);
-  }
-  const groupDelta = Math.max(deltaTime, -minStart);
-
-  const placements: ClipGroupPlacement[] = [];
-  for (const id of clipIds) {
-    const existing = clips.find((c) => c.id === id)!;
+    const existing = clipById.get(id)!;
     if (isLaneLocked(lanes, existing.laneId)) {
       return {
-        valid: false,
-        reason: "locked",
-        message: "Lane bị khóa.",
-        groupDelta,
-        placements,
+        ok: false,
+        resolve: {
+          valid: false,
+          reason: "locked",
+          message: "Lane bị khóa.",
+          groupDelta: 0,
+          placements: [],
+        },
       };
     }
-    placements.push({
+    minStart = Math.min(minStart, existing.startTime);
+    origins.push({
       clipId: id,
-      startTime: existing.startTime + groupDelta,
+      startTime: existing.startTime,
       laneId: existing.laneId,
       duration: existing.duration,
       track: trackKindForLane(lanes, existing.laneId),
     });
   }
 
-  const frozenOthers = clips.filter((c) => !groupIds.has(c.id));
-  for (const p of placements) {
-    if (laneBlocked(frozenOthers, p.laneId, p.startTime, p.duration)) {
-      return {
-        valid: false,
-        reason: "collision",
-        message: "Va chạm với clip ngoài nhóm.",
-        groupDelta,
-        placements,
-      };
-    }
+  /** Non-group intervals indexed by lane — sorted + prefix-max end (O(log N) query). */
+  const intervalsByLane = new Map<string, LaneIntervalIndex>();
+  const rawByLane = new Map<string, LaneInterval[]>();
+  for (const c of clips) {
+    if (groupIds.has(c.id)) continue;
+    const iv: LaneInterval = {
+      startTime: c.startTime,
+      duration: c.duration,
+      endTime: c.startTime + c.duration,
+    };
+    const list = rawByLane.get(c.laneId);
+    if (list) list.push(iv);
+    else rawByLane.set(c.laneId, [iv]);
+  }
+  for (const [laneId, list] of rawByLane) {
+    intervalsByLane.set(laneId, buildLaneIntervalIndex(list));
   }
 
-  return { valid: true, groupDelta, placements };
+  const plan: ClipGroupMovePlan = {
+    clipIds,
+    clipById,
+    origins,
+    minStart,
+    resolve(deltaTime: number): ClipGroupMoveResolve {
+      const groupDelta = Math.max(deltaTime, -minStart);
+      const placements: ClipGroupPlacement[] = origins.map((o) => ({
+        ...o,
+        startTime: o.startTime + groupDelta,
+      }));
+      for (const p of placements) {
+        if (
+          laneBlockedIntervals(
+            intervalsByLane.get(p.laneId),
+            p.startTime,
+            p.duration,
+          )
+        ) {
+          return {
+            valid: false,
+            reason: "collision",
+            message: "Va chạm với clip ngoài nhóm.",
+            groupDelta,
+            placements,
+          };
+        }
+      }
+      return { valid: true, groupDelta, placements };
+    },
+  };
+
+  return { ok: true, plan };
+}
+
+/**
+ * Build a reusable plan for pointer-frame resolves (UI-0.1).
+ * Invalid selection still returns a plan whose `resolve` always yields the reject.
+ */
+export function createClipGroupMovePlan(
+  doc: Pick<TimelineDocument, "clips" | "lanes">,
+  clipIds: string[],
+): ClipGroupMovePlan {
+  const built = buildClipGroupMovePlan(doc, clipIds);
+  if (built.ok) return built.plan;
+  const fail = built.resolve;
+  return {
+    clipIds,
+    clipById: new Map(),
+    origins: [],
+    minStart: 0,
+    resolve: () => fail,
+  };
+}
+
+/**
+ * Pure resolve for preview + commit — time-only keep-lane group shift.
+ * Thin wrapper over createClipGroupMovePlan (tests keep calling this).
+ */
+export function resolveClipGroupMove(
+  doc: Pick<TimelineDocument, "clips" | "lanes">,
+  clipIds: string[],
+  deltaTime: number,
+): ClipGroupMoveResolve {
+  return createClipGroupMovePlan(doc, clipIds).resolve(deltaTime);
 }
 
 /**

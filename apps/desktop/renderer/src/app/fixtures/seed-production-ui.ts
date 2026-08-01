@@ -119,8 +119,8 @@ export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
       recent: [
         {
           id: "recent_1",
-          name: "Demo Reel",
-          path: "D:/fixtures/Demo Reel.moticlip",
+          name: "Parity Fixture",
+          path: "D:/fixtures/Parity Fixture.moticlip",
           openedAt: "2026-01-15T10:00:00.000Z",
         },
         {
@@ -135,10 +135,10 @@ export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
 
   const projectName =
     fixture === "timeline-empty"
-      ? "Fixture Timeline"
+      ? "Parity Fixture Timeline"
       : fixture === "sidebar-layers"
-        ? "Fixture Layers"
-        : "Fixture Editor";
+        ? "Parity Fixture Layers"
+        : "Parity Fixture";
 
   const built = buildBlankDesktopProject({
     name: projectName,

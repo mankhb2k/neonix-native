@@ -12,7 +12,7 @@ import {
   type TimelineDocument,
 } from "..";
 import { getPropertyDefinition } from "../properties/registry";
-import { fixtureMainOnly } from "../testing/fixtures/projects";
+import { fixtureMainOnly, fixtureMainPlusAudioOverlap } from "../testing/fixtures/projects";
 
 describe("property commands", () => {
   it("applies transform.x to focused scene node", () => {
@@ -102,6 +102,320 @@ describe("mixed + registry", () => {
     const cmd = prop.createCommand(99, ctx);
     expect(cmd.type).toBe("set-node-transform");
     expect(PROPERTY_REGISTRY.length).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe("Logic-2 property domain depth", () => {
+  it("locks aspect when scaling uniformly", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const result = executePropertyCommand(doc, {
+      type: "set-node-transform",
+      targets,
+      patch: { scaleX: 2.5, lockAspect: true },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const node = result.document.project.scenes[0]!.nodes[0]!;
+    expect(node.transform.scaleX).toBe(2.5);
+    expect(node.transform.scaleY).toBe(2.5);
+  });
+
+  it("sets fill/stroke style on text nodes", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const result = executePropertyCommand(doc, {
+      type: "set-node-style",
+      targets,
+      patch: { fill: "#ff0000", stroke: "#00ff00", strokeWidth: 2 },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const node = result.document.project.scenes[0]!.nodes[0]!;
+    expect(node.type).toBe("text");
+    if (node.type !== "text") return;
+    expect(node.style?.fill).toBe("#ff0000");
+    expect(node.style?.stroke).toBe("#00ff00");
+    expect(node.style?.strokeWidth).toBe(2);
+  });
+
+  it("updates typography payload", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const result = executePropertyCommand(doc, {
+      type: "set-node-text",
+      targets,
+      patch: { text: "Hello", fontSize: 42, align: "center" },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const node = result.document.project.scenes[0]!.nodes[0]!;
+    expect(node.type).toBe("text");
+    if (node.type !== "text") return;
+    expect(node.payload.text).toBe("Hello");
+    expect(node.payload.fontSize).toBe(42);
+    expect(node.payload.align).toBe("center");
+  });
+
+  it("patches audio track volume and fades", () => {
+    const { project, clips, lanes } = fixtureMainPlusAudioOverlap();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const result = executePropertyCommand(doc, {
+      type: "set-audio-track",
+      audioTrackId: "audio.a",
+      patch: { volume: 0.4, fadeIn: 0.2, fadeOut: 0.5 },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const track = result.document.project.timeline.audioTracks.find(
+      (t) => t.id === "audio.a",
+    );
+    expect(track?.volume).toBe(0.4);
+    expect(track?.fadeIn).toBe(0.2);
+    expect(track?.fadeOut).toBe(0.5);
+  });
+
+  it("upserts blur effect and property keyframe", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const withEffect = executePropertyCommand(doc, {
+      type: "set-node-effects",
+      targets,
+      patch: { op: "upsert-blur", effectId: "fx.blur", radius: 8 },
+    });
+    expect(withEffect.status).toBe("applied");
+    if (withEffect.status !== "applied") return;
+    expect(withEffect.document.project.scenes[0]!.nodes[0]!.effects?.[0]).toEqual(
+      { id: "fx.blur", type: "blur", radius: 8 },
+    );
+
+    const withKey = executePropertyCommand(withEffect.document, {
+      type: "set-property-keyframe",
+      targets,
+      property: "transform.x",
+      t: 0.5,
+      v: 200,
+      easing: "easeOut",
+    });
+    expect(withKey.status).toBe("applied");
+    if (withKey.status !== "applied") return;
+    const sceneClips = withKey.document.project.scenes[0]!.clips;
+    expect(sceneClips.length).toBeGreaterThan(0);
+    const trackClip = sceneClips.find((c) => c.source.kind === "tracks");
+    expect(trackClip?.source.kind).toBe("tracks");
+    if (trackClip?.source.kind !== "tracks") return;
+    expect(trackClip.source.tracks[0]!.keys[0]).toMatchObject({
+      t: 0.5,
+      v: 200,
+    });
+  });
+
+  it("exposes color/enum/vector editors in registry", () => {
+    expect(getPropertyDefinition("style.fill")?.editor).toBe("color");
+    expect(getPropertyDefinition("text.align")?.editor).toBe("enum");
+    expect(getPropertyDefinition("media.cropOrigin")?.editor).toBe("vector");
+    expect(getPropertyDefinition("transform.scaleUniform")?.id).toBe(
+      "transform.scaleUniform",
+    );
+  });
+
+  it("rejects audio speed (no AudioTrack field)", () => {
+    const { project, clips, lanes } = fixtureMainPlusAudioOverlap();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const forced = executePropertyCommand(doc, {
+      type: "set-audio-track",
+      audioTrackId: "audio.a",
+      patch: { speed: 1.25 } as never,
+    });
+    expect(forced.status).toBe("rejected");
+  });
+
+  it("rejects style on incompatible node types atomically", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const scene = project.scenes[0]!;
+    const groupId = "node.group";
+    const withGroup = {
+      ...project,
+      scenes: [
+        {
+          ...scene,
+          nodes: [
+            ...scene.nodes,
+            {
+              id: groupId,
+              type: "group" as const,
+              parentId: null,
+              transform: { ...scene.nodes[0]!.transform },
+            },
+          ],
+        },
+      ],
+    };
+    const result = executePropertyCommand(
+      { project: withGroup, clips, lanes },
+      {
+        type: "set-node-style",
+        targets: [{ sceneId: scene.id, nodeId: groupId }],
+        patch: { fill: "#fff" },
+      },
+    );
+    expect(result.status).toBe("rejected");
+  });
+
+  it("clamps crop so x+width and y+height stay within 1", () => {
+    const { project, clips, lanes } = fixtureMainPlusAudioOverlap();
+    const scene = project.scenes[0]!;
+    const imageId = "node.img";
+    const assetId = project.assets[0]!.id;
+    const withImage = {
+      ...project,
+      scenes: [
+        {
+          ...scene,
+          nodes: [
+            {
+              id: imageId,
+              type: "image" as const,
+              parentId: null,
+              transform: { ...scene.nodes[0]!.transform },
+              payload: { assetId },
+            },
+          ],
+        },
+      ],
+    };
+    const injected = executePropertyCommand(
+      { project: withImage, clips, lanes },
+      {
+        type: "set-node-media",
+        targets: [{ sceneId: scene.id, nodeId: imageId }],
+        patch: { crop: { x: 0.7, y: 0.8, width: 0.5, height: 0.5 } },
+      },
+    );
+    expect(injected.status).toBe("applied");
+    if (injected.status !== "applied") return;
+    const node = injected.document.project.scenes[0]!.nodes.find(
+      (n) => n.id === imageId,
+    );
+    expect(node?.type).toBe("image");
+    if (!node || node.type !== "image" || !node.payload.crop) return;
+    expect(node.payload.crop.x + node.payload.crop.width).toBeLessThanOrEqual(
+      1 + 1e-9,
+    );
+    expect(node.payload.crop.y + node.payload.crop.height).toBeLessThanOrEqual(
+      1 + 1e-9,
+    );
+  });
+
+  it("dedupes effect reorder ids (first-wins)", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    let doc: TimelineDocument = { project, clips, lanes };
+    for (const id of ["a", "b", "c"]) {
+      const r = executePropertyCommand(doc, {
+        type: "set-node-effects",
+        targets,
+        patch: { op: "upsert-blur", effectId: id, radius: 1 },
+      });
+      expect(r.status).toBe("applied");
+      if (r.status === "applied") doc = r.document;
+    }
+    const reordered = executePropertyCommand(doc, {
+      type: "set-node-effects",
+      targets,
+      patch: { op: "reorder", effectIds: ["c", "a", "c", "b", "a"] },
+    });
+    expect(reordered.status).toBe("applied");
+    if (reordered.status !== "applied") return;
+    const ids = (
+      reordered.document.project.scenes[0]!.nodes[0]!.effects ?? []
+    ).map((e) => e.id);
+    expect(ids).toEqual(["c", "a", "b"]);
+  });
+
+  it("rejects non-finite style / crop / audio / keyframe numbers", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+
+    expect(
+      executePropertyCommand(doc, {
+        type: "set-node-style",
+        targets,
+        patch: { fillOpacity: Number.NaN },
+      }).status,
+    ).toBe("rejected");
+
+    expect(
+      executePropertyCommand(doc, {
+        type: "set-node-media",
+        targets,
+        patch: {
+          crop: { x: 0, y: 0, width: Number.POSITIVE_INFINITY, height: 0.5 },
+        },
+      }).status,
+    ).toBe("rejected");
+
+    const withAudio = fixtureMainPlusAudioOverlap();
+    const audioId = withAudio.project.timeline.audioTracks[0]!.id;
+    expect(
+      executePropertyCommand(
+        {
+          project: withAudio.project,
+          clips: withAudio.clips,
+          lanes: withAudio.lanes,
+        },
+        {
+          type: "set-audio-track",
+          audioTrackId: audioId,
+          patch: { volume: Number.NEGATIVE_INFINITY },
+        },
+      ).status,
+    ).toBe("rejected");
+
+    expect(
+      executePropertyCommand(doc, {
+        type: "set-property-keyframe",
+        targets,
+        property: "transform.x",
+        t: Number.NaN,
+        v: 1,
+      }).status,
+    ).toBe("rejected");
   });
 });
 

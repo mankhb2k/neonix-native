@@ -1,20 +1,15 @@
 /**
- * Capture production Hub/Editor screenshots via Electron (P20/B1).
+ * Capture production Hub/Editor screenshots via Electron (UI-0).
  * Writes candidates under apps/desktop/tmp/baseline-candidates/.
  * Promotes to docs/.../baselines/ only when PROMOTE_BASELINES=1.
  *
  * Requires dist-renderer built with VITE_ENABLE_UI_FIXTURES=1.
+ * Fails if capture size !== requested (no 1920×1032 under *-1920 names).
  */
 
-const { app, BrowserWindow, nativeImage } = require("electron");
+const { app, BrowserWindow } = require("electron");
 const { createHash } = require("node:crypto");
-const {
-  copyFileSync,
-  mkdirSync,
-  writeFileSync,
-  rmSync,
-  existsSync,
-} = require("node:fs");
+const { copyFileSync, mkdirSync, writeFileSync, rmSync } = require("node:fs");
 const { join } = require("node:path");
 const { pathToFileURL } = require("node:url");
 
@@ -43,14 +38,20 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function electronEnvClean() {
-  const env = { ...process.env };
-  delete env.ELECTRON_RUN_AS_NODE;
-  return env;
-}
-
 function surfaceReadyScript(surface) {
   return `new Promise((resolve) => {
+    const inViewport = (el) => {
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return (
+        r.height > 0 &&
+        r.width > 0 &&
+        r.top >= 0 &&
+        r.bottom <= window.innerHeight + 1 &&
+        r.left >= 0 &&
+        r.right <= window.innerWidth + 1
+      );
+    };
     const start = Date.now();
     const tick = () => {
       const root = document.querySelector('[data-app-ready="true"][data-ui-fixture="${surface}"]');
@@ -65,22 +66,36 @@ function surfaceReadyScript(surface) {
         else requestAnimationFrame(tick);
         return;
       }
+
       let surfaceOk = false;
+      let reason = "surface-missing";
+
       if ("${surface}".startsWith("hub-")) {
-        surfaceOk = !!document.querySelector("[data-hub-screen]");
-      } else if ("${surface}" === "sidebar-layers") {
-        surfaceOk =
-          !!document.querySelector('[data-sidebar-tab="layers"]') &&
-          !!document.querySelector('[data-testid="timeline-viewport"]');
-      } else if ("${surface}" === "timeline-empty") {
-        surfaceOk =
-          !!document.querySelector('[data-timeline-focus="true"]') &&
-          !!document.querySelector('[data-testid="timeline-viewport"]');
+        const hub = document.querySelector("[data-hub-screen]");
+        surfaceOk = !!hub && inViewport(hub);
+        reason = surfaceOk ? "ok" : "hub-out-of-view";
       } else {
-        surfaceOk = !!document.querySelector('[data-testid="timeline-viewport"]');
+        const timeline = document.querySelector('[data-testid="timeline-viewport"]');
+        if (!timeline || !inViewport(timeline)) {
+          reason = "timeline-out-of-view";
+        } else if ("${surface}" === "sidebar-layers") {
+          surfaceOk = !!document.querySelector('[data-sidebar-tab="layers"]');
+          reason = surfaceOk ? "ok" : "layers-tab-missing";
+        } else if ("${surface}" === "timeline-empty") {
+          surfaceOk = !!document.querySelector('[data-timeline-focus="true"]');
+          reason = surfaceOk ? "ok" : "timeline-focus-missing";
+        } else if ("${surface}" === "editor-shell") {
+          const clip = document.querySelector('[data-testid="timeline-clip-strip"][data-clip-id]');
+          surfaceOk = !!clip && inViewport(clip);
+          reason = surfaceOk ? "ok" : "clip-out-of-view";
+        } else {
+          surfaceOk = true;
+          reason = "ok";
+        }
       }
+
       if (surfaceOk) resolve({ ok: true });
-      else if (Date.now() - start > 12000) resolve({ ok: false, reason: "surface-missing" });
+      else if (Date.now() - start > 12000) resolve({ ok: false, reason });
       else requestAnimationFrame(tick);
     };
     tick();
@@ -101,6 +116,7 @@ app.whenReady().then(async () => {
         height: h,
         show: true,
         frame: false,
+        enableLargerThanScreen: true,
         backgroundColor: "#0A0A0B",
         webPreferences: {
           contextIsolation: true,
@@ -110,11 +126,17 @@ app.whenReady().then(async () => {
       });
       try {
         win.setPosition(40, 40);
+        win.setContentSize(w, h);
       } catch {
         /* ignore */
       }
       const url = `${pathToFileURL(indexHtml).href}?fixture=${surface}`;
       await win.loadURL(url);
+      try {
+        win.setContentSize(w, h);
+      } catch {
+        /* ignore */
+      }
       const ready = await win.webContents
         .executeJavaScript(surfaceReadyScript(surface))
         .catch((err) => ({ ok: false, reason: String(err) }));
@@ -130,22 +152,21 @@ app.whenReady().then(async () => {
       await sleep(400);
       const image = await win.webContents.capturePage();
       const buf = image.toPNG();
-      const bitmap = image.toBitmap();
       const size = image.getSize();
+      if (size.width !== w || size.height !== h) {
+        console.error(
+          `[electron-capture-baselines] size mismatch ${surface}@${tag}: got ${size.width}x${size.height}, want ${w}x${h}`,
+        );
+        win.destroy();
+        app.exit(1);
+        return;
+      }
       const name = `${surface}-${tag}.png`;
       const sha = createHash("sha256").update(buf).digest("hex");
       writeFileSync(join(candidateDir, name), buf);
-      writeFileSync(
-        join(candidateDir, `${surface}-${tag}.bgra`),
-        Buffer.concat([
-          Buffer.from(`${size.width}x${size.height}\n`, "utf8"),
-          bitmap,
-        ]),
-      );
 
-      const sizeKey = `${tag}`;
-      if (!shaBySize.has(sizeKey)) shaBySize.set(sizeKey, new Map());
-      const bucket = shaBySize.get(sizeKey);
+      if (!shaBySize.has(tag)) shaBySize.set(tag, new Map());
+      const bucket = shaBySize.get(tag);
       if (bucket.has(sha)) {
         console.error(
           `[electron-capture-baselines] duplicate SHA across surfaces at ${tag}:`,
@@ -161,10 +182,8 @@ app.whenReady().then(async () => {
 
       files.push({
         name,
-        width: size.width,
-        height: size.height,
-        requestedWidth: w,
-        requestedHeight: h,
+        width: w,
+        height: h,
         sha256: sha,
         kind: "production-ui-electron",
       });
@@ -190,15 +209,13 @@ app.whenReady().then(async () => {
         join(candidateDir, entry.name),
         join(referenceDir, entry.name),
       );
-      // Do not promote .bgra (large); pixel-diff uses candidates' bgra vs
-      // re-decoded reference via PNG SHA / local bgra when both present.
     }
     writeFileSync(
       join(referenceDir, "manifest.json"),
       `${JSON.stringify(
         {
           status: "electron-production-ui",
-          note: "Reference goldens promoted from candidates. Compare against tmp/baseline-candidates.",
+          note: "Reference goldens at exact requested sizes. Compare via sharp PNG pixel-diff.",
           tolerance: { maxPixelDiffRatio: 0.02 },
           generatedAt: new Date().toISOString(),
           placeholders: "baselines/placeholders/",

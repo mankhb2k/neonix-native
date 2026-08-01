@@ -1,0 +1,57 @@
+{
+  "note": "CSS-0 web chrome contract from legacy computed targets (finalize with live capture). Stage masked from size asserts. Vite will not match until CSS-3 grid + panel defaults.",
+  "source": "web-legacy-target",
+  "rootFontPx": 12,
+  "viewports": {
+    "1280x720": {
+      "regions": {
+        "titlebar": { "height": 38 },
+        "sidebar": { "width": 435 },
+        "inspector": { "width": 450 },
+        "timeline": { "height": 285 }
+      }
+    },
+    "1440x900": {
+      "regions": {
+        "titlebar": { "height": 38 },
+        "sidebar": { "width": 435 },
+        "inspector": { "width": 450 },
+        "timeline": { "height": 285 }
+      }
+    },
+    "1920x1080": {
+      "regions": {
+        "titlebar": { "height": 38 },
+        "sidebar": { "width": 435 },
+        "inspector": { "width": 450 },
+        "timeline": { "height": 285 }
+      }
+    }
+  },
+  "tokens": {
+    "--desktop-titlebar-h": "38px",
+    "--desktop-panel-header-h": "40px",
+    "--desktop-shell-inset": "8px",
+    "--desktop-panel-gap": "8px",
+    "--desktop-panel-radius": "12px",
+    "--desktop-sidebar-default-w": "435px",
+    "--desktop-inspector-default-w": "450px",
+    "--desktop-timeline-default-h": "285px",
+    "--timeline-transport-h": "36px",
+    "--timeline-ruler-h": "28px",
+    "--timeline-label-w": "96px",
+    "--timeline-playhead-gutter": "16px"
+  },
+  "requiredSurfaces": [
+    "hub-empty",
+    "hub-recent",
+    "editor-shell",
+    "timeline-empty",
+    "sidebar-layers",
+    "inspector-empty",
+    "inspector-node",
+    "inspector-text",
+    "timeline-multi",
+    "timeline-dragging"
+  ]
+}

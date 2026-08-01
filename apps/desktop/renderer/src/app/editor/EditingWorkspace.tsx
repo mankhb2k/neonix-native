@@ -36,7 +36,9 @@ import { TransportBar } from "../../editor/stage/TransportBar";
 import { TimelineViewport } from "../../editor/timeline/TimelineViewport";
 import { TimelineZoomControls } from "../../editor/timeline/TimelineZoomControls";
 import { useTimelineHotkeys } from "../../editor/timeline/use-timeline-hotkeys";
+import { sha256Hex } from "../../infrastructure/hash-document";
 import { createAssetRepository } from "../../infrastructure/repositories/asset-repository";
+import { uiFixturesEnabled } from "../fixtures/seed-production-ui";
 import {
   resolveFlushedProjectName,
   type EditorSessionHandle,
@@ -125,6 +127,44 @@ function EditingWorkspaceInner({
     onDocumentChange(json);
   }, [session.sessionDocumentJson, documentJson, onDocumentChange]);
 
+  // Journal history: hash-only after history settles (debounce coalesced scrubs).
+  const lastHistoryId =
+    session.history.past[session.history.past.length - 1]?.id ?? null;
+  const lastHistoryLabel =
+    session.history.past[session.history.past.length - 1]?.label ?? "edit";
+  useEffect(() => {
+    if (uiFixturesEnabled()) return undefined;
+    if (!dirty || saving) return undefined;
+    if (!lastHistoryId || !session.sessionDocumentJson) return undefined;
+    const json = session.sessionDocumentJson;
+    const entryId = lastHistoryId;
+    const label = lastHistoryLabel;
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const documentJsonHash = await sha256Hex(json);
+          await api.journal.record({
+            projectId,
+            entryId,
+            label,
+            documentJsonHash,
+          });
+        } catch {
+          /* journal is best-effort; main returns errors via IpcResult */
+        }
+      })();
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    api,
+    projectId,
+    dirty,
+    saving,
+    lastHistoryId,
+    lastHistoryLabel,
+    session.sessionDocumentJson,
+  ]);
+
   // Reset playhead only on project open/switch; otherwise clamp duration in place.
   useEffect(() => {
     if (!session.project) return;
@@ -152,6 +192,36 @@ function EditingWorkspaceInner({
       entryId: `tl_${timelineEntrySeq}`,
     });
   }, []);
+
+  // Fixture-only probe for Electron perf gate (CSS-0) — read-only; not for production.
+  useEffect(() => {
+    if (!uiFixturesEnabled()) return undefined;
+    const w = window as Window & {
+      __MV_FIXTURE_PROBE__?: {
+        getPrimaryClip: () => { id: string; startTime: number } | null;
+        canUndo: () => boolean;
+        historyDepth: () => number;
+        lastHistoryEntryId: () => string | null;
+      };
+    };
+    w.__MV_FIXTURE_PROBE__ = {
+      getPrimaryClip: () => {
+        const clip = session.clips[0];
+        return clip
+          ? { id: clip.id, startTime: clip.startTime }
+          : null;
+      },
+      canUndo: () => canUndo(session.history),
+      historyDepth: () => session.history.past.length,
+      lastHistoryEntryId: () => {
+        const last = session.history.past[session.history.past.length - 1];
+        return last?.id ?? null;
+      },
+    };
+    return () => {
+      delete w.__MV_FIXTURE_PROBE__;
+    };
+  }, [session.clips, session.history]);
 
   const getPlayheadTime = useCallback(
     () => clock.getState().currentTime,

@@ -234,7 +234,7 @@ export function buildBlankDesktopProject(input?: {
   };
 }
 
-/** Skeleton: auto-save journal hooks (disabled in Phase 4 MVP). */
+/** Auto-save journal types (main process owns the enabled service). */
 export type ProjectJournal = {
   enabled: boolean;
   record?(event: { type: string; path?: string; at: string }): void;

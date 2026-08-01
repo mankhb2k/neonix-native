@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, type IpcMainInvokeEvent } from "electron";
+import { BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
 import {
   INVOKE_CHANNELS,
   IpcChannels,
@@ -15,6 +15,9 @@ import {
   createProjectSchema,
   emptyPayloadSchema,
   importFilesSchema,
+  journalAutosaveSchema,
+  journalLocatorSchema,
+  journalRecordSchema,
   listMissingAssetsSchema,
   openRecentSchema,
   relinkAssetSchema,
@@ -33,7 +36,7 @@ import { getRendererMode } from "../../shared/renderer-mode";
 import { createAssetFileService } from "../services/asset-file-service";
 import { createExportService } from "../services/export-service";
 import { createProjectFileService } from "../services/project-file-service";
-import { createDisabledProjectJournal } from "../services/project-journal-service";
+import { createProjectJournalService } from "../services/project-journal-service";
 import {
   clearProjectSession,
   getProjectSession,
@@ -43,7 +46,7 @@ import {
 import { createRecentProjectService } from "../services/recent-project-service";
 import { allowWindowClose } from "../windows/create-main-window";
 import { validateSender } from "./validate-sender";
-import type { ExportEvent } from "../../shared/ipc/contracts";
+import type { ExportEvent, ProjectOpenResult } from "../../shared/ipc/contracts";
 import type { ZodTypeAny } from "zod";
 
 export type RegisterIpcHandlersContext = {
@@ -118,7 +121,10 @@ export function registerIpcHandlers(
     userDataPath,
     pruneMissing: true,
   });
-  const journal = createDisabledProjectJournal();
+  const journal = createProjectJournalService({
+    userDataPath,
+    enabled: process.env.VITE_ENABLE_UI_FIXTURES !== "1",
+  });
 
   const repoRoot = ctx.repoRoot;
   const resourcesRoot =
@@ -139,7 +145,10 @@ export function registerIpcHandlers(
     emit: broadcastExportEvent,
   });
 
-  function touchRecent(filePath: string, documentJson: string): void {
+  async function touchRecent(
+    filePath: string,
+    documentJson: string,
+  ): Promise<void> {
     try {
       const envelope = parseDesktopProjectFile(documentJson);
       recent.touch({
@@ -148,7 +157,7 @@ export function registerIpcHandlers(
         path: filePath,
         aspectRatio: envelope.project.metadata.aspectRatio,
       });
-      journal.record({
+      await journal.record({
         type: "save",
         path: filePath,
         projectId: projectIdFromEnvelope(envelope),
@@ -157,6 +166,72 @@ export function registerIpcHandlers(
     } catch {
       /* recent is best-effort */
     }
+  }
+
+  async function applyJournalOnOpen(
+    opened: ProjectOpenResult,
+    parent: BrowserWindow | null,
+  ): Promise<ProjectOpenResult> {
+    const offer = journal.peekRecovery({
+      path: opened.path,
+      projectId: opened.projectId,
+      documentJson: opened.documentJson,
+    });
+    if (!offer) {
+      await journal.bind({
+        projectId: opened.projectId,
+        path: opened.path,
+        documentJson: opened.documentJson,
+      });
+      return opened;
+    }
+
+    const boxOpts = {
+      type: "warning" as const,
+      buttons: ["Recover", "Discard"],
+      defaultId: 0,
+      cancelId: 1,
+      title: "Recover unsaved work?",
+      message: "A newer autosave was found for this project.",
+      detail:
+        "Recover loads the last autosave snapshot. Discard keeps the file on disk and clears the recovery journal.",
+    };
+    const { response } = parent
+      ? await dialog.showMessageBox(parent, boxOpts)
+      : await dialog.showMessageBox(boxOpts);
+
+    if (response === 0) {
+      const recovered = await journal.recover({
+        path: opened.path,
+        projectId: opened.projectId,
+      });
+      if (recovered?.documentJson) {
+        return {
+          ...opened,
+          documentJson: recovered.documentJson,
+          recoveredFromJournal: true,
+        };
+      }
+    }
+
+    await journal.discard({ path: opened.path, projectId: opened.projectId });
+    await journal.bind({
+      projectId: opened.projectId,
+      path: opened.path,
+      documentJson: opened.documentJson,
+    });
+    return opened;
+  }
+
+  function journalLocatorFromEvent(
+    event: IpcMainInvokeEvent,
+    projectId?: string,
+  ): { projectId?: string; path?: string } {
+    const session = getProjectSession(event.sender.id);
+    return {
+      path: session?.path,
+      projectId: projectId ?? session?.projectId,
+    };
   }
 
   const handlers: Array<
@@ -221,14 +296,14 @@ export function registerIpcHandlers(
     ],
     [
       IpcChannels.projectNew,
-      (event, payload) => {
+      async (event, payload) => {
         const input = parsePayload(createProjectSchema, payload) ?? {};
         clearProjectSession(event.sender.id);
         const blank = buildBlankDesktopProject({
           name: input.name,
           aspectRatio: input.aspectRatio,
         });
-        journal.record({
+        await journal.record({
           type: "new",
           projectId: blank.projectId,
           at: new Date().toISOString(),
@@ -247,29 +322,33 @@ export function registerIpcHandlers(
         parsePayload(emptyPayloadSchema, payload);
         const opened = await projects.openViaDialog(senderWindow(event));
         if (!opened) return null;
-        const envelope = parseDesktopProjectFile(opened.documentJson);
+        const recovered = await applyJournalOnOpen(
+          opened,
+          senderWindow(event),
+        );
+        const envelope = parseDesktopProjectFile(recovered.documentJson);
         recent.touch({
-          id: opened.projectId,
+          id: recovered.projectId,
           name: projectNameFromEnvelope(envelope),
-          path: opened.path,
+          path: recovered.path,
           aspectRatio: envelope.project.metadata.aspectRatio,
         });
         setProjectSession(event.sender.id, {
-          path: opened.path,
-          projectId: opened.projectId,
+          path: recovered.path,
+          projectId: recovered.projectId,
         });
-        journal.record({
+        await journal.record({
           type: "open",
-          path: opened.path,
-          projectId: opened.projectId,
+          path: recovered.path,
+          projectId: recovered.projectId,
           at: new Date().toISOString(),
         });
-        return opened;
+        return recovered;
       },
     ],
     [
       IpcChannels.projectOpenRecent,
-      (_event, payload) => {
+      async (event, payload) => {
         const { id } = parsePayload(openRecentSchema, payload);
         const entry = recent.list().find((item) => item.id === id);
         if (!entry) {
@@ -279,24 +358,28 @@ export function registerIpcHandlers(
           );
         }
         const opened = projects.openPath(entry.path);
-        const envelope = parseDesktopProjectFile(opened.documentJson);
+        const recovered = await applyJournalOnOpen(
+          opened,
+          senderWindow(event),
+        );
+        const envelope = parseDesktopProjectFile(recovered.documentJson);
         recent.touch({
-          id: opened.projectId,
+          id: recovered.projectId,
           name: projectNameFromEnvelope(envelope),
-          path: opened.path,
+          path: recovered.path,
           aspectRatio: envelope.project.metadata.aspectRatio,
         });
-        setProjectSession(_event.sender.id, {
-          path: opened.path,
-          projectId: opened.projectId,
+        setProjectSession(event.sender.id, {
+          path: recovered.path,
+          projectId: recovered.projectId,
         });
-        journal.record({
+        await journal.record({
           type: "open",
-          path: opened.path,
-          projectId: opened.projectId,
+          path: recovered.path,
+          projectId: recovered.projectId,
           at: new Date().toISOString(),
         });
-        return opened;
+        return recovered;
       },
     ],
     [
@@ -310,7 +393,7 @@ export function registerIpcHandlers(
             undefined,
             senderWindow(event),
           );
-          touchRecent(saved.path, input.documentJson);
+          await touchRecent(saved.path, input.documentJson);
           const envelope = parseDesktopProjectFile(input.documentJson);
           setProjectSession(event.sender.id, {
             path: saved.path,
@@ -319,7 +402,7 @@ export function registerIpcHandlers(
           return saved;
         }
         const saved = await projects.saveAtomic(session.path, input.documentJson);
-        touchRecent(saved.path, input.documentJson);
+        await touchRecent(saved.path, input.documentJson);
         return saved;
       },
     ],
@@ -332,15 +415,16 @@ export function registerIpcHandlers(
           input.suggestedName,
           senderWindow(event),
         );
-        touchRecent(saved.path, input.documentJson);
+        await touchRecent(saved.path, input.documentJson);
         const envelope = parseDesktopProjectFile(input.documentJson);
         setProjectSession(event.sender.id, {
           path: saved.path,
           projectId: projectIdFromEnvelope(envelope),
         });
-        journal.record({
+        await journal.record({
           type: "saveAs",
           path: saved.path,
+          projectId: projectIdFromEnvelope(envelope),
           at: new Date().toISOString(),
         });
         return saved;
@@ -351,6 +435,57 @@ export function registerIpcHandlers(
       (_event, payload) => {
         parsePayload(emptyPayloadSchema, payload);
         return recent.list();
+      },
+    ],
+    [
+      IpcChannels.journalStatus,
+      (event, payload) => {
+        const input = parsePayload(journalLocatorSchema, payload) ?? {};
+        return journal.status(journalLocatorFromEvent(event, input.projectId));
+      },
+    ],
+    [
+      IpcChannels.journalRecord,
+      async (event, payload) => {
+        const input = parsePayload(journalRecordSchema, payload);
+        if (!journal.enabled) return { recorded: false };
+        const locator = journalLocatorFromEvent(event, input.projectId);
+        const { seq } = await journal.recordHistory({
+          projectId: input.projectId,
+          path: locator.path,
+          entryId: input.entryId,
+          label: input.label,
+          documentJsonHash: input.documentJsonHash,
+        });
+        return { recorded: true, seq };
+      },
+    ],
+    [
+      IpcChannels.journalAutosave,
+      async (event, payload) => {
+        const input = parsePayload(journalAutosaveSchema, payload);
+        if (!journal.enabled) return { saved: false };
+        const locator = journalLocatorFromEvent(event, input.projectId);
+        const { seq } = await journal.writeAutosaveSnapshot({
+          projectId: input.projectId,
+          path: locator.path,
+          documentJson: input.documentJson,
+        });
+        return { saved: true, seq };
+      },
+    ],
+    [
+      IpcChannels.journalRecover,
+      async (event, payload) => {
+        const input = parsePayload(journalLocatorSchema, payload) ?? {};
+        return journal.recover(journalLocatorFromEvent(event, input.projectId));
+      },
+    ],
+    [
+      IpcChannels.journalDiscard,
+      async (event, payload) => {
+        const input = parsePayload(journalLocatorSchema, payload) ?? {};
+        await journal.discard(journalLocatorFromEvent(event, input.projectId));
       },
     ],
     [

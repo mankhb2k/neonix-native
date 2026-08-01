@@ -1,24 +1,45 @@
-# N8 / H5 / P18–P22 QA + cutover checklist
+# N8 / H5 / P18–P22 / UI-0 / UI-0.1 QA + cutover checklist
 
-Vite desktop is the default UI. Complete this before deleting `apps/web/components/desktop/**`.
+Vite desktop is the default UI.
+
+**Legacy delete:** `apps/web/components/desktop/**` must **never** be deleted until the product owner explicitly approves — not after soak alone, not as part of UI-0…UI-6. There is **no** automatic “legacy cleanup” phase.
+
+**FREEZE.md note:** [`apps/web/components/desktop/FREEZE.md`](../../apps/web/components/desktop/FREEZE.md) still contains a stale line about deleting the tree after soak — treat that as **outdated**. Do not edit that file while the tree is protected; this doc and CI (`test:web-ban` → `probe-legacy-desktop-protected`) are the source of truth.
 
 ## Automated gate (dev machine)
 
 - [x] `pnpm --filter @motionvideo/editor-core test`
 - [x] `pnpm --filter @motionvideo/desktop test` (unit; excludes `test:perf`)
 - [x] `pnpm --filter @motionvideo/desktop test:perf` (happy-dom regression only — **not** 60fps acceptance)
-- [x] `pnpm --filter @motionvideo/desktop test:perf:electron` (B2: visible window + rAF/drag thresholds — engineering gate, **not** 60fps acceptance)
+- [x] `pnpm --filter @motionvideo/desktop test:perf:electron` (UI-0.1: **real** pointer gesture on timeline clip strip + viewport + mutation — engineering gate, **not** 60fps; probe is read-only)
 - [x] `pnpm --filter @motionvideo/desktop typecheck`
-- [x] `pnpm --filter @motionvideo/desktop lint`
+- [x] `pnpm --filter @motionvideo/desktop lint` (includes `scripts/**` QA gates)
 - [x] `pnpm --filter @motionvideo/desktop build:renderer:release` (via `pnpm run pack`)
 - [x] `pnpm --filter @motionvideo/desktop run pack` (**must** use `run pack` — bare `pnpm pack` is npm’s tarball command)
 - [x] `pnpm --filter @motionvideo/desktop test:export-cli`
 - [x] `pnpm --filter @motionvideo/desktop test:desktop-paths`
-- [x] `pnpm --filter @motionvideo/desktop test:web-ban`
-- [x] Production UI baselines: `pnpm --filter @motionvideo/desktop capture:baselines` + `compare:baselines`
-  (`VITE_ENABLE_UI_FIXTURES=1` only for fixture seed; release builds ignore `?fixture=`; promote with `PROMOTE_BASELINES=1`)
+- [x] `pnpm --filter @motionvideo/desktop test:web-ban` (import ban + **manifest filesystem** gate for 68 files under `apps/web/components/desktop/**`)
+- [x] Production UI baselines: `capture:baselines` + `compare:baselines`
+  (Vite regression goldens only. Web parity: `reference-web/` + `capture:geometry` / `compare:geometry`.)
+- [x] CSS-0: `test:perf:electron` single `reactPointerHandler` path + `historyDepth` +1
 
-**Note:** main renderer bundle still warns &gt;500 kB minified — tracked, not a cutover blocker. DOM remains default stage backend.
+**Note:** main renderer bundle still warns >500 kB minified — tracked; UI-0.1 lazy-loads `EditingWorkspace` so Hub does not pull the editor chunk. DOM remains default stage backend.
+
+## UI-0 exit gate (foundation)
+
+- [x] Desktop typecheck green (`CanvasStageRendererPort` local type)
+- [x] Viewport lock — timeline + clips in view at capture/perf
+- [x] Capture fails if actual size ≠ requested
+- [x] Pixel-diff uses tolerance (not SHA-only tautology)
+- [x] `resolveClipGroupMove` uses `clipById` Map
+- [x] Perf drag requires in-viewport + startTime/left mutation (UI-0; probe mutation was honesty gap — fixed in UI-0.1)
+
+## UI-0.1 exit gate (honesty)
+
+- [x] `test:perf:electron` — `pointerDragOk` + `commandMutationOk` via real pointer events on `[data-testid=timeline-clip-strip]` (not fixture nudge)
+- [x] Group move plan/index + RAF scroll cleanup
+- [x] `reference-web/` folder (manual UX parity); Vite `baselines/` remain regression-only
+- [x] Lazy `EditingWorkspace`; legacy-desktop delete probe in `test:web-ban`
 
 ## Pack soak (H5 — 2026-08-01)
 
@@ -28,17 +49,16 @@ Vite desktop is the default UI. Complete this before deleting `apps/web/componen
 | export-cli smoke (inside pack) | PASS |
 | web-import ban / desktop-paths | PASS |
 
-## P18–P22 status
+## P18–P22 / UI status
 
 | Phase | Notes |
 |-------|--------|
-| P18 | Atomic `moveClipGroup`; `move-clip` omit-track = keep-lane; multi-select time-only on home lanes |
-| P19 | Snap index @ gesture start; pin lanes; electron harness with visible window + thresholds (not 60fps) |
-| P20 | Production UI seeds + candidate/reference compare (**partial** until soak); promote via `PROMOTE_BASELINES=1` |
-| P21 | Backend id `canvas-experimental` (`"pixi"` alias); DOM↔Canvas contract tests; idempotent dispose |
-| P22 | This checklist + REFACTOR-VITE status + Inspector seam below |
+| P18–P22 | Group move, snap, baselines, canvas-experimental, docs |
+| UI-0 | Viewport + typecheck + exact-size baselines + real pixel-diff + perf mutation |
+| UI-0.1 | QA honesty (real pointer drag), group-move plan, RAF cleanup, dual baselines, protected legacy CI |
+| UI-1…UI-6 | Deferred visual port (tokens → chrome → timeline → hub → inspector → soak) — **no legacy delete** |
 
-**Do not delete** `apps/web/components/desktop/**` in this wave.
+**Do not delete** `apps/web/components/desktop/**` until owner approve. CI fails on deletions under that path.
 
 ## Inspector seam (P22 contract)
 
@@ -55,7 +75,7 @@ Deep property panels remain out of scope until a later phase; shell + number/boo
 
 ## Manual UI / soak checklist
 
-Complete every item before approving legacy delete.
+Complete every item before the owner may approve a future delete. Until then the tree stays forever in parallel.
 
 ### Chrome / Hub / Editor surfaces
 
@@ -85,10 +105,10 @@ Complete every item before approving legacy delete.
 - [ ] Missing media, OS file drag, playback, export, close-with-unsaved
 - [ ] Stage remains DOM default; optional `canvas-experimental` only for local soak (not production default)
 
-## Cutover delete (only after soak + one stable release)
+## Legacy web desktop (protected — no automatic delete)
 
-1. Confirm FREEZE notice + no open blockers + this checklist green.
-2. Explicit user/owner approve for legacy delete.
-3. Separate commit: delete `apps/web/components/desktop/**`.
-4. Remove `dev:desktop:legacy` / Next desktop routes if unused.
-5. Keep `MOTIONVIDEO_RENDERER=legacy` only if a fallback is still required.
+1. Keep `apps/web/components/desktop/**` as the visual/keyboard specification.
+2. Do **not** schedule or automate deletion after soak or UI-6.
+3. Only an **explicit owner approve** (separate decision, separate PR) may remove it later.
+4. Until then: `probe-legacy-desktop-protected` must stay green; FREEZE.md’s “delete this tree” line is **stale**.
+5. Optional later (owner-driven only): remove `dev:desktop:legacy` / Next desktop routes if unused.

@@ -1,0 +1,22 @@
+/**
+ * Desktop chrome metrics (CSS-0 stub).
+ * Values aligned with docs/migration/vite-ui/reference-web/metrics/web-contract.json.
+ * CSS-3 will apply these as layout defaults; do not invent from Tailwind by eye.
+ */
+
+:root {
+  --desktop-titlebar-h: 38px;
+  --desktop-panel-header-h: 40px;
+  --desktop-shell-inset: 8px;
+  --desktop-panel-gap: 8px;
+  --desktop-panel-radius: 12px;
+
+  --desktop-sidebar-default-w: 435px;
+  --desktop-inspector-default-w: 450px;
+  --desktop-timeline-default-h: 285px;
+
+  --timeline-transport-h: 36px;
+  --timeline-ruler-h: 28px;
+  --timeline-label-w: 96px;
+  --timeline-playhead-gutter: 16px;
+}

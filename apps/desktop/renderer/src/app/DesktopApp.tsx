@@ -1,7 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../../src/shared/ipc/errors";
 import { createProjectRepository } from "../infrastructure/repositories/project-repository";
-import { EditingWorkspace } from "./editor/EditingWorkspace";
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
 import { seedProductionUi, uiFixturesEnabled } from "./fixtures/seed-production-ui";
 import { readUiFixtureId } from "./fixtures/ui-fixture";
@@ -14,6 +13,9 @@ import {
 import type { EditorSessionHandle } from "./editor/editor-session-handle";
 import type { DesktopAPI } from "../../../src/shared/ipc/contracts";
 
+const JOURNAL_AUTOSAVE_MAX_MS = 45_000;
+const JOURNAL_AUTOSAVE_IDLE_MS = 3_000;
+
 const DiagnosticsScreen = lazy(() =>
   import("./diagnostics/DiagnosticsScreen").then((m) => ({
     default: m.DiagnosticsScreen,
@@ -21,6 +23,11 @@ const DiagnosticsScreen = lazy(() =>
 );
 const UiGallery = lazy(() =>
   import("./gallery/UiGallery").then((m) => ({ default: m.UiGallery })),
+);
+const EditingWorkspace = lazy(() =>
+  import("./editor/EditingWorkspace").then((m) => ({
+    default: m.EditingWorkspace,
+  })),
 );
 
 type Props = {
@@ -41,7 +48,52 @@ export function DesktopApp({ api }: Props) {
   const stateRef = useRef(state);
   stateRef.current = state;
   const sessionHandleRef = useRef<EditorSessionHandle | null>(null);
+  const journalEpochRef = useRef(0);
+  const idleAutosaveTimerRef = useRef<number | null>(null);
   const repo = useMemo(() => createProjectRepository(api), [api]);
+
+  const bumpJournalEpoch = useCallback(() => {
+    journalEpochRef.current += 1;
+    if (idleAutosaveTimerRef.current != null) {
+      window.clearTimeout(idleAutosaveTimerRef.current);
+      idleAutosaveTimerRef.current = null;
+    }
+  }, []);
+
+  const runAutosave = useCallback(
+    (reason: "idle" | "max") => {
+      if (uiFixturesEnabled()) return;
+      const cur = stateRef.current;
+      if (cur.phase === "saving") return;
+      if (!cur.dirty || !cur.documentJson || !cur.projectId) return;
+      const epoch = journalEpochRef.current;
+      void api.journal
+        .autosave({
+          projectId: cur.projectId,
+          documentJson: cur.documentJson,
+        })
+        .then(() => {
+          if (journalEpochRef.current !== epoch) return;
+        })
+        .catch((err: unknown) => {
+          // Best-effort diagnostics; journal must not throw into the UI loop.
+          // eslint-disable-next-line no-console -- intentional autosave failure visibility
+          console.warn(`[journal] autosave (${reason}) failed`, err);
+        });
+    },
+    [api],
+  );
+
+  const scheduleIdleAutosave = useCallback(() => {
+    if (uiFixturesEnabled()) return;
+    if (idleAutosaveTimerRef.current != null) {
+      window.clearTimeout(idleAutosaveTimerRef.current);
+    }
+    idleAutosaveTimerRef.current = window.setTimeout(() => {
+      idleAutosaveTimerRef.current = null;
+      runAutosave("idle");
+    }, JOURNAL_AUTOSAVE_IDLE_MS);
+  }, [runAutosave]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +151,7 @@ export function DesktopApp({ api }: Props) {
       const json = snapshot?.documentJson ?? current.documentJson;
       const suggestedName = snapshot?.projectName ?? current.projectName;
       if (!json) return false;
+      bumpJournalEpoch();
       dispatch({ type: "SAVE_START" });
       try {
         const result = current.path
@@ -124,7 +177,7 @@ export function DesktopApp({ api }: Props) {
         return false;
       }
     },
-    [repo, refreshRecent],
+    [repo, refreshRecent, bumpJournalEpoch],
   );
 
   useEffect(() => {
@@ -153,6 +206,33 @@ export function DesktopApp({ api }: Props) {
       })();
     });
   }, [api, performSave]);
+
+  // Crash-recovery: idle (3s) + max interval (45s) full snapshots when dirty.
+  useEffect(() => {
+    if (uiFixturesEnabled()) return undefined;
+    if (state.phase !== "editing") return undefined;
+    if (!state.dirty || !state.projectId) return undefined;
+
+    scheduleIdleAutosave();
+    const maxTimer = window.setInterval(() => {
+      runAutosave("max");
+    }, JOURNAL_AUTOSAVE_MAX_MS);
+    return () => {
+      window.clearInterval(maxTimer);
+      if (idleAutosaveTimerRef.current != null) {
+        window.clearTimeout(idleAutosaveTimerRef.current);
+        idleAutosaveTimerRef.current = null;
+      }
+    };
+  }, [
+    api,
+    state.phase,
+    state.dirty,
+    state.projectId,
+    state.documentJson,
+    scheduleIdleAutosave,
+    runAutosave,
+  ]);
 
   const onNew = useCallback(
     async (
@@ -220,6 +300,7 @@ export function DesktopApp({ api }: Props) {
       const json = snapshot?.documentJson ?? current.documentJson;
       const suggestedName = snapshot?.projectName ?? current.projectName;
       if (!json) return;
+      bumpJournalEpoch();
       dispatch({ type: "SAVE_START" });
       try {
         const result = await repo.saveAs({
@@ -238,7 +319,7 @@ export function DesktopApp({ api }: Props) {
         else dispatch({ type: "SAVE_ERROR", message });
       }
     },
-    [repo, refreshRecent],
+    [repo, refreshRecent, bumpJournalEpoch],
   );
 
   const onCloseToHome = useCallback(async () => {
@@ -249,10 +330,19 @@ export function DesktopApp({ api }: Props) {
         "Discard unsaved changes and return to Home?",
       );
       if (!leave) return;
+      bumpJournalEpoch();
+      const projectId = stateRef.current.projectId;
+      if (projectId) {
+        try {
+          await api.journal.discard({ projectId });
+        } catch {
+          /* discard is best-effort before leaving */
+        }
+      }
     }
     const recent = await refreshRecent();
     dispatch({ type: "GO_HOME", recent });
-  }, [refreshRecent]);
+  }, [api, refreshRecent, bumpJournalEpoch]);
 
   const title =
     state.phase === "editing" || state.phase === "saving"
@@ -335,33 +425,35 @@ export function DesktopApp({ api }: Props) {
         !state.showDiagnostics &&
         state.documentJson &&
         (state.phase === "editing" || state.phase === "saving") ? (
-          <EditingWorkspace
-            api={api}
-            projectId={state.projectId ?? "untitled"}
-            path={state.path}
-            documentJson={state.documentJson}
-            dirty={state.dirty}
-            error={state.error}
-            saving={state.phase === "saving"}
-            sessionHandleRef={sessionHandleRef}
-            initialSidebarTab={
-              fixtureSeed?.kind === "editor"
-                ? fixtureSeed.initialSidebarTab
-                : undefined
-            }
-            timelineFocus={
-              fixtureSeed?.kind === "editor"
-                ? fixtureSeed.timelineFocus
-                : undefined
-            }
-            onDocumentChange={(documentJson) =>
-              dispatch({ type: "SET_DOCUMENT_JSON", documentJson })
-            }
-            onSave={(snapshot) => void performSave(snapshot)}
-            onSaveAs={(snapshot) => void onSaveAs(snapshot)}
-            onCloseToHome={() => void onCloseToHome()}
-            onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
-          />
+          <Suspense fallback={<p className="home__muted">Loading editor…</p>}>
+            <EditingWorkspace
+              api={api}
+              projectId={state.projectId ?? "untitled"}
+              path={state.path}
+              documentJson={state.documentJson}
+              dirty={state.dirty}
+              error={state.error}
+              saving={state.phase === "saving"}
+              sessionHandleRef={sessionHandleRef}
+              initialSidebarTab={
+                fixtureSeed?.kind === "editor"
+                  ? fixtureSeed.initialSidebarTab
+                  : undefined
+              }
+              timelineFocus={
+                fixtureSeed?.kind === "editor"
+                  ? fixtureSeed.timelineFocus
+                  : undefined
+              }
+              onDocumentChange={(documentJson) => {
+                dispatch({ type: "SET_DOCUMENT_JSON", documentJson });
+              }}
+              onSave={(snapshot) => void performSave(snapshot)}
+              onSaveAs={(snapshot) => void onSaveAs(snapshot)}
+              onCloseToHome={() => void onCloseToHome()}
+              onClearError={() => dispatch({ type: "CLEAR_ERROR" })}
+            />
+          </Suspense>
         ) : null}
       </div>
     </ErrorBoundary>

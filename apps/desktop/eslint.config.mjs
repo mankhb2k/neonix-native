@@ -163,12 +163,58 @@ export default tseslint.config(
       "eslint.config.mjs",
       "vite.config.ts",
       "vitest.config.ts",
-      "scripts/**",
       "**/*.js.map",
     ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
+
+  // --- QA / capture scripts (release gates) ---
+  {
+    files: ["scripts/**/*.{mjs,cjs,js}"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "commonjs",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        module: "readonly",
+        require: "readonly",
+        exports: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
+        URL: "readonly",
+      },
+    },
+    rules: {
+      "no-undef": "error",
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-var-requires": "off",
+    },
+  },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        URL: "readonly",
+      },
+    },
+  },
 
   // --- Renderer (Vite React) — type-aware for selected TS rules ---
   {

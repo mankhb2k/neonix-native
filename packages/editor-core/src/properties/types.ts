@@ -17,7 +17,15 @@ export function isMixedValue(value: unknown): value is MixedValue {
   );
 }
 
-export type PropertyEditorKind = "number" | "boolean" | "string";
+export type PropertyEditorKind =
+  | "number"
+  | "boolean"
+  | "string"
+  | "color"
+  | "enum"
+  | "vector";
+
+export type Vector2 = { x: number; y: number };
 
 export type ValidationResult =
   | { ok: true; value: unknown }
@@ -42,6 +50,8 @@ export type PropertyDefinition<T = unknown> = {
   label: string;
   group: string;
   editor: PropertyEditorKind;
+  /** Enum editor options (editor === "enum"). */
+  options?: readonly { value: string; label: string }[];
   isVisible(context: PropertyContext): boolean;
   read(context: PropertyContext): T | MixedValue;
   createCommand(value: T, context: PropertyContext): DocumentPropertyCommand;

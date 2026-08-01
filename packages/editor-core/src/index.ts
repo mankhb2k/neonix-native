@@ -53,9 +53,11 @@ export {
   createOverlayLaneAt,
 } from "./operations/clip-move";
 export {
+  createClipGroupMovePlan,
   moveClipGroup,
   resolveClipGroupMove,
   trackKindForLane,
+  type ClipGroupMovePlan,
   type ClipGroupMoveResolve,
   type ClipGroupPlacement,
 } from "./operations/clip-move-group";

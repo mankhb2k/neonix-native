@@ -34,7 +34,9 @@ export function EditorWorkspaceLayout({
         } as CSSProperties
       }
     >
-      <div className="editor-layout__sidebar">{sidebar}</div>
+      <div className="editor-layout__sidebar" data-geometry="sidebar">
+        {sidebar}
+      </div>
       <div
         className="editor-layout__resize editor-layout__resize--v"
         onPointerDown={(e) => beginResize("sidebar", e)}
@@ -42,8 +44,10 @@ export function EditorWorkspaceLayout({
         aria-orientation="vertical"
         aria-label="Resize sidebar"
       />
-      <div className="editor-layout__center">
-        <div className="editor-layout__stage">{stage}</div>
+      <div className="editor-layout__center" data-geometry="center">
+        <div className="editor-layout__stage" data-geometry="stage">
+          {stage}
+        </div>
         <div
           className="editor-layout__resize editor-layout__resize--h"
           onPointerDown={(e) => beginResize("timeline", e)}
@@ -51,7 +55,9 @@ export function EditorWorkspaceLayout({
           aria-orientation="horizontal"
           aria-label="Resize timeline"
         />
-        <div className="editor-layout__timeline">{timeline}</div>
+        <div className="editor-layout__timeline" data-geometry="timeline">
+          {timeline}
+        </div>
       </div>
       {showInspector ? (
         <>
@@ -62,7 +68,12 @@ export function EditorWorkspaceLayout({
             aria-orientation="vertical"
             aria-label="Resize inspector"
           />
-          <div className="editor-layout__inspector">{inspector}</div>
+          <div
+            className="editor-layout__inspector"
+            data-geometry="inspector"
+          >
+            {inspector}
+          </div>
         </>
       ) : null}
     </div>

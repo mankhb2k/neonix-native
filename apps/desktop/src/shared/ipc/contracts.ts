@@ -23,6 +23,52 @@ export type ProjectOpenResult = {
   path: string;
   projectId: string;
   documentJson: string;
+  /** True when documentJson came from crash-recovery journal snapshot. */
+  recoveredFromJournal?: boolean;
+};
+
+export type JournalStatusResult = {
+  enabled: boolean;
+  dirty: boolean;
+  projectId?: string;
+  path?: string;
+  lastSeq: number;
+  hasRecoverableSnapshot: boolean;
+  snapshotAt?: string;
+  diskDocumentHash?: string;
+  journalDocumentHash?: string;
+};
+
+export type JournalRecordInput = {
+  projectId: string;
+  entryId: string;
+  label: string;
+  /** SHA-256 hex of document JSON — no full document over IPC. */
+  documentJsonHash: string;
+};
+
+export type JournalAutosaveInput = {
+  projectId: string;
+  documentJson: string;
+};
+
+export type JournalLocatorInput = {
+  projectId?: string;
+};
+
+export type JournalRecoverResult = {
+  documentJson: string;
+  projectId?: string;
+};
+
+export type JournalRecordResult = {
+  recorded: boolean;
+  seq?: number;
+};
+
+export type JournalAutosaveResult = {
+  saved: boolean;
+  seq?: number;
 };
 
 /** In-memory new project — not written until save/saveAs. */
@@ -181,6 +227,13 @@ export type DesktopAPI = {
     save(input: SaveProjectInput): Promise<SaveProjectResult>;
     saveAs(input: SaveProjectAsInput): Promise<SaveProjectResult>;
     getRecent(): Promise<RecentProject[]>;
+  };
+  journal: {
+    status(input?: JournalLocatorInput): Promise<JournalStatusResult>;
+    record(input: JournalRecordInput): Promise<JournalRecordResult>;
+    autosave(input: JournalAutosaveInput): Promise<JournalAutosaveResult>;
+    recover(input?: JournalLocatorInput): Promise<JournalRecoverResult | null>;
+    discard(input?: JournalLocatorInput): Promise<void>;
   };
   assets: {
     importFiles(input?: ImportFilesInput): Promise<ImportedAsset[]>;

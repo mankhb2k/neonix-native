@@ -5,7 +5,7 @@
 import { memo, useState } from "react";
 import {
   MIN_CLIP_SLICE_SEC,
-  resolveClipGroupMove,
+  createClipGroupMovePlan,
   selectedClipIdsFrom,
   selectionClips,
   type EditorSelection,
@@ -136,15 +136,19 @@ export const ClipStrip = memo(function ClipStrip({
     const originContentX = pointerContentXAtPoint(originX) ?? 0;
     const grabOffsetSec = originContentX / pps - originStart;
     const catalog = allClips ?? clips;
+    const catalogById = new Map(catalog.map((c) => [c.id, c]));
     const minStartInGroup = Math.min(
       ...groupIds.map(
-        (id) => catalog.find((c) => c.id === id)?.startTime ?? originStart,
+        (id) => catalogById.get(id)?.startTime ?? originStart,
       ),
     );
     const groupIdSet = new Set(groupIds);
     const snapPoints = catalog
       .filter((c) => !groupIdSet.has(c.id))
       .flatMap((c) => [c.startTime, c.startTime + c.duration]);
+    const groupPlan = isGroup
+      ? createClipGroupMovePlan({ clips: catalog, lanes }, groupIds)
+      : null;
 
     type MoveState = {
       startTime: number;
@@ -201,7 +205,7 @@ export const ClipStrip = memo(function ClipStrip({
             ? groupIds
                 .filter((id) => id !== clip.id)
                 .map((id) => {
-                  const c = catalog.find((x) => x.id === id);
+                  const c = catalogById.get(id);
                   if (!c || !c.laneId) return null;
                   return {
                     clipId: id,
@@ -212,12 +216,8 @@ export const ClipStrip = memo(function ClipStrip({
                 })
                 .filter((m): m is NonNullable<typeof m> => m != null)
             : undefined;
-          if (isGroup && groupValid && geo) {
-            const core = resolveClipGroupMove(
-              { clips: catalog, lanes },
-              groupIds,
-              groupDelta,
-            );
+          if (isGroup && groupValid && geo && groupPlan) {
+            const core = groupPlan.resolve(groupDelta);
             groupValid = core.valid && resolved.commit.valid;
           }
           const preview = {
@@ -399,6 +399,7 @@ export const ClipStrip = memo(function ClipStrip({
             className={classNames.join(" ")}
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
+            data-start-time={String(start)}
             style={{ left, width, top: padY, height }}
             title={clip.name || clip.id}
             onPointerDown={(e) => beginMove(e, clip)}

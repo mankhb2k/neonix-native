@@ -9,10 +9,14 @@ import {
   type PropertyDefinition,
   type TimelineClip,
   type TimelineLane,
+  type Vector2,
 } from "@motionvideo/editor-core";
 import { BooleanPropertyEditor } from "./property-editors/BooleanPropertyEditor";
+import { ColorPropertyEditor } from "./property-editors/ColorPropertyEditor";
+import { EnumPropertyEditor } from "./property-editors/EnumPropertyEditor";
 import { NumberPropertyEditor } from "./property-editors/NumberPropertyEditor";
 import { StringPropertyEditor } from "./property-editors/StringPropertyEditor";
+import { VectorPropertyEditor } from "./property-editors/VectorPropertyEditor";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import "./inspector.css";
 
@@ -213,6 +217,40 @@ export function InspectorPanel({
                       key={prop.id}
                       label={prop.label}
                       value={value as boolean}
+                      disabled={disabled}
+                      onCommit={(v) => commitProperty(prop, v, false)}
+                    />
+                  );
+                }
+                if (prop.editor === "color") {
+                  return (
+                    <ColorPropertyEditor
+                      key={prop.id}
+                      label={prop.label}
+                      value={value as string}
+                      disabled={disabled}
+                      onCommit={(v) => commitProperty(prop, v, false)}
+                    />
+                  );
+                }
+                if (prop.editor === "enum") {
+                  return (
+                    <EnumPropertyEditor
+                      key={prop.id}
+                      label={prop.label}
+                      value={value as string}
+                      options={prop.options ?? []}
+                      disabled={disabled}
+                      onCommit={(v) => commitProperty(prop, v, false)}
+                    />
+                  );
+                }
+                if (prop.editor === "vector") {
+                  return (
+                    <VectorPropertyEditor
+                      key={prop.id}
+                      label={prop.label}
+                      value={value as Vector2}
                       disabled={disabled}
                       onCommit={(v) => commitProperty(prop, v, false)}
                     />

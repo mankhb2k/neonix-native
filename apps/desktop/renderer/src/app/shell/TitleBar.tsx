@@ -22,7 +22,11 @@ export function TitleBar({ api, title, dirty }: Props) {
   }, [api]);
 
   return (
-    <header className="titlebar" style={{ WebkitAppRegion: "drag" } as CSSProperties}>
+    <header
+      className="titlebar"
+      data-geometry="titlebar"
+      style={{ WebkitAppRegion: "drag" } as CSSProperties}
+    >
       <div className="titlebar__brand">
         <img src="/brand-mark.svg" alt="" width={18} height={18} />
         <span className="titlebar__title">

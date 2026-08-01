@@ -1,0 +1,122 @@
+{
+  "source": "vite",
+  "surface": "editor-shell",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "regions": {
+    "titlebar": {
+      "x": 0,
+      "y": 0,
+      "width": 1440,
+      "height": 38,
+      "top": 0,
+      "left": 0,
+      "bottom": 38,
+      "right": 1440
+    },
+    "sidebar": {
+      "x": 16,
+      "y": 137,
+      "width": 260,
+      "height": 747,
+      "top": 137,
+      "left": 16,
+      "bottom": 884,
+      "right": 276
+    },
+    "stage": {
+      "x": 280,
+      "y": 137,
+      "width": 840,
+      "height": 503,
+      "top": 137,
+      "left": 280,
+      "bottom": 640,
+      "right": 1120
+    },
+    "timeline": {
+      "x": 280,
+      "y": 644,
+      "width": 840,
+      "height": 240,
+      "top": 644,
+      "left": 280,
+      "bottom": 884,
+      "right": 1120
+    },
+    "inspector": {
+      "x": 1124,
+      "y": 137,
+      "width": 300,
+      "height": 747,
+      "top": 137,
+      "left": 1124,
+      "bottom": 884,
+      "right": 1424
+    },
+    "center": {
+      "x": 280,
+      "y": 137,
+      "width": 840,
+      "height": 747,
+      "top": 137,
+      "left": 280,
+      "bottom": 884,
+      "right": 1120
+    }
+  },
+  "styles": {
+    "titlebar": {
+      "backgroundColor": "rgb(27, 27, 26)",
+      "borderRadius": "0px",
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "fontFamily": "\"Be Vietnam Pro\", \"Segoe UI\", sans-serif"
+    },
+    "sidebar": {
+      "backgroundColor": "rgb(27, 27, 26)",
+      "borderRadius": "0px",
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "fontFamily": "\"Be Vietnam Pro\", \"Segoe UI\", sans-serif"
+    },
+    "stage": {
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "borderRadius": "0px",
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "fontFamily": "\"Be Vietnam Pro\", \"Segoe UI\", sans-serif"
+    },
+    "timeline": {
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "borderRadius": "0px",
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "fontFamily": "\"Be Vietnam Pro\", \"Segoe UI\", sans-serif"
+    },
+    "inspector": {
+      "backgroundColor": "rgb(27, 27, 26)",
+      "borderRadius": "0px",
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "fontFamily": "\"Be Vietnam Pro\", \"Segoe UI\", sans-serif"
+    },
+    "center": {
+      "backgroundColor": "rgba(0, 0, 0, 0)",
+      "borderRadius": "0px",
+      "fontSize": "12px",
+      "lineHeight": "16.8px",
+      "fontFamily": "\"Be Vietnam Pro\", \"Segoe UI\", sans-serif"
+    }
+  },
+  "tokens": {
+    "sidebarDefault": "435px",
+    "inspectorDefault": "450px",
+    "timelineDefault": "285px",
+    "titlebarH": "38px",
+    "panelGap": "8px",
+    "panelRadius": "12px"
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "generatedAt": "2026-08-01T09:50:05.152Z",
+  "note": "Vite chrome geometry for CSS-0. Web target metrics live in web-contract.json until full legacy capture.",
+  "files": [
+    {
+      "metrics": "vite-hub-empty-1280x720.json",
+      "png": "vite-hub-empty-1280x720.png",
+      "sha256": "6e285ff4ef39640f7bee2bb11e77044c849e59fbf094e96b1b9a6bd0f1c76e5a"
+    },
+    {
+      "metrics": "vite-hub-empty-1440x900.json",
+      "png": "vite-hub-empty-1440x900.png",
+      "sha256": "fbfbd10807101d49cef1559913b3a36833b4e3facd3ed1e290899959bfcfe8ac"
+    },
+    {
+      "metrics": "vite-hub-empty-1920x1080.json",
+      "png": "vite-hub-empty-1920x1080.png",
+      "sha256": "771bda23c3334d985d3b5d42540ec025c13ed1811eca420fe1bcad34622d5ad6"
+    },
+    {
+      "metrics": "vite-hub-recent-1280x720.json",
+      "png": "vite-hub-recent-1280x720.png",
+      "sha256": "9d698ead017e521993c3c098f835cbc59c54a427e01f9cc4be25bf63fafc7fcb"
+    },
+    {
+      "metrics": "vite-hub-recent-1440x900.json",
+      "png": "vite-hub-recent-1440x900.png",
+      "sha256": "0707ed2cb0976fed2665b452bdf8a67079c4476f31ec2f9f48515bf3faa30897"
+    },
+    {
+      "metrics": "vite-hub-recent-1920x1080.json",
+      "png": "vite-hub-recent-1920x1080.png",
+      "sha256": "f21a3191d8c783c24d635d4b3dcb9ec8ca8b270b278261d56926bd18ef855f86"
+    },
+    {
+      "metrics": "vite-editor-shell-1280x720.json",
+      "png": "vite-editor-shell-1280x720.png",
+      "sha256": "84ab1bfc314e60c126992f2ebb2d0f7d7bf27a8a4326a517f172e86f65406184"
+    },
+    {
+      "metrics": "vite-editor-shell-1440x900.json",
+      "png": "vite-editor-shell-1440x900.png",
+      "sha256": "39f671069f095dfa6152bb8c0cbc091f27cb232833829d3eb7fae3838b739724"
+    },
+    {
+      "metrics": "vite-editor-shell-1920x1080.json",
+      "png": "vite-editor-shell-1920x1080.png",
+      "sha256": "b7f1d4ef09bb63ba8aa8cf31dee45505a19e7cc8a6d427add0b8adac94bad03e"
+    },
+    {
+      "metrics": "vite-timeline-empty-1280x720.json",
+      "png": "vite-timeline-empty-1280x720.png",
+      "sha256": "7be824bc915779d5c6ec04b30e64d6b4e34dce4cc62ddacb93d2f9b139653745"
+    },
+    {
+      "metrics": "vite-timeline-empty-1440x900.json",
+      "png": "vite-timeline-empty-1440x900.png",
+      "sha256": "3d4244c71f36a1b884b8a1733f465416086968bebdbae4d8f2692b2c60237c99"
+    },
+    {
+      "metrics": "vite-timeline-empty-1920x1080.json",
+      "png": "vite-timeline-empty-1920x1080.png",
+      "sha256": "5749add838d765b16484af130600c98d772955c4166505dc1a4ecf8f7ad02e96"
+    }
+  ]
+}

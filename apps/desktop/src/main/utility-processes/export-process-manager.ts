@@ -210,8 +210,8 @@ export function createExportProcessManager(
     try {
       if (process.platform === "win32" && job.child.pid) {
         spawn("taskkill", ["/pid", String(job.child.pid), "/T", "/F"], {
-          shell: true,
           stdio: "ignore",
+          windowsHide: true,
         });
       } else {
         job.child.kill("SIGTERM");

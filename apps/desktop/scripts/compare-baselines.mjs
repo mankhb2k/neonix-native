@@ -1,15 +1,17 @@
 /**
- * Pixel-diff baseline candidates vs reference goldens (P20/B1).
+ * Pixel-diff baseline candidates vs reference goldens (UI-0).
  *
  * Candidates: apps/desktop/tmp/baseline-candidates/
  * References: docs/migration/vite-ui/baselines/
  *
- * Prefers .bgra sidecars from Electron capture; falls back to PNG SHA only
- * when bgra missing (still fails cross-surface duplicate + size gates).
+ * Prefers sharp (raw RGBA). Falls back to Electron nativeImage helper when
+ * sharp cannot be resolved (e.g. incomplete node_modules link on Windows).
  */
 
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +21,31 @@ const candidateDir = join(desktopRoot, "tmp/baseline-candidates");
 const referenceDir = join(root, "docs/migration/vite-ui/baselines");
 const referenceManifestPath = join(referenceDir, "manifest.json");
 const candidateManifestPath = join(candidateDir, "manifest.json");
+const tmpDir = join(desktopRoot, "tmp");
+mkdirSync(tmpDir, { recursive: true });
+
+const require = createRequire(import.meta.url);
+
+function tryLoadSharp() {
+  const candidates = [
+    join(desktopRoot, "node_modules/sharp"),
+    join(desktopRoot, ".deps-sharp/node_modules/sharp"),
+    join(root, "node_modules/sharp"),
+    join(root, "node_modules/.pnpm/sharp@0.34.5/node_modules/sharp"),
+  ];
+  for (const p of candidates) {
+    try {
+      if (existsSync(join(p, "package.json"))) return require(p);
+    } catch {
+      /* try next */
+    }
+  }
+  try {
+    return require("sharp");
+  } catch {
+    return null;
+  }
+}
 
 function readManifest(path, label) {
   if (!existsSync(path)) {
@@ -28,27 +55,34 @@ function readManifest(path, label) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function parseBgra(buf) {
-  const nl = buf.indexOf(0x0a);
-  if (nl < 0) throw new Error("invalid bgra header");
-  const header = buf.subarray(0, nl).toString("utf8").trim();
-  const m = /^(\d+)x(\d+)$/.exec(header);
-  if (!m) throw new Error(`invalid bgra header: ${header}`);
-  const width = Number(m[1]);
-  const height = Number(m[2]);
-  const pixels = buf.subarray(nl + 1);
-  const expected = width * height * 4;
-  if (pixels.length < expected) {
-    throw new Error(
-      `bgra short: got ${pixels.length} need ${expected} for ${width}x${height}`,
-    );
-  }
-  return { width, height, pixels: pixels.subarray(0, expected) };
+function cleanEnv(extra = {}) {
+  const env = { ...process.env, ...extra };
+  delete env.ELECTRON_RUN_AS_NODE;
+  return env;
 }
 
-function diffRatio(a, b) {
+function runElectron(script, env) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+      ["exec", "electron", script],
+      {
+        cwd: desktopRoot,
+        stdio: "inherit",
+        shell: true,
+        env: cleanEnv(env),
+      },
+    );
+    child.on("exit", (code) =>
+      code === 0 ? resolve() : reject(new Error(`electron exit ${code}`)),
+    );
+  });
+}
+
+function pixelDiffRatio(a, b) {
   if (a.length !== b.length) return 1;
   let diff = 0;
+  const pixels = a.length / 4;
   for (let i = 0; i < a.length; i += 4) {
     if (
       a[i] !== b[i] ||
@@ -59,7 +93,85 @@ function diffRatio(a, b) {
       diff += 1;
     }
   }
-  return diff / (a.length / 4);
+  return diff / pixels;
+}
+
+async function diffWithSharp(sharp, pairs, maxRatio) {
+  let failed = 0;
+  for (const pair of pairs) {
+    try {
+      const cand = await sharp(pair.cand)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      const ref = await sharp(pair.ref)
+        .ensureAlpha()
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+      if (
+        cand.info.width !== ref.info.width ||
+        cand.info.height !== ref.info.height
+      ) {
+        console.error(
+          "[compare-baselines] pixel fail",
+          pair.name,
+          "size-mismatch",
+        );
+        failed += 1;
+        continue;
+      }
+      if (
+        pair.width &&
+        pair.height &&
+        (cand.info.width !== pair.width || cand.info.height !== pair.height)
+      ) {
+        console.error(
+          "[compare-baselines] pixel fail",
+          pair.name,
+          "manifest-size",
+        );
+        failed += 1;
+        continue;
+      }
+      const ratio = pixelDiffRatio(cand.data, ref.data);
+      if (ratio > maxRatio) {
+        console.error(
+          "[compare-baselines] pixel fail",
+          pair.name,
+          `ratio=${(ratio * 100).toFixed(3)}% > ${(maxRatio * 100).toFixed(2)}%`,
+        );
+        failed += 1;
+      }
+    } catch (err) {
+      console.error("[compare-baselines] pixel fail", pair.name, err);
+      failed += 1;
+    }
+  }
+  return failed;
+}
+
+async function diffWithElectron(pairs, maxRatio) {
+  const jobPath = join(tmpDir, "compare-job.json");
+  const resultPath = join(tmpDir, "compare-result.json");
+  writeFileSync(jobPath, `${JSON.stringify({ maxRatio, pairs }, null, 2)}\n`);
+  await runElectron("scripts/compare-baselines-pixel.cjs", {
+    COMPARE_JOB_JSON: jobPath,
+    COMPARE_RESULT_JSON: resultPath,
+  });
+  const { results } = JSON.parse(readFileSync(resultPath, "utf8"));
+  let failed = 0;
+  for (const row of results ?? []) {
+    if (!row.ok) {
+      console.error(
+        "[compare-baselines] pixel fail",
+        row.name,
+        row.reason ??
+          `ratio=${((row.ratio ?? 1) * 100).toFixed(3)}% > ${(maxRatio * 100).toFixed(2)}%`,
+      );
+      failed += 1;
+    }
+  }
+  return failed;
 }
 
 const refManifest = readManifest(referenceManifestPath, "reference");
@@ -82,12 +194,11 @@ if (refManifest.status !== "electron-production-ui") {
 
 let failed = 0;
 const shaBySize = new Map();
+const pairs = [];
 
 for (const entry of files) {
   const candPng = join(candidateDir, entry.name);
   const refPng = join(referenceDir, entry.name);
-  const candBgra = join(candidateDir, entry.name.replace(/\.png$/, ".bgra"));
-  const refBgra = join(referenceDir, entry.name.replace(/\.png$/, ".bgra"));
 
   if (!existsSync(candPng)) {
     console.error("[compare-baselines] missing candidate", entry.name);
@@ -143,48 +254,15 @@ for (const entry of files) {
     bucket.set(candSha, entry.name);
   }
 
-  if (existsSync(candBgra) && existsSync(refBgra)) {
-    try {
-      const a = parseBgra(readFileSync(candBgra));
-      const b = parseBgra(readFileSync(refBgra));
-      if (a.width !== b.width || a.height !== b.height) {
-        console.error(
-          "[compare-baselines] size mismatch",
-          entry.name,
-          `${a.width}x${a.height}`,
-          "vs",
-          `${b.width}x${b.height}`,
-        );
-        failed += 1;
-        continue;
-      }
-      const ratio = diffRatio(a.pixels, b.pixels);
-      if (ratio > maxRatio) {
-        console.error(
-          `[compare-baselines] pixel diff ${entry.name}: ${(ratio * 100).toFixed(3)}% > ${(maxRatio * 100).toFixed(2)}%`,
-        );
-        failed += 1;
-      }
-    } catch (err) {
-      console.error("[compare-baselines] bgra compare failed", entry.name, err);
-      failed += 1;
-    }
-  } else {
-    // No bgra sidecars yet (old references): require exact PNG SHA match.
-    const refSha = createHash("sha256")
-      .update(readFileSync(refPng))
-      .digest("hex");
-    if (candSha !== refSha) {
-      console.error(
-        "[compare-baselines] PNG SHA mismatch (no .bgra sidecars — re-capture with PROMOTE_BASELINES=1):",
-        entry.name,
-      );
-      failed += 1;
-    }
-  }
+  pairs.push({
+    name: entry.name,
+    cand: candPng,
+    ref: refPng,
+    width: entry.width,
+    height: entry.height,
+  });
 }
 
-// Candidate manifest should list the same files.
 const candNames = new Set((candManifest.files ?? []).map((f) => f.name));
 for (const entry of files) {
   if (!candNames.has(entry.name)) {
@@ -193,6 +271,24 @@ for (const entry of files) {
       entry.name,
     );
     failed += 1;
+  }
+}
+
+if (pairs.length) {
+  const sharp = tryLoadSharp();
+  if (sharp) {
+    console.log("[compare-baselines] using sharp PNG RGBA pixel-diff");
+    failed += await diffWithSharp(sharp, pairs, maxRatio);
+  } else {
+    console.warn(
+      "[compare-baselines] sharp unavailable — falling back to Electron nativeImage pixel-diff",
+    );
+    try {
+      failed += await diffWithElectron(pairs, maxRatio);
+    } catch (err) {
+      console.error("[compare-baselines] electron pixel helper failed", err);
+      failed += 1;
+    }
   }
 }
 

@@ -2,14 +2,11 @@
  * Capture parity baseline PNGs at 1280×720 and 1920×1080.
  *
  * Default / --placeholders: solid PNGs under baselines/placeholders/
- * --electron: Playwright Chromium against Vite preview with ?fixture=
- *   (fixture DOM is the deterministic capture surface; Electron shell
- *   uses the same FixtureSurface when ?fixture= is set).
+ * --electron: Electron production-UI capture (see electron-capture-baselines.cjs)
  */
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
 import { deflateSync } from "node:zlib";
 import {
   copyFileSync,
@@ -21,7 +18,6 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const require = createRequire(import.meta.url);
 const desktopRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = join(desktopRoot, "../..");
 const outDir = join(repoRoot, "docs/migration/vite-ui/baselines");
@@ -119,34 +115,6 @@ function writePlaceholders() {
     }
   }
   return files;
-}
-
-async function resolvePlaywright() {
-  const candidates = [
-    join(repoRoot, "node_modules/playwright"),
-    join(
-      repoRoot,
-      "node_modules/.pnpm/playwright@1.62.0/node_modules/playwright",
-    ),
-    join(
-      repoRoot,
-      "node_modules/.pnpm/@playwright+test@1.62.0/node_modules/playwright",
-    ),
-  ];
-  for (const candidate of candidates) {
-    try {
-      return require(candidate);
-    } catch {
-      /* try next */
-    }
-  }
-  throw new Error(
-    "playwright not found in pnpm store — run from monorepo with @playwright/test installed",
-  );
-}
-
-function wait(ms) {
-  return new Promise((r) => setTimeout(r, ms));
 }
 
 async function captureWithElectron() {

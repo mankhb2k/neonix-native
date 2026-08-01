@@ -13,6 +13,8 @@ export type AdvancedTimelineBehavior =
   | "clipboard"
   | "drag-preview";
 
+export type BehaviorScaffoldStatus = "none" | "partial" | "done";
+
 export const ADVANCED_TIMELINE_BEHAVIORS: AdvancedTimelineBehavior[] = [
   "cross-lane-move",
   "lane-drop",
@@ -24,18 +26,33 @@ export const ADVANCED_TIMELINE_BEHAVIORS: AdvancedTimelineBehavior[] = [
   "drag-preview",
 ];
 
-/** Behaviors already covered by Vite adapters / session (partial → growing). */
+/**
+ * Honest scaffold map — not every listed behavior is fully shipped.
+ * `done` = usable end-to-end in Vite session; `partial` = adapter/UI present with gaps.
+ */
+export const BEHAVIOR_SCAFFOLD_STATUS: Record<
+  AdvancedTimelineBehavior,
+  BehaviorScaffoldStatus
+> = {
+  clipboard: "done",
+  marquee: "done",
+  "cross-lane-move": "done",
+  "lane-drop": "partial",
+  "auto-scroll": "partial",
+  "library-dnd": "partial",
+  "lane-reorder": "partial",
+  "drag-preview": "partial",
+};
+
+export function getBehaviorScaffoldStatus(
+  behavior: AdvancedTimelineBehavior,
+): BehaviorScaffoldStatus {
+  return BEHAVIOR_SCAFFOLD_STATUS[behavior];
+}
+
+/** True when any scaffold exists (partial or done). */
 export function isBehaviorScaffolded(
   behavior: AdvancedTimelineBehavior,
 ): boolean {
-  return (
-    behavior === "clipboard" ||
-    behavior === "library-dnd" ||
-    behavior === "lane-drop" ||
-    behavior === "auto-scroll" ||
-    behavior === "drag-preview" ||
-    behavior === "lane-reorder" ||
-    behavior === "cross-lane-move" ||
-    behavior === "marquee"
-  );
+  return BEHAVIOR_SCAFFOLD_STATUS[behavior] !== "none";
 }

@@ -1,12 +1,8 @@
 /**
- * Electron interaction microbench (P19/B2) — engineering gate, not 60fps acceptance.
+ * Electron interaction microbench (CSS-0) — engineering gate, not 60fps acceptance.
  *
- * - Strips ELECTRON_RUN_AS_NODE
- * - Visible BrowserWindow (avoids hidden-window ~1fps RAF throttle)
- * - Samples rAF after fixture ready + synthetic timeline drag
- * - Fails on timeout / threshold breach (never always-ok)
- *
- * Usage: pnpm test:perf:electron
+ * Single input path: in-page PointerEvent on timeline clip strip (reactPointerHandler).
+ * Fixture probe is read-only (historyDepth / clip startTime).
  */
 
 import { spawn } from "node:child_process";
@@ -19,7 +15,6 @@ const outDir = join(desktopRoot, "tmp");
 mkdirSync(outDir, { recursive: true });
 const resultPath = join(outDir, "perf-electron-result.json");
 
-/** Engineering thresholds — generous; not 16.7ms acceptance. */
 const MAX_MEDIAN_RAF_MS = 50;
 const MAX_P95_RAF_MS = 100;
 const MAX_DRAG_MS = 5000;
@@ -57,6 +52,7 @@ const MAX_MEDIAN = ${MAX_MEDIAN_RAF_MS};
 const MAX_P95 = ${MAX_P95_RAF_MS};
 const MAX_DRAG = ${MAX_DRAG_MS};
 const HARD_TIMEOUT = ${HARNESS_TIMEOUT_MS};
+const INPUT_PATH = "reactPointerHandler";
 
 function fail(payload) {
   writeFileSync(outPath, JSON.stringify({ ok: false, ...payload }, null, 2));
@@ -70,6 +66,10 @@ function ok(payload) {
   app.exit(0);
 }
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 const watchdog = setTimeout(() => {
   fail({ reason: "harness-timeout", timeoutMs: HARD_TIMEOUT });
 }, HARD_TIMEOUT);
@@ -81,6 +81,7 @@ app.whenReady().then(async () => {
       height: 720,
       show: true,
       frame: false,
+      enableLargerThanScreen: true,
       backgroundColor: "#0A0A0B",
       webPreferences: {
         contextIsolation: true,
@@ -88,23 +89,38 @@ app.whenReady().then(async () => {
         backgroundThrottling: false,
       },
     });
-    try { win.setPosition(60, 60); } catch (_) {}
+    try {
+      win.setPosition(60, 60);
+      win.setContentSize(1280, 720);
+    } catch (_) {}
 
     await win.loadURL(pathToFileURL(indexHtml).href + "?fixture=editor-shell");
+    try { win.setContentSize(1280, 720); } catch (_) {}
 
     const ready = await win.webContents.executeJavaScript(\`
       new Promise((resolve) => {
+        const inViewport = (el) => {
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          return (
+            r.height > 0 &&
+            r.width > 0 &&
+            r.top >= 0 &&
+            r.bottom <= window.innerHeight + 1
+          );
+        };
         const start = Date.now();
         const tick = () => {
           const el = document.querySelector('[data-app-ready="true"][data-ui-fixture="editor-shell"]');
           const timeline = document.querySelector('[data-testid="timeline-viewport"]');
+          const clip = document.querySelector('[data-testid="timeline-clip-strip"][data-clip-id]');
           const text = document.body ? document.body.innerText : "";
           if (text.includes("Starting")) {
             if (Date.now() - start > 12000) resolve(false);
             else requestAnimationFrame(tick);
             return;
           }
-          if (el && timeline) resolve(true);
+          if (el && timeline && inViewport(timeline) && clip && inViewport(clip)) resolve(true);
           else if (Date.now() - start > 12000) resolve(false);
           else requestAnimationFrame(tick);
         };
@@ -113,9 +129,21 @@ app.whenReady().then(async () => {
     \`);
     if (!ready) {
       clearTimeout(watchdog);
-      fail({ reason: "fixture-not-ready" });
+      fail({ reason: "fixture-not-ready-or-timeline-out-of-view" });
       return;
     }
+
+    await win.webContents.executeJavaScript(\`
+      (() => {
+        window.__MV_PERF_CONSOLE_ERRORS__ = [];
+        const orig = console.error.bind(console);
+        window.__MV_PERF_ORIG_CONSOLE_ERROR__ = orig;
+        console.error = (...args) => {
+          window.__MV_PERF_CONSOLE_ERRORS__.push(args.map(String).join(" "));
+          orig(...args);
+        };
+      })()
+    \`);
 
     const samples = await win.webContents.executeJavaScript(\`
       (async () => {
@@ -133,59 +161,198 @@ app.whenReady().then(async () => {
         const deltas = [];
         for (let i = 1; i < times.length; i++) deltas.push(times[i] - times[i - 1]);
         deltas.sort((a, b) => a - b);
-        const p95 = deltas[Math.floor(deltas.length * 0.95)] ?? 0;
-        const median = deltas[Math.floor(deltas.length * 0.5)] ?? 0;
-        const max = deltas[deltas.length - 1] ?? 0;
-
-        const clip = document.querySelector("[data-clip-id]");
-        const zone = document.querySelector("[data-timeline-drop-zone]");
-        let dragMs = 0;
-        let dragOk = false;
-        if (clip && zone) {
-          const r = clip.getBoundingClientRect();
-          const startX = r.left + Math.min(20, r.width / 2);
-          const startY = r.top + r.height / 2;
-          const t0 = performance.now();
-          clip.dispatchEvent(new PointerEvent("pointerdown", {
-            bubbles: true, clientX: startX, clientY: startY, pointerId: 1, buttons: 1,
-          }));
-          for (let i = 1; i <= 8; i++) {
-            await new Promise((r) => requestAnimationFrame(r));
-            window.dispatchEvent(new PointerEvent("pointermove", {
-              bubbles: true, clientX: startX + i * 12, clientY: startY, pointerId: 1, buttons: 1,
-            }));
-          }
-          window.dispatchEvent(new PointerEvent("pointerup", {
-            bubbles: true, clientX: startX + 96, clientY: startY, pointerId: 1, buttons: 0,
-          }));
-          dragMs = performance.now() - t0;
-          dragOk = true;
-        }
-
+        const clip = document.querySelector('[data-testid="timeline-clip-strip"][data-clip-id]');
+        const r0 = clip ? clip.getBoundingClientRect() : null;
+        const inView = !!(
+          r0 &&
+          r0.height > 0 &&
+          r0.top >= 0 &&
+          r0.bottom <= window.innerHeight + 1
+        );
+        const probe = window.__MV_FIXTURE_PROBE__;
+        const beforeClip = probe && typeof probe.getPrimaryClip === "function"
+          ? probe.getPrimaryClip()
+          : null;
+        const historyDepthBefore = probe && typeof probe.historyDepth === "function"
+          ? probe.historyDepth()
+          : null;
+        const lastHistoryIdBefore = probe && typeof probe.lastHistoryEntryId === "function"
+          ? probe.lastHistoryEntryId()
+          : null;
         return {
           frames: deltas.length,
-          median,
-          p95,
-          max,
-          dragMs,
-          dragOk,
-          note: "visible-window rAF + synthetic drag; not 60fps acceptance",
+          median: deltas[Math.floor(deltas.length * 0.5)] ?? 0,
+          p95: deltas[Math.floor(deltas.length * 0.95)] ?? 0,
+          max: deltas[deltas.length - 1] ?? 0,
+          inView,
+          beforeClip,
+          historyDepthBefore,
+          lastHistoryIdBefore,
+          clip: r0
+            ? {
+                x: Math.round(r0.left + Math.min(20, r0.width / 2)),
+                y: Math.round(r0.top + r0.height / 2),
+                startTime: clip.getAttribute("data-start-time") ?? "",
+                left: r0.left,
+              }
+            : null,
         };
       })()
     \`);
 
+    if (!samples.clip || !samples.inView) {
+      clearTimeout(watchdog);
+      fail({
+        ...samples,
+        inputPath: INPUT_PATH,
+        reason: "clip-out-of-view",
+        dragOk: false,
+        pointerDragOk: false,
+        commandMutationOk: false,
+        historyOk: false,
+      });
+      return;
+    }
+
+    const before = samples.clip;
+    const t0 = Date.now();
+
+    try {
+      win.focus();
+      win.webContents.focus();
+    } catch (_) {}
+
+    // CSS-0: exactly one input path — reactPointerHandler (not sendInputEvent).
+    const gesture = await win.webContents.executeJavaScript(\`
+      (() => {
+        const el = document.querySelector('[data-testid="timeline-clip-strip"][data-clip-id]');
+        if (!el) return { ok: false, reason: "no-clip-el" };
+        const r = el.getBoundingClientRect();
+        const x0 = r.left + Math.min(20, Math.max(4, r.width / 2));
+        const y0 = r.top + r.height / 2;
+        const opts = (x, y, buttons) => ({
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX: x,
+          clientY: y,
+          screenX: x,
+          screenY: y,
+          button: 0,
+          buttons,
+          pointerId: 1,
+          pointerType: "mouse",
+          isPrimary: true,
+        });
+        el.dispatchEvent(new PointerEvent("pointerdown", opts(x0, y0, 1)));
+        for (let i = 1; i <= 12; i += 1) {
+          window.dispatchEvent(
+            new PointerEvent("pointermove", opts(x0 + i * 16, y0, 1)),
+          );
+        }
+        window.dispatchEvent(
+          new PointerEvent("pointerup", opts(x0 + 192, y0, 0)),
+        );
+        return { ok: true, x0, y0 };
+      })()
+    \`);
+    await sleep(200);
+
+    const after = await win.webContents.executeJavaScript(\`
+      (() => {
+        const clip = document.querySelector('[data-testid="timeline-clip-strip"][data-clip-id]');
+        const r = clip ? clip.getBoundingClientRect() : null;
+        const probe = window.__MV_FIXTURE_PROBE__;
+        const afterClip = probe && typeof probe.getPrimaryClip === "function"
+          ? probe.getPrimaryClip()
+          : null;
+        const historyDepthAfter = probe && typeof probe.historyDepth === "function"
+          ? probe.historyDepth()
+          : null;
+        const lastHistoryIdAfter = probe && typeof probe.lastHistoryEntryId === "function"
+          ? probe.lastHistoryEntryId()
+          : null;
+        const consoleErrors = Array.isArray(window.__MV_PERF_CONSOLE_ERRORS__)
+          ? window.__MV_PERF_CONSOLE_ERRORS__.slice()
+          : [];
+        if (typeof window.__MV_PERF_ORIG_CONSOLE_ERROR__ === "function") {
+          console.error = window.__MV_PERF_ORIG_CONSOLE_ERROR__;
+        }
+        return {
+          startTime: clip ? (clip.getAttribute("data-start-time") ?? "") : "",
+          left: r ? r.left : null,
+          afterClip,
+          historyDepthAfter,
+          lastHistoryIdAfter,
+          consoleErrors,
+        };
+      })()
+    \`);
+
+    const dragMs = Date.now() - t0;
+    const startChanged =
+      !!after &&
+      after.afterClip &&
+      samples.beforeClip &&
+      after.afterClip.startTime !== samples.beforeClip.startTime;
+    const leftChanged =
+      !!after &&
+      after.left != null &&
+      Math.abs(after.left - before.left) > 2;
+    const commandMutationOk = !!(startChanged || leftChanged);
+    const historyDelta =
+      after &&
+      samples.historyDepthBefore != null &&
+      after.historyDepthAfter != null
+        ? after.historyDepthAfter - samples.historyDepthBefore
+        : null;
+    const historyOk = historyDelta === 1;
+    const pointerDragOk =
+      !!(gesture && gesture.ok) && commandMutationOk && historyOk;
+    const dragOk =
+      samples.inView && pointerDragOk && commandMutationOk && historyOk;
+
     clearTimeout(watchdog);
+    const payload = {
+      frames: samples.frames,
+      median: samples.median,
+      p95: samples.p95,
+      max: samples.max,
+      dragMs,
+      dragOk,
+      pointerDragOk,
+      commandMutationOk,
+      historyOk,
+      historyDelta,
+      inputPath: INPUT_PATH,
+      inView: samples.inView,
+      before,
+      after,
+      beforeClip: samples.beforeClip,
+      historyDepthBefore: samples.historyDepthBefore,
+      lastHistoryIdBefore: samples.lastHistoryIdBefore,
+      gesture,
+      consoleErrors: after.consoleErrors ?? [],
+      note: "CSS-0: single reactPointerHandler gesture; historyDepth +1; not 60fps",
+    };
     const failReasons = [];
     if (samples.median > MAX_MEDIAN) failReasons.push("median-raf");
     if (samples.p95 > MAX_P95) failReasons.push("p95-raf");
-    if (!samples.dragOk) failReasons.push("drag-missing");
-    if (samples.dragMs > MAX_DRAG) failReasons.push("drag-slow");
-
+    if (!samples.inView) failReasons.push("clip-out-of-view");
+    if (!(gesture && gesture.ok)) failReasons.push("gesture-dispatch-failed");
+    if (!commandMutationOk) failReasons.push("no-mutation");
+    if (!historyOk) failReasons.push("history-delta-not-1");
+    if (!pointerDragOk) failReasons.push("pointer-drag-failed");
+    if (!dragOk) failReasons.push("drag-failed");
+    if (dragMs > MAX_DRAG) failReasons.push("drag-slow");
+    if (Array.isArray(payload.consoleErrors) && payload.consoleErrors.length) {
+      failReasons.push("console-error");
+    }
     if (failReasons.length) {
-      fail({ ...samples, reason: failReasons.join(","), thresholds: { MAX_MEDIAN, MAX_P95, MAX_DRAG } });
+      fail({ ...payload, reason: failReasons.join(","), thresholds: { MAX_MEDIAN, MAX_P95, MAX_DRAG } });
       return;
     }
-    ok(samples);
+    ok(payload);
   } catch (err) {
     clearTimeout(watchdog);
     fail({ reason: "exception", message: String(err && err.stack ? err.stack : err) });

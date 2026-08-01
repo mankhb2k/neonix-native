@@ -160,6 +160,19 @@ export function TimelineViewport({
 
   useLayoutEffect(() => {
     const root = tracksScrollRef.current;
+    if (scrollLeftRafRef.current != null) {
+      cancelAnimationFrame(scrollLeftRafRef.current);
+      scrollLeftRafRef.current = null;
+    }
+    if (scrollTopRafRef.current != null) {
+      cancelAnimationFrame(scrollTopRafRef.current);
+      scrollTopRafRef.current = null;
+    }
+    if (dropGhostRafRef.current != null) {
+      cancelAnimationFrame(dropGhostRafRef.current);
+      dropGhostRafRef.current = null;
+    }
+    pendingDropGhostRef.current = undefined;
     if (!root) return;
     root.scrollLeft = 0;
     root.scrollTop = 0;
@@ -169,6 +182,14 @@ export function TimelineViewport({
 
   useEffect(() => {
     return () => {
+      if (scrollLeftRafRef.current != null) {
+        cancelAnimationFrame(scrollLeftRafRef.current);
+        scrollLeftRafRef.current = null;
+      }
+      if (scrollTopRafRef.current != null) {
+        cancelAnimationFrame(scrollTopRafRef.current);
+        scrollTopRafRef.current = null;
+      }
       if (dropGhostRafRef.current != null) {
         cancelAnimationFrame(dropGhostRafRef.current);
         dropGhostRafRef.current = null;
