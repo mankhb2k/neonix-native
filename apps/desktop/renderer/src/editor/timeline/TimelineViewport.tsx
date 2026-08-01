@@ -410,44 +410,60 @@ export function TimelineViewport({
     [scrollTop, trackViewHeight, laneHeights],
   );
 
-  const mountedLanes = useMemo(() => {
-    let start = laneWindow.startIndex;
-    let end = laneWindow.endIndex;
+  /** Window lanes + discrete pin lanes (with gap spacers; no full origin→target expand). */
+  const mountedLaneRows = useMemo(() => {
+    const indices = new Set<number>();
+    const { startIndex, endIndex } = laneWindow;
+    if (endIndex >= startIndex && startIndex < sortedLanes.length) {
+      for (let i = startIndex; i <= endIndex; i += 1) indices.add(i);
+    }
+    const pinIds = new Set<string>();
     if (clipMovePreview) {
-      const originIdx = sortedLanes.findIndex(
-        (l) => l.id === clipMovePreview.originLaneId,
-      );
-      const targetIdx = sortedLanes.findIndex(
-        (l) => l.id === clipMovePreview.laneId,
-      );
-      if (originIdx >= 0) {
-        start = Math.min(start, originIdx);
-        end = Math.max(end, originIdx);
-      }
-      if (targetIdx >= 0) {
-        start = Math.min(start, targetIdx);
-        end = Math.max(end, targetIdx);
-      }
+      pinIds.add(clipMovePreview.originLaneId);
+      pinIds.add(clipMovePreview.laneId);
+      for (const m of clipMovePreview.members ?? []) pinIds.add(m.laneId);
     }
-    if (end < start || start >= sortedLanes.length) return [];
-    return sortedLanes.slice(start, end + 1);
-  }, [
-    sortedLanes,
-    laneWindow.startIndex,
-    laneWindow.endIndex,
-    clipMovePreview,
-  ]);
+    for (let i = 0; i < sortedLanes.length; i += 1) {
+      if (pinIds.has(sortedLanes[i]!.id)) indices.add(i);
+    }
+    const ordered = [...indices].sort((a, b) => a - b);
+    type Row =
+      | { kind: "gap"; key: string; height: number }
+      | { kind: "lane"; key: string; lane: (typeof sortedLanes)[number] };
+    const rows: Row[] = [];
+    let offsetTop = 0;
+    if (ordered.length === 0) {
+      return { rows, offsetTop: laneWindow.offsetTop };
+    }
+    for (let i = 0; i < ordered[0]!; i += 1) {
+      offsetTop += laneRowHeightPx(sortedLanes[i]!);
+    }
+    let prev = ordered[0]!;
+    rows.push({
+      kind: "lane",
+      key: sortedLanes[prev]!.id,
+      lane: sortedLanes[prev]!,
+    });
+    for (let k = 1; k < ordered.length; k += 1) {
+      const idx = ordered[k]!;
+      let gap = 0;
+      for (let i = prev + 1; i < idx; i += 1) {
+        gap += laneRowHeightPx(sortedLanes[i]!);
+      }
+      if (gap > 0) {
+        rows.push({ kind: "gap", key: `gap-${prev}-${idx}`, height: gap });
+      }
+      rows.push({
+        kind: "lane",
+        key: sortedLanes[idx]!.id,
+        lane: sortedLanes[idx]!,
+      });
+      prev = idx;
+    }
+    return { rows, offsetTop };
+  }, [sortedLanes, laneWindow, clipMovePreview]);
 
-  const mountedOffsetTop = useMemo(() => {
-    if (mountedLanes.length === 0) return laneWindow.offsetTop;
-    const firstId = mountedLanes[0]!.id;
-    let top = 0;
-    for (const lane of sortedLanes) {
-      if (lane.id === firstId) break;
-      top += laneRowHeightPx(lane);
-    }
-    return top;
-  }, [mountedLanes, sortedLanes, laneWindow.offsetTop]);
+  const mountedOffsetTop = mountedLaneRows.offsetTop;
 
   const ghostLaneTop = useMemo(() => {
     if (!dropGhost) return 0;
@@ -504,23 +520,34 @@ export function TimelineViewport({
         >
           <div style={{ transform: `translateY(${-scrollTop}px)` }}>
             <div style={{ height: mountedOffsetTop }} aria-hidden />
-            {mountedLanes.map((lane) => (
-              <div
-                key={lane.id}
-                className="timeline-board__label"
-                style={{ height: laneRowHeightPx(lane) }}
-                title={lane.name}
-              >
-                {lane.name}
-              </div>
-            ))}
+            {mountedLaneRows.rows.map((row) =>
+              row.kind === "gap" ? (
+                <div key={`l-${row.key}`} style={{ height: row.height }} aria-hidden />
+              ) : (
+                <div
+                  key={row.key}
+                  className="timeline-board__label"
+                  style={{ height: laneRowHeightPx(row.lane) }}
+                  title={row.lane.name}
+                >
+                  {row.lane.name}
+                </div>
+              ),
+            )}
             <div
               style={{
                 height: Math.max(
                   0,
                   laneWindow.totalHeight -
                     mountedOffsetTop -
-                    mountedLanes.reduce((s, l) => s + laneRowHeightPx(l), 0),
+                    mountedLaneRows.rows.reduce(
+                      (s, r) =>
+                        s +
+                        (r.kind === "gap"
+                          ? r.height
+                          : laneRowHeightPx(r.lane)),
+                      0,
+                    ),
                 ),
               }}
               aria-hidden
@@ -570,9 +597,22 @@ export function TimelineViewport({
                 }}
               >
                 <div style={{ height: mountedOffsetTop }} aria-hidden />
-                {mountedLanes.map((lane) => {
+                {mountedLaneRows.rows.map((row) => {
+                  if (row.kind === "gap") {
+                    return (
+                      <div
+                        key={`t-${row.key}`}
+                        style={{ height: row.height }}
+                        aria-hidden
+                      />
+                    );
+                  }
+                  const lane = row.lane;
                   const h = laneRowHeightPx(lane);
                   const visibleClips = clipsForLane(lane.id);
+                  const memberOnLane = clipMovePreview?.members?.some(
+                    (m) => m.laneId === lane.id,
+                  );
                   return (
                     <div
                       key={lane.id}
@@ -590,7 +630,8 @@ export function TimelineViewport({
                         disabled={disabled}
                         movePreview={
                           clipMovePreview?.laneId === lane.id ||
-                          clipMovePreview?.originLaneId === lane.id
+                          clipMovePreview?.originLaneId === lane.id ||
+                          memberOnLane
                             ? clipMovePreview
                             : null
                         }
@@ -608,8 +649,12 @@ export function TimelineViewport({
                       0,
                       laneWindow.totalHeight -
                         mountedOffsetTop -
-                        mountedLanes.reduce(
-                          (s, l) => s + laneRowHeightPx(l),
+                        mountedLaneRows.rows.reduce(
+                          (s, r) =>
+                            s +
+                            (r.kind === "gap"
+                              ? r.height
+                              : laneRowHeightPx(r.lane)),
                           0,
                         ),
                     ),

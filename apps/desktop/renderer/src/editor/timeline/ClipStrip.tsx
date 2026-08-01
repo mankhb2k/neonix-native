@@ -27,6 +27,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 export type { ClipMovePreview };
 
 const DRAG_THRESHOLD_PX = 3;
+const SNAP_THRESHOLD_PX = 8;
 
 type TrackKind = "main" | "overlay" | "audio";
 
@@ -186,6 +187,7 @@ export const ClipStrip = memo(function ClipStrip({
             duration,
             drop,
             snapPoints,
+            snapThresholdSec: SNAP_THRESHOLD_PX / pps,
           });
           const rawDelta = resolved.commit.startTime - originStart;
           const groupDelta = Math.max(rawDelta, -minStartInGroup);

@@ -23,7 +23,7 @@
 | N3 / G4 / H4 / P15 | Unified chrome / Hub polish | **partial** — menus portal into TitleBar; no menu fallback flash |
 | N5 | Drop geometry lane/time | done (typed ghost + auto-scroll near zone) |
 | N6 / G3 | Layers tree / reorder / marquee / cross-lane | **partial** — adapters + context menu; lane drag-reorder DOM later |
-| N7 / G2 / P14 / P17 | Pixi + fixtures/benchmark | **partial** — `test:perf`; canvas seam lazy; DOM default |
+| N7 / G2 / P14 / P17 / P19 | Pixi + fixtures/benchmark | **partial** — `test:perf` + `test:perf:electron` rAF harness (not 60fps acceptance); DOM default |
 | N8 / G5 / H5 / P17 | Packaged soak; delete web desktop | **partial** — pack OK; delete after manual soak + stable release |
 
 See [PARITY_CONTRACT.md](./PARITY_CONTRACT.md), [N8_QA_CUTOVER.md](./N8_QA_CUTOVER.md), G1–G5 plan.
