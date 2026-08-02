@@ -42,7 +42,10 @@ import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
 import { visibleLaneWindow } from "../view-model/visible-lane-window";
 import { LaneFlagControls } from "../lanes/LaneFlagControls";
-import { LaneLeadingIcon, resolveLaneContentKind } from "../lanes/LaneLeadingIcon";
+import {
+  buildLaneContentKindById,
+  LaneLeadingIcon,
+} from "../lanes/LaneLeadingIcon";
 import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { TimelineOverlays } from "./TimelineOverlays";
 import { useTimelineViewportMetrics } from "./use-timeline-viewport-metrics";
@@ -225,6 +228,11 @@ export function TimelineViewport({
     }
     return map;
   }, [clips, lanes]);
+
+  const laneContentKindById = useMemo(
+    () => buildLaneContentKindById(lanes, clips, project),
+    [lanes, clips, project],
+  );
 
   const pinIds = useMemo(
     () => new Set(selectedClipIdsFrom(selection)),
@@ -603,7 +611,9 @@ export function TimelineViewport({
                       disabled={disabled}
                       leading={
                         <LaneLeadingIcon
-                          kind={resolveLaneContentKind(lane, clips, project)}
+                          kind={
+                            laneContentKindById.get(lane.id) ?? "component"
+                          }
                         />
                       }
                       onPatch={(patch) =>
