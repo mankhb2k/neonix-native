@@ -5,6 +5,34 @@ import type { DocumentAssetEntry } from "../../assets/document-assets";
 import type { LibraryCommitPoint } from "../../library/adapters/commit-library-payload";
 import type { LibraryPayload } from "../../library/model/library-payload";
 
+/** Sidebar audio catalog (always visible — not timeline seed). */
+export const DEMO_AUDIO_PRESETS: LibraryPayload[] = [
+  {
+    kind: "audio",
+    id: "demo-audio-bgm",
+    label: "BGM bed",
+    assetId: "demo_asset_bgm",
+    uri: "demo://audio/bgm-bed.mp3",
+    duration: 8,
+  },
+  {
+    kind: "audio",
+    id: "demo-audio-sfx",
+    label: "SFX hit",
+    assetId: "demo_asset_sfx",
+    uri: "demo://audio/sfx-hit.wav",
+    duration: 2.5,
+  },
+  {
+    kind: "audio",
+    id: "demo-audio-vo",
+    label: "Voiceover",
+    assetId: "demo_asset_vo",
+    uri: "demo://audio/voiceover.mp3",
+    duration: 5,
+  },
+];
+
 type Props = {
   assets: DocumentAssetEntry[];
   onExecuteTimeline: (command: TimelineCommand, label: string) => void;
@@ -30,42 +58,43 @@ function AudioAssetButton({
   );
 }
 
+function assetToPayload(asset: DocumentAssetEntry): LibraryPayload {
+  const fileName = asset.uri.split("/").pop() ?? asset.id;
+  const label = fileName.replace(/\.[^.]+$/, "") || fileName;
+  return {
+    kind: "audio",
+    id: asset.id,
+    label,
+    assetId: asset.id,
+    uri: asset.uri,
+    duration:
+      typeof asset.duration === "number" && asset.duration > 0
+        ? asset.duration
+        : DEFAULT_FRAME_DURATION,
+  };
+}
+
 export function AudioPanel({ assets, onExecuteTimeline }: Props) {
-  const audioAssets = assets.filter((a) => a.assetType === "audio");
+  const projectAudio = assets
+    .filter((a) => a.assetType === "audio")
+    .map(assetToPayload);
+  const projectIds = new Set(projectAudio.map((p) => p.assetId));
+  const tiles = [
+    ...DEMO_AUDIO_PRESETS.filter((p) => !projectIds.has(p.assetId)),
+    ...projectAudio,
+  ];
 
   const onCommit = (payload: LibraryPayload, point: LibraryCommitPoint) => {
     commitLibraryPayload(payload, point, onExecuteTimeline);
   };
 
-  if (audioAssets.length === 0) {
-    return (
-      <p className="m-3 text-[11px] text-[var(--fg-muted)]">
-        Import audio via Media after saving the project.
-      </p>
-    );
-  }
-
   return (
     <ul className="m-0 flex list-none flex-col gap-1.5 p-2">
-      {audioAssets.map((asset) => {
-        const label = asset.uri.split("/").pop() ?? asset.id;
-        const payload: LibraryPayload = {
-          kind: "audio",
-          id: asset.id,
-          label,
-          assetId: asset.id,
-          uri: asset.uri,
-          duration:
-            typeof asset.duration === "number" && asset.duration > 0
-              ? asset.duration
-              : DEFAULT_FRAME_DURATION,
-        };
-        return (
-          <li key={asset.id}>
-            <AudioAssetButton payload={payload} onCommit={onCommit} />
-          </li>
-        );
-      })}
+      {tiles.map((payload) => (
+        <li key={payload.id}>
+          <AudioAssetButton payload={payload} onCommit={onCommit} />
+        </li>
+      ))}
     </ul>
   );
 }

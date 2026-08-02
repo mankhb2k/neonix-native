@@ -54,6 +54,44 @@ describe("timeline session zoom/fit", () => {
     expect(state.timelineZoomMode).toBe("fit");
     expect(state.timelineFitRevision).toBe(rev + 1);
   });
+
+  it("fit with multiple clips anchors so content leaves ~1/3 empty", () => {
+    let state = createInitialTimelineSession();
+    const blank = buildBlankDesktopProject({ createId: (p) => `${p}_m` });
+    state = reduceTimelineSession(state, {
+      type: "REPLACE_DOCUMENT",
+      documentJson: blank.documentJson,
+    });
+    // Simulate two clips totaling 10s content end via APPLY + manual clips
+    // is awkward; FIT_TIMELINE reads state.clips — inject via APPLY after building.
+    state = {
+      ...state,
+      clips: [
+        {
+          id: "a",
+          kind: "scene",
+          sceneId: "s1",
+          laneId: state.lanes[0]!.id,
+          startTime: 0,
+          duration: 4,
+          name: "A",
+        },
+        {
+          id: "b",
+          kind: "scene",
+          sceneId: "s2",
+          laneId: state.lanes[0]!.id,
+          startTime: 4,
+          duration: 6,
+          name: "B",
+        },
+      ],
+    };
+    state = reduceTimelineSession(state, { type: "FIT_TIMELINE" });
+    // contentEnd=10 → anchor=5 → fitSpan=15 → content at 2/3, empty 1/3
+    expect(state.timelineFitAnchorSeconds).toBe(5);
+    expect(state.timelineZoomMode).toBe("fit");
+  });
 });
 
 describe("capCutRulerScale", () => {
@@ -87,5 +125,40 @@ describe("computeViewportLayout", () => {
     expect(layout.fitPps).toBeGreaterThan(0);
     expect(layout.pixelsPerSecond).toBeCloseTo(layout.fitPps * 2, 5);
     expect(layout.canvasWidth).toBeGreaterThanOrEqual(600);
+  });
+
+  it("pads multi-clip extent by ~1/3 of the visible board (CapCut end empty)", () => {
+    const clips = [
+      {
+        id: "c1",
+        kind: "scene" as const,
+        sceneId: "s1",
+        laneId: "lane",
+        startTime: 0,
+        duration: 4,
+        name: "A",
+      },
+      {
+        id: "c2",
+        kind: "scene" as const,
+        sceneId: "s2",
+        laneId: "lane",
+        startTime: 4,
+        duration: 6,
+        name: "B",
+      },
+    ];
+    const layout = computeViewportLayout({
+      clips,
+      trackViewWidth: 900,
+      timelineZoomScale: 1,
+      timelineFitAnchorSeconds: 4,
+    });
+    // fitSpan = 12s; visible = 12s; trailing = 4s; contentEnd = 10 → extent = 14
+    expect(layout.contentEnd).toBe(10);
+    expect(layout.extentSeconds).toBeCloseTo(14, 5);
+    expect(
+      (layout.extentSeconds - layout.contentEnd) / layout.fitSpan,
+    ).toBeCloseTo(1 / 3, 5);
   });
 });

@@ -59,7 +59,9 @@ export function TimeRuler({
 
   return (
     <div
-      className="relative h-7 w-full shrink-0 cursor-ew-resize select-none overflow-hidden"
+      className={`relative h-7 w-full shrink-0 select-none overflow-hidden ${
+        onSeekClick ? "cursor-ew-resize" : "cursor-default"
+      }`}
       aria-hidden={!onSeekClick}
       onPointerDown={(event) => {
         if (!onSeekClick || event.button !== 0) return;

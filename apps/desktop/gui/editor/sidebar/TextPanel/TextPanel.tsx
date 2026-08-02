@@ -4,7 +4,8 @@ import { useLibraryPointerGesture } from "../../library/hooks/use-library-pointe
 import type { LibraryCommitPoint } from "../../library/adapters/commit-library-payload";
 import type { LibraryPayload } from "../../library/model/library-payload";
 
-const TEXT_PRESETS: LibraryPayload[] = [
+/** Sidebar text catalog (presets only — not timeline seed). */
+export const DEMO_TEXT_PRESETS: LibraryPayload[] = [
   {
     id: "text-title",
     kind: "text",
@@ -18,6 +19,27 @@ const TEXT_PRESETS: LibraryPayload[] = [
     label: "Subtitle",
     text: "Subtitle",
     duration: 4,
+  },
+  {
+    id: "text-lower-third",
+    kind: "text",
+    label: "Lower third",
+    text: "Name · Role",
+    duration: 4,
+  },
+  {
+    id: "text-caption",
+    kind: "text",
+    label: "Caption",
+    text: "Caption line",
+    duration: 3,
+  },
+  {
+    id: "text-cta",
+    kind: "text",
+    label: "Call to action",
+    text: "Learn more →",
+    duration: 3,
   },
 ];
 
@@ -52,7 +74,7 @@ export function TextPanel({ onExecuteTimeline }: Props) {
 
   return (
     <ul className="m-0 flex list-none flex-col gap-1.5 p-2">
-      {TEXT_PRESETS.map((payload) => (
+      {DEMO_TEXT_PRESETS.map((payload) => (
         <li key={payload.id}>
           <TextPresetButton payload={payload} onCommit={onCommit} />
         </li>

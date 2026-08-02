@@ -1,4 +1,4 @@
-import { BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from "electron";
 import {
   INVOKE_CHANNELS,
   IpcChannels,
@@ -31,7 +31,9 @@ import {
   parseDesktopProjectFile,
   projectIdFromEnvelope,
   projectNameFromEnvelope,
+  serializeDesktopProjectEnvelope,
 } from "../../../shared/project-file/envelope";
+import { seedDemoSidebarAssets } from "../../../shared/project-file/seed-demo-sidebar";
 import { getRendererMode } from "../../../shared/renderer-mode";
 import { createAssetFileService } from "../services/asset-file/asset-file.service";
 import { createExportService } from "../services/export/export.service";
@@ -304,6 +306,15 @@ export function registerIpcHandlers(
           name: input.name,
           aspectRatio: input.aspectRatio,
         });
+        // Dev/unpackaged: seed Audio panel catalog (no timeline clips).
+        const envelope = app.isPackaged
+          ? blank.envelope
+          : seedDemoSidebarAssets(blank.envelope, (prefix) => {
+              const stamp = Date.now().toString(36);
+              const rand = Math.random().toString(36).slice(2, 7);
+              return `${prefix}_${stamp}_${rand}`;
+            });
+        const documentJson = serializeDesktopProjectEnvelope(envelope);
         setProjectSession(event.sender.id, {
           path: null,
           projectId: blank.projectId,
@@ -315,9 +326,9 @@ export function registerIpcHandlers(
         });
         return {
           projectId: blank.projectId,
-          documentJson: blank.documentJson,
-          name: blank.envelope.project.metadata.name,
-          aspectRatio: blank.envelope.project.metadata.aspectRatio,
+          documentJson,
+          name: envelope.project.metadata.name,
+          aspectRatio: envelope.project.metadata.aspectRatio,
         };
       },
     ],

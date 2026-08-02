@@ -9,6 +9,7 @@ import {
   serializeDesktopProjectEnvelope,
   type DesktopProjectEnvelope,
 } from "../../../shared/project-file/envelope";
+import { seedDemoSidebarAssets } from "../../../shared/project-file/seed-demo-sidebar";
 import type { UiFixtureId } from "./ui-fixture";
 import type { RecentProject } from "../../../shared/ipc/contracts";
 
@@ -136,9 +137,11 @@ export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
   const projectName =
     fixture === "timeline-empty"
       ? "Parity Fixture Timeline"
-      : fixture === "sidebar-layers"
-        ? "Parity Fixture Layers"
-        : "Parity Fixture";
+      : fixture === "sidebar-demo"
+        ? "Demo Sidebar Assets"
+        : fixture === "sidebar-layers"
+          ? "Parity Fixture Layers"
+          : "Parity Fixture";
 
   const built = buildBlankDesktopProject({
     name: projectName,
@@ -146,7 +149,9 @@ export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
   });
 
   let envelope = built.envelope;
-  if (fixture === "editor-shell" || fixture === "sidebar-layers") {
+  if (fixture === "sidebar-demo") {
+    envelope = seedDemoSidebarAssets(envelope, stableId);
+  } else if (fixture === "editor-shell" || fixture === "sidebar-layers") {
     envelope = withSceneClip(envelope, projectName);
   }
 

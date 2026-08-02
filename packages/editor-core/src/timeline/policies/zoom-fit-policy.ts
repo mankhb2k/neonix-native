@@ -35,9 +35,12 @@ export function timelineExtentSeconds(
   visibleDurationSeconds: number,
   isFirstClipOnly: boolean,
 ): number {
+  // CapCut: past the last frame, leave ~1/3 of the visible board empty.
+  // First-clip fit already embeds empty room via fitSpan (= 3× clip → clip at
+  // 1/3 of the viewport); skip extra trailing so fit canvas stays 1 viewport.
   const trailingPaddingSeconds = isFirstClipOnly
     ? 0
-    : Math.min(Math.max(fitSpanSeconds * 0.1, 1), 30);
+    : Math.max(visibleDurationSeconds * TIMELINE_INITIAL_CLIP_RATIO, 1);
 
   const contentExtentSeconds = contentEndSeconds + trailingPaddingSeconds;
 

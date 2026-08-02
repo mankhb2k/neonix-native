@@ -6,6 +6,7 @@
 import {
   canRedo,
   canUndo,
+  clipsContentEndSeconds,
   createHistoryState,
   executePropertyCommand,
   executeTimelineCommand,
@@ -221,7 +222,15 @@ export function reduceTimelineSession(
       };
     }
     case "FIT_TIMELINE": {
-      const anchor = resolveFitAnchorSeconds(state.clips);
+      // CapCut fit: 1 clip → clip fills 1/3 viewport; 2+ → whole content
+      // with ~1/3 empty after the end (fitSpan = contentEnd × 1.5).
+      const contentEnd = clipsContentEndSeconds(state.clips);
+      const anchor =
+        state.clips.length <= 1
+          ? resolveFitAnchorSeconds(state.clips)
+          : contentEnd > 0
+            ? contentEnd / 2
+            : null;
       return {
         ...state,
         timelineZoom: 50,
@@ -359,6 +368,7 @@ export function reduceTimelineSession(
           loadError: "No document loaded for timeline edit.",
         };
       }
+      const wasEmpty = before.clips.length === 0;
       const result = executeTimelineCommand(
         before,
         event.command,
@@ -382,9 +392,35 @@ export function reduceTimelineSession(
         beforeSelection: state.selection,
         afterSelection,
       });
+
+      // CapCut: first clip → fit so clip occupies 1/3 of the viewport;
+      // last clip deleted → reset fit baseline.
+      const isEmptyNow = result.document.clips.length === 0;
+      const addedFirstClip = wasEmpty && !isEmptyNow;
+      const firstClip = result.document.clips[0];
+      const fitPatch =
+        isEmptyNow
+          ? {
+              timelineFitAnchorSeconds: null as number | null,
+              timelineZoomMode: "fit" as const,
+              timelineZoomScale: 1,
+              timelineZoom: 50,
+              timelineFitRevision: state.timelineFitRevision + 1,
+            }
+          : addedFirstClip && firstClip
+            ? {
+                timelineFitAnchorSeconds: firstClip.duration,
+                timelineZoomMode: "fit" as const,
+                timelineZoomScale: 1,
+                timelineZoom: 50,
+                timelineFitRevision: state.timelineFitRevision + 1,
+              }
+            : {};
+
       return {
         ...state,
         ...applied,
+        ...fitPatch,
         selection: afterSelection,
         clipboard: result.clipboard ?? state.clipboard,
         history,

@@ -54,10 +54,10 @@ function clipClassName(
     : "";
   const base =
     trackKind === "main"
-      ? "absolute overflow-hidden rounded px-2 text-left text-[11px] flex items-center bg-[var(--timeline-clip-frame)] text-white/90"
+      ? "absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90"
       : trackKind === "audio"
-        ? "absolute flex items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
-        : "absolute flex items-center overflow-hidden rounded bg-[var(--timeline-clip-frame)]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
+        ? "absolute top-0 bottom-0 my-auto flex h-[90%] items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
+        : "absolute top-0 bottom-0 my-auto flex h-[90%] items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
   return cn(
     base,
     selectedCls,
@@ -107,7 +107,7 @@ export const ClipStrip = memo(function ClipStrip({
   lanes,
   lane,
   pixelsPerSecond,
-  laneHeight,
+  laneHeight: _laneHeight,
   selection,
   disabled,
   movePreview = null,
@@ -117,8 +117,6 @@ export const ClipStrip = memo(function ClipStrip({
   onExecute,
 }: Props) {
   const pps = Math.max(pixelsPerSecond, 0.001);
-  const padY = 4;
-  const height = Math.max(8, laneHeight - padY * 2);
   const selected = new Set(selectedClipIdsFrom(selection));
   const [localPreview, setLocalPreview] = useState<Preview | null>(null);
 
@@ -378,7 +376,10 @@ export const ClipStrip = memo(function ClipStrip({
     activeMove.originLaneId !== lane.id;
 
   return (
-    <div className="absolute inset-0 overflow-hidden" data-testid="timeline-clip-strip-root">
+    <div
+      className="absolute inset-0 overflow-hidden"
+      data-testid="timeline-clip-strip-root"
+    >
       {clips.map((clip) => {
         let start = clip.startTime;
         let duration = clip.duration;
@@ -429,7 +430,7 @@ export const ClipStrip = memo(function ClipStrip({
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
             data-start-time={String(start)}
-            style={{ left, width, top: padY, height }}
+            style={{ left, width }}
             title={clip.name || clip.id}
             onPointerDown={(e) => beginMove(e, clip)}
             onKeyDown={(e) => {
@@ -460,7 +461,7 @@ export const ClipStrip = memo(function ClipStrip({
       {showTargetGhost && activeMove ? (
         <div
           className={cn(
-            "pointer-events-none absolute z-[3] overflow-hidden rounded border border-dashed border-[#4a4a52] bg-[#38383e] opacity-65",
+            "pointer-events-none absolute top-0 bottom-0 my-auto z-[3] h-[90%] overflow-hidden rounded border border-dashed border-[#4a4a52] bg-[#38383e] opacity-65",
             !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40",
           )}
           aria-hidden
@@ -468,8 +469,6 @@ export const ClipStrip = memo(function ClipStrip({
           style={{
             left: activeMove.startTime * pps,
             width: Math.max(2, activeMove.duration * pps),
-            top: padY,
-            height,
           }}
         />
       ) : null}

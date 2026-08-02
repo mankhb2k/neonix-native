@@ -9,6 +9,7 @@ export const UI_FIXTURE_IDS = [
   "editor-shell",
   "sidebar-layers",
   "timeline-empty",
+  "sidebar-demo",
 ] as const;
 
 export type UiFixtureId = (typeof UI_FIXTURE_IDS)[number];

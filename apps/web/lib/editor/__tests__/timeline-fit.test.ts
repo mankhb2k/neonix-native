@@ -42,6 +42,10 @@ describe("Timeline Fit Math & Baselines", () => {
 
     const canvasWidthFirst = Math.max(viewportWidth, extentFirst * pps);
     expect(canvasWidthFirst).toBe(1500);
+
+    // Multi-clip: trailing empty ≈ 1/3 of visible board
+    const extentMulti = timelineExtentSeconds(10, span, 15, false);
+    expect(extentMulti).toBe(10 + 15 / 3);
   });
 
   it("converts zoom slider values (0-100) to logarithmic zoom scale with 50 at 1.0x Fit", () => {

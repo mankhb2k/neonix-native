@@ -230,10 +230,25 @@ export function DesktopApp({ api }: Props) {
     ): Promise<boolean> => {
       try {
         const blank = await repo.newProject(input);
+        // Main already seeds audio in unpackaged builds; keep renderer merge as fallback.
+        let documentJson = blank.documentJson;
+        if (import.meta.env.DEV) {
+          const { parseDesktopProjectFile, serializeDesktopProjectEnvelope } =
+            await import("../../shared/project-file/envelope");
+          const { seedDemoSidebarAssets } = await import(
+            "../../shared/project-file/seed-demo-sidebar"
+          );
+          const envelope = seedDemoSidebarAssets(
+            parseDesktopProjectFile(blank.documentJson),
+            (prefix) =>
+              `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+          );
+          documentJson = serializeDesktopProjectEnvelope(envelope);
+        }
         dispatch({
           type: "NEW_PROJECT",
           projectId: blank.projectId,
-          documentJson: blank.documentJson,
+          documentJson,
           name: blank.name,
         });
         return true;

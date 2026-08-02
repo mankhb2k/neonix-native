@@ -1,5 +1,6 @@
 /**
  * CapCut-style playhead — DOM transform hot path (no React tick subscription).
+ * Scrub: visual first, RAF-batched clock seek (web parity).
  */
 
 import {
@@ -56,7 +57,11 @@ export function Playhead({
   muted = false,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+  const pendingTimeRef = useRef<number | null>(null);
+  const rafRef = useRef<number | null>(null);
+
   const tracksOriginXRef = useRef(tracksOriginX);
   const ppsRef = useRef(pixelsPerSecond);
   const scrollLeftRef = useRef(scrollLeft);
@@ -67,6 +72,7 @@ export function Playhead({
   maxTimeRef.current = maxTime;
 
   const clock = usePlaybackClockApi();
+  const interactive = enabled && !muted;
 
   const applyVisualLeft = useCallback((viewportLeft: number) => {
     const el = rootRef.current;
@@ -84,67 +90,95 @@ export function Playhead({
           scrollLeftRef.current,
         ),
       );
+      const slider = sliderRef.current;
+      if (slider) {
+        slider.setAttribute("aria-valuenow", String(time));
+      }
     },
     [applyVisualLeft],
   );
 
   useLayoutEffect(() => {
     if (draggingRef.current) return;
-    syncFromClock(clock.getState().currentTime);
-  }, [scrollLeft, pixelsPerSecond, tracksOriginX, clock, syncFromClock]);
+    syncFromClock(muted ? 0 : clock.getState().currentTime);
+  }, [scrollLeft, pixelsPerSecond, tracksOriginX, clock, syncFromClock, muted]);
 
   useEffect(() => {
-    return clock.subscribe((state) => {
+    return clock.subscribe((state, prev) => {
       if (draggingRef.current) return;
+      if (state.currentTime === prev.currentTime) return;
       syncFromClock(state.currentTime);
     });
   }, [clock, syncFromClock]);
 
-  const dragCleanupRef = useRef<(() => void) | null>(null);
-
   useEffect(() => {
     return () => {
-      dragCleanupRef.current?.();
-      dragCleanupRef.current = null;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
-  }, [clock]);
+  }, []);
 
-  const seekFromClientX = (clientX: number) => {
+  const scheduleSeek = (time: number) => {
+    pendingTimeRef.current = time;
+    if (rafRef.current != null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const t = pendingTimeRef.current;
+      if (t != null) {
+        clock.getState().seek(t);
+      }
+    });
+  };
+
+  const scrubFromClientX = (clientX: number) => {
     const scroll = scrollContainerRef.current;
     if (!scroll) return;
+    const clockDuration = clock.getState().duration;
+    // Prefer content duration for scrub clamp (web); fall back to board extent.
+    const scrubMax = Math.max(0, clockDuration > 0 ? clockDuration : maxTimeRef.current);
     const time = clientXToTimelineTime(
       clientX,
       scroll,
       ppsRef.current,
-      maxTimeRef.current,
+      scrubMax,
     );
-    clock.getState().seek(time);
+    // Visual first — never wait on store subscribers for the needle.
     syncFromClock(time);
+    scheduleSeek(time);
+  };
+
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    const time = pendingTimeRef.current;
+    pendingTimeRef.current = null;
+    if (time != null) clock.getState().seek(time);
+    clock.getState().endScrub();
+    syncFromClock(clock.getState().currentTime);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!enabled || event.button !== 0) return;
+    if (!interactive || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    dragCleanupRef.current?.();
     draggingRef.current = true;
     clock.getState().beginScrub();
-    seekFromClientX(event.clientX);
     event.currentTarget.setPointerCapture(event.pointerId);
+    scrubFromClientX(event.clientX);
+  };
 
-    const onMove = (ev: PointerEvent) => seekFromClientX(ev.clientX);
-    const onUp = () => {
-      draggingRef.current = false;
-      clock.getState().endScrub();
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-      dragCleanupRef.current = null;
-    };
-    dragCleanupRef.current = onUp;
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!draggingRef.current) return;
+    scrubFromClientX(event.clientX);
   };
 
   return (
@@ -152,18 +186,26 @@ export function Playhead({
       ref={rootRef}
       className="pointer-events-none absolute bottom-0 top-0 z-40 will-change-transform"
       data-testid="timeline-playhead"
+      data-muted={muted ? "true" : undefined}
       style={{ left: 0 }}
-      aria-hidden={!enabled}
+      aria-hidden={!interactive}
     >
       <div
+        ref={sliderRef}
         role="slider"
         aria-label="Playhead"
-        tabIndex={enabled ? 0 : -1}
-        className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
-          enabled ? "pointer-events-auto" : "pointer-events-none"
+        aria-disabled={muted || !enabled}
+        tabIndex={interactive ? 0 : -1}
+        className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none ${
+          interactive
+            ? "pointer-events-auto cursor-ew-resize"
+            : "pointer-events-none"
         }`}
         style={{ left: 0, width: HIT_STRIP_WIDTH_PX }}
         onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       />
 
       <div
@@ -175,11 +217,16 @@ export function Playhead({
       />
 
       <div
-        className={`absolute top-0 left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none cursor-ew-resize ${
-          enabled ? "pointer-events-auto" : "pointer-events-none opacity-60"
+        className={`absolute top-0 left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none ${
+          interactive
+            ? "pointer-events-auto cursor-ew-resize"
+            : "pointer-events-none opacity-60"
         }`}
         style={{ height: 13 }}
         onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
       >
         <PlayheadHandleIcon isMuted={muted} />
       </div>

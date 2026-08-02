@@ -16,7 +16,7 @@ import {
   resolveDropGeometryAtPoint,
   setTimelineDropHost,
   type TimelineDropHost,
-  type ValidatedDropGeometry,
+  type LibraryDropPreview,
 } from "./drop-host";
 import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import {
@@ -39,6 +39,7 @@ import { computeViewportLayout } from "./viewport-layout";
 import { visibleLaneWindow } from "./visible-lane-window";
 import { LaneFlagControls } from "./LaneFlagControls";
 import { LaneLeadingIcon, resolveLaneContentKind } from "./LaneLeadingIcon";
+import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import {
   buildTimelineLaneRows,
   LANE_GAP_PX,
@@ -46,6 +47,37 @@ import {
   type TimelineLaneRow,
 } from "./timeline-lane-rows";
 import type { MotionProject } from "@motionvideo/motion-schema";
+
+/** DOM attrs for CapCut drop collectors (lane-drop-target). */
+function laneDropDomAttrs(lane: TimelineLane): {
+  "data-track-type": "main" | "overlay" | "audio";
+  "data-track-role": "base" | "overlay" | "audio";
+  "data-track-family": "visual" | "audio";
+  "data-lane-order": number;
+} {
+  if (lane.kind === "audio") {
+    return {
+      "data-track-type": "audio",
+      "data-track-role": "audio",
+      "data-track-family": "audio",
+      "data-lane-order": lane.order,
+    };
+  }
+  if (lane.role === "base") {
+    return {
+      "data-track-type": "main",
+      "data-track-role": "base",
+      "data-track-family": "visual",
+      "data-lane-order": lane.order,
+    };
+  }
+  return {
+    "data-track-type": "overlay",
+    "data-track-role": "overlay",
+    "data-track-family": "visual",
+    "data-lane-order": lane.order,
+  };
+}
 
 const MARQUEE_THRESHOLD_PX = 3;
 
@@ -92,9 +124,7 @@ export function TimelineViewport({
   const [trackViewHeight, setTrackViewHeight] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
-  const [dropGhost, setDropGhost] = useState<ValidatedDropGeometry | null>(
-    null,
-  );
+  const [dropGhost, setDropGhost] = useState<LibraryDropPreview | null>(null);
   const [clipMovePreview, setClipMovePreview] =
     useState<ClipMovePreview | null>(null);
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
@@ -106,7 +136,7 @@ export function TimelineViewport({
   const pendingScrollLeftRef = useRef(0);
   const pendingScrollTopRef = useRef(0);
   const dropGhostRafRef = useRef<number | null>(null);
-  const pendingDropGhostRef = useRef<ValidatedDropGeometry | null | undefined>(
+  const pendingDropGhostRef = useRef<LibraryDropPreview | null | undefined>(
     undefined,
   );
 
@@ -119,7 +149,7 @@ export function TimelineViewport({
   }, []);
 
   const scheduleDropGhost = useCallback(
-    (next: ValidatedDropGeometry | null) => {
+    (next: LibraryDropPreview | null) => {
       pendingDropGhostRef.current = next;
       if (dropGhostRafRef.current == null) {
         dropGhostRafRef.current = requestAnimationFrame(flushDropGhost);
@@ -267,7 +297,7 @@ export function TimelineViewport({
   const seekToClientX = useCallback(
     (clientX: number) => {
       const scroll = tracksScrollRef.current;
-      if (!scroll || disabled) return;
+      if (!scroll || disabled || clips.length === 0) return;
       const time = clientXToTimelineTime(
         clientX,
         scroll,
@@ -276,7 +306,7 @@ export function TimelineViewport({
       );
       clock.getState().seek(time);
     },
-    [clock, disabled, layout.extentSeconds, layout.pixelsPerSecond],
+    [clock, clips.length, disabled, layout.extentSeconds, layout.pixelsPerSecond],
   );
 
   const getPlayheadTime = useCallback(
@@ -504,18 +534,6 @@ export function TimelineViewport({
 
   const mountedOffsetTop = mountedLaneRows.offsetTop;
 
-  const ghostLaneTop = useMemo(() => {
-    if (!dropGhost) return topPadding;
-    let top = topPadding;
-    for (let i = 0; i < laneRows.length; i += 1) {
-      const row = laneRows[i]!;
-      if (row.id === dropGhost.laneId) break;
-      top += row.height;
-      if (i < laneRows.length - 1) top += LANE_GAP_PX;
-    }
-    return top;
-  }, [dropGhost, laneRows, topPadding]);
-
   const mountedBlockHeight = mountedLaneRows.rows.reduce((s, r) => {
     if (r.kind === "gap") return s + r.height;
     const idx = laneRows.findIndex((row) => row.id === r.row.id);
@@ -527,6 +545,9 @@ export function TimelineViewport({
     0,
     contentHeight - mountedOffsetTop - mountedBlockHeight,
   );
+
+  const timelineEmpty = clips.length === 0;
+  const seekEnabled = !disabled && !timelineEmpty;
 
   return (
     <div
@@ -540,8 +561,8 @@ export function TimelineViewport({
         scrollLeft={scrollLeft}
         scrollContainerRef={tracksScrollRef}
         maxTime={layout.extentSeconds}
-        enabled={!disabled}
-        muted={clips.length === 0}
+        enabled={seekEnabled}
+        muted={timelineEmpty}
       />
 
       {/* Sticky at label: 2 columns — gutter overlay inside tracks column (web TimelineBoard) */}
@@ -559,7 +580,7 @@ export function TimelineViewport({
               pixelsPerSecond={layout.pixelsPerSecond}
               viewWidth={trackViewWidth}
               scrollLeft={scrollLeft}
-              onSeekClick={disabled ? undefined : seekToClientX}
+              onSeekClick={seekEnabled ? seekToClientX : undefined}
             />
           </div>
         </div>
@@ -650,7 +671,7 @@ export function TimelineViewport({
               data-pixels-per-second={layout.pixelsPerSecond}
               onScroll={onScroll}
               onPointerDown={(event) => {
-                if (disabled || event.button !== 0) return;
+                if (disabled || timelineEmpty || event.button !== 0) return;
                 if ((event.target as HTMLElement).closest("[data-clip-id]"))
                   return;
                 if (event.shiftKey) {
@@ -677,93 +698,154 @@ export function TimelineViewport({
                     paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX,
                   }}
                 >
-                  <div style={{ height: mountedOffsetTop }} aria-hidden />
-                  {mountedLaneRows.rows.map((row) => {
-                    if (row.kind === "gap") {
-                      return (
-                        <div
-                          key={`t-${row.key}`}
-                          style={{ height: row.height }}
-                          aria-hidden
-                        />
-                      );
-                    }
-                    const lane = row.row.lane;
-                    const h = row.row.height;
-                    const idx = laneRows.findIndex((r) => r.id === row.row.id);
-                    const trailingGap =
-                      idx >= 0 && idx < laneRows.length - 1 ? LANE_GAP_PX : 0;
-                    const visibleClips = clipsForLane(lane.id);
-                    const memberOnLane = clipMovePreview?.members?.some(
-                      (m) => m.laneId === lane.id,
-                    );
-                    return (
-                      <div
-                        key={lane.id}
-                        className="relative box-border bg-[var(--timeline-track-lane)]"
-                        style={{ height: h, marginBottom: trailingGap }}
-                        data-lane-id={lane.id}
-                        data-track-lane="true"
-                      >
-                        <ClipStrip
-                          clips={visibleClips}
-                          allClips={clips}
-                          lanes={lanes}
-                          lane={lane}
-                          pixelsPerSecond={layout.pixelsPerSecond}
-                          laneHeight={h}
-                          selection={selection}
-                          disabled={disabled}
-                          movePreview={
-                            clipMovePreview?.laneId === lane.id ||
-                            clipMovePreview?.originLaneId === lane.id ||
-                            memberOnLane
-                              ? clipMovePreview
-                              : null
-                          }
-                          onMovePreviewChange={setClipMovePreview}
-                          beginGesture={beginGesture}
-                          onSelect={onSelect}
-                          onExecute={onExecute}
-                        />
-                      </div>
-                    );
-                  })}
-                  <div style={{ height: bottomSpacer }} aria-hidden />
-                  {dropGhost ? (
-                    <div
-                      className="pointer-events-none absolute z-[5] w-2"
-                      aria-hidden
-                      style={{
-                        top: ghostLaneTop,
-                        left: dropGhost.startTime * layout.pixelsPerSecond,
-                        height: laneRowHeightPx(
-                          sortedLanes.find((l) => l.id === dropGhost.laneId) ??
-                            sortedLanes[0]!,
-                        ),
-                      }}
-                    >
-                      <div
-                        className={`-ml-px h-full w-0.5 ${
-                          dropGhost.valid
-                            ? "bg-[var(--timeline-playhead)]"
-                            : "bg-[var(--danger)] opacity-70"
-                        }`}
+                  {timelineEmpty ? (
+                    <>
+                      <div style={{ height: topPadding }} aria-hidden />
+                      <EmptyTimelineDash
+                        width={Math.max(layout.canvasWidth, trackViewWidth)}
+                        active={dropGhost != null}
+                        laneId={
+                          laneRows.find((r) => r.role === "base")?.id ??
+                          laneRows[0]?.id ??
+                          null
+                        }
                       />
-                    </div>
-                  ) : null}
-                  {marquee ? (
-                    <div
-                      className="pointer-events-none absolute z-[6] border border-[var(--timeline-playhead)] bg-white/10"
-                      aria-hidden
-                      style={{
-                        left: marquee.left,
-                        top: marquee.top,
-                        width: marquee.right - marquee.left,
-                        height: marquee.bottom - marquee.top,
-                      }}
-                    />
-                  ) : null}
+                      <div style={{ height: bottomSpacer }} aria-hidden />
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ height: mountedOffsetTop }} aria-hidden />
+                      {mountedLaneRows.rows.map((row) => {
+                        if (row.kind === "gap") {
+                          return (
+                            <div
+                              key={`t-${row.key}`}
+                              style={{ height: row.height }}
+                              aria-hidden
+                            />
+                          );
+                        }
+                        const lane = row.row.lane;
+                        const h = row.row.height;
+                        const idx = laneRows.findIndex((r) => r.id === row.row.id);
+                        const trailingGap =
+                          idx >= 0 && idx < laneRows.length - 1
+                            ? LANE_GAP_PX
+                            : 0;
+                        const visibleClips = clipsForLane(lane.id);
+                        const memberOnLane = clipMovePreview?.members?.some(
+                          (m) => m.laneId === lane.id,
+                        );
+                        return (
+                          <div
+                            key={lane.id}
+                            className="relative box-border bg-[var(--timeline-track-lane)]"
+                            style={{ height: h, marginBottom: trailingGap }}
+                            data-lane-id={lane.id}
+                            data-track-lane="true"
+                            {...laneDropDomAttrs(lane)}
+                          >
+                            <ClipStrip
+                              clips={visibleClips}
+                              allClips={clips}
+                              lanes={lanes}
+                              lane={lane}
+                              pixelsPerSecond={layout.pixelsPerSecond}
+                              laneHeight={h}
+                              selection={selection}
+                              disabled={disabled}
+                              movePreview={
+                                clipMovePreview?.laneId === lane.id ||
+                                clipMovePreview?.originLaneId === lane.id ||
+                                memberOnLane
+                                  ? clipMovePreview
+                                  : null
+                              }
+                              onMovePreviewChange={setClipMovePreview}
+                              beginGesture={beginGesture}
+                              onSelect={onSelect}
+                              onExecute={onExecute}
+                            />
+                          </div>
+                        );
+                      })}
+                      <div style={{ height: bottomSpacer }} aria-hidden />
+                      {dropGhost?.valid ? (
+                        dropGhost.isInsert ? (
+                          <>
+                            <div
+                              className="pointer-events-none absolute z-[30] h-8 -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
+                              aria-hidden
+                              style={{
+                                top: dropGhost.contentTop,
+                                left:
+                                  TIMELINE_PLAYHEAD_GUTTER_PX +
+                                  dropGhost.startTime * layout.pixelsPerSecond,
+                                width: dropGhost.ghostWidthPx,
+                              }}
+                            />
+                            <div
+                              data-testid="timeline-insert-indicator"
+                              data-drop-family={
+                                dropGhost.track === "audio"
+                                  ? "audio"
+                                  : "visual"
+                              }
+                              className="pointer-events-none absolute z-[40] h-px bg-[#14B8A6]"
+                              aria-hidden
+                              style={{
+                                top: dropGhost.contentTop,
+                                left: 0,
+                                width: Math.max(
+                                  layout.canvasWidth,
+                                  trackViewWidth,
+                                ),
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <div
+                            className="pointer-events-none absolute z-[30] -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
+                            aria-hidden
+                            style={{
+                              top: dropGhost.contentTop,
+                              left:
+                                TIMELINE_PLAYHEAD_GUTTER_PX +
+                                dropGhost.startTime * layout.pixelsPerSecond,
+                              width: dropGhost.ghostWidthPx,
+                              height: dropGhost.ghostHeightPx,
+                            }}
+                          />
+                        )
+                      ) : dropGhost && !dropGhost.valid ? (
+                        <div
+                          className="pointer-events-none absolute z-[5] w-2 -translate-y-1/2"
+                          aria-hidden
+                          style={{
+                            top: dropGhost.contentTop,
+                            left:
+                              TIMELINE_PLAYHEAD_GUTTER_PX +
+                              dropGhost.startTime * layout.pixelsPerSecond,
+                            height: dropGhost.ghostHeightPx,
+                          }}
+                        >
+                          <div className="-ml-px h-full w-0.5 bg-[var(--danger)] opacity-70" />
+                        </div>
+                      ) : null}
+                      {marquee ? (
+                        <div
+                          className="pointer-events-none absolute z-[6] border border-[var(--timeline-playhead)] bg-white/10"
+                          aria-hidden
+                          style={{
+                            left: marquee.left,
+                            top: marquee.top,
+                            width: marquee.right - marquee.left,
+                            height: marquee.bottom - marquee.top,
+                          }}
+                        />
+                      ) : null}
+                    </>
+                  )}
                 </div>
               )}
             </div>
