@@ -26,8 +26,8 @@ import {
   normalizeMarquee,
   type MarqueeRect,
 } from "../selection/marquee-geometry";
-import { Playhead } from "../viewport/Playhead";
-import { TimelineHScrollBar } from "../viewport/TimelineHScrollBar";
+import { Playhead } from "./Playhead";
+import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
@@ -39,11 +39,13 @@ import { clientXToTimelineTime } from "../timeline-seek";
 import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { useVisibleTimeline } from "../view-model/use-visible-timeline";
-import { computeViewportLayout } from "../viewport/viewport-layout";
+import { computeViewportLayout } from "./viewport-layout";
 import { visibleLaneWindow } from "../view-model/visible-lane-window";
 import { LaneFlagControls } from "../lanes/LaneFlagControls";
 import { LaneLeadingIcon, resolveLaneContentKind } from "../lanes/LaneLeadingIcon";
-import { EmptyTimelineDash } from "../viewport/EmptyTimelineDash";
+import { EmptyTimelineDash } from "./EmptyTimelineDash";
+import { TimelineOverlays } from "./TimelineOverlays";
+import { useTimelineViewportMetrics } from "./use-timeline-viewport-metrics";
 import {
   buildTimelineLaneRows,
   LANE_GAP_PX,
@@ -124,13 +126,6 @@ export function TimelineViewport({
 }: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
-  const [viewWidth, setViewWidth] = useState(0);
-  const [trackViewHeight, setTrackViewHeight] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
-  /** Mirrored into the detached CapCut H-scrollbar (tracks scroll metrics). */
-  const [hScrollContentWidth, setHScrollContentWidth] = useState(0);
-  const [hScrollViewportWidth, setHScrollViewportWidth] = useState(0);
   const [dropGhost, setDropGhost] = useState<LibraryDropPreview | null>(null);
   const [clipMovePreview, setClipMovePreview] =
     useState<ClipMovePreview | null>(null);
@@ -139,10 +134,22 @@ export function TimelineViewport({
   const { beginGesture } = usePointerSessionHost();
   const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
 
-  const scrollLeftRafRef = useRef<number | null>(null);
-  const scrollTopRafRef = useRef<number | null>(null);
-  const pendingScrollLeftRef = useRef(0);
-  const pendingScrollTopRef = useRef(0);
+  const {
+    viewWidth,
+    trackViewHeight,
+    scrollLeft,
+    scrollTop,
+    hScrollContentWidth,
+    hScrollViewportWidth,
+    onScroll,
+    onHScrollLeft,
+  } = useTimelineViewportMetrics({
+    boardRef,
+    tracksScrollRef,
+    resetKey: `${projectId ?? ""}:${timelineFitRevision}`,
+    contentMeasureKey: `${clips.length}:${lanes.length}:${timelineZoomScale}`,
+  });
+
   const dropGhostRafRef = useRef<number | null>(null);
   const pendingDropGhostRef = useRef<LibraryDropPreview | null | undefined>(
     undefined,
@@ -166,85 +173,16 @@ export function TimelineViewport({
     [flushDropGhost],
   );
 
-  const onScroll = useCallback(() => {
-    const root = tracksScrollRef.current;
-    if (!root) return;
-    pendingScrollLeftRef.current = root.scrollLeft;
-    pendingScrollTopRef.current = root.scrollTop;
-
-    if (scrollLeftRafRef.current == null) {
-      scrollLeftRafRef.current = requestAnimationFrame(() => {
-        scrollLeftRafRef.current = null;
-        setScrollLeft(pendingScrollLeftRef.current);
-      });
-    }
-    if (scrollTopRafRef.current == null) {
-      scrollTopRafRef.current = requestAnimationFrame(() => {
-        scrollTopRafRef.current = null;
-        setScrollTop(pendingScrollTopRef.current);
-      });
-    }
-  }, []);
-
-  const onHScrollLeft = useCallback((next: number) => {
-    const tracks = tracksScrollRef.current;
-    if (!tracks) return;
-    const max = Math.max(0, tracks.scrollWidth - tracks.clientWidth);
-    tracks.scrollLeft = Math.min(max, Math.max(0, next));
-  }, []);
-
   useLayoutEffect(() => {
-    const el = boardRef.current;
-    if (!el) return undefined;
-    const update = () => setViewWidth(el.clientWidth);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useLayoutEffect(() => {
-    const el = tracksScrollRef.current;
-    if (!el) return undefined;
-    const update = () => setTrackViewHeight(el.clientHeight);
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  useLayoutEffect(() => {
-    const root = tracksScrollRef.current;
-    if (scrollLeftRafRef.current != null) {
-      cancelAnimationFrame(scrollLeftRafRef.current);
-      scrollLeftRafRef.current = null;
-    }
-    if (scrollTopRafRef.current != null) {
-      cancelAnimationFrame(scrollTopRafRef.current);
-      scrollTopRafRef.current = null;
-    }
     if (dropGhostRafRef.current != null) {
       cancelAnimationFrame(dropGhostRafRef.current);
       dropGhostRafRef.current = null;
     }
     pendingDropGhostRef.current = undefined;
-    if (!root) return;
-    root.scrollLeft = 0;
-    root.scrollTop = 0;
-    setScrollLeft(0);
-    setScrollTop(0);
   }, [projectId, timelineFitRevision]);
 
   useEffect(() => {
     return () => {
-      if (scrollLeftRafRef.current != null) {
-        cancelAnimationFrame(scrollLeftRafRef.current);
-        scrollLeftRafRef.current = null;
-      }
-      if (scrollTopRafRef.current != null) {
-        cancelAnimationFrame(scrollTopRafRef.current);
-        scrollTopRafRef.current = null;
-      }
       if (dropGhostRafRef.current != null) {
         cancelAnimationFrame(dropGhostRafRef.current);
         dropGhostRafRef.current = null;
@@ -264,27 +202,6 @@ export function TimelineViewport({
       }),
     [clips, trackViewWidth, timelineZoomScale, timelineFitAnchorSeconds],
   );
-
-  useLayoutEffect(() => {
-    const el = tracksScrollRef.current;
-    if (!el) return undefined;
-    const measure = () => {
-      const nextContent = el.scrollWidth;
-      const nextViewport = el.clientWidth;
-      setHScrollContentWidth((prev) =>
-        prev === nextContent ? prev : nextContent,
-      );
-      setHScrollViewportWidth((prev) =>
-        prev === nextViewport ? prev : nextViewport,
-      );
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    const first = el.firstElementChild;
-    if (first) ro.observe(first);
-    return () => ro.disconnect();
-  }, [layout.canvasWidth, trackViewWidth, clips.length, lanes.length]);
 
   const laneRows = useMemo(() => buildTimelineLaneRows(lanes), [lanes]);
   const sortedLanes = useMemo(
@@ -825,154 +742,16 @@ export function TimelineViewport({
                         );
                       })}
                       <div style={{ height: bottomSpacer }} aria-hidden />
-                      {dropGhost?.valid ? (
-                        dropGhost.isInsert ? (
-                          <>
-                            <div
-                              className="pointer-events-none absolute z-[30] h-8 -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
-                              aria-hidden
-                              style={{
-                                top: dropGhost.contentTop,
-                                left:
-                                  TIMELINE_PLAYHEAD_GUTTER_PX +
-                                  dropGhost.startTime * layout.pixelsPerSecond,
-                                width: dropGhost.ghostWidthPx,
-                              }}
-                            />
-                            <div
-                              data-testid="timeline-insert-indicator"
-                              data-drop-family={
-                                dropGhost.track === "audio"
-                                  ? "audio"
-                                  : "visual"
-                              }
-                              className="pointer-events-none absolute z-[40] h-px bg-[#14B8A6]"
-                              aria-hidden
-                              style={{
-                                top: dropGhost.contentTop,
-                                left: 0,
-                                width: Math.max(
-                                  layout.canvasWidth,
-                                  trackViewWidth,
-                                ),
-                              }}
-                            />
-                          </>
-                        ) : (
-                          <div
-                            className="pointer-events-none absolute z-[30] -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]"
-                            aria-hidden
-                            style={{
-                              top: dropGhost.contentTop,
-                              left:
-                                TIMELINE_PLAYHEAD_GUTTER_PX +
-                                dropGhost.startTime * layout.pixelsPerSecond,
-                              width: dropGhost.ghostWidthPx,
-                              height: dropGhost.ghostHeightPx,
-                            }}
-                          />
-                        )
-                      ) : dropGhost && !dropGhost.valid ? (
-                        <div
-                          className="pointer-events-none absolute z-[5] w-2 -translate-y-1/2"
-                          aria-hidden
-                          style={{
-                            top: dropGhost.contentTop,
-                            left:
-                              TIMELINE_PLAYHEAD_GUTTER_PX +
-                              dropGhost.startTime * layout.pixelsPerSecond,
-                            height: dropGhost.ghostHeightPx,
-                          }}
-                        >
-                          <div className="-ml-px h-full w-0.5 bg-[var(--danger)] opacity-70" />
-                        </div>
-                      ) : null}
-                      {clipMovePreview?.isInsert &&
-                      clipMovePreview.valid &&
-                      clipMovePreview.contentTop != null ? (
-                        <>
-                          <div
-                            className="pointer-events-none absolute z-[30] h-8 -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md"
-                            aria-hidden
-                            style={{
-                              top: clipMovePreview.contentTop,
-                              left:
-                                TIMELINE_PLAYHEAD_GUTTER_PX +
-                                clipMovePreview.startTime *
-                                  layout.pixelsPerSecond,
-                              width: Math.max(
-                                24,
-                                clipMovePreview.duration *
-                                  layout.pixelsPerSecond,
-                              ),
-                            }}
-                          />
-                          <div
-                            data-testid="timeline-clip-insert-indicator"
-                            className="pointer-events-none absolute z-[40] h-px bg-[#14B8A6]"
-                            aria-hidden
-                            style={{
-                              top: clipMovePreview.contentTop,
-                              left: 0,
-                              width: Math.max(
-                                layout.canvasWidth,
-                                trackViewWidth,
-                              ),
-                            }}
-                          />
-                        </>
-                      ) : null}
-                      {/* CapCut edge-snap guide — move or library drop */}
-                      {(clipMovePreview?.snapGuideTime ??
-                        dropGhost?.snapGuideTime) != null ? (
-                        <div
-                          data-testid="timeline-clip-snap-guide"
-                          className="pointer-events-none absolute top-0 z-[42] w-px bg-[#14B8A6]"
-                          aria-hidden
-                          style={{
-                            left:
-                              TIMELINE_PLAYHEAD_GUTTER_PX +
-                              (clipMovePreview?.snapGuideTime ??
-                                dropGhost!.snapGuideTime!) *
-                                layout.pixelsPerSecond,
-                            height: contentHeight,
-                          }}
-                        />
-                      ) : null}
-                      {/* Web GlobalDragPreview cyan — follows cursor during clip move */}
-                      {clipMovePreview &&
-                      clipMovePreview.clientX != null &&
-                      clipMovePreview.clientY != null ? (
-                        <div
-                          className="pointer-events-none fixed z-[35] flex h-8 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl"
-                          aria-hidden
-                          data-testid="timeline-clip-move-cyan"
-                          style={{
-                            left: clipMovePreview.clientX,
-                            top: clipMovePreview.clientY - 16,
-                            width: Math.max(
-                              24,
-                              clipMovePreview.duration * layout.pixelsPerSecond,
-                            ),
-                          }}
-                        >
-                          <span className="truncate">
-                            {clipMovePreview.label || clipMovePreview.clipId}
-                          </span>
-                        </div>
-                      ) : null}
-                      {marquee ? (
-                        <div
-                          className="pointer-events-none absolute z-[6] border border-[var(--timeline-playhead)] bg-white/10"
-                          aria-hidden
-                          style={{
-                            left: marquee.left,
-                            top: marquee.top,
-                            width: marquee.right - marquee.left,
-                            height: marquee.bottom - marquee.top,
-                          }}
-                        />
-                      ) : null}
+                      <TimelineOverlays
+                        dropGhost={dropGhost}
+                        clipMovePreview={clipMovePreview}
+                        marquee={marquee}
+                        pixelsPerSecond={layout.pixelsPerSecond}
+                        canvasWidth={layout.canvasWidth}
+                        trackViewWidth={trackViewWidth}
+                        contentHeight={contentHeight}
+                        timelineEmpty={false}
+                      />
                     </>
                   )}
                 </div>

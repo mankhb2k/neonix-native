@@ -7,7 +7,7 @@ import type {
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { EMPTY_EDITOR_VIEW_PROPS } from "../workspace-props";
 import { TransportBar } from "./Header/TransportBar";
-import { TimelineViewport } from "./Tracks/TimelineViewport";
+import { TimelineViewport } from "./viewport/TimelineViewport";
 
 export type TimelineProps = {
   focus?: boolean;
