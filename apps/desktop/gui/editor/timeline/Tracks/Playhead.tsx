@@ -1,6 +1,5 @@
 /**
- * CapCut-style playhead for Vite timeline.
- * Hot path: imperative DOM transform only — no React subscription to currentTime.
+ * CapCut-style playhead — DOM transform hot path (no React tick subscription).
  */
 
 import {
@@ -24,7 +23,28 @@ type Props = {
   scrollContainerRef: RefObject<HTMLElement | null>;
   maxTime: number;
   enabled?: boolean;
+  /** Empty timeline → muted playhead (web parity). */
+  muted?: boolean;
 };
+
+const HIT_STRIP_WIDTH_PX = 14;
+
+function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
+  return (
+    <svg
+      width="11"
+      height="13"
+      viewBox="0 0 11 13"
+      fill="none"
+      aria-hidden
+      className={
+        isMuted ? "text-white/35" : "text-[var(--timeline-playhead)]"
+      }
+    >
+      <path d="M0 0h11v7.5L5.5 13 0 7.5V0z" fill="currentColor" />
+    </svg>
+  );
+}
 
 export function Playhead({
   tracksOriginX,
@@ -33,6 +53,7 @@ export function Playhead({
   scrollContainerRef,
   maxTime,
   enabled = true,
+  muted = false,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
@@ -67,7 +88,6 @@ export function Playhead({
     [applyVisualLeft],
   );
 
-  // Layout/scroll changes: sync once from store without React tick subscription.
   useLayoutEffect(() => {
     if (draggingRef.current) return;
     syncFromClock(clock.getState().currentTime);
@@ -76,7 +96,6 @@ export function Playhead({
   useEffect(() => {
     return clock.subscribe((state) => {
       if (draggingRef.current) return;
-      // Always imperative — paused seeks + playing ticks.
       syncFromClock(state.currentTime);
     });
   }, [clock, syncFromClock]);
@@ -131,13 +150,39 @@ export function Playhead({
   return (
     <div
       ref={rootRef}
-      className="timeline-playhead"
+      className="pointer-events-none absolute bottom-0 top-0 z-40 will-change-transform"
       data-testid="timeline-playhead"
-      style={{ pointerEvents: enabled ? "auto" : "none" }}
-      onPointerDown={onPointerDown}
+      style={{ left: 0 }}
+      aria-hidden={!enabled}
     >
-      <div className="timeline-playhead__head" aria-hidden />
-      <div className="timeline-playhead__line" aria-hidden />
+      <div
+        role="slider"
+        aria-label="Playhead"
+        tabIndex={enabled ? 0 : -1}
+        className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none cursor-ew-resize ${
+          enabled ? "pointer-events-auto" : "pointer-events-none"
+        }`}
+        style={{ left: 0, width: HIT_STRIP_WIDTH_PX }}
+        onPointerDown={onPointerDown}
+      />
+
+      <div
+        className={`pointer-events-none absolute bottom-0 w-px -translate-x-1/2 ${
+          muted ? "bg-white/30" : "bg-[var(--timeline-playhead)]"
+        }`}
+        style={{ left: 0, top: 12 }}
+        aria-hidden
+      />
+
+      <div
+        className={`absolute top-0 left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none cursor-ew-resize ${
+          enabled ? "pointer-events-auto" : "pointer-events-none opacity-60"
+        }`}
+        style={{ height: 13 }}
+        onPointerDown={onPointerDown}
+      >
+        <PlayheadHandleIcon isMuted={muted} />
+      </div>
     </div>
   );
 }

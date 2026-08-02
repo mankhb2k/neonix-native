@@ -728,6 +728,7 @@ export function TimelineViewport({
         scrollContainerRef={tracksScrollRef}
         maxTime={layout.extentSeconds}
         enabled={!disabled}
+        muted={clips.length === 0}
       />
     </div>
   );

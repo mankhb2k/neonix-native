@@ -383,7 +383,11 @@ export const ClipStrip = memo(function ClipStrip({
         const left = start * pps;
         const width = Math.max(2, duration * pps);
         const isSelected = selected.has(clip.id);
-        const classNames = ["timeline-clip-strip__clip"];
+        const trackKind = trackForLane(lane);
+        const classNames = [
+          "timeline-clip-strip__clip",
+          `timeline-clip-strip__clip--${trackKind}`,
+        ];
         if (isSelected) classNames.push("timeline-clip-strip__clip--selected");
         if (isDragging) classNames.push("timeline-clip-strip__clip--dragging");
         if (dragInvalid) classNames.push("timeline-clip-strip__clip--invalid");
@@ -410,6 +414,9 @@ export const ClipStrip = memo(function ClipStrip({
               }
             }}
           >
+            <span className="timeline-clip-strip__label pointer-events-none truncate">
+              {clip.name || clip.id}
+            </span>
             {isSelected && !disabled ? (
               <>
                 <span

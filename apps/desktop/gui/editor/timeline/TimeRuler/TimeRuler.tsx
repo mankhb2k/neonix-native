@@ -6,7 +6,6 @@ type Props = {
   pixelsPerSecond: number;
   viewWidth: number;
   scrollLeft: number;
-  /** Optional — wired in playhead slice. */
   onSeekClick?: (clientX: number) => void;
 };
 
@@ -60,7 +59,7 @@ export function TimeRuler({
 
   return (
     <div
-      className="time-ruler"
+      className="relative h-7 w-full shrink-0 cursor-ew-resize select-none overflow-hidden"
       aria-hidden={!onSeekClick}
       onPointerDown={(event) => {
         if (!onSeekClick || event.button !== 0) return;
@@ -72,16 +71,18 @@ export function TimeRuler({
         return (
           <div
             key={frame}
-            className="time-ruler__tick"
+            className="pointer-events-none absolute top-0 bottom-0 flex items-center gap-1"
             style={{ left, transform: "translateX(-0.5px)" }}
           >
             <div
               className={
-                labeled ? "time-ruler__mark time-ruler__mark--major" : "time-ruler__mark"
+                labeled
+                  ? "h-3.5 w-px bg-[var(--fg-muted)]"
+                  : "h-2 w-px bg-[var(--fg-muted)]/55"
               }
             />
             {labeled ? (
-              <span className="time-ruler__label">
+              <span className="select-none whitespace-nowrap text-[10px] tabular-nums leading-none tracking-wide text-[var(--fg-muted)]">
                 {formatRulerLabel(frame, safeFps, labelEveryFrames)}
               </span>
             ) : null}

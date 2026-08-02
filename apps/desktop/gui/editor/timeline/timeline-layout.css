@@ -5,9 +5,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--bg-panel);
 }
 
 .timeline-board__ruler-row,
@@ -19,7 +17,8 @@
 
 .timeline-board__ruler-row {
   flex-shrink: 0;
-  background: var(--panel);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .timeline-board__body-row {
@@ -30,8 +29,8 @@
 .timeline-board__corner,
 .timeline-board__labels {
   width: 96px;
-  border-right: 1px solid var(--border);
-  background: var(--panel);
+  border-right: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
 }
 
 .timeline-board__corner {
@@ -48,18 +47,20 @@
   align-items: center;
   padding: 0 10px;
   font-size: 12px;
-  color: var(--muted);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  color: var(--fg-muted);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 70%, transparent);
   box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: var(--bg-panel);
 }
 
 .timeline-board__ruler-scroll {
   position: relative;
   min-width: 0;
   overflow: hidden;
+  background: var(--bg-panel);
 }
 
 .timeline-board__gutter {
@@ -68,7 +69,7 @@
   inset: 0 auto 0 0;
   width: 16px;
   z-index: 2;
-  background: var(--bg);
+  background: var(--bg-app);
 }
 
 .timeline-board__ruler-pad {
@@ -90,7 +91,7 @@
 .timeline-board__tracks {
   min-width: 0;
   overflow: auto;
-  background: var(--bg);
+  background: var(--bg-app);
 }
 
 .timeline-board__canvas {
@@ -100,8 +101,9 @@
 
 .timeline-board__lane-band {
   position: relative;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
   box-sizing: border-box;
+  background: var(--timeline-track-lane);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
 }
 
 .timeline-clip-strip {
@@ -113,18 +115,40 @@
 .timeline-clip-strip__clip {
   position: absolute;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--accent, #3d8b6e) 55%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--accent, #3d8b6e) 80%, var(--border));
-  opacity: 0.9;
   cursor: grab;
   user-select: none;
+  overflow: hidden;
+  opacity: 0.95;
+}
+
+.timeline-clip-strip__clip--main {
+  background: var(--timeline-clip-frame);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+}
+
+.timeline-clip-strip__clip--overlay {
+  background: color-mix(in srgb, var(--timeline-clip-frame) 90%, transparent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.timeline-clip-strip__clip--audio {
+  background: var(--timeline-clip-audio);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .timeline-clip-strip__clip--selected {
-  outline: 2px solid color-mix(in srgb, var(--accent, #3d8b6e) 90%, white);
-  outline-offset: 0;
   z-index: 1;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 .timeline-clip-strip__clip--dragging {
@@ -139,14 +163,20 @@
 .timeline-clip-strip__clip--ghost {
   pointer-events: none;
   opacity: 0.65;
-  border-style: dashed;
+  border: 1px dashed #4a4a52;
+  background: #38383e;
   z-index: 3;
 }
 
 .timeline-clip-strip__clip--invalid {
-  background: color-mix(in srgb, var(--danger, #c44) 40%, var(--panel));
-  border-color: color-mix(in srgb, var(--danger, #c44) 75%, var(--border));
-  outline-color: var(--danger, #c44);
+  background: color-mix(in srgb, var(--danger, #c44) 40%, var(--bg-panel));
+  border-color: color-mix(in srgb, var(--danger, #c44) 75%, transparent);
+}
+
+.timeline-clip-strip__label {
+  min-width: 0;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .timeline-clip-strip__handle {
@@ -166,45 +196,9 @@
   right: 0;
 }
 
-.timeline-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 14px;
-  margin-left: -7px;
-  z-index: 5;
-  pointer-events: none;
-  will-change: transform;
-}
-
-.timeline-playhead__head {
-  position: absolute;
-  top: 2px;
-  left: 50%;
-  width: 11px;
-  height: 13px;
-  transform: translateX(-50%);
-  background: var(--accent, #3d8b6e);
-  clip-path: polygon(0 0, 100% 0, 100% 58%, 50% 100%, 0 58%);
-  pointer-events: auto;
-  cursor: ew-resize;
-}
-
-.timeline-playhead__line {
-  position: absolute;
-  top: 14px;
-  bottom: 0;
-  left: 50%;
-  width: 1px;
-  transform: translateX(-50%);
-  background: var(--accent, #3d8b6e);
-  pointer-events: none;
-}
-
 .timeline-board__empty {
   padding: 24px;
-  color: var(--muted);
+  color: var(--fg-muted);
   font-size: 13px;
 }
 
@@ -225,8 +219,8 @@
   width: 2px;
   height: 100%;
   margin-left: -1px;
-  background: var(--accent, #3d8b6e);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #3d8b6e) 35%, transparent);
+  background: var(--timeline-playhead);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--timeline-playhead) 35%, transparent);
 }
 
 .timeline-context-menu {
@@ -237,8 +231,8 @@
   position: absolute;
   z-index: 6;
   pointer-events: none;
-  border: 1px solid var(--accent, #3d8b6e);
-  background: color-mix(in srgb, var(--accent, #3d8b6e) 18%, transparent);
+  border: 1px solid var(--timeline-playhead);
+  background: color-mix(in srgb, var(--timeline-playhead) 12%, transparent);
 }
 
 .time-ruler {
@@ -248,7 +242,7 @@
   flex-shrink: 0;
   user-select: none;
   overflow: hidden;
-  cursor: default;
+  cursor: ew-resize;
 }
 
 .time-ruler__tick {
@@ -264,12 +258,12 @@
 .time-ruler__mark {
   width: 1px;
   height: 8px;
-  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  background: color-mix(in srgb, var(--fg-muted) 55%, transparent);
 }
 
 .time-ruler__mark--major {
   height: 14px;
-  background: var(--muted);
+  background: var(--fg-muted);
 }
 
 .time-ruler__label {
@@ -278,29 +272,6 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: 0.02em;
-  color: var(--muted);
+  color: var(--fg-muted);
   user-select: none;
-}
-
-.timeline-zoom {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.timeline-zoom__label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.timeline-zoom__label input[type="range"] {
-  width: 140px;
-}
-
-.timeline-zoom__value {
-  min-width: 4.5rem;
-  font-variant-numeric: tabular-nums;
 }

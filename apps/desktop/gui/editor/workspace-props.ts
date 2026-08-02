@@ -27,6 +27,35 @@ export type EditorSidebarProps = EditorViewProps & {
   initialTab?: string;
 };
 
+/** Timeline board: view slice + zoom / transport chrome. */
+export type EditorTimelineProps = Pick<
+  EditorViewProps,
+  "lanes" | "clips" | "selection"
+> & {
+  onSelect: EditorViewProps["onSelect"];
+  onExecuteTimeline: EditorViewProps["onExecuteTimeline"];
+  projectId?: string | null;
+  fps?: number;
+  timelineZoomScale?: number;
+  timelineFitAnchorSeconds?: number | null;
+  timelineFitRevision?: number;
+  disabled?: boolean;
+  canPaste?: boolean;
+  zoom?: number;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onZoomChange?: (zoom: number) => void;
+  onFit?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  onSplit?: (time: number) => void;
+  onDelete?: () => void;
+  onCopy?: () => void;
+  onCut?: () => void;
+  onPaste?: () => void;
+  focus?: boolean;
+};
+
 export const EMPTY_EDITOR_VIEW_PROPS: Pick<
   EditorViewProps,
   "lanes" | "clips" | "selection" | "assets"
