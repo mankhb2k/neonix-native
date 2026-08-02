@@ -544,7 +544,7 @@ export function TimelineViewport({
             }}
           />
           <div className="relative z-30 min-w-0 overflow-hidden">
-            {/* Gutter = spacing only (no fill); playhead sits on ruler→tracks seam */}
+            {/* Gutter = spacing only; playhead head paints above ruler (z-60). */}
             <div style={{ paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX }}>
               <TimeRuler
                 duration={layout.extentSeconds}

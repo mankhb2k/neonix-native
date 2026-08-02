@@ -16,8 +16,6 @@ import {
   clientXToTimelineTime,
   timelineTimeToViewportLeft,
 } from "../timeline-seek";
-import { TIMELINE_RULER_HEIGHT_PX } from "../timeline-scale";
-
 type Props = {
   tracksOriginX: number;
   pixelsPerSecond: number;
@@ -31,10 +29,10 @@ type Props = {
 
 const HIT_STRIP_WIDTH_PX = 14;
 const HANDLE_HEIGHT_PX = 13;
-/** CapCut: head sits on the ruler→tracks seam (below time labels). */
-const HANDLE_TOP_PX = TIMELINE_RULER_HEIGHT_PX - 2;
-/** Needle starts under the ruler so ticks stay readable. */
-const NEEDLE_TOP_PX = TIMELINE_RULER_HEIGHT_PX;
+/** CapCut: head sits on the TimeRuler (above ticks), tip points into tracks. */
+const HANDLE_TOP_PX = 1;
+/** Needle starts at the handle tip so the line continues through the ruler. */
+const NEEDLE_TOP_PX = HANDLE_TOP_PX + HANDLE_HEIGHT_PX - 2;
 
 function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
   return (
@@ -190,7 +188,7 @@ export function Playhead({
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none absolute inset-y-0 z-[45] will-change-transform"
+      className="pointer-events-none absolute inset-y-0 z-[60] will-change-transform"
       data-testid="timeline-playhead"
       data-muted={muted ? "true" : undefined}
       style={{ left: 0 }}
