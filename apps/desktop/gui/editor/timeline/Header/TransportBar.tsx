@@ -17,6 +17,7 @@ import {
 } from "../timeline-scale";
 import { CurrentTimeDisplay } from "./CurrentTimeDisplay";
 import { EditActions, editActionIcon } from "./EditActions";
+import { TimelineModeToggles } from "./TimelineModeToggles";
 
 type Props = {
   clips: TimelineClip[];
@@ -93,7 +94,9 @@ export function TransportBar({
       className="grid h-[36px] shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] px-3"
       data-testid="timeline-transport-bar"
     >
-      <div />
+      <div className="flex min-w-0 items-center justify-start">
+        <TimelineModeToggles disabled={disabled} />
+      </div>
 
       <div className="flex items-center justify-center gap-3">
         <CurrentTimeDisplay fps={fps} />

@@ -91,5 +91,19 @@ describe("resolveClipMoveDrag", () => {
       snapThresholdSec: 0.1,
     });
     expect(result.commit.startTime).toBe(2.5);
+    expect(result.preview.snapGuideTime).toBe(2.5);
+  });
+
+  it("snaps clip end to an edge and reports that guide time", () => {
+    // duration=3; raw start ≈ 1.05 → end ≈ 4.05 → snap end to 4 → start=1
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 155, // 1.55 - 0.5 = 1.05
+      drop: { laneId: "lane-v", track: "main" },
+      snapPoints: [4],
+      snapThresholdSec: 0.1,
+    });
+    expect(result.commit.startTime).toBe(1);
+    expect(result.preview.snapGuideTime).toBe(4);
   });
 });

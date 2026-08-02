@@ -1,9 +1,10 @@
 /**
- * Basic timeline hotkeys (Wave D + clipboard).
+ * Basic timeline hotkeys (Wave D + clipboard + CapCut mode toggles).
  */
 
 import { useEffect } from "react";
 import type { TimelineCommand } from "@motionvideo/editor-core";
+import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 
 type Args = {
   enabled: boolean;
@@ -33,12 +34,39 @@ export function useTimelineHotkeys({
   onCut,
   onPaste,
 }: Args): void {
+  const toggleMainTrackMagnet = useTimelineInteractionPrefs(
+    (s) => s.toggleMainTrackMagnet,
+  );
+  const toggleAutoSnapping = useTimelineInteractionPrefs(
+    (s) => s.toggleAutoSnapping,
+  );
+  const toggleLinkage = useTimelineInteractionPrefs((s) => s.toggleLinkage);
+
   useEffect(() => {
     if (!enabled) return undefined;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return;
       const mod = event.metaKey || event.ctrlKey;
+
+      if (!mod && !event.altKey) {
+        const key = event.key.toLowerCase();
+        if (key === "p") {
+          event.preventDefault();
+          toggleMainTrackMagnet();
+          return;
+        }
+        if (key === "n") {
+          event.preventDefault();
+          toggleAutoSnapping();
+          return;
+        }
+        if (key === "`" || key === "~") {
+          event.preventDefault();
+          toggleLinkage();
+          return;
+        }
+      }
 
       if (mod && event.key.toLowerCase() === "z" && !event.shiftKey) {
         event.preventDefault();
@@ -93,5 +121,8 @@ export function useTimelineHotkeys({
     onCopy,
     onCut,
     onPaste,
+    toggleMainTrackMagnet,
+    toggleAutoSnapping,
+    toggleLinkage,
   ]);
 }

@@ -338,4 +338,44 @@ describe("drop-host CapCut policy", () => {
     const preview = resolveDropGeometryAtPoint(100, 42, video);
     expect(preview?.isInsert).toBe(true);
   });
+
+  it("snaps library drop start/end to existing clip edges with guide time", () => {
+    const scrollEl = mountScrollWithLanes([
+      { id: "base", type: "main", order: -1, top: 0, height: 60 },
+    ]);
+
+    setTimelineDropHost({
+      scrollEl,
+      lanes: [
+        {
+          id: "base",
+          kind: "visual",
+          role: "base",
+          name: "Main",
+          order: -1,
+          policy: BASE_POLICY,
+        },
+      ],
+      lanesTop: 0,
+      laneHeight: 60,
+      pixelsPerSecond: 100,
+      tracksOriginX: 0,
+      snapPoints: [2],
+      snapThresholdSec: 0.1,
+    });
+
+    const video: LibraryPayload = {
+      kind: "video",
+      id: "v1",
+      label: "Clip",
+      assetId: "asset_v",
+      duration: 2,
+    };
+
+    // Mid Main body; raw start ≈ 1.95 → snap start to 2.
+    const preview = resolveDropGeometryAtPoint(195, 30, video);
+    expect(preview?.startTime).toBe(2);
+    expect(preview?.snapGuideTime).toBe(2);
+    expect(resolveLibraryPlacement(195, 30, video)?.startTime).toBe(2);
+  });
 });

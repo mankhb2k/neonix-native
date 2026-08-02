@@ -4,7 +4,6 @@
 
 import {
   clipAcceptsTrack,
-  getSnappingPolicy,
   type TimelineClip,
   type TimelineTrackKind,
 } from "@motionvideo/editor-core";
@@ -32,6 +31,8 @@ export type ClipMovePreview = {
   /** Pointer for fixed teal cursor bar (web GlobalDragPreview). */
   clientX?: number;
   clientY?: number;
+  /** CapCut vertical snap guide time (clip edge alignment). */
+  snapGuideTime?: number | null;
   /** Secondary selected clips (time-shift on home lanes). */
   members?: ClipMovePreviewMember[];
 };
@@ -79,21 +80,79 @@ export type ClipMoveDragResult = {
 
 export { clipAcceptsTrack };
 
+/** Start + end edges of other clips (+ t=0) for CapCut live snap. */
+export function collectClipEdgeSnapPoints(
+  clips: readonly Pick<TimelineClip, "id" | "startTime" | "duration">[],
+  excludeIds: ReadonlySet<string>,
+): number[] {
+  const points: number[] = [0];
+  for (const clip of clips) {
+    if (excludeIds.has(clip.id)) continue;
+    points.push(clip.startTime, clip.startTime + clip.duration);
+  }
+  return points;
+}
+
+/**
+ * Snap moving clip start/end to nearest edge.
+ * Returns guide time = absolute edge where the CapCut teal line should draw.
+ */
+export function snapMoveStartToEdges(
+  rawStart: number,
+  duration: number,
+  snapPoints: readonly number[],
+  thresholdSec: number,
+): { startTime: number; snapGuideTime: number | null } {
+  if (!snapPoints.length || thresholdSec < 0) {
+    return { startTime: Math.max(0, rawStart), snapGuideTime: null };
+  }
+  const rawEnd = rawStart + duration;
+  let bestStart = rawStart;
+  let bestDiff = Infinity;
+  let guideTime: number | null = null;
+
+  for (const snap of snapPoints) {
+    const dStart = Math.abs(snap - rawStart);
+    if (dStart <= thresholdSec && dStart < bestDiff) {
+      bestDiff = dStart;
+      bestStart = Math.max(0, snap);
+      guideTime = snap;
+    }
+    const endAlignedStart = snap - duration;
+    if (endAlignedStart < 0) continue;
+    const dEnd = Math.abs(snap - rawEnd);
+    if (dEnd <= thresholdSec && dEnd < bestDiff) {
+      bestDiff = dEnd;
+      bestStart = endAlignedStart;
+      guideTime = snap;
+    }
+  }
+
+  return {
+    startTime: bestStart,
+    snapGuideTime: guideTime,
+  };
+}
+
 export function resolveClipMoveDrag(
   input: ClipMoveDragInput,
 ): ClipMoveDragResult {
   const pps = Math.max(1e-6, input.pixelsPerSecond);
-  let startTime = Math.max(
+  const rawStart = Math.max(
     0,
     input.pointerContentX / pps - input.grabOffsetSec,
   );
+  let startTime = rawStart;
+  let snapGuideTime: number | null = null;
   if (input.snapPoints?.length) {
-    const snapped = getSnappingPolicy().findNearestSnapTime(
-      startTime,
+    const snapped = snapMoveStartToEdges(
+      rawStart,
+      input.duration,
       input.snapPoints,
       input.snapThresholdSec ?? 0.08,
     );
-    startTime = Math.max(0, snapped.time);
+    startTime = snapped.startTime;
+    snapGuideTime = snapped.snapGuideTime;
   }
 
   let previewLaneId = input.originLaneId;
@@ -126,6 +185,7 @@ export function resolveClipMoveDrag(
     isInsert: insertNewLane,
     insertOrder,
     contentTop: input.drop?.contentTop,
+    snapGuideTime,
   };
 
   return {

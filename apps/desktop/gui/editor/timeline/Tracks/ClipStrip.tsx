@@ -14,6 +14,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import {
+  collectClipEdgeSnapPoints,
   resolveClipMoveDrag,
   type ClipMoveDropTarget,
   type ClipMovePreview,
@@ -28,12 +29,15 @@ import {
   type TimelineDropTarget,
 } from "./lane-drop-target";
 import type { BeginGesture } from "../interactions/use-pointer-session";
+import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import { cn } from "../../../ui";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 export type { ClipMovePreview };
 
 const DRAG_THRESHOLD_PX = 4; // web MOVE_THRESHOLD_PX
+/** CapCut-ish magnet distance for live edge snap while moving. */
+const SNAP_THRESHOLD_PX = 8;
 
 type TrackKind = "main" | "overlay" | "audio";
 
@@ -148,6 +152,7 @@ export const ClipStrip = memo(function ClipStrip({
   onExecute,
 }: Props) {
   const pps = Math.max(pixelsPerSecond, 0.001);
+  const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
   const selected = new Set(selectedClipIdsFrom(selection));
   const [localPreview, setLocalPreview] = useState<Preview | null>(null);
 
@@ -204,6 +209,11 @@ export const ClipStrip = memo(function ClipStrip({
     const groupPlan = isGroup
       ? createClipGroupMovePlan({ clips: catalog, lanes }, groupIds)
       : null;
+    const excludeSnapIds = new Set(groupIds);
+    const snapPoints = autoSnapping
+      ? collectClipEdgeSnapPoints(catalog, excludeSnapIds)
+      : [];
+    const snapThresholdSec = SNAP_THRESHOLD_PX / pps;
 
     /** Web hysteresis — local to this gesture (not shared with library drop). */
     let wasInsert = false;
@@ -310,8 +320,8 @@ export const ClipStrip = memo(function ClipStrip({
             pixelsPerSecond: pps,
             duration,
             drop,
-            // Web: no live edge-snap during move (commit-time only).
-            snapPoints: undefined,
+            snapPoints,
+            snapThresholdSec,
           });
           const rawDelta = resolved.commit.startTime - originStart;
           const groupDelta = Math.max(rawDelta, -minStartInGroup);
@@ -336,6 +346,10 @@ export const ClipStrip = memo(function ClipStrip({
             const core = groupPlan.resolve(groupDelta);
             groupValid = core.valid && resolved.commit.valid;
           }
+          const snapGuideTime =
+            primaryStart === resolved.commit.startTime
+              ? (resolved.preview.snapGuideTime ?? null)
+              : null;
           const preview: ClipMovePreview = {
             ...resolved.preview,
             startTime: primaryStart,
@@ -344,6 +358,7 @@ export const ClipStrip = memo(function ClipStrip({
             label: clip.name || clip.id,
             clientX: pos.x,
             clientY: pos.y,
+            snapGuideTime,
             members,
           };
           setLocalPreview(preview);

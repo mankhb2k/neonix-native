@@ -11,6 +11,7 @@ import {
 import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import { ClipStrip, type ClipMovePreview } from "./ClipStrip";
+import { collectClipEdgeSnapPoints } from "./clip-move-geometry";
 import {
   autoScrollTimelineNearEdge,
   resolveDropGeometryAtPoint,
@@ -18,6 +19,7 @@ import {
   type TimelineDropHost,
   type LibraryDropPreview,
 } from "./drop-host";
+import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import {
   clipIdsInMarquee,
@@ -135,6 +137,7 @@ export function TimelineViewport({
   const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
   const clock = usePlaybackClockApi();
   const { beginGesture } = usePointerSessionHost();
+  const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
 
   const scrollLeftRafRef = useRef<number | null>(null);
   const scrollTopRafRef = useRef<number | null>(null);
@@ -362,10 +365,14 @@ export function TimelineViewport({
       laneGapPx: LANE_GAP_PX,
       pixelsPerSecond: layout.pixelsPerSecond,
       tracksOriginX: TIMELINE_PLAYHEAD_GUTTER_PX,
+      snapPoints: autoSnapping
+        ? collectClipEdgeSnapPoints(clips, new Set())
+        : [],
+      snapThresholdSec: 8 / Math.max(1e-6, layout.pixelsPerSecond),
     };
     setTimelineDropHost(next);
     return () => setTimelineDropHost(null);
-  }, [sortedLanes, layout.pixelsPerSecond, topPadding]);
+  }, [sortedLanes, layout.pixelsPerSecond, topPadding, clips, autoSnapping]);
 
   useEffect(() => {
     return subscribeLibraryDrag((session) => {
@@ -914,6 +921,23 @@ export function TimelineViewport({
                             }}
                           />
                         </>
+                      ) : null}
+                      {/* CapCut edge-snap guide — move or library drop */}
+                      {(clipMovePreview?.snapGuideTime ??
+                        dropGhost?.snapGuideTime) != null ? (
+                        <div
+                          data-testid="timeline-clip-snap-guide"
+                          className="pointer-events-none absolute top-0 z-[42] w-px bg-[#14B8A6]"
+                          aria-hidden
+                          style={{
+                            left:
+                              TIMELINE_PLAYHEAD_GUTTER_PX +
+                              (clipMovePreview?.snapGuideTime ??
+                                dropGhost!.snapGuideTime!) *
+                                layout.pixelsPerSecond,
+                            height: contentHeight,
+                          }}
+                        />
                       ) : null}
                       {/* Web GlobalDragPreview cyan — follows cursor during clip move */}
                       {clipMovePreview &&

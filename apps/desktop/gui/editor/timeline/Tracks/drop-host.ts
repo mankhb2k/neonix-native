@@ -14,6 +14,7 @@ import {
   contentXFromPointer,
   hitTimelineDropZone,
 } from "./drop-geometry";
+import { snapMoveStartToEdges } from "./clip-move-geometry";
 import {
   audioDropPolicy,
   audioHitToLane,
@@ -24,6 +25,9 @@ import {
   visualDropPolicy,
 } from "./lane-drop-target";
 
+/** CapCut-ish magnet distance (px) for library → timeline edge snap. */
+const LIBRARY_SNAP_THRESHOLD_PX = 8;
+
 export type TimelineDropHost = {
   scrollEl: HTMLElement;
   lanes: TimelineLane[];
@@ -33,6 +37,9 @@ export type TimelineDropHost = {
   laneGapPx?: number;
   pixelsPerSecond: number;
   tracksOriginX: number;
+  /** Existing clip edge times for CapCut live snap while dragging from library. */
+  snapPoints?: number[];
+  snapThresholdSec?: number;
 };
 
 /** Live preview for cyan insert line + gray ghost. */
@@ -53,6 +60,8 @@ export type LibraryDropPreview = {
   contentTop: number;
   /** Label for teal cursor bar (web GlobalDragPreview). */
   label: string;
+  /** CapCut vertical snap guide time (clip edge alignment). */
+  snapGuideTime?: number | null;
 };
 
 let host: TimelineDropHost | null = null;
@@ -143,13 +152,36 @@ function resolvePolicyTarget(
   return target;
 }
 
+function payloadDurationSec(
+  payload: LibraryPayload | null | undefined,
+): number {
+  if (payload && "duration" in payload && typeof payload.duration === "number") {
+    return Math.max(0.5, payload.duration);
+  }
+  return DEFAULT_FRAME_DURATION;
+}
+
 function ghostWidthFor(payload: LibraryPayload | null | undefined): number {
   if (!host) return 80;
-  const duration =
-    payload && "duration" in payload && typeof payload.duration === "number"
-      ? Math.max(0.5, payload.duration)
-      : DEFAULT_FRAME_DURATION;
-  return Math.max(24, duration * host.pixelsPerSecond);
+  return Math.max(24, payloadDurationSec(payload) * host.pixelsPerSecond);
+}
+
+function snapLibraryStartTime(
+  rawStart: number,
+  payload: LibraryPayload | null | undefined,
+): { startTime: number; snapGuideTime: number | null } {
+  if (!host?.snapPoints?.length) {
+    return { startTime: rawStart, snapGuideTime: null };
+  }
+  const threshold =
+    host.snapThresholdSec ??
+    LIBRARY_SNAP_THRESHOLD_PX / Math.max(1e-6, host.pixelsPerSecond);
+  return snapMoveStartToEdges(
+    rawStart,
+    payloadDurationSec(payload),
+    host.snapPoints,
+    threshold,
+  );
 }
 
 function ghostHeightFor(
@@ -207,7 +239,9 @@ export function resolveDropGeometryAtPoint(
   const policyTarget = resolvePolicyTarget(clientY, family);
   if (!policyTarget) return null;
 
-  const startTime = startTimeAtPoint(clientX);
+  const snapped = snapLibraryStartTime(startTimeAtPoint(clientX), payload);
+  const startTime = snapped.startTime;
+  const snapGuideTime = snapped.snapGuideTime;
   const track = targetToTrack(family, policyTarget);
   const scrollRect = host.scrollEl.getBoundingClientRect();
   const ghostWidthPx = ghostWidthFor(payload);
@@ -274,6 +308,7 @@ export function resolveDropGeometryAtPoint(
       ghostHeightPx,
       contentTop,
       label,
+      snapGuideTime,
     };
   }
 
@@ -296,6 +331,7 @@ export function resolveDropGeometryAtPoint(
     ghostHeightPx,
     contentTop,
     label,
+    snapGuideTime,
   };
 }
 
