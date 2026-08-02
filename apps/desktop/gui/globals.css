@@ -74,3 +74,10 @@ body,
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
 }
+
+/* CapCut: hide native H-scrollbar on tracks; dedicated bar below syncs scrollLeft. */
+.timeline-tracks-scroll::-webkit-scrollbar:horizontal {
+  height: 0;
+  display: none;
+}
+

@@ -23,6 +23,15 @@ export type ClipMovePreview = {
   startTime: number;
   duration: number;
   valid: boolean;
+  /** CapCut insert between lanes (new overlay/audio lane). */
+  isInsert?: boolean;
+  insertOrder?: number | null;
+  /** Content Y center for insert chrome (scroll canvas). */
+  contentTop?: number;
+  label?: string;
+  /** Pointer for fixed teal cursor bar (web GlobalDragPreview). */
+  clientX?: number;
+  clientY?: number;
   /** Secondary selected clips (time-shift on home lanes). */
   members?: ClipMovePreviewMember[];
 };
@@ -30,6 +39,9 @@ export type ClipMovePreview = {
 export type ClipMoveDropTarget = {
   laneId: string;
   track: TimelineTrackKind;
+  insertNewLane?: boolean;
+  insertOrder?: number | null;
+  contentTop?: number;
 };
 
 export type ClipMoveDragInput = {
@@ -56,6 +68,8 @@ export type ClipMoveDragCommit = {
   track: TimelineTrackKind;
   valid: boolean;
   moved: boolean;
+  insertNewLane?: boolean;
+  insertOrder?: number | null;
 };
 
 export type ClipMoveDragResult = {
@@ -86,9 +100,13 @@ export function resolveClipMoveDrag(
   let commitLaneId = input.originLaneId;
   let commitTrack = input.originTrack;
   let valid = false;
+  let insertNewLane = false;
+  let insertOrder: number | null = null;
 
   if (input.drop) {
     previewLaneId = input.drop.laneId;
+    insertNewLane = Boolean(input.drop.insertNewLane);
+    insertOrder = input.drop.insertOrder ?? null;
     if (clipAcceptsTrack(input.clip, input.drop.track)) {
       commitLaneId = input.drop.laneId;
       commitTrack = input.drop.track;
@@ -105,6 +123,9 @@ export function resolveClipMoveDrag(
     startTime,
     duration: input.duration,
     valid,
+    isInsert: insertNewLane,
+    insertOrder,
+    contentTop: input.drop?.contentTop,
   };
 
   return {
@@ -115,6 +136,8 @@ export function resolveClipMoveDrag(
       track: commitTrack,
       valid,
       moved: true,
+      insertNewLane,
+      insertOrder,
     },
   };
 }

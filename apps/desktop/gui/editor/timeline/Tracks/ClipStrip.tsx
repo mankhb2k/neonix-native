@@ -15,13 +15,18 @@ import {
 } from "@motionvideo/editor-core";
 import {
   resolveClipMoveDrag,
+  type ClipMoveDropTarget,
   type ClipMovePreview,
 } from "./clip-move-geometry";
 import {
   autoScrollTimelineNearEdge,
+  getTimelineDropHost,
   pointerContentXAtPoint,
-  resolveDropGeometryAtPoint,
 } from "./drop-host";
+import {
+  resolveClipMoveDropAtY,
+  type TimelineDropTarget,
+} from "./lane-drop-target";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import { cn } from "../../../ui";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -29,7 +34,6 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 export type { ClipMovePreview };
 
 const DRAG_THRESHOLD_PX = 4; // web MOVE_THRESHOLD_PX
-const SNAP_THRESHOLD_PX = 8;
 
 type TrackKind = "main" | "overlay" | "audio";
 
@@ -38,6 +42,43 @@ function trackForLane(lane: TimelineLane | undefined): TrackKind {
   if (lane.kind === "audio") return "audio";
   if (lane.role === "base") return "main";
   return "overlay";
+}
+
+/** Map web TimelineDropTarget → clip-move drop (resolve main laneId). */
+function dropTargetFromPolicy(
+  target: TimelineDropTarget,
+  lanes: TimelineLane[],
+  originLaneId: string,
+  scrollEl: HTMLElement,
+): ClipMoveDropTarget {
+  const contentTop = target.indicatorTop + scrollEl.scrollTop;
+  const track: TrackKind =
+    target.family === "audio"
+      ? "audio"
+      : target.overBaseBody
+        ? "main"
+        : "overlay";
+
+  if (target.isInsert) {
+    return {
+      laneId: originLaneId,
+      track: track === "main" ? "overlay" : track,
+      insertNewLane: true,
+      insertOrder: target.insertOrder,
+      contentTop,
+    };
+  }
+
+  if (target.laneId) {
+    return { laneId: target.laneId, track, contentTop };
+  }
+
+  if (target.overBaseBody || track === "main") {
+    const base = lanes.find((l) => l.kind === "visual" && l.role === "base");
+    if (base) return { laneId: base.id, track: "main", contentTop };
+  }
+
+  return { laneId: originLaneId, track, contentTop };
 }
 
 function clipClassName(
@@ -146,6 +187,7 @@ export const ClipStrip = memo(function ClipStrip({
     const isGroup = groupIds.length > 1;
 
     const originX = event.clientX;
+    const originY = event.clientY;
     const originStart = clip.startTime;
     const originLaneId = lane.id;
     const originTrack = trackForLane(lane);
@@ -159,13 +201,14 @@ export const ClipStrip = memo(function ClipStrip({
         (id) => catalogById.get(id)?.startTime ?? originStart,
       ),
     );
-    const groupIdSet = new Set(groupIds);
-    const snapPoints = catalog
-      .filter((c) => !groupIdSet.has(c.id))
-      .flatMap((c) => [c.startTime, c.startTime + c.duration]);
     const groupPlan = isGroup
       ? createClipGroupMovePlan({ clips: catalog, lanes }, groupIds)
       : null;
+
+    /** Web hysteresis — local to this gesture (not shared with library drop). */
+    let wasInsert = false;
+    const family: "visual" | "audio" =
+      clip.kind === "audio" ? "audio" : "visual";
 
     type MoveState = {
       startTime: number;
@@ -174,6 +217,8 @@ export const ClipStrip = memo(function ClipStrip({
       moved: boolean;
       valid: boolean;
       groupDelta: number;
+      insertNewLane: boolean;
+      insertOrder: number | null;
     };
     beginGesture<MoveState, void>(
       {
@@ -185,21 +230,75 @@ export const ClipStrip = memo(function ClipStrip({
           moved: false,
           valid: true,
           groupDelta: 0,
+          insertNewLane: false,
+          insertOrder: null,
         }),
         onUpdate: (pos, state) => {
           const dx = pos.x - originX;
-          if (!state.moved && Math.abs(dx) < DRAG_THRESHOLD_PX) return state;
+          const dy = pos.y - originY;
+          if (
+            !state.moved &&
+            dx * dx + dy * dy < DRAG_THRESHOLD_PX * DRAG_THRESHOLD_PX
+          ) {
+            return state;
+          }
           autoScrollTimelineNearEdge(pos.x, pos.y);
           const contentX = pointerContentXAtPoint(pos.x);
-          const geo = resolveDropGeometryAtPoint(pos.x, pos.y);
-          // Multi-select: time-only on home lanes; cross-lane only for single.
+          const host = getTimelineDropHost();
+          const hostLanes = host?.lanes ?? lanes;
+          const scrollEl = host?.scrollEl;
+          if (!scrollEl) {
+            return { ...state, moved: true, valid: false };
+          }
+
+          const policyTarget = resolveClipMoveDropAtY(
+            scrollEl,
+            pos.y,
+            family,
+            wasInsert,
+            hostLanes,
+          );
+          if (!policyTarget) {
+            wasInsert = false;
+            const preview: ClipMovePreview = {
+              clipId: clip.id,
+              originLaneId,
+              laneId: originLaneId,
+              startTime: Math.max(
+                0,
+                (contentX ?? originContentX) / pps - grabOffsetSec,
+              ),
+              duration,
+              valid: false,
+              label: clip.name || clip.id,
+              clientX: pos.x,
+              clientY: pos.y,
+            };
+            setLocalPreview(preview);
+            onMovePreviewChange?.(preview);
+            return {
+              ...state,
+              moved: true,
+              valid: false,
+              startTime: preview.startTime,
+            };
+          }
+          wasInsert = policyTarget.isInsert;
+
           const drop = isGroup
-            ? geo
-              ? { laneId: originLaneId, track: originTrack }
-              : null
-            : geo
-              ? { laneId: geo.laneId, track: geo.track }
-              : null;
+            ? {
+                laneId: originLaneId,
+                track: originTrack,
+                contentTop:
+                  policyTarget.indicatorTop + scrollEl.scrollTop,
+              }
+            : dropTargetFromPolicy(
+                policyTarget,
+                hostLanes,
+                originLaneId,
+                scrollEl,
+              );
+
           const resolved = resolveClipMoveDrag({
             clipId: clip.id,
             clip,
@@ -211,8 +310,8 @@ export const ClipStrip = memo(function ClipStrip({
             pixelsPerSecond: pps,
             duration,
             drop,
-            snapPoints,
-            snapThresholdSec: SNAP_THRESHOLD_PX / pps,
+            // Web: no live edge-snap during move (commit-time only).
+            snapPoints: undefined,
           });
           const rawDelta = resolved.commit.startTime - originStart;
           const groupDelta = Math.max(rawDelta, -minStartInGroup);
@@ -233,15 +332,18 @@ export const ClipStrip = memo(function ClipStrip({
                 })
                 .filter((m): m is NonNullable<typeof m> => m != null)
             : undefined;
-          if (isGroup && groupValid && geo && groupPlan) {
+          if (isGroup && groupValid && groupPlan) {
             const core = groupPlan.resolve(groupDelta);
             groupValid = core.valid && resolved.commit.valid;
           }
-          const preview = {
+          const preview: ClipMovePreview = {
             ...resolved.preview,
             startTime: primaryStart,
             laneId: isGroup ? originLaneId : resolved.preview.laneId,
             valid: isGroup ? groupValid : resolved.commit.valid,
+            label: clip.name || clip.id,
+            clientX: pos.x,
+            clientY: pos.y,
             members,
           };
           setLocalPreview(preview);
@@ -253,6 +355,12 @@ export const ClipStrip = memo(function ClipStrip({
             moved: true,
             valid: isGroup ? groupValid : resolved.commit.valid,
             groupDelta,
+            insertNewLane: isGroup
+              ? false
+              : Boolean(resolved.commit.insertNewLane),
+            insertOrder: isGroup
+              ? null
+              : (resolved.commit.insertOrder ?? null),
           };
         },
         onCommit: (state) => {
@@ -266,10 +374,14 @@ export const ClipStrip = memo(function ClipStrip({
                 patch: {
                   startTime: state.startTime,
                   track: state.track,
-                  laneId: state.laneId,
+                  laneId: state.insertNewLane ? null : state.laneId,
+                  insertNewLane: state.insertNewLane || undefined,
+                  insertOrder: state.insertNewLane
+                    ? (state.insertOrder ?? 0)
+                    : undefined,
                 },
               },
-              "Move clip",
+              state.insertNewLane ? "Move clip to new lane" : "Move clip",
             );
             return;
           }
@@ -285,7 +397,8 @@ export const ClipStrip = memo(function ClipStrip({
         onCancel: () => clearMovePreview(),
       },
       { x: event.clientX, y: event.clientY },
-      event.currentTarget,
+      // Capture on strip root — survives hiding the clip (web keeps listeners on window).
+      event.currentTarget.parentElement ?? event.currentTarget,
       event.pointerId,
     );
   };
@@ -361,13 +474,9 @@ export const ClipStrip = memo(function ClipStrip({
       : null;
 
   const showMoveGhost =
-    activeMove != null && activeMove.laneId === lane.id;
-
-  const movingCatalog = allClips ?? clips;
-  const movingPrimary = showMoveGhost
-    ? movingCatalog.find((c) => c.id === activeMove.clipId)
-    : null;
-  const ghostLabel = movingPrimary?.name || activeMove?.clipId || "";
+    activeMove != null &&
+    activeMove.laneId === lane.id &&
+    !activeMove.isInsert;
 
   return (
     <div
@@ -375,9 +484,9 @@ export const ClipStrip = memo(function ClipStrip({
       data-testid="timeline-clip-strip-root"
     >
       {clips.map((clip) => {
-        // Web: hide source clip while moving (ghost is the live preview).
-        if (activeMove?.clipId === clip.id) return null;
-        if (activeMove?.members?.some((m) => m.clipId === clip.id)) return null;
+        const isMovingSource =
+          activeMove?.clipId === clip.id ||
+          Boolean(activeMove?.members?.some((m) => m.clipId === clip.id));
 
         let start = clip.startTime;
         let duration = clip.duration;
@@ -397,7 +506,11 @@ export const ClipStrip = memo(function ClipStrip({
             key={clip.id}
             role="button"
             tabIndex={disabled ? -1 : 0}
-            className={clipClassName(trackKind, isSelected)}
+            // Keep mounted while moving — unmounting breaks pointer capture (web hides via null only because listeners are on window).
+            className={cn(
+              clipClassName(trackKind, isSelected),
+              isMovingSource && "invisible pointer-events-none",
+            )}
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
             data-start-time={String(start)}
@@ -414,7 +527,7 @@ export const ClipStrip = memo(function ClipStrip({
             <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
               {clip.name || clip.id}
             </span>
-            {isSelected && !disabled ? (
+            {isSelected && !disabled && !isMovingSource ? (
               <>
                 <span
                   className="absolute inset-y-0 left-0 z-[2] w-1.5 cursor-ew-resize"
@@ -431,7 +544,7 @@ export const ClipStrip = memo(function ClipStrip({
       })}
       {showMoveGhost && activeMove ? (
         <>
-          {/* Gray lane ghost — web TrackLane h-[90%] */}
+          {/* Gray lane ghost only — web TrackLane (teal cursor is fixed in viewport). */}
           <div
             className={cn(
               "pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]",
@@ -441,21 +554,9 @@ export const ClipStrip = memo(function ClipStrip({
             data-testid="timeline-clip-move-ghost"
             style={{
               left: activeMove.startTime * pps,
-              width: Math.max(2, activeMove.duration * pps),
-            }}
-          />
-          {/* Teal name bar — web GlobalDragPreview over timeline */}
-          <div
-            className="pointer-events-none absolute top-1/2 z-[21] flex h-8 -translate-y-1/2 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl will-change-[left]"
-            aria-hidden
-            data-testid="timeline-clip-move-cyan"
-            style={{
-              left: activeMove.startTime * pps,
               width: Math.max(24, activeMove.duration * pps),
             }}
-          >
-            <span className="truncate">{ghostLabel}</span>
-          </div>
+          />
           {activeMove.members
             ?.filter((m) => m.laneId === lane.id)
             .map((m) => (
@@ -465,7 +566,7 @@ export const ClipStrip = memo(function ClipStrip({
                 aria-hidden
                 style={{
                   left: m.startTime * pps,
-                  width: Math.max(2, m.duration * pps),
+                  width: Math.max(24, m.duration * pps),
                 }}
               />
             ))}

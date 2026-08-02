@@ -3,7 +3,17 @@
  * Pure math: @motionvideo/editor-core drop-target-policy.
  */
 
-import type { AudioLaneHit, VideoLaneHit } from "@motionvideo/editor-core";
+import {
+  audioDropPolicy,
+  audioHitToLane,
+  resolveLaneDropTarget,
+  videoHitToLane,
+  visualDropPolicy,
+  type AudioLaneHit,
+  type TimelineDropTarget,
+  type TimelineLane,
+  type VideoLaneHit,
+} from "@motionvideo/editor-core";
 
 export {
   CYAN_MODE_BELOW_RULER_TOP_PX,
@@ -70,4 +80,41 @@ export function collectAudioZoneLanes(scope: HTMLElement): AudioLaneHit[] {
   }
   out.sort((a, b) => a.top - b.top);
   return out;
+}
+
+/**
+ * Web clip-move Y hit-test — lane rects + insert hysteresis (no elementFromPoint).
+ */
+export function resolveClipMoveDropAtY(
+  scrollEl: HTMLElement,
+  clientY: number,
+  family: "visual" | "audio",
+  wasInsert: boolean,
+  lanes: TimelineLane[],
+): TimelineDropTarget | null {
+  const wsTop = scrollEl.getBoundingClientRect().top;
+  if (family === "audio") {
+    const maxOrder = lanes
+      .filter((l) => l.kind === "audio")
+      .reduce((m, l) => Math.max(m, l.order), -1);
+    return resolveLaneDropTarget(
+      clientY,
+      collectAudioZoneLanes(scrollEl).map(audioHitToLane),
+      wsTop,
+      wasInsert,
+      maxOrder,
+      audioDropPolicy,
+    );
+  }
+  const maxOrder = lanes
+    .filter((l) => l.kind === "visual" && l.role === "overlay")
+    .reduce((m, l) => Math.max(m, l.order), -1);
+  return resolveLaneDropTarget(
+    clientY,
+    collectSceneLanes(scrollEl).map(videoHitToLane),
+    wsTop,
+    wasInsert,
+    maxOrder,
+    visualDropPolicy,
+  );
 }

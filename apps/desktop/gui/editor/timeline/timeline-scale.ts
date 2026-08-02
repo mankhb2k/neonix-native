@@ -6,6 +6,8 @@ export const TIMELINE_ZOOM_DEFAULT = 50;
 
 export const TIMELINE_LABEL_WIDTH = 96;
 export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
+/** Sticky time ruler row (matches TimeRuler `h-7`). */
+export const TIMELINE_RULER_HEIGHT_PX = 28;
 export const TIMELINE_TRACKS_ORIGIN_X =
   TIMELINE_LABEL_WIDTH + TIMELINE_PLAYHEAD_GUTTER_PX;
 

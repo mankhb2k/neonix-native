@@ -25,9 +25,11 @@ import {
   type MarqueeRect,
 } from "./marquee-geometry";
 import { Playhead } from "./Playhead";
+import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
+  TIMELINE_RULER_HEIGHT_PX,
   TIMELINE_TRACKS_ORIGIN_X,
   laneRowHeightPx,
 } from "../timeline-scale";
@@ -124,6 +126,9 @@ export function TimelineViewport({
   const [trackViewHeight, setTrackViewHeight] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
+  /** Mirrored into the detached CapCut H-scrollbar (tracks scroll metrics). */
+  const [hScrollContentWidth, setHScrollContentWidth] = useState(0);
+  const [hScrollViewportWidth, setHScrollViewportWidth] = useState(0);
   const [dropGhost, setDropGhost] = useState<LibraryDropPreview | null>(null);
   const [clipMovePreview, setClipMovePreview] =
     useState<ClipMovePreview | null>(null);
@@ -176,6 +181,13 @@ export function TimelineViewport({
         setScrollTop(pendingScrollTopRef.current);
       });
     }
+  }, []);
+
+  const onHScrollLeft = useCallback((next: number) => {
+    const tracks = tracksScrollRef.current;
+    if (!tracks) return;
+    const max = Math.max(0, tracks.scrollWidth - tracks.clientWidth);
+    tracks.scrollLeft = Math.min(max, Math.max(0, next));
   }, []);
 
   useLayoutEffect(() => {
@@ -249,6 +261,27 @@ export function TimelineViewport({
       }),
     [clips, trackViewWidth, timelineZoomScale, timelineFitAnchorSeconds],
   );
+
+  useLayoutEffect(() => {
+    const el = tracksScrollRef.current;
+    if (!el) return undefined;
+    const measure = () => {
+      const nextContent = el.scrollWidth;
+      const nextViewport = el.clientWidth;
+      setHScrollContentWidth((prev) =>
+        prev === nextContent ? prev : nextContent,
+      );
+      setHScrollViewportWidth((prev) =>
+        prev === nextViewport ? prev : nextViewport,
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    const first = el.firstElementChild;
+    if (first) ro.observe(first);
+    return () => ro.disconnect();
+  }, [layout.canvasWidth, trackViewWidth, clips.length, lanes.length]);
 
   const laneRows = useMemo(() => buildTimelineLaneRows(lanes), [lanes]);
   const sortedLanes = useMemo(
@@ -549,139 +582,154 @@ export function TimelineViewport({
   const timelineEmpty = clips.length === 0;
   const seekEnabled = !disabled && !timelineEmpty;
 
+  const contentScrollWidth =
+    hScrollContentWidth > 0
+      ? hScrollContentWidth
+      : Math.max(layout.canvasWidth, trackViewWidth) +
+        TIMELINE_PLAYHEAD_GUTTER_PX;
+  const hBarViewportWidth =
+    hScrollViewportWidth > 0
+      ? hScrollViewportWidth
+      : Math.max(0, viewWidth - TIMELINE_LABEL_WIDTH);
+
   return (
     <div
       ref={boardRef}
       className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-panel)]"
       data-testid="timeline-viewport"
     >
-      <Playhead
-        tracksOriginX={TIMELINE_TRACKS_ORIGIN_X}
-        pixelsPerSecond={layout.pixelsPerSecond}
-        scrollLeft={scrollLeft}
-        scrollContainerRef={tracksScrollRef}
-        maxTime={layout.extentSeconds}
-        enabled={seekEnabled}
-        muted={timelineEmpty}
-      />
-
-      {/* Sticky at label: 2 columns — gutter overlay inside tracks column (web TimelineBoard) */}
-      <div className="grid shrink-0 grid-cols-[96px_minmax(0,1fr)] overflow-hidden bg-[var(--bg-panel)]">
-        <div
-          className="relative z-50 border-r border-[var(--border-subtle)] bg-[var(--bg-panel)]"
-          style={{ width: TIMELINE_LABEL_WIDTH, height: 28 }}
+      {/* Playhead scoped above the detached H-scrollbar row (CapCut). */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+        <Playhead
+          tracksOriginX={TIMELINE_TRACKS_ORIGIN_X}
+          pixelsPerSecond={layout.pixelsPerSecond}
+          scrollLeft={scrollLeft}
+          scrollContainerRef={tracksScrollRef}
+          maxTime={layout.extentSeconds}
+          enabled={seekEnabled}
+          muted={timelineEmpty}
         />
-        <div className="relative min-w-0 overflow-hidden">
-          {/* Gutter = spacing only (no fill); playhead sits in paddingInset */}
-          <div style={{ paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX }}>
-            <TimeRuler
-              duration={layout.extentSeconds}
-              fps={fps}
-              pixelsPerSecond={layout.pixelsPerSecond}
-              viewWidth={trackViewWidth}
-              scrollLeft={scrollLeft}
-              onSeekClick={seekEnabled ? seekToClientX : undefined}
-            />
+
+        {/* Sticky at label: 2 columns — gutter overlay inside tracks column (web TimelineBoard) */}
+        <div className="grid shrink-0 grid-cols-[96px_minmax(0,1fr)] overflow-hidden bg-[var(--bg-panel)]">
+          <div
+            className="relative z-50 border-r border-[var(--border-subtle)] bg-[var(--bg-panel)]"
+            style={{
+              width: TIMELINE_LABEL_WIDTH,
+              height: TIMELINE_RULER_HEIGHT_PX,
+            }}
+          />
+          <div className="relative z-30 min-w-0 overflow-hidden">
+            {/* Gutter = spacing only (no fill); playhead sits on ruler→tracks seam */}
+            <div style={{ paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX }}>
+              <TimeRuler
+                duration={layout.extentSeconds}
+                fps={fps}
+                pixelsPerSecond={layout.pixelsPerSecond}
+                viewWidth={trackViewWidth}
+                scrollLeft={scrollLeft}
+                onSeekClick={seekEnabled ? seekToClientX : undefined}
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[96px_minmax(0,1fr)] overflow-hidden">
-        <div
-          className="relative z-50 shrink-0 overflow-hidden border-r border-[var(--border-subtle)] bg-[var(--bg-panel)] select-none"
-          style={{ width: TIMELINE_LABEL_WIDTH }}
-          onWheel={(e) => {
-            if (tracksScrollRef.current) {
-              tracksScrollRef.current.scrollTop += e.deltaY;
-            }
-          }}
-        >
+        <div className="grid min-h-0 flex-1 grid-cols-[96px_minmax(0,1fr)] overflow-hidden">
           <div
-            className="will-change-transform"
-            style={{ transform: `translate3d(0, ${-scrollTop}px, 0)` }}
+            className="relative z-50 shrink-0 overflow-hidden border-r border-[var(--border-subtle)] bg-[var(--bg-panel)] select-none"
+            style={{ width: TIMELINE_LABEL_WIDTH }}
+            onWheel={(e) => {
+              if (tracksScrollRef.current) {
+                tracksScrollRef.current.scrollTop += e.deltaY;
+              }
+            }}
           >
-            <div style={{ height: mountedOffsetTop }} aria-hidden />
-            {mountedLaneRows.rows.map((row) => {
-              if (row.kind === "gap") {
+            <div
+              className="will-change-transform"
+              style={{ transform: `translate3d(0, ${-scrollTop}px, 0)` }}
+            >
+              <div style={{ height: mountedOffsetTop }} aria-hidden />
+              {mountedLaneRows.rows.map((row) => {
+                if (row.kind === "gap") {
+                  return (
+                    <div
+                      key={`l-${row.key}`}
+                      style={{ height: row.height }}
+                      aria-hidden
+                    />
+                  );
+                }
+                const lane = row.row.lane;
+                const idx = laneRows.findIndex((r) => r.id === row.row.id);
+                const trailingGap =
+                  idx >= 0 && idx < laneRows.length - 1 ? LANE_GAP_PX : 0;
                 return (
                   <div
-                    key={`l-${row.key}`}
-                    style={{ height: row.height }}
-                    aria-hidden
-                  />
+                    key={row.key}
+                    className="flex shrink-0 items-center justify-center px-2"
+                    style={{
+                      height: row.row.height,
+                      marginBottom: trailingGap,
+                      width: TIMELINE_LABEL_WIDTH,
+                    }}
+                    data-marquee-ignore="true"
+                  >
+                    <LaneFlagControls
+                      lane={lane}
+                      disabled={disabled}
+                      leading={
+                        <LaneLeadingIcon
+                          kind={resolveLaneContentKind(lane, clips, project)}
+                        />
+                      }
+                      onPatch={(patch) =>
+                        onExecute(
+                          {
+                            type: "update-lane-flags",
+                            laneId: lane.id,
+                            patch,
+                          },
+                          "Lane flags",
+                        )
+                      }
+                    />
+                  </div>
                 );
-              }
-              const lane = row.row.lane;
-              const idx = laneRows.findIndex((r) => r.id === row.row.id);
-              const trailingGap =
-                idx >= 0 && idx < laneRows.length - 1 ? LANE_GAP_PX : 0;
-              return (
-                <div
-                  key={row.key}
-                  className="flex shrink-0 items-center justify-center px-2"
-                  style={{
-                    height: row.row.height,
-                    marginBottom: trailingGap,
-                    width: TIMELINE_LABEL_WIDTH,
-                  }}
-                  data-marquee-ignore="true"
-                >
-                  <LaneFlagControls
-                    lane={lane}
-                    disabled={disabled}
-                    leading={
-                      <LaneLeadingIcon
-                        kind={resolveLaneContentKind(lane, clips, project)}
-                      />
-                    }
-                    onPatch={(patch) =>
-                      onExecute(
-                        {
-                          type: "update-lane-flags",
-                          laneId: lane.id,
-                          patch,
-                        },
-                        "Lane flags",
-                      )
-                    }
-                  />
-                </div>
-              );
-            })}
-            <div style={{ height: bottomSpacer }} aria-hidden />
+              })}
+              <div style={{ height: bottomSpacer }} aria-hidden />
+            </div>
           </div>
-        </div>
 
-        <TimelineContextMenu
-          className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-          selection={selection}
-          disabled={disabled}
-          canPaste={canPaste}
-          onCopy={onCopy}
-          onCut={onCut}
-          onPaste={onPaste}
-          onExecute={onExecute}
-          getPlayheadTime={getPlayheadTime}
-        >
-          <div className="relative min-h-0 flex-1">
-            <div
-              ref={tracksScrollRef}
-              className="relative h-full min-h-0 select-none overflow-x-scroll overflow-y-auto bg-[var(--bg-panel)]"
-              data-timeline-drop-zone="true"
-              data-pixels-per-second={layout.pixelsPerSecond}
-              onScroll={onScroll}
-              onPointerDown={(event) => {
-                if (disabled || timelineEmpty || event.button !== 0) return;
-                if ((event.target as HTMLElement).closest("[data-clip-id]"))
-                  return;
-                if (event.shiftKey) {
-                  beginMarquee(event);
-                  return;
-                }
-                onSelect(selectionNone());
-                seekToClientX(event.clientX);
-              }}
-            >
+          <TimelineContextMenu
+            className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+            selection={selection}
+            disabled={disabled}
+            canPaste={canPaste}
+            onCopy={onCopy}
+            onCut={onCut}
+            onPaste={onPaste}
+            onExecute={onExecute}
+            getPlayheadTime={getPlayheadTime}
+          >
+            <div className="relative min-h-0 flex-1">
+              <div
+                ref={tracksScrollRef}
+                className="timeline-tracks-scroll relative h-full min-h-0 select-none overflow-x-auto overflow-y-auto bg-[var(--bg-panel)]"
+                data-timeline-drop-zone="true"
+                data-pixels-per-second={layout.pixelsPerSecond}
+                onScroll={onScroll}
+                onPointerDown={(event) => {
+                  if (disabled || timelineEmpty || event.button !== 0) return;
+                  if ((event.target as HTMLElement).closest("[data-clip-id]"))
+                    return;
+                  if (event.shiftKey) {
+                    beginMarquee(event);
+                    return;
+                  }
+                  onSelect(selectionNone());
+                  seekToClientX(event.clientX);
+                }}
+              >
               {laneRows.length === 0 ? (
                 <p className="p-6 text-[13px] text-[var(--fg-muted)]">
                   No lanes in this project.
@@ -832,6 +880,63 @@ export function TimelineViewport({
                           <div className="-ml-px h-full w-0.5 bg-[var(--danger)] opacity-70" />
                         </div>
                       ) : null}
+                      {clipMovePreview?.isInsert &&
+                      clipMovePreview.valid &&
+                      clipMovePreview.contentTop != null ? (
+                        <>
+                          <div
+                            className="pointer-events-none absolute z-[30] h-8 -translate-y-1/2 overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md"
+                            aria-hidden
+                            style={{
+                              top: clipMovePreview.contentTop,
+                              left:
+                                TIMELINE_PLAYHEAD_GUTTER_PX +
+                                clipMovePreview.startTime *
+                                  layout.pixelsPerSecond,
+                              width: Math.max(
+                                24,
+                                clipMovePreview.duration *
+                                  layout.pixelsPerSecond,
+                              ),
+                            }}
+                          />
+                          <div
+                            data-testid="timeline-clip-insert-indicator"
+                            className="pointer-events-none absolute z-[40] h-px bg-[#14B8A6]"
+                            aria-hidden
+                            style={{
+                              top: clipMovePreview.contentTop,
+                              left: 0,
+                              width: Math.max(
+                                layout.canvasWidth,
+                                trackViewWidth,
+                              ),
+                            }}
+                          />
+                        </>
+                      ) : null}
+                      {/* Web GlobalDragPreview cyan — follows cursor during clip move */}
+                      {clipMovePreview &&
+                      clipMovePreview.clientX != null &&
+                      clipMovePreview.clientY != null ? (
+                        <div
+                          className="pointer-events-none fixed z-[35] flex h-8 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl"
+                          aria-hidden
+                          data-testid="timeline-clip-move-cyan"
+                          style={{
+                            left: clipMovePreview.clientX,
+                            top: clipMovePreview.clientY - 16,
+                            width: Math.max(
+                              24,
+                              clipMovePreview.duration * layout.pixelsPerSecond,
+                            ),
+                          }}
+                        >
+                          <span className="truncate">
+                            {clipMovePreview.label || clipMovePreview.clipId}
+                          </span>
+                        </div>
+                      ) : null}
                       {marquee ? (
                         <div
                           className="pointer-events-none absolute z-[6] border border-[var(--timeline-playhead)] bg-white/10"
@@ -848,9 +953,28 @@ export function TimelineViewport({
                   )}
                 </div>
               )}
+              </div>
             </div>
-          </div>
-        </TimelineContextMenu>
+          </TimelineContextMenu>
+        </div>
+      </div>
+
+      {/* Detached CapCut H-scrollbar — custom thumb, panel-colored track */}
+      <div
+        className="relative z-[50] grid shrink-0 grid-cols-[96px_minmax(0,1fr)] bg-[var(--bg-panel)]"
+        data-testid="timeline-h-scroll-row"
+      >
+        <div
+          className="border-r border-[var(--border-subtle)] bg-[var(--bg-panel)]"
+          style={{ width: TIMELINE_LABEL_WIDTH }}
+          aria-hidden
+        />
+        <TimelineHScrollBar
+          scrollLeft={scrollLeft}
+          contentWidth={contentScrollWidth}
+          viewportWidth={hBarViewportWidth}
+          onScrollLeft={onHScrollLeft}
+        />
       </div>
     </div>
   );

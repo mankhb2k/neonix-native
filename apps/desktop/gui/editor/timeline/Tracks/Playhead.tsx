@@ -16,6 +16,7 @@ import {
   clientXToTimelineTime,
   timelineTimeToViewportLeft,
 } from "../timeline-seek";
+import { TIMELINE_RULER_HEIGHT_PX } from "../timeline-scale";
 
 type Props = {
   tracksOriginX: number;
@@ -29,6 +30,11 @@ type Props = {
 };
 
 const HIT_STRIP_WIDTH_PX = 14;
+const HANDLE_HEIGHT_PX = 13;
+/** CapCut: head sits on the ruler→tracks seam (below time labels). */
+const HANDLE_TOP_PX = TIMELINE_RULER_HEIGHT_PX - 2;
+/** Needle starts under the ruler so ticks stay readable. */
+const NEEDLE_TOP_PX = TIMELINE_RULER_HEIGHT_PX;
 
 function PlayheadHandleIcon({ isMuted = false }: { isMuted?: boolean }) {
   return (
@@ -184,7 +190,7 @@ export function Playhead({
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none absolute bottom-0 top-0 z-40 will-change-transform"
+      className="pointer-events-none absolute inset-y-0 z-[45] will-change-transform"
       data-testid="timeline-playhead"
       data-muted={muted ? "true" : undefined}
       style={{ left: 0 }}
@@ -196,12 +202,12 @@ export function Playhead({
         aria-label="Playhead"
         aria-disabled={muted || !enabled}
         tabIndex={interactive ? 0 : -1}
-        className={`absolute top-0 bottom-0 -translate-x-1/2 touch-none ${
+        className={`absolute bottom-0 -translate-x-1/2 touch-none ${
           interactive
             ? "pointer-events-auto cursor-ew-resize"
             : "pointer-events-none"
         }`}
-        style={{ left: 0, width: HIT_STRIP_WIDTH_PX }}
+        style={{ left: 0, top: NEEDLE_TOP_PX, width: HIT_STRIP_WIDTH_PX }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -212,17 +218,17 @@ export function Playhead({
         className={`pointer-events-none absolute bottom-0 w-px -translate-x-1/2 ${
           muted ? "bg-white/30" : "bg-[var(--timeline-playhead)]"
         }`}
-        style={{ left: 0, top: 12 }}
+        style={{ left: 0, top: NEEDLE_TOP_PX }}
         aria-hidden
       />
 
       <div
-        className={`absolute top-0 left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none ${
+        className={`absolute left-0 z-10 flex w-5 -translate-x-1/2 items-start justify-center touch-none ${
           interactive
             ? "pointer-events-auto cursor-ew-resize"
             : "pointer-events-none opacity-60"
         }`}
-        style={{ height: 13 }}
+        style={{ top: HANDLE_TOP_PX, height: HANDLE_HEIGHT_PX }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
