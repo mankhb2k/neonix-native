@@ -19,15 +19,15 @@ import {
   type ClipMoveDropTarget,
   type ClipMovePreview,
 } from "../clips/clip-move-geometry";
+import { autoScrollTimelineNearEdge } from "../drop/auto-scroll";
 import {
-  autoScrollTimelineNearEdge,
   getTimelineDropHost,
   pointerContentXAtPoint,
-} from "./drop-host";
+} from "../drop/timeline-drop-host";
 import {
   resolveClipMoveDropAtY,
   type TimelineDropTarget,
-} from "./lane-drop-target";
+} from "../drop/lane-drop-target";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import { cn } from "../../../ui";

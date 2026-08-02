@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { resolveTimelineDropGeometry } from "../drop/drop-geometry";
+import { resolveTimelineDropGeometry } from "./drop-geometry";
 import {
   getTimelineDropHost,
   resolveDropGeometryAtPoint,
   resolveLibraryPlacement,
   setTimelineDropHost,
-} from "./drop-host";
+} from "./library-drop";
 import type { LibraryPayload } from "../../library/model/library-payload";
 
 const BASE_POLICY = {

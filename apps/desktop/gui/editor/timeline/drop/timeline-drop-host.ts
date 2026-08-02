@@ -1,0 +1,65 @@
+/**
+ * Active Timeline drop-host registry (DOM scroll surface + layout metrics).
+ */
+
+import type { TimelineLane } from "@motionvideo/editor-core";
+import { contentXFromPointer } from "./drop-geometry";
+
+export type TimelineDropHost = {
+  scrollEl: HTMLElement;
+  lanes: TimelineLane[];
+  lanesTop: number;
+  laneHeight: number;
+  laneHeightFor?: (lane: TimelineLane) => number;
+  laneGapPx?: number;
+  pixelsPerSecond: number;
+  tracksOriginX: number;
+  /** Existing clip edge times for CapCut live snap while dragging from library. */
+  snapPoints?: number[];
+  snapThresholdSec?: number;
+};
+
+let host: TimelineDropHost | null = null;
+
+export function setTimelineDropHost(next: TimelineDropHost | null): void {
+  host = next;
+}
+
+export function getTimelineDropHost(): TimelineDropHost | null {
+  return host;
+}
+
+export function pointerContentXAtPoint(clientX: number): number | null {
+  if (!host) return null;
+  return contentXFromPointer({
+    clientX,
+    scrollEl: host.scrollEl,
+    tracksOriginX: host.tracksOriginX,
+  });
+}
+
+export function startTimeAtPoint(clientX: number): number {
+  if (!host) return 0;
+  const x = contentXFromPointer({
+    clientX,
+    scrollEl: host.scrollEl,
+    tracksOriginX: host.tracksOriginX,
+  });
+  return Math.max(0, x / Math.max(1e-6, host.pixelsPerSecond));
+}
+
+export function isPointerNearTimeline(
+  clientX: number,
+  clientY: number,
+  padPx = 48,
+): boolean {
+  const scroll = host?.scrollEl;
+  if (!scroll) return false;
+  const rect = scroll.getBoundingClientRect();
+  return (
+    clientX >= rect.left - padPx &&
+    clientX <= rect.right + padPx &&
+    clientY >= rect.top - padPx &&
+    clientY <= rect.bottom + padPx
+  );
+}

@@ -2,7 +2,7 @@
  * Commit library payload with optional PlacementTarget from drop geometry.
  */
 
-import { resolveLibraryPlacement } from "../../timeline/Tracks/drop-host";
+import { resolveLibraryPlacement } from "../../timeline/drop/library-drop";
 import { payloadToTimelineCommand } from "./payload-to-timeline-command";
 import type { LibraryPayload } from "../model/library-payload";
 import type { PlacementTarget, TimelineCommand } from "@motionvideo/editor-core";

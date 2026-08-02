@@ -9,10 +9,8 @@ import {
   getSession,
   move,
 } from "../interactions/library-drag-session";
-import {
-  autoScrollTimelineNearEdge,
-  resolveLibraryPlacement,
-} from "../../timeline/Tracks/drop-host";
+import { autoScrollTimelineNearEdge } from "../../timeline/drop/auto-scroll";
+import { resolveLibraryPlacement } from "../../timeline/drop/library-drop";
 import type { LibraryCommitPoint } from "../adapters/commit-library-payload";
 import type { LibraryPayload } from "../model/library-payload";
 

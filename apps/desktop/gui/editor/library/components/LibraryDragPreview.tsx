@@ -1,9 +1,7 @@
 import { Film, Music } from "lucide-react";
 import { DEFAULT_FRAME_DURATION } from "@motionvideo/editor-core";
 import { useEffect, useState } from "react";
-import {
-  getTimelineDropHost,
-} from "../../timeline/Tracks/drop-host";
+import { getTimelineDropHost } from "../../timeline/drop/timeline-drop-host";
 import { hitTimelineDropZone } from "../../timeline/drop/drop-geometry";
 import {
   getSession,

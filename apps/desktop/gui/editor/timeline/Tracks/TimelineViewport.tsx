@@ -12,13 +12,13 @@ import { subscribe as subscribeLibraryDrag } from "../../library/interactions/li
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import { ClipStrip, type ClipMovePreview } from "./ClipStrip";
 import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
+import { autoScrollTimelineNearEdge } from "../drop/auto-scroll";
 import {
-  autoScrollTimelineNearEdge,
   resolveDropGeometryAtPoint,
   setTimelineDropHost,
-  type TimelineDropHost,
   type LibraryDropPreview,
-} from "./drop-host";
+  type TimelineDropHost,
+} from "../drop/library-drop";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import {
