@@ -1,7 +1,8 @@
 import os from "node:os";
+import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker } from "node:worker_threads";
 import type { CompiledProject } from "../compiler";
 import { sizeForAspect } from "./draw";
@@ -12,7 +13,14 @@ export { sizeForAspect } from "./draw";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
-const FRAME_WORKER_URL = new URL("./frame-worker.ts", import.meta.url);
+
+function resolveFrameWorkerUrl(): URL {
+  const packaged = path.join(__dirname, "frame-worker.cjs");
+  if (existsSync(packaged)) return pathToFileURL(packaged);
+  return new URL("./frame-worker.ts", import.meta.url);
+}
+
+const FRAME_WORKER_URL = resolveFrameWorkerUrl();
 
 export type RenderResult = {
   projectId: string;

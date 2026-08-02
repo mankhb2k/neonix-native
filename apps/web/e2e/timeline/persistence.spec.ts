@@ -46,4 +46,44 @@ test.describe("timeline persistence", () => {
     await editor.expectClipInLane("clip.ov", "lane.overlay.1");
     await editor.expectLaneRemoved("lane.overlay.0");
   });
+
+  test("committed duration edit survives immediate reload (close-flush smoke)", async ({
+    page,
+  }) => {
+    const projectId = "e2e.timeline.persist-close-flush";
+    const editor = await openSeededEditor(
+      page,
+      projectId,
+      buildMainOnlyProject(projectId),
+    );
+    await editor.waitReady("E2E Clip");
+
+    // Simulate close-save flush: persist current document then reload without waiting for debounce.
+    await page.evaluate((id) => {
+      const key = `motionvideo.project.${id}`;
+      const raw = window.localStorage.getItem(key);
+      if (!raw) throw new Error("missing per-project storage key");
+      const parsed = JSON.parse(raw) as {
+        project: {
+          scenes: Array<{ id: string; duration: number }>;
+        };
+      };
+      const scene = parsed.project.scenes[0];
+      if (!scene) throw new Error("missing scene");
+      scene.duration = 12.5;
+      window.localStorage.setItem(key, JSON.stringify(parsed));
+    }, projectId);
+
+    await editor.reload();
+    await editor.waitReady("E2E Clip");
+    const duration = await page.evaluate((id) => {
+      const raw = window.localStorage.getItem(`motionvideo.project.${id}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as {
+        project: { scenes: Array<{ duration: number }> };
+      };
+      return parsed.project.scenes[0]?.duration ?? null;
+    }, projectId);
+    expect(duration).toBe(12.5);
+  });
 });

@@ -1,63 +1,57 @@
-# MotionVideo Desktop (Electron)
+# MotionVideo Desktop (Electron + Vite)
 
-Spike shell: cửa sổ Electron bọc UI Next hiện tại. **Chưa** đóng gói installer.
+Electron shell với **Vite renderer mặc định**. Legacy Next chỉ dùng khi rollback: `MOTIONVIDEO_RENDERER=legacy` / `pnpm dev:legacy`.
 
-## Ship cái gì? (trả lời ngắn)
+| Mode | Flag | Loads |
+|---|---|---|
+| **Vite** (default) | unset / `MOTIONVIDEO_RENDERER=vite` / packaged | Vite dev hoặc `app://bundle/` |
+| **Legacy** (rollback) | `MOTIONVIDEO_RENDERER=legacy` | Next.js URL |
 
-| | Dev | Prod (hướng đi) |
-|--|-----|-----------------|
-| Electron / Chromium | Có (~100MB+) | Có — **luôn** nặng nhất |
-| Source Next + monorepo `node_modules` | Máy bạn đang có | **Không** ship vào máy user |
-| Artifact đã build | Không cần | **Có** — Next `standalone` (hoặc static sau này) + app Electron |
+Migration: [`docs/migration/vite-ui/README.md`](../../docs/migration/vite-ui/README.md).
 
-**Không** đóng gói cả repo / toàn bộ deps pnpm vào Electron.  
-**Có** đóng gói: binary Electron + output build (folder `.next/standalone` + static, hoặc bản static export nếu bỏ được API).
-
-Chromium trong Electron chiếm phần lớn dung lượng; Next standalone thêm Node runtime nhỏ + code app — nặng vừa, không phải “ship nguyên Next monorepo”.
-
-## Dev
-
-Cần Electron postinstall (pnpm 10): `onlyBuiltDependencies: [electron]` đã có trong `pnpm-workspace.yaml`.
-
-Mặc định Electron load `http://localhost:3001/app` (tách cổng với web `:3000`).
-
-> Electron **không** chiếm cổng — chỉ mở URL. Cần một Next đang listen `:3001`.
-
-Terminal A — Next cho web (tuỳ chọn):
-
-```bash
-pnpm dev
-```
-
-Terminal B — Next cho desktop:
-
-```bash
-pnpm dev:desktop:next
-```
-
-Terminal C — Electron:
+## Dev — Vite (default)
 
 ```bash
 pnpm dev:desktop
+# hoặc
+pnpm --filter @motionvideo/desktop dev
 ```
 
-Đổi URL:
+Mặc định URL: `http://127.0.0.1:5173/` (ghi đè bằng `MOTIONVIDEO_VITE_URL`).
+
+## Dev — Legacy rollback
+
+Terminal A — Next trên `:3000`:
 
 ```bash
-MOTIONVIDEO_DESKTOP_URL=http://localhost:3001/app/editor/<id> pnpm dev:desktop
+pnpm --filter @motionvideo/web dev
 ```
 
-Bridge preload: `window.motionvideoDesktop` (`isDesktop`, `getInfo()`).
+Terminal B:
 
-Title bar kiểu Cursor: `titleBarStyle: 'hidden'` + `titleBarOverlay` (Windows), không còn thanh menu native File/Edit. Menu nằm trong UI (`DesktopMenuBar` / `TitleBar`).
+```bash
+pnpm --filter @motionvideo/desktop dev:legacy
+```
 
-## Prod (chưa scaffold builder)
+## Simulated production
 
-1. `next build` với `output: 'standalone'` trên `@motionvideo/web`
-2. Electron main spawn server từ folder standalone (localhost port nội bộ) **hoặc** chỉ `loadFile` nếu chuyển editor sang static
-3. `electron-builder` / Forge đóng `.exe` / `.dmg` chứa: Electron + standalone (+ ffmpeg/worker nếu cần)
+```bash
+pnpm --filter @motionvideo/desktop start:prod
+```
 
-## Layout desktop khác web
+## Scripts
 
-Giữ panel trong `apps/web/components/editor/*`.  
-Sau spike: thêm `DesktopEditorShell` (bố cục khác) — Electron vẫn load Next route đó. Extract `packages/editor-ui` chỉ khi thật sự cần.
+| Script | Purpose |
+|---|---|
+| `dev` / `dev:vite` | Vite renderer + Electron |
+| `dev:legacy` | Next legacy |
+| `build` / `build:release` | Main + preload + renderer |
+| `test` / `typecheck` / `lint` | Gates |
+| `test:desktop-paths` | Artifact path smoke |
+| `test:web-ban` | ESLint web-import probe |
+
+## Architecture notes
+
+- Main: esbuild bundle; roots via `DesktopPaths` (`app.getAppPath()`), not `__dirname` depth.
+- Renderer: React + session/`editor-core` commands; no `apps/web` imports.
+- Packaged: `app://` protocol serves `dist-renderer`.

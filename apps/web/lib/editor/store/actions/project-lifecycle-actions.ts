@@ -68,6 +68,8 @@ export function createProjectLifecycleActions(
         timelineClipboard: null,
         canUndo: false,
         canRedo: false,
+        dirtyRevision: 0,
+        savedRevision: 0,
       }));
       get().clearHistory();
 

@@ -1,0 +1,125 @@
+.diagnostics {
+  min-height: 100vh;
+  padding: 48px 56px 64px;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1a3d2e 0%, transparent 55%),
+    var(--bg);
+}
+
+.diagnostics__header {
+  max-width: 40rem;
+  margin-bottom: 2rem;
+  -webkit-app-region: drag;
+}
+
+.diagnostics__eyebrow {
+  margin: 0 0 0.5rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.diagnostics h1 {
+  margin: 0 0 0.75rem;
+  font-size: 2.5rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.diagnostics__lead {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.diagnostics__panel {
+  max-width: 40rem;
+  margin-top: 1.25rem;
+  padding: 1.25rem 1.35rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  -webkit-app-region: no-drag;
+}
+
+.diagnostics__panel h2 {
+  margin: 0 0 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.diagnostics__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1.25rem;
+  margin: 0;
+}
+
+.diagnostics__grid dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.diagnostics__grid dd {
+  margin: 0.15rem 0 0;
+  font-family: ui-monospace, "Cascadia Code", monospace;
+  font-size: 0.95rem;
+}
+
+.diagnostics__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.diagnostics__actions button {
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #1c1c1f;
+  color: var(--fg);
+}
+
+.diagnostics__actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.diagnostics__muted {
+  margin: 0.85rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.diagnostics__error {
+  margin: 0;
+  color: #f87171;
+}
+
+.diagnostics__mark {
+  display: block;
+  border-radius: 10px;
+  background: #0f1f18;
+  padding: 8px;
+}
+
+.error-fallback {
+  min-height: 100vh;
+  padding: 48px;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.error-fallback button {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #1c1c1f;
+  color: var(--fg);
+}

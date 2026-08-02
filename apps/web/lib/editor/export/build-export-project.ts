@@ -1,6 +1,6 @@
 /**
  * Bake editor timeline → MotionProject tuần tự hợp lệ cho export/compiler.
- * Overlay compose ngoài schema — flatten theo interval (P0 bake).
+ * Overlay compose ngoài schema — flatten theo interval với local-time slice.
  */
 
 import {
@@ -19,6 +19,9 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@/lib/editor/timeline-clips";
+import { documentFromStoreState } from "@/lib/editor/timeline/document";
+import { validateTimelineDocument } from "@/lib/editor/timeline/document";
+import { clipLocalTime, sliceScene } from "@/lib/editor/export/slice-scene";
 
 export type EditorExportSnapshot = {
   project: MotionProject;
@@ -40,13 +43,6 @@ function emptyPadScene(id: string, duration: number, name: string): MotionScene 
   };
 }
 
-function cloneSceneWithDuration(scene: MotionScene, duration: number): MotionScene {
-  return {
-    ...JSON.parse(JSON.stringify(scene)) as MotionScene,
-    duration: Math.max(0.001, duration),
-  };
-}
-
 /** Remap overlay nodes vào base scene (IDs mới, giữ parent graph). */
 function mergeOverlayNodes(
   base: MotionScene,
@@ -57,22 +53,33 @@ function mergeOverlayNodes(
   for (const node of overlay.nodes) {
     idMap.set(node.id, `${node.id}__${tag}`);
   }
+  const remapId = (id: string | undefined): string | undefined => {
+    if (!id) return id;
+    return idMap.has(id) ? idMap.get(id)! : id;
+  };
   const remappedNodes: MotionNode[] = overlay.nodes.map((node) => ({
     ...node,
     id: idMap.get(node.id)!,
-    parentId:
-      node.parentId && idMap.has(node.parentId)
-        ? idMap.get(node.parentId)!
-        : node.parentId,
+    parentId: remapId(node.parentId ?? undefined) ?? null,
   }));
-  const remappedClips = (overlay.clips ?? []).map((clip) => ({
-    ...clip,
-    id: uid("clip"),
-    targetId:
-      clip.targetId && idMap.has(clip.targetId)
-        ? idMap.get(clip.targetId)!
-        : clip.targetId,
-  }));
+  const remappedClips = (overlay.clips ?? []).map((clip) => {
+    let source = clip.source;
+    if (source.kind === "tracks") {
+      source = {
+        ...source,
+        tracks: source.tracks.map((track) => ({
+          ...track,
+          targetId: remapId(track.targetId) ?? track.targetId,
+        })),
+      };
+    }
+    return {
+      ...clip,
+      id: uid("clip"),
+      targetId: remapId(clip.targetId),
+      source,
+    };
+  });
   return {
     ...base,
     nodes: [...base.nodes, ...remappedNodes],
@@ -108,7 +115,6 @@ function buildAudioTracks(
   clips: TimelineClip[],
   lanes: TimelineLane[],
 ): MotionProject["timeline"]["audioTracks"] {
-  // Lane muted → volume 0 khi bake. Preview playback audio chưa wire — chỉ export.
   const mutedLanes = new Set(
     lanes
       .filter((lane) => lane.kind === "audio" && lane.muted)
@@ -134,12 +140,36 @@ function buildAudioTracks(
   });
 }
 
+function findClipById(
+  clips: TimelineClip[],
+  clipId: string,
+): TimelineClip | undefined {
+  return clips.find((clip) => clip.id === clipId);
+}
+
 /**
  * Flatten editor snapshot → MotionProject tuần tự.
  * Base gaps → pad scenes; overlay active → merge nodes vào segment.
+ * Rejects invalid TimelineDocument when validation fails.
  */
 export function buildExportProject(snapshot: EditorExportSnapshot): MotionProject {
   const { project, timelineClips, timelineLanes } = snapshot;
+  const doc = documentFromStoreState({
+    project,
+    timelineClips,
+    timelineLanes,
+  });
+  if (doc) {
+    const validation = validateTimelineDocument(doc);
+    if (!validation.valid) {
+      throw new Error(
+        `Invalid TimelineDocument for export: ${validation.violations
+          .map((v) => v.reason)
+          .join(", ")}`,
+      );
+    }
+  }
+
   const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
   const boundaries = collectBoundaryTimes(timelineClips, timelineLanes);
   const contentEnd = timelineClips.reduce(
@@ -147,10 +177,8 @@ export function buildExportProject(snapshot: EditorExportSnapshot): MotionProjec
     0,
   );
   if (boundaries.length === 0 || contentEnd <= 0) {
-    // Không có clip visual — giữ project tối thiểu hợp lệ.
     const fallback =
-      project.scenes[0] ??
-      emptyPadScene(uid("pad"), 0.5, "Empty");
+      project.scenes[0] ?? emptyPadScene(uid("pad"), 0.5, "Empty");
     return parseMotionProject({
       ...project,
       scenes: [{ ...fallback, duration: Math.max(0.5, fallback.duration) }],
@@ -182,22 +210,41 @@ export function buildExportProject(snapshot: EditorExportSnapshot): MotionProjec
     let scene: MotionScene;
     if (baseLayer) {
       const source = scenesById.get(baseLayer.sceneId);
+      const baseClip = findClipById(timelineClips, baseLayer.clipId);
+      const localStart = baseClip
+        ? clipLocalTime(baseClip.startTime, baseClip.duration, t0)
+        : 0;
       scene = source
-        ? cloneSceneWithDuration(source, duration)
+        ? sliceScene(source, localStart, duration)
         : emptyPadScene(uid("pad"), duration, "Missing base");
       scene = { ...scene, id: uid("bake") };
       for (const overlay of overlayLayers) {
         const ovScene = scenesById.get(overlay.sceneId);
         if (!ovScene) continue;
-        scene = mergeOverlayNodes(scene, ovScene, overlay.clipId);
+        const ovClip = findClipById(timelineClips, overlay.clipId);
+        const ovLocal = ovClip
+          ? clipLocalTime(ovClip.startTime, ovClip.duration, t0)
+          : 0;
+        scene = mergeOverlayNodes(
+          scene,
+          sliceScene(ovScene, ovLocal, duration),
+          overlay.clipId,
+        );
       }
     } else if (overlayLayers.length > 0) {
-      // Gap base nhưng có overlay — pad + overlay nodes.
       scene = emptyPadScene(uid("bake"), duration, "Overlay gap");
       for (const overlay of overlayLayers) {
         const ovScene = scenesById.get(overlay.sceneId);
         if (!ovScene) continue;
-        scene = mergeOverlayNodes(scene, ovScene, overlay.clipId);
+        const ovClip = findClipById(timelineClips, overlay.clipId);
+        const ovLocal = ovClip
+          ? clipLocalTime(ovClip.startTime, ovClip.duration, t0)
+          : 0;
+        scene = mergeOverlayNodes(
+          scene,
+          sliceScene(ovScene, ovLocal, duration),
+          overlay.clipId,
+        );
       }
     } else {
       scene = emptyPadScene(uid("bake"), duration, "Gap");
@@ -237,4 +284,30 @@ export function findBaseClipAtTimeForExport(
     .filter((clip) => clip.laneId === baseId && isSceneClip(clip))
     .sort((a, b) => a.startTime - b.startTime);
   return findActiveClipAtTime(sorted, time);
+}
+
+/** Map global timeline time → baked scene + local time within that scene. */
+export function resolveBakedLocalTime(
+  baked: MotionProject,
+  globalTime: number,
+): { sceneId: string; localTime: number } | null {
+  let cursor = 0;
+  for (const sceneId of baked.timeline.sceneOrder) {
+    const scene = baked.scenes.find((s) => s.id === sceneId);
+    if (!scene) continue;
+    const end = cursor + scene.duration;
+    if (globalTime < end || Math.abs(globalTime - end) < 1e-9) {
+      if (globalTime >= cursor || Math.abs(globalTime - cursor) < 1e-9) {
+        return {
+          sceneId,
+          localTime: Math.max(0, Math.min(scene.duration - 1e-6, globalTime - cursor)),
+        };
+      }
+    }
+    if (globalTime >= cursor && globalTime < end) {
+      return { sceneId, localTime: globalTime - cursor };
+    }
+    cursor = end;
+  }
+  return null;
 }

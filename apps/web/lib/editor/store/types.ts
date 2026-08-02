@@ -50,6 +50,10 @@ export type EditorStoreState = {
   /** Undo / Redo runtime state */
   canUndo: boolean;
   canRedo: boolean;
+
+  /** Document dirty tracking — dirty when dirtyRevision !== savedRevision. */
+  dirtyRevision: number;
+  savedRevision: number;
 };
 
 export type EditorStoreActions = {
@@ -143,6 +147,8 @@ export type EditorStoreActions = {
   setExporting: (value: boolean) => void;
   setTimelineZoom: (zoom: number) => void;
   fitTimeline: () => void;
+  /** Mark current dirtyRevision as saved (after successful persist). */
+  markDocumentSaved: () => void;
 };
 
 export type EditorStore = EditorStoreState & EditorStoreActions;

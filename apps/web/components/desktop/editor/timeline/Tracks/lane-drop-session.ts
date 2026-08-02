@@ -1,8 +1,10 @@
 /**
  * Shared lane-rect cache + drop-target helpers for clip move / sidebar drag.
- * Không phải Zustand — pure + mutable session cache trong hook ref.
+ * Prefer DomGeometryAdapter for new code; these wrappers keep existing hooks working.
  */
 
+import type { RefObject } from "react";
+import { DomGeometryAdapter } from "../interactions/dom-geometry-adapter";
 import {
   absoluteAudioLanes,
   absoluteSceneLanes,
@@ -19,15 +21,16 @@ import {
   type RelativeLaneHit,
   type TimelineDropTarget,
 } from "./lane-drop-target";
-import type { RefObject } from "react";
 
 export type LaneRectCache = {
   scene: RelativeLaneHit[] | null;
   audio: RelativeAudioLaneHit[] | null;
+  /** Optional shared adapter — when set, resolve* prefer it. */
+  adapter?: DomGeometryAdapter | null;
 };
 
 export function createEmptyLaneRectCache(): LaneRectCache {
-  return { scene: null, audio: null };
+  return { scene: null, audio: null, adapter: null };
 }
 
 export function invalidateLaneRectCache(cache: LaneRectCache): void {
@@ -36,6 +39,7 @@ export function invalidateLaneRectCache(cache: LaneRectCache): void {
   cache.scene = null;
   // eslint-disable-next-line no-param-reassign -- intentional in-place invalidate
   cache.audio = null;
+  cache.adapter?.invalidateAll();
 }
 
 /** Ensure scene cache — recache nếu đã invalidate. */
@@ -70,6 +74,13 @@ export function resolveVisualDropAtPointer(
   wasInsert: boolean,
   maxOverlayOrder: number,
 ): TimelineDropTarget | null {
+  if (cache.adapter) {
+    return cache.adapter.resolveVisualDrop(
+      clientY,
+      wasInsert,
+      maxOverlayOrder,
+    );
+  }
   const wsTop = workspace.getBoundingClientRect().top;
   const relative = ensureSceneLaneCache(cache, workspace, wsTop);
   const lanes =
@@ -93,6 +104,9 @@ export function resolveAudioDropAtPointer(
   wasInsert: boolean,
   maxAudioOrder: number,
 ): TimelineDropTarget | null {
+  if (cache.adapter) {
+    return cache.adapter.resolveAudioDrop(clientY, wasInsert, maxAudioOrder);
+  }
   const wsTop = workspace.getBoundingClientRect().top;
   const relative = ensureAudioLaneCache(cache, workspace, wsTop);
   const lanes =
@@ -116,6 +130,10 @@ export function bindLaneCacheInvalidation(
   cache: LaneRectCache,
   onInvalidated?: () => void,
 ): () => void {
+  if (cache.adapter) {
+    cache.adapter.bind(workspaceRef.current, scrollContainerRef.current);
+    return cache.adapter.bindInvalidation(onInvalidated);
+  }
   const invalidate = () => {
     invalidateLaneRectCache(cache);
     onInvalidated?.();

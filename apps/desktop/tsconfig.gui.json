@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@gui/*": ["gui/*"]
+    }
+  },
+  "include": [
+    "gui/**/*.ts",
+    "gui/**/*.tsx",
+    "shared/ipc/contracts.ts",
+    "shared/ipc/channels.ts",
+    "shared/ipc/errors.ts",
+    "shared/project-file/**/*.ts"
+  ], "exclude": ["**/*.test.ts", "**/*.test.tsx"]}

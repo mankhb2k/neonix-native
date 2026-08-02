@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -13,7 +13,14 @@ import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "../../..");
+/** Dev: monorepo root. Packaged CLI: prefer env / ignore fixtures when unset. */
+const REPO_ROOT = process.env.MOTIONVIDEO_REPO_ROOT
+  ? path.resolve(process.env.MOTIONVIDEO_REPO_ROOT)
+  : path.resolve(__dirname, "../../..");
+
+function emitProgress(stage: string, ratio: number): void {
+  process.stderr.write(`progress\t${stage}\t${ratio}\n`);
+}
 
 async function loadFixtureComponents(): Promise<MotionComponentV2[]> {
   const componentRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2", "components");
@@ -48,10 +55,19 @@ async function readInput(): Promise<unknown> {
  * CLI: motion JSON → MP4.
  * Usage: tsx src/cli-export.ts [path.mt]
  *        cat project.mt | tsx src/cli-export.ts
+ *
+ * Env (optional, backward compatible):
+ * - MOTIONVIDEO_EXPORT_OUT_DIR — work dir (default repo tmp/)
+ * - MOTIONVIDEO_EXPORT_ASSET_BASE — assetBaseDir (default docs/fixtures/v2)
+ * - MOTIONVIDEO_EXPORT_MP4_PATH — copy final MP4 here after encode
+ * - MOTIONVIDEO_EXPORT_FPS — render fps (default 24)
+ * - MOTIONVIDEO_EXPORT_SCALE — scale vs FHD (default 0.5)
+ *
  * Prints JSON { ok, mp4Path, projectId } to stdout.
  */
 async function main() {
   const raw = await readInput();
+  emitProgress("planning", 0.2);
   const project = parseMotionProject(raw);
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {
@@ -61,24 +77,57 @@ async function main() {
     throw new Error(`Unknown animation presets: ${detail}`);
   }
 
-  const outDir = path.join(REPO_ROOT, "tmp");
+  const fixturesRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2");
+  const outDir = process.env.MOTIONVIDEO_EXPORT_OUT_DIR
+    ? path.resolve(process.env.MOTIONVIDEO_EXPORT_OUT_DIR)
+    : path.join(REPO_ROOT, "tmp");
+  const assetBaseDir = process.env.MOTIONVIDEO_EXPORT_ASSET_BASE
+    ? path.resolve(process.env.MOTIONVIDEO_EXPORT_ASSET_BASE)
+    : fixturesRoot;
+  const finalMp4Path = process.env.MOTIONVIDEO_EXPORT_MP4_PATH
+    ? path.resolve(process.env.MOTIONVIDEO_EXPORT_MP4_PATH)
+    : undefined;
+  const fpsEnv = Number(process.env.MOTIONVIDEO_EXPORT_FPS);
+  const scaleEnv = Number(process.env.MOTIONVIDEO_EXPORT_SCALE);
+  const fps =
+    Number.isFinite(fpsEnv) && fpsEnv > 0
+      ? fpsEnv
+      : (project.metadata.fps ?? 24);
+  const scale =
+    Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
+
   await mkdir(outDir, { recursive: true });
   const mtPath = path.join(outDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
 
   const components = await loadFixtureComponents();
   const compiled = compileMotionProject(project, { components });
-  const fixturesRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2");
+
+  emitProgress("rendering", 0.45);
   const rendered = await renderCompiledProject(compiled, {
-    fps: 24,
-    scale: 0.5,
+    fps,
+    scale,
     outDir: path.join(outDir, "frames", project.metadata.id),
-    assetBaseDir: fixturesRoot,
+    assetBaseDir,
   });
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled, fixturesRoot);
-  const mp4Path = files[0]?.path;
+
+  emitProgress("encoding", 0.75);
+  const files = await encodeOutputs(
+    rendered,
+    project.metadata.aspectRatio,
+    compiled,
+    assetBaseDir,
+  );
+  let mp4Path = files[0]?.path;
   if (!mp4Path) throw new Error("Encode produced no file");
 
+  if (finalMp4Path) {
+    await mkdir(path.dirname(finalMp4Path), { recursive: true });
+    await copyFile(mp4Path, finalMp4Path);
+    mp4Path = finalMp4Path;
+  }
+
+  emitProgress("done", 1);
   process.stdout.write(
     `${JSON.stringify({ ok: true, mp4Path, projectId: project.metadata.id, mtPath })}\n`,
   );

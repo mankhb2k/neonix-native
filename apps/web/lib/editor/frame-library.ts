@@ -1,13 +1,11 @@
-export const FRAME_LIBRARY_MIME = "application/x-motionvideo-frame";
-export const DEFAULT_FRAME_DURATION = 5;
+import {
+  DEFAULT_FRAME_DURATION,
+  type FrameDraft,
+} from "@motionvideo/editor-core";
 
-export type FrameDraft = {
-  id: string;
-  name: string;
-  role?: string;
-  duration: number;
-  text: string;
-};
+export { DEFAULT_FRAME_DURATION, type FrameDraft };
+
+export const FRAME_LIBRARY_MIME = "application/x-motionvideo-frame";
 
 function storageKey(projectId: string): string {
   return `motionvideo.frameLibrary.${projectId}`;

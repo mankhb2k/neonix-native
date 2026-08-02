@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.gui.json",
+  "compilerOptions": {
+    "module": "ESNext", "noImplicitAny": false,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": [
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ],
+  "exclude": []
+}

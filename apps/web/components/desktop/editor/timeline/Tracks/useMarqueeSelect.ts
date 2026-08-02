@@ -14,6 +14,12 @@ import {
   shouldCommitPointerSession,
   type PointerSessionEndReason,
 } from "@/lib/editor/pointer-session";
+import {
+  createMarqueeSessionState,
+  updateMarqueeSessionState,
+  type MarqueeSessionState,
+} from "@/lib/editor/timeline/sessions/marquee-select-session";
+import type { TimelineClip } from "@/lib/editor/model/timeline-types";
 import type { TimelineAutoScrollController } from "./useTimelineAutoScroll";
 
 const MARQUEE_THRESHOLD_PX = 4;
@@ -35,19 +41,8 @@ type Session = {
   started: boolean;
   /** Snapshot selection lúc bắt đầu — dùng để rollback khi cancel. */
   selectionBefore: string[];
+  domain: MarqueeSessionState;
 };
-
-function rectsIntersect(
-  a: { left: number; top: number; right: number; bottom: number },
-  b: { left: number; top: number; right: number; bottom: number },
-): boolean {
-  return (
-    a.left < b.right &&
-    a.right > b.left &&
-    a.top < b.bottom &&
-    a.bottom > b.top
-  );
-}
 
 function shouldIgnoreTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return true;
@@ -144,29 +139,41 @@ export function useMarqueeSelect({
     currentClientY: number,
     maxWorkspaceY?: number,
   ): string[] {
+    const session = sessionRef.current;
     const current = clientToWorkspace(currentClientX, currentClientY);
-    if (!current) return [];
+    if (!current || !session) return [];
     const targetY =
       maxWorkspaceY != null ? Math.min(current.y, maxWorkspaceY) : current.y;
-    const left = Math.min(originWorkspaceX, current.x);
-    const top = Math.min(originWorkspaceY, targetY);
-    const right = Math.max(originWorkspaceX, current.x);
-    const bottom = Math.max(originWorkspaceY, targetY);
-    const box = { left, top, right, bottom };
-    const ids: string[] = [];
-    for (const r of clipRectsRef.current) {
-      if (
-        rectsIntersect(box, {
-          left: r.left,
-          top: r.top,
-          right: r.right,
-          bottom: r.bottom,
-        })
-      ) {
-        ids.push(r.id);
-      }
-    }
-    return ids;
+
+    const clipsById = new Map(
+      useEditorStore.getState().timelineClips.map((c: TimelineClip) => [c.id, c]),
+    );
+    const clipsWithRects = clipRectsRef.current.flatMap((r) => {
+      const clip = clipsById.get(r.id);
+      if (!clip) return [];
+      return [
+        {
+          clip,
+          rect: {
+            left: r.left,
+            top: r.top,
+            width: r.right - r.left,
+            height: r.bottom - r.top,
+          },
+        },
+      ];
+    });
+
+    const next = updateMarqueeSessionState(
+      {
+        ...session.domain,
+        startPos: { x: originWorkspaceX, y: originWorkspaceY },
+      },
+      { x: current.x, y: targetY },
+      clipsWithRects,
+    );
+    session.domain = next;
+    return next.selectedClipIds;
   }
 
   function cacheClipRects() {
@@ -240,6 +247,7 @@ export function useMarqueeSelect({
       selectionBefore: [
         ...selectedClipIdsFrom(useEditorStore.getState().selection),
       ],
+      domain: createMarqueeSessionState({ x: origin.x, y: origin.y }),
     };
   }
 
