@@ -1,6 +1,6 @@
 import { DEFAULT_FRAME_DURATION, type TimelineCommand } from "@motionvideo/editor-core";
 import { commitLibraryPayload } from "../../library/adapters/commit-library-payload";
-import { useLibraryPointerGesture } from "../shared/use-library-pointer-gesture";
+import { useLibraryPointerGesture } from "../../library/hooks/use-library-pointer-gesture";
 import type { LibraryCommitPoint } from "../../library/adapters/commit-library-payload";
 import type { LibraryPayload } from "../../library/model/library-payload";
 

@@ -11,11 +11,11 @@ import {
   type PointerEvent as ReactPointerEvent,
   type RefObject,
 } from "react";
-import { usePlaybackClockApi } from "../playback/playback-clock-store";
+import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import {
   clientXToTimelineTime,
   timelineTimeToViewportLeft,
-} from "./timeline-seek";
+} from "../timeline-seek";
 
 type Props = {
   tracksOriginX: number;

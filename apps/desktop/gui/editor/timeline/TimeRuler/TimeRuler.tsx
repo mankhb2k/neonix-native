@@ -1,4 +1,4 @@
-import { capCutRulerScale, formatRulerLabel } from "./timeline-scale";
+import { capCutRulerScale, formatRulerLabel } from "../timeline-scale";
 
 type Props = {
   duration: number;

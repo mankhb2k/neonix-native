@@ -22,7 +22,7 @@ import {
   pointerContentXAtPoint,
   resolveDropGeometryAtPoint,
 } from "./drop-host";
-import type { BeginGesture } from "./interactions/use-pointer-session";
+import type { BeginGesture } from "../interactions/use-pointer-session";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 export type { ClipMovePreview };

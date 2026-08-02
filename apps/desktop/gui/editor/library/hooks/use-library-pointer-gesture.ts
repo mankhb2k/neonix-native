@@ -8,13 +8,13 @@ import {
   end,
   getSession,
   move,
-} from "../../library/interactions/library-drag-session";
+} from "../interactions/library-drag-session";
 import {
   autoScrollTimelineNearEdge,
   resolveLibraryPlacement,
-} from "../../timeline/drop-host";
-import type { LibraryCommitPoint } from "../../library/adapters/commit-library-payload";
-import type { LibraryPayload } from "../../library/model/library-payload";
+} from "../../timeline/Tracks/drop-host";
+import type { LibraryCommitPoint } from "../adapters/commit-library-payload";
+import type { LibraryPayload } from "../model/library-payload";
 
 const DROP_ZONE_SELECTOR = '[data-timeline-drop-zone="true"]';
 

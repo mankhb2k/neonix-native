@@ -3,14 +3,14 @@
  * live TimelineViewport without prop-drilling lanes through every panel.
  */
 
-import { payloadAcceptsTrack } from "../library/adapters/drop-compatibility";
+import { payloadAcceptsTrack } from "../../library/adapters/drop-compatibility";
 import {
   contentXFromPointer,
   hitTimelineDropZone,
   resolveTimelineDropGeometry,
   type TimelineDropGeometry,
 } from "./drop-geometry";
-import type { LibraryPayload } from "../library/model/library-payload";
+import type { LibraryPayload } from "../../library/model/library-payload";
 import type { PlacementTarget, TimelineLane } from "@motionvideo/editor-core";
 
 export type TimelineDropHost = {

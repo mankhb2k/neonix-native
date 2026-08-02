@@ -5,7 +5,7 @@ import {
 } from "@motionvideo/editor-core";
 import { DesktopIpcError, DesktopIpcErrorCode } from "../../../shared/ipc/errors";
 import { commitLibraryPayload } from "../library/adapters/commit-library-payload";
-import { useLibraryPointerGesture } from "../sidebar/shared/use-library-pointer-gesture";
+import { useLibraryPointerGesture } from "../library/hooks/use-library-pointer-gesture";
 import {
   appendAssetsToDocumentJson,
   listEnvelopeAssets,

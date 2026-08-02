@@ -8,8 +8,8 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import { subscribe as subscribeLibraryDrag } from "../library/interactions/library-drag-session";
-import { usePlaybackClockApi } from "../playback/playback-clock-store";
+import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
+import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import { ClipStrip, type ClipMovePreview } from "./ClipStrip";
 import {
   autoScrollTimelineNearEdge,
@@ -18,7 +18,7 @@ import {
   type TimelineDropHost,
   type ValidatedDropGeometry,
 } from "./drop-host";
-import { usePointerSessionHost } from "./interactions/use-pointer-session";
+import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import {
   clipIdsInMarquee,
   normalizeMarquee,
@@ -30,14 +30,14 @@ import {
   TIMELINE_PLAYHEAD_GUTTER_PX,
   TIMELINE_TRACKS_ORIGIN_X,
   laneRowHeightPx,
-} from "./timeline-scale";
-import { clientXToTimelineTime } from "./timeline-seek";
+} from "../timeline-scale";
+import { clientXToTimelineTime } from "../timeline-seek";
 import { TimelineContextMenu } from "./TimelineContextMenu";
-import { TimeRuler } from "./TimeRuler";
-import { useVisibleTimeline } from "./use-visible-timeline";
+import { TimeRuler } from "../TimeRuler/TimeRuler";
+import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
 import { visibleLaneWindow } from "./visible-lane-window";
-import "./timeline-layout.css";
+import "../timeline-layout.css";
 
 const MARQUEE_THRESHOLD_PX = 3;
 

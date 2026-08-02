@@ -76,7 +76,7 @@ export function TabsDesktop({
       <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex h-full w-full items-stretch gap-1.5 overflow-x-auto px-2 scroll-smooth"
+        className="flex h-full w-full items-stretch gap-3 overflow-x-auto px-2 scroll-smooth"
         style={{ scrollbarWidth: "none" }}
       >
         {items.map((item) => {

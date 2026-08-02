@@ -1,14 +1,21 @@
 import { useState, type ReactNode } from "react";
-import { PanelHeader, TabsDesktop } from "../../ui";
+import {
+  Clapperboard,
+  Layers,
+  Music,
+  Smile,
+  Type,
+} from "lucide-react";
+import { PanelHeader, TabsDesktop, type DesktopTabItem } from "../../ui";
 import { LibraryDragPreview } from "../library/components/LibraryDragPreview";
 import {
   EMPTY_EDITOR_VIEW_PROPS,
   type EditorSidebarProps,
 } from "../workspace-props";
 import { AudioPanel } from "./AudioPanel/AudioPanel";
-import { ElementsPanel } from "./ElementsPanel/ElementsPanel";
 import { LayersPanel } from "./LayersPanel/LayersPanel";
 import { MediaPanel } from "./MediaPanel/MediaPanel";
+import { StickersPanel } from "./StickersPanel/StickersPanel";
 import { TextPanel } from "./TextPanel/TextPanel";
 
 export type { EditorSidebarProps };
@@ -23,6 +30,22 @@ const defaultMedia = (
     Media library
   </div>
 );
+
+const SIDEBAR_TABS: DesktopTabItem[] = [
+  { id: "layers", label: "Layers", icon: <Layers size={17} strokeWidth={1.5} /> },
+  {
+    id: "media",
+    label: "Media",
+    icon: <Clapperboard size={17} strokeWidth={1.5} />,
+  },
+  { id: "audio", label: "Audio", icon: <Music size={17} strokeWidth={1.5} /> },
+  { id: "text", label: "Text", icon: <Type size={17} strokeWidth={1.5} /> },
+  {
+    id: "stickers",
+    label: "Stickers",
+    icon: <Smile size={17} strokeWidth={1.5} />,
+  },
+];
 
 /**
  * Ready-made library dock for {@link EditorWorkspaceFrame}.
@@ -47,43 +70,37 @@ export function Sidebar({
       data-sidebar-tab={tab}
       data-geometry="editor-sidebar"
     >
-      <PanelHeader title="Library" />
-      <div className="shrink-0 border-b border-[var(--border-subtle)]">
+      <PanelHeader className="px-0">
         <TabsDesktop
+          stacked
           value={tab}
           onChange={setTab}
-          items={[
-            { id: "layers", label: "Layers" },
-            { id: "media", label: "Media" },
-            { id: "text", label: "Text" },
-            { id: "elements", label: "Elements" },
-            { id: "audio", label: "Audio" },
-          ]}
+          items={SIDEBAR_TABS}
         />
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto">
-        {tab === "layers" ? (
-          <LayersPanel
-            lanes={lanes}
-            clips={clips}
-            selection={selection}
-            onSelect={onSelect}
-            onExecuteTimeline={onExecuteTimeline}
-          />
-        ) : null}
-        {tab === "media" ? <MediaPanel media={media} /> : null}
-        {tab === "text" ? (
-          <TextPanel onExecuteTimeline={onExecuteTimeline} />
-        ) : null}
-        {tab === "elements" ? (
-          <ElementsPanel onExecuteTimeline={onExecuteTimeline} />
-        ) : null}
-        {tab === "audio" ? (
-          <AudioPanel
-            assets={assets ?? []}
-            onExecuteTimeline={onExecuteTimeline}
-          />
-        ) : null}
+      </PanelHeader>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-auto">
+          {tab === "layers" ? (
+            <LayersPanel
+              lanes={lanes}
+              clips={clips}
+              selection={selection}
+              onSelect={onSelect}
+              onExecuteTimeline={onExecuteTimeline}
+            />
+          ) : null}
+          {tab === "media" ? <MediaPanel media={media} /> : null}
+          {tab === "audio" ? (
+            <AudioPanel
+              assets={assets ?? []}
+              onExecuteTimeline={onExecuteTimeline}
+            />
+          ) : null}
+          {tab === "text" ? (
+            <TextPanel onExecuteTimeline={onExecuteTimeline} />
+          ) : null}
+          {tab === "stickers" ? <StickersPanel /> : null}
+        </div>
       </div>
       <LibraryDragPreview />
     </aside>

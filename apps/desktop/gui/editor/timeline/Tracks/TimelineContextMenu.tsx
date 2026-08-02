@@ -7,7 +7,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "../../ui";
+} from "../../../ui";
 import { buildTimelineContextActions } from "./timeline-context-actions";
 import type { EditorSelection, TimelineCommand } from "@motionvideo/editor-core";
 import type { ReactNode } from "react";
