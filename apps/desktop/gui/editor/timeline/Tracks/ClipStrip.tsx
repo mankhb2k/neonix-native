@@ -96,10 +96,10 @@ function clipClassName(
     : "";
   const base =
     trackKind === "main"
-      ? "absolute top-0 bottom-0 my-auto h-[90%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90"
+      ? "absolute top-0 bottom-0 my-auto h-[96%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90"
       : trackKind === "audio"
-        ? "absolute top-0 bottom-0 my-auto flex h-[90%] items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
-        : "absolute top-0 bottom-0 my-auto flex h-[90%] items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
+        ? "absolute top-0 bottom-0 my-auto flex h-[96%] items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
+        : "absolute top-0 bottom-0 my-auto flex h-[96%] items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
   return cn(base, selectedCls, "cursor-grab");
 }
 
@@ -562,7 +562,7 @@ export const ClipStrip = memo(function ClipStrip({
           {/* Gray lane ghost only — web TrackLane (teal cursor is fixed in viewport). */}
           <div
             className={cn(
-              "pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]",
+              "pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[96%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]",
               !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40",
             )}
             aria-hidden
@@ -577,7 +577,7 @@ export const ClipStrip = memo(function ClipStrip({
             .map((m) => (
               <div
                 key={`ghost-${m.clipId}`}
-                className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md"
+                className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[96%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md"
                 aria-hidden
                 style={{
                   left: m.startTime * pps,

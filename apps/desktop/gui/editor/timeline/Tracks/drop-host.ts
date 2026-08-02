@@ -196,15 +196,15 @@ function ghostHeightFor(
     );
     if (el) {
       const h = el.getBoundingClientRect().height;
-      return Math.max(28, h * 0.9);
+      return Math.max(28, h * 0.96);
     }
   }
   if (track === "main") {
     const base = collectSceneLanes(host!.scrollEl).find((h) => h.type === "main");
-    if (base) return Math.max(28, (base.bottom - base.top) * 0.9);
-    return Math.max(28, (host?.laneHeight ?? 60) * 0.9);
+    if (base) return Math.max(28, (base.bottom - base.top) * 0.96);
+    return Math.max(28, (host?.laneHeight ?? 60) * 0.96);
   }
-  return Math.max(28, (host?.laneHeight ?? 48) * 0.9);
+  return Math.max(28, (host?.laneHeight ?? 48) * 0.96);
 }
 
 function payloadLabel(payload: LibraryPayload | null | undefined): string {
