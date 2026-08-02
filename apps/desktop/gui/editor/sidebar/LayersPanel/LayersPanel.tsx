@@ -119,12 +119,12 @@ export function LayersPanel({
 
   if (sorted.length === 0) {
     return (
-      <p className="editor-sidebar__hint">No lanes in this project yet.</p>
+      <p className="m-3 text-[11px] text-[var(--fg-muted)]">No lanes in this project yet.</p>
     );
   }
 
   return (
-    <ul className="editor-sidebar__layers">
+    <ul className="m-0 flex list-none flex-col gap-1 p-2">
       {sorted.map((lane) => {
         const laneClips = clips
           .filter((c) => c.laneId === lane.id)
@@ -141,13 +141,13 @@ export function LayersPanel({
         return (
           <li key={lane.id}>
             <ContextMenu>
-              <ContextMenuTrigger className="editor-sidebar__lane-ctx">
+              <ContextMenuTrigger className="block">
                 <div
-                  className={`editor-sidebar__lane-row${selected ? " is-selected" : ""}`}
+                  className={`flex items-stretch gap-1${selected ? " [&_.lane-btn]:border-[var(--accent,#4a90d9)] [&_.lane-btn]:bg-[var(--bg-hover)]" : ""}`}
                 >
                   <button
                     type="button"
-                    className="editor-sidebar__expand"
+                    className="w-[22px] shrink-0 cursor-pointer border-0 bg-transparent text-[var(--fg-muted)]"
                     aria-label={isExpanded ? "Collapse lane" : "Expand lane"}
                     onClick={() =>
                       setExpanded((prev) => ({
@@ -161,7 +161,7 @@ export function LayersPanel({
 
                   {editingLaneId === lane.id ? (
                     <input
-                      className="editor-sidebar__lane-rename"
+                      className="min-w-0 flex-1 rounded-md border border-[var(--accent,#4a90d9)] bg-[var(--bg-elevated)] px-2.5 py-2 font-inherit text-[var(--fg-primary)]"
                       ref={(el) => el?.focus()}
                       defaultValue={lane.name}
                       onClick={(e) => e.stopPropagation()}
@@ -184,13 +184,13 @@ export function LayersPanel({
                   ) : (
                     <button
                       type="button"
-                      className="editor-sidebar__lane"
+                      className="lane-btn flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-0.5 rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-2.5 py-2 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]"
                       title={lane.kind}
                       onClick={() => selectLaneClips(lane.id)}
                       onDoubleClick={() => setEditingLaneId(lane.id)}
                     >
                       <span>{lane.name}</span>
-                      <span className="editor-sidebar__lane-meta">
+                      <span className="text-[11px] text-[var(--fg-muted)]">
                         {lane.kind}
                         {lane.locked ? " · locked" : ""}
                         {lane.kind === "visual" && lane.visible === false
@@ -202,10 +202,10 @@ export function LayersPanel({
                     </button>
                   )}
 
-                  <div className="editor-sidebar__flags">
+                  <div className="flex flex-col gap-0.5">
                     <button
                       type="button"
-                      className="editor-sidebar__flag"
+                      className="cursor-pointer rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                       title="Move lane up"
                       disabled={!canMoveUp}
                       onClick={() => moveLane(lane.id, -1)}
@@ -214,7 +214,7 @@ export function LayersPanel({
                     </button>
                     <button
                       type="button"
-                      className="editor-sidebar__flag"
+                      className="cursor-pointer rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                       title="Move lane down"
                       disabled={!canMoveDown}
                       onClick={() => moveLane(lane.id, 1)}
@@ -223,7 +223,7 @@ export function LayersPanel({
                     </button>
                     <button
                       type="button"
-                      className="editor-sidebar__flag"
+                      className="cursor-pointer rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                       title="Toggle lock"
                       onClick={() =>
                         onExecuteTimeline(
@@ -242,7 +242,7 @@ export function LayersPanel({
                     {lane.kind === "visual" ? (
                       <button
                         type="button"
-                        className="editor-sidebar__flag"
+                        className="cursor-pointer rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                         title="Toggle visibility"
                         onClick={() =>
                           onExecuteTimeline(
@@ -260,7 +260,7 @@ export function LayersPanel({
                     ) : (
                       <button
                         type="button"
-                        className="editor-sidebar__flag"
+                        className="cursor-pointer rounded border border-[var(--border-subtle)] bg-[var(--bg-elevated)] px-2 py-1 text-[10px] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-35"
                         title="Toggle mute"
                         onClick={() =>
                           onExecuteTimeline(
@@ -305,9 +305,9 @@ export function LayersPanel({
             </ContextMenu>
 
             {isExpanded ? (
-              <ul className="editor-sidebar__clips">
+              <ul className="mb-1 ml-[26px] flex list-none flex-col gap-0.5 p-0">
                 {laneClips.length === 0 ? (
-                  <li className="editor-sidebar__hint">No clips</li>
+                  <li className="text-[11px] text-[var(--fg-muted)]">No clips</li>
                 ) : (
                   laneClips.map((clip) => {
                     const clipSelected =
@@ -319,7 +319,7 @@ export function LayersPanel({
                           <ContextMenuTrigger>
                             <button
                               type="button"
-                              className={`editor-sidebar__clip${clipSelected ? " is-selected" : ""}`}
+                              className={`w-full cursor-pointer rounded border border-transparent bg-transparent px-2 py-1 text-left text-[11px] text-[var(--fg-primary)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]${clipSelected ? " border-[var(--border-strong)] bg-[var(--bg-hover)]" : ""}`}
                               onClick={() => onSelect(selectionClips([clip.id]))}
                             >
                               {clipLabel(clip)}

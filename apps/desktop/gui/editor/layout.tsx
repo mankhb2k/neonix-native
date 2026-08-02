@@ -53,77 +53,44 @@ type PanelLayoutPrefs = {
 
 type ResizeEdge = "sidebar" | "inspector" | "timeline";
 
-const PANEL_LAYOUT_KEY = "motionvideo.desktop.panelLayout.v1";
-
 const DEFAULT_PANEL_LAYOUT: PanelLayoutPrefs = {
-  sidebarWidth: 260,
-  inspectorWidth: 300,
-  timelineHeight: 240,
+  sidebarWidth: 420,
+  inspectorWidth: 460,
+  timelineHeight: 300,
 };
+
+/** Resize bounds — keep in sync with defaults above. */
+const PANEL_LAYOUT_BOUNDS = {
+  sidebarWidth: { min: 280, max: 560 },
+  inspectorWidth: { min: 300, max: 640 },
+  timelineHeight: { min: 180, max: 560 },
+} as const;
 
 function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-function loadPanelLayoutPrefs(): PanelLayoutPrefs {
-  try {
-    const raw = localStorage.getItem(PANEL_LAYOUT_KEY);
-    if (!raw) return { ...DEFAULT_PANEL_LAYOUT };
-    const parsed = JSON.parse(raw) as Partial<PanelLayoutPrefs>;
-    return {
-      sidebarWidth: clamp(
-        parsed.sidebarWidth ?? DEFAULT_PANEL_LAYOUT.sidebarWidth,
-        180,
-        480,
-      ),
-      inspectorWidth: clamp(
-        parsed.inspectorWidth ?? DEFAULT_PANEL_LAYOUT.inspectorWidth,
-        220,
-        480,
-      ),
-      timelineHeight: clamp(
-        parsed.timelineHeight ?? DEFAULT_PANEL_LAYOUT.timelineHeight,
-        160,
-        560,
-      ),
-    };
-  } catch {
-    return { ...DEFAULT_PANEL_LAYOUT };
-  }
-}
-
-function savePanelLayoutPrefs(prefs: PanelLayoutPrefs): void {
-  try {
-    localStorage.setItem(PANEL_LAYOUT_KEY, JSON.stringify(prefs));
-  } catch {
-    /* ignore quota */
-  }
-}
-
 function usePanelResize() {
-  const [layout, setLayout] = useState<PanelLayoutPrefs>(() =>
-    typeof localStorage === "undefined"
-      ? { ...DEFAULT_PANEL_LAYOUT }
-      : loadPanelLayoutPrefs(),
-  );
+  // Source of truth for layout chrome: edit DEFAULT_PANEL_LAYOUT above.
+  // No localStorage — changing defaults updates UI on reload/HMR.
+  const [layout, setLayout] = useState<PanelLayoutPrefs>(() => ({
+    ...DEFAULT_PANEL_LAYOUT,
+  }));
+
+  useEffect(() => {
+    setLayout({ ...DEFAULT_PANEL_LAYOUT });
+  }, [
+    DEFAULT_PANEL_LAYOUT.sidebarWidth,
+    DEFAULT_PANEL_LAYOUT.inspectorWidth,
+    DEFAULT_PANEL_LAYOUT.timelineHeight,
+  ]);
+
   const dragRef = useRef<{
     edge: ResizeEdge;
     startX: number;
     startY: number;
     origin: PanelLayoutPrefs;
   } | null>(null);
-  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
-    persistTimerRef.current = setTimeout(() => {
-      savePanelLayoutPrefs(layout);
-      persistTimerRef.current = null;
-    }, 200);
-    return () => {
-      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
-    };
-  }, [layout]);
 
   const onPointerMove = useCallback((ev: PointerEvent) => {
     const drag = dragRef.current;
@@ -132,20 +99,23 @@ function usePanelResize() {
     const dy = ev.clientY - drag.startY;
     setLayout(() => {
       if (drag.edge === "sidebar") {
+        const { min, max } = PANEL_LAYOUT_BOUNDS.sidebarWidth;
         return {
           ...drag.origin,
-          sidebarWidth: clamp(drag.origin.sidebarWidth + dx, 180, 480),
+          sidebarWidth: clamp(drag.origin.sidebarWidth + dx, min, max),
         };
       }
       if (drag.edge === "inspector") {
+        const { min, max } = PANEL_LAYOUT_BOUNDS.inspectorWidth;
         return {
           ...drag.origin,
-          inspectorWidth: clamp(drag.origin.inspectorWidth - dx, 220, 480),
+          inspectorWidth: clamp(drag.origin.inspectorWidth - dx, min, max),
         };
       }
+      const { min, max } = PANEL_LAYOUT_BOUNDS.timelineHeight;
       return {
         ...drag.origin,
-        timelineHeight: clamp(drag.origin.timelineHeight - dy, 160, 560),
+        timelineHeight: clamp(drag.origin.timelineHeight - dy, min, max),
       };
     });
   }, []);
@@ -290,6 +260,7 @@ export function EditingWorkspace({
   path,
   error,
   timelineFocus,
+  initialSidebarTab,
   onClearError,
 }: EditingWorkspaceProps) {
   return (
@@ -312,7 +283,7 @@ export function EditingWorkspace({
 
       <EditorWorkspaceFrame
         showInspector
-        sidebar={<Sidebar />}
+        sidebar={<Sidebar initialTab={initialSidebarTab} />}
         stage={<Stage />}
         inspector={<RightDock />}
         timeline={<Timeline focus={timelineFocus} />}

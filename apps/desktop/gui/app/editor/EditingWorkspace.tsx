@@ -30,7 +30,7 @@ import {
   reduceTimelineSession,
 } from "../../editor/session/timeline-session";
 import { EditorWorkspaceFrame } from "../../editor/layout";
-import { EditorSidebar } from "../../editor/sidebar/EditorSidebar";
+import { Sidebar } from "../../editor/sidebar/Sidebar";
 import { PreviewStage } from "../../editor/stage/PreviewStage";
 import { TransportBar } from "../../editor/stage/TransportBar";
 import { TimelineViewport } from "../../editor/timeline/TimelineViewport";
@@ -504,7 +504,7 @@ function EditingWorkspaceInner({
       <EditorWorkspaceFrame
         showInspector={INSPECTOR_ENABLED}
         sidebar={
-          <EditorSidebar
+          <Sidebar
             media={
               <AssetPanel
                 projectPath={path}

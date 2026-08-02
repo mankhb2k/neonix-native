@@ -36,7 +36,7 @@ function TextPresetButton({
   return (
     <button
       type="button"
-      className="editor-sidebar__preset"
+      className="w-full cursor-grab rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] active:cursor-grabbing"
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >
@@ -51,7 +51,7 @@ export function TextPanel({ onExecuteTimeline }: Props) {
   };
 
   return (
-    <ul className="editor-sidebar__presets">
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-2">
       {TEXT_PRESETS.map((payload) => (
         <li key={payload.id}>
           <TextPresetButton payload={payload} onCommit={onCommit} />

@@ -2,8 +2,7 @@ import { Loader2 } from "lucide-react";
 import * as React from "react";
 import { cn } from "../cn";
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?:
     | "primary"
     | "secondary"
@@ -35,15 +34,15 @@ const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
-  xs: "h-[22px] px-1.5 text-[11px]",
-  sm: "h-[26px] px-2 text-[12px]",
+  xs: "h-[22px] px-1.5 text-[12px]",
+  sm: "h-[24px] px-2 text-[12px]",
   md: "h-[32px] px-3 text-[13px]",
   lg: "h-[40px] px-4 text-[14px]",
 };
 
 const iconOnlySizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
   xs: "w-[22px] px-0",
-  sm: "w-[26px] px-0",
+  sm: "w-[24px] px-0",
   md: "w-[32px] px-0",
   lg: "w-[40px] px-0",
 };

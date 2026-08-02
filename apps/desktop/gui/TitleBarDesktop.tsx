@@ -7,7 +7,7 @@ type Props = {
   api: DesktopAPI;
   title: string;
   dirty?: boolean;
-  /** Editor chrome matches web TitleBar; home stays compact. */
+  /** home | editor — same padding/control heights; editor adds menu + project chrome. */
   mode?: "home" | "editor";
   onHome?: () => void;
   onTitleChange?: (name: string) => void;
@@ -96,16 +96,16 @@ function WindowControls({ api }: { api: DesktopAPI }) {
 function MenuBar() {
   return (
     <div className="flex items-center gap-0.5 select-none" style={noDrag}>
-      <Button type="button" variant="ghost" size="sm">
+      <Button type="button" variant="ghost" size="xs">
         File
       </Button>
-      <Button type="button" variant="ghost" size="sm">
+      <Button type="button" variant="ghost" size="xs">
         Edit
       </Button>
-      <Button type="button" variant="ghost" size="sm">
+      <Button type="button" variant="ghost" size="xs">
         View
       </Button>
-      <Button type="button" variant="ghost" size="sm">
+      <Button type="button" variant="ghost" size="xs">
         Help
       </Button>
     </div>
@@ -153,7 +153,7 @@ export function TitleBarDesktop({
 
           {isEditor ? (
             <input
-              className="h-[26px] w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
+              className="h-[24px] w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
               value={title}
               onChange={(e) => onTitleChange?.(e.target.value)}
               readOnly={!onTitleChange}
@@ -161,15 +161,18 @@ export function TitleBarDesktop({
               placeholder="Untitled"
             />
           ) : (
-            <span className="truncate text-[13px] font-medium text-[var(--fg-primary)]">
+            <span className="flex h-[24px] max-w-[240px] items-center truncate text-[13px] font-medium text-[var(--fg-primary)]">
               {title}
               {dirty ? " •" : ""}
             </span>
           )}
 
           {isEditor ? (
-            <Tooltip content={dirty ? "Unsaved changes" : "Saved"} side="bottom">
-              <span className="inline-flex items-center">
+            <Tooltip
+              content={dirty ? "Unsaved changes" : "Saved"}
+              side="bottom"
+            >
+              <span className="inline-flex h-[24px] items-center">
                 <CloudCheck
                   size={15}
                   strokeWidth={1.2}
@@ -182,17 +185,18 @@ export function TitleBarDesktop({
 
         <div className="min-w-0 flex-1" />
 
-        {isEditor ? (
-          <div className="flex items-center gap-2" style={noDrag}>
-            <Tooltip content="Pro" side="bottom">
-              <Button
-                variant="outline"
-                size="sm"
-                leftIcon={<Gem size={13} strokeWidth={1.2} color="#eab308" />}
-              >
-                Pro
-              </Button>
-            </Tooltip>
+        {/* Same action heights on home + editor so titlebar chrome stays aligned. */}
+        <div className="flex items-center gap-2" style={noDrag}>
+          <Tooltip content="Pro" side="bottom">
+            <Button
+              variant="outline"
+              size="sm"
+              leftIcon={<Gem size={13} strokeWidth={1.2} color="#eab308" />}
+            >
+              Pro
+            </Button>
+          </Tooltip>
+          {isEditor ? (
             <Tooltip content="Export MP4" side="bottom">
               <Button
                 variant="primary"
@@ -203,9 +207,9 @@ export function TitleBarDesktop({
                 Export
               </Button>
             </Tooltip>
-            <Avatar variant="user" size="md" fallback="U" alt="Account" />
-          </div>
-        ) : null}
+          ) : null}
+          <Avatar variant="user" size="md" fallback="U" alt="Account" />
+        </div>
       </div>
 
       {/*

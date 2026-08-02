@@ -21,7 +21,7 @@ function AudioAssetButton({
   return (
     <button
       type="button"
-      className="editor-sidebar__preset"
+      className="w-full cursor-grab rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] active:cursor-grabbing"
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >
@@ -39,14 +39,14 @@ export function AudioPanel({ assets, onExecuteTimeline }: Props) {
 
   if (audioAssets.length === 0) {
     return (
-      <p className="editor-sidebar__hint">
+      <p className="m-3 text-[11px] text-[var(--fg-muted)]">
         Import audio via Media after saving the project.
       </p>
     );
   }
 
   return (
-    <ul className="editor-sidebar__presets">
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-2">
       {audioAssets.map((asset) => {
         const label = asset.uri.split("/").pop() ?? asset.id;
         const payload: LibraryPayload = {
