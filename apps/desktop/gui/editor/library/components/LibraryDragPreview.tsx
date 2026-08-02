@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
   getTimelineDropHost,
 } from "../../timeline/Tracks/drop-host";
-import { hitTimelineDropZone } from "../../timeline/Tracks/drop-geometry";
+import { hitTimelineDropZone } from "../../timeline/drop/drop-geometry";
 import {
   getSession,
   subscribe,

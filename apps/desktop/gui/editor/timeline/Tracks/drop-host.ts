@@ -13,8 +13,8 @@ import type { LibraryPayload } from "../../library/model/library-payload";
 import {
   contentXFromPointer,
   hitTimelineDropZone,
-} from "./drop-geometry";
-import { snapMoveStartToEdges } from "./clip-move-geometry";
+} from "../drop/drop-geometry";
+import { snapMoveStartToEdges } from "../clips/clip-move-geometry";
 import {
   audioDropPolicy,
   audioHitToLane,

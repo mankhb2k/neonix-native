@@ -18,7 +18,7 @@ import {
   resolveClipMoveDrag,
   type ClipMoveDropTarget,
   type ClipMovePreview,
-} from "./clip-move-geometry";
+} from "../clips/clip-move-geometry";
 import {
   autoScrollTimelineNearEdge,
   getTimelineDropHost,

@@ -6,7 +6,7 @@ import {
   reduceTimelineSession,
 } from "../../session/timeline-session";
 import { capCutRulerScale } from "../timeline-scale";
-import { computeViewportLayout } from "../Tracks/viewport-layout";
+import { computeViewportLayout } from "../viewport/viewport-layout";
 import { sliderValueToZoomScale } from "@motionvideo/editor-core";
 
 describe("loadTimelineFromDocumentJson", () => {

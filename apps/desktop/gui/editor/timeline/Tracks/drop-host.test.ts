@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { resolveTimelineDropGeometry } from "./drop-geometry";
+import { resolveTimelineDropGeometry } from "../drop/drop-geometry";
 import {
   getTimelineDropHost,
   resolveDropGeometryAtPoint,

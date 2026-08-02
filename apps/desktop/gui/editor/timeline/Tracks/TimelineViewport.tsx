@@ -11,7 +11,7 @@ import {
 import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import { ClipStrip, type ClipMovePreview } from "./ClipStrip";
-import { collectClipEdgeSnapPoints } from "./clip-move-geometry";
+import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
 import {
   autoScrollTimelineNearEdge,
   resolveDropGeometryAtPoint,
@@ -25,9 +25,9 @@ import {
   clipIdsInMarquee,
   normalizeMarquee,
   type MarqueeRect,
-} from "./marquee-geometry";
-import { Playhead } from "./Playhead";
-import { TimelineHScrollBar } from "./TimelineHScrollBar";
+} from "../selection/marquee-geometry";
+import { Playhead } from "../viewport/Playhead";
+import { TimelineHScrollBar } from "../viewport/TimelineHScrollBar";
 import {
   TIMELINE_LABEL_WIDTH,
   TIMELINE_PLAYHEAD_GUTTER_PX,
@@ -36,20 +36,20 @@ import {
   laneRowHeightPx,
 } from "../timeline-scale";
 import { clientXToTimelineTime } from "../timeline-seek";
-import { TimelineContextMenu } from "./TimelineContextMenu";
+import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { useVisibleTimeline } from "../view-model/use-visible-timeline";
-import { computeViewportLayout } from "./viewport-layout";
+import { computeViewportLayout } from "../viewport/viewport-layout";
 import { visibleLaneWindow } from "./visible-lane-window";
-import { LaneFlagControls } from "./LaneFlagControls";
-import { LaneLeadingIcon, resolveLaneContentKind } from "./LaneLeadingIcon";
-import { EmptyTimelineDash } from "./EmptyTimelineDash";
+import { LaneFlagControls } from "../lanes/LaneFlagControls";
+import { LaneLeadingIcon, resolveLaneContentKind } from "../lanes/LaneLeadingIcon";
+import { EmptyTimelineDash } from "../viewport/EmptyTimelineDash";
 import {
   buildTimelineLaneRows,
   LANE_GAP_PX,
   timelineVerticalInsets,
   type TimelineLaneRow,
-} from "./timeline-lane-rows";
+} from "../lanes/timeline-lane-rows";
 import type { MotionProject } from "@motionvideo/motion-schema";
 
 /** DOM attrs for CapCut drop collectors (lane-drop-target). */
