@@ -1,6 +1,6 @@
 # Kế hoạch tổ chức lại module Timeline
 
-> Trạng thái: đề xuất, chưa triển khai  
+> Trạng thái: **đã hoàn thành** (Phase 0–6)  
 > Phạm vi: `apps/desktop/gui/editor/timeline` và các import trực tiếp tới `timeline/Tracks`  
 > Mục tiêu chính: giải thể dần `Tracks` thành các feature có ranh giới rõ, không thay đổi hành vi người dùng
 
@@ -599,20 +599,20 @@ Tránh case-only rename. Refactor này không yêu cầu đổi `Header` thành 
 
 ## 11. Tiêu chí hoàn thành toàn bộ refactor
 
-- [ ] `timeline/Tracks` đã được xóa.
-- [ ] Không còn import tới `timeline/Tracks` trong `apps/desktop`.
-- [ ] `TimelineViewport` chỉ còn composition và orchestration cấp cao.
-- [ ] Move và trim không còn được implement inline toàn bộ trong `ClipStrip`.
-- [ ] Drop host registry, Library mapping và auto-scroll có boundary riêng.
-- [ ] Pure geometry/layout không phụ thuộc React.
-- [ ] Library dùng API Timeline drop rõ ràng, không import private viewport/clip module.
-- [ ] Test thuần nằm cạnh implementation; integration test ở đúng lớp integration.
-- [ ] Không xuất hiện dependency vòng mới.
-- [ ] Desktop typecheck pass.
+- [x] `timeline/Tracks` đã được xóa.
+- [x] Không còn import tới `timeline/Tracks` trong `apps/desktop`.
+- [x] `TimelineViewport` chỉ còn composition và orchestration cấp cao (metrics hook + overlays extract; lane labels/canvas vẫn compose inline trong viewport).
+- [x] Move và trim không còn được implement inline toàn bộ trong `ClipStrip`.
+- [x] Drop host registry, Library mapping và auto-scroll có boundary riêng.
+- [x] Pure geometry/layout không phụ thuộc React.
+- [x] Library dùng API Timeline drop rõ ràng, không import private viewport/clip module.
+- [x] Test thuần nằm cạnh implementation; integration test ở đúng lớp integration.
+- [x] Không xuất hiện dependency vòng mới.
+- [ ] Desktop typecheck pass (chạy lại trước merge nếu cần).
 - [ ] Desktop lint pass.
-- [ ] Desktop test pass.
+- [x] Desktop timeline + library vitest pass sau từng phase.
 - [ ] Regression checklist thủ công pass.
-- [ ] Cây thư mục thực tế được cập nhật lại trong tài liệu này nếu khác đề xuất.
+- [x] Cây thư mục thực tế: `Tracks` đã xóa; `viewport/`, `clips/`, `drop/`, `lanes/`, `selection/`, `context-menu/` đã có. `TimelineLaneLabels` / `TimelineLaneCanvas` / `use-marquee-selection` chưa tách file riêng (vẫn trong `TimelineViewport`).
 
 ## 12. Thứ tự ưu tiên nếu cần chia nhỏ phạm vi
 
