@@ -14,5 +14,5 @@
     "declaration": false,
     "noEmit": true
   },
-  "include": ["electron/main/**/*.ts", "shared/**/*.ts"]
+  "include": ["electron/main/**/*.ts", "shared/**/*.ts"], "exclude": ["**/*.test.ts", "**/*.test.tsx"]
 }

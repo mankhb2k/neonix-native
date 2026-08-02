@@ -17,10 +17,10 @@ export function FixtureSurface({ fixture }: Props) {
         <span className="fixture-surface__brand">MotionVideo</span>
         <span className="fixture-surface__label">{fixture}</span>
       </header>
-      {fixture === "hub-empty" || fixture === "hub-recent" ? (
-        <section className="fixture-surface__hub">
+      {fixture === "home-empty" || fixture === "home-recent" ? (
+        <section className="fixture-surface__home">
           <h1>Projects</h1>
-          {fixture === "hub-empty" ? (
+          {fixture === "home-empty" ? (
             <p className="fixture-surface__muted">No recent projects</p>
           ) : (
             <ul className="fixture-surface__list">

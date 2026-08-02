@@ -3,8 +3,8 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 const sharedAlias = {
-  "@shared": path.resolve(__dirname, "src/shared"),
-  "@renderer": path.resolve(__dirname, "renderer/src"),
+  "@shared": path.resolve(__dirname, "shared"),
+  "@gui": path.resolve(__dirname, "gui"),
   "@motionvideo/editor-core": path.resolve(
     __dirname,
     "../../packages/editor-core/src/index.ts",
@@ -24,9 +24,9 @@ const sharedAlias = {
 };
 
 const PERF_FILES = [
-  "src/**/stage-renderer-benchmark.test.ts",
-  "src/**/performance-virtualization.test.ts",
-  "src/**/visible-lane-window.test.ts",
+  "gui/**/stage-renderer-benchmark.test.ts",
+  "gui/**/performance-virtualization.test.ts",
+  "gui/**/visible-lane-window.test.ts",
 ];
 
 export default defineConfig({
@@ -39,10 +39,10 @@ export default defineConfig({
         test: {
           name: "node",
           environment: "node",
-          include: ["src/**/*.test.ts"],
+          include: ["electron/**/*.test.ts", "shared/**/*.test.ts"],
           exclude: [
             ...PERF_FILES,
-            "src/**/stage-renderer-contract.test.ts",
+            "gui/**/stage-renderer-contract.test.ts",
           ],
         },
       },
@@ -53,9 +53,9 @@ export default defineConfig({
           name: "dom",
           environment: "happy-dom",
           include: [
-            "renderer/src/**/*.test.ts",
-            "renderer/src/**/*.test.tsx",
-            "src/**/stage-renderer-contract.test.ts",
+            "gui/**/*.test.ts",
+            "gui/**/*.test.tsx",
+            "gui/**/stage-renderer-contract.test.ts",
           ],
         },
       },

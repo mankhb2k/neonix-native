@@ -8,28 +8,28 @@
   "placeholders": "baselines/placeholders/",
   "files": [
     {
-      "name": "hub-empty-1280.png",
+      "name": "home-empty-1280.png",
       "width": 1280,
       "height": 720,
       "sha256": "6e285ff4ef39640f7bee2bb11e77044c849e59fbf094e96b1b9a6bd0f1c76e5a",
       "kind": "production-ui-electron"
     },
     {
-      "name": "hub-empty-1920.png",
+      "name": "home-empty-1920.png",
       "width": 1920,
       "height": 1080,
       "sha256": "771bda23c3334d985d3b5d42540ec025c13ed1811eca420fe1bcad34622d5ad6",
       "kind": "production-ui-electron"
     },
     {
-      "name": "hub-recent-1280.png",
+      "name": "home-recent-1280.png",
       "width": 1280,
       "height": 720,
       "sha256": "b9a7a8cb4cbb1d848f90f923d3be61fd3e668ee8ecd21a876152358b278642e8",
       "kind": "production-ui-electron"
     },
     {
-      "name": "hub-recent-1920.png",
+      "name": "home-recent-1920.png",
       "width": 1920,
       "height": 1080,
       "sha256": "24ee2a37737f7ec16a21c55d982cc8fd6a46b8e5ca2209636ae50bf7a5cf0eb7",

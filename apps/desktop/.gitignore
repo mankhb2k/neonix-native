@@ -1,5 +1,6 @@
 dist/
 dist-renderer/
+storybook-static/
 .deps-sharp/
 tmp/
 resources/export-cli/cli-export.cjs

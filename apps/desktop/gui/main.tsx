@@ -2,9 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { DesktopApp } from "./app/DesktopApp";
 import { createDesktopApiClient } from "./infrastructure/desktop-api-client";
-import "./ui/theme/utilities.css";
-import "./ui/theme/desktop-metrics.css";
-import "./styles/base.css";
+import "./globals.css";
 import "./app/diagnostics/diagnostics.css";
 
 const rootElement = document.getElementById("root");
@@ -18,7 +16,6 @@ const nodeLeak =
   typeof (globalThis as { process?: { versions?: { node?: string } } }).process
     ?.versions?.node === "string";
 if (nodeLeak) {
-  // eslint-disable-next-line no-console -- boot-time sandbox leak probe
   console.warn("[renderer] unexpected Node globals present");
 }
 

@@ -1,5 +1,5 @@
 /**
- * Seeds real Hub / EditingWorkspace for visual baselines (P20/B1).
+ * Seeds real Home / EditingWorkspace for visual baselines (P20/B1).
  * Only loaded when VITE_ENABLE_UI_FIXTURES=1.
  */
 
@@ -16,7 +16,7 @@ const stableId = (prefix: string) => `${prefix}_ui_fixture`;
 
 export type ProductionUiSeed =
   | {
-      kind: "hub";
+      kind: "home";
       recent: RecentProject[];
     }
   | {
@@ -110,12 +110,12 @@ function withSceneClip(
 }
 
 export function seedProductionUi(fixture: UiFixtureId): ProductionUiSeed {
-  if (fixture === "hub-empty") {
-    return { kind: "hub", recent: [] };
+  if (fixture === "home-empty") {
+    return { kind: "home", recent: [] };
   }
-  if (fixture === "hub-recent") {
+  if (fixture === "home-recent") {
     return {
-      kind: "hub",
+      kind: "home",
       recent: [
         {
           id: "recent_1",

@@ -55,8 +55,8 @@ for (const file of viteFiles) {
     if (!want) continue;
     if (!region) {
       if (key === "inspector" && !String(m.surface).includes("editor")) continue;
-      if (key === "sidebar" && String(m.surface).startsWith("hub")) continue;
-      if (key === "timeline" && String(m.surface).startsWith("hub")) continue;
+      if (key === "sidebar" && String(m.surface).startsWith("home")) continue;
+      if (key === "timeline" && String(m.surface).startsWith("home")) continue;
       if (key === "titlebar") {
         fail(`${file}: missing region ${key}`);
         issues += 1;

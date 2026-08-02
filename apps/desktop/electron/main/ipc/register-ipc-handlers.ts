@@ -33,18 +33,18 @@ import {
   projectNameFromEnvelope,
 } from "../../../shared/project-file/envelope";
 import { getRendererMode } from "../../../shared/renderer-mode";
-import { createAssetFileService } from "../services/asset-file-service";
-import { createExportService } from "../services/export-service";
-import { createProjectFileService } from "../services/project-file-service";
-import { createProjectJournalService } from "../services/project-journal-service";
+import { createAssetFileService } from "../services/asset-file/asset-file.service";
+import { createExportService } from "../services/export/export.service";
+import { createProjectFileService } from "../services/project-file/project-file.service";
+import { createProjectJournalService } from "../services/project-journal/project-journal.service";
 import {
   assertDocumentMatchesSession,
   assertSessionProjectId,
   getProjectSession,
   requireSavedProjectSession,
   setProjectSession,
-} from "../services/project-session";
-import { createRecentProjectService } from "../services/recent-project-service";
+} from "../services/project-journal/project.session";
+import { createRecentProjectService } from "../services/recent-project/recent-project.service";
 import { allowWindowClose } from "../windows/create-main-window";
 import { validateSender } from "./validate-sender";
 import type { ExportEvent, ProjectOpenResult } from "../../../shared/ipc/contracts";

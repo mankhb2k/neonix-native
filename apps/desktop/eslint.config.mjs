@@ -156,6 +156,7 @@ export default tseslint.config(
     ignores: [
       "dist/**",
       "dist-renderer/**",
+      "storybook-static/**",
       "release/**",
       "resources/**",
       "tmp/**",

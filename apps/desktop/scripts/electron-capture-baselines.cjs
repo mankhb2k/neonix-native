@@ -23,8 +23,8 @@ const indexHtml = join(desktopRoot, "dist-renderer/index.html");
 const promote = process.env.PROMOTE_BASELINES === "1";
 
 const surfaces = [
-  "hub-empty",
-  "hub-recent",
+  "home-empty",
+  "home-recent",
   "editor-shell",
   "sidebar-layers",
   "timeline-empty",
@@ -70,10 +70,10 @@ function surfaceReadyScript(surface) {
       let surfaceOk = false;
       let reason = "surface-missing";
 
-      if ("${surface}".startsWith("hub-")) {
-        const hub = document.querySelector("[data-hub-screen]");
-        surfaceOk = !!hub && inViewport(hub);
-        reason = surfaceOk ? "ok" : "hub-out-of-view";
+      if ("${surface}".startsWith("home-")) {
+        const home = document.querySelector("[data-home-screen]");
+        surfaceOk = !!home && inViewport(home);
+        reason = surfaceOk ? "ok" : "home-out-of-view";
       } else {
         const timeline = document.querySelector('[data-testid="timeline-viewport"]');
         if (!timeline || !inViewport(timeline)) {

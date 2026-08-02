@@ -20,7 +20,6 @@ export function resolveStageBackend(
 ): StageRendererBackend {
   if (backend === "canvas-experimental" || backend === "pixi") {
     if (backend === "pixi" && typeof console !== "undefined") {
-      // eslint-disable-next-line no-console -- intentional deprecation signal
       console.warn(
         '[stage] backend "pixi" is deprecated; use "canvas-experimental". No PixiJS runtime is loaded.',
       );
@@ -69,7 +68,8 @@ export function prefetchPixiStageRenderer(): void {
 }
 
 /** @deprecated Prefer createStageRendererLazy(..., "canvas-experimental") */
-export function createPixiStageRenderer(_host: HTMLElement): never {
+export function createPixiStageRenderer(host: HTMLElement): never {
+  void host;
   throw new Error(
     'createPixiStageRenderer is removed; use createStageRendererLazy(host, "canvas-experimental"). No PixiJS runtime exists.',
   );

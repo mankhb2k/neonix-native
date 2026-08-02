@@ -26,7 +26,8 @@
     "validate:acceptance-web-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-web-parity.ts",
     "score:designer-corrections": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-designer-corrections.ts",
     "score:acceptance-pack": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-acceptance-pack.ts",
-    "storybook": "pnpm --filter @motionvideo/web storybook"
+    "storybook": "pnpm --filter @motionvideo/web storybook",
+    "storybook:desktop": "pnpm --filter @motionvideo/desktop storybook"
 
 
   },
@@ -36,7 +37,7 @@
   },
   "pnpm": {
     "overrides": {
-      "enhanced-resolve": "5.18.0"
+      "enhanced-resolve": "5.24.3"
     }
   }
 }

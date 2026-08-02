@@ -78,8 +78,8 @@ function solidPng(width, height, rgb = [0x18, 0x18, 0x1a]) {
 }
 
 const surfaces = [
-  "hub-empty",
-  "hub-recent",
+  "home-empty",
+  "home-recent",
   "editor-shell",
   "sidebar-layers",
   "timeline-empty",

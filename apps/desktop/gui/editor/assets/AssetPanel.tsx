@@ -274,8 +274,6 @@ export function AssetPanel({
     return () => {
       cancelled = true;
     };
-    // stableAssets identity is keyed by manifestKey via ref — intentionally omit from deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- manifestKey gates asset identity
   }, [assetsApi, manifestKey, projectPath]);
 
   async function handleImport() {

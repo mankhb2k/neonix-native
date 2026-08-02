@@ -72,9 +72,10 @@ export function EditorHeader({
         {exportSlot}
         {transportSlot}
         {zoomSlot}
-        <label className="editor-shell__field editor-shell__field--inline">
+        <label className="m-0 inline-flex">
           <span className="sr-only">Project name</span>
           <input
+            className="max-w-[420px] rounded-lg border border-[var(--border-strong)] bg-[var(--bg-panel)] px-3 py-2 text-[var(--fg)]"
             aria-label="Project name"
             value={actions.nameDraft}
             onChange={(e) => actions.setNameDraft(e.target.value)}

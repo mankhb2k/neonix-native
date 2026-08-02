@@ -11,10 +11,10 @@
     "dev:electron": "pnpm build:main && pnpm build:preload && wait-on http://127.0.0.1:5173 && cross-env MOTIONVIDEO_RENDERER=vite electron .",
     "dev:vite": "concurrently -k -n renderer,electron -c cyan,magenta \"pnpm dev:renderer\" \"pnpm dev:electron\"",
     "dev:legacy": "pnpm build:main && pnpm build:preload && cross-env MOTIONVIDEO_RENDERER=legacy electron .",
-    "build:main": "esbuild electron/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js --sourcemap && esbuild electron/main/services/journal-validate-worker.ts --bundle --platform=node --format=cjs --outfile=dist/main/journal-validate-worker.js --sourcemap",
+    "build:main": "esbuild electron/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js --sourcemap && esbuild electron/main/services/journal-validate/journal-validate.worker.ts --bundle --platform=node --format=cjs --outfile=dist/main/journal-validate.worker.js --sourcemap",
     "build:preload": "esbuild electron/preload/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js --sourcemap",
     "build:renderer": "vite build",
-    "build:main:release": "esbuild electron/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js && esbuild electron/main/services/journal-validate-worker.ts --bundle --platform=node --format=cjs --outfile=dist/main/journal-validate-worker.js",
+    "build:main:release": "esbuild electron/main/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/main/index.js && esbuild electron/main/services/journal-validate/journal-validate.worker.ts --bundle --platform=node --format=cjs --outfile=dist/main/journal-validate.worker.js",
     "build:preload:release": "esbuild electron/preload/index.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/preload/index.js",
     "build:renderer:release": "cross-env MOTIONVIDEO_RELEASE=1 vite build",
     "build": "pnpm build:main && pnpm build:preload && pnpm build:renderer",
@@ -28,12 +28,12 @@
     "dist": "pnpm build:release && pnpm test:export-cli && electron-builder --win nsis",
     "electron:pack": "pnpm run pack",
     "electron:dist": "pnpm run dist",
-    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit && tsc -p tsconfig.gui.json --noEmit",
+    "typecheck": "tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit && tsc -p tsconfig.gui.json --noEmit && tsc -p tsconfig.spec.json --noEmit",
     "lint": "eslint . --max-warnings 0",
     "lint:ci": "eslint . --max-warnings 0",
     "test:desktop-paths": "pnpm build:main && node scripts/smoke-desktop-paths.mjs",
-    "test:journal-worker": "pnpm build:main && node scripts/smoke-journal-validate-worker.mjs",
-    "test:journal-worker:packaged": "node scripts/smoke-journal-validate-worker-packaged.mjs",
+    "test:journal-worker": "pnpm build:main && node scripts/smoke-journal-validate.worker.mjs",
+    "test:journal-worker:packaged": "node scripts/smoke-journal-validate.worker-packaged.mjs",
     "test:web-ban": "node scripts/probe-web-import-ban.mjs && node scripts/probe-legacy-desktop-protected.mjs",
     "test": "vitest run --project node --project dom",
     "test:perf": "vitest run --project perf",
@@ -45,7 +45,9 @@
     "compare:geometry": "node scripts/compare-geometry.mjs",
     "start": "electron .",
     "start:prod": "pnpm build && cross-env MOTIONVIDEO_VITE_PROD=1 electron .",
-    "start:vite:prod": "pnpm run start:prod"
+    "start:vite:prod": "pnpm run start:prod",
+    "storybook": "storybook dev -p 6007",
+    "build-storybook": "storybook build -o storybook-static"
   },
   "dependencies": {
     "@motionvideo/editor-core": "workspace:*",
@@ -63,6 +65,9 @@
   "devDependencies": {
     "@babel/runtime": "^8.0.0",
     "@eslint/js": "^9.22.0",
+    "@storybook/addon-docs": "10.5.5",
+    "@storybook/react": "10.5.5",
+    "@storybook/react-vite": "10.5.5",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
@@ -84,6 +89,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "happy-dom": "^18.0.1",
     "sharp": "0.34.5",
+    "storybook": "10.5.5",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1",
@@ -106,7 +112,7 @@
     ],
     "asar": true,
     "asarUnpack": [
-      "dist/main/journal-validate-worker.js"
+      "dist/main/journal-validate.worker.js"
     ],
     "npmRebuild": false,
     "extraResources": [

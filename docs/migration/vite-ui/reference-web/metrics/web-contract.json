@@ -43,8 +43,8 @@
     "--timeline-playhead-gutter": "16px"
   },
   "requiredSurfaces": [
-    "hub-empty",
-    "hub-recent",
+    "home-empty",
+    "home-recent",
     "editor-shell",
     "timeline-empty",
     "sidebar-layers",

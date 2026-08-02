@@ -61,8 +61,6 @@ function nodeLabel(
 }
 
 function applyStaticNodeChrome(el: HTMLDivElement, node: PreviewParityNode): void {
-  /* Imperative DOM paint — mutate element styles intentionally. */
-  /* eslint-disable no-param-reassign */
   el.dataset.testid = `runtime-node-${node.id}`;
   el.dataset.nodeType = node.type;
   el.className = "preview-layer-node";
@@ -73,7 +71,6 @@ function applyStaticNodeChrome(el: HTMLDivElement, node: PreviewParityNode): voi
   el.style.border =
     node.type === "text" ? "none" : "1px solid rgba(255,255,255,0.35)";
   el.style.padding = node.type === "text" ? "0 12px" : "0";
-  /* eslint-enable no-param-reassign */
 }
 
 function syncNodeElement(
@@ -82,7 +79,6 @@ function syncNodeElement(
   sceneNodes: SceneNodeMap | null,
   clipId: string,
 ): void {
-  /* eslint-disable no-param-reassign */
   const width = Math.max(8, node.transform.width || node.worldBounds.width);
   const height = Math.max(8, node.transform.height || node.worldBounds.height);
   el.style.width = `${width}px`;
@@ -94,7 +90,6 @@ function syncNodeElement(
   el.dataset.clipId = clipId;
   const label = nodeLabel(node, sceneNodes);
   if (el.textContent !== label) el.textContent = label;
-  /* eslint-enable no-param-reassign */
 }
 
 export function createDomStageRenderer(host: HTMLElement): StageRendererPort {

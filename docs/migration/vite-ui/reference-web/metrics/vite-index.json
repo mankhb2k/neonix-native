@@ -3,33 +3,33 @@
   "note": "Vite chrome geometry for CSS-0. Web target metrics live in web-contract.json until full legacy capture.",
   "files": [
     {
-      "metrics": "vite-hub-empty-1280x720.json",
-      "png": "vite-hub-empty-1280x720.png",
+      "metrics": "vite-home-empty-1280x720.json",
+      "png": "vite-home-empty-1280x720.png",
       "sha256": "6e285ff4ef39640f7bee2bb11e77044c849e59fbf094e96b1b9a6bd0f1c76e5a"
     },
     {
-      "metrics": "vite-hub-empty-1440x900.json",
-      "png": "vite-hub-empty-1440x900.png",
+      "metrics": "vite-home-empty-1440x900.json",
+      "png": "vite-home-empty-1440x900.png",
       "sha256": "fbfbd10807101d49cef1559913b3a36833b4e3facd3ed1e290899959bfcfe8ac"
     },
     {
-      "metrics": "vite-hub-empty-1920x1080.json",
-      "png": "vite-hub-empty-1920x1080.png",
+      "metrics": "vite-home-empty-1920x1080.json",
+      "png": "vite-home-empty-1920x1080.png",
       "sha256": "771bda23c3334d985d3b5d42540ec025c13ed1811eca420fe1bcad34622d5ad6"
     },
     {
-      "metrics": "vite-hub-recent-1280x720.json",
-      "png": "vite-hub-recent-1280x720.png",
+      "metrics": "vite-home-recent-1280x720.json",
+      "png": "vite-home-recent-1280x720.png",
       "sha256": "9d698ead017e521993c3c098f835cbc59c54a427e01f9cc4be25bf63fafc7fcb"
     },
     {
-      "metrics": "vite-hub-recent-1440x900.json",
-      "png": "vite-hub-recent-1440x900.png",
+      "metrics": "vite-home-recent-1440x900.json",
+      "png": "vite-home-recent-1440x900.png",
       "sha256": "0707ed2cb0976fed2665b452bdf8a67079c4476f31ec2f9f48515bf3faa30897"
     },
     {
-      "metrics": "vite-hub-recent-1920x1080.json",
-      "png": "vite-hub-recent-1920x1080.png",
+      "metrics": "vite-home-recent-1920x1080.json",
+      "png": "vite-home-recent-1920x1080.png",
       "sha256": "f21a3191d8c783c24d635d4b3dcb9ec8ca8b270b278261d56926bd18ef855f86"
     },
     {

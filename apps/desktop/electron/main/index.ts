@@ -10,7 +10,7 @@ import { clearAllProjectMediaTokens } from "./protocol/mvmedia-registry";
 import { registerAppProtocolHandler } from "./protocol/register-app-protocol";
 import { registerDesktopSchemesPrivileged } from "./protocol/register-desktop-schemes";
 import { registerMvmediaProtocolHandler } from "./protocol/register-mvmedia-protocol";
-import { runJournalWorkerSmokeProbe } from "./services/journal-worker-smoke-probe";
+import { runJournalWorkerSmokeProbe } from "./services/journal-worker-smoke/journal-worker-smoke.probe";
 import {
   createMainWindow,
   prepareWindowChrome,

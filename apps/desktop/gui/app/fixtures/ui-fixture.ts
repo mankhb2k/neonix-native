@@ -4,8 +4,8 @@
  */
 
 export const UI_FIXTURE_IDS = [
-  "hub-empty",
-  "hub-recent",
+  "home-empty",
+  "home-recent",
   "editor-shell",
   "sidebar-layers",
   "timeline-empty",

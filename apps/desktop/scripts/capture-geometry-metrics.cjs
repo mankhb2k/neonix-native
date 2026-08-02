@@ -24,7 +24,7 @@ const outPng = join(
   "../../docs/migration/vite-ui/reference-web/vite",
 );
 
-const surfaces = ["hub-empty", "hub-recent", "editor-shell", "timeline-empty"];
+const surfaces = ["home-empty", "home-recent", "editor-shell", "timeline-empty"];
 const sizes = [
   { w: 1280, h: 720 },
   { w: 1440, h: 900 },

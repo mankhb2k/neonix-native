@@ -4,12 +4,12 @@ import { createProjectRepository } from "../infrastructure/repositories/project-
 import { ErrorBoundary } from "./error-boundary/ErrorBoundary";
 import { seedProductionUi, uiFixturesEnabled } from "./fixtures/seed-production-ui";
 import { readUiFixtureId } from "./fixtures/ui-fixture";
-import { HubScreen } from "./hub/HubScreen";
+import { HomeScreen } from "../home/HomeScreen";
 import {
   createJournalAutosaveTimers,
   type JournalAutosaveTimers,
 } from "./journal-autosave-timers";
-import { TitleBar } from "./shell/TitleBar";
+import { TitleBarDesktop } from "../TitleBarDesktop";
 import {
   createInitialAppState,
   reduceAppState,
@@ -29,7 +29,7 @@ const UiGallery = lazy(() =>
   import("./gallery/UiGallery").then((m) => ({ default: m.UiGallery })),
 );
 const EditingWorkspace = lazy(() =>
-  import("./editor/EditingWorkspace").then((m) => ({
+  import("../editor/layout").then((m) => ({
     default: m.EditingWorkspace,
   })),
 );
@@ -76,7 +76,6 @@ export function DesktopApp({ api }: Props) {
         })
         .catch((err: unknown) => {
           // Best-effort diagnostics; journal must not throw into the UI loop.
-          // eslint-disable-next-line no-console -- intentional autosave failure visibility
           console.warn(`[journal] autosave (${reason}) failed`, err);
         });
     },
@@ -118,7 +117,7 @@ export function DesktopApp({ api }: Props) {
     const fixtureId = uiFixturesEnabled() ? readUiFixtureId() : null;
     if (fixtureId) {
       const seed = seedProductionUi(fixtureId);
-      if (seed.kind === "hub") {
+      if (seed.kind === "home") {
         dispatch({ type: "BOOT_DONE", recent: seed.recent });
       } else {
         dispatch({
@@ -357,13 +356,31 @@ export function DesktopApp({ api }: Props) {
   return (
     <ErrorBoundary>
       <div
-        className="app-shell"
+        className="flex h-full min-h-0 w-full flex-col overflow-hidden"
         data-app-ready={appReady ? "true" : "false"}
         data-ui-fixture={uiFixture ?? undefined}
       >
-        <TitleBar api={api} title={title} dirty={state.dirty} />
+        <TitleBarDesktop
+          api={api}
+          title={title}
+          dirty={state.dirty}
+          mode={
+            state.phase === "editing" || state.phase === "saving"
+              ? "editor"
+              : "home"
+          }
+          onHome={
+            state.phase === "editing" || state.phase === "saving"
+              ? () => void onCloseToHome()
+              : undefined
+          }
+        />
         {showGallery ? (
-          <Suspense fallback={<p className="home__muted">Loading gallery…</p>}>
+          <Suspense
+            fallback={
+              <p className="m-0 text-[var(--fg-muted)]">Loading gallery…</p>
+            }
+          >
             <UiGallery
               onClose={() => {
                 const url = new URL(window.location.href);
@@ -376,7 +393,11 @@ export function DesktopApp({ api }: Props) {
           </Suspense>
         ) : null}
         {!showGallery && state.showDiagnostics ? (
-          <Suspense fallback={<p className="home__muted">Loading diagnostics…</p>}>
+          <Suspense
+            fallback={
+              <p className="m-0 text-[var(--fg-muted)]">Loading diagnostics…</p>
+            }
+          >
             <DiagnosticsScreen
               api={api}
               onBack={() => dispatch({ type: "SHOW_DIAGNOSTICS", show: false })}
@@ -386,11 +407,11 @@ export function DesktopApp({ api }: Props) {
         {!showGallery &&
         !state.showDiagnostics &&
         (state.phase === "booting" || state.phase === "error") ? (
-          <main className="home">
+          <main className="flex flex-1 flex-col p-4">
             {state.phase === "booting" ? (
-              <p className="home__muted">Starting…</p>
+              <p className="m-0 text-[var(--fg-muted)]">Starting…</p>
             ) : (
-              <p className="home__error">{state.error}</p>
+              <p className="m-0 text-[var(--danger)]">{state.error}</p>
             )}
           </main>
         ) : null}
@@ -399,7 +420,7 @@ export function DesktopApp({ api }: Props) {
         (state.phase === "home" ||
           state.phase === "opening" ||
           (state.phase === "editing" && !state.documentJson)) ? (
-          <HubScreen
+          <HomeScreen
             recent={state.recent}
             error={state.error}
             busy={state.phase === "opening"}
@@ -416,7 +437,11 @@ export function DesktopApp({ api }: Props) {
         !state.showDiagnostics &&
         state.documentJson &&
         (state.phase === "editing" || state.phase === "saving") ? (
-          <Suspense fallback={<p className="home__muted">Loading editor…</p>}>
+          <Suspense
+            fallback={
+              <p className="m-0 text-[var(--fg-muted)]">Loading editor…</p>
+            }
+          >
             <EditingWorkspace
               api={api}
               projectId={state.projectId ?? "untitled"}

@@ -29,7 +29,7 @@ import {
   createInitialTimelineSession,
   reduceTimelineSession,
 } from "../../editor/session/timeline-session";
-import { EditorWorkspaceLayout } from "../../editor/shell/EditorWorkspaceLayout";
+import { EditorWorkspaceFrame } from "../../editor/layout";
 import { EditorSidebar } from "../../editor/sidebar/EditorSidebar";
 import { PreviewStage } from "../../editor/stage/PreviewStage";
 import { TransportBar } from "../../editor/stage/TransportBar";
@@ -372,13 +372,11 @@ function EditingWorkspaceInner({
     const handle: EditorSessionHandle = { flushSnapshot };
     onSessionHandle?.(handle);
     if (sessionHandleRef) {
-      // eslint-disable-next-line no-param-reassign -- intentional handle registry
       sessionHandleRef.current = handle;
     }
     return () => {
       onSessionHandle?.(null);
       if (sessionHandleRef?.current === handle) {
-        // eslint-disable-next-line no-param-reassign -- intentional handle registry
         sessionHandleRef.current = null;
       }
     };
@@ -503,7 +501,7 @@ function EditingWorkspaceInner({
         </p>
       ) : null}
 
-      <EditorWorkspaceLayout
+      <EditorWorkspaceFrame
         showInspector={INSPECTOR_ENABLED}
         sidebar={
           <EditorSidebar
