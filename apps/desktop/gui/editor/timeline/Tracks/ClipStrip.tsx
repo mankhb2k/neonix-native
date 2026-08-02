@@ -23,6 +23,7 @@ import {
   resolveDropGeometryAtPoint,
 } from "./drop-host";
 import type { BeginGesture } from "../interactions/use-pointer-session";
+import { cn } from "../../../ui";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
 export type { ClipMovePreview };
@@ -37,6 +38,34 @@ function trackForLane(lane: TimelineLane | undefined): TrackKind {
   if (lane.kind === "audio") return "audio";
   if (lane.role === "base") return "main";
   return "overlay";
+}
+
+function clipClassName(
+  trackKind: TrackKind,
+  selected: boolean,
+  isDragging: boolean,
+  dragInvalid: boolean,
+  crossLaneOrigin: boolean,
+): string {
+  const selectedCls = selected
+    ? trackKind === "main"
+      ? "z-10 border-2 border-white text-white shadow-md"
+      : "z-10 border-2 border-white"
+    : "";
+  const base =
+    trackKind === "main"
+      ? "absolute overflow-hidden rounded px-2 text-left text-[11px] flex items-center bg-[var(--timeline-clip-frame)] text-white/90"
+      : trackKind === "audio"
+        ? "absolute flex items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
+        : "absolute flex items-center overflow-hidden rounded bg-[var(--timeline-clip-frame)]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
+  return cn(
+    base,
+    selectedCls,
+    isDragging && "z-[2] cursor-grabbing",
+    !isDragging && "cursor-grab",
+    dragInvalid && "border-[var(--danger)] bg-[var(--danger)]/40",
+    crossLaneOrigin && "opacity-35",
+  );
 }
 
 type Preview =
@@ -349,7 +378,7 @@ export const ClipStrip = memo(function ClipStrip({
     activeMove.originLaneId !== lane.id;
 
   return (
-    <div className="timeline-clip-strip" data-testid="timeline-clip-strip-root">
+    <div className="absolute inset-0 overflow-hidden" data-testid="timeline-clip-strip-root">
       {clips.map((clip) => {
         let start = clip.startTime;
         let duration = clip.duration;
@@ -384,23 +413,19 @@ export const ClipStrip = memo(function ClipStrip({
         const width = Math.max(2, duration * pps);
         const isSelected = selected.has(clip.id);
         const trackKind = trackForLane(lane);
-        const classNames = [
-          "timeline-clip-strip__clip",
-          `timeline-clip-strip__clip--${trackKind}`,
-        ];
-        if (isSelected) classNames.push("timeline-clip-strip__clip--selected");
-        if (isDragging) classNames.push("timeline-clip-strip__clip--dragging");
-        if (dragInvalid) classNames.push("timeline-clip-strip__clip--invalid");
-        if (crossLaneOrigin) {
-          classNames.push("timeline-clip-strip__clip--cross-lane-origin");
-        }
 
         return (
           <div
             key={clip.id}
             role="button"
             tabIndex={disabled ? -1 : 0}
-            className={classNames.join(" ")}
+            className={clipClassName(
+              trackKind,
+              isSelected,
+              isDragging,
+              dragInvalid,
+              crossLaneOrigin,
+            )}
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
             data-start-time={String(start)}
@@ -414,17 +439,17 @@ export const ClipStrip = memo(function ClipStrip({
               }
             }}
           >
-            <span className="timeline-clip-strip__label pointer-events-none truncate">
+            <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
               {clip.name || clip.id}
             </span>
             {isSelected && !disabled ? (
               <>
                 <span
-                  className="timeline-clip-strip__handle timeline-clip-strip__handle--left"
+                  className="absolute inset-y-0 left-0 z-[2] w-1.5 cursor-ew-resize"
                   onPointerDown={(e) => beginTrim(e, clip, "left")}
                 />
                 <span
-                  className="timeline-clip-strip__handle timeline-clip-strip__handle--right"
+                  className="absolute inset-y-0 right-0 z-[2] w-1.5 cursor-ew-resize"
                   onPointerDown={(e) => beginTrim(e, clip, "right")}
                 />
               </>
@@ -434,11 +459,10 @@ export const ClipStrip = memo(function ClipStrip({
       })}
       {showTargetGhost && activeMove ? (
         <div
-          className={
-            activeMove.valid
-              ? "timeline-clip-strip__clip timeline-clip-strip__clip--ghost"
-              : "timeline-clip-strip__clip timeline-clip-strip__clip--ghost timeline-clip-strip__clip--invalid"
-          }
+          className={cn(
+            "pointer-events-none absolute z-[3] overflow-hidden rounded border border-dashed border-[#4a4a52] bg-[#38383e] opacity-65",
+            !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40",
+          )}
           aria-hidden
           data-testid="timeline-clip-move-ghost"
           style={{

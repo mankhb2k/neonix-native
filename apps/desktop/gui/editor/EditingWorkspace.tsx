@@ -407,6 +407,7 @@ function EditingWorkspaceInner({
           <Timeline
             focus={timelineFocus}
             projectId={session.projectId}
+            project={session.project}
             clips={session.clips}
             lanes={session.lanes}
             fps={session.fps}

@@ -19,6 +19,7 @@ export type TimelineDropHost = {
   lanesTop: number;
   laneHeight: number;
   laneHeightFor?: (lane: TimelineLane) => number;
+  laneGapPx?: number;
   pixelsPerSecond: number;
   tracksOriginX: number;
 };
@@ -62,6 +63,7 @@ export function resolveDropGeometryAtPoint(
     lanesTop: host.lanesTop,
     laneHeight: host.laneHeight,
     laneHeightFor: host.laneHeightFor,
+    laneGapPx: host.laneGapPx,
     pixelsPerSecond: host.pixelsPerSecond,
     tracksOriginX: host.tracksOriginX,
   });

@@ -4,6 +4,7 @@ import type {
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core";
+import type { MotionProject } from "@motionvideo/motion-schema";
 import { EMPTY_EDITOR_VIEW_PROPS } from "../workspace-props";
 import { TransportBar } from "./Header/TransportBar";
 import { TimelineViewport } from "./Tracks/TimelineViewport";
@@ -11,6 +12,7 @@ import { TimelineViewport } from "./Tracks/TimelineViewport";
 export type TimelineProps = {
   focus?: boolean;
   projectId?: string | null;
+  project?: MotionProject | null;
   clips?: TimelineClip[];
   lanes?: TimelineLane[];
   fps?: number;
@@ -45,6 +47,7 @@ const noop = () => undefined;
 export function Timeline({
   focus,
   projectId = null,
+  project = null,
   clips = EMPTY_EDITOR_VIEW_PROPS.clips,
   lanes = EMPTY_EDITOR_VIEW_PROPS.lanes,
   fps = 30,
@@ -90,9 +93,10 @@ export function Timeline({
         onSplit={onSplit}
         onDelete={onDelete}
       />
-      <div className="min-h-0 flex-1">
+      <div className="flex min-h-0 flex-1 flex-col">
         <TimelineViewport
           projectId={projectId}
+          project={project}
           clips={clips}
           lanes={lanes}
           fps={fps}

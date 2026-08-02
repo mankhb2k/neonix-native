@@ -16,12 +16,15 @@ export type DropGeometryInput = {
   clientY: number;
   /** Tracks scroll container. */
   scrollEl: HTMLElement;
+  /** Lanes in display order (overlay → base → audio). Do not re-sort. */
   lanes: TimelineLane[];
   /** Y origin of first lane row relative to scrollEl content. */
   lanesTop: number;
   /** Uniform fallback height when laneHeightFor is omitted. */
   laneHeight: number;
   laneHeightFor?: (lane: TimelineLane) => number;
+  /** Gap between consecutive lanes in content Y (web space-y). */
+  laneGapPx?: number;
   pixelsPerSecond: number;
   tracksOriginX: number;
 };
@@ -65,19 +68,22 @@ export function resolveTimelineDropGeometry(
   });
   if (y < 0 || input.lanes.length === 0) return null;
 
-  const sorted = [...input.lanes].sort((a, b) => a.order - b.order);
+  const ordered = input.lanes;
   const heightOf = (lane: TimelineLane) =>
     input.laneHeightFor?.(lane) ?? input.laneHeight;
+  const gap = Math.max(0, input.laneGapPx ?? 0);
 
   let acc = 0;
-  let lane = sorted[sorted.length - 1]!;
-  for (const candidate of sorted) {
+  let lane = ordered[ordered.length - 1]!;
+  for (let i = 0; i < ordered.length; i += 1) {
+    const candidate = ordered[i]!;
     const h = Math.max(1, heightOf(candidate));
     if (y < acc + h) {
       lane = candidate;
       break;
     }
     acc += h;
+    if (i < ordered.length - 1) acc += gap;
   }
 
   const startTime = Math.max(0, x / Math.max(1e-6, input.pixelsPerSecond));

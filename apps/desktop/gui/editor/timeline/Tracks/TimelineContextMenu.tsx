@@ -53,7 +53,7 @@ export function TimelineContextMenu({
       <ContextMenuTrigger className={className} disabled={disabled}>
         {children}
       </ContextMenuTrigger>
-      <ContextMenuContent className="timeline-context-menu">
+      <ContextMenuContent className="min-w-[140px]">
         {actions.map((action) => (
           <ContextMenuItem
             key={action.id}
