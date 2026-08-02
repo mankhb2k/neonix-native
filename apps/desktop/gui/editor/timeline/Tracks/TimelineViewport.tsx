@@ -10,7 +10,7 @@ import {
 } from "@motionvideo/editor-core";
 import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
-import { ClipStrip, type ClipMovePreview } from "./ClipStrip";
+import { ClipStrip, type ClipMovePreview } from "../clips/ClipStrip";
 import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
 import { autoScrollTimelineNearEdge } from "../drop/auto-scroll";
 import {
