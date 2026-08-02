@@ -40,7 +40,7 @@ import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "../viewport/viewport-layout";
-import { visibleLaneWindow } from "./visible-lane-window";
+import { visibleLaneWindow } from "../view-model/visible-lane-window";
 import { LaneFlagControls } from "../lanes/LaneFlagControls";
 import { LaneLeadingIcon, resolveLaneContentKind } from "../lanes/LaneLeadingIcon";
 import { EmptyTimelineDash } from "../viewport/EmptyTimelineDash";
