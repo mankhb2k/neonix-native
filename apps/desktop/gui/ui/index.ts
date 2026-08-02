@@ -1,4 +1,5 @@
 export { cn } from "./cn";
+export { Avatar, type AvatarProps } from "./Avatar/Avatar";
 export { Button, type ButtonProps } from "./Button/Button";
 export { Dialog, type DialogProps } from "./Dialog/Dialog";
 export { IconButton, type IconButtonProps } from "./IconButton/IconButton";

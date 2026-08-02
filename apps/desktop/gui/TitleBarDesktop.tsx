@@ -1,6 +1,6 @@
-import { CloudCheck, Gem, Search, Upload } from "lucide-react";
+import { CloudCheck, Gem, Upload } from "lucide-react";
 import { useEffect, useState, type CSSProperties } from "react";
-import { Button, Tooltip } from "./ui";
+import { Button, Avatar, Tooltip } from "./ui";
 import type { DesktopAPI } from "../shared/ipc/contracts";
 
 type Props = {
@@ -56,9 +56,10 @@ function WindowControls({ api }: { api: DesktopAPI }) {
   const btn =
     "inline-flex h-full w-[46px] cursor-default items-center justify-center border-0 bg-transparent text-[var(--fg-muted)] transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]";
 
+  // Fixed width; height stretches to match content-driven titlebar.
   return (
     <div
-      className="flex h-full shrink-0 items-stretch self-stretch"
+      className="flex shrink-0 items-stretch self-stretch"
       data-geometry="titlebar-window-controls"
       style={noDrag}
     >
@@ -93,25 +94,20 @@ function WindowControls({ api }: { api: DesktopAPI }) {
 }
 
 function MenuBar() {
-  const item =
-    "cursor-pointer rounded px-2 py-0.5 transition-colors hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]";
   return (
-    <div
-      className="flex items-center gap-1 text-[12px] text-[var(--fg-muted)] select-none"
-      style={noDrag}
-    >
-      <button type="button" className={item}>
+    <div className="flex items-center gap-0.5 select-none" style={noDrag}>
+      <Button type="button" variant="ghost" size="sm">
         File
-      </button>
-      <button type="button" className={item}>
+      </Button>
+      <Button type="button" variant="ghost" size="sm">
         Edit
-      </button>
-      <button type="button" className={item}>
+      </Button>
+      <Button type="button" variant="ghost" size="sm">
         View
-      </button>
-      <button type="button" className={item}>
+      </Button>
+      <Button type="button" variant="ghost" size="sm">
         Help
-      </button>
+      </Button>
     </div>
   );
 }
@@ -127,31 +123,37 @@ export function TitleBarDesktop({
   const isEditor = mode === "editor";
 
   return (
+    // Child-driven height: no fixed h-* on header. Tallest control + padding sets bar height.
+    // Window controls stretch (items-stretch) to match that height.
     <header
-      className="desktop-titlebar flex h-[30px] shrink-0 items-stretch border-b border-[var(--border-subtle)] bg-[var(--bg-panel)] select-none"
+      className="desktop-titlebar flex shrink-0 items-stretch bg-[var(--bg-panel)] select-none"
       data-geometry="titlebar"
       style={{ WebkitAppRegion: "drag" } as CSSProperties}
     >
-      {/* 1 — Content (left) */}
+      {/*
+        [1] CONTENT — left
+        Children (Button/Avatar size) decide height. py/px only add padding around them.
+        flex-1 + min-w-0: takes all remaining width after window controls.
+      */}
       <div
-        className="flex min-w-0 flex-1 items-center justify-between gap-3 pr-2 pl-3"
+        className="flex min-w-0 flex-1 items-center gap-3 px-2 py-1"
         data-geometry="titlebar-content"
       >
         <div className="flex min-w-0 items-center gap-2" style={noDrag}>
-          <button
-            type="button"
-            className="flex h-[22px] w-[22px] shrink-0 cursor-pointer items-center justify-center rounded-[4px] border-0 bg-[#d9381e] text-[12px] font-bold text-white"
+          <Avatar
+            variant="logo"
+            size="sm"
+            fallback="M"
+            alt="Home"
             title="Home"
             onClick={onHome}
-          >
-            M
-          </button>
+          />
 
           {isEditor ? <MenuBar /> : null}
 
           {isEditor ? (
             <input
-              className="w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
+              className="h-[26px] w-[160px] rounded-[4px] border border-transparent bg-transparent px-1.5 text-[13px] font-medium text-[var(--fg-primary)] outline-none hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] focus:border-[var(--border-strong)] focus:bg-[var(--bg-hover)]"
               value={title}
               onChange={(e) => onTitleChange?.(e.target.value)}
               readOnly={!onTitleChange}
@@ -167,7 +169,7 @@ export function TitleBarDesktop({
 
           {isEditor ? (
             <Tooltip content={dirty ? "Unsaved changes" : "Saved"} side="bottom">
-              <span className="inline-flex">
+              <span className="inline-flex items-center">
                 <CloudCheck
                   size={15}
                   strokeWidth={1.2}
@@ -178,21 +180,7 @@ export function TitleBarDesktop({
           ) : null}
         </div>
 
-        {isEditor ? (
-          <div
-            className="flex w-[220px] items-center gap-1.5 rounded-md bg-[var(--bg-elevated)] px-2.5 py-1 text-[var(--fg-muted)]"
-            style={noDrag}
-          >
-            <Search size={14} strokeWidth={1.2} />
-            <input
-              type="search"
-              placeholder="Search"
-              className="w-full border-none bg-transparent text-[12px] text-[var(--fg-secondary)] outline-none"
-            />
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1" />
-        )}
+        <div className="min-w-0 flex-1" />
 
         {isEditor ? (
           <div className="flex items-center gap-2" style={noDrag}>
@@ -215,12 +203,15 @@ export function TitleBarDesktop({
                 Export
               </Button>
             </Tooltip>
-            <div className="h-[26px] w-[26px] overflow-hidden rounded-full border border-[var(--line-strong)] bg-[var(--bg-hover)]" />
+            <Avatar variant="user" size="md" fallback="U" alt="Account" />
           </div>
         ) : null}
       </div>
 
-      {/* 2 — Window controls (right) */}
+      {/*
+        [2] WINDOW CONTROLS — right
+        Fixed width (3 × 46px). Height follows content column via stretch.
+      */}
       <WindowControls api={api} />
     </header>
   );
