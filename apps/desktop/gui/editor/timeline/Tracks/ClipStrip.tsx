@@ -28,7 +28,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 
 export type { ClipMovePreview };
 
-const DRAG_THRESHOLD_PX = 3;
+const DRAG_THRESHOLD_PX = 4; // web MOVE_THRESHOLD_PX
 const SNAP_THRESHOLD_PX = 8;
 
 type TrackKind = "main" | "overlay" | "audio";
@@ -43,9 +43,6 @@ function trackForLane(lane: TimelineLane | undefined): TrackKind {
 function clipClassName(
   trackKind: TrackKind,
   selected: boolean,
-  isDragging: boolean,
-  dragInvalid: boolean,
-  crossLaneOrigin: boolean,
 ): string {
   const selectedCls = selected
     ? trackKind === "main"
@@ -58,14 +55,7 @@ function clipClassName(
       : trackKind === "audio"
         ? "absolute top-0 bottom-0 my-auto flex h-[90%] items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
         : "absolute top-0 bottom-0 my-auto flex h-[90%] items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
-  return cn(
-    base,
-    selectedCls,
-    isDragging && "z-[2] cursor-grabbing",
-    !isDragging && "cursor-grab",
-    dragInvalid && "border-[var(--danger)] bg-[var(--danger)]/40",
-    crossLaneOrigin && "opacity-35",
-  );
+  return cn(base, selectedCls, "cursor-grab");
 }
 
 type Preview =
@@ -370,10 +360,14 @@ export const ClipStrip = memo(function ClipStrip({
       ? localPreview
       : null;
 
-  const showTargetGhost =
-    activeMove != null &&
-    activeMove.laneId === lane.id &&
-    activeMove.originLaneId !== lane.id;
+  const showMoveGhost =
+    activeMove != null && activeMove.laneId === lane.id;
+
+  const movingCatalog = allClips ?? clips;
+  const movingPrimary = showMoveGhost
+    ? movingCatalog.find((c) => c.id === activeMove.clipId)
+    : null;
+  const ghostLabel = movingPrimary?.name || activeMove?.clipId || "";
 
   return (
     <div
@@ -381,31 +375,14 @@ export const ClipStrip = memo(function ClipStrip({
       data-testid="timeline-clip-strip-root"
     >
       {clips.map((clip) => {
+        // Web: hide source clip while moving (ghost is the live preview).
+        if (activeMove?.clipId === clip.id) return null;
+        if (activeMove?.members?.some((m) => m.clipId === clip.id)) return null;
+
         let start = clip.startTime;
         let duration = clip.duration;
-        let isDragging = false;
-        let dragInvalid = false;
-        let crossLaneOrigin = false;
 
-        const memberPreview = activeMove?.members?.find(
-          (m) => m.clipId === clip.id,
-        );
-        if (activeMove?.clipId === clip.id) {
-          isDragging = true;
-          dragInvalid = !activeMove.valid;
-          if (activeMove.laneId === lane.id) {
-            start = activeMove.startTime;
-            duration = activeMove.duration;
-          } else if (activeMove.originLaneId === lane.id) {
-            // Keep origin silhouette; ghost renders on the target lane.
-            crossLaneOrigin = true;
-          }
-        } else if (memberPreview && memberPreview.laneId === lane.id) {
-          isDragging = true;
-          dragInvalid = !(activeMove?.valid ?? true);
-          start = memberPreview.startTime;
-          duration = memberPreview.duration;
-        } else if (trimPreview?.clipId === clip.id) {
+        if (trimPreview?.clipId === clip.id) {
           start = trimPreview.startTime;
           duration = trimPreview.duration;
         }
@@ -420,13 +397,7 @@ export const ClipStrip = memo(function ClipStrip({
             key={clip.id}
             role="button"
             tabIndex={disabled ? -1 : 0}
-            className={clipClassName(
-              trackKind,
-              isSelected,
-              isDragging,
-              dragInvalid,
-              crossLaneOrigin,
-            )}
+            className={clipClassName(trackKind, isSelected)}
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
             data-start-time={String(start)}
@@ -458,19 +429,47 @@ export const ClipStrip = memo(function ClipStrip({
           </div>
         );
       })}
-      {showTargetGhost && activeMove ? (
-        <div
-          className={cn(
-            "pointer-events-none absolute top-0 bottom-0 my-auto z-[3] h-[90%] overflow-hidden rounded border border-dashed border-[#4a4a52] bg-[#38383e] opacity-65",
-            !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40",
-          )}
-          aria-hidden
-          data-testid="timeline-clip-move-ghost"
-          style={{
-            left: activeMove.startTime * pps,
-            width: Math.max(2, activeMove.duration * pps),
-          }}
-        />
+      {showMoveGhost && activeMove ? (
+        <>
+          {/* Gray lane ghost — web TrackLane h-[90%] */}
+          <div
+            className={cn(
+              "pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]",
+              !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40",
+            )}
+            aria-hidden
+            data-testid="timeline-clip-move-ghost"
+            style={{
+              left: activeMove.startTime * pps,
+              width: Math.max(2, activeMove.duration * pps),
+            }}
+          />
+          {/* Teal name bar — web GlobalDragPreview over timeline */}
+          <div
+            className="pointer-events-none absolute top-1/2 z-[21] flex h-8 -translate-y-1/2 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl will-change-[left]"
+            aria-hidden
+            data-testid="timeline-clip-move-cyan"
+            style={{
+              left: activeMove.startTime * pps,
+              width: Math.max(24, activeMove.duration * pps),
+            }}
+          >
+            <span className="truncate">{ghostLabel}</span>
+          </div>
+          {activeMove.members
+            ?.filter((m) => m.laneId === lane.id)
+            .map((m) => (
+              <div
+                key={`ghost-${m.clipId}`}
+                className="pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[90%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md"
+                aria-hidden
+                style={{
+                  left: m.startTime * pps,
+                  width: Math.max(2, m.duration * pps),
+                }}
+              />
+            ))}
+        </>
       ) : null}
     </div>
   );
