@@ -186,6 +186,9 @@ export function useClipMove({
 
       const originX = event.clientX;
       const originY = event.clientY;
+      const clipRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const grabOffsetY = originY - clipRect.top;
+
       const originStart = clip.startTime;
       const originLaneId = lane.id;
       const originTrack = trackForLane(lane);
@@ -273,9 +276,11 @@ export function useClipMove({
                 ),
                 duration,
                 valid: false,
+                trackKind: originTrack,
                 label: clip.name || clip.id,
                 clientX: pos.x,
                 clientY: pos.y,
+                grabOffsetY,
               };
               setClipMovePreview(preview);
               return {
@@ -326,17 +331,29 @@ export function useClipMove({
             const groupDelta = Math.max(rawDelta, -minStartInGroup);
             const primaryStart = originStart + groupDelta;
             let groupValid = resolved.commit.valid;
+            const primaryLaneIndex = hostLanes.findIndex((l) => l.id === originLaneId);
+            const primaryLaneTop = host?.laneHitLayout
+              ? host.laneHitLayout.topPadding + host.laneHitLayout.laneHeightPrefix[primaryLaneIndex]
+              : 0;
+
             const members = isGroup
               ? groupIds
                   .filter((id) => id !== clip.id)
                   .map((id) => {
                     const c = catalogById.get(id);
                     if (!c || !c.laneId) return null;
+                    const lIdx = hostLanes.findIndex((l) => l.id === c.laneId);
+                    const lTop = host?.laneHitLayout && lIdx >= 0
+                      ? host.laneHitLayout.topPadding + host.laneHitLayout.laneHeightPrefix[lIdx]
+                      : 0;
+                    const mLane = hostLanes[lIdx];
                     return {
                       clipId: id,
                       laneId: c.laneId,
                       startTime: c.startTime + groupDelta,
                       duration: c.duration,
+                      trackKind: mLane ? trackForLane(mLane) : "overlay",
+                      offsetY: lTop - primaryLaneTop,
                     };
                   })
                   .filter((m): m is NonNullable<typeof m> => m != null)
@@ -354,9 +371,11 @@ export function useClipMove({
               startTime: primaryStart,
               laneId: isGroup ? originLaneId : resolved.preview.laneId,
               valid: isGroup ? groupValid : resolved.commit.valid,
+              trackKind: originTrack,
               label: clip.name || clip.id,
               clientX: pos.x,
               clientY: pos.y,
+              grabOffsetY,
               snapGuideTime,
               members,
             };

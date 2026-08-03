@@ -16,6 +16,9 @@ export type ClipMovePreviewMember = {
   laneId: string;
   startTime: number;
   duration: number;
+  trackKind: TimelineTrackKind;
+  /** Y offset relative to the primary clip's original position. */
+  offsetY: number;
 };
 
 export type ClipMovePreview = {
@@ -25,15 +28,18 @@ export type ClipMovePreview = {
   startTime: number;
   duration: number;
   valid: boolean;
+  trackKind: TimelineTrackKind;
   /** CapCut insert between lanes (new overlay/audio lane). */
   isInsert?: boolean;
   insertOrder?: number | null;
   /** Content Y center for insert chrome (scroll canvas). */
   contentTop?: number;
   label?: string;
-  /** Pointer Y for cyan bar (left anchors to startTime, not grab X). */
+  /** Pointer Y for floating clip rendering. */
   clientX?: number;
   clientY?: number;
+  /** Mouse grab offset from the top of the primary clip. */
+  grabOffsetY?: number;
   /** CapCut vertical snap guide time (clip edge alignment). */
   snapGuideTime?: number | null;
   /** Secondary selected clips (time-shift on home lanes). */
