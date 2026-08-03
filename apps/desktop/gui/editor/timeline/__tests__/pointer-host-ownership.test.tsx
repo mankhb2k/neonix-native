@@ -3,7 +3,7 @@
  * @vitest-environment happy-dom
  */
 
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, render, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { useEffect } from "react";
 import {
@@ -72,5 +72,16 @@ describe("usePointerSessionHost ownership", () => {
     });
     expect(after.start({ x: 1, y: 1 })).toBe(true);
     after.cancel();
+  });
+
+  it("keeps the public callbacks stable across React renders", () => {
+    const { result, rerender } = renderHook(() => usePointerSessionHost());
+    const firstBeginGesture = result.current.beginGesture;
+    const firstClearActive = result.current.clearActive;
+
+    rerender();
+
+    expect(result.current.beginGesture).toBe(firstBeginGesture);
+    expect(result.current.clearActive).toBe(firstClearActive);
   });
 });

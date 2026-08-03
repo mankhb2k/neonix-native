@@ -1,5 +1,5 @@
 /**
- * CapCut timeline mode toggles — magnet (P) · snap (N) · linkage (~).
+ * Timeline mode toggles — auto snap (N).
  * Active = teal; off = muted.
  */
 
@@ -47,23 +47,6 @@ function ToggleButton({
   );
 }
 
-/** CapCut: two blocks + left arrow (main-track magnet). */
-function MagnetIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <rect x="8.5" y="4.5" width="5" height="3.2" rx="0.8" fill="currentColor" />
-      <rect x="8.5" y="8.3" width="5" height="3.2" rx="0.8" fill="currentColor" />
-      <path
-        d="M7.2 8H3.6m0 0l1.6-1.5M3.6 8l1.6 1.5"
-        stroke="currentColor"
-        strokeWidth="1.35"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 /** CapCut: vertical snap line with side blocks + sparkles. */
 function SnapIcon() {
   return (
@@ -86,62 +69,21 @@ function SnapIcon() {
   );
 }
 
-/** CapCut: chain / linkage. */
-function LinkageIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M6.2 9.2a2.4 2.4 0 0 1 0-3.4l1.5-1.5a2.4 2.4 0 1 1 3.4 3.4L10 8.8"
-        stroke="currentColor"
-        strokeWidth="1.45"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.8 6.8a2.4 2.4 0 0 1 0 3.4L8.3 11.7a2.4 2.4 0 1 1-3.4-3.4L6 7.2"
-        stroke="currentColor"
-        strokeWidth="1.45"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 type Props = {
   disabled?: boolean;
 };
 
 export function TimelineModeToggles({ disabled }: Props) {
-  const mainTrackMagnet = useTimelineInteractionPrefs((s) => s.mainTrackMagnet);
   const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
-  const linkage = useTimelineInteractionPrefs((s) => s.linkage);
-  const toggleMainTrackMagnet = useTimelineInteractionPrefs(
-    (s) => s.toggleMainTrackMagnet,
-  );
   const toggleAutoSnapping = useTimelineInteractionPrefs(
     (s) => s.toggleAutoSnapping,
   );
-  const toggleLinkage = useTimelineInteractionPrefs((s) => s.toggleLinkage);
 
   return (
     <div
       className="flex items-center gap-0.5"
       data-testid="timeline-mode-toggles"
     >
-      <ToggleButton
-        testId="timeline-toggle-magnet"
-        pressed={mainTrackMagnet}
-        disabled={disabled}
-        label="Main track magnet"
-        title={
-          mainTrackMagnet
-            ? "Turn off main track magnet (P)"
-            : "Turn on main track magnet (P)"
-        }
-        onClick={toggleMainTrackMagnet}
-      >
-        <MagnetIcon />
-      </ToggleButton>
-
       <ToggleButton
         testId="timeline-toggle-snap"
         pressed={autoSnapping}
@@ -155,17 +97,6 @@ export function TimelineModeToggles({ disabled }: Props) {
         onClick={toggleAutoSnapping}
       >
         <SnapIcon />
-      </ToggleButton>
-
-      <ToggleButton
-        testId="timeline-toggle-linkage"
-        pressed={linkage}
-        disabled={disabled}
-        label="Linkage"
-        title={linkage ? "Turn off linkage (~)" : "Turn on linkage (~)"}
-        onClick={toggleLinkage}
-      >
-        <LinkageIcon />
       </ToggleButton>
     </div>
   );

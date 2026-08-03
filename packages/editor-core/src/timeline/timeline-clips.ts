@@ -47,9 +47,12 @@ export {
   findFreeAudioLane,
   findFreeLaneAmong,
   findFreeOverlayLane,
+  findLaneAbove,
   rangesOverlap,
   resolveLaneStartTimeNearest,
   resolveMainStartTime,
+  resolveOccupancyAwarePlacement,
+  type OccupancyAwarePlacement,
 } from "./policies/placement-policy";
 
 /* ========================================================================== */
@@ -289,7 +292,9 @@ export function pruneEmptyAudioLanes(
 /* 4. CLIP QUERY UTILITIES                                                    */
 /* ========================================================================== */
 
-export function clipsContentEndSeconds(clips: TimelineClip[]): number {
+export function clipsContentEndSeconds(
+  clips: ReadonlyArray<Pick<TimelineClip, "startTime" | "duration">>,
+): number {
   return clips.reduce(
     (end, clip) =>
       Math.max(end, Math.max(0, clip.startTime) + Math.max(0, clip.duration)),

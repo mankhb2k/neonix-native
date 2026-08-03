@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { selectionNone } from "@motionvideo/editor-core";
 import { buildBlankDesktopProject } from "../../../../shared/project-file/envelope";
 import {
   createInitialAppState,
@@ -7,7 +8,16 @@ import {
 import {
   createInitialTimelineSession,
   reduceTimelineSession,
+  type TimelineSessionEvent,
+  type TimelineSessionState,
 } from "../../session/timeline-session";
+
+function reduce(
+  state: TimelineSessionState,
+  event: TimelineSessionEvent,
+): TimelineSessionState {
+  return reduceTimelineSession(state, event).state;
+}
 
 describe("rename document ownership (UI-0)", () => {
   it("session rename emits new name and parent sync does not revert", () => {
@@ -16,16 +26,17 @@ describe("rename document ownership (UI-0)", () => {
       createId: (p) => `${p}_rs`,
     });
     let session = createInitialTimelineSession();
-    session = reduceTimelineSession(session, {
+    session = reduce(session, {
       type: "REPLACE_DOCUMENT",
       documentJson: blank.documentJson,
     });
     expect(session.projectName).toBe("Original");
 
-    session = reduceTimelineSession(session, {
+    session = reduce(session, {
       type: "SET_PROJECT_NAME",
       name: "Session Name",
       entryId: "rename_1",
+      selection: selectionNone(),
     });
     expect(session.projectName).toBe("Session Name");
     expect(session.sessionDocumentJson).toContain("Session Name");
@@ -61,15 +72,16 @@ describe("rename document ownership (UI-0)", () => {
       createId: (p) => `${p}_hist`,
     });
     let session = createInitialTimelineSession();
-    session = reduceTimelineSession(session, {
+    session = reduce(session, {
       type: "REPLACE_DOCUMENT",
       documentJson: blank.documentJson,
     });
     const before = session.history.past.length;
-    session = reduceTimelineSession(session, {
+    session = reduce(session, {
       type: "SET_PROJECT_NAME",
       name: "Final Name",
       entryId: "rename_commit",
+      selection: selectionNone(),
     });
     expect(session.history.past.length).toBe(before + 1);
     expect(session.projectName).toBe("Final Name");
@@ -81,20 +93,21 @@ describe("rename document ownership (UI-0)", () => {
       createId: (p) => `${p}_undo`,
     });
     let session = createInitialTimelineSession();
-    session = reduceTimelineSession(session, {
+    session = reduce(session, {
       type: "REPLACE_DOCUMENT",
       documentJson: blank.documentJson,
     });
-    session = reduceTimelineSession(session, {
+    session = reduce(session, {
       type: "SET_PROJECT_NAME",
       name: "Renamed",
       entryId: "rename_undo",
+      selection: selectionNone(),
     });
     expect(session.projectName).toBe("Renamed");
-    session = reduceTimelineSession(session, { type: "UNDO" });
+    session = reduce(session, { type: "UNDO" });
     expect(session.projectName).toBe("Original");
     expect(session.project?.metadata.name).toBe("Original");
-    session = reduceTimelineSession(session, { type: "REDO" });
+    session = reduce(session, { type: "REDO" });
     expect(session.projectName).toBe("Renamed");
   });
 });

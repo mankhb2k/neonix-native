@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { capCutRulerScale, formatRulerLabel } from "../timeline-scale";
 
 type Props = {
@@ -6,6 +7,8 @@ type Props = {
   pixelsPerSecond: number;
   viewWidth: number;
   scrollLeft: number;
+  /** Content origin (playhead gutter) — scrolls with scrollLeft, not sticky. */
+  originOffsetPx?: number;
   onSeekClick?: (clientX: number) => void;
 };
 
@@ -19,12 +22,13 @@ const OVERSCAN_PX = 120;
 /**
  * CapCut-style time ruler. Only mounts ticks in the visible window.
  */
-export function TimeRuler({
+export const TimeRuler = memo(function TimeRuler({
   duration,
   fps,
   pixelsPerSecond,
   viewWidth,
   scrollLeft,
+  originOffsetPx = 0,
   onSeekClick,
 }: Props) {
   const safeFps = Math.max(1, Math.round(fps));
@@ -33,10 +37,12 @@ export function TimeRuler({
   const totalFrames = Math.max(safeFps, Math.ceil(duration * safeFps));
   const pps = Math.max(pixelsPerSecond, 0.001);
 
-  const startTime = Math.max(0, (scrollLeft - OVERSCAN_PX) / pps);
+  // Gutter is part of the scrolled content, so shift the visible window by it.
+  const contentScroll = Math.max(0, scrollLeft - originOffsetPx);
+  const startTime = Math.max(0, (contentScroll - OVERSCAN_PX) / pps);
   const endTime = Math.min(
     duration,
-    (scrollLeft + Math.max(viewWidth, 0) + OVERSCAN_PX) / pps,
+    (contentScroll + Math.max(viewWidth, 0) + OVERSCAN_PX) / pps,
   );
   const startFrame =
     Math.floor((startTime * safeFps) / tickEveryFrames) * tickEveryFrames;
@@ -69,7 +75,7 @@ export function TimeRuler({
       }}
     >
       {ticks.map(({ frame, labeled }) => {
-        const left = frame * pixelsPerFrame - scrollLeft;
+        const left = originOffsetPx + frame * pixelsPerFrame - scrollLeft;
         return (
           <div
             key={frame}
@@ -93,4 +99,4 @@ export function TimeRuler({
       })}
     </div>
   );
-}
+});

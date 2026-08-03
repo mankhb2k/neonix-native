@@ -6,6 +6,7 @@ import {
 import {
   DEFAULT_VISUAL_POLICY,
   resolveLaneStartTimeNearest,
+  resolveOccupancyAwarePlacement,
   type TimelineClip,
   type TimelineLane,
 } from "../timeline/timeline-clips";
@@ -99,6 +100,130 @@ describe("resolveLaneStartTimeNearest", () => {
     ];
     // before=0 dist 10.4; after=11 dist 0.6 → 11
     expect(resolveLaneStartTimeNearest(blocker, 10.4, 10)).toBe(11);
+  });
+});
+
+describe("resolveOccupancyAwarePlacement", () => {
+  const blocker = [
+    { id: "b", startTime: 2, duration: 3 },
+  ];
+
+  it("inserts above when start lands inside occupied span", () => {
+    expect(
+      resolveOccupancyAwarePlacement({
+        clipsOnLane: blocker,
+        desiredStart: 3,
+        duration: 1,
+        laneId: "ov-0",
+        laneOrder: 0,
+        laneRole: "overlay",
+      }),
+    ).toMatchObject({
+      insertNewLane: true,
+      insertOrder: 1,
+    });
+  });
+
+  it("keeps free desired starts", () => {
+    expect(
+      resolveOccupancyAwarePlacement({
+        clipsOnLane: blocker,
+        desiredStart: 0,
+        duration: 1,
+        laneId: "ov-0",
+        laneOrder: 0,
+        laneRole: "overlay",
+      }),
+    ).toMatchObject({
+      startTime: 0,
+      insertNewLane: false,
+    });
+  });
+
+  it("parks at head/tail when duration spills into a neighbor", () => {
+    // desired 0.5 dur 2 overlaps [2,5); before=0 free → 0
+    const result = resolveOccupancyAwarePlacement({
+      clipsOnLane: blocker,
+      desiredStart: 0.5,
+      duration: 2,
+      laneId: "base",
+      laneOrder: -1,
+      laneRole: "base",
+    });
+    expect(result.insertNewLane).toBe(false);
+    expect(result.startTime).toBe(0);
+  });
+
+  it("retargets to free lane above instead of inserting", () => {
+    const result = resolveOccupancyAwarePlacement({
+      clipsOnLane: blocker,
+      desiredStart: 3,
+      duration: 1,
+      laneId: "base",
+      laneOrder: -1,
+      laneRole: "base",
+      siblingLanes: [
+        { id: "base", order: -1, role: "base" },
+        { id: "ov-0", order: 0, role: "overlay" },
+      ],
+      allClips: [
+        { id: "b", laneId: "base", startTime: 2, duration: 3 },
+        // ov-0 empty at t=3
+      ],
+    });
+    expect(result).toMatchObject({
+      insertNewLane: false,
+      retargetLaneId: "ov-0",
+      startTime: 3,
+    });
+  });
+
+  it("retargets using clipsByLane map without scanning allClips", () => {
+    const clipsByLane = new Map([
+      ["base", blocker],
+      ["ov-0", [] as typeof blocker],
+    ]);
+    const result = resolveOccupancyAwarePlacement({
+      clipsOnLane: blocker,
+      desiredStart: 3,
+      duration: 1,
+      laneId: "base",
+      laneOrder: -1,
+      laneRole: "base",
+      siblingLanes: [
+        { id: "base", order: -1, role: "base" },
+        { id: "ov-0", order: 0, role: "overlay" },
+      ],
+      clipsByLane,
+      overlayLaneRefs: [{ id: "ov-0", order: 0, role: "overlay" }],
+    });
+    expect(result).toMatchObject({
+      insertNewLane: false,
+      retargetLaneId: "ov-0",
+      startTime: 3,
+    });
+  });
+
+  it("inserts between when lane above is also occupied", () => {
+    const result = resolveOccupancyAwarePlacement({
+      clipsOnLane: blocker,
+      desiredStart: 3,
+      duration: 1,
+      laneId: "base",
+      laneOrder: -1,
+      laneRole: "base",
+      siblingLanes: [
+        { id: "base", order: -1, role: "base" },
+        { id: "ov-0", order: 0, role: "overlay" },
+      ],
+      allClips: [
+        { id: "b", laneId: "base", startTime: 2, duration: 3 },
+        { id: "up", laneId: "ov-0", startTime: 2.5, duration: 2 },
+      ],
+    });
+    expect(result.insertNewLane).toBe(true);
+    expect(result.insertOrder).toBe(0);
+    expect(result.retargetLaneId ?? null).toBeNull();
   });
 });
 

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { memo, useState, type ReactNode } from "react";
 import {
   Clapperboard,
   Layers,
@@ -6,8 +6,10 @@ import {
   Smile,
   Type,
 } from "lucide-react";
+import type { EditorSelection, TimelineCommand } from "@motionvideo/editor-core";
 import { PanelHeader, TabsDesktop, type DesktopTabItem } from "../../ui";
 import { LibraryDragPreview } from "../library/components/LibraryDragPreview";
+import { useEditorUiSession } from "../session/editor-ui-session";
 import {
   EMPTY_EDITOR_VIEW_PROPS,
   type EditorSidebarProps,
@@ -20,9 +22,13 @@ import { TextPanel } from "./TextPanel/TextPanel";
 
 export type { EditorSidebarProps };
 
-export type SidebarProps = Partial<EditorSidebarProps> & {
+export type SidebarProps = Partial<
+  Omit<EditorSidebarProps, "selection">
+> & {
   media?: ReactNode;
   initialTab?: string;
+  onSelect?: (selection: EditorSelection) => void;
+  onExecuteTimeline?: (command: TimelineCommand, label: string) => void;
 };
 
 const defaultMedia = (
@@ -49,19 +55,19 @@ const SIDEBAR_TABS: DesktopTabItem[] = [
 
 /**
  * Ready-made library dock for {@link EditorWorkspaceFrame}.
- * Pass full session props from EditingWorkspace; omit for empty shell mount.
+ * Selection comes from editor-ui-session (not parent zoom/selection churn).
  */
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   media = defaultMedia,
   lanes = EMPTY_EDITOR_VIEW_PROPS.lanes,
   clips = EMPTY_EDITOR_VIEW_PROPS.clips,
-  selection = EMPTY_EDITOR_VIEW_PROPS.selection,
   assets = EMPTY_EDITOR_VIEW_PROPS.assets,
   initialTab = "media",
   onSelect = () => undefined,
   onExecuteTimeline = () => undefined,
 }: SidebarProps) {
   const [tab, setTab] = useState(initialTab);
+  const selection = useEditorUiSession((s) => s.selection);
 
   return (
     <aside
@@ -105,7 +111,7 @@ export function Sidebar({
       <LibraryDragPreview />
     </aside>
   );
-}
+});
 
 /** @deprecated Use {@link Sidebar} */
 export const EditorSidebar = Sidebar;

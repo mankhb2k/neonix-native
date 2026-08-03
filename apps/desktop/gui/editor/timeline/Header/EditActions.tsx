@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Redo2, Scissors, Trash2, Undo2 } from "lucide-react";
 import {
   playheadSplitsClip,
@@ -6,7 +7,10 @@ import {
   type TimelineClip,
 } from "@motionvideo/editor-core";
 import { Button } from "../../../ui";
-import { usePlaybackClock } from "../../playback/playback-clock-store";
+import {
+  usePlaybackClock,
+  usePlaybackClockApi,
+} from "../../playback/playback-clock-store";
 import { playbackFrameIndex } from "../../playback/time-frame";
 
 /** Shared Lucide props for TransportBar edit icons. */
@@ -28,6 +32,18 @@ type Props = {
   onDelete: () => void;
 };
 
+/** True when any selected clip can be split at playhead (Map lookup). */
+export function canSplitSelectedClips(
+  selectedClipIds: readonly string[],
+  clipsById: ReadonlyMap<string, Pick<TimelineClip, "startTime" | "duration">>,
+  playhead: number,
+): boolean {
+  return selectedClipIds.some((id) => {
+    const clip = clipsById.get(id);
+    return clip ? playheadSplitsClip(clip, playhead) : false;
+  });
+}
+
 /**
  * Timeline Edit actions: Undo · Redo · Split · Delete.
  */
@@ -43,19 +59,26 @@ export function EditActions({
   onSplit,
   onDelete,
 }: Props) {
+  const clock = usePlaybackClockApi();
   const safeFps = Math.max(1, Math.round(fps));
   const displayFrame = usePlaybackClock((s) =>
     playbackFrameIndex(s.currentTime, safeFps),
   );
-  const currentTime = usePlaybackClock((s) => s.currentTime);
   const displayTime = displayFrame / safeFps;
+
+  const clipsById = useMemo(() => {
+    const map = new Map<string, TimelineClip>();
+    for (const clip of clips) map.set(clip.id, clip);
+    return map;
+  }, [clips]);
 
   const selectedClipIds = selectedClipIdsFrom(selection);
   const hasSelection = selectedClipIds.length > 0;
-  const canSplit = selectedClipIds.some((id) => {
-    const clip = clips.find((c) => c.id === id);
-    return clip ? playheadSplitsClip(clip, displayTime) : false;
-  });
+  const canSplit = canSplitSelectedClips(
+    selectedClipIds,
+    clipsById,
+    displayTime,
+  );
 
   return (
     <div className="flex items-center gap-1">
@@ -90,7 +113,7 @@ export function EditActions({
         aria-label="Tách clip"
         title="Tách tại playhead (Ctrl+B / S)"
         leftIcon={<Scissors {...editActionIcon} />}
-        onClick={() => onSplit(currentTime)}
+        onClick={() => onSplit(clock.getState().currentTime)}
       />
       <Button
         type="button"

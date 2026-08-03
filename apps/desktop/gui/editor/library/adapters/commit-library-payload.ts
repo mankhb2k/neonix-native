@@ -1,28 +1,21 @@
 /**
- * Commit library payload with optional PlacementTarget from drop geometry.
+ * Commit library payload with PlacementTarget resolved once by the gesture.
  */
 
-import { resolveLibraryPlacement } from "../../timeline/Tracks/drop-host";
 import { payloadToTimelineCommand } from "./payload-to-timeline-command";
 import type { LibraryPayload } from "../model/library-payload";
 import type { PlacementTarget, TimelineCommand } from "@motionvideo/editor-core";
 
-export type LibraryCommitPoint = {
-  clientX: number;
-  clientY: number;
-  mode: "click" | "drag";
-};
+export type LibraryCommitPoint =
+  | { mode: "click" }
+  | { mode: "drag"; placement: PlacementTarget };
 
 export function commitLibraryPayload(
   payload: LibraryPayload,
   point: LibraryCommitPoint | undefined,
   onExecuteTimeline: (command: TimelineCommand, label: string) => void,
 ): void {
-  let target: PlacementTarget | undefined;
-  if (point?.mode === "drag") {
-    target = resolveLibraryPlacement(point.clientX, point.clientY, payload);
-    if (!target) return;
-  }
+  const target = point?.mode === "drag" ? point.placement : undefined;
   const { command, label } = payloadToTimelineCommand(payload, target);
   onExecuteTimeline(command, label);
 }
