@@ -7,6 +7,7 @@ import type { RefObject } from "react";
 import { usePreviewSession } from "../interactions/timeline-preview-session";
 import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 import { cn } from "../../../ui";
+import { clipVisualClassName } from "../clips/ClipStrip";
 
 type Props = {
   pixelsPerSecond: number;
@@ -164,12 +165,8 @@ export function TimelineOverlays({
           <>
             <div
               className={cn(
-                "pointer-events-none fixed z-[35] flex items-center overflow-hidden rounded opacity-90 shadow-2xl will-change-[left]",
-                clipMovePreview.trackKind === "main"
-                  ? "h-14 bg-[var(--timeline-clip-frame)] text-white/90 px-2"
-                  : clipMovePreview.trackKind === "audio"
-                    ? "h-11 bg-[var(--timeline-clip-audio)] text-white px-2"
-                    : "h-11 bg-[#0F766E]/90 text-white px-2",
+                "pointer-events-none fixed z-[35] flex items-center opacity-90 shadow-2xl will-change-[left]",
+                clipVisualClassName(clipMovePreview.trackKind, true),
                 validCls
               )}
               aria-hidden
@@ -178,9 +175,10 @@ export function TimelineOverlays({
                 left: clipMoveCyanLeft,
                 top: primaryTop,
                 width: Math.max(24, clipMovePreview.duration * pixelsPerSecond),
+                height: clipMovePreview.trackKind === "main" ? 57.6 : 46.08,
               }}
             >
-              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight pointer-events-none">
+              <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
                 {clipMovePreview.label || clipMovePreview.clipId}
               </span>
             </div>
@@ -189,12 +187,8 @@ export function TimelineOverlays({
                 <div
                   key={`float-${m.clipId}`}
                   className={cn(
-                    "pointer-events-none fixed z-[35] flex items-center overflow-hidden rounded opacity-90 shadow-2xl will-change-[left]",
-                    m.trackKind === "main"
-                      ? "h-14 bg-[var(--timeline-clip-frame)] text-white/90 px-2"
-                      : m.trackKind === "audio"
-                        ? "h-11 bg-[var(--timeline-clip-audio)] text-white px-2"
-                        : "h-11 bg-[#0F766E]/90 text-white px-2",
+                    "pointer-events-none fixed z-[35] flex items-center opacity-90 shadow-2xl will-change-[left]",
+                    clipVisualClassName(m.trackKind, true),
                     validCls
                   )}
                   aria-hidden
@@ -202,10 +196,10 @@ export function TimelineOverlays({
                     left: clipMoveCyanLeft + (m.startTime - clipMovePreview.startTime) * pixelsPerSecond,
                     top: primaryTop + m.offsetY,
                     width: Math.max(24, m.duration * pixelsPerSecond),
+                    height: m.trackKind === "main" ? 57.6 : 46.08,
                   }}
                 >
-                  <span className="min-w-0 truncate text-[11px] font-semibold leading-tight pointer-events-none">
-                    {/* Note: we don't have member label here easily, fallback to clipId */}
+                  <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
                     {m.clipId}
                   </span>
                 </div>

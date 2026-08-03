@@ -26,7 +26,7 @@ import { useClipTrim, type ClipTrimPreview } from "./use-clip-trim";
 
 export type { ClipMovePreview };
 
-function clipClassName(trackKind: TimelineTrackKind, selected: boolean): string {
+export function clipVisualClassName(trackKind: TimelineTrackKind, selected: boolean): string {
   const selectedCls = selected
     ? trackKind === "main"
       ? "z-10 border-2 border-white text-white shadow-md"
@@ -34,11 +34,15 @@ function clipClassName(trackKind: TimelineTrackKind, selected: boolean): string 
     : "";
   const base =
     trackKind === "main"
-      ? "absolute top-0 bottom-0 my-auto h-[96%] overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90"
+      ? "overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90"
       : trackKind === "audio"
-        ? "absolute top-0 bottom-0 my-auto flex h-[96%] items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
-        : "absolute top-0 bottom-0 my-auto flex h-[96%] items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
-  return cn(base, selectedCls, "cursor-default");
+        ? "flex items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
+        : "flex items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
+  return cn(base, selectedCls);
+}
+
+function clipClassName(trackKind: TimelineTrackKind, selected: boolean): string {
+  return cn("absolute top-0 bottom-0 my-auto h-[96%] cursor-default", clipVisualClassName(trackKind, selected));
 }
 
 type Props = {
@@ -179,8 +183,8 @@ export const ClipStrip = memo(function ClipStrip({
           <>
             <div
               className={cn(
-                clipClassName(activeMove.track, true),
-                "pointer-events-none absolute opacity-80 shadow-2xl will-change-[left]",
+                clipClassName(activeMove.trackKind || trackKind, false),
+                "pointer-events-none absolute opacity-50 will-change-[left]",
                 !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40"
               )}
               aria-hidden
@@ -203,8 +207,8 @@ export const ClipStrip = memo(function ClipStrip({
                   <div
                     key={`ghost-${m.clipId}`}
                     className={cn(
-                      clipClassName(trackKind, true),
-                      "pointer-events-none absolute opacity-80 shadow-2xl will-change-[left]"
+                      clipClassName(trackKind, false),
+                      "pointer-events-none absolute opacity-50 will-change-[left]"
                     )}
                     aria-hidden
                     style={{
