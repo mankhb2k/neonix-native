@@ -6,6 +6,7 @@
 import type { RefObject } from "react";
 import { usePreviewSession } from "../interactions/timeline-preview-session";
 import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
+import { cn } from "../../../ui";
 
 type Props = {
   pixelsPerSecond: number;
@@ -155,22 +156,64 @@ export function TimelineOverlays({
       ) : null}
       {clipMovePreview &&
       clipMoveCyanLeft != null &&
-      clipMovePreview.clientY != null ? (
-        <div
-          className="pointer-events-none fixed z-[35] flex h-8 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl"
-          aria-hidden
-          data-testid="timeline-clip-move-cyan"
-          style={{
-            left: clipMoveCyanLeft,
-            top: clipMovePreview.clientY - 16,
-            width: Math.max(24, clipMovePreview.duration * pixelsPerSecond),
-          }}
-        >
-          <span className="truncate">
-            {clipMovePreview.label || clipMovePreview.clipId}
-          </span>
-        </div>
-      ) : null}
+      clipMovePreview.clientY != null ? (() => {
+        const primaryTop = clipMovePreview.clientY - (clipMovePreview.grabOffsetY ?? 16);
+        const validCls = clipMovePreview.valid ? "" : "border-2 border-[var(--danger)] bg-[var(--danger)]/40";
+        
+        return (
+          <>
+            <div
+              className={cn(
+                "pointer-events-none fixed z-[35] flex items-center overflow-hidden rounded opacity-90 shadow-2xl will-change-[left]",
+                clipMovePreview.trackKind === "main"
+                  ? "h-14 bg-[var(--timeline-clip-frame)] text-white/90 px-2"
+                  : clipMovePreview.trackKind === "audio"
+                    ? "h-11 bg-[var(--timeline-clip-audio)] text-white px-2"
+                    : "h-11 bg-[#0F766E]/90 text-white px-2",
+                validCls
+              )}
+              aria-hidden
+              data-testid="timeline-clip-move-float"
+              style={{
+                left: clipMoveCyanLeft,
+                top: primaryTop,
+                width: Math.max(24, clipMovePreview.duration * pixelsPerSecond),
+              }}
+            >
+              <span className="min-w-0 truncate text-[11px] font-semibold leading-tight pointer-events-none">
+                {clipMovePreview.label || clipMovePreview.clipId}
+              </span>
+            </div>
+            {clipMovePreview.members?.map((m) => {
+              return (
+                <div
+                  key={`float-${m.clipId}`}
+                  className={cn(
+                    "pointer-events-none fixed z-[35] flex items-center overflow-hidden rounded opacity-90 shadow-2xl will-change-[left]",
+                    m.trackKind === "main"
+                      ? "h-14 bg-[var(--timeline-clip-frame)] text-white/90 px-2"
+                      : m.trackKind === "audio"
+                        ? "h-11 bg-[var(--timeline-clip-audio)] text-white px-2"
+                        : "h-11 bg-[#0F766E]/90 text-white px-2",
+                    validCls
+                  )}
+                  aria-hidden
+                  style={{
+                    left: clipMoveCyanLeft + (m.startTime - clipMovePreview.startTime) * pixelsPerSecond,
+                    top: primaryTop + m.offsetY,
+                    width: Math.max(24, m.duration * pixelsPerSecond),
+                  }}
+                >
+                  <span className="min-w-0 truncate text-[11px] font-semibold leading-tight pointer-events-none">
+                    {/* Note: we don't have member label here easily, fallback to clipId */}
+                    {m.clipId}
+                  </span>
+                </div>
+              );
+            })}
+          </>
+        );
+      })() : null}
       {marquee ? (
         <div
           className="pointer-events-none absolute z-50 border border-[var(--timeline-playhead)] bg-white/10"
