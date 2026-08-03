@@ -1,21 +1,18 @@
 import { Film } from "lucide-react";
+import { useDropGhostActive } from "../interactions/timeline-preview-session";
 import { BASE_LANE_HEIGHT_PX } from "../timeline-scale";
 
 type Props = {
   width: number;
-  /** Highlight when a library drag is over the drop zone. */
-  active?: boolean;
   laneId?: string | null;
 };
 
 /**
  * CapCut / web empty-timeline dash — drop hint on the main lane.
+ * `active` comes from timeline-preview-session (library drop ghost).
  */
-export function EmptyTimelineDash({
-  width,
-  active = false,
-  laneId = null,
-}: Props) {
+export function EmptyTimelineDash({ width, laneId = null }: Props) {
+  const active = useDropGhostActive();
   return (
     <div
       data-track-lane="true"

@@ -1,17 +1,13 @@
 /**
  * Timeline drag overlays — library drop, clip-move chrome, snap guide, marquee.
+ * Preview payloads come from timeline-preview-session (not parent React state).
  */
 
 import type { RefObject } from "react";
-import type { ClipMovePreview } from "../clips/ClipStrip";
-import type { LibraryDropPreview } from "../drop/library-drop";
-import type { MarqueeRect } from "../selection/marquee-geometry";
+import { usePreviewSession } from "../interactions/timeline-preview-session";
 import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 
 type Props = {
-  dropGhost: LibraryDropPreview | null;
-  clipMovePreview: ClipMovePreview | null;
-  marquee: MarqueeRect | null;
   pixelsPerSecond: number;
   canvasWidth: number;
   trackViewWidth: number;
@@ -24,9 +20,6 @@ type Props = {
 };
 
 export function TimelineOverlays({
-  dropGhost,
-  clipMovePreview,
-  marquee,
   pixelsPerSecond,
   canvasWidth,
   trackViewWidth,
@@ -35,6 +28,8 @@ export function TimelineOverlays({
   tracksScrollRef,
   scrollLeft = 0,
 }: Props) {
+  const { dropGhost, clipMovePreview, marquee } = usePreviewSession();
+
   if (timelineEmpty) return null;
 
   const extentWidth = Math.max(canvasWidth, trackViewWidth);

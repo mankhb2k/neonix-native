@@ -1,12 +1,11 @@
 /**
- * Per-instance timeline session — document read model + zoom/fit +
- * selection + property/timeline command history bus.
+ * Per-instance timeline document session — clips/lanes/history/json.
+ * Zoom/fit/selection/clipboard live in editor-ui-session.
  */
 
 import {
   canRedo,
   canUndo,
-  clipsContentEndSeconds,
   createHistoryState,
   executePropertyCommand,
   executeTimelineCommand,
@@ -14,10 +13,7 @@ import {
   redoHistory,
   replaceOrPushHistory,
   resolveFitAnchorSeconds,
-  selectionHasLockedLane,
   selectionNone,
-  selectedClipIdsFrom,
-  sliderValueToZoomScale,
   undoHistory,
   type ClipClipboardItem,
   type DocumentPropertyCommand,
@@ -30,10 +26,8 @@ import {
 } from "@motionvideo/editor-core";
 import { loadTimelineFromDocumentJson } from "../document/load-envelope";
 import { serializeProjectIntoDocumentJson } from "../document/serialize-envelope";
-import { buildClipboardFromSelection } from "./build-clipboard";
+import type { EditorUiPatch } from "./editor-ui-session";
 import type { MotionProject } from "@motionvideo/motion-schema";
-
-export type TimelineZoomMode = "manual" | "fit";
 
 export type TimelineSessionState = {
   projectId: string | null;
@@ -42,15 +36,8 @@ export type TimelineSessionState = {
   project: MotionProject | null;
   clips: TimelineClip[];
   lanes: TimelineLane[];
-  timelineZoom: number;
-  timelineZoomScale: number;
-  timelineZoomMode: TimelineZoomMode;
-  timelineFitAnchorSeconds: number | null;
-  timelineFitRevision: number;
   documentRevision: number;
   loadError: string | null;
-  selection: EditorSelection;
-  clipboard: ClipClipboardItem[];
   history: HistoryState;
   /** Last JSON emitted by a session mutation (property/undo/redo). */
   sessionDocumentJson: string | null;
@@ -61,29 +48,31 @@ export type TimelineSessionState = {
 export type TimelineSessionEvent =
   | { type: "REPLACE_DOCUMENT"; documentJson: string }
   | { type: "APPLY_DOCUMENT_JSON"; documentJson: string }
-  | { type: "SET_ZOOM"; zoom: number }
-  | { type: "FIT_TIMELINE" }
   | { type: "CLEAR_ERROR" }
-  | { type: "SET_SELECTION"; selection: EditorSelection }
-  | { type: "SET_PROJECT_NAME"; name: string; entryId: string }
-  | { type: "COPY_SELECTION" }
-  | { type: "CUT_SELECTION"; entryId: string }
-  | { type: "SET_CLIPBOARD"; clipboard: ClipClipboardItem[] }
+  | { type: "SET_PROJECT_NAME"; name: string; entryId: string; selection: EditorSelection }
   | {
       type: "EXECUTE_PROPERTY_COMMAND";
       command: DocumentPropertyCommand;
       label: string;
       coalesceKey?: string;
       entryId: string;
+      selection: EditorSelection;
     }
   | {
       type: "EXECUTE_TIMELINE_COMMAND";
       command: TimelineCommand;
       label?: string;
       entryId: string;
+      selection: EditorSelection;
+      clipboard: ClipClipboardItem[];
     }
   | { type: "UNDO" }
   | { type: "REDO" };
+
+export type TimelineReduceResult = {
+  state: TimelineSessionState;
+  ui?: EditorUiPatch;
+};
 
 function toDocument(state: TimelineSessionState): TimelineDocument | null {
   if (!state.project) return null;
@@ -133,15 +122,8 @@ export function createInitialTimelineSession(): TimelineSessionState {
     project: null,
     clips: [],
     lanes: [],
-    timelineZoom: 50,
-    timelineZoomScale: 1,
-    timelineZoomMode: "fit",
-    timelineFitAnchorSeconds: null,
-    timelineFitRevision: 0,
     documentRevision: 0,
     loadError: null,
-    selection: selectionNone(),
-    clipboard: [],
     history: createHistoryState(),
     sessionDocumentJson: null,
     baseDocumentJson: null,
@@ -151,38 +133,46 @@ export function createInitialTimelineSession(): TimelineSessionState {
 export function reduceTimelineSession(
   state: TimelineSessionState,
   event: TimelineSessionEvent,
-): TimelineSessionState {
+): TimelineReduceResult {
   switch (event.type) {
     case "REPLACE_DOCUMENT": {
       try {
         const loaded = loadTimelineFromDocumentJson(event.documentJson);
         const anchor = resolveFitAnchorSeconds(loaded.clips);
         return {
-          ...state,
-          projectId: loaded.projectId,
-          projectName: loaded.projectName,
-          fps: loaded.fps,
-          project: loaded.project,
-          clips: loaded.clips,
-          lanes: loaded.lanes,
-          timelineZoom: 50,
-          timelineZoomScale: 1,
-          timelineZoomMode: "fit",
-          timelineFitAnchorSeconds: anchor,
-          timelineFitRevision: state.timelineFitRevision + 1,
-          documentRevision: state.documentRevision + 1,
-          loadError: null,
-          selection: selectionNone(),
-          clipboard: [],
-          history: createHistoryState(),
-          sessionDocumentJson: event.documentJson,
-          baseDocumentJson: event.documentJson,
+          state: {
+            ...state,
+            projectId: loaded.projectId,
+            projectName: loaded.projectName,
+            fps: loaded.fps,
+            project: loaded.project,
+            clips: loaded.clips,
+            lanes: loaded.lanes,
+            documentRevision: state.documentRevision + 1,
+            loadError: null,
+            history: createHistoryState(),
+            sessionDocumentJson: event.documentJson,
+            baseDocumentJson: event.documentJson,
+          },
+          ui: {
+            timelineZoom: 50,
+            timelineZoomScale: 1,
+            timelineZoomMode: "fit",
+            timelineFitAnchorSeconds: anchor,
+            timelineFitRevisionBump: true,
+            selection: selectionNone(),
+            clipboard: [],
+          },
         };
       } catch (error) {
         return {
-          ...state,
-          loadError:
-            error instanceof Error ? error.message : "Failed to load timeline.",
+          state: {
+            ...state,
+            loadError:
+              error instanceof Error
+                ? error.message
+                : "Failed to load timeline.",
+          },
         };
       }
     }
@@ -190,101 +180,43 @@ export function reduceTimelineSession(
       try {
         const loaded = loadTimelineFromDocumentJson(event.documentJson);
         return {
-          ...state,
-          projectId: loaded.projectId,
-          projectName: loaded.projectName,
-          fps: loaded.fps,
-          project: loaded.project,
-          clips: loaded.clips,
-          lanes: loaded.lanes,
-          documentRevision: state.documentRevision + 1,
-          loadError: null,
-          sessionDocumentJson: event.documentJson,
-          baseDocumentJson: event.documentJson,
+          state: {
+            ...state,
+            projectId: loaded.projectId,
+            projectName: loaded.projectName,
+            fps: loaded.fps,
+            project: loaded.project,
+            clips: loaded.clips,
+            lanes: loaded.lanes,
+            documentRevision: state.documentRevision + 1,
+            loadError: null,
+            sessionDocumentJson: event.documentJson,
+            baseDocumentJson: event.documentJson,
+          },
         };
       } catch (error) {
         return {
-          ...state,
-          loadError:
-            error instanceof Error
-              ? error.message
-              : "Failed to apply document JSON.",
+          state: {
+            ...state,
+            loadError:
+              error instanceof Error
+                ? error.message
+                : "Failed to apply document JSON.",
+          },
         };
       }
     }
-    case "SET_ZOOM": {
-      const zoom = Math.min(100, Math.max(0, event.zoom));
-      return {
-        ...state,
-        timelineZoom: zoom,
-        timelineZoomScale: sliderValueToZoomScale(zoom),
-        timelineZoomMode: "manual",
-      };
-    }
-    case "FIT_TIMELINE": {
-      // CapCut fit: 1 clip → clip fills 1/3 viewport; 2+ → whole content
-      // with ~1/3 empty after the end (fitSpan = contentEnd × 1.5).
-      const contentEnd = clipsContentEndSeconds(state.clips);
-      const anchor =
-        state.clips.length <= 1
-          ? resolveFitAnchorSeconds(state.clips)
-          : contentEnd > 0
-            ? contentEnd / 2
-            : null;
-      return {
-        ...state,
-        timelineZoom: 50,
-        timelineZoomScale: 1,
-        timelineZoomMode: "fit",
-        timelineFitAnchorSeconds: anchor,
-        timelineFitRevision: state.timelineFitRevision + 1,
-      };
-    }
     case "CLEAR_ERROR":
-      return { ...state, loadError: null };
-    case "SET_SELECTION":
-      return { ...state, selection: event.selection };
-    case "COPY_SELECTION": {
-      const clipboard = buildClipboardFromSelection({
-        selection: state.selection,
-        clips: state.clips,
-        lanes: state.lanes,
-        project: state.project,
-      });
-      return { ...state, clipboard, loadError: null };
-    }
-    case "SET_CLIPBOARD":
-      return { ...state, clipboard: event.clipboard, loadError: null };
-    case "CUT_SELECTION": {
-      const ids = selectedClipIdsFrom(state.selection);
-      if (
-        ids.length === 0 ||
-        selectionHasLockedLane(state.clips, state.lanes, ids)
-      ) {
-        return state;
-      }
-      const clipboard = buildClipboardFromSelection({
-        selection: state.selection,
-        clips: state.clips,
-        lanes: state.lanes,
-        project: state.project,
-      });
-      if (clipboard.length === 0) return state;
-      const withClipboard = { ...state, clipboard };
-      return reduceTimelineSession(withClipboard, {
-        type: "EXECUTE_TIMELINE_COMMAND",
-        command: { type: "delete-selected-clips" },
-        label: "Cut clips",
-        entryId: event.entryId,
-      });
-    }
+      return { state: { ...state, loadError: null } };
     case "SET_PROJECT_NAME": {
       const before = toDocument(state);
       const baseJson = state.baseDocumentJson;
       if (!before || !baseJson || !state.project) {
         return {
-          ...state,
-          loadError: "No document loaded for rename.",
+          state: {
+            ...state,
+            loadError: "No document loaded for rename.",
+          },
         };
       }
       const trimmed = event.name.trim() || "Untitled";
@@ -310,15 +242,17 @@ export function reduceTimelineSession(
         label: "Rename project",
         before,
         after,
-        beforeSelection: state.selection,
-        afterSelection: state.selection,
+        beforeSelection: event.selection,
+        afterSelection: event.selection,
       });
       return {
-        ...state,
-        ...applied,
-        projectName: trimmed,
-        history,
-        loadError: null,
+        state: {
+          ...state,
+          ...applied,
+          projectName: trimmed,
+          history,
+          loadError: null,
+        },
       };
     }
     case "EXECUTE_PROPERTY_COMMAND": {
@@ -326,15 +260,19 @@ export function reduceTimelineSession(
       const baseJson = state.baseDocumentJson;
       if (!before || !baseJson) {
         return {
-          ...state,
-          loadError: "No document loaded for property edit.",
+          state: {
+            ...state,
+            loadError: "No document loaded for property edit.",
+          },
         };
       }
       const result = executePropertyCommand(before, event.command);
       if (result.status !== "applied") {
         return {
-          ...state,
-          loadError: result.message,
+          state: {
+            ...state,
+            loadError: result.message,
+          },
         };
       }
       const applied = applyDocument(state, result.document, baseJson);
@@ -347,16 +285,18 @@ export function reduceTimelineSession(
           coalesceKey: event.coalesceKey,
           before,
           after: result.document,
-          beforeSelection: state.selection,
-          afterSelection: state.selection,
+          beforeSelection: event.selection,
+          afterSelection: event.selection,
         },
         { coalesceKey: event.coalesceKey },
       );
       return {
-        ...state,
-        ...applied,
-        history,
-        loadError: null,
+        state: {
+          ...state,
+          ...applied,
+          history,
+          loadError: null,
+        },
       };
     }
     case "EXECUTE_TIMELINE_COMMAND": {
@@ -364,24 +304,28 @@ export function reduceTimelineSession(
       const baseJson = state.baseDocumentJson;
       if (!before || !baseJson) {
         return {
-          ...state,
-          loadError: "No document loaded for timeline edit.",
+          state: {
+            ...state,
+            loadError: "No document loaded for timeline edit.",
+          },
         };
       }
       const wasEmpty = before.clips.length === 0;
       const result = executeTimelineCommand(
         before,
         event.command,
-        state.selection,
-        state.clipboard,
+        event.selection,
+        event.clipboard,
       );
       if (result.status !== "applied") {
         return {
-          ...state,
-          loadError: result.message,
+          state: {
+            ...state,
+            loadError: result.message,
+          },
         };
       }
-      const afterSelection = result.selection ?? state.selection;
+      const afterSelection = result.selection ?? event.selection;
       const applied = applyDocument(state, result.document, baseJson);
       const history = pushHistory(state.history, {
         id: event.entryId,
@@ -389,71 +333,80 @@ export function reduceTimelineSession(
         label: event.label ?? event.command.type,
         before,
         after: result.document,
-        beforeSelection: state.selection,
+        beforeSelection: event.selection,
         afterSelection,
       });
 
-      // CapCut: first clip → fit so clip occupies 1/3 of the viewport;
-      // last clip deleted → reset fit baseline.
       const isEmptyNow = result.document.clips.length === 0;
       const addedFirstClip = wasEmpty && !isEmptyNow;
       const firstClip = result.document.clips[0];
-      const fitPatch =
-        isEmptyNow
-          ? {
-              timelineFitAnchorSeconds: null as number | null,
-              timelineZoomMode: "fit" as const,
-              timelineZoomScale: 1,
-              timelineZoom: 50,
-              timelineFitRevision: state.timelineFitRevision + 1,
-            }
-          : addedFirstClip && firstClip
-            ? {
-                timelineFitAnchorSeconds: firstClip.duration,
-                timelineZoomMode: "fit" as const,
-                timelineZoomScale: 1,
-                timelineZoom: 50,
-                timelineFitRevision: state.timelineFitRevision + 1,
-              }
-            : {};
+      const ui: EditorUiPatch = {
+        selection: afterSelection,
+        clipboard: result.clipboard ?? event.clipboard,
+      };
+      if (isEmptyNow) {
+        ui.timelineFitAnchorSeconds = null;
+        ui.timelineZoomMode = "fit";
+        ui.timelineZoomScale = 1;
+        ui.timelineZoom = 50;
+        ui.timelineFitRevisionBump = true;
+      } else if (addedFirstClip && firstClip) {
+        ui.timelineFitAnchorSeconds = firstClip.duration;
+        ui.timelineZoomMode = "fit";
+        ui.timelineZoomScale = 1;
+        ui.timelineZoom = 50;
+        ui.timelineFitRevisionBump = true;
+      }
 
       return {
-        ...state,
-        ...applied,
-        ...fitPatch,
-        selection: afterSelection,
-        clipboard: result.clipboard ?? state.clipboard,
-        history,
-        loadError: null,
+        state: {
+          ...state,
+          ...applied,
+          history,
+          loadError: null,
+        },
+        ui,
       };
     }
     case "UNDO": {
-      if (!canUndo(state.history) || !state.baseDocumentJson) return state;
+      if (!canUndo(state.history) || !state.baseDocumentJson) {
+        return { state };
+      }
       const { state: nextHistory, entry } = undoHistory(state.history);
-      if (!entry) return state;
+      if (!entry) return { state };
       const applied = applyDocument(state, entry.before, state.baseDocumentJson);
       return {
-        ...state,
-        ...applied,
-        history: nextHistory,
-        selection: entry.beforeSelection ?? state.selection,
-        loadError: null,
+        state: {
+          ...state,
+          ...applied,
+          history: nextHistory,
+          loadError: null,
+        },
+        ui: entry.beforeSelection
+          ? { selection: entry.beforeSelection }
+          : undefined,
       };
     }
     case "REDO": {
-      if (!canRedo(state.history) || !state.baseDocumentJson) return state;
+      if (!canRedo(state.history) || !state.baseDocumentJson) {
+        return { state };
+      }
       const { state: nextHistory, entry } = redoHistory(state.history);
-      if (!entry) return state;
+      if (!entry) return { state };
       const applied = applyDocument(state, entry.after, state.baseDocumentJson);
       return {
-        ...state,
-        ...applied,
-        history: nextHistory,
-        selection: entry.afterSelection ?? state.selection,
-        loadError: null,
+        state: {
+          ...state,
+          ...applied,
+          history: nextHistory,
+          loadError: null,
+        },
+        ui: entry.afterSelection
+          ? { selection: entry.afterSelection }
+          : undefined,
       };
     }
     default:
-      return state;
+      return { state };
   }
 }

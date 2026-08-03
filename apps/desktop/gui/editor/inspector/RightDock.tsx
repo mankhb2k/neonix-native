@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { PanelHeader } from "../../ui";
 
 /** Right dock — inspector (web RightDock). */
-export function RightDock() {
+export const RightDock = memo(function RightDock() {
   return (
     <aside className="flex h-full min-h-0 w-full flex-col overflow-hidden">
       <PanelHeader title="Inspector" />
@@ -10,4 +11,4 @@ export function RightDock() {
       </div>
     </aside>
   );
-}
+});

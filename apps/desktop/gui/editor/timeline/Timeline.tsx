@@ -1,10 +1,11 @@
+import { memo } from "react";
 import type {
-  EditorSelection,
   TimelineClip,
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-schema";
+import { useEditorUiSession } from "../session/editor-ui-session";
 import { EMPTY_EDITOR_VIEW_PROPS } from "../workspace-props";
 import { TransportBar } from "./Header/TransportBar";
 import { TimelineViewport } from "./viewport/TimelineViewport";
@@ -16,13 +17,7 @@ export type TimelineProps = {
   clips?: TimelineClip[];
   lanes?: TimelineLane[];
   fps?: number;
-  timelineZoomScale?: number;
-  timelineFitAnchorSeconds?: number | null;
-  timelineFitRevision?: number;
-  selection?: EditorSelection;
   disabled?: boolean;
-  canPaste?: boolean;
-  zoom?: number;
   canUndo?: boolean;
   canRedo?: boolean;
   onZoomChange?: (zoom: number) => void;
@@ -31,7 +26,7 @@ export type TimelineProps = {
   onRedo?: () => void;
   onSplit?: (time: number) => void;
   onDelete?: () => void;
-  onSelect?: (selection: EditorSelection) => void;
+  onSelect?: (selection: import("@motionvideo/editor-core").EditorSelection) => void;
   onExecute?: (command: TimelineCommand, label: string) => void;
   onCopy?: () => void;
   onCut?: () => void;
@@ -42,22 +37,16 @@ const noop = () => undefined;
 
 /**
  * Ready-made timeline board for {@link EditorWorkspaceFrame}.
- * Pass session props from EditingWorkspace; omit for empty shell mount.
+ * Zoom/selection/clipboard come from editor-ui-session selectors.
  */
-export function Timeline({
+export const Timeline = memo(function Timeline({
   focus,
   projectId = null,
   project = null,
   clips = EMPTY_EDITOR_VIEW_PROPS.clips,
   lanes = EMPTY_EDITOR_VIEW_PROPS.lanes,
   fps = 30,
-  timelineZoomScale = 1,
-  timelineFitAnchorSeconds = null,
-  timelineFitRevision = 0,
-  selection = EMPTY_EDITOR_VIEW_PROPS.selection,
   disabled = false,
-  canPaste = false,
-  zoom = 50,
   canUndo = false,
   canRedo = false,
   onZoomChange = noop,
@@ -72,6 +61,15 @@ export function Timeline({
   onCut,
   onPaste,
 }: TimelineProps) {
+  const zoom = useEditorUiSession((s) => s.timelineZoom);
+  const timelineZoomScale = useEditorUiSession((s) => s.timelineZoomScale);
+  const timelineFitAnchorSeconds = useEditorUiSession(
+    (s) => s.timelineFitAnchorSeconds,
+  );
+  const timelineFitRevision = useEditorUiSession((s) => s.timelineFitRevision);
+  const selection = useEditorUiSession((s) => s.selection);
+  const canPaste = useEditorUiSession((s) => s.clipboard.length > 0);
+
   return (
     <div
       className="flex h-full min-h-0 w-full flex-col overflow-hidden"
@@ -116,4 +114,4 @@ export function Timeline({
       </div>
     </div>
   );
-}
+});

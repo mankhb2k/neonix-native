@@ -1,7 +1,8 @@
+import { memo } from "react";
 import { PanelHeader } from "../../ui";
 
 /** Center preview (web PreviewStage). */
-export function Stage() {
+export const Stage = memo(function Stage() {
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden">
       <PanelHeader title="Preview" />
@@ -17,4 +18,4 @@ export function Stage() {
       </div>
     </div>
   );
-}
+});

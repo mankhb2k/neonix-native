@@ -22,6 +22,7 @@ import {
   pointerContentXAtPoint,
 } from "../drop/timeline-drop-host";
 import type { BeginGesture } from "../interactions/use-pointer-session";
+import { setClipMovePreview } from "../interactions/timeline-preview-session";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
@@ -139,8 +140,6 @@ export type UseClipMoveArgs = {
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
-  onLocalPreview: (preview: ClipMovePreview | null) => void;
-  onMovePreviewChange?: (preview: ClipMovePreview | null) => void;
 };
 
 export function useClipMove({
@@ -154,17 +153,14 @@ export function useClipMove({
   beginGesture,
   onSelect,
   onExecute,
-  onLocalPreview,
-  onMovePreviewChange,
 }: UseClipMoveArgs) {
   const pps = Math.max(pixelsPerSecond, 0.001);
   const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
   const selected = new Set(selectedClipIdsFrom(selection));
 
   const clearMovePreview = useCallback(() => {
-    onLocalPreview(null);
-    onMovePreviewChange?.(null);
-  }, [onLocalPreview, onMovePreviewChange]);
+    setClipMovePreview(null);
+  }, []);
 
   const beginMove = useCallback(
     (event: ReactPointerEvent<HTMLElement>, clip: TimelineClip) => {
@@ -285,8 +281,7 @@ export function useClipMove({
                 clientX: pos.x,
                 clientY: pos.y,
               };
-              onLocalPreview(preview);
-              onMovePreviewChange?.(preview);
+              setClipMovePreview(preview);
               return {
                 ...state,
                 moved: true,
@@ -365,8 +360,7 @@ export function useClipMove({
               snapGuideTime,
               members,
             };
-            onLocalPreview(preview);
-            onMovePreviewChange?.(preview);
+            setClipMovePreview(preview);
             return {
               startTime: primaryStart,
               laneId: isGroup ? originLaneId : resolved.commit.laneId,
@@ -430,8 +424,6 @@ export function useClipMove({
       lane,
       lanes,
       onExecute,
-      onLocalPreview,
-      onMovePreviewChange,
       onSelect,
       pps,
       selected,

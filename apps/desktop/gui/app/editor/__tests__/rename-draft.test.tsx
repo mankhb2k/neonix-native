@@ -4,13 +4,15 @@
  * @vitest-environment happy-dom
  */
 
-import React, { useEffect, useReducer, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { selectionNone } from "@motionvideo/editor-core";
 import { buildBlankDesktopProject } from "../../../../shared/project-file/envelope";
 import {
   createInitialTimelineSession,
   reduceTimelineSession,
+  type TimelineSessionState,
 } from "../../../editor/session/timeline-session";
 
 function RenameHarness({
@@ -20,14 +22,11 @@ function RenameHarness({
   documentJson: string;
   onRenameCount: (n: number) => void;
 }) {
-  const [session, dispatch] = useReducer(
-    reduceTimelineSession,
-    undefined,
-    () =>
-      reduceTimelineSession(createInitialTimelineSession(), {
-        type: "REPLACE_DOCUMENT",
-        documentJson,
-      }),
+  const [session, setSession] = useState<TimelineSessionState>(() =>
+    reduceTimelineSession(createInitialTimelineSession(), {
+      type: "REPLACE_DOCUMENT",
+      documentJson,
+    }).state,
   );
   const [draft, setDraft] = useState(session.projectName);
   const dirty = useRef(false);
@@ -53,11 +52,14 @@ function RenameHarness({
       setDraft(session.projectName);
       return;
     }
-    dispatch({
-      type: "SET_PROJECT_NAME",
-      name: draft,
-      entryId: `rename_${renameCount + 1}`,
-    });
+    setSession((prev) =>
+      reduceTimelineSession(prev, {
+        type: "SET_PROJECT_NAME",
+        name: draft,
+        entryId: `rename_${renameCount + 1}`,
+        selection: selectionNone(),
+      }).state,
+    );
   };
 
   return (

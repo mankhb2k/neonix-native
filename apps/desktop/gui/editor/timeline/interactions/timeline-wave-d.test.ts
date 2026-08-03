@@ -1,15 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { canUndo, selectionClips } from "@motionvideo/editor-core";
+import { canUndo, selectionClips, selectionNone } from "@motionvideo/editor-core";
 import { buildBlankDesktopProject } from "../../../../shared/project-file/envelope";
 import {
   createInitialTimelineSession,
   reduceTimelineSession,
+  type TimelineSessionEvent,
+  type TimelineSessionState,
 } from "../../session/timeline-session";
 import {
   PointerSessionController,
   resetActivePointerSessionToken,
 } from "./pointer-session-controller";
 import { shouldCommitPointerSession } from "./pointer-session";
+
+function reduce(
+  state: TimelineSessionState,
+  event: TimelineSessionEvent,
+): TimelineSessionState {
+  return reduceTimelineSession(state, event).state;
+}
 
 function documentWithClip(): string {
   const blank = buildBlankDesktopProject({ createId: (p) => `${p}_waved` });
@@ -57,13 +66,13 @@ function documentWithClip(): string {
 describe("timeline session command bus (Wave D)", () => {
   it("moves clip via EXECUTE_TIMELINE_COMMAND and undoes", () => {
     let state = createInitialTimelineSession();
-    state = reduceTimelineSession(state, {
+    state = reduce(state, {
       type: "REPLACE_DOCUMENT",
       documentJson: documentWithClip(),
     });
     expect(state.clips[0]?.startTime).toBe(0);
 
-    state = reduceTimelineSession(state, {
+    state = reduce(state, {
       type: "EXECUTE_TIMELINE_COMMAND",
       entryId: "tl_1",
       label: "Move clip",
@@ -72,28 +81,28 @@ describe("timeline session command bus (Wave D)", () => {
         clipId: "clip_1",
         patch: { startTime: 1.5, track: "main", laneId: "lane.main" },
       },
+      selection: selectionNone(),
+      clipboard: [],
     });
     expect(state.clips[0]?.startTime).toBe(1.5);
     expect(canUndo(state.history)).toBe(true);
 
-    state = reduceTimelineSession(state, { type: "UNDO" });
+    state = reduce(state, { type: "UNDO" });
     expect(state.clips[0]?.startTime).toBe(0);
   });
 
   it("splits selected clip at playhead time", () => {
     let state = createInitialTimelineSession();
-    state = reduceTimelineSession(state, {
+    state = reduce(state, {
       type: "REPLACE_DOCUMENT",
       documentJson: documentWithClip(),
     });
-    state = reduceTimelineSession(state, {
-      type: "SET_SELECTION",
-      selection: selectionClips(["clip_1"]),
-    });
-    state = reduceTimelineSession(state, {
+    state = reduce(state, {
       type: "EXECUTE_TIMELINE_COMMAND",
       entryId: "tl_split",
       command: { type: "split-selected-clips", time: 2 },
+      selection: selectionClips(["clip_1"]),
+      clipboard: [],
     });
     expect(state.clips.length).toBe(2);
     expect(state.loadError).toBeNull();

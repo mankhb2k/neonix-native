@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { buildBlankDesktopProject } from "../../../../shared/project-file/envelope";
 import { loadTimelineFromDocumentJson } from "../../document/load-envelope";
+import { useEditorUiSession } from "../../session/editor-ui-session";
 import {
   createInitialTimelineSession,
   reduceTimelineSession,
 } from "../../session/timeline-session";
 import { capCutRulerScale } from "../timeline-scale";
 import { computeViewportLayout } from "../viewport/viewport-layout";
-import { sliderValueToZoomScale } from "@motionvideo/editor-core";
+import { selectionNone, sliderValueToZoomScale } from "@motionvideo/editor-core";
 
 describe("loadTimelineFromDocumentJson", () => {
   it("hydrates blank envelope with base lane", () => {
@@ -23,74 +24,68 @@ describe("loadTimelineFromDocumentJson", () => {
   });
 });
 
-describe("timeline session zoom/fit", () => {
+describe("editor ui zoom/fit (ui session)", () => {
   it("set zoom switches to manual mode", () => {
-    let state = createInitialTimelineSession();
-    const blank = buildBlankDesktopProject({ createId: (p) => `${p}_z` });
-    state = reduceTimelineSession(state, {
-      type: "REPLACE_DOCUMENT",
-      documentJson: blank.documentJson,
-    });
-    expect(state.timelineZoomMode).toBe("fit");
-
-    state = reduceTimelineSession(state, { type: "SET_ZOOM", zoom: 75 });
-    expect(state.timelineZoomMode).toBe("manual");
-    expect(state.timelineZoom).toBe(75);
-    expect(state.timelineZoomScale).toBe(sliderValueToZoomScale(75));
+    useEditorUiSession.getState().resetForProject(null);
+    useEditorUiSession.getState().setZoom(75);
+    const s = useEditorUiSession.getState();
+    expect(s.timelineZoomMode).toBe("manual");
+    expect(s.timelineZoom).toBe(75);
+    expect(s.timelineZoomScale).toBe(sliderValueToZoomScale(75));
   });
 
   it("fit resets scale to 1 and bumps revision", () => {
-    let state = createInitialTimelineSession();
-    const blank = buildBlankDesktopProject({ createId: (p) => `${p}_f` });
-    state = reduceTimelineSession(state, {
-      type: "REPLACE_DOCUMENT",
-      documentJson: blank.documentJson,
-    });
-    const rev = state.timelineFitRevision;
-    state = reduceTimelineSession(state, { type: "SET_ZOOM", zoom: 80 });
-    state = reduceTimelineSession(state, { type: "FIT_TIMELINE" });
-    expect(state.timelineZoom).toBe(50);
-    expect(state.timelineZoomScale).toBe(1);
-    expect(state.timelineZoomMode).toBe("fit");
-    expect(state.timelineFitRevision).toBe(rev + 1);
+    useEditorUiSession.getState().resetForProject(null);
+    const rev = useEditorUiSession.getState().timelineFitRevision;
+    useEditorUiSession.getState().setZoom(80);
+    useEditorUiSession.getState().fitTimeline([]);
+    const s = useEditorUiSession.getState();
+    expect(s.timelineZoom).toBe(50);
+    expect(s.timelineZoomScale).toBe(1);
+    expect(s.timelineZoomMode).toBe("fit");
+    expect(s.timelineFitRevision).toBe(rev + 1);
   });
 
   it("fit with multiple clips anchors so content leaves ~1/3 empty", () => {
+    useEditorUiSession.getState().resetForProject(null);
+    useEditorUiSession.getState().fitTimeline([
+      {
+        id: "a",
+        kind: "scene",
+        sceneId: "s1",
+        laneId: "lane",
+        startTime: 0,
+        duration: 4,
+        name: "A",
+      },
+      {
+        id: "b",
+        kind: "scene",
+        sceneId: "s2",
+        laneId: "lane",
+        startTime: 4,
+        duration: 6,
+        name: "B",
+      },
+    ]);
+    expect(useEditorUiSession.getState().timelineFitAnchorSeconds).toBe(5);
+    expect(useEditorUiSession.getState().timelineZoomMode).toBe("fit");
+  });
+
+  it("REPLACE_DOCUMENT resets ui via reduce patch", () => {
+    useEditorUiSession.getState().setZoom(90);
     let state = createInitialTimelineSession();
-    const blank = buildBlankDesktopProject({ createId: (p) => `${p}_m` });
-    state = reduceTimelineSession(state, {
+    const blank = buildBlankDesktopProject({ createId: (p) => `${p}_z` });
+    const result = reduceTimelineSession(state, {
       type: "REPLACE_DOCUMENT",
       documentJson: blank.documentJson,
     });
-    // Simulate two clips totaling 10s content end via APPLY + manual clips
-    // is awkward; FIT_TIMELINE reads state.clips — inject via APPLY after building.
-    state = {
-      ...state,
-      clips: [
-        {
-          id: "a",
-          kind: "scene",
-          sceneId: "s1",
-          laneId: state.lanes[0]!.id,
-          startTime: 0,
-          duration: 4,
-          name: "A",
-        },
-        {
-          id: "b",
-          kind: "scene",
-          sceneId: "s2",
-          laneId: state.lanes[0]!.id,
-          startTime: 4,
-          duration: 6,
-          name: "B",
-        },
-      ],
-    };
-    state = reduceTimelineSession(state, { type: "FIT_TIMELINE" });
-    // contentEnd=10 → anchor=5 → fitSpan=15 → content at 2/3, empty 1/3
-    expect(state.timelineFitAnchorSeconds).toBe(5);
-    expect(state.timelineZoomMode).toBe("fit");
+    state = result.state;
+    expect(state.projectId).toBeTruthy();
+    expect(result.ui?.timelineZoomMode).toBe("fit");
+    expect(result.ui?.selection).toEqual(selectionNone());
+    if (result.ui) useEditorUiSession.getState().applyPatch(result.ui);
+    expect(useEditorUiSession.getState().timelineZoom).toBe(50);
   });
 });
 
@@ -154,7 +149,6 @@ describe("computeViewportLayout", () => {
       timelineZoomScale: 1,
       timelineFitAnchorSeconds: 4,
     });
-    // fitSpan = 12s; visible = 12s; trailing = 4s; contentEnd = 10 → extent = 14
     expect(layout.contentEnd).toBe(10);
     expect(layout.extentSeconds).toBeCloseTo(14, 5);
     expect(

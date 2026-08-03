@@ -8,6 +8,10 @@ import {
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import type { PointerSessionConfig } from "../interactions/pointer-session-controller";
+import {
+  clearPreviewSession,
+  getPreviewSession,
+} from "../interactions/timeline-preview-session";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import { useClipMove } from "./use-clip-move";
 
@@ -71,6 +75,7 @@ function pointerEvent(clientX: number): ReactPointerEvent<HTMLElement> {
 
 describe("useClipMove", () => {
   beforeEach(() => {
+    clearPreviewSession();
     useTimelineInteractionPrefs.setState({ autoSnapping: false });
     mocks.autoScroll.mockReset();
     mocks.resolveDropTarget.mockReset();
@@ -93,6 +98,7 @@ describe("useClipMove", () => {
 
   afterEach(() => {
     cleanup();
+    clearPreviewSession();
     useTimelineInteractionPrefs.setState({ autoSnapping: true });
   });
 
@@ -104,8 +110,6 @@ describe("useClipMove", () => {
     }) as BeginGesture;
     const onSelect = vi.fn();
     const onExecute = vi.fn();
-    const onLocalPreview = vi.fn();
-    const onMovePreviewChange = vi.fn();
     const { result } = renderHook(() =>
       useClipMove({
         clips: [CLIP],
@@ -117,8 +121,6 @@ describe("useClipMove", () => {
         beginGesture,
         onSelect,
         onExecute,
-        onLocalPreview,
-        onMovePreviewChange,
       }),
     );
 
@@ -135,15 +137,18 @@ describe("useClipMove", () => {
       moved: boolean;
     };
     expect(belowThreshold.moved).toBe(false);
-    expect(onLocalPreview).not.toHaveBeenCalled();
+    expect(getPreviewSession().clipMovePreview).toBeNull();
 
     const moved = config.onUpdate?.({ x: 110, y: 30 }, belowThreshold) as {
       startTime: number;
       valid: boolean;
     };
     expect(moved).toMatchObject({ startTime: 1, valid: true });
-    expect(onLocalPreview).toHaveBeenCalledOnce();
-    expect(onMovePreviewChange).toHaveBeenCalledOnce();
+    expect(getPreviewSession().clipMovePreview).toMatchObject({
+      clipId: "clip",
+      startTime: 1,
+      valid: true,
+    });
 
     config.onCommit?.(moved);
     expect(onExecute).toHaveBeenCalledWith(
@@ -160,8 +165,7 @@ describe("useClipMove", () => {
       },
       "Move clip",
     );
-    expect(onLocalPreview).toHaveBeenLastCalledWith(null);
-    expect(onMovePreviewChange).toHaveBeenLastCalledWith(null);
+    expect(getPreviewSession().clipMovePreview).toBeNull();
   });
 
   it("does not commit an invalid move and clears previews", () => {
@@ -172,8 +176,6 @@ describe("useClipMove", () => {
       return null;
     }) as BeginGesture;
     const onExecute = vi.fn();
-    const onLocalPreview = vi.fn();
-    const onMovePreviewChange = vi.fn();
     const { result } = renderHook(() =>
       useClipMove({
         clips: [CLIP],
@@ -184,8 +186,6 @@ describe("useClipMove", () => {
         beginGesture,
         onSelect: vi.fn(),
         onExecute,
-        onLocalPreview,
-        onMovePreviewChange,
       }),
     );
 
@@ -193,15 +193,14 @@ describe("useClipMove", () => {
     const config = captured!;
     const initial = config.onStart?.({ x: 10, y: 30 });
     const invalid = config.onUpdate?.({ x: 110, y: 30 }, initial);
+    expect(getPreviewSession().clipMovePreview).not.toBeNull();
     config.onCommit?.(invalid);
 
     expect(onExecute).not.toHaveBeenCalled();
-    expect(onLocalPreview).toHaveBeenLastCalledWith(null);
-    expect(onMovePreviewChange).toHaveBeenLastCalledWith(null);
+    expect(getPreviewSession().clipMovePreview).toBeNull();
   });
 
   it("passes base lane role/order so occupancy insertOrder is 0", () => {
-    // Drop onto occupied base body: without role/order, insertOrder defaults to 1.
     const other: TimelineClip = {
       id: "other",
       kind: "scene",
@@ -228,12 +227,9 @@ describe("useClipMove", () => {
         beginGesture,
         onSelect: vi.fn(),
         onExecute,
-        onLocalPreview: vi.fn(),
-        onMovePreviewChange: vi.fn(),
       }),
     );
 
-    // Grab near clip head; drag to contentX 350 → start ≈ 3.4 inside [2,5).
     act(() => result.current.beginMove(pointerEvent(10), CLIP));
     const config = captured!;
     const initial = config.onStart?.({ x: 10, y: 30 });
@@ -246,6 +242,10 @@ describe("useClipMove", () => {
     expect(moved).toMatchObject({
       valid: true,
       insertNewLane: true,
+      insertOrder: 0,
+    });
+    expect(getPreviewSession().clipMovePreview).toMatchObject({
+      isInsert: true,
       insertOrder: 0,
     });
 
@@ -281,7 +281,6 @@ describe("useClipMove", () => {
           beginGesture,
           onSelect,
           onExecute: vi.fn(),
-          onLocalPreview: vi.fn(),
         }),
       { initialProps: { disabled: false } },
     );

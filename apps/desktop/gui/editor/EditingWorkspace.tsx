@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useReducer,
   useRef,
   useState,
   type MutableRefObject,
@@ -11,6 +10,9 @@ import {
   canRedo,
   canUndo,
   clipsContentEndSeconds,
+  selectionHasLockedLane,
+  selectedClipIdsFrom,
+  type EditorSelection,
   type TimelineCommand,
 } from "@motionvideo/editor-core";
 import { AssetPanel } from "./assets/AssetPanel";
@@ -22,9 +24,13 @@ import {
 } from "./playback/playback-clock-store";
 import { usePlaybackDriver } from "./playback/use-playback-driver";
 import { RightDock } from "./inspector/RightDock";
+import { buildClipboardFromSelection } from "./session/build-clipboard";
+import { useEditorUiSession } from "./session/editor-ui-session";
 import {
   createInitialTimelineSession,
   reduceTimelineSession,
+  type TimelineSessionEvent,
+  type TimelineSessionState,
 } from "./session/timeline-session";
 import { Sidebar } from "./sidebar/Sidebar";
 import { Stage } from "./stage/Stage";
@@ -94,11 +100,22 @@ function EditingWorkspaceInner({
   void _onSaveAs;
   void _onCloseToHome;
 
-  const [session, dispatch] = useReducer(
-    reduceTimelineSession,
-    undefined,
+  const [session, setSession] = useState<TimelineSessionState>(
     createInitialTimelineSession,
   );
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
+
+  const dispatch = useCallback((event: TimelineSessionEvent) => {
+    setSession((prev) => {
+      const { state, ui } = reduceTimelineSession(prev, event);
+      if (ui) {
+        useEditorUiSession.getState().applyPatch(ui);
+      }
+      return state;
+    });
+  }, []);
+
   const assetsApi = useMemo(() => createAssetRepository(api), [api]);
   const loadedProjectIdRef = useRef<string | null>(null);
   const needsPlaybackResetRef = useRef(false);
@@ -110,7 +127,7 @@ function EditingWorkspaceInner({
     loadedProjectIdRef.current = projectId;
     needsPlaybackResetRef.current = true;
     dispatch({ type: "REPLACE_DOCUMENT", documentJson });
-  }, [projectId, documentJson]);
+  }, [projectId, documentJson, dispatch]);
 
   useEffect(() => {
     const json = session.sessionDocumentJson;
@@ -181,15 +198,21 @@ function EditingWorkspaceInner({
     };
   }, [clock]);
 
-  const executeTimeline = useCallback((command: TimelineCommand, label: string) => {
-    timelineEntrySeq += 1;
-    dispatch({
-      type: "EXECUTE_TIMELINE_COMMAND",
-      command,
-      label,
-      entryId: `tl_${timelineEntrySeq}`,
-    });
-  }, []);
+  const executeTimeline = useCallback(
+    (command: TimelineCommand, label: string) => {
+      const ui = useEditorUiSession.getState();
+      timelineEntrySeq += 1;
+      dispatch({
+        type: "EXECUTE_TIMELINE_COMMAND",
+        command,
+        label,
+        entryId: `tl_${timelineEntrySeq}`,
+        selection: ui.selection,
+        clipboard: ui.clipboard,
+      });
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
     if (!uiFixturesEnabled()) return undefined;
@@ -228,20 +251,86 @@ function EditingWorkspaceInner({
 
   const onUndo = useCallback(() => {
     dispatch({ type: "UNDO" });
-  }, []);
+  }, [dispatch]);
 
   const onRedo = useCallback(() => {
     dispatch({ type: "REDO" });
+  }, [dispatch]);
+
+  const onSelect = useCallback((selection: EditorSelection) => {
+    useEditorUiSession.getState().setSelection(selection);
   }, []);
 
+  const onZoomChange = useCallback((zoom: number) => {
+    useEditorUiSession.getState().setZoom(zoom);
+  }, []);
+
+  const onFit = useCallback(() => {
+    useEditorUiSession.getState().fitTimeline(sessionRef.current.clips);
+  }, []);
+
+  const onSplit = useCallback(
+    (time: number) => {
+      executeTimeline({ type: "split-selected-clips", time }, "Split clips");
+    },
+    [executeTimeline],
+  );
+
+  const onDelete = useCallback(() => {
+    executeTimeline({ type: "delete-selected-clips" }, "Delete clips");
+  }, [executeTimeline]);
+
+  const onApplyDocumentJson = useCallback(
+    (json: string) => {
+      dispatch({ type: "APPLY_DOCUMENT_JSON", documentJson: json });
+    },
+    [dispatch],
+  );
+
+  const onClearLoadError = useCallback(() => {
+    dispatch({ type: "CLEAR_ERROR" });
+  }, [dispatch]);
+
   const copySelection = useCallback(() => {
-    dispatch({ type: "COPY_SELECTION" });
+    const ui = useEditorUiSession.getState();
+    const doc = sessionRef.current;
+    const clipboard = buildClipboardFromSelection({
+      selection: ui.selection,
+      clips: doc.clips,
+      lanes: doc.lanes,
+      project: doc.project,
+    });
+    ui.setClipboard(clipboard);
   }, []);
 
   const cutSelection = useCallback(() => {
+    const ui = useEditorUiSession.getState();
+    const doc = sessionRef.current;
+    const ids = selectedClipIdsFrom(ui.selection);
+    if (
+      ids.length === 0 ||
+      selectionHasLockedLane(doc.clips, doc.lanes, ids)
+    ) {
+      return;
+    }
+    const clipboard = buildClipboardFromSelection({
+      selection: ui.selection,
+      clips: doc.clips,
+      lanes: doc.lanes,
+      project: doc.project,
+    });
+    if (clipboard.length === 0) return;
+    ui.setClipboard(clipboard);
     timelineEntrySeq += 1;
-    dispatch({ type: "CUT_SELECTION", entryId: `cut_${timelineEntrySeq}` });
-  }, []);
+    dispatch({
+      type: "EXECUTE_TIMELINE_COMMAND",
+      command: { type: "delete-selected-clips" },
+      label: "Cut clips",
+      entryId: `cut_${timelineEntrySeq}`,
+      selection: ui.selection,
+      clipboard,
+    });
+  }, [dispatch]);
 
   const pasteSelection = useCallback(() => {
     executeTimeline(
@@ -291,13 +380,15 @@ function EditingWorkspaceInner({
       nameDraftDirtyRef.current = false;
       renameEntrySeq += 1;
       const entryId = `rename_${renameEntrySeq}`;
-      const event = {
-        type: "SET_PROJECT_NAME" as const,
+      const event: TimelineSessionEvent = {
+        type: "SET_PROJECT_NAME",
         name: nameDraft,
         entryId,
+        selection: useEditorUiSession.getState().selection,
       };
-      const nextState = reduceTimelineSession(session, event);
-      dispatch(event);
+      const { state: nextState, ui } = reduceTimelineSession(session, event);
+      if (ui) useEditorUiSession.getState().applyPatch(ui);
+      setSession(nextState);
       renamedDocumentJson = nextState.sessionDocumentJson ?? documentJson;
     } else {
       nameDraftDirtyRef.current = false;
@@ -349,6 +440,8 @@ function EditingWorkspaceInner({
   }, [flushSnapshot, onSessionHandle, sessionHandleRef]);
 
   const timelineDisabled = Boolean(saving) || Boolean(session.loadError);
+  const canUndoDoc = canUndo(session.history);
+  const canRedoDoc = canRedo(session.history);
 
   return (
     <div
@@ -384,7 +477,7 @@ function EditingWorkspaceInner({
           <button
             type="button"
             className="underline"
-            onClick={() => dispatch({ type: "CLEAR_ERROR" })}
+            onClick={onClearLoadError}
           >
             Dismiss
           </button>
@@ -402,19 +495,14 @@ function EditingWorkspaceInner({
                 assets={sessionAssets}
                 assetsApi={assetsApi}
                 disabled={saving}
-                onDocumentChange={(json) =>
-                  dispatch({ type: "APPLY_DOCUMENT_JSON", documentJson: json })
-                }
+                onDocumentChange={onApplyDocumentJson}
                 onExecuteTimeline={executeTimeline}
               />
             }
             lanes={session.lanes}
             clips={session.clips}
-            selection={session.selection}
             initialTab={initialSidebarTab}
-            onSelect={(selection) =>
-              dispatch({ type: "SET_SELECTION", selection })
-            }
+            onSelect={onSelect}
             onExecuteTimeline={executeTimeline}
             assets={sessionAssets}
           />
@@ -429,31 +517,16 @@ function EditingWorkspaceInner({
             clips={session.clips}
             lanes={session.lanes}
             fps={session.fps}
-            timelineZoomScale={session.timelineZoomScale}
-            timelineFitAnchorSeconds={session.timelineFitAnchorSeconds}
-            timelineFitRevision={session.timelineFitRevision}
-            selection={session.selection}
             disabled={timelineDisabled}
-            canPaste={session.clipboard.length > 0}
-            zoom={session.timelineZoom}
-            canUndo={canUndo(session.history)}
-            canRedo={canRedo(session.history)}
-            onZoomChange={(zoom) => dispatch({ type: "SET_ZOOM", zoom })}
-            onFit={() => dispatch({ type: "FIT_TIMELINE" })}
+            canUndo={canUndoDoc}
+            canRedo={canRedoDoc}
+            onZoomChange={onZoomChange}
+            onFit={onFit}
             onUndo={onUndo}
             onRedo={onRedo}
-            onSplit={(time) =>
-              executeTimeline(
-                { type: "split-selected-clips", time },
-                "Split clips",
-              )
-            }
-            onDelete={() =>
-              executeTimeline({ type: "delete-selected-clips" }, "Delete clips")
-            }
-            onSelect={(selection) =>
-              dispatch({ type: "SET_SELECTION", selection })
-            }
+            onSplit={onSplit}
+            onDelete={onDelete}
+            onSelect={onSelect}
             onExecute={executeTimeline}
             onCopy={copySelection}
             onCut={cutSelection}

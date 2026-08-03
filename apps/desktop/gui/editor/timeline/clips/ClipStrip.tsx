@@ -1,6 +1,7 @@
 /**
  * Interactive clip strip — select / move (incl. cross-lane) / edge trim.
  * Gesture controllers live in use-clip-move / use-clip-trim.
+ * Move preview chrome is owned by timeline-preview-session; trim stays local.
  */
 
 import { memo, useCallback, useState } from "react";
@@ -12,6 +13,7 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
+import { useMovePreviewForLane } from "../interactions/timeline-preview-session";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import { cn } from "../../../ui";
 import type { ClipMovePreview } from "./clip-move-geometry";
@@ -44,12 +46,6 @@ function clipClassName(trackKind: TrackKind, selected: boolean): string {
   return cn(base, selectedCls, "cursor-default");
 }
 
-type Preview = ClipMovePreview | ClipTrimPreview;
-
-function isMovePreview(preview: Preview | null): preview is ClipMovePreview {
-  return preview != null && !("kind" in preview);
-}
-
 type Props = {
   clips: TimelineClip[];
   /** Full document clips for multi-select move. */
@@ -60,9 +56,6 @@ type Props = {
   pixelsPerSecond: number;
   selection: EditorSelection;
   disabled?: boolean;
-  /** Shared cross-lane move ghost (owned by TimelineViewport). */
-  movePreview?: ClipMovePreview | null;
-  onMovePreviewChange?: (preview: ClipMovePreview | null) => void;
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
@@ -77,18 +70,17 @@ export const ClipStrip = memo(function ClipStrip({
   pixelsPerSecond,
   selection,
   disabled,
-  movePreview = null,
-  onMovePreviewChange,
   beginGesture,
   onSelect,
   onExecute,
 }: Props) {
   const pps = Math.max(pixelsPerSecond, 0.001);
   const selected = new Set(selectedClipIdsFrom(selection));
-  const [localPreview, setLocalPreview] = useState<Preview | null>(null);
+  const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
+  const activeMove = useMovePreviewForLane(lane.id);
 
-  const onLocalPreview = useCallback((preview: Preview | null) => {
-    setLocalPreview(preview);
+  const onLocalPreview = useCallback((preview: ClipTrimPreview | null) => {
+    setTrimPreview(preview);
   }, []);
 
   const { beginMove } = useClipMove({
@@ -102,8 +94,6 @@ export const ClipStrip = memo(function ClipStrip({
     beginGesture,
     onSelect,
     onExecute,
-    onLocalPreview,
-    onMovePreviewChange,
   });
 
   const { beginTrim } = useClipTrim({
@@ -114,13 +104,6 @@ export const ClipStrip = memo(function ClipStrip({
     onExecute,
     onLocalPreview,
   });
-
-  const activeMove =
-    movePreview ?? (isMovePreview(localPreview) ? localPreview : null);
-  const trimPreview =
-    localPreview && "kind" in localPreview && localPreview.kind === "trim"
-      ? localPreview
-      : null;
 
   const showMoveGhost =
     activeMove != null &&

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   selectedClipIdsFrom,
   selectionClips,
@@ -9,18 +9,21 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
-import type { LibraryPayload } from "../../library/model/library-payload";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
-import { ClipStrip, type ClipMovePreview } from "../clips/ClipStrip";
+import { ClipStrip } from "../clips/ClipStrip";
 import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
 import { autoScrollTimelineNearEdge } from "../drop/auto-scroll";
 import {
-  resolveDropGeometryAtPoint,
   registerTimelineDropHost,
-  type LibraryDropPreview,
   type TimelineDropHost,
 } from "../drop/library-drop";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
+import {
+  resetDropGhostScheduler,
+  scheduleDropGhostSample,
+  setMarquee,
+  useMovePinKey,
+} from "../interactions/timeline-preview-session";
 import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import {
   clipIdsInMarquee,
@@ -128,10 +131,7 @@ export function TimelineViewport({
 }: Props) {
   const boardRef = useRef<HTMLDivElement>(null);
   const tracksScrollRef = useRef<HTMLDivElement>(null);
-  const [dropGhost, setDropGhost] = useState<LibraryDropPreview | null>(null);
-  const [clipMovePreview, setClipMovePreview] =
-    useState<ClipMovePreview | null>(null);
-  const [marquee, setMarquee] = useState<MarqueeRect | null>(null);
+  const movePinKey = useMovePinKey();
   const clock = usePlaybackClockApi();
   const { beginGesture } = usePointerSessionHost();
   const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
@@ -152,66 +152,13 @@ export function TimelineViewport({
     contentMeasureKey: `${clips.length}:${lanes.length}:${timelineZoomScale}`,
   });
 
-  const dropGhostRafRef = useRef<number | null>(null);
-  /** Latest pointer sample; geometry resolves once per frame in RAF. */
-  const pendingDropSampleRef = useRef<
-    | { kind: "clear" }
-    | {
-        kind: "point";
-        clientX: number;
-        clientY: number;
-        item: LibraryPayload | null;
-      }
-    | undefined
-  >(undefined);
-
-  const flushDropGhost = useCallback(() => {
-    dropGhostRafRef.current = null;
-    const sample = pendingDropSampleRef.current;
-    pendingDropSampleRef.current = undefined;
-    if (sample === undefined) return;
-    if (sample.kind === "clear") {
-      setDropGhost(null);
-      return;
-    }
-    setDropGhost(
-      resolveDropGeometryAtPoint(sample.clientX, sample.clientY, sample.item),
-    );
-  }, []);
-
-  const scheduleDropGhostSample = useCallback(
-    (
-      sample:
-        | { kind: "clear" }
-        | {
-            kind: "point";
-            clientX: number;
-            clientY: number;
-            item: LibraryPayload | null;
-          },
-    ) => {
-      pendingDropSampleRef.current = sample;
-      if (dropGhostRafRef.current == null) {
-        dropGhostRafRef.current = requestAnimationFrame(flushDropGhost);
-      }
-    },
-    [flushDropGhost],
-  );
-
   useLayoutEffect(() => {
-    if (dropGhostRafRef.current != null) {
-      cancelAnimationFrame(dropGhostRafRef.current);
-      dropGhostRafRef.current = null;
-    }
-    pendingDropSampleRef.current = undefined;
+    resetDropGhostScheduler();
   }, [projectId, timelineFitRevision]);
 
   useEffect(() => {
     return () => {
-      if (dropGhostRafRef.current != null) {
-        cancelAnimationFrame(dropGhostRafRef.current);
-        dropGhostRafRef.current = null;
-      }
+      resetDropGhostScheduler();
     };
   }, []);
 
@@ -324,7 +271,6 @@ export function TimelineViewport({
         scheduleDropGhostSample({ kind: "clear" });
         return;
       }
-      // Coalesce coords only; resolveDropGeometryAtPoint runs in RAF.
       scheduleDropGhostSample({
         kind: "point",
         clientX: session.clientX,
@@ -332,7 +278,7 @@ export function TimelineViewport({
         item: session.item,
       });
     });
-  }, [scheduleDropGhostSample]);
+  }, []);
 
   const beginMarquee = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -469,10 +415,16 @@ export function TimelineViewport({
       for (let i = startIndex; i <= endIndex; i += 1) indices.add(i);
     }
     const pinLaneIds = new Set<string>();
-    if (clipMovePreview) {
-      pinLaneIds.add(clipMovePreview.originLaneId);
-      pinLaneIds.add(clipMovePreview.laneId);
-      for (const m of clipMovePreview.members ?? []) pinLaneIds.add(m.laneId);
+    if (movePinKey) {
+      // Format: origin|lane|member1,member2
+      const [origin, lane, members] = movePinKey.split("|");
+      if (origin) pinLaneIds.add(origin);
+      if (lane) pinLaneIds.add(lane);
+      if (members) {
+        for (const id of members.split(",")) {
+          if (id) pinLaneIds.add(id);
+        }
+      }
     }
     for (let i = 0; i < laneRows.length; i += 1) {
       if (pinLaneIds.has(laneRows[i]!.id)) indices.add(i);
@@ -515,7 +467,7 @@ export function TimelineViewport({
       prev = idx;
     }
     return { rows, offsetTop };
-  }, [laneRows, laneHeights, laneWindow, clipMovePreview, topPadding]);
+  }, [laneRows, laneHeights, laneWindow, movePinKey, topPadding]);
 
   const mountedOffsetTop = mountedLaneRows.offsetTop;
 
@@ -704,7 +656,6 @@ export function TimelineViewport({
                       <div style={{ height: topPadding }} aria-hidden />
                       <EmptyTimelineDash
                         width={Math.max(layout.canvasWidth, trackViewWidth)}
-                        active={dropGhost != null}
                         laneId={
                           laneRows.find((r) => r.role === "base")?.id ??
                           laneRows[0]?.id ??
@@ -734,9 +685,6 @@ export function TimelineViewport({
                             ? LANE_GAP_PX
                             : 0;
                         const visibleClips = clipsForLane(lane.id);
-                        const memberOnLane = clipMovePreview?.members?.some(
-                          (m) => m.laneId === lane.id,
-                        );
                         return (
                           <div
                             key={lane.id}
@@ -754,14 +702,6 @@ export function TimelineViewport({
                               pixelsPerSecond={layout.pixelsPerSecond}
                               selection={selection}
                               disabled={disabled}
-                              movePreview={
-                                clipMovePreview?.laneId === lane.id ||
-                                clipMovePreview?.originLaneId === lane.id ||
-                                memberOnLane
-                                  ? clipMovePreview
-                                  : null
-                              }
-                              onMovePreviewChange={setClipMovePreview}
                               beginGesture={beginGesture}
                               onSelect={onSelect}
                               onExecute={onExecute}
@@ -771,9 +711,6 @@ export function TimelineViewport({
                       })}
                       <div style={{ height: bottomSpacer }} aria-hidden />
                       <TimelineOverlays
-                        dropGhost={dropGhost}
-                        clipMovePreview={clipMovePreview}
-                        marquee={marquee}
                         pixelsPerSecond={layout.pixelsPerSecond}
                         canvasWidth={layout.canvasWidth}
                         trackViewWidth={trackViewWidth}
