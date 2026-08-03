@@ -289,6 +289,7 @@ export function TimelineViewport({
         ? collectClipEdgeSnapPoints(clips, new Set())
         : [],
       snapThresholdSec: 8 / Math.max(1e-6, layout.pixelsPerSecond),
+      clips,
     };
     return registerTimelineDropHost(next);
   }, [sortedLanes, layout.pixelsPerSecond, topPadding, clips, autoSnapping]);

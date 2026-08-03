@@ -23,6 +23,7 @@ const lanes: TimelineLane[] = [
     role: "base",
     order: 0,
     name: "Main",
+    policy: { allowOverlap: false, rippleMode: false },
   },
   {
     id: "ov-1",
@@ -30,6 +31,7 @@ const lanes: TimelineLane[] = [
     role: "overlay",
     order: 1,
     name: "Overlay 1",
+    policy: { allowOverlap: false, rippleMode: false },
   },
   {
     id: "ov-2",
@@ -37,6 +39,7 @@ const lanes: TimelineLane[] = [
     role: "overlay",
     order: 2,
     name: "Overlay 2",
+    policy: { allowOverlap: false, rippleMode: false },
   },
 ];
 

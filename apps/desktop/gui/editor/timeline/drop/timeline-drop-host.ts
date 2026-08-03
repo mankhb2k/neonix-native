@@ -3,7 +3,7 @@
  * Ownership token prevents one timeline instance from clearing another's host.
  */
 
-import type { TimelineLane } from "@motionvideo/editor-core";
+import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import { contentXFromPointer } from "./drop-geometry";
 
 export type TimelineDropHost = {
@@ -18,6 +18,10 @@ export type TimelineDropHost = {
   /** Existing clip edge times for CapCut live snap while dragging from library. */
   snapPoints?: number[];
   snapThresholdSec?: number;
+  /** Document clips for occupancy (ghost never overlaps). */
+  clips?: ReadonlyArray<
+    Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
+  >;
 };
 
 let host: TimelineDropHost | null = null;

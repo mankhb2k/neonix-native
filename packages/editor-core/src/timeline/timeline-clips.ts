@@ -47,9 +47,12 @@ export {
   findFreeAudioLane,
   findFreeLaneAmong,
   findFreeOverlayLane,
+  findLaneAbove,
   rangesOverlap,
   resolveLaneStartTimeNearest,
   resolveMainStartTime,
+  resolveOccupancyAwarePlacement,
+  type OccupancyAwarePlacement,
 } from "./policies/placement-policy";
 
 /* ========================================================================== */

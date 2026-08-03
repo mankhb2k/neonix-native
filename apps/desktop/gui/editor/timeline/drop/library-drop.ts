@@ -7,7 +7,10 @@ import type {
   TimelineDropTarget,
   TimelineLane,
 } from "@motionvideo/editor-core";
-import { DEFAULT_FRAME_DURATION } from "@motionvideo/editor-core";
+import {
+  DEFAULT_FRAME_DURATION,
+  resolveOccupancyAwarePlacement,
+} from "@motionvideo/editor-core";
 import type { LibraryPayload } from "../../library/model/library-payload";
 import { snapMoveStartToEdges } from "../clips/clip-move-geometry";
 import { hitTimelineDropZone } from "./drop-geometry";
@@ -272,13 +275,106 @@ export function resolveDropGeometryAtPoint(
     valid = track !== "audio";
   }
 
-  const contentTop = contentCenterY();
+  let nextStart = startTime;
+  let nextSnapGuide = snapGuideTime;
+  let nextTrack = track;
+  let nextLaneId = policyTarget.laneId;
+  let nextIsInsert = policyTarget.isInsert;
+  let nextInsertOrder = policyTarget.insertOrder;
+  let nextOverBase = policyTarget.overBaseBody;
+  let nextContentTop = contentCenterY();
 
-  if (forceMain) {
+  // Body placement: never overlap — park at head/tail or insert above.
+  if (!nextIsInsert && valid) {
+    const lane =
+      (nextLaneId
+        ? host.lanes.find((l) => l.id === nextLaneId)
+        : null) ??
+      (forceMain || nextOverBase
+        ? host.lanes.find((l) => l.kind === "visual" && l.role === "base")
+        : undefined);
+    if (lane) {
+      const laneRole: "base" | "overlay" | "audio" =
+        lane.kind === "audio"
+          ? "audio"
+          : lane.role === "base"
+            ? "base"
+            : "overlay";
+      const onLane = (host.clips ?? []).filter((c) => c.laneId === lane.id);
+      const occupancy = resolveOccupancyAwarePlacement({
+        clipsOnLane: onLane,
+        desiredStart: nextStart,
+        duration: payloadDurationSec(payload),
+        laneId: lane.id,
+        laneOrder: lane.order,
+        laneRole,
+        siblingLanes: host.lanes.map((l) => ({
+          id: l.id,
+          order: l.order,
+          role:
+            l.kind === "audio"
+              ? ("audio" as const)
+              : l.role === "base"
+                ? ("base" as const)
+                : ("overlay" as const),
+        })),
+        allClips: host.clips,
+      });
+      nextStart = occupancy.startTime;
+      if (occupancy.edgeGuideTime != null) {
+        nextSnapGuide = occupancy.edgeGuideTime;
+      }
+      if (occupancy.retargetLaneId) {
+        nextIsInsert = false;
+        nextInsertOrder = null;
+        nextLaneId = occupancy.retargetLaneId;
+        nextOverBase = occupancy.retargetLaneRole === "base";
+        nextTrack =
+          occupancy.retargetLaneRole === "audio"
+            ? "audio"
+            : occupancy.retargetLaneRole === "base"
+              ? "main"
+              : "overlay";
+        const el = host.scrollEl.querySelector<HTMLElement>(
+          `[data-lane-id="${CSS.escape(occupancy.retargetLaneId)}"]`,
+        );
+        if (el) {
+          const r = el.getBoundingClientRect();
+          nextContentTop =
+            (r.top + r.bottom) / 2 - scrollRect.top + host.scrollEl.scrollTop;
+        }
+      } else if (occupancy.insertNewLane) {
+        nextIsInsert = true;
+        nextInsertOrder = occupancy.insertOrder;
+        nextLaneId = null;
+        nextOverBase = false;
+        if (nextTrack === "main") nextTrack = "overlay";
+        const el = host.scrollEl.querySelector<HTMLElement>(
+          `[data-lane-id="${CSS.escape(lane.id)}"]`,
+        );
+        if (el) {
+          const r = el.getBoundingClientRect();
+          nextContentTop =
+            r.top - scrollRect.top + host.scrollEl.scrollTop;
+        } else {
+          nextContentTop =
+            policyTarget.indicatorTop + host.scrollEl.scrollTop;
+        }
+      } else if (forceMain) {
+        nextLaneId = null;
+        nextOverBase = true;
+        nextTrack = "main";
+      } else {
+        nextLaneId = lane.id;
+      }
+    }
+  }
+
+  if (forceMain && !nextIsInsert) {
     const ghostHeightPx = ghostHeightFor(false, "main", null);
     return {
       valid: true,
-      startTime,
+      startTime: nextStart,
       track: "main",
       laneId: null,
       isInsert: false,
@@ -287,32 +383,32 @@ export function resolveDropGeometryAtPoint(
       overBaseBody: true,
       ghostWidthPx,
       ghostHeightPx,
-      contentTop,
+      contentTop: nextContentTop,
       label,
-      snapGuideTime,
+      snapGuideTime: nextSnapGuide,
     };
   }
 
   const ghostHeightPx = ghostHeightFor(
-    policyTarget.isInsert,
-    track,
-    policyTarget.laneId,
+    nextIsInsert,
+    nextTrack,
+    nextLaneId,
   );
 
   return {
     valid,
-    startTime,
-    track,
-    laneId: policyTarget.laneId,
-    isInsert: policyTarget.isInsert,
-    insertOrder: policyTarget.insertOrder,
+    startTime: nextStart,
+    track: nextTrack,
+    laneId: nextLaneId,
+    isInsert: nextIsInsert,
+    insertOrder: nextInsertOrder,
     indicatorTop: policyTarget.indicatorTop,
-    overBaseBody: policyTarget.overBaseBody,
+    overBaseBody: nextOverBase,
     ghostWidthPx,
     ghostHeightPx,
-    contentTop,
+    contentTop: nextContentTop,
     label,
-    snapGuideTime,
+    snapGuideTime: nextSnapGuide,
   };
 }
 

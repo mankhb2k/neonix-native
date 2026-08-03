@@ -106,4 +106,91 @@ describe("resolveClipMoveDrag", () => {
     expect(result.commit.startTime).toBe(1);
     expect(result.preview.snapGuideTime).toBe(4);
   });
+
+  it("parks ghost at clip head/tail instead of overlapping", () => {
+    // desired ≈ 0.5, duration 3 spills into [2,5); before=0 still overlaps → after=5
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 100, // 1 - 0.5 = 0.5
+      drop: {
+        laneId: "lane-v",
+        track: "main",
+        laneRole: "base",
+        laneOrder: -1,
+      },
+      occupancyClips: [
+        {
+          id: "other",
+          laneId: "lane-v",
+          startTime: 2,
+          duration: 3,
+        },
+      ],
+      excludeIds: new Set(["c1"]),
+    });
+    expect(result.commit.insertNewLane).toBeFalsy();
+    expect(result.commit.startTime).toBe(5);
+    expect(result.preview.isInsert).toBeFalsy();
+  });
+
+  it("promotes insert above when desired start lands inside a clip", () => {
+    // desired ≈ 3, inside [2,5); no free lane above → insert
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 350, // 3.5 - 0.5 = 3
+      drop: {
+        laneId: "lane-v",
+        track: "main",
+        laneRole: "base",
+        laneOrder: -1,
+        laneTopContentY: 120,
+      },
+      occupancyClips: [
+        {
+          id: "other",
+          laneId: "lane-v",
+          startTime: 2,
+          duration: 3,
+        },
+      ],
+      excludeIds: new Set(["c1"]),
+      lanes: [{ id: "lane-v", kind: "visual", role: "base", order: -1 }],
+    });
+    expect(result.commit.insertNewLane).toBe(true);
+    expect(result.commit.insertOrder).toBe(0);
+    expect(result.commit.track).toBe("overlay");
+    expect(result.preview.isInsert).toBe(true);
+    expect(result.preview.contentTop).toBe(120);
+  });
+
+  it("retargets ghost to free lane above instead of mid insert", () => {
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 350, // desired = 3
+      drop: {
+        laneId: "lane-v",
+        track: "main",
+        laneRole: "base",
+        laneOrder: -1,
+      },
+      occupancyClips: [
+        {
+          id: "other",
+          laneId: "lane-v",
+          startTime: 2,
+          duration: 3,
+        },
+      ],
+      excludeIds: new Set(["c1"]),
+      lanes: [
+        { id: "lane-v", kind: "visual", role: "base", order: -1 },
+        { id: "lane-o", kind: "visual", role: "overlay", order: 0 },
+      ],
+    });
+    expect(result.commit.insertNewLane).toBeFalsy();
+    expect(result.commit.laneId).toBe("lane-o");
+    expect(result.commit.track).toBe("overlay");
+    expect(result.preview.laneId).toBe("lane-o");
+    expect(result.preview.isInsert).toBeFalsy();
+  });
 });

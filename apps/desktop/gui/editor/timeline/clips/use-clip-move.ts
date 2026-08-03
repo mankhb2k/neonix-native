@@ -57,6 +57,15 @@ function dropTargetFromPolicy(
         ? "main"
         : "overlay";
 
+  const laneTopContentY = (laneId: string): number | undefined => {
+    const el = scrollEl.querySelector<HTMLElement>(
+      `[data-lane-id="${CSS.escape(laneId)}"]`,
+    );
+    if (!el) return undefined;
+    const scrollRect = scrollEl.getBoundingClientRect();
+    return el.getBoundingClientRect().top - scrollRect.top + scrollEl.scrollTop;
+  };
+
   if (target.isInsert) {
     return {
       laneId: originLaneId,
@@ -68,12 +77,35 @@ function dropTargetFromPolicy(
   }
 
   if (target.laneId) {
-    return { laneId: target.laneId, track, contentTop };
+    const lane = lanes.find((l) => l.id === target.laneId);
+    const laneRole: "base" | "overlay" | "audio" =
+      lane?.kind === "audio"
+        ? "audio"
+        : lane?.role === "base"
+          ? "base"
+          : "overlay";
+    return {
+      laneId: target.laneId,
+      track,
+      contentTop,
+      laneOrder: lane?.order ?? 0,
+      laneRole,
+      laneTopContentY: laneTopContentY(target.laneId),
+    };
   }
 
   if (target.overBaseBody || track === "main") {
     const base = lanes.find((l) => l.kind === "visual" && l.role === "base");
-    if (base) return { laneId: base.id, track: "main", contentTop };
+    if (base) {
+      return {
+        laneId: base.id,
+        track: "main",
+        contentTop,
+        laneOrder: base.order,
+        laneRole: "base",
+        laneTopContentY: laneTopContentY(base.id),
+      };
+    }
   }
 
   return { laneId: originLaneId, track, contentTop };
@@ -274,6 +306,9 @@ export function useClipMove({
               drop,
               snapPoints,
               snapThresholdSec,
+              occupancyClips: isGroup ? undefined : catalog,
+              excludeIds: excludeSnapIds,
+              lanes: isGroup ? undefined : hostLanes,
             });
             const rawDelta = resolved.commit.startTime - originStart;
             const groupDelta = Math.max(rawDelta, -minStartInGroup);

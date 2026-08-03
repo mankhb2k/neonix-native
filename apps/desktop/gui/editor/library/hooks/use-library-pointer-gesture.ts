@@ -63,8 +63,10 @@ export function useLibraryPointerGesture(
       ownerIdRef.current,
       event.pointerId,
     );
+    const activePointerId = event.pointerId;
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId) return;
       move(ev.clientX, ev.clientY);
       if (getSession().phase === "dragging") {
         autoScrollTimelineNearEdge(ev.clientX, ev.clientY);
@@ -77,6 +79,7 @@ export function useLibraryPointerGesture(
     };
 
     const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId) return;
       const session = getSession();
       const phase = session.phase;
       let allowDrop = isOverTimelineDropZone(ev.clientX, ev.clientY);
@@ -99,7 +102,8 @@ export function useLibraryPointerGesture(
       onCommitRef.current(result.item, { mode: "click" });
     };
 
-    const onCancel = () => {
+    const onCancel = (ev: PointerEvent) => {
+      if (ev.pointerId !== activePointerId) return;
       tearDown();
       cancel(ownerIdRef.current);
     };

@@ -53,7 +53,7 @@ export function TimelineOverlays({
               data-drop-family={
                 dropGhost.track === "audio" ? "audio" : "visual"
               }
-              className="pointer-events-none absolute z-[40] h-px bg-[#14B8A6]"
+              className="pointer-events-none absolute z-[30] h-px bg-[#14B8A6]"
               aria-hidden
               style={{
                 top: dropGhost.contentTop,
@@ -111,7 +111,7 @@ export function TimelineOverlays({
           />
           <div
             data-testid="timeline-clip-insert-indicator"
-            className="pointer-events-none absolute z-[40] h-px bg-[#14B8A6]"
+            className="pointer-events-none absolute z-[30] h-px bg-[#14B8A6]"
             aria-hidden
             style={{
               top: clipMovePreview.contentTop,
@@ -124,7 +124,7 @@ export function TimelineOverlays({
       {(clipMovePreview?.snapGuideTime ?? dropGhost?.snapGuideTime) != null ? (
         <div
           data-testid="timeline-clip-snap-guide"
-          className="pointer-events-none absolute top-0 z-[42] w-px bg-[#14B8A6]"
+          className="pointer-events-none absolute top-0 z-[32] w-px bg-[#14B8A6]"
           aria-hidden
           style={{
             left:

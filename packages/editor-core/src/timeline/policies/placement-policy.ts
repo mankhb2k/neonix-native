@@ -164,3 +164,158 @@ export function resolveMainStartTime(
   const main = clips.filter((clip) => clip.laneId === mainId);
   return resolveLaneStart(main, startTime, duration);
 }
+
+export type OccupancyAwarePlacement = {
+  startTime: number;
+  insertNewLane: boolean;
+  insertOrder: number | null;
+  /** Absolute time of the parked edge (head/tail) for snap guide. */
+  edgeGuideTime: number | null;
+  /** Prefer an existing free lane above instead of inserting between. */
+  retargetLaneId?: string | null;
+  retargetLaneRole?: "base" | "overlay" | "audio" | null;
+};
+
+type LaneRef = {
+  id: string;
+  order: number;
+  role: "base" | "overlay" | "audio";
+};
+
+/** Visual stack: overlays (asc order = near base) then…; audio asc. */
+export function findLaneAbove(
+  current: LaneRef,
+  siblings: ReadonlyArray<LaneRef>,
+): LaneRef | null {
+  if (current.role === "audio") {
+    const audios = siblings
+      .filter((s) => s.role === "audio")
+      .sort((a, b) => a.order - b.order);
+    const idx = audios.findIndex((a) => a.id === current.id);
+    if (idx > 0) return audios[idx - 1] ?? null;
+    return null;
+  }
+  const overlays = siblings
+    .filter((s) => s.role === "overlay")
+    .sort((a, b) => a.order - b.order);
+  if (current.role === "base") {
+    return overlays[0] ?? null;
+  }
+  const idx = overlays.findIndex((o) => o.id === current.id);
+  if (idx >= 0 && idx < overlays.length - 1) {
+    return overlays[idx + 1] ?? null;
+  }
+  return null;
+}
+
+function laneIsFreeAt(
+  clipsOnLane: ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>,
+  startTime: number,
+  duration: number,
+  excludeIds?: ReadonlySet<string>,
+): boolean {
+  return !clipsOnLane.some(
+    (clip) =>
+      !excludeIds?.has(clip.id) &&
+      rangesOverlap(startTime, duration, clip.startTime, clip.duration),
+  );
+}
+
+/**
+ * CapCut occupancy: ghost never overlaps clips on the same lane.
+ * - Spill beside a neighbor → park at nearest free head/tail.
+ * - Desired start inside occupied span → prefer free existing lane above;
+ *   only insert between when that lane is missing or also occupied.
+ */
+export function resolveOccupancyAwarePlacement(input: {
+  clipsOnLane: ReadonlyArray<
+    Pick<TimelineClip, "id" | "startTime" | "duration">
+  >;
+  desiredStart: number;
+  duration: number;
+  excludeIds?: ReadonlySet<string>;
+  laneId: string;
+  laneOrder: number;
+  laneRole: "base" | "overlay" | "audio";
+  siblingLanes?: ReadonlyArray<LaneRef>;
+  allClips?: ReadonlyArray<
+    Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
+  >;
+}): OccupancyAwarePlacement {
+  const dur = Math.max(0, input.duration);
+  const desired = Math.max(0, input.desiredStart);
+  const clips = input.clipsOnLane.filter(
+    (clip) => !input.excludeIds?.has(clip.id),
+  );
+
+  const conflict = clips.find((clip) =>
+    rangesOverlap(desired, dur, clip.startTime, clip.duration),
+  );
+  if (!conflict) {
+    return {
+      startTime: desired,
+      insertNewLane: false,
+      insertOrder: null,
+      edgeGuideTime: null,
+    };
+  }
+
+  // Onto clip body: start would land inside occupied time.
+  const conflictEnd = conflict.startTime + conflict.duration;
+  if (desired >= conflict.startTime && desired < conflictEnd) {
+    const above = findLaneAbove(
+      {
+        id: input.laneId,
+        order: input.laneOrder,
+        role: input.laneRole,
+      },
+      input.siblingLanes ?? [],
+    );
+    if (above) {
+      const aboveClips = (input.allClips ?? []).filter(
+        (c) => c.laneId === above.id,
+      );
+      if (laneIsFreeAt(aboveClips, desired, dur, input.excludeIds)) {
+        return {
+          startTime: desired,
+          insertNewLane: false,
+          insertOrder: null,
+          edgeGuideTime: null,
+          retargetLaneId: above.id,
+          retargetLaneRole: above.role,
+        };
+      }
+    }
+    // No free lane above → insert between current and above (or on top).
+    const insertOrder =
+      input.laneRole === "base" ? 0 : Math.max(0, input.laneOrder + 1);
+    return {
+      startTime: desired,
+      insertNewLane: true,
+      insertOrder,
+      edgeGuideTime: null,
+    };
+  }
+
+  // Spill into a neighbor → park at nearest free head/tail.
+  const asClips = clips as TimelineClip[];
+  const snapped = resolveLaneStartTimeNearest(asClips, desired, dur);
+  const snappedEnd = snapped + dur;
+  let edgeGuideTime: number | null = null;
+  for (const clip of clips) {
+    const end = clip.startTime + clip.duration;
+    if (Math.abs(snapped - end) < 1e-4) edgeGuideTime = end;
+    else if (Math.abs(snappedEnd - clip.startTime) < 1e-4) {
+      edgeGuideTime = clip.startTime;
+    } else if (Math.abs(snapped - clip.startTime) < 1e-4) {
+      edgeGuideTime = clip.startTime;
+    }
+  }
+
+  return {
+    startTime: snapped,
+    insertNewLane: false,
+    insertOrder: null,
+    edgeGuideTime,
+  };
+}

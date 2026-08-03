@@ -1,10 +1,13 @@
 /**
  * Pure clip-move drag resolution — ghost preview and commit share one result.
+ * Occupancy: never overlap same-lane clips; interior → insert lane above.
  */
 
 import {
   clipAcceptsTrack,
+  resolveOccupancyAwarePlacement,
   type TimelineClip,
+  type TimelineLane,
   type TimelineTrackKind,
 } from "@motionvideo/editor-core";
 
@@ -43,6 +46,10 @@ export type ClipMoveDropTarget = {
   insertNewLane?: boolean;
   insertOrder?: number | null;
   contentTop?: number;
+  /** Content Y for insert indicator when occupancy promotes insert. */
+  laneTopContentY?: number;
+  laneOrder?: number;
+  laneRole?: "base" | "overlay" | "audio";
 };
 
 export type ClipMoveDragInput = {
@@ -61,6 +68,15 @@ export type ClipMoveDragInput = {
   /** Optional live snap points (playhead, clip edges). */
   snapPoints?: number[];
   snapThresholdSec?: number;
+  /** Clips for occupancy (same document); excludeIds skips movers. */
+  occupancyClips?: ReadonlyArray<
+    Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
+  >;
+  excludeIds?: ReadonlySet<string>;
+  /** Lane list for preferring a free lane above on conflict. */
+  lanes?: ReadonlyArray<
+    Pick<TimelineLane, "id" | "kind" | "role" | "order">
+  >;
 };
 
 export type ClipMoveDragCommit = {
@@ -161,6 +177,7 @@ export function resolveClipMoveDrag(
   let valid = false;
   let insertNewLane = false;
   let insertOrder: number | null = null;
+  let contentTop = input.drop?.contentTop;
 
   if (input.drop) {
     previewLaneId = input.drop.laneId;
@@ -173,6 +190,60 @@ export function resolveClipMoveDrag(
     } else {
       valid = false;
     }
+
+    // Body drop: never overlap — park at head/tail, retarget free lane above,
+    // or insert between when both lanes are occupied.
+    if (valid && !insertNewLane && input.drop.laneId) {
+      const laneId = input.drop.laneId;
+      const onLane = (input.occupancyClips ?? []).filter(
+        (c) => c.laneId === laneId,
+      );
+      const role = input.drop.laneRole ?? "overlay";
+      const siblingLanes = (input.lanes ?? []).map((l) => ({
+        id: l.id,
+        order: l.order,
+        role:
+          l.kind === "audio"
+            ? ("audio" as const)
+            : l.role === "base"
+              ? ("base" as const)
+              : ("overlay" as const),
+      }));
+      const occupancy = resolveOccupancyAwarePlacement({
+        clipsOnLane: onLane,
+        desiredStart: startTime,
+        duration: input.duration,
+        excludeIds: input.excludeIds,
+        laneId,
+        laneOrder: input.drop.laneOrder ?? 0,
+        laneRole: role,
+        siblingLanes,
+        allClips: input.occupancyClips,
+      });
+      startTime = occupancy.startTime;
+      if (occupancy.edgeGuideTime != null) {
+        snapGuideTime = occupancy.edgeGuideTime;
+      }
+      if (occupancy.retargetLaneId) {
+        previewLaneId = occupancy.retargetLaneId;
+        commitLaneId = occupancy.retargetLaneId;
+        const rRole = occupancy.retargetLaneRole ?? "overlay";
+        commitTrack =
+          rRole === "audio" ? "audio" : rRole === "base" ? "main" : "overlay";
+      } else if (occupancy.insertNewLane) {
+        insertNewLane = true;
+        insertOrder = occupancy.insertOrder;
+        commitTrack =
+          commitTrack === "audio"
+            ? "audio"
+            : role === "base" || commitTrack === "main"
+              ? "overlay"
+              : commitTrack;
+        if (input.drop.laneTopContentY != null) {
+          contentTop = input.drop.laneTopContentY;
+        }
+      }
+    }
   }
 
   const preview: ClipMovePreview = {
@@ -184,7 +255,7 @@ export function resolveClipMoveDrag(
     valid,
     isInsert: insertNewLane,
     insertOrder,
-    contentTop: input.drop?.contentTop,
+    contentTop,
     snapGuideTime,
   };
 
