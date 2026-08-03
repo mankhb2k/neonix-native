@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   clipIdsInMarquee,
   normalizeMarquee,
+  resolveMarqueeSelectionIds,
+  selectionIdsEqual,
 } from "./marquee-geometry";
 
 describe("marquee-geometry", () => {
@@ -23,5 +25,23 @@ describe("marquee-geometry", () => {
       ],
     );
     expect(ids).toEqual(["a"]);
+  });
+
+  it("resolves replace vs additive union for marquee hits", () => {
+    expect(resolveMarqueeSelectionIds(["b", "c"], ["a"], false)).toEqual([
+      "b",
+      "c",
+    ]);
+    expect(resolveMarqueeSelectionIds(["b", "c"], ["a", "b"], true)).toEqual([
+      "a",
+      "b",
+      "c",
+    ]);
+  });
+
+  it("compares selection id lists by order", () => {
+    expect(selectionIdsEqual(["a", "b"], ["a", "b"])).toBe(true);
+    expect(selectionIdsEqual(["a", "b"], ["b", "a"])).toBe(false);
+    expect(selectionIdsEqual(["a"], ["a", "b"])).toBe(false);
   });
 });

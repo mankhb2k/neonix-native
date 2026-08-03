@@ -28,6 +28,8 @@ import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import {
   clipIdsInMarquee,
   normalizeMarquee,
+  resolveMarqueeSelectionIds,
+  selectionIdsEqual,
   type MarqueeRect,
 } from "../selection/marquee-geometry";
 import { Playhead } from "./Playhead";
@@ -93,7 +95,7 @@ function laneDropDomAttrs(lane: TimelineLane): {
   };
 }
 
-const MARQUEE_THRESHOLD_PX = 3;
+const MARQUEE_THRESHOLD_PX = 4;
 
 type Props = {
   projectId: string | null;
@@ -324,13 +326,56 @@ export function TimelineViewport({
         x: event.clientX - rect.left + scroll.scrollLeft,
         y: event.clientY - rect.top + scroll.scrollTop,
       };
+      const originClientX = event.clientX;
       const existingIds = selectedClipIdsFrom(selection);
       let shiftHeld = event.shiftKey;
+      let hitBoxes: Array<{
+        id: string;
+        left: number;
+        top: number;
+        right: number;
+        bottom: number;
+      }> | null = null;
+      let lastLiveIds: string[] = [];
 
       const onShiftKey = (ev: KeyboardEvent) => {
         if (ev.key === "Shift") {
           shiftHeld = ev.type === "keydown" || ev.shiftKey;
         }
+      };
+
+      const buildHitBoxes = () => {
+        const boxes: NonNullable<typeof hitBoxes> = [];
+        let laneTop = topPadding;
+        for (let i = 0; i < sortedLanes.length; i += 1) {
+          const lane = sortedLanes[i]!;
+          const h = laneRowHeightPx(lane);
+          for (const clip of clipsByLaneMap.get(lane.id) ?? []) {
+            const left =
+              TIMELINE_PLAYHEAD_GUTTER_PX +
+              clip.startTime * layout.pixelsPerSecond;
+            const right = left + clip.duration * layout.pixelsPerSecond;
+            boxes.push({
+              id: clip.id,
+              left,
+              top: laneTop,
+              right,
+              bottom: laneTop + h,
+            });
+          }
+          laneTop += h;
+          if (i < sortedLanes.length - 1) laneTop += LANE_GAP_PX;
+        }
+        return boxes;
+      };
+
+      const applyLiveSelection = (box: MarqueeRect) => {
+        if (!hitBoxes) hitBoxes = buildHitBoxes();
+        const hits = clipIdsInMarquee(box, hitBoxes);
+        const next = resolveMarqueeSelectionIds(hits, existingIds, shiftHeld);
+        if (selectionIdsEqual(next, lastLiveIds)) return;
+        lastLiveIds = next;
+        onSelect(selectionClips(next));
       };
 
       type MarqueeState = { box: MarqueeRect; moved: boolean };
@@ -357,54 +402,26 @@ export function TimelineViewport({
               Math.hypot(next.x - origin.x, next.y - origin.y) >=
               MARQUEE_THRESHOLD_PX;
             setMarquee(box);
+            if (moved) applyLiveSelection(box);
             return { box, moved };
           },
           onCommit: (state) => {
             window.removeEventListener("keydown", onShiftKey);
             window.removeEventListener("keyup", onShiftKey);
             setMarquee(null);
-            if (!state.moved) return;
-
-            const hitBoxes: Array<{
-              id: string;
-              left: number;
-              top: number;
-              right: number;
-              bottom: number;
-            }> = [];
-            let laneTop = topPadding;
-            for (let i = 0; i < sortedLanes.length; i += 1) {
-              const lane = sortedLanes[i]!;
-              const h = laneRowHeightPx(lane);
-              for (const clip of clipsByLaneMap.get(lane.id) ?? []) {
-                const left =
-                  TIMELINE_PLAYHEAD_GUTTER_PX +
-                  clip.startTime * layout.pixelsPerSecond;
-                const right = left + clip.duration * layout.pixelsPerSecond;
-                hitBoxes.push({
-                  id: clip.id,
-                  left,
-                  top: laneTop,
-                  right,
-                  bottom: laneTop + h,
-                });
-              }
-              laneTop += h;
-              if (i < sortedLanes.length - 1) laneTop += LANE_GAP_PX;
+            if (!state.moved) {
+              // Web parity: click empty runway clears + seeks.
+              onSelect(selectionNone());
+              seekToClientX(originClientX);
+              return;
             }
-            const hits = clipIdsInMarquee(state.box, hitBoxes);
-            if (shiftHeld) {
-              onSelect(
-                selectionClips([...new Set([...existingIds, ...hits])]),
-              );
-            } else {
-              onSelect(selectionClips(hits));
-            }
+            applyLiveSelection(state.box);
           },
           onCancel: () => {
             window.removeEventListener("keydown", onShiftKey);
             window.removeEventListener("keyup", onShiftKey);
             setMarquee(null);
+            onSelect(selectionClips(existingIds));
           },
         },
         { x: event.clientX, y: event.clientY },
@@ -418,6 +435,7 @@ export function TimelineViewport({
       disabled,
       layout.pixelsPerSecond,
       onSelect,
+      seekToClientX,
       selection,
       sortedLanes,
       topPadding,
@@ -677,14 +695,12 @@ export function TimelineViewport({
                 onScroll={onScroll}
                 onPointerDown={(event) => {
                   if (disabled || timelineEmpty || event.button !== 0) return;
-                  if ((event.target as HTMLElement).closest("[data-clip-id]"))
-                    return;
-                  if (event.shiftKey) {
-                    beginMarquee(event);
-                    return;
-                  }
-                  onSelect(selectionNone());
-                  seekToClientX(event.clientX);
+                  const target = event.target as HTMLElement;
+                  if (target.closest("[data-clip-id]")) return;
+                  if (target.closest("button")) return;
+                  if (target.closest("[data-marquee-ignore]")) return;
+                  // Web/CapCut: empty-runway drag → marquee (no Shift required).
+                  beginMarquee(event);
                 }}
               >
               {laneRows.length === 0 ? (

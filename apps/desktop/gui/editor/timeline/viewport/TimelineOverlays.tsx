@@ -173,7 +173,7 @@ export function TimelineOverlays({
       ) : null}
       {marquee ? (
         <div
-          className="pointer-events-none absolute z-[6] border border-[var(--timeline-playhead)] bg-white/10"
+          className="pointer-events-none absolute z-50 border border-[var(--timeline-playhead)] bg-white/10"
           aria-hidden
           style={{
             left: marquee.left,

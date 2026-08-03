@@ -45,3 +45,24 @@ export function clipIdsInMarquee(
 ): string[] {
   return clips.filter((c) => rectsIntersect(rect, c)).map((c) => c.id);
 }
+
+/** Replace hits, or union with prior selection when additive (Shift). */
+export function resolveMarqueeSelectionIds(
+  hits: readonly string[],
+  existingIds: readonly string[],
+  additive: boolean,
+): string[] {
+  if (!additive) return [...hits];
+  return [...new Set([...existingIds, ...hits])];
+}
+
+export function selectionIdsEqual(
+  a: readonly string[],
+  b: readonly string[],
+): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
