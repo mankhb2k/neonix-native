@@ -56,3 +56,14 @@ Dưới đây là các thuật ngữ chuẩn dùng trong codebase và khi giao t
    - **Float** và **Ghost** bị xóa.
    - Bắn lệnh `move-clip` vào Redux.
    - Redux cập nhật state thật, React vẽ lại Clip gốc ở tọa độ mới. Cảm giác như Clip vừa rớt xuống hoàn hảo.
+
+---
+
+## 4. Các Khái Niệm Kỹ Thuật & Tối Ưu (Tech Concepts)
+
+Để đạt được hiệu năng cao, Timeline sử dụng một số kỹ thuật và viết tắt chuyên ngành:
+
+* **RAF (requestAnimationFrame):** Một API của trình duyệt giúp gọi hàm đồng bộ với tần số quét của màn hình (thường là 60fps). Timeline dùng RAF để giới hạn (throttle) số lần render khi cuộn chuột hoặc khi Playhead chạy, giúp UI cực kỳ mượt mà không bị xé hình.
+* **Virtualization (Ảo Hóa):** Kỹ thuật chỉ vẽ (render) những Clip/Lane đang hiện diện trên màn hình (Viewport), và "cất" những Clip đang bị cuộn khuất khỏi DOM. Cực kỳ quan trọng để Timeline có thể chứa hàng ngàn Clip mà không bị lag.
+* **Sync Store / Transient State:** Những state có vòng đời cực ngắn (tọa độ chuột, trạng thái đang kéo thả) không được lưu bằng `useState` hay `Redux` (vì sẽ làm re-render toàn app). Chúng được lưu thẳng vào biến local hoặc `Zustand store` để các component nhỏ (như lớp Overlays) tự đọc (subscribe) và tự vẽ lại độc lập.
+* **Scrubbing / Seek:** Hành động cầm Playhead kéo qua kéo lại để xem lướt video. Tương tự như Drag, Scrubbing dùng RAF để render UI của Playhead ngay lập tức, nhưng chỉ "commit" thời gian về Redux/Video Player theo từng đợt để tránh làm đơ Video Engine.
