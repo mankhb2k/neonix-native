@@ -44,7 +44,10 @@ import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
-import { visibleLaneWindow } from "../view-model/visible-lane-window";
+import {
+  buildLaneHeightPrefix,
+  visibleLaneWindow,
+} from "../view-model/visible-lane-window";
 import { LaneFlagControls } from "../lanes/LaneFlagControls";
 import { buildLaneContentKindById } from "../lanes/lane-content-kind";
 import { LaneLeadingIcon } from "../lanes/LaneLeadingIcon";
@@ -429,14 +432,28 @@ export function TimelineViewport({
     [laneRows],
   );
 
+  const laneHeightPrefix = useMemo(
+    () => buildLaneHeightPrefix(laneHeights),
+    [laneHeights],
+  );
+
+  const laneIndexById = useMemo(() => {
+    const map = new Map<string, number>();
+    for (let i = 0; i < laneRows.length; i += 1) {
+      map.set(laneRows[i]!.id, i);
+    }
+    return map;
+  }, [laneRows]);
+
   const laneWindow = useMemo(
     () =>
       visibleLaneWindow({
         scrollTop: Math.max(0, scrollTop - topPadding),
         viewHeight: trackViewHeight,
         laneHeights,
+        prefixOffsets: laneHeightPrefix,
       }),
-    [scrollTop, trackViewHeight, laneHeights, topPadding],
+    [scrollTop, trackViewHeight, laneHeights, laneHeightPrefix, topPadding],
   );
 
   /** Window lanes + discrete pin lanes (with gap spacers; no full origin→target expand). */
@@ -446,48 +463,45 @@ export function TimelineViewport({
     if (endIndex >= startIndex && startIndex < laneRows.length) {
       for (let i = startIndex; i <= endIndex; i += 1) indices.add(i);
     }
-    const pinLaneIds = new Set<string>();
     if (movePinKey) {
       // Format: origin|lane|member1,member2
       const [origin, lane, members] = movePinKey.split("|");
-      if (origin) pinLaneIds.add(origin);
-      if (lane) pinLaneIds.add(lane);
+      const pinIds: string[] = [];
+      if (origin) pinIds.push(origin);
+      if (lane) pinIds.push(lane);
       if (members) {
         for (const id of members.split(",")) {
-          if (id) pinLaneIds.add(id);
+          if (id) pinIds.push(id);
         }
       }
-    }
-    for (let i = 0; i < laneRows.length; i += 1) {
-      if (pinLaneIds.has(laneRows[i]!.id)) indices.add(i);
+      for (const id of pinIds) {
+        const idx = laneIndexById.get(id);
+        if (idx != null) indices.add(idx);
+      }
     }
     const ordered = [...indices].sort((a, b) => a - b);
     type Row =
       | { kind: "gap"; key: string; height: number }
-      | { kind: "lane"; key: string; row: TimelineLaneRow };
+      | { kind: "lane"; key: string; row: TimelineLaneRow; index: number };
     const rows: Row[] = [];
-    let offsetTop = topPadding;
     if (ordered.length === 0) {
       return {
         rows,
         offsetTop: topPadding + laneWindow.offsetTop,
       };
     }
-    for (let i = 0; i < ordered[0]!; i += 1) {
-      offsetTop += laneHeights[i]!;
-    }
-    let prev = ordered[0]!;
+    const first = ordered[0]!;
+    let offsetTop = topPadding + laneHeightPrefix[first]!;
     rows.push({
       kind: "lane",
-      key: laneRows[prev]!.id,
-      row: laneRows[prev]!,
+      key: laneRows[first]!.id,
+      row: laneRows[first]!,
+      index: first,
     });
+    let prev = first;
     for (let k = 1; k < ordered.length; k += 1) {
       const idx = ordered[k]!;
-      let gap = 0;
-      for (let i = prev + 1; i < idx; i += 1) {
-        gap += laneHeights[i]!;
-      }
+      const gap = laneHeightPrefix[idx]! - laneHeightPrefix[prev + 1]!;
       if (gap > 0) {
         rows.push({ kind: "gap", key: `gap-${prev}-${idx}`, height: gap });
       }
@@ -495,19 +509,26 @@ export function TimelineViewport({
         kind: "lane",
         key: laneRows[idx]!.id,
         row: laneRows[idx]!,
+        index: idx,
       });
       prev = idx;
     }
     return { rows, offsetTop };
-  }, [laneRows, laneHeights, laneWindow, movePinKey, topPadding]);
+  }, [
+    laneRows,
+    laneHeightPrefix,
+    laneIndexById,
+    laneWindow,
+    movePinKey,
+    topPadding,
+  ]);
 
   const mountedOffsetTop = mountedLaneRows.offsetTop;
 
   const mountedBlockHeight = mountedLaneRows.rows.reduce((s, r) => {
     if (r.kind === "gap") return s + r.height;
-    const idx = laneRows.findIndex((row) => row.id === r.row.id);
     const trailingGap =
-      idx >= 0 && idx < laneRows.length - 1 ? LANE_GAP_PX : 0;
+      r.index < laneRows.length - 1 ? LANE_GAP_PX : 0;
     return s + r.row.height + trailingGap;
   }, 0);
   const bottomSpacer = Math.max(
@@ -594,9 +615,8 @@ export function TimelineViewport({
                   );
                 }
                 const lane = row.row.lane;
-                const idx = laneRows.findIndex((r) => r.id === row.row.id);
                 const trailingGap =
-                  idx >= 0 && idx < laneRows.length - 1 ? LANE_GAP_PX : 0;
+                  row.index < laneRows.length - 1 ? LANE_GAP_PX : 0;
                 return (
                   <div
                     key={row.key}
@@ -711,11 +731,8 @@ export function TimelineViewport({
                         }
                         const lane = row.row.lane;
                         const h = row.row.height;
-                        const idx = laneRows.findIndex((r) => r.id === row.row.id);
                         const trailingGap =
-                          idx >= 0 && idx < laneRows.length - 1
-                            ? LANE_GAP_PX
-                            : 0;
+                          row.index < laneRows.length - 1 ? LANE_GAP_PX : 0;
                         const visibleClips = clipsForLane(lane.id);
                         return (
                           <div
