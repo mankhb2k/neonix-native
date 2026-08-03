@@ -1,5 +1,6 @@
 /**
  * Active Timeline drop-host registry (DOM scroll surface + layout metrics).
+ * Ownership token prevents one timeline instance from clearing another's host.
  */
 
 import type { TimelineLane } from "@motionvideo/editor-core";
@@ -20,9 +21,21 @@ export type TimelineDropHost = {
 };
 
 let host: TimelineDropHost | null = null;
+let ownerToken: symbol | null = null;
 
-export function setTimelineDropHost(next: TimelineDropHost | null): void {
+/**
+ * Register the active drop host. Returns unregister that only clears when this
+ * registration is still the current owner.
+ */
+export function registerTimelineDropHost(next: TimelineDropHost): () => void {
+  const token = Symbol("timeline-drop-host");
   host = next;
+  ownerToken = token;
+  return () => {
+    if (ownerToken !== token) return;
+    host = null;
+    ownerToken = null;
+  };
 }
 
 export function getTimelineDropHost(): TimelineDropHost | null {

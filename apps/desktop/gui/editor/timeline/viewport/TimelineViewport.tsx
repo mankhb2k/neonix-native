@@ -15,7 +15,7 @@ import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
 import { autoScrollTimelineNearEdge } from "../drop/auto-scroll";
 import {
   resolveDropGeometryAtPoint,
-  setTimelineDropHost,
+  registerTimelineDropHost,
   type LibraryDropPreview,
   type TimelineDropHost,
 } from "../drop/library-drop";
@@ -42,10 +42,8 @@ import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
 import { visibleLaneWindow } from "../view-model/visible-lane-window";
 import { LaneFlagControls } from "../lanes/LaneFlagControls";
-import {
-  buildLaneContentKindById,
-  LaneLeadingIcon,
-} from "../lanes/LaneLeadingIcon";
+import { buildLaneContentKindById } from "../lanes/lane-content-kind";
+import { LaneLeadingIcon } from "../lanes/LaneLeadingIcon";
 import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { TimelineOverlays } from "./TimelineOverlays";
 import { useTimelineViewportMetrics } from "./use-timeline-viewport-metrics";
@@ -277,10 +275,7 @@ export function TimelineViewport({
 
   useLayoutEffect(() => {
     const scrollEl = tracksScrollRef.current;
-    if (!scrollEl) {
-      setTimelineDropHost(null);
-      return undefined;
-    }
+    if (!scrollEl) return undefined;
     const next: TimelineDropHost = {
       scrollEl,
       lanes: sortedLanes,
@@ -295,8 +290,7 @@ export function TimelineViewport({
         : [],
       snapThresholdSec: 8 / Math.max(1e-6, layout.pixelsPerSecond),
     };
-    setTimelineDropHost(next);
-    return () => setTimelineDropHost(null);
+    return registerTimelineDropHost(next);
   }, [sortedLanes, layout.pixelsPerSecond, topPadding, clips, autoSnapping]);
 
   useEffect(() => {
@@ -632,9 +626,9 @@ export function TimelineViewport({
             </div>
           </div>
 
-          <div className="relative z-0 min-h-0 min-w-0 overflow-hidden">
+          <div className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <TimelineContextMenu
-              className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+              className="relative z-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
               selection={selection}
               disabled={disabled}
               canPaste={canPaste}
@@ -732,7 +726,6 @@ export function TimelineViewport({
                               lanes={lanes}
                               lane={lane}
                               pixelsPerSecond={layout.pixelsPerSecond}
-                              laneHeight={h}
                               selection={selection}
                               disabled={disabled}
                               movePreview={

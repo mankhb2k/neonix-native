@@ -58,7 +58,6 @@ type Props = {
   lanes: TimelineLane[];
   lane: TimelineLane;
   pixelsPerSecond: number;
-  laneHeight: number;
   selection: EditorSelection;
   disabled?: boolean;
   /** Shared cross-lane move ghost (owned by TimelineViewport). */
@@ -76,7 +75,6 @@ export const ClipStrip = memo(function ClipStrip({
   lanes,
   lane,
   pixelsPerSecond,
-  laneHeight: _laneHeight,
   selection,
   disabled,
   movePreview = null,

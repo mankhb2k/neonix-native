@@ -1,4 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
+import type { PlacementTarget } from "@motionvideo/editor-core";
 import {
   attachWindowListeners,
   beginPress,
@@ -76,26 +77,26 @@ export function useLibraryPointerGesture(
     };
 
     const onUp = (ev: PointerEvent) => {
-      const phase = getSession().phase;
+      const session = getSession();
+      const phase = session.phase;
       let allowDrop = isOverTimelineDropZone(ev.clientX, ev.clientY);
-      let placement: LibraryCommitPoint["placement"];
+      let placement: PlacementTarget | undefined;
       if (phase === "dragging") {
-        // Resolve once here; commit reuses the same PlacementTarget (hysteresis).
-        placement = resolveLibraryPlacement(
-          ev.clientX,
-          ev.clientY,
-          payloadRef.current,
-        );
+        // Same snapshot the session will commit (not a live props payload).
+        placement = session.item
+          ? resolveLibraryPlacement(ev.clientX, ev.clientY, session.item)
+          : undefined;
         allowDrop = Boolean(placement);
       }
       tearDown();
       const result = end(ev.clientX, ev.clientY, allowDrop);
-      if (result.kind === "commit") {
-        onCommitRef.current(result.item, {
-          mode: result.mode,
-          ...(result.mode === "drag" ? { placement } : {}),
-        });
+      if (result.kind !== "commit") return;
+      if (result.mode === "drag") {
+        if (!placement) return;
+        onCommitRef.current(result.item, { mode: "drag", placement });
+        return;
       }
+      onCommitRef.current(result.item, { mode: "click" });
     };
 
     const onCancel = () => {

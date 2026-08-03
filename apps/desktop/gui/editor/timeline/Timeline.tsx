@@ -76,6 +76,7 @@ export function Timeline({
     <div
       className="flex h-full min-h-0 w-full flex-col overflow-hidden"
       data-testid="timeline-viewport"
+      data-timeline-shell="true"
       data-timeline-focus={focus ? "true" : undefined}
     >
       <TransportBar

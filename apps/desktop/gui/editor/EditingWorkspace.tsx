@@ -223,6 +223,17 @@ function EditingWorkspaceInner({
     [clock],
   );
 
+  const timelineOwnedRef = useRef(false);
+  const isTimelineOwned = useCallback(() => timelineOwnedRef.current, []);
+
+  const onUndo = useCallback(() => {
+    dispatch({ type: "UNDO" });
+  }, []);
+
+  const onRedo = useCallback(() => {
+    dispatch({ type: "REDO" });
+  }, []);
+
   const copySelection = useCallback(() => {
     dispatch({ type: "COPY_SELECTION" });
   }, []);
@@ -241,9 +252,10 @@ function EditingWorkspaceInner({
 
   useTimelineHotkeys({
     enabled: !saving && !session.loadError && Boolean(session.project),
+    isTimelineOwned,
     getPlayheadTime,
-    onUndo: () => dispatch({ type: "UNDO" }),
-    onRedo: () => dispatch({ type: "REDO" }),
+    onUndo,
+    onRedo,
     onExecute: executeTimeline,
     onCopy: copySelection,
     onCut: cutSelection,
@@ -344,6 +356,12 @@ function EditingWorkspaceInner({
       data-project-id={projectId}
       data-editor-path={path ?? undefined}
       data-timeline-focus={timelineFocus ? "true" : undefined}
+      onPointerDownCapture={(event) => {
+        const target = event.target;
+        timelineOwnedRef.current =
+          target instanceof Element &&
+          Boolean(target.closest("[data-timeline-shell='true']"));
+      }}
     >
       {error ? (
         <p
@@ -422,8 +440,8 @@ function EditingWorkspaceInner({
             canRedo={canRedo(session.history)}
             onZoomChange={(zoom) => dispatch({ type: "SET_ZOOM", zoom })}
             onFit={() => dispatch({ type: "FIT_TIMELINE" })}
-            onUndo={() => dispatch({ type: "UNDO" })}
-            onRedo={() => dispatch({ type: "REDO" })}
+            onUndo={onUndo}
+            onRedo={onRedo}
             onSplit={(time) =>
               executeTimeline(
                 { type: "split-selected-clips", time },

@@ -4,7 +4,8 @@ import {
   getTimelineDropHost,
   resolveDropGeometryAtPoint,
   resolveLibraryPlacement,
-  setTimelineDropHost,
+  registerTimelineDropHost,
+  type TimelineDropHost,
 } from "./library-drop";
 import type { LibraryPayload } from "../../library/model/library-payload";
 
@@ -12,6 +13,18 @@ const BASE_POLICY = {
   allowOverlap: false as const,
   rippleMode: true as const,
 };
+
+let unregisterHost: (() => void) | undefined;
+
+function setHost(next: TimelineDropHost): void {
+  unregisterHost?.();
+  unregisterHost = registerTimelineDropHost(next);
+}
+
+function clearHost(): void {
+  unregisterHost?.();
+  unregisterHost = undefined;
+}
 
 function mountScrollWithLanes(
   lanes: Array<{
@@ -98,7 +111,7 @@ function mountScrollWithLanes(
 
 describe("drop-host CapCut policy", () => {
   afterEach(() => {
-    setTimelineDropHost(null);
+    clearHost();
     const scroll = document.body.querySelector(
       "[data-timeline-drop-zone]",
     ) as (HTMLElement & { __restoreElementFromPoint?: () => void }) | null;
@@ -111,7 +124,7 @@ describe("drop-host CapCut policy", () => {
       { id: "base", type: "main", order: -1, top: 0, height: 60 },
     ]);
 
-    setTimelineDropHost({
+    setHost({
       scrollEl,
       lanes: [
         {
@@ -156,8 +169,55 @@ describe("drop-host CapCut policy", () => {
       track: "main",
     });
 
-    setTimelineDropHost(null);
+    clearHost();
     expect(getTimelineDropHost()).toBeNull();
+  });
+
+  it("does not let a stale unregister clear a newer host owner", () => {
+    const scrollA = mountScrollWithLanes([
+      { id: "a", type: "main", order: -1, top: 0, height: 60 },
+    ]);
+    const unregisterA = registerTimelineDropHost({
+      scrollEl: scrollA,
+      lanes: [
+        {
+          id: "a",
+          kind: "visual",
+          role: "base",
+          name: "A",
+          order: -1,
+          policy: BASE_POLICY,
+        },
+      ],
+      lanesTop: 0,
+      laneHeight: 60,
+      pixelsPerSecond: 100,
+      tracksOriginX: 0,
+    });
+
+    const scrollB = mountScrollWithLanes([
+      { id: "b", type: "main", order: -1, top: 0, height: 60 },
+    ]);
+    unregisterHost = registerTimelineDropHost({
+      scrollEl: scrollB,
+      lanes: [
+        {
+          id: "b",
+          kind: "visual",
+          role: "base",
+          name: "B",
+          order: -1,
+          policy: BASE_POLICY,
+        },
+      ],
+      lanesTop: 0,
+      laneHeight: 60,
+      pixelsPerSecond: 100,
+      tracksOriginX: 0,
+    });
+
+    unregisterA();
+    expect(getTimelineDropHost()?.lanes[0]?.id).toBe("b");
   });
 
   it("drops audio on Main body as new audio lane (insertOrder)", () => {
@@ -165,7 +225,7 @@ describe("drop-host CapCut policy", () => {
       { id: "base", type: "main", order: -1, top: 0, height: 60 },
     ]);
 
-    setTimelineDropHost({
+    setHost({
       scrollEl,
       lanes: [
         {
@@ -210,7 +270,7 @@ describe("drop-host CapCut policy", () => {
       { id: "base", type: "main", order: -1, top: 0, height: 60 },
     ]);
 
-    setTimelineDropHost({
+    setHost({
       scrollEl,
       lanes: [
         {
@@ -251,7 +311,7 @@ describe("drop-host CapCut policy", () => {
       { id: "base", type: "main", order: -1, top: 50, height: 60 },
     ]);
 
-    setTimelineDropHost({
+    setHost({
       scrollEl,
       lanes: [
         {
@@ -300,7 +360,7 @@ describe("drop-host CapCut policy", () => {
       { id: "base", type: "main", order: -1, top: 40, height: 60 },
     ]);
 
-    setTimelineDropHost({
+    setHost({
       scrollEl,
       lanes: [
         {
@@ -344,7 +404,7 @@ describe("drop-host CapCut policy", () => {
       { id: "base", type: "main", order: -1, top: 0, height: 60 },
     ]);
 
-    setTimelineDropHost({
+    setHost({
       scrollEl,
       lanes: [
         {

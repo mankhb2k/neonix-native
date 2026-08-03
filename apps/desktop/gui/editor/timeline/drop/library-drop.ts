@@ -22,7 +22,7 @@ import {
 } from "./lane-drop-target";
 import {
   getTimelineDropHost,
-  setTimelineDropHost as setHostRegistry,
+  registerTimelineDropHost as registerHostRegistry,
   startTimeAtPoint,
   type TimelineDropHost,
 } from "./timeline-drop-host";
@@ -55,13 +55,18 @@ export type LibraryDropPreview = {
 let wasInsertVisual = false;
 let wasInsertAudio = false;
 
-/** Register host and clear insert hysteresis when cleared. */
-export function setTimelineDropHost(next: TimelineDropHost | null): void {
-  setHostRegistry(next);
-  if (!next) {
-    wasInsertVisual = false;
-    wasInsertAudio = false;
-  }
+/**
+ * Public drop-host registration — resets insert hysteresis when this owner clears.
+ */
+export function registerTimelineDropHost(next: TimelineDropHost): () => void {
+  const unregister = registerHostRegistry(next);
+  return () => {
+    unregister();
+    if (getTimelineDropHost() == null) {
+      wasInsertVisual = false;
+      wasInsertAudio = false;
+    }
+  };
 }
 
 export type { TimelineDropHost };
