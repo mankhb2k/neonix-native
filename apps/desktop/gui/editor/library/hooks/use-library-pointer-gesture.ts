@@ -77,24 +77,23 @@ export function useLibraryPointerGesture(
 
     const onUp = (ev: PointerEvent) => {
       const phase = getSession().phase;
-      const over = isOverTimelineDropZone(ev.clientX, ev.clientY);
-      let allowDrop = over;
+      let allowDrop = isOverTimelineDropZone(ev.clientX, ev.clientY);
+      let placement: LibraryCommitPoint["placement"];
       if (phase === "dragging") {
-        allowDrop = Boolean(
-          resolveLibraryPlacement(
-            ev.clientX,
-            ev.clientY,
-            payloadRef.current,
-          ),
+        // Resolve once here; commit reuses the same PlacementTarget (hysteresis).
+        placement = resolveLibraryPlacement(
+          ev.clientX,
+          ev.clientY,
+          payloadRef.current,
         );
+        allowDrop = Boolean(placement);
       }
       tearDown();
       const result = end(ev.clientX, ev.clientY, allowDrop);
       if (result.kind === "commit") {
         onCommitRef.current(result.item, {
-          clientX: result.clientX,
-          clientY: result.clientY,
           mode: result.mode,
+          ...(result.mode === "drag" ? { placement } : {}),
         });
       }
     };
@@ -122,8 +121,6 @@ export function useLibraryPointerGesture(
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
     onCommitRef.current(payloadRef.current, {
-      clientX: 0,
-      clientY: 0,
       mode: "click",
     });
   };
