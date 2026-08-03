@@ -29,8 +29,8 @@ export type { ClipMovePreview };
 export function clipVisualClassName(trackKind: TimelineTrackKind, selected: boolean): string {
   const selectedCls = selected
     ? trackKind === "main"
-      ? "z-10 border-2 border-white text-white shadow-md"
-      : "z-10 border-2 border-white"
+      ? "border-2 border-white text-white shadow-md"
+      : "border-2 border-white"
     : "";
   const base =
     trackKind === "main"
@@ -42,7 +42,11 @@ export function clipVisualClassName(trackKind: TimelineTrackKind, selected: bool
 }
 
 function clipClassName(trackKind: TimelineTrackKind, selected: boolean): string {
-  return cn("absolute top-0 bottom-0 my-auto h-[96%] cursor-default", clipVisualClassName(trackKind, selected));
+  return cn(
+    "absolute top-0 bottom-0 my-auto h-[96%] cursor-default", 
+    selected && "z-10", 
+    clipVisualClassName(trackKind, selected)
+  );
 }
 
 type Props = {

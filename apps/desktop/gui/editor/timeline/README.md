@@ -67,3 +67,20 @@ Dưới đây là các thuật ngữ chuẩn dùng trong codebase và khi giao t
 * **Virtualization (Ảo Hóa):** Kỹ thuật chỉ vẽ (render) những Clip/Lane đang hiện diện trên màn hình (Viewport), và "cất" những Clip đang bị cuộn khuất khỏi DOM. Cực kỳ quan trọng để Timeline có thể chứa hàng ngàn Clip mà không bị lag.
 * **Sync Store / Transient State:** Những state có vòng đời cực ngắn (tọa độ chuột, trạng thái đang kéo thả) không được lưu bằng `useState` hay `Redux` (vì sẽ làm re-render toàn app). Chúng được lưu thẳng vào biến local hoặc `Zustand store` để các component nhỏ (như lớp Overlays) tự đọc (subscribe) và tự vẽ lại độc lập.
 * **Scrubbing / Seek:** Hành động cầm Playhead kéo qua kéo lại để xem lướt video. Tương tự như Drag, Scrubbing dùng RAF để render UI của Playhead ngay lập tức, nhưng chỉ "commit" thời gian về Redux/Video Player theo từng đợt để tránh làm đơ Video Engine.
+
+---
+
+## 5. Cấu Trúc Z-Index (Stacking Context)
+
+Để tránh tình trạng z-index lộn xộn (spaghetti z-index) hoặc lạm dụng `!important`, Timeline sử dụng quy chuẩn phân lớp z-index từ thấp đến cao trong cùng một Stacking Context (Container Scroll):
+
+* **`z-0`:** Nền của Scroll Container. Bắt buộc để khoanh vùng Stacking Context cho toàn bộ Timeline.
+* **`z-[2]`:** Trim Handles (Cạnh trái/phải của Clip khi được chọn để kéo dài/thu ngắn).
+* **`z-[5]`:** Đường line đỏ báo lỗi khi thả Clip vào vùng không hợp lệ (Invalid Drop Target).
+* **`z-10`:** Clip đang được chọn (Selected Clip). Giúp nó luôn nằm trên các Clip bình thường (không có z-index). Handle kéo của Playhead cũng dùng mức này.
+* **`z-[20]`:** Bóng mờ trên track (Ghost) khi đang kéo Clip. Luôn đè lên các Clip khác nhưng nằm dưới Overlays.
+* **`z-[30]`:** Bóng mờ thả từ thư viện xuống (Library Drop Ghost) hoặc vạch chỉ thị chèn (Insert Indicator).
+* **`z-[32]`:** Đường dóng bắt dính (Snap Guide) màu xanh.
+* **`z-[45]`:** Trục dọc (Line) của Playhead. Nằm trên cùng mặt phẳng track để không bị Clip che khuất.
+* **`z-50`:** Khung quét chọn (Marquee). Hoặc Sidebar dán nhãn Lane (Sticky Lane Labels).
+* **`z-[60]`:** Khối nổi lơ lửng bám theo chuột (Floating Bubble). Mức cao nhất để đảm bảo khi kéo chuột, Clip không bao giờ bị che bởi bất kỳ thành phần nào khác.
