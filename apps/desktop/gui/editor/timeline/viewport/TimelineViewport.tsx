@@ -542,7 +542,7 @@ export function TimelineViewport({
           muted={timelineEmpty}
         />
 
-        {/* Sticky at label: 2 columns — gutter overlay inside tracks column (web TimelineBoard) */}
+        {/* Sticky labels only (z-50). Gutter scrolls with timerule/lanes under labels. */}
         <div className="grid shrink-0 grid-cols-[96px_minmax(0,1fr)] overflow-hidden bg-[var(--bg-panel)]">
           <div
             className="relative z-50 border-r border-[var(--border-subtle)] bg-[var(--bg-panel)]"
@@ -551,18 +551,16 @@ export function TimelineViewport({
               height: TIMELINE_RULER_HEIGHT_PX,
             }}
           />
-          <div className="relative z-30 min-w-0 overflow-hidden">
-            {/* Gutter = spacing only; playhead head paints above ruler (z-60). */}
-            <div style={{ paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX }}>
-              <TimeRuler
-                duration={layout.extentSeconds}
-                fps={fps}
-                pixelsPerSecond={layout.pixelsPerSecond}
-                viewWidth={trackViewWidth}
-                scrollLeft={scrollLeft}
-                onSeekClick={seekEnabled ? seekToClientX : undefined}
-              />
-            </div>
+          <div className="relative z-0 min-w-0 overflow-hidden">
+            <TimeRuler
+              duration={layout.extentSeconds}
+              fps={fps}
+              pixelsPerSecond={layout.pixelsPerSecond}
+              viewWidth={trackViewWidth}
+              scrollLeft={scrollLeft}
+              originOffsetPx={TIMELINE_PLAYHEAD_GUTTER_PX}
+              onSeekClick={seekEnabled ? seekToClientX : undefined}
+            />
           </div>
         </div>
 
@@ -634,21 +632,22 @@ export function TimelineViewport({
             </div>
           </div>
 
-          <TimelineContextMenu
-            className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
-            selection={selection}
-            disabled={disabled}
-            canPaste={canPaste}
-            onCopy={onCopy}
-            onCut={onCut}
-            onPaste={onPaste}
-            onExecute={onExecute}
-            getPlayheadTime={getPlayheadTime}
-          >
+          <div className="relative z-0 min-h-0 min-w-0 overflow-hidden">
+            <TimelineContextMenu
+              className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+              selection={selection}
+              disabled={disabled}
+              canPaste={canPaste}
+              onCopy={onCopy}
+              onCut={onCut}
+              onPaste={onPaste}
+              onExecute={onExecute}
+              getPlayheadTime={getPlayheadTime}
+            >
             <div className="relative min-h-0 flex-1">
               <div
                 ref={tracksScrollRef}
-                className="timeline-tracks-scroll relative h-full min-h-0 select-none overflow-x-auto overflow-y-auto bg-[var(--bg-panel)]"
+                className="timeline-tracks-scroll relative z-0 h-full min-h-0 select-none overflow-x-auto overflow-y-auto bg-[var(--bg-panel)]"
                 data-timeline-drop-zone="true"
                 data-pixels-per-second={layout.pixelsPerSecond}
                 onScroll={onScroll}
@@ -769,6 +768,7 @@ export function TimelineViewport({
               </div>
             </div>
           </TimelineContextMenu>
+          </div>
         </div>
       </div>
 

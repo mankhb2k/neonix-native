@@ -1,5 +1,5 @@
 /**
- * Basic timeline hotkeys (Wave D + clipboard + CapCut mode toggles).
+ * Basic timeline hotkeys (Wave D + clipboard + auto-snap N).
  */
 
 import { useEffect } from "react";
@@ -34,13 +34,9 @@ export function useTimelineHotkeys({
   onCut,
   onPaste,
 }: Args): void {
-  const toggleMainTrackMagnet = useTimelineInteractionPrefs(
-    (s) => s.toggleMainTrackMagnet,
-  );
   const toggleAutoSnapping = useTimelineInteractionPrefs(
     (s) => s.toggleAutoSnapping,
   );
-  const toggleLinkage = useTimelineInteractionPrefs((s) => s.toggleLinkage);
 
   useEffect(() => {
     if (!enabled) return undefined;
@@ -49,23 +45,10 @@ export function useTimelineHotkeys({
       if (isTypingTarget(event.target)) return;
       const mod = event.metaKey || event.ctrlKey;
 
-      if (!mod && !event.altKey) {
-        const key = event.key.toLowerCase();
-        if (key === "p") {
-          event.preventDefault();
-          toggleMainTrackMagnet();
-          return;
-        }
-        if (key === "n") {
-          event.preventDefault();
-          toggleAutoSnapping();
-          return;
-        }
-        if (key === "`" || key === "~") {
-          event.preventDefault();
-          toggleLinkage();
-          return;
-        }
+      if (!mod && !event.altKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        toggleAutoSnapping();
+        return;
       }
 
       if (mod && event.key.toLowerCase() === "z" && !event.shiftKey) {
@@ -121,8 +104,6 @@ export function useTimelineHotkeys({
     onCopy,
     onCut,
     onPaste,
-    toggleMainTrackMagnet,
     toggleAutoSnapping,
-    toggleLinkage,
   ]);
 }

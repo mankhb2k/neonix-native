@@ -41,7 +41,7 @@ function clipClassName(trackKind: TrackKind, selected: boolean): string {
       : trackKind === "audio"
         ? "absolute top-0 bottom-0 my-auto flex h-[96%] items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
         : "absolute top-0 bottom-0 my-auto flex h-[96%] items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
-  return cn(base, selectedCls, "cursor-grab");
+  return cn(base, selectedCls, "cursor-default");
 }
 
 type Preview = ClipMovePreview | ClipTrimPreview;

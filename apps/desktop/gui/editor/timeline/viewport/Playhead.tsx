@@ -188,7 +188,7 @@ export function Playhead({
   return (
     <div
       ref={rootRef}
-      className="pointer-events-none absolute inset-y-0 z-[60] will-change-transform"
+      className="pointer-events-none absolute inset-y-0 z-40 will-change-transform"
       data-testid="timeline-playhead"
       data-muted={muted ? "true" : undefined}
       style={{ left: 0 }}

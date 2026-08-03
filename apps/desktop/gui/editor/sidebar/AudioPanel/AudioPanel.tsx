@@ -49,7 +49,7 @@ function AudioAssetButton({
   return (
     <button
       type="button"
-      className="w-full cursor-grab rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)] active:cursor-grabbing"
+      className="w-full cursor-default rounded-md border border-[var(--border-strong)] bg-[var(--bg-elevated)] px-3 py-2.5 text-left text-[var(--fg-primary)] hover:bg-[var(--bg-hover)]"
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >

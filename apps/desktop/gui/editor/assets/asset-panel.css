@@ -71,16 +71,12 @@
   color: inherit;
   text-align: left;
   font: inherit;
-  cursor: grab;
+  cursor: default;
 }
 
 .asset-panel__drag-hit:disabled,
 div.asset-panel__drag-hit {
   cursor: default;
-}
-
-.asset-panel__drag-hit:active:not(:disabled) {
-  cursor: grabbing;
 }
 
 .asset-panel__thumb {
