@@ -193,4 +193,30 @@ describe("resolveClipMoveDrag", () => {
     expect(result.preview.laneId).toBe("lane-o");
     expect(result.preview.isInsert).toBeFalsy();
   });
+
+  it("recovers base role/order from lanes when drop omits them", () => {
+    // Regression: defaulting missing meta to overlay/0 yields insertOrder 1.
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 350, // desired = 3 inside [2,5)
+      drop: {
+        laneId: "lane-v",
+        track: "main",
+        // intentionally omit laneRole / laneOrder
+      },
+      occupancyClips: [
+        {
+          id: "other",
+          laneId: "lane-v",
+          startTime: 2,
+          duration: 3,
+        },
+      ],
+      excludeIds: new Set(["c1"]),
+      lanes: [{ id: "lane-v", kind: "visual", role: "base", order: -1 }],
+    });
+    expect(result.commit.insertNewLane).toBe(true);
+    expect(result.commit.insertOrder).toBe(0);
+    expect(result.commit.track).toBe("overlay");
+  });
 });

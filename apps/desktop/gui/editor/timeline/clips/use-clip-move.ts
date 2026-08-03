@@ -43,6 +43,15 @@ function trackForLane(lane: TimelineLane | undefined): TrackKind {
   return "overlay";
 }
 
+function laneRoleOf(
+  lane: Pick<TimelineLane, "kind" | "role"> | undefined,
+): "base" | "overlay" | "audio" {
+  if (!lane) return "overlay";
+  if (lane.kind === "audio") return "audio";
+  if (lane.role === "base") return "base";
+  return "overlay";
+}
+
 function dropTargetFromPolicy(
   target: TimelineDropTarget,
   lanes: TimelineLane[],
@@ -66,49 +75,57 @@ function dropTargetFromPolicy(
     return el.getBoundingClientRect().top - scrollRect.top + scrollEl.scrollTop;
   };
 
-  if (target.isInsert) {
+  const withLaneMeta = (
+    partial: Omit<ClipMoveDropTarget, "laneRole" | "laneOrder"> & {
+      laneRole?: ClipMoveDropTarget["laneRole"];
+      laneOrder?: number;
+    },
+  ): ClipMoveDropTarget => {
+    const lane = lanes.find((l) => l.id === partial.laneId);
     return {
+      ...partial,
+      laneRole: partial.laneRole ?? laneRoleOf(lane),
+      laneOrder: partial.laneOrder ?? lane?.order ?? 0,
+    };
+  };
+
+  if (target.isInsert) {
+    return withLaneMeta({
       laneId: originLaneId,
       track: track === "main" ? "overlay" : track,
       insertNewLane: true,
       insertOrder: target.insertOrder,
       contentTop,
-    };
+    });
   }
 
   if (target.laneId) {
     const lane = lanes.find((l) => l.id === target.laneId);
-    const laneRole: "base" | "overlay" | "audio" =
-      lane?.kind === "audio"
-        ? "audio"
-        : lane?.role === "base"
-          ? "base"
-          : "overlay";
-    return {
+    return withLaneMeta({
       laneId: target.laneId,
       track,
       contentTop,
       laneOrder: lane?.order ?? 0,
-      laneRole,
+      laneRole: laneRoleOf(lane),
       laneTopContentY: laneTopContentY(target.laneId),
-    };
+    });
   }
 
   if (target.overBaseBody || track === "main") {
     const base = lanes.find((l) => l.kind === "visual" && l.role === "base");
     if (base) {
-      return {
+      return withLaneMeta({
         laneId: base.id,
         track: "main",
         contentTop,
         laneOrder: base.order,
         laneRole: "base",
         laneTopContentY: laneTopContentY(base.id),
-      };
+      });
     }
   }
 
-  return { laneId: originLaneId, track, contentTop };
+  return withLaneMeta({ laneId: originLaneId, track, contentTop });
 }
 
 export type UseClipMoveArgs = {

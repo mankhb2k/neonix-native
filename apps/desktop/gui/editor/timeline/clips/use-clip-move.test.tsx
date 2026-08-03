@@ -200,6 +200,72 @@ describe("useClipMove", () => {
     expect(onMovePreviewChange).toHaveBeenLastCalledWith(null);
   });
 
+  it("passes base lane role/order so occupancy insertOrder is 0", () => {
+    // Drop onto occupied base body: without role/order, insertOrder defaults to 1.
+    const other: TimelineClip = {
+      id: "other",
+      kind: "scene",
+      sceneId: "scene-2",
+      laneId: "base",
+      startTime: 2,
+      duration: 3,
+      name: "Other",
+    };
+    let captured: PointerSessionConfig<unknown, unknown> | null = null;
+    const beginGesture = ((config: unknown) => {
+      captured = config as PointerSessionConfig<unknown, unknown>;
+      return null;
+    }) as BeginGesture;
+    const onExecute = vi.fn();
+    const { result } = renderHook(() =>
+      useClipMove({
+        clips: [CLIP, other],
+        allClips: [CLIP, other],
+        lanes: [LANE],
+        lane: LANE,
+        pixelsPerSecond: 100,
+        selection: selectionNone(),
+        beginGesture,
+        onSelect: vi.fn(),
+        onExecute,
+        onLocalPreview: vi.fn(),
+        onMovePreviewChange: vi.fn(),
+      }),
+    );
+
+    // Grab near clip head; drag to contentX 350 → start ≈ 3.4 inside [2,5).
+    act(() => result.current.beginMove(pointerEvent(10), CLIP));
+    const config = captured!;
+    const initial = config.onStart?.({ x: 10, y: 30 });
+    const moved = config.onUpdate?.({ x: 350, y: 30 }, initial) as {
+      valid: boolean;
+      insertNewLane: boolean;
+      insertOrder: number | null;
+      startTime: number;
+    };
+    expect(moved).toMatchObject({
+      valid: true,
+      insertNewLane: true,
+      insertOrder: 0,
+    });
+
+    config.onCommit?.(moved);
+    expect(onExecute).toHaveBeenCalledWith(
+      {
+        type: "move-clip",
+        clipId: "clip",
+        patch: {
+          startTime: moved.startTime,
+          track: "overlay",
+          laneId: null,
+          insertNewLane: true,
+          insertOrder: 0,
+        },
+      },
+      "Move clip to new lane",
+    );
+  });
+
   it("does not start for a non-primary button or while disabled", () => {
     const beginGesture = vi.fn() as unknown as BeginGesture;
     const onSelect = vi.fn();

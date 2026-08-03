@@ -198,7 +198,17 @@ export function resolveClipMoveDrag(
       const onLane = (input.occupancyClips ?? []).filter(
         (c) => c.laneId === laneId,
       );
-      const role = input.drop.laneRole ?? "overlay";
+      // Prefer explicit drop meta; else resolve from lanes (integration must
+      // not silently treat base/audio as overlay order 0).
+      const laneMeta = (input.lanes ?? []).find((l) => l.id === laneId);
+      const role =
+        input.drop.laneRole ??
+        (laneMeta?.kind === "audio"
+          ? "audio"
+          : laneMeta?.role === "base"
+            ? "base"
+            : "overlay");
+      const laneOrder = input.drop.laneOrder ?? laneMeta?.order ?? 0;
       const siblingLanes = (input.lanes ?? []).map((l) => ({
         id: l.id,
         order: l.order,
@@ -215,7 +225,7 @@ export function resolveClipMoveDrag(
         duration: input.duration,
         excludeIds: input.excludeIds,
         laneId,
-        laneOrder: input.drop.laneOrder ?? 0,
+        laneOrder,
         laneRole: role,
         siblingLanes,
         allClips: input.occupancyClips,
