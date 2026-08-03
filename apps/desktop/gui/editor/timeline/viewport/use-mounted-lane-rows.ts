@@ -8,6 +8,8 @@ import {
   type TimelineLaneRow,
 } from "../lanes/timeline-lane-rows";
 
+import { parsePinKey } from "../interactions/timeline-preview-session";
+
 export type MountedLaneRow =
   | { kind: "gap"; key: string; height: number }
   | { kind: "lane"; key: string; row: TimelineLaneRow; index: number };
@@ -35,23 +37,18 @@ export function useMountedLaneRows({
   mountedOffsetTop: number;
   bottomSpacer: number;
 } {
-  const laneContentHeights = useMemo(
-    () => laneRows.map((row) => row.height),
-    [laneRows],
-  );
-
-  const laneHeights = useMemo(
-    () =>
-      laneRows.map((row, i) =>
-        row.height + (i < laneRows.length - 1 ? LANE_GAP_PX : 0),
-      ),
-    [laneRows],
-  );
-
-  const laneHeightPrefix = useMemo(
-    () => buildLaneHeightPrefix(laneHeights),
-    [laneHeights],
-  );
+  const { laneContentHeights, laneHeights, laneHeightPrefix } = useMemo(() => {
+    const contentHeights = laneRows.map((row) => row.height);
+    const heightsWithGap = laneRows.map((row, i) =>
+      row.height + (i < laneRows.length - 1 ? LANE_GAP_PX : 0)
+    );
+    const prefix = buildLaneHeightPrefix(heightsWithGap);
+    return {
+      laneContentHeights: contentHeights,
+      laneHeights: heightsWithGap,
+      laneHeightPrefix: prefix,
+    };
+  }, [laneRows]);
 
   const laneIndexById = useMemo(() => {
     const map = new Map<string, number>();
@@ -80,16 +77,7 @@ export function useMountedLaneRows({
       for (let i = startIndex; i <= endIndex; i += 1) indices.add(i);
     }
     if (movePinKey) {
-      // Format: origin|lane|member1,member2
-      const [origin, lane, members] = movePinKey.split("|");
-      const pinIds: string[] = [];
-      if (origin) pinIds.push(origin);
-      if (lane) pinIds.push(lane);
-      if (members) {
-        for (const id of members.split(",")) {
-          if (id) pinIds.push(id);
-        }
-      }
+      const pinIds = parsePinKey(movePinKey);
       for (const id of pinIds) {
         const idx = laneIndexById.get(id);
         if (idx != null) indices.add(idx);

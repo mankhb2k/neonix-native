@@ -64,6 +64,15 @@ export function useVisibleTimeline({
   // hasn't changed, preventing ClipStrip re-renders on every scroll tick.
   const laneResultCacheRef = useRef<Map<string, TimelineClip[]>>(new Map());
 
+  // Cleanup cache for deleted lanes to prevent memory leaks
+  useEffect(() => {
+    const cache = laneResultCacheRef.current;
+    for (const key of [...cache.keys()]) {
+      if (!clipsByLane.has(key)) cache.delete(key);
+    }
+  }, [clipsByLane]);
+
+
   // Snapshot refs so the stable clipsForLane callback can read latest values
   // without being recreated on every change.
   const timeRangeRef = useRef(timeRange);

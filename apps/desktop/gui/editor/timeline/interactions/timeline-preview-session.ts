@@ -142,6 +142,24 @@ export function pinKeyFromPreview(
   return `${preview.originLaneId}|${preview.laneId}|${members}`;
 }
 
+/**
+ * Inverse of pinKeyFromPreview. Returns all laneIds encoded in the key.
+ * Empty string → [].
+ */
+export function parsePinKey(key: string): string[] {
+  if (!key) return [];
+  const [origin, lane, members] = key.split("|");
+  const ids: string[] = [];
+  if (origin) ids.push(origin);
+  if (lane) ids.push(lane);
+  if (members) {
+    for (const id of members.split(",")) {
+      if (id) ids.push(id);
+    }
+  }
+  return ids;
+}
+
 export function getMovePinKey(): string {
   return cachedPinKey;
 }
