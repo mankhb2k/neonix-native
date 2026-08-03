@@ -176,15 +176,11 @@ export const ClipStrip = memo(function ClipStrip({
         );
       })}
       {showMoveGhost && activeMove ? (() => {
-        const trackKind = trackForLane(lane);
-        const primaryClip = allClips?.find((c) => c.id === activeMove.clipId);
-        
         return (
           <>
             <div
               className={cn(
-                clipClassName(activeMove.trackKind || trackKind, false),
-                "pointer-events-none absolute opacity-50 will-change-[left]",
+                "pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[96%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] shadow-md will-change-[left]",
                 !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40"
               )}
               aria-hidden
@@ -193,33 +189,24 @@ export const ClipStrip = memo(function ClipStrip({
                 left: activeMove.startTime * pps,
                 width: Math.max(24, activeMove.duration * pps),
               }}
-            >
-              <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
-                {primaryClip?.name || activeMove.clipId}
-              </span>
-            </div>
+            />
             
             {activeMove.members
               ?.filter((m) => m.laneId === lane.id)
               .map((m) => {
-                const memberClip = allClips?.find((c) => c.id === m.clipId);
                 return (
                   <div
                     key={`ghost-${m.clipId}`}
                     className={cn(
-                      clipClassName(trackKind, false),
-                      "pointer-events-none absolute opacity-50 will-change-[left]"
+                      "pointer-events-none absolute top-0 bottom-0 z-[20] my-auto h-[96%] overflow-hidden rounded border border-[#4a4a52] bg-[#38383e] opacity-80 shadow-md will-change-[left]",
+                      !activeMove.valid && "border-[var(--danger)] bg-[var(--danger)]/40"
                     )}
                     aria-hidden
                     style={{
                       left: m.startTime * pps,
                       width: Math.max(24, m.duration * pps),
                     }}
-                  >
-                    <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
-                      {memberClip?.name || m.clipId}
-                    </span>
-                  </div>
+                  />
                 );
               })}
           </>
