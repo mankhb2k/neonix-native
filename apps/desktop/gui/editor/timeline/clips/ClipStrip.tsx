@@ -37,7 +37,7 @@ export function clipVisualClassName(trackKind: TimelineTrackKind, selected: bool
       ? "overflow-hidden rounded px-2 text-left text-[11px] flex flex-col justify-center bg-[var(--timeline-clip-frame)] text-white/90"
       : trackKind === "audio"
         ? "flex items-center overflow-hidden rounded bg-[var(--timeline-clip-audio)] px-2 text-[10px] font-medium text-white shadow-sm"
-        : "flex items-center overflow-hidden rounded bg-[#0F766E]/90 px-2 text-[10px] font-semibold text-white shadow-sm";
+        : "flex items-center overflow-hidden rounded bg-[#0F766E] px-2 text-[10px] font-semibold text-white shadow-sm";
   return cn(base, selectedCls);
 }
 
