@@ -1,5 +1,5 @@
 import type { TimelineCommand } from "@motionvideo/editor-core";
-import type { RefObject } from "react";
+import { memo, type RefObject } from "react";
 import { LaneFlagControls } from "../lanes/LaneFlagControls";
 import type { LaneContentKind } from "../lanes/lane-content-kind";
 import { LaneLeadingIcon } from "../lanes/LaneLeadingIcon";
@@ -19,7 +19,7 @@ type Props = {
   onExecute: (command: TimelineCommand, label: string) => void;
 };
 
-export function TimelineLaneLabels({
+export const TimelineLaneLabels = memo(function TimelineLaneLabels({
   tracksScrollRef,
   scrollTop,
   mountedOffsetTop,
@@ -95,4 +95,4 @@ export function TimelineLaneLabels({
       </div>
     </div>
   );
-}
+});

@@ -34,7 +34,7 @@ import {
 import {
   trackForLane,
   type TimelineTrackKind,
-} from "./track-for-lane";
+} from "../lanes/track-kind";
 
 const DRAG_THRESHOLD_PX = 4;
 const SNAP_THRESHOLD_PX = 8;
@@ -259,6 +259,7 @@ export function useClipMove({
               family,
               wasInsert,
               hostLanes,
+              host?.laneHitLayout,
             );
             if (!policyTarget) {
               wasInsert = false;

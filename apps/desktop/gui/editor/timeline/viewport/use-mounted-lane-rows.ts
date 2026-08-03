@@ -30,10 +30,16 @@ export function useMountedLaneRows({
   movePinKey,
 }: Args): {
   laneHeightPrefix: number[];
+  laneContentHeights: number[];
   mountedRows: MountedLaneRow[];
   mountedOffsetTop: number;
   bottomSpacer: number;
 } {
+  const laneContentHeights = useMemo(
+    () => laneRows.map((row) => row.height),
+    [laneRows],
+  );
+
   const laneHeights = useMemo(
     () =>
       laneRows.map((row, i) =>
@@ -132,19 +138,19 @@ export function useMountedLaneRows({
 
   const mountedOffsetTop = mountedLaneRows.offsetTop;
 
-  const mountedBlockHeight = mountedLaneRows.rows.reduce((s, r) => {
-    if (r.kind === "gap") return s + r.height;
-    const trailingGap =
-      r.index < laneRows.length - 1 ? LANE_GAP_PX : 0;
-    return s + r.row.height + trailingGap;
-  }, 0);
-  const bottomSpacer = Math.max(
-    0,
-    contentHeight - mountedOffsetTop - mountedBlockHeight,
-  );
+  const bottomSpacer = useMemo(() => {
+    const mountedBlockHeight = mountedLaneRows.rows.reduce((s, r) => {
+      if (r.kind === "gap") return s + r.height;
+      const trailingGap =
+        r.index < laneRows.length - 1 ? LANE_GAP_PX : 0;
+      return s + r.row.height + trailingGap;
+    }, 0);
+    return Math.max(0, contentHeight - mountedOffsetTop - mountedBlockHeight);
+  }, [mountedLaneRows.rows, contentHeight, mountedOffsetTop, laneRows.length]);
 
   return {
     laneHeightPrefix,
+    laneContentHeights,
     mountedRows: mountedLaneRows.rows,
     mountedOffsetTop,
     bottomSpacer,

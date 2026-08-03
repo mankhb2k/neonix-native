@@ -1,6 +1,0 @@
-{
-  "ok": false,
-  "reason": "playwright-missing",
-  "hint": "Install Playwright in the workspace, or drop PNGs manually under reference-web/web/",
-  "generatedAt": "2026-08-01T09:50:06.253Z"
-}

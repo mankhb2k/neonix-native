@@ -4,10 +4,11 @@ import type {
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core";
-import type {
-  PointerEvent as ReactPointerEvent,
-  RefObject,
-  UIEventHandler,
+import {
+  memo,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
+  type UIEventHandler,
 } from "react";
 import { ClipStrip } from "../clips/ClipStrip";
 import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
@@ -49,65 +50,87 @@ function laneDropDomAttrs(lane: TimelineLane): {
   };
 }
 
+export type TrackCanvasLayout = {
+  canvasWidth: number;
+  trackViewWidth: number;
+  contentHeight: number;
+  topPadding: number;
+  pixelsPerSecond: number;
+  scrollLeft: number;
+};
+
+export type TrackCanvasVirtualRows = {
+  laneRows: TimelineLaneRow[];
+  mountedOffsetTop: number;
+  mountedRows: MountedLaneRow[];
+  bottomSpacer: number;
+  timelineEmpty: boolean;
+};
+
+export type TrackCanvasActions = {
+  onScroll: UIEventHandler<HTMLDivElement>;
+  beginMarquee: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  beginGesture: BeginGesture;
+  onSelect: (selection: EditorSelection) => void;
+  onExecute: (command: TimelineCommand, label: string) => void;
+  getPlayheadTime: () => number;
+  onCopy?: () => void;
+  onCut?: () => void;
+  onPaste?: () => void;
+  clipsForLane: (laneId: string) => TimelineClip[];
+};
+
 type Props = {
   tracksScrollRef: RefObject<HTMLDivElement | null>;
   selection: EditorSelection;
   disabled: boolean | undefined;
   canPaste: boolean | undefined;
-  onCopy?: () => void;
-  onCut?: () => void;
-  onPaste?: () => void;
-  onExecute: (command: TimelineCommand, label: string) => void;
-  getPlayheadTime: () => number;
-  pixelsPerSecond: number;
-  onScroll: UIEventHandler<HTMLDivElement>;
-  timelineEmpty: boolean;
-  beginMarquee: (event: ReactPointerEvent<HTMLDivElement>) => void;
-  laneRows: TimelineLaneRow[];
-  canvasWidth: number;
-  trackViewWidth: number;
-  contentHeight: number;
-  topPadding: number;
-  mountedOffsetTop: number;
-  mountedRows: MountedLaneRow[];
-  bottomSpacer: number;
-  clipsForLane: (laneId: string) => TimelineClip[];
   clips: TimelineClip[];
   lanes: TimelineLane[];
-  beginGesture: BeginGesture;
-  onSelect: (selection: EditorSelection) => void;
-  scrollLeft: number;
+  layout: TrackCanvasLayout;
+  virtualRows: TrackCanvasVirtualRows;
+  actions: TrackCanvasActions;
 };
 
-export function TimelineTrackCanvas({
+export const TimelineTrackCanvas = memo(function TimelineTrackCanvas({
   tracksScrollRef,
   selection,
   disabled,
   canPaste,
-  onCopy,
-  onCut,
-  onPaste,
-  onExecute,
-  getPlayheadTime,
-  pixelsPerSecond,
-  onScroll,
-  timelineEmpty,
-  beginMarquee,
-  laneRows,
-  canvasWidth,
-  trackViewWidth,
-  contentHeight,
-  topPadding,
-  mountedOffsetTop,
-  mountedRows,
-  bottomSpacer,
-  clipsForLane,
   clips,
   lanes,
-  beginGesture,
-  onSelect,
-  scrollLeft,
+  layout,
+  virtualRows,
+  actions,
 }: Props) {
+  const {
+    canvasWidth,
+    trackViewWidth,
+    contentHeight,
+    topPadding,
+    pixelsPerSecond,
+    scrollLeft,
+  } = layout;
+  const {
+    laneRows,
+    mountedOffsetTop,
+    mountedRows,
+    bottomSpacer,
+    timelineEmpty,
+  } = virtualRows;
+  const {
+    onScroll,
+    beginMarquee,
+    beginGesture,
+    onSelect,
+    onExecute,
+    getPlayheadTime,
+    onCopy,
+    onCut,
+    onPaste,
+    clipsForLane,
+  } = actions;
+
   return (
     <div className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <TimelineContextMenu
@@ -228,4 +251,4 @@ export function TimelineTrackCanvas({
       </TimelineContextMenu>
     </div>
   );
-}
+});

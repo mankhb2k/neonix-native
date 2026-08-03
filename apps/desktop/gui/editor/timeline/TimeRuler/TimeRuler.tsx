@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { capCutRulerScale, formatRulerLabel } from "../timeline-scale";
 
 type Props = {
@@ -21,7 +22,7 @@ const OVERSCAN_PX = 120;
 /**
  * CapCut-style time ruler. Only mounts ticks in the visible window.
  */
-export function TimeRuler({
+export const TimeRuler = memo(function TimeRuler({
   duration,
   fps,
   pixelsPerSecond,
@@ -98,4 +99,4 @@ export function TimeRuler({
       })}
     </div>
   );
-}
+});

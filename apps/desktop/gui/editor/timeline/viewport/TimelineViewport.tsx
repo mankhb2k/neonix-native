@@ -211,17 +211,6 @@ export function TimelineViewport({
     [clock],
   );
 
-  useTimelineDropHostRegistration({
-    tracksScrollRef,
-    sortedLanes,
-    topPadding,
-    pixelsPerSecond: layout.pixelsPerSecond,
-    clips,
-    autoSnapping,
-    clipsByLane: clipsByLaneMap,
-    laneDropIndexes,
-  });
-
   useEffect(() => {
     return subscribeLibraryDrag((session) => {
       if (session.phase !== "dragging") {
@@ -239,6 +228,7 @@ export function TimelineViewport({
 
   const {
     laneHeightPrefix,
+    laneContentHeights,
     mountedRows,
     mountedOffsetTop,
     bottomSpacer,
@@ -251,12 +241,26 @@ export function TimelineViewport({
     movePinKey,
   });
 
+  useTimelineDropHostRegistration({
+    tracksScrollRef,
+    sortedLanes,
+    topPadding,
+    pixelsPerSecond: layout.pixelsPerSecond,
+    clips,
+    autoSnapping,
+    clipsByLane: clipsByLaneMap,
+    laneDropIndexes,
+    laneHeightPrefix,
+    laneContentHeights,
+  });
+
   const beginMarquee = useTimelineMarquee({
     tracksScrollRef,
     disabled,
     selection,
     beginGesture,
     laneHeightPrefix,
+    laneContentHeights,
     topPadding,
     sortedLanes,
     clipsByLaneMap,
@@ -267,6 +271,63 @@ export function TimelineViewport({
 
   const timelineEmpty = clips.length === 0;
   const seekEnabled = !disabled && !timelineEmpty;
+
+  const trackLayout = useMemo(
+    () => ({
+      canvasWidth: layout.canvasWidth,
+      trackViewWidth,
+      contentHeight,
+      topPadding,
+      pixelsPerSecond: layout.pixelsPerSecond,
+      scrollLeft,
+    }),
+    [
+      layout.canvasWidth,
+      layout.pixelsPerSecond,
+      trackViewWidth,
+      contentHeight,
+      topPadding,
+      scrollLeft,
+    ],
+  );
+
+  const trackVirtualRows = useMemo(
+    () => ({
+      laneRows,
+      mountedOffsetTop,
+      mountedRows,
+      bottomSpacer,
+      timelineEmpty,
+    }),
+    [laneRows, mountedOffsetTop, mountedRows, bottomSpacer, timelineEmpty],
+  );
+
+  const trackActions = useMemo(
+    () => ({
+      onScroll,
+      beginMarquee,
+      beginGesture,
+      onSelect,
+      onExecute,
+      getPlayheadTime,
+      onCopy,
+      onCut,
+      onPaste,
+      clipsForLane,
+    }),
+    [
+      onScroll,
+      beginMarquee,
+      beginGesture,
+      onSelect,
+      onExecute,
+      getPlayheadTime,
+      onCopy,
+      onCut,
+      onPaste,
+      clipsForLane,
+    ],
+  );
 
   const contentScrollWidth =
     hScrollContentWidth > 0
@@ -336,29 +397,11 @@ export function TimelineViewport({
             selection={selection}
             disabled={disabled}
             canPaste={canPaste}
-            onCopy={onCopy}
-            onCut={onCut}
-            onPaste={onPaste}
-            onExecute={onExecute}
-            getPlayheadTime={getPlayheadTime}
-            pixelsPerSecond={layout.pixelsPerSecond}
-            onScroll={onScroll}
-            timelineEmpty={timelineEmpty}
-            beginMarquee={beginMarquee}
-            laneRows={laneRows}
-            canvasWidth={layout.canvasWidth}
-            trackViewWidth={trackViewWidth}
-            contentHeight={contentHeight}
-            topPadding={topPadding}
-            mountedOffsetTop={mountedOffsetTop}
-            mountedRows={mountedRows}
-            bottomSpacer={bottomSpacer}
-            clipsForLane={clipsForLane}
             clips={clips}
             lanes={lanes}
-            beginGesture={beginGesture}
-            onSelect={onSelect}
-            scrollLeft={scrollLeft}
+            layout={trackLayout}
+            virtualRows={trackVirtualRows}
+            actions={trackActions}
           />
         </div>
       </div>

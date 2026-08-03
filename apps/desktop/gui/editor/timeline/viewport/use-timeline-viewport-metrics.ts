@@ -19,6 +19,8 @@ type Args = {
   contentMeasureKey?: string | number;
 };
 
+type ScrollSnapshot = { left: number; top: number };
+
 export function useTimelineViewportMetrics({
   boardRef,
   tracksScrollRef,
@@ -27,32 +29,32 @@ export function useTimelineViewportMetrics({
 }: Args) {
   const [viewWidth, setViewWidth] = useState(0);
   const [trackViewHeight, setTrackViewHeight] = useState(0);
-  const [scrollLeft, setScrollLeft] = useState(0);
-  const [scrollTop, setScrollTop] = useState(0);
+  const [scroll, setScroll] = useState<ScrollSnapshot>({ left: 0, top: 0 });
   const [hScrollContentWidth, setHScrollContentWidth] = useState(0);
   const [hScrollViewportWidth, setHScrollViewportWidth] = useState(0);
 
-  const scrollLeftRafRef = useRef<number | null>(null);
-  const scrollTopRafRef = useRef<number | null>(null);
-  const pendingScrollLeftRef = useRef(0);
-  const pendingScrollTopRef = useRef(0);
+  const scrollRafRef = useRef<number | null>(null);
+  const pendingScrollRef = useRef<ScrollSnapshot>({ left: 0, top: 0 });
+  const publishedScrollRef = useRef<ScrollSnapshot>({ left: 0, top: 0 });
 
   const onScroll = useCallback(() => {
     const root = tracksScrollRef.current;
     if (!root) return;
-    pendingScrollLeftRef.current = root.scrollLeft;
-    pendingScrollTopRef.current = root.scrollTop;
+    pendingScrollRef.current = {
+      left: root.scrollLeft,
+      top: root.scrollTop,
+    };
 
-    if (scrollLeftRafRef.current == null) {
-      scrollLeftRafRef.current = requestAnimationFrame(() => {
-        scrollLeftRafRef.current = null;
-        setScrollLeft(pendingScrollLeftRef.current);
-      });
-    }
-    if (scrollTopRafRef.current == null) {
-      scrollTopRafRef.current = requestAnimationFrame(() => {
-        scrollTopRafRef.current = null;
-        setScrollTop(pendingScrollTopRef.current);
+    if (scrollRafRef.current == null) {
+      scrollRafRef.current = requestAnimationFrame(() => {
+        scrollRafRef.current = null;
+        const next = pendingScrollRef.current;
+        const published = publishedScrollRef.current;
+        if (published.left === next.left && published.top === next.top) {
+          return;
+        }
+        publishedScrollRef.current = next;
+        setScroll(next);
       });
     }
   }, [tracksScrollRef]);
@@ -89,19 +91,16 @@ export function useTimelineViewportMetrics({
 
   useLayoutEffect(() => {
     const root = tracksScrollRef.current;
-    if (scrollLeftRafRef.current != null) {
-      cancelAnimationFrame(scrollLeftRafRef.current);
-      scrollLeftRafRef.current = null;
-    }
-    if (scrollTopRafRef.current != null) {
-      cancelAnimationFrame(scrollTopRafRef.current);
-      scrollTopRafRef.current = null;
+    if (scrollRafRef.current != null) {
+      cancelAnimationFrame(scrollRafRef.current);
+      scrollRafRef.current = null;
     }
     if (!root) return;
     root.scrollLeft = 0;
     root.scrollTop = 0;
-    setScrollLeft(0);
-    setScrollTop(0);
+    pendingScrollRef.current = { left: 0, top: 0 };
+    publishedScrollRef.current = { left: 0, top: 0 };
+    setScroll({ left: 0, top: 0 });
   }, [resetKey, tracksScrollRef]);
 
   useLayoutEffect(() => {
@@ -127,11 +126,8 @@ export function useTimelineViewportMetrics({
 
   useLayoutEffect(() => {
     return () => {
-      if (scrollLeftRafRef.current != null) {
-        cancelAnimationFrame(scrollLeftRafRef.current);
-      }
-      if (scrollTopRafRef.current != null) {
-        cancelAnimationFrame(scrollTopRafRef.current);
+      if (scrollRafRef.current != null) {
+        cancelAnimationFrame(scrollRafRef.current);
       }
     };
   }, []);
@@ -139,8 +135,8 @@ export function useTimelineViewportMetrics({
   return {
     viewWidth,
     trackViewHeight,
-    scrollLeft,
-    scrollTop,
+    scrollLeft: scroll.left,
+    scrollTop: scroll.top,
     hScrollContentWidth,
     hScrollViewportWidth,
     onScroll,

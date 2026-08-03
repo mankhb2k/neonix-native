@@ -7,7 +7,7 @@ import type { TimelineLane } from "@motionvideo/editor-core";
 import {
   trackForLane,
   type TimelineTrackKind,
-} from "../clips/track-for-lane";
+} from "../lanes/track-kind";
 
 export type TimelineDropGeometry = {
   laneId: string;

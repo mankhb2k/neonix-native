@@ -18,7 +18,9 @@ import {
   audioDropPolicy,
   audioHitToLane,
   collectAudioZoneLanes,
+  collectAudioZoneLanesFromLayout,
   collectSceneLanes,
+  collectSceneLanesFromLayout,
   resolveLaneDropTarget,
   videoHitToLane,
   visualDropPolicy,
@@ -98,6 +100,22 @@ function maxOrderForFamily(
     .reduce((m, l) => Math.max(m, l.order), -1);
 }
 
+function collectHostSceneLanes(host: TimelineDropHost) {
+  const layout = host.laneHitLayout;
+  if (layout) {
+    return collectSceneLanesFromLayout(host.scrollEl, host.lanes, layout);
+  }
+  return collectSceneLanes(host.scrollEl);
+}
+
+function collectHostAudioZoneLanes(host: TimelineDropHost) {
+  const layout = host.laneHitLayout;
+  if (layout) {
+    return collectAudioZoneLanesFromLayout(host.scrollEl, host.lanes, layout);
+  }
+  return collectAudioZoneLanes(host.scrollEl);
+}
+
 function resolvePolicyTarget(
   clientY: number,
   family: "visual" | "audio",
@@ -106,7 +124,7 @@ function resolvePolicyTarget(
   if (!host) return null;
   const wsTop = host.scrollEl.getBoundingClientRect().top;
   if (family === "audio") {
-    const hits = collectAudioZoneLanes(host.scrollEl).map(audioHitToLane);
+    const hits = collectHostAudioZoneLanes(host).map(audioHitToLane);
     const maxOrder = maxOrderForFamily(host.lanes, "audio");
     const target = resolveLaneDropTarget(
       clientY,
@@ -120,7 +138,7 @@ function resolvePolicyTarget(
     return target;
   }
 
-  const hits = collectSceneLanes(host.scrollEl).map(videoHitToLane);
+  const hits = collectHostSceneLanes(host).map(videoHitToLane);
   const maxOrder = maxOrderForFamily(host.lanes, "visual");
   const target = resolveLaneDropTarget(
     clientY,
@@ -185,7 +203,7 @@ function ghostHeightFor(
     }
   }
   if (track === "main") {
-    const base = collectSceneLanes(host!.scrollEl).find((h) => h.type === "main");
+    const base = collectHostSceneLanes(host!).find((h) => h.type === "main");
     if (base) return Math.max(28, (base.bottom - base.top) * 0.96);
     return Math.max(28, (host?.laneHeight ?? 60) * 0.96);
   }
@@ -249,7 +267,7 @@ export function resolveDropGeometryAtPoint(
       }
     }
     if (policyTarget.overBaseBody) {
-      const base = collectSceneLanes(host.scrollEl).find((h) => h.type === "main");
+      const base = collectHostSceneLanes(host).find((h) => h.type === "main");
       if (base) {
         return (
           (base.top + base.bottom) / 2 -

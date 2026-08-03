@@ -1,6 +1,7 @@
 /**
  * CapCut-style playhead — DOM transform hot path (no React tick subscription).
  * Scrub: visual first, RAF-batched clock seek (web parity).
+ * Near-edge horizontal auto-scroll while dragging so scrub can reach contentEnd.
  */
 
 import {
@@ -13,9 +14,10 @@ import {
 } from "react";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import {
-  clientXToTimelineTime,
+  ensurePlayheadScrubScroll,
   timelineTimeToViewportLeft,
 } from "../timeline-seek";
+
 type Props = {
   tracksOriginX: number;
   pixelsPerSecond: number;
@@ -65,6 +67,9 @@ export function Playhead({
   const draggingRef = useRef(false);
   const pendingTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  const edgeRafRef = useRef<number | null>(null);
+  const lastClientXRef = useRef(0);
+  const captureTargetRef = useRef<HTMLElement | null>(null);
 
   const tracksOriginXRef = useRef(tracksOriginX);
   const ppsRef = useRef(pixelsPerSecond);
@@ -115,14 +120,67 @@ export function Playhead({
     });
   }, [clock, syncFromClock]);
 
+  const stopEdgeLoop = useCallback(() => {
+    if (edgeRafRef.current != null) {
+      cancelAnimationFrame(edgeRafRef.current);
+      edgeRafRef.current = null;
+    }
+  }, []);
+
+  const finishScrub = useCallback(
+    (opts?: { releaseCapture?: boolean; pointerId?: number }) => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      stopEdgeLoop();
+
+      // Flush pending seek only if RAF has not consumed it yet.
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+        const time = pendingTimeRef.current;
+        pendingTimeRef.current = null;
+        if (time != null) clock.getState().seek(time);
+      } else {
+        pendingTimeRef.current = null;
+      }
+
+      clock.getState().endScrub();
+      syncFromClock(clock.getState().currentTime);
+
+      if (opts?.releaseCapture !== false) {
+        const target = captureTargetRef.current;
+        const pointerId = opts?.pointerId;
+        if (
+          target != null &&
+          pointerId != null &&
+          target.hasPointerCapture?.(pointerId)
+        ) {
+          try {
+            target.releasePointerCapture(pointerId);
+          } catch {
+            /* already released */
+          }
+        }
+      }
+      captureTargetRef.current = null;
+    },
+    [clock, stopEdgeLoop, syncFromClock],
+  );
+
   useEffect(() => {
     return () => {
       if (rafRef.current != null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      stopEdgeLoop();
+      if (draggingRef.current) {
+        draggingRef.current = false;
+        pendingTimeRef.current = null;
+        clock.getState().endScrub();
+      }
     };
-  }, []);
+  }, [clock, stopEdgeLoop]);
 
   const scheduleSeek = (time: number) => {
     pendingTimeRef.current = time;
@@ -130,6 +188,7 @@ export function Playhead({
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
       const t = pendingTimeRef.current;
+      pendingTimeRef.current = null;
       if (t != null) {
         clock.getState().seek(t);
       }
@@ -139,35 +198,58 @@ export function Playhead({
   const scrubFromClientX = (clientX: number) => {
     const scroll = scrollContainerRef.current;
     if (!scroll) return;
+    lastClientXRef.current = clientX;
     const clockDuration = clock.getState().duration;
     // Prefer content duration for scrub clamp (web); fall back to board extent.
-    const scrubMax = Math.max(0, clockDuration > 0 ? clockDuration : maxTimeRef.current);
-    const time = clientXToTimelineTime(
-      clientX,
+    const scrubMax = Math.max(
+      0,
+      clockDuration > 0 ? clockDuration : maxTimeRef.current,
+    );
+    const { time, scrolledBy } = ensurePlayheadScrubScroll(
       scroll,
+      clientX,
       ppsRef.current,
       scrubMax,
     );
+    if (scrolledBy !== 0) {
+      scrollLeftRef.current = scroll.scrollLeft;
+    }
     // Visual first — never wait on store subscribers for the needle.
     syncFromClock(time);
     scheduleSeek(time);
   };
 
+  const ensureEdgeLoop = () => {
+    if (edgeRafRef.current != null) return;
+    const tick = () => {
+      edgeRafRef.current = null;
+      if (!draggingRef.current) return;
+      const scroll = scrollContainerRef.current;
+      if (!scroll) return;
+      const clientX = lastClientXRef.current;
+      const rect = scroll.getBoundingClientRect();
+      const nearRight = clientX > rect.right - 40;
+      const nearLeft = clientX < rect.left + 40;
+      if (!nearRight && !nearLeft) return;
+      const maxScroll = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+      const canRight = nearRight && scroll.scrollLeft < maxScroll;
+      const canLeft = nearLeft && scroll.scrollLeft > 0;
+      if (!canRight && !canLeft) return;
+      scrubFromClientX(clientX);
+      edgeRafRef.current = requestAnimationFrame(tick);
+    };
+    edgeRafRef.current = requestAnimationFrame(tick);
+  };
+
   const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
-    draggingRef.current = false;
-    if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-    const time = pendingTimeRef.current;
-    pendingTimeRef.current = null;
-    if (time != null) clock.getState().seek(time);
-    clock.getState().endScrub();
-    syncFromClock(clock.getState().currentTime);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+    finishScrub({ pointerId: event.pointerId });
+  };
+
+  const onLostPointerCapture = (event: ReactPointerEvent<HTMLDivElement>) => {
+    finishScrub({
+      pointerId: event.pointerId,
+      releaseCapture: false,
+    });
   };
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -175,14 +257,17 @@ export function Playhead({
     event.preventDefault();
     event.stopPropagation();
     draggingRef.current = true;
+    captureTargetRef.current = event.currentTarget;
     clock.getState().beginScrub();
     event.currentTarget.setPointerCapture(event.pointerId);
     scrubFromClientX(event.clientX);
+    ensureEdgeLoop();
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!draggingRef.current) return;
     scrubFromClientX(event.clientX);
+    ensureEdgeLoop();
   };
 
   return (
@@ -210,6 +295,7 @@ export function Playhead({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onLostPointerCapture={onLostPointerCapture}
       />
 
       <div
@@ -231,6 +317,7 @@ export function Playhead({
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onLostPointerCapture={onLostPointerCapture}
       >
         <PlayheadHandleIcon isMuted={muted} />
       </div>

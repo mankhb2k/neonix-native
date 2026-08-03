@@ -8,6 +8,7 @@ import {
 import { LANE_GAP_PX } from "../lanes/timeline-lane-rows";
 import {
   TIMELINE_PLAYHEAD_GUTTER_PX,
+  SECONDARY_LANE_HEIGHT_PX,
   laneRowHeightPx,
 } from "../timeline-scale";
 
@@ -26,6 +27,8 @@ type Args = {
   autoSnapping: boolean;
   clipsByLane: Map<string, TimelineClip[]>;
   laneDropIndexes: LaneDropIndexes;
+  laneHeightPrefix: number[];
+  laneContentHeights: number[];
 };
 
 /** Registers the scroll container as the library/clip drop host (CapCut collectors). */
@@ -38,6 +41,8 @@ export function useTimelineDropHostRegistration({
   autoSnapping,
   clipsByLane,
   laneDropIndexes,
+  laneHeightPrefix,
+  laneContentHeights,
 }: Args): void {
   useLayoutEffect(() => {
     const scrollEl = tracksScrollRef.current;
@@ -46,7 +51,7 @@ export function useTimelineDropHostRegistration({
       scrollEl,
       lanes: sortedLanes,
       lanesTop: topPadding,
-      laneHeight: 48,
+      laneHeight: SECONDARY_LANE_HEIGHT_PX,
       laneHeightFor: laneRowHeightPx,
       laneGapPx: LANE_GAP_PX,
       pixelsPerSecond,
@@ -60,6 +65,11 @@ export function useTimelineDropHostRegistration({
       siblingLaneRefs: laneDropIndexes.siblingLaneRefs,
       overlayLaneRefs: laneDropIndexes.overlayLaneRefs,
       audioLaneRefs: laneDropIndexes.audioLaneRefs,
+      laneHitLayout: {
+        topPadding,
+        laneHeightPrefix,
+        laneContentHeights,
+      },
     };
     return registerTimelineDropHost(next);
   }, [
@@ -70,5 +80,7 @@ export function useTimelineDropHostRegistration({
     autoSnapping,
     clipsByLane,
     laneDropIndexes,
+    laneHeightPrefix,
+    laneContentHeights,
   ]);
 }

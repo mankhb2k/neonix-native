@@ -39,6 +39,12 @@ export type TimelineDropHost = {
   overlayLaneRefs?: ReadonlyArray<TimelineDropLaneRef>;
   /** Sorted audio lanes (asc order) for findLaneAbove. */
   audioLaneRefs?: ReadonlyArray<TimelineDropLaneRef>;
+  /** Prefix geometry for clip-move Y hit-test (avoids DOM query each frame). */
+  laneHitLayout?: {
+    topPadding: number;
+    laneHeightPrefix: readonly number[];
+    laneContentHeights: readonly number[];
+  };
 };
 
 let host: TimelineDropHost | null = null;

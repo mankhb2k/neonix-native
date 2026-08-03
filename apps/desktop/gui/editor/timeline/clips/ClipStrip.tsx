@@ -20,7 +20,7 @@ import type { ClipMovePreview } from "./clip-move-geometry";
 import {
   trackForLane,
   type TimelineTrackKind,
-} from "./track-for-lane";
+} from "../lanes/track-kind";
 import { useClipMove } from "./use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "./use-clip-trim";
 
