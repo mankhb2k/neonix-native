@@ -165,7 +165,7 @@ export function TimelineOverlays({
           <>
             <div
               className={cn(
-                "pointer-events-none fixed !z-50 flex items-center opacity-90 shadow-2xl will-change-[left]",
+                "pointer-events-none fixed !z-50 flex items-center shadow-2xl will-change-[left]",
                 clipVisualClassName(clipMovePreview.trackKind, true),
                 validCls
               )}
@@ -187,7 +187,7 @@ export function TimelineOverlays({
                 <div
                   key={`float-${m.clipId}`}
                   className={cn(
-                    "pointer-events-none fixed !z-50 flex items-center opacity-90 shadow-2xl will-change-[left]",
+                    "pointer-events-none fixed !z-50 flex items-center shadow-2xl will-change-[left]",
                     clipVisualClassName(m.trackKind, true),
                     validCls
                   )}
