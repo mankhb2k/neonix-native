@@ -31,7 +31,7 @@ export type ClipMovePreview = {
   /** Content Y center for insert chrome (scroll canvas). */
   contentTop?: number;
   label?: string;
-  /** Pointer for fixed teal cursor bar (web GlobalDragPreview). */
+  /** Pointer Y for cyan bar (left anchors to startTime, not grab X). */
   clientX?: number;
   clientY?: number;
   /** CapCut vertical snap guide time (clip edge alignment). */

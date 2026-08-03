@@ -754,6 +754,8 @@ export function TimelineViewport({
                         trackViewWidth={trackViewWidth}
                         contentHeight={contentHeight}
                         timelineEmpty={false}
+                        tracksScrollRef={tracksScrollRef}
+                        scrollLeft={scrollLeft}
                       />
                     </>
                   )}

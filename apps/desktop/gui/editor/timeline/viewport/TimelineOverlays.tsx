@@ -2,6 +2,7 @@
  * Timeline drag overlays — library drop, clip-move chrome, snap guide, marquee.
  */
 
+import type { RefObject } from "react";
 import type { ClipMovePreview } from "../clips/ClipStrip";
 import type { LibraryDropPreview } from "../drop/library-drop";
 import type { MarqueeRect } from "../selection/marquee-geometry";
@@ -16,6 +17,10 @@ type Props = {
   trackViewWidth: number;
   contentHeight: number;
   timelineEmpty: boolean;
+  /** Scrollport — cyan bar left anchors to ghost startTime (viewport coords). */
+  tracksScrollRef?: RefObject<HTMLDivElement | null>;
+  /** Triggers cyan left recompute when the track canvas scrolls. */
+  scrollLeft?: number;
 };
 
 export function TimelineOverlays({
@@ -27,10 +32,28 @@ export function TimelineOverlays({
   trackViewWidth,
   contentHeight,
   timelineEmpty,
+  tracksScrollRef,
+  scrollLeft = 0,
 }: Props) {
   if (timelineEmpty) return null;
 
   const extentWidth = Math.max(canvasWidth, trackViewWidth);
+
+  /** Cyan left = ghost startTime in viewport; top stays on pointer Y. */
+  let clipMoveCyanLeft: number | null = null;
+  if (clipMovePreview != null && clipMovePreview.clientY != null) {
+    const scrollEl = tracksScrollRef?.current;
+    if (scrollEl) {
+      const rect = scrollEl.getBoundingClientRect();
+      clipMoveCyanLeft =
+        rect.left +
+        TIMELINE_PLAYHEAD_GUTTER_PX +
+        clipMovePreview.startTime * pixelsPerSecond -
+        scrollLeft;
+    } else if (clipMovePreview.clientX != null) {
+      clipMoveCyanLeft = clipMovePreview.clientX;
+    }
+  }
 
   return (
     <>
@@ -136,14 +159,14 @@ export function TimelineOverlays({
         />
       ) : null}
       {clipMovePreview &&
-      clipMovePreview.clientX != null &&
+      clipMoveCyanLeft != null &&
       clipMovePreview.clientY != null ? (
         <div
           className="pointer-events-none fixed z-[35] flex h-8 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl"
           aria-hidden
           data-testid="timeline-clip-move-cyan"
           style={{
-            left: clipMovePreview.clientX,
+            left: clipMoveCyanLeft,
             top: clipMovePreview.clientY - 16,
             width: Math.max(24, clipMovePreview.duration * pixelsPerSecond),
           }}
