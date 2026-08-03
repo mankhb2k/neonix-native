@@ -9,6 +9,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
+import type { LibraryPayload } from "../../library/model/library-payload";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import { ClipStrip, type ClipMovePreview } from "../clips/ClipStrip";
 import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
@@ -152,21 +153,44 @@ export function TimelineViewport({
   });
 
   const dropGhostRafRef = useRef<number | null>(null);
-  const pendingDropGhostRef = useRef<LibraryDropPreview | null | undefined>(
-    undefined,
-  );
+  /** Latest pointer sample; geometry resolves once per frame in RAF. */
+  const pendingDropSampleRef = useRef<
+    | { kind: "clear" }
+    | {
+        kind: "point";
+        clientX: number;
+        clientY: number;
+        item: LibraryPayload | null;
+      }
+    | undefined
+  >(undefined);
 
   const flushDropGhost = useCallback(() => {
     dropGhostRafRef.current = null;
-    if (pendingDropGhostRef.current === undefined) return;
-    const next = pendingDropGhostRef.current;
-    pendingDropGhostRef.current = undefined;
-    setDropGhost(next);
+    const sample = pendingDropSampleRef.current;
+    pendingDropSampleRef.current = undefined;
+    if (sample === undefined) return;
+    if (sample.kind === "clear") {
+      setDropGhost(null);
+      return;
+    }
+    setDropGhost(
+      resolveDropGeometryAtPoint(sample.clientX, sample.clientY, sample.item),
+    );
   }, []);
 
-  const scheduleDropGhost = useCallback(
-    (next: LibraryDropPreview | null) => {
-      pendingDropGhostRef.current = next;
+  const scheduleDropGhostSample = useCallback(
+    (
+      sample:
+        | { kind: "clear" }
+        | {
+            kind: "point";
+            clientX: number;
+            clientY: number;
+            item: LibraryPayload | null;
+          },
+    ) => {
+      pendingDropSampleRef.current = sample;
       if (dropGhostRafRef.current == null) {
         dropGhostRafRef.current = requestAnimationFrame(flushDropGhost);
       }
@@ -179,7 +203,7 @@ export function TimelineViewport({
       cancelAnimationFrame(dropGhostRafRef.current);
       dropGhostRafRef.current = null;
     }
-    pendingDropGhostRef.current = undefined;
+    pendingDropSampleRef.current = undefined;
   }, [projectId, timelineFitRevision]);
 
   useEffect(() => {
@@ -297,17 +321,18 @@ export function TimelineViewport({
   useEffect(() => {
     return subscribeLibraryDrag((session) => {
       if (session.phase !== "dragging") {
-        scheduleDropGhost(null);
+        scheduleDropGhostSample({ kind: "clear" });
         return;
       }
-      const geo = resolveDropGeometryAtPoint(
-        session.clientX,
-        session.clientY,
-        session.item,
-      );
-      scheduleDropGhost(geo);
+      // Coalesce coords only; resolveDropGeometryAtPoint runs in RAF.
+      scheduleDropGhostSample({
+        kind: "point",
+        clientX: session.clientX,
+        clientY: session.clientY,
+        item: session.item,
+      });
     });
-  }, [scheduleDropGhost]);
+  }, [scheduleDropGhostSample]);
 
   const beginMarquee = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
