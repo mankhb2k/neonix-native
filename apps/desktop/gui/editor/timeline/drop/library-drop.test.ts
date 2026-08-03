@@ -173,6 +173,69 @@ describe("drop-host CapCut policy", () => {
     expect(getTimelineDropHost()).toBeNull();
   });
 
+  it("exposes clipsByLane and sibling/overlay/audio lane refs on the host", () => {
+    const scrollEl = mountScrollWithLanes([
+      { id: "base", type: "main", order: -1, top: 0, height: 40 },
+      { id: "ov", type: "overlay", order: 0, top: 40, height: 40 },
+      { id: "aud", type: "audio", order: 0, top: 80, height: 40 },
+    ]);
+    const clipsByLane = new Map([
+      ["base", [{ id: "c1", startTime: 0, duration: 2 }]],
+      ["ov", [] as { id: string; startTime: number; duration: number }[]],
+      ["aud", [] as { id: string; startTime: number; duration: number }[]],
+    ]);
+    const siblingLaneRefs = [
+      { id: "base", order: -1, role: "base" as const },
+      { id: "ov", order: 0, role: "overlay" as const },
+      { id: "aud", order: 0, role: "audio" as const },
+    ];
+    setHost({
+      scrollEl,
+      lanes: [
+        {
+          id: "base",
+          kind: "visual",
+          role: "base",
+          name: "Main",
+          order: -1,
+          policy: BASE_POLICY,
+        },
+        {
+          id: "ov",
+          kind: "visual",
+          role: "overlay",
+          name: "OV",
+          order: 0,
+          policy: BASE_POLICY,
+        },
+        {
+          id: "aud",
+          kind: "audio",
+          name: "A",
+          order: 0,
+        },
+      ],
+      lanesTop: 0,
+      laneHeight: 40,
+      pixelsPerSecond: 100,
+      tracksOriginX: 0,
+      clipsByLane,
+      siblingLaneRefs,
+      overlayLaneRefs: [{ id: "ov", order: 0, role: "overlay" }],
+      audioLaneRefs: [{ id: "aud", order: 0, role: "audio" }],
+    });
+
+    const host = getTimelineDropHost();
+    expect(host?.clipsByLane?.get("base")?.[0]?.id).toBe("c1");
+    expect(host?.siblingLaneRefs?.map((l) => l.id)).toEqual([
+      "base",
+      "ov",
+      "aud",
+    ]);
+    expect(host?.overlayLaneRefs?.[0]?.id).toBe("ov");
+    expect(host?.audioLaneRefs?.[0]?.id).toBe("aud");
+  });
+
   it("does not let a stale unregister clear a newer host owner", () => {
     const scrollA = mountScrollWithLanes([
       { id: "a", type: "main", order: -1, top: 0, height: 60 },

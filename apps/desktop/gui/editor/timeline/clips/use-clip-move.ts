@@ -319,8 +319,12 @@ export function useClipMove({
               snapPoints,
               snapThresholdSec,
               occupancyClips: isGroup ? undefined : catalog,
+              clipsByLane: isGroup ? undefined : host?.clipsByLane,
               excludeIds: excludeSnapIds,
               lanes: isGroup ? undefined : hostLanes,
+              siblingLaneRefs: isGroup ? undefined : host?.siblingLaneRefs,
+              overlayLaneRefs: isGroup ? undefined : host?.overlayLaneRefs,
+              audioLaneRefs: isGroup ? undefined : host?.audioLaneRefs,
             });
             const rawDelta = resolved.commit.startTime - originStart;
             const groupDelta = Math.max(rawDelta, -minStartInGroup);

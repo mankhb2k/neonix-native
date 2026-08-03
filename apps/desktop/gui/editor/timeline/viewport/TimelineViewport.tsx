@@ -198,6 +198,26 @@ export function TimelineViewport({
     return map;
   }, [clips, lanes]);
 
+  const laneDropIndexes = useMemo(() => {
+    const siblingLaneRefs = sortedLanes.map((lane) => ({
+      id: lane.id,
+      order: lane.order,
+      role:
+        lane.kind === "audio"
+          ? ("audio" as const)
+          : lane.role === "base"
+            ? ("base" as const)
+            : ("overlay" as const),
+    }));
+    const overlayLaneRefs = siblingLaneRefs
+      .filter((l) => l.role === "overlay")
+      .sort((a, b) => a.order - b.order);
+    const audioLaneRefs = siblingLaneRefs
+      .filter((l) => l.role === "audio")
+      .sort((a, b) => a.order - b.order);
+    return { siblingLaneRefs, overlayLaneRefs, audioLaneRefs };
+  }, [sortedLanes]);
+
   const laneContentKindById = useMemo(
     () => buildLaneContentKindById(lanes, clips, project),
     [lanes, clips, project],
@@ -261,9 +281,21 @@ export function TimelineViewport({
         : [],
       snapThresholdSec: 8 / Math.max(1e-6, layout.pixelsPerSecond),
       clips,
+      clipsByLane: clipsByLaneMap,
+      siblingLaneRefs: laneDropIndexes.siblingLaneRefs,
+      overlayLaneRefs: laneDropIndexes.overlayLaneRefs,
+      audioLaneRefs: laneDropIndexes.audioLaneRefs,
     };
     return registerTimelineDropHost(next);
-  }, [sortedLanes, layout.pixelsPerSecond, topPadding, clips, autoSnapping]);
+  }, [
+    sortedLanes,
+    layout.pixelsPerSecond,
+    topPadding,
+    clips,
+    autoSnapping,
+    clipsByLaneMap,
+    laneDropIndexes,
+  ]);
 
   useEffect(() => {
     return subscribeLibraryDrag((session) => {

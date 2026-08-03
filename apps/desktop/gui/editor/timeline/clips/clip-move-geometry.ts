@@ -72,11 +72,32 @@ export type ClipMoveDragInput = {
   occupancyClips?: ReadonlyArray<
     Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
   >;
+  /** Prefer over filtering occupancyClips each frame. */
+  clipsByLane?: ReadonlyMap<
+    string,
+    ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>
+  >;
   excludeIds?: ReadonlySet<string>;
   /** Lane list for preferring a free lane above on conflict. */
   lanes?: ReadonlyArray<
     Pick<TimelineLane, "id" | "kind" | "role" | "order">
   >;
+  /** Prefer over remapping lanes each frame. */
+  siblingLaneRefs?: ReadonlyArray<{
+    id: string;
+    order: number;
+    role: "base" | "overlay" | "audio";
+  }>;
+  overlayLaneRefs?: ReadonlyArray<{
+    id: string;
+    order: number;
+    role: "base" | "overlay" | "audio";
+  }>;
+  audioLaneRefs?: ReadonlyArray<{
+    id: string;
+    order: number;
+    role: "base" | "overlay" | "audio";
+  }>;
 };
 
 export type ClipMoveDragCommit = {
@@ -96,7 +117,19 @@ export type ClipMoveDragResult = {
 
 export { clipAcceptsTrack };
 
-/** Start + end edges of other clips (+ t=0) for CapCut live snap. */
+/** First index i where sorted[i] >= x (or length). */
+export function lowerBound(sorted: readonly number[], x: number): number {
+  let lo = 0;
+  let hi = sorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid]! < x) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/** Start + end edges of other clips (+ t=0), sorted ascending unique. */
 export function collectClipEdgeSnapPoints(
   clips: readonly Pick<TimelineClip, "id" | "startTime" | "duration">[],
   excludeIds: ReadonlySet<string>,
@@ -106,11 +139,19 @@ export function collectClipEdgeSnapPoints(
     if (excludeIds.has(clip.id)) continue;
     points.push(clip.startTime, clip.startTime + clip.duration);
   }
-  return points;
+  points.sort((a, b) => a - b);
+  const unique: number[] = [];
+  for (const p of points) {
+    if (unique.length === 0 || unique[unique.length - 1] !== p) {
+      unique.push(p);
+    }
+  }
+  return unique;
 }
 
 /**
  * Snap moving clip start/end to nearest edge.
+ * Expects sorted unique snapPoints. Scans only points inside the threshold window.
  * Returns guide time = absolute edge where the CapCut teal line should draw.
  */
 export function snapMoveStartToEdges(
@@ -127,21 +168,41 @@ export function snapMoveStartToEdges(
   let bestDiff = Infinity;
   let guideTime: number | null = null;
 
-  for (const snap of snapPoints) {
+  const considerStartAlign = (snap: number) => {
     const dStart = Math.abs(snap - rawStart);
     if (dStart <= thresholdSec && dStart < bestDiff) {
       bestDiff = dStart;
       bestStart = Math.max(0, snap);
       guideTime = snap;
     }
+  };
+  const considerEndAlign = (snap: number) => {
     const endAlignedStart = snap - duration;
-    if (endAlignedStart < 0) continue;
+    if (endAlignedStart < 0) return;
     const dEnd = Math.abs(snap - rawEnd);
     if (dEnd <= thresholdSec && dEnd < bestDiff) {
       bestDiff = dEnd;
       bestStart = endAlignedStart;
       guideTime = snap;
     }
+  };
+
+  // Start-align: points near rawStart
+  let i = lowerBound(snapPoints, rawStart - thresholdSec);
+  while (i < snapPoints.length) {
+    const snap = snapPoints[i]!;
+    if (snap > rawStart + thresholdSec) break;
+    considerStartAlign(snap);
+    i += 1;
+  }
+
+  // End-align: points near rawEnd
+  i = lowerBound(snapPoints, rawEnd - thresholdSec);
+  while (i < snapPoints.length) {
+    const snap = snapPoints[i]!;
+    if (snap > rawEnd + thresholdSec) break;
+    considerEndAlign(snap);
+    i += 1;
   }
 
   return {
@@ -195,9 +256,9 @@ export function resolveClipMoveDrag(
     // or insert between when both lanes are occupied.
     if (valid && !insertNewLane && input.drop.laneId) {
       const laneId = input.drop.laneId;
-      const onLane = (input.occupancyClips ?? []).filter(
-        (c) => c.laneId === laneId,
-      );
+      const onLane =
+        input.clipsByLane?.get(laneId) ??
+        (input.occupancyClips ?? []).filter((c) => c.laneId === laneId);
       // Prefer explicit drop meta; else resolve from lanes (integration must
       // not silently treat base/audio as overlay order 0).
       const laneMeta = (input.lanes ?? []).find((l) => l.id === laneId);
@@ -209,16 +270,18 @@ export function resolveClipMoveDrag(
             ? "base"
             : "overlay");
       const laneOrder = input.drop.laneOrder ?? laneMeta?.order ?? 0;
-      const siblingLanes = (input.lanes ?? []).map((l) => ({
-        id: l.id,
-        order: l.order,
-        role:
-          l.kind === "audio"
-            ? ("audio" as const)
-            : l.role === "base"
-              ? ("base" as const)
-              : ("overlay" as const),
-      }));
+      const siblingLanes =
+        input.siblingLaneRefs ??
+        (input.lanes ?? []).map((l) => ({
+          id: l.id,
+          order: l.order,
+          role:
+            l.kind === "audio"
+              ? ("audio" as const)
+              : l.role === "base"
+                ? ("base" as const)
+                : ("overlay" as const),
+        }));
       const occupancy = resolveOccupancyAwarePlacement({
         clipsOnLane: onLane,
         desiredStart: startTime,
@@ -229,6 +292,9 @@ export function resolveClipMoveDrag(
         laneRole: role,
         siblingLanes,
         allClips: input.occupancyClips,
+        clipsByLane: input.clipsByLane,
+        overlayLaneRefs: input.overlayLaneRefs,
+        audioLaneRefs: input.audioLaneRefs,
       });
       startTime = occupancy.startTime;
       if (occupancy.edgeGuideTime != null) {

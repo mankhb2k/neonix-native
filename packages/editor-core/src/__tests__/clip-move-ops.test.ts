@@ -178,6 +178,32 @@ describe("resolveOccupancyAwarePlacement", () => {
     });
   });
 
+  it("retargets using clipsByLane map without scanning allClips", () => {
+    const clipsByLane = new Map([
+      ["base", blocker],
+      ["ov-0", [] as typeof blocker],
+    ]);
+    const result = resolveOccupancyAwarePlacement({
+      clipsOnLane: blocker,
+      desiredStart: 3,
+      duration: 1,
+      laneId: "base",
+      laneOrder: -1,
+      laneRole: "base",
+      siblingLanes: [
+        { id: "base", order: -1, role: "base" },
+        { id: "ov-0", order: 0, role: "overlay" },
+      ],
+      clipsByLane,
+      overlayLaneRefs: [{ id: "ov-0", order: 0, role: "overlay" }],
+    });
+    expect(result).toMatchObject({
+      insertNewLane: false,
+      retargetLaneId: "ov-0",
+      startTime: 3,
+    });
+  });
+
   it("inserts between when lane above is also occupied", () => {
     const result = resolveOccupancyAwarePlacement({
       clipsOnLane: blocker,

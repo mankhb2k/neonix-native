@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   clipAcceptsTrack,
+  collectClipEdgeSnapPoints,
+  lowerBound,
   resolveClipMoveDrag,
+  snapMoveStartToEdges,
 } from "./clip-move-geometry";
 
 const base = {
@@ -15,6 +18,39 @@ const base = {
   duration: 3,
 };
 
+/** Reference linear scan (pre-optimization semantics). */
+function snapLinear(
+  rawStart: number,
+  duration: number,
+  snapPoints: readonly number[],
+  thresholdSec: number,
+): { startTime: number; snapGuideTime: number | null } {
+  if (!snapPoints.length || thresholdSec < 0) {
+    return { startTime: Math.max(0, rawStart), snapGuideTime: null };
+  }
+  const rawEnd = rawStart + duration;
+  let bestStart = rawStart;
+  let bestDiff = Infinity;
+  let guideTime: number | null = null;
+  for (const snap of snapPoints) {
+    const dStart = Math.abs(snap - rawStart);
+    if (dStart <= thresholdSec && dStart < bestDiff) {
+      bestDiff = dStart;
+      bestStart = Math.max(0, snap);
+      guideTime = snap;
+    }
+    const endAlignedStart = snap - duration;
+    if (endAlignedStart < 0) continue;
+    const dEnd = Math.abs(snap - rawEnd);
+    if (dEnd <= thresholdSec && dEnd < bestDiff) {
+      bestDiff = dEnd;
+      bestStart = endAlignedStart;
+      guideTime = snap;
+    }
+  }
+  return { startTime: bestStart, snapGuideTime: guideTime };
+}
+
 describe("clipAcceptsTrack", () => {
   it("accepts visual on main/overlay and audio on audio only", () => {
     expect(clipAcceptsTrack({ kind: "scene" }, "main")).toBe(true);
@@ -22,6 +58,45 @@ describe("clipAcceptsTrack", () => {
     expect(clipAcceptsTrack({ kind: "scene" }, "audio")).toBe(false);
     expect(clipAcceptsTrack({ kind: "audio" }, "audio")).toBe(true);
     expect(clipAcceptsTrack({ kind: "audio" }, "main")).toBe(false);
+  });
+});
+
+describe("collectClipEdgeSnapPoints + snapMoveStartToEdges", () => {
+  it("returns sorted unique points including t=0", () => {
+    const points = collectClipEdgeSnapPoints(
+      [
+        { id: "a", startTime: 5, duration: 2 },
+        { id: "b", startTime: 1, duration: 1 },
+        { id: "c", startTime: 0, duration: 3 },
+      ],
+      new Set(["c"]),
+    );
+    expect(points).toEqual([0, 1, 2, 5, 7]);
+  });
+
+  it("lowerBound finds first index >= x", () => {
+    const sorted = [0, 1, 2, 5, 7];
+    expect(lowerBound(sorted, -1)).toBe(0);
+    expect(lowerBound(sorted, 0)).toBe(0);
+    expect(lowerBound(sorted, 2)).toBe(2);
+    expect(lowerBound(sorted, 3)).toBe(3);
+    expect(lowerBound(sorted, 7)).toBe(4);
+    expect(lowerBound(sorted, 8)).toBe(5);
+  });
+
+  it("binary snap matches linear on start-align, end-align, miss, and t=0", () => {
+    const points = [0, 1, 2.5, 4, 10, 20];
+    const cases: Array<[number, number, number]> = [
+      [2.55, 3, 0.1], // start → 2.5
+      [1.05, 3, 0.1], // end → 4 → start 1
+      [7, 1, 0.05], // miss
+      [0.04, 2, 0.1], // t=0
+    ];
+    for (const [raw, dur, thr] of cases) {
+      expect(snapMoveStartToEdges(raw, dur, points, thr)).toEqual(
+        snapLinear(raw, dur, points, thr),
+      );
+    }
   });
 });
 
@@ -192,6 +267,34 @@ describe("resolveClipMoveDrag", () => {
     expect(result.commit.track).toBe("overlay");
     expect(result.preview.laneId).toBe("lane-o");
     expect(result.preview.isInsert).toBeFalsy();
+  });
+
+  it("retargets using clipsByLane + siblingLaneRefs without full-list filter", () => {
+    const clipsByLane = new Map([
+      ["lane-v", [{ id: "other", startTime: 2, duration: 3 }]],
+      ["lane-o", [] as { id: string; startTime: number; duration: number }[]],
+    ]);
+    const siblingLaneRefs = [
+      { id: "lane-v", order: -1, role: "base" as const },
+      { id: "lane-o", order: 0, role: "overlay" as const },
+    ];
+    const result = resolveClipMoveDrag({
+      ...base,
+      pointerContentX: 350,
+      drop: {
+        laneId: "lane-v",
+        track: "main",
+        laneRole: "base",
+        laneOrder: -1,
+      },
+      clipsByLane,
+      siblingLaneRefs,
+      overlayLaneRefs: [{ id: "lane-o", order: 0, role: "overlay" }],
+      excludeIds: new Set(["c1"]),
+    });
+    expect(result.commit.insertNewLane).toBeFalsy();
+    expect(result.commit.laneId).toBe("lane-o");
+    expect(result.preview.laneId).toBe("lane-o");
   });
 
   it("recovers base role/order from lanes when drop omits them", () => {

@@ -182,22 +182,34 @@ type LaneRef = {
   role: "base" | "overlay" | "audio";
 };
 
+export type LaneAboveIndexes = {
+  /** Pre-sorted overlay lanes (asc order). */
+  overlayLaneRefs?: ReadonlyArray<LaneRef>;
+  /** Pre-sorted audio lanes (asc order). */
+  audioLaneRefs?: ReadonlyArray<LaneRef>;
+};
+
 /** Visual stack: overlays (asc order = near base) then…; audio asc. */
 export function findLaneAbove(
   current: LaneRef,
   siblings: ReadonlyArray<LaneRef>,
+  indexes?: LaneAboveIndexes,
 ): LaneRef | null {
   if (current.role === "audio") {
-    const audios = siblings
-      .filter((s) => s.role === "audio")
-      .sort((a, b) => a.order - b.order);
+    const audios =
+      indexes?.audioLaneRefs ??
+      siblings
+        .filter((s) => s.role === "audio")
+        .sort((a, b) => a.order - b.order);
     const idx = audios.findIndex((a) => a.id === current.id);
     if (idx > 0) return audios[idx - 1] ?? null;
     return null;
   }
-  const overlays = siblings
-    .filter((s) => s.role === "overlay")
-    .sort((a, b) => a.order - b.order);
+  const overlays =
+    indexes?.overlayLaneRefs ??
+    siblings
+      .filter((s) => s.role === "overlay")
+      .sort((a, b) => a.order - b.order);
   if (current.role === "base") {
     return overlays[0] ?? null;
   }
@@ -241,6 +253,13 @@ export function resolveOccupancyAwarePlacement(input: {
   allClips?: ReadonlyArray<
     Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
   >;
+  /** Prefer lane-local lookup over filtering allClips. */
+  clipsByLane?: ReadonlyMap<
+    string,
+    ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>
+  >;
+  overlayLaneRefs?: ReadonlyArray<LaneRef>;
+  audioLaneRefs?: ReadonlyArray<LaneRef>;
 }): OccupancyAwarePlacement {
   const dur = Math.max(0, input.duration);
   const desired = Math.max(0, input.desiredStart);
@@ -270,11 +289,15 @@ export function resolveOccupancyAwarePlacement(input: {
         role: input.laneRole,
       },
       input.siblingLanes ?? [],
+      {
+        overlayLaneRefs: input.overlayLaneRefs,
+        audioLaneRefs: input.audioLaneRefs,
+      },
     );
     if (above) {
-      const aboveClips = (input.allClips ?? []).filter(
-        (c) => c.laneId === above.id,
-      );
+      const aboveClips =
+        input.clipsByLane?.get(above.id) ??
+        (input.allClips ?? []).filter((c) => c.laneId === above.id);
       if (laneIsFreeAt(aboveClips, desired, dur, input.excludeIds)) {
         return {
           startTime: desired,

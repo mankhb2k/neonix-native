@@ -6,6 +6,12 @@
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import { contentXFromPointer } from "./drop-geometry";
 
+export type TimelineDropLaneRef = {
+  id: string;
+  order: number;
+  role: "base" | "overlay" | "audio";
+};
+
 export type TimelineDropHost = {
   scrollEl: HTMLElement;
   lanes: TimelineLane[];
@@ -22,6 +28,17 @@ export type TimelineDropHost = {
   clips?: ReadonlyArray<
     Pick<TimelineClip, "id" | "laneId" | "startTime" | "duration">
   >;
+  /** Lane-local clips — prefer over filtering `clips` each frame. */
+  clipsByLane?: ReadonlyMap<
+    string,
+    ReadonlyArray<Pick<TimelineClip, "id" | "startTime" | "duration">>
+  >;
+  /** Prebuilt sibling refs (id/order/role) for occupancy. */
+  siblingLaneRefs?: ReadonlyArray<TimelineDropLaneRef>;
+  /** Sorted overlay lanes (asc order) for findLaneAbove. */
+  overlayLaneRefs?: ReadonlyArray<TimelineDropLaneRef>;
+  /** Sorted audio lanes (asc order) for findLaneAbove. */
+  audioLaneRefs?: ReadonlyArray<TimelineDropLaneRef>;
 };
 
 let host: TimelineDropHost | null = null;

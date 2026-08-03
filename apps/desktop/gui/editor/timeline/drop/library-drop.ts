@@ -300,15 +300,12 @@ export function resolveDropGeometryAtPoint(
           : lane.role === "base"
             ? "base"
             : "overlay";
-      const onLane = (host.clips ?? []).filter((c) => c.laneId === lane.id);
-      const occupancy = resolveOccupancyAwarePlacement({
-        clipsOnLane: onLane,
-        desiredStart: nextStart,
-        duration: payloadDurationSec(payload),
-        laneId: lane.id,
-        laneOrder: lane.order,
-        laneRole,
-        siblingLanes: host.lanes.map((l) => ({
+      const onLane =
+        host.clipsByLane?.get(lane.id) ??
+        (host.clips ?? []).filter((c) => c.laneId === lane.id);
+      const siblingLanes =
+        host.siblingLaneRefs ??
+        host.lanes.map((l) => ({
           id: l.id,
           order: l.order,
           role:
@@ -317,8 +314,19 @@ export function resolveDropGeometryAtPoint(
               : l.role === "base"
                 ? ("base" as const)
                 : ("overlay" as const),
-        })),
+        }));
+      const occupancy = resolveOccupancyAwarePlacement({
+        clipsOnLane: onLane,
+        desiredStart: nextStart,
+        duration: payloadDurationSec(payload),
+        laneId: lane.id,
+        laneOrder: lane.order,
+        laneRole,
+        siblingLanes,
         allClips: host.clips,
+        clipsByLane: host.clipsByLane,
+        overlayLaneRefs: host.overlayLaneRefs,
+        audioLaneRefs: host.audioLaneRefs,
       });
       nextStart = occupancy.startTime;
       if (occupancy.edgeGuideTime != null) {
