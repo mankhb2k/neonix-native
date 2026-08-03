@@ -9,6 +9,7 @@ import {
   setClipMovePreview,
   setDropGhost,
   setMarquee,
+  setMarqueeSelectionIds,
   subscribePreview,
 } from "./timeline-preview-session";
 
@@ -137,6 +138,17 @@ describe("timeline-preview-session", () => {
       dropGhost: null,
       clipMovePreview: null,
       marquee: null,
+      marqueeSelectionIds: null,
     });
+  });
+
+  it("stores marquee selection preview ids and clears them with setMarquee(null)", () => {
+    setMarquee({ left: 0, top: 0, right: 10, bottom: 10 });
+    setMarqueeSelectionIds(["a", "b"]);
+    expect(getPreviewSession().marqueeSelectionIds).toEqual(["a", "b"]);
+    setMarqueeSelectionIds([]);
+    expect(getPreviewSession().marqueeSelectionIds).toEqual([]);
+    setMarquee(null);
+    expect(getPreviewSession().marqueeSelectionIds).toBeNull();
   });
 });

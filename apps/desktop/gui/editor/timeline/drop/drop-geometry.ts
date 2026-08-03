@@ -4,11 +4,15 @@
  */
 
 import type { TimelineLane } from "@motionvideo/editor-core";
+import {
+  trackForLane,
+  type TimelineTrackKind,
+} from "../clips/track-for-lane";
 
 export type TimelineDropGeometry = {
   laneId: string;
   startTime: number;
-  track: "main" | "overlay" | "audio";
+  track: TimelineTrackKind;
 };
 
 export type DropGeometryInput = {
@@ -47,12 +51,6 @@ export function contentXFromPointer(input: {
   return (
     input.clientX - rect.left + input.scrollEl.scrollLeft - input.tracksOriginX
   );
-}
-
-function trackForLane(lane: TimelineLane): "main" | "overlay" | "audio" {
-  if (lane.kind === "audio") return "audio";
-  if (lane.kind === "visual" && lane.role === "base") return "main";
-  return "overlay";
 }
 
 export function resolveTimelineDropGeometry(

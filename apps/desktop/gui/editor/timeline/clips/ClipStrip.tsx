@@ -13,25 +13,20 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import { useMovePreviewForLane } from "../interactions/timeline-preview-session";
+import { useMovePreviewForLane, useMarqueeSelectionIds } from "../interactions/timeline-preview-session";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import { cn } from "../../../ui";
 import type { ClipMovePreview } from "./clip-move-geometry";
+import {
+  trackForLane,
+  type TimelineTrackKind,
+} from "./track-for-lane";
 import { useClipMove } from "./use-clip-move";
 import { useClipTrim, type ClipTrimPreview } from "./use-clip-trim";
 
 export type { ClipMovePreview };
 
-type TrackKind = "main" | "overlay" | "audio";
-
-function trackForLane(lane: TimelineLane | undefined): TrackKind {
-  if (!lane) return "main";
-  if (lane.kind === "audio") return "audio";
-  if (lane.role === "base") return "main";
-  return "overlay";
-}
-
-function clipClassName(trackKind: TrackKind, selected: boolean): string {
+function clipClassName(trackKind: TimelineTrackKind, selected: boolean): string {
   const selectedCls = selected
     ? trackKind === "main"
       ? "z-10 border-2 border-white text-white shadow-md"
@@ -75,7 +70,10 @@ export const ClipStrip = memo(function ClipStrip({
   onExecute,
 }: Props) {
   const pps = Math.max(pixelsPerSecond, 0.001);
-  const selected = new Set(selectedClipIdsFrom(selection));
+  const marqueeSelectionIds = useMarqueeSelectionIds();
+  const selected = new Set(
+    marqueeSelectionIds ?? selectedClipIdsFrom(selection),
+  );
   const [trimPreview, setTrimPreview] = useState<ClipTrimPreview | null>(null);
   const activeMove = useMovePreviewForLane(lane.id);
 

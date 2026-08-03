@@ -10,7 +10,6 @@ import {
   visibleTimeRange,
   type LaneTimelineIndex,
   type TimelineClip,
-  type TimelineLane,
 } from "@motionvideo/editor-core";
 
 export const TIMELINE_CLIP_OVERSCAN_PX = 120;
@@ -20,7 +19,6 @@ export type UseVisibleTimelineArgs = {
   scrollLeft: number;
   viewWidth: number;
   pixelsPerSecond: number;
-  lanes: TimelineLane[];
   clipsByLane: Map<string, TimelineClip[]>;
   pinIds?: ReadonlySet<string>;
 };
@@ -29,7 +27,6 @@ export function useVisibleTimeline({
   scrollLeft,
   viewWidth,
   pixelsPerSecond,
-  lanes,
   clipsByLane,
   pinIds,
 }: UseVisibleTimelineArgs): {
@@ -76,7 +73,6 @@ export function useVisibleTimeline({
     };
   }, [clipsByLane, indexesByLane, timeRange.start, timeRange.end, pins]);
 
-  void lanes;
   return { timeRange, clipsForLane };
 }
 

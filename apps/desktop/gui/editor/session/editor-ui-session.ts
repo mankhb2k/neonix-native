@@ -44,7 +44,7 @@ export type EditorUiSessionState = {
   resetForProject: (fitAnchorSeconds?: number | null) => void;
 };
 
-export const useEditorUiSession = create<EditorUiSessionState>((set, get) => ({
+export const useEditorUiSession = create<EditorUiSessionState>((set) => ({
   timelineZoom: 50,
   timelineZoomScale: 1,
   timelineZoomMode: "fit",

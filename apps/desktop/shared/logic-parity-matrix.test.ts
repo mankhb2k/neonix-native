@@ -1,5 +1,6 @@
 /**
  * Logic-6 — assert each domain in the parity matrix has a reachable automated seam.
+ * Lives in apps/desktop (not editor-core) so it may import desktop IPC/stage/journal.
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -7,15 +8,12 @@ import {
   executeTimelineCommand,
   PROPERTY_REGISTRY,
 } from "@motionvideo/editor-core";
-import { fixtureMainOnly } from "./projects";
-import {
-  exportOutputSize,
-  resolveExportPreset,
-} from "../../../../../apps/desktop/shared/export/presets";
-import { resolveStageBackend } from "../../../../../apps/desktop/gui/editor/stage/stage-renderer-factory";
-import { BEHAVIOR_SCAFFOLD_STATUS } from "../../../../../apps/desktop/gui/editor/timeline/adapters/advanced-timeline";
-import { createDisabledProjectJournal } from "../../../../../apps/desktop/electron/main/services/project-journal.service";
-import { IpcChannels } from "../../../../../apps/desktop/shared/ipc/channels";
+import { fixtureMainOnly } from "@editor-core-fixtures/projects";
+import { exportOutputSize, resolveExportPreset } from "./export/presets";
+import { resolveStageBackend } from "../gui/editor/stage/stage-renderer-factory";
+import { BEHAVIOR_SCAFFOLD_STATUS } from "../gui/editor/timeline/adapters/advanced-timeline";
+import { createDisabledProjectJournal } from "../electron/main/services/project-journal/project-journal.service";
+import { IpcChannels } from "./ipc/channels";
 
 describe("logic parity matrix seams (Logic-6)", () => {
   it("Project / Timeline / Inspector / Export / Stage / Window channels exist", () => {

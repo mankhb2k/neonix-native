@@ -1,6 +1,10 @@
 /**
  * High-frequency timeline chrome (library drop / clip-move / marquee).
  * Module store so TimelineViewport does not re-render every pointer frame.
+ *
+ * Invariant: single active timeline editor. Call `clearPreviewSession()` on
+ * viewport unmount and when switching projects so a stale dropGhost/marquee
+ * cannot leak into the next mount.
  */
 
 import { useCallback, useSyncExternalStore } from "react";
@@ -16,12 +20,15 @@ export type TimelinePreviewSession = {
   dropGhost: LibraryDropPreview | null;
   clipMovePreview: ClipMovePreview | null;
   marquee: MarqueeRect | null;
+  /** Live marquee highlight ids; null = no active marquee preview. */
+  marqueeSelectionIds: string[] | null;
 };
 
 const EMPTY: TimelinePreviewSession = {
   dropGhost: null,
   clipMovePreview: null,
   marquee: null,
+  marqueeSelectionIds: null,
 };
 
 let current: TimelinePreviewSession = EMPTY;
@@ -29,6 +36,7 @@ const listeners = new Set<() => void>();
 
 /** Stable empty snapshot for lane selectors that miss. */
 const NULL_MOVE: ClipMovePreview | null = null;
+const NULL_MARQUEE_IDS: string[] | null = null;
 
 let cachedPinKey = "";
 let dropGhostRaf: number | null = null;
@@ -46,11 +54,25 @@ function emit(): void {
   for (const listener of listeners) listener();
 }
 
+function marqueeIdsEqual(
+  a: string[] | null,
+  b: string[] | null,
+): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 function setSession(next: TimelinePreviewSession): void {
   if (
     next.dropGhost === current.dropGhost &&
     next.clipMovePreview === current.clipMovePreview &&
-    next.marquee === current.marquee
+    next.marquee === current.marquee &&
+    marqueeIdsEqual(next.marqueeSelectionIds, current.marqueeSelectionIds)
   ) {
     return;
   }
@@ -81,8 +103,18 @@ export function setClipMovePreview(clipMovePreview: ClipMovePreview | null): voi
 }
 
 export function setMarquee(marquee: MarqueeRect | null): void {
+  if (marquee == null) {
+    if (current.marquee == null && current.marqueeSelectionIds == null) return;
+    setSession({ ...current, marquee: null, marqueeSelectionIds: null });
+    return;
+  }
   if (current.marquee === marquee) return;
   setSession({ ...current, marquee });
+}
+
+export function setMarqueeSelectionIds(ids: string[] | null): void {
+  if (marqueeIdsEqual(ids, current.marqueeSelectionIds)) return;
+  setSession({ ...current, marqueeSelectionIds: ids });
 }
 
 export function clearPreviewSession(): void {
@@ -91,7 +123,8 @@ export function clearPreviewSession(): void {
   if (
     current.dropGhost == null &&
     current.clipMovePreview == null &&
-    current.marquee == null
+    current.marquee == null &&
+    current.marqueeSelectionIds == null
   ) {
     return;
   }
@@ -199,6 +232,19 @@ export function useMovePreviewForLane(
     [laneId],
   );
   return useSyncExternalStore(subscribePreview, getSnapshot, getSnapshot);
+}
+
+function getMarqueeSelectionIds(): string[] | null {
+  return current.marqueeSelectionIds ?? NULL_MARQUEE_IDS;
+}
+
+/** Live marquee highlight ids; null when marquee preview is inactive. */
+export function useMarqueeSelectionIds(): string[] | null {
+  return useSyncExternalStore(
+    subscribePreview,
+    getMarqueeSelectionIds,
+    () => null,
+  );
 }
 
 function getDropGhostActive(): boolean {

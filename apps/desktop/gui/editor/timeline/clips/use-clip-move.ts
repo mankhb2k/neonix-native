@@ -31,18 +31,13 @@ import {
   type ClipMoveDropTarget,
   type ClipMovePreview,
 } from "./clip-move-geometry";
+import {
+  trackForLane,
+  type TimelineTrackKind,
+} from "./track-for-lane";
 
 const DRAG_THRESHOLD_PX = 4;
 const SNAP_THRESHOLD_PX = 8;
-
-type TrackKind = "main" | "overlay" | "audio";
-
-function trackForLane(lane: TimelineLane | undefined): TrackKind {
-  if (!lane) return "main";
-  if (lane.kind === "audio") return "audio";
-  if (lane.role === "base") return "main";
-  return "overlay";
-}
 
 function laneRoleOf(
   lane: Pick<TimelineLane, "kind" | "role"> | undefined,
@@ -60,7 +55,7 @@ function dropTargetFromPolicy(
   scrollEl: HTMLElement,
 ): ClipMoveDropTarget {
   const contentTop = target.indicatorTop + scrollEl.scrollTop;
-  const track: TrackKind =
+  const track: TimelineTrackKind =
     target.family === "audio"
       ? "audio"
       : target.overBaseBody
@@ -220,7 +215,7 @@ export function useClipMove({
       type MoveState = {
         startTime: number;
         laneId: string;
-        track: TrackKind;
+        track: TimelineTrackKind;
         moved: boolean;
         valid: boolean;
         groupDelta: number;

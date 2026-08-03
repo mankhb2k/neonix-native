@@ -211,6 +211,7 @@ describe("drop-host CapCut policy", () => {
         {
           id: "aud",
           kind: "audio",
+          role: "audio",
           name: "A",
           order: 0,
         },

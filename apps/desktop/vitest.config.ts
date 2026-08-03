@@ -5,6 +5,10 @@ import react from "@vitejs/plugin-react";
 const sharedAlias = {
   "@shared": path.resolve(__dirname, "shared"),
   "@gui": path.resolve(__dirname, "gui"),
+  "@editor-core-fixtures": path.resolve(
+    __dirname,
+    "../../packages/editor-core/src/testing/fixtures",
+  ),
   "@motionvideo/editor-core": path.resolve(
     __dirname,
     "../../packages/editor-core/src/index.ts",
@@ -57,6 +61,7 @@ export default defineConfig({
             "gui/**/*.test.tsx",
             "gui/**/stage-renderer-contract.test.ts",
           ],
+          exclude: [...PERF_FILES],
         },
       },
       {
