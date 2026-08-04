@@ -6,3 +6,4 @@ export * from "./clock";
 export * from "./geometry";
 export * from "./secondary-motion";
 export * from "./render-plan";
+export * from "./procedural-driver";
