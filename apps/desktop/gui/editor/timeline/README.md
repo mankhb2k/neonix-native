@@ -84,3 +84,28 @@ Dưới đây là các thuật ngữ chuẩn dùng trong codebase và khi giao t
 * **`z-[45]`:** Trục dọc (Line) của Playhead. Nằm trên cùng mặt phẳng track để không bị Clip che khuất.
 * **`z-50`:** Khung quét chọn (Marquee). Hoặc Sidebar dán nhãn Lane (Sticky Lane Labels).
 * **`z-[60]`:** Khối nổi lơ lửng bám theo chuột (Floating Bubble). Mức cao nhất để đảm bảo khi kéo chuột, Clip không bao giờ bị che bởi bất kỳ thành phần nào khác.
+
+---
+
+## 6. Chế Độ Dual Timeline: Track Mode & Layer Mode
+
+Timeline hỗ trợ 2 chế độ hiển thị và tương tác chính:
+
+### 🎬 Track Mode (Chế Độ Track / Main Timeline)
+- **Bản chất**: Không gian dựng phim tổng thể chứa các Track nối tiếp nhau.
+- **Tính năng**:
+  - Hỗ trợ **Split (Cắt clip - Ctrl+B)**, cho phép sắp xếp nhiều Clip nằm nối tiếp trên cùng một track.
+  - Mỗi Clip đóng vai trò là một **Frame / Pre-comp Block** (Container).
+  - Dùng để ghép kịch bản phim, chèn nhạc nền, hiệu ứng chuyển cảnh.
+
+### 📄 Layer Mode (Chế Độ Layer / Sub Timeline)
+- **Kích hoạt**: Click đúp vào một Clip trên Main Timeline hoặc click đúp ở Sidebar `LayersPanel`.
+- **Bản chất**: Không gian thời gian nội bộ bên trong 1 Clip Container (tính từ `0.0s` đến hết thời lượng của Clip đó).
+- **Tính năng**:
+  - **Mỗi hàng chỉ chứa đúng 1 Layer phần tử** (Text, Shape, Sticker). Không cho phép 2 phần tử nằm chung 1 hàng.
+  - **Không có nút Split (Cắt clip)** vì mỗi Layer là một đối tượng đồ họa nguyên khối.
+  - Dùng để căn chỉnh thời điểm xuất hiện (`In-point` / `Out-point`) và tạo keyframe hiệu ứng chuyển động cho từng layer con.
+- **Điều hướng (Navigation)**:
+  - Hiển thị nút **Back Breadcrumb** ở góc trái thanh Transport Bar (`⬅️ Quay lại Track / 📦 Frame 1`).
+  - Hỗ trợ phím tắt **`Esc`** để quay lại `Track Mode` ngay lập tức.
+
