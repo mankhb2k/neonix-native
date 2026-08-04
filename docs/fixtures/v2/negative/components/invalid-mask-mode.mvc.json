@@ -3,7 +3,7 @@
   "metadata": { "name": "Invalid mask mode" }, "assets": [], "variables": [], "publicAPI": [],
   "nodes": [
     { "id": "source", "type": "shape", "parentId": null, "transform": { "x": 0, "y": 0, "width": 100, "height": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "ellipse" }, "style": { "fill": "#ffffff" } },
-    { "id": "content", "type": "shape", "parentId": null, "mask": { "sourceNodeId": "source", "mode": "luma", "sourceVisibility": "mask-only" }, "transform": { "x": 0, "y": 0, "width": 100, "height": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#ffffff" } }
+    { "id": "content", "type": "shape", "parentId": null, "mask": { "sourceNodeId": "source", "mode": "invalid-mask-mode-type", "sourceVisibility": "mask-only" }, "transform": { "x": 0, "y": 0, "width": 100, "height": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "shape": "rectangle" }, "style": { "fill": "#ffffff" } }
   ],
   "bindings": [], "clips": []
 }

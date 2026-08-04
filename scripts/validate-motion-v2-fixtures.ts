@@ -1600,7 +1600,22 @@ async function main(): Promise<void> {
   if (JSON.stringify(cutoutRuntime).includes("\"lipSync\"")) throw new Error("Compiler leaked lip-sync cue metadata into Runtime IR");
   console.log("OK compiler/lip-sync cues expand to assetId step keys without Runtime metadata");
 
-  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases, ${goldenCount} Runtime golden and ${coverageCount} primitives-coverage rows.`);
+  const matrix = await readJson(resolve(fixturesRoot, "primitives-fidelity-matrix.json")) as {
+    primitives: Array<{ id: string; status: string; gates: Record<string, string> }>;
+    requiredGatesForImplemented: string[];
+  };
+  for (const primitive of matrix.primitives) {
+    if (primitive.status === "Implemented") {
+      for (const gate of matrix.requiredGatesForImplemented) {
+        if (primitive.gates[gate] !== "pass") {
+          throw new Error(`Primitive ${primitive.id} marked Implemented but gate ${gate} is ${primitive.gates[gate]}`);
+        }
+      }
+    }
+  }
+  console.log("OK primitive fidelity matrix verified");
+
+  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases, ${goldenCount} Runtime golden, ${matrix.primitives.length} fidelity matrix primitives and ${coverageCount} primitives-coverage rows.`);
 }
 
 main().catch((error: unknown) => {

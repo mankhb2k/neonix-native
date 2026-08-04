@@ -1,0 +1,41 @@
+{
+  "format": "motion-component",
+  "formatVersion": 2,
+  "componentId": "negative.invalid-key-easing",
+  "componentVersion": "1.0.0",
+  "metadata": { "name": "Invalid key easing" },
+  "assets": [],
+  "variables": [],
+  "publicAPI": [],
+  "nodes": [
+    {
+      "id": "box",
+      "type": "shape",
+      "parentId": null,
+      "transform": { "x": 0, "y": 0, "width": 100, "height": 100, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+      "payload": { "shape": "rectangle" }
+    }
+  ],
+  "bindings": [],
+  "clips": [
+    {
+      "id": "clip.move",
+      "targetId": "box",
+      "schedule": { "kind": "absolute", "at": 0 },
+      "duration": 1,
+      "source": {
+        "kind": "tracks",
+        "tracks": [
+          {
+            "targetId": "box",
+            "property": "transform.x",
+            "keys": [
+              { "t": 0, "v": 0, "easing": "invalid-cubic-bounce" },
+              { "t": 1, "v": 100 }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

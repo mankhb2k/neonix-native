@@ -36,12 +36,13 @@ export type EvaluatedNode = {
 export function easingValue(progress: number, easing = "linear"): number {
   const value = Math.min(1, Math.max(0, progress));
   switch (easing) {
+    case "linear": return value;
     case "step": return value < 1 ? 0 : 1;
     case "easeIn": return value * value;
     case "easeInOut": return value < 0.5 ? 2 * value * value : 1 - (-2 * value + 2) ** 2 / 2;
     case "spring": return Math.min(1.08, 1 - Math.cos(value * Math.PI * 2.5) * Math.exp(-5 * value));
     case "easeOut": return 1 - (1 - value) ** 3;
-    default: return value;
+    default: throw new Error(`Unknown runtime easing: ${String(easing)}`);
   }
 }
 
@@ -248,6 +249,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     let parentMatrix = IDENTITY_MATRIX;
     let worldOpacity = transform.opacity;
     let visible = transform.visible;
+
     if (node.parentId) {
       const parentNode = byId.get(node.parentId);
       if (!parentNode) throw new Error(`Runtime parent missing: ${node.parentId}`);
@@ -293,8 +295,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       };
     }
 
-    const constraint = node.modifiers?.find((modifier) => modifier.type === "constraint");
-    if (constraint) {
+    for (const constraint of (node.modifiers ?? []).filter((m) => m.type === "constraint")) {
       const targetNode = byId.get(constraint.targetNodeId);
       if (!targetNode) throw new Error(`Runtime Constraint target missing: ${constraint.targetNodeId}`);
       const target = evaluated.get(targetNode.id) ?? evaluate(targetNode);
@@ -329,30 +330,27 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     const worldMatrix = multiplyMatrix(parentMatrix, localTransformMatrix(transform));
     let paintContours = node.type === "path" ? node.payload.contours : undefined;
     if (node.type === "path") {
-      const pathMorph = node.modifiers?.find((modifier) => modifier.type === "path-morph");
-      if (pathMorph) {
-        const progress = evaluateProperty(scene, node, `modifiers.${pathMorph.id}.progress`, time, pathMorph.progress);
-        paintContours = pathMorphContours(
-          node,
-          typeof progress === "number" ? progress : typeof pathMorph.progress === "number" ? pathMorph.progress : 0,
-        );
-      }
-      const bend = node.modifiers?.find((modifier) => modifier.type === "path-bend");
-      if (bend) {
-        const amount = evaluateProperty(scene, node, `modifiers.${bend.id}.amount`, time, bend.amount);
-        paintContours = bendPathContours(paintContours ?? node.payload.contours, typeof amount === "number" ? amount : bend.amount);
-      }
-      const trim = node.modifiers?.find((modifier) => modifier.type === "trim-path");
-      if (trim) {
-        const start = evaluateProperty(scene, node, `modifiers.${trim.id}.start`, time, trim.start);
-        const end = evaluateProperty(scene, node, `modifiers.${trim.id}.end`, time, trim.end);
-        const offset = evaluateProperty(scene, node, `modifiers.${trim.id}.offset`, time, trim.offset);
-        paintContours = trimPathContours(
-          paintContours ?? node.payload.contours,
-          typeof start === "number" ? start : trim.start,
-          typeof end === "number" ? end : trim.end,
-          typeof offset === "number" ? offset : trim.offset,
-        );
+      for (const modifier of node.modifiers ?? []) {
+        if (modifier.type === "path-morph") {
+          const progress = evaluateProperty(scene, node, `modifiers.${modifier.id}.progress`, time, modifier.progress);
+          paintContours = pathMorphContours(
+            node,
+            typeof progress === "number" ? progress : typeof modifier.progress === "number" ? modifier.progress : 0,
+          );
+        } else if (modifier.type === "path-bend") {
+          const amount = evaluateProperty(scene, node, `modifiers.${modifier.id}.amount`, time, modifier.amount);
+          paintContours = bendPathContours(paintContours ?? node.payload.contours, typeof amount === "number" ? amount : modifier.amount);
+        } else if (modifier.type === "trim-path") {
+          const start = evaluateProperty(scene, node, `modifiers.${modifier.id}.start`, time, modifier.start);
+          const end = evaluateProperty(scene, node, `modifiers.${modifier.id}.end`, time, modifier.end);
+          const offset = evaluateProperty(scene, node, `modifiers.${modifier.id}.offset`, time, modifier.offset);
+          paintContours = trimPathContours(
+            paintContours ?? node.payload.contours,
+            typeof start === "number" ? start : modifier.start,
+            typeof end === "number" ? end : modifier.end,
+            typeof offset === "number" ? offset : modifier.offset,
+          );
+        }
       }
     }
 

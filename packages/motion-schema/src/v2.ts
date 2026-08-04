@@ -332,7 +332,7 @@ const NodeBaseSchema = z.object({
   inheritOpacity: z.boolean().optional(),
   mask: z.object({
     sourceNodeId: IdSchema,
-    mode: z.enum(["clip", "alpha", "inverse-alpha"]),
+    mode: z.enum(["clip", "alpha", "inverse-alpha", "luma", "inverse-luma"]),
     sourceVisibility: z.enum(["mask-only", "content-and-mask"]),
   }).strict().optional(),
 });
@@ -557,6 +557,19 @@ export const ComponentNodeV2Schema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
+export const SolidNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("solid"),
+  payload: z.object({
+    width: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension),
+    height: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension),
+    color: z.string().min(1),
+  }).strict(),
+}).strict();
+
+export const AdjustmentNodeV2Schema = NodeBaseSchema.extend({
+  type: z.literal("adjustment"),
+}).strict();
+
 export const NodeV2Schema = z.discriminatedUnion("type", [
   GroupNodeV2Schema,
   BoneNodeV2Schema,
@@ -568,6 +581,8 @@ export const NodeV2Schema = z.discriminatedUnion("type", [
   VideoNodeV2Schema,
   CameraNodeV2Schema,
   ComponentNodeV2Schema,
+  SolidNodeV2Schema,
+  AdjustmentNodeV2Schema,
 ]);
 
 export const ClipScheduleSchema = z.discriminatedUnion("kind", [
@@ -596,17 +611,32 @@ export const PlaybackSchema = z
     }
   });
 
+export const KeyframeEasingV2Schema = z.enum(["linear", "easeIn", "easeOut", "easeInOut", "spring", "step"]);
+
+export const ValueKindSchema = z.enum(["number", "angle", "vec2", "color", "boolean", "string", "asset", "path", "gradient"]);
+
+export const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("clamp") }).strict(),
+  z.object({ type: z.literal("cycle"), mode: z.enum(["repeat", "pingpong"]).optional() }).strict(),
+  z.object({ type: z.literal("pingpong") }).strict(),
+  z.object({ type: z.literal("offset-cycle") }).strict(),
+  z.object({ type: z.literal("continue") }).strict(),
+]);
+
 const PropertyTrackSchema = z
   .object({
     targetId: IdSchema,
     property: PropertyPathSchema,
+    valueKind: ValueKindSchema.optional(),
+    preBehavior: ExtrapolationBehaviorSchema.optional(),
+    postBehavior: ExtrapolationBehaviorSchema.optional(),
     keys: z
       .array(
         z
           .object({
             t: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
             v: ResolvableValueSchema,
-            easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "spring", "step"]).optional(),
+            easing: KeyframeEasingV2Schema.optional(),
           })
           .strict(),
       )
@@ -869,13 +899,18 @@ const RuntimeNodeSchema = z.discriminatedUnion("type", [
   SvgNodeV2Schema.omit({ repeat: true }),
   VideoNodeV2Schema.omit({ repeat: true }),
   CameraNodeV2Schema.omit({ repeat: true }),
+  SolidNodeV2Schema.omit({ repeat: true }),
+  AdjustmentNodeV2Schema.omit({ repeat: true }),
 ]);
 
 const RuntimeTrackSchema = z
   .object({
     targetId: IdSchema,
     property: PropertyPathSchema,
-    keys: z.array(z.object({ t: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds), v: LiteralValueSchema, easing: z.string().optional() }).strict()).min(1).max(MOTION_V2_LIMITS.keysPerTrack),
+    valueKind: ValueKindSchema.optional(),
+    preBehavior: ExtrapolationBehaviorSchema.optional(),
+    postBehavior: ExtrapolationBehaviorSchema.optional(),
+    keys: z.array(z.object({ t: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds), v: LiteralValueSchema, easing: KeyframeEasingV2Schema.optional() }).strict()).min(1).max(MOTION_V2_LIMITS.keysPerTrack),
   })
   .strict();
 

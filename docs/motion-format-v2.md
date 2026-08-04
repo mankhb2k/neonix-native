@@ -2,9 +2,9 @@
 
 Đây là contract normative duy nhất cho `.mt` và `.mvc`. Schema thực thi nằm tại `packages/motion-schema/src/v2.ts`; API không có hậu tố version luôn trả canonical format hiện tại. Input không đúng contract bị từ chối và không có migration boundary.
 
-**P0 schema freeze:** 2026-07-25 (`formatVersion: 2`). Checklist: [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md). Post-freeze schema PRs need ± fixtures and a breaking/non-breaking note; breaking changes bump `formatVersion` or use `extensions`.
+> **Trạng thái pre-public:** quyết định freeze P0 ngày `2026-07-25` đã được chủ động gỡ bỏ. Vì chưa có project v2 thật đang chạy, schema được rebaseline trực tiếp theo [`v2-upgrade.md`](v2-upgrade.md), vẫn giữ `formatVersion: 2` và không duy trì compatibility layer hay migrator cho baseline thử nghiệm cũ. Chỉ freeze lại v2 sau khi hoàn tất các gate Core 2.5D.
 
-## P0 surface (frozen)
+## Surface baseline hiện tại (đang được rebaseline)
 
 | Family | In P0 |
 |---|---|
@@ -32,7 +32,7 @@ Component { format: motion-component, formatVersion: 2, componentVersion: semver
 Patch     { format: motion-patch,     formatVersion: 1, baseRevision, operations }
 ```
 
-`formatVersion` điều khiển migration schema. `componentVersion` điều khiển compatibility của public contract. Package đã publish là bất biến.
+Trong giai đoạn pre-public rebaseline, `formatVersion` giữ nguyên là `2`; fixtures và goldens cũ được viết lại trực tiếp thay vì migrate. Sau lần public đầu tiên, thay đổi breaking mới phải tăng format version và có migration contract rõ ràng. `componentVersion` điều khiển compatibility của public contract; package đã publish là bất biến.
 
 ## Authoring IR và Runtime IR
 
