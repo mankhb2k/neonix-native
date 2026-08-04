@@ -99,8 +99,12 @@ Timeline hỗ trợ 2 chế độ hiển thị và tương tác chính:
   - Dùng để ghép kịch bản phim, chèn nhạc nền, hiệu ứng chuyển cảnh.
 
 ### 📄 Layer Mode (Chế Độ Layer / Sub Timeline)
-- **Kích hoạt**: Click đúp vào một Clip trên Main Timeline hoặc click đúp ở Sidebar `LayersPanel`.
-- **Bản chất**: Không gian thời gian nội bộ bên trong 1 Clip Container (tính từ `0.0s` đến hết thời lượng của Clip đó).
+- **Kích hoạt**: Click đúp vào bất kỳ Clip nào trên Main Timeline (`test-video1.mp4`, `Hình vuông`, `Text`, v.v.) hoặc click đúp ở Sidebar `LayersPanel`.
+- **Bản chất**: Không gian làm việc đa lớp bên trong Clip Container tương ứng.
+- **Đồng bộ thời gian thực (Global Time Alignment)**:
+  - **Giữ nguyên thước đo thời gian toàn dự án**: Mốc Ruler ở `Layer Mode` trùng khớp 100% với mốc thời gian thực của toàn bộ Timeline.
+  - **Làm mờ các Clip xung quanh (Muted Context Clues)**: Các clip khác nằm ngoài Container đang chọn vẫn được hiển thị nhưng ở trạng thái **làm mờ đục (~30% opacity)** để người dùng nhận diện bối cảnh thời gian toàn dự án.
+  - **Giới hạn khung Container (Boundary Clamping)**: Các layer bên trong Container bị **giới hạn nghiêm ngặt trong khoảng `[startTime, startTime + duration]`** của Container đó, không thể kéo dài hay dịch chuyển ra ngoài phạm vi Container.
 - **Tính năng**:
   - **Mỗi hàng chỉ chứa đúng 1 Layer phần tử** (Text, Shape, Sticker). Không cho phép 2 phần tử nằm chung 1 hàng.
   - **Không có nút Split (Cắt clip)** vì mỗi Layer là một đối tượng đồ họa nguyên khối.
