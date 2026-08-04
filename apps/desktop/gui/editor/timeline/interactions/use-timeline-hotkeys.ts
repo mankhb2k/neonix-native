@@ -55,6 +55,7 @@ export function useTimelineHotkeys({
       if (event.repeat) return;
       if (isTypingTarget(event.target)) return;
       const mod = event.metaKey || event.ctrlKey;
+      const owned = isTimelineOwned();
       if (event.key === "Escape") {
         const session = useEditorUiSession.getState();
         if (session.timelineMode === "layer") {
