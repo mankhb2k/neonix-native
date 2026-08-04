@@ -110,6 +110,27 @@ export type DocumentPropertyCommand =
       t: number;
       v: number | string | boolean;
       easing?: "linear" | "easeIn" | "easeOut" | "easeInOut" | "spring" | "step";
+    }
+  | {
+      type: "move-property-keyframe";
+      targets: NodeTargetRef[];
+      property: string;
+      t: number;
+      newT: number;
+      newV?: number | string | boolean;
+    }
+  | {
+      type: "delete-property-keyframe";
+      targets: NodeTargetRef[];
+      property: string;
+      t: number;
+    }
+  | {
+      type: "set-keyframe-easing";
+      targets: NodeTargetRef[];
+      property: string;
+      t: number;
+      easing: "linear" | "easeIn" | "easeOut" | "easeInOut" | "spring" | "step";
     };
 
 export type PropertyDomainEvent =
