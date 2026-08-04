@@ -164,9 +164,16 @@ export const ClipStrip = memo(function ClipStrip({
             title={clip.name || clip.id}
             onPointerDown={(e) => {
               if (isDimmed) return;
+              if (e.button === 0 && e.detail === 2) {
+                e.preventDefault();
+                e.stopPropagation();
+                enterLayerMode(clip.id);
+                return;
+              }
               beginMove(e, clip);
             }}
             onDoubleClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               enterLayerMode(clip.id);
             }}
