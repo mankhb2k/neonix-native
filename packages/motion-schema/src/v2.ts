@@ -694,21 +694,26 @@ export const ProjectBindingSchema = z
   })
   .strict();
 
-export const PublicParamSchema = z
+export const PublicParamV2Schema = z
   .object({
     id: IdSchema,
+    name: z.string().min(1).optional(),
     type: z.enum(["string", "color", "number", "boolean", "image", "enum", "list"]),
     label: z.string().min(1).optional(),
     variableId: IdSchema,
     semantic: SemanticSchema.optional(),
     min: FiniteNumberSchema.optional(),
     max: FiniteNumberSchema.optional(),
+    step: FiniteNumberSchema.positive().optional(),
+    previewHint: z.string().optional(),
     options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions).optional(),
     group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
     control: z.enum(["text", "textarea", "color-picker", "slider", "toggle", "asset-picker", "enum"]).optional(),
     capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
   })
   .strict();
+
+export const PublicParamSchema = PublicParamV2Schema;
 
 const SvgSourceImportSchema = z.object({
   id: IdSchema,
