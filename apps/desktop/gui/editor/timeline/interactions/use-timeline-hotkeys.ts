@@ -6,6 +6,7 @@
 
 import { useEffect } from "react";
 import type { TimelineCommand } from "@motionvideo/editor-core";
+import { useEditorUiSession } from "../../session/editor-ui-session";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 
 type Args = {
@@ -19,6 +20,8 @@ type Args = {
   onCopy?: () => void;
   onCut?: () => void;
   onPaste?: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
 };
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -38,6 +41,8 @@ export function useTimelineHotkeys({
   onCopy,
   onCut,
   onPaste,
+  onZoomIn,
+  onZoomOut,
 }: Args): void {
   const toggleAutoSnapping = useTimelineInteractionPrefs(
     (s) => s.toggleAutoSnapping,
@@ -70,6 +75,27 @@ export function useTimelineHotkeys({
       ) {
         event.preventDefault();
         onRedo();
+        return;
+      }
+
+      if (mod && (event.key === "-" || event.key === "_" || event.code === "NumpadSubtract")) {
+        event.preventDefault();
+        if (onZoomOut) {
+          onZoomOut();
+        } else {
+          const s = useEditorUiSession.getState();
+          s.setZoom(s.timelineZoom - 8);
+        }
+        return;
+      }
+      if (mod && (event.key === "=" || event.key === "+" || event.code === "NumpadAdd")) {
+        event.preventDefault();
+        if (onZoomIn) {
+          onZoomIn();
+        } else {
+          const s = useEditorUiSession.getState();
+          s.setZoom(s.timelineZoom + 8);
+        }
         return;
       }
 
@@ -116,6 +142,8 @@ export function useTimelineHotkeys({
     onCopy,
     onCut,
     onPaste,
+    onZoomIn,
+    onZoomOut,
     toggleAutoSnapping,
   ]);
 }
