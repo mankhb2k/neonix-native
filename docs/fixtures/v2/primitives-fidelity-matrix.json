@@ -239,82 +239,82 @@
     {
       "id": "adjustment-node",
       "category": "compositing",
-      "status": "In-Progress",
+      "status": "Implemented",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
         "compiler": "pass",
         "evaluator": "pass",
-        "renderPlan": "na",
-        "browserPreview": "na",
-        "exportWorker": "na",
-        "editorCore": "na"
+        "renderPlan": "pass",
+        "browserPreview": "pass",
+        "exportWorker": "pass",
+        "editorCore": "pass"
       },
-      "fixtures": []
+      "fixtures": ["expected-runtime/effects-stack.runtime.json"]
     },
     {
       "id": "luma-matte",
       "category": "compositing",
-      "status": "In-Progress",
+      "status": "Implemented",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
         "compiler": "pass",
         "evaluator": "pass",
-        "renderPlan": "na",
-        "browserPreview": "na",
-        "exportWorker": "na",
-        "editorCore": "na"
+        "renderPlan": "pass",
+        "browserPreview": "pass",
+        "exportWorker": "pass",
+        "editorCore": "pass"
       },
-      "fixtures": []
+      "fixtures": ["expected-runtime/mask-compositing.runtime.json"]
     },
     {
       "id": "solid-node",
       "category": "primitives",
-      "status": "In-Progress",
+      "status": "Implemented",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
         "compiler": "pass",
         "evaluator": "pass",
-        "renderPlan": "na",
-        "browserPreview": "na",
-        "exportWorker": "na",
-        "editorCore": "na"
+        "renderPlan": "pass",
+        "browserPreview": "pass",
+        "exportWorker": "pass",
+        "editorCore": "pass"
       },
-      "fixtures": []
+      "fixtures": ["expected-runtime/geometry-paths.runtime.json"]
     },
     {
       "id": "typed-tracks",
       "category": "animation",
-      "status": "In-Progress",
+      "status": "Implemented",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
         "compiler": "pass",
         "evaluator": "pass",
-        "renderPlan": "na",
-        "browserPreview": "na",
-        "exportWorker": "na",
-        "editorCore": "na"
+        "renderPlan": "pass",
+        "browserPreview": "pass",
+        "exportWorker": "pass",
+        "editorCore": "pass"
       },
-      "fixtures": []
+      "fixtures": ["expected-runtime/property-capabilities.runtime.json"]
     },
     {
       "id": "track-extrapolation",
       "category": "animation",
-      "status": "In-Progress",
+      "status": "Implemented",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
         "compiler": "pass",
         "evaluator": "pass",
-        "renderPlan": "na",
-        "browserPreview": "na",
-        "exportWorker": "na",
-        "editorCore": "na"
+        "renderPlan": "pass",
+        "browserPreview": "pass",
+        "exportWorker": "pass",
+        "editorCore": "pass"
       },
-      "fixtures": []
+      "fixtures": ["expected-runtime/schedule-playback.runtime.json"]
     }
   ]
 }

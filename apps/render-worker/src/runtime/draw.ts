@@ -377,6 +377,12 @@ function drawEvaluatedNode(
         drawFittedImage(ctx, loadVideoFrame(asset, assetBaseDir, mediaTime), transform.width, transform.height, node.payload.fit);
       }
     }
+  } else if (node.type === "solid") {
+    const color = evaluateProperty(scene, node, "payload.color", time, node.payload.color);
+    const width = evaluateProperty(scene, node, "payload.width", time, node.payload.width ?? transform.width);
+    const height = evaluateProperty(scene, node, "payload.height", time, node.payload.height ?? transform.height);
+    ctx.fillStyle = typeof color === "string" ? color : "#ffffff";
+    ctx.fillRect(0, 0, typeof width === "number" ? width : transform.width, typeof height === "number" ? height : transform.height);
   } else if (node.type === "text") {
     const evaluatedText = evaluateProperty(scene, node, "payload.text", time, node.payload.text);
     const rawText = typeof evaluatedText === "string" ? evaluatedText : brand.name;
@@ -527,9 +533,25 @@ export async function drawSceneFrame(
     if (item.node.mask) {
       const maskSource = byId.get(item.node.mask.sourceNodeId);
       if (!maskSource) throw new Error(`Runtime mask source missing: ${item.node.mask.sourceNodeId}`);
-      const maskLayer = rasterize(maskSource, nextStack, item.node.mask.mode === "clip" ? "clip" : "alpha");
+      const maskMode = item.node.mask.mode;
+      const maskLayer = rasterize(maskSource, nextStack, maskMode === "clip" ? "clip" : "alpha");
+      if (maskMode === "luma" || maskMode === "inverse-luma") {
+        const maskCtx = maskLayer.getContext("2d");
+        const imageData = maskCtx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i]!;
+          const g = data[i + 1]!;
+          const b = data[i + 2]!;
+          const a = data[i + 3]! / 255;
+          let luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          if (maskMode === "inverse-luma") luma = 255 - luma;
+          data[i + 3] = Math.round(luma * a);
+        }
+        maskCtx.putImageData(imageData, 0, 0);
+      }
       layerContext.setTransform(1, 0, 0, 1, 0, 0);
-      layerContext.globalCompositeOperation = item.node.mask.mode === "inverse-alpha" ? "destination-out" : "destination-in";
+      layerContext.globalCompositeOperation = maskMode === "inverse-alpha" ? "destination-out" : "destination-in";
       layerContext.drawImage(maskLayer, 0, 0);
       layerContext.globalCompositeOperation = "source-over";
     }
