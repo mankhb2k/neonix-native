@@ -11,6 +11,7 @@ import {
   EMPTY_EDITOR_VIEW_PROPS,
   type EditorSidebarProps,
 } from "../workspace-props";
+import type { AssetRepository } from "../../infrastructure/repositories/asset-repository";
 import { AudioPanel } from "./AudioPanel/AudioPanel";
 import { LayersPanel } from "./LayersPanel/LayersPanel";
 import { MediaPanel } from "./MediaPanel/MediaPanel";
@@ -22,6 +23,11 @@ export type { EditorSidebarProps };
 
 export type SidebarProps = Partial<Omit<EditorSidebarProps, "selection">> & {
   media?: ReactNode;
+  projectPath?: string | null;
+  documentJson?: string;
+  assetsApi?: AssetRepository;
+  disabled?: boolean;
+  onDocumentChange?: (json: string) => void;
   initialTab?: string;
   onSelect?: (selection: EditorSelection) => void;
   onExecuteTimeline?: (command: TimelineCommand, label: string) => void;
@@ -64,7 +70,12 @@ const SIDEBAR_TABS: DesktopTabItem[] = [
  * Selection comes from editor-ui-session (not parent zoom/selection churn).
  */
 export const Sidebar = memo(function Sidebar({
-  media = defaultMedia,
+  media,
+  projectPath,
+  documentJson,
+  assetsApi,
+  disabled,
+  onDocumentChange,
   lanes = EMPTY_EDITOR_VIEW_PROPS.lanes,
   clips = EMPTY_EDITOR_VIEW_PROPS.clips,
   assets = EMPTY_EDITOR_VIEW_PROPS.assets,
@@ -109,7 +120,20 @@ export const Sidebar = memo(function Sidebar({
           {tab === "shapes" ? (
             <ShapesPanel onExecuteTimeline={onExecuteTimeline} />
           ) : null}
-          {tab === "media" ? <MediaPanel media={media} /> : null}
+          {tab === "media" ? (
+            media ?? (
+              assetsApi ? (
+                <MediaPanel
+                  projectPath={projectPath ?? null}
+                  documentJson={documentJson ?? "{}"}
+                  assets={assets}
+                  assetsApi={assetsApi}
+                  onDocumentChange={onDocumentChange ?? (() => undefined)}
+                  onExecuteTimeline={onExecuteTimeline}
+                />
+              ) : defaultMedia
+            )
+          ) : null}
           {tab === "audio" ? (
             <AudioPanel
               assets={assets ?? []}
@@ -119,7 +143,9 @@ export const Sidebar = memo(function Sidebar({
           {tab === "text" ? (
             <TextPanel onExecuteTimeline={onExecuteTimeline} />
           ) : null}
-          {tab === "stickers" ? <StickersPanel /> : null}
+          {tab === "stickers" ? (
+            <StickersPanel onExecuteTimeline={onExecuteTimeline} />
+          ) : null}
         </div>
       </div>
       <LibraryDragPreview />

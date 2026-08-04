@@ -32,8 +32,6 @@ export function TimelineOverlays({
 }: Props) {
   const { dropGhost, clipMovePreview, marquee } = usePreviewSession();
 
-  if (timelineEmpty) return null;
-
   const extentWidth = Math.max(canvasWidth, trackViewWidth);
 
   /** Cyan left = ghost startTime in viewport; top stays on pointer Y. */

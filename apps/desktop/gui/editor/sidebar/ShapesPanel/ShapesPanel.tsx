@@ -4,6 +4,8 @@ import { useLibraryPointerGesture } from "../../library/hooks/use-library-pointe
 import type { LibraryCommitPoint } from "../../library/adapters/commit-library-payload";
 import type { LibraryPayload } from "../../library/model/library-payload";
 
+import { PresetTile } from "../../../ui";
+
 import type { ShapeItem, ShapeCategory } from "./shapes/types";
 import { BASIC_SHAPES_CATEGORY } from "./shapes/basic";
 import { POLYGON_SHAPES_CATEGORY } from "./shapes/polygons";
@@ -36,16 +38,14 @@ function ShapePresetItem({
   );
 
   return (
-    <button
-      type="button"
+    <PresetTile
       title={item.label}
-      aria-label={item.label}
-      className="group relative flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-xl bg-[#222225] p-3 text-white transition-all hover:bg-[#2c2c30] active:scale-95 shadow-sm"
+      paddingClassName="p-3"
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >
       {item.icon}
-    </button>
+    </PresetTile>
   );
 }
 

@@ -15,7 +15,6 @@ import {
   type EditorSelection,
   type TimelineCommand,
 } from "@motionvideo/editor-core";
-import { AssetPanel } from "./assets/AssetPanel";
 import { listEnvelopeAssets } from "./assets/document-assets";
 import { EditorWorkspaceFrame } from "./workspace-frame";
 import {
@@ -488,17 +487,11 @@ function EditingWorkspaceInner({
         showInspector
         sidebar={
           <Sidebar
-            media={
-              <AssetPanel
-                projectPath={path}
-                documentJson={sessionJson}
-                assets={sessionAssets}
-                assetsApi={assetsApi}
-                disabled={saving}
-                onDocumentChange={onApplyDocumentJson}
-                onExecuteTimeline={executeTimeline}
-              />
-            }
+            projectPath={path}
+            documentJson={sessionJson}
+            assetsApi={assetsApi}
+            disabled={saving}
+            onDocumentChange={onApplyDocumentJson}
             lanes={session.lanes}
             clips={session.clips}
             initialTab={initialSidebarTab}
