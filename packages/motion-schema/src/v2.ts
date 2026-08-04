@@ -112,6 +112,7 @@ export const TransformV2Schema = z
   .object({
     x: FiniteNumberSchema,
     y: FiniteNumberSchema,
+    depth: FiniteNumberSchema.optional(),
     width: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     height: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     rotation: FiniteNumberSchema,
@@ -311,6 +312,12 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     kind: z.enum(["look-at", "copy-position", "copy-rotation"]),
     targetNodeId: IdSchema,
     weight: FiniteNumberSchema.min(0).max(1).default(1),
+  }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("parallax"),
+    factor: FiniteNumberSchema.default(1),
+    focalDepth: FiniteNumberSchema.default(0),
   }).strict(),
 ]);
 

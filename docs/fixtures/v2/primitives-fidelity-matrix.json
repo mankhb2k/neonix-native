@@ -315,6 +315,22 @@
         "editorCore": "pass"
       },
       "fixtures": ["expected-runtime/schedule-playback.runtime.json"]
+    },
+    {
+      "id": "layered-2d5-parallax",
+      "category": "primitives",
+      "status": "Implemented",
+      "gates": {
+        "schema": "pass",
+        "referenceValidation": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "renderPlan": "pass",
+        "browserPreview": "pass",
+        "exportWorker": "pass",
+        "editorCore": "pass"
+      },
+      "fixtures": ["expected-runtime/hierarchy-transform.runtime.json"]
     }
   ]
 }
