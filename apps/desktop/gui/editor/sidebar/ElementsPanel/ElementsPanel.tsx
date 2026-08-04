@@ -9,14 +9,14 @@ const ELEMENT_PRESETS: LibraryPayload[] = [
     id: "el-rect",
     kind: "shape",
     label: "Rectangle",
-    shape: "rect",
+    shape: "rectangle",
     duration: DEFAULT_FRAME_DURATION,
   },
   {
     id: "el-circle",
     kind: "shape",
     label: "Circle",
-    shape: "circle",
+    shape: "ellipse",
     duration: DEFAULT_FRAME_DURATION,
   },
 ];

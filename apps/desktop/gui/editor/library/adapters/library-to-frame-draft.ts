@@ -13,9 +13,9 @@ export function libraryItemToFrameDraft(item: LibraryItem): FrameDraft {
     role: item.kind === "text" ? "text" : isShape ? "shape" : "media",
     kind: item.kind === "text" ? "text" : isShape ? "shape" : undefined,
     shape: isShape
-      ? item.id.includes("circle")
-        ? "circle"
-        : "rect"
+      ? item.id.includes("circle") || item.id.includes("ellipse")
+        ? "ellipse"
+        : "rectangle"
       : undefined,
     duration: item.duration ?? DEFAULT_FRAME_DURATION,
     text: item.text ?? item.label,

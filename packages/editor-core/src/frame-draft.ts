@@ -3,7 +3,7 @@
 export const DEFAULT_FRAME_DURATION = 5;
 
 export type FrameDraftKind = "text" | "shape" | "image" | "video";
-export type FrameDraftShape = "rect" | "circle";
+export type FrameDraftShape = "rectangle" | "ellipse" | "polygon" | "rect" | "circle";
 
 export type FrameDraft = {
   id: string;

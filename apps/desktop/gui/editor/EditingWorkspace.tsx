@@ -507,7 +507,13 @@ function EditingWorkspaceInner({
             assets={sessionAssets}
           />
         }
-        stage={<Stage />}
+        stage={
+          <Stage
+            project={session.project}
+            clips={session.clips}
+            lanes={session.lanes}
+          />
+        }
         inspector={<RightDock />}
         timeline={
           <Timeline
