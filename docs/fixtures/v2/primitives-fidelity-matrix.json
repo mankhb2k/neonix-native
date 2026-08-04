@@ -239,7 +239,7 @@
     {
       "id": "adjustment-node",
       "category": "compositing",
-      "status": "Implemented",
+      "status": "In-Progress",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
@@ -271,7 +271,7 @@
     {
       "id": "solid-node",
       "category": "primitives",
-      "status": "Implemented",
+      "status": "In-Progress",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
@@ -319,7 +319,7 @@
     {
       "id": "layered-2d5-parallax",
       "category": "primitives",
-      "status": "Implemented",
+      "status": "In-Progress",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",
@@ -335,7 +335,7 @@
     {
       "id": "motion-blur",
       "category": "compositing",
-      "status": "Implemented",
+      "status": "In-Progress",
       "gates": {
         "schema": "pass",
         "referenceValidation": "pass",

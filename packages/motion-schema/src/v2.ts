@@ -112,7 +112,7 @@ export const TransformV2Schema = z
   .object({
     x: FiniteNumberSchema,
     y: FiniteNumberSchema,
-    depth: FiniteNumberSchema.optional(),
+    // TODO: implement depth
     width: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     height: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     rotation: FiniteNumberSchema,
@@ -216,7 +216,7 @@ const ScalarVariableSchema = z.object({
 });
 
 const ObjectFieldSchema = z.object({
-  type: z.enum(["string", "color", "number", "boolean", "image"]),
+  type: z.enum(["string", "color", "number", "boolean", "asset"]),
 });
 
 export const VariableV2Schema = z.discriminatedUnion("type", [
@@ -229,7 +229,11 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
     max: FiniteNumberSchema.optional(),
   }).strict(),
   ScalarVariableSchema.extend({ type: z.literal("boolean"), value: z.boolean() }).strict(),
-  ScalarVariableSchema.extend({ type: z.literal("image"), value: IdSchema }).strict(),
+  ScalarVariableSchema.extend({
+    type: z.literal("asset"),
+    assetKind: z.enum(["image", "video", "audio", "svg", "font"]),
+    value: IdSchema,
+  }).strict(),
   ScalarVariableSchema.extend({
     type: z.literal("enum"),
     value: z.string(),
@@ -292,7 +296,7 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     damping: FiniteNumberSchema.nonnegative(),
     lag: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
     amplitude: FiniteNumberSchema,
-    axis: z.enum(["rotation", "position"]),
+    axis: z.literal("rotation"), // TODO: implement position axis
   }).strict(),
   z.object({
     id: IdSchema,
@@ -313,12 +317,7 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     targetNodeId: IdSchema,
     weight: FiniteNumberSchema.min(0).max(1).default(1),
   }).strict(),
-  z.object({
-    id: IdSchema,
-    type: z.literal("parallax"),
-    factor: FiniteNumberSchema.default(1),
-    focalDepth: FiniteNumberSchema.default(0),
-  }).strict(),
+  // TODO: implement parallax modifier
 ]);
 
 const NodeBaseSchema = z.object({
@@ -407,6 +406,11 @@ export const PointV2Schema = z.object({
 
 export const GroupNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("group"),
+  payload: z.object({
+    compositing: z.object({
+      mode: z.enum(["pass-through", "isolate"]).default("pass-through")
+    }).strict().optional(),
+  }).strict().optional(),
 }).strict();
 
 export const BoneNodeV2Schema = NodeBaseSchema.extend({
@@ -573,9 +577,7 @@ export const SolidNodeV2Schema = NodeBaseSchema.extend({
   }).strict(),
 }).strict();
 
-export const AdjustmentNodeV2Schema = NodeBaseSchema.extend({
-  type: z.literal("adjustment"),
-}).strict();
+// TODO: implement AdjustmentNode
 
 export const NodeV2Schema = z.discriminatedUnion("type", [
   GroupNodeV2Schema,
@@ -589,7 +591,6 @@ export const NodeV2Schema = z.discriminatedUnion("type", [
   CameraNodeV2Schema,
   ComponentNodeV2Schema,
   SolidNodeV2Schema,
-  AdjustmentNodeV2Schema,
 ]);
 
 export const ClipScheduleSchema = z.discriminatedUnion("kind", [
@@ -624,9 +625,7 @@ export const ValueKindSchema = z.enum(["number", "angle", "vec2", "color", "bool
 
 export const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("clamp") }).strict(),
-  z.object({ type: z.literal("cycle"), mode: z.enum(["repeat", "pingpong"]).optional() }).strict(),
-  z.object({ type: z.literal("pingpong") }).strict(),
-  z.object({ type: z.literal("offset-cycle") }).strict(),
+  z.object({ type: z.literal("cycle"), mode: z.literal("repeat").optional() }).strict(), // TODO: pingpong
   z.object({ type: z.literal("continue") }).strict(),
 ]);
 
@@ -698,7 +697,7 @@ export const PublicParamV2Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
-    type: z.enum(["string", "color", "number", "boolean", "image", "enum", "list"]),
+    type: z.enum(["string", "color", "number", "boolean", "asset", "enum", "list"]),
     label: z.string().min(1).optional(),
     variableId: IdSchema,
     semantic: SemanticSchema.optional(),
@@ -912,7 +911,6 @@ const RuntimeNodeSchema = z.discriminatedUnion("type", [
   VideoNodeV2Schema.omit({ repeat: true }),
   CameraNodeV2Schema.omit({ repeat: true }),
   SolidNodeV2Schema.omit({ repeat: true }),
-  AdjustmentNodeV2Schema.omit({ repeat: true }),
 ]);
 
 const RuntimeTrackSchema = z

@@ -1,9 +1,6 @@
-import { MOTION_V2_LIMITS, type NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
-import type { EvaluatedNode } from "./evaluator";
+import { MOTION_V2_LIMITS } from "@motionvideo/motion-schema";
+import type { EvaluatedNode, RuntimeScene, RuntimeNode } from "./evaluator";
 import type { Bounds2D } from "./spatial";
-
-export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
-export type RuntimeNode = RuntimeScene["nodes"][number];
 
 export type IsolationMode = "pass-through" | "isolate";
 

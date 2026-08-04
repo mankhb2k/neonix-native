@@ -216,7 +216,7 @@ export function motionLiteralMatchesValueKind(kind: MotionPropertyValueKind, val
 
 export function motionVariableTypeMatchesValueKind(kind: MotionPropertyValueKind, variableType: string): boolean {
   if (kind === "json") return true;
-  if (kind === "asset") return variableType === "image";
+  if (kind === "asset") return variableType === "asset";
   if (kind === "color") return variableType === "color";
   if (kind === "angle") return variableType === "number";
   return kind === variableType;

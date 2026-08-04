@@ -168,6 +168,20 @@ export function sampleTrackCurve(track: RuntimeTrack, count = 100): Array<{ time
   return samples;
 }
 
+const trackIndexCache = new WeakMap<RuntimeScene, Map<string, RuntimeTrack>>();
+
+function getTrackIndex(scene: RuntimeScene): Map<string, RuntimeTrack> {
+  let index = trackIndexCache.get(scene);
+  if (!index) {
+    index = new Map();
+    for (const track of scene.tracks) {
+      index.set(`${track.targetId}::${track.property}`, track);
+    }
+    trackIndexCache.set(scene, index);
+  }
+  return index;
+}
+
 export function evaluateProperty(
   scene: RuntimeScene,
   node: RuntimeNode,
@@ -175,8 +189,9 @@ export function evaluateProperty(
   time: number,
   fallback: unknown,
 ): unknown {
+  const index = getTrackIndex(scene);
   const value = evaluateTrack(
-    scene.tracks.find((track) => track.targetId === node.id && track.property === property),
+    index.get(`${node.id}::${property}`),
     time,
     fallback,
   );

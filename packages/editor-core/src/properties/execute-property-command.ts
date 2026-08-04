@@ -484,7 +484,7 @@ function moveKeyframeOnScene(
   project: MotionProject,
   target: NodeTargetRef,
   command: Extract<DocumentPropertyCommand, { type: "move-property-keyframe" }>,
-): { project: MotionProject; missing: boolean } {
+): { project: MotionProject; missing: boolean; invalid?: string } {
   const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
   if (sceneIdx < 0) return { project, missing: true };
   const scene = project.scenes[sceneIdx]!;
@@ -500,8 +500,17 @@ function moveKeyframeOnScene(
   const clip = clips[clipIdx]!;
   if (clip.source.kind !== "tracks") return { project, missing: false };
 
+  let invalid: string | undefined = undefined;
   const tracks = clip.source.tracks.map((tr) => {
     if (tr.property !== command.property) return tr;
+    
+    // Check collision
+    const collides = tr.keys.some(k => Math.abs(k.t - command.newT) < 1e-6 && Math.abs(k.t - command.t) >= 1e-6);
+    if (collides) {
+      invalid = `Cannot move keyframe to ${command.newT} because another keyframe exists at that time.`;
+      return tr;
+    }
+
     const keys = tr.keys.map((k) => {
       if (Math.abs(k.t - command.t) < 1e-6) {
         return {
@@ -514,6 +523,8 @@ function moveKeyframeOnScene(
     }).sort((a, b) => a.t - b.t);
     return { ...tr, keys };
   });
+
+  if (invalid) return { project, missing: false, invalid };
 
   clips[clipIdx] = {
     ...clip,
@@ -896,10 +907,15 @@ export function executePropertyCommand(
     }
     case "move-property-keyframe": {
       if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
+      if (!Number.isFinite(command.newT)) return rejectedInvalid("New time must be finite.");
+      if (command.newT < 0 || command.newT > MOTION_V2_LIMITS.mediaDurationSeconds) return rejectedInvalid("New time out of bounds.");
+      if (typeof command.newV === "number" && !Number.isFinite(command.newV)) return rejectedInvalid("Numeric value must be finite.");
+
       let updated = document.project;
       for (const target of command.targets) {
         const res = moveKeyframeOnScene(updated, target, command);
         if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        if (res.invalid) return rejectedInvalid(res.invalid);
         updated = res.project;
       }
       result = { project: updated, missing: false };
