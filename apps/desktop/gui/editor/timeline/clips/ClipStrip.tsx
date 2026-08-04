@@ -16,6 +16,7 @@ import {
 import { useMovePreviewForLane, useMarqueeSelectionIds } from "../interactions/timeline-preview-session";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import { cn } from "../../../ui";
+import { useEditorUiSession } from "../../session/editor-ui-session";
 import type { ClipMovePreview } from "./clip-move-geometry";
 import {
   trackForLane,
@@ -43,7 +44,7 @@ export function clipVisualClassName(trackKind: TimelineTrackKind, selected: bool
 
 function clipClassName(trackKind: TimelineTrackKind, selected: boolean): string {
   return cn(
-    "absolute top-0 bottom-0 my-auto h-[96%] cursor-default", 
+    "absolute top-0 bottom-0 my-auto h-[96%] cursor-default select-none transition-opacity duration-150", 
     selected && "z-10", 
     clipVisualClassName(trackKind, selected)
   );
@@ -79,6 +80,10 @@ export const ClipStrip = memo(function ClipStrip({
 }: Props) {
   const pps = Math.max(pixelsPerSecond, 0.001);
   const marqueeSelectionIds = useMarqueeSelectionIds();
+  const timelineMode = useEditorUiSession((s) => s.timelineMode);
+  const activeContainerClipId = useEditorUiSession((s) => s.activeContainerClipId);
+  const enterLayerMode = useEditorUiSession((s) => s.enterLayerMode);
+
   const selected = new Set(
     marqueeSelectionIds ?? selectedClipIdsFrom(selection),
   );
@@ -139,6 +144,9 @@ export const ClipStrip = memo(function ClipStrip({
         const isSelected = selected.has(clip.id);
         const trackKind = trackForLane(lane);
 
+        const isLayerMode = timelineMode === "layer";
+        const isDimmed = isLayerMode && clip.id !== activeContainerClipId;
+
         return (
           <div
             key={clip.id}
@@ -147,13 +155,21 @@ export const ClipStrip = memo(function ClipStrip({
             className={cn(
               clipClassName(trackKind, isSelected),
               isMovingSource && "invisible pointer-events-none",
+              isDimmed && "opacity-35 pointer-events-none filter grayscale-[30%]",
             )}
             data-testid="timeline-clip-strip"
             data-clip-id={clip.id}
             data-start-time={String(start)}
             style={{ left, width }}
             title={clip.name || clip.id}
-            onPointerDown={(e) => beginMove(e, clip)}
+            onPointerDown={(e) => {
+              if (isDimmed) return;
+              beginMove(e, clip);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              enterLayerMode(clip.id);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();

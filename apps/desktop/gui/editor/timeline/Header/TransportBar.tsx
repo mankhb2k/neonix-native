@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, Pause, Play, ZoomIn, ZoomOut } from "lucide-react";
 import {
   clipsContentEndSeconds,
   type EditorSelection,
   type TimelineClip,
 } from "@motionvideo/editor-core";
 import { Button } from "../../../ui";
+import { useEditorUiSession } from "../../session/editor-ui-session";
 import {
   usePlaybackClock,
   usePlaybackClockApi,
@@ -58,6 +59,12 @@ export function TransportBar({
   const isPlaying = mode === "playing";
   const contentEnd = clipsContentEndSeconds(clips);
 
+  const timelineMode = useEditorUiSession((s) => s.timelineMode);
+  const activeContainerClipId = useEditorUiSession((s) => s.activeContainerClipId);
+  const exitLayerMode = useEditorUiSession((s) => s.exitLayerMode);
+
+  const activeContainerClip = clips.find((c) => c.id === activeContainerClipId);
+
   const [sliderZoom, setSliderZoom] = useState(zoom);
   const pendingZoomRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
@@ -94,8 +101,25 @@ export function TransportBar({
       className="grid h-[36px] shrink-0 grid-cols-3 items-center border-b border-[var(--border-subtle)] px-3"
       data-testid="timeline-transport-bar"
     >
-      <div className="flex min-w-0 items-center justify-start">
-        <TimelineModeToggles disabled={disabled} />
+      <div className="flex min-w-0 items-center justify-start gap-2">
+        {timelineMode === "layer" ? (
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={exitLayerMode}
+              className="flex items-center gap-1.5 rounded-full bg-cyan-500/20 px-3 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/30 transition-colors"
+              title="Quay lại Track (Esc)"
+            >
+              <ArrowLeft size={13} strokeWidth={2.5} />
+              <span>Quay lại Track</span>
+            </button>
+            <span className="text-[11px] font-medium text-zinc-300 truncate max-w-[150px]">
+              / 📦 {activeContainerClip?.name || activeContainerClipId || "Container"}
+            </span>
+          </div>
+        ) : (
+          <TimelineModeToggles disabled={disabled} />
+        )}
       </div>
 
       <div className="flex items-center justify-center gap-3">

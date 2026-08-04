@@ -55,7 +55,14 @@ export function useTimelineHotkeys({
       if (event.repeat) return;
       if (isTypingTarget(event.target)) return;
       const mod = event.metaKey || event.ctrlKey;
-      const owned = isTimelineOwned();
+      if (event.key === "Escape") {
+        const session = useEditorUiSession.getState();
+        if (session.timelineMode === "layer") {
+          event.preventDefault();
+          session.exitLayerMode();
+          return;
+        }
+      }
 
       if (!mod && !event.altKey && event.key.toLowerCase() === "n") {
         if (!owned) return;
