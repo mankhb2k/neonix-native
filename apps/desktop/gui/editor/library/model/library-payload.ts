@@ -4,7 +4,7 @@ export type LibraryPayload =
       kind: "shape";
       id: string;
       label: string;
-      shape: "rect" | "circle";
+      shape: "rectangle" | "ellipse" | "polygon";
       duration?: number;
     }
   | {

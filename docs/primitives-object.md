@@ -1,286 +1,408 @@
-﻿# MotionVideo primitive object catalog
+# Catalog primitive chuyên nghiệp cho MotiClip 2.5D
 
-Current status ledger: [`roadmap-status.md`](roadmap-status.md). Machine-readable schema-first coverage: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json) (asserted by `pnpm validate:v2-fixtures`). **P0 schema freeze:** [`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md) (2026-07-25). Worker PNG/Web parity remain separate gates; this catalog’s “Implemented schema” means contract/reference/limits (+ compiler when Runtime surface) are covered.
+> **Vai trò tài liệu:** Catalog trạng thái đích sau khi hoàn thành chương trình [`v2-upgrade`](v2-upgrade.md).
+> **Sản phẩm:** Hệ authoring motion graphics 2.5D phân lớp cho Designer, xuất bản thành template tùy biến an toàn cho người dùng phổ thông.
+> **Quy tắc trung thực:** Tài liệu mô tả hệ thống cuối cùng bắt buộc phải đạt. Trước khi các gate nâng cấp hoàn tất, bằng chứng implementation hiện tại vẫn nằm tại [`fixtures/v2/`](fixtures/v2/README.md) và [`motion-format-v2.md`](motion-format-v2.md). Không dùng catalog đích này để tuyên bố code chưa làm là đã hoàn thành.
 
-> Tài liệu sống — catalog duy nhất cho các thành phần nguyên tử, trạng thái triển khai và fixture coverage. Schema normative: [`motion-format-v2.md`](motion-format-v2.md). Fixture suite: [`fixtures/v2/README.md`](fixtures/v2/README.md). Product acceptance: [`product-primitive-acceptance.md`](product-primitive-acceptance.md).
+## 1. Định nghĩa sản phẩm
 
-## Định vị
+MotiClip là motion composition engine 2.5D phân lớp, tập trung vào animation, effect và reusable template.
 
-MotionVideo là 2D motion composition engine cho template-driven video, TVC, infographic và SVG cut-out/semi-organic animation. Không phải frame-by-frame drawing tool hoặc full organic character suite.
+Một document model phục vụ hai bề mặt:
 
-Engine không tạo Node riêng cho mọi use case. Bar chart, process, timeline, product promo và character được compose từ một vocabulary nhỏ:
+| Bề mặt | Người dùng | Quyền hạn |
+|---|---|---|
+| Designer Authoring | Motion designer/template creator | Toàn bộ node, track, Graph Editor handle, effect, matte, adjustment, driver, constraint, depth/parallax, action và internal component graph |
+| Template Customization | Người dùng phổ thông/AI planner | Chỉ public text, asset, brand, list, variant và bounded motion/effect controls |
+
+Template User không phải sửa internal node, keyframe, driver graph hoặc effect topology. Designer không bị giới hạn bởi giao diện đơn giản mà họ publish cho Template User.
+
+## 2. Phạm vi sản phẩm
+
+### Trong phạm vi
+
+- Kinetic typography và text sequencing.
+- Infographic/data-driven animation.
+- Product promo, UI/product showcase và logo reveal.
+- Layered camera motion và multiplane parallax.
+- Mask, alpha/luma matte, adjustment và ordered effect compositing.
+- SVG path animation, morph, trim và cut-out/semi-organic character motion.
+- Deterministic procedural motion không thực thi code tùy ý.
+- Component có version, public controls, variants và actions.
+- Browser preview/export parity từ cùng Runtime IR và RenderPlan.
+
+### Ngoài phạm vi
+
+- Full 3D mesh, material, light, depth buffer và camera orbit tự do.
+- Perspective mesh deformation và arbitrary 3D rotation.
+- Mesh skinning, weight paint, organic puppet.
+- JavaScript/After Effects expression không giới hạn.
+- Frame-by-frame drawing/onion skin.
+- Custom shader tùy ý trong portable core format.
+- Node type riêng cho mọi semantic use case.
+
+## 3. Vocabulary hệ thống
 
 ```text
-Value + Property + Keyframe + Track + Binding
-      + Node + Hierarchy + Path + Mask
-      + Expansion + Modifier + Effect + Component
+Value + Property + Typed Keyframe + Track + Clip
+      + Binding + Driver + Constraint
+      + Node + Hierarchy + Depth + Camera
+      + Geometry Modifier + Matte + Effect + Adjustment
+      + Component + Public API + Variant + Action
 ```
 
-## Ký hiệu trạng thái
+`logo`, `icon`, `card`, `chart`, `character`, `product`, `CTA` là semantic composition hoặc Component, không phải core Node type.
 
-| Trạng thái | Nghĩa |
+## 4. Kiến trúc cuối cùng
+
+```text
+Authoring IR
+  ├─ Designer internals
+  └─ published Template contract
+          │
+          ▼
+Canonical Motion Format v2 validation
+          │
+          ▼
+Compiler → literal typed Runtime IR
+          │
+          ▼
+Frame evaluator → evaluated scene state
+          │
+          ▼
+Shared RenderPlan / compositing DAG
+      ┌───┴───────────┐
+      ▼               ▼
+Browser preview   Export worker
+```
+
+Editor, Browser và Worker có thể dùng API UI/raster khác nhau nhưng không được có animation hoặc compositing semantics khác nhau.
+
+## 5. Evaluation order chuẩn
+
+```text
+Literal/default
+→ Component prop và binding
+→ Clip timing và typed keyframe track
+→ Procedural driver stack
+→ Constraint/secondary motion
+→ Layered 2.5D projection
+→ Geometry modifier
+→ Subtree rasterization
+→ Clip/alpha/luma matte
+→ Node effect
+→ Adjustment effect
+→ Blend/composite
+→ Scene transition
+```
+
+Mỗi primitive phải khai báo stage mà nó chạy. Không được thay stage giữa preview và export.
+
+## 6. Phân loại trạng thái đích
+
+| Trạng thái | Ý nghĩa sau khi chương trình hoàn tất |
 |---|---|
-| Implemented | Có implementation và assertion tự động tương ứng |
-| Partial | Schema/compiler hoặc smoke có, nhưng Web/PNG/parity còn thiếu |
-| Planned P1 | Chưa normative — schema reject (`negative/p1-not-normative/`) |
-| Deferred UI | Không thuộc Motion Format; editor/canvas/timeline |
-| Out of scope | Không thêm placeholder vào schema hiện tại |
+| Core | Bắt buộc cho professional 2.5D template product release |
+| Advanced | Professional capability hỗ trợ sau Core, chỉ được ship khi đủ gate |
+| Deferred | Chủ ý nằm ngoài lần nâng cấp; parser reject hoặc chỉ là editor metadata không portable |
+| Out of scope | Không thuộc định hướng sản phẩm |
 
-## Tổng hợp — đã làm / chưa làm
+Không primitive nào được coi là Implemented chỉ vì parse được. Bắt buộc qua §20.
 
-Cập nhật: 2026-07-25. Chi tiết từng dòng ở các mục §1–13 bên dưới. Machine ledger: [`fixtures/v2/primitives-coverage.json`](fixtures/v2/primitives-coverage.json).
+## 7. Identity, value và property
 
-### Đã làm (P0 — schema + runtime/compiler fixture)
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Artifact identity | Phân biệt format/version | Core | Một strict canonical v2 parser trong giai đoạn pre-public; `formatVersion` dành cho evolution sau lần public đầu tiên; strict unknown-field policy |
+| Stable ID | Địa chỉ entity portable | Core | Unique theo scope, giới hạn độ dài, namespace deterministic khi expand |
+| Semantic | Thể hiện ý nghĩa không thêm Node type | Core | Role/key/tags được giữ qua compile khi public |
+| Integrity pin | Identity bất biến của asset/component | Core | Verify hash, portable cache/bundle policy |
+| Typed value | Dữ liệu property an toàn | Core | `number`, `angle`, `vec2`, `color`, `boolean`, `string`, `asset`, `path`, `gradient` |
+| Property path | Địa chỉ capability ổn định | Core | Bắt buộc lookup registry, reject unknown path |
+| Property capability | Source of truth cho animation/binding/UI/AI | Core | Value kind, unit, interpolation, combine, limits, public/runtime state |
+| Variable | Input scalar/list/asset tái sử dụng | Core | Typed default/domain/options, reject non-finite |
+| Binding | Variable/context → property | Core | Type-check, duplicate-target policy, deterministic priority |
+| Public parameter | Control an toàn cho Template User | Core | Safe range, step, control type, capability level, optional condition |
+| Patch | Consumer edit có revision guard | Core | Chỉ allowlisted public surface, không truy cập internal graph mặc định |
 
-| Nhóm | Nguyên tử |
+## 8. Time và animation chuyên nghiệp
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Frame clock | Canonical time | Core | `frameIndex / fps`, random-access, không dùng wall clock |
+| Typed keyframe | Giá trị tại local time | Core | Value kind khớp property, stable time, bounded keys |
+| Hold segment | Chuyển giá trị discrete | Core | Giữ left value đến boundary |
+| Linear segment | Nội suy đều | Core | Hỗ trợ kind tương thích |
+| Temporal Bézier | Custom speed/value curve | Core | Handle được validate, segment ownership rõ |
+| Parameterized spring | Physics-style interpolation | Core | Mass/stiffness/damping/velocity, deterministic settle/overshoot |
+| Spatial Bézier | Editable 2D motion path | Core | Chỉ vec2 track, in/out tangent, canvas path editor |
+| Angle policy | Nội suy rotation | Core | Shortest/clockwise/counterclockwise/continuous |
+| Color interpolation | Motion màu mượt | Core | Oklab canonical, sRGB compatibility, discrete khi khai báo |
+| Track | Animation của typed property | Core | Value kind, keys, pre/post behavior, capability validation |
+| Track extrapolation | Loop/continue riêng property | Core | Clamp, cycle, ping-pong, offset-cycle, continue theo kind |
+| Clip | Nhóm track theo local timing | Core | Duration, target, schedule, playback, preset/action source |
+| Schedule | Xếp clip tương đối/tuyệt đối | Core | Absolute/after/with, reject missing ref/cycle |
+| Playback | Lặp toàn clip | Core | Iterations, rate, normal/reverse/alternate, tách track extrapolation |
+| Marker | Mốc thời gian named/semantic | Core | Scene/action/audio marker, stable ID, chỉ tác động khi được tham chiếu |
+| Time remap | Điều khiển local time | Advanced | Monotonic/non-monotonic tường minh, bounded sampling |
+
+Scalar `transform.x/y` tiếp tục tương thích. `transform.position` dùng cho spatial animation. Reject scalar và compound position track xung đột nếu chưa có animation-layer contract.
+
+## 9. Procedural animation và quan hệ
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Driver graph | Typed procedural dependency DAG | Core | Stable ID, typed ports, cycle rejection, deterministic order |
+| Noise/Wiggle | Biến thiên organic | Core | Seeded, frequency/amplitude, random-access sampling |
+| Oscillator | Motion tuần hoàn | Core | Sine/triangle/saw/pulse closed vocabulary, phase/frequency |
+| Property link | Tái dùng evaluated value | Core | Type-check, explicit space/stage |
+| Range remap | Ánh xạ interval | Core | Clamp/extrapolate policy, optional easing |
+| Delay/follow | Theo source có độ trễ | Core | Random-access history sampling với bounded window |
+| Spring follow | Secondary response | Core | Deterministic params và sample budget |
+| Utility driver | Clamp/wrap/quantize | Core | Pure typed operation |
+| Driver combination | Gộp output vào destination | Core | `replace`, `add`, `multiply` theo value kind |
+| Constraint | Quan hệ spatial giữa Nodes | Core | Look-at, copy-position, copy-rotation, weight, cycle validation |
+| Pin constraint | Gắn point vào target | Advanced | Explicit local/world point space |
+| Secondary motion | Follow-through trên chain | Core | Rotation/position mode, animate params sau static parity |
+| 2-bone IK | Định vị limb giải tích | Advanced | Typed chain/pole/limits, deterministic solve, không skinning |
+
+Portable driver không chạy arbitrary code. Plugin authoring syntax phải compile về closed Runtime vocabulary.
+
+## 10. Spatial model và layered 2.5D
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Transform 2D | Local plane transform | Core | Position/size/rotation/scale/anchor/opacity/visibility/flip |
+| Depth | Parallax coordinate | Core | Finite, độc lập `zIndex`, neutral depth giữ output 2D |
+| Hierarchy | Parent-child transform/opacity | Core | Cycle/depth limits, inherit flags, deterministic world matrix |
+| Draw order | Painter/compositing order | Core | `zIndex` + stable tie-break, không suy từ depth |
+| Layered Scene space | 2.5D coordinate policy | Core | `flat-2d`/`layered-2.5d`, bounded range, projection formula đã freeze |
+| Camera | 2D view/parallax driver | Core | Pan, zoom, rotation, parallax strength, không 3D orbit |
+| Parallax modifier | Override camera response theo layer | Core | Position/zoom/rotation response và safe clamp |
+| Depth blur | Focus cue tùy chọn | Advanced | Bounded blur theo depth/camera distance, explicit focus plane |
+| Bounds | Footprint geometry/subtree/effect | Core | Animated, depth-projected, stroke/effect inflation |
+| Hit-test | Canvas selection | Core | Inverse world/projection, isolation/visibility aware |
+| Layout | Placement cho list/repeater | Core | None, linear, grid, radial deterministic |
+
+Layered 2.5D không kéo theo light, material, mesh perspective, occlusion buffer hoặc 3D collision.
+
+## 11. Core Nodes
+
+Node chỉ tồn tại khi có spatial identity, draw/compositing behavior, media time, hierarchy control hoặc reusable package boundary.
+
+| Node | Trách nhiệm nguyên tử | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Group | Hierarchy và optional compositing boundary | Core | Pass-through/isolate, subtree bounds, thay Null/control use case |
+| Bone | Zero-draw transform joint | Core | Rest rotation, limits, hierarchy, cut-out semantics |
+| Text | Nội dung/layout text | Core | Unicode/grapheme-safe, font asset, typed paint/text animation |
+| Shape | Rectangle/ellipse/polygon | Core | Fast-path primitives, typed paint/geometry |
+| Path | Multi-contour vector geometry | Core | Line/cubic, open/closed, fill rule, morph targets |
+| Image | Raster media plane | Core | Asset ID, fit/crop/alpha, depth/parallax |
+| SVG | Sanitized vector asset plane | Core | Asset ID, fit/crop, recolor policy, depth/parallax |
+| Video | Time-based media plane | Core | Trim, loop/frame/muted policy, deterministic sampling |
+| Camera | Non-drawing scene view | Core | Flat 2D và layered 2.5D |
+| Component | Reusable authoring package instance | Core | Version/integrity/public props/actions, complete compile propagation |
+| Adjustment | Non-drawing compositing pass | Core | Áp effect lên sibling đã composite phía dưới trong isolated group |
+
+Không cần Solid Node: Shape rectangle có renderer fast path. Không cần Null Node: Group là zero-draw transform/container và có thể mang editor semantic. Light nằm ngoài phạm vi.
+
+Component không phải precomposition. Nếu sau này cần local-timeline/rasterized Precomp, phải có contract riêng.
+
+## 12. Geometry, paint và geometry modifier
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Point/Contour/Segment | Canonical vector geometry | Core | Finite coordinates, stable IDs, resource limits |
+| Solid fill/stroke | Base paint | Core | Color/opacity, cap/join/miter, fill rule |
+| Gradient | Linear/radial paint | Core | Stable stops, order validation, animatable stops |
+| Dash | Stroke pattern | Core | Bounded segments, animated offset |
+| Trim Path | Arc-length reveal | Core | Animated start/end/offset, open/closed policy |
+| Path Morph | Topology-compatible interpolation | Core | Strict compatibility hoặc normalized correspondence rõ |
+| Path Bend | Controlled deformation | Core | Bounded deterministic warp |
+| Motion Path | Drive transform theo Path | Core | Arc-length progress, tangent orientation, cross-hierarchy space |
+| Repeated transform | Copies có transform falloff | Advanced | Deterministic count/delta/opacity falloff |
+| Emitter | Seeded sprite/shape generation | Advanced | Fixed budget, deterministic birth/state, random-access frame |
+
+Geometry modifier chạy trước rasterization. Pixel displacement thuộc Effect stage.
+
+## 13. Matte, compositing và effect
+
+```text
+raster subtree → matte → node effects → adjustment → blend/composite
+```
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Group isolation | Offscreen composition boundary | Core | `pass-through`/`isolate`, pass-through không có implicit surface |
+| Clip matte | Geometry clipping | Core | Cùng Scene/isolation scope, cycle validation |
+| Alpha matte | Source alpha điều khiển target | Core | Normal/inverse, source visibility policy |
+| Luma matte | Source luminance điều khiển target | Core | Normal/inverse, frozen color-space conversion |
+| Adjustment | Grade/effect layers phía dưới | Core | Cùng isolated group, tôn trọng matte/opacity/time/z-order |
+| Blend mode | Layer compositing | Core | Normal/multiply/screen/add và closed modes được review |
+| Effect stack | Ordered pixel operations | Core | Stable ID, enabled, typed params, bounds/resource metadata |
+| Blur | Làm mềm | Core | Radius animation, bounds inflation đúng |
+| Shadow | Offset shadow | Core | Color/opacity/blur/offset animation |
+| Glow | Additive halo | Core | Radius/intensity/color/opacity/order |
+| Color adjust | Basic grade | Core | Brightness/contrast/saturation |
+| Levels/curves | Professional tone control | Core | Bounded portable representation |
+| Tint/gradient map | Color remap | Core | Typed colors/stops/interpolation |
+| Directional blur | Blur theo trục | Core | Angle/distance, bounded surface plan |
+| Radial blur | Zoom/spin blur | Advanced | Center/mode/amount/quality budget |
+| Displacement | Pixel-space distortion | Core | Typed source/map/noise, amount, expanded bounds |
+| Noise/grain | Texture/finishing | Core | Seeded deterministic noise, color/mono policy |
+| Echo/trail | Temporal image repetition | Advanced | Bounded frame/history window, blend policy |
+| Transform effect | Post-raster transform/repeat | Advanced | Explicit coordinate space và sampling quality |
+| Chromatic aberration | RGB channel offset | Advanced | Bounded amount/direction |
+| Posterize time | Temporal stepping | Advanced | Local sampling FPS, deterministic mapping |
+
+Effect là closed discriminated type. Unknown effect bị reject thay vì bỏ qua.
+
+## 14. Motion blur và render quality
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Motion blur | Temporal integration | Core | Deterministic supersampling, shutter angle/samples/phase |
+| Per-node override | Quality/control exception | Core | `inherit`, `on`, `off`, safe template exposure |
+| Quality tier | Preview/export sampling budget | Core | Chỉ đổi quality, không đổi authored timing/semantics |
+| Color policy | Đồng nhất interpolation/luma/compositing | Core | Working spaces và conversion boundaries rõ |
+| Offscreen planner | Cấp surface an toàn | Core | Integer bounds, pooling, dimension/pixel/sample limits |
+
+Motion-blur sample lấy từ canonical output-frame timestamp. Sequential playback và random scrub phải cho cùng output.
+
+## 15. Compile-time expansion và reusable Component
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Component expansion | Package → namespaced runtime graph | Core | Complete refs/transforms/actions, không rò Component |
+| Public API | Publish customization surface | Core | Content/style/motion/layout/audio groups, safe ranges/controls |
+| Variant | Chuyển coherent visual state | Core | Stable IDs, defaults, asset/type validation |
+| Named Action | Reusable internal animation | Core | Local duration, clips, playback, compatible public params |
+| Repeater list/count | Expand data-driven subtree | Core | Stable keys, limits, deterministic IDs |
+| Repeater layout | Placement expanded instances | Core | None/linear/grid/radial exact placement |
+| Time stagger | Offset expanded animation | Core | Deterministic local-time offsets và limits |
+| Text Animator | Expand grapheme/word/line | Core | Unicode segmentation, selector, stagger, typed properties |
+| Consumer macro | Một public control → internals | Core | Bounded driver/effect/track mapping, không expose topology |
+
+Published Component immutable theo `componentId@componentVersion`. Major version khi public observable behavior không tương thích.
+
+## 16. Cut-out và semi-organic character
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| SVG source import | Sanitize/giữ source identity | Core | Structural fingerprint, stable re-import, reject external content |
+| Part mapping | Source elements → asset/node | Core | Stable mapping, deterministic asset generation |
+| Bone chain | Joint hierarchy | Core | Rest pose, limits, transform inheritance |
+| Rig mapping | Part/pivot/parent/order/slots | Core | Typed metadata, không phải drawing Node giả |
+| Variant slot | Mouth/eye/hand/expression state | Core | Default/switch/asset validation |
+| Lip-sync cue | Timed mouth variant | Core | Marker/cue → discrete asset keys |
+| Prop attachment | Gắn visual vào joint/slot | Core | Pivot, depth, draw order đúng |
+| Secondary chain | Hair/tail/ribbon overlap | Core | Deterministic rotation/position response |
+| Simple IK | Designer pose/runtime solve | Advanced | 2-bone, strict limits, không mesh skinning |
+
+Character là Component từ Group, Bone, SVG/Image/Path, variant, action, constraint và secondary motion.
+
+## 17. Scene, media và audio
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Scene | Spatial/time/compositing scope | Core | Duration, nodes, clips, camera, 2.5D settings, transition |
+| Project timeline | Global scene/audio order | Core | Stable sequence và overlap rules |
+| Scene transition | Cross-scene composition | Core | Cut/fade/crossfade và matte transition được review |
+| Asset manifest | Typed media metadata | Core | Image/SVG/video/audio/font, integrity/probe parity |
+| Video sampling | Frame tại local media time | Core | Trim, loop/hold/transparent, exact FPS mapping |
+| Audio clip/track | BGM/voice/SFX playback | Core | Start, source trim, duration, loop, gain, fade |
+| Audio automation | Professional mix motion | Advanced | Gain dB, pan, typed keyframes |
+| Audio/beat marker | Sync reference | Core | Stable IDs, optional analysis provenance |
+| Audio-reactive driver | Giá trị từ approved analysis | Advanced | Precomputed deterministic envelope/bands |
+| Font resolution | Portable text rendering | Core | Pinned asset, family/weight/style, glyph fallback policy |
+
+Audio thuộc timeline/media, không phải spatial Node nếu chưa có spatial-audio product riêng.
+
+## 18. Designer editor primitives
+
+Selection, viewport và panel state không thuộc portable format, nhưng authoring UI là completion gate.
+
+| Công cụ | Phân loại | Hành vi bắt buộc |
+|---|---|---|
+| Inspector | Core | Capability-driven controls, mixed values, undo/redo |
+| Dope sheet | Core | Select/move/copy/paste/snap key và clip-local time |
+| Value Graph Editor | Core | Scalar/angle curve, temporal handle, presets |
+| Spatial Path Editor | Core | Vec2 path/tangent, canvas handles, orient preview |
+| Effect stack editor | Core | Add/remove/reorder/enable, animate params, enforce limits |
+| Driver editor | Core | Typed source/destination, cycle errors, macro publication |
+| Depth/parallax controls | Core | Layer depth, camera preview, response, neutral reset |
+| Matte/adjustment controls | Core | Scope visualization, isolation diagnostics |
+| Component publisher | Core | Public controls, variants/actions, semver, validation |
+| Template User panel | Core | Chỉ public contract, không internal ID/topology |
+
+Command đi qua `editor-core` hoặc deterministic domain boundary tương đương. React không mutate portable document trực tiếp.
+
+## 19. Runtime và RenderPlan primitives
+
+| Primitive | Trách nhiệm | Phân loại | Hành vi bắt buộc |
+|---|---|---|---|
+| Literal Runtime Node | Entity sẵn evaluate/draw | Core | Không unresolved variable/Component/repeater/editor metadata |
+| Typed Runtime Track | Closed evaluator input | Core | Cùng interpolation vocabulary với schema, reject unknown |
+| Dependency DAG | Driver/constraint order | Core | Stable topological order, cycle diagnostics |
+| Evaluated state | Giá trị tại canonical sample | Core | Typed, bounded, random-access |
+| RenderPlan | Shared compositing DAG | Core | Isolation, matte, effect, adjustment, blend, resource plan |
+| Browser adapter | Interactive raster | Core | Thực thi plan, không alternate semantics |
+| Worker adapter | Export raster | Core | Cùng plan/sampled values |
+| Frame planner | Scene/transition/blur sample jobs | Core | Deterministic, chunk-safe |
+| Asset resolver | Runtime media access | Core | Browser cache/blob và export verified file/cache |
+| Diagnostic | Giải thích invalid/over-budget | Core | Structured error, không silent degradation |
+
+## 20. Gate hoàn thành primitive
+
+Primitive chỉ đạt phân loại cuối khi có mọi bằng chứng áp dụng được:
+
+1. Typed schema, default, unit, limits, serialization round-trip.
+2. Reference validation cho ID, type, cycle, topology, cardinality.
+3. Positive/negative/limit fixtures và Runtime/PNG goldens của v2 đã được rebaseline, có review.
+4. Deterministic compiler golden với literal Runtime output.
+5. Evaluator assertion tại boundary/midpoint/random-access.
+6. RenderPlan assertion về stage/order/bounds/resources.
+7. Worker visual golden và diff artifact khi fail.
+8. Browser/export sampled-frame parity.
+9. Designer UI authoring, undo/redo, save/reload.
+10. Template User safety tại public-control min/default/max.
+11. Representative/limit performance benchmark.
+12. Catalog và capability registry được cập nhật.
+
+`N/A` phải có lý do. “Có schema”, “fixture parse được” hoặc “một screenshot đúng” không đủ.
+
+## 21. Product acceptance compositions
+
+| Composition | Capability bắt buộc |
 |---|---|
-| Identity | Artifact identity, Stable ID, Semantic (`key` qua compile), Integrity, Component semver, Source mapping (SVG import) |
-| Value | JSON literal, Resolvable value (typed surfaces), Property path registry, Variable, Binding (1 target / many sources), Public param, Capability registry |
-| Time | Keyframe, Track, Easing, Clip, Schedule, Playback, Preset, Named Action outer playback, Deterministic clock/seed |
-| Spatial | Transform, Hierarchy, World matrix (worker), Draw order, Bounds, Hit-test (worker), Layout via Repeater |
-| Nodes | Group, Text, Shape, Path, Image, SVG, Video, Bone, Camera, Component Instance |
-| Paint/geometry | Point/Contour/Segment, Solid fill/stroke, **Gradient** (literal stops), **Dash** + animatable `dashOffset`, **Trim Path**, Path Morph, **Path Bend** |
-| Composition | Mask/Clip, Effects stack (blur/shadow/glow/color-adjust), **Blend mode** (`normal\|multiply\|screen\|add`), Scene transition (`cut\|fade\|crossfade`) |
-| Expansion | Component expansion, Repeater (list/count/layouts/stagger), Text Animator — compile away khỏi Runtime IR |
-| Modifiers | Motion Path, Path Morph, Secondary Motion (rotation), Trim Path, Path Bend, Constraint (`look-at\|copy-position\|copy-rotation`) |
-| Cut-out | `sourceImports` / Part / `cutoutRigs`, Bone chain, `restRotation`, Variant slot, Named Action, Lip-sync cues, Prop attachment, Secondary chain |
-| Scene/media | Scene, Timeline `sceneOrder`, Audio track mix, Asset declaration/resolver (schema), Font `fontAssetId` mismatch reject, Media probe |
-| Authoring format | Patch public-surface, AI capability freeze surface, Import fixtures |
-| Runtime IR | Literal node/track, Frame plan, Offscreen plan, PNG worker goldens, Encoder MP4 smoke |
+| Kinetic typography | Temporal Bézier, spatial path, Text Animator, motion blur, public copy/style |
+| Layered product promo | 2.5D depth, camera parallax, adjustment grade, shadow/glow, replace product asset |
+| Logo reveal | Trim/morph, luma matte, displacement, blur/glow, timing macro |
+| Data infographic | List binding, repeater, stagger, number/text animation, safe item limits |
+| UI/product showcase | Camera, depth, oscillator/follow driver, bounded effect intensity |
+| Cut-out dialogue | Bone, action, lip-sync marker, secondary motion, prop, audio |
+| Matte transition pack | Alpha/luma/inverse matte, isolated group, adjustment, cross-scene timing |
+| Procedural loop pack | Wiggle/noise/oscillator, extrapolation, deterministic random-access |
 
-### Làm được nhưng còn gap (Partial / deferred)
+Mỗi composition phải:
 
-| Gap | Ghi chú |
-|---|---|
-| Browser Web / Canvas PNG parity | Runtime IR harness có; media/screenshot parity vs worker còn thiếu |
-| Parallax Modifier | Manual keyframe parallax được; auto parallax modifier **chưa** (plan riêng) |
-| Gradient stops animate | Fill gradient literal OK; animate stops theo track **chưa** |
-| Secondary Motion `axis: position` | Schema/runtime P0 chỉ **rotation** |
-| Secondary Motion animate stiffness/damping | Params **static** ở P0 |
-| Constraint `pin` | Chưa; chỉ look-at / copy-position / copy-rotation |
-| Effect bounds inflation | Bounds baseline có; inflation đầy đủ còn thiếu |
-| Font glyph Web fallback | Schema mismatch reject có; glyph coverage Web deferred |
-| Asset cache/offline | Hash/manifest có; cache/offline deferred |
-| Editor UI | Inspector, timeline/dope sheet, canvas selection — Deferred UI |
-| Encoder/product infra | MP4 smoke; queue/storage/auth chưa |
+- được dựng bằng Designer UI, không hand-edit JSON;
+- publish bộ consumer controls nhỏ và an toàn;
+- render đúng tại public-control min/default/max;
+- qua save/reload, package publication và versioned dependency resolution;
+- qua Browser/export parity và performance budget;
+- có human Designer visual sign-off.
 
-### Chưa làm — Planned P1 (schema reject)
+## 22. Chính sách phát triển sau nâng cấp
 
-| Primitive | Reject fixture |
-|---|---|
-| Emitter | `negative/p1-not-normative/emitter-node.json` |
-| 2-bone IK | `negative/p1-not-normative/two-bone-ik.json` |
-| Audio cue/marker | `negative/p1-not-normative/audio-marker-track.json` |
+Chỉ thêm primitive mới khi nó mở khóa composition đã được chứng minh mà vocabulary hiện tại không diễn đạt sạch được.
 
-### Out of scope (không thêm placeholder)
+Thứ tự ưu tiên:
 
-Mesh/skinning/weight paint · Organic IK/puppet · Expression language · Full physics · Frame-by-frame/onion skin · Custom shaders · `CharacterNode` / `RestPose` / `RigMapper` types · Wipe transition · Parallax-as-depth-from-`zIndex`
+1. animation quality/control;
+2. compositing/effect depth;
+3. layered 2.5D camera motion;
+4. deterministic procedural reuse;
+5. safe template publication.
 
-### Quy tắc đọc trạng thái trong bảng §1–13
-
-- **Implemented schema** = contract ± fixtures xanh; Web PNG có thể vẫn deferred.
-- **Implemented worker** = schema + worker/evaluator (+ thường có Runtime/PNG golden).
-- **Planned P1 — rejected** = parser từ chối; chưa mở normative.
-
-## 1. Artifact và identity primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Artifact identity | `format`, `formatVersion` | Implemented schema | đúng/sai format, version rejection, strict unknown fields |
-| Stable ID | Address trong scope | Implemented schema | empty, duplicate, namespace sau expansion |
-| Semantic | `role`, `key`, `tags` | Implemented schema | public/internal address; `key` preserved through compile |
-| Integrity | SHA-256 pin cho asset/component | Implemented schema | đúng hash, mismatch, missing file, immutable package |
-| Component semver | Public contract version | Implemented schema | exact pin, missing dependency, incompatible action/public prop |
-| Source mapping | Figma/Illustrator SVG export → canonical Node/asset | Implemented schema + import fixtures | flat paths, fingerprint, re-import identity, script/URL reject |
-
-## 2. Value/property primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| JSON literal value | Runtime scalar/object/list | Implemented schema | string/number/bool/null/list/object round-trip |
-| Resolvable value | Literal hoặc variable reference | Implemented schema | typed clip/track/playback/params only; missing variable + finite map |
-| Property path | Stable animatable address | Implemented current surface | enumerable kind/domain/public/runtime state; effect/modifier paths đến cùng primitive |
-| Variable | string/color/number/bool/image/enum/list | Implemented schema | defaults, min/max/options, list item schema |
-| Binding | Variable/context → Node property | Implemented schema | one target property per binding; one variable → many targets |
-| Public parameter | Component safe surface | Implemented schema | type match, default/override, internal isolation |
-| Capability metadata | Primitive support/limits for UI và AI | Implemented property registry | public P0 enumeration; P1 node types rejected |
-
-## 3. Time/animation primitives
-
-Playback is implemented for finite and infinite iterations, normal/reverse/alternate direction, rate scaling, scene-duration clipping, and schedule offsets. The acceptance fixture is `docs/fixtures/v2/projects/schedule-playback.mt.json`; compiler and evaluator assertions cover before/start/middle/end/after timestamps.
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Keyframe | `{t, v, easing}` | Implemented schema | ordering, duplicate time reject, before/after range |
-| Property Track | Keys trên target/property | Implemented schema | numeric/non-numeric interpolation, target validation |
-| Easing | linear/ease/spring/step | Implemented schema | exact values tại fixed timestamps, clamp policy |
-| Clip | Duration, target, source | Implemented schema | target, duration, keys không vượt clip |
-| Schedule | absolute/after/with | Implemented schema | chain, offset, missing ref, cycle |
-| Playback | iterations/direction/rate | Implemented | finite/infinite, reverse/alternate evaluator, rate>0 reject |
-| Preset source | Authoring shortcut → tracks | Implemented | known preset, literal expansion, no preset in Runtime IR |
-| Named Action | Reusable component animation | Implemented outer playback | idle/blink/talk/wave compose, loop/rate, over-duration guard |
-| Deterministic clock/seed | Random-access frame evaluation và pseudo-random sample | Implemented runtime foundation | frame index/time, channel/sample independence, stored frame equality |
-
-## 4. Spatial/layout primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Transform | x/y/size/rotation/scale/anchor/opacity/visibility/flip | Implemented schema (Web deferred) | local matrix và tracked values |
-| Hierarchy | `parentId` Node graph | Implemented schema | missing parent, cycle, deep hierarchy |
-| World matrix | Parent × local | Implemented schema — worker tested; Web deferred | anchor, inherit flags, flip, nested scale/rotation |
-| Draw order | z-index + stable tree order | Implemented schema | equal z-index, nested groups, mask/effect layers |
-| Bounds | Geometry/layout bounds | Implemented runtime baseline | transformed AABB + drawable subtree chạy; effect inflation còn thiếu |
-| Hit test | Canvas selection | Implemented schema; Web selection deferred | inverse transform, visibility, opacity và draw order |
-| Layout | linear/grid/radial placement | Implemented via Repeater | deterministic positions and item limits |
-
-## 5. Core Node objects
-
-Node chỉ tồn tại khi có spatial identity, bounds, draw order, hit-test hoặc parenting.
-
-| Node | Atomic responsibility | Trạng thái | Fixture logic |
-|---|---|---|---|
-| Group | Hierarchy/container | Implemented schema | parent transform, subtree opacity/effects/mask |
-| Text | Text content/layout | Implemented schema; font/Web deferred | Vietnamese, wrap, alignment, fontAssetId mismatch reject |
-| Shape | Rectangle/ellipse/polygon primitives | Implemented worker | typed paint, animated radius/paint, geometry limits và PNG golden |
-| Path | Typed contours + line/cubic segments | Implemented worker | open/closed, evenodd holes, true cubic bounds và PNG golden |
-| Image | Raster asset | Implemented schema + media fixture | contain/cover/fill/none fit, crop rect, alpha metadata |
-| SVG | Normalized vector asset/part | Implemented schema + worker smoke; Web deferred | sanitize, raster, nested transform |
-| Video | Time-based media asset | Implemented worker frame sampling | trim, frame policy, loop, mute/audio policy |
-| Bone | Zero-size transform joint | Implemented schema + worker smoke; Web deferred | chain/pivot/hierarchy; restRotation |
-| Camera | Scene view transform | Implemented worker | active camera, pan/zoom/rotate, crossfade |
-| Component Instance | Reusable package Node | Implemented compiler | dependency pin, props, expansion, namespace |
-
-`logo`, `icon` và `character` đã bị xóa khỏi Node union. Logo/icon là semantic composition bằng Text/Image/SVG/Path/Component; Character là Component được compose từ Bone/Group/SVG/variants/actions.
-
-## 6. Geometry/paint primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Point/Contour/Segment | Canonical Path geometry | Implemented | finite coordinates, line/cubic, contour/segment limits |
-| Fill | Solid paint | Implemented worker | color/opacity/nonzero/evenodd |
-| Stroke | Width/cap/join | Implemented worker | open path, animated width, stroke-inflated bounds |
-| Gradient | Linear/radial typed paint | Implemented worker | `gradient-dash` + stop-order negatives; stops literal (not animated) |
-| Dash | Stroke dash array/offset | Implemented worker | `style.dash` + animatable `dashOffset` on path/shape |
-| Trim Path | Arc-length range | Implemented worker | `trim-path-reveal`; animate start/end/offset |
-| Path Morph | Compatible topology interpolation | Implemented worker | mismatch rejection, 0/0.5/1 silhouettes |
-| Path Bend | Arc-chord warp | Implemented worker | `path-bend-ribbon`; amount ∈ [-1,1]; sin(πt) perpendicular offset |
-
-SVG arc/quadratic commands được importer normalize thành cubic. P0 Morph không tự thêm points hoặc đoán correspondence.
-
-## 7. Composition primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Mask/Clip | Node visibility từ source Node | Implemented worker | clip/alpha/inverse, nested, cycle và source visibility |
-| Effects stack | Ordered pixel effects | Implemented worker | order, property animation, resource limits |
-| Blur | Effect | Implemented worker | radius 0/max, offscreen budgets via effects fixture |
-| Shadow | Effect | Implemented worker | offset/blur/color/alpha |
-| Glow | Effect | Implemented worker | radius/intensity/order |
-| Color adjust | Effect | Implemented worker | brightness/contrast/saturation |
-| Blend mode | Layer compositing | Implemented worker | `normal\|multiply\|screen\|add`; `blend-mode-glow` |
-| Scene transition | Cross-scene compositing | Implemented cut/fade/crossfade | wipe rejected; duration/overlap goldens |
-
-Canonical order: raster subtree → mask → ordered effects → blend/z-order.
-
-## 8. Compile-time expansion primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Component expansion | Package → namespaced Nodes/Tracks | Implemented | nested policy, props/bindings, no Component runtime leak |
-| Repeater list | List variable → cloned subtree | Implemented | stable key, duplicate/missing rejection, context binding |
-| Repeater count | Numeric clone source | Implemented | count limits, stable generated IDs |
-| Repeater layout | None/linear/grid/radial | Implemented | exact positions, columns, radius và orientation |
-| Time stagger | Offset cloned clips/tracks | Implemented | bounded value, canonical deterministic schedule |
-| Text Animator | Text → grapheme/word/line runs | Implemented compiler | Vietnamese combining marks, emoji ZWJ, selector, stagger và unit limit |
-| Emitter | Seeded repeated sprites | Planned P1 — rejected in schema | negative/p1-not-normative/emitter-node.json |
-
-Compiler phải loại các expansion primitives khỏi Runtime IR.
-
-## 9. Modifier primitives
-
-| Modifier | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Motion Path | Node position/orientation theo Path | Implemented runtime | typed refs, arc length, tangent, progress, offsets, cycles, cross-hierarchy |
-| Path Morph | Geometry interpolation | Implemented runtime | topology + numeric interpolation |
-| Secondary Motion | Follow-through trên chain | Implemented runtime | fixed time, random access; params static at P0 |
-| Trim Path | Arc-length reveal | Implemented worker | `trim-path-reveal`; animate start/end/offset |
-| Simple constraint | look-at / copy-position / copy-rotation | Implemented worker | `constraint-look-at`; cycle reject; topo evaluation |
-| 2-bone IK | Analytic arm/leg solver | Planned P1 — rejected in schema | negative/p1-not-normative/two-bone-ik.json |
-| Path Bend | Arc-chord warp | Implemented worker | `path-bend-ribbon`; amount ∈ [-1,1] |
-
-Modifier có stable ID. Animatable paths P0: `modifiers.<id>.progress` (Motion Path/Path Morph), `modifiers.<id>.start|end|offset` (Trim Path), `modifiers.<id>.amount` (Path Bend), `modifiers.<id>.weight` (Constraint). Secondary Motion stiffness/damping/amplitude là static configuration.
-
-## 10. Cut-out character primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| SVG Source Import | SVG export (Figma/Illustrator) | Implemented sanitizer + fixtures | sanitize, fingerprint, re-import |
-| Part | Một hoặc nhiều source paths thành SVG asset | Implemented import mapping | multi-select mapping via sourceImports.parts |
-| Rig Mapper | Part → parent/pivot/order/semantic | Implemented as mapped fields (not a type) | `cutoutRigs` + `sourceImports`; no RigMapper schema type |
-| Bone Chain | Joint hierarchy | Implemented worker smoke | arm chain + hierarchy-transform |
-| Rest Pose | Canonical local transforms | Implemented as `bone.payload.restRotation` | no RestPose object; reset/re-import via import fixtures |
-| Variant Slot | Mouth/eyes/hand/expression assets | Implemented | default, switch, invalid asset negatives |
-| Named Action | Reusable animation clips | Implemented | compose idle/blink/talk/gesture + outer playback |
-| Lip-sync cues | Step keys cho mouth variants | Implemented compiler | cue boundaries → assetId step keys |
-| Prop Attachment | Prop parented vào hand/slot | Implemented worker smoke | pivot/draw order; Web parity còn thiếu |
-| Secondary Chain | Hair/tail/ribbon overlap | Implemented Secondary Motion | deterministic chain follow-through |
-
-Raw source/import/rig/action metadata không được đi vào Runtime IR.
-
-## 11. Scene/media primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Scene | Spatial/time scope | Implemented schema | unique ID, duration, order |
-| Project Timeline | Scene order + audio tracks | Implemented schema | missing/duplicate/unscheduled scene reject |
-| Audio Track | BGM/voiceover/SFX | Implemented mix + probe | start/trim/loop/gain/fade/mix |
-| Audio cue/marker | Beat/phoneme/semantic time | Planned P1 — rejected in schema | negative/p1-not-normative/audio-marker-track.json |
-| Asset declaration | Typed image/SVG/video/audio/font metadata | Implemented schema + fixtures | required fields, alpha/audio consistency, manifest/probe parity |
-| Asset resolver | ID → verified local/cache resource | Implemented schema; cache/offline deferred | URI safety, hash, manifest coverage |
-| Font resolver | Family/weight → bundled font | Implemented schema | fontAssetId unknown/wrong-type reject; glyph Web deferred |
-| Media probe | Codec/duration/dimensions policy | Implemented fixtures | invalid/corrupt/unsupported media |
-
-## 12. Authoring/application primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Patch | Revision-guarded public edit | Implemented schema | `applyMotionPatch` public-surface only; private property reject |
-| Inspector control | Edit supported property | Deferred UI (not format) | schema-driven controls, undo/redo |
-| Timeline/dope sheet | Key/action editing | Deferred UI (not format) | drag, snap, multi-select, serialization |
-| Canvas selection | Select/move/rotate/pivot | Deferred UI (not format) | zoom, hit test, hierarchy |
-| Import/re-import | External asset reconciliation | Implemented import fixtures; UI deferred | stable Node IDs via import contract |
-| Preview | Browser evaluation | Deferred Web parity (Runtime IR harness exists) | hierarchy harness; full PNG/Web still deferred |
-| AI capability registry | Safe generation vocabulary | Implemented freeze gate | public P0 properties only; P1 node types absent |
-
-## 13. Runtime-only primitives
-
-| Primitive | Vai trò | Trạng thái | Logic phải test |
-|---|---|---|---|
-| Literal Runtime Node | Draw-ready Node | Implemented schema | no variable/component/repeat/action metadata |
-| Literal Runtime Track | Resolved keys | Implemented schema | literal-only enforcement |
-| Frame Plan | Scene-local frame jobs | Implemented | FPS, boundaries, frame count |
-| Evaluated Node State | Property values tại time t | Partial | all property families, deterministic result |
-| Offscreen Surface | Mask/effect subtree buffer | Implemented planning abstraction | integer origin/size + dimension/pixel budget; allocation/reuse đến cùng Mask/Effects |
-| Raster Output | PNG frame | Implemented text/SVG smoke | exact dimensions, visual golden |
-| Encoder Output | H.264/AAC MP4 | Partial video smoke | streams, duration, FPS, colorspace, audio |
-
-
-## 14. P1 / P2 và việc tiếp theo
-
-Xem bảng **Tổng hợp — đã làm / chưa làm** ở đầu tài liệu.
-
-**P1 còn lại** (chỉ mở khi có composition fixture thật): Emitter · animated gradient stops · constraint `pin` · 2-bone IK · audio markers.
-
-**Initiative riêng (không P1 reject wall):** Parallax Modifier (fixtures-first, plan riêng).
-
-**Out of scope:** mesh/skinning · organic IK · expressions · physics · frame-by-frame · custom shaders.
-
-## Asset / fixture notes
-
-- Assets pinned: `docs/fixtures/v2/assets/manifest.json` (+ import suite Figma/Illustrator).
-- Layout fixture dirs: `projects/`, `components/`, `negative/`, `expected-runtime/`, `expected-frames/`, `patches/`, `primitives-coverage.json`.
-- Cross-primitive maps: infographic · product TVC · cut-out dialogue · semi-organic mascot.
-
-## Completion rule
-
-Primitive → **Implemented** khi có typed schema · reference/limits · Runtime representation · property paths · compiler/evaluator · ± fixtures (+ Runtime golden khi có surface) · visual khi observable · docs normative. Web PNG parity có thể `na` nếu đã ghi lý do.
+Độ trưởng thành không đo bằng số Node type. Nó được đo bằng phạm vi/chất lượng composition Designer tạo được, độ an toàn của Template User contract và deterministic preview/export parity.

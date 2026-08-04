@@ -3,7 +3,9 @@
   "formatVersion": 2,
   "componentId": "comp.variables-all-types",
   "componentVersion": "1.0.0",
-  "metadata": { "name": "All variable types" },
+  "metadata": {
+    "name": "All variable types"
+  },
   "assets": [
     {
       "id": "asset.image",
@@ -18,37 +20,156 @@
     }
   ],
   "variables": [
-    { "id": "var.string", "type": "string", "name": "String", "value": "hello" },
-    { "id": "var.color", "type": "color", "name": "Color", "value": "#112233" },
-    { "id": "var.number", "type": "number", "name": "Number", "value": 1.5, "min": 0, "max": 10 },
-    { "id": "var.boolean", "type": "boolean", "name": "Boolean", "value": true },
-    { "id": "var.image", "type": "image", "name": "Image", "value": "asset.image" },
-    { "id": "var.enum", "type": "enum", "name": "Enum", "value": "a", "options": ["a", "b"] },
-    { "id": "var.list", "type": "list", "name": "List", "itemSchema": { "type": "object", "fields": { "label": { "type": "string" } } }, "value": [{ "label": "one" }, { "label": "two" }] }
+    {
+      "id": "var.string",
+      "type": "string",
+      "name": "String",
+      "value": "hello"
+    },
+    {
+      "id": "var.color",
+      "type": "color",
+      "name": "Color",
+      "value": "#112233"
+    },
+    {
+      "id": "var.number",
+      "type": "number",
+      "name": "Number",
+      "value": 1.5,
+      "min": 0,
+      "max": 10
+    },
+    {
+      "id": "var.boolean",
+      "type": "boolean",
+      "name": "Boolean",
+      "value": true
+    },
+    {
+      "id": "var.image",
+      "type": "asset",
+      "name": "Image",
+      "value": "asset.image",
+      "assetKind": "image"
+    },
+    {
+      "id": "var.enum",
+      "type": "enum",
+      "name": "Enum",
+      "value": "a",
+      "options": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "var.list",
+      "type": "list",
+      "name": "List",
+      "itemSchema": {
+        "type": "object",
+        "fields": {
+          "label": {
+            "type": "string"
+          }
+        }
+      },
+      "value": [
+        {
+          "label": "one"
+        },
+        {
+          "label": "two"
+        }
+      ]
+    }
   ],
   "publicAPI": [
-    { "id": "title", "type": "string", "label": "Title", "variableId": "var.string" },
-    { "id": "accent", "type": "color", "label": "Accent", "variableId": "var.color" },
-    { "id": "speed", "type": "number", "label": "Speed", "variableId": "var.number" },
-    { "id": "enabled", "type": "boolean", "label": "Enabled", "variableId": "var.boolean" },
-    { "id": "thumb", "type": "image", "label": "Thumb", "variableId": "var.image" },
-    { "id": "mode", "type": "enum", "label": "Mode", "variableId": "var.enum", "options": ["a", "b"] },
-    { "id": "items", "type": "list", "label": "Items", "variableId": "var.list" }
+    {
+      "id": "title",
+      "type": "string",
+      "label": "Title",
+      "variableId": "var.string"
+    },
+    {
+      "id": "accent",
+      "type": "color",
+      "label": "Accent",
+      "variableId": "var.color"
+    },
+    {
+      "id": "speed",
+      "type": "number",
+      "label": "Speed",
+      "variableId": "var.number"
+    },
+    {
+      "id": "enabled",
+      "type": "boolean",
+      "label": "Enabled",
+      "variableId": "var.boolean"
+    },
+    {
+      "id": "thumb",
+      "type": "asset",
+      "label": "Thumb",
+      "variableId": "var.image"
+    },
+    {
+      "id": "mode",
+      "type": "enum",
+      "label": "Mode",
+      "variableId": "var.enum",
+      "options": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "items",
+      "type": "list",
+      "label": "Items",
+      "variableId": "var.list"
+    }
   ],
   "nodes": [
     {
       "id": "title",
       "type": "text",
       "parentId": null,
-      "transform": { "x": 0, "y": 0, "width": 200, "height": 40, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
-      "payload": { "text": "hello", "fontSize": 24 }
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 200,
+        "height": 40,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "text": "hello",
+        "fontSize": 24
+      }
     }
   ],
   "bindings": [
     {
       "id": "bind.title",
-      "source": { "kind": "variable", "variableId": "var.string" },
-      "target": { "nodeId": "title", "property": "payload.text" }
+      "source": {
+        "kind": "variable",
+        "variableId": "var.string"
+      },
+      "target": {
+        "nodeId": "title",
+        "property": "payload.text"
+      }
     }
   ],
   "clips": []

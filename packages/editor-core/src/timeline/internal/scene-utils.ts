@@ -111,17 +111,28 @@ function nodeFromDraft(
   const shapeSide = Math.min(420, mediaSide * 0.55);
 
   if (kind === "shape") {
-    const shape =
-      draft.shape === "circle"
-        ? ({ shape: "ellipse" } as const)
-        : ({ shape: "rectangle", cornerRadius: 0 } as const);
+    let shapePayload: MotionScene["nodes"][number]["payload"];
+    if (draft.shape === "ellipse" || draft.shape === "circle") {
+      shapePayload = { shape: "ellipse" };
+    } else if (draft.shape === "polygon") {
+      shapePayload = {
+        shape: "polygon",
+        points: [
+          { x: 50, y: 0 },
+          { x: 100, y: 100 },
+          { x: 0, y: 100 },
+        ],
+      };
+    } else {
+      shapePayload = { shape: "rectangle", cornerRadius: 0 };
+    }
     return {
       id: nodeId,
       type: "shape",
       parentId: null,
       zIndex: 0,
       transform: baseTransform(composition, shapeSide, shapeSide),
-      payload: shape,
+      payload: shapePayload,
       style: { fill: "#4A90D9" },
     };
   }

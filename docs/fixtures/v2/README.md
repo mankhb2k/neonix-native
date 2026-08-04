@@ -2,6 +2,8 @@
 
 Các fixture này là dữ liệu chuẩn cho contract v2 tại [`../../motion-format-v2.md`](../../motion-format-v2.md). Chúng được parse bằng Zod và kiểm tra reference qua:
 
+Vì sản phẩm còn ở giai đoạn pre-public và chưa có project v2 thật đang chạy, các fixture này là development baseline, không phải compatibility contract. Chúng được phép rebaseline trực tiếp theo [`../../v2-upgrade.md`](../../v2-upgrade.md); không cần giữ parser hoặc migrator cho fixture cũ.
+
 ```bash
 pnpm validate:v2-fixtures
 ```
@@ -27,7 +29,7 @@ Một fixture đạt khi đi hết chuỗi sau mà không truy cập internal Co
 
 Fail nếu AI User phải sửa component `nodes[]`, bone, clip hoặc track nội bộ.
 
-Product composition pack (12 `accept-*` projects + scorecard): [`../../product-primitive-acceptance.md`](../../product-primitive-acceptance.md) và [`acceptance/scorecard.json`](acceptance/scorecard.json).
+Product composition pack (12 `accept-*` projects + scorecard) phải đáp ứng acceptance catalog trong [`../../primitives-object.md`](../../primitives-object.md), kế hoạch kiểm thử trong [`../../v2-upgrade.md`](../../v2-upgrade.md) và ledger máy đọc được tại [`acceptance/scorecard.json`](acceptance/scorecard.json).
 
 ## Bản đồ fixture
 
@@ -81,7 +83,7 @@ pnpm validate:primitives
 
 Lệnh này compile fixtures hierarchy, geometry, mask, Repeater, Text Animator và Motion Path; kiểm tra clock/seed/world-space/bounds/hit-test/cubic extrema/mask graph/compile-time expansion/arc-length orientation, render mười stored PNG goldens rồi ghi preview vào `tmp/primitive-previews/`. Thư mục `tmp` là artifact cục bộ, không commit; mở trực tiếp PNG hoặc `.diff.png` để kiểm tra.
 
-## Quy ước đã khóa
+## Quy ước baseline hiện tại
 
 - Mọi artifact có `format` và `formatVersion`; Component dùng thêm `componentVersion`.
 - Component Instance là Node `type: "component"` trong `scene.nodes[]`.

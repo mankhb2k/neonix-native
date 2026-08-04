@@ -569,7 +569,7 @@ async function validateNegativeFixtures(): Promise<number> {
     },
     {
       file: "components/group-extra-payload.mvc.json",
-      path: "nodes.0",
+      path: "nodes.0.payload",
       code: "unrecognized_keys",
     },
     {
@@ -1600,10 +1600,56 @@ async function main(): Promise<void> {
   if (JSON.stringify(cutoutRuntime).includes("\"lipSync\"")) throw new Error("Compiler leaked lip-sync cue metadata into Runtime IR");
   console.log("OK compiler/lip-sync cues expand to assetId step keys without Runtime metadata");
 
-  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases, ${goldenCount} Runtime golden and ${coverageCount} primitives-coverage rows.`);
+  const matrix = await readJson(resolve(fixturesRoot, "primitives-fidelity-matrix.json")) as {
+    primitives: Array<{ id: string; status: string; gates: Record<string, string>; fixtures?: string[] }>;
+    requiredGatesForImplemented: string[];
+  };
+
+  const footprintScanners: Record<string, (json: string) => boolean> = {
+    "adjustment-node": (json) => json.includes('"type":"adjustment"') || json.includes('"type": "adjustment"'),
+    "solid-node": (json) => json.includes('"type":"solid"') || json.includes('"type": "solid"'),
+    "layered-2d5-parallax": (json) => json.includes('"depth":') || json.includes('"type":"parallax"') || json.includes('"type": "parallax"'),
+    "motion-blur": (json) => json.includes('"type":"motion-blur"') || json.includes('"type": "motion-blur"'),
+  };
+
+  for (const primitive of matrix.primitives) {
+    if (primitive.status === "Implemented") {
+      for (const gate of matrix.requiredGatesForImplemented) {
+        if (primitive.gates[gate] !== "pass") {
+          throw new Error(`Primitive ${primitive.id} marked Implemented but gate ${gate} is ${primitive.gates[gate]}`);
+        }
+      }
+      if (primitive.fixtures && primitive.fixtures.length > 0) {
+        const scanner = footprintScanners[primitive.id];
+        if (scanner) {
+          let foundFootprint = false;
+          for (const fix of primitive.fixtures) {
+            const content = await readFile(resolve(fixturesRoot, fix), "utf8");
+            if (scanner(content)) {
+              foundFootprint = true;
+              break;
+            }
+          }
+          if (!foundFootprint) {
+            throw new Error(`Primitive ${primitive.id} marked Implemented but footprint missing in its fixtures`);
+          }
+        }
+      }
+    }
+  }
+  console.log("OK primitive fidelity matrix verified (with footprints)");
+
+  console.log(`Validated ${componentCount + projectCount + 1} positive, ${negativeCount} negative artifacts, ${limitCount} limit cases, ${goldenCount} Runtime golden, ${matrix.primitives.length} fidelity matrix primitives and ${coverageCount} primitives-coverage rows.`);
 }
 
 main().catch((error: unknown) => {
-  console.error(error);
+  if (error instanceof Error) {
+    console.error(error.message);
+    if ("issues" in error) {
+      console.error(JSON.stringify((error as any).issues, null, 2));
+    }
+  } else {
+    console.error(String(error));
+  }
   process.exitCode = 1;
 });

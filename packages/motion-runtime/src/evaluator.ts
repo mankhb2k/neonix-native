@@ -36,18 +36,48 @@ export type EvaluatedNode = {
 export function easingValue(progress: number, easing = "linear"): number {
   const value = Math.min(1, Math.max(0, progress));
   switch (easing) {
+    case "linear": return value;
     case "step": return value < 1 ? 0 : 1;
     case "easeIn": return value * value;
     case "easeInOut": return value < 0.5 ? 2 * value * value : 1 - (-2 * value + 2) ** 2 / 2;
     case "spring": return Math.min(1.08, 1 - Math.cos(value * Math.PI * 2.5) * Math.exp(-5 * value));
     case "easeOut": return 1 - (1 - value) ** 3;
-    default: return value;
+    default: throw new Error(`Unknown runtime easing: ${String(easing)}`);
   }
 }
 
-export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fallback: unknown): unknown {
-  if (!track || track.keys.length === 0) return fallback;
-  const keys = track.keys;
+export function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace("#", "");
+  if (clean.length === 3) {
+    const r = parseInt(clean[0]! + clean[0]!, 16);
+    const g = parseInt(clean[1]! + clean[1]!, 16);
+    const b = parseInt(clean[2]! + clean[2]!, 16);
+    return [r, g, b];
+  }
+  const r = parseInt(clean.substring(0, 2), 16) || 0;
+  const g = parseInt(clean.substring(2, 4), 16) || 0;
+  const b = parseInt(clean.substring(4, 6), 16) || 0;
+  return [r, g, b];
+}
+
+export function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (v: number) => Math.min(255, Math.max(0, Math.round(v)));
+  const toHex = (v: number) => clamp(v).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+export function interpolateColor(colorA: string, colorB: string, progress: number): string {
+  if (!colorA.startsWith("#") || !colorB.startsWith("#")) return progress < 0.5 ? colorA : colorB;
+  const [r1, g1, b1] = hexToRgb(colorA);
+  const [r2, g2, b2] = hexToRgb(colorB);
+  const r = r1 + (r2 - r1) * progress;
+  const g = g1 + (g2 - g1) * progress;
+  const b = b1 + (b2 - b1) * progress;
+  return rgbToHex(r, g, b);
+}
+
+export function sampleTrackValue(keys: RuntimeTrack["keys"], time: number): unknown {
+  if (keys.length === 0) return undefined;
   if (time <= keys[0]!.t) return keys[0]!.v;
   const last = keys[keys.length - 1]!;
   if (time >= last.t) return last.v;
@@ -55,11 +85,101 @@ export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fal
     const right = keys[index]!;
     const left = keys[index - 1]!;
     if (time > right.t) continue;
+    if (typeof left.v === "string" && typeof right.v === "string" && left.v.startsWith("#") && right.v.startsWith("#")) {
+      const progress = easingValue((time - left.t) / Math.max(0.000001, right.t - left.t), right.easing);
+      return interpolateColor(left.v, right.v, progress);
+    }
     if (typeof left.v !== "number" || typeof right.v !== "number") return time < right.t ? left.v : right.v;
     const progress = easingValue((time - left.t) / Math.max(0.000001, right.t - left.t), right.easing);
     return left.v + (right.v - left.v) * progress;
   }
-  return fallback;
+  return last.v;
+}
+
+export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fallback: unknown): unknown {
+  if (!track || track.keys.length === 0) return fallback;
+  const keys = track.keys;
+  const t0 = keys[0]!.t;
+  const tLast = keys[keys.length - 1]!.t;
+  const duration = tLast - t0;
+
+  if (time < t0) {
+    const pre = track.preBehavior?.type ?? "clamp";
+    if (pre === "cycle" && duration > 0) {
+      const wrapped = tLast - ((t0 - time) % duration);
+      return sampleTrackValue(keys, wrapped);
+    }
+    if (pre === "pingpong" && duration > 0) {
+      const count = Math.floor((t0 - time) / duration);
+      const rem = (t0 - time) % duration;
+      const wrapped = count % 2 === 0 ? t0 + rem : tLast - rem;
+      return sampleTrackValue(keys, wrapped);
+    }
+    if (pre === "continue" && keys.length >= 2 && typeof keys[0]!.v === "number" && typeof keys[1]!.v === "number") {
+      const dt = Math.max(0.000001, keys[1]!.t - keys[0]!.t);
+      const slope = (keys[1]!.v - keys[0]!.v) / dt;
+      return keys[0]!.v + slope * (time - t0);
+    }
+    return keys[0]!.v;
+  }
+
+  if (time > tLast) {
+    const post = track.postBehavior?.type ?? "clamp";
+    if (post === "cycle" && duration > 0) {
+      const wrapped = t0 + ((time - tLast) % duration);
+      return sampleTrackValue(keys, wrapped);
+    }
+    if (post === "pingpong" && duration > 0) {
+      const count = Math.floor((time - tLast) / duration);
+      const rem = (time - tLast) % duration;
+      const wrapped = count % 2 === 0 ? tLast - rem : t0 + rem;
+      return sampleTrackValue(keys, wrapped);
+    }
+    if (post === "offset-cycle" && duration > 0 && typeof keys[0]!.v === "number" && typeof keys[keys.length - 1]!.v === "number") {
+      const cycles = Math.floor((time - t0) / duration);
+      const rem = (time - t0) % duration;
+      const offset = (keys[keys.length - 1]!.v as number) - (keys[0]!.v as number);
+      const sampled = sampleTrackValue(keys, t0 + rem);
+      return typeof sampled === "number" ? sampled + offset * cycles : sampled;
+    }
+    if (post === "continue" && keys.length >= 2 && typeof keys[keys.length - 1]!.v === "number" && typeof keys[keys.length - 2]!.v === "number") {
+      const k1 = keys[keys.length - 2]!;
+      const k2 = keys[keys.length - 1]!;
+      const dt = Math.max(0.000001, k2.t - k1.t);
+      const slope = ((k2.v as number) - (k1.v as number)) / dt;
+      return (k2.v as number) + slope * (time - tLast);
+    }
+    return keys[keys.length - 1]!.v;
+  }
+
+  return sampleTrackValue(keys, time);
+}
+
+export function sampleTrackCurve(track: RuntimeTrack, count = 100): Array<{ time: number; value: unknown }> {
+  if (track.keys.length === 0) return [];
+  const t0 = track.keys[0]!.t;
+  const tLast = track.keys[track.keys.length - 1]!.t;
+  const step = Math.max(0.01, (tLast - t0) / Math.max(1, count - 1));
+  const samples: Array<{ time: number; value: unknown }> = [];
+  for (let index = 0; index < count; index += 1) {
+    const time = t0 + index * step;
+    samples.push({ time, value: evaluateTrack(track, time, undefined) });
+  }
+  return samples;
+}
+
+const trackIndexCache = new WeakMap<RuntimeScene, Map<string, RuntimeTrack>>();
+
+function getTrackIndex(scene: RuntimeScene): Map<string, RuntimeTrack> {
+  let index = trackIndexCache.get(scene);
+  if (!index) {
+    index = new Map();
+    for (const track of scene.tracks) {
+      index.set(`${track.targetId}::${track.property}`, track);
+    }
+    trackIndexCache.set(scene, index);
+  }
+  return index;
 }
 
 export function evaluateProperty(
@@ -69,8 +189,9 @@ export function evaluateProperty(
   time: number,
   fallback: unknown,
 ): unknown {
+  const index = getTrackIndex(scene);
   const value = evaluateTrack(
-    scene.tracks.find((track) => track.targetId === node.id && track.property === property),
+    index.get(`${node.id}::${property}`),
     time,
     fallback,
   );
@@ -248,6 +369,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     let parentMatrix = IDENTITY_MATRIX;
     let worldOpacity = transform.opacity;
     let visible = transform.visible;
+
     if (node.parentId) {
       const parentNode = byId.get(node.parentId);
       if (!parentNode) throw new Error(`Runtime parent missing: ${node.parentId}`);
@@ -293,8 +415,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       };
     }
 
-    const constraint = node.modifiers?.find((modifier) => modifier.type === "constraint");
-    if (constraint) {
+    for (const constraint of (node.modifiers ?? []).filter((m) => m.type === "constraint")) {
       const targetNode = byId.get(constraint.targetNodeId);
       if (!targetNode) throw new Error(`Runtime Constraint target missing: ${constraint.targetNodeId}`);
       const target = evaluated.get(targetNode.id) ?? evaluate(targetNode);
@@ -329,30 +450,27 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     const worldMatrix = multiplyMatrix(parentMatrix, localTransformMatrix(transform));
     let paintContours = node.type === "path" ? node.payload.contours : undefined;
     if (node.type === "path") {
-      const pathMorph = node.modifiers?.find((modifier) => modifier.type === "path-morph");
-      if (pathMorph) {
-        const progress = evaluateProperty(scene, node, `modifiers.${pathMorph.id}.progress`, time, pathMorph.progress);
-        paintContours = pathMorphContours(
-          node,
-          typeof progress === "number" ? progress : typeof pathMorph.progress === "number" ? pathMorph.progress : 0,
-        );
-      }
-      const bend = node.modifiers?.find((modifier) => modifier.type === "path-bend");
-      if (bend) {
-        const amount = evaluateProperty(scene, node, `modifiers.${bend.id}.amount`, time, bend.amount);
-        paintContours = bendPathContours(paintContours ?? node.payload.contours, typeof amount === "number" ? amount : bend.amount);
-      }
-      const trim = node.modifiers?.find((modifier) => modifier.type === "trim-path");
-      if (trim) {
-        const start = evaluateProperty(scene, node, `modifiers.${trim.id}.start`, time, trim.start);
-        const end = evaluateProperty(scene, node, `modifiers.${trim.id}.end`, time, trim.end);
-        const offset = evaluateProperty(scene, node, `modifiers.${trim.id}.offset`, time, trim.offset);
-        paintContours = trimPathContours(
-          paintContours ?? node.payload.contours,
-          typeof start === "number" ? start : trim.start,
-          typeof end === "number" ? end : trim.end,
-          typeof offset === "number" ? offset : trim.offset,
-        );
+      for (const modifier of node.modifiers ?? []) {
+        if (modifier.type === "path-morph") {
+          const progress = evaluateProperty(scene, node, `modifiers.${modifier.id}.progress`, time, modifier.progress);
+          paintContours = pathMorphContours(
+            node,
+            typeof progress === "number" ? progress : typeof modifier.progress === "number" ? modifier.progress : 0,
+          );
+        } else if (modifier.type === "path-bend") {
+          const amount = evaluateProperty(scene, node, `modifiers.${modifier.id}.amount`, time, modifier.amount);
+          paintContours = bendPathContours(paintContours ?? node.payload.contours, typeof amount === "number" ? amount : modifier.amount);
+        } else if (modifier.type === "trim-path") {
+          const start = evaluateProperty(scene, node, `modifiers.${modifier.id}.start`, time, modifier.start);
+          const end = evaluateProperty(scene, node, `modifiers.${modifier.id}.end`, time, modifier.end);
+          const offset = evaluateProperty(scene, node, `modifiers.${modifier.id}.offset`, time, modifier.offset);
+          paintContours = trimPathContours(
+            paintContours ?? node.payload.contours,
+            typeof start === "number" ? start : modifier.start,
+            typeof end === "number" ? end : modifier.end,
+            typeof offset === "number" ? offset : modifier.offset,
+          );
+        }
       }
     }
 

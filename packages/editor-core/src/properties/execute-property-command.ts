@@ -480,6 +480,136 @@ function applyKeyframe(
   return { project: next, missing: false };
 }
 
+function moveKeyframeOnScene(
+  project: MotionProject,
+  target: NodeTargetRef,
+  command: Extract<DocumentPropertyCommand, { type: "move-property-keyframe" }>,
+): { project: MotionProject; missing: boolean; invalid?: string } {
+  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
+  if (sceneIdx < 0) return { project, missing: true };
+  const scene = project.scenes[sceneIdx]!;
+
+  const clips = [...scene.clips];
+  const clipIdx = clips.findIndex(
+    (c) =>
+      c.targetId === target.nodeId &&
+      c.source.kind === "tracks" &&
+      c.source.tracks.some((tr) => tr.property === command.property),
+  );
+  if (clipIdx < 0) return { project, missing: false };
+  const clip = clips[clipIdx]!;
+  if (clip.source.kind !== "tracks") return { project, missing: false };
+
+  let invalid: string | undefined = undefined;
+  const tracks = clip.source.tracks.map((tr) => {
+    if (tr.property !== command.property) return tr;
+    
+    // Check collision
+    const collides = tr.keys.some(k => Math.abs(k.t - command.newT) < 1e-6 && Math.abs(k.t - command.t) >= 1e-6);
+    if (collides) {
+      invalid = `Cannot move keyframe to ${command.newT} because another keyframe exists at that time.`;
+      return tr;
+    }
+
+    const keys = tr.keys.map((k) => {
+      if (Math.abs(k.t - command.t) < 1e-6) {
+        return {
+          ...k,
+          t: command.newT,
+          v: command.newV !== undefined ? command.newV : k.v,
+        };
+      }
+      return k;
+    }).sort((a, b) => a.t - b.t);
+    return { ...tr, keys };
+  });
+
+  if (invalid) return { project, missing: false, invalid };
+
+  clips[clipIdx] = {
+    ...clip,
+    duration: clampKeyframeClipDuration(clip.duration, command.newT),
+    source: { kind: "tracks", tracks },
+  };
+  const scenes = project.scenes.slice();
+  scenes[sceneIdx] = { ...scene, clips };
+  return { project: { ...project, scenes }, missing: false };
+}
+
+function deleteKeyframeOnScene(
+  project: MotionProject,
+  target: NodeTargetRef,
+  command: Extract<DocumentPropertyCommand, { type: "delete-property-keyframe" }>,
+): { project: MotionProject; missing: boolean } {
+  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
+  if (sceneIdx < 0) return { project, missing: true };
+  const scene = project.scenes[sceneIdx]!;
+
+  const clips = [...scene.clips];
+  const clipIdx = clips.findIndex(
+    (c) =>
+      c.targetId === target.nodeId &&
+      c.source.kind === "tracks" &&
+      c.source.tracks.some((tr) => tr.property === command.property),
+  );
+  if (clipIdx < 0) return { project, missing: false };
+  const clip = clips[clipIdx]!;
+  if (clip.source.kind !== "tracks") return { project, missing: false };
+
+  const tracks = clip.source.tracks.map((tr) => {
+    if (tr.property !== command.property) return tr;
+    const keys = tr.keys.filter((k) => Math.abs(k.t - command.t) >= 1e-6);
+    return { ...tr, keys };
+  }).filter((tr) => tr.keys.length > 0);
+
+  if (tracks.length === 0) {
+    clips.splice(clipIdx, 1);
+  } else {
+    clips[clipIdx] = { ...clip, source: { kind: "tracks", tracks } };
+  }
+
+  const scenes = project.scenes.slice();
+  scenes[sceneIdx] = { ...scene, clips };
+  return { project: { ...project, scenes }, missing: false };
+}
+
+function setKeyframeEasingOnScene(
+  project: MotionProject,
+  target: NodeTargetRef,
+  command: Extract<DocumentPropertyCommand, { type: "set-keyframe-easing" }>,
+): { project: MotionProject; missing: boolean } {
+  const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
+  if (sceneIdx < 0) return { project, missing: true };
+  const scene = project.scenes[sceneIdx]!;
+
+  const clips = [...scene.clips];
+  const clipIdx = clips.findIndex(
+    (c) =>
+      c.targetId === target.nodeId &&
+      c.source.kind === "tracks" &&
+      c.source.tracks.some((tr) => tr.property === command.property),
+  );
+  if (clipIdx < 0) return { project, missing: false };
+  const clip = clips[clipIdx]!;
+  if (clip.source.kind !== "tracks") return { project, missing: false };
+
+  const tracks = clip.source.tracks.map((tr) => {
+    if (tr.property !== command.property) return tr;
+    const keys = tr.keys.map((k) => {
+      if (Math.abs(k.t - command.t) < 1e-6) {
+        return { ...k, easing: command.easing };
+      }
+      return k;
+    });
+    return { ...tr, keys };
+  });
+
+  clips[clipIdx] = { ...clip, source: { kind: "tracks", tracks } };
+  const scenes = project.scenes.slice();
+  scenes[sceneIdx] = { ...scene, clips };
+  return { project: { ...project, scenes }, missing: false };
+}
+
 export function executePropertyCommand(
   document: TimelineDocument,
   command: DocumentPropertyCommand,
@@ -773,6 +903,47 @@ export function executePropertyCommand(
           property: command.property,
         },
       ];
+      break;
+    }
+    case "move-property-keyframe": {
+      if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
+      if (!Number.isFinite(command.newT)) return rejectedInvalid("New time must be finite.");
+      if (command.newT < 0 || command.newT > MOTION_V2_LIMITS.mediaDurationSeconds) return rejectedInvalid("New time out of bounds.");
+      if (typeof command.newV === "number" && !Number.isFinite(command.newV)) return rejectedInvalid("Numeric value must be finite.");
+
+      let updated = document.project;
+      for (const target of command.targets) {
+        const res = moveKeyframeOnScene(updated, target, command);
+        if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        if (res.invalid) return rejectedInvalid(res.invalid);
+        updated = res.project;
+      }
+      result = { project: updated, missing: false };
+      events = [{ type: "property-keyframe-changed", targets: command.targets, property: command.property }];
+      break;
+    }
+    case "delete-property-keyframe": {
+      if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
+      let updated = document.project;
+      for (const target of command.targets) {
+        const res = deleteKeyframeOnScene(updated, target, command);
+        if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        updated = res.project;
+      }
+      result = { project: updated, missing: false };
+      events = [{ type: "property-keyframe-changed", targets: command.targets, property: command.property }];
+      break;
+    }
+    case "set-keyframe-easing": {
+      if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
+      let updated = document.project;
+      for (const target of command.targets) {
+        const res = setKeyframeEasingOnScene(updated, target, command);
+        if (res.missing) return { status: "rejected", reason: "missing_node", message: "Target node missing." };
+        updated = res.project;
+      }
+      result = { project: updated, missing: false };
+      events = [{ type: "property-keyframe-changed", targets: command.targets, property: command.property }];
       break;
     }
     default: {

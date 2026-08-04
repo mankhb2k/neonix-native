@@ -1,6 +1,6 @@
 # Browser preview và atomic primitive test roadmap
 
-> Baseline kỹ thuật: 24/07/2026. P0 schema đã freeze ([`p0-schema-freeze-checklist.md`](p0-schema-freeze-checklist.md)); lịch calendar M1–M5 bên dưới là forecast cho **browser preview / Web parity** còn lại. Thiết kế pipeline/gates vẫn giữ nguyên.
+> Baseline kỹ thuật: 24/07/2026. Freeze P0 cũ đã được gỡ bỏ để rebaseline trực tiếp `Motion Format v2`. Tài liệu này vẫn hữu ích cho pipeline browser preview và parity, nhưng thứ tự nâng cấp schema/animation hiện tuân theo [`v2-upgrade.md`](v2-upgrade.md); không cần compatibility layer hay migration cho baseline thử nghiệm cũ. Lịch calendar M1–M5 bên dưới chỉ còn là forecast lịch sử.
 
 ## Đích sản phẩm
 

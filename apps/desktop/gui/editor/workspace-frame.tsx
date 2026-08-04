@@ -25,7 +25,7 @@ type PanelLayoutPrefs = {
 type ResizeEdge = "sidebar" | "inspector" | "timeline";
 
 const DEFAULT_PANEL_LAYOUT: PanelLayoutPrefs = {
-  sidebarWidth: 420,
+  sidebarWidth: 460,
   inspectorWidth: 460,
   timelineHeight: 300,
 };

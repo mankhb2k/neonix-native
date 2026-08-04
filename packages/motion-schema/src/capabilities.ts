@@ -59,7 +59,7 @@ export const MOTION_V2_LIMITS = Object.freeze({
   parallaxFactor: 8,
 });
 
-export type MotionPropertyValueKind = "number" | "boolean" | "string" | "color" | "asset" | "json";
+export type MotionPropertyValueKind = "number" | "angle" | "vec2" | "color" | "boolean" | "string" | "asset" | "path" | "gradient" | "json";
 
 export type MotionPropertyCapability = {
   valueKind: MotionPropertyValueKind;
@@ -75,9 +75,10 @@ export type MotionPropertyCapability = {
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> = Object.freeze({
   "transform.x": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   "transform.y": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.depth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   "transform.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-  "transform.rotation": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.rotation": { valueKind: "angle", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   "transform.scaleX": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.transformScale },
   "transform.scaleY": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.transformScale },
   "transform.anchorX": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
@@ -112,6 +113,12 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
     "style.dashOffset": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.dashLength, max: MOTION_V2_LIMITS.dashLength },
   },
+  solid: {
+    "payload.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "payload.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "payload.color": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  },
+  adjustment: {},
   svg: {
     "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
     "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
@@ -194,15 +201,24 @@ export function motionPropertyCapabilities(nodeType: string, motionPathModifierI
 
 export function motionLiteralMatchesValueKind(kind: MotionPropertyValueKind, value: unknown): boolean {
   if (kind === "json") return true;
-  if (kind === "number") return typeof value === "number" && Number.isFinite(value);
+  if (kind === "number" || kind === "angle") return typeof value === "number" && Number.isFinite(value);
   if (kind === "boolean") return typeof value === "boolean";
-  return typeof value === "string";
+  if (kind === "vec2") {
+    if (Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "number" && Number.isFinite(item))) return true;
+    if (value !== null && typeof value === "object" && "x" in value && "y" in value) {
+      const v = value as { x: unknown; y: unknown };
+      return typeof v.x === "number" && Number.isFinite(v.x) && typeof v.y === "number" && Number.isFinite(v.y);
+    }
+    return false;
+  }
+  return typeof value === "string" || (value !== null && typeof value === "object");
 }
 
 export function motionVariableTypeMatchesValueKind(kind: MotionPropertyValueKind, variableType: string): boolean {
   if (kind === "json") return true;
-  if (kind === "asset") return variableType === "image";
+  if (kind === "asset") return variableType === "asset";
   if (kind === "color") return variableType === "color";
+  if (kind === "angle") return variableType === "number";
   return kind === variableType;
 }
 
