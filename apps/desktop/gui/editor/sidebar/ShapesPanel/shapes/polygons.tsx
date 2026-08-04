@@ -16,7 +16,7 @@ export const POLYGON_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <polygon points="12,1.5 22.5,9 18.5,22.5 5.5,22.5 1.5,9" strokeLinejoin="round" />
@@ -35,7 +35,7 @@ export const POLYGON_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <polygon points="12,1.5 21.5,6.5 21.5,17.5 12,22.5 2.5,17.5 2.5,6.5" strokeLinejoin="round" />
@@ -54,7 +54,7 @@ export const POLYGON_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <polygon points="6.5,2.5 17.5,2.5 22.5,12 17.5,21.5 6.5,21.5 1.5,12" strokeLinejoin="round" />
@@ -73,7 +73,7 @@ export const POLYGON_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <polygon points="7.5,1.5 16.5,1.5 22.5,7.5 22.5,16.5 16.5,22.5 7.5,22.5 1.5,16.5 1.5,7.5" strokeLinejoin="round" />

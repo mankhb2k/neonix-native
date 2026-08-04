@@ -40,7 +40,7 @@ function ShapePresetItem({
       type="button"
       title={item.label}
       aria-label={item.label}
-      className="group relative flex p-[4px] shrink-0 items-center justify-center rounded-md text-[var(--fg-primary)] transition-all hover:bg-[var(--bg-hover)] active:scale-95"
+      className="group relative flex h-[64px] w-[64px] shrink-0 items-center justify-center rounded-xl bg-[#222225] p-3 text-white transition-all hover:bg-[#2c2c30] active:scale-95 shadow-sm"
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >

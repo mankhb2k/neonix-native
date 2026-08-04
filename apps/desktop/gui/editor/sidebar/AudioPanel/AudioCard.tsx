@@ -36,16 +36,16 @@ export function AudioCard({ item, onCommit, onToggleFavorite }: AudioCardProps) 
     <div
       tabIndex={0}
       role="button"
-      className="group relative flex w-full cursor-grab select-none items-center gap-2.5 rounded-lg border border-transparent bg-[#1f1f23] p-2 hover:border-[#3f3f46] hover:bg-[#27272a] active:cursor-grabbing transition-all"
+      className="group relative flex w-full cursor-default select-none items-center gap-2.5 rounded-lg bg-[#1f1f23] p-[6px] hover:bg-[#27272a] transition-all"
       onPointerDown={onPointerDown}
       onKeyDown={onKeyDown}
     >
       {/* Avatar / Icon */}
-      <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[#2a2a30] group-hover:bg-[#36363d]">
+      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#2a2a30] group-hover:bg-[#36363d] transition-colors">
         {item.isPro ? (
-          <Sparkles size={16} className="text-cyan-400" />
+          <Sparkles size={22} className="text-cyan-400" />
         ) : (
-          <Music size={16} className="text-zinc-300 group-hover:text-cyan-400 transition-colors" />
+          <Music size={22} className="text-zinc-300 group-hover:text-cyan-400 transition-colors" />
         )}
       </div>
 

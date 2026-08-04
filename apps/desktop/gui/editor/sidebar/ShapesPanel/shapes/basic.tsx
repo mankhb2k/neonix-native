@@ -15,7 +15,7 @@ export const BASIC_SHAPES_CATEGORY: ShapeCategory = {
         duration: DEFAULT_FRAME_DURATION,
       },
       icon: (
-        <div className="h-[28px] w-[28px] border-2 border-current rounded-none bg-transparent" />
+        <div className="h-[40px] w-[40px] border-2 border-current rounded-none bg-transparent" />
       ),
     },
     {
@@ -29,7 +29,7 @@ export const BASIC_SHAPES_CATEGORY: ShapeCategory = {
         duration: DEFAULT_FRAME_DURATION,
       },
       icon: (
-        <div className="h-[28px] w-[28px] border-2 border-current rounded-md bg-transparent" />
+        <div className="h-[40px] w-[40px] border-2 border-current rounded-md bg-transparent" />
       ),
     },
     {
@@ -43,7 +43,7 @@ export const BASIC_SHAPES_CATEGORY: ShapeCategory = {
         duration: DEFAULT_FRAME_DURATION,
       },
       icon: (
-        <div className="h-[28px] w-[28px] border-2 border-current rounded-full bg-transparent" />
+        <div className="h-[40px] w-[40px] border-2 border-current rounded-full bg-transparent" />
       ),
     },
     {
@@ -58,7 +58,7 @@ export const BASIC_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <polygon points="12,1.5 22.5,22.5 1.5,22.5" strokeLinejoin="round" />

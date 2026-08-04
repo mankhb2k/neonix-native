@@ -16,7 +16,7 @@ export const LINE_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <line x1="2" y1="12" x2="22" y2="12" strokeLinecap="round" />
@@ -35,7 +35,7 @@ export const LINE_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <line x1="2" y1="12" x2="21" y2="12" strokeLinecap="round" />
@@ -55,7 +55,7 @@ export const LINE_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <line x1="2" y1="12" x2="22" y2="12" strokeDasharray="4 3" strokeLinecap="round" />
@@ -74,7 +74,7 @@ export const LINE_SHAPES_CATEGORY: ShapeCategory = {
       },
       icon: (
         <svg
-          className="h-[28px] w-[28px] fill-none stroke-current stroke-2"
+          className="h-[40px] w-[40px] fill-none stroke-current stroke-2"
           viewBox="0 0 24 24"
         >
           <line x1="3" y1="12" x2="21" y2="12" strokeLinecap="round" />
