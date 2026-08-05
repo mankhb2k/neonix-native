@@ -6,8 +6,10 @@ import { LeftRail } from "@/components/editor/left-rail/LeftRail";
 import { StageViewport } from "@/components/editor/stage/StageViewport";
 import { MinimalTimeline } from "@/components/editor/timeline/MinimalTimeline";
 import { EditorTopBar } from "@/components/editor/topbar/EditorTopBar";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
+import { useEffect } from "react";
 
 type Props = {
   initialSnapshot: EditorProjectSnapshot;
@@ -15,12 +17,23 @@ type Props = {
 
 /**
  * AI Studio editor shell (web-architecture §13).
- * CapCut desktop tree removed — panels are scaffolds until W0–W4 capability PRs.
  */
 export function EditorShell({ initialSnapshot }: Props) {
-  const { project } = initialSnapshot;
-  const name = project.metadata.name || "Untitled";
-  const { width, height } = stageSizeForAspect(project.metadata.aspectRatio);
+  const loadProject = useEditorStore((s) => s.loadProject);
+  const project = useEditorStore((s) => s.project);
+
+  useEffect(() => {
+    loadProject(
+      initialSnapshot.project,
+      initialSnapshot.overlayScenes,
+      initialSnapshot.timelineClips,
+      initialSnapshot.timelineLanes,
+    );
+  }, [initialSnapshot, loadProject]);
+
+  const active = project ?? initialSnapshot.project;
+  const name = active.metadata.name || "Untitled";
+  const { width, height } = stageSizeForAspect(active.metadata.aspectRatio);
 
   return (
     <div
@@ -28,9 +41,9 @@ export function EditorShell({ initialSnapshot }: Props) {
       data-testid="editor-shell"
       className="editor-shell"
     >
-      <EditorTopBar projectName={name} projectId={project.metadata.id} />
+      <EditorTopBar projectName={name} projectId={active.metadata.id} />
       <LeftRail />
-      <StageViewport project={project} width={width} height={height} />
+      <StageViewport project={active} width={width} height={height} />
       <SchemaInspector />
       <MinimalTimeline />
       <AskAIBar />

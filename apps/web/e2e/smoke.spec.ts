@@ -28,5 +28,7 @@ test.describe("web smoke", () => {
     await expect(page.getByTestId("editor-stage-frame")).toBeVisible();
     await expect(page.getByTestId("editor-timeline")).toBeVisible();
     await expect(page.getByTestId("editor-ask-ai")).toBeVisible();
+    await expect(page.getByTestId("interaction-overlay")).toBeVisible();
+    await expect(page.getByTestId("layer-tree")).toBeVisible();
   });
 });

@@ -1,6 +1,6 @@
 import { applyMatrix, type Matrix2D } from "./matrix";
 import { evaluateScene, type EvaluatedNode, type RuntimeNode, type RuntimeScene } from "./evaluator";
-import type { Bounds2D } from "./spatial";
+import { containsPoint, invertMatrix, type Bounds2D, type Point2D } from "./spatial";
 
 export type RenderItemKey = string;
 
@@ -219,4 +219,41 @@ export function matrixToCssTransform(matrix: Matrix2D): string {
 
 export function worldOrigin(matrix: Matrix2D): { x: number; y: number } {
   return applyMatrix(matrix, 0, 0);
+}
+
+function itemLocalHit(item: RenderSnapshotItem, point: Point2D): boolean {
+  if (!item.visible || !item.selectable || item.locked) return false;
+  if (item.payload.kind === "group" || item.payload.kind === "unknown") {
+    return false;
+  }
+  if (!containsPoint(item.worldBounds, point)) return false;
+  const inverse = invertMatrix(item.worldMatrix);
+  if (!inverse) return false;
+  const local = applyMatrix(inverse, point.x, point.y);
+  const width =
+    item.payload.kind === "text"
+      ? item.worldBounds.width
+      : "width" in item.payload
+        ? item.payload.width
+        : item.worldBounds.width;
+  const height =
+    item.payload.kind === "text"
+      ? item.worldBounds.height
+      : "height" in item.payload
+        ? item.payload.height
+        : item.worldBounds.height;
+  return local.x >= 0 && local.x <= width && local.y >= 0 && local.y <= height;
+}
+
+/**
+ * Hit-test against a frame RenderSnapshot (top-most first).
+ * Canonical selection path — do not use DOM event targets.
+ */
+export function hitTestRenderSnapshot(
+  snapshot: RenderSnapshot,
+  point: Point2D,
+): RenderSnapshotItem[] {
+  return [...snapshot.items]
+    .filter((item) => itemLocalHit(item, point))
+    .sort((a, b) => b.renderOrder - a.renderOrder);
 }

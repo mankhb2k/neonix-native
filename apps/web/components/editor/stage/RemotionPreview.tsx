@@ -3,12 +3,15 @@
 import { Player } from "@remotion/player";
 import {
   compositionDurationInFrames,
-  createDemoMotionProject,
-  DEMO_SCENE_ID,
   MotionComposition,
 } from "@motionvideo/remotion-renderer";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import type { MotionProject } from "@motionvideo/motion-schema";
+import { InteractionOverlay } from "@/components/editor/stage/InteractionOverlay";
+import {
+  buildPreviewSnapshot,
+  resolvePreviewProject,
+} from "@/lib/editor/preview/preview-project";
 import { useMemo } from "react";
 
 type Props = {
@@ -18,16 +21,19 @@ type Props = {
 };
 
 export function RemotionPreview({ project, width, height }: Props) {
-  const { runtime, sceneId, fps, usingDemo } = useMemo(() => {
-    const hasScenes = project.scenes.length > 0;
-    const source = hasScenes ? project : createDemoMotionProject();
-    const compiled = compileMotionProject(source);
-    const id = compiled.timeline.sceneOrder[0] ?? compiled.scenes[0]?.id ?? DEMO_SCENE_ID;
+  const { runtime, sceneId, fps, usingDemo, snapshot } = useMemo(() => {
+    const preview = resolvePreviewProject(project);
+    const compiled = compileMotionProject(preview.project);
+    const id =
+      compiled.timeline.sceneOrder[0] ??
+      compiled.scenes[0]?.id ??
+      preview.sceneId;
     return {
       runtime: compiled,
       sceneId: id,
       fps: compiled.metadata.fps || 30,
-      usingDemo: !hasScenes,
+      usingDemo: preview.usingDemo,
+      snapshot: buildPreviewSnapshot(project, 0, 0),
     };
   }, [project]);
 
@@ -55,13 +61,18 @@ export function RemotionPreview({ project, width, height }: Props) {
         compositionHeight={height}
         fps={fps}
         style={{ width: "100%", height: "100%" }}
-        controls
+        controls={false}
         clickToPlay={false}
         doubleClickToFullscreen={false}
       />
+      <InteractionOverlay
+        snapshot={snapshot}
+        compositionWidth={width}
+        compositionHeight={height}
+      />
       {usingDemo ? (
-        <p className="pointer-events-none absolute bottom-3 left-3 right-3 text-center text-[10px] uppercase tracking-[0.12em] text-[var(--accent-text)]">
-          Demo fixture · blank project — Remotion snapshot path (PR2)
+        <p className="pointer-events-none absolute bottom-3 left-3 right-3 z-[3] text-center text-[10px] uppercase tracking-[0.12em] text-[var(--accent-text)]">
+          Demo fixture · blank project — click to select (PR3)
         </p>
       ) : null}
     </div>
