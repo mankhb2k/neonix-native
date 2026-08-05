@@ -20,9 +20,12 @@ import {
   createHistoryState,
   pushHistory,
   redoHistory,
+  replaceOrPushHistory,
   undoHistory,
 } from "@/lib/editor/timeline/history/history-manager";
 import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
+import { executePropertyCommand } from "@motionvideo/editor-core";
+import { createDemoMotionProject } from "@motionvideo/remotion-renderer";
 
 export function createEditorStore(initialState?: Partial<EditorStore>) {
   let historyState = createHistoryState();
@@ -175,6 +178,44 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       };
       historyState = pushHistory(historyState, entry);
       set({
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
+    },
+    dispatchPropertyCommand: (command, options) => {
+      const state = get();
+      let project = state.project;
+      if (!project) return;
+
+      // Adopt demo fixture into the document when editing a blank project.
+      if (project.scenes.length === 0) {
+        project = createDemoMotionProject();
+        set({ project });
+      }
+
+      const doc = documentFromStoreState({ ...get(), project });
+      if (!doc?.project) return;
+      const beforeDoc = doc;
+      const result = executePropertyCommand(doc, command);
+      if (result.status !== "applied") return;
+
+      const afterDoc = result.document;
+      const entry: HistoryEntry = {
+        id: `hist_${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        label: command.type,
+        before: beforeDoc,
+        after: afterDoc,
+        beforeSelection: state.selection,
+        afterSelection: state.selection,
+        coalesceKey: options?.coalesceKey,
+      };
+      historyState = replaceOrPushHistory(historyState, entry, {
+        coalesceKey: options?.coalesceKey,
+      });
+      set({
+        project: afterDoc.project,
+        dirtyRevision: state.dirtyRevision + 1,
         canUndo: canUndo(historyState),
         canRedo: canRedo(historyState),
       });

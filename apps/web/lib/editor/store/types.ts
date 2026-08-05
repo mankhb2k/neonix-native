@@ -161,6 +161,11 @@ export type EditorStoreActions = {
       rotation?: number;
     },
   ) => void;
+  /** Schema inspector / property controls — optional coalesceKey for scrub sessions. */
+  dispatchPropertyCommand: (
+    command: import("@motionvideo/editor-core").DocumentPropertyCommand,
+    options?: { coalesceKey?: string },
+  ) => void;
 };
 
 export type EditorStore = EditorStoreState & EditorStoreActions;
