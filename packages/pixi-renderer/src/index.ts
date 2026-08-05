@@ -32,7 +32,9 @@ export class PixiSnapshotAdapter {
   private readonly cache = new Map<string, DisplayObjectLike>();
 
   get objects(): readonly DisplayObjectLike[] {
-    return [...this.cache.values()].sort((a, b) => a.zIndex - b.zIndex || a.id.localeCompare(b.id));
+    return [...this.cache.values()].sort(
+      (a, b) => a.zIndex - b.zIndex || a.id.localeCompare(b.id),
+    );
   }
 
   clear(): void {
@@ -108,7 +110,22 @@ export function assertSnapshotContract(snapshot: RenderSnapshot): void {
     throw new Error("RenderSnapshot.projection.kind must be orthographic");
   }
   for (const item of snapshot.items) {
-    if (typeof item.depth !== "number") throw new Error(`Missing depth on ${item.key}`);
-    if (!item.projectedOffset) throw new Error(`Missing projectedOffset on ${item.key}`);
+    if (typeof item.depth !== "number") {
+      throw new Error(`Missing depth on ${item.key}`);
+    }
+    if (!item.projectedOffset) {
+      throw new Error(`Missing projectedOffset on ${item.key}`);
+    }
   }
 }
+
+export {
+  createPixiStageRenderer,
+  type PixiStageRenderer,
+  type StageViewport,
+} from "./PixiStageRenderer";
+export {
+  syncPaintBufferToCache,
+  type CachedDisplayDesc,
+  type DisplayCacheStats,
+} from "./display-cache";

@@ -24,7 +24,10 @@ import {
   undoHistory,
 } from "@/lib/editor/timeline/history/history-manager";
 import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
-import { createDemoMotionProject } from "@motionvideo/remotion-renderer";
+import { createFacebookHistoryDemoProject } from "@motionvideo/remotion-renderer";
+import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
+import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   isPropertyLocked,
   markUserModified,
@@ -245,14 +248,21 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       if (!project) return;
 
       if (project.scenes.length === 0) {
-        project = createDemoMotionProject();
+        project = createFacebookHistoryDemoProject();
+        const { lanes, clips } = sceneOrderToTimelineClips(project);
         set({
           project,
+          timelineLanes: lanes,
+          timelineClips: clips,
           envelope: state.envelope ?? {
             id: project.metadata.id,
             revision: 1,
             authoring: { elementMeta: {} },
           },
+        });
+        usePlaybackClock.getState().reset({
+          duration: clipsContentEndSeconds(clips),
+          currentTime: 0,
         });
       }
 

@@ -1,17 +1,18 @@
 import { assertSnapshotContract } from "@motionvideo/pixi-renderer";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
-  buildRenderSnapshot,
+  evaluateFrame,
   type RenderSnapshot,
 } from "@motionvideo/motion-runtime";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import {
-  createDemoMotionProject,
-  DEMO_SCENE_ID,
+  createFacebookHistoryDemoProject,
+  FB_HISTORY_SCENE_IDS,
+  resolveTimelineAtTime,
 } from "@motionvideo/remotion-renderer";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 
-/** Project used for Remotion preview + hit-test (demo when blank). */
+/** Project used for Remotion preview + hit-test (Facebook History when blank). */
 export function resolvePreviewProject(project: MotionProject): {
   project: MotionProject;
   usingDemo: boolean;
@@ -22,8 +23,12 @@ export function resolvePreviewProject(project: MotionProject): {
       project.timeline.sceneOrder[0] ?? project.scenes[0]!.id;
     return { project, usingDemo: false, sceneId };
   }
-  const demo = createDemoMotionProject();
-  return { project: demo, usingDemo: true, sceneId: DEMO_SCENE_ID };
+  const demo = createFacebookHistoryDemoProject();
+  return {
+    project: demo,
+    usingDemo: true,
+    sceneId: FB_HISTORY_SCENE_IDS.hook,
+  };
 }
 
 export function buildPreviewSnapshot(
@@ -33,20 +38,29 @@ export function buildPreviewSnapshot(
 ): RenderSnapshot | null {
   const preview = resolvePreviewProject(project);
   const runtime = compileMotionProject(preview.project);
+  const resolved = resolveTimelineAtTime(runtime, time);
   const scene =
-    runtime.scenes.find((s) => s.id === preview.sceneId) ?? runtime.scenes[0];
+    (resolved
+      ? runtime.scenes.find((s) => s.id === resolved.sceneId)
+      : null) ??
+    runtime.scenes.find((s) => s.id === preview.sceneId) ??
+    runtime.scenes[0];
   if (!scene) return null;
   const { width, height } = stageSizeForAspect(
     preview.project.metadata.aspectRatio,
   );
-  const snapshot = buildRenderSnapshot({
+  const localTime = resolved?.localTime ?? time;
+  const localFrame = resolved
+    ? Math.max(0, Math.round(resolved.localTime * (runtime.metadata.fps || 30)))
+    : frame;
+  const evaluated = evaluateFrame({
     scene,
-    time,
-    frame,
+    time: localTime,
+    frame: localFrame,
     width,
     height,
     background: "#ffffff",
   });
-  assertSnapshotContract(snapshot);
-  return snapshot;
+  assertSnapshotContract(evaluated.interaction);
+  return evaluated.interaction;
 }

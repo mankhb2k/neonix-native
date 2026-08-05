@@ -42,23 +42,51 @@ test.describe("editor acceptance scaffolds", () => {
 
   test("A — select layer syncs inspector", async ({ page }) => {
     await page.getByRole("tab", { name: /Layers/i }).click();
-    const layer = page.getByTestId("layer-row-node.title");
+    const layer = page.getByTestId("layer-row-hook.title");
     await expect(layer).toBeVisible();
     await layer.click();
     await page.getByRole("tab", { name: /^Properties$/i }).click();
     await expect(page.getByTestId("inspector-properties")).toContainText(
-      /MotiClip|node\.title|text/i,
+      /Facebook|hook\.title|text/i,
     );
     await expect(page.getByTestId("selection-bounds")).toBeVisible();
   });
 
   test("B — lock control is available on selection", async ({ page }) => {
     await page.getByRole("tab", { name: /Layers/i }).click();
-    await page.getByTestId("layer-row-node.title").click();
+    await page.getByTestId("layer-row-hook.title").click();
     await page.getByRole("tab", { name: /^Properties$/i }).click();
     await expect(page.getByTestId("lock-element")).toBeVisible();
     await page.getByTestId("lock-element").click();
     await expect(page.getByTestId("lock-element")).toContainText(/Locked/i);
+  });
+
+  test("timeline shows Facebook History scenes on blank preview", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("timeline-scene-strip")).toContainText(/Hook/i);
+    await expect(page.getByTestId("timeline-play")).toBeVisible();
+  });
+
+  test("D — scrub timeline, edit text, undo", async ({ page }) => {
+    const strip = page.getByTestId("timeline-scene-strip");
+    const box = await strip.boundingBox();
+    expect(box).toBeTruthy();
+    await page.mouse.click(box!.x + box!.width * 0.15, box!.y + box!.height / 2);
+
+    await page.getByRole("tab", { name: /Layers/i }).click();
+    await page.getByTestId("layer-row-hook.title").click();
+    await page.getByRole("tab", { name: /^Properties$/i }).click();
+
+    const props = page.getByTestId("inspector-properties");
+    const textarea = props.locator("textarea").first();
+    await expect(textarea).toBeVisible();
+    const before = await textarea.inputValue();
+    await textarea.fill("Edited Facebook Title");
+    await expect(textarea).toHaveValue("Edited Facebook Title");
+
+    await page.getByTestId("editor-undo").click();
+    await expect(textarea).toHaveValue(before);
   });
 
   test("C — Ask AI produces proposal diff", async ({ page }) => {

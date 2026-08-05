@@ -1,9 +1,10 @@
 "use client";
 
-import { Player } from "@remotion/player";
+import { Player, type PlayerRef } from "@remotion/player";
 import {
   compositionDurationInFrames,
   MotionComposition,
+  timelineTotalDuration,
 } from "@motionvideo/remotion-renderer";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import type { MotionProject } from "@motionvideo/motion-schema";
@@ -12,7 +13,9 @@ import {
   buildPreviewSnapshot,
   resolvePreviewProject,
 } from "@/lib/editor/preview/preview-project";
-import { useMemo } from "react";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
+import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
   project: MotionProject;
@@ -23,26 +26,59 @@ type Props = {
 const BOARD_BG = "#ffffff";
 
 export function RemotionPreview({ project, width, height }: Props) {
-  const { runtime, sceneId, fps, usingDemo, snapshot } = useMemo(() => {
+  const playerRef = useRef<PlayerRef>(null);
+  const currentTime = usePlaybackClock((s) => s.currentTime);
+  const seekRevision = usePlaybackClock((s) => s.seekRevision);
+  const mode = usePlaybackClock((s) => s.mode);
+  const resetClock = usePlaybackClock((s) => s.reset);
+  const setDuration = usePlaybackClock((s) => s.setDuration);
+
+  const { runtime, fps, usingDemo, totalDuration } = useMemo(() => {
     const preview = resolvePreviewProject(project);
     const compiled = compileMotionProject(preview.project);
-    const id =
-      compiled.timeline.sceneOrder[0] ??
-      compiled.scenes[0]?.id ??
-      preview.sceneId;
     return {
       runtime: compiled,
-      sceneId: id,
       fps: compiled.metadata.fps || 30,
       usingDemo: preview.usingDemo,
-      snapshot: buildPreviewSnapshot(project, 0, 0),
+      totalDuration: timelineTotalDuration(compiled),
     };
   }, [project]);
 
   const durationInFrames = useMemo(
-    () => compositionDurationInFrames(runtime, sceneId, fps),
-    [runtime, sceneId, fps],
+    () => compositionDurationInFrames(runtime, undefined, fps),
+    [runtime, fps],
   );
+
+  // Keep playback clock aligned with preview project (incl. blank→demo fallback).
+  useEffect(() => {
+    if (usingDemo) {
+      resetClock({ duration: totalDuration, currentTime: 0 });
+    } else {
+      setDuration(totalDuration);
+    }
+  }, [usingDemo, totalDuration, resetClock, setDuration, project.metadata.id]);
+
+  const snapshot = useMemo(
+    () =>
+      buildPreviewSnapshot(
+        project,
+        currentTime,
+        playbackFrameIndex(currentTime, fps),
+      ),
+    [project, currentTime, fps],
+  );
+
+  // Drive Remotion Player from the canonical playback clock (seek-only; no Player play).
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
+    player.pause();
+    const frame = Math.max(
+      0,
+      Math.min(durationInFrames - 1, playbackFrameIndex(currentTime, fps)),
+    );
+    player.seekTo(frame);
+  }, [currentTime, seekRevision, fps, durationInFrames, mode]);
 
   return (
     <div
@@ -50,10 +86,10 @@ export function RemotionPreview({ project, width, height }: Props) {
       data-testid="editor-stage-frame"
     >
       <Player
+        ref={playerRef}
         component={MotionComposition}
         inputProps={{
           runtime,
-          sceneId,
           width,
           height,
           background: BOARD_BG,
@@ -74,7 +110,7 @@ export function RemotionPreview({ project, width, height }: Props) {
       />
       {usingDemo ? (
         <p className="pointer-events-none absolute bottom-3 left-3 right-3 z-[3] text-center text-[10px] uppercase tracking-[0.1em] text-[var(--fg-muted)]">
-          Demo · blank project — click to select
+          Demo · Facebook History — play trên timeline
         </p>
       ) : null}
     </div>

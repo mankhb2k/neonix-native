@@ -6,6 +6,10 @@ import { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
 
 export type MotionCompositionProps = {
   runtime: NormalizedMotionProjectV2;
+  /**
+   * When set, play a single scene (frame is scene-local).
+   * When omitted, frame is global across `timeline.sceneOrder`.
+   */
   sceneId?: string;
   width: number;
   height: number;

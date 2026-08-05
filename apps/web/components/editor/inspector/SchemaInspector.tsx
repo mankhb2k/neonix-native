@@ -7,6 +7,8 @@ import {
   type PropertyContext,
   type PropertyDefinition,
 } from "@motionvideo/editor-core";
+import { motionPropertyCapability } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-schema";
 import { AskAIBar } from "@/components/editor/ai/AskAIBar";
 import { Panel, Tabs } from "@/components/ui";
 import {
@@ -14,9 +16,62 @@ import {
   nodeElementKey,
 } from "@/lib/editor/authoring/web-project-envelope";
 import { useEditorStore } from "@/lib/editor/editor-store";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
-import { Lock, Unlock } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { Diamond, Lock, Unlock } from "lucide-react";
+import { useMemo, useRef, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+/** Map inspector prop id → Motion track property path. */
+const TRACK_PROPERTY_BY_PROP_ID: Record<string, string> = {
+  "transform.x": "transform.x",
+  "transform.y": "transform.y",
+  "transform.rotation": "transform.rotation",
+  "transform.scaleX": "transform.scaleX",
+  "transform.scaleY": "transform.scaleY",
+  "transform.opacity": "transform.opacity",
+  "metadata.visible": "transform.visible",
+  "style.fill": "style.fill",
+  "style.stroke": "style.stroke",
+  "style.strokeWidth": "style.strokeWidth",
+  "text.content": "payload.text",
+  "text.fontSize": "payload.fontSize",
+  "text.align": "payload.align",
+};
+
+function trackPropertyForProp(propId: string): string | null {
+  return TRACK_PROPERTY_BY_PROP_ID[propId] ?? null;
+}
+
+function isAnimatableProp(
+  propId: string,
+  nodeType: string | undefined,
+): boolean {
+  const track = trackPropertyForProp(propId);
+  if (!track) return false;
+  return Boolean(
+    motionPropertyCapability(nodeType ?? "text", track)?.animatable,
+  );
+}
+
+function findKeyframeAtTime(
+  project: MotionProject,
+  sceneId: string,
+  nodeId: string,
+  property: string,
+  t: number,
+): boolean {
+  const scene = project.scenes.find((s) => s.id === sceneId);
+  if (!scene) return false;
+  for (const clip of scene.clips) {
+    if (clip.targetId !== nodeId || clip.source.kind !== "tracks") continue;
+    for (const track of clip.source.tracks) {
+      if (track.property !== property) continue;
+      if (track.keys.some((key) => Math.abs(key.t - t) < 1e-4)) return true;
+    }
+  }
+  return false;
+}
 
 function LockToggle({
   sceneId,
@@ -43,6 +98,42 @@ function LockToggle({
   );
 }
 
+function KeyframeToggle({
+  active,
+  disabled,
+  onToggle,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="keyframe-toggle"
+      disabled={disabled}
+      title={active ? "Xóa keyframe tại playhead" : "Thêm keyframe tại playhead"}
+      className={cn(
+        "inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-sm border-0 bg-transparent p-0 disabled:cursor-not-allowed disabled:opacity-30",
+        active
+          ? "text-[var(--accent)]"
+          : "text-[var(--fg-disabled)] hover:text-[var(--fg-muted)]",
+      )}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        onToggle();
+      }}
+    >
+      <Diamond
+        size={12}
+        strokeWidth={active ? 0 : 2}
+        fill={active ? "currentColor" : "none"}
+      />
+    </button>
+  );
+}
+
 function PropertyControl({
   prop,
   context,
@@ -53,6 +144,7 @@ function PropertyControl({
   const dispatch = useEditorStore((s) => s.dispatchPropertyCommand);
   const envelope = useEditorStore((s) => s.envelope);
   const setPropertyLocked = useEditorStore((s) => s.setPropertyLocked);
+  const currentTime = usePlaybackClock((s) => s.currentTime);
   const scrubKey = useRef<string | null>(null);
   const raw = prop.read(context);
   const mixed = isMixedValue(raw);
@@ -60,6 +152,24 @@ function PropertyControl({
   const locked = target
     ? isPropertyLocked(envelope, target.sceneId, target.nodeId, prop.id)
     : false;
+
+  const nodeType = target
+    ? context.project.scenes
+        .find((s) => s.id === target.sceneId)
+        ?.nodes.find((n) => n.id === target.nodeId)?.type
+    : undefined;
+
+  const trackProperty = trackPropertyForProp(prop.id);
+  const animatable = isAnimatableProp(prop.id, nodeType);
+  const hasKeyframe =
+    Boolean(target && trackProperty) &&
+    findKeyframeAtTime(
+      context.project,
+      target!.sceneId,
+      target!.nodeId,
+      trackProperty!,
+      currentTime,
+    );
 
   const commit = (value: unknown, coalesce = false) => {
     if (locked) return;
@@ -76,6 +186,44 @@ function PropertyControl({
       coalesceKey: coalesce ? scrubKey.current ?? undefined : undefined,
     });
   };
+
+  const toggleKeyframe = () => {
+    if (!target || !trackProperty || locked || mixed) return;
+    const value = raw;
+    if (
+      typeof value !== "number" &&
+      typeof value !== "string" &&
+      typeof value !== "boolean"
+    ) {
+      return;
+    }
+    if (hasKeyframe) {
+      dispatch({
+        type: "delete-property-keyframe",
+        targets: context.targets,
+        property: trackProperty,
+        t: currentTime,
+      });
+      return;
+    }
+    dispatch({
+      type: "set-property-keyframe",
+      targets: context.targets,
+      property: trackProperty,
+      t: currentTime,
+      v: value,
+      easing: "easeOut",
+    });
+  };
+
+  const keyframeBtn =
+    animatable && target ? (
+      <KeyframeToggle
+        active={hasKeyframe}
+        disabled={locked || mixed}
+        onToggle={toggleKeyframe}
+      />
+    ) : null;
 
   const inputClass =
     "h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
@@ -94,29 +242,42 @@ function PropertyControl({
       </button>
     ) : null;
 
+  const labelRow = (
+    <span className="flex shrink-0 items-center gap-1 text-[11px] text-[var(--fg-muted)]">
+      {prop.label}
+      {lockBtn}
+    </span>
+  );
+
+  const withKeyframe = (control: ReactNode) => (
+    <span className="flex items-center gap-1.5">
+      {control}
+      {keyframeBtn}
+    </span>
+  );
+
   if (prop.editor === "number") {
     const value = mixed ? "" : String(raw as number);
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="flex shrink-0 items-center gap-1 text-[11px] text-[var(--fg-muted)]">
-          {prop.label}
-          {lockBtn}
-        </span>
-        <input
-          type="number"
-          className={`${inputClass} max-w-[7rem]`}
-          value={value}
-          disabled={locked}
-          placeholder={mixed ? "Mixed" : undefined}
-          onChange={(e) => {
-            const n = Number(e.target.value);
-            if (!Number.isFinite(n)) return;
-            commit(n, true);
-          }}
-          onBlur={() => {
-            scrubKey.current = null;
-          }}
-        />
+        {labelRow}
+        {withKeyframe(
+          <input
+            type="number"
+            className={`${inputClass} max-w-[7rem]`}
+            value={value}
+            disabled={locked}
+            placeholder={mixed ? "Mixed" : undefined}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              if (!Number.isFinite(n)) return;
+              commit(n, true);
+            }}
+            onBlur={() => {
+              scrubKey.current = null;
+            }}
+          />,
+        )}
       </label>
     );
   }
@@ -125,9 +286,9 @@ function PropertyControl({
     const value = mixed ? "" : String(raw ?? "");
     return (
       <label className="flex flex-col gap-1">
-        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
-          {prop.label}
-          {lockBtn}
+        <span className="flex items-center justify-between gap-2">
+          {labelRow}
+          {keyframeBtn}
         </span>
         <textarea
           className={`${inputClass} min-h-[56px] py-1.5`}
@@ -147,20 +308,19 @@ function PropertyControl({
     const value = mixed ? "#888888" : String(raw ?? "#ffffff");
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
-          {prop.label}
-          {lockBtn}
-        </span>
-        <input
-          type="color"
-          disabled={locked}
-          className="h-7 w-12 cursor-pointer border-0 bg-transparent disabled:opacity-40"
-          value={value.startsWith("#") ? value.slice(0, 7) : "#ffffff"}
-          onChange={(e) => commit(e.target.value, true)}
-          onBlur={() => {
-            scrubKey.current = null;
-          }}
-        />
+        {labelRow}
+        {withKeyframe(
+          <input
+            type="color"
+            disabled={locked}
+            className="h-7 w-12 cursor-pointer border-0 bg-transparent disabled:opacity-40"
+            value={value.startsWith("#") ? value.slice(0, 7) : "#ffffff"}
+            onChange={(e) => commit(e.target.value, true)}
+            onBlur={() => {
+              scrubKey.current = null;
+            }}
+          />,
+        )}
       </label>
     );
   }
@@ -169,16 +329,15 @@ function PropertyControl({
     const checked = mixed ? false : Boolean(raw);
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
-          {prop.label}
-          {lockBtn}
-        </span>
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={locked}
-          onChange={(e) => commit(e.target.checked)}
-        />
+        {labelRow}
+        {withKeyframe(
+          <input
+            type="checkbox"
+            checked={checked}
+            disabled={locked}
+            onChange={(e) => commit(e.target.checked)}
+          />,
+        )}
       </label>
     );
   }
@@ -187,23 +346,22 @@ function PropertyControl({
     const value = mixed ? "" : String(raw ?? "");
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
-          {prop.label}
-          {lockBtn}
-        </span>
-        <select
-          className={`${inputClass} max-w-[9rem]`}
-          value={value}
-          disabled={locked}
-          onChange={(e) => commit(e.target.value)}
-        >
-          {mixed ? <option value="">Mixed</option> : null}
-          {prop.options.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        {labelRow}
+        {withKeyframe(
+          <select
+            className={`${inputClass} max-w-[9rem]`}
+            value={value}
+            disabled={locked}
+            onChange={(e) => commit(e.target.value)}
+          >
+            {mixed ? <option value="">Mixed</option> : null}
+            {prop.options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>,
+        )}
       </label>
     );
   }
@@ -257,11 +415,7 @@ export function SchemaInspector() {
 
   return (
     <aside className="editor-area-right border-l border-[var(--border-subtle)]">
-      <Panel
-        title="Inspector"
-        bodyClassName="!p-0"
-        className="h-full rounded-none border-0"
-      >
+      <Panel bodyClassName="!p-0" className="h-full rounded-none border-0">
         <Tabs
           defaultValue="ai"
           items={[
@@ -315,17 +469,6 @@ export function SchemaInspector() {
                       </section>
                     ))
                   )}
-                </div>
-              ),
-            },
-            {
-              id: "motion",
-              label: "Motion",
-              content: (
-                <div className="p-3">
-                  <p className="editor-placeholder">
-                    Motion presets / keyframes — mở rộng registry sau.
-                  </p>
                 </div>
               ),
             },

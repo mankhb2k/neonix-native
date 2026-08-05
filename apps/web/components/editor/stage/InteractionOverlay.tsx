@@ -11,6 +11,8 @@ import {
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { useStageInteractionStore } from "@/lib/editor/interaction/stage-interaction-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
+import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
+import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
 import {
   useCallback,
   useEffect,
@@ -54,6 +56,7 @@ export function InteractionOverlay({
   const [cycleIndex, setCycleIndex] = useState(0);
   const selection = useEditorStore((s) => s.selection);
   const project = useEditorStore((s) => s.project);
+  const envelope = useEditorStore((s) => s.envelope);
   const commitNodeTransform = useEditorStore((s) => s.commitNodeTransform);
   const mode = useStageInteractionStore((s) => s.mode);
   const preview = useStageInteractionStore((s) => s.preview);
@@ -137,7 +140,12 @@ export function InteractionOverlay({
 
     const resolved = resolvePreviewProject(project);
     if (resolved.usingDemo) {
-      useEditorStore.setState({ project: resolved.project });
+      const { lanes, clips } = sceneOrderToTimelineClips(resolved.project);
+      useEditorStore.setState({
+        project: resolved.project,
+        timelineLanes: lanes,
+        timelineClips: clips,
+      });
     }
 
     commitNodeTransform(committed.sceneId, committed.nodeId, {
@@ -197,7 +205,12 @@ export function InteractionOverlay({
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
       if (resolved.usingDemo) {
-        useEditorStore.setState({ project: resolved.project });
+        const { lanes, clips } = sceneOrderToTimelineClips(resolved.project);
+        useEditorStore.setState({
+          project: resolved.project,
+          timelineLanes: lanes,
+          timelineClips: clips,
+        });
       }
       commitNodeTransform(nodeBase.sceneId, nodeBase.nodeId, {
         x: nodeBase.x + dx,
@@ -248,7 +261,10 @@ export function InteractionOverlay({
       });
 
       const nodeBase = resolveNodeBase(hit.sceneId, hit.nodeId);
-      if (nodeBase) {
+      if (
+        nodeBase &&
+        !isElementLocked(envelope, hit.sceneId, hit.nodeId)
+      ) {
         beginMove(nodeBase, point);
       }
     },
@@ -261,6 +277,7 @@ export function InteractionOverlay({
       beginResize,
       beginRotate,
       cycleIndex,
+      envelope,
     ],
   );
 

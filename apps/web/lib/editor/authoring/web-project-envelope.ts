@@ -93,6 +93,16 @@ export function markUserModified(
   };
 }
 
+export function isElementLocked(
+  envelope: WebProjectEnvelope | null | undefined,
+  sceneId: string,
+  nodeId: string,
+): boolean {
+  if (!envelope) return false;
+  const meta = envelope.authoring.elementMeta[nodeElementKey(sceneId, nodeId)];
+  return Boolean(meta?.locked);
+}
+
 export function toggleElementLock(
   envelope: WebProjectEnvelope,
   sceneId: string,

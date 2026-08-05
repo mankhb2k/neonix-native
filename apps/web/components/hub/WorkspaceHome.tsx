@@ -7,9 +7,10 @@ import { DesktopTitleStrip } from "@/components/hub/DesktopTitleStrip";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
 import { ProjectList } from "@/components/hub/ProjectList";
 import { createBlankProject } from "@/lib/editor/create-blank-project";
+import { seedWebEditorUi } from "@/lib/editor/fixtures/seed-editor-ui";
 import { saveProject } from "@/lib/editor/project-storage";
 import { marketingUrl } from "@/lib/hosts";
-import { Plus, Smartphone, Tv, Square } from "lucide-react";
+import { Clapperboard, Plus, Smartphone, Tv, Square } from "lucide-react";
 
 export function WorkspaceHome() {
   const router = useRouter();
@@ -25,6 +26,16 @@ export function WorkspaceHome() {
     });
     saveProject(project);
     router.push(appHref(`/editor/${project.metadata.id}`));
+  }
+
+  function handleFacebookHistoryDemo() {
+    const seed = seedWebEditorUi("facebook-history");
+    saveProject(seed.snapshot.project, {
+      timelineClips: seed.snapshot.timelineClips,
+      timelineLanes: seed.snapshot.timelineLanes,
+      overlayScenes: seed.snapshot.overlayScenes,
+    });
+    router.push(appHref(`/editor/${seed.projectId}`));
   }
 
   return (
@@ -61,6 +72,17 @@ export function WorkspaceHome() {
           >
             <Plus size={16} strokeWidth={2} />
             <span>Tạo dự án mới</span>
+          </button>
+
+          <button
+            type="button"
+            data-testid="demo-facebook-history"
+            onClick={handleFacebookHistoryDemo}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
+            title="Mở demo Remotion: lịch sử Facebook"
+          >
+            <Clapperboard size={14} />
+            <span>Demo Facebook History</span>
           </button>
 
           <div className="flex items-center gap-2 border-l border-[var(--line-strong)] pl-2">

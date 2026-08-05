@@ -60,6 +60,7 @@ export function EditorTopBar({ projectName, projectId }: Props) {
           variant="ghost"
           size="icon"
           aria-label="Undo"
+          data-testid="editor-undo"
           disabled={!canUndo}
           onClick={() => undo()}
         >
@@ -69,6 +70,7 @@ export function EditorTopBar({ projectName, projectId }: Props) {
           variant="ghost"
           size="icon"
           aria-label="Redo"
+          data-testid="editor-redo"
           disabled={!canRedo}
           onClick={() => redo()}
         >
