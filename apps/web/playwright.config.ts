@@ -5,7 +5,7 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  // CapCut timeline/stage e2e retired with desktop shell (PR1). Reintroduce in PR3+.
+  // CapCut timeline e2e still deferred; new AI Studio acceptance lives in smoke.spec.ts.
   testIgnore: [
     "**/timeline/**",
     "**/editor-timeline.spec.ts",

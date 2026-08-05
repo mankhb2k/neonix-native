@@ -95,7 +95,7 @@ export function EditorTopBar({ projectName, projectId }: Props) {
             data-testid="export-button"
             onClick={() =>
               void startExport({
-                projectRevisionId: envelope?.revision ?? dirtyRevision || 1,
+                projectRevisionId: envelope?.revision ?? (dirtyRevision || 1),
                 format: "mp4",
               })
             }

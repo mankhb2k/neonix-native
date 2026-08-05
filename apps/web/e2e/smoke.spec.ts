@@ -32,3 +32,48 @@ test.describe("web smoke", () => {
     await expect(page.getByTestId("layer-tree")).toBeVisible();
   });
 });
+
+test.describe("editor acceptance scaffolds", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/app");
+    await page.getByRole("button", { name: /Ngang 16:9/i }).click();
+    await expect(page.getByTestId("editor-shell")).toBeVisible();
+  });
+
+  test("A — select layer syncs inspector", async ({ page }) => {
+    await page.getByRole("tab", { name: /Layers/i }).click();
+    const layer = page.getByTestId("layer-row-node.title");
+    await expect(layer).toBeVisible();
+    await layer.click();
+    await expect(page.getByTestId("inspector-properties")).toContainText(
+      /MotiClip|node\.title|text/i,
+    );
+    await expect(page.getByTestId("selection-bounds")).toBeVisible();
+  });
+
+  test("B — lock control is available on selection", async ({ page }) => {
+    await page.getByRole("tab", { name: /Layers/i }).click();
+    await page.getByTestId("layer-row-node.title").click();
+    await expect(page.getByTestId("lock-element")).toBeVisible();
+    await page.getByTestId("lock-element").click();
+    await expect(page.getByTestId("lock-element")).toContainText(/Locked/i);
+  });
+
+  test("C — Ask AI produces proposal diff", async ({ page }) => {
+    await page.getByTestId("editor-ask-ai").locator("input").fill(
+      "Make the headline punchier",
+    );
+    await page.getByRole("button", { name: /^Generate$/i }).click();
+    await expect(page.getByTestId("ai-job-progress")).toBeVisible();
+    await expect(page.getByTestId("ai-proposal-diff")).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+
+  test("E — export job reaches ready", async ({ page }) => {
+    await page.getByTestId("export-button").click();
+    await expect(page.getByRole("button", { name: /Ready/i })).toBeVisible({
+      timeout: 15_000,
+    });
+  });
+});
