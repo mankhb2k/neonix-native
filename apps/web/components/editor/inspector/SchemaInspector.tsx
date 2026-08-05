@@ -8,9 +8,39 @@ import {
   type PropertyDefinition,
 } from "@motionvideo/editor-core";
 import { Panel, Tabs } from "@/components/ui";
+import {
+  isPropertyLocked,
+  nodeElementKey,
+} from "@/lib/editor/authoring/web-project-envelope";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
+import { Lock, Unlock } from "lucide-react";
 import { useMemo, useRef } from "react";
+
+function LockToggle({
+  sceneId,
+  nodeId,
+}: {
+  sceneId: string;
+  nodeId: string;
+}) {
+  const envelope = useEditorStore((s) => s.envelope);
+  const setElementLocked = useEditorStore((s) => s.setElementLocked);
+  const meta = envelope?.authoring.elementMeta[nodeElementKey(sceneId, nodeId)];
+  const locked = Boolean(meta?.locked);
+  return (
+    <button
+      type="button"
+      data-testid="lock-element"
+      className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-transparent px-2 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+      onClick={() => setElementLocked(sceneId, nodeId, !locked)}
+      title={locked ? "Unlock element" : "Lock element"}
+    >
+      {locked ? <Lock size={12} /> : <Unlock size={12} />}
+      {locked ? "Locked" : "Lock"}
+    </button>
+  );
+}
 
 function PropertyControl({
   prop,
@@ -20,11 +50,18 @@ function PropertyControl({
   context: PropertyContext;
 }) {
   const dispatch = useEditorStore((s) => s.dispatchPropertyCommand);
+  const envelope = useEditorStore((s) => s.envelope);
+  const setPropertyLocked = useEditorStore((s) => s.setPropertyLocked);
   const scrubKey = useRef<string | null>(null);
   const raw = prop.read(context);
   const mixed = isMixedValue(raw);
+  const target = context.targets[0];
+  const locked = target
+    ? isPropertyLocked(envelope, target.sceneId, target.nodeId, prop.id)
+    : false;
 
   const commit = (value: unknown, coalesce = false) => {
+    if (locked) return;
     const validated = prop.validate
       ? prop.validate(value as never, context)
       : { ok: true as const, value };
@@ -40,19 +77,35 @@ function PropertyControl({
   };
 
   const inputClass =
-    "h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)]";
+    "h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
+
+  const lockBtn =
+    target != null ? (
+      <button
+        type="button"
+        className="cursor-pointer border-0 bg-transparent p-0 text-[var(--fg-muted)] hover:text-[var(--accent-text)]"
+        title={locked ? "Unlock property" : "Lock property"}
+        onClick={() =>
+          setPropertyLocked(target.sceneId, target.nodeId, prop.id, !locked)
+        }
+      >
+        {locked ? <Lock size={11} /> : <Unlock size={11} />}
+      </button>
+    ) : null;
 
   if (prop.editor === "number") {
     const value = mixed ? "" : String(raw as number);
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="shrink-0 text-[11px] text-[var(--fg-muted)]">
+        <span className="flex shrink-0 items-center gap-1 text-[11px] text-[var(--fg-muted)]">
           {prop.label}
+          {lockBtn}
         </span>
         <input
           type="number"
           className={`${inputClass} max-w-[7rem]`}
           value={value}
+          disabled={locked}
           placeholder={mixed ? "Mixed" : undefined}
           onChange={(e) => {
             const n = Number(e.target.value);
@@ -71,10 +124,14 @@ function PropertyControl({
     const value = mixed ? "" : String(raw ?? "");
     return (
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-[var(--fg-muted)]">{prop.label}</span>
+        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
+          {prop.label}
+          {lockBtn}
+        </span>
         <textarea
           className={`${inputClass} min-h-[56px] py-1.5`}
           value={value}
+          disabled={locked}
           placeholder={mixed ? "Mixed" : undefined}
           onChange={(e) => commit(e.target.value, true)}
           onBlur={() => {
@@ -89,10 +146,14 @@ function PropertyControl({
     const value = mixed ? "#888888" : String(raw ?? "#ffffff");
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-[var(--fg-muted)]">{prop.label}</span>
+        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
+          {prop.label}
+          {lockBtn}
+        </span>
         <input
           type="color"
-          className="h-7 w-12 cursor-pointer border-0 bg-transparent"
+          disabled={locked}
+          className="h-7 w-12 cursor-pointer border-0 bg-transparent disabled:opacity-40"
           value={value.startsWith("#") ? value.slice(0, 7) : "#ffffff"}
           onChange={(e) => commit(e.target.value, true)}
           onBlur={() => {
@@ -107,10 +168,14 @@ function PropertyControl({
     const checked = mixed ? false : Boolean(raw);
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-[var(--fg-muted)]">{prop.label}</span>
+        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
+          {prop.label}
+          {lockBtn}
+        </span>
         <input
           type="checkbox"
           checked={checked}
+          disabled={locked}
           onChange={(e) => commit(e.target.checked)}
         />
       </label>
@@ -121,10 +186,14 @@ function PropertyControl({
     const value = mixed ? "" : String(raw ?? "");
     return (
       <label className="flex items-center justify-between gap-2">
-        <span className="text-[11px] text-[var(--fg-muted)]">{prop.label}</span>
+        <span className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]">
+          {prop.label}
+          {lockBtn}
+        </span>
         <select
           className={`${inputClass} max-w-[9rem]`}
           value={value}
+          disabled={locked}
           onChange={(e) => commit(e.target.value)}
         >
           {mixed ? <option value="">Mixed</option> : null}
@@ -203,13 +272,19 @@ export function SchemaInspector() {
                   className="space-y-4 p-3"
                   data-testid="inspector-properties"
                 >
-                  {selectedNode ? (
-                    <p className="text-[12px] font-semibold text-[var(--fg-primary)]">
-                      {selectedNode.name ?? selectedNode.id}
-                      <span className="ml-2 text-[10px] font-normal uppercase text-[var(--fg-muted)]">
-                        {selectedNode.type}
-                      </span>
-                    </p>
+                  {selectedNode && selection.kind === "node" ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[12px] font-semibold text-[var(--fg-primary)]">
+                        {selectedNode.name ?? selectedNode.id}
+                        <span className="ml-2 text-[10px] font-normal uppercase text-[var(--fg-muted)]">
+                          {selectedNode.type}
+                        </span>
+                      </p>
+                      <LockToggle
+                        sceneId={selection.sceneId}
+                        nodeId={selection.nodeId}
+                      />
+                    </div>
                   ) : null}
 
                   {!context || context.targets.length === 0 ? (

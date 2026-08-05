@@ -24,8 +24,14 @@ import {
   undoHistory,
 } from "@/lib/editor/timeline/history/history-manager";
 import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
-import { executePropertyCommand } from "@motionvideo/editor-core";
 import { createDemoMotionProject } from "@motionvideo/remotion-renderer";
+import {
+  isPropertyLocked,
+  markUserModified,
+  toggleElementLock,
+  togglePropertyLock,
+} from "@/lib/editor/authoring/web-project-envelope";
+import { executePropertyCommand } from "@motionvideo/editor-core";
 
 export function createEditorStore(initialState?: Partial<EditorStore>) {
   let historyState = createHistoryState();
@@ -144,6 +150,14 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     commitNodeTransform: (sceneId, nodeId, patch) => {
       const state = get();
       if (!state.project) return;
+      const lockedPaths = Object.keys(patch).map((k) => `transform.${k}`);
+      if (
+        lockedPaths.some((path) =>
+          isPropertyLocked(state.envelope, sceneId, nodeId, path),
+        )
+      ) {
+        return;
+      }
       const beforeDoc = documentFromStoreState(state);
       if (!beforeDoc) return;
 
@@ -159,8 +173,13 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         },
       }));
 
+      const envelope = state.envelope
+        ? markUserModified(state.envelope, sceneId, nodeId, lockedPaths)
+        : state.envelope;
+
       set({
         project: nextProject,
+        envelope,
         dirtyRevision: state.dirtyRevision + 1,
       });
 
@@ -182,22 +201,103 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         canRedo: canRedo(historyState),
       });
     },
+    setElementLocked: (sceneId, nodeId, locked) => {
+      const state = get();
+      if (!state.envelope) return;
+      set({
+        envelope: toggleElementLock(state.envelope, sceneId, nodeId, locked),
+        dirtyRevision: state.dirtyRevision + 1,
+      });
+    },
+    setPropertyLocked: (sceneId, nodeId, propertyPath, locked) => {
+      const state = get();
+      if (!state.envelope) return;
+      set({
+        envelope: togglePropertyLock(
+          state.envelope,
+          sceneId,
+          nodeId,
+          propertyPath,
+          locked,
+        ),
+        dirtyRevision: state.dirtyRevision + 1,
+      });
+    },
     dispatchPropertyCommand: (command, options) => {
       const state = get();
       let project = state.project;
       if (!project) return;
 
-      // Adopt demo fixture into the document when editing a blank project.
       if (project.scenes.length === 0) {
         project = createDemoMotionProject();
-        set({ project });
+        set({
+          project,
+          envelope: state.envelope ?? {
+            id: project.metadata.id,
+            revision: 1,
+            authoring: { elementMeta: {} },
+          },
+        });
       }
 
-      const doc = documentFromStoreState({ ...get(), project });
+      if (
+        command.type === "set-node-transform" ||
+        command.type === "set-node-style" ||
+        command.type === "set-node-text" ||
+        command.type === "set-node-metadata"
+      ) {
+        for (const target of command.targets) {
+          const paths =
+            command.type === "set-node-transform"
+              ? Object.keys(command.patch).map((k) => `transform.${k}`)
+              : command.type === "set-node-style"
+                ? Object.keys(command.patch).map((k) => `style.${k}`)
+                : command.type === "set-node-text"
+                  ? Object.keys(command.patch).map((k) => `text.${k}`)
+                  : ["metadata"];
+          if (
+            paths.some((path) =>
+              isPropertyLocked(
+                get().envelope,
+                target.sceneId,
+                target.nodeId,
+                path,
+              ),
+            )
+          ) {
+            return;
+          }
+        }
+      }
+
+      const doc = documentFromStoreState(get());
       if (!doc?.project) return;
       const beforeDoc = doc;
       const result = executePropertyCommand(doc, command);
       if (result.status !== "applied") return;
+
+      let envelope = get().envelope;
+      if (
+        envelope &&
+        (command.type === "set-node-transform" ||
+          command.type === "set-node-style" ||
+          command.type === "set-node-text")
+      ) {
+        for (const target of command.targets) {
+          const paths =
+            command.type === "set-node-transform"
+              ? Object.keys(command.patch).map((k) => `transform.${k}`)
+              : command.type === "set-node-style"
+                ? Object.keys(command.patch).map((k) => `style.${k}`)
+                : Object.keys(command.patch).map((k) => `text.${k}`);
+          envelope = markUserModified(
+            envelope,
+            target.sceneId,
+            target.nodeId,
+            paths,
+          );
+        }
+      }
 
       const afterDoc = result.document;
       const entry: HistoryEntry = {
@@ -215,6 +315,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       });
       set({
         project: afterDoc.project,
+        envelope,
         dirtyRevision: state.dirtyRevision + 1,
         canUndo: canUndo(historyState),
         canRedo: canRedo(historyState),

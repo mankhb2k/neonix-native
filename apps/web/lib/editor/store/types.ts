@@ -1,3 +1,4 @@
+import type { WebProjectEnvelope } from "@/lib/editor/authoring/web-project-envelope";
 import type { ClipClipboardItem } from "@/lib/editor/clip-clipboard";
 import type { FrameDraft } from "@/lib/editor/frame-library";
 import type { EditorSelection } from "@/lib/editor/model/editor-selection";
@@ -28,6 +29,8 @@ export type EditorDragItem = {
 
 export type EditorStoreState = {
   project: MotionProject | null;
+  /** Authoring envelope — locks / provenance (not in renderer). */
+  envelope: WebProjectEnvelope | null;
   /** Selection gốc — clip/scene/overlay/node derive qua selector (STATE-02). */
   selection: EditorSelection;
   isExporting: boolean;
@@ -165,6 +168,13 @@ export type EditorStoreActions = {
   dispatchPropertyCommand: (
     command: import("@motionvideo/editor-core").DocumentPropertyCommand,
     options?: { coalesceKey?: string },
+  ) => void;
+  setElementLocked: (sceneId: string, nodeId: string, locked: boolean) => void;
+  setPropertyLocked: (
+    sceneId: string,
+    nodeId: string,
+    propertyPath: string,
+    locked: boolean,
   ) => void;
 };
 
