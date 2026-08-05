@@ -1,4 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-schema";
+import { COMPILED_PRESET_IDS, isCompiledPreset } from "@motionvideo/motion-compiler";
 import { motionBlocks, motionLibrary } from "./library";
 import type {
   BlockFamily,
@@ -12,11 +13,11 @@ function buildPresetRegistry(): {
   known: Set<string>;
   byPreset: Map<string, MotionBlock>;
 } {
-  const known = new Set<string>();
+  const known = new Set<string>(COMPILED_PRESET_IDS);
   const byPreset = new Map<string, MotionBlock>();
   for (const block of motionBlocks) {
     if (block.family !== "animation" || !block.preset) continue;
-    known.add(block.preset);
+    if (!isCompiledPreset(block.preset)) continue;
     if (!byPreset.has(block.preset)) byPreset.set(block.preset, block);
   }
   return { known, byPreset };

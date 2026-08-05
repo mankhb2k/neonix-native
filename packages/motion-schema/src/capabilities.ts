@@ -75,7 +75,7 @@ export type MotionPropertyCapability = {
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> = Object.freeze({
   "transform.x": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   "transform.y": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.depth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  // R4: transform.depth — not advertised until schema field + evaluator exist
   "transform.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.rotation": { valueKind: "angle", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
@@ -118,7 +118,6 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "payload.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
     "payload.color": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   },
-  adjustment: {},
   svg: {
     "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
     "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
@@ -197,6 +196,11 @@ export function motionPropertyCapabilities(nodeType: string, motionPathModifierI
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
     ...motionPathModifierIds.map((id) => [`modifiers.${id}.progress`, motionPropertyCapability(nodeType, `modifiers.${id}.progress`)!] as const),
   ].map(([property, capability]) => ({ property, ...capability }));
+}
+
+/** Public AI/control surface only — callers must not expose non-public capabilities. */
+export function publicMotionPropertyCapabilities(nodeType: string, motionPathModifierIds: readonly string[] = []): MotionPropertyCapabilityEntry[] {
+  return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter((capability) => capability.public);
 }
 
 export function motionLiteralMatchesValueKind(kind: MotionPropertyValueKind, value: unknown): boolean {

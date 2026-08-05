@@ -103,16 +103,22 @@ export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fal
   const tLast = keys[keys.length - 1]!.t;
   const duration = tLast - t0;
 
+  const cycleMode = (behavior: RuntimeTrack["preBehavior"]): "repeat" | "pingpong" => {
+    if (!behavior || behavior.type !== "cycle") return "repeat";
+    return behavior.mode ?? "repeat";
+  };
+
   if (time < t0) {
-    const pre = track.preBehavior?.type ?? "clamp";
+    const preBehavior = track.preBehavior;
+    const pre = preBehavior?.type ?? "clamp";
     if (pre === "cycle" && duration > 0) {
+      if (cycleMode(preBehavior) === "pingpong") {
+        const count = Math.floor((t0 - time) / duration);
+        const rem = (t0 - time) % duration;
+        const wrapped = count % 2 === 0 ? t0 + rem : tLast - rem;
+        return sampleTrackValue(keys, wrapped);
+      }
       const wrapped = tLast - ((t0 - time) % duration);
-      return sampleTrackValue(keys, wrapped);
-    }
-    if (pre === "pingpong" && duration > 0) {
-      const count = Math.floor((t0 - time) / duration);
-      const rem = (t0 - time) % duration;
-      const wrapped = count % 2 === 0 ? t0 + rem : tLast - rem;
       return sampleTrackValue(keys, wrapped);
     }
     if (pre === "continue" && keys.length >= 2 && typeof keys[0]!.v === "number" && typeof keys[1]!.v === "number") {
@@ -124,23 +130,17 @@ export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fal
   }
 
   if (time > tLast) {
-    const post = track.postBehavior?.type ?? "clamp";
+    const postBehavior = track.postBehavior;
+    const post = postBehavior?.type ?? "clamp";
     if (post === "cycle" && duration > 0) {
+      if (cycleMode(postBehavior) === "pingpong") {
+        const count = Math.floor((time - tLast) / duration);
+        const rem = (time - tLast) % duration;
+        const wrapped = count % 2 === 0 ? tLast - rem : t0 + rem;
+        return sampleTrackValue(keys, wrapped);
+      }
       const wrapped = t0 + ((time - tLast) % duration);
       return sampleTrackValue(keys, wrapped);
-    }
-    if (post === "pingpong" && duration > 0) {
-      const count = Math.floor((time - tLast) / duration);
-      const rem = (time - tLast) % duration;
-      const wrapped = count % 2 === 0 ? tLast - rem : t0 + rem;
-      return sampleTrackValue(keys, wrapped);
-    }
-    if (post === "offset-cycle" && duration > 0 && typeof keys[0]!.v === "number" && typeof keys[keys.length - 1]!.v === "number") {
-      const cycles = Math.floor((time - t0) / duration);
-      const rem = (time - t0) % duration;
-      const offset = (keys[keys.length - 1]!.v as number) - (keys[0]!.v as number);
-      const sampled = sampleTrackValue(keys, t0 + rem);
-      return typeof sampled === "number" ? sampled + offset * cycles : sampled;
     }
     if (post === "continue" && keys.length >= 2 && typeof keys[keys.length - 1]!.v === "number" && typeof keys[keys.length - 2]!.v === "number") {
       const k1 = keys[keys.length - 2]!;

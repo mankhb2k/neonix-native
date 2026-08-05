@@ -6,7 +6,7 @@ Kệ sản phẩm: **Content + Animation → Pattern → Template**. Seed templa
 
 - Catalog **motion blocks** (content + animation) cho Block Lab / planner
 - **Templates** sẵn → `MotionProject` v2
-- `validateMotionProjectPresets` — mọi `presetId` trong clip phải có trong registry
+- `validateMotionProjectPresets` — mọi `presetId` trong clip phải thuộc `COMPILED_PRESET_IDS` (compiler allowlist; unknown không fallback fade-in)
 
 ## Hai lớp block
 

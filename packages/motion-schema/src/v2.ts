@@ -112,7 +112,7 @@ export const TransformV2Schema = z
   .object({
     x: FiniteNumberSchema,
     y: FiniteNumberSchema,
-    // TODO: implement depth
+    // R4: depth — do not add field until evaluator + camera parallax ship
     width: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     height: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
     rotation: FiniteNumberSchema,
@@ -317,7 +317,7 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
     targetNodeId: IdSchema,
     weight: FiniteNumberSchema.min(0).max(1).default(1),
   }).strict(),
-  // TODO: implement parallax modifier
+  // R4: parallax modifier — deferred with transform.depth
 ]);
 
 /** Optional scene-local in/out for Layer Mode timeline strips. */
@@ -589,7 +589,7 @@ export const SolidNodeV2Schema = NodeBaseSchema.extend({
   }).strict(),
 }).strict();
 
-// TODO: implement AdjustmentNode
+// R5: AdjustmentNode — deferred; do not add accept-then-ignore type
 
 export const NodeV2Schema = z.discriminatedUnion("type", [
   GroupNodeV2Schema,
@@ -637,7 +637,7 @@ export const ValueKindSchema = z.enum(["number", "angle", "vec2", "color", "bool
 
 export const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("clamp") }).strict(),
-  z.object({ type: z.literal("cycle"), mode: z.literal("repeat").optional() }).strict(), // TODO: pingpong
+  z.object({ type: z.literal("cycle"), mode: z.enum(["repeat", "pingpong"]).optional() }).strict(),
   z.object({ type: z.literal("continue") }).strict(),
 ]);
 

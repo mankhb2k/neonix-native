@@ -113,6 +113,28 @@ function canonicalTime(value: number): number {
   return Math.round(value * 1_000_000_000) / 1_000_000_000;
 }
 
+/** Closed allowlist of Clip.source.presetId values the compiler expands. Unknown IDs throw. */
+export const COMPILED_PRESET_IDS = Object.freeze([
+  "fade-in",
+  "fade-up",
+  "fade-down",
+  "fade-left",
+  "fade-right",
+  "slide-up",
+  "slide-left",
+  "slide-right",
+  "scale-in",
+  "zoom-in",
+  "pop",
+  "counter",
+] as const);
+
+export type CompiledPresetId = (typeof COMPILED_PRESET_IDS)[number];
+
+export function isCompiledPreset(presetId: string): presetId is CompiledPresetId {
+  return (COMPILED_PRESET_IDS as readonly string[]).includes(presetId);
+}
+
 function presetTracks(node: RuntimeNode, preset: string, start: number, end: number): RuntimeTrack[] {
   const x = node.transform.x;
   const y = node.transform.y;
@@ -136,8 +158,9 @@ function presetTracks(node: RuntimeNode, preset: string, start: number, end: num
       { targetId: node.id, property: "transform.scaleY", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleY, easing: preset === "pop" ? "spring" : "easeOut" }] },
     ];
     case "counter": return [{ targetId: node.id, property: "payload.counterProgress", keys: [{ t: start, v: 0 }, { t: end, v: 1, easing: "easeOut" }] }];
-    case "fade-in":
-    default: return [opacity()];
+    case "fade-in": return [opacity()];
+    default:
+      throw new Error(`Unknown preset: ${preset}`);
   }
 }
 
@@ -183,6 +206,8 @@ function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<
       return clip.source.tracks.map((track) => expandPlaybackTrack({
         targetId: track.targetId,
         property: track.property,
+        ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
+        ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
         keys: track.keys.map((key) => ({ t: key.t, v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"], ...(key.easing ? { easing: key.easing } : {}) })),
       }, clip, start, sceneDuration, variables));
     }
@@ -415,6 +440,8 @@ function expandComponents(
                 return {
                   targetId: expandedTarget.id,
                   property: track.property,
+                  ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
+                  ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
                   keys: track.keys.map((keyframe) => ({
                     t: keyframe.t,
                     v: resolveValue(keyframe.v, actionValues) as RuntimeTrack["keys"][number]["v"],
@@ -479,6 +506,8 @@ function expandComponents(
           tracks: [...mergedCycle.values()].map((track) => ({
             targetId: track.targetId,
             property: track.property,
+            ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
+            ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
             keys: track.keys.map((keyframe) => ({
               t: keyframe.t,
               v: keyframe.v,

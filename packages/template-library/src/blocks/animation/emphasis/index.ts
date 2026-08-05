@@ -5,7 +5,6 @@ function emphasisBlock(
   name: string,
   nameVi: string,
   description: string,
-  preset: string,
   previewClass: string,
   duration: number,
 ): MotionBlock {
@@ -17,12 +16,11 @@ function emphasisBlock(
     kind: "text",
     intent: "emphasis",
     shelf: "emphasis",
-    description,
+    description: `${description} Preview-only until COMPILED_PRESET_IDS.`,
     duration,
     durationMin: Math.max(0.25, duration * 0.5),
     durationMax: Math.max(duration * 2, 1.5),
-    preset,
-    tags: ["animation", "emphasis", role, "core"],
+    tags: ["animation", "emphasis", role, "preview"],
     sampleText: "Nhấn mạnh",
     previewClass,
   };
@@ -33,7 +31,6 @@ export const EMPHASIS_PULSE = emphasisBlock(
   "Pulse",
   "Đập nhẹ",
   "Scale nhịp nhẹ tại chỗ — thu hút chú ý.",
-  "pulse",
   "mv-block-emphasis-pulse",
   0.8,
 );
@@ -43,7 +40,6 @@ export const EMPHASIS_SHAKE = emphasisBlock(
   "Shake",
   "Rung",
   "Rung ngang nhẹ — cảnh báo / impact. Dùng sparingly.",
-  "shake",
   "mv-block-emphasis-shake",
   0.5,
 );
@@ -53,7 +49,6 @@ export const EMPHASIS_FLASH = emphasisBlock(
   "Flash",
   "Nháy",
   "Nhấp nháy opacity nhanh.",
-  "flash",
   "mv-block-emphasis-flash",
   0.6,
 );

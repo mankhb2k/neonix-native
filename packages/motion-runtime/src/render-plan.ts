@@ -20,6 +20,7 @@ export type RenderPass = {
     sourceVisibility: "mask-only" | "content-and-mask";
   };
   effects: NonNullable<RuntimeNode["effects"]>;
+  /** Always false until R5 AdjustmentNode ships. */
   isAdjustment: boolean;
 };
 
@@ -67,8 +68,8 @@ export function buildRenderPlan(scene: RuntimeScene, evaluatedNodes: EvaluatedNo
 
     const effects = node.effects ?? [];
     const inflatedBounds = inflateBoundsForEffects(evaluated.worldBounds, effects);
-    const isAdjustment = node.type === "adjustment";
-    const needsOffscreen = Boolean(node.mask) || effects.length > 0 || isAdjustment;
+    // R5: AdjustmentNode isolation — deferred until schema ships
+    const needsOffscreen = Boolean(node.mask) || effects.length > 0;
     const isolation: IsolationMode = needsOffscreen ? "isolate" : "pass-through";
 
     if (needsOffscreen) {
@@ -95,7 +96,7 @@ export function buildRenderPlan(scene: RuntimeScene, evaluatedNodes: EvaluatedNo
       needsOffscreen,
       mask: node.mask,
       effects,
-      isAdjustment,
+      isAdjustment: false,
     });
   }
 

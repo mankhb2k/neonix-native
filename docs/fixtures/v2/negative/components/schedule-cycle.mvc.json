@@ -18,6 +18,6 @@
   "bindings": [],
   "clips": [
     { "id": "a", "targetId": "root", "schedule": { "kind": "after", "clipId": "b" }, "duration": 1, "playback": { "iterations": 1, "direction": "normal", "rate": 1 }, "source": { "kind": "preset", "presetId": "fade-in" } },
-    { "id": "b", "targetId": "root", "schedule": { "kind": "after", "clipId": "a" }, "duration": 1, "playback": { "iterations": 1, "direction": "normal", "rate": 1 }, "source": { "kind": "preset", "presetId": "fade-out" } }
+    { "id": "b", "targetId": "root", "schedule": { "kind": "after", "clipId": "a" }, "duration": 1, "playback": { "iterations": 1, "direction": "normal", "rate": 1 }, "source": { "kind": "preset", "presetId": "fade-in" } }
   ]
 }

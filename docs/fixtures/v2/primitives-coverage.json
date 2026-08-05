@@ -1,6 +1,10 @@
 {
   "version": 1,
-  "requiredGates": ["contract", "reference", "limits"],
+  "requiredGates": [
+    "contract",
+    "reference",
+    "limits"
+  ],
   "primitives": [
     {
       "id": "artifact-identity",
@@ -505,7 +509,41 @@
         "negative/components/non-finite-transform.mvc.json",
         "negative/components/node-dimension-over-limit.mvc.json"
       ],
-      "notes": "x/y/size/rotation/scale/anchor/opacity/visibility/flip; reference N/A"
+      "notes": "x/y/size/rotation/scale/anchor/opacity/visibility/flip; depth deferred R4; reference N/A"
+    },
+    {
+      "id": "parallax-modifier",
+      "section": "4-spatial",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [],
+      "notes": "R4 deferred: parallax modifier not in schema; MOTION_V2_LIMITS.parallaxFactor reserved"
+    },
+    {
+      "id": "transform-depth",
+      "section": "4-spatial",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [],
+      "notes": "R4 deferred: no Transform.depth field (avoid accept-then-ignore); camera parallax shares this seam"
     },
     {
       "id": "hierarchy",
@@ -868,6 +906,23 @@
       "notes": "compile-time expansion only; no Component leak in Runtime IR"
     },
     {
+      "id": "solid-node",
+      "section": "5-nodes",
+      "status": "partial",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "pass",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [],
+      "notes": "SolidNode schema + snapshot/remotion exist; dedicated project/visual fixtures deferred; reference N/A"
+    },
+    {
       "id": "point-contour-segment",
       "section": "6-geometry",
       "status": "implemented",
@@ -947,7 +1002,12 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["components/gradient-paint.mvc.json", "projects/gradient-dash.mt.json", "expected-runtime/gradient-dash.runtime.json", "negative/schema/gradient-stops-decreasing.mvc.json"],
+      "fixtures": [
+        "components/gradient-paint.mvc.json",
+        "projects/gradient-dash.mt.json",
+        "expected-runtime/gradient-dash.runtime.json",
+        "negative/schema/gradient-stops-decreasing.mvc.json"
+      ],
       "notes": "linear/radial gradient paint with ordered stops; Web parity remains open"
     },
     {
@@ -964,7 +1024,10 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["projects/gradient-dash.mt.json", "expected-runtime/gradient-dash.runtime.json"],
+      "fixtures": [
+        "projects/gradient-dash.mt.json",
+        "expected-runtime/gradient-dash.runtime.json"
+      ],
       "notes": "dash arrays and animated dashOffset render deterministically; Web parity remains open"
     },
     {
@@ -981,7 +1044,13 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["projects/trim-path-reveal.mt.json", "expected-runtime/trim-path-reveal.runtime.json", "expected-frames/trim-path-reveal-t1.png", "negative/schema/trim-path-start-after-end.mvc.json", "negative/schema/trim-path-on-group.mvc.json"],
+      "fixtures": [
+        "projects/trim-path-reveal.mt.json",
+        "expected-runtime/trim-path-reveal.runtime.json",
+        "expected-frames/trim-path-reveal-t1.png",
+        "negative/schema/trim-path-start-after-end.mvc.json",
+        "negative/schema/trim-path-on-group.mvc.json"
+      ],
       "notes": "arc-length trim reveal with animated end and offset wrapping; Web parity remains open"
     },
     {
@@ -1026,7 +1095,12 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["projects/path-bend-ribbon.mt.json", "expected-runtime/path-bend-ribbon.runtime.json", "expected-frames/path-bend-ribbon-t1.png", "negative/schema/path-bend-on-shape.mvc.json"],
+      "fixtures": [
+        "projects/path-bend-ribbon.mt.json",
+        "expected-runtime/path-bend-ribbon.runtime.json",
+        "expected-frames/path-bend-ribbon-t1.png",
+        "negative/schema/path-bend-on-shape.mvc.json"
+      ],
       "notes": "fixed chord-perpendicular sine bend on sampled contours; Web parity remains open"
     },
     {
@@ -1177,7 +1251,12 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["projects/blend-mode-glow.mt.json", "expected-runtime/blend-mode-glow.runtime.json", "expected-frames/blend-mode-glow-t1.png", "negative/schema/blend-mode-invalid.mt.json"],
+      "fixtures": [
+        "projects/blend-mode-glow.mt.json",
+        "expected-runtime/blend-mode-glow.runtime.json",
+        "expected-frames/blend-mode-glow-t1.png",
+        "negative/schema/blend-mode-invalid.mt.json"
+      ],
       "notes": "normal/multiply/screen/add map to Canvas compositing; Web parity remains open"
     },
     {
@@ -1454,7 +1533,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/emitter-node.json"],
+      "fixtures": [
+        "negative/p1-not-normative/emitter-node.json"
+      ],
       "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
     },
     {
@@ -1556,7 +1637,12 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["projects/constraint-look-at.mt.json", "expected-runtime/constraint-look-at.runtime.json", "negative/schema/constraint-cycle.mvc.json", "negative/schema/constraint-missing-target.mvc.json"],
+      "fixtures": [
+        "projects/constraint-look-at.mt.json",
+        "expected-runtime/constraint-look-at.runtime.json",
+        "negative/schema/constraint-cycle.mvc.json",
+        "negative/schema/constraint-missing-target.mvc.json"
+      ],
       "notes": "topologically evaluated look-at/copy-position/copy-rotation constraints; Web parity remains open"
     },
     {
@@ -1573,7 +1659,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/two-bone-ik.json"],
+      "fixtures": [
+        "negative/p1-not-normative/two-bone-ik.json"
+      ],
       "notes": "P1 not normative; schema must reject; reference/limits N/A until typed"
     },
     {
@@ -1590,7 +1678,12 @@
         "visual": "pass",
         "web": "na"
       },
-      "fixtures": ["projects/path-bend-ribbon.mt.json", "expected-runtime/path-bend-ribbon.runtime.json", "expected-frames/path-bend-ribbon-t1.png", "negative/schema/path-bend-on-shape.mvc.json"],
+      "fixtures": [
+        "projects/path-bend-ribbon.mt.json",
+        "expected-runtime/path-bend-ribbon.runtime.json",
+        "expected-frames/path-bend-ribbon-t1.png",
+        "negative/schema/path-bend-on-shape.mvc.json"
+      ],
       "notes": "path modifier applies after morph and before trim; Web parity remains open"
     },
     {
@@ -1696,7 +1789,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["components/cutout-character.mvc.json"],
+      "fixtures": [
+        "components/cutout-character.mvc.json"
+      ],
       "notes": "no separate schema type; map via restRotation on bones; reference/limits N/A"
     },
     {
@@ -1893,7 +1988,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/audio-marker-track.json"],
+      "fixtures": [
+        "negative/p1-not-normative/audio-marker-track.json"
+      ],
       "notes": "P1 tooling not normative; schema must reject; reference/limits N/A until typed"
     },
     {
@@ -2020,7 +2117,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["projects/property-capabilities.mt.json"],
+      "fixtures": [
+        "projects/property-capabilities.mt.json"
+      ],
       "notes": "not Motion Format schema surface"
     },
     {
@@ -2054,7 +2153,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["projects/hierarchy-transform.mt.json"],
+      "fixtures": [
+        "projects/hierarchy-transform.mt.json"
+      ],
       "notes": "not Motion Format schema surface"
     },
     {
@@ -2265,7 +2366,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["projects/media-assets.mt.json"],
+      "fixtures": [
+        "projects/media-assets.mt.json"
+      ],
       "notes": "H.264/AAC MP4 smoke via media-assets export path; contract/reference/limits N/A"
     },
     {
@@ -2282,7 +2385,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/emitter-node.json"],
+      "fixtures": [
+        "negative/p1-not-normative/emitter-node.json"
+      ],
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
     },
     {
@@ -2299,7 +2404,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/two-bone-ik.json"],
+      "fixtures": [
+        "negative/p1-not-normative/two-bone-ik.json"
+      ],
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
     },
     {
@@ -2316,7 +2423,9 @@
         "visual": "na",
         "web": "na"
       },
-      "fixtures": ["negative/p1-not-normative/audio-marker-track.json"],
+      "fixtures": [
+        "negative/p1-not-normative/audio-marker-track.json"
+      ],
       "notes": "P1 boundary must reject; compiler/evaluator/visual/web N/A; reference/limits N/A until typed"
     },
     {
@@ -2342,6 +2451,81 @@
         "acceptance/web-parity-baseline.json"
       ],
       "notes": "12 accept-* compositions + scorecard; worker PNG/export gates green; browser Canvas PNG parity still deferred (harness transform + checksum baseline)"
+    },
+    {
+      "id": "adjustment-node",
+      "section": "7-composition",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [],
+      "notes": "R5 deferred: AdjustmentNode not in NodeV2Schema; no empty capability placeholder"
+    },
+    {
+      "id": "motion-blur",
+      "section": "7-composition",
+      "status": "planned-p0",
+      "hasRuntimeSurface": false,
+      "gates": {
+        "contract": "na",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "na",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [],
+      "notes": "R5 deferred: shutter sampling helper exists; quality pipeline not gated as implemented"
+    },
+    {
+      "id": "extrapolation-pingpong",
+      "section": "3-time",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "pass",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "projects/extrapolation-pingpong.mt.json",
+        "expected-runtime/extrapolation-pingpong.runtime.json",
+        "negative/schema/invalid-cycle-mode.mvc.json"
+      ],
+      "notes": "cycle.mode repeat|pingpong; reference/limits N/A (enum behavior)"
+    },
+    {
+      "id": "compiled-presets",
+      "section": "3-time",
+      "status": "implemented",
+      "hasRuntimeSurface": true,
+      "gates": {
+        "contract": "pass",
+        "reference": "na",
+        "limits": "na",
+        "compiler": "pass",
+        "evaluator": "na",
+        "visual": "na",
+        "web": "na"
+      },
+      "fixtures": [
+        "negative/compiler/unknown-preset.mt.json",
+        "projects/schedule-playback.mt.json"
+      ],
+      "notes": "Closed COMPILED_PRESET_IDS allowlist; unknown preset throws (no fade-in fallback); reference/limits/evaluator N/A"
     }
   ]
 }

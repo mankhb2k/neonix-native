@@ -5,7 +5,6 @@ function shapeAnim(
   name: string,
   nameVi: string,
   description: string,
-  preset: string,
   previewClass: string,
   duration: number,
 ): MotionBlock {
@@ -17,12 +16,11 @@ function shapeAnim(
     kind: "shape",
     intent: "shape-animation",
     shelf: "shape-animation",
-    description,
+    description: `${description} Preview-only until COMPILED_PRESET_IDS.`,
     duration,
     durationMin: Math.max(0.3, duration * 0.5),
     durationMax: Math.max(duration * 2, 2),
-    preset,
-    tags: ["animation", "shape-animation", role, "core"],
+    tags: ["animation", "shape-animation", role, "preview"],
     sampleText: "",
     previewClass,
   };
@@ -33,7 +31,6 @@ export const SHAPE_DRAW_LINE = shapeAnim(
   "Draw Line",
   "Vẽ đường",
   "Stroke length 0→100% — connector / timeline.",
-  "draw-line",
   "mv-block-shape-anim-draw-line",
   0.9,
 );
@@ -43,7 +40,6 @@ export const SHAPE_BAR_GROW = shapeAnim(
   "Bar Grow",
   "Cột mọc",
   "ScaleY 0→1 từ đáy — bar chart.",
-  "bar-grow",
   "mv-block-shape-anim-bar-grow",
   0.8,
 );
@@ -53,7 +49,6 @@ export const SHAPE_PROGRESS_FILL = shapeAnim(
   "Progress Fill",
   "Thanh đầy",
   "Fill width 0→N% — progress bar / data.progress.",
-  "progress-fill",
   "mv-block-shape-anim-progress-fill",
   1,
 );
@@ -63,7 +58,6 @@ export const SHAPE_FADE = shapeAnim(
   "Shape Fade",
   "Hình hiện mờ",
   "Fade opacity cho shape/icon nền.",
-  "shape-fade",
   "mv-block-shape-anim-fade",
   0.45,
 );

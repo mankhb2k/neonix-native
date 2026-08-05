@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { deepStrictEqual } from "node:assert";
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -17,9 +17,10 @@ import {
   serializeMotionProjectV2,
   motionPropertyCapability,
   motionPropertyCapabilities,
+  publicMotionPropertyCapabilities,
   segmentTextUnits,
 } from "../packages/motion-schema/src/index";
-import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
+import { compileMotionProject, COMPILED_PRESET_IDS, isCompiledPreset } from "../apps/render-worker/src/compiler/index";
 import { encodeOutputs } from "../apps/render-worker/src/ffmpeg";
 import { renderCompiledProject } from "../apps/render-worker/src/runtime";
 import { evaluateProperty } from "../packages/motion-runtime/src/index";
@@ -740,6 +741,11 @@ async function validateNegativeFixtures(): Promise<number> {
       parse: parseMotionProjectV2,
     },
     {
+      file: "schema/invalid-cycle-mode.mvc.json",
+      path: "clips.0.source.tracks.0.postBehavior.mode",
+      code: "invalid_enum_value",
+    },
+    {
       file: "p1-not-normative/emitter-node.json",
       path: "nodes.0.type",
       code: "invalid_union_discriminator",
@@ -779,6 +785,18 @@ async function validateNegativeFixtures(): Promise<number> {
 
 type CoverageGate = "pass" | "na";
 
+const COVERAGE_STATUSES = new Set<string>([
+  "implemented",
+  "partial",
+  "planned",
+  "planned-p0",
+  "planned-p1",
+  "na-authoring",
+  "rejected-future",
+]);
+
+const PLANNED_STATUSES = new Set(["planned", "planned-p0", "planned-p1", "rejected-future"]);
+
 type PrimitivesCoverage = {
   version: number;
   requiredGates: Array<"contract" | "reference" | "limits">;
@@ -793,12 +811,66 @@ type PrimitivesCoverage = {
   }>;
 };
 
+function isPlannedStatus(status: string): boolean {
+  return PLANNED_STATUSES.has(status);
+}
+
+async function writeAiCapabilityManifest(coverage: PrimitivesCoverage): Promise<void> {
+  const ledgerIds = new Set(
+    coverage.primitives
+      .filter((primitive) => primitive.status === "implemented" || primitive.status === "partial")
+      .map((primitive) => primitive.id),
+  );
+  const nodeTypes = ["group", "bone", "text", "shape", "path", "image", "svg", "video", "camera", "component", "solid"] as const;
+  const properties = nodeTypes.flatMap((nodeType) =>
+    publicMotionPropertyCapabilities(nodeType).map((capability) => ({
+      nodeType,
+      property: capability.property,
+      valueKind: capability.valueKind,
+      animatable: capability.animatable,
+      bindable: capability.bindable,
+      runtimeSupport: capability.runtimeSupport,
+    })),
+  );
+  const depthPublic = properties.some((entry) => entry.property === "transform.depth");
+  if (depthPublic) throw new Error("AI capability manifest must not expose transform.depth until R4");
+
+  const manifest = {
+    version: 1,
+    generatedFrom: "docs/fixtures/v2/primitives-coverage.json",
+    rule: "public AI surface ⊆ ledger rows with status implemented|partial and gated capabilities.ts",
+    ledgerPrimitiveIds: [...ledgerIds].sort(),
+    compiledPresets: [...COMPILED_PRESET_IDS].sort(),
+    properties,
+  };
+  const outPath = resolve(fixturesRoot, "ai-capability-manifest.json");
+  await writeFile(outPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  console.log(`OK ai-capability-manifest ${manifest.properties.length} public properties, ${manifest.compiledPresets.length} presets`);
+}
+
 async function validatePrimitivesCoverage(): Promise<number> {
   const coverage = await readJson(resolve(fixturesRoot, "primitives-coverage.json")) as PrimitivesCoverage;
   if (coverage.version !== 1) throw new Error("primitives-coverage.json version must be 1");
   if (coverage.primitives.length === 0) throw new Error("primitives-coverage.json has no primitives");
+  const requiredIds = [
+    "transform-depth",
+    "parallax-modifier",
+    "adjustment-node",
+    "motion-blur",
+    "solid-node",
+    "extrapolation-pingpong",
+    "compiled-presets",
+  ];
+  for (const id of requiredIds) {
+    if (!coverage.primitives.some((primitive) => primitive.id === id)) {
+      throw new Error(`primitives-coverage missing required R0 ledger row: ${id}`);
+    }
+  }
   let passCount = 0;
   for (const primitive of coverage.primitives) {
+    if (!COVERAGE_STATUSES.has(primitive.status)) {
+      throw new Error(`primitives-coverage ${primitive.id} has unknown status ${primitive.status}`);
+    }
     for (const gate of coverage.requiredGates) {
       const value = primitive.gates[gate];
       if (value !== "pass" && value !== "na") {
@@ -825,10 +897,57 @@ async function validatePrimitivesCoverage(): Promise<number> {
         throw new Error(`primitives-coverage ${primitive.id} missing fixture: ${fixture}`);
       }
     }
+    if (primitive.status === "implemented") {
+      if (primitive.fixtures.length < 1) {
+        throw new Error(`primitives-coverage ${primitive.id} status=implemented requires ≥1 fixture`);
+      }
+      for (const gate of coverage.requiredGates) {
+        const value = primitive.gates[gate];
+        if (value !== "pass" && value !== "na") {
+          throw new Error(`primitives-coverage ${primitive.id} implemented gate ${gate} must be pass|na`);
+        }
+      }
+      if (primitive.hasRuntimeSurface) {
+        for (const gate of ["compiler", "evaluator"] as const) {
+          if (primitive.gates[gate] !== "pass" && primitive.gates[gate] !== "na") {
+            throw new Error(`primitives-coverage ${primitive.id} implemented runtime gate ${gate} must be pass|na`);
+          }
+        }
+      }
+      const notes = primitive.notes ?? "";
+      if (/\bTODO\b/i.test(notes)) {
+        throw new Error(`primitives-coverage ${primitive.id} implemented notes must not contain TODO`);
+      }
+    }
+    const deferredR0 = new Set(["transform-depth", "parallax-modifier", "adjustment-node", "motion-blur"]);
+    if (deferredR0.has(primitive.id)) {
+      if (!isPlannedStatus(primitive.status)) {
+        throw new Error(`primitives-coverage ${primitive.id} must remain planned until R4/R5`);
+      }
+      for (const gate of ["contract", "compiler", "evaluator", "visual"] as const) {
+        if (primitive.gates[gate] === "pass") {
+          throw new Error(`primitives-coverage ${primitive.id} must not claim ${gate}=pass before implementation`);
+        }
+      }
+    }
     if (coverage.requiredGates.every((gate) => primitive.gates[gate] === "pass" || primitive.gates[gate] === "na")) {
       passCount += 1;
     }
   }
+
+  const depthCap = motionPropertyCapability("group", "transform.depth");
+  if (depthCap?.public || depthCap?.runtimeSupport === "evaluated") {
+    throw new Error("capabilities.ts must not advertise transform.depth as public/evaluated until R4");
+  }
+  const adjustmentCaps = motionPropertyCapabilities("adjustment");
+  if (adjustmentCaps.some((capability) => !capability.property.startsWith("transform."))) {
+    throw new Error("capabilities.ts must not expose adjustment node payload vocabulary until R5");
+  }
+  if (!isCompiledPreset("fade-in") || isCompiledPreset("fade-out") || isCompiledPreset("bounce-in")) {
+    throw new Error("Compiled preset allowlist drifted from R0 contract");
+  }
+
+  await writeAiCapabilityManifest(coverage);
   console.log(`OK primitives-coverage ${passCount}/${coverage.primitives.length}`);
   return coverage.primitives.length;
 }
@@ -1297,6 +1416,21 @@ async function main(): Promise<void> {
   await validateAssetKit();
   await validateSvgImportFixtures();
   const coverageCount = await validatePrimitivesCoverage();
+
+  {
+    const unknownPresetProject = parseMotionProjectV2(await readJson(resolve(fixturesRoot, "negative/compiler/unknown-preset.mt.json")));
+    let unknownPresetError: unknown;
+    try {
+      compileMotionProject(unknownPresetProject);
+    } catch (caught) {
+      unknownPresetError = caught;
+    }
+    if (!(unknownPresetError instanceof Error) || !unknownPresetError.message.includes("Unknown preset: not-a-real-preset")) {
+      throw new Error("Unknown preset must throw a clear compile diagnostic (no fade-in fallback)");
+    }
+    console.log("OK negative/compiler/unknown-preset.mt.json");
+  }
+
   const componentCount = await validateDirectory("components", parseMotionComponentV2);
   const projectCount = await validateDirectory("projects", parseMotionProjectV2);
   const patchRoot = resolve(fixturesRoot, "patches");

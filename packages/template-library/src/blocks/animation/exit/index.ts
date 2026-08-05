@@ -5,7 +5,6 @@ function exitBlock(
   name: string,
   nameVi: string,
   description: string,
-  preset: string,
   previewClass: string,
   duration = 0.45,
 ): MotionBlock {
@@ -17,12 +16,11 @@ function exitBlock(
     kind: "text",
     intent: "exit",
     shelf: "exit",
-    description,
+    description: `${description} Preview-only until exit presets join COMPILED_PRESET_IDS.`,
     duration,
     durationMin: 0.25,
     durationMax: 1,
-    preset,
-    tags: ["animation", "exit", role, "core"],
+    tags: ["animation", "exit", role, "preview"],
     sampleText: "Tạm biệt",
     previewClass,
   };
@@ -33,7 +31,6 @@ export const EXIT_FADE_OUT = exitBlock(
   "Fade Out",
   "Mờ dần tắt",
   "Chỉ fade opacity ra. An toàn mọi layer.",
-  "fade-out",
   "mv-block-exit-fade-out",
 );
 
@@ -42,7 +39,6 @@ export const EXIT_SCALE_OUT = exitBlock(
   "Scale Out",
   "Thu nhỏ tắt",
   "Scale lớn → nhỏ + fade.",
-  "scale-out",
   "mv-block-exit-scale-out",
 );
 
@@ -51,7 +47,6 @@ export const EXIT_SLIDE_UP = exitBlock(
   "Slide Up Out",
   "Trượt lên tắt",
   "Trượt lên + fade khi rời khung.",
-  "exit-slide-up",
   "mv-block-exit-slide-up",
 );
 
@@ -60,7 +55,6 @@ export const EXIT_SLIDE_LEFT = exitBlock(
   "Slide Left Out",
   "Trượt trái tắt",
   "Trượt sang trái + fade.",
-  "exit-slide-left",
   "mv-block-exit-slide-left",
 );
 
@@ -69,7 +63,6 @@ export const EXIT_SLIDE_RIGHT = exitBlock(
   "Slide Right Out",
   "Trượt phải tắt",
   "Trượt sang phải + fade.",
-  "exit-slide-right",
   "mv-block-exit-slide-right",
 );
 
@@ -78,7 +71,6 @@ export const EXIT_ZOOM_OUT = exitBlock(
   "Zoom Out",
   "Zoom ra tắt",
   "Zoom mạnh ra + fade (đối xứng enter.zoom-in).",
-  "exit-zoom-out",
   "mv-block-exit-zoom-out",
   0.5,
 );

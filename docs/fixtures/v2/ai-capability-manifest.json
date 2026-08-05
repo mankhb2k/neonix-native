@@ -1,0 +1,1464 @@
+{
+  "version": 1,
+  "generatedFrom": "docs/fixtures/v2/primitives-coverage.json",
+  "rule": "public AI surface ⊆ ledger rows with status implemented|partial and gated capabilities.ts",
+  "ledgerPrimitiveIds": [
+    "ai-capability-registry",
+    "artifact-identity",
+    "asset-declaration",
+    "asset-resolver",
+    "audio-track",
+    "binding",
+    "blend-mode",
+    "blur-effect",
+    "bone-chain",
+    "bone-node",
+    "bounds",
+    "camera-node",
+    "capability-metadata",
+    "clip",
+    "color-adjust-effect",
+    "compiled-presets",
+    "component-expansion",
+    "component-instance",
+    "component-semver",
+    "composition-cutout-dialogue",
+    "composition-cutout-semi-organic",
+    "composition-infographic",
+    "composition-product-tvc",
+    "dash",
+    "deterministic-clock-seed",
+    "draw-order",
+    "easing",
+    "effects-stack",
+    "encoder-output",
+    "evaluated-node-state",
+    "extrapolation-pingpong",
+    "fill",
+    "font-resolver",
+    "frame-plan",
+    "glow-effect",
+    "gradient",
+    "group-node",
+    "hierarchy",
+    "hit-test",
+    "image-node",
+    "integrity",
+    "json-literal-value",
+    "keyframe",
+    "literal-runtime-node",
+    "literal-runtime-track",
+    "mask-clip",
+    "media-probe",
+    "motion-path",
+    "offscreen-surface",
+    "patch",
+    "path-bend",
+    "path-bend-modifier",
+    "path-morph",
+    "path-morph-modifier",
+    "path-node",
+    "playback",
+    "point-contour-segment",
+    "preset-source",
+    "preview",
+    "product-acceptance-pack",
+    "project-timeline",
+    "prop-attachment",
+    "property-path",
+    "property-track",
+    "public-parameter",
+    "raster-output",
+    "repeater-count",
+    "repeater-layout",
+    "repeater-list",
+    "resolvable-value",
+    "scene",
+    "schedule",
+    "secondary-motion",
+    "semantic",
+    "shadow-effect",
+    "shape-node",
+    "simple-constraint",
+    "solid-node",
+    "stable-id",
+    "stroke",
+    "svg-node",
+    "text-animator",
+    "text-node",
+    "time-stagger",
+    "transform",
+    "trim-path",
+    "variable",
+    "video-node",
+    "world-matrix"
+  ],
+  "compiledPresets": [
+    "counter",
+    "fade-down",
+    "fade-in",
+    "fade-left",
+    "fade-right",
+    "fade-up",
+    "pop",
+    "scale-in",
+    "slide-left",
+    "slide-right",
+    "slide-up",
+    "zoom-in"
+  ],
+  "properties": [
+    {
+      "nodeType": "group",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "payload.text",
+      "valueKind": "string",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "payload.fontSize",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "style.fill",
+      "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "style.fill",
+      "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "style.fillOpacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "style.stroke",
+      "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "style.strokeWidth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "style.strokeOpacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "style.dashOffset",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "payload.cornerRadius",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "style.fill",
+      "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "style.fillOpacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "style.stroke",
+      "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "style.strokeWidth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "style.strokeOpacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
+      "property": "style.dashOffset",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
+      "property": "payload.assetId",
+      "valueKind": "asset",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "payload.assetId",
+      "valueKind": "asset",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "style.fill",
+      "valueKind": "color",
+      "animatable": false,
+      "bindable": true,
+      "runtimeSupport": "compile-time"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "payload.assetId",
+      "valueKind": "asset",
+      "animatable": false,
+      "bindable": true,
+      "runtimeSupport": "compile-time"
+    },
+    {
+      "nodeType": "video",
+      "property": "payload.trimStart",
+      "valueKind": "number",
+      "animatable": false,
+      "bindable": true,
+      "runtimeSupport": "compile-time"
+    },
+    {
+      "nodeType": "video",
+      "property": "payload.muted",
+      "valueKind": "boolean",
+      "animatable": false,
+      "bindable": true,
+      "runtimeSupport": "compile-time"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
+      "property": "payload.zoom",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "payload.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "payload.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "payload.color",
+      "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    }
+  ]
+}
