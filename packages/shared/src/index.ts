@@ -9,6 +9,19 @@ export type RenderJobStatus =
   | "rendering"
   | "encoding"
   | "done"
-  | "failed";
+  | "failed"
+  | "cancelled";
+
+export type RenderJobProgress = {
+  jobId: string;
+  status: RenderJobStatus;
+  /** 0..1 overall progress */
+  progress: number;
+  stage?: string;
+  error?: string;
+  artifactPath?: string;
+  createdAt: number;
+  updatedAt: number;
+};
 
 

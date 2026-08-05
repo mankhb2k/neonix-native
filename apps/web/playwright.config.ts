@@ -32,5 +32,10 @@ export default defineConfig({
         url: `${baseURL}/app`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
+        env: {
+          ...process.env,
+          // Keep smoke export test fast — real jobs are covered by /api/export/jobs.
+          NEXT_PUBLIC_EXPORT_MOCK: "1",
+        },
       },
 });

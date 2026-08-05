@@ -53,7 +53,15 @@ async function main() {
   );
 
   const fps = 30;
-  const scale = 1; // 1.0 = full production resolution (1080x1920 for 9:16)
+  const scaleEnv = Number(process.env.MOTIONVIDEO_BENCH_SCALE);
+  const scaleArg = process.argv.find((a) => a.startsWith("--scale="));
+  const scaleFromArg = scaleArg ? Number(scaleArg.split("=")[1]) : NaN;
+  const scale =
+    Number.isFinite(scaleFromArg) && scaleFromArg > 0
+      ? scaleFromArg
+      : Number.isFinite(scaleEnv) && scaleEnv > 0
+        ? scaleEnv
+        : 1; // 1.0 = full production (1080p); 2.0 = 4K
 
   const t0 = performance.now();
   const rendered = await renderCompiledProject(compiled, {

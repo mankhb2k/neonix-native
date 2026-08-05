@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useRenderJobsStore } from "@/lib/editor/export/render-jobs-store";
 
 describe("render jobs store", () => {
-  it("completes mock export with pinned revision", async () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_EXPORT_MOCK = "1";
     useRenderJobsStore.getState().clear();
+  });
+
+  it("completes mock export with pinned revision", async () => {
     await useRenderJobsStore.getState().startExport({
       projectRevisionId: 12,
       format: "mp4",
+      project: null,
     });
     const state = useRenderJobsStore.getState();
     expect(state.phase).toBe("ready");

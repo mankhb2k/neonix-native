@@ -19,6 +19,7 @@ export function EditorTopBar({ projectName, projectId }: Props) {
   const envelope = useEditorStore((s) => s.envelope);
   const dirtyRevision = useEditorStore((s) => s.dirtyRevision);
   const savedRevision = useEditorStore((s) => s.savedRevision);
+  const project = useEditorStore((s) => s.project);
   const phase = useRenderJobsStore((s) => s.phase);
   const progress = useRenderJobsStore((s) => s.progress);
   const artifactUrl = useRenderJobsStore((s) => s.artifactUrl);
@@ -27,7 +28,11 @@ export function EditorTopBar({ projectName, projectId }: Props) {
   const clear = useRenderJobsStore((s) => s.clear);
 
   const exporting =
-    phase === "queued" || phase === "rendering" || phase === "uploading";
+    phase === "queued" ||
+    phase === "planning" ||
+    phase === "rendering" ||
+    phase === "encoding" ||
+    phase === "uploading";
   const dirty = dirtyRevision !== savedRevision;
 
   return (
@@ -99,6 +104,7 @@ export function EditorTopBar({ projectName, projectId }: Props) {
               void startExport({
                 projectRevisionId: envelope?.revision ?? (dirtyRevision || 1),
                 format: "mp4",
+                project,
               })
             }
           >
