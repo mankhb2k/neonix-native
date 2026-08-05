@@ -1,12 +1,12 @@
 "use client";
 
 import { PreviewStageHost } from "@/components/editor/stage/PreviewStageHost";
-import { RemotionPreview } from "@/components/editor/stage/RemotionPreview";
 import { MinimalTimeline } from "@/components/editor/timeline/MinimalTimeline";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
 import type { MotionProject } from "@motionvideo/motion-schema";
+import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
 type Props = {
@@ -16,16 +16,25 @@ type Props = {
 };
 
 /**
- * Stage renderer selection:
- * - remotion (default): existing Remotion Player path
- * - dom | pixi: PreviewStageHost + StageRendererPort (desktop-style; pixi falls back to dom until P1)
+ * Stage renderer selection (P7):
+ * - pixi (default): PreviewStageHost + PixiStageRenderer
+ * - dom: PreviewStageHost + DOM painter
+ * - remotion: optional fallback Player (one-release internal)
  */
 function resolveStageMode(): "remotion" | "dom" | "pixi" {
   const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
-  if (raw === "pixi") return "pixi";
+  if (raw === "remotion") return "remotion";
   if (raw === "dom") return "dom";
-  return "remotion";
+  return "pixi";
 }
+
+const RemotionPreview = dynamic(
+  () =>
+    import("@/components/editor/stage/RemotionPreview").then(
+      (mod) => mod.RemotionPreview,
+    ),
+  { ssr: false },
+);
 
 export function StageViewport({ project, width, height }: Props) {
   const clips = useEditorStore((s) => s.timelineClips);
@@ -40,7 +49,11 @@ export function StageViewport({ project, width, height }: Props) {
   }, [clips, lanes, preview.project]);
 
   return (
-    <main className="editor-area-stage" data-testid="editor-stage">
+    <main
+      className="editor-area-stage"
+      data-testid="editor-stage"
+      data-stage-backend={mode}
+    >
       <div className="editor-stage-canvas editor-stage-workspace">
         <div
           className="editor-stage-board"

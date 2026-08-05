@@ -24,7 +24,7 @@ import {
   undoHistory,
 } from "@/lib/editor/timeline/history/history-manager";
 import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
-import { createFacebookHistoryDemoProject } from "@motionvideo/remotion-renderer";
+import { createFacebookHistoryDemoProject } from "@motionvideo/preview-kit";
 import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
 import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";

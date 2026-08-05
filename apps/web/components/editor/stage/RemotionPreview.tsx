@@ -1,11 +1,14 @@
 "use client";
 
-import { Player, type PlayerRef } from "@remotion/player";
+import {
+  MotionComposition,
+  Player,
+  type PlayerRef,
+} from "@motionvideo/remotion-renderer";
 import {
   compositionDurationInFrames,
-  MotionComposition,
   timelineTotalDuration,
-} from "@motionvideo/remotion-renderer";
+} from "@motionvideo/preview-kit";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { InteractionOverlay } from "@/components/editor/stage/InteractionOverlay";
@@ -25,6 +28,7 @@ type Props = {
 
 const BOARD_BG = "#ffffff";
 
+/** @deprecated P7 fallback — prefer Pixi (`NEXT_PUBLIC_STAGE_RENDERER=pixi`). */
 export function RemotionPreview({ project, width, height }: Props) {
   const playerRef = useRef<PlayerRef>(null);
   const currentTime = usePlaybackClock((s) => s.currentTime);

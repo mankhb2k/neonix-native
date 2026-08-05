@@ -1,8 +1,11 @@
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { buildRenderSnapshot } from "@motionvideo/motion-runtime";
 import { describe, expect, it } from "vitest";
-import { evaluateCompositionSnapshot } from "../evaluate-composition";
-import { createDemoMotionProject, DEMO_SCENE_ID } from "../fixtures/demo-project";
+import {
+  createDemoMotionProject,
+  DEMO_SCENE_ID,
+  evaluateCompositionSnapshot,
+} from "@motionvideo/preview-kit";
 
 describe("remotion-renderer snapshot contract", () => {
   it("builds drawable snapshot items from demo project", () => {

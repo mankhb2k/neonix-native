@@ -1,24 +1,29 @@
-export {
-  MotionComposition,
-} from "./MotionComposition";
+/**
+ * Optional Remotion composition adapter (fallback preview only).
+ * Core timeline/fixtures live in `@motionvideo/preview-kit`.
+ */
+
+export { MotionComposition } from "./MotionComposition";
 export type { MotionCompositionProps } from "./MotionComposition";
+export { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
+export type { RemotionSnapshotRendererProps } from "./RemotionSnapshotRenderer";
+export { Player } from "@remotion/player";
+export type { PlayerRef } from "@remotion/player";
+
 export {
   evaluateCompositionSnapshot,
   compositionDurationInFrames,
-} from "./evaluate-composition";
-export { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
-export type { RemotionSnapshotRendererProps } from "./RemotionSnapshotRenderer";
-export { createDemoMotionProject, DEMO_SCENE_ID } from "./fixtures/demo-project";
-export {
+  createDemoMotionProject,
+  DEMO_SCENE_ID,
   createFacebookHistoryDemoProject,
   FB_HISTORY_SCENE_IDS,
-} from "./fixtures/facebook-history-demo";
-export {
   resolveTimelineAtTime,
   listTimelineSegments,
   timelineTotalDuration,
-} from "./resolve-timeline";
+} from "@motionvideo/preview-kit";
 export type {
   TimelineResolveResult,
   TimelineSceneSegment,
-} from "./resolve-timeline";
+  TimelineProjectLike,
+  TimelineRuntime,
+} from "@motionvideo/preview-kit";

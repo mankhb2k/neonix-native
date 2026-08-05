@@ -2,14 +2,14 @@ import { parseMotionProject, type MotionProject } from "@motionvideo/motion-sche
 
 export const DEMO_SCENE_ID = "scene.demo";
 
-/** Minimal shape + text + group fixture for Remotion / snapshot parity tests. */
+/** Minimal shape + text + group fixture for preview / snapshot parity tests. */
 export function createDemoMotionProject(): MotionProject {
   return parseMotionProject({
     format: "motion-project",
     formatVersion: 2,
     metadata: {
-      id: "proj_remotion_demo",
-      name: "Remotion Demo",
+      id: "proj_preview_demo",
+      name: "Preview Demo",
       aspectRatio: "16:9",
       fps: 30,
       locale: "vi-VN",

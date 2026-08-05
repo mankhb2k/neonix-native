@@ -1,12 +1,12 @@
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { describe, expect, it } from "vitest";
-import { createFacebookHistoryDemoProject } from "../fixtures/facebook-history-demo";
+import { createFacebookHistoryDemoProject } from "./fixtures/facebook-history-demo";
 import {
   listTimelineSegments,
   resolveTimelineAtTime,
   timelineTotalDuration,
-} from "../resolve-timeline";
-import { compositionDurationInFrames } from "../evaluate-composition";
+} from "./resolve-timeline";
+import { compositionDurationInFrames } from "./evaluate-composition";
 
 describe("resolveTimelineAtTime", () => {
   const runtime = compileMotionProject(createFacebookHistoryDemoProject());

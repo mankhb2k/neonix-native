@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
     "@motionvideo/ai-planner",
     "@motionvideo/motion-grammar",
     "@motionvideo/asset-registry",
+    "@motionvideo/pixi-renderer",
+    "@motionvideo/preview-kit",
     "@motionvideo/remotion-renderer",
   ],
 };

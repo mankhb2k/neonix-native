@@ -9,10 +9,10 @@ import {
   createFacebookHistoryDemoProject,
   FB_HISTORY_SCENE_IDS,
   resolveTimelineAtTime,
-} from "@motionvideo/remotion-renderer";
+} from "@motionvideo/preview-kit";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 
-/** Project used for Remotion preview + hit-test (Facebook History when blank). */
+/** Project used for stage preview + hit-test (Facebook History when blank). */
 export function resolvePreviewProject(project: MotionProject): {
   project: MotionProject;
   usingDemo: boolean;

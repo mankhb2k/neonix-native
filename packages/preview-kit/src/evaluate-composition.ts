@@ -10,7 +10,7 @@ import {
 } from "./resolve-timeline";
 
 /**
- * Evaluate a Remotion frame into a render snapshot.
+ * Evaluate a composition frame into a render snapshot (renderer-agnostic).
  *
  * - When `sceneId` is set: frame is local to that scene (legacy / single-scene).
  * - When `sceneId` is omitted: frame is global across `timeline.sceneOrder` (hard cuts).

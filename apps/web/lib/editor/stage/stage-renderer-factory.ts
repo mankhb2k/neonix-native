@@ -12,8 +12,9 @@ import type { MotionProject } from "@motionvideo/motion-schema";
 
 export function resolveStageRendererBackend(): StageRendererBackend {
   const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
-  if (raw === "pixi") return "pixi";
-  return "dom";
+  if (raw === "dom") return "dom";
+  // pixi is default; remotion is handled outside this factory
+  return "pixi";
 }
 
 export const STAGE_RENDERER_BACKEND: StageRendererBackend =

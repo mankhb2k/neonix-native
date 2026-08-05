@@ -1,65 +1,44 @@
+import {
+  AbsoluteFill,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
+import {
+  evaluateCompositionSnapshot,
+} from "@motionvideo/preview-kit";
 import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
-import React, { useMemo } from "react";
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
-import { evaluateCompositionSnapshot } from "./evaluate-composition";
 import { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
 
 export type MotionCompositionProps = {
   runtime: NormalizedMotionProjectV2;
-  /**
-   * When set, play a single scene (frame is scene-local).
-   * When omitted, frame is global across `timeline.sceneOrder`.
-   */
-  sceneId?: string;
   width: number;
   height: number;
   background?: string;
+  /** When set, frame is local to this scene. Omit for global timeline. */
+  sceneId?: string;
 };
 
-/**
- * Generic Remotion composition — AI never authors this file.
- * Preview and export share the same snapshot → renderer path.
- */
-export const MotionComposition: React.FC<MotionCompositionProps> = ({
+/** Remotion Player composition — fallback path only (P7). */
+export function MotionComposition({
   runtime,
-  sceneId,
   width,
   height,
   background,
-}) => {
+  sceneId,
+}: MotionCompositionProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-
-  const snapshot = useMemo(
-    () =>
-      evaluateCompositionSnapshot(
-        runtime,
-        frame,
-        fps,
-        width,
-        height,
-        sceneId,
-        background,
-      ),
-    [runtime, frame, fps, width, height, sceneId, background],
+  const snapshot = evaluateCompositionSnapshot(
+    runtime,
+    frame,
+    fps,
+    width,
+    height,
+    sceneId,
+    background,
   );
-
   if (!snapshot) {
-    return (
-      <AbsoluteFill
-        style={{
-          background: background ?? "#ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "#6b7285",
-          fontSize: 16,
-        }}
-      >
-        Empty composition
-      </AbsoluteFill>
-    );
+    return <AbsoluteFill style={{ background: background ?? "#000" }} />;
   }
-
-  return <RemotionSnapshotRenderer snapshot={snapshot} interactive={false} />;
-};
+  return <RemotionSnapshotRenderer snapshot={snapshot} />;
+}

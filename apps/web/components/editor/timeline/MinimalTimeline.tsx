@@ -6,7 +6,7 @@ import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   listTimelineSegments,
   timelineTotalDuration,
-} from "@motionvideo/remotion-renderer";
+} from "@motionvideo/preview-kit";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import {
   clientXToStripTime,
