@@ -8,6 +8,7 @@ export const TransformPatchSchema = z
   .object({
     x: Finite.optional(),
     y: Finite.optional(),
+    depth: Finite.optional(),
     width: Finite.nonnegative().optional(),
     height: Finite.nonnegative().optional(),
     rotation: Finite.optional(),
@@ -22,13 +23,75 @@ export const TransformPatchSchema = z
   })
   .strict();
 
+export const AuthoringEasingSchema = z.union([
+  z.enum(["linear", "easeIn", "easeOut", "easeInOut", "spring", "step"]),
+  z
+    .object({
+      type: z.literal("cubic-bezier"),
+      x1: Finite.min(0).max(1),
+      y1: Finite,
+      x2: Finite.min(0).max(1),
+      y2: Finite,
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("spring"),
+      stiffness: Finite.positive().max(10_000),
+      damping: Finite.nonnegative().max(1_000),
+      mass: Finite.positive().max(100).optional(),
+    })
+    .strict(),
+]);
+
 export const AuthoringKeyframeSchema = z
   .object({
     t: Finite.nonnegative(),
     v: z.union([z.string(), z.number(), z.boolean()]),
-    easing: z.enum(["linear", "easeIn", "easeOut", "easeInOut", "spring", "step"]).optional(),
+    easing: AuthoringEasingSchema.optional(),
   })
   .strict();
+
+export const LayoutConstraintCommandSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("stack"),
+      direction: z.enum(["horizontal", "vertical"]),
+      gap: Finite.nonnegative().optional(),
+      padding: Finite.nonnegative().optional(),
+      align: z.enum(["start", "center", "end"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("grid"),
+      columns: z.number().int().positive().max(32),
+      gapX: Finite.nonnegative().optional(),
+      gapY: Finite.nonnegative().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("align"),
+      axis: z.enum(["x", "y", "both"]),
+      align: z.enum(["start", "center", "end"]),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("distribute"),
+      axis: z.enum(["x", "y"]),
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("anchor"),
+      targetNodeId: Id,
+      offsetX: Finite.optional(),
+      offsetY: Finite.optional(),
+    })
+    .strict(),
+]);
 
 export const AuthoringCommandSchema = z.discriminatedUnion("type", [
   z
@@ -117,15 +180,105 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       patch: MotionPatchSchema,
     })
     .strict(),
-  z.object({ type: z.literal("setLayoutConstraint") }).strict(),
+  z
+    .object({
+      type: z.literal("setLayoutConstraint"),
+      sceneId: Id,
+      nodeId: Id,
+      modifierId: Id,
+      constraint: LayoutConstraintCommandSchema,
+    })
+    .strict(),
   z.object({ type: z.literal("addComponentInstance") }).strict(),
-  z.object({ type: z.literal("addDriver") }).strict(),
-  z.object({ type: z.literal("addMask") }).strict(),
-  z.object({ type: z.literal("addEffect") }).strict(),
-  z.object({ type: z.literal("setCamera") }).strict(),
+  z
+    .object({
+      type: z.literal("addDriver"),
+      sceneId: Id,
+      driver: z.record(z.unknown()),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("applyRecipe"),
+      sceneId: Id,
+      recipeId: z.enum(["wiggle", "float", "pulse", "follow", "counter", "stagger", "camera-shake"]),
+      targetNodeId: Id,
+      duration: Finite.positive(),
+      seed: Finite.optional(),
+      intensity: Finite.optional(),
+      sourceNodeId: Id.optional(),
+      staggerNodeIds: z.array(Id).max(64).optional(),
+      clipId: Id.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("addMask"),
+      sceneId: Id,
+      nodeId: Id,
+      sourceNodeId: Id,
+      mode: z.enum(["clip", "alpha", "inverse-alpha", "luma", "inverse-luma"]),
+      sourceVisibility: z.enum(["mask-only", "content-and-mask"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("addEffect"),
+      sceneId: Id,
+      nodeId: Id,
+      effectId: Id,
+      effect: z.discriminatedUnion("type", [
+        z.object({ type: z.literal("blur"), radius: Finite.nonnegative() }).strict(),
+        z
+          .object({
+            type: z.literal("glow"),
+            radius: Finite.nonnegative(),
+            intensity: Finite.nonnegative(),
+            color: z.string().min(1),
+            opacity: Finite.min(0).max(1).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            type: z.literal("color-adjust"),
+            brightness: Finite.min(-1).max(1).optional(),
+            contrast: Finite.min(0).max(4).optional(),
+            saturation: Finite.min(0).max(4).optional(),
+          })
+          .strict(),
+      ]),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("setCamera"),
+      sceneId: Id,
+      cameraId: Id,
+      zoom: Finite.positive().optional(),
+      parallaxStrength: Finite.min(0).max(8).optional(),
+      transform: TransformPatchSchema.optional(),
+      makeActive: z.boolean().optional(),
+    })
+    .strict(),
   z.object({ type: z.literal("addAudioCue") }).strict(),
-  z.object({ type: z.literal("renderContactSheet") }).strict(),
-  z.object({ type: z.literal("renderPreviewRange") }).strict(),
+  z
+    .object({
+      type: z.literal("renderContactSheet"),
+      sceneId: Id.optional(),
+      times: z.array(Finite.nonnegative()).min(1).max(24).optional(),
+      width: z.number().int().positive().max(512).optional(),
+      height: z.number().int().positive().max(512).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("renderPreviewRange"),
+      sceneId: Id,
+      start: Finite.nonnegative(),
+      end: Finite.positive(),
+      fps: z.number().int().positive().max(60).optional(),
+    })
+    .strict(),
 ]);
 
 export const CommandBatchSchema = z

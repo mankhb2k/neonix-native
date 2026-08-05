@@ -6,6 +6,7 @@ import {
   inheritedParentMatrix,
   localTransformMatrix,
   multiplyMatrix,
+  translationMatrix,
   type Matrix2D,
   type Transform2D,
 } from "./matrix";
@@ -18,6 +19,14 @@ import {
   trimPathContours,
 } from "./geometry";
 import { solveSecondaryMotionChain } from "./secondary-motion";
+import {
+  interpolateAngle,
+  interpolateVec2,
+  isVec2,
+  sampleEasing,
+  type KeyframeEasing,
+} from "./curve-sampler";
+import { evaluateDriverGraph } from "./procedural-driver";
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
@@ -31,19 +40,15 @@ export type EvaluatedNode = {
   worldOpacity: number;
   visible: boolean;
   worldBounds: Bounds2D;
+  /** Scene-space depth used for layered-2.5d projection (0 when flat). */
+  depth: number;
+  /** Screen-space parallax offset applied after world matrix (R4). */
+  projectedOffset: { x: number; y: number };
 };
 
-export function easingValue(progress: number, easing = "linear"): number {
-  const value = Math.min(1, Math.max(0, progress));
-  switch (easing) {
-    case "linear": return value;
-    case "step": return value < 1 ? 0 : 1;
-    case "easeIn": return value * value;
-    case "easeInOut": return value < 0.5 ? 2 * value * value : 1 - (-2 * value + 2) ** 2 / 2;
-    case "spring": return Math.min(1.08, 1 - Math.cos(value * Math.PI * 2.5) * Math.exp(-5 * value));
-    case "easeOut": return 1 - (1 - value) ** 3;
-    default: throw new Error(`Unknown runtime easing: ${String(easing)}`);
-  }
+/** @deprecated Prefer sampleEasing from curve-sampler; kept for named-ease call sites. */
+export function easingValue(progress: number, easing: KeyframeEasing | undefined = "linear"): number {
+  return sampleEasing(progress, easing);
 }
 
 export function hexToRgb(hex: string): [number, number, number] {
@@ -76,7 +81,15 @@ export function interpolateColor(colorA: string, colorB: string, progress: numbe
   return rgbToHex(r, g, b);
 }
 
-export function sampleTrackValue(keys: RuntimeTrack["keys"], time: number): unknown {
+function resolveValueKind(track: RuntimeTrack | undefined, property: string, left: unknown, right: unknown): string | undefined {
+  if (track?.valueKind) return track.valueKind;
+  if (property === "transform.rotation" || property.endsWith(".rotation")) return "angle";
+  if (typeof left === "string" && typeof right === "string" && left.startsWith("#") && right.startsWith("#")) return "color";
+  if (isVec2(left) && isVec2(right)) return "vec2";
+  return undefined;
+}
+
+export function sampleTrackValue(keys: RuntimeTrack["keys"], time: number, valueKind?: string): unknown {
   if (keys.length === 0) return undefined;
   if (time <= keys[0]!.t) return keys[0]!.v;
   const last = keys[keys.length - 1]!;
@@ -85,23 +98,33 @@ export function sampleTrackValue(keys: RuntimeTrack["keys"], time: number): unkn
     const right = keys[index]!;
     const left = keys[index - 1]!;
     if (time > right.t) continue;
+    const progress = sampleEasing((time - left.t) / Math.max(0.000001, right.t - left.t), right.easing as KeyframeEasing | undefined);
+    const kind = valueKind ?? resolveValueKind(undefined, "", left.v, right.v);
+    if (kind === "color" && typeof left.v === "string" && typeof right.v === "string") {
+      return interpolateColor(left.v, right.v, progress);
+    }
+    if (kind === "angle" && typeof left.v === "number" && typeof right.v === "number") {
+      return interpolateAngle(left.v, right.v, progress);
+    }
+    if (kind === "vec2" && isVec2(left.v) && isVec2(right.v)) {
+      return interpolateVec2(left.v, right.v, progress);
+    }
     if (typeof left.v === "string" && typeof right.v === "string" && left.v.startsWith("#") && right.v.startsWith("#")) {
-      const progress = easingValue((time - left.t) / Math.max(0.000001, right.t - left.t), right.easing);
       return interpolateColor(left.v, right.v, progress);
     }
     if (typeof left.v !== "number" || typeof right.v !== "number") return time < right.t ? left.v : right.v;
-    const progress = easingValue((time - left.t) / Math.max(0.000001, right.t - left.t), right.easing);
     return left.v + (right.v - left.v) * progress;
   }
   return last.v;
 }
 
-export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fallback: unknown): unknown {
+export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fallback: unknown, propertyHint = ""): unknown {
   if (!track || track.keys.length === 0) return fallback;
   const keys = track.keys;
   const t0 = keys[0]!.t;
   const tLast = keys[keys.length - 1]!.t;
   const duration = tLast - t0;
+  const kind = resolveValueKind(track, propertyHint, keys[0]!.v, keys[keys.length - 1]!.v);
 
   const cycleMode = (behavior: RuntimeTrack["preBehavior"]): "repeat" | "pingpong" => {
     if (!behavior || behavior.type !== "cycle") return "repeat";
@@ -116,10 +139,10 @@ export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fal
         const count = Math.floor((t0 - time) / duration);
         const rem = (t0 - time) % duration;
         const wrapped = count % 2 === 0 ? t0 + rem : tLast - rem;
-        return sampleTrackValue(keys, wrapped);
+        return sampleTrackValue(keys, wrapped, kind);
       }
       const wrapped = tLast - ((t0 - time) % duration);
-      return sampleTrackValue(keys, wrapped);
+      return sampleTrackValue(keys, wrapped, kind);
     }
     if (pre === "continue" && keys.length >= 2 && typeof keys[0]!.v === "number" && typeof keys[1]!.v === "number") {
       const dt = Math.max(0.000001, keys[1]!.t - keys[0]!.t);
@@ -137,10 +160,10 @@ export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fal
         const count = Math.floor((time - tLast) / duration);
         const rem = (time - tLast) % duration;
         const wrapped = count % 2 === 0 ? tLast - rem : t0 + rem;
-        return sampleTrackValue(keys, wrapped);
+        return sampleTrackValue(keys, wrapped, kind);
       }
       const wrapped = t0 + ((time - tLast) % duration);
-      return sampleTrackValue(keys, wrapped);
+      return sampleTrackValue(keys, wrapped, kind);
     }
     if (post === "continue" && keys.length >= 2 && typeof keys[keys.length - 1]!.v === "number" && typeof keys[keys.length - 2]!.v === "number") {
       const k1 = keys[keys.length - 2]!;
@@ -152,7 +175,7 @@ export function evaluateTrack(track: RuntimeTrack | undefined, time: number, fal
     return keys[keys.length - 1]!.v;
   }
 
-  return sampleTrackValue(keys, time);
+  return sampleTrackValue(keys, time, kind);
 }
 
 export function sampleTrackCurve(track: RuntimeTrack, count = 100): Array<{ time: number; value: unknown }> {
@@ -194,6 +217,7 @@ export function evaluateProperty(
     index.get(`${node.id}::${property}`),
     time,
     fallback,
+    property,
   );
   const capability = motionPropertyCapability(node.type, property);
   if (typeof value !== "number" || !capability) return value;
@@ -270,7 +294,16 @@ export function evaluateNodeEffects(scene: RuntimeScene, node: RuntimeNode, time
   return (node.effects ?? []).map((effect) => evaluateEffect(scene, node, effect, time));
 }
 
-function numberProperty(scene: RuntimeScene, node: RuntimeNode, property: string, time: number, fallback: number): number {
+function numberProperty(
+  scene: RuntimeScene,
+  node: RuntimeNode,
+  property: string,
+  time: number,
+  fallback: number,
+  driven?: Map<string, number>,
+): number {
+  const drivenValue = driven?.get(`${node.id}::${property}`);
+  if (drivenValue !== undefined && Number.isFinite(drivenValue)) return drivenValue;
   const value = evaluateProperty(scene, node, property, time, fallback);
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
@@ -280,18 +313,24 @@ function booleanProperty(scene: RuntimeScene, node: RuntimeNode, property: strin
   return typeof value === "boolean" ? value : fallback;
 }
 
-export function evaluateTransform(scene: RuntimeScene, node: RuntimeNode, time: number): Transform2D {
+export function evaluateTransform(
+  scene: RuntimeScene,
+  node: RuntimeNode,
+  time: number,
+  driven?: Map<string, number>,
+): Transform2D {
   return {
-    x: numberProperty(scene, node, "transform.x", time, node.transform.x),
-    y: numberProperty(scene, node, "transform.y", time, node.transform.y),
-    width: numberProperty(scene, node, "transform.width", time, node.transform.width),
-    height: numberProperty(scene, node, "transform.height", time, node.transform.height),
-    rotation: numberProperty(scene, node, "transform.rotation", time, node.transform.rotation),
-    scaleX: numberProperty(scene, node, "transform.scaleX", time, node.transform.scaleX),
-    scaleY: numberProperty(scene, node, "transform.scaleY", time, node.transform.scaleY),
-    anchorX: numberProperty(scene, node, "transform.anchorX", time, node.transform.anchorX),
-    anchorY: numberProperty(scene, node, "transform.anchorY", time, node.transform.anchorY),
-    opacity: numberProperty(scene, node, "transform.opacity", time, node.transform.opacity),
+    x: numberProperty(scene, node, "transform.x", time, node.transform.x, driven),
+    y: numberProperty(scene, node, "transform.y", time, node.transform.y, driven),
+    depth: numberProperty(scene, node, "transform.depth", time, node.transform.depth ?? 0, driven),
+    width: numberProperty(scene, node, "transform.width", time, node.transform.width, driven),
+    height: numberProperty(scene, node, "transform.height", time, node.transform.height, driven),
+    rotation: numberProperty(scene, node, "transform.rotation", time, node.transform.rotation, driven),
+    scaleX: numberProperty(scene, node, "transform.scaleX", time, node.transform.scaleX, driven),
+    scaleY: numberProperty(scene, node, "transform.scaleY", time, node.transform.scaleY, driven),
+    anchorX: numberProperty(scene, node, "transform.anchorX", time, node.transform.anchorX, driven),
+    anchorY: numberProperty(scene, node, "transform.anchorY", time, node.transform.anchorY, driven),
+    opacity: numberProperty(scene, node, "transform.opacity", time, node.transform.opacity, driven),
     visible: booleanProperty(scene, node, "transform.visible", time, node.transform.visible),
     flipX: booleanProperty(scene, node, "transform.flipX", time, node.transform.flipX),
     flipY: booleanProperty(scene, node, "transform.flipY", time, node.transform.flipY),
@@ -335,6 +374,27 @@ function blendAngle(from: number, to: number, weight: number): number {
 
 export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[] {
   const byId = new Map(scene.nodes.map((node) => [node.id, node]));
+  const trackIndex = getTrackIndex(scene);
+  const readBaseAt = (sampleTime: number, nodeId: string, property: string): number => {
+    const node = byId.get(nodeId);
+    if (!node) return 0;
+    let fallback = 0;
+    if (property.startsWith("transform.")) {
+      const key = property.slice("transform.".length) as keyof typeof node.transform;
+      const raw = node.transform[key];
+      fallback = typeof raw === "number" ? raw : 0;
+    }
+    const value = evaluateTrack(trackIndex.get(`${nodeId}::${property}`), sampleTime, fallback, property);
+    return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  };
+  const driven =
+    scene.drivers && scene.drivers.length > 0
+      ? evaluateDriverGraph(scene.drivers, {
+          time,
+          readBase: (nodeId, property, atTime) => readBaseAt(atTime ?? time, nodeId, property),
+        })
+      : undefined;
+
   const secondaryRotations = new Map<string, number>();
   for (const node of scene.nodes) {
     for (const modifier of node.modifiers ?? []) {
@@ -347,7 +407,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
         damping: modifier.damping,
         lag: modifier.lag,
         amplitude: modifier.amplitude,
-      }, (sampleTime) => evaluateTransform(scene, driver, sampleTime).rotation);
+      }, (sampleTime) => evaluateTransform(scene, driver, sampleTime, driven).rotation);
       for (let index = 0; index < modifier.chainNodeIds.length; index += 1) {
         const chainNodeId = modifier.chainNodeIds[index]!;
         secondaryRotations.set(chainNodeId, (secondaryRotations.get(chainNodeId) ?? 0) + rotations[index]!);
@@ -363,7 +423,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     if (visiting.has(node.id)) throw new Error(`Runtime parent cycle: ${node.id}`);
     visiting.add(node.id);
 
-    let transform = evaluateTransform(scene, node, time);
+    let transform = evaluateTransform(scene, node, time, driven);
     const secondaryRotation = secondaryRotations.get(node.id);
     if (secondaryRotation !== undefined) transform = { ...transform, rotation: transform.rotation + secondaryRotation };
     let parentMatrix = IDENTITY_MATRIX;
@@ -477,8 +537,43 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     const strokeWidth = (node.type === "shape" || node.type === "path") && node.style?.stroke
       ? numberProperty(scene, node, "style.strokeWidth", time, node.style.strokeWidth ?? 1)
       : 0;
-    const worldBounds = transformBounds(worldMatrix, localNodeBounds(node, transform, strokeWidth, paintContours));
-    const result = { node, transform, worldMatrix, worldOpacity, visible, worldBounds };
+    const depth = transform.depth ?? 0;
+    let projectedOffset = { x: 0, y: 0 };
+    const layered = (scene.space ?? "flat-2d") === "layered-2.5d";
+    if (layered) {
+      const cameraNode = scene.activeCameraId ? byId.get(scene.activeCameraId) : undefined;
+      const cameraEvaluated = cameraNode?.type === "camera" ? (evaluated.get(cameraNode.id) ?? (cameraNode.id === node.id ? undefined : evaluate(cameraNode))) : undefined;
+      const cameraX = cameraEvaluated?.transform.x ?? (cameraNode?.type === "camera" ? numberProperty(scene, cameraNode, "transform.x", time, cameraNode.transform.x) : 0);
+      const cameraY = cameraEvaluated?.transform.y ?? (cameraNode?.type === "camera" ? numberProperty(scene, cameraNode, "transform.y", time, cameraNode.transform.y) : 0);
+      const strength =
+        cameraNode?.type === "camera"
+          ? numberProperty(scene, cameraNode, "payload.parallaxStrength", time, cameraNode.payload.parallaxStrength ?? 1)
+          : 1;
+      let factor = 1;
+      for (const modifier of node.modifiers ?? []) {
+        if (modifier.type === "parallax") factor = modifier.factor;
+      }
+      // Orthographic layered projection: screen shift ≈ (camera − origin) × depth × strength × factor
+      projectedOffset = {
+        x: -cameraX * depth * strength * factor * 0.01,
+        y: -cameraY * depth * strength * factor * 0.01,
+      };
+    }
+    const projectedMatrix =
+      projectedOffset.x !== 0 || projectedOffset.y !== 0
+        ? multiplyMatrix(translationMatrix(projectedOffset.x, projectedOffset.y), worldMatrix)
+        : worldMatrix;
+    const worldBounds = transformBounds(projectedMatrix, localNodeBounds(node, transform, strokeWidth, paintContours));
+    const result: EvaluatedNode = {
+      node,
+      transform,
+      worldMatrix: projectedMatrix,
+      worldOpacity,
+      visible,
+      worldBounds,
+      depth,
+      projectedOffset,
+    };
     evaluated.set(node.id, result);
     visiting.delete(node.id);
     return result;

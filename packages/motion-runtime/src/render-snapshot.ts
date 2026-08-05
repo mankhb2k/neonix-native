@@ -57,6 +57,8 @@ export type RenderSnapshotItem = {
   locked: boolean;
   renderOrder: number;
   payload: RenderItemPayload;
+  depth: number;
+  projectedOffset: { x: number; y: number };
 };
 
 export type RenderSnapshot = {
@@ -66,6 +68,11 @@ export type RenderSnapshot = {
   width: number;
   height: number;
   background?: string;
+  space: "flat-2d" | "layered-2.5d";
+  projection: {
+    kind: "orthographic";
+    cameraId?: string;
+  };
   items: RenderSnapshotItem[];
 };
 
@@ -199,6 +206,8 @@ export function buildRenderSnapshot(input: {
       locked: false,
       renderOrder: renderOrder++,
       payload: payloadForNode(item.node, item),
+      depth: item.depth,
+      projectedOffset: item.projectedOffset,
     });
   }
 
@@ -209,6 +218,11 @@ export function buildRenderSnapshot(input: {
     width: input.width,
     height: input.height,
     background: input.background,
+    space: input.scene.space ?? "flat-2d",
+    projection: {
+      kind: "orthographic",
+      ...(input.scene.activeCameraId ? { cameraId: input.scene.activeCameraId } : {}),
+    },
     items,
   };
 }

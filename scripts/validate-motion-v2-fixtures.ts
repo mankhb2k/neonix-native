@@ -746,6 +746,11 @@ async function validateNegativeFixtures(): Promise<number> {
       code: "invalid_enum_value",
     },
     {
+      file: "schema/invalid-cubic-easing.mvc.json",
+      path: "clips.0.source.tracks.0.keys.1.easing.x1",
+      code: "too_big",
+    },
+    {
       file: "p1-not-normative/emitter-node.json",
       path: "nodes.0.type",
       code: "invalid_union_discriminator",
@@ -821,7 +826,7 @@ async function writeAiCapabilityManifest(coverage: PrimitivesCoverage): Promise<
       .filter((primitive) => primitive.status === "implemented" || primitive.status === "partial")
       .map((primitive) => primitive.id),
   );
-  const nodeTypes = ["group", "bone", "text", "shape", "path", "image", "svg", "video", "camera", "component", "solid"] as const;
+  const nodeTypes = ["group", "bone", "text", "shape", "path", "image", "svg", "video", "camera", "component", "solid", "adjustment"] as const;
   const properties = nodeTypes.flatMap((nodeType) =>
     publicMotionPropertyCapabilities(nodeType).map((capability) => ({
       nodeType,
@@ -833,7 +838,7 @@ async function writeAiCapabilityManifest(coverage: PrimitivesCoverage): Promise<
     })),
   );
   const depthPublic = properties.some((entry) => entry.property === "transform.depth");
-  if (depthPublic) throw new Error("AI capability manifest must not expose transform.depth until R4");
+  if (!depthPublic) throw new Error("AI capability manifest must expose transform.depth after R4");
 
   const manifest = {
     version: 1,
@@ -919,7 +924,7 @@ async function validatePrimitivesCoverage(): Promise<number> {
         throw new Error(`primitives-coverage ${primitive.id} implemented notes must not contain TODO`);
       }
     }
-    const deferredR0 = new Set(["transform-depth", "parallax-modifier", "adjustment-node", "motion-blur"]);
+    const deferredR0 = new Set<string>();
     if (deferredR0.has(primitive.id)) {
       if (!isPlannedStatus(primitive.status)) {
         throw new Error(`primitives-coverage ${primitive.id} must remain planned until R4/R5`);
@@ -936,12 +941,12 @@ async function validatePrimitivesCoverage(): Promise<number> {
   }
 
   const depthCap = motionPropertyCapability("group", "transform.depth");
-  if (depthCap?.public || depthCap?.runtimeSupport === "evaluated") {
-    throw new Error("capabilities.ts must not advertise transform.depth as public/evaluated until R4");
+  if (!depthCap?.public || depthCap.runtimeSupport !== "evaluated") {
+    throw new Error("capabilities.ts must advertise transform.depth as public/evaluated after R4");
   }
   const adjustmentCaps = motionPropertyCapabilities("adjustment");
-  if (adjustmentCaps.some((capability) => !capability.property.startsWith("transform."))) {
-    throw new Error("capabilities.ts must not expose adjustment node payload vocabulary until R5");
+  if (!adjustmentCaps.some((capability) => capability.property === "payload.brightness")) {
+    throw new Error("capabilities.ts must expose adjustment node payload vocabulary after R5");
   }
   if (!isCompiledPreset("fade-in") || isCompiledPreset("fade-out") || isCompiledPreset("bounce-in")) {
     throw new Error("Compiled preset allowlist drifted from R0 contract");

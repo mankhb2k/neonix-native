@@ -167,6 +167,30 @@ export function buildBlankProjectCommands(input: {
   for (const design of sceneDesign.scenes) {
     const briefScene = plan.scenes.find((scene) => scene.id === design.sceneBriefId);
     if (!briefScene) continue;
+    const groupId = `group.${design.sceneBriefId}`;
+    if (design.nodes.length > 1) {
+      commands.push({
+        type: "addNode",
+        sceneId: design.sceneBriefId,
+        nodeId: groupId,
+        nodeType: "group",
+        transform: {
+          x: brief.aspectRatio === "16:9" ? 80 : 60,
+          y: brief.aspectRatio === "9:16" ? 220 : 120,
+          width: brief.aspectRatio === "16:9" ? 1760 : 960,
+          height: 800,
+          anchorX: 0,
+          anchorY: 0,
+        },
+      });
+      commands.push({
+        type: "setLayoutConstraint",
+        sceneId: design.sceneBriefId,
+        nodeId: groupId,
+        modifierId: `lay.${groupId}`,
+        constraint: { kind: "stack", direction: "vertical", gap: 24, padding: 16, align: "center" },
+      });
+    }
     for (const node of design.nodes) {
       const copy = briefScene.onScreenCopy[node.copyIndex ?? 0] ?? briefScene.onScreenCopy[0] ?? brief.objective;
       commands.push({
@@ -174,7 +198,9 @@ export function buildBlankProjectCommands(input: {
         sceneId: design.sceneBriefId,
         nodeId: node.id,
         nodeType: node.nodeHint === "shape" || node.nodeHint === "group" || node.nodeHint === "camera" ? "group" : "text",
+        parentId: design.nodes.length > 1 ? groupId : undefined,
         text: node.nodeHint === "text" ? copy : undefined,
+        fontSize: briefScene.role === "cta" ? 64 : 48,
         fill: brief.brand?.primaryColor ?? "#ffffff",
         semanticRole: briefScene.role,
         semanticKey: node.semanticKey,
@@ -182,7 +208,9 @@ export function buildBlankProjectCommands(input: {
           x: brief.aspectRatio === "16:9" ? 960 : 540,
           y: brief.aspectRatio === "9:16" ? 960 : 540,
           width: brief.aspectRatio === "16:9" ? 1400 : 900,
-          height: 180,
+          height: 160,
+          anchorX: 0.5,
+          anchorY: 0.5,
         },
       });
       commands.push({

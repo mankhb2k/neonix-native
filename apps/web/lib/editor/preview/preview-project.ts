@@ -1,3 +1,4 @@
+import { assertSnapshotContract } from "@motionvideo/pixi-renderer";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   buildRenderSnapshot,
@@ -38,7 +39,7 @@ export function buildPreviewSnapshot(
   const { width, height } = stageSizeForAspect(
     preview.project.metadata.aspectRatio,
   );
-  return buildRenderSnapshot({
+  const snapshot = buildRenderSnapshot({
     scene,
     time,
     frame,
@@ -46,4 +47,6 @@ export function buildPreviewSnapshot(
     height,
     background: "#0c0b0a",
   });
+  assertSnapshotContract(snapshot);
+  return snapshot;
 }

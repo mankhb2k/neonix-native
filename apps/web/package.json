@@ -25,6 +25,7 @@
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/pixi-renderer": "workspace:*",
     "@motionvideo/shared": "workspace:*",
     "@motionvideo/template-library": "workspace:*",
     "@motionvideo/remotion-renderer": "workspace:*",

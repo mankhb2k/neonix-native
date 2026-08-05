@@ -1,0 +1,70 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "fixture.recipe-wiggle",
+    "name": "Recipe wiggle",
+    "aspectRatio": "1:1",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Fixture", "primaryColor": "#111111" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": { "sceneOrder": ["scene.wiggle"], "audioTracks": [] },
+  "scenes": [
+    {
+      "id": "scene.wiggle",
+      "duration": 2,
+      "drivers": [
+        {
+          "id": "drv.box.wiggle",
+          "type": "noise",
+          "targetNodeId": "box",
+          "targetProperty": "transform.rotation",
+          "frequency": 3,
+          "amplitude": 8,
+          "seed": 7
+        },
+        {
+          "id": "drv.box.float",
+          "type": "oscillator",
+          "targetNodeId": "box",
+          "targetProperty": "transform.y",
+          "frequency": 0.6,
+          "amplitude": 20,
+          "phase": 0,
+          "waveform": "sine"
+        }
+      ],
+      "nodes": [
+        {
+          "id": "box",
+          "type": "shape",
+          "parentId": null,
+          "transform": {
+            "x": 540,
+            "y": 540,
+            "width": 120,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": { "shape": "rectangle" },
+          "style": { "fill": "#22c55e" }
+        }
+      ],
+      "clips": []
+    }
+  ],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

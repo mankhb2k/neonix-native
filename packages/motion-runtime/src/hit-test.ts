@@ -31,7 +31,8 @@ export function hitTestScene(scene: RuntimeScene, time: number, point: Point2D, 
       const source = byId.get(item.node.mask.sourceNodeId);
       if (!source) return false;
       const inside = containsPoint(source.worldBounds, point);
-      return item.node.mask.mode === "inverse-alpha" ? !inside : inside;
+      if (item.node.mask.mode === "inverse-alpha" || item.node.mask.mode === "inverse-luma") return !inside;
+      return inside;
     })
     .sort((left, right) => ((right.item.node.zIndex ?? 0) - (left.item.node.zIndex ?? 0)) || right.index - left.index)
     .map(({ item }) => item);

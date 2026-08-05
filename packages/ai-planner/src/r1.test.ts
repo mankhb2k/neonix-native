@@ -101,13 +101,87 @@ describe("ai-planner R1 commands", () => {
           aspectRatio: "1:1",
           brandName: "Brand",
         },
-        { type: "addDriver" },
+        { type: "addAudioCue" },
       ],
     });
     expect(result.ok).toBe(false);
     expect(result.project).toBeNull();
     expect(result.receipts.at(-1)?.diagnostics[0]?.code).toBe("unsupported_capability");
     expect(result.receipts.at(-1)?.diagnostics[0]?.repairHint).toBeTruthy();
+  });
+
+  it("applies setLayoutConstraint, setCamera, addMask, and cubic addTrack", () => {
+    const result = executeCommandBatch({
+      format: "moticlip-command-batch",
+      formatVersion: 1,
+      baseRevision: 0,
+      commands: [
+        {
+          type: "createProject",
+          projectId: "proj.r2",
+          name: "R2",
+          aspectRatio: "1:1",
+          brandName: "Brand",
+        },
+        { type: "addScene", sceneId: "scene.1", duration: 2 },
+        {
+          type: "addNode",
+          sceneId: "scene.1",
+          nodeId: "stack",
+          nodeType: "group",
+          transform: { x: 0, y: 0, width: 400, height: 400, anchorX: 0, anchorY: 0 },
+        },
+        {
+          type: "addNode",
+          sceneId: "scene.1",
+          nodeId: "child",
+          nodeType: "shape",
+          parentId: "stack",
+          transform: { x: 0, y: 0, width: 100, height: 100, anchorX: 0, anchorY: 0 },
+        },
+        {
+          type: "setLayoutConstraint",
+          sceneId: "scene.1",
+          nodeId: "stack",
+          modifierId: "lay",
+          constraint: { kind: "stack", direction: "vertical", gap: 8 },
+        },
+        {
+          type: "setCamera",
+          sceneId: "scene.1",
+          cameraId: "cam",
+          zoom: 1,
+          parallaxStrength: 1,
+          makeActive: true,
+        },
+        {
+          type: "addMask",
+          sceneId: "scene.1",
+          nodeId: "child",
+          sourceNodeId: "stack",
+          mode: "luma",
+        },
+        {
+          type: "addTrack",
+          sceneId: "scene.1",
+          clipId: "clip.x",
+          targetId: "child",
+          property: "transform.x",
+          duration: 1,
+          keys: [
+            { t: 0, v: 0 },
+            { t: 1, v: 50, easing: { type: "cubic-bezier", x1: 0.4, y1: 0, x2: 0.2, y2: 1 } },
+          ],
+        },
+        { type: "compileProject" },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    expect(result.project?.scenes[0]?.activeCameraId).toBe("cam");
+    expect(result.project?.scenes[0]?.space).toBe("layered-2.5d");
+    const child = result.project?.scenes[0]?.nodes.find((node) => node.id === "child");
+    expect(child?.mask?.mode).toBe("luma");
+    expect(result.compiled?.scenes[0]?.tracks.some((track) => track.property === "transform.x")).toBe(true);
   });
 });
 

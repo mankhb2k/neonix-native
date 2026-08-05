@@ -55,7 +55,7 @@ Legacy `PlanInput` (`brandName` / `industry` / `script`) still returns a filled 
 
 Implemented for blank-project: `createProject`, `setArtDirection`, `addScene`, `setSceneTiming`, `reorderScenes`, `addNode`, `removeNode`, `addTrack`, `validateProject`, `compileProject`, `applyRepairPatch`.
 
-Unsupported R1 stubs return `unsupported_capability` diagnostics (batch rolls back). No silent ignore.
+Unsupported stubs return `unsupported_capability` (`addComponentInstance`, `addAudioCue`). Recipes/drivers/contact-sheet/critic are implemented (R6–R7).
 
 ## Fixtures
 

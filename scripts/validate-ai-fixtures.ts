@@ -7,6 +7,7 @@ import {
   parseCreativePlanV1,
   parseSceneDesignPlanV1,
 } from "../packages/ai-planner/src/contracts/index.ts";
+import { runGenerationLoop } from "../packages/ai-planner/src/generation-loop.ts";
 
 const fixturesRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../docs/fixtures/ai");
 
@@ -47,7 +48,21 @@ async function main(): Promise<void> {
     console.log(`OK ai/negative/${file}`);
   }
 
-  console.log(`Validated ${positiveFiles.length} positive and ${negativeFiles.length} negative AI fixtures.`);
+  const kineticBrief = await readJson(resolve(positiveRoot, "kinetic-brief-hook-benefit-cta.json"));
+  const loop = runGenerationLoop({
+    brief: parseCreativeBriefV1(kineticBrief),
+    seed: "kinetic-pr3",
+    industry: "fnb",
+    maxRepairs: 3,
+  });
+  if (!loop.ok) throw new Error(`Kinetic generation loop failed: ${JSON.stringify(loop.critic.findings)}`);
+  if (loop.project.scenes.length < 3) throw new Error("Kinetic slice expects ≥3 scenes");
+  if (loop.contactSheet.frames.length < 1) throw new Error("Contact sheet empty");
+  console.log(
+    `OK ai/kinetic-pr3 scenes=${loop.project.scenes.length} score=${loop.critic.score} repairs=${loop.repairs} frames=${loop.contactSheet.frames.length}`,
+  );
+
+  console.log(`Validated ${positiveFiles.length} positive and ${negativeFiles.length} negative AI fixtures + kinetic PR-3.`);
 }
 
 main().catch((error: unknown) => {

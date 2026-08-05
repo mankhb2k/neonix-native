@@ -20,6 +20,10 @@ import {
   type Diagnostic,
 } from "./commands";
 import { planFromScratch, buildCreativePlanFromBrief, buildSceneDesignFromPlan, buildBlankProjectCommands } from "./from-scratch";
+export { critiqueProject, applyCriticRepair, type CriticReport, type CriticFinding } from "./critic";
+export { buildContactSheetPlan, type ContactSheetPlan, type ContactSheetFrame } from "./contact-sheet";
+export { runGenerationLoop, type GenerationLoopResult } from "./generation-loop";
+export { layoutRecipe, LAYOUT_RECIPES, type LayoutRecipeId } from "./commands/layout-recipes";
 
 export type PlanInput = {
   brandName: string;

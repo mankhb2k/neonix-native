@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ExtrapolationBehaviorSchema,
+  KeyframeEasingV2Schema,
   NodeV2Schema,
   TransformV2Schema,
   motionPropertyCapability,
@@ -24,20 +25,21 @@ const baseTransform = {
   flipY: false,
 };
 
-describe("motion-schema R0 contract truth", () => {
-  it("rejects unknown node types", () => {
-    expect(() =>
+describe("motion-schema R2–R5 contract", () => {
+  it("accepts adjustment nodes", () => {
+    expect(
       NodeV2Schema.parse({
-        id: "x",
+        id: "grade",
         type: "adjustment",
         parentId: null,
         transform: baseTransform,
-      }),
-    ).toThrow();
+        payload: { brightness: 0.1, contrast: 1.1, saturation: 1 },
+      }).type,
+    ).toBe("adjustment");
   });
 
-  it("does not accept transform.depth", () => {
-    expect(() => TransformV2Schema.parse({ ...baseTransform, depth: 1 })).toThrow();
+  it("accepts transform.depth", () => {
+    expect(TransformV2Schema.parse({ ...baseTransform, depth: 1.5 }).depth).toBe(1.5);
   });
 
   it("accepts cycle pingpong mode and rejects unknown modes", () => {
@@ -48,13 +50,23 @@ describe("motion-schema R0 contract truth", () => {
     expect(() => ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "bounce" })).toThrow();
   });
 
-  it("keeps transform.depth out of public AI vocabulary", () => {
-    expect(motionPropertyCapability("group", "transform.depth")).toBeUndefined();
-    expect(publicMotionPropertyCapabilities("text").some((entry) => entry.property === "transform.depth")).toBe(false);
+  it("exposes transform.depth in public AI vocabulary", () => {
+    expect(motionPropertyCapability("group", "transform.depth")?.public).toBe(true);
+    expect(publicMotionPropertyCapabilities("text").some((entry) => entry.property === "transform.depth")).toBe(true);
   });
 
-  it("does not expose adjustment payload vocabulary", () => {
-    expect(publicMotionPropertyCapabilities("adjustment").every((entry) => entry.property.startsWith("transform."))).toBe(true);
+  it("exposes adjustment payload vocabulary", () => {
+    expect(publicMotionPropertyCapabilities("adjustment").some((entry) => entry.property === "payload.brightness")).toBe(true);
+  });
+
+  it("accepts cubic-bezier and spring easing objects", () => {
+    expect(
+      KeyframeEasingV2Schema.parse({ type: "cubic-bezier", x1: 0.42, y1: 0, x2: 0.58, y2: 1 }),
+    ).toMatchObject({ type: "cubic-bezier" });
+    expect(KeyframeEasingV2Schema.parse({ type: "spring", stiffness: 180, damping: 12 })).toMatchObject({
+      type: "spring",
+    });
+    expect(() => KeyframeEasingV2Schema.parse({ type: "cubic-bezier", x1: 2, y1: 0, x2: 0, y2: 1 })).toThrow();
   });
 
   it("parses solid nodes", () => {

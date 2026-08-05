@@ -75,7 +75,7 @@ export type MotionPropertyCapability = {
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> = Object.freeze({
   "transform.x": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   "transform.y": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  // R4: transform.depth — not advertised until schema field + evaluator exist
+  "transform.depth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.parallaxFactor, max: MOTION_V2_LIMITS.parallaxFactor },
   "transform.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.rotation": { valueKind: "angle", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
@@ -132,9 +132,15 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
   },
   camera: {
     "payload.zoom": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", minExclusive: 0, max: MOTION_V2_LIMITS.transformScale },
+    "payload.parallaxStrength": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.parallaxFactor },
   },
   bone: {
     "payload.length": { valueKind: "number", animatable: false, bindable: true, public: false, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+  },
+  adjustment: {
+    "payload.brightness": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -1, max: 1 },
+    "payload.contrast": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 4 },
+    "payload.saturation": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 4 },
   },
 });
 

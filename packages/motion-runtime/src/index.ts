@@ -9,3 +9,5 @@ export * from "./render-plan";
 export * from "./procedural-driver";
 export * from "./motion-blur";
 export * from "./render-snapshot";
+export * from "./curve-sampler";
+export * from "./matte";

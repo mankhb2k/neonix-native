@@ -7,9 +7,11 @@ import {
   type MotionProject,
   type NormalizedMotionProjectV2,
 } from "@motionvideo/motion-schema";
+import { applyFitText, applyLayoutConstraints } from "./layout-solver";
 
 type RuntimeTrack = NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+type SceneMarker = { id: string; t: number };
 
 export type CompileOptions = {
   components?: MotionComponentV2[];
@@ -197,7 +199,24 @@ function expandPlaybackTrack(
   return { ...track, keys };
 }
 
-function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<string, unknown>, sceneDuration: number): RuntimeTrack[] {
+function resolveTrackTime(time: unknown, markers: Map<string, number>, clipId: string): number {
+  if (typeof time === "number" && Number.isFinite(time)) return time;
+  if (time && typeof time === "object" && "markerId" in time) {
+    const markerId = (time as { markerId: string; offset?: number }).markerId;
+    const offset = (time as { offset?: number }).offset ?? 0;
+    if (!markers.has(markerId)) throw new Error(`Unknown scene marker ${markerId} in clip ${clipId}`);
+    return markers.get(markerId)! + offset;
+  }
+  throw new Error(`Invalid keyframe time in clip ${clipId}: ${JSON.stringify(time)}`);
+}
+
+function compileClips(
+  nodes: RuntimeNode[],
+  clips: MotionClip[],
+  variables: Map<string, unknown>,
+  sceneDuration: number,
+  markers: Map<string, number> = new Map(),
+): RuntimeTrack[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const starts = scheduleTimes(clips, variables, sceneDuration);
   const expanded = clips.flatMap((clip) => {
@@ -206,9 +225,14 @@ function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<
       return clip.source.tracks.map((track) => expandPlaybackTrack({
         targetId: track.targetId,
         property: track.property,
+        ...(track.valueKind ? { valueKind: track.valueKind } : {}),
         ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
         ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
-        keys: track.keys.map((key) => ({ t: key.t, v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"], ...(key.easing ? { easing: key.easing } : {}) })),
+        keys: track.keys.map((key) => ({
+          t: resolveTrackTime(key.t, markers, clip.id),
+          v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"],
+          ...(key.easing ? { easing: key.easing } : {}),
+        })),
       }, clip, start, sceneDuration, variables));
     }
     if (clip.source.kind === "component-action") throw new Error(`Unexpanded Component Action clip: ${clip.id}`);
@@ -589,14 +613,20 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
       const expanded = expandComponents(scene.nodes, scene.clips, componentPackages, projectVariables, scene.duration);
       const variables = new Map([...projectVariables, ...expanded.variables]);
       const resolvedAuthoringNodes = expanded.nodes.map((node) => resolveValue(node, variables) as unknown as MotionNode);
-      const textExpanded = expandTextAnimators(resolvedAuthoringNodes);
+      const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
+      const fitted = applyFitText(laidOut);
+      const textExpanded = expandTextAnimators(fitted.nodes);
+      const markers = new Map<string, number>((scene.markers ?? []).map((marker: SceneMarker) => [marker.id, marker.t]));
       return {
         id: scene.id,
         duration: scene.duration,
+        ...(scene.space ? { space: scene.space } : {}),
+        ...(scene.motionBlur ? { motionBlur: scene.motionBlur } : {}),
+        ...(scene.drivers && scene.drivers.length > 0 ? { drivers: clone(scene.drivers) } : {}),
         ...(scene.activeCameraId ? { activeCameraId: scene.activeCameraId } : {}),
         ...(scene.transition ? { transition: scene.transition } : {}),
         nodes: textExpanded.nodes,
-        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables, scene.duration), ...textExpanded.tracks],
+        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables, scene.duration, markers), ...textExpanded.tracks],
       };
     });
   return NormalizedMotionProjectV2Schema.parse({
@@ -610,3 +640,14 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
 }
 
 export type CompiledProject = NormalizedMotionProjectV2;
+
+export { applyFitText, applyLayoutConstraints } from "./layout-solver";
+export {
+  bakeMotionRecipe,
+  isMotionRecipe,
+  MOTION_RECIPE_IDS,
+  type MotionRecipeId,
+  type RecipeBakeInput,
+  type BakedRecipe,
+} from "./recipe-registry";
+

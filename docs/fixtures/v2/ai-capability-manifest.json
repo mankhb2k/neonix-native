@@ -3,6 +3,7 @@
   "generatedFrom": "docs/fixtures/v2/primitives-coverage.json",
   "rule": "public AI surface ⊆ ledger rows with status implemented|partial and gated capabilities.ts",
   "ledgerPrimitiveIds": [
+    "adjustment-node",
     "ai-capability-registry",
     "artifact-identity",
     "asset-declaration",
@@ -46,12 +47,16 @@
     "integrity",
     "json-literal-value",
     "keyframe",
+    "layout",
     "literal-runtime-node",
     "literal-runtime-track",
     "mask-clip",
     "media-probe",
+    "motion-blur",
     "motion-path",
+    "motion-recipes",
     "offscreen-surface",
+    "parallax-modifier",
     "patch",
     "path-bend",
     "path-bend-modifier",
@@ -62,7 +67,9 @@
     "point-contour-segment",
     "preset-source",
     "preview",
+    "procedural-drivers",
     "product-acceptance-pack",
+    "professional-interpolation",
     "project-timeline",
     "prop-attachment",
     "property-path",
@@ -88,6 +95,7 @@
     "text-node",
     "time-stagger",
     "transform",
+    "transform-depth",
     "trim-path",
     "variable",
     "video-node",
@@ -126,6 +134,14 @@
     },
     {
       "nodeType": "group",
+      "property": "transform.depth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "group",
       "property": "transform.width",
       "valueKind": "number",
       "animatable": true,
@@ -230,6 +246,14 @@
     },
     {
       "nodeType": "bone",
+      "property": "transform.depth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "bone",
       "property": "transform.width",
       "valueKind": "number",
       "animatable": true,
@@ -327,6 +351,14 @@
     {
       "nodeType": "text",
       "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "text",
+      "property": "transform.depth",
       "valueKind": "number",
       "animatable": true,
       "bindable": true,
@@ -455,6 +487,14 @@
     {
       "nodeType": "shape",
       "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "shape",
+      "property": "transform.depth",
       "valueKind": "number",
       "animatable": true,
       "bindable": true,
@@ -622,6 +662,14 @@
     },
     {
       "nodeType": "path",
+      "property": "transform.depth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "path",
       "property": "transform.width",
       "valueKind": "number",
       "animatable": true,
@@ -774,6 +822,14 @@
     },
     {
       "nodeType": "image",
+      "property": "transform.depth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "image",
       "property": "transform.width",
       "valueKind": "number",
       "animatable": true,
@@ -879,6 +935,14 @@
     {
       "nodeType": "svg",
       "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "svg",
+      "property": "transform.depth",
       "valueKind": "number",
       "animatable": true,
       "bindable": true,
@@ -999,6 +1063,14 @@
     {
       "nodeType": "video",
       "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "video",
+      "property": "transform.depth",
       "valueKind": "number",
       "animatable": true,
       "bindable": true,
@@ -1134,6 +1206,14 @@
     },
     {
       "nodeType": "camera",
+      "property": "transform.depth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "camera",
       "property": "transform.width",
       "valueKind": "number",
       "animatable": true,
@@ -1229,6 +1309,14 @@
       "runtimeSupport": "evaluated"
     },
     {
+      "nodeType": "camera",
+      "property": "payload.parallaxStrength",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
       "nodeType": "component",
       "property": "transform.x",
       "valueKind": "number",
@@ -1239,6 +1327,14 @@
     {
       "nodeType": "component",
       "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "component",
+      "property": "transform.depth",
       "valueKind": "number",
       "animatable": true,
       "bindable": true,
@@ -1343,6 +1439,14 @@
     {
       "nodeType": "solid",
       "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "solid",
+      "property": "transform.depth",
       "valueKind": "number",
       "animatable": true,
       "bindable": true,
@@ -1456,6 +1560,142 @@
       "nodeType": "solid",
       "property": "payload.color",
       "valueKind": "color",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.x",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.y",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.depth",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.width",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.height",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.rotation",
+      "valueKind": "angle",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.scaleX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.scaleY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.anchorX",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.anchorY",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.opacity",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.visible",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.flipX",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "transform.flipY",
+      "valueKind": "boolean",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "payload.brightness",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "payload.contrast",
+      "valueKind": "number",
+      "animatable": true,
+      "bindable": true,
+      "runtimeSupport": "evaluated"
+    },
+    {
+      "nodeType": "adjustment",
+      "property": "payload.saturation",
+      "valueKind": "number",
       "animatable": true,
       "bindable": true,
       "runtimeSupport": "evaluated"

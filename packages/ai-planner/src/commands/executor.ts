@@ -1,7 +1,8 @@
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { bakeMotionRecipe, compileMotionProject, isMotionRecipe } from "@motionvideo/motion-compiler";
 import {
   applyMotionPatch,
   parseMotionProjectV2,
+  ProceduralDriverSchema,
   type MotionNode,
   type MotionProject,
   type NormalizedMotionProjectV2,
@@ -13,6 +14,8 @@ import {
   parseCommandBatch,
   type TransformPatch,
 } from "./types";
+import { critiqueProject, type CriticReport } from "../critic";
+import { buildContactSheetPlan } from "../contact-sheet";
 
 export type CommandBatchResult = {
   ok: boolean;
@@ -20,6 +23,8 @@ export type CommandBatchResult = {
   revision: number;
   receipts: CommandReceipt[];
   compiled?: NormalizedMotionProjectV2;
+  contactSheet?: ReturnType<typeof buildContactSheetPlan>;
+  critic?: CriticReport;
 };
 
 function cloneProject(project: MotionProject): MotionProject {
@@ -30,6 +35,7 @@ function defaultTransform(patch?: TransformPatch) {
   return {
     x: patch?.x ?? 540,
     y: patch?.y ?? 960,
+    ...(patch?.depth !== undefined ? { depth: patch.depth } : {}),
     width: patch?.width ?? 800,
     height: patch?.height ?? 160,
     rotation: patch?.rotation ?? 0,
@@ -80,7 +86,7 @@ function applyOne(
   project: MotionProject | null,
   command: AuthoringCommand,
   revision: number,
-): { project: MotionProject | null; receipt: CommandReceipt; compiled?: NormalizedMotionProjectV2 } {
+): { project: MotionProject | null; receipt: CommandReceipt; compiled?: NormalizedMotionProjectV2; contactSheet?: ReturnType<typeof buildContactSheetPlan>; critic?: CriticReport } {
   const changedIds: string[] = [];
   const diagnostics: CommandReceipt["diagnostics"] = [];
 
@@ -501,15 +507,466 @@ function applyOne(
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
-      case "setLayoutConstraint":
+      case "setLayoutConstraint": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "setLayoutConstraint", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        const node = scene.nodes.find((item) => item.id === command.nodeId);
+        if (!node) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+            },
+          };
+        }
+        const modifiers = [...(node.modifiers ?? [])].filter((modifier) => modifier.id !== command.modifierId);
+        modifiers.push({
+          id: command.modifierId,
+          type: "layout",
+          constraint: command.constraint,
+        });
+        node.modifiers = modifiers;
+        changedIds.push(command.nodeId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "addMask": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "addMask", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        const node = scene.nodes.find((item) => item.id === command.nodeId);
+        const source = scene.nodes.find((item) => item.id === command.sourceNodeId);
+        if (!node || !source) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic("unknown_node", `nodes.${command.nodeId}`, "addMask requires existing node and sourceNodeId", {
+                  repairHint: "Create both nodes before addMask",
+                }),
+              ],
+            },
+          };
+        }
+        node.mask = {
+          sourceNodeId: command.sourceNodeId,
+          mode: command.mode,
+          sourceVisibility: command.sourceVisibility ?? "mask-only",
+        };
+        changedIds.push(command.nodeId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "addEffect": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "addEffect", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        const node = scene.nodes.find((item) => item.id === command.nodeId);
+        if (!node) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+            },
+          };
+        }
+        const effects = [...(node.effects ?? [])];
+        if (effects.some((effect) => effect.id === command.effectId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("duplicate_id", `effects.${command.effectId}`, `Effect already exists: ${command.effectId}`)],
+            },
+          };
+        }
+        if (command.effect.type === "blur") {
+          effects.push({ id: command.effectId, type: "blur", radius: command.effect.radius });
+        } else if (command.effect.type === "glow") {
+          effects.push({
+            id: command.effectId,
+            type: "glow",
+            radius: command.effect.radius,
+            intensity: command.effect.intensity,
+            color: command.effect.color,
+            opacity: command.effect.opacity ?? 1,
+          });
+        } else {
+          effects.push({
+            id: command.effectId,
+            type: "color-adjust",
+            brightness: command.effect.brightness ?? 0,
+            contrast: command.effect.contrast ?? 1,
+            saturation: command.effect.saturation ?? 1,
+          });
+        }
+        node.effects = effects;
+        changedIds.push(command.nodeId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "setCamera": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "setCamera", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        let camera = scene.nodes.find((item) => item.id === command.cameraId);
+        if (!camera) {
+          camera = {
+            id: command.cameraId,
+            type: "camera",
+            parentId: null,
+            transform: defaultTransform(command.transform),
+            payload: {
+              zoom: command.zoom ?? 1,
+              projection: "orthographic",
+              ...(command.parallaxStrength !== undefined ? { parallaxStrength: command.parallaxStrength } : {}),
+            },
+          };
+          scene.nodes.push(camera);
+        } else if (camera.type !== "camera") {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("invalid_node_type", `nodes.${command.cameraId}`, `Node ${command.cameraId} is not a camera`)],
+            },
+          };
+        } else {
+          if (command.transform) {
+            camera.transform = {
+              ...camera.transform,
+              ...Object.fromEntries(
+                Object.entries(command.transform).filter(([, value]) => value !== undefined),
+              ),
+            };
+          }
+          if (command.zoom !== undefined) camera.payload.zoom = command.zoom;
+          if (command.parallaxStrength !== undefined) camera.payload.parallaxStrength = command.parallaxStrength;
+        }
+        if (command.makeActive !== false) {
+          scene.activeCameraId = command.cameraId;
+          if (!scene.space) scene.space = "layered-2.5d";
+        }
+        changedIds.push(command.cameraId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "addDriver": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "addDriver", "createProject must run first")],
+            },
+          };
+        }
+        const parsed = ProceduralDriverSchema.safeParse(command.driver);
+        if (!parsed.success) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic("invalid_driver", "addDriver", parsed.error.message, {
+                  repairHint: "Pass a closed ProceduralDriverSchema object",
+                }),
+              ],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        if (!scene.nodes.some((node) => node.id === parsed.data.targetNodeId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic("unknown_node", `drivers.${parsed.data.id}`, `Unknown targetNodeId: ${parsed.data.targetNodeId}`),
+              ],
+            },
+          };
+        }
+        const drivers = [...(scene.drivers ?? [])];
+        if (drivers.some((driver) => driver.id === parsed.data.id)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("duplicate_id", `drivers.${parsed.data.id}`, `Driver already exists: ${parsed.data.id}`)],
+            },
+          };
+        }
+        drivers.push(parsed.data);
+        scene.drivers = drivers;
+        changedIds.push(parsed.data.id);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "applyRecipe": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "applyRecipe", "createProject must run first")],
+            },
+          };
+        }
+        if (!isMotionRecipe(command.recipeId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic("unknown_recipe", "applyRecipe", `Unknown recipe: ${command.recipeId}`, {
+                  repairHint: "Use MOTION_RECIPE_IDS allowlist",
+                }),
+              ],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        const baked = bakeMotionRecipe({
+          recipeId: command.recipeId,
+          sceneId: command.sceneId,
+          targetNodeId: command.targetNodeId,
+          duration: command.duration,
+          seed: command.seed,
+          intensity: command.intensity,
+          sourceNodeId: command.sourceNodeId,
+          staggerNodeIds: command.staggerNodeIds,
+        });
+        const drivers = [...(scene.drivers ?? [])];
+        for (const driver of baked.drivers) {
+          const parsed = ProceduralDriverSchema.parse(driver);
+          if (drivers.some((item) => item.id === parsed.id)) {
+            return {
+              project,
+              receipt: {
+                revision,
+                changedIds: [],
+                diagnostics: [diagnostic("duplicate_id", `drivers.${parsed.id}`, `Driver already exists: ${parsed.id}`)],
+              },
+            };
+          }
+          drivers.push(parsed);
+          changedIds.push(parsed.id);
+        }
+        scene.drivers = drivers;
+        if (baked.tracks.length > 0) {
+          const clipId = command.clipId ?? `clip.recipe.${command.recipeId}.${command.targetNodeId}`;
+          scene.clips.push({
+            id: clipId,
+            schedule: { kind: "absolute", at: 0 },
+            duration: command.duration,
+            source: {
+              kind: "tracks",
+              tracks: baked.tracks.map((track) => ({
+                targetId: track.targetId,
+                property: track.property,
+                keys: track.keys.map((key) => ({
+                  t: key.t,
+                  v: key.v,
+                  ...(key.easing ? { easing: key.easing as "easeOut" | "linear" | "step" } : {}),
+                })),
+              })),
+            },
+          });
+          changedIds.push(clipId);
+        }
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "renderContactSheet": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "renderContactSheet", "createProject must run first")],
+            },
+          };
+        }
+        const sheet = buildContactSheetPlan(project, {
+          sceneId: command.sceneId,
+          times: command.times,
+          width: command.width,
+          height: command.height,
+        });
+        const critic = critiqueProject(project);
+        return {
+          project,
+          receipt: {
+            revision,
+            changedIds: [],
+            diagnostics: [
+              diagnostic("contact_sheet", "renderContactSheet", `Contact sheet ${sheet.frames.length} frames`, {
+                severity: "info",
+              }),
+            ],
+          },
+          contactSheet: sheet,
+          critic,
+        };
+      }
+      case "renderPreviewRange": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "renderPreviewRange", "createProject must run first")],
+            },
+          };
+        }
+        const fps = command.fps ?? 6;
+        const times: number[] = [];
+        for (let t = command.start; t <= command.end + 1e-9; t += 1 / fps) times.push(Number(t.toFixed(6)));
+        const sheet = buildContactSheetPlan(project, { sceneId: command.sceneId, times });
+        return {
+          project,
+          receipt: {
+            revision,
+            changedIds: [],
+            diagnostics: [
+              diagnostic("preview_range", "renderPreviewRange", `Preview range ${times.length} samples`, {
+                severity: "info",
+              }),
+            ],
+          },
+          contactSheet: sheet,
+        };
+      }
       case "addComponentInstance":
-      case "addDriver":
-      case "addMask":
-      case "addEffect":
-      case "setCamera":
       case "addAudioCue":
-      case "renderContactSheet":
-      case "renderPreviewRange":
         return {
           project,
           receipt: {
@@ -549,6 +1006,8 @@ export function executeCommandBatch(
   let revision = batch.baseRevision;
   const receipts: CommandReceipt[] = [];
   let compiled: NormalizedMotionProjectV2 | undefined;
+  let contactSheet: ReturnType<typeof buildContactSheetPlan> | undefined;
+  let critic: CriticReport | undefined;
 
   for (const command of batch.commands) {
     const result = applyOne(project, command, revision);
@@ -556,6 +1015,8 @@ export function executeCommandBatch(
     revision = result.receipt.revision;
     receipts.push(result.receipt);
     if (result.compiled) compiled = result.compiled;
+    if (result.contactSheet) contactSheet = result.contactSheet;
+    if (result.critic) critic = result.critic;
     if (result.receipt.diagnostics.some((item) => item.severity === "error")) {
       return {
         ok: false,
@@ -572,5 +1033,7 @@ export function executeCommandBatch(
     revision,
     receipts,
     ...(compiled ? { compiled } : {}),
+    ...(contactSheet ? { contactSheet } : {}),
+    ...(critic ? { critic } : {}),
   };
 }

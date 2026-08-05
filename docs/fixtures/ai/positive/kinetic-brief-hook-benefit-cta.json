@@ -1,0 +1,19 @@
+{
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Kinetic typography ad for morning coffee",
+  "durationSeconds": 12,
+  "aspectRatio": "9:16",
+  "script": "Wake up sharper.\nSave time every morning.\nOrder MotiClip Coffee now.",
+  "language": "vi",
+  "brand": {
+    "name": "MotiClip Coffee",
+    "primaryColor": "#f97316",
+    "secondaryColor": "#111827",
+    "fontFamily": "Be Vietnam Pro"
+  },
+  "constraints": {
+    "maxScenes": 3,
+    "mustIncludeCta": true
+  }
+}
