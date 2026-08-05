@@ -12,5 +12,6 @@ export * from "./render-snapshot";
 export * from "./paint-commands";
 export * from "./evaluated-frame";
 export * from "./capability-ledger";
+export * from "./camera-view";
 export * from "./curve-sampler";
 export * from "./matte";

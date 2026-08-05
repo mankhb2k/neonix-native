@@ -26,6 +26,7 @@ export const MODEL_ALLOWED_COMMAND_TYPES = [
   "renderPreviewRange",
   "addImageNode",
   "addSvgNode",
+  "addPathNode",
   "setNodePayload",
   "setSceneTransition",
 ] as const;
@@ -40,7 +41,6 @@ export const MODEL_BLOCKED_COMMAND_TYPES = [
   "addAudioCue",
   "addAudioTrack",
   "addVideoNode",
-  "addPathNode",
 ] as const;
 
 export function isModelAllowedCommand(type: string): type is ModelAllowedCommandType {
@@ -56,7 +56,7 @@ export function modelCapabilityPromptBlock(): string {
     "Forbidden (unsupported — never emit):",
     MODEL_BLOCKED_COMMAND_TYPES.join(", "),
     "Scene transitions: cut | fade | crossfade only (no push).",
-    "addNode nodeType: group | text | shape. Prefer addImageNode/addSvgNode for media.",
+    "addNode nodeType: group | text | shape. Prefer addImageNode/addSvgNode/addPathNode for media/paths.",
     "Do not emit MotionProject JSON blobs. Emit typed command batches only.",
   ].join("\n");
 }

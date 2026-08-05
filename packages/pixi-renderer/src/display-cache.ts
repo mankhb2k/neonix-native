@@ -6,7 +6,7 @@ import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runti
 
 export type CachedDisplayDesc = {
   key: string;
-  kind: "group" | "text" | "graphics" | "sprite" | "unsupported";
+  kind: "group" | "text" | "graphics" | "sprite" | "path" | "video" | "unsupported";
   x: number;
   y: number;
   rotation: number;
@@ -19,6 +19,7 @@ export type CachedDisplayDesc = {
   fill?: string;
   width?: number;
   height?: number;
+  stroke?: string;
 };
 
 export type DisplayCacheStats = {
@@ -118,6 +119,27 @@ export function syncPaintBufferToCache(
       upsert({
         key: cmd.key,
         kind: "sprite",
+        ...base,
+        width: cmd.width,
+        height: cmd.height,
+        label: cmd.uri ?? cmd.assetId,
+      });
+      continue;
+    }
+    if (cmd.op === "drawPath") {
+      upsert({
+        key: cmd.key,
+        kind: "path",
+        ...base,
+        fill: cmd.fill,
+        stroke: cmd.stroke,
+      });
+      continue;
+    }
+    if (cmd.op === "drawVideo") {
+      upsert({
+        key: cmd.key,
+        kind: "video",
         ...base,
         width: cmd.width,
         height: cmd.height,

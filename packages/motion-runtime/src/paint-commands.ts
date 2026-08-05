@@ -1,10 +1,16 @@
 /**
  * Shared paint command buffer — Pixi and worker consume the same ops.
- * Wave-1 subset: group, text, shape (rect/ellipse), image/solid.
+ * Wave-2: path, gradient fills, video placeholder, filters, blend.
  */
 
 import type { Matrix2D } from "./matrix";
-import type { RenderSnapshot, RenderSnapshotItem } from "./render-snapshot";
+import type { RuntimeEffect } from "./evaluator";
+import type { PathContour } from "./geometry";
+import type {
+  PaintFill,
+  RenderSnapshot,
+  RenderSnapshotItem,
+} from "./render-snapshot";
 
 export type RenderDiagnostic = {
   severity: "info" | "warning" | "error";
@@ -34,6 +40,7 @@ export type PaintCommand =
       alpha: number;
       visible: boolean;
       zIndex: number;
+      blendMode?: "normal" | "multiply" | "screen" | "add";
     }
   | {
       op: "drawText";
@@ -44,8 +51,10 @@ export type PaintCommand =
       fontWeight?: number;
       align?: "left" | "center" | "right";
       fill: string;
+      fillPaint?: PaintFill;
       width: number;
       height: number;
+      effects?: RuntimeEffect[];
     }
   | {
       op: "drawShape";
@@ -53,9 +62,11 @@ export type PaintCommand =
       nodeId: string;
       shape: "rectangle" | "ellipse" | "polygon";
       fill: string;
+      fillPaint?: PaintFill;
       width: number;
       height: number;
       cornerRadius?: number;
+      effects?: RuntimeEffect[];
     }
   | {
       op: "drawSolid";
@@ -64,6 +75,7 @@ export type PaintCommand =
       fill: string;
       width: number;
       height: number;
+      effects?: RuntimeEffect[];
     }
   | {
       op: "drawImage";
@@ -73,6 +85,32 @@ export type PaintCommand =
       uri?: string;
       width: number;
       height: number;
+      effects?: RuntimeEffect[];
+    }
+  | {
+      op: "drawPath";
+      key: string;
+      nodeId: string;
+      contours: PathContour[];
+      fillRule: "nonzero" | "evenodd";
+      fill?: string;
+      fillPaint?: PaintFill;
+      stroke?: string;
+      strokeWidth?: number;
+      fillOpacity?: number;
+      strokeOpacity?: number;
+      effects?: RuntimeEffect[];
+    }
+  | {
+      op: "drawVideo";
+      key: string;
+      nodeId: string;
+      assetId: string;
+      uri?: string;
+      width: number;
+      height: number;
+      mediaTime: number;
+      effects?: RuntimeEffect[];
     }
   | {
       op: "unsupported";
@@ -87,7 +125,15 @@ export type PaintCommandBuffer = {
   diagnostics: RenderDiagnostic[];
 };
 
-const WAVE1_KINDS = new Set(["group", "text", "shape", "solid", "image"]);
+const PAINT_KINDS = new Set([
+  "group",
+  "text",
+  "shape",
+  "solid",
+  "image",
+  "path",
+  "video",
+]);
 
 function emitItem(
   item: RenderSnapshotItem,
@@ -103,9 +149,11 @@ function emitItem(
     alpha: item.worldOpacity,
     visible: item.visible,
     zIndex: item.renderOrder,
+    ...(item.blendMode ? { blendMode: item.blendMode } : {}),
   });
 
   const payload = item.payload;
+  const effects = item.effects;
 
   if (payload.kind === "group") {
     commands.push({ op: "beginGroup", key: item.key, nodeId: item.nodeId });
@@ -123,8 +171,10 @@ function emitItem(
       fontWeight: payload.fontWeight,
       align: payload.align,
       fill: payload.fill ?? "#0f1419",
+      ...(payload.fillPaint ? { fillPaint: payload.fillPaint } : {}),
       width: item.worldBounds.width,
       height: item.worldBounds.height,
+      ...(effects?.length ? { effects } : {}),
     });
     return;
   }
@@ -136,9 +186,11 @@ function emitItem(
       nodeId: item.nodeId,
       shape: payload.shape,
       fill: payload.fill ?? "#1877F2",
+      ...(payload.fillPaint ? { fillPaint: payload.fillPaint } : {}),
       width: payload.width,
       height: payload.height,
       cornerRadius: payload.cornerRadius,
+      ...(effects?.length ? { effects } : {}),
     });
     return;
   }
@@ -151,6 +203,7 @@ function emitItem(
       fill: payload.fill ?? "#1a1916",
       width: payload.width,
       height: payload.height,
+      ...(effects?.length ? { effects } : {}),
     });
     return;
   }
@@ -173,6 +226,56 @@ function emitItem(
       uri: payload.uri,
       width: payload.width,
       height: payload.height,
+      ...(effects?.length ? { effects } : {}),
+    });
+    return;
+  }
+
+  if (payload.kind === "path") {
+    if (!payload.contours.length) {
+      diagnostics.push({
+        severity: "warning",
+        code: "path_empty",
+        message: `Path ${item.nodeId} has no contours`,
+        nodeId: item.nodeId,
+        key: item.key,
+      });
+    }
+    commands.push({
+      op: "drawPath",
+      key: item.key,
+      nodeId: item.nodeId,
+      contours: payload.contours,
+      fillRule: payload.fillRule,
+      fill: payload.fill,
+      ...(payload.fillPaint ? { fillPaint: payload.fillPaint } : {}),
+      stroke: payload.stroke,
+      strokeWidth: payload.strokeWidth,
+      fillOpacity: payload.fillOpacity,
+      strokeOpacity: payload.strokeOpacity,
+      ...(effects?.length ? { effects } : {}),
+    });
+    return;
+  }
+
+  if (payload.kind === "video") {
+    diagnostics.push({
+      severity: "info",
+      code: "video_preview_placeholder",
+      message: `Video ${item.nodeId} uses placeholder until frame decode is wired`,
+      nodeId: item.nodeId,
+      key: item.key,
+    });
+    commands.push({
+      op: "drawVideo",
+      key: item.key,
+      nodeId: item.nodeId,
+      assetId: payload.assetId,
+      uri: payload.uri,
+      width: payload.width,
+      height: payload.height,
+      mediaTime: payload.mediaTime,
+      ...(effects?.length ? { effects } : {}),
     });
     return;
   }
@@ -194,7 +297,7 @@ function emitItem(
 }
 
 /**
- * Convert interaction snapshot → ordered paint commands (wave-1 primitives).
+ * Convert interaction snapshot → ordered paint commands.
  * Unknown kinds emit diagnostics — never silently skipped.
  */
 export function buildPaintCommandBuffer(
@@ -218,11 +321,11 @@ export function buildPaintCommandBuffer(
   );
 
   for (const item of ordered) {
-    if (!WAVE1_KINDS.has(item.payload.kind) && item.payload.kind !== "unknown") {
+    if (!PAINT_KINDS.has(item.payload.kind) && item.payload.kind !== "unknown") {
       diagnostics.push({
         severity: "error",
-        code: "capability_not_in_wave1",
-        message: `Payload kind "${item.payload.kind}" not in wave-1 ledger`,
+        code: "capability_not_in_ledger",
+        message: `Payload kind "${item.payload.kind}" not in paint ledger`,
         nodeId: item.nodeId,
         key: item.key,
       });
@@ -239,7 +342,7 @@ export function buildPaintCommandBuffer(
       diagnostics.push({
         severity: "error",
         code: "unsupported_node_type",
-        message: `Node type "${item.nodeType}" has no wave-1 painter`,
+        message: `Node type "${item.nodeType}" has no painter`,
         nodeId: item.nodeId,
         key: item.key,
       });

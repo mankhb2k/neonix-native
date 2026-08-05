@@ -32,6 +32,7 @@ export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
 export type RuntimeTrack = RuntimeScene["tracks"][number];
 export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
+type PathNodeContours = Extract<RuntimeNode, { type: "path" }>["payload"]["contours"];
 
 export type EvaluatedNode = {
   node: RuntimeNode;
@@ -44,6 +45,10 @@ export type EvaluatedNode = {
   depth: number;
   /** Screen-space parallax offset applied after world matrix (R4). */
   projectedOffset: { x: number; y: number };
+  /** Path contours after morph/bend/trim (paint consumers). */
+  paintContours?: PathNodeContours;
+  /** Effects resolved at this timestamp (authoring order). */
+  effects?: RuntimeEffect[];
 };
 
 /** @deprecated Prefer sampleEasing from curve-sampler; kept for named-ease call sites. */
@@ -564,6 +569,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
         ? multiplyMatrix(translationMatrix(projectedOffset.x, projectedOffset.y), worldMatrix)
         : worldMatrix;
     const worldBounds = transformBounds(projectedMatrix, localNodeBounds(node, transform, strokeWidth, paintContours));
+    const effects = evaluateNodeEffects(scene, node, time);
     const result: EvaluatedNode = {
       node,
       transform,
@@ -573,6 +579,8 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       worldBounds,
       depth,
       projectedOffset,
+      ...(paintContours ? { paintContours } : {}),
+      ...(effects.length ? { effects } : {}),
     };
     evaluated.set(node.id, result);
     visiting.delete(node.id);

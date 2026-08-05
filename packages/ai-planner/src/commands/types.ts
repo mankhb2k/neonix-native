@@ -231,6 +231,16 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
         z.object({ type: z.literal("blur"), radius: Finite.nonnegative() }).strict(),
         z
           .object({
+            type: z.literal("shadow"),
+            offsetX: Finite,
+            offsetY: Finite,
+            blur: Finite.nonnegative(),
+            color: z.string().min(1),
+            opacity: Finite.min(0).max(1).optional(),
+          })
+          .strict(),
+        z
+          .object({
             type: z.literal("glow"),
             radius: Finite.nonnegative(),
             intensity: Finite.nonnegative(),
@@ -352,6 +362,52 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
         })
         .strict()
         .optional(),
+      semanticRole: z.string().min(1).max(64).optional(),
+      semanticKey: z.string().min(1).max(128).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("addPathNode"),
+      sceneId: Id,
+      nodeId: Id,
+      parentId: Id.nullable().optional(),
+      transform: TransformPatchSchema.optional(),
+      fillRule: z.enum(["nonzero", "evenodd"]).optional(),
+      fill: z.string().min(1).optional(),
+      stroke: z.string().min(1).optional(),
+      strokeWidth: Finite.nonnegative().optional(),
+      contours: z
+        .array(
+          z
+            .object({
+              id: Id,
+              start: z.object({ x: Finite, y: Finite }).strict(),
+              closed: z.boolean(),
+              segments: z
+                .array(
+                  z.discriminatedUnion("kind", [
+                    z
+                      .object({
+                        kind: z.literal("line"),
+                        to: z.object({ x: Finite, y: Finite }).strict(),
+                      })
+                      .strict(),
+                    z
+                      .object({
+                        kind: z.literal("cubic"),
+                        control1: z.object({ x: Finite, y: Finite }).strict(),
+                        control2: z.object({ x: Finite, y: Finite }).strict(),
+                        to: z.object({ x: Finite, y: Finite }).strict(),
+                      })
+                      .strict(),
+                  ]),
+                )
+                .min(1),
+            })
+            .strict(),
+        )
+        .min(1),
       semanticRole: z.string().min(1).max(64).optional(),
       semanticKey: z.string().min(1).max(128).optional(),
     })

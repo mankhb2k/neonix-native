@@ -1,5 +1,5 @@
 /**
- * Wave-1 capability ledger — only rows with pixi+worker (or planned) enter AI manifest.
+ * Capability ledger — wave-1 four primitives + wave-2 path/effects/video/camera.
  * Columns: schema | command | compiler | evaluator | pixi | worker | parity | editor
  */
 
@@ -15,8 +15,8 @@ export type CapabilityColumn =
 
 export type CapabilityStatus = "yes" | "partial" | "no" | "planned";
 
-/** Bump when wave-1 ledger columns change for AI prompts. */
-export const CAPABILITY_MANIFEST_VERSION = "wave1.1";
+/** Bump when ledger columns change for AI prompts. */
+export const CAPABILITY_MANIFEST_VERSION = "wave2.0";
 
 export type CapabilityRow = {
   id: string;
@@ -25,94 +25,160 @@ export type CapabilityRow = {
   notes?: string;
 };
 
+const yesPartial = {
+  schema: "yes",
+  command: "yes",
+  compiler: "yes",
+  evaluator: "yes",
+  pixi: "partial",
+  worker: "partial",
+  parity: "planned",
+  editor: "yes",
+} as const satisfies Record<CapabilityColumn, CapabilityStatus>;
+
 /** Four-primitive vertical slice + shared transform/keyframes. */
 export const WAVE1_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
-  {
-    id: "primitive.group",
-    label: "Group",
-    columns: {
-      schema: "yes",
-      command: "yes",
-      compiler: "yes",
-      evaluator: "yes",
-      pixi: "partial",
-      worker: "partial",
-      parity: "planned",
-      editor: "yes",
-    },
-  },
-  {
-    id: "primitive.text",
-    label: "Text",
-    columns: {
-      schema: "yes",
-      command: "yes",
-      compiler: "yes",
-      evaluator: "yes",
-      pixi: "partial",
-      worker: "partial",
-      parity: "planned",
-      editor: "yes",
-    },
-  },
+  { id: "primitive.group", label: "Group", columns: { ...yesPartial } },
+  { id: "primitive.text", label: "Text", columns: { ...yesPartial } },
   {
     id: "primitive.shape",
     label: "Shape (rect/ellipse)",
-    columns: {
-      schema: "yes",
-      command: "yes",
-      compiler: "yes",
-      evaluator: "yes",
-      pixi: "partial",
-      worker: "partial",
-      parity: "planned",
-      editor: "yes",
-    },
+    columns: { ...yesPartial },
   },
   {
     id: "primitive.image",
     label: "Image",
-    columns: {
-      schema: "yes",
-      command: "yes",
-      compiler: "yes",
-      evaluator: "yes",
-      pixi: "partial",
-      worker: "partial",
-      parity: "planned",
-      editor: "yes",
-    },
+    columns: { ...yesPartial },
     notes: "URI must resolve; missing URI → diagnostic placeholder",
   },
+  { id: "anim.transform", label: "Transform keyframes", columns: { ...yesPartial } },
+  { id: "anim.opacity", label: "Opacity keyframes", columns: { ...yesPartial } },
+] as const;
+
+/** Wave-2 coverage: path → gradient → svg → effects → video → camera. */
+export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
   {
-    id: "anim.transform",
-    label: "Transform keyframes",
+    id: "primitive.path",
+    label: "Path + stroke + trim",
     columns: {
       schema: "yes",
       command: "yes",
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
-      worker: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+    notes: "paintContours after morph/bend/trim; drawPath paint op",
+  },
+  {
+    id: "style.gradient",
+    label: "Linear/radial gradient fill",
+    columns: {
+      schema: "yes",
+      command: "partial",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+  },
+  {
+    id: "primitive.svg",
+    label: "SVG asset (as fitted image)",
+    columns: {
+      schema: "yes",
+      command: "yes",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "partial",
+      worker: "yes",
       parity: "planned",
       editor: "yes",
     },
   },
   {
-    id: "anim.opacity",
-    label: "Opacity keyframes",
+    id: "style.blend",
+    label: "Blend mode",
+    columns: {
+      schema: "yes",
+      command: "partial",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+  },
+  {
+    id: "effect.blur",
+    label: "Blur / shadow / glow / color-adjust",
     columns: {
       schema: "yes",
       command: "yes",
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
-      worker: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+    notes: "Pixi: blur + drop-shadow first; glow/color-adjust follow",
+  },
+  {
+    id: "primitive.video",
+    label: "Video texture",
+    columns: {
+      schema: "yes",
+      command: "no",
+      compiler: "yes",
+      evaluator: "partial",
+      pixi: "partial",
+      worker: "yes",
+      parity: "planned",
+      editor: "partial",
+    },
+    notes: "drawVideo placeholder until browser/worker frame decode shares paint",
+  },
+  {
+    id: "camera.orthographic",
+    label: "Camera zoom/pan/rotation view",
+    columns: {
+      schema: "yes",
+      command: "yes",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "partial",
+      worker: "yes",
       parity: "planned",
       editor: "yes",
+    },
+    notes: "View matrix baked into RenderSnapshot items",
+  },
+  {
+    id: "camera.parallax",
+    label: "Layered 2.5D parallax",
+    columns: {
+      schema: "yes",
+      command: "partial",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "partial",
+      worker: "partial",
+      parity: "planned",
+      editor: "partial",
     },
   },
 ] as const;
+
+export const CAPABILITY_LEDGER: readonly CapabilityRow[] = [
+  ...WAVE1_CAPABILITY_LEDGER,
+  ...WAVE2_CAPABILITY_LEDGER,
+];
 
 export function capabilityReadyForAi(row: CapabilityRow): boolean {
   const required: CapabilityColumn[] = [
@@ -127,16 +193,19 @@ export function capabilityReadyForAi(row: CapabilityRow): boolean {
 }
 
 export function listAiAllowlistCapabilities(): CapabilityRow[] {
-  return WAVE1_CAPABILITY_LEDGER.filter(capabilityReadyForAi);
+  return CAPABILITY_LEDGER.filter(capabilityReadyForAi);
 }
 
-/** Prompt fragment: wave-1 primitives even while pixi/worker are partial. */
+/** Prompt fragment for model generation. */
 export function wave1CapabilityPromptBlock(): string {
-  const ids = WAVE1_CAPABILITY_LEDGER.map((r) => r.id).join(", ");
+  const wave1 = WAVE1_CAPABILITY_LEDGER.map((r) => r.id).join(", ");
+  const wave2 = WAVE2_CAPABILITY_LEDGER.map((r) => r.id).join(", ");
   return [
     `Capability manifest ${CAPABILITY_MANIFEST_VERSION}`,
-    `Wave-1 vertical slice: ${ids}`,
-    "Prefer group, text, shape, image + transform/opacity keyframes only.",
-    "Do not invent path/video/mesh/shader capabilities outside the ledger.",
+    `Wave-1 vertical slice: ${wave1}`,
+    `Wave-2 (partial): ${wave2}`,
+    "Prefer group, text, shape, image, path + transform/opacity keyframes.",
+    "Path: stroke + trim-path ok. Camera via setCamera. Effects via addEffect (blur/glow/color-adjust/shadow).",
+    "Do not invent mesh/shader/3d capabilities outside the ledger.",
   ].join("\n");
 }

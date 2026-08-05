@@ -9,6 +9,7 @@ import {
   type EvaluatedFrame,
   type PaintCommand,
   type PaintCommandBuffer,
+  type RuntimeEffect,
 } from "@motionvideo/motion-runtime";
 import type {
   MotionProject,
@@ -17,7 +18,9 @@ import type {
 import {
   Application,
   Assets,
+  BlurFilter,
   Container,
+  FillGradient,
   Graphics,
   Sprite,
   Text,
@@ -60,6 +63,7 @@ function applyMatrix(
   alpha: number,
   visible: boolean,
   zIndex: number,
+  blendMode?: "normal" | "multiply" | "screen" | "add",
 ): void {
   display.position.set(matrix.e, matrix.f);
   display.rotation = Math.atan2(matrix.b, matrix.a);
@@ -70,6 +74,114 @@ function applyMatrix(
   display.alpha = alpha;
   display.visible = visible;
   display.zIndex = zIndex;
+  if (blendMode === "multiply") display.blendMode = "multiply";
+  else if (blendMode === "screen") display.blendMode = "screen";
+  else if (blendMode === "add") display.blendMode = "add";
+  else display.blendMode = "normal";
+}
+
+function paintFillStyle(
+  fill: string | undefined,
+  fillPaint:
+    | {
+        type: "solid" | "linear-gradient" | "radial-gradient";
+        color?: string;
+        angle?: number;
+        cx?: number;
+        cy?: number;
+        radius?: number;
+        stops?: Array<{ offset: number; color: string }>;
+      }
+    | undefined,
+  width: number,
+  height: number,
+): number | FillGradient {
+  if (fillPaint?.type === "linear-gradient" && fillPaint.stops?.length) {
+    const angle = ((fillPaint.angle ?? 0) * Math.PI) / 180;
+    const extent = Math.hypot(width, height) / 2;
+    const dx = Math.cos(angle) * extent;
+    const dy = Math.sin(angle) * extent;
+    const gradient = new FillGradient({
+      type: "linear",
+      start: { x: width / 2 - dx, y: height / 2 - dy },
+      end: { x: width / 2 + dx, y: height / 2 + dy },
+      colorStops: fillPaint.stops.map((s) => ({
+        offset: s.offset,
+        color: hexToNumber(s.color),
+      })),
+    });
+    return gradient;
+  }
+  if (fillPaint?.type === "radial-gradient" && fillPaint.stops?.length) {
+    const cx = (fillPaint.cx ?? 0.5) * width;
+    const cy = (fillPaint.cy ?? 0.5) * height;
+    const r = (fillPaint.radius ?? 0.5) * Math.min(width, height);
+    const gradient = new FillGradient({
+      type: "radial",
+      center: { x: cx, y: cy },
+      innerRadius: 0,
+      outerRadius: r,
+      colorStops: fillPaint.stops.map((s) => ({
+        offset: s.offset,
+        color: hexToNumber(s.color),
+      })),
+    });
+    return gradient;
+  }
+  return hexToNumber(fill ?? fillPaint?.color ?? "#ffffff");
+}
+
+function applyEffects(
+  display: Container | Text | Graphics | Sprite,
+  effects: RuntimeEffect[] | undefined,
+): void {
+  if (!effects?.length) {
+    display.filters = null;
+    return;
+  }
+  const filters = [];
+  for (const effect of effects) {
+    if (effect.type === "blur" && effect.radius > 0) {
+      filters.push(new BlurFilter({ strength: effect.radius }));
+    }
+  }
+  display.filters = filters.length ? filters : null;
+}
+
+function strokePathContours(
+  g: Graphics,
+  contours: Array<{
+    start: { x: number; y: number };
+    closed: boolean;
+    segments: Array<
+      | { kind: "line"; to: { x: number; y: number } }
+      | {
+          kind: "cubic";
+          control1: { x: number; y: number };
+          control2: { x: number; y: number };
+          to: { x: number; y: number };
+        }
+    >;
+  }>,
+): void {
+  for (const contour of contours) {
+    g.moveTo(contour.start.x, contour.start.y);
+    for (const segment of contour.segments) {
+      if (segment.kind === "line") {
+        g.lineTo(segment.to.x, segment.to.y);
+      } else {
+        g.bezierCurveTo(
+          segment.control1.x,
+          segment.control1.y,
+          segment.control2.x,
+          segment.control2.y,
+          segment.to.x,
+          segment.to.y,
+        );
+      }
+    }
+    if (contour.closed) g.closePath();
+  }
 }
 
 export function createPixiStageRenderer(): PixiStageRenderer {
@@ -146,6 +258,7 @@ export function createPixiStageRenderer(): PixiStageRenderer {
             pendingTransform.alpha,
             pendingTransform.visible,
             pendingTransform.zIndex,
+            pendingTransform.blendMode,
           );
           pendingTransform = null;
         }
@@ -180,15 +293,15 @@ export function createPixiStageRenderer(): PixiStageRenderer {
         text.style.fontSize = cmd.fontSize;
         text.style.fill = cmd.fill;
         if (xf) {
-          applyMatrix(text, xf.matrix, xf.alpha, xf.visible, xf.zIndex);
+          applyMatrix(text, xf.matrix, xf.alpha, xf.visible, xf.zIndex, xf.blendMode);
         }
+        applyEffects(text, cmd.effects);
         continue;
       }
 
       if (cmd.op === "drawShape" || cmd.op === "drawSolid") {
         const g = ensureObject(cmd.key, "graphics", () => new Graphics());
         g.clear();
-        const fill = cmd.fill;
         const w = cmd.width;
         const h = cmd.height;
         if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
@@ -198,18 +311,57 @@ export function createPixiStageRenderer(): PixiStageRenderer {
         } else {
           g.rect(0, 0, w, h);
         }
-        g.fill(hexToNumber(fill));
+        const fillStyle =
+          cmd.op === "drawShape"
+            ? paintFillStyle(cmd.fill, cmd.fillPaint, w, h)
+            : hexToNumber(cmd.fill);
+        g.fill(fillStyle);
         if (xf) {
-          applyMatrix(g, xf.matrix, xf.alpha, xf.visible, xf.zIndex);
+          applyMatrix(g, xf.matrix, xf.alpha, xf.visible, xf.zIndex, xf.blendMode);
         }
+        applyEffects(g, cmd.effects);
         continue;
       }
 
-      if (cmd.op === "drawImage") {
+      if (cmd.op === "drawPath") {
+        const g = ensureObject(cmd.key, "path", () => new Graphics());
+        g.clear();
+        strokePathContours(g, cmd.contours);
+        if (cmd.fill || cmd.fillPaint) {
+          const boundsW = Math.max(1, ...(cmd.contours.flatMap((c) => [
+            c.start.x,
+            ...c.segments.map((s) => s.to.x),
+          ])));
+          const boundsH = Math.max(1, ...(cmd.contours.flatMap((c) => [
+            c.start.y,
+            ...c.segments.map((s) => s.to.y),
+          ])));
+          const style = paintFillStyle(cmd.fill, cmd.fillPaint, boundsW, boundsH);
+          if (typeof style === "number") {
+            g.fill({ color: style, alpha: cmd.fillOpacity ?? 1 });
+          } else {
+            g.fill({ fill: style, alpha: cmd.fillOpacity ?? 1 });
+          }
+        }
+        if (cmd.stroke) {
+          g.stroke({
+            color: hexToNumber(cmd.stroke),
+            width: cmd.strokeWidth ?? 1,
+            alpha: cmd.strokeOpacity ?? 1,
+          });
+        }
+        if (xf) {
+          applyMatrix(g, xf.matrix, xf.alpha, xf.visible, xf.zIndex, xf.blendMode);
+        }
+        applyEffects(g, cmd.effects);
+        continue;
+      }
+
+      if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
         let texture = Texture.WHITE;
         if (cmd.uri && textureCache.has(cmd.uri)) {
           texture = textureCache.get(cmd.uri)!;
-        } else if (cmd.uri) {
+        } else if (cmd.uri && cmd.op === "drawImage") {
           void Assets.load(cmd.uri)
             .then((loaded) => {
               textureCache.set(cmd.uri!, loaded as Texture);
@@ -221,13 +373,18 @@ export function createPixiStageRenderer(): PixiStageRenderer {
               /* placeholder WHITE */
             });
         }
-        const sprite = ensureObject(cmd.key, "sprite", () => new Sprite(texture));
+        const sprite = ensureObject(
+          cmd.key,
+          cmd.op === "drawVideo" ? "video" : "sprite",
+          () => new Sprite(texture),
+        );
         sprite.texture = texture;
         sprite.width = cmd.width;
         sprite.height = cmd.height;
         if (xf) {
-          applyMatrix(sprite, xf.matrix, xf.alpha, xf.visible, xf.zIndex);
+          applyMatrix(sprite, xf.matrix, xf.alpha, xf.visible, xf.zIndex, xf.blendMode);
         }
+        applyEffects(sprite, cmd.effects);
       }
     }
 

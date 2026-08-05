@@ -1,8 +1,27 @@
-import { applyMatrix, type Matrix2D } from "./matrix";
-import { evaluateScene, type EvaluatedNode, type RuntimeNode, type RuntimeScene } from "./evaluator";
-import { containsPoint, invertMatrix, type Bounds2D, type Point2D } from "./spatial";
+import { applyMatrix, multiplyMatrix, type Matrix2D } from "./matrix";
+import {
+  evaluateScene,
+  type EvaluatedNode,
+  type RuntimeEffect,
+  type RuntimeNode,
+  type RuntimeScene,
+} from "./evaluator";
+import { cameraViewMatrix } from "./camera-view";
+import type { PathContour } from "./geometry";
+import { containsPoint, invertMatrix, transformBounds, type Bounds2D, type Point2D } from "./spatial";
 
 export type RenderItemKey = string;
+
+export type PaintFillSolid = { type: "solid"; color: string };
+export type PaintFillGradient = {
+  type: "linear-gradient" | "radial-gradient";
+  angle?: number;
+  cx?: number;
+  cy?: number;
+  radius?: number;
+  stops: Array<{ offset: number; color: string }>;
+};
+export type PaintFill = PaintFillSolid | PaintFillGradient;
 
 export type RenderItemPayload =
   | {
@@ -12,11 +31,13 @@ export type RenderItemPayload =
       fontWeight?: number;
       align?: "left" | "center" | "right";
       fill?: string;
+      fillPaint?: PaintFill;
     }
   | {
       kind: "shape";
       shape: "rectangle" | "ellipse" | "polygon";
       fill?: string;
+      fillPaint?: PaintFill;
       cornerRadius?: number;
       width: number;
       height: number;
@@ -33,6 +54,25 @@ export type RenderItemPayload =
       uri?: string;
       width: number;
       height: number;
+    }
+  | {
+      kind: "path";
+      contours: PathContour[];
+      fillRule: "nonzero" | "evenodd";
+      fill?: string;
+      fillPaint?: PaintFill;
+      stroke?: string;
+      strokeWidth?: number;
+      fillOpacity?: number;
+      strokeOpacity?: number;
+    }
+  | {
+      kind: "video";
+      assetId: string;
+      uri?: string;
+      width: number;
+      height: number;
+      mediaTime: number;
     }
   | {
       kind: "group";
@@ -60,6 +100,8 @@ export type RenderSnapshotItem = {
   payload: RenderItemPayload;
   depth: number;
   projectedOffset: { x: number; y: number };
+  blendMode?: "normal" | "multiply" | "screen" | "add";
+  effects?: RuntimeEffect[];
 };
 
 export type RenderSnapshot = {
@@ -74,26 +116,67 @@ export type RenderSnapshot = {
     kind: "orthographic";
     cameraId?: string;
   };
+  /** View matrix applied to items (identity when no active camera). */
+  cameraMatrix: Matrix2D;
   items: RenderSnapshotItem[];
 };
 
-function resolveFill(style: { fill?: unknown } | undefined): string | undefined {
-  if (!style?.fill) return undefined;
-  if (typeof style.fill === "string") return style.fill;
+function resolvePaintFill(style: { fill?: unknown } | undefined): {
+  fill?: string;
+  fillPaint?: PaintFill;
+} {
+  if (!style?.fill) return {};
+  if (typeof style.fill === "string") {
+    return { fill: style.fill, fillPaint: { type: "solid", color: style.fill } };
+  }
   if (
     typeof style.fill === "object" &&
     style.fill !== null &&
+    "type" in style.fill &&
     "stops" in style.fill &&
-    Array.isArray((style.fill as { stops: Array<{ color: string }> }).stops)
+    Array.isArray((style.fill as { stops: unknown }).stops)
   ) {
-    return (style.fill as { stops: Array<{ color: string }> }).stops[0]?.color;
+    const g = style.fill as {
+      type: "linear-gradient" | "radial-gradient";
+      angle?: number;
+      cx?: number;
+      cy?: number;
+      radius?: number;
+      stops: Array<{ offset: number; color: string }>;
+    };
+    const first = g.stops[0]?.color;
+    return {
+      ...(first ? { fill: first } : {}),
+      fillPaint: {
+        type: g.type,
+        ...(g.angle != null ? { angle: g.angle } : {}),
+        ...(g.cx != null ? { cx: g.cx } : {}),
+        ...(g.cy != null ? { cy: g.cy } : {}),
+        ...(g.radius != null ? { radius: g.radius } : {}),
+        stops: g.stops,
+      },
+    };
   }
-  return undefined;
+  return {};
 }
 
-function nodeStyle(node: RuntimeNode): { fill?: unknown } | undefined {
+function nodeStyle(node: RuntimeNode): {
+  fill?: unknown;
+  stroke?: unknown;
+  strokeWidth?: number;
+  fillOpacity?: number;
+  strokeOpacity?: number;
+} | undefined {
   if ("style" in node) {
-    return (node as { style?: { fill?: unknown } }).style;
+    return (node as { style?: Record<string, unknown> }).style as
+      | {
+          fill?: unknown;
+          stroke?: unknown;
+          strokeWidth?: number;
+          fillOpacity?: number;
+          strokeOpacity?: number;
+        }
+      | undefined;
   }
   return undefined;
 }
@@ -102,9 +185,11 @@ function payloadForNode(
   node: RuntimeNode,
   evaluated: EvaluatedNode,
   assetUriById?: Map<string, string> | Record<string, string>,
+  sceneTime = 0,
 ): RenderItemPayload {
   const { width, height } = evaluated.transform;
   const style = nodeStyle(node);
+  const paint = resolvePaintFill(style);
   switch (node.type) {
     case "text": {
       const textNode = node as RuntimeNode & {
@@ -121,7 +206,8 @@ function payloadForNode(
         fontSize: textNode.payload.fontSize,
         fontWeight: textNode.payload.fontWeight,
         align: textNode.payload.align,
-        fill: resolveFill(style) ?? "#ebe6dc",
+        fill: paint.fill ?? "#ebe6dc",
+        ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
       };
     }
     case "shape": {
@@ -134,7 +220,8 @@ function payloadForNode(
       return {
         kind: "shape",
         shape: shapeNode.payload.shape,
-        fill: resolveFill(style) ?? "#c4843a",
+        fill: paint.fill ?? "#c4843a",
+        ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
         cornerRadius: shapeNode.payload.cornerRadius,
         width,
         height,
@@ -146,7 +233,7 @@ function payloadForNode(
       };
       return {
         kind: "solid",
-        fill: resolveFill(style) ?? solidNode.payload.color ?? "#1a1916",
+        fill: paint.fill ?? solidNode.payload.color ?? "#1a1916",
         width,
         height,
       };
@@ -183,6 +270,37 @@ function payloadForNode(
         height,
       };
     }
+    case "path": {
+      const pathNode = node as Extract<RuntimeNode, { type: "path" }>;
+      const contours = evaluated.paintContours ?? pathNode.payload.contours;
+      return {
+        kind: "path",
+        contours,
+        fillRule: pathNode.payload.fillRule ?? "nonzero",
+        fill: paint.fill,
+        ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
+        ...(typeof style?.stroke === "string" ? { stroke: style.stroke } : {}),
+        ...(style?.strokeWidth != null ? { strokeWidth: style.strokeWidth } : {}),
+        ...(style?.fillOpacity != null ? { fillOpacity: style.fillOpacity } : {}),
+        ...(style?.strokeOpacity != null ? { strokeOpacity: style.strokeOpacity } : {}),
+      };
+    }
+    case "video": {
+      const videoNode = node as Extract<RuntimeNode, { type: "video" }>;
+      const uri =
+        assetUriById instanceof Map
+          ? assetUriById.get(videoNode.payload.assetId)
+          : assetUriById?.[videoNode.payload.assetId];
+      const trimStart = videoNode.payload.trimStart ?? 0;
+      return {
+        kind: "video",
+        assetId: videoNode.payload.assetId,
+        ...(uri ? { uri } : {}),
+        width,
+        height,
+        mediaTime: trimStart + sceneTime,
+      };
+    }
     case "group":
       return { kind: "group", width, height };
     default:
@@ -191,12 +309,50 @@ function payloadForNode(
 }
 
 function isDrawable(type: string): boolean {
-  return type === "text" || type === "shape" || type === "solid" || type === "image" || type === "svg" || type === "group";
+  return (
+    type === "text" ||
+    type === "shape" ||
+    type === "solid" ||
+    type === "image" ||
+    type === "svg" ||
+    type === "group" ||
+    type === "path" ||
+    type === "video"
+  );
+}
+
+function resolveCameraMatrix(
+  scene: RuntimeScene,
+  evaluated: EvaluatedNode[],
+  width: number,
+  height: number,
+): Matrix2D {
+  const cameraId = scene.activeCameraId;
+  if (!cameraId) {
+    return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  }
+  const cam = evaluated.find((item) => item.node.id === cameraId && item.node.type === "camera");
+  if (!cam || cam.node.type !== "camera") {
+    return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+  }
+  const zoom =
+    typeof cam.node.payload.zoom === "number" ? cam.node.payload.zoom : 1;
+  return cameraViewMatrix(
+    {
+      x: cam.transform.x,
+      y: cam.transform.y,
+      rotation: cam.transform.rotation,
+      zoom,
+    },
+    width,
+    height,
+  );
 }
 
 /**
  * Build a frame-local RenderSnapshot from an evaluated scene.
  * Groups are included for hierarchy/hit-test; painters may skip empty groups.
+ * Active camera view is baked into item world matrices (worker parity).
  */
 export function buildRenderSnapshot(input: {
   scene: RuntimeScene;
@@ -205,10 +361,16 @@ export function buildRenderSnapshot(input: {
   width: number;
   height: number;
   background?: string;
-  /** Optional asset uri lookup for painters (image/svg). */
+  /** Optional asset uri lookup for painters (image/svg/video). */
   assetUriById?: Map<string, string> | Record<string, string>;
 }): RenderSnapshot {
   const evaluated = evaluateScene(input.scene, input.time);
+  const cameraMatrix = resolveCameraMatrix(
+    input.scene,
+    evaluated,
+    input.width,
+    input.height,
+  );
   const ordered = [...evaluated].sort((a, b) => {
     const zA = a.node.zIndex ?? 0;
     const zB = b.node.zIndex ?? 0;
@@ -220,22 +382,26 @@ export function buildRenderSnapshot(input: {
   let renderOrder = 0;
   for (const item of ordered) {
     if (!isDrawable(item.node.type)) continue;
+    const worldMatrix = multiplyMatrix(cameraMatrix, item.worldMatrix);
+    const worldBounds = transformBounds(cameraMatrix, item.worldBounds);
     items.push({
       key: `${input.scene.id}:${item.node.id}`,
       sceneId: input.scene.id,
       nodeId: item.node.id,
       parentNodeId: item.node.parentId ?? undefined,
       nodeType: item.node.type,
-      worldMatrix: item.worldMatrix,
-      worldBounds: item.worldBounds,
+      worldMatrix,
+      worldBounds,
       worldOpacity: item.worldOpacity,
       visible: item.visible,
       selectable: item.visible && item.worldOpacity > 0.01,
       locked: false,
       renderOrder: renderOrder++,
-      payload: payloadForNode(item.node, item, input.assetUriById),
+      payload: payloadForNode(item.node, item, input.assetUriById, input.time),
       depth: item.depth,
       projectedOffset: item.projectedOffset,
+      ...(item.node.blendMode ? { blendMode: item.node.blendMode } : {}),
+      ...(item.effects?.length ? { effects: item.effects } : {}),
     });
   }
 
@@ -251,6 +417,7 @@ export function buildRenderSnapshot(input: {
       kind: "orthographic",
       ...(input.scene.activeCameraId ? { cameraId: input.scene.activeCameraId } : {}),
     },
+    cameraMatrix,
     items,
   };
 }
@@ -265,13 +432,19 @@ export function worldOrigin(matrix: Matrix2D): { x: number; y: number } {
 
 function itemLocalHit(item: RenderSnapshotItem, point: Point2D): boolean {
   if (!item.visible || !item.selectable || item.locked) return false;
-  if (item.payload.kind === "group" || item.payload.kind === "unknown") {
+  if (
+    item.payload.kind === "group" ||
+    item.payload.kind === "unknown"
+  ) {
     return false;
   }
   if (!containsPoint(item.worldBounds, point)) return false;
   const inverse = invertMatrix(item.worldMatrix);
   if (!inverse) return false;
   const local = applyMatrix(inverse, point.x, point.y);
+  if (item.payload.kind === "path") {
+    return containsPoint(item.worldBounds, point);
+  }
   const width =
     item.payload.kind === "text"
       ? item.worldBounds.width

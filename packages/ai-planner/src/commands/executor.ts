@@ -667,6 +667,16 @@ function applyOne(
         }
         if (command.effect.type === "blur") {
           effects.push({ id: command.effectId, type: "blur", radius: command.effect.radius });
+        } else if (command.effect.type === "shadow") {
+          effects.push({
+            id: command.effectId,
+            type: "shadow",
+            offsetX: command.effect.offsetX,
+            offsetY: command.effect.offsetY,
+            blur: command.effect.blur,
+            color: command.effect.color,
+            opacity: command.effect.opacity ?? 1,
+          });
         } else if (command.effect.type === "glow") {
           effects.push({
             id: command.effectId,
@@ -1092,6 +1102,85 @@ function applyOne(
             ...(command.fit ? { fit: command.fit } : {}),
             ...(command.crop ? { crop: command.crop } : {}),
           },
+          ...(semantic ? { semantic } : {}),
+        };
+        scene.nodes.push(node);
+        changedIds.push(command.nodeId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "addPathNode": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "addPathNode", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        if (scene.nodes.some((node) => node.id === command.nodeId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("duplicate_id", `nodes.${command.nodeId}`, `Node already exists: ${command.nodeId}`)],
+            },
+          };
+        }
+        const parentId = command.parentId === undefined ? null : command.parentId;
+        if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_parent", `nodes.${command.nodeId}.parentId`, `Unknown parent: ${parentId}`)],
+            },
+          };
+        }
+        const semantic =
+          command.semanticRole || command.semanticKey
+            ? {
+                role: command.semanticRole ?? "content",
+                ...(command.semanticKey ? { key: command.semanticKey } : {}),
+                tags: [] as string[],
+              }
+            : undefined;
+        const style =
+          command.fill || command.stroke || command.strokeWidth != null
+            ? {
+                ...(command.fill ? { fill: command.fill } : {}),
+                ...(command.stroke ? { stroke: command.stroke } : {}),
+                ...(command.strokeWidth != null ? { strokeWidth: command.strokeWidth } : {}),
+              }
+            : undefined;
+        const node: MotionNode = {
+          id: command.nodeId,
+          type: "path",
+          parentId,
+          transform: defaultTransform(command.transform),
+          payload: {
+            contours: command.contours,
+            fillRule: command.fillRule ?? "nonzero",
+          },
+          ...(style ? { style } : {}),
           ...(semantic ? { semantic } : {}),
         };
         scene.nodes.push(node);
