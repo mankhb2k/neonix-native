@@ -181,6 +181,15 @@ function nodeFromDraft(
   };
 }
 
+/** Public: build a single MotionNode from a library FrameDraft. */
+export function createNodeFromFrameDraft(
+  draft: FrameDraft,
+  nodeId: string,
+  composition: CompositionSize = DEFAULT_COMPOSITION,
+): MotionNode {
+  return nodeFromDraft(draft, nodeId, composition);
+}
+
 /** Chuyển đổi FrameDraft từ thư viện thành một MotionScene hoàn chỉnh */
 export function sceneFromFrameDraft(
   draft: FrameDraft,

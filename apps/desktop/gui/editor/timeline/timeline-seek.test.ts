@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  clientXToTimelineTime,
   ensurePlayheadScrubScroll,
+  resolvePlayheadScrubMax,
   scrollTracksHorizontallyNearEdge,
 } from "./timeline-seek";
 
@@ -89,5 +91,28 @@ describe("playhead scrub horizontal auto-scroll", () => {
     expect(edge.scrolledBy).toBeGreaterThan(0);
     expect(edge.time).toBeGreaterThan(before.time);
     expect(edge.time).toBeLessThanOrEqual(30);
+  });
+});
+
+describe("resolvePlayheadScrubMax", () => {
+  it("prefers the tighter of surface max and clock duration", () => {
+    expect(resolvePlayheadScrubMax(20, 12)).toBe(12);
+    expect(resolvePlayheadScrubMax(6, 30)).toBe(6);
+    expect(resolvePlayheadScrubMax(6, 0)).toBe(6);
+  });
+});
+
+describe("clientXToTimelineTime layer window", () => {
+  it("clamps into [minTime, maxTime]", () => {
+    const el = stubScrollEl({
+      left: 0,
+      width: 400,
+      scrollWidth: 2000,
+      clientWidth: 400,
+    });
+    // Far left → floor at container start (2s @ 100pps = 200px).
+    expect(clientXToTimelineTime(-50, el, 100, 6, 2)).toBe(2);
+    // Far right → ceiling at container end.
+    expect(clientXToTimelineTime(900, el, 100, 6, 2)).toBe(6);
   });
 });

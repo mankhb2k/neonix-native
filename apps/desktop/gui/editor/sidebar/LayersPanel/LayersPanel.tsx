@@ -1,221 +1,424 @@
-import { useState } from "react";
-import { Eye, EyeOff, Lock, Unlock, Layers, Box, ArrowLeft, Type, Square, Image as ImageIcon, Music, Film } from "lucide-react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  Layers,
+  ArrowLeftToLine,
+  Music,
+  Film,
+  PanelRightOpen,
+} from "lucide-react";
+import {
+  isSceneClip,
   selectionClips,
+  selectionNode,
+  type DocumentPropertyCommand,
   type EditorSelection,
   type TimelineClip,
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
+import type { MotionProject } from "@motionvideo/motion-schema";
 import { useEditorUiSession } from "../../session/editor-ui-session";
+import {
+  buildLayerTree,
+  collectExpandableIds,
+  flattenVisibleTree,
+  reorderSiblingAndCollectDfs,
+  resolveSidebarSiblingInsert,
+} from "../../timeline/layer-mode/build-layer-tree";
+import { LayerTreeRowView } from "./LayerTreeRow";
 
 type Props = {
+  project: MotionProject | null;
   lanes: TimelineLane[];
   clips: TimelineClip[];
   selection: EditorSelection;
   onSelect: (selection: EditorSelection) => void;
   onExecuteTimeline: (command: TimelineCommand, label: string) => void;
+  onExecuteProperty?: (input: {
+    command: DocumentPropertyCommand;
+    label: string;
+    coalesceKey?: string;
+  }) => void;
 };
 
 function clipIcon(clip: TimelineClip) {
-  if (clip.kind === "audio") return <Music size={14} className="text-cyan-400" />;
-  if (clip.name?.toLowerCase().includes("text") || clip.name?.toLowerCase().includes("văn bản")) {
-    return <Type size={14} className="text-blue-400" />;
+  if (clip.kind === "audio") {
+    return <Music size={14} className="shrink-0 text-sky-400" />;
   }
-  if (clip.name?.toLowerCase().includes(" hình") || clip.name?.toLowerCase().includes("shape")) {
-    return <Square size={14} className="text-emerald-400" />;
-  }
-  if (clip.name?.toLowerCase().includes("sticker") || clip.name?.toLowerCase().includes("ảnh")) {
-    return <ImageIcon size={14} className="text-purple-400" />;
-  }
-  return <Film size={14} className="text-cyan-400" />;
+  return <Film size={14} className="shrink-0 text-sky-300" />;
+}
+
+function ListHeader({
+  title,
+  action,
+}: {
+  title: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2 px-0.5">
+      <h2 className="flex min-w-0 items-center gap-1.5 text-[12px] font-semibold text-zinc-100">
+        <Layers size={14} className="shrink-0 text-sky-400" />
+        <span className="truncate">{title}</span>
+      </h2>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+function clipRowClass(selected: boolean) {
+  return [
+    "flex w-full items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-left transition-colors",
+    selected
+      ? "border-sky-500/40 bg-sky-950/35"
+      : "border-transparent bg-[#1a1a1e] hover:border-zinc-700/80 hover:bg-[#222228]",
+  ].join(" ");
 }
 
 export function LayersPanel({
-  lanes,
+  project,
   clips,
   selection,
   onSelect,
-  onExecuteTimeline,
+  onExecuteProperty,
 }: Props) {
   const timelineMode = useEditorUiSession((s) => s.timelineMode);
-  const activeContainerClipId = useEditorUiSession((s) => s.activeContainerClipId);
+  const activeContainerClipId = useEditorUiSession(
+    (s) => s.activeContainerClipId,
+  );
   const enterLayerMode = useEditorUiSession((s) => s.enterLayerMode);
   const exitLayerMode = useEditorUiSession((s) => s.exitLayerMode);
+  const inLayerMode = timelineMode === "layer";
 
-  // Selected clip ID from active selection or active container
   const selectedClipId =
     activeContainerClipId ??
-    (selection.kind === "clips" && selection.ids.length > 0 ? selection.ids[0] : null);
+    (selection.kind === "clips" && selection.ids.length > 0
+      ? selection.primaryId
+      : selection.kind === "node"
+        ? (clips.find(
+            (c) => c.kind === "scene" && c.sceneId === selection.sceneId,
+          )?.id ?? null)
+        : null);
 
   const activeClip = clips.find((c) => c.id === selectedClipId);
-  const [hiddenLayerIds, setHiddenLayerIds] = useState<Record<string, boolean>>({});
-  const [lockedLayerIds, setLockedLayerIds] = useState<Record<string, boolean>>({});
+  const showLayerList =
+    inLayerMode || (activeClip != null && isSceneClip(activeClip));
 
-  const toggleHideLayer = (layerId: string) => {
-    setHiddenLayerIds((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
+  const scene =
+    activeClip && isSceneClip(activeClip)
+      ? (project?.scenes.find((s) => s.id === activeClip.sceneId) ?? null)
+      : null;
+  const sceneId = scene?.id ?? null;
+
+  const tree = useMemo(() => buildLayerTree(scene), [scene]);
+  const treeNodeCount = useMemo(() => {
+    let n = 0;
+    const walk = (nodes: typeof tree) => {
+      for (const node of nodes) {
+        n += 1;
+        walk(node.children);
+      }
+    };
+    walk(tree);
+    return n;
+  }, [tree]);
+
+  const [expandedByScene, setExpandedByScene] = useState<
+    Record<string, string[]>
+  >({});
+  const [lockedIds, setLockedIds] = useState<Record<string, boolean>>({});
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropHint, setDropHint] = useState<{
+    hoverId: string;
+    edge: "before" | "after";
+  } | null>(null);
+
+  useEffect(() => {
+    if (!sceneId) return;
+    setExpandedByScene((prev) => {
+      if (prev[sceneId]) return prev;
+      return { ...prev, [sceneId]: collectExpandableIds(tree) };
+    });
+  }, [sceneId, tree]);
+
+  const expandedIds = useMemo(() => {
+    if (!sceneId) return new Set<string>();
+    return new Set(expandedByScene[sceneId] ?? collectExpandableIds(tree));
+  }, [expandedByScene, sceneId, tree]);
+
+  const rows = useMemo(
+    () => flattenVisibleTree(tree, expandedIds),
+    [tree, expandedIds],
+  );
+
+  const toggleExpand = (nodeId: string) => {
+    if (!sceneId) return;
+    setExpandedByScene((prev) => {
+      const current = new Set(prev[sceneId] ?? collectExpandableIds(tree));
+      if (current.has(nodeId)) current.delete(nodeId);
+      else current.add(nodeId);
+      return { ...prev, [sceneId]: [...current] };
+    });
   };
 
-  const toggleLockLayer = (layerId: string) => {
-    setLockedLayerIds((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
+  const toggleLock = (nodeId: string) => {
+    setLockedIds((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  // If a clip is selected/active, display ONLY that clip's inner layers!
-  if (activeClip) {
-    const isContainer = true;
-    const clipName = activeClip.name || activeClip.id;
+  const toggleVisible = (nodeId: string, currentlyVisible: boolean) => {
+    if (!sceneId || !onExecuteProperty) return;
+    onExecuteProperty({
+      command: {
+        type: "set-node-metadata",
+        targets: [{ sceneId, nodeId }],
+        patch: { visible: !currentlyVisible },
+      },
+      label: currentlyVisible ? "Hide layer" : "Show layer",
+      coalesceKey: `node-visible:${sceneId}:${nodeId}`,
+    });
+  };
 
-    // Simulated/Real inner layers array for the container clip
-    const innerLayers = [
-      { id: `${activeClip.id}-base`, name: clipName, type: activeClip.kind, isBase: true },
-    ];
+  const commitSiblingReorder = (
+    movingId: string,
+    insertBeforeSiblingId: string | null,
+  ) => {
+    if (!sceneId || !onExecuteProperty) return;
+    const nextIds = reorderSiblingAndCollectDfs(
+      tree,
+      movingId,
+      insertBeforeSiblingId,
+    );
+    if (!nextIds) return;
+    onExecuteProperty({
+      command: {
+        type: "reorder-scene-nodes",
+        sceneId,
+        nodeIds: nextIds,
+      },
+      label: "Reorder layers",
+      coalesceKey: `node-reorder:${sceneId}`,
+    });
+  };
+
+  const clearDrag = () => {
+    setDragId(null);
+    setDropHint(null);
+  };
+
+  if (showLayerList && activeClip && isSceneClip(activeClip)) {
+    const selectedNodeId =
+      selection.kind === "node" && selection.sceneId === activeClip.sceneId
+        ? selection.nodeId
+        : null;
 
     return (
-      <aside className="flex h-full flex-col p-3 gap-3 bg-[var(--bg-panel)]">
-        {/* Header: Focused Clip Container */}
-        <div className="flex flex-col gap-2 rounded-lg border border-cyan-500/20 bg-cyan-950/20 p-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <Box size={16} className="text-cyan-400 shrink-0" />
-              <span className="text-[12px] font-bold text-zinc-100 truncate">
-                {clipName}
-              </span>
-            </div>
-            <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-300">
-              Container
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between text-[11px] text-zinc-400 pt-1 border-t border-zinc-800">
-            <span>{innerLayers.length} Layer</span>
-            {timelineMode === "layer" ? (
+      <aside
+        className="flex h-full flex-col gap-2 bg-[var(--bg-panel)] p-2"
+        data-testid="layers-panel-layer-list"
+      >
+        <ListHeader
+          title={`Danh sách Layer (${treeNodeCount})`}
+          action={
+            inLayerMode ? (
               <button
                 type="button"
                 onClick={exitLayerMode}
-                className="flex items-center gap-1 text-[11px] text-cyan-400 hover:underline"
+                className="inline-flex items-center gap-1 rounded-md border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] font-medium text-zinc-200 transition-colors hover:border-sky-500/40 hover:bg-zinc-800 hover:text-sky-300"
+                title="Track Mode"
               >
-                <ArrowLeft size={11} /> Exit Layer Mode
+                <ArrowLeftToLine size={12} />
+                Track Mode
               </button>
             ) : (
               <button
                 type="button"
-                onClick={() => enterLayerMode(activeClip.id)}
-                className="text-[11px] text-cyan-400 hover:underline font-medium"
+                onClick={() => enterLayerMode(activeClip.id, clips)}
+                className="inline-flex items-center gap-1 rounded-md border border-sky-500/35 bg-sky-950/40 px-2 py-1 text-[11px] font-medium text-sky-300 transition-colors hover:border-sky-400/50 hover:bg-sky-900/50"
+                title="Vào Layer Mode"
+                data-testid="enter-layer-mode"
               >
-                Vào Layer Mode ↵
+                <PanelRightOpen size={12} />
+                Layer Mode
               </button>
-            )}
+            )
+          }
+        />
+
+        <p className="truncate px-1 text-[10px] text-zinc-500">
+          Clip: {activeClip.name || activeClip.id}
+        </p>
+
+        {rows.length === 0 ? (
+          <p className="px-1 text-[11px] text-zinc-500">
+            Scene chưa có layer nào.
+          </p>
+        ) : (
+          <div
+            role="tree"
+            aria-label="Scene layers"
+            className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          >
+            {rows.map((row) => {
+              const dropEdge =
+                dropHint?.hoverId === row.id ? dropHint.edge : null;
+              return (
+                <LayerTreeRowView
+                  key={row.id}
+                  row={row}
+                  selected={selectedNodeId === row.id}
+                  expanded={expandedIds.has(row.id)}
+                  locked={Boolean(lockedIds[row.id])}
+                  dragging={dragId === row.id}
+                  dropEdge={dropEdge}
+                  onSelect={() =>
+                    onSelect(selectionNode(activeClip.sceneId, row.id))
+                  }
+                  onToggleExpand={() => toggleExpand(row.id)}
+                  onToggleLock={() => toggleLock(row.id)}
+                  onToggleVisible={() => toggleVisible(row.id, row.visible)}
+                  onDragStart={(e) => {
+                    if (lockedIds[row.id]) {
+                      e.preventDefault();
+                      return;
+                    }
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/layer-node-id", row.id);
+                    setDragId(row.id);
+                    onSelect(selectionNode(activeClip.sceneId, row.id));
+                  }}
+                  onDragOver={(e) => {
+                    if (!dragId) return;
+                    const edge =
+                      e.nativeEvent.offsetY < e.currentTarget.clientHeight / 2
+                        ? "before"
+                        : "after";
+                    const resolved = resolveSidebarSiblingInsert(
+                      rows,
+                      dragId,
+                      row.id,
+                      edge,
+                    );
+                    if (!resolved) {
+                      setDropHint(null);
+                      return;
+                    }
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDropHint({ hoverId: row.id, edge });
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const movingId =
+                      e.dataTransfer.getData("text/layer-node-id") || dragId;
+                    if (!movingId || !dropHint) {
+                      clearDrag();
+                      return;
+                    }
+                    const edge =
+                      dropHint.hoverId === row.id
+                        ? dropHint.edge
+                        : e.nativeEvent.offsetY <
+                            e.currentTarget.clientHeight / 2
+                          ? "before"
+                          : "after";
+                    const resolved = resolveSidebarSiblingInsert(
+                      rows,
+                      movingId,
+                      row.id,
+                      edge,
+                    );
+                    clearDrag();
+                    if (!resolved) return;
+                    commitSiblingReorder(
+                      movingId,
+                      resolved.insertBeforeSiblingId,
+                    );
+                  }}
+                  onDragEnd={clearDrag}
+                />
+              );
+            })}
           </div>
-        </div>
+        )}
 
-        {/* Inner Layers List */}
-        <div className="flex flex-col gap-1.5 min-h-0 flex-1 overflow-y-auto">
-          <span className="text-[11px] font-semibold text-zinc-400 px-1">
-            CÁC LAYER NỘI BỘ
-          </span>
-
-          {innerLayers.map((layer) => {
-            const isHidden = hiddenLayerIds[layer.id];
-            const isLocked = lockedLayerIds[layer.id];
-
-            return (
-              <div
-                key={layer.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-zinc-800 bg-[#18181b] p-2 hover:border-zinc-700 transition-colors"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {clipIcon(activeClip)}
-                  <span className="text-[12px] font-medium text-zinc-200 truncate">
-                    {layer.name}
-                  </span>
-                  {layer.isBase ? (
-                    <span className="text-[9px] text-zinc-500 bg-zinc-800 px-1 rounded">
-                      Gốc
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0 text-zinc-400">
-                  <button
-                    type="button"
-                    onClick={() => toggleHideLayer(layer.id)}
-                    className="p-1 rounded hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-                    title={isHidden ? "Hiện layer" : "Ẩn layer"}
-                  >
-                    {isHidden ? <EyeOff size={13} className="text-red-400" /> : <Eye size={13} />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleLockLayer(layer.id)}
-                    className="p-1 rounded hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
-                    title={isLocked ? "Mở khóa" : "Khóa layer"}
-                  >
-                    {isLocked ? <Lock size={13} className="text-amber-400" /> : <Unlock size={13} />}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Switch Clip List Selector */}
-        <div className="border-t border-zinc-800 pt-2 flex flex-col gap-1">
-          <span className="text-[10px] text-zinc-500 uppercase px-1">Đổi Clip khác:</span>
-          <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto">
-            {clips.map((clip) => (
-              <button
-                key={clip.id}
-                type="button"
-                onClick={() => onSelect(selectionClips([clip.id]))}
-                className={`text-[11px] px-2 py-1 rounded truncate max-w-[120px] transition-colors ${
-                  clip.id === activeClip.id
-                    ? "bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30"
-                    : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                }`}
-              >
-                {clip.name || clip.id}
-              </button>
-            ))}
-          </div>
-        </div>
+        {!inLayerMode ? (
+          <button
+            type="button"
+            onClick={() => onSelect(selectionClips([]))}
+            className="mt-auto px-1 text-left text-[11px] text-zinc-500 transition-colors hover:text-zinc-300"
+          >
+            ← Tất cả clips
+          </button>
+        ) : null}
       </aside>
     );
   }
 
-  // If NO clip is selected: Render clean list of clips in the project
+  const selectedSceneClip =
+    selection.kind === "clips"
+      ? clips.find((c) => c.id === selection.primaryId && isSceneClip(c))
+      : undefined;
+  const canEnterLayer = selectedSceneClip != null;
+
   return (
-    <aside className="flex h-full flex-col p-3 gap-3 bg-[var(--bg-panel)]">
-      <div className="flex items-center justify-between">
-        <h2 className="text-[12px] font-semibold text-zinc-200 flex items-center gap-1.5">
-          <Layers size={14} className="text-cyan-400" />
-          <span>Danh sách Clips ({clips.length})</span>
-        </h2>
-      </div>
+    <aside
+      className="flex h-full flex-col gap-3 bg-[var(--bg-panel)] p-3"
+      data-testid="layers-panel-clip-list"
+    >
+      <ListHeader
+        title={`Danh sách Clips (${clips.length})`}
+        action={
+          <button
+            type="button"
+            disabled={!canEnterLayer}
+            onClick={() => {
+              if (!selectedSceneClip) return;
+              enterLayerMode(selectedSceneClip.id, clips);
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-sky-500/35 bg-sky-950/40 px-2 py-1 text-[11px] font-medium text-sky-300 transition-colors hover:border-sky-400/50 hover:bg-sky-900/50 disabled:cursor-not-allowed disabled:border-zinc-800 disabled:bg-transparent disabled:text-zinc-600"
+            title={
+              canEnterLayer
+                ? "Vào Layer Mode với clip đang chọn"
+                : "Chọn một scene clip để vào Layer Mode"
+            }
+            data-testid="enter-layer-mode"
+          >
+            <PanelRightOpen size={12} />
+            Layer Mode
+          </button>
+        }
+      />
 
       {clips.length === 0 ? (
-        <p className="text-[11px] text-zinc-500 p-1">Chưa có clip nào trong dự án.</p>
+        <p className="px-0.5 text-[11px] text-zinc-500">
+          Chưa có clip nào trong dự án.
+        </p>
       ) : (
-        <div className="flex flex-col gap-1.5 overflow-y-auto flex-1">
-          {clips.map((clip) => (
-            <button
-              key={clip.id}
-              type="button"
-              onClick={() => onSelect(selectionClips([clip.id]))}
-              onDoubleClick={() => enterLayerMode(clip.id)}
-              className="flex items-center justify-between gap-2 rounded-md border border-zinc-800 bg-[#18181b] p-2 text-left hover:border-cyan-500/50 hover:bg-zinc-800 transition-colors group"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                {clipIcon(clip)}
-                <span className="text-[12px] font-medium text-zinc-200 truncate group-hover:text-cyan-300">
-                  {clip.name || clip.id}
+        <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto">
+          {clips.map((clip) => {
+            const isSelected =
+              selection.kind === "clips" && selection.primaryId === clip.id;
+            return (
+              <button
+                key={clip.id}
+                type="button"
+                onClick={() => onSelect(selectionClips([clip.id]))}
+                onDoubleClick={() => enterLayerMode(clip.id, clips)}
+                className={clipRowClass(isSelected)}
+                data-testid="clip-list-row"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  {clipIcon(clip)}
+                  <span className="truncate text-[12px] font-medium text-zinc-100">
+                    {clip.name || clip.id}
+                  </span>
+                </div>
+                <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
+                  {clip.duration.toFixed(1)}s
                 </span>
-              </div>
-              <span className="text-[10px] text-zinc-500 group-hover:text-zinc-400">
-                {clip.duration.toFixed(1)}s
-              </span>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
     </aside>

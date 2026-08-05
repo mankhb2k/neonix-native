@@ -320,6 +320,16 @@ const MotionModifierSchema = z.discriminatedUnion("type", [
   // TODO: implement parallax modifier
 ]);
 
+/** Optional scene-local in/out for Layer Mode timeline strips. */
+export const NodeTimingV2Schema = z
+  .object({
+    start: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  })
+  .strict();
+
+export type NodeTimingV2 = z.infer<typeof NodeTimingV2Schema>;
+
 const NodeBaseSchema = z.object({
   id: IdSchema,
   type: IdSchema,
@@ -327,6 +337,8 @@ const NodeBaseSchema = z.object({
   parentId: IdSchema.nullable(),
   zIndex: FiniteNumberSchema.int().optional(),
   transform: TransformV2Schema,
+  /** Scene-local timing (Layer Mode). Absent → visible for full scene/container duration. */
+  timing: NodeTimingV2Schema.optional(),
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
   modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),

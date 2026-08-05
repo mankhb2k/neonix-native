@@ -53,6 +53,12 @@ export type AudioTrackPatch = {
   fadeOut?: number;
 };
 
+/** Scene-local layer timing (Layer Mode in/out). */
+export type NodeTimingPatch = {
+  start: number;
+  duration: number;
+};
+
 export type EffectStackPatch =
   | { op: "remove"; effectId: string }
   | { op: "reorder"; effectIds: string[] }
@@ -63,6 +69,12 @@ export type EffectStackPatch =
     };
 
 export type DocumentPropertyCommand =
+  | {
+      /** Layer mode row order — nodeIds top→bottom (highest zIndex first). */
+      type: "reorder-scene-nodes";
+      sceneId: string;
+      nodeIds: string[];
+    }
   | {
       type: "set-node-transform";
       targets: NodeTargetRef[];
@@ -104,6 +116,11 @@ export type DocumentPropertyCommand =
       patch: EffectStackPatch;
     }
   | {
+      type: "set-node-timing";
+      targets: NodeTargetRef[];
+      timing: NodeTimingPatch;
+    }
+  | {
       type: "set-property-keyframe";
       targets: NodeTargetRef[];
       property: string;
@@ -135,6 +152,11 @@ export type DocumentPropertyCommand =
 
 export type PropertyDomainEvent =
   | {
+      type: "scene-nodes-reordered";
+      sceneId: string;
+      nodeIds: string[];
+    }
+  | {
       type: "node-transform-changed";
       targets: NodeTargetRef[];
     }
@@ -164,6 +186,10 @@ export type PropertyDomainEvent =
     }
   | {
       type: "node-effects-changed";
+      targets: NodeTargetRef[];
+    }
+  | {
+      type: "node-timing-changed";
       targets: NodeTargetRef[];
     }
   | {

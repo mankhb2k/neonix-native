@@ -29,6 +29,7 @@ type Args = {
   laneDropIndexes: LaneDropIndexes;
   laneHeightPrefix: number[];
   laneContentHeights: number[];
+  layerMode?: TimelineDropHost["layerMode"];
 };
 
 /** Registers the scroll container as the library/clip drop host (CapCut collectors). */
@@ -43,6 +44,7 @@ export function useTimelineDropHostRegistration({
   laneDropIndexes,
   laneHeightPrefix,
   laneContentHeights,
+  layerMode,
 }: Args): void {
   useLayoutEffect(() => {
     const scrollEl = tracksScrollRef.current;
@@ -70,6 +72,7 @@ export function useTimelineDropHostRegistration({
         laneHeightPrefix,
         laneContentHeights,
       },
+      layerMode,
     };
     return registerTimelineDropHost(next);
   }, [
@@ -82,5 +85,6 @@ export function useTimelineDropHostRegistration({
     laneDropIndexes,
     laneHeightPrefix,
     laneContentHeights,
+    layerMode,
   ]);
 }

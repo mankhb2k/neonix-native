@@ -15,6 +15,7 @@ import {
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
 import {
   ensurePlayheadScrubScroll,
+  resolvePlayheadScrubMax,
   timelineTimeToViewportLeft,
 } from "../timeline-seek";
 
@@ -23,6 +24,8 @@ type Props = {
   pixelsPerSecond: number;
   scrollLeft: number;
   scrollContainerRef: RefObject<HTMLElement | null>;
+  /** Inclusive scrub floor (layer mode = container start). */
+  minTime?: number;
   maxTime: number;
   enabled?: boolean;
   /** Empty timeline → muted playhead (web parity). */
@@ -58,6 +61,7 @@ export function Playhead({
   pixelsPerSecond,
   scrollLeft,
   scrollContainerRef,
+  minTime = 0,
   maxTime,
   enabled = true,
   muted = false,
@@ -74,10 +78,12 @@ export function Playhead({
   const tracksOriginXRef = useRef(tracksOriginX);
   const ppsRef = useRef(pixelsPerSecond);
   const scrollLeftRef = useRef(scrollLeft);
+  const minTimeRef = useRef(minTime);
   const maxTimeRef = useRef(maxTime);
   tracksOriginXRef.current = tracksOriginX;
   ppsRef.current = pixelsPerSecond;
   scrollLeftRef.current = scrollLeft;
+  minTimeRef.current = minTime;
   maxTimeRef.current = maxTime;
 
   const clock = usePlaybackClockApi();
@@ -200,16 +206,20 @@ export function Playhead({
     if (!scroll) return;
     lastClientXRef.current = clientX;
     const clockDuration = clock.getState().duration;
-    // Prefer content duration for scrub clamp (web); fall back to board extent.
-    const scrubMax = Math.max(
-      0,
-      clockDuration > 0 ? clockDuration : maxTimeRef.current,
+    // Surface max wins over clock (layer = container end); clock still caps
+    // track scrub inside padded extent when content is shorter.
+    const scrubMax = resolvePlayheadScrubMax(
+      maxTimeRef.current,
+      clockDuration,
     );
     const { time, scrolledBy } = ensurePlayheadScrubScroll(
       scroll,
       clientX,
       ppsRef.current,
       scrubMax,
+      40,
+      14,
+      minTimeRef.current,
     );
     if (scrolledBy !== 0) {
       scrollLeftRef.current = scroll.scrollLeft;

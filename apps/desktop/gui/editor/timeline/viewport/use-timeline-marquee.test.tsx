@@ -345,6 +345,43 @@ describe("useTimelineMarquee orchestration", () => {
     expect(seek).toHaveBeenCalledWith(180);
   });
 
+  it("seeks on empty click with layer-mode synthetic clips in the map", () => {
+    const onSelect = vi.fn();
+    const seek = vi.fn();
+    const layerLane = visualLane("layer-node:n1", "overlay", 0);
+    const layerClips = new Map<string, TimelineClip[]>([
+      [
+        layerLane.id,
+        [
+          {
+            kind: "scene",
+            id: "n1",
+            sceneId: "sc1",
+            laneId: layerLane.id,
+            startTime: 2,
+            duration: 3,
+            name: "Node",
+          },
+        ],
+      ],
+    ]);
+    const surface = renderHarness(selectionNone(), onSelect, seek, {
+      laneContentHeights: [40],
+      laneHeightPrefix: buildLaneHeightPrefix([40]),
+      sortedLanes: [layerLane],
+      clipsByLaneMap: layerClips,
+      topPadding: 10,
+    });
+
+    // Empty region to the left of the synthetic strip (strip starts at 2s * 100pps).
+    pointer(surface, "pointerdown", 50, 20);
+    pointer(window, "pointerup", 50, 20);
+
+    expect(seek).toHaveBeenCalledTimes(1);
+    expect(seek).toHaveBeenCalledWith(50);
+    expect(onSelect).toHaveBeenCalledWith(selectionNone());
+  });
+
   describe("integration: real auto-scroll", () => {
     it("scrolls the DOM node automatically when pointer is held near the bottom edge", async () => {
       const { autoScrollElementNearEdge: realAutoScroll } = await vi.importActual<

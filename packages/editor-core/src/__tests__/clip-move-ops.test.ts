@@ -6,6 +6,7 @@ import {
 import {
   DEFAULT_VISUAL_POLICY,
   resolveLaneStartTimeNearest,
+  resolveLayerStackPlacement,
   resolveOccupancyAwarePlacement,
   type TimelineClip,
   type TimelineLane,
@@ -224,6 +225,38 @@ describe("resolveOccupancyAwarePlacement", () => {
     expect(result.insertNewLane).toBe(true);
     expect(result.insertOrder).toBe(0);
     expect(result.retargetLaneId ?? null).toBeNull();
+  });
+});
+
+describe("resolveLayerStackPlacement", () => {
+  const blocker = [{ id: "b", startTime: 0, duration: 10 }];
+
+  it("keeps free desired starts on an empty row", () => {
+    expect(
+      resolveLayerStackPlacement({
+        clipsOnLane: [],
+        desiredStart: 2,
+        duration: 1,
+        laneOrder: 0,
+        laneRole: "overlay",
+      }),
+    ).toMatchObject({ startTime: 2, insertNewLane: false });
+  });
+
+  it("always inserts a new row on overlap (never parks side-by-side)", () => {
+    expect(
+      resolveLayerStackPlacement({
+        clipsOnLane: blocker,
+        desiredStart: 0.5,
+        duration: 2,
+        laneOrder: 0,
+        laneRole: "overlay",
+      }),
+    ).toMatchObject({
+      startTime: 0.5,
+      insertNewLane: true,
+      insertOrder: 1,
+    });
   });
 });
 

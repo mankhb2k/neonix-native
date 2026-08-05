@@ -62,6 +62,68 @@ describe("property commands", () => {
     );
   });
 
+  it("applies set-node-timing for layer mode in/out", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const targets = resolvePropertyTargets(
+      selectionClips([clips[0]!.id]),
+      project,
+      clips,
+      lanes,
+    );
+    const result = executePropertyCommand(doc, {
+      type: "set-node-timing",
+      targets,
+      timing: { start: 0.5, duration: 1.25 },
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    expect(result.document.project.scenes[0]!.nodes[0]!.timing).toEqual({
+      start: 0.5,
+      duration: 1.25,
+    });
+  });
+
+  it("reorders scene nodes top-to-bottom via zIndex", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const scene = project.scenes[0]!;
+    const nodes = [
+      { ...scene.nodes[0]!, id: "n-top", zIndex: 2 },
+      {
+        ...scene.nodes[0]!,
+        id: "n-mid",
+        zIndex: 1,
+        type: "shape" as const,
+        payload: { shape: "rect" as const, width: 10, height: 10 },
+      },
+      {
+        ...scene.nodes[0]!,
+        id: "n-bot",
+        zIndex: 0,
+        type: "shape" as const,
+        payload: { shape: "rect" as const, width: 10, height: 10 },
+      },
+    ];
+    const doc: TimelineDocument = {
+      project: {
+        ...project,
+        scenes: [{ ...scene, nodes }],
+      },
+      clips,
+      lanes,
+    };
+    const result = executePropertyCommand(doc, {
+      type: "reorder-scene-nodes",
+      sceneId: scene.id,
+      nodeIds: ["n-mid", "n-top", "n-bot"],
+    });
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const next = result.document.project.scenes[0]!.nodes;
+    expect(next.map((n) => n.id)).toEqual(["n-mid", "n-top", "n-bot"]);
+    expect(next.map((n) => n.zIndex)).toEqual([2, 1, 0]);
+  });
+
   it("updates metadata name and visible", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };

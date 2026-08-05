@@ -6,6 +6,7 @@ export function clientXToTimelineTime(
   scrollContainer: HTMLElement,
   pixelsPerSecond: number,
   maxTime: number,
+  minTime = 0,
 ): number {
   const rect = scrollContainer.getBoundingClientRect();
   const x =
@@ -14,7 +15,9 @@ export function clientXToTimelineTime(
     scrollContainer.scrollLeft -
     TIMELINE_PLAYHEAD_GUTTER_PX;
   const time = x / Math.max(pixelsPerSecond, 0.001);
-  return Math.min(Math.max(0, time), Math.max(0, maxTime));
+  const lo = Math.max(0, minTime);
+  const hi = Math.max(lo, maxTime);
+  return Math.min(Math.max(lo, time), hi);
 }
 
 export function timelineTimeToViewportLeft(
@@ -57,6 +60,7 @@ export function ensurePlayheadScrubScroll(
   scrubMax: number,
   edgePx = 40,
   stepPx = 14,
+  scrubMin = 0,
 ): { scrollLeft: number; time: number; scrolledBy: number } {
   const scrolledBy = scrollTracksHorizontallyNearEdge(
     scrollEl,
@@ -69,6 +73,20 @@ export function ensurePlayheadScrubScroll(
     scrollEl,
     pixelsPerSecond,
     scrubMax,
+    scrubMin,
   );
   return { scrollLeft: scrollEl.scrollLeft, time, scrolledBy };
+}
+
+/**
+ * Scrub ceiling: never past timeline surface max, and never past clock content
+ * when that is shorter (track padded extent vs real duration).
+ */
+export function resolvePlayheadScrubMax(
+  surfaceMaxTime: number,
+  clockDuration: number,
+): number {
+  const surface = Math.max(0, surfaceMaxTime);
+  if (!(clockDuration > 0)) return surface;
+  return Math.min(surface, clockDuration);
 }

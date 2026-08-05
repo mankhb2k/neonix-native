@@ -19,6 +19,7 @@ export type ClipMovePreviewMember = {
   trackKind: TimelineTrackKind;
   /** Y offset relative to the primary clip's original position. */
   offsetY: number;
+  laneHeightPx?: number;
 };
 
 export type ClipMovePreview = {
@@ -40,6 +41,8 @@ export type ClipMovePreview = {
   clientY?: number;
   /** Mouse grab offset from the top of the primary clip. */
   grabOffsetY?: number;
+  /** Lane body height (px) — float bubble matches strip chrome. */
+  laneHeightPx?: number;
   /** CapCut vertical snap guide time (clip edge alignment). */
   snapGuideTime?: number | null;
   /** Secondary selected clips (time-shift on home lanes). */

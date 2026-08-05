@@ -342,3 +342,43 @@ export function resolveOccupancyAwarePlacement(input: {
     edgeGuideTime,
   };
 }
+
+/**
+ * Layer-mode occupancy: never place two layers side-by-side on one row.
+ * Free at desired time → keep lane; any overlap → always insert a new row above.
+ */
+export function resolveLayerStackPlacement(input: {
+  clipsOnLane: ReadonlyArray<
+    Pick<TimelineClip, "id" | "startTime" | "duration">
+  >;
+  desiredStart: number;
+  duration: number;
+  excludeIds?: ReadonlySet<string>;
+  laneOrder: number;
+  laneRole: "base" | "overlay" | "audio";
+}): OccupancyAwarePlacement {
+  const dur = Math.max(0, input.duration);
+  const desired = Math.max(0, input.desiredStart);
+  const clips = input.clipsOnLane.filter(
+    (clip) => !input.excludeIds?.has(clip.id),
+  );
+  const conflict = clips.find((clip) =>
+    rangesOverlap(desired, dur, clip.startTime, clip.duration),
+  );
+  if (!conflict) {
+    return {
+      startTime: desired,
+      insertNewLane: false,
+      insertOrder: null,
+      edgeGuideTime: null,
+    };
+  }
+  const insertOrder =
+    input.laneRole === "base" ? 0 : Math.max(0, input.laneOrder + 1);
+  return {
+    startTime: desired,
+    insertNewLane: true,
+    insertOrder,
+    edgeGuideTime: null,
+  };
+}

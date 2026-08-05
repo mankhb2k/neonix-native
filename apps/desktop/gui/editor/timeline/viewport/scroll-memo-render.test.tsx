@@ -51,8 +51,8 @@ function sampleLaneRow(): TimelineLaneRow {
     role: "base",
     order: -1,
     name: "Main",
-    height: 60,
-    heightClass: "h-[60px]",
+    height: 48,
+    heightClass: "h-12",
     lane: {
       id: "base",
       kind: "visual",
@@ -173,8 +173,11 @@ describe("scroll memo render boundaries", () => {
       beginGesture: (() => null) as never,
       onSelect: () => undefined,
       onExecute: () => undefined,
+      onExecuteProperty: () => undefined,
       getPlayheadTime: () => 0,
       clipsForLane: () => [],
+      isLayerMode: false,
+      stripFlags: { trimEnabled: true, layerSession: null },
     };
 
     const props = {

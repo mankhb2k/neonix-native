@@ -12,6 +12,7 @@ import {
   clipsContentEndSeconds,
   selectionHasLockedLane,
   selectedClipIdsFrom,
+  type DocumentPropertyCommand,
   type EditorSelection,
   type TimelineCommand,
 } from "@motionvideo/editor-core";
@@ -182,6 +183,7 @@ function EditingWorkspaceInner({
 
   useEffect(() => {
     if (!session.project) return;
+    // One timeline truth (track content end) — layer mode does not shrink the clock.
     const duration = clipsContentEndSeconds(session.clips);
     if (needsPlaybackResetRef.current) {
       needsPlaybackResetRef.current = false;
@@ -189,7 +191,12 @@ function EditingWorkspaceInner({
       return;
     }
     clock.getState().setDuration(duration);
-  }, [clock, session.documentRevision, session.clips, session.project]);
+  }, [
+    clock,
+    session.clips,
+    session.documentRevision,
+    session.project,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -208,6 +215,27 @@ function EditingWorkspaceInner({
         entryId: `tl_${timelineEntrySeq}`,
         selection: ui.selection,
         clipboard: ui.clipboard,
+      });
+    },
+    [dispatch],
+  );
+
+  const executeProperty = useCallback(
+    (input: {
+      command: DocumentPropertyCommand;
+      label: string;
+      coalesceKey?: string;
+      entryId?: string;
+    }) => {
+      const ui = useEditorUiSession.getState();
+      timelineEntrySeq += 1;
+      dispatch({
+        type: "EXECUTE_PROPERTY_COMMAND",
+        command: input.command,
+        label: input.label,
+        coalesceKey: input.coalesceKey,
+        entryId: input.entryId ?? `prop_${timelineEntrySeq}`,
+        selection: ui.selection,
       });
     },
     [dispatch],
@@ -487,6 +515,7 @@ function EditingWorkspaceInner({
         showInspector
         sidebar={
           <Sidebar
+            project={session.project}
             projectPath={path}
             documentJson={sessionJson}
             assetsApi={assetsApi}
@@ -497,6 +526,7 @@ function EditingWorkspaceInner({
             initialTab={initialSidebarTab}
             onSelect={onSelect}
             onExecuteTimeline={executeTimeline}
+            onExecuteProperty={executeProperty}
             assets={sessionAssets}
           />
         }
@@ -527,6 +557,7 @@ function EditingWorkspaceInner({
             onDelete={onDelete}
             onSelect={onSelect}
             onExecute={executeTimeline}
+            onExecuteProperty={executeProperty}
             onCopy={copySelection}
             onCut={cutSelection}
             onPaste={pasteSelection}

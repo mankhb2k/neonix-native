@@ -125,6 +125,7 @@ export function useTimelineHotkeys({
         return;
       }
       if (mod && event.key.toLowerCase() === "b") {
+        if (useEditorUiSession.getState().timelineMode === "layer") return;
         event.preventDefault();
         onExecute(
           { type: "split-selected-clips", time: getPlayheadTime() },
@@ -133,6 +134,7 @@ export function useTimelineHotkeys({
         return;
       }
       if (event.key === "Delete" || event.key === "Backspace") {
+        if (useEditorUiSession.getState().timelineMode === "layer") return;
         event.preventDefault();
         onExecute({ type: "delete-selected-clips" }, "Delete clips");
       }

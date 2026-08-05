@@ -23,6 +23,7 @@ export type { EditorSidebarProps };
 
 export type SidebarProps = Partial<Omit<EditorSidebarProps, "selection">> & {
   media?: ReactNode;
+  project?: import("@motionvideo/motion-schema").MotionProject | null;
   projectPath?: string | null;
   documentJson?: string;
   assetsApi?: AssetRepository;
@@ -31,6 +32,11 @@ export type SidebarProps = Partial<Omit<EditorSidebarProps, "selection">> & {
   initialTab?: string;
   onSelect?: (selection: EditorSelection) => void;
   onExecuteTimeline?: (command: TimelineCommand, label: string) => void;
+  onExecuteProperty?: (input: {
+    command: import("@motionvideo/editor-core").DocumentPropertyCommand;
+    label: string;
+    coalesceKey?: string;
+  }) => void;
 };
 
 const defaultMedia = (
@@ -71,6 +77,7 @@ const SIDEBAR_TABS: DesktopTabItem[] = [
  */
 export const Sidebar = memo(function Sidebar({
   media,
+  project = null,
   projectPath,
   documentJson,
   assetsApi,
@@ -82,6 +89,7 @@ export const Sidebar = memo(function Sidebar({
   initialTab = "media",
   onSelect = () => undefined,
   onExecuteTimeline = () => undefined,
+  onExecuteProperty = () => undefined,
 }: SidebarProps) {
   const [tab, setTab] = useState(initialTab);
   const selection = useEditorUiSession((s) => s.selection);
@@ -110,11 +118,13 @@ export const Sidebar = memo(function Sidebar({
         <div className="min-h-0 flex-1 overflow-auto">
           {tab === "layers" ? (
             <LayersPanel
+              project={project}
               lanes={lanes}
               clips={clips}
               selection={selection}
               onSelect={onSelect}
               onExecuteTimeline={onExecuteTimeline}
+              onExecuteProperty={onExecuteProperty}
             />
           ) : null}
           {tab === "shapes" ? (

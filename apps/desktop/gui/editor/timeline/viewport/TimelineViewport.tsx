@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   selectedClipIdsFrom,
+  selectionNode,
+  type DocumentPropertyCommand,
   type EditorSelection,
   type TimelineClip,
   type TimelineCommand,
@@ -8,6 +10,7 @@ import {
 } from "@motionvideo/editor-core";
 import { subscribe as subscribeLibraryDrag } from "../../library/interactions/library-drag-session";
 import { usePlaybackClockApi } from "../../playback/playback-clock-store";
+import { useEditorUiSession } from "../../session/editor-ui-session";
 import {
   clearPreviewSession,
   scheduleDropGhostSample,
@@ -24,13 +27,10 @@ import {
 } from "../timeline-scale";
 import { clientXToTimelineTime } from "../timeline-seek";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
+import { resolveTimelineSurface } from "../view-model/resolve-timeline-surface";
 import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
-import { buildLaneContentKindById } from "../lanes/lane-content-kind";
-import {
-  buildTimelineLaneRows,
-  timelineVerticalInsets,
-} from "../lanes/timeline-lane-rows";
+import { timelineVerticalInsets } from "../lanes/timeline-lane-rows";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { TimelineLaneLabels } from "./TimelineLaneLabels";
@@ -54,6 +54,11 @@ type Props = {
   canPaste?: boolean;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
+  onExecuteProperty?: (input: {
+    command: DocumentPropertyCommand;
+    label: string;
+    coalesceKey?: string;
+  }) => void;
   onCopy?: () => void;
   onCut?: () => void;
   onPaste?: () => void;
@@ -73,6 +78,7 @@ export function TimelineViewport({
   canPaste,
   onSelect,
   onExecute,
+  onExecuteProperty = () => undefined,
   onCopy,
   onCut,
   onPaste,
@@ -83,6 +89,10 @@ export function TimelineViewport({
   const clock = usePlaybackClockApi();
   const { beginGesture } = usePointerSessionHost();
   const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
+  const timelineMode = useEditorUiSession((s) => s.timelineMode);
+  const activeContainerClipId = useEditorUiSession(
+    (s) => s.activeContainerClipId,
+  );
 
   const {
     viewWidth,
@@ -96,13 +106,13 @@ export function TimelineViewport({
   } = useTimelineViewportMetrics({
     boardRef,
     tracksScrollRef,
-    resetKey: `${projectId ?? ""}:${timelineFitRevision}`,
-    contentMeasureKey: `${clips.length}:${lanes.length}:${timelineZoomScale}`,
+    resetKey: `${projectId ?? ""}:${timelineFitRevision}:${timelineMode === "layer" ? activeContainerClipId : "track"}`,
+    contentMeasureKey: `${clips.length}:${lanes.length}:${timelineZoomScale}:${timelineMode}:${activeContainerClipId ?? ""}`,
   });
 
   useLayoutEffect(() => {
     clearPreviewSession();
-  }, [projectId, timelineFitRevision]);
+  }, [projectId, timelineFitRevision, activeContainerClipId, timelineMode]);
 
   useEffect(() => {
     return () => {
@@ -123,28 +133,46 @@ export function TimelineViewport({
     [clips, trackViewWidth, timelineZoomScale, timelineFitAnchorSeconds],
   );
 
-  const laneRows = useMemo(() => buildTimelineLaneRows(lanes), [lanes]);
+  const surface = useMemo(
+    () =>
+      resolveTimelineSurface({
+        timelineMode,
+        activeContainerClipId,
+        clips,
+        lanes,
+        project,
+        extentSeconds: layout.extentSeconds,
+      }),
+    [
+      timelineMode,
+      activeContainerClipId,
+      clips,
+      lanes,
+      project,
+      layout.extentSeconds,
+    ],
+  );
+
+  const {
+    isLayerMode,
+    layerModeView,
+    laneRows,
+    viewLanes,
+    clipsByLane: clipsByLaneMap,
+    occupancyClips,
+    playbackMinTime,
+    playbackMaxTime,
+    layerWorkWindow,
+    dropHostLayerMode,
+    stripFlags,
+    timelineEmpty,
+    laneContentKindById,
+  } = surface;
+
   const sortedLanes = useMemo(
     () => laneRows.map((row) => row.lane),
     [laneRows],
   );
-
-  const clipsByLaneMap = useMemo(() => {
-    const map = new Map<string, TimelineClip[]>();
-    for (const lane of lanes) {
-      map.set(lane.id, []);
-    }
-    for (const clip of clips) {
-      if (!clip.laneId) continue;
-      const list = map.get(clip.laneId);
-      if (list) list.push(clip);
-      else map.set(clip.laneId, [clip]);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.startTime - b.startTime);
-    }
-    return map;
-  }, [clips, lanes]);
 
   const laneDropIndexes = useMemo(() => {
     const siblingLaneRefs = sortedLanes.map((lane) => ({
@@ -165,11 +193,6 @@ export function TimelineViewport({
       .sort((a, b) => a.order - b.order);
     return { siblingLaneRefs, overlayLaneRefs, audioLaneRefs };
   }, [sortedLanes]);
-
-  const laneContentKindById = useMemo(
-    () => buildLaneContentKindById(lanes, clips, project),
-    [lanes, clips, project],
-  );
 
   const pinIds = useMemo(
     () => new Set(selectedClipIdsFrom(selection)),
@@ -199,16 +222,41 @@ export function TimelineViewport({
         clientX,
         scroll,
         layout.pixelsPerSecond,
-        layout.extentSeconds,
+        playbackMaxTime,
+        playbackMinTime,
       );
       clock.getState().seek(time);
     },
-    [clock, clips.length, disabled, layout.extentSeconds, layout.pixelsPerSecond],
+    [
+      clock,
+      clips.length,
+      disabled,
+      layout.pixelsPerSecond,
+      playbackMaxTime,
+      playbackMinTime,
+    ],
   );
 
   const getPlayheadTime = useCallback(
     () => clock.getState().currentTime,
     [clock],
+  );
+
+  const handleSelect = useCallback(
+    (next: EditorSelection) => {
+      if (
+        isLayerMode &&
+        layerModeView &&
+        next.kind === "clips" &&
+        next.ids.length >= 1
+      ) {
+        const nodeId = next.primaryId ?? next.ids[0]!;
+        onSelect(selectionNode(layerModeView.sceneId, nodeId));
+        return;
+      }
+      onSelect(next);
+    },
+    [isLayerMode, layerModeView, onSelect],
   );
 
   useEffect(() => {
@@ -246,17 +294,18 @@ export function TimelineViewport({
     sortedLanes,
     topPadding,
     pixelsPerSecond: layout.pixelsPerSecond,
-    clips,
+    clips: occupancyClips,
     autoSnapping,
     clipsByLane: clipsByLaneMap,
     laneDropIndexes,
     laneHeightPrefix,
     laneContentHeights,
+    layerMode: dropHostLayerMode,
   });
 
   const beginMarquee = useTimelineMarquee({
     tracksScrollRef,
-    disabled,
+    disabled: Boolean(disabled),
     selection,
     beginGesture,
     laneHeightPrefix,
@@ -265,12 +314,11 @@ export function TimelineViewport({
     sortedLanes,
     clipsByLaneMap,
     pixelsPerSecond: layout.pixelsPerSecond,
-    onSelect,
+    onSelect: handleSelect,
     seekToClientX,
   });
 
-  const timelineEmpty = clips.length === 0;
-  const seekEnabled = !disabled && !timelineEmpty;
+  const seekEnabled = !disabled && clips.length > 0;
 
   const trackLayout = useMemo(
     () => ({
@@ -307,25 +355,33 @@ export function TimelineViewport({
       onScroll,
       beginMarquee,
       beginGesture,
-      onSelect,
+      onSelect: handleSelect,
       onExecute,
+      onExecuteProperty,
       getPlayheadTime,
       onCopy,
       onCut,
       onPaste,
       clipsForLane,
+      isLayerMode,
+      stripFlags,
+      layerWorkWindow,
     }),
     [
       onScroll,
       beginMarquee,
       beginGesture,
-      onSelect,
+      handleSelect,
       onExecute,
+      onExecuteProperty,
       getPlayheadTime,
       onCopy,
       onCut,
       onPaste,
       clipsForLane,
+      isLayerMode,
+      stripFlags,
+      layerWorkWindow,
     ],
   );
 
@@ -344,20 +400,20 @@ export function TimelineViewport({
       ref={boardRef}
       className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-[var(--bg-panel)]"
       data-testid="timeline-viewport"
+      data-timeline-mode={isLayerMode ? "layer" : "track"}
     >
-      {/* Playhead scoped above the detached H-scrollbar row (CapCut). */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <Playhead
           tracksOriginX={TIMELINE_TRACKS_ORIGIN_X}
           pixelsPerSecond={layout.pixelsPerSecond}
           scrollLeft={scrollLeft}
           scrollContainerRef={tracksScrollRef}
-          maxTime={layout.extentSeconds}
+          minTime={playbackMinTime}
+          maxTime={playbackMaxTime}
           enabled={seekEnabled}
-          muted={timelineEmpty}
+          muted={timelineEmpty && !isLayerMode}
         />
 
-        {/* Sticky labels only (z-50). Gutter scrolls with timerule/lanes under labels. */}
         <div className="grid shrink-0 grid-cols-[96px_minmax(0,1fr)] overflow-hidden bg-[var(--bg-panel)]">
           <div
             className="relative z-50 border-r border-[var(--border-subtle)] bg-[var(--bg-panel)]"
@@ -388,7 +444,7 @@ export function TimelineViewport({
             laneRows={laneRows}
             bottomSpacer={bottomSpacer}
             laneContentKindById={laneContentKindById}
-            disabled={disabled}
+            disabled={disabled || isLayerMode}
             onExecute={onExecute}
           />
 
@@ -396,9 +452,9 @@ export function TimelineViewport({
             tracksScrollRef={tracksScrollRef}
             selection={selection}
             disabled={disabled}
-            canPaste={canPaste}
+            canPaste={canPaste && !isLayerMode}
             clips={clips}
-            lanes={lanes}
+            lanes={viewLanes}
             layout={trackLayout}
             virtualRows={trackVirtualRows}
             actions={trackActions}
@@ -406,7 +462,6 @@ export function TimelineViewport({
         </div>
       </div>
 
-      {/* Detached CapCut H-scrollbar — custom thumb, panel-colored track */}
       <div
         className="relative z-[50] grid shrink-0 grid-cols-[96px_minmax(0,1fr)] bg-[var(--bg-panel)]"
         data-testid="timeline-h-scroll-row"

@@ -12,6 +12,7 @@ import type {
   MediaPayloadPatch,
   MetadataPatch,
   NodeTargetRef,
+  NodeTimingPatch,
   PropertyDomainEvent,
   StylePatch,
   TextPayloadPatch,
@@ -270,6 +271,54 @@ function applyEffects(node: MotionNode, patch: EffectStackPatch): MotionNode {
   if (idx >= 0) effects[idx] = blur;
   else effects.push(blur);
   return { ...node, effects };
+}
+
+function applyReorderSceneNodes(
+  project: MotionProject,
+  sceneId: string,
+  nodeIds: string[],
+): { project: MotionProject; missing: boolean } {
+  const scene = project.scenes.find((s) => s.id === sceneId);
+  if (!scene) return { project, missing: true };
+
+  const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+  const seen = new Set<string>();
+  const ordered: MotionNode[] = [];
+  for (const id of nodeIds) {
+    if (!id || seen.has(id)) continue;
+    const node = byId.get(id);
+    if (!node) return { project, missing: true };
+    seen.add(id);
+    ordered.push(node);
+  }
+  for (const node of scene.nodes) {
+    if (!seen.has(node.id)) ordered.push(node);
+  }
+
+  const count = ordered.length;
+  const withZ = ordered.map((node, index) => ({
+    ...node,
+    zIndex: count - 1 - index,
+  }));
+
+  return {
+    project: {
+      ...project,
+      scenes: project.scenes.map((s) =>
+        s.id === sceneId ? { ...s, nodes: withZ } : s,
+      ),
+    },
+    missing: false,
+  };
+}
+
+function applyTiming(node: MotionNode, timing: NodeTimingPatch): MotionNode {
+  const start = Math.max(0, timing.start);
+  const duration = Math.max(Number.EPSILON, timing.duration);
+  return {
+    ...node,
+    timing: { start, duration },
+  } as MotionNode;
 }
 
 function applyToTargets(
@@ -626,6 +675,31 @@ export function executePropertyCommand(
   let events: PropertyDomainEvent[];
 
   switch (command.type) {
+    case "reorder-scene-nodes": {
+      if (!command.sceneId.trim()) {
+        return rejectedInvalid("Scene id is required.");
+      }
+      if (!command.nodeIds.length) {
+        return {
+          status: "rejected",
+          reason: "empty_targets",
+          message: "No node ids for reorder.",
+        };
+      }
+      result = applyReorderSceneNodes(
+        document.project,
+        command.sceneId,
+        command.nodeIds,
+      );
+      events = [
+        {
+          type: "scene-nodes-reordered",
+          sceneId: command.sceneId,
+          nodeIds: command.nodeIds,
+        },
+      ];
+      break;
+    }
     case "set-node-transform": {
       if (!command.targets.length) {
         return {
@@ -865,6 +939,29 @@ export function executePropertyCommand(
         applyEffects(node, command.patch),
       );
       events = [{ type: "node-effects-changed", targets: command.targets }];
+      break;
+    }
+    case "set-node-timing": {
+      if (!command.targets.length) {
+        return {
+          status: "rejected",
+          reason: "empty_targets",
+          message: "No node targets for property command.",
+        };
+      }
+      if (
+        collectNonFinite([command.timing.start, command.timing.duration]) ||
+        command.timing.duration <= 0 ||
+        command.timing.start < 0
+      ) {
+        return rejectedInvalid(
+          "Node timing requires finite start >= 0 and positive duration.",
+        );
+      }
+      result = applyToTargets(document.project, command.targets, (node) =>
+        applyTiming(node, command.timing),
+      );
+      events = [{ type: "node-timing-changed", targets: command.targets }];
       break;
     }
     case "set-property-keyframe": {

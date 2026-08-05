@@ -23,6 +23,9 @@ import {
 } from "../drop/timeline-drop-host";
 import type { BeginGesture } from "../interactions/use-pointer-session";
 import { setClipMovePreview } from "../interactions/timeline-preview-session";
+import {
+  laneRowHeightPx,
+} from "../timeline-scale";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
@@ -129,6 +132,8 @@ export type UseClipMoveArgs = {
   allClips?: TimelineClip[];
   lanes: TimelineLane[];
   lane: TimelineLane;
+  /** Lane body height — floating bubble matches strip. */
+  laneHeightPx?: number;
   pixelsPerSecond: number;
   selection: EditorSelection;
   disabled?: boolean;
@@ -142,6 +147,7 @@ export function useClipMove({
   allClips,
   lanes,
   lane,
+  laneHeightPx: laneHeightPxProp,
   pixelsPerSecond,
   selection,
   disabled,
@@ -150,6 +156,7 @@ export function useClipMove({
   onExecute,
 }: UseClipMoveArgs) {
   const pps = Math.max(pixelsPerSecond, 0.001);
+  const laneHeightPx = laneHeightPxProp ?? laneRowHeightPx(lane);
   const autoSnapping = useTimelineInteractionPrefs((s) => s.autoSnapping);
   const selected = new Set(selectedClipIdsFrom(selection));
 
@@ -281,6 +288,7 @@ export function useClipMove({
                 clientX: pos.x,
                 clientY: pos.y,
                 grabOffsetY,
+                laneHeightPx,
               };
               setClipMovePreview(preview);
               return {
@@ -354,6 +362,9 @@ export function useClipMove({
                       duration: c.duration,
                       trackKind: mLane ? trackForLane(mLane) : "overlay",
                       offsetY: lTop - primaryLaneTop,
+                      laneHeightPx: mLane
+                        ? laneRowHeightPx(mLane)
+                        : laneHeightPx,
                     };
                   })
                   .filter((m): m is NonNullable<typeof m> => m != null)
@@ -377,6 +388,7 @@ export function useClipMove({
               clientY: pos.y,
               grabOffsetY,
               snapGuideTime,
+              laneHeightPx,
               members,
             };
             setClipMovePreview(preview);
@@ -441,6 +453,7 @@ export function useClipMove({
       clips,
       disabled,
       lane,
+      laneHeightPx,
       lanes,
       onExecute,
       onSelect,
