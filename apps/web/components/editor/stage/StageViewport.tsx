@@ -1,15 +1,18 @@
 "use client";
 
+import { RemotionPreview } from "@/components/editor/stage/RemotionPreview";
+import type { MotionProject } from "@motionvideo/motion-schema";
+
 type Props = {
-  projectName: string;
+  project: MotionProject;
   width: number;
   height: number;
 };
 
-export function StageViewport({ projectName, width, height }: Props) {
+export function StageViewport({ project, width, height }: Props) {
   return (
     <main
-      className="editor-area-stage relative flex min-h-0 flex-col items-center justify-center overflow-hidden bg-[var(--stage-bg)]"
+      className="editor-area-stage relative flex min-h-0 flex-col items-center justify-center overflow-hidden bg-[var(--stage-bg)] p-4"
       data-testid="editor-stage"
     >
       <div
@@ -22,27 +25,10 @@ export function StageViewport({ projectName, width, height }: Props) {
       />
 
       <div
-        className="relative z-[1] flex flex-col items-center justify-center rounded-[var(--radius)] border border-[var(--border-strong)] bg-[#0a0908] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
-        style={{
-          width: "min(72%, 720px)",
-          aspectRatio: `${width} / ${height}`,
-          maxHeight: "78%",
-        }}
-        data-testid="editor-stage-frame"
+        className="relative z-[1] flex max-h-[82%] w-full max-w-[min(72%,720px)] items-center justify-center"
+        style={{ aspectRatio: `${width} / ${height}` }}
       >
-        <p
-          className="text-[18px] font-semibold tracking-tight text-[var(--fg-primary)]"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          {projectName}
-        </p>
-        <p className="mt-2 max-w-[18rem] text-center text-[12px] leading-relaxed text-[var(--fg-muted)]">
-          Remotion Player + RenderSnapshot sẽ gắn tại đây (PR2). Overlay hit-test
-          nằm ngoài composition (PR3).
-        </p>
-        <p className="mt-4 text-[10px] uppercase tracking-[0.14em] text-[var(--accent-text)]">
-          {width} × {height}
-        </p>
+        <RemotionPreview project={project} width={width} height={height} />
       </div>
     </main>
   );

@@ -17,12 +17,15 @@ test.describe("web smoke", () => {
     ).toBeVisible();
   });
 
-  test("editor shell scaffold loads for seeded project", async ({ page }) => {
+  test("editor shell with Remotion stage loads for seeded project", async ({
+    page,
+  }) => {
     await page.goto("/app");
     await page.getByRole("button", { name: /Dọc 9:16/i }).click();
     await expect(page).toHaveURL(/\/app\/editor\//);
     await expect(page.getByTestId("editor-shell")).toBeVisible();
     await expect(page.getByTestId("editor-stage")).toBeVisible();
+    await expect(page.getByTestId("editor-stage-frame")).toBeVisible();
     await expect(page.getByTestId("editor-timeline")).toBeVisible();
     await expect(page.getByTestId("editor-ask-ai")).toBeVisible();
   });

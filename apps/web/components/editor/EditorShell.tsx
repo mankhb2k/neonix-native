@@ -30,7 +30,7 @@ export function EditorShell({ initialSnapshot }: Props) {
     >
       <EditorTopBar projectName={name} projectId={project.metadata.id} />
       <LeftRail />
-      <StageViewport projectName={name} width={width} height={height} />
+      <StageViewport project={project} width={width} height={height} />
       <SchemaInspector />
       <MinimalTimeline />
       <AskAIBar />
