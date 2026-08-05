@@ -15,6 +15,9 @@ export type CapabilityColumn =
 
 export type CapabilityStatus = "yes" | "partial" | "no" | "planned";
 
+/** Bump when wave-1 ledger columns change for AI prompts. */
+export const CAPABILITY_MANIFEST_VERSION = "wave1.1";
+
 export type CapabilityRow = {
   id: string;
   label: string;
@@ -125,4 +128,15 @@ export function capabilityReadyForAi(row: CapabilityRow): boolean {
 
 export function listAiAllowlistCapabilities(): CapabilityRow[] {
   return WAVE1_CAPABILITY_LEDGER.filter(capabilityReadyForAi);
+}
+
+/** Prompt fragment: wave-1 primitives even while pixi/worker are partial. */
+export function wave1CapabilityPromptBlock(): string {
+  const ids = WAVE1_CAPABILITY_LEDGER.map((r) => r.id).join(", ");
+  return [
+    `Capability manifest ${CAPABILITY_MANIFEST_VERSION}`,
+    `Wave-1 vertical slice: ${ids}`,
+    "Prefer group, text, shape, image + transform/opacity keyframes only.",
+    "Do not invent path/video/mesh/shader capabilities outside the ledger.",
+  ].join("\n");
 }

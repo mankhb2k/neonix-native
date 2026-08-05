@@ -39,6 +39,8 @@ export type AiChangeProposal = {
     seed: string;
     model: string;
     capabilityManifestVersion: string;
+    criticScore?: number;
+    warnings?: string[];
   };
 };
 
@@ -214,13 +216,32 @@ export const useAiJobsStore = create<AiJobsState>((set, get) => ({
         throw new Error(String(result.error ?? "Generation produced no project"));
       }
 
+      const critic = result.critic as
+        | { score?: number; findings?: Array<{ message?: string }> }
+        | undefined;
+      const baseGeneration =
+        (result.generation as AiChangeProposal["generation"]) ?? proposal.generation;
+      const warningList =
+        proposal.warnings?.length
+          ? proposal.warnings
+          : (critic?.findings ?? [])
+              .map((f) => f.message)
+              .filter((m): m is string => Boolean(m));
+
       set({
         phase: "ready",
         progress: 100,
         proposal: {
           ...proposal,
           baseRevision,
-          generation: (result.generation as AiChangeProposal["generation"]) ?? proposal.generation,
+          warnings: warningList,
+          generation: baseGeneration
+            ? {
+                ...baseGeneration,
+                ...(critic?.score != null ? { criticScore: critic.score } : {}),
+                ...(warningList.length ? { warnings: warningList } : {}),
+              }
+            : undefined,
         },
       });
     } catch (error) {

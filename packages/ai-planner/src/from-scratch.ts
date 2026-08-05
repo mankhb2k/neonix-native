@@ -1,11 +1,10 @@
 import { getGrammarForIndustry, grammarPatterns } from "@motionvideo/motion-grammar";
+import { CAPABILITY_MANIFEST_VERSION } from "@motionvideo/motion-runtime";
 import type { CreativeBriefV1, CreativePlanV1, SceneBrief, SceneDesignPlanV1 } from "./contracts";
 import { parseCreativeBriefV1, parseCreativePlanV1, parseSceneDesignPlanV1 } from "./contracts";
 import type { AuthoringCommand, CommandBatchResult, CommandReceipt } from "./commands";
 import { executeCommandBatch } from "./commands";
 
-/** Mirrors docs/fixtures/v2/ai-capability-manifest.json version (R0). */
-const CAPABILITY_MANIFEST_VERSION = "1";
 const AI_MAX_SCENES_DEFAULT = 6;
 
 function hashSeed(input: string): string {

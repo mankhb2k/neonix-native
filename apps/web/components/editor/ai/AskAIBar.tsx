@@ -131,7 +131,17 @@ export function AskAIBar() {
             <p className="mt-1 text-[11px] text-[var(--fg-muted)]">
               baseRevision {proposal.baseRevision} ·{" "}
               {proposal.commandLabels.join(" → ")}
+              {proposal.generation?.criticScore != null
+                ? ` · critic ${proposal.generation.criticScore}`
+                : ""}
             </p>
+            {proposal.warnings.length > 0 ? (
+              <ul className="mt-1.5 list-inside list-disc text-[10px] text-[var(--fg-muted)]">
+                {proposal.warnings.slice(0, 3).map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            ) : null}
             <div className="mt-2.5 flex gap-2">
               <Button
                 variant="primary"

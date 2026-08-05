@@ -1,3 +1,8 @@
+/**
+ * Apply AI proposal into editor store — one undoable transaction.
+ * Merges elementMeta on refine; materializes timeline from sceneOrder.
+ */
+
 import { resolveFitAnchorSeconds } from "@/lib/editor/timeline-fit";
 import {
   selectionClips,
@@ -13,11 +18,43 @@ import { parseMotionProject, type MotionProject } from "@motionvideo/motion-sche
 import { documentFromStoreState } from "@/lib/editor/timeline/document";
 import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import type { WebProjectEnvelope } from "@/lib/editor/authoring/web-project-envelope";
+import type {
+  ElementAuthoringMeta,
+  WebProjectEnvelope,
+} from "@/lib/editor/authoring/web-project-envelope";
 import type {
   EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
+
+export type AiApplyGenerationMeta = NonNullable<
+  WebProjectEnvelope["authoring"]["generation"]
+> & {
+  criticScore?: number;
+  warnings?: string[];
+};
+
+function mergeElementMeta(
+  previous: Record<string, ElementAuthoringMeta>,
+  affectedKeys: string[] | undefined,
+  revision: number,
+): Record<string, ElementAuthoringMeta> {
+  const next = { ...previous };
+  for (const key of affectedKeys ?? []) {
+    const [sceneId, nodeId] = key.split("/");
+    const envelopeKey = `scene:${sceneId ?? "scene"}:${nodeId ?? key}`;
+    const prev = next[envelopeKey];
+    next[envelopeKey] = {
+      origin: "ai",
+      locked: prev?.locked,
+      lockedProperties: prev?.lockedProperties,
+      semanticKey: prev?.semanticKey,
+      userModifiedProperties: prev?.userModifiedProperties,
+      lastEditedRevision: revision,
+    };
+  }
+  return next;
+}
 
 export function applyAiProjectToStore(
   set: EditorStoreSet,
@@ -25,7 +62,7 @@ export function applyAiProjectToStore(
   historyPush: (entry: HistoryEntry) => void,
   projectInput: MotionProject,
   meta?: {
-    generation?: WebProjectEnvelope["authoring"]["generation"];
+    generation?: AiApplyGenerationMeta;
     revision?: number;
     affectedElementKeys?: string[];
     label?: string;
@@ -48,23 +85,35 @@ export function applyAiProjectToStore(
     (lane) => lane.kind === "visual" && lane.role === "base",
   )?.id;
   const firstClip = clips.find((clip) => clip.laneId === mainId) ?? clips[0];
+  const revision = meta?.revision ?? (state.envelope?.revision ?? 0) + 1;
+
+  const previousMeta = state.envelope?.authoring.elementMeta ?? {};
+  const mergedMeta =
+    meta?.affectedElementKeys && meta.affectedElementKeys.length > 0
+      ? mergeElementMeta(previousMeta, meta.affectedElementKeys, revision)
+      : previousMeta;
+
+  const generation = meta?.generation
+    ? {
+        planId: meta.generation.planId,
+        seed: meta.generation.seed,
+        model: meta.generation.model,
+        capabilityManifestVersion: meta.generation.capabilityManifestVersion,
+        ...(meta.generation.criticScore != null
+          ? { criticScore: meta.generation.criticScore }
+          : {}),
+        ...(meta.generation.warnings?.length
+          ? { warnings: meta.generation.warnings }
+          : {}),
+      }
+    : state.envelope?.authoring.generation;
+
   const nextEnvelope: WebProjectEnvelope = {
     id: project.metadata.id,
-    revision: meta?.revision ?? (state.envelope?.revision ?? 0) + 1,
+    revision,
     authoring: {
-      elementMeta: Object.fromEntries(
-        (meta?.affectedElementKeys ?? []).map((key) => {
-          const [sceneId, nodeId] = key.split("/");
-          return [
-            `scene:${sceneId ?? "scene"}:${nodeId ?? key}`,
-            {
-              origin: "ai" as const,
-              lastEditedRevision: meta?.revision ?? 1,
-            },
-          ];
-        }),
-      ),
-      ...(meta?.generation ? { generation: meta.generation } : {}),
+      elementMeta: mergedMeta,
+      ...(generation ? { generation } : {}),
     },
   };
 

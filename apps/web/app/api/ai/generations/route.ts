@@ -200,6 +200,13 @@ export async function POST(request: Request): Promise<Response> {
                   commandLabels: result.receipts.map((r) => `rev${r.revision}`),
                   project: result.project,
                   revision: result.receipts.at(-1)?.revision ?? 1,
+                  generation: {
+                    ...result.generation,
+                    criticScore: result.critic.score,
+                    warnings: result.critic.findings
+                      .filter((f) => f.severity === "warning")
+                      .map((f) => f.message),
+                  },
                 }
               : null,
           });

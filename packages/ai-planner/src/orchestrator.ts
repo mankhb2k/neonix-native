@@ -18,6 +18,7 @@ import {
 import { applyCriticRepair, critiqueProject, type CriticReport } from "./critic";
 import { buildContactSheetPlan, type ContactSheetPlan } from "./contact-sheet";
 import { createModelGateway, type ModelGateway } from "./gateway";
+import { CAPABILITY_MANIFEST_VERSION } from "@motionvideo/motion-runtime";
 import { isModelAllowedCommand, MODEL_BLOCKED_COMMAND_TYPES } from "./model-allowlist";
 import { probeContactSheetPng, type ProbeContactSheetResult } from "./probe-frames";
 
@@ -269,7 +270,7 @@ export async function runZeroTemplateGeneration(input: {
           seed,
           model: modelName,
           promptVersions,
-          capabilityManifestVersion: "1",
+          capabilityManifestVersion: CAPABILITY_MANIFEST_VERSION,
           mode,
         },
         error: "Command batch failed",
@@ -433,7 +434,7 @@ export async function runZeroTemplateGeneration(input: {
         seed,
         model: modelName,
         promptVersions,
-        capabilityManifestVersion: "1",
+        capabilityManifestVersion: CAPABILITY_MANIFEST_VERSION,
         mode,
       },
     };
@@ -479,7 +480,7 @@ export async function runZeroTemplateGeneration(input: {
         seed,
         model: modelName,
         promptVersions,
-        capabilityManifestVersion: "1",
+        capabilityManifestVersion: CAPABILITY_MANIFEST_VERSION,
         mode,
       },
       error: error instanceof Error ? error.message : String(error),

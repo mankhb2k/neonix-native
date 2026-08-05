@@ -24,6 +24,8 @@ export type WebProjectEnvelope = {
       seed: string;
       model: string;
       capabilityManifestVersion: string;
+      criticScore?: number;
+      warnings?: string[];
     };
   };
 };

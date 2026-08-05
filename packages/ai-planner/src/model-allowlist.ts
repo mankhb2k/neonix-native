@@ -1,3 +1,5 @@
+import { wave1CapabilityPromptBlock } from "@motionvideo/motion-runtime";
+
 /**
  * Closed command allowlist for zero-template model generation (P0.2).
  * Unsupported stubs must not appear here.
@@ -48,6 +50,7 @@ export function isModelAllowedCommand(type: string): type is ModelAllowedCommand
 /** Truncated capability summary injected into model prompts. */
 export function modelCapabilityPromptBlock(): string {
   return [
+    wave1CapabilityPromptBlock(),
     "Allowed authoring commands (closed):",
     MODEL_ALLOWED_COMMAND_TYPES.join(", "),
     "Forbidden (unsupported — never emit):",

@@ -1,4 +1,5 @@
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import { CAPABILITY_MANIFEST_VERSION } from "@motionvideo/motion-runtime";
 import { retrieveTemplates, templates } from "@motionvideo/template-library";
 import type { CreativeBriefV1, CreativePlanV1, SceneDesignPlanV1 } from "./contracts";
 import {
@@ -190,7 +191,7 @@ export function planMotionProject(input: PlanRequest | PlanInput): PlanResult | 
           planId,
           seed,
           model: "ai-planner/stub-template@1",
-          capabilityManifestVersion: "1",
+          capabilityManifestVersion: CAPABILITY_MANIFEST_VERSION,
         },
       };
     }
