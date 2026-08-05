@@ -17,8 +17,8 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "MotionVideo",
-  description: "AI TVC motion graphic 2D cho doanh nghiệp Việt",
+  title: "MotiClip",
+  description: "AI Studio — motion graphics 2.5D từ brief đến export",
 };
 
 export default function RootLayout({

@@ -1,82 +1,64 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   MotiClip — editorial motion studio tokens
+   Default dark graphite + amber-copper accent (AI Studio, not CapCut green).
+   ========================================================================== */
+
 :root {
-  /* ========================================================================== */
-  /* 1. Nền (Backgrounds - --bg-*) */
-  /* ========================================================================== */
-  --bg-app: #0e0e10;
-  --bg-panel: #1b1b1a;
-  --bg-elevated: #222226;
-  --bg-surface: #222226;
-  --bg-hover: #2a2a2e;
-  --bg-active: #323238;
+  --bg-app: #12110f;
+  --bg-panel: #1a1916;
+  --bg-elevated: #22211d;
+  --bg-surface: #1e1d1a;
+  --bg-hover: #2a2824;
+  --bg-active: #35322c;
 
-  /* ========================================================================== */
-  /* 2. Chữ & Icon (Foregrounds - --fg-*)  */
-  /* ========================================================================== */
-  --fg-primary: #d6d6d6;
-  --fg-secondary: #cecece;
-  --fg-muted: #808085;
-  --fg-disabled: #45454a;
+  --fg-primary: #ebe6dc;
+  --fg-secondary: #c4bdb0;
+  --fg-muted: #8a8378;
+  --fg-disabled: #524e47;
 
-  /* ========================================================================== */
-  /* 3. Đường viền (Borders - --border-*) */
-  /* ========================================================================== */
-  --border-subtle: var(--bg-app);
-  --border-strong: #3f3f46;
-  --border-focus: #3f9a62;
+  --border-subtle: rgba(235, 230, 220, 0.06);
+  --border-strong: rgba(235, 230, 220, 0.14);
+  --border-focus: #c4843a;
 
-  /* Aliases */
   --line: var(--border-subtle);
   --line-strong: var(--border-strong);
 
-  /* ==========================================================================
-     4. Điểm nhấn & Trạng thái (Accents & Status - --accent-*, --status-*) 
-     ========================================================================== */
-  --accent: #3f9a62;
-  --accent-soft: rgba(
-    63,
-    154,
-    98,
-    0.16
-  ); /* Màu nền mờ của điểm nhấn (cho badge/pill) */
-  --accent-text: #8fd4a8; /* Màu chữ của điểm nhấn */
-  --danger: #d45c5c; /* Màu đỏ báo lỗi/xóa */
-  --warning: #d4a017; /* Màu vàng cảnh báo/gói Pro */
+  --accent: #c4843a;
+  --accent-soft: rgba(196, 132, 58, 0.16);
+  --accent-text: #e0b078;
+  --danger: #d45c5c;
+  --warning: #d4a017;
   --warn: var(--warning);
-  --success: #22c55e; /* Màu xanh lá hoàn thành/đã lưu */
+  --success: #5aad6e;
 
-  /* ==========================================================================
-     5. Component Tokens (Linh kiện UI cụ thể)
-     ========================================================================== */
-  /* Thanh Tab (--tab-*) */
-  --tab-fg: var(--fg-muted); /* màu mặc định (var(--fg-muted)) */
-  --tab-fg-hover: var(--fg-secondary); /* màu rê chuột (var(--fg-secondary)) */
-  --tab-fg-active: var(--fg-primary); /* màu đang chọn (var(--fg-primary)) */
+  --tab-fg: var(--fg-muted);
+  --tab-fg-hover: var(--fg-secondary);
+  --tab-fg-active: var(--fg-primary);
 
-  /* Khung Timeline (--timeline-*) */
-  --timeline-track-lane: #1f1f1e; /* màu nền dải đường băng TrackLane nổi rõ trên nền tối */
-  --timeline-clip-frame: #0f766e; /* màu khối Khung hình (Frame clip) */
-  --timeline-clip-frame-hover: #0d9488; /* màu khối Khung hình khi hover/active */
-  --timeline-clip-audio: #164e63; /* màu khối Audio clip */
-  --timeline-clip-audio-hover: #0891b2; /* màu khối Audio clip khi hover/active */
-  --timeline-playhead: #ffffff; /* màu kim thời gian */
+  --timeline-track-lane: #1c1b18;
+  --timeline-clip-frame: #8a5a28;
+  --timeline-clip-frame-hover: #c4843a;
+  --timeline-clip-audio: #3d4a52;
+  --timeline-clip-audio-hover: #5a6d78;
+  --timeline-playhead: #ebe6dc;
 
-  /* Khung Stage (--stage-*) */
-  --stage-bg: #0c0c0e; /* màu nền canvas xem trước */
+  --stage-bg: #0c0b0a;
+  --preview-bg: #0a0908;
 
-  --preview-bg: #09090b;
-  --radius: 10px;
+  --radius: 8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
 
-  /* 6 Type scale — dùng text-micro | text-caption | text-ui | text-body | text-title | … */
-
+  --fs-micro: 10px;
   --fs-caption: 11px;
   --fs-ui: 12px;
   --fs-body: 13px;
   --fs-title: 13px;
-  --fs-micro: 10px;
   --fs-subtitle: 16px;
   --fs-heading: 18px;
   --fs-display: 24px;
@@ -88,54 +70,47 @@
 
   --lh-tight: 1.25;
   --lh-normal: 1.4;
+
+  --editor-chrome-h: 44px;
+  --editor-ask-h: 56px;
+  --editor-timeline-h: 180px;
+  --editor-left-w: 260px;
+  --editor-right-w: 300px;
 }
 
-/* Light Theme Variables */
 [data-theme="light"],
 .light {
-  /* 1. Nền (Backgrounds) */
-  --bg-app: #f4f4f5;
-  --bg-panel: #f8f8fa;
+  --bg-app: #f3f0ea;
+  --bg-panel: #faf8f4;
   --bg-elevated: #ffffff;
   --bg-surface: #ffffff;
-  --bg-hover: #e4e4e7;
-  --bg-active: #d4d4d8;
+  --bg-hover: #ebe6dc;
+  --bg-active: #ddd6c8;
 
-  /* 2. Chữ & Icon (Foregrounds) */
-  --fg-primary: #09090b;
-  --fg-secondary: #3f3f46;
-  --fg-muted: #71717a;
-  --fg-disabled: #a1a1aa;
+  --fg-primary: #1a1916;
+  --fg-secondary: #3f3c36;
+  --fg-muted: #6e695f;
+  --fg-disabled: #a8a297;
 
-  /* 3. Đường viền (Borders) */
-  --border-subtle: rgba(9, 9, 11, 0.1);
-  --border-strong: rgba(9, 9, 11, 0.2);
-  --border-focus: #d9381e;
+  --border-subtle: rgba(26, 25, 22, 0.08);
+  --border-strong: rgba(26, 25, 22, 0.16);
+  --border-focus: #a86b2e;
 
-  /* Aliases */
   --line: var(--border-subtle);
   --line-strong: var(--border-strong);
 
-  /* 4. Điểm nhấn & Trạng thái (Accents & Status) */
-  --accent: #d9381e;
-  --accent-soft: rgba(217, 56, 30, 0.15);
-  --accent-text: #d9381e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
+  --accent: #a86b2e;
+  --accent-soft: rgba(168, 107, 46, 0.14);
+  --accent-text: #8a5a28;
+  --danger: #c43c3c;
+  --warning: #b8860b;
   --warn: var(--warning);
-  --success: #10b981;
+  --success: #3d8a4e;
 
-  /* 5. Component Tokens (Linh kiện UI cụ thể) */
-  --tab-fg: var(--fg-muted);
-  --tab-fg-hover: var(--fg-secondary);
-  --tab-fg-active: var(--fg-primary);
-
-  --timeline-track-bg: var(--bg-hover);
-  --timeline-playhead: #09090b;
-
-  --stage-bg: #e4e4e7;
-
-  --preview-bg: #e4e4e7;
+  --timeline-track-lane: #ebe6dc;
+  --timeline-playhead: #1a1916;
+  --stage-bg: #ddd6c8;
+  --preview-bg: #ebe6dc;
 }
 
 @theme inline {
@@ -160,6 +135,14 @@
   --font-weight-medium: var(--fw-medium);
   --font-weight-semibold: var(--fw-semibold);
   --font-weight-bold: var(--fw-bold);
+
+  --color-bg-app: var(--bg-app);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-fg-primary: var(--fg-primary);
+  --color-fg-muted: var(--fg-muted);
+  --color-accent: var(--accent);
+  --color-border-subtle: var(--border-subtle);
 }
 
 * {
@@ -177,25 +160,243 @@ body {
   font-size: var(--fs-ui);
   font-weight: var(--fw-regular);
   line-height: var(--lh-normal);
+}
+
+body:has([data-surface="editor"]) {
   overflow: hidden;
 }
 
-/* Custom Scrollbar for Webkit */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 3px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(235, 230, 220, 0.18);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(235, 230, 220, 0.3);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hub / marketing utility classes (unchanged surfaces, token-aware)          */
+/* -------------------------------------------------------------------------- */
+
+.mv-hub {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      rgba(196, 132, 58, 0.12) 0%,
+      transparent 55%
+    ),
+    var(--bg-app);
+  color: var(--fg-primary);
+}
+
+.mv-hub-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.mv-hub-brand {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--fg-primary);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.mv-hub-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mv-hub-nav a,
+.mv-link-btn {
+  color: var(--fg-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-decoration: none;
+}
+
+.mv-hub-nav a:hover,
+.mv-link-btn:hover {
+  color: var(--fg-primary);
+}
+
+.mv-hub-main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.mv-hub-kicker {
+  color: var(--accent-text);
+  font-size: var(--fs-caption);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 0.5rem;
+}
+
+.mv-hub-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0 0 0.75rem;
+}
+
+.mv-hub-lead {
+  color: var(--fg-muted);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 36rem;
+  margin: 0;
+}
+
+.mv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mv-btn-primary {
+  background: var(--accent);
+  color: #1a1208;
+  border-color: transparent;
+}
+
+.mv-btn-primary:hover {
+  background: #d4974a;
+}
+
+.mv-btn-ghost {
+  background: transparent;
+  color: var(--fg-secondary);
+  border-color: var(--border-strong);
+}
+
+.mv-btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Editor surface                                                             */
+/* -------------------------------------------------------------------------- */
+
+[data-surface="editor"] {
+  --editor-atmosphere: radial-gradient(
+    ellipse 90% 60% at 50% 0%,
+    rgba(196, 132, 58, 0.07) 0%,
+    transparent 50%
+  );
+}
+
+.editor-shell {
+  display: grid;
+  grid-template-rows: var(--editor-chrome-h) 1fr var(--editor-timeline-h) var(--editor-ask-h);
+  grid-template-columns: var(--editor-left-w) 1fr var(--editor-right-w);
+  grid-template-areas:
+    "topbar topbar topbar"
+    "left stage right"
+    "timeline timeline timeline"
+    "ask ask ask";
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--editor-atmosphere), var(--bg-app);
+  color: var(--fg-primary);
+}
+
+.editor-area-topbar {
+  grid-area: topbar;
+}
+
+.editor-area-left {
+  grid-area: left;
+}
+
+.editor-area-stage {
+  grid-area: stage;
+}
+
+.editor-area-right {
+  grid-area: right;
+}
+
+.editor-area-timeline {
+  grid-area: timeline;
+}
+
+.editor-area-ask {
+  grid-area: ask;
+}
+
+.editor-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: color-mix(in srgb, var(--bg-panel) 92%, transparent);
+  border: 1px solid var(--border-subtle);
+}
+
+.editor-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  height: 36px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  flex-shrink: 0;
+}
+
+.editor-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.editor-placeholder {
+  color: var(--fg-muted);
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+
+.editor-placeholder strong {
+  color: var(--fg-secondary);
+  font-weight: var(--fw-medium);
 }

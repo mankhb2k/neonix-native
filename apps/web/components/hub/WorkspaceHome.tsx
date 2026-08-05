@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppLink, appHref } from "@/components/AppLink";
-import { DesktopHub, DesktopTitleStrip } from "@/components/desktop/hub";
-import { useIsDesktop } from "@/lib/desktop";
+import { DesktopTitleStrip } from "@/components/hub/DesktopTitleStrip";
 import { NewProjectModal } from "@/components/hub/NewProjectModal";
 import { ProjectList } from "@/components/hub/ProjectList";
 import { createBlankProject } from "@/lib/editor/create-blank-project";
@@ -14,16 +13,12 @@ import { Plus, Smartphone, Tv, Square } from "lucide-react";
 
 export function WorkspaceHome() {
   const router = useRouter();
-  const isDesktop = useIsDesktop();
   const [modalOpen, setModalOpen] = useState(false);
 
-  if (isDesktop) {
-    return <DesktopHub />;
-  }
-
-
-
-  function handleQuickCreate(aspectRatio: "9:16" | "16:9" | "1:1", defaultName: string) {
+  function handleQuickCreate(
+    aspectRatio: "9:16" | "16:9" | "1:1",
+    defaultName: string,
+  ) {
     const project = createBlankProject({
       name: defaultName,
       aspectRatio,
@@ -37,7 +32,7 @@ export function WorkspaceHome() {
       <DesktopTitleStrip />
       <header className="mv-hub-header">
         <AppLink href="/" className="mv-hub-brand">
-          MotionVideo
+          MotiClip
         </AppLink>
         <nav className="mv-hub-nav">
           <button
@@ -54,10 +49,11 @@ export function WorkspaceHome() {
         <p className="mv-hub-kicker">Workspace</p>
         <h1 className="mv-hub-title">Tạo TVC motion 2D tiếng Việt</h1>
         <p className="mv-hub-lead">
-          Đặt tên và chọn tỉ lệ — kéo khung hình vào timeline để bắt đầu.
+          Brief hoặc kịch bản → AI Studio editor. Chỉnh từng element trên stage,
+          không cần After Effects.
         </p>
 
-        <div className="flex flex-wrap items-center gap-3 my-6">
+        <div className="my-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
             className="mv-btn mv-btn-primary flex items-center gap-2"
@@ -67,11 +63,11 @@ export function WorkspaceHome() {
             <span>Tạo dự án mới</span>
           </button>
 
-          <div className="flex items-center gap-2 pl-2 border-l border-[var(--line-strong)]">
+          <div className="flex items-center gap-2 border-l border-[var(--line-strong)] pl-2">
             <button
               type="button"
               onClick={() => handleQuickCreate("9:16", "TikTok Shorts 9:16")}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] transition-all hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
               title="Tạo nhanh dự án dạng dọc"
             >
               <Smartphone size={14} />
@@ -81,7 +77,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("16:9", "YouTube Motion 16:9")}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] transition-all hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
               title="Tạo nhanh dự án dạng ngang"
             >
               <Tv size={14} />
@@ -91,7 +87,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("1:1", "Feed Square 1:1")}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] hover:border-[var(--fg-muted)] hover:text-[var(--fg)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] transition-all hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
               title="Tạo nhanh dự án dạng vuông"
             >
               <Square size={14} />
@@ -106,4 +102,3 @@ export function WorkspaceHome() {
     </div>
   );
 }
-

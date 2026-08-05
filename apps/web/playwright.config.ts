@@ -5,6 +5,12 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // CapCut timeline/stage e2e retired with desktop shell (PR1). Reintroduce in PR3+.
+  testIgnore: [
+    "**/timeline/**",
+    "**/editor-timeline.spec.ts",
+    "**/vite-phase0-screenshots.spec.ts",
+  ],
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

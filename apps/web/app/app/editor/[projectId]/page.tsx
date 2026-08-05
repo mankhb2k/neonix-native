@@ -15,7 +15,6 @@ export default function EditorPage() {
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    // Một lần đọc storage duy nhất cho cả project + timeline (DATA-02).
     const found = loadEditorProjectSnapshot(params.projectId);
     if (!found) {
       setMissing(true);
@@ -26,14 +25,14 @@ export default function EditorPage() {
 
   if (missing) {
     return (
-      <div className="mv-hub">
+      <div className="mv-hub" data-testid="editor-missing">
         <main className="mv-hub-main">
           <h1 className="mv-hub-title">Không tìm thấy dự án</h1>
           <p className="mv-hub-lead">
             Project có thể chỉ lưu trên trình duyệt này. Hãy tạo lại.
           </p>
-          <AppLink href="/projects/new" className="mv-btn mv-btn-primary">
-            Tạo dự án mới
+          <AppLink href="/" className="mv-btn mv-btn-primary mt-6 inline-flex">
+            Về workspace
           </AppLink>
         </main>
       </div>
@@ -42,9 +41,9 @@ export default function EditorPage() {
 
   if (!snapshot) {
     return (
-      <div className="mv-hub">
+      <div className="mv-hub" data-testid="editor-loading">
         <main className="mv-hub-main">
-          <p className="mv-hub-lead">Đang mở editor…</p>
+          <p className="mv-hub-lead">Đang mở AI Studio…</p>
         </main>
       </div>
     );

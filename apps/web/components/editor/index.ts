@@ -1,1 +1,1 @@
-export * from "@/components/desktop/editor/index";
+export { EditorShell } from "./EditorShell";
