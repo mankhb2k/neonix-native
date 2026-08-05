@@ -7,6 +7,7 @@ import {
   type PropertyContext,
   type PropertyDefinition,
 } from "@motionvideo/editor-core";
+import { AskAIBar } from "@/components/editor/ai/AskAIBar";
 import { Panel, Tabs } from "@/components/ui";
 import {
   isPropertyLocked,
@@ -262,8 +263,13 @@ export function SchemaInspector() {
         className="h-full rounded-none border-0"
       >
         <Tabs
-          defaultValue="properties"
+          defaultValue="ai"
           items={[
+            {
+              id: "ai",
+              label: "AI",
+              content: <AskAIBar />,
+            },
             {
               id: "properties",
               label: "Properties",
@@ -319,17 +325,6 @@ export function SchemaInspector() {
                 <div className="p-3">
                   <p className="editor-placeholder">
                     Motion presets / keyframes — mở rộng registry sau.
-                  </p>
-                </div>
-              ),
-            },
-            {
-              id: "ai",
-              label: "AI",
-              content: (
-                <div className="p-3">
-                  <p className="editor-placeholder">
-                    Refine scoped theo selection (PR7).
                   </p>
                 </div>
               ),

@@ -25,10 +25,10 @@ export function ProjectList({ onNewProject }: Props) {
           className="mv-card flex flex-col items-start justify-between cursor-pointer hover:border-[var(--line-strong)] text-left transition-all group"
         >
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#d9381e]/10 text-[#d9381e] group-hover:bg-[#d9381e] group-hover:text-white transition-colors">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[var(--accent-text)] transition-colors group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-on)]">
               <Plus size={16} strokeWidth={2} />
             </span>
-            <h3 className="text-base font-semibold text-[var(--fg)]">Tạo dự án đầu tiên</h3>
+            <h3 className="text-base font-semibold text-[var(--fg-primary)]">Tạo dự án đầu tiên</h3>
           </div>
           <p className="text-xs text-[var(--fg-muted)] mt-2">
             Tạo TVC motion 2D từ template tiếng Việt (9:16, 16:9, 1:1) để bắt đầu biên tập ngay.

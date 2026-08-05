@@ -1,0 +1,12 @@
+{
+  "id": "Z8",
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Quote editorial video",
+  "durationSeconds": 15,
+  "aspectRatio": "9:16",
+  "script": "Clarity is a craft.\nFewer words. Stronger beats.\n— MotiClip Editorial",
+  "language": "en",
+  "brand": { "name": "Editorial", "primaryColor": "#e7e5e4", "secondaryColor": "#0c0a09" },
+  "constraints": { "maxScenes": 3, "mustIncludeCta": true }
+}

@@ -11,7 +11,7 @@ export interface ButtonProps
 
 const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-[var(--accent)] text-[#1a1208] border-transparent hover:brightness-110",
+    "bg-[var(--accent)] text-[var(--accent-on)] border-transparent hover:bg-[var(--accent-hover)] shadow-[var(--shadow-sm)]",
   secondary:
     "bg-[var(--bg-elevated)] text-[var(--fg-primary)] border-[var(--border-strong)] hover:bg-[var(--bg-hover)]",
   ghost:

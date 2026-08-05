@@ -1796,8 +1796,15 @@ function validateClips(
         if (node && !isVariantTrack) issues.push(...validatePropertyPath(node, track.property, "track", trackPath));
         for (let index = 0; index < track.keys.length; index += 1) {
           const key = track.keys[index]!;
-          if (key.t > clip.duration) issues.push({ path: trackPath, message: `Key time ${key.t} exceeds clip duration ${clip.duration}` });
-          if (index > 0 && key.t <= track.keys[index - 1]!.t) {
+          const keyTime = typeof key.t === "number" ? key.t : key.t.offset;
+          const prevTime =
+            index > 0
+              ? typeof track.keys[index - 1]!.t === "number"
+                ? (track.keys[index - 1]!.t as number)
+                : (track.keys[index - 1]!.t as { offset: number }).offset
+              : undefined;
+          if (keyTime > clip.duration) issues.push({ path: trackPath, message: `Key time ${keyTime} exceeds clip duration ${clip.duration}` });
+          if (prevTime !== undefined && keyTime <= prevTime) {
             issues.push({ path: trackPath, message: "Key times must be strictly increasing" });
             break;
           }

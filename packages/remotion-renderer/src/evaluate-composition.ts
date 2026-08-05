@@ -19,6 +19,9 @@ export function evaluateCompositionSnapshot(
     runtime.scenes[0];
   if (!scene) return null;
   const time = frame / Math.max(1, fps);
+  const assetUriById = new Map(
+    runtime.assets.map((asset) => [asset.id, asset.uri] as const),
+  );
   return buildRenderSnapshot({
     scene,
     time,
@@ -26,6 +29,7 @@ export function evaluateCompositionSnapshot(
     width,
     height,
     background,
+    assetUriById,
   });
 }
 

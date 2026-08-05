@@ -67,7 +67,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("9:16", "TikTok Shorts 9:16")}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] transition-all hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
               title="Tạo nhanh dự án dạng dọc"
             >
               <Smartphone size={14} />
@@ -77,7 +77,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("16:9", "YouTube Motion 16:9")}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] transition-all hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
               title="Tạo nhanh dự án dạng ngang"
             >
               <Tv size={14} />
@@ -87,7 +87,7 @@ export function WorkspaceHome() {
             <button
               type="button"
               onClick={() => handleQuickCreate("1:1", "Feed Square 1:1")}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-[var(--line)] bg-[var(--bg-panel)] px-3 py-2 text-xs font-medium text-[var(--fg-muted)] transition-all hover:border-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)]"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3.5 py-2 text-xs font-medium text-[var(--fg-muted)] shadow-[var(--shadow-sm)] transition-all hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] hover:text-[var(--accent-text)]"
               title="Tạo nhanh dự án dạng vuông"
             >
               <Square size={14} />

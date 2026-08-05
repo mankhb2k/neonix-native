@@ -44,11 +44,11 @@ export const MotionComposition: React.FC<MotionCompositionProps> = ({
     return (
       <AbsoluteFill
         style={{
-          background: background ?? "#0c0b0a",
+          background: background ?? "#ffffff",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#8a8378",
+          color: "#6b7285",
           fontSize: 16,
         }}
       >

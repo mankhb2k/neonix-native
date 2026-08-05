@@ -30,6 +30,7 @@ export type RenderItemPayload =
   | {
       kind: "image";
       assetId: string;
+      uri?: string;
       width: number;
       height: number;
     }
@@ -97,7 +98,11 @@ function nodeStyle(node: RuntimeNode): { fill?: unknown } | undefined {
   return undefined;
 }
 
-function payloadForNode(node: RuntimeNode, evaluated: EvaluatedNode): RenderItemPayload {
+function payloadForNode(
+  node: RuntimeNode,
+  evaluated: EvaluatedNode,
+  assetUriById?: Map<string, string> | Record<string, string>,
+): RenderItemPayload {
   const { width, height } = evaluated.transform;
   const style = nodeStyle(node);
   switch (node.type) {
@@ -150,9 +155,30 @@ function payloadForNode(node: RuntimeNode, evaluated: EvaluatedNode): RenderItem
       const imageNode = node as RuntimeNode & {
         payload: { assetId: string };
       };
+      const uri =
+        assetUriById instanceof Map
+          ? assetUriById.get(imageNode.payload.assetId)
+          : assetUriById?.[imageNode.payload.assetId];
       return {
         kind: "image",
         assetId: imageNode.payload.assetId,
+        ...(uri ? { uri } : {}),
+        width,
+        height,
+      };
+    }
+    case "svg": {
+      const svgNode = node as RuntimeNode & {
+        payload: { assetId: string };
+      };
+      const uri =
+        assetUriById instanceof Map
+          ? assetUriById.get(svgNode.payload.assetId)
+          : assetUriById?.[svgNode.payload.assetId];
+      return {
+        kind: "image",
+        assetId: svgNode.payload.assetId,
+        ...(uri ? { uri } : {}),
         width,
         height,
       };
@@ -165,7 +191,7 @@ function payloadForNode(node: RuntimeNode, evaluated: EvaluatedNode): RenderItem
 }
 
 function isDrawable(type: string): boolean {
-  return type === "text" || type === "shape" || type === "solid" || type === "image" || type === "group";
+  return type === "text" || type === "shape" || type === "solid" || type === "image" || type === "svg" || type === "group";
 }
 
 /**
@@ -179,6 +205,8 @@ export function buildRenderSnapshot(input: {
   width: number;
   height: number;
   background?: string;
+  /** Optional asset uri lookup for painters (image/svg). */
+  assetUriById?: Map<string, string> | Record<string, string>;
 }): RenderSnapshot {
   const evaluated = evaluateScene(input.scene, input.time);
   const ordered = [...evaluated].sort((a, b) => {
@@ -205,7 +233,7 @@ export function buildRenderSnapshot(input: {
       selectable: item.visible && item.worldOpacity > 0.01,
       locked: false,
       renderOrder: renderOrder++,
-      payload: payloadForNode(item.node, item),
+      payload: payloadForNode(item.node, item, input.assetUriById),
       depth: item.depth,
       projectedOffset: item.projectedOffset,
     });

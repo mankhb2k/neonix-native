@@ -46,6 +46,17 @@ export function critiqueProject(project: MotionProject): CriticReport {
   }
 
   for (const scene of project.scenes) {
+    if (scene.nodes.length === 0) {
+      findings.push({
+        code: "empty_scene",
+        severity: "error",
+        path: `scenes.${scene.id}`,
+        message: `Scene ${scene.id} has no nodes`,
+        repairHint: "addNode with on-screen copy",
+      });
+      score -= 25;
+    }
+
     const safe = project.metadata.safeArea;
     for (const node of scene.nodes) {
       if (node.type !== "text") continue;
@@ -132,6 +143,35 @@ export function applyCriticRepair(project: MotionProject, finding: CriticFinding
       if (node.type === "text") {
         node.semantic = { role: "cta", key: "cta.copy", tags: [] };
       }
+    }
+  }
+  if (finding.code === "empty_scene") {
+    const match = /^scenes\.([^.]+)$/.exec(finding.path);
+    const scene = next.scenes.find((item) => item.id === match?.[1]);
+    if (scene && scene.nodes.length === 0) {
+      scene.nodes.push({
+        id: `node.repair.${scene.id}`,
+        type: "text",
+        parentId: null,
+        transform: {
+          x: 540,
+          y: 960,
+          width: 900,
+          height: 120,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0.5,
+          anchorY: 0.5,
+          opacity: 1,
+          visible: true,
+          flipX: false,
+          flipY: false,
+        },
+        payload: { text: "Continue", fontSize: 48, align: "center" },
+        style: { fill: "#ffffff" },
+        semantic: { role: "hook", key: "hook.copy", tags: [] },
+      });
     }
   }
   return next;

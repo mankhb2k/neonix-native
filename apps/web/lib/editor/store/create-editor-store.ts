@@ -32,6 +32,7 @@ import {
   togglePropertyLock,
 } from "@/lib/editor/authoring/web-project-envelope";
 import { executePropertyCommand } from "@motionvideo/editor-core";
+import { applyAiProjectToStore } from "@/lib/editor/ai/apply-ai-project";
 
 export function createEditorStore(initialState?: Partial<EditorStore>) {
   let historyState = createHistoryState();
@@ -74,6 +75,21 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     clearHistory: () => {
       historyState = clearHistory();
       set({ canUndo: false, canRedo: false });
+    },
+    applyAiProject: (project, meta) => {
+      applyAiProjectToStore(
+        set,
+        get,
+        (entry) => {
+          historyState = pushHistory(historyState, entry);
+        },
+        project,
+        meta,
+      );
+      set({
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
     },
     executeTimelineCommand: (command) => {
       const state = get();

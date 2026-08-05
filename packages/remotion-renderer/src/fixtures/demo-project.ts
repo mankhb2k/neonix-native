@@ -15,7 +15,7 @@ export function createDemoMotionProject(): MotionProject {
       locale: "vi-VN",
       brand: {
         name: "MotiClip",
-        primaryColor: "#c4843a",
+        primaryColor: "#0d9488",
         fontFamily: "Be Vietnam Pro",
       },
     },
@@ -51,7 +51,7 @@ export function createDemoMotionProject(): MotionProject {
               flipY: false,
             },
             payload: { shape: "rectangle" },
-            style: { fill: "#12110f" },
+            style: { fill: "#ffffff" },
           },
           {
             id: "node.group",
@@ -98,7 +98,7 @@ export function createDemoMotionProject(): MotionProject {
               flipY: false,
             },
             payload: { shape: "rectangle", cornerRadius: 24 },
-            style: { fill: "#c4843a" },
+            style: { fill: "#0d9488" },
           },
           {
             id: "node.title",
@@ -127,7 +127,7 @@ export function createDemoMotionProject(): MotionProject {
               fontWeight: 700,
               align: "center",
             },
-            style: { fill: "#ebe6dc" },
+            style: { fill: "#0f1419" },
           },
           {
             id: "node.dot",
@@ -151,7 +151,7 @@ export function createDemoMotionProject(): MotionProject {
               flipY: false,
             },
             payload: { shape: "ellipse" },
-            style: { fill: "#e0b078" },
+            style: { fill: "#2dd4bf" },
           },
         ],
         clips: [],

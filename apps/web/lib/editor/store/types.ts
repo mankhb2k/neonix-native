@@ -176,6 +176,16 @@ export type EditorStoreActions = {
     propertyPath: string,
     locked: boolean,
   ) => void;
+  /** Apply AI generation/refine project with undoable history + generation envelope. */
+  applyAiProject: (
+    project: MotionProject,
+    meta?: {
+      generation?: WebProjectEnvelope["authoring"]["generation"];
+      revision?: number;
+      affectedElementKeys?: string[];
+      label?: string;
+    },
+  ) => void;
 };
 
 export type EditorStore = EditorStoreState & EditorStoreActions;

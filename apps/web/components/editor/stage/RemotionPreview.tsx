@@ -20,6 +20,8 @@ type Props = {
   height: number;
 };
 
+const BOARD_BG = "#ffffff";
+
 export function RemotionPreview({ project, width, height }: Props) {
   const { runtime, sceneId, fps, usingDemo, snapshot } = useMemo(() => {
     const preview = resolvePreviewProject(project);
@@ -44,7 +46,7 @@ export function RemotionPreview({ project, width, height }: Props) {
 
   return (
     <div
-      className="relative h-full w-full overflow-hidden rounded-[var(--radius)] border border-[var(--border-strong)] bg-[#0a0908] shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+      className="relative h-full w-full overflow-hidden bg-[var(--preview-bg)]"
       data-testid="editor-stage-frame"
     >
       <Player
@@ -54,13 +56,13 @@ export function RemotionPreview({ project, width, height }: Props) {
           sceneId,
           width,
           height,
-          background: "#0c0b0a",
+          background: BOARD_BG,
         }}
         durationInFrames={durationInFrames}
         compositionWidth={width}
         compositionHeight={height}
         fps={fps}
-        style={{ width: "100%", height: "100%" }}
+        style={{ width: "100%", height: "100%", background: BOARD_BG }}
         controls={false}
         clickToPlay={false}
         doubleClickToFullscreen={false}
@@ -71,8 +73,8 @@ export function RemotionPreview({ project, width, height }: Props) {
         compositionHeight={height}
       />
       {usingDemo ? (
-        <p className="pointer-events-none absolute bottom-3 left-3 right-3 z-[3] text-center text-[10px] uppercase tracking-[0.12em] text-[var(--accent-text)]">
-          Demo fixture · blank project — click to select (PR3)
+        <p className="pointer-events-none absolute bottom-3 left-3 right-3 z-[3] text-center text-[10px] uppercase tracking-[0.1em] text-[var(--fg-muted)]">
+          Demo · blank project — click to select
         </p>
       ) : null}
     </div>

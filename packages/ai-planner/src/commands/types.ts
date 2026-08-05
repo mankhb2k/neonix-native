@@ -279,6 +279,106 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       fps: z.number().int().positive().max(60).optional(),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("registerAsset"),
+      asset: z.discriminatedUnion("assetType", [
+        z
+          .object({
+            id: Id,
+            assetType: z.literal("image"),
+            uri: z.string().min(1).max(2_048),
+            mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+            width: z.number().int().positive().max(16_384),
+            height: z.number().int().positive().max(16_384),
+            pixelFormat: z.string().min(1).max(32),
+            hasAlpha: z.boolean(),
+            integrity: z.string().min(1).max(128).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            id: Id,
+            assetType: z.literal("svg"),
+            uri: z.string().min(1).max(2_048),
+            mimeType: z.literal("image/svg+xml"),
+            width: z.number().int().positive().max(16_384),
+            height: z.number().int().positive().max(16_384),
+            viewBox: z.string().min(1).max(128),
+            sanitized: z.literal(true),
+            integrity: z.string().min(1).max(128).optional(),
+          })
+          .strict(),
+      ]),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("addImageNode"),
+      sceneId: Id,
+      nodeId: Id,
+      assetId: Id,
+      parentId: Id.nullable().optional(),
+      transform: TransformPatchSchema.optional(),
+      fit: z.enum(["contain", "cover", "fill", "none"]).optional(),
+      crop: z
+        .object({
+          x: Finite.min(0).max(1),
+          y: Finite.min(0).max(1),
+          width: Finite.positive().max(1),
+          height: Finite.positive().max(1),
+        })
+        .strict()
+        .optional(),
+      semanticRole: z.string().min(1).max(64).optional(),
+      semanticKey: z.string().min(1).max(128).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("addSvgNode"),
+      sceneId: Id,
+      nodeId: Id,
+      assetId: Id,
+      parentId: Id.nullable().optional(),
+      transform: TransformPatchSchema.optional(),
+      fit: z.enum(["contain", "cover", "fill", "none"]).optional(),
+      crop: z
+        .object({
+          x: Finite.min(0).max(1),
+          y: Finite.min(0).max(1),
+          width: Finite.positive().max(1),
+          height: Finite.positive().max(1),
+        })
+        .strict()
+        .optional(),
+      semanticRole: z.string().min(1).max(64).optional(),
+      semanticKey: z.string().min(1).max(128).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("setNodePayload"),
+      sceneId: Id,
+      nodeId: Id,
+      payload: z.record(z.unknown()),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("setSceneTransition"),
+      sceneId: Id,
+      transition: z.discriminatedUnion("type", [
+        z.object({ type: z.literal("cut"), duration: z.literal(0).optional() }).strict(),
+        z
+          .object({
+            type: z.enum(["fade", "crossfade"]),
+            duration: Finite.positive().max(30),
+          })
+          .strict(),
+      ]),
+    })
+    .strict(),
 ]);
 
 export const CommandBatchSchema = z

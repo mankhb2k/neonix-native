@@ -17,7 +17,7 @@ export default function MarketingHomePage() {
         maxWidth: 760,
         margin: "0 auto",
         background:
-          "radial-gradient(ellipse 70% 45% at 50% -5%, #232329 0%, transparent 60%)",
+          "radial-gradient(ellipse 70% 45% at 20% -5%, rgba(13,148,136,0.14) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 90% 10%, rgba(2,132,199,0.1) 0%, transparent 50%)",
       }}
     >
       <p
@@ -26,6 +26,7 @@ export default function MarketingHomePage() {
           color: "var(--accent-text)",
           letterSpacing: "0.06em",
           marginBottom: "1rem",
+          fontWeight: 600,
         }}
       >
         {APP_NAME}
@@ -37,6 +38,7 @@ export default function MarketingHomePage() {
           lineHeight: 1.1,
           letterSpacing: "-0.03em",
           margin: "0 0 1rem",
+          color: "var(--fg-primary)",
         }}
       >
         TVC motion 2D

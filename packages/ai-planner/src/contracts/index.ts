@@ -89,7 +89,7 @@ export const EntranceStyleSchema = z.enum(["fade", "fade-up", "scale", "slide", 
 export const ExitStyleSchema = z.enum(["fade", "scale", "slide"]);
 export const EmphasisStyleSchema = z.enum(["pulse", "shake", "flash"]);
 export const CameraStyleSchema = z.enum(["zoom-in", "zoom-out", "pan", "static"]);
-export const TransitionStyleSchema = z.enum(["cut", "fade", "crossfade", "push"]);
+export const TransitionStyleSchema = z.enum(["cut", "fade", "crossfade"]);
 
 export const ParallaxLayerIntentSchema = z
   .object({

@@ -74,12 +74,12 @@ export function buildRenderPlan(
     const effects = node.effects ?? [];
     const inflatedBounds = inflateBoundsForEffects(evaluated.worldBounds, effects);
     const isAdjustment = node.type === "adjustment";
-    const groupCompositing =
-      node.type === "group" && node.payload?.compositing?.mode ? node.payload.compositing.mode : undefined;
+    const groupCompositingMode =
+      node.type === "group" ? String(node.payload?.compositing?.mode ?? "pass-through") : "pass-through";
     const needsOffscreen =
-      Boolean(node.mask) || effects.length > 0 || isAdjustment || groupCompositing === "isolate";
+      Boolean(node.mask) || effects.length > 0 || isAdjustment || groupCompositingMode === "isolate";
     const isolation: IsolationMode =
-      needsOffscreen || groupCompositing === "isolate" ? "isolate" : groupCompositing ?? "pass-through";
+      needsOffscreen || groupCompositingMode === "isolate" ? "isolate" : "pass-through";
 
     if (needsOffscreen) {
       const area = Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
@@ -106,7 +106,9 @@ export function buildRenderPlan(
       mask: node.mask,
       effects,
       isAdjustment,
-      ...(groupCompositing ? { groupCompositing } : {}),
+      ...(groupCompositingMode === "isolate" || groupCompositingMode === "pass-through"
+        ? { groupCompositing: groupCompositingMode as "pass-through" | "isolate" }
+        : {}),
     });
   }
 

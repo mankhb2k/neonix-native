@@ -491,7 +491,7 @@ function expandComponents(
               return presetTracks(target, actionClip.source.presetId, 0, actionClip.duration);
             })();
         for (const track of baseTracks) {
-          cycleTracks.push(expandPlaybackTrack(track, { ...actionClip, playback: { ...actionClip.playback, rate: innerRate } }, localStart, action.duration, actionValues));
+          cycleTracks.push(expandPlaybackTrack(track as RuntimeTrack, { ...actionClip, playback: { ...actionClip.playback, rate: innerRate } }, localStart, action.duration, actionValues));
         }
       }
       const mergedCycle = new Map<string, RuntimeTrack>();

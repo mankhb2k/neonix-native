@@ -1,0 +1,12 @@
+{
+  "id": "Z5",
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Before/after comparison",
+  "durationSeconds": 15,
+  "aspectRatio": "1:1",
+  "script": "Before: cluttered slides.\nAfter: clear kinetic story.\nUpgrade your deck.",
+  "language": "en",
+  "brand": { "name": "DeckLift", "primaryColor": "#a855f7", "secondaryColor": "#1e1b4b" },
+  "constraints": { "maxScenes": 3, "mustIncludeCta": true }
+}

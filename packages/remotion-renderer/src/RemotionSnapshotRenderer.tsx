@@ -1,7 +1,7 @@
 import type { RenderSnapshot, RenderSnapshotItem } from "@motionvideo/motion-runtime";
 import { matrixToCssTransform } from "@motionvideo/motion-runtime";
 import React from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Img } from "remotion";
 
 function SnapshotItemView({ item }: { item: RenderSnapshotItem }) {
   if (!item.visible || item.worldOpacity <= 0) return null;
@@ -74,6 +74,20 @@ function SnapshotItemView({ item }: { item: RenderSnapshotItem }) {
         />
       );
     case "image":
+      if (item.payload.uri) {
+        return (
+          <Img
+            data-render-item-key={item.key}
+            src={item.payload.uri}
+            style={{
+              ...style,
+              width: item.payload.width,
+              height: item.payload.height,
+              objectFit: "contain",
+            }}
+          />
+        );
+      }
       return (
         <div
           data-render-item-key={item.key}
@@ -114,7 +128,7 @@ export function RemotionSnapshotRenderer({
   return (
     <AbsoluteFill
       data-testid="remotion-snapshot-renderer"
-      style={{ background: snapshot.background ?? "#0c0b0a" }}
+      style={{ background: snapshot.background ?? "#ffffff" }}
     >
       {ordered.map((item) => (
         <SnapshotItemView key={item.key} item={item} />

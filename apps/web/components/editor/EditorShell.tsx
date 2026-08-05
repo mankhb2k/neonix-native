@@ -1,10 +1,8 @@
 "use client";
 
-import { AskAIBar } from "@/components/editor/ai/AskAIBar";
 import { SchemaInspector } from "@/components/editor/inspector/SchemaInspector";
 import { LeftRail } from "@/components/editor/left-rail/LeftRail";
 import { StageViewport } from "@/components/editor/stage/StageViewport";
-import { MinimalTimeline } from "@/components/editor/timeline/MinimalTimeline";
 import { EditorTopBar } from "@/components/editor/topbar/EditorTopBar";
 import { useEditorAutosave } from "@/lib/editor/export/use-editor-autosave";
 import { useEditorStore } from "@/lib/editor/editor-store";
@@ -17,7 +15,7 @@ type Props = {
 };
 
 /**
- * AI Studio editor shell (web-architecture §13).
+ * AI Studio editor — 4 vùng: Header · Sidebar · Stage(+timeline) · Inspector(+AI).
  */
 export function EditorShell({ initialSnapshot }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
@@ -47,8 +45,6 @@ export function EditorShell({ initialSnapshot }: Props) {
       <LeftRail />
       <StageViewport project={active} width={width} height={height} />
       <SchemaInspector />
-      <MinimalTimeline />
-      <AskAIBar />
     </div>
   );
 }

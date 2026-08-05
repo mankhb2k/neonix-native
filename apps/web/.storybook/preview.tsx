@@ -11,17 +11,17 @@ const preview: Preview = {
       },
     },
     backgrounds: {
-      default: "dark",
+      default: "light",
       values: [
-        { name: "dark", value: "#0F0F11" },
-        { name: "light", value: "#FFFFFF" },
+        { name: "light", value: "#F5F6F8" },
+        { name: "dark", value: "#12110F" },
       ],
     },
   },
   decorators: [
     (Story, context) => {
       const selectedBg = context.globals.backgrounds?.value;
-      const theme = selectedBg === "#FFFFFF" ? "light" : "dark";
+      const theme = selectedBg === "#12110F" ? "dark" : "light";
 
       return (
         <div
@@ -29,9 +29,9 @@ const preview: Preview = {
           className={theme}
           style={{
             padding: "20px",
-            background: "var(--bg)",
-            color: "var(--fg)",
-            borderRadius: "8px",
+            background: "var(--bg-app)",
+            color: "var(--fg-primary)",
+            borderRadius: "12px",
             minHeight: "100px",
           }}
         >

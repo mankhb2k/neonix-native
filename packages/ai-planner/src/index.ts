@@ -22,7 +22,22 @@ import {
 import { planFromScratch, buildCreativePlanFromBrief, buildSceneDesignFromPlan, buildBlankProjectCommands } from "./from-scratch";
 export { critiqueProject, applyCriticRepair, type CriticReport, type CriticFinding } from "./critic";
 export { buildContactSheetPlan, type ContactSheetPlan, type ContactSheetFrame } from "./contact-sheet";
-export { runGenerationLoop, type GenerationLoopResult } from "./generation-loop";
+export { runGenerationLoop, runGenerationLoopAsync, type GenerationLoopResult } from "./generation-loop";
+export {
+  runZeroTemplateGeneration,
+  runScopedRefine,
+  type ZeroTemplateGenerationResult,
+  type OrchestratorProgress,
+  type OrchestratorPhase,
+} from "./orchestrator";
+export { createModelGateway, StubModelGateway, AnthropicGateway, type ModelGateway } from "./gateway";
+export {
+  MODEL_ALLOWED_COMMAND_TYPES,
+  MODEL_BLOCKED_COMMAND_TYPES,
+  isModelAllowedCommand,
+  modelCapabilityPromptBlock,
+} from "./model-allowlist";
+export { probeContactSheetPng, type ProbeContactSheetResult } from "./probe-frames";
 export { layoutRecipe, LAYOUT_RECIPES, type LayoutRecipeId } from "./commands/layout-recipes";
 
 export type PlanInput = {

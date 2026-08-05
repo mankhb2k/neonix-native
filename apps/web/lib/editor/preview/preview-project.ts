@@ -45,7 +45,7 @@ export function buildPreviewSnapshot(
     frame,
     width,
     height,
-    background: "#0c0b0a",
+    background: "#ffffff",
   });
   assertSnapshotContract(snapshot);
   return snapshot;

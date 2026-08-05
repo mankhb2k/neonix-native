@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import type { MotionProject } from "@motionvideo/motion-schema";
 
 export type AiJobPhase =
   | "idle"
@@ -8,6 +9,7 @@ export type AiJobPhase =
   | "planning"
   | "composing"
   | "validating"
+  | "repairing"
   | "ready"
   | "failed";
 
@@ -28,8 +30,16 @@ export type AiChangeProposal = {
   summary: string;
   affectedElementKeys: string[];
   warnings: string[];
-  /** Mock command labels for UI diff — real typed commands land with ai-planner wire-up. */
   commandLabels: string[];
+  /** Full project replace (generate) or patched project (refine). */
+  project?: MotionProject | null;
+  revision?: number;
+  generation?: {
+    planId: string;
+    seed: string;
+    model: string;
+    capabilityManifestVersion: string;
+  };
 };
 
 type AiJobsState = {
@@ -46,6 +56,7 @@ type AiJobsState = {
     scope: RegenerationScope;
     baseRevision: number;
     selectionLabel?: string;
+    project?: MotionProject | null;
   }) => Promise<void>;
   cancel: () => void;
   applyProposal: () => AiChangeProposal | null;
@@ -54,8 +65,57 @@ type AiJobsState = {
 
 let cancelToken = 0;
 
-async function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function mapPhase(phase: string): AiJobPhase {
+  if (
+    phase === "queued" ||
+    phase === "planning" ||
+    phase === "composing" ||
+    phase === "validating" ||
+    phase === "repairing" ||
+    phase === "ready" ||
+    phase === "failed"
+  ) {
+    return phase;
+  }
+  if (phase === "designing") return "planning";
+  if (phase === "probing") return "validating";
+  return "composing";
+}
+
+async function readSse(
+  response: Response,
+  onPhase: (phase: AiJobPhase, progress: number) => void,
+): Promise<Record<string, unknown>> {
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("No response body");
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: Record<string, unknown> = {};
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() ?? "";
+    for (const chunk of chunks) {
+      const lines = chunk.split("\n");
+      let event = "message";
+      let data = "";
+      for (const line of lines) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        if (line.startsWith("data:")) data += line.slice(5).trim();
+      }
+      if (!data) continue;
+      const parsed = JSON.parse(data) as Record<string, unknown>;
+      if (event === "phase") {
+        onPhase(mapPhase(String(parsed.phase ?? "composing")), Number(parsed.progress ?? 50));
+      }
+      if (event === "result") result = parsed;
+      if (event === "error") throw new Error(String(parsed.error ?? "generation failed"));
+    }
+  }
+  return result;
 }
 
 export const useAiJobsStore = create<AiJobsState>((set, get) => ({
@@ -77,7 +137,7 @@ export const useAiJobsStore = create<AiJobsState>((set, get) => ({
     set({ proposal: null, phase: "idle", progress: 0, prompt: "" });
     return proposal;
   },
-  startGeneration: async ({ prompt, scope, baseRevision, selectionLabel }) => {
+  startGeneration: async ({ prompt, scope, baseRevision, selectionLabel, project }) => {
     const token = ++cancelToken;
     set({
       phase: "queued",
@@ -88,42 +148,88 @@ export const useAiJobsStore = create<AiJobsState>((set, get) => ({
       scope,
     });
 
-    const steps: Array<{ phase: AiJobPhase; progress: number; wait: number }> = [
-      { phase: "planning", progress: 25, wait: 350 },
-      { phase: "composing", progress: 55, wait: 400 },
-      { phase: "validating", progress: 80, wait: 300 },
-      { phase: "ready", progress: 100, wait: 150 },
-    ];
+    try {
+      const isRefine = scope !== "video" && Boolean(project);
+      const response = await fetch("/api/ai/generations", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          isRefine
+            ? {
+                mode: "refine",
+                prompt,
+                scope,
+                baseRevision,
+                selectionKey: selectionLabel,
+                project,
+                stream: false,
+              }
+            : {
+                mode: "generate",
+                prompt,
+                seed: `web_${baseRevision}_${Date.now().toString(36)}`,
+                baseRevision,
+                stream: true,
+                probeFrames: false,
+              },
+        ),
+      });
 
-    for (const step of steps) {
-      await sleep(step.wait);
       if (token !== cancelToken) return;
-      set({ phase: step.phase, progress: step.progress });
+
+      if (!response.ok) {
+        const err = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(err.error || `HTTP ${response.status}`);
+      }
+
+      if (isRefine) {
+        set({ phase: "validating", progress: 70 });
+        const json = (await response.json()) as {
+          ok?: boolean;
+          proposal?: AiChangeProposal;
+          error?: string;
+        };
+        if (token !== cancelToken) return;
+        if (!json.proposal) throw new Error(json.error || "No refine proposal");
+        set({
+          phase: "ready",
+          progress: 100,
+          proposal: {
+            ...json.proposal,
+            scope,
+            baseRevision,
+          },
+        });
+        return;
+      }
+
+      const result = await readSse(response, (phase, progress) => {
+        if (token !== cancelToken) return;
+        set({ phase, progress });
+      });
+      if (token !== cancelToken) return;
+
+      const proposal = result.proposal as AiChangeProposal | null | undefined;
+      if (!proposal?.project) {
+        throw new Error(String(result.error ?? "Generation produced no project"));
+      }
+
+      set({
+        phase: "ready",
+        progress: 100,
+        proposal: {
+          ...proposal,
+          baseRevision,
+          generation: (result.generation as AiChangeProposal["generation"]) ?? proposal.generation,
+        },
+      });
+    } catch (error) {
+      if (token !== cancelToken) return;
+      set({
+        phase: "failed",
+        progress: 100,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
-
-    if (token !== cancelToken) return;
-
-    const target = selectionLabel ?? "project";
-    set({
-      phase: "ready",
-      progress: 100,
-      proposal: {
-        id: `prop_${Date.now().toString(36)}`,
-        baseRevision,
-        scope,
-        summary: `AI đề xuất chỉnh ${scope} cho ${target}: “${prompt.slice(0, 80)}”`,
-        affectedElementKeys:
-          scope === "element" && selectionLabel
-            ? [selectionLabel]
-            : [`scope:${scope}`],
-        warnings: [],
-        commandLabels: [
-          `scope=${scope}`,
-          "validate locks",
-          "dry-run apply",
-          "commit batch",
-        ],
-      },
-    });
   },
 }));

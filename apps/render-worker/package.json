@@ -9,6 +9,7 @@
     "e2e": "tsx src/e2e.ts",
     "benchmark": "tsx src/benchmark.ts",
     "export": "tsx src/cli-export.ts",
+    "contact-sheet": "tsx src/cli-contact-sheet.ts",
     "typecheck": "tsc --noEmit",
     "lint": "echo \"no lint yet\""
   },

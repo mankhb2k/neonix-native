@@ -45,6 +45,7 @@ test.describe("editor acceptance scaffolds", () => {
     const layer = page.getByTestId("layer-row-node.title");
     await expect(layer).toBeVisible();
     await layer.click();
+    await page.getByRole("tab", { name: /^Properties$/i }).click();
     await expect(page.getByTestId("inspector-properties")).toContainText(
       /MotiClip|node\.title|text/i,
     );
@@ -54,13 +55,14 @@ test.describe("editor acceptance scaffolds", () => {
   test("B — lock control is available on selection", async ({ page }) => {
     await page.getByRole("tab", { name: /Layers/i }).click();
     await page.getByTestId("layer-row-node.title").click();
+    await page.getByRole("tab", { name: /^Properties$/i }).click();
     await expect(page.getByTestId("lock-element")).toBeVisible();
     await page.getByTestId("lock-element").click();
     await expect(page.getByTestId("lock-element")).toContainText(/Locked/i);
   });
 
   test("C — Ask AI produces proposal diff", async ({ page }) => {
-    await page.getByTestId("editor-ask-ai").locator("input").fill(
+    await page.getByTestId("editor-ask-ai").locator("textarea").fill(
       "Make the headline punchier",
     );
     await page.getByRole("button", { name: /^Generate$/i }).click();

@@ -545,7 +545,23 @@ function applyOne(
         modifiers.push({
           id: command.modifierId,
           type: "layout",
-          constraint: command.constraint,
+          // Command schema allows optional stack fields; layout modifier requires defaults at compile.
+          constraint: {
+            ...command.constraint,
+            ...(command.constraint.kind === "stack"
+              ? {
+                  gap: command.constraint.gap ?? 0,
+                  padding: command.constraint.padding ?? 0,
+                  align: command.constraint.align ?? "start",
+                }
+              : {}),
+            ...(command.constraint.kind === "grid"
+              ? {
+                  gapX: command.constraint.gapX ?? 0,
+                  gapY: command.constraint.gapY ?? 0,
+                }
+              : {}),
+          } as Extract<NonNullable<MotionNode["modifiers"]>[number], { type: "layout" }>["constraint"],
         });
         node.modifiers = modifiers;
         changedIds.push(command.nodeId);
@@ -883,6 +899,7 @@ function applyOne(
             id: clipId,
             schedule: { kind: "absolute", at: 0 },
             duration: command.duration,
+            playback: { rate: 1, direction: "normal", iterations: 1 },
             source: {
               kind: "tracks",
               tracks: baked.tracks.map((track) => ({
@@ -963,6 +980,186 @@ function applyOne(
             ],
           },
           contactSheet: sheet,
+        };
+      }
+      case "registerAsset": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "registerAsset", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        if (next.assets.some((asset) => asset.id === command.asset.id)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("duplicate_id", `assets.${command.asset.id}`, `Asset already exists: ${command.asset.id}`)],
+            },
+          };
+        }
+        next.assets.push(command.asset as MotionProject["assets"][number]);
+        changedIds.push(command.asset.id);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "addImageNode":
+      case "addSvgNode": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", command.type, "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        if (scene.nodes.some((node) => node.id === command.nodeId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("duplicate_id", `nodes.${command.nodeId}`, `Node already exists: ${command.nodeId}`)],
+            },
+          };
+        }
+        const asset = next.assets.find((item) => item.id === command.assetId);
+        const expectedType = command.type === "addImageNode" ? "image" : "svg";
+        if (!asset || asset.assetType !== expectedType) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                diagnostic(
+                  "unknown_asset",
+                  `nodes.${command.nodeId}.payload.assetId`,
+                  `Asset ${command.assetId} missing or not ${expectedType}`,
+                ),
+              ],
+            },
+          };
+        }
+        const parentId = command.parentId === undefined ? null : command.parentId;
+        if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_parent", `nodes.${command.nodeId}.parentId`, `Unknown parent: ${parentId}`)],
+            },
+          };
+        }
+        const semantic =
+          command.semanticRole || command.semanticKey
+            ? {
+                role: command.semanticRole ?? "content",
+                ...(command.semanticKey ? { key: command.semanticKey } : {}),
+                tags: [] as string[],
+              }
+            : undefined;
+        const node: MotionNode = {
+          id: command.nodeId,
+          type: expectedType,
+          parentId,
+          transform: defaultTransform(command.transform),
+          payload: {
+            assetId: command.assetId,
+            ...(command.fit ? { fit: command.fit } : {}),
+            ...(command.crop ? { crop: command.crop } : {}),
+          },
+          ...(semantic ? { semantic } : {}),
+        };
+        scene.nodes.push(node);
+        changedIds.push(command.nodeId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "setNodePayload": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "setNodePayload", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        const node = scene?.nodes.find((item) => item.id === command.nodeId);
+        if (!scene || !node) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+            },
+          };
+        }
+        node.payload = { ...(node.payload as Record<string, unknown>), ...command.payload } as typeof node.payload;
+        changedIds.push(command.nodeId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "setSceneTransition": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "setSceneTransition", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        scene.transition = command.transition;
+        changedIds.push(command.sceneId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
       case "addComponentInstance":

@@ -1,0 +1,12 @@
+{
+  "id": "Z6",
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Process four steps",
+  "durationSeconds": 20,
+  "aspectRatio": "16:9",
+  "script": "Brief.\nPlan.\nCompose.\nPublish.",
+  "language": "en",
+  "brand": { "name": "FlowOps", "primaryColor": "#14b8a6", "secondaryColor": "#042f2e" },
+  "constraints": { "maxScenes": 4, "mustIncludeCta": true }
+}

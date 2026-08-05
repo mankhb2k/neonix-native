@@ -1,0 +1,12 @@
+{
+  "id": "Z9",
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Event announcement",
+  "durationSeconds": 12,
+  "aspectRatio": "9:16",
+  "script": "Tonight at 8.\nLive launch stream.\nSave your seat.",
+  "language": "en",
+  "brand": { "name": "NightDrop", "primaryColor": "#38bdf8", "secondaryColor": "#020617" },
+  "constraints": { "maxScenes": 3, "mustIncludeCta": true }
+}

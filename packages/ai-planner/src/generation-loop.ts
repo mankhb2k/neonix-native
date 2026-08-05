@@ -4,6 +4,7 @@ import { planFromScratch } from "./from-scratch";
 import { applyCriticRepair, critiqueProject, type CriticReport } from "./critic";
 import { buildContactSheetPlan, type ContactSheetPlan } from "./contact-sheet";
 import type { MotionProject } from "@motionvideo/motion-schema";
+import { runZeroTemplateGeneration, type ZeroTemplateGenerationResult } from "./orchestrator";
 
 export type GenerationLoopResult = {
   project: MotionProject;
@@ -86,7 +87,10 @@ export function runGenerationLoop(input: {
   let critic = critiqueProject(project);
   while (repairs < maxRepairs && Date.now() - started < timeoutMs) {
     const actionable = critic.findings.find(
-      (finding) => finding.code === "text_overflow" || finding.code === "missing_cta",
+      (finding) =>
+        finding.code === "text_overflow" ||
+        finding.code === "missing_cta" ||
+        finding.code === "empty_scene",
     );
     if (!actionable) break;
     const before = critic.score;
@@ -105,4 +109,15 @@ export function runGenerationLoop(input: {
     receipts,
     ok: critic.findings.every((finding) => finding.severity !== "error"),
   };
+}
+
+/** Async zero-template loop via ModelGateway (stub or live). */
+export async function runGenerationLoopAsync(input: {
+  brief: CreativeBriefV1;
+  seed?: string;
+  industry?: string;
+  maxModelRepairs?: number;
+  probeFrames?: boolean;
+}): Promise<ZeroTemplateGenerationResult> {
+  return runZeroTemplateGeneration(input);
 }
