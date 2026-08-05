@@ -1,40 +1,68 @@
 # `@motionvideo/ai-planner`
 
-Lớp **AI Author stub**: brief/brand/script → chọn template → điền text/màu → `MotionProject` đã parse Zod.
+AI-facing contracts and typed authoring commands for Motion Format v2 (R1).
 
-## Vai trò
+## Pipeline
 
 ```text
-PlanInput (brand, industry, script, tags…)
-        ↓
-  retrieve template (template-library)
-        ↓
-  fill scenes / brand
-        ↓
-parseMotionProject → MotionProject
+CreativeBriefV1
+      ↓
+CreativePlanV1  (deterministic stub; optional template prior)
+      ↓
+SceneDesignPlanV1
+      ↓
+ValidatedCommandBatch → executeCommandBatch
+      ↓
+MotionProject v2 (+ generation provenance, outside Runtime IR)
 ```
 
-Internals hiện tại là stub deterministic (không gọi LLM). Giữ signature `planMotionProject` khi thay bằng planner thật — output luôn phải qua schema.
+Default mode is **from-scratch**. Templates are optional retrieval priors (`mode: "template"`).
 
-## API chính
+## API
 
 ```ts
-import { planMotionProject, type PlanInput } from "@motionvideo/ai-planner";
+import {
+  planMotionProject,
+  executeCommandBatch,
+  parseCreativeBriefV1,
+  type PlanRequest,
+  type PlanResult,
+} from "@motionvideo/ai-planner";
 
-const project = planMotionProject({
-  brandName: "Cà Phê Sáng",
-  industry: "fnb",
-  script: "Hook…\nOffer…\nCTA…",
-  templateId: "fnb-hook-offer-cta",
-});
+const result = planMotionProject({
+  brief: {
+    format: "moticlip-creative-brief",
+    formatVersion: 1,
+    objective: "Promote an offer",
+    durationSeconds: 15,
+    aspectRatio: "9:16",
+    script: "Hook.\nOffer.\nCTA.",
+    language: "vi",
+    brand: { name: "Brand", primaryColor: "#D9381E" },
+  },
+  mode: "from-scratch", // default
+  seed: "demo",
+}) as PlanResult;
+
+// result.project — validated MotionProject
+// result.plan / result.sceneDesign — AI artifacts
+// result.generation — planId, seed, model, capabilityManifestVersion
 ```
 
-## Phụ thuộc
+Legacy `PlanInput` (`brandName` / `industry` / `script`) still returns a filled `MotionProject` via template path for back-compat.
 
-- `@motionvideo/motion-schema` — validate output
-- `@motionvideo/template-library` — seed templates
-- `@motionvideo/motion-grammar` — (sẵn cho pattern scene; stub hiện retrieve theo template)
+## Commands
+
+Implemented for blank-project: `createProject`, `setArtDirection`, `addScene`, `setSceneTiming`, `reorderScenes`, `addNode`, `removeNode`, `addTrack`, `validateProject`, `compileProject`, `applyRepairPatch`.
+
+Unsupported R1 stubs return `unsupported_capability` diagnostics (batch rolls back). No silent ignore.
+
+## Fixtures
+
+- Positive/negative AI artifacts: `docs/fixtures/ai/`
+- Validate: `pnpm validate:ai-fixtures`
 
 ## Docs
 
-- Acceptance AI User chỉ sửa public surface: [`docs/product-primitive-acceptance.md`](../../docs/product-primitive-acceptance.md)
+- Roadmap: `v2-refactor.md` §R1 / §5.1–5.3
+- Capability ledger: `docs/fixtures/v2/ai-capability-manifest.json`

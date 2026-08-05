@@ -1,0 +1,12 @@
+{
+  "format": "moticlip-scene-design-plan",
+  "formatVersion": 1,
+  "planId": "bad",
+  "scenes": [
+    {
+      "sceneBriefId": "scene.x",
+      "layout": { "kind": "unknown-layout" },
+      "nodes": []
+    }
+  ]
+}

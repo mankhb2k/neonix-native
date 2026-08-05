@@ -1,0 +1,19 @@
+{
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Promote a coffee brand offer",
+  "audience": "Young urban professionals",
+  "platform": "tiktok",
+  "durationSeconds": 15,
+  "aspectRatio": "9:16",
+  "script": "Wake up better.\n30% off today.\nOrder now.",
+  "language": "vi",
+  "brand": {
+    "name": "Cà Phê Sáng",
+    "primaryColor": "#D9381E"
+  },
+  "constraints": {
+    "mustIncludeCta": true,
+    "maxScenes": 3
+  }
+}

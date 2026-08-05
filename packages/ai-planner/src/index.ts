@@ -1,5 +1,25 @@
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
 import { retrieveTemplates, templates } from "@motionvideo/template-library";
+import type { CreativeBriefV1, CreativePlanV1, SceneDesignPlanV1 } from "./contracts";
+import {
+  parseCreativeBriefV1,
+  parseCreativePlanV1,
+  parseSceneDesignPlanV1,
+  serializeCreativeBriefV1,
+  serializeCreativePlanV1,
+  serializeSceneDesignPlanV1,
+} from "./contracts";
+import {
+  executeCommandBatch,
+  createBlankMotionProject,
+  parseCommandBatch,
+  type CommandBatchResult,
+  type CommandReceipt,
+  type AuthoringCommand,
+  type CommandBatch,
+  type Diagnostic,
+} from "./commands";
+import { planFromScratch, buildCreativePlanFromBrief, buildSceneDesignFromPlan, buildBlankProjectCommands } from "./from-scratch";
 
 export type PlanInput = {
   brandName: string;
@@ -12,11 +32,33 @@ export type PlanInput = {
   templateId?: string;
 };
 
+export type PlanRequest = {
+  brief: CreativeBriefV1 | (Omit<CreativeBriefV1, "format" | "formatVersion"> & { format?: "moticlip-creative-brief"; formatVersion?: 1 });
+  mode?: "from-scratch" | "template";
+  templateId?: string;
+  seed?: string;
+  industry?: string;
+  tags?: string[];
+};
+
+export type PlanResult = {
+  brief: CreativeBriefV1;
+  plan: CreativePlanV1;
+  sceneDesign: SceneDesignPlanV1;
+  project: MotionProject;
+  receipts: CommandReceipt[];
+  generation: {
+    planId: string;
+    seed: string;
+    model: string;
+    capabilityManifestVersion: string;
+  };
+};
+
 /**
- * Stub planner: retrieve template by id/tags/industry, fill brand + script lines.
- * Replace internals with LLM later; keep output validated by Zod.
+ * Legacy template-fill path kept for mode:"template".
  */
-export function planMotionProject(input: PlanInput): MotionProject {
+export function planMotionProjectFromTemplate(input: PlanInput): MotionProject {
   let template =
     input.templateId != null
       ? templates.find((t) => t.id === input.templateId)
@@ -59,7 +101,9 @@ export function planMotionProject(input: PlanInput): MotionProject {
     },
     variables: template.project.variables.map((variable) => {
       if (variable.id === "project.brandName" && variable.type === "string") return { ...variable, value: input.brandName };
-      if (variable.id === "project.primaryColor" && variable.type === "color") return { ...variable, value: input.primaryColor ?? template.project.metadata.brand.primaryColor ?? variable.value };
+      if (variable.id === "project.primaryColor" && variable.type === "color") {
+        return { ...variable, value: input.primaryColor ?? template.project.metadata.brand.primaryColor ?? variable.value };
+      }
       return variable;
     }),
     scenes: template.project.scenes.map((scene) => ({
@@ -79,3 +123,110 @@ export function planMotionProject(input: PlanInput): MotionProject {
 
   return parseMotionProject(project);
 }
+
+function briefFromLegacyInput(input: PlanInput): CreativeBriefV1 {
+  return parseCreativeBriefV1({
+    format: "moticlip-creative-brief",
+    formatVersion: 1,
+    objective: input.brandName,
+    durationSeconds: 15,
+    aspectRatio: input.aspectRatio ?? "9:16",
+    script: input.script,
+    language: "vi",
+    brand: {
+      name: input.brandName,
+      primaryColor: input.primaryColor,
+    },
+  });
+}
+
+/**
+ * AI planner entrypoint.
+ * Default mode is from-scratch (typed commands). Pass mode:"template" for optional retrieval prior.
+ */
+export function planMotionProject(input: PlanRequest | PlanInput): PlanResult | MotionProject {
+  if ("brief" in input) {
+    const mode = input.mode ?? "from-scratch";
+    if (mode === "template") {
+      const brief = parseCreativeBriefV1(input.brief);
+      const project = planMotionProjectFromTemplate({
+        brandName: brief.brand?.name ?? brief.objective.slice(0, 64),
+        industry: input.industry ?? "fnb",
+        script: brief.script,
+        tags: input.tags,
+        aspectRatio: brief.aspectRatio,
+        primaryColor: brief.brand?.primaryColor,
+        templateId: input.templateId,
+      });
+      const plan = buildCreativePlanFromBrief(brief, input.industry ?? "fnb");
+      const seed = input.seed ?? `template_${project.metadata.id}`;
+      const planId = `plan_${seed}`;
+      return {
+        brief,
+        plan,
+        sceneDesign: buildSceneDesignFromPlan(plan, planId),
+        project,
+        receipts: [],
+        generation: {
+          planId,
+          seed,
+          model: "ai-planner/stub-template@1",
+          capabilityManifestVersion: "1",
+        },
+      };
+    }
+
+    const artifacts = planFromScratch({
+      brief: input.brief,
+      seed: input.seed,
+      industry: input.industry,
+    });
+    if (!artifacts.batchResult.ok || !artifacts.batchResult.project) {
+      const errors = artifacts.receipts
+        .flatMap((receipt) => receipt.diagnostics)
+        .filter((item) => item.severity === "error")
+        .map((item) => `${item.code}: ${item.message}`)
+        .join("; ");
+      throw new Error(`From-scratch planning failed: ${errors || "unknown error"}`);
+    }
+    return {
+      brief: artifacts.brief,
+      plan: artifacts.plan,
+      sceneDesign: artifacts.sceneDesign,
+      project: artifacts.batchResult.project,
+      receipts: artifacts.receipts,
+      generation: artifacts.generation,
+    };
+  }
+
+  // Back-compat: legacy PlanInput still returns MotionProject only.
+  return planMotionProjectFromTemplate(input);
+}
+
+export {
+  parseCreativeBriefV1,
+  parseCreativePlanV1,
+  parseSceneDesignPlanV1,
+  serializeCreativeBriefV1,
+  serializeCreativePlanV1,
+  serializeSceneDesignPlanV1,
+  executeCommandBatch,
+  createBlankMotionProject,
+  parseCommandBatch,
+  buildCreativePlanFromBrief,
+  buildSceneDesignFromPlan,
+  buildBlankProjectCommands,
+  planFromScratch,
+  briefFromLegacyInput,
+};
+
+export type {
+  CreativeBriefV1,
+  CreativePlanV1,
+  SceneDesignPlanV1,
+  CommandBatchResult,
+  CommandReceipt,
+  AuthoringCommand,
+  CommandBatch,
+  Diagnostic,
+};
