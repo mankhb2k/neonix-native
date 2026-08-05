@@ -6,6 +6,7 @@ import { LeftRail } from "@/components/editor/left-rail/LeftRail";
 import { StageViewport } from "@/components/editor/stage/StageViewport";
 import { MinimalTimeline } from "@/components/editor/timeline/MinimalTimeline";
 import { EditorTopBar } from "@/components/editor/topbar/EditorTopBar";
+import { useEditorAutosave } from "@/lib/editor/export/use-editor-autosave";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
@@ -21,6 +22,7 @@ type Props = {
 export function EditorShell({ initialSnapshot }: Props) {
   const loadProject = useEditorStore((s) => s.loadProject);
   const project = useEditorStore((s) => s.project);
+  useEditorAutosave();
 
   useEffect(() => {
     loadProject(
