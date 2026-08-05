@@ -9,6 +9,7 @@ import { createProjectLifecycleActions } from "@/lib/editor/store/actions/projec
 import { createSelectionActions } from "@/lib/editor/store/actions/selection-actions";
 import { createUiActions } from "@/lib/editor/store/actions/ui-actions";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
+import { mapNode } from "@/lib/editor/store/internal/scene-utils";
 import type { EditorStore } from "@/lib/editor/store/types";
 import { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
 import { documentFromStoreState } from "@/lib/editor/timeline/document";
@@ -136,6 +137,47 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     markDocumentSaved: () => {
       const { dirtyRevision } = get();
       set({ savedRevision: dirtyRevision });
+    },
+    commitNodeTransform: (sceneId, nodeId, patch) => {
+      const state = get();
+      if (!state.project) return;
+      const beforeDoc = documentFromStoreState(state);
+      if (!beforeDoc) return;
+
+      const nextProject = mapNode(state.project, sceneId, nodeId, (node) => ({
+        ...node,
+        transform: {
+          ...node.transform,
+          x: patch.x ?? node.transform.x,
+          y: patch.y ?? node.transform.y,
+          width: patch.width ?? node.transform.width,
+          height: patch.height ?? node.transform.height,
+          rotation: patch.rotation ?? node.transform.rotation,
+        },
+      }));
+
+      set({
+        project: nextProject,
+        dirtyRevision: state.dirtyRevision + 1,
+      });
+
+      const afterDoc = documentFromStoreState(get());
+      if (!afterDoc) return;
+
+      const entry: HistoryEntry = {
+        id: `hist_${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        label: "set-node-transform",
+        before: beforeDoc,
+        after: afterDoc,
+        beforeSelection: state.selection,
+        afterSelection: state.selection,
+      };
+      historyState = pushHistory(historyState, entry);
+      set({
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
     },
     ...createUiActions(set, get),
     ...createSelectionActions(set, get),

@@ -2,11 +2,8 @@
 
 import { AppLink } from "@/components/AppLink";
 import { Button } from "@/components/ui";
-import {
-  Download,
-  Redo2,
-  Undo2,
-} from "lucide-react";
+import { useEditorStore } from "@/lib/editor/editor-store";
+import { Download, Redo2, Undo2 } from "lucide-react";
 
 type Props = {
   projectName: string;
@@ -14,6 +11,11 @@ type Props = {
 };
 
 export function EditorTopBar({ projectName, projectId }: Props) {
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
+  const canUndo = useEditorStore((s) => s.canUndo);
+  const canRedo = useEditorStore((s) => s.canRedo);
+
   return (
     <header className="editor-area-topbar flex h-[var(--editor-chrome-h)] items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3">
       <div className="flex min-w-0 items-center gap-3">
@@ -38,10 +40,22 @@ export function EditorTopBar({ projectName, projectId }: Props) {
       </div>
 
       <div className="flex items-center gap-1.5">
-        <Button variant="ghost" size="icon" aria-label="Undo" disabled title="Undo (sắp có)">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Undo"
+          disabled={!canUndo}
+          onClick={() => undo()}
+        >
           <Undo2 size={14} />
         </Button>
-        <Button variant="ghost" size="icon" aria-label="Redo" disabled title="Redo (sắp có)">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Redo"
+          disabled={!canRedo}
+          onClick={() => redo()}
+        >
           <Redo2 size={14} />
         </Button>
         <div className="mx-1 h-4 w-px bg-[var(--border-strong)]" />

@@ -149,6 +149,18 @@ export type EditorStoreActions = {
   fitTimeline: () => void;
   /** Mark current dirtyRevision as saved (after successful persist). */
   markDocumentSaved: () => void;
+  /** Stage interaction commit — one history entry per gesture. */
+  commitNodeTransform: (
+    sceneId: string,
+    nodeId: string,
+    patch: {
+      x?: number;
+      y?: number;
+      width?: number;
+      height?: number;
+      rotation?: number;
+    },
+  ) => void;
 };
 
 export type EditorStore = EditorStoreState & EditorStoreActions;
