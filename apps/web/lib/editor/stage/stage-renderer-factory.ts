@@ -54,6 +54,9 @@ export async function createStageRenderer(
         if (!project) return;
         pixi.paintFrame(frameIndex);
       },
+      getLastEvaluatedFrame() {
+        return null;
+      },
       dispose() {
         pixi.dispose();
         project = null;

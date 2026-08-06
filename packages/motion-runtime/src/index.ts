@@ -11,6 +11,7 @@ export * from "./motion-blur";
 export * from "./render-snapshot";
 export * from "./paint-commands";
 export * from "./evaluated-frame";
+export * from "./frame-painter-contract";
 export * from "./capability-ledger";
 export * from "./camera-view";
 export * from "./curve-sampler";

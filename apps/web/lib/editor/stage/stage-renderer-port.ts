@@ -1,11 +1,18 @@
 /**
  * Imperative stage renderer port for web (ported from desktop/gui pattern —
  * no desktop imports). React owns mount/revision; ticks call paintFrame.
+ *
+ * Shape aligned with Desktop `StageRendererPort` and
+ * `@motionvideo/motion-runtime` {@link StageRendererPortShape}.
+ * Target paint path: host evaluates once → {@link EvaluatedFramePainter}.
  */
 
 import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
+import {
+  quantizeTimeToFrame,
+  type StageRendererPortShape,
+} from "@motionvideo/motion-runtime";
 import type {
   MotionProject,
   MotionScene,
@@ -24,16 +31,12 @@ import {
   type PreviewParityNode,
 } from "@/lib/runtime/preview-evaluate";
 
-export type StageRendererPort = {
+export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {
     project: MotionProject;
     clips: TimelineClip[];
     lanes: TimelineLane[];
   }): void;
-  setScale(scale: number): void;
-  setBackground(color: string): void;
-  paintFrame(frameIndex: number): void;
-  dispose(): void;
 };
 
 export type StageRendererBackend = "dom" | "pixi";
@@ -255,6 +258,9 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       applyCanvasChrome();
     },
     paintFrame,
+    getLastEvaluatedFrame() {
+      return null;
+    },
     dispose() {
       clearDomCaches();
       canvas.remove();

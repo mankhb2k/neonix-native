@@ -1,5 +1,10 @@
 /**
  * EvaluatedFrame — single evaluate pass for interaction snapshot + paint buffer.
+ *
+ * Canonical composition entrypoint: {@link evaluateCompositionFrame}.
+ * Scene-local helper: {@link evaluateFrame}.
+ * Painters must consume {@link EvaluatedFramePainter.paintFrame} and must not
+ * re-compile authoring or re-evaluate motion.
  */
 
 import type { RuntimeScene } from "./evaluator";
@@ -33,7 +38,7 @@ export type EvaluateFrameInput = {
 };
 
 /**
- * Evaluate one frame → interaction snapshot + paint commands.
+ * Evaluate one scene-local frame → interaction snapshot + paint commands.
  * Deterministic for the same scene/time/assets.
  */
 export function evaluateFrame(input: EvaluateFrameInput): EvaluatedFrame {

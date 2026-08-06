@@ -140,6 +140,9 @@ export function createCanvasStageRenderer(
       rebuildFrame(frameIndex);
       paint();
     },
+    getLastEvaluatedFrame() {
+      return null;
+    },
     /** Test/contract helper — node count after last rebuild. */
     getPaintStats() {
       return { frameIndex: lastFrame, nodeCount: nodes.length };

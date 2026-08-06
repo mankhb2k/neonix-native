@@ -1,16 +1,78 @@
-import { buildRenderSnapshot, type RenderSnapshot } from "./render-snapshot";
+import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
 import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   resolveTimelineAtTime,
   timelineTotalDuration,
 } from "./resolve-timeline";
+import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
+
+function resolveCompositionEvaluateTarget(
+  runtime: NormalizedMotionProjectV2,
+  frame: number,
+  fps: number,
+  sceneId?: string,
+): {
+  scene: NormalizedMotionProjectV2["scenes"][number];
+  time: number;
+  frame: number;
+} | null {
+  const safeFps = Math.max(1, fps);
+
+  if (sceneId) {
+    const scene =
+      runtime.scenes.find((candidate) => candidate.id === sceneId) ??
+      runtime.scenes[0];
+    if (!scene) return null;
+    return { scene, time: frame / safeFps, frame };
+  }
+
+  const globalTime = frame / safeFps;
+  const resolved = resolveTimelineAtTime(runtime, globalTime);
+  if (!resolved) return null;
+  const scene = runtime.scenes.find((s) => s.id === resolved.sceneId);
+  if (!scene) return null;
+  const localFrame = Math.max(0, Math.round(resolved.localTime * safeFps));
+  return { scene, time: resolved.localTime, frame: localFrame };
+}
+
+/**
+ * Evaluate a composition frame into the shared {@link EvaluatedFrame} contract
+ * (interaction snapshot + paint buffer + diagnostics).
+ *
+ * - When `sceneId` is set: frame is local to that scene.
+ * - When `sceneId` is omitted: frame is global across `timeline.sceneOrder` (hard cuts).
+ *
+ * Preview / export hosts should call this once per tick and feed both painter and overlay.
+ */
+export function evaluateCompositionFrame(
+  runtime: NormalizedMotionProjectV2,
+  frame: number,
+  fps: number,
+  width: number,
+  height: number,
+  sceneId?: string,
+  background?: string,
+): EvaluatedFrame | null {
+  const target = resolveCompositionEvaluateTarget(runtime, frame, fps, sceneId);
+  if (!target) return null;
+  const assetUriById = new Map(
+    runtime.assets.map((asset) => [asset.id, asset.uri] as const),
+  );
+  return evaluateFrame({
+    scene: target.scene,
+    time: target.time,
+    frame: target.frame,
+    width,
+    height,
+    background,
+    assetUriById,
+  });
+}
 
 /**
  * Evaluate a composition frame into a render snapshot (renderer-agnostic).
- *
- * - When `sceneId` is set: frame is local to that scene (legacy / single-scene).
- * - When `sceneId` is omitted: frame is global across `timeline.sceneOrder` (hard cuts).
+ * Derived from {@link evaluateCompositionFrame} so interaction matches paint.
  */
 export function evaluateCompositionSnapshot(
   runtime: NormalizedMotionProjectV2,
@@ -21,43 +83,17 @@ export function evaluateCompositionSnapshot(
   sceneId?: string,
   background?: string,
 ): RenderSnapshot | null {
-  const safeFps = Math.max(1, fps);
-  const assetUriById = new Map(
-    runtime.assets.map((asset) => [asset.id, asset.uri] as const),
-  );
-
-  if (sceneId) {
-    const scene =
-      runtime.scenes.find((candidate) => candidate.id === sceneId) ??
-      runtime.scenes[0];
-    if (!scene) return null;
-    const time = frame / safeFps;
-    return buildRenderSnapshot({
-      scene,
-      time,
+  return (
+    evaluateCompositionFrame(
+      runtime,
       frame,
+      fps,
       width,
       height,
+      sceneId,
       background,
-      assetUriById,
-    });
-  }
-
-  const globalTime = frame / safeFps;
-  const resolved = resolveTimelineAtTime(runtime, globalTime);
-  if (!resolved) return null;
-  const scene = runtime.scenes.find((s) => s.id === resolved.sceneId);
-  if (!scene) return null;
-  const localFrame = Math.max(0, Math.round(resolved.localTime * safeFps));
-  return buildRenderSnapshot({
-    scene,
-    time: resolved.localTime,
-    frame: localFrame,
-    width,
-    height,
-    background,
-    assetUriById,
-  });
+    )?.interaction ?? null
+  );
 }
 
 /**
