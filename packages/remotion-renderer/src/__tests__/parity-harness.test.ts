@@ -4,10 +4,13 @@ import {
   evaluateCompositionFrame,
 } from "@motionvideo/motion-runtime";
 import { createDemoMotionProject } from "@motionvideo/motion-runtime/testing";
-import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
 const LABELS = ["before", "start", "middle", "end", "after"] as const;
+
+function paintFingerprint(commands: unknown): string {
+  return JSON.stringify(commands);
+}
 
 describe("Pixi vs Remotion sampled-frame paint parity", () => {
   it("shares EvaluatedFrame.paint digests across sample points", () => {
@@ -28,13 +31,9 @@ describe("Pixi vs Remotion sampled-frame paint parity", () => {
       const a = evaluateCompositionFrame(runtime, frame, fps, 640, 360);
       const b = evaluateCompositionFrame(runtime, frame, fps, 640, 360);
       expect(a).toBeTruthy();
-      const digA = createHash("sha256")
-        .update(JSON.stringify(a!.paint.commands))
-        .digest("hex");
-      const digB = createHash("sha256")
-        .update(JSON.stringify(b!.paint.commands))
-        .digest("hex");
-      expect(digA).toBe(digB);
+      expect(paintFingerprint(a!.paint.commands)).toBe(
+        paintFingerprint(b!.paint.commands),
+      );
       expect(a!.paint.commands.length).toBeGreaterThan(0);
     }
   });
