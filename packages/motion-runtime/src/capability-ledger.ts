@@ -195,6 +195,22 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       editor: "partial",
     },
   },
+  {
+    id: "audio.render-plan",
+    label: "AudioRenderPlan (trim/offset/gain/fade/rate)",
+    columns: {
+      schema: "yes",
+      command: "partial",
+      compiler: "yes",
+      evaluator: "yes",
+      pixi: "planned",
+      worker: "partial",
+      parity: "planned",
+      editor: "partial",
+    },
+    notes:
+      "Shared AudioRenderPlan in motion-runtime; Remotion adapter + Web Audio planned",
+  },
 ] as const;
 
 export const CAPABILITY_LEDGER: readonly CapabilityRow[] = [

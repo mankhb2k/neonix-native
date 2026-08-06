@@ -7,8 +7,16 @@ export {
 export {
   RenderManifestSchema,
   parseRenderManifest,
+  REMOTION_PIN,
   type RenderManifest,
 } from "./render-manifest";
+export {
+  RENDER_PRESETS,
+  RENDER_PRESET_SPECS,
+  isRenderPresetId,
+  type RenderPresetId,
+  type RenderPresetSpec,
+} from "./render-presets";
 export {
   CreateRenderJobRequestSchema,
   CreateRenderJobResponseSchema,

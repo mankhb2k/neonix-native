@@ -1,51 +1,47 @@
 import { z } from "zod";
 
 /**
- * Minimal RenderManifest stub — expanded in later PRs (Audio/Asset/Lambda).
- * Matches architecture §6.1 shape; fields beyond composition are optional for now.
+ * RenderManifest — full architecture §6.1 contract for Lambda / remotion-site.
  */
+
+export const REMOTION_PIN = "4.0.506" as const;
+
 export const RenderManifestSchema = z.object({
   format: z.literal("moticlip-render-manifest"),
   formatVersion: z.literal(1),
-  projectId: z.string(),
+  projectId: z.string().min(1),
   projectRevision: z.number().int().nonnegative(),
   versions: z.object({
     schema: z.number(),
-    compiler: z.string(),
-    runtime: z.string(),
-    remotion: z.string(),
-    capabilityManifest: z.string(),
+    compiler: z.string().min(1),
+    runtime: z.string().min(1),
+    remotion: z.literal(REMOTION_PIN),
+    capabilityManifest: z.string().min(1),
   }),
   composition: z.object({
     width: z.number().positive(),
     height: z.number().positive(),
     fps: z.number().positive(),
     durationInFrames: z.number().int().positive(),
-    background: z.string(),
+    background: z.string().min(1),
   }),
-  runtime: z
-    .object({
-      url: z.string(),
-      sha256: z.string(),
-    })
-    .optional(),
-  assets: z
-    .array(
-      z.object({
-        id: z.string(),
-        url: z.string(),
-        sha256: z.string(),
-        mimeType: z.string(),
-      }),
-    )
-    .optional(),
-  output: z
-    .object({
-      codec: z.enum(["h264", "h265", "vp9", "prores"]),
-      pixelFormat: z.string(),
-      privacy: z.literal("private"),
-    })
-    .optional(),
+  runtime: z.object({
+    url: z.string().min(1),
+    sha256: z.string().min(1),
+  }),
+  assets: z.array(
+    z.object({
+      id: z.string().min(1),
+      url: z.string().min(1),
+      sha256: z.string().min(1),
+      mimeType: z.string().min(1),
+    }),
+  ),
+  output: z.object({
+    codec: z.enum(["h264", "h265", "vp9", "prores"]),
+    pixelFormat: z.string().min(1),
+    privacy: z.literal("private"),
+  }),
 });
 
 export type RenderManifest = z.infer<typeof RenderManifestSchema>;

@@ -22,7 +22,7 @@ describe("render-contracts", () => {
     expect(progress.jobId).toBe("j1");
   });
 
-  it("parses minimal render manifest", () => {
+  it("parses full render manifest (§6.1)", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
       formatVersion: 1,
@@ -42,7 +42,26 @@ describe("render-contracts", () => {
         durationInFrames: 90,
         background: "#000000",
       },
+      runtime: {
+        url: "https://cdn.example/runtime.json",
+        sha256: "abc",
+      },
+      assets: [
+        {
+          id: "a1",
+          url: "https://cdn.example/a.png",
+          sha256: "def",
+          mimeType: "image/png",
+        },
+      ],
+      output: {
+        codec: "h264",
+        pixelFormat: "yuv420p",
+        privacy: "private",
+      },
     });
     expect(manifest.composition.fps).toBe(30);
+    expect(manifest.assets).toHaveLength(1);
+    expect(manifest.versions.remotion).toBe("4.0.506");
   });
 });

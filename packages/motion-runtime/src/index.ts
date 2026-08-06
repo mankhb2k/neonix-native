@@ -12,6 +12,7 @@ export * from "./render-snapshot";
 export * from "./paint-commands";
 export * from "./evaluated-frame";
 export * from "./frame-painter-contract";
+export * from "./audio-render-plan";
 export * from "./capability-ledger";
 export * from "./camera-view";
 export * from "./curve-sampler";
