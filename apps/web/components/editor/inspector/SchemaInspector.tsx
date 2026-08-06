@@ -414,7 +414,7 @@ export function SchemaInspector() {
   }, [activeProject, selection]);
 
   return (
-    <aside className="min-h-0 border-l border-[var(--border-subtle)] [grid-area:right]">
+    <aside className="min-h-0 border-l-2 border-[var(--border-subtle)] [grid-area:right]">
       <Panel bodyClassName="!p-0" className="h-full rounded-none border-0">
         <Tabs
           defaultValue="ai"

@@ -7,8 +7,8 @@
 
 :root {
   /* --- Backgrounds --- */
-  --bg-app: #f5f6f8;
-  --bg-panel: #f5f3f1;
+  --bg-app: #f4f4f5;
+  --bg-panel: #faf8f6;
   --bg-surface: #f5f3f1;
   --bg-elevated: #ffffff;
   --bg-hover: #e8eaef;
@@ -35,7 +35,7 @@
   --danger: #e11d48;
 
   /* --- Editor surfaces --- */
-  --stage-bg: #f5f3f1;
+  --stage-bg: var(--bg-panel);
   --preview-bg: #ffffff;
 
   /* --- Fonts --- */
@@ -48,7 +48,7 @@
   --fs-body: 13px;
 
   /* --- Editor layout --- */
-  --editor-chrome-h: 48px;
+  --editor-chrome-h: 56px;
   --editor-timeline-h: 168px;
   --editor-left-w: 380px;
   --editor-right-w: 480px;

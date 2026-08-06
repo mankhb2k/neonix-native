@@ -52,7 +52,7 @@ export function StageViewport({ project, width, height }: Props) {
         </div>
       </div>
 
-      <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-panel)]">
+      <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t-2 border-[var(--border-subtle)] bg-[var(--bg-panel)]">
         <MinimalTimeline />
       </div>
     </main>

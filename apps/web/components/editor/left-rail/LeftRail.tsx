@@ -133,7 +133,7 @@ function AssetsPanel() {
 
 export function LeftRail() {
   return (
-    <aside className="min-h-0 border-r border-[var(--border-subtle)] [grid-area:left]">
+    <aside className="min-h-0 border-r-2 border-[var(--border-subtle)] [grid-area:left]">
       <Panel
         bodyClassName="!p-0"
         className="h-full rounded-none border-0"
