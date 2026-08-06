@@ -28,8 +28,9 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
     "@motionvideo/pixi-renderer": "workspace:*",
-    "@motionvideo/render-contracts": "workspace:*",
     "@motionvideo/remotion-renderer": "workspace:*",
+    "@motionvideo/render-contracts": "workspace:*",
+    "@remotion/lambda-client": "4.0.506",
     "@tailwindcss/postcss": "^4.3.3",
     "clsx": "^2.1.1",
     "lucide-react": "^1.25.0",
@@ -37,6 +38,7 @@
     "postcss": "^8.5.22",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.3.3",
     "zustand": "^5.0.14"
