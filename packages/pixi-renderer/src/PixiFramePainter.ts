@@ -328,6 +328,11 @@ export function createPixiFramePainter(
         const h = cmd.height;
         if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
           g.ellipse(w / 2, h / 2, w / 2, h / 2);
+        } else if (cmd.op === "drawShape" && cmd.shape === "polygon") {
+          g.moveTo(w / 2, 0);
+          g.lineTo(0, h);
+          g.lineTo(w, h);
+          g.closePath();
         } else if (cmd.op === "drawShape" && cmd.cornerRadius) {
           g.roundRect(0, 0, w, h, cmd.cornerRadius);
         } else {
