@@ -26,3 +26,37 @@ export {
   lastLaneTopBefore,
   type VisibleLaneWindow,
 } from "./timeline/visible-lane-window";
+export {
+  useClipMove,
+  type UseClipMoveArgs,
+} from "./timeline/use-clip-move";
+export {
+  useClipTrim,
+  type UseClipTrimArgs,
+  type ClipTrimPreview,
+} from "./timeline/use-clip-trim";
+export {
+  useLayerMove,
+  type UseLayerMoveArgs,
+  type LayerMoveSession,
+} from "./timeline/use-layer-move";
+export {
+  useLayerTrim,
+  type UseLayerTrimArgs,
+} from "./timeline/use-layer-trim";
+export {
+  useTimelineSeek,
+  type UseTimelineSeekArgs,
+} from "./timeline/use-timeline-seek";
+export {
+  useTimelineHotkeys,
+  type UseTimelineHotkeysArgs,
+} from "./timeline/use-timeline-hotkeys";
+export type {
+  ClipMoveHost,
+  ClipMoveDropContext,
+  ClipMovePolicyTarget,
+  ClipMoveLaneHitLayout,
+  LayerMoveHost,
+  LayerMoveInsertGap,
+} from "./timeline/gesture-host";

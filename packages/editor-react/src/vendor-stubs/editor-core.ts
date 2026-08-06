@@ -8,7 +8,7 @@ export type TimelineTrackKind = "main" | "overlay" | "audio";
 export type EditorSelection =
   | { kind: "none" }
   | { kind: "clips"; ids: string[] }
-  | { kind: "nodes"; ids: string[] }
+  | { kind: "nodes"; ids: string[]; sceneId?: string }
   | { kind: string; [key: string]: unknown };
 
 export type TimelineClip = {
@@ -17,6 +17,7 @@ export type TimelineClip = {
   startTime: number;
   duration: number;
   kind: string;
+  name?: string;
 };
 
 export type TimelineLane = {
@@ -31,12 +32,31 @@ export type LaneTimelineIndex = {
   [key: string]: unknown;
 };
 
+export type TimelineCommand = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export type DocumentPropertyCommand = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export const MIN_CLIP_SLICE_SEC = 0.05;
+
 export function selectionNone(): EditorSelection {
   return { kind: "none" };
 }
 
 export function selectionClips(ids: string[]): EditorSelection {
   return { kind: "clips", ids };
+}
+
+export function selectionNode(
+  sceneId: string,
+  nodeId: string,
+): EditorSelection {
+  return { kind: "nodes", ids: [nodeId], sceneId };
 }
 
 export function selectedClipIdsFrom(selection: EditorSelection): string[] {
@@ -91,4 +111,11 @@ export function resolveOccupancyAwarePlacement(input: {
   insertOrder?: number | null;
 } {
   return { startTime: input.desiredStart };
+}
+
+export function createClipGroupMovePlan(
+  _doc: { clips: TimelineClip[]; lanes: TimelineLane[] },
+  _groupIds: string[],
+): { resolve: (delta: number) => { valid: boolean } } {
+  return { resolve: () => ({ valid: true }) };
 }

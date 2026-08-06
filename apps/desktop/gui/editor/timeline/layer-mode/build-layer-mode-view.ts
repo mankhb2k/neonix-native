@@ -8,6 +8,7 @@ import {
   type SceneTimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
+import { clampNodeLocalTiming as clampNodeLocalTimingShared } from "@motionvideo/editor-interactions";
 import type { MotionNode, MotionScene } from "@motionvideo/motion-schema";
 import {
   LAYER_LANE_HEIGHT_PX,
@@ -98,18 +99,12 @@ export function clampNodeLocalTiming(
   containerDuration: number,
   minDuration = 0.05,
 ): NodeTimingLocal {
-  const maxEnd = Math.max(minDuration, containerDuration);
-  let nextStart = Number.isFinite(start) ? start : 0;
-  let nextDuration = Number.isFinite(duration) ? duration : minDuration;
-  nextDuration = Math.max(minDuration, nextDuration);
-  nextStart = Math.max(0, nextStart);
-  if (nextStart + nextDuration > maxEnd) {
-    nextStart = Math.max(0, maxEnd - nextDuration);
-  }
-  if (nextStart + nextDuration > maxEnd) {
-    nextDuration = Math.max(minDuration, maxEnd - nextStart);
-  }
-  return { start: nextStart, duration: nextDuration };
+  return clampNodeLocalTimingShared(
+    start,
+    duration,
+    containerDuration,
+    minDuration,
+  );
 }
 
 function nodeDisplayName(node: MotionNode): string {

@@ -25,7 +25,7 @@ import {
   TIMELINE_RULER_HEIGHT_PX,
   TIMELINE_TRACKS_ORIGIN_X,
 } from "../timeline-scale";
-import { clientXToTimelineTime } from "../timeline-seek";
+import { useTimelineSeek } from "@motionvideo/editor-react";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { resolveTimelineSurface } from "../view-model/resolve-timeline-surface";
 import { useVisibleTimeline } from "../view-model/use-visible-timeline";
@@ -214,28 +214,14 @@ export function TimelineViewport({
   const topPadding = verticalInsets.top;
   const contentHeight = verticalInsets.contentHeight;
 
-  const seekToClientX = useCallback(
-    (clientX: number) => {
-      const scroll = tracksScrollRef.current;
-      if (!scroll || disabled || clips.length === 0) return;
-      const time = clientXToTimelineTime(
-        clientX,
-        scroll,
-        layout.pixelsPerSecond,
-        playbackMaxTime,
-        playbackMinTime,
-      );
-      clock.getState().seek(time);
-    },
-    [
-      clock,
-      clips.length,
-      disabled,
-      layout.pixelsPerSecond,
-      playbackMaxTime,
-      playbackMinTime,
-    ],
-  );
+  const seekToClientX = useTimelineSeek({
+    tracksScrollRef,
+    pixelsPerSecond: layout.pixelsPerSecond,
+    maxTime: playbackMaxTime,
+    minTime: playbackMinTime,
+    disabled: disabled || clips.length === 0,
+    onSeek: (time) => clock.getState().seek(time),
+  });
 
   const getPlayheadTime = useCallback(
     () => clock.getState().currentTime,
