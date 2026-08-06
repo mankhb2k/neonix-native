@@ -1,9 +1,10 @@
 /**
  * Pixi ↔ Remotion sampled-frame parity harness.
  *
- * Both backends consume the same EvaluatedFrame.paint from motion-runtime.
- * Samples before/start/middle/end/after, writes digests + PNG artifacts, asserts
- * Remotion MotiClipVideo evaluation yields identical paint digests.
+ * Three layers:
+ * 1. Semantic — shared EvaluatedFrame.paint digest
+ * 2. Structural — compositingFingerprint + Remotion paint tree keys
+ * 3. Visual — canvas still PNG artifacts (CI upload under tmp/parity-*)
  *
  * Usage: pnpm test:parity
  */
@@ -15,10 +16,15 @@ import { fileURLToPath } from "node:url";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   compositionDurationInFrames,
+  compositingFingerprint,
   evaluateCompositionFrame,
   type EvaluatedFrame,
 } from "@motionvideo/motion-runtime";
 import { createDemoMotionProject } from "@motionvideo/motion-runtime/testing";
+import {
+  buildRemotionPaintTree,
+  flattenRemotionDrawables,
+} from "../packages/remotion-renderer/src/build-remotion-paint-tree";
 import { drawSceneFramePaint } from "../apps/render-worker/src/runtime/paint-canvas";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -33,7 +39,9 @@ function paintDigest(frame: EvaluatedFrame): string {
     .slice(0, 16);
 }
 
-function sampleFrames(durationInFrames: number): Record<(typeof SAMPLE_LABELS)[number], number> {
+function sampleFrames(
+  durationInFrames: number,
+): Record<(typeof SAMPLE_LABELS)[number], number> {
   const last = Math.max(0, durationInFrames - 1);
   return {
     before: 0,
@@ -58,7 +66,10 @@ async function main() {
     frame: number;
     digest: string;
     remotionDigest: string;
+    structuralMatch: boolean;
     match: boolean;
+    compositing: ReturnType<typeof compositingFingerprint>;
+    remotionDrawableCount: number;
   }> = [];
 
   for (const label of SAMPLE_LABELS) {
@@ -86,7 +97,31 @@ async function main() {
     const digest = paintDigest(evaluated);
     const remotionDigest = paintDigest(remotionEvaluated!);
     const match = digest === remotionDigest;
-    report.push({ label, frame, digest, remotionDigest, match });
+    const compositing = compositingFingerprint(evaluated.paint);
+    const tree = buildRemotionPaintTree(evaluated.paint);
+    const remotionDrawableCount = flattenRemotionDrawables(tree).length;
+    const drawOps = evaluated.paint.commands.filter((c) =>
+      [
+        "drawText",
+        "drawShape",
+        "drawSolid",
+        "drawImage",
+        "drawPath",
+        "drawVideo",
+      ].includes(c.op),
+    ).length;
+    const structuralMatch = remotionDrawableCount === drawOps;
+
+    report.push({
+      label,
+      frame,
+      digest,
+      remotionDigest,
+      structuralMatch,
+      match,
+      compositing,
+      remotionDrawableCount,
+    });
 
     const scene = runtime.scenes.find((s) => s.id === evaluated.sceneId);
     if (scene) {
@@ -109,17 +144,28 @@ async function main() {
 
   await writeFile(
     path.join(outRoot, "report.json"),
-    `${JSON.stringify({ durationInFrames, samples, report }, null, 2)}\n`,
+    `${JSON.stringify(
+      {
+        durationInFrames,
+        samples,
+        report,
+        layers: ["semantic", "structural", "visual-png"],
+      },
+      null,
+      2,
+    )}\n`,
   );
 
-  const failed = report.filter((row) => !row.match);
+  const failed = report.filter((row) => !row.match || !row.structuralMatch);
   if (failed.length) {
-    console.error("[parity] digest mismatch", failed);
+    console.error("[parity] mismatch", failed);
     process.exit(1);
   }
   console.log(`[parity] ok — artifacts in ${outRoot}`);
   for (const row of report) {
-    console.log(`  ${row.label}@${row.frame} digest=${row.digest}`);
+    console.log(
+      `  ${row.label}@${row.frame} digest=${row.digest} drawables=${row.remotionDrawableCount}`,
+    );
   }
 }
 
