@@ -29,6 +29,7 @@ export const MODEL_ALLOWED_COMMAND_TYPES = [
   "addPathNode",
   "setNodePayload",
   "setSceneTransition",
+  "setSceneBackground",
 ] as const;
 
 /** Server-only — not emitted by model. */

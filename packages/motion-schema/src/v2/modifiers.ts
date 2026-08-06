@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../capabilities";
 import { FiniteNumberSchema, IdSchema } from "./common";
-import { LayoutConstraintSchema } from "./layout";
+import { LayoutConstraintSchema, LayoutItemPolicySchema } from "./layout";
 import { ResolvableValueSchema } from "./values";
 
 export const MotionModifierSchema = z.discriminatedUnion("type", [
@@ -62,5 +62,10 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     id: IdSchema,
     type: z.literal("layout"),
     constraint: LayoutConstraintSchema,
+  }).strict(),
+  z.object({
+    id: IdSchema,
+    type: z.literal("layout-item"),
+    policy: LayoutItemPolicySchema.default({}),
   }).strict(),
 ]);

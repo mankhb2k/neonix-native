@@ -22,14 +22,44 @@ export const RepeaterSchema = z.object({
   timeStagger: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).default(0),
 }).strict();
 
+export const EdgeInsetsSchema = z
+  .object({
+    top: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    right: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    bottom: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    left: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+  })
+  .strict();
+
+export const LayoutItemPolicySchema = z
+  .object({
+    width: z.enum(["fixed", "content", "fill"]).optional(),
+    height: z.enum(["fixed", "content", "fill"]).optional(),
+    grow: FiniteNumberSchema.nonnegative().max(100).optional(),
+    shrink: FiniteNumberSchema.nonnegative().max(100).optional(),
+    alignSelf: z.enum(["auto", "start", "center", "end", "stretch"]).optional(),
+    minWidth: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+    maxWidth: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+    minHeight: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+    maxHeight: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+  })
+  .strict();
+
+const PaddingSchema = z.union([
+  FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+  EdgeInsetsSchema,
+]);
+
 export const LayoutConstraintSchema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("stack"),
       direction: z.enum(["horizontal", "vertical"]),
       gap: FiniteNumberSchema.nonnegative().default(0),
-      padding: FiniteNumberSchema.nonnegative().default(0),
-      align: z.enum(["start", "center", "end"]).default("start"),
+      padding: PaddingSchema.default(0),
+      align: z.enum(["start", "center", "end", "stretch"]).default("start"),
+      justify: z.enum(["start", "center", "end", "space-between"]).default("start"),
+      wrap: z.enum(["none", "wrap"]).optional(),
     })
     .strict(),
   z
@@ -62,3 +92,6 @@ export const LayoutConstraintSchema = z.discriminatedUnion("kind", [
     })
     .strict(),
 ]);
+
+export type EdgeInsets = z.infer<typeof EdgeInsetsSchema>;
+export type LayoutItemPolicy = z.infer<typeof LayoutItemPolicySchema>;

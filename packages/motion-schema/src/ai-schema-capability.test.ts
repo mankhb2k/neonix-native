@@ -28,15 +28,14 @@ describe("Phase 0 AI schema expansion foundation", () => {
     ).toThrow();
   });
 
-  it("records baseline E2E capabilities without guessing coverage %", () => {
-    expect(AI_SCHEMA_CAPABILITY_VERSION).toBe("ai-schema.0");
+  it("records capability matrix with production-ready rows", () => {
+    expect(AI_SCHEMA_CAPABILITY_VERSION).toBe("ai-schema.1");
     const ready = listAiSchemaProductionCapabilities();
     expect(ready.some((r) => r.id === "baseline.hard-cut")).toBe(true);
     expect(ready.some((r) => r.id === "baseline.entrance-preset")).toBe(true);
-    expect(
-      AI_SCHEMA_CAPABILITY_MATRIX.filter((r) => r.phase > 0).every(
-        (r) => !aiSchemaCapabilityReady(r),
-      ),
-    ).toBe(true);
+    expect(ready.some((r) => r.id === "preset.scene-end")).toBe(true);
+    expect(aiSchemaCapabilityReady(AI_SCHEMA_CAPABILITY_MATRIX.find((r) => r.id === "caption.track")!)).toBe(
+      false,
+    );
   });
 });

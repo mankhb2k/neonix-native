@@ -48,7 +48,7 @@ export type PaintCommand =
       alpha: number;
       visible: boolean;
       zIndex: number;
-      blendMode?: "normal" | "multiply" | "screen" | "add";
+      blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
     }
   | {
       op: "drawText";
@@ -62,6 +62,24 @@ export type PaintCommand =
       fillPaint?: PaintFill;
       width: number;
       height: number;
+      fontAssetId?: string;
+      wrap?: "none" | "word" | "character";
+      lineHeight?: number;
+      letterSpacing?: number;
+      maxLines?: number;
+      overflow?: "visible" | "clip" | "ellipsis";
+      runs?: Array<{
+        id: string;
+        text: string;
+        fill?: string;
+        fontAssetId?: string;
+        fontWeight?: number;
+        fontStyle?: "normal" | "italic";
+        fontScale?: number;
+        letterSpacing?: number;
+        highlight?: { fill: string; paddingX?: number; paddingY?: number; radius?: number };
+        sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
+      }>;
       effects?: RuntimeEffect[];
     }
   | {

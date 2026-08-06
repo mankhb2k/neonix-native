@@ -1,6 +1,8 @@
 import {
   NormalizedMotionProjectV2Schema,
+  getTextPayloadPlain,
   segmentTextUnits,
+  setTextPayloadPlain,
   type MotionClip,
   type MotionComponentV2,
   type MotionNode,
@@ -580,7 +582,7 @@ function expandTextAnimators(nodes: MotionNode[]): { nodes: RuntimeNode[]; track
       continue;
     }
     const animator = node.textAnimator;
-    const units = segmentTextUnits(node.payload.text, animator.unit, animator.locale);
+    const units = segmentTextUnits(getTextPayloadPlain(node.payload), animator.unit, animator.locale);
     const horizontal = animator.unit !== "line";
     const cellWidth = horizontal ? node.transform.width / Math.max(1, units.length) : node.transform.width;
     const cellHeight = horizontal ? node.transform.height : node.transform.height / Math.max(1, units.length);
@@ -592,7 +594,7 @@ function expandTextAnimators(nodes: MotionNode[]): { nodes: RuntimeNode[]; track
       delete run.textAnimator;
       delete run.repeat;
       run.id = `${node.id}::${animator.id}::${index}`;
-      run.payload.text = text;
+      run.payload = setTextPayloadPlain(run.payload, text);
       run.transform.x = horizontal ? left + cellWidth * (index + 0.5) : left + cellWidth / 2;
       run.transform.y = horizontal ? top + cellHeight / 2 : top + cellHeight * (index + 0.5);
       run.transform.width = cellWidth;
@@ -668,6 +670,20 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
 export type CompiledProject = NormalizedMotionProjectV2;
 
 export { applyFitText, applyLayoutConstraints } from "./layout-solver";
+export {
+  defaultTextMeasurementProvider,
+  estimateTextSize,
+  type TextMeasurementProvider,
+  type TextMeasureRequest,
+  type TextMeasureResult,
+} from "./text-layout";
+export {
+  compileCaptionTracks,
+  evaluateCaptionStateAtTime,
+  type CompiledCaptionTrack,
+  type CompiledCaptionCue,
+  type ActiveCaptionState,
+} from "./caption-compiler";
 export {
   bakeMotionRecipe,
   isMotionRecipe,

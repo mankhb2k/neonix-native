@@ -55,3 +55,34 @@ export function subtreeBounds(evaluated: EvaluatedNode[], rootId: string, drawab
   visit(root);
   return result;
 }
+
+/** Approximate run hit-test along node width for click-to-edit SourceRef mapping. */
+export function hitTestTextRun(
+  item: EvaluatedNode,
+  point: Point2D,
+  runs: Array<{ id: string; text: string }>,
+): { runId: string; sourceRef: { kind: "text-run"; nodeId: string; runId: string } } | null {
+  if (item.node.type !== "text" || !hitTestNode(item, point)) return null;
+  if (runs.length === 0) return null;
+  const inverse = invertMatrix(item.worldMatrix);
+  if (!inverse) return null;
+  const local = applyMatrix(inverse, point.x, point.y);
+  const total = runs.reduce((sum, run) => sum + Math.max(1, run.text.length), 0);
+  let cursor = 0;
+  for (const run of runs) {
+    const share = Math.max(1, run.text.length) / total;
+    const start = cursor * item.transform.width;
+    const end = (cursor + share) * item.transform.width;
+    cursor += share;
+    if (local.x >= start && local.x <= end) {
+      return {
+        runId: run.id,
+        sourceRef: { kind: "text-run", nodeId: item.node.id, runId: run.id },
+      };
+    }
+  }
+  return {
+    runId: runs[0]!.id,
+    sourceRef: { kind: "text-run", nodeId: item.node.id, runId: runs[0]!.id },
+  };
+}

@@ -1,6 +1,6 @@
 import { MOTION_V2_LIMITS } from "../../capabilities";
 import type { MotionNode } from "../nodes";
-import { segmentTextUnits } from "../nodes/text";
+import { getTextPayloadPlain, segmentTextUnits } from "../nodes/text";
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
 import type { ReferenceIssue } from "./types";
 
@@ -44,7 +44,7 @@ export function validateNodeGraph(nodes: Array<MotionNode>, prefix: string): Ref
   }
   for (const node of nodes) {
     if (node.type !== "text" || !node.textAnimator) continue;
-    const units = segmentTextUnits(node.payload.text, node.textAnimator.unit, node.textAnimator.locale);
+    const units = segmentTextUnits(getTextPayloadPlain(node.payload), node.textAnimator.unit, node.textAnimator.locale);
     if (units.length === 0) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: "Text Animator requires at least one text unit" });
     if (units.length > MOTION_V2_LIMITS.textAnimatorUnits) issues.push({ path: `${prefix}.${node.id}.textAnimator`, message: `Text Animator exceeds unit limit ${MOTION_V2_LIMITS.textAnimatorUnits}` });
     const selectedCount = units.filter((_, index) => {

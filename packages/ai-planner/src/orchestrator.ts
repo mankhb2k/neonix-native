@@ -515,7 +515,7 @@ export async function runScopedRefine(input: {
         type: "setNodePayload",
         sceneId,
         nodeId,
-        payload: { text: input.prompt.slice(0, 200) },
+        payload: { content: { kind: "plain", text: input.prompt.slice(0, 200) } },
       });
     }
   } else {

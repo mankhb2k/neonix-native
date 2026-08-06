@@ -29,7 +29,7 @@ export const NodeBaseSchema = z.object({
   repeat: RepeaterSchema.optional(),
   modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
   effects: z.array(EffectV2Schema).max(MOTION_V2_LIMITS.effectsPerNode).optional(),
-  blendMode: z.enum(["normal", "multiply", "screen", "add"]).optional(),
+  blendMode: z.enum(["normal", "multiply", "screen", "add", "darken", "lighten", "overlay"]).optional(),
   inheritPosition: z.boolean().optional(),
   inheritRotation: z.boolean().optional(),
   inheritScale: z.boolean().optional(),

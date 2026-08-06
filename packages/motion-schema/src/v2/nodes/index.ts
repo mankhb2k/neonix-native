@@ -13,7 +13,20 @@ import {
 
 export { NodeTimingV2Schema, type NodeTimingV2, NodeBaseSchema } from "./base";
 export { PaintStyleSchema, type MotionPaintStyle, FitSchema, CropSchema } from "./paint";
-export { segmentTextUnits, TextNodeV2Schema } from "./text";
+export {
+  segmentTextUnits,
+  TextNodeV2Schema,
+  TextContentSchema,
+  RichTextRunSchema,
+  TextPayloadSchema,
+  textContentPlain,
+  getTextPayloadPlain,
+  setTextPayloadPlain,
+  normalizeTextPayloadInput,
+  type TextContent,
+  type RichTextRun,
+  type TextNodePayload,
+} from "./text";
 export {
   PointV2Schema,
   ShapeNodeV2Schema,

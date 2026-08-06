@@ -33,6 +33,24 @@ export type RenderItemPayload =
       align?: "left" | "center" | "right";
       fill?: string;
       fillPaint?: PaintFill;
+      fontAssetId?: string;
+      wrap?: "none" | "word" | "character";
+      lineHeight?: number;
+      letterSpacing?: number;
+      maxLines?: number;
+      overflow?: "visible" | "clip" | "ellipsis";
+      runs?: Array<{
+        id: string;
+        text: string;
+        fill?: string;
+        fontAssetId?: string;
+        fontWeight?: number;
+        fontStyle?: "normal" | "italic";
+        fontScale?: number;
+        letterSpacing?: number;
+        highlight?: { fill: string; paddingX?: number; paddingY?: number; radius?: number };
+        sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
+      }>;
     }
   | {
       kind: "shape";
@@ -101,7 +119,7 @@ export type RenderSnapshotItem = {
   payload: RenderItemPayload;
   depth: number;
   projectedOffset: { x: number; y: number };
-  blendMode?: "normal" | "multiply" | "screen" | "add";
+  blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
   effects?: RuntimeEffect[];
   /** Compositing scope from {@link buildRenderPlan} — drives beginLayer/endLayer. */
   compositing?: {
@@ -208,18 +226,70 @@ function payloadForNode(
     case "text": {
       const textNode = node as RuntimeNode & {
         payload: {
-          text: string;
+          content?: { kind: "plain"; text: string } | { kind: "runs"; runs: Array<{
+            id: string;
+            text: string;
+            style?: {
+              fill?: string;
+              fontAssetId?: string;
+              fontWeight?: number;
+              fontStyle?: "normal" | "italic";
+              fontScale?: number;
+              letterSpacing?: number;
+              highlight?: { fill: string; paddingX?: number; paddingY?: number; radius?: number };
+            };
+          }> };
+          text?: string;
           fontSize: number;
           fontWeight?: number;
           align?: "left" | "center" | "right";
+          fontAssetId?: string;
+          wrap?: "none" | "word" | "character";
+          lineHeight?: number;
+          letterSpacing?: number;
+          maxLines?: number;
+          overflow?: "visible" | "clip" | "ellipsis";
         };
       };
+      const content = textNode.payload.content;
+      const plain =
+        content?.kind === "plain"
+          ? content.text
+          : content?.kind === "runs"
+            ? content.runs.map((r) => r.text).join("")
+            : (textNode.payload.text ?? "");
+      const runs =
+        content?.kind === "runs"
+          ? content.runs.map((run) => ({
+              id: run.id,
+              text: run.text,
+              fill: run.style?.fill,
+              fontAssetId: run.style?.fontAssetId,
+              fontWeight: run.style?.fontWeight,
+              fontStyle: run.style?.fontStyle,
+              fontScale: run.style?.fontScale,
+              letterSpacing: run.style?.letterSpacing,
+              highlight: run.style?.highlight,
+              sourceRef: {
+                kind: "text-run" as const,
+                nodeId: node.id,
+                runId: run.id,
+              },
+            }))
+          : undefined;
       return {
         kind: "text",
-        text: textNode.payload.text,
+        text: plain,
         fontSize: textNode.payload.fontSize,
         fontWeight: textNode.payload.fontWeight,
         align: textNode.payload.align,
+        fontAssetId: textNode.payload.fontAssetId,
+        wrap: textNode.payload.wrap,
+        lineHeight: textNode.payload.lineHeight,
+        letterSpacing: textNode.payload.letterSpacing,
+        maxLines: textNode.payload.maxLines,
+        overflow: textNode.payload.overflow,
+        ...(runs ? { runs } : {}),
         fill: paint.fill ?? "#ebe6dc",
         ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
       };

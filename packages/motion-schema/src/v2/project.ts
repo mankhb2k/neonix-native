@@ -15,6 +15,7 @@ import {
 import { MotionBlurSettingsSchema, NodeV2Schema } from "./nodes";
 import { JsonValueSchema } from "./values";
 import { ProjectBindingSchema, VariableV2Schema } from "./variables";
+import { CaptionTrackSchema } from "./captions";
 
 export const DesignTokensSchema = z
   .object({
@@ -59,10 +60,47 @@ export const AudioTrackSchema = z
 
 export const SceneTransitionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("cut"), duration: z.literal(0).optional() }).strict(),
-  z.object({
-    type: z.enum(["fade", "crossfade"]),
-    duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
-  }).strict(),
+  z
+    .object({
+      type: z.literal("fade"),
+      duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      color: z.string().min(1).optional(),
+      easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("crossfade"),
+      duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("slide"),
+      duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      direction: z.enum(["left", "right", "up", "down"]),
+      mode: z.enum(["push", "cover"]).default("push"),
+      easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("wipe"),
+      duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      direction: z.enum(["left", "right", "up", "down"]),
+      softness: FiniteNumberSchema.min(0).max(1).optional(),
+      easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("zoom"),
+      duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      direction: z.enum(["in", "out"]),
+      easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).optional(),
+    })
+    .strict(),
 ]);
 
 export const SceneV2Schema = z
@@ -121,6 +159,10 @@ export const MotionProjectV2Schema = z
       .object({
         sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
         audioTracks: z.array(AudioTrackSchema).max(MOTION_V2_LIMITS.audioTracksPerProject).default([]),
+        captionTracks: z
+          .array(CaptionTrackSchema)
+          .max(MOTION_V2_LIMITS.captionTracksPerProject)
+          .default([]),
       })
       .strict(),
     scenes: z.array(SceneV2Schema).max(MOTION_V2_LIMITS.scenesPerProject),

@@ -1,4 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-schema";
+import { getTextPayloadPlain } from "@motionvideo/motion-schema";
 
 export type CriticFinding = {
   code: string;
@@ -62,7 +63,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
       if (node.type !== "text") continue;
       const fontSize = node.payload.fontSize;
       const width = node.transform.width;
-      const text = node.payload.text;
+      const text = getTextPayloadPlain(node.payload);
       const approx = text.length * fontSize * 0.55;
       if (approx > width * 1.05) {
         findings.push({
@@ -131,7 +132,7 @@ export function applyCriticRepair(project: MotionProject, finding: CriticFinding
           maxFontSize: node.payload.fontSize,
         };
         const box = Math.max(1, node.transform.width);
-        const needed = box / Math.max(1, node.payload.text.length * 0.55);
+        const needed = box / Math.max(1, getTextPayloadPlain(node.payload).length * 0.55);
         node.payload.fontSize = Math.min(node.payload.fontSize, Math.max(12, needed));
       }
     }
@@ -168,7 +169,7 @@ export function applyCriticRepair(project: MotionProject, finding: CriticFinding
           flipX: false,
           flipY: false,
         },
-        payload: { text: "Continue", fontSize: 48, align: "center" },
+        payload: { content: { kind: "plain", text: "Continue" }, fontSize: 48, align: "center" },
         style: { fill: "#ffffff" },
         semantic: { role: "hook", key: "hook.copy", tags: [] },
       });

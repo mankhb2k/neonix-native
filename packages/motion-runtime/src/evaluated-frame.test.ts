@@ -54,7 +54,7 @@ function fixtureScene(): RuntimeScene {
           flipX: false,
           flipY: false,
         },
-        payload: { text: "Wave1", fontSize: 24, fontWeight: 700, align: "left" },
+        payload: { content: { kind: "plain", text: "Wave1" }, fontSize: 24, fontWeight: 700, align: "left" },
         style: { fill: "#ffffff" },
       },
     ],

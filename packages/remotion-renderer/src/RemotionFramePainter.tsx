@@ -24,6 +24,10 @@ function baseStyle(transform: PaintTransformState): React.CSSProperties {
   if (!transform.visible || transform.alpha <= 0) {
     return { display: "none" };
   }
+  const blend =
+    transform.blendMode && transform.blendMode !== "normal"
+      ? ({ mixBlendMode: transform.blendMode } as React.CSSProperties)
+      : {};
   return {
     position: "absolute",
     left: 0,
@@ -33,6 +37,7 @@ function baseStyle(transform: PaintTransformState): React.CSSProperties {
     opacity: transform.alpha,
     zIndex: transform.zIndex,
     pointerEvents: "none",
+    ...blend,
   };
 }
 
@@ -89,15 +94,42 @@ function drawableToView(
             fontSize: draw.fontSize,
             fontWeight: draw.fontWeight ?? 600,
             textAlign: draw.align ?? "left",
-            whiteSpace: "pre-wrap",
-            lineHeight: 1.2,
+            whiteSpace: draw.wrap === "none" ? "pre" : "pre-wrap",
+            lineHeight: draw.lineHeight ? `${draw.lineHeight}px` : 1.2,
+            letterSpacing: draw.letterSpacing != null ? `${draw.letterSpacing}px` : undefined,
             width: draw.width || undefined,
+            overflow: draw.overflow === "clip" || draw.overflow === "ellipsis" ? "hidden" : undefined,
+            textOverflow: draw.overflow === "ellipsis" ? "ellipsis" : undefined,
             background: draw.fillPaint
               ? cssFill(draw.fill, draw.fillPaint)
               : undefined,
           }}
         >
-          {draw.text}
+          {draw.runs && draw.runs.length > 0
+            ? draw.runs.map((run) => (
+                <span
+                  key={run.id}
+                  data-source-ref={
+                    run.sourceRef
+                      ? `${run.sourceRef.kind}:${run.sourceRef.nodeId}:${run.sourceRef.runId}`
+                      : undefined
+                  }
+                  style={{
+                    color: run.fill,
+                    fontWeight: run.fontWeight,
+                    fontStyle: run.fontStyle,
+                    letterSpacing: run.letterSpacing,
+                    background: run.highlight?.fill,
+                    padding: run.highlight
+                      ? `${run.highlight.paddingY ?? 0}px ${run.highlight.paddingX ?? 0}px`
+                      : undefined,
+                    borderRadius: run.highlight?.radius,
+                  }}
+                >
+                  {run.text}
+                </span>
+              ))
+            : draw.text}
         </div>
       );
     case "drawShape": {

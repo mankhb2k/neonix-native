@@ -118,7 +118,7 @@ function textNode(
     zIndex: opts?.zIndex ?? 2,
     transform: xform(t),
     payload: {
-      text: payload.text,
+      content: { kind: "plain", text: payload.text },
       fontSize: payload.fontSize,
       fontWeight: payload.fontWeight ?? 600,
       align: payload.align ?? "center",

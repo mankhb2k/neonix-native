@@ -106,6 +106,13 @@ function emitItem(
       ...(payload.fillPaint ? { fillPaint: payload.fillPaint } : {}),
       width: item.worldBounds.width,
       height: item.worldBounds.height,
+      ...(payload.fontAssetId ? { fontAssetId: payload.fontAssetId } : {}),
+      ...(payload.wrap ? { wrap: payload.wrap } : {}),
+      ...(payload.lineHeight != null ? { lineHeight: payload.lineHeight } : {}),
+      ...(payload.letterSpacing != null ? { letterSpacing: payload.letterSpacing } : {}),
+      ...(payload.maxLines != null ? { maxLines: payload.maxLines } : {}),
+      ...(payload.overflow ? { overflow: payload.overflow } : {}),
+      ...(payload.runs ? { runs: payload.runs } : {}),
       ...(effects?.length ? { effects } : {}),
     });
     if (wrapLayer) commands.push({ op: "endLayer", key: item.key });

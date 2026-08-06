@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MOTION_V2_LIMITS,
+  getTextPayloadPlain,
   parseMotionProject,
 } from "@motionvideo/motion-schema";
 import {
@@ -236,7 +237,7 @@ describe("Logic-2 property domain depth", () => {
     const node = result.document.project.scenes[0]!.nodes[0]!;
     expect(node.type).toBe("text");
     if (node.type !== "text") return;
-    expect(node.payload.text).toBe("Hello");
+    expect(getTextPayloadPlain(node.payload)).toBe("Hello");
     expect(node.payload.fontSize).toBe(42);
     expect(node.payload.align).toBe("center");
   });

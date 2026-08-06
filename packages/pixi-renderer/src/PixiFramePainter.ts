@@ -71,7 +71,7 @@ export function applyAffineMatrix(
   alpha: number,
   visible: boolean,
   zIndex: number,
-  blendMode?: "normal" | "multiply" | "screen" | "add",
+  blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay",
 ): void {
   const m = new Matrix(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
   display.setFromMatrix(m);
@@ -81,6 +81,9 @@ export function applyAffineMatrix(
   if (blendMode === "multiply") display.blendMode = "multiply";
   else if (blendMode === "screen") display.blendMode = "screen";
   else if (blendMode === "add") display.blendMode = "add";
+  else if (blendMode === "darken") display.blendMode = "darken";
+  else if (blendMode === "lighten") display.blendMode = "lighten";
+  else if (blendMode === "overlay") display.blendMode = "overlay";
   else display.blendMode = "normal";
 }
 
@@ -289,24 +292,35 @@ export function createPixiFramePainter(
       if (pendingTransform?.key === cmd.key) pendingTransform = null;
 
       if (cmd.op === "drawText") {
+        const displayText =
+          cmd.runs && cmd.runs.length > 0 ? cmd.runs.map((r) => r.text).join("") : cmd.text;
         const text = ensureObject(
           cmd.key,
           "text",
           () =>
             new Text({
-              text: cmd.text,
+              text: displayText,
               style: {
                 fontSize: cmd.fontSize,
                 fill: cmd.fill,
                 align: cmd.align ?? "left",
-                wordWrap: true,
+                wordWrap: cmd.wrap !== "none",
                 wordWrapWidth: Math.max(8, cmd.width),
+                lineHeight: cmd.lineHeight ?? cmd.fontSize * 1.2,
+                letterSpacing: cmd.letterSpacing ?? 0,
               },
             }),
         );
-        text.text = cmd.text;
+        text.text = displayText;
         text.style.fontSize = cmd.fontSize;
-        text.style.fill = cmd.fill;
+        text.style.fill = cmd.runs?.[0]?.fill ?? cmd.fill;
+        if (cmd.fontWeight != null) {
+          (text.style as { fontWeight?: number | string }).fontWeight = cmd.fontWeight;
+        }
+        if (cmd.lineHeight != null) text.style.lineHeight = cmd.lineHeight;
+        if (cmd.letterSpacing != null) text.style.letterSpacing = cmd.letterSpacing;
+        text.style.wordWrap = cmd.wrap !== "none";
+        text.style.wordWrapWidth = Math.max(8, cmd.width);
         if (xf) {
           applyAffineMatrix(
             text,

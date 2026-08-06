@@ -25,6 +25,7 @@ import {
   VideoNodeV2Schema,
 } from "./nodes";
 import { AudioTrackSchema, ProjectMetadataV2Schema, SceneTransitionSchema } from "./project";
+import { CaptionTrackSchema } from "./captions";
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./references/helpers";
 import { LiteralValueSchema, ValueKindSchema } from "./values";
 
@@ -62,6 +63,10 @@ const NormalizedMotionProjectV2BaseSchema = z
     timeline: z.object({
       sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
       audioTracks: z.array(AudioTrackSchema).max(MOTION_V2_LIMITS.audioTracksPerProject),
+      captionTracks: z
+        .array(CaptionTrackSchema)
+        .max(MOTION_V2_LIMITS.captionTracksPerProject)
+        .default([]),
     }).strict(),
     scenes: z.array(
       z.object({

@@ -1,6 +1,7 @@
 import {
   MOTION_V2_LIMITS,
   motionPropertyCapability,
+  setTextPayloadPlain,
   type MotionNode,
   type MotionProject,
 } from "@motionvideo/motion-schema";
@@ -172,8 +173,10 @@ function applyStyle(node: MotionNode, patch: StylePatch): MotionNode | null {
 
 function applyText(node: MotionNode, patch: TextPayloadPatch): MotionNode | null {
   if (node.type !== "text") return null;
-  const payload = { ...node.payload };
-  if (patch.text !== undefined) payload.text = patch.text;
+  let payload = { ...node.payload };
+  if (patch.text !== undefined) {
+    payload = setTextPayloadPlain(payload, patch.text);
+  }
   if (patch.fontSize !== undefined) {
     payload.fontSize = clampNumber(
       patch.fontSize,

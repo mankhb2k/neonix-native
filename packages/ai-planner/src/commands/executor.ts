@@ -1,6 +1,7 @@
 import { bakeMotionRecipe, compileMotionProject, isMotionRecipe } from "@motionvideo/motion-compiler";
 import {
   applyMotionPatch,
+  normalizeTextPayloadInput,
   parseMotionProjectV2,
   ProceduralDriverSchema,
   type MotionNode,
@@ -299,7 +300,7 @@ function applyOne(
             parentId,
             transform,
             payload: {
-              text: command.text ?? "",
+              content: { kind: "plain" as const, text: command.text ?? "" },
               fontSize: command.fontSize ?? 48,
               align: "center" as const,
             },
@@ -1214,7 +1215,15 @@ function applyOne(
             },
           };
         }
-        node.payload = { ...(node.payload as Record<string, unknown>), ...command.payload } as typeof node.payload;
+        if (node.type === "text") {
+          const merged = {
+            ...(node.payload as Record<string, unknown>),
+            ...command.payload,
+          };
+          node.payload = normalizeTextPayloadInput(merged) as typeof node.payload;
+        } else {
+          node.payload = { ...(node.payload as Record<string, unknown>), ...command.payload } as typeof node.payload;
+        }
         changedIds.push(command.nodeId);
         return {
           project: parseMotionProjectV2(next),
@@ -1244,8 +1253,120 @@ function applyOne(
             },
           };
         }
-        scene.transition = command.transition;
+        scene.transition =
+          command.transition.type === "slide"
+            ? { ...command.transition, mode: command.transition.mode ?? "push" }
+            : command.transition;
         changedIds.push(command.sceneId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "setSceneBackground": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "setSceneBackground", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const scene = next.scenes.find((item) => item.id === command.sceneId);
+        if (!scene) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+            },
+          };
+        }
+        const bgId = "__scene_background__";
+        const existing = scene.nodes.find((n) => n.id === bgId);
+        const width = next.metadata.aspectRatio === "9:16" ? 1080 : next.metadata.aspectRatio === "1:1" ? 1080 : 1920;
+        const height = next.metadata.aspectRatio === "9:16" ? 1920 : next.metadata.aspectRatio === "1:1" ? 1080 : 1080;
+        if (existing && existing.type === "solid") {
+          existing.payload = { ...existing.payload, color: command.fill, width, height };
+          existing.transform = {
+            ...existing.transform,
+            x: width / 2,
+            y: height / 2,
+            width,
+            height,
+            anchorX: 0.5,
+            anchorY: 0.5,
+          };
+          existing.zIndex = -10_000;
+        } else {
+          scene.nodes = [
+            {
+              id: bgId,
+              type: "solid",
+              name: "Scene Background",
+              parentId: null,
+              zIndex: -10_000,
+              transform: {
+                x: width / 2,
+                y: height / 2,
+                width,
+                height,
+                rotation: 0,
+                scaleX: 1,
+                scaleY: 1,
+                anchorX: 0.5,
+                anchorY: 0.5,
+                opacity: 1,
+                visible: true,
+                flipX: false,
+                flipY: false,
+              },
+              payload: { color: command.fill, width, height },
+            },
+            ...scene.nodes.filter((n) => n.id !== bgId),
+          ];
+        }
+        changedIds.push(bgId);
+        return {
+          project: parseMotionProjectV2(next),
+          receipt: { revision: revision + 1, changedIds, diagnostics },
+        };
+      }
+      case "upsertCaptionTrack": {
+        if (!project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("missing_project", "upsertCaptionTrack", "createProject must run first")],
+            },
+          };
+        }
+        const next = cloneProject(project);
+        const track = command.track as {
+          id?: string;
+        };
+        if (!track?.id || typeof track.id !== "string") {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [diagnostic("invalid_caption_track", "upsertCaptionTrack", "track.id is required")],
+            },
+          };
+        }
+        const tracks = [...(next.timeline.captionTracks ?? [])];
+        const idx = tracks.findIndex((t) => t.id === track.id);
+        if (idx >= 0) tracks[idx] = track as (typeof tracks)[number];
+        else tracks.push(track as (typeof tracks)[number]);
+        next.timeline = { ...next.timeline, captionTracks: tracks };
+        changedIds.push(track.id);
         return {
           project: parseMotionProjectV2(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },

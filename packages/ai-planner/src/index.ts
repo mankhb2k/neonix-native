@@ -34,7 +34,16 @@ export {
   type OrchestratorProgress,
   type OrchestratorPhase,
 } from "./orchestrator";
-export { createModelGateway, StubModelGateway, AnthropicGateway, type ModelGateway } from "./gateway";
+export {
+  findBeatNear,
+  listDownbeats,
+  summarizeEnergy,
+  createSceneMarkersFromBeats,
+  snapClipToBeat,
+  type AudioAnalysisLike,
+  type BeatMarker,
+} from "./tools/audio-beats";
+
 export {
   MODEL_ALLOWED_COMMAND_TYPES,
   MODEL_BLOCKED_COMMAND_TYPES,

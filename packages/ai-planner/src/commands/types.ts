@@ -58,8 +58,22 @@ export const LayoutConstraintCommandSchema = z.discriminatedUnion("kind", [
       kind: z.literal("stack"),
       direction: z.enum(["horizontal", "vertical"]),
       gap: Finite.nonnegative().optional(),
-      padding: Finite.nonnegative().optional(),
-      align: z.enum(["start", "center", "end"]).optional(),
+      padding: z
+        .union([
+          Finite.nonnegative(),
+          z
+            .object({
+              top: Finite.nonnegative(),
+              right: Finite.nonnegative(),
+              bottom: Finite.nonnegative(),
+              left: Finite.nonnegative(),
+            })
+            .strict(),
+        ])
+        .optional(),
+      align: z.enum(["start", "center", "end", "stretch"]).optional(),
+      justify: z.enum(["start", "center", "end", "space-between"]).optional(),
+      wrap: z.enum(["none", "wrap"]).optional(),
     })
     .strict(),
   z
@@ -439,11 +453,54 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
         z.object({ type: z.literal("cut"), duration: z.literal(0).optional() }).strict(),
         z
           .object({
-            type: z.enum(["fade", "crossfade"]),
+            type: z.literal("fade"),
+            duration: Finite.positive().max(30),
+            color: z.string().min(1).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            type: z.literal("crossfade"),
             duration: Finite.positive().max(30),
           })
           .strict(),
+        z
+          .object({
+            type: z.literal("slide"),
+            duration: Finite.positive().max(30),
+            direction: z.enum(["left", "right", "up", "down"]),
+            mode: z.enum(["push", "cover"]).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            type: z.literal("wipe"),
+            duration: Finite.positive().max(30),
+            direction: z.enum(["left", "right", "up", "down"]),
+            softness: Finite.min(0).max(1).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            type: z.literal("zoom"),
+            duration: Finite.positive().max(30),
+            direction: z.enum(["in", "out"]),
+          })
+          .strict(),
       ]),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("setSceneBackground"),
+      sceneId: Id,
+      fill: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("upsertCaptionTrack"),
+      track: z.record(z.unknown()),
     })
     .strict(),
 ]);

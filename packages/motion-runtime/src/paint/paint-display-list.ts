@@ -16,7 +16,7 @@ export type PaintTransformState = {
   alpha: number;
   visible: boolean;
   zIndex: number;
-  blendMode?: "normal" | "multiply" | "screen" | "add";
+  blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
 };
 
 export type PaintLayerScope = {

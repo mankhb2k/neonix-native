@@ -6,16 +6,50 @@ import {
   timelineTotalDuration,
 } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
+import {
+  compositionTotalDuration,
+  evaluateCompositionLayers,
+  type CompositionFramePlan,
+  type CompositionSceneInput,
+} from "./composition/evaluate-composition-layers";
+
+function scenesForComposition(runtime: NormalizedMotionProjectV2): CompositionSceneInput[] {
+  const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
+  const order =
+    runtime.timeline.sceneOrder.length > 0
+      ? runtime.timeline.sceneOrder
+      : runtime.scenes.map((scene) => scene.id);
+  return order
+    .map((id) => byId.get(id))
+    .filter((scene): scene is NonNullable<typeof scene> => scene != null)
+    .map((scene) => ({
+      sceneId: scene.id,
+      duration: scene.duration,
+      transition: scene.transition as CompositionSceneInput["transition"],
+    }));
+}
+
+export function planCompositionFrame(
+  runtime: NormalizedMotionProjectV2,
+  globalTime: number,
+  width: number,
+  height: number,
+): CompositionFramePlan {
+  return evaluateCompositionLayers(scenesForComposition(runtime), globalTime, width, height);
+}
 
 function resolveCompositionEvaluateTarget(
   runtime: NormalizedMotionProjectV2,
   frame: number,
   fps: number,
   sceneId?: string,
+  width = 1080,
+  height = 1920,
 ): {
   scene: NormalizedMotionProjectV2["scenes"][number];
   time: number;
   frame: number;
+  layerPlan?: CompositionFramePlan;
 } | null {
   const safeFps = Math.max(1, fps);
 
@@ -28,12 +62,21 @@ function resolveCompositionEvaluateTarget(
   }
 
   const globalTime = frame / safeFps;
+  const layerPlan = planCompositionFrame(runtime, globalTime, width, height);
+  const primary = layerPlan.layers[layerPlan.layers.length - 1];
+  if (primary) {
+    const scene = runtime.scenes.find((s) => s.id === primary.sceneId);
+    if (!scene) return null;
+    const localFrame = Math.max(0, Math.round(primary.localTime * safeFps));
+    return { scene, time: primary.localTime, frame: localFrame, layerPlan };
+  }
+
   const resolved = resolveTimelineAtTime(runtime, globalTime);
   if (!resolved) return null;
   const scene = runtime.scenes.find((s) => s.id === resolved.sceneId);
   if (!scene) return null;
   const localFrame = Math.max(0, Math.round(resolved.localTime * safeFps));
-  return { scene, time: resolved.localTime, frame: localFrame };
+  return { scene, time: resolved.localTime, frame: localFrame, layerPlan };
 }
 
 /**
@@ -41,9 +84,7 @@ function resolveCompositionEvaluateTarget(
  * (interaction snapshot + paint buffer + diagnostics).
  *
  * - When `sceneId` is set: frame is local to that scene.
- * - When `sceneId` is omitted: frame is global across `timeline.sceneOrder` (hard cuts).
- *
- * Preview / export hosts should call this once per tick and feed both painter and overlay.
+ * - When `sceneId` is omitted: frame is global; transition overlaps use the shared layer plan.
  */
 export function evaluateCompositionFrame(
   runtime: NormalizedMotionProjectV2,
@@ -54,12 +95,12 @@ export function evaluateCompositionFrame(
   sceneId?: string,
   background?: string,
 ): EvaluatedFrame | null {
-  const target = resolveCompositionEvaluateTarget(runtime, frame, fps, sceneId);
+  const target = resolveCompositionEvaluateTarget(runtime, frame, fps, sceneId, width, height);
   if (!target) return null;
   const assetUriById = new Map(
     runtime.assets.map((asset) => [asset.id, asset.uri] as const),
   );
-  return evaluateFrame({
+  const evaluated = evaluateFrame({
     scene: target.scene,
     time: target.time,
     frame: target.frame,
@@ -68,12 +109,13 @@ export function evaluateCompositionFrame(
     background,
     assetUriById,
   });
+  if (target.layerPlan) {
+    (evaluated as EvaluatedFrame & { compositionLayers?: CompositionFramePlan }).compositionLayers =
+      target.layerPlan;
+  }
+  return evaluated;
 }
 
-/**
- * Evaluate a composition frame into a render snapshot (renderer-agnostic).
- * Derived from {@link evaluateCompositionFrame} so interaction matches paint.
- */
 export function evaluateCompositionSnapshot(
   runtime: NormalizedMotionProjectV2,
   frame: number,
@@ -96,11 +138,6 @@ export function evaluateCompositionSnapshot(
   );
 }
 
-/**
- * Duration in frames.
- * - With `sceneId`: that scene only.
- * - Without: sum of all scenes in `sceneOrder`.
- */
 export function compositionDurationInFrames(
   runtime: NormalizedMotionProjectV2,
   sceneId?: string,
@@ -119,10 +156,20 @@ export function compositionDurationInFrames(
     );
   }
 
-  const total = timelineTotalDuration(runtime);
-  const duration = Math.max(1 / safeFps, total > 0 ? total : 1);
+  const total = compositionTotalDuration(scenesForComposition(runtime));
+  const fallback = timelineTotalDuration(runtime);
+  const duration = Math.max(1 / safeFps, total > 0 ? total : fallback > 0 ? fallback : 1);
   return Math.max(
     1,
     frameIndexAtTime(duration, safeFps) || Math.ceil(duration * safeFps),
   );
 }
+
+export {
+  evaluateCompositionLayers,
+  compositionTotalDuration,
+  type CompositionFramePlan,
+  type CompositionLayerPlan,
+  type CompositionSceneInput,
+  type CompositionTransition,
+} from "./composition/evaluate-composition-layers";

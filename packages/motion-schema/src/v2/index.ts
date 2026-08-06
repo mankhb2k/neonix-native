@@ -32,9 +32,16 @@ export {
   SvgAssetV2Schema,
   VideoAssetV2Schema,
   AudioAssetV2Schema,
+  AudioAnalysisSchema,
   FontAssetV2Schema,
   AssetV2Schema,
 } from "./assets";
+
+export {
+  CaptionTrackSchema,
+  type CaptionTrack,
+  type CaptionToken,
+} from "./captions";
 
 export {
   VariableV2Schema,
@@ -44,7 +51,7 @@ export {
   PublicParamSchema,
 } from "./variables";
 
-export { LayoutConstraintSchema } from "./layout";
+export { LayoutConstraintSchema, EdgeInsetsSchema, LayoutItemPolicySchema, type EdgeInsets, type LayoutItemPolicy } from "./layout";
 
 export {
   NodeTimingV2Schema,
@@ -57,6 +64,16 @@ export {
   BoneNodeV2Schema,
   segmentTextUnits,
   TextNodeV2Schema,
+  TextContentSchema,
+  RichTextRunSchema,
+  TextPayloadSchema,
+  textContentPlain,
+  getTextPayloadPlain,
+  setTextPayloadPlain,
+  normalizeTextPayloadInput,
+  type TextContent,
+  type RichTextRun,
+  type TextNodePayload,
   ShapeNodeV2Schema,
   PathSegmentV2Schema,
   PathContourV2Schema,

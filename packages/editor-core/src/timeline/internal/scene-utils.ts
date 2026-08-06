@@ -4,6 +4,7 @@ import {
   type CommandContext,
 } from "../../ports/command-context";
 import type { MotionNode, MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import { getTextPayloadPlain } from "@motionvideo/motion-schema";
 
 /** Tạo ID duy nhất với tiền tố — injectable for tests. */
 export function uid(
@@ -15,9 +16,7 @@ export function uid(
 
 /** Trích xuất văn bản từ Node dạng Text */
 export function nodeText(node: MotionNode | undefined): string {
-  return node?.type === "text" && typeof node.payload?.text === "string"
-    ? node.payload.text
-    : "";
+  return node?.type === "text" ? getTextPayloadPlain(node.payload) : "";
 }
 
 /** Cập nhật biến số thuộc tính thương hiệu dự án */

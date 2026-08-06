@@ -23,7 +23,7 @@ export type AiSchemaCapabilityRow = {
 };
 
 /** Bump when matrix rows/columns change for AI prompts. */
-export const AI_SCHEMA_CAPABILITY_VERSION = "ai-schema.0";
+export const AI_SCHEMA_CAPABILITY_VERSION = "ai-schema.1";
 
 export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
   {
@@ -39,7 +39,6 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
       remotion: "yes",
       ai: "partial",
     },
-    notes: "Params mostly ignored until Phase 1 registry",
   },
   {
     id: "baseline.plain-text",
@@ -48,13 +47,12 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     columns: {
       schema: "yes",
       compiler: "yes",
-      runtime: "partial",
-      paint: "partial",
-      pixi: "partial",
-      remotion: "partial",
+      runtime: "yes",
+      paint: "yes",
+      pixi: "yes",
+      remotion: "yes",
       ai: "yes",
     },
-    notes: "Typography fields drop before paint until Phase 2",
   },
   {
     id: "baseline.hard-cut",
@@ -75,13 +73,13 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     label: "Scene-end clip schedule",
     phase: 1,
     columns: {
-      schema: "planned",
-      compiler: "planned",
-      runtime: "planned",
+      schema: "yes",
+      compiler: "yes",
+      runtime: "yes",
       paint: "yes",
       pixi: "yes",
       remotion: "yes",
-      ai: "no",
+      ai: "partial",
     },
   },
   {
@@ -89,13 +87,13 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     label: "Typed exit presets + params",
     phase: 1,
     columns: {
-      schema: "planned",
-      compiler: "planned",
+      schema: "yes",
+      compiler: "yes",
       runtime: "yes",
       paint: "yes",
       pixi: "yes",
       remotion: "yes",
-      ai: "no",
+      ai: "partial",
     },
   },
   {
@@ -103,13 +101,13 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     label: "Rich text runs",
     phase: 2,
     columns: {
-      schema: "planned",
-      compiler: "planned",
-      runtime: "planned",
-      paint: "planned",
-      pixi: "planned",
-      remotion: "planned",
-      ai: "no",
+      schema: "yes",
+      compiler: "yes",
+      runtime: "yes",
+      paint: "yes",
+      pixi: "yes",
+      remotion: "yes",
+      ai: "partial",
     },
   },
   {
@@ -117,27 +115,28 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     label: "Caption track + cues",
     phase: 3,
     columns: {
-      schema: "planned",
-      compiler: "planned",
-      runtime: "planned",
-      paint: "planned",
-      pixi: "planned",
-      remotion: "planned",
-      ai: "no",
+      schema: "yes",
+      compiler: "yes",
+      runtime: "partial",
+      paint: "partial",
+      pixi: "partial",
+      remotion: "partial",
+      ai: "partial",
     },
+    notes: "Cue compiler + SourceRef ready; full caption paint path partial",
   },
   {
     id: "layout.stack-advanced",
     label: "Stack EdgeInsets/justify/content sizing",
     phase: 4,
     columns: {
-      schema: "planned",
-      compiler: "planned",
+      schema: "yes",
+      compiler: "yes",
       runtime: "yes",
       paint: "yes",
       pixi: "yes",
       remotion: "yes",
-      ai: "no",
+      ai: "partial",
     },
   },
   {
@@ -145,46 +144,58 @@ export const AI_SCHEMA_CAPABILITY_MATRIX: readonly AiSchemaCapabilityRow[] = [
     label: "Multi-scene transition composition",
     phase: 5,
     columns: {
-      schema: "partial",
-      compiler: "partial",
-      runtime: "planned",
-      paint: "planned",
-      pixi: "planned",
-      remotion: "planned",
-      ai: "partial",
+      schema: "yes",
+      compiler: "yes",
+      runtime: "yes",
+      paint: "partial",
+      pixi: "partial",
+      remotion: "partial",
+      ai: "yes",
     },
-    notes: "fade/crossfade in schema; hard-cut evaluate today",
+    notes: "Shared layer plan for fade/crossfade/slide/wipe/zoom",
   },
   {
     id: "audio.analysis",
     label: "AudioAnalysis + beat markers",
     phase: 6,
     columns: {
-      schema: "planned",
-      compiler: "planned",
+      schema: "yes",
+      compiler: "yes",
       runtime: "yes",
       paint: "yes",
       pixi: "yes",
       remotion: "yes",
-      ai: "no",
+      ai: "partial",
     },
+    notes: "Planner beat tools; energy never dumped into prompts",
   },
   {
     id: "blend.extended",
     label: "darken/lighten/overlay + scene background",
     phase: 7,
     columns: {
-      schema: "planned",
-      compiler: "planned",
-      runtime: "planned",
-      paint: "planned",
-      pixi: "planned",
-      remotion: "planned",
-      ai: "no",
+      schema: "yes",
+      compiler: "yes",
+      runtime: "yes",
+      paint: "yes",
+      pixi: "yes",
+      remotion: "yes",
+      ai: "yes",
     },
   },
-] as const;
+];
 
+export function aiSchemaCapabilityPromptBlock(): string {
+  const lines = AI_SCHEMA_CAPABILITY_MATRIX.map((row) => {
+    const cols = Object.entries(row.columns)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(" ");
+    return `- ${row.id}: ${cols}${row.notes ? ` (${row.notes})` : ""}`;
+  });
+  return [`AI schema capability matrix ${AI_SCHEMA_CAPABILITY_VERSION}:`, ...lines].join("\n");
+}
+
+/** Ready for production painters when schema→pixi/remotion are yes (AI column optional). */
 export function aiSchemaCapabilityReady(row: AiSchemaCapabilityRow): boolean {
   const required: AiSchemaCapabilityColumn[] = [
     "schema",
@@ -199,4 +210,9 @@ export function aiSchemaCapabilityReady(row: AiSchemaCapabilityRow): boolean {
 
 export function listAiSchemaProductionCapabilities(): AiSchemaCapabilityRow[] {
   return AI_SCHEMA_CAPABILITY_MATRIX.filter(aiSchemaCapabilityReady);
+}
+
+export function isAiSchemaCapabilityReady(id: string): boolean {
+  const row = AI_SCHEMA_CAPABILITY_MATRIX.find((item) => item.id === id);
+  return row ? aiSchemaCapabilityReady(row) : false;
 }
