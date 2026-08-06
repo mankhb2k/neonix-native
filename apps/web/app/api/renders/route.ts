@@ -5,6 +5,7 @@ import {
   resolveRequestUserId,
 } from "@/lib/server/render/ownership";
 import { createRenderJob } from "@/lib/server/render/job-store";
+import { preflightRenderManifest } from "@/lib/server/render/paint-preflight";
 import { startRenderOnLambda } from "@/lib/server/render/remotion-lambda";
 import {
   CreateRenderJobRequestSchema,
@@ -42,6 +43,19 @@ export async function POST(request: Request) {
       projectRevision,
       preset: presetRaw,
     });
+    const gate = preflightRenderManifest(manifest, {
+      requireProductionGate: process.env.MOTICLIP_EXPORT_PRODUCTION_GATE === "1",
+    });
+    if (!gate.ok) {
+      return NextResponse.json(
+        {
+          error: "preflight_failed",
+          issues: gate.issues,
+          jobId: job.jobId,
+        },
+        { status: 422 },
+      );
+    }
     await startRenderOnLambda({ job, manifest });
   }
 

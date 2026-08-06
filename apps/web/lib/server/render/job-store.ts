@@ -17,6 +17,8 @@ export type PersistentRenderJob = {
   progress: number;
   stage?: string;
   error?: string;
+  /** Serialized export canary (engine/capability/preflight). */
+  canaryJson?: string;
   lambdaRenderId?: string;
   bucketName?: string;
   outputKey?: string;

@@ -10,6 +10,11 @@ import {
   saveRenderJob,
   updateRenderJob,
 } from "@/lib/server/render/job-store";
+import { buildExportCanaryRecord } from "@/lib/server/render/export-canary";
+import {
+  CAPABILITY_MANIFEST_VERSION,
+  PAINT_COMMAND_VERSION,
+} from "@motionvideo/motion-runtime";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 
 export type LambdaRenderStartResult = {
@@ -36,6 +41,12 @@ export async function startRenderOnLambda(input: {
   if (!lambdaConfigured()) {
     const renderId = `local_${input.job.jobId}`;
     const bucketName = "local-private";
+    const canary = buildExportCanaryRecord({
+      engine: "stub",
+      paintCommandVersion: PAINT_COMMAND_VERSION,
+      capabilityManifest: CAPABILITY_MANIFEST_VERSION,
+      preflightOk: true,
+    });
     await updateRenderJob(input.job.jobId, {
       status: "rendering",
       progress: 0.1,
@@ -43,6 +54,7 @@ export async function startRenderOnLambda(input: {
       lambdaRenderId: renderId,
       bucketName,
       outputKey: `renders/${input.job.jobId}/out.mp4`,
+      canaryJson: JSON.stringify(canary),
     });
     // Simulate async completion for stub path
     void (async () => {
@@ -58,6 +70,12 @@ export async function startRenderOnLambda(input: {
   }
 
   const { renderMediaOnLambda } = await import("@remotion/lambda-client");
+  const canary = buildExportCanaryRecord({
+    engine: "remotion-lambda",
+    paintCommandVersion: PAINT_COMMAND_VERSION,
+    capabilityManifest: CAPABILITY_MANIFEST_VERSION,
+    preflightOk: true,
+  });
   const result = await renderMediaOnLambda({
     region: process.env.AWS_REGION as "us-east-1",
     functionName: process.env.REMOTION_FUNCTION_NAME!,
@@ -77,6 +95,7 @@ export async function startRenderOnLambda(input: {
     stage: "lambda",
     lambdaRenderId: result.renderId,
     bucketName: result.bucketName,
+    canaryJson: JSON.stringify(canary),
   });
 
   return {
