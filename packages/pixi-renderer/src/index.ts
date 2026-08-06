@@ -125,6 +125,11 @@ export {
   type StageViewport,
 } from "./PixiStageRenderer";
 export {
+  createPixiFramePainter,
+  type PixiFramePainter,
+  type PixiFramePainterOptions,
+} from "./PixiFramePainter";
+export {
   syncPaintBufferToCache,
   type CachedDisplayDesc,
   type DisplayCacheStats,
