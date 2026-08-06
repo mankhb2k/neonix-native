@@ -5,6 +5,7 @@
 
 import {
   matrixToCssTransform,
+  resolveMediaTiming,
   type PaintDrawCommand,
   type PaintTransformState,
 } from "@motionvideo/motion-runtime";
@@ -192,14 +193,17 @@ function drawableToView(
           />
         );
       }
-      const trimBefore = Math.max(0, Math.round(draw.mediaTime * fps));
+      const timing = resolveMediaTiming({
+        mediaTimeSeconds: draw.mediaTime,
+        fps,
+      });
       return (
         <OffthreadVideo
           key={key}
           data-paint-key={key}
           src={draw.uri}
           muted
-          trimBefore={trimBefore}
+          trimBefore={timing.sourceFrame}
           style={{
             ...style,
             width: draw.width,

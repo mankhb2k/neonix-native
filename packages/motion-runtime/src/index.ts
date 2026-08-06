@@ -19,3 +19,6 @@ export * from "./curve-sampler";
 export * from "./matte";
 export * from "./resolve-timeline";
 export * from "./evaluate-composition";
+export * from "./media-timing";
+export * from "./compositing-fingerprint";
+export * from "./pixel-diff";

@@ -57,3 +57,12 @@ export {
   type AssetManifest,
   type AssetManifestEntry,
 } from "./asset-manifest";
+
+export {
+  resolvedAssetFromManifestEntry,
+  isFontMime,
+  isVideoMime,
+  isAudioMime,
+  isImageMime,
+  type ResolvedAsset,
+} from "./resolved-asset";
