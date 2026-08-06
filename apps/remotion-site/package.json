@@ -1,0 +1,31 @@
+{
+  "name": "@motionvideo/remotion-site",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:smoke": "tsx src/smoke-render.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@motionvideo/motion-compiler": "workspace:*",
+    "@motionvideo/motion-runtime": "workspace:*",
+    "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/render-contracts": "workspace:*",
+    "@motionvideo/remotion-renderer": "workspace:*",
+    "@remotion/bundler": "4.0.506",
+    "@remotion/cli": "4.0.506",
+    "@remotion/renderer": "4.0.506",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "4.0.506"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

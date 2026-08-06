@@ -1,13 +1,7 @@
-import {
-  AbsoluteFill,
-  useCurrentFrame,
-  useVideoConfig,
-} from "remotion";
-import {
-  evaluateCompositionSnapshot,
-} from "@motionvideo/motion-runtime";
+import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import { evaluateCompositionFrame } from "@motionvideo/motion-runtime";
 import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
-import { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
+import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
 
 export type MotionCompositionProps = {
   runtime: NormalizedMotionProjectV2;
@@ -18,7 +12,7 @@ export type MotionCompositionProps = {
   sceneId?: string;
 };
 
-/** Remotion Player composition — fallback path only (P7). */
+/** Remotion Player composition — fallback preview path (removed in cutover). */
 export function MotionComposition({
   runtime,
   width,
@@ -28,7 +22,7 @@ export function MotionComposition({
 }: MotionCompositionProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const snapshot = evaluateCompositionSnapshot(
+  const evaluated = evaluateCompositionFrame(
     runtime,
     frame,
     fps,
@@ -37,8 +31,8 @@ export function MotionComposition({
     sceneId,
     background,
   );
-  if (!snapshot) {
+  if (!evaluated) {
     return <AbsoluteFill style={{ background: background ?? "#000" }} />;
   }
-  return <RemotionSnapshotRenderer snapshot={snapshot} />;
+  return <RemotionPaintRenderer paint={evaluated.paint} />;
 }
