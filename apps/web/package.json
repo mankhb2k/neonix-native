@@ -22,6 +22,7 @@
   "dependencies": {
     "@motionvideo/ai-planner": "workspace:*",
     "@motionvideo/editor-core": "workspace:*",
+    "@motionvideo/editor-interactions": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
