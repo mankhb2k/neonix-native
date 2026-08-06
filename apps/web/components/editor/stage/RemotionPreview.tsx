@@ -8,7 +8,7 @@ import {
 import {
   compositionDurationInFrames,
   timelineTotalDuration,
-} from "@motionvideo/preview-kit";
+} from "@motionvideo/motion-runtime";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { InteractionOverlay } from "@/components/editor/stage/InteractionOverlay";

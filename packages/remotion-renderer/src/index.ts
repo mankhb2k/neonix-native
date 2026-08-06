@@ -1,6 +1,6 @@
 /**
  * Optional Remotion composition adapter (fallback preview only).
- * Core timeline/fixtures live in `@motionvideo/preview-kit`.
+ * Timeline helpers live in `@motionvideo/motion-runtime`.
  */
 
 export { MotionComposition } from "./MotionComposition";
@@ -13,17 +13,13 @@ export type { PlayerRef } from "@remotion/player";
 export {
   evaluateCompositionSnapshot,
   compositionDurationInFrames,
-  createDemoMotionProject,
-  DEMO_SCENE_ID,
-  createFacebookHistoryDemoProject,
-  FB_HISTORY_SCENE_IDS,
   resolveTimelineAtTime,
   listTimelineSegments,
   timelineTotalDuration,
-} from "@motionvideo/preview-kit";
+} from "@motionvideo/motion-runtime";
 export type {
   TimelineResolveResult,
   TimelineSceneSegment,
   TimelineProjectLike,
   TimelineRuntime,
-} from "@motionvideo/preview-kit";
+} from "@motionvideo/motion-runtime";

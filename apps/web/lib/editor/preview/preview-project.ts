@@ -2,14 +2,14 @@ import { assertSnapshotContract } from "@motionvideo/pixi-renderer";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   evaluateFrame,
+  resolveTimelineAtTime,
   type RenderSnapshot,
 } from "@motionvideo/motion-runtime";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import {
   createFacebookHistoryDemoProject,
   FB_HISTORY_SCENE_IDS,
-  resolveTimelineAtTime,
-} from "@motionvideo/preview-kit";
+} from "@motionvideo/motion-runtime/testing";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 
 /** Project used for stage preview + hit-test (Facebook History when blank). */

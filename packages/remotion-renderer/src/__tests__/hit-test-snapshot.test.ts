@@ -3,7 +3,7 @@ import {
   buildRenderSnapshot,
   hitTestRenderSnapshot,
 } from "@motionvideo/motion-runtime";
-import { createDemoMotionProject, DEMO_SCENE_ID } from "@motionvideo/remotion-renderer";
+import { createDemoMotionProject, DEMO_SCENE_ID } from "@motionvideo/motion-runtime/testing";
 import { describe, expect, it } from "vitest";
 
 describe("hitTestRenderSnapshot", () => {

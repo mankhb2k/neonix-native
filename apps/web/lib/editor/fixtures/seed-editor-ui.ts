@@ -4,7 +4,7 @@
 import { createBlankProject } from "@/lib/editor/create-blank-project";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
 import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
-import { createFacebookHistoryDemoProject } from "@motionvideo/preview-kit";
+import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
 import { parseMotionProject } from "@motionvideo/motion-schema";
 
 export type WebUiFixtureId =

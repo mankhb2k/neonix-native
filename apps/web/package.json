@@ -28,7 +28,6 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
     "@motionvideo/pixi-renderer": "workspace:*",
-    "@motionvideo/preview-kit": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
     "@motionvideo/remotion-renderer": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",

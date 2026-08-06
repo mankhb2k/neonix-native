@@ -15,3 +15,5 @@ export * from "./capability-ledger";
 export * from "./camera-view";
 export * from "./curve-sampler";
 export * from "./matte";
+export * from "./resolve-timeline";
+export * from "./evaluate-composition";

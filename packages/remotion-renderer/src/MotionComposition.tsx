@@ -5,7 +5,7 @@ import {
 } from "remotion";
 import {
   evaluateCompositionSnapshot,
-} from "@motionvideo/preview-kit";
+} from "@motionvideo/motion-runtime";
 import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
 

@@ -1,8 +1,5 @@
-import {
-  buildRenderSnapshot,
-  frameIndexAtTime,
-  type RenderSnapshot,
-} from "@motionvideo/motion-runtime";
+import { buildRenderSnapshot, type RenderSnapshot } from "./render-snapshot";
+import { frameIndexAtTime } from "./clock";
 import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   resolveTimelineAtTime,

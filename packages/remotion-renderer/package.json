@@ -17,7 +17,6 @@
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
-    "@motionvideo/preview-kit": "workspace:*",
     "@remotion/player": "4.0.506",
     "remotion": "4.0.506"
   },

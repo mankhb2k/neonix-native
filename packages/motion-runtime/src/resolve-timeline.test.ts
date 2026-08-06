@@ -1,6 +1,6 @@
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { describe, expect, it } from "vitest";
-import { createFacebookHistoryDemoProject } from "./fixtures/facebook-history-demo";
+import { createFacebookHistoryDemoProject } from "./testing/facebook-history-demo";
 import {
   listTimelineSegments,
   resolveTimelineAtTime,
