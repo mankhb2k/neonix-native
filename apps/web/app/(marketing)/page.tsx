@@ -1,5 +1,5 @@
 import { appUrl } from "@/lib/hosts";
-import { APP_NAME } from "@motionvideo/shared";
+import { APP_NAME } from "@/lib/app-config";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {

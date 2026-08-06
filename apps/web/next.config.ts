@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   transpilePackages: [
-    "@motionvideo/shared",
+    "@motionvideo/render-contracts",
     "@motionvideo/motion-schema",
     "@motionvideo/motion-runtime",
     "@motionvideo/motion-compiler",

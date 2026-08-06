@@ -3,7 +3,7 @@ import {
   type MotionProject,
 } from "@motionvideo/motion-schema";
 import { validateMotionProjectPresets } from "@motionvideo/template-library";
-import type { RenderJobStatus } from "@motionvideo/shared";
+import type { RenderJobStatus } from "@motionvideo/render-contracts";
 import { compileMotionProject } from "./compiler";
 import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";

@@ -6,7 +6,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { RenderJobProgress, RenderJobStatus } from "@motionvideo/shared";
+import type { RenderJobProgress, RenderJobStatus } from "@motionvideo/render-contracts";
 import type { MotionProject } from "@motionvideo/motion-schema";
 
 export type ExportJobRecord = RenderJobProgress & {

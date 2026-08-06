@@ -17,7 +17,7 @@
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/shared": "workspace:*",
+    "@motionvideo/render-contracts": "workspace:*",
     "@motionvideo/template-library": "workspace:*",
     "@napi-rs/canvas": "^0.1.80",
     "ffmpeg-static": "^5.2.0"

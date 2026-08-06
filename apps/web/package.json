@@ -29,7 +29,7 @@
     "@motionvideo/motion-schema": "workspace:*",
     "@motionvideo/pixi-renderer": "workspace:*",
     "@motionvideo/preview-kit": "workspace:*",
-    "@motionvideo/shared": "workspace:*",
+    "@motionvideo/render-contracts": "workspace:*",
     "@motionvideo/template-library": "workspace:*",
     "@motionvideo/remotion-renderer": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
