@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui";
 import { useAiJobsStore, type RegenerationScope } from "@/lib/editor/ai/ai-jobs-store";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { Sparkles } from "lucide-react";
+import { SendHorizontal, Square } from "lucide-react";
 
 const SCOPES: Array<{ id: RegenerationScope; label: string }> = [
   { id: "video", label: "Video" },
@@ -61,20 +61,6 @@ export function AskAIBar() {
       className="flex h-full min-h-0 flex-col"
       data-testid="editor-ask-ai"
     >
-      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--border-subtle)] px-3 py-2.5">
-        <Sparkles size={15} className="text-[var(--accent-text)]" />
-        <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-[var(--fg-primary)]">
-            Ask AI
-          </p>
-          <p className="truncate text-[10px] text-[var(--fg-muted)]">
-            {selectionLabel
-              ? `Scoped: ${selectionLabel}`
-              : "Brief toàn video hoặc refine theo selection"}
-          </p>
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 space-y-3 overflow-auto px-3 py-3">
         <div className="flex flex-wrap gap-1">
           {SCOPES.map((item) => (
@@ -171,48 +157,53 @@ export function AskAIBar() {
               </Button>
             </div>
           </div>
-        ) : (
-          <div className="rounded-[var(--radius)] border border-dashed border-[var(--border-subtle)] px-3 py-4 text-[12px] leading-relaxed text-[var(--fg-muted)]">
-            Mô tả brief hoặc chỉnh sửa scoped. AI chỉ emit typed commands — không
-            sinh CSS/TSX.
-          </div>
-        )}
+        ) : null}
       </div>
 
-      <div className="shrink-0 space-y-2 border-t border-[var(--border-subtle)] bg-[var(--bg-panel)] p-3">
-        <textarea
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder={
-            selectionLabel
-              ? `Refine ${selectionLabel}…`
-              : "Mô tả brief hoặc chỉnh sửa scoped…"
-          }
-          rows={3}
-          className="w-full resize-none rounded-[var(--radius)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-3 py-2 text-[13px] text-[var(--fg-primary)] outline-none placeholder:text-[var(--fg-disabled)] focus:border-[var(--border-focus)] focus:bg-[var(--bg-panel)]"
-          disabled={busy}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey && prompt.trim() && !busy) {
-              event.preventDefault();
-              runGenerate();
+      <div className="shrink-0 bg-[var(--bg-panel)] p-3">
+        <div className="flex flex-col overflow-hidden rounded-[var(--radius)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] focus-within:border-[var(--border-focus)]">
+          <textarea
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder={
+              selectionLabel
+                ? `Refine ${selectionLabel}…`
+                : "Mô tả brief hoặc chỉnh sửa scoped…"
             }
-          }}
-        />
-        <div className="flex justify-end gap-2">
-          {busy ? (
-            <Button variant="secondary" size="md" onClick={() => cancel()}>
-              Cancel
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="md"
-              disabled={!prompt.trim()}
-              onClick={() => runGenerate()}
+            rows={3}
+            className="w-full resize-none border-0 bg-transparent px-3 pt-2.5 pb-1 text-[13px] text-[var(--fg-primary)] outline-none placeholder:text-[var(--fg-disabled)]"
+            disabled={busy}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey && prompt.trim() && !busy) {
+                event.preventDefault();
+                runGenerate();
+              }
+            }}
+          />
+          <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+            <div className="flex min-w-0 flex-1 items-center gap-1">
+              {/* Slot for future model / mode controls */}
+            </div>
+            <button
+              type="button"
+              aria-label={busy ? "Cancel" : "Send"}
+              disabled={!busy && !prompt.trim()}
+              onClick={() => {
+                if (busy) {
+                  cancel();
+                  return;
+                }
+                runGenerate();
+              }}
+              className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full border-0 bg-[var(--accent)] text-[var(--accent-on)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[var(--accent-hover)]"
             >
-              Generate
-            </Button>
-          )}
+              {busy ? (
+                <Square size={12} fill="currentColor" />
+              ) : (
+                <SendHorizontal size={14} />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -12,6 +12,9 @@ import { saveProject } from "@/lib/editor/project-storage";
 import { marketingUrl } from "@/lib/hosts";
 import { Clapperboard, Plus, Smartphone, Tv, Square } from "lucide-react";
 
+const hubBg =
+  "[background:radial-gradient(ellipse_70%_45%_at_12%_-8%,rgba(13,148,136,0.1)_0%,transparent_55%),radial-gradient(ellipse_55%_40%_at_92%_8%,rgba(2,132,199,0.08)_0%,transparent_50%),var(--bg-app)]";
+
 export function WorkspaceHome() {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
@@ -39,27 +42,39 @@ export function WorkspaceHome() {
   }
 
   return (
-    <div className="mv-hub">
+    <div className={`min-h-screen text-[var(--fg-primary)] ${hubBg}`}>
       <DesktopTitleStrip />
-      <header className="mv-hub-header">
-        <AppLink href="/" className="mv-hub-brand">
+      <header className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-3.5 shadow-[var(--shadow-sm)] backdrop-blur-[10px] [background:color-mix(in_srgb,var(--bg-panel)_88%,transparent)]">
+        <AppLink
+          href="/"
+          className="font-semibold tracking-[-0.02em] text-[var(--fg-primary)] no-underline text-[1.2rem] [font-family:var(--font-display)]"
+        >
           MotiClip
         </AppLink>
-        <nav className="mv-hub-nav">
+        <nav className="flex items-center gap-4">
           <button
             type="button"
-            className="mv-link-btn"
+            className="cursor-pointer border-0 bg-transparent font-[inherit] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
             onClick={() => setModalOpen(true)}
           >
             Tạo TVC
           </button>
-          <a href={marketingUrl("/")}>Landing</a>
+          <a
+            href={marketingUrl("/")}
+            className="text-[var(--fg-muted)] no-underline hover:text-[var(--fg-primary)]"
+          >
+            Landing
+          </a>
         </nav>
       </header>
-      <main className="mv-hub-main">
-        <p className="mv-hub-kicker">Workspace</p>
-        <h1 className="mv-hub-title">Tạo TVC motion 2D tiếng Việt</h1>
-        <p className="mv-hub-lead">
+      <main className="mx-auto max-w-[920px] px-6 pt-11 pb-16">
+        <p className="mb-2 text-[length:var(--fs-caption)] font-semibold tracking-[0.08em] text-[var(--accent-text)] uppercase">
+          Workspace
+        </p>
+        <h1 className="mb-3 font-semibold tracking-[-0.03em] text-[var(--fg-primary)] [font-family:var(--font-display)] [font-size:clamp(1.85rem,4vw,2.55rem)] [line-height:1.12]">
+          Tạo TVC motion 2D tiếng Việt
+        </h1>
+        <p className="m-0 max-w-[36rem] text-[1.05rem] leading-[1.65] text-[var(--fg-muted)]">
           Brief hoặc kịch bản → AI Studio editor. Chỉnh từng element trên stage,
           không cần After Effects.
         </p>
@@ -67,7 +82,7 @@ export function WorkspaceHome() {
         <div className="my-6 flex flex-wrap items-center gap-3">
           <button
             type="button"
-            className="mv-btn mv-btn-primary flex items-center gap-2"
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] shadow-[0_6px_18px_rgba(13,148,136,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(13,148,136,0.34)]"
             onClick={() => setModalOpen(true)}
           >
             <Plus size={16} strokeWidth={2} />

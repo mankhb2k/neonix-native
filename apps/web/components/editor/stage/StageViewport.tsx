@@ -35,13 +35,13 @@ export function StageViewport({ project, width, height }: Props) {
 
   return (
     <main
-      className="editor-area-stage"
+      className="flex min-h-0 min-w-0 flex-col [grid-area:stage]"
       data-testid="editor-stage"
       data-stage-backend={mode}
     >
-      <div className="editor-stage-canvas editor-stage-workspace">
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[var(--stage-bg)] px-4 pt-4 pb-3">
         <div
-          className="editor-stage-board"
+          className="relative z-[1] flex max-h-full w-full max-w-[min(90%,1080px)] items-center justify-center overflow-hidden rounded-[2px] bg-[var(--preview-bg)] shadow-[var(--board-shadow)]"
           style={{ aspectRatio: `${width} / ${height}` }}
         >
           <PreviewStageHost
@@ -52,7 +52,7 @@ export function StageViewport({ project, width, height }: Props) {
         </div>
       </div>
 
-      <div className="editor-stage-timeline">
+      <div className="flex max-h-[40%] min-h-[120px] shrink-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-panel)] h-[var(--editor-timeline-h)]">
         <MinimalTimeline />
       </div>
     </main>

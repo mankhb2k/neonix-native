@@ -22,7 +22,7 @@ export function Tabs({ items, defaultValue, className }: TabsProps) {
     <div className={cn("flex h-full min-h-0 flex-col", className)}>
       <div
         role="tablist"
-        className="flex shrink-0 gap-0.5 border-b border-[var(--border-subtle)] px-2"
+        className="flex w-full shrink-0 gap-0.5 border-b border-[var(--border-subtle)] px-2 py-1.5"
       >
         {items.map((item) => {
           const selected = item.id === current.id;
@@ -34,10 +34,10 @@ export function Tabs({ items, defaultValue, className }: TabsProps) {
               role="tab"
               aria-selected={selected}
               className={cn(
-                "h-8 px-2.5 text-[12px] font-medium transition-colors cursor-pointer border-b-2 -mb-px",
+                "h-8 flex-1 px-2.5 text-center text-[length:var(--fs-ui)] font-medium transition-colors cursor-pointer [font-family:var(--font-sans)]",
                 selected
-                  ? "border-[var(--accent)] text-[var(--fg-primary)]"
-                  : "border-transparent text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]",
+                  ? "text-[var(--fg-primary)]"
+                  : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]",
               )}
               onClick={() => setActive(item.id)}
             >

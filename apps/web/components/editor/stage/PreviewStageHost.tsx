@@ -74,7 +74,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
     if (!el || !aspectRatio) return undefined;
     const stage = stageSizeForAspect(aspectRatio);
     const update = () => {
-      const pad = 48;
+      const pad = 24;
       const availW = Math.max(80, el.clientWidth - pad);
       const availH = Math.max(80, el.clientHeight - pad);
       const next = Math.min(availW / stage.width, availH / stage.height, 1);

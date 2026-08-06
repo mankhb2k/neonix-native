@@ -39,7 +39,7 @@ export function EditorShell({ initialSnapshot }: Props) {
     <div
       data-surface="editor"
       data-testid="editor-shell"
-      className="editor-shell"
+      className="grid h-screen w-screen overflow-hidden text-[var(--fg-primary)] [background:var(--editor-atmosphere),var(--bg-app)] [grid-template-areas:'topbar_topbar_topbar'_'left_stage_right'] [grid-template-columns:var(--editor-left-w)_1fr_var(--editor-right-w)] [grid-template-rows:var(--editor-chrome-h)_1fr]"
     >
       <EditorTopBar projectName={name} projectId={active.metadata.id} />
       <LeftRail />

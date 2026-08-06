@@ -26,7 +26,9 @@ function LayerTree() {
   return (
     <div className="space-y-1 p-2" data-testid="layer-tree">
       {nodes.length === 0 ? (
-        <p className="editor-placeholder p-2">Chưa có layer.</p>
+        <p className="p-2 text-[length:var(--fs-body)] leading-[var(--lh-normal)] text-[var(--fg-muted)]">
+          Chưa có layer.
+        </p>
       ) : (
         nodes.map((node) => {
           const selected =
@@ -131,7 +133,7 @@ function AssetsPanel() {
 
 export function LeftRail() {
   return (
-    <aside className="editor-area-left border-r border-[var(--border-subtle)]">
+    <aside className="min-h-0 border-r border-[var(--border-subtle)] [grid-area:left]">
       <Panel
         bodyClassName="!p-0"
         className="h-full rounded-none border-0"

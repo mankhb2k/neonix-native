@@ -57,7 +57,10 @@ export default function MarketingHomePage() {
         Logo, màu brand, kịch bản tiếng Việt — ra timeline chỉnh được, không cần
         After Effects.
       </p>
-      <a href={appUrl("/")} className="mv-btn mv-btn-primary">
+      <a
+        href={appUrl("/")}
+        className="inline-flex h-10 items-center justify-center rounded-full border border-transparent bg-[var(--accent)] px-4 font-semibold text-[var(--accent-on)] no-underline shadow-[0_6px_18px_rgba(13,148,136,0.28)] transition hover:-translate-y-px hover:bg-[var(--accent-hover)] hover:shadow-[0_8px_22px_rgba(13,148,136,0.34)]"
+      >
         Mở app
       </a>
     </main>
