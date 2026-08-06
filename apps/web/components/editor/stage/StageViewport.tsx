@@ -1,7 +1,7 @@
 "use client";
 
 import { PreviewStageHost } from "@/components/editor/stage/PreviewStageHost";
-import { MinimalTimeline } from "@/components/editor/timeline/MinimalTimeline";
+import { TimelineShell } from "@/components/editor/timeline/TimelineShell";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
@@ -53,7 +53,7 @@ export function StageViewport({ project, width, height }: Props) {
       </div>
 
       <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t-2 border-[var(--border-subtle)] bg-[var(--bg-panel)]">
-        <MinimalTimeline />
+        <TimelineShell />
       </div>
     </main>
   );

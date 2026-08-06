@@ -41,6 +41,9 @@
   /* --- Fonts --- */
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
+  /* Timecode / ruler — equal-width digits (NLE standard) */
+  --font-mono: var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas,
+    monospace;
 
   /* --- Type scale (đang dùng: ui / caption / body) --- */
   --fs-caption: 11px;
@@ -49,9 +52,25 @@
 
   /* --- Editor layout --- */
   --editor-chrome-h: 56px;
-  --editor-timeline-h: 168px;
+  --editor-timeline-h: 240px;
   --editor-left-w: 380px;
   --editor-right-w: 480px;
+
+  /* --- Timeline (Canva-like pastels + layout) --- */
+  --timeline-track-lane: #f3f2f5;
+  --timeline-clip-frame: #cfcad9;
+  --timeline-clip-frame-hover: #bbb5c9;
+  --timeline-clip-frame-fg: #3d3550;
+  --timeline-clip-audio: #a8b8e0;
+  --timeline-clip-audio-hover: #93a4d1;
+  --timeline-clip-audio-fg: #2c3a5c;
+  --timeline-clip-overlay: #c4b5e8;
+  --timeline-clip-overlay-hover: #b09fd9;
+  --timeline-clip-overlay-fg: #3b2f5c;
+  --timeline-playhead: var(--fg-primary);
+  --timeline-transport-h: 36px;
+  --timeline-ruler-h: 28px;
+  --timeline-label-w: 96px;
 }
 
 /* Bridge → utilities text-caption / text-ui / text-body */
