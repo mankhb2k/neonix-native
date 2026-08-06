@@ -116,26 +116,16 @@ function canonicalTime(value: number): number {
 }
 
 /** Closed allowlist of Clip.source.presetId values the compiler expands. Unknown IDs throw. */
-export const COMPILED_PRESET_IDS = Object.freeze([
-  "fade-in",
-  "fade-up",
-  "fade-down",
-  "fade-left",
-  "fade-right",
-  "slide-up",
-  "slide-left",
-  "slide-right",
-  "scale-in",
-  "zoom-in",
-  "pop",
-  "counter",
-] as const);
-
-export type CompiledPresetId = (typeof COMPILED_PRESET_IDS)[number];
-
-export function isCompiledPreset(presetId: string): presetId is CompiledPresetId {
-  return (COMPILED_PRESET_IDS as readonly string[]).includes(presetId);
-}
+export {
+  COMPILED_PRESET_IDS,
+  isCompiledPreset,
+  type CompiledPresetId,
+} from "./presets";
+export {
+  validateMotionProjectPresets,
+  type UnknownPresetRef,
+  type PresetValidationResult,
+} from "./validate-presets";
 
 function presetTracks(node: RuntimeNode, preset: string, start: number, end: number): RuntimeTrack[] {
   const x = node.transform.x;

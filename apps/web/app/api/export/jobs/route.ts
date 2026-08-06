@@ -1,5 +1,5 @@
 import { parseMotionProject } from "@motionvideo/motion-schema";
-import { validateMotionProjectPresets } from "@motionvideo/template-library";
+import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import {
   startExportJob,
   toPublicJob,

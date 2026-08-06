@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseMotionProject } from "@motionvideo/motion-schema";
-import { validateMotionProjectPresets } from "@motionvideo/template-library";
+import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;

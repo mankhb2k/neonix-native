@@ -15,10 +15,8 @@
   },
   "dependencies": {
     "@motionvideo/motion-compiler": "workspace:*",
-    "@motionvideo/motion-grammar": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
-    "@motionvideo/template-library": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

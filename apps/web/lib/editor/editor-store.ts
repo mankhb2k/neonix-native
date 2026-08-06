@@ -4,7 +4,7 @@ import {
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-schema";
-import { validateMotionProjectPresets } from "@motionvideo/template-library";
+import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 
 export { useEditorStore } from "@/lib/editor/store/create-editor-store";
 export { nodeText } from "@/lib/editor/store/internal/scene-utils";

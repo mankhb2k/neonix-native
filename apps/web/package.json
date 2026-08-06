@@ -30,7 +30,6 @@
     "@motionvideo/pixi-renderer": "workspace:*",
     "@motionvideo/preview-kit": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
-    "@motionvideo/template-library": "workspace:*",
     "@motionvideo/remotion-renderer": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "clsx": "^2.1.1",

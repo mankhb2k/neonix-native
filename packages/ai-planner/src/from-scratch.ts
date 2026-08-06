@@ -1,4 +1,4 @@
-import { getGrammarForIndustry, grammarPatterns } from "@motionvideo/motion-grammar";
+import { getGrammarForIndustry, grammarPatterns } from "./planning/grammar";
 import { CAPABILITY_MANIFEST_VERSION } from "@motionvideo/motion-runtime";
 import type { CreativeBriefV1, CreativePlanV1, SceneBrief, SceneDesignPlanV1 } from "./contracts";
 import { parseCreativeBriefV1, parseCreativePlanV1, parseSceneDesignPlanV1 } from "./contracts";

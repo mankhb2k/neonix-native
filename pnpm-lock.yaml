@@ -174,9 +174,6 @@ importers:
       '@motionvideo/render-contracts':
         specifier: workspace:*
         version: link:../../packages/render-contracts
-      '@motionvideo/template-library':
-        specifier: workspace:*
-        version: link:../../packages/template-library
       '@napi-rs/canvas':
         specifier: ^0.1.80
         version: 0.1.100
@@ -229,9 +226,6 @@ importers:
       '@motionvideo/render-contracts':
         specifier: workspace:*
         version: link:../../packages/render-contracts
-      '@motionvideo/template-library':
-        specifier: workspace:*
-        version: link:../../packages/template-library
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
@@ -326,18 +320,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../motion-compiler
-      '@motionvideo/motion-grammar':
-        specifier: workspace:*
-        version: link:../motion-grammar
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
       '@motionvideo/motion-schema':
         specifier: workspace:*
         version: link:../motion-schema
-      '@motionvideo/template-library':
-        specifier: workspace:*
-        version: link:../template-library
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -468,12 +456,6 @@ importers:
       '@motionvideo/motion-schema':
         specifier: workspace:*
         version: link:../motion-schema
-    devDependencies:
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-
-  packages/motion-grammar:
     devDependencies:
       typescript:
         specifier: ^5.8.2
@@ -610,19 +592,6 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
-
-  packages/template-library:
-    dependencies:
-      '@motionvideo/motion-compiler':
-        specifier: workspace:*
-        version: link:../motion-compiler
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
-    devDependencies:
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
 
 packages:
 

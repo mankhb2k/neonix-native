@@ -210,36 +210,14 @@ describe("ai-planner R1 from-scratch", () => {
     expect(result.receipts.some((receipt) => receipt.diagnostics.some((d) => d.code === "compiled"))).toBe(true);
   });
 
-  it("keeps template mode as optional prior", () => {
+  it("maps legacy PlanInput onto from-scratch PlanResult", () => {
     const result = planMotionProject({
-      brief: {
-        format: "moticlip-creative-brief",
-        formatVersion: 1,
-        objective: "F&B ad",
-        durationSeconds: 15,
-        aspectRatio: "9:16",
-        script: "Hook\nOffer\nCTA",
-        language: "vi",
-        brand: { name: "Cà Phê Sáng", primaryColor: "#D9381E" },
-      },
-      mode: "template",
-      industry: "fnb",
-      templateId: "fnb-hook-offer-cta",
-      seed: "unit-template",
-    }) as PlanResult;
-
-    expect(result.project.scenes.length).toBeGreaterThan(0);
-    expect(result.generation.model).toContain("template");
-  });
-
-  it("preserves legacy PlanInput returning MotionProject", () => {
-    const project = planMotionProject({
       brandName: "Legacy",
       industry: "fnb",
       script: "A\nB\nC",
-      templateId: "fnb-hook-offer-cta",
     });
-    expect("format" in project && project.format === "motion-project").toBe(true);
-    expect("generation" in project).toBe(false);
+    expect(result.project.format).toBe("motion-project");
+    expect(result.generation.model).toContain("from-scratch");
+    expect(result.brief.brand?.name).toBe("Legacy");
   });
 });
