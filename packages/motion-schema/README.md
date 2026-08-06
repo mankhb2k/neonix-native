@@ -8,8 +8,8 @@ Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion For
 
 1. **Single Source of Truth cho Format v2**: Định nghĩa chính xác cấu trúc dữ liệu cho Project (`.mt`), Component (`.mvc`), Patch, và Normalized IR.
 2. **Authoring IR vs. Runtime IR Pipeline**:
-   - **Authoring IR** ([`MotionProjectV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1143), [`MotionComponentV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1049)): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), tham số công khai (`publicParams`), binding, component instances (`type: "component"`), repeat directives, presets, và text animators.
-   - **Normalized Runtime IR** ([`NormalizedMotionProjectV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1234)): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat nodes được clone, presets & text animators được biên dịch thành keyframe tracks thực tế.
+   - **Authoring IR** ([`MotionProjectV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/project.ts), [`MotionComponentV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/component.ts)): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), tham số công khai (`publicParams`), binding, component instances (`type: "component"`), repeat directives, presets, và text animators.
+   - **Normalized Runtime IR** ([`NormalizedMotionProjectV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/runtime.ts)): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat nodes được clone, presets & text animators được biên dịch thành keyframe tracks thực tế.
 3. **An toàn dữ liệu nghiêm ngặt (Strict Validation & Bounds)**:
    - Sử dụng Zod `discriminatedUnion` và `.strict()` nhằm reject thuộc tính lạ hoặc dữ liệu rác.
    - Cấm giá trị numeric không hữu hạn (`NaN`, `Infinity`).
@@ -20,11 +20,25 @@ Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion For
 
 ## 📁 Cấu trúc Package
 
-Package gồm các module chính trong [`src/`](file:///d:/NextJS/moticlip/packages/motion-schema/src):
+Package được mô-đun hóa thành các folder/file trong [`src/`](file:///d:/NextJS/moticlip/packages/motion-schema/src):
 
 - [`index.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/index.ts): Export chính của package. Cung cấp các alias canonical (`MotionProject`, `Node`, `Scene`, `parseMotionProject`, v.v.).
-- [`v2.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts): Compatibility barrel — `export * from "./v2/index"`.
-- [`v2/`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2): Schema v2 chia theo domain (`common`, `values`, `nodes/`, `animation/`, `component`, `project`, `runtime`, `references/`, `parse`, `patch`, …).
+- [`v2.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts): Compatibility barrel file (`export * from "./v2/index"`).
+- [`v2/`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2): Thư mục chứa toàn bộ Zod Schemas v2 được chia nhỏ theo domain:
+  - [`common.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/common.ts): Constants (`MOTION_PROJECT_FORMAT_VERSION`), [`AspectRatioSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/common.ts), [`SemanticSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/common.ts).
+  - [`values.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/values.ts): [`JsonValueSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/values.ts), [`ResolvableValueSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/values.ts), [`LiteralValueSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/values.ts).
+  - [`transform.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/transform.ts): [`TransformV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/transform.ts).
+  - [`effects.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/effects.ts): Hiệu ứng pixel [`EffectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/effects.ts) (`blur`, `shadow`, `glow`, `color-adjust`).
+  - [`assets.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/assets.ts): Declarations [`AssetV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/assets.ts) (`image`, `svg`, `video`, `audio`, `font`).
+  - [`variables.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts): [`VariableV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts), [`PublicParamV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts), [`ComponentBindingSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts).
+  - [`nodes/`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes): Discriminated Union [`NodeV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/index.ts) chứa 12 loại node (phân chia theo `base.ts`, `paint.ts`, `structural.ts`, `text.ts`, `media.ts`, `geometry.ts`).
+  - [`animation/`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation): Hệ thống chuyển động (Clips [`clips.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/clips.ts), Tracks [`tracks.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/tracks.ts), Easing [`easing.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/easing.ts), Drivers [`drivers.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/drivers.ts)).
+  - [`component.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/component.ts): Component reusability [`MotionComponentV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/component.ts) & LipSync.
+  - [`project.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/project.ts): Project chính [`MotionProjectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/project.ts), Metadata, SceneTransitions.
+  - [`patch.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/patch.ts): Patching system [`MotionPatchSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/patch.ts) & hàm [`applyMotionPatch()`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/patch.ts).
+  - [`runtime.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/runtime.ts): Runtime IR [`NormalizedMotionProjectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/runtime.ts) dành riêng cho Renderer.
+  - [`references/`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/references): Kiểm tra toàn vẹn liên kết đồ thị (Reference validation for Project, Component, Node Graph, Clips, Assets).
+  - [`parse.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/parse.ts): Utility functions [`parseMotionProjectV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/parse.ts), [`parseMotionComponentV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/parse.ts), [`serializeMotionProjectV2`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/parse.ts).
 - [`capabilities.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/capabilities.ts): Khai báo [`MOTION_V2_LIMITS`](file:///d:/NextJS/moticlip/packages/motion-schema/src/capabilities.ts#L1), bảng đăng ký khả năng của thuộc tính ([`motionPropertyCapability`](file:///d:/NextJS/moticlip/packages/motion-schema/src/capabilities.ts#L147)) và hàm validate thuộc tính công khai cho AI/UI Controls.
 - [`scene-registry.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/scene-registry.ts): Schema quản lý Scene Component Registry ([`SceneComponentRegistrySchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/scene-registry.ts#L55)) để phân loại template theo roles (`hook`, `solution`, `cta`, v.v.) và map domains.
 
@@ -42,39 +56,39 @@ JSON Input  ──► parseMotionProject() / parseMotionComponentV2()
              Normalized Runtime IR (Literal, Flat, Renderer-Ready)
 ```
 
-| Schema / Type | Version | Mô tả |
-|---|---|---|
-| [`MotionProjectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1143) / [`MotionProject`](file:///d:/NextJS/moticlip/packages/motion-schema/src/index.ts#L15) | `2` | Schema file dự án chuyển động (`.mt`). Chứa danh sách `scenes`, `assets`, `variables`, `audioTracks`, `timeline`, `dependencies`. |
-| [`MotionComponentV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1049) / `MotionComponentV2` | `2` | Schema linh kiện chuyển động tái sử dụng (`.mvc`). Chứa `publicParams`, `bindings`, `nodes`, `clips`, `cutoutRigs`, `actions`. |
-| [`NormalizedMotionProjectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1234) | `2` | Runtime IR đã biên dịch, chỉ chứa giá trị literal dành riêng cho Renderer. |
-| [`MotionPatchSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1174) | `1` | Bản vá (Patch) thao tác trên surface công khai (sửa biến dự án hoặc `props` của Component Instance). |
-| [`SceneComponentRegistrySchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/scene-registry.ts#L55) | `1` | Registry danh mục linh kiện scene dùng cho AI/Editor template picker. |
+| Schema / Type | Version | Module Source | Mô tả |
+|---|---|---|---|
+| [`MotionProjectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/project.ts) / [`MotionProject`](file:///d:/NextJS/moticlip/packages/motion-schema/src/index.ts#L15) | `2` | [`src/v2/project.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/project.ts) | Schema file dự án chuyển động (`.mt`). Chứa danh sách `scenes`, `assets`, `variables`, `audioTracks`, `timeline`, `dependencies`. |
+| [`MotionComponentV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/component.ts) / `MotionComponentV2` | `2` | [`src/v2/component.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/component.ts) | Schema linh kiện chuyển động tái sử dụng (`.mvc`). Chứa `publicParams`, `bindings`, `nodes`, `clips`, `cutoutRigs`, `actions`. |
+| [`NormalizedMotionProjectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/runtime.ts) | `2` | [`src/v2/runtime.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/runtime.ts) | Runtime IR đã biên dịch, chỉ chứa giá trị literal dành riêng cho Renderer. |
+| [`MotionPatchSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/patch.ts) | `1` | [`src/v2/patch.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/patch.ts) | Bản vá (Patch) thao tác trên surface công khai (sửa biến dự án hoặc `props` của Component Instance). |
+| [`SceneComponentRegistrySchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/scene-registry.ts#L55) | `1` | [`src/scene-registry.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/scene-registry.ts) | Registry danh mục linh kiện scene dùng cho AI/Editor template picker. |
 
 ---
 
 ## 📐 Cấu trúc Dữ liệu Chi tiết (Core Schemas)
 
-### 1. Scene Graph & Node Types ([`NodeV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L670))
+### 1. Scene Graph & Node Types ([`NodeV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/index.ts))
 
-Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node được tổ chức theo hình cây với [`TransformV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L111). [`NodeV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L670) là một Discriminated Union phân loại theo trường `type`:
+Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node được tổ chức theo hình cây với [`TransformV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/transform.ts). [`NodeV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/index.ts) là một Discriminated Union phân loại theo trường `type`:
 
-- **`group`**: Node nhóm dùng để gom cụm và phân cấp không gian.
+- **`group`**: Node nhóm dùng để gom cụm và phân cấp không gian ([`structural.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/structural.ts)).
 - **`bone`**: Khung xương phục vụ Cut-out character rigging (`payload.length`, `payload.restRotation`).
-- **`text`**: Văn bản với font, size, fill, và tùy chọn `textAnimator` (phân đoạn từ/chữ cái bằng `Intl.Segmenter`).
-- **`shape`**: Hình học cơ bản (`rectangle`, `ellipse`, `polygon`) hỗ trợ nét đứt `dash`, fill/stroke gradient hoặc solid.
-- **`path`**: Đường cong Vector/Bézier phức tạp với nhiều `contours`, `segments` (line/cubic) và Path Morphing targets.
-- **`image`**: Hình ảnh raster liên kết tới asset bitmap (`payload.assetId`).
-- **`svg`**: Vector SVG liên kết tới asset vector (`payload.assetId`).
-- **`video`**: Đoạn video phát trong canvas (`payload.assetId`, `trimStart`, `muted`).
-- **`camera`**: Camera 2D điều khiển viewport render (`payload.zoom`, `payload.parallaxStrength`).
-- **`solid`**: Mảng màu nền phẳng (`width`, `height`, `color`).
-- **`adjustment`**: Layer hiệu ứng hình ảnh (chỉnh `brightness`, `contrast`, `saturation`).
-- **`component`**: Component Instance (chỉ tồn tại ở Authoring IR, sẽ được compiler bung ra ở Runtime IR).
+- **`text`**: Văn bản với font, size, fill, và tùy chọn `textAnimator` ([`text.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/text.ts)).
+- **`shape`**: Hình học cơ bản (`rectangle`, `ellipse`, `polygon`) hỗ trợ nét đứt `dash`, fill/stroke gradient hoặc solid ([`paint.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/paint.ts)).
+- **`path`**: Đường cong Vector/Bézier phức tạp với nhiều `contours`, `segments` (line/cubic) và Path Morphing targets ([`geometry.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/geometry.ts)).
+- **`image`**: Hình ảnh raster liên kết tới asset bitmap ([`media.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/media.ts)).
+- **`svg`**: Vector SVG liên kết tới asset vector ([`media.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/media.ts)).
+- **`video`**: Đoạn video phát trong canvas ([`media.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/media.ts)).
+- **`camera`**: Camera 2D điều khiển viewport render ([`structural.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/structural.ts)).
+- **`solid`**: Mảng màu nền phẳng ([`paint.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/paint.ts)).
+- **`adjustment`**: Layer hiệu ứng hình ảnh ([`structural.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/structural.ts)).
+- **`component`**: Component Instance ([`structural.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/nodes/structural.ts)).
 
 #### Thuộc tính mở rộng trên Node:
-- **Transform** ([`TransformV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L111)): `x`, `y`, `depth` (2.5D parallax), `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY` (0..1), `opacity`, `visible`, `flipX`, `flipY`.
+- **Transform** ([`TransformV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/transform.ts)): `x`, `y`, `depth` (2.5D parallax), `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY` (0..1), `opacity`, `visible`, `flipX`, `flipY`.
 - **Masking**: Mỗi Node chỉ nhận tối đa 1 quan hệ `mask: { sourceNodeId, mode: "clip" | "alpha" | "inverse-alpha", sourceVisibility }`.
-- **Effects Stack** ([`EffectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L52)): Xếp chồng các hiệu ứng pixel (`blur`, `shadow`, `glow`, `color-adjust`).
+- **Effects Stack** ([`EffectV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/effects.ts)): Xếp chồng các hiệu ứng pixel (`blur`, `shadow`, `glow`, `color-adjust`).
 - **Modifiers**: Bộ điều chỉnh chuyển động (`motion-path`, `path-morph`, `secondary-motion`, `trim-path`, `path-bend`, `constraint`).
 - **Repeater Directive**: Lặp node theo dạng grid/linear/radial kèm stagger thời gian.
 
@@ -82,23 +96,23 @@ Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node �
 
 ### 2. Hệ thống Chuyển động (Clips, Tracks & Keyframes)
 
-- **`Clip`**: Thuộc về `Scene`, định nghĩa khoảng thời gian chạy cho 1 Node mục tiêu.
-  - **Schedule** ([`ClipScheduleSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L685)): `absolute.at`, `after.clipId`, hoặc `with.clipId`.
-  - **Playback** ([`PlaybackSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L691)): Số lần lặp (`iterations`), hướng (`normal`, `reverse`, `alternate`), và tốc độ (`rate`).
+- **`Clip`**: Thuộc về `Scene`, định nghĩa khoảng thời gian chạy cho 1 Node mục tiêu ([`clips.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/clips.ts)).
+  - **Schedule** ([`ClipScheduleSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/clips.ts)): `absolute.at`, `after.clipId`, hoặc `with.clipId`.
+  - **Playback** ([`PlaybackSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/clips.ts)): Số lần lặp (`iterations`), hướng (`normal`, `reverse`, `alternate`), và tốc độ (`rate`).
   - **Tracks**: Danh sách các đường biến đổi thuộc tính (`targetProperty`).
-- **`Track`**: Nhắm đến thuộc tính cụ thể (ví dụ `transform.x`, `style.fill`, `modifiers.mp1.progress`) chứa danh sách `keys[]`.
-- **`Keyframe`**: Chứa mốc thời gian `t` (giây, tương đối theo clip), giá trị `value` (literal hoặc resolvable ref), và phương thức nội suy `easing`:
+- **`Track`**: Nhắm đến thuộc tính cụ thể chứa danh sách `keys[]` ([`tracks.ts`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/tracks.ts)).
+- **`Keyframe`**: Chứa mốc thời gian `t`, giá trị `value`, và phương thức nội suy [`KeyframeEasingV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/easing.ts):
   - Easing chuẩn: `linear`, `easeIn`, `easeOut`, `easeInOut`, `step`.
   - Easing nâng cao: `cubic-bezier` (4 điểm điều khiển) hoặc `spring` (lực lò xo: `mass`, `stiffness`, `damping`).
 
 ---
 
-### 3. Asset Declarations ([`AssetV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L194))
+### 3. Asset Declarations ([`AssetV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/assets.ts))
 
 Assets được định nghĩa dạng Discriminated Union theo `assetType`, đi kèm metadata bắt buộc nhằm phục vụ renderer & loader:
 - **`image`**: `mimeType`, `width`, `height`, `pixelFormat`, `hasAlpha`.
 - **`svg`**: `mimeType: image/svg+xml`, `width`, `height`, `viewBox`, `sanitized: true`.
-- **`video`**: `mimeType`, `width`, `height`, `duration`, `fps`, `videoCodec`, `pixelFormat`, `hasAudio` (kèm thông số audio chi tiết nếu `hasAudio: true`).
+- **`video`**: `mimeType`, `width`, `height`, `duration`, `fps`, `videoCodec`, `pixelFormat`, `hasAudio`.
 - **`audio`**: `mimeType`, `duration`, `codec`, `sampleRate`, `channels`.
 - **`font`**: `mimeType`, `family`, `weight`, `style`, `localeCoverage`.
 
@@ -106,12 +120,12 @@ Assets được định nghĩa dạng Discriminated Union theo `assetType`, đi 
 
 ### 4. Variables, Public API & Component Bindings
 
-- **Variables** ([`VariableV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L223)): Khai báo biến thuộc loại `number`, `string`, `color`, `boolean`, `asset`, hoặc `json`.
-- **Public Parameters** ([`PublicParamV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L970)): Expose biến ra ngoài interface của Component với các gợi ý UI controls:
+- **Variables** ([`VariableV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts)): Khai báo biến thuộc loại `number`, `string`, `color`, `boolean`, `asset`, hoặc `json`.
+- **Public Parameters** ([`PublicParamV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts)): Expose biến ra ngoài interface của Component với các gợi ý UI controls:
   - `group`: `content | style | motion | layout | audio`.
   - `control`: `text | textarea | color-picker | slider | toggle | asset-picker | enum`.
   - `capability`: `basic | advanced | designer-only`.
-- **Component Bindings** ([`ComponentBindingSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L954)): Liên kết biến công khai với thuộc tính bên trong của Node/Clip/Track.
+- **Component Bindings** ([`ComponentBindingSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/variables.ts)): Liên kết biến công khai với thuộc tính bên trong của Node/Clip/Track.
 - **Priority Resolving**: Giá trị mặc định Component < Payload Props của Instance < Binding cấp Project.
 
 ---
@@ -119,7 +133,7 @@ Assets được định nghĩa dạng Discriminated Union theo `assetType`, đi 
 ### 5. Timeline & Audio Tracks
 
 - **`timeline.sceneOrder`**: Thứ tự phát sóng canonical của các scene.
-- **Scene Transition** ([`SceneTransitionSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L1091)): Hiệu ứng chuyển cảnh giữa các scene liền kề: `cut` (thời lượng 0), `fade`, hoặc `crossfade`.
+- **Scene Transition** ([`SceneTransitionSchema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/project.ts)): Hiệu ứng chuyển cảnh giữa các scene liền kề: `cut`, `fade`, hoặc `crossfade`.
 - **`audioTracks`**: Danh sách nhạc nền (BGM), voiceover, hiệu ứng âm thanh (SFX) với cấu hình `startTime`, `trimStart`, `duration`, `volume`, `loop`, và `fadeIn/fadeOut`.
 
 ---
@@ -133,6 +147,7 @@ Assets được định nghĩa dạng Discriminated Union theo `assetType`, đi 
   - `bindable`: Có thể gán biến (variable binding) hay không.
   - `public`: Có xuất hiện trên giao diện AI / Inspector UI hay không.
   - `runtimeSupport`: `evaluated` (hỗ trợ animate ở runtime) hoặc `compile-time` (chỉ resolve khi build).
+
 ---
 
 ## 🎬 Danh sách Thuộc tính Hỗ trợ Keyframe Animation (Animatable Properties)
@@ -170,7 +185,7 @@ Toàn bộ các thuộc tính dưới đây được quản lý tại [`capabili
 - **Glow**: `effects.<id>.radius`, `intensity`, `opacity`, `color`.
 - **Color Adjust**: `effects.<id>.brightness`, `contrast`, `saturation`.
 
-### 5. Phương thức Nội suy Easing ([`KeyframeEasingV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L733))
+### 5. Phương thức Nội suy Easing ([`KeyframeEasingV2Schema`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/animation/easing.ts))
 - **Presets**: `linear`, `easeIn`, `easeOut`, `easeInOut`, `step`.
 - **Cubic-Bézier**: `{ type: "cubic-bezier", x1, y1, x2, y2 }` (nội suy đường cong 4 điểm mút mượt như After Effects).
 - **Spring**: `{ type: "spring", stiffness, damping, mass }` (mô phỏng nảy lò xo vật lý).
@@ -201,7 +216,7 @@ try {
 const jsonString = serializeMotionProject(project);
 ```
 
-### 2. Áp dụng Patch Dữ liệu ([`applyMotionPatch`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2.ts#L2133))
+### 2. Áp dụng Patch Dữ liệu ([`applyMotionPatch`](file:///d:/NextJS/moticlip/packages/motion-schema/src/v2/patch.ts))
 
 ```ts
 import { applyMotionPatch, type MotionPatch } from "@motionvideo/motion-schema";
