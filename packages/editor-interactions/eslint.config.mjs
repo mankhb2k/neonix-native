@@ -6,6 +6,9 @@ export default tseslint.config(
   eslintJs.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    ignores: ["src/vendor-stubs/**"],
+  },
+  {
     files: ["src/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [

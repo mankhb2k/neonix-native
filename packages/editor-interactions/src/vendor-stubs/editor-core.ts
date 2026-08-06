@@ -19,6 +19,27 @@ export type TimelineLane = {
   order: number;
 };
 
+export type NodeTargetRef = {
+  sceneId: string;
+  nodeId: string;
+};
+
+export type TransformPatch = {
+  x?: number;
+  y?: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  lockAspect?: boolean;
+};
+
+export type DocumentPropertyCommand = {
+  type: string;
+  targets?: NodeTargetRef[];
+  patch?: TransformPatch;
+  [key: string]: unknown;
+};
+
 export function clipAcceptsTrack(
   _clip: Pick<TimelineClip, "kind">,
   _track: TimelineTrackKind,
