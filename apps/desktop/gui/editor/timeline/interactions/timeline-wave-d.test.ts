@@ -10,8 +10,8 @@ import {
 import {
   PointerSessionController,
   resetActivePointerSessionToken,
-} from "./pointer-session-controller";
-import { shouldCommitPointerSession } from "./pointer-session";
+} from "@motionvideo/editor-interactions";
+import { shouldCommitPointerSession } from "@motionvideo/editor-interactions";
 
 function reduce(
   state: TimelineSessionState,

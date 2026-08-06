@@ -5,8 +5,8 @@ import {
   type TimelineClip,
 } from "@motionvideo/editor-core";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import type { BeginGesture } from "../interactions/use-pointer-session";
-import type { PointerSessionConfig } from "../interactions/pointer-session-controller";
+import type { BeginGesture } from "@motionvideo/editor-react";
+import type { PointerSessionConfig } from "@motionvideo/editor-interactions";
 import { useClipTrim } from "./use-clip-trim";
 
 const CLIP: TimelineClip = {

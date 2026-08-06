@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ClipMovePreview } from "../clips/clip-move-geometry";
+import type { ClipMovePreview } from "@motionvideo/editor-interactions";
 import {
   clearPreviewSession,
   getMovePinKey,

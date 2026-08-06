@@ -11,7 +11,7 @@ import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import {
   clientXToStripTime,
   resolvePlayheadScrubMax,
-} from "@/lib/editor/timeline/timeline-seek";
+} from "@motionvideo/editor-interactions";
 import { Pause, Play } from "lucide-react";
 import { useCallback, useMemo, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/lib/utils";

@@ -17,7 +17,7 @@ import {
   ensurePlayheadScrubScroll,
   resolvePlayheadScrubMax,
   timelineTimeToViewportLeft,
-} from "../timeline-seek";
+} from "@motionvideo/editor-interactions";
 
 type Props = {
   tracksOriginX: number;

@@ -5,7 +5,7 @@ import {
   lowerBound,
   resolveClipMoveDrag,
   snapMoveStartToEdges,
-} from "./clip-move-geometry";
+} from "@motionvideo/editor-interactions";
 
 const base = {
   clipId: "c1",

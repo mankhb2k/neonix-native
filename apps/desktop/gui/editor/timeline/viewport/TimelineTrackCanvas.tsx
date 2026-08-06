@@ -13,7 +13,7 @@ import {
 } from "react";
 import { ClipStrip } from "../clips/ClipStrip";
 import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
-import type { BeginGesture } from "../interactions/use-pointer-session";
+import type { BeginGesture } from "@motionvideo/editor-react";
 import { LANE_GAP_PX, type TimelineLaneRow } from "../lanes/timeline-lane-rows";
 import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
 import type { TimelineStripFlags } from "../view-model/resolve-timeline-surface";

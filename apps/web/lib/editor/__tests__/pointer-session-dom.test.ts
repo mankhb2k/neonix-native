@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { PointerSessionController } from "@/lib/editor/timeline/sessions/pointer-session-controller";
+import { PointerSessionController } from "@motionvideo/editor-interactions";
 
 /**
  * Unit coverage for the pure controller + DOM-binding contract used by

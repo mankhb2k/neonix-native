@@ -16,7 +16,6 @@ import {
   scheduleDropGhostSample,
   useMovePinKey,
 } from "../interactions/timeline-preview-session";
-import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import { Playhead } from "./Playhead";
 import { TimelineHScrollBar } from "./TimelineHScrollBar";
 import {
@@ -25,10 +24,14 @@ import {
   TIMELINE_RULER_HEIGHT_PX,
   TIMELINE_TRACKS_ORIGIN_X,
 } from "../timeline-scale";
-import { useTimelineSeek } from "@motionvideo/editor-react";
+import {
+  usePointerSessionHost,
+  useTimelineSeek,
+  useTimelineViewportMetrics,
+  useVisibleTimeline,
+} from "@motionvideo/editor-react";
 import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { resolveTimelineSurface } from "../view-model/resolve-timeline-surface";
-import { useVisibleTimeline } from "../view-model/use-visible-timeline";
 import { computeViewportLayout } from "./viewport-layout";
 import { timelineVerticalInsets } from "../lanes/timeline-lane-rows";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
@@ -38,7 +41,6 @@ import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
 import { useMountedLaneRows } from "./use-mounted-lane-rows";
 import { useTimelineDropHostRegistration } from "./use-timeline-drop-host-registration";
 import { useTimelineMarquee } from "./use-timeline-marquee";
-import { useTimelineViewportMetrics } from "./use-timeline-viewport-metrics";
 
 type Props = {
   projectId: string | null;

@@ -9,12 +9,14 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import type { LibraryPayload } from "../../library/model/library-payload";
-import type { ClipMovePreview } from "../clips/clip-move-geometry";
+import type {
+  ClipMovePreview,
+  MarqueeRect,
+} from "@motionvideo/editor-interactions";
 import {
   resolveDropGeometryAtPoint,
   type LibraryDropPreview,
 } from "../drop/library-drop";
-import type { MarqueeRect } from "../selection/marquee-geometry";
 
 export type TimelinePreviewSession = {
   dropGhost: LibraryDropPreview | null;

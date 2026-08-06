@@ -12,7 +12,7 @@ import {
   resolveOccupancyAwarePlacement,
 } from "@motionvideo/editor-core";
 import type { LibraryPayload } from "../../library/model/library-payload";
-import { snapMoveStartToEdges } from "../clips/clip-move-geometry";
+import { snapMoveStartToEdges } from "@motionvideo/editor-interactions";
 import { isLayerModeLaneId } from "../layer-mode/build-layer-mode-view";
 import {
   resolveLayerInsertGapAtClientY,

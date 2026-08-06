@@ -17,10 +17,10 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import { useMovePreviewForLane, useMarqueeSelectionIds } from "../interactions/timeline-preview-session";
-import type { BeginGesture } from "../interactions/use-pointer-session";
+import type { BeginGesture } from "@motionvideo/editor-react";
 import { cn } from "../../../ui";
 import { useEditorUiSession } from "../../session/editor-ui-session";
-import type { ClipMovePreview } from "./clip-move-geometry";
+import type { ClipMovePreview } from "@motionvideo/editor-interactions";
 import {
   trackForLane,
   type TimelineTrackKind,

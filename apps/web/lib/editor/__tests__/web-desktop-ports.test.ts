@@ -4,7 +4,7 @@ import {
   clientXToStripTime,
   resolvePlayheadScrubMax,
   scrollTracksHorizontallyNearEdge,
-} from "@/lib/editor/timeline/timeline-seek";
+} from "@motionvideo/editor-interactions";
 import { seedWebEditorUi } from "@/lib/editor/fixtures/seed-editor-ui";
 
 describe("playback time-frame (web port)", () => {

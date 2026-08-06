@@ -5,7 +5,7 @@ import {
   lastLaneTopBefore,
   visibleLaneWindow,
   type VisibleLaneWindow,
-} from "./visible-lane-window";
+} from "@motionvideo/editor-react";
 
 /** Pre-optimization linear scan for parity checks. */
 function visibleLaneWindowLinear(input: {

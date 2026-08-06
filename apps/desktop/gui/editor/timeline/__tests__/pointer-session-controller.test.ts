@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PointerSessionController,
   resetActivePointerSessionToken,
-} from "../interactions/pointer-session-controller";
+} from "@motionvideo/editor-interactions";
 
 describe("PointerSessionController pendingPos", () => {
   afterEach(() => {

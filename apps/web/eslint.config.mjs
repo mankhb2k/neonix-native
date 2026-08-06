@@ -136,6 +136,15 @@ const appLayerRestrictions = {
           group: ["**/render-worker/**", "@motionvideo/render-worker"],
           message: "Do not import render-worker from the web app.",
         },
+        {
+          group: [
+            "@/lib/editor/timeline/timeline-seek",
+            "@/lib/editor/pointer-session",
+            "@/lib/editor/timeline/sessions/pointer-session-controller",
+          ],
+          message:
+            "Import from @motionvideo/editor-interactions — local seek/pointer barrels were removed.",
+        },
       ],
     },
   ],

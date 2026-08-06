@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   PointerSessionController,
   resetActivePointerSessionToken,
-} from "./pointer-session-controller";
+} from "@motionvideo/editor-interactions";
 
 describe("pointer session lifecycle (UI-0)", () => {
   it("releases global token on cancel so a new gesture can start", () => {

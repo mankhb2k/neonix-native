@@ -13,13 +13,13 @@ import {
   type TimelineLane,
   DEFAULT_VISUAL_POLICY,
 } from "@motionvideo/editor-core";
-import { buildLaneHeightPrefix } from "../view-model/visible-lane-window";
+import { buildLaneHeightPrefix } from "@motionvideo/editor-react";
 import {
   clearPreviewSession,
   getPreviewSession,
 } from "../interactions/timeline-preview-session";
-import { resetActivePointerSessionToken } from "../interactions/pointer-session-controller";
-import { usePointerSessionHost } from "../interactions/use-pointer-session";
+import { resetActivePointerSessionToken } from "@motionvideo/editor-interactions";
+import { usePointerSessionHost } from "@motionvideo/editor-react";
 import { useTimelineMarquee } from "./use-timeline-marquee";
 
 vi.mock("@motionvideo/editor-interactions", async (importOriginal) => {

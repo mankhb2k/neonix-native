@@ -1,6 +1,6 @@
 import { useLayoutEffect, type RefObject } from "react";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import { collectClipEdgeSnapPoints } from "../clips/clip-move-geometry";
+import { collectClipEdgeSnapPoints } from "@motionvideo/editor-interactions";
 import {
   registerTimelineDropHost,
   type TimelineDropHost,

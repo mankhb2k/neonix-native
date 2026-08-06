@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildLaneHeightPrefix,
-} from "../view-model/visible-lane-window";
+import { buildLaneHeightPrefix } from "@motionvideo/editor-react";
 import {
   clipIdsInMarquee,
   clipIdsInMarqueeIndexed,
@@ -13,7 +11,7 @@ import {
   selectionIdsEqual,
   shouldPublishMarqueeIds,
   type MarqueeHitContext,
-} from "./marquee-geometry";
+} from "@motionvideo/editor-interactions";
 
 describe("marquee-geometry", () => {
   it("normalizes drag corners", () => {

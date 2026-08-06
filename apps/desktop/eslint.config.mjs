@@ -35,6 +35,21 @@ const webBanPatterns = [
     group: ["next", "next/**"],
     message: "Desktop Vite must not import Next.js.",
   },
+  {
+    group: [
+      "**/timeline/clips/clip-move-geometry",
+      "**/timeline/selection/marquee-geometry",
+      "**/timeline/timeline-seek",
+      "**/timeline/interactions/pointer-session",
+      "**/timeline/interactions/pointer-session-controller",
+      "**/timeline/interactions/use-pointer-session",
+      "**/timeline/view-model/visible-lane-window",
+      "**/timeline/view-model/use-visible-timeline",
+      "**/timeline/viewport/use-timeline-viewport-metrics",
+    ],
+    message:
+      "Import timeline geometry/hooks from @motionvideo/editor-interactions or @motionvideo/editor-react.",
+  },
 ];
 
 const coreSafetyRules = {

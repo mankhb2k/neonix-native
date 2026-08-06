@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_VISUAL_POLICY, type TimelineLane } from "@motionvideo/editor-core";
-import { buildLaneHeightPrefix } from "../view-model/visible-lane-window";
+import { buildLaneHeightPrefix } from "@motionvideo/editor-react";
 import {
   collectSceneLanesFromLayout,
   resolveClipMoveDropAtY,
