@@ -108,7 +108,7 @@ export function AskAIBar() {
 
         {proposal ? (
           <div
-            className="rounded-[var(--radius)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-[var(--shadow-sm)]"
+            className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-3 shadow-sm"
             data-testid="ai-proposal-diff"
           >
             <p className="text-[12px] font-medium text-[var(--fg-primary)]">
@@ -161,7 +161,7 @@ export function AskAIBar() {
       </div>
 
       <div className="shrink-0 bg-[var(--bg-panel)] p-3">
-        <div className="flex flex-col overflow-hidden rounded-[var(--radius)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] focus-within:border-[var(--border-focus)]">
+        <div className="flex flex-col overflow-hidden rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)] focus-within:border-[var(--border-focus)]">
           <textarea
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}

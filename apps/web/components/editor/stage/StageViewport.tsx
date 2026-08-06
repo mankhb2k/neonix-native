@@ -41,7 +41,7 @@ export function StageViewport({ project, width, height }: Props) {
     >
       <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[var(--stage-bg)] px-4 pt-4 pb-3">
         <div
-          className="relative z-[1] flex max-h-full w-full max-w-[min(90%,1080px)] items-center justify-center overflow-hidden rounded-[2px] bg-[var(--preview-bg)] shadow-[var(--board-shadow)]"
+          className="relative z-[1] flex max-h-full w-full max-w-[min(90%,1080px)] items-center justify-center overflow-hidden rounded-sm bg-[var(--preview-bg)] shadow-lg"
           style={{ aspectRatio: `${width} / ${height}` }}
         >
           <PreviewStageHost
@@ -52,7 +52,7 @@ export function StageViewport({ project, width, height }: Props) {
         </div>
       </div>
 
-      <div className="flex max-h-[40%] min-h-[120px] shrink-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-panel)] h-[var(--editor-timeline-h)]">
+      <div className="flex h-[var(--editor-timeline-h)] max-h-[40%] min-h-[120px] shrink-0 flex-col border-t border-[var(--border-subtle)] bg-[var(--bg-panel)]">
         <MinimalTimeline />
       </div>
     </main>

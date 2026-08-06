@@ -10,7 +10,7 @@ type Props = {
 };
 
 const cardClass =
-  "block rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-[1.15rem] py-[1.1rem] text-inherit no-underline shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-subtle))] hover:shadow-[var(--shadow-md)]";
+  "block rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-panel)] px-[1.15rem] py-[1.1rem] text-inherit no-underline shadow-sm transition hover:-translate-y-0.5 hover:border-[color-mix(in_srgb,var(--accent)_35%,var(--border-subtle))] hover:shadow-md";
 
 export function ProjectList({ onNewProject }: Props) {
   const [items, setItems] = useState<StoredProject[]>([]);

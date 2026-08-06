@@ -36,7 +36,7 @@ export function EditorTopBar({ projectName, projectId }: Props) {
   const dirty = dirtyRevision !== savedRevision;
 
   return (
-    <header className="flex h-[var(--editor-chrome-h)] items-center justify-between gap-3 bg-[var(--bg-panel)] px-4 shadow-[var(--shadow-sm)] [grid-area:topbar]">
+    <header className="flex h-[var(--editor-chrome-h)] items-center justify-between gap-3 border-b border-[var(--border-subtle)] bg-[var(--bg-panel)] px-4 shadow-sm [grid-area:topbar]">
       <div className="flex min-w-0 items-center gap-3">
         <AppLink
           href="/"

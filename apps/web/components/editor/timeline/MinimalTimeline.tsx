@@ -96,7 +96,7 @@ export function MinimalTimeline() {
           <button
             type="button"
             data-testid="timeline-play"
-            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-transparent text-[var(--fg-primary)] hover:bg-[var(--bg-elevated)]"
+            className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border border-[var(--border-strong)] bg-transparent text-[var(--fg-primary)] hover:bg-[var(--bg-elevated)]"
             onClick={() => togglePlayback()}
             title={mode === "playing" ? "Pause" : "Play"}
           >
@@ -118,7 +118,7 @@ export function MinimalTimeline() {
         <div
           ref={trackRef}
           data-testid="timeline-scene-strip"
-          className="relative h-12 w-full cursor-ew-resize select-none overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-app)]"
+          className="relative h-12 w-full cursor-ew-resize select-none overflow-hidden rounded-md border border-[var(--border-subtle)] bg-[var(--bg-app)]"
           onPointerDown={onPointerDown}
         >
           <div className="absolute inset-0 flex">

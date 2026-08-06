@@ -11,7 +11,7 @@ export interface ButtonProps
 
 const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-[var(--accent)] text-[var(--accent-on)] border-transparent hover:bg-[var(--accent-hover)] shadow-[var(--shadow-sm)]",
+    "bg-[var(--accent)] text-[var(--accent-on)] border-transparent hover:bg-[var(--accent-hover)] shadow-sm",
   secondary:
     "bg-[var(--bg-elevated)] text-[var(--fg-primary)] border-[var(--border-strong)] hover:bg-[var(--bg-hover)]",
   ghost:
@@ -46,7 +46,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium cursor-pointer whitespace-nowrap transition-[background,color,filter] duration-150 select-none outline-none border disabled:opacity-40 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center gap-1.5 rounded-md font-medium cursor-pointer whitespace-nowrap transition-[background,color,filter] duration-150 select-none outline-none border disabled:opacity-40 disabled:cursor-not-allowed",
           variantStyles[variant],
           sizeStyles[size],
           loading && "opacity-80 cursor-wait",

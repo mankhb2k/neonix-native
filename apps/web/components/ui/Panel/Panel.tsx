@@ -19,12 +19,12 @@ export function Panel({
   return (
     <section
       className={cn(
-        "flex min-h-0 min-w-0 flex-col border border-[var(--border-subtle)] bg-[var(--bg-panel)] shadow-[var(--shadow-sm)]",
+        "flex min-h-0 min-w-0 flex-col border border-[var(--border-subtle)] bg-[var(--bg-panel)] shadow-sm",
         className,
       )}
     >
       {title ? (
-        <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3.5 text-[length:var(--fs-caption)] font-semibold tracking-[0.04em] text-[var(--fg-muted)] uppercase [background:color-mix(in_srgb,var(--bg-surface)_70%,var(--bg-panel))]">
+        <header className="flex h-10 shrink-0 items-center justify-between gap-2 border-b border-[var(--border-subtle)] px-3.5 text-caption font-semibold tracking-[0.04em] text-[var(--fg-muted)] uppercase [background:color-mix(in_srgb,var(--bg-surface)_70%,var(--bg-panel))]">
           <span>{title}</span>
           {actions ? <div className="flex items-center gap-1">{actions}</div> : null}
         </header>

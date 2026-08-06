@@ -34,7 +34,7 @@ export function Tabs({ items, defaultValue, className }: TabsProps) {
               role="tab"
               aria-selected={selected}
               className={cn(
-                "h-8 flex-1 px-2.5 text-center text-[length:var(--fs-ui)] font-medium transition-colors cursor-pointer [font-family:var(--font-sans)]",
+                "h-8 flex-1 px-2.5 text-center text-ui font-medium transition-colors cursor-pointer [font-family:var(--font-sans)]",
                 selected
                   ? "text-[var(--fg-primary)]"
                   : "text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]",

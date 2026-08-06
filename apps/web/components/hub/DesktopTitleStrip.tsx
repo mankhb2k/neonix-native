@@ -19,7 +19,7 @@ export function DesktopTitleStrip() {
   return (
     <div
       aria-label="Application header drag area"
-      className="flex h-8 shrink-0 select-none items-center justify-between border-b border-[var(--line)] bg-[var(--bg-panel)] px-3 text-[12px] text-[var(--fg-muted)]"
+      className="flex h-8 shrink-0 select-none items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-panel)] px-3 text-[12px] text-[var(--fg-muted)]"
       style={{ WebkitAppRegion: "drag" } as CSSProperties}
     >
       <span className="font-medium text-[var(--fg-primary)]">MotionVideo</span>

@@ -91,7 +91,7 @@ export function NewProjectModal({ open, onClose }: Props) {
       }}
     >
       <div
-        className="w-[min(440px,100%)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-panel)] shadow-[var(--shadow-lg)]"
+        className="w-[min(440px,100%)] overflow-hidden rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-panel)] shadow-lg"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -127,7 +127,7 @@ export function NewProjectModal({ open, onClose }: Props) {
               autoFocus
               required
               maxLength={80}
-              className="h-10 rounded-[var(--radius)] border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 font-[inherit] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] focus:bg-[var(--bg-panel)] focus:shadow-[0_0_0_3px_var(--accent-soft)]"
+              className="h-10 rounded-lg border border-[var(--border-strong)] bg-[var(--bg-surface)] px-3 font-[inherit] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] focus:bg-[var(--bg-panel)] focus:shadow-[0_0_0_3px_var(--accent-soft)]"
             />
           </div>
           <div className="flex flex-col gap-[0.45rem]">
@@ -144,7 +144,7 @@ export function NewProjectModal({ open, onClose }: Props) {
                     role="radio"
                     aria-checked={active}
                     className={cn(
-                      "flex cursor-pointer flex-col items-start gap-1.5 rounded-[var(--radius)] border p-3 text-left transition",
+                      "flex cursor-pointer flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition",
                       active
                         ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)] shadow-[0_0_0_1px_var(--accent)]"
                         : "border-[var(--border-subtle)] bg-[var(--bg-surface)] text-[var(--fg-muted)] hover:border-[var(--border-strong)]",
@@ -175,7 +175,7 @@ export function NewProjectModal({ open, onClose }: Props) {
           <div className="flex justify-end gap-2.5 pt-1">
             <button
               type="button"
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-panel)] px-4 font-semibold text-[var(--fg-secondary)] shadow-[var(--shadow-sm)] transition hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-panel)] px-4 font-semibold text-[var(--fg-secondary)] shadow-sm transition hover:bg-[var(--bg-hover)] hover:text-[var(--fg-primary)] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={onClose}
               disabled={busy}
             >

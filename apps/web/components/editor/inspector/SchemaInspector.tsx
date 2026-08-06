@@ -88,7 +88,7 @@ function LockToggle({
     <button
       type="button"
       data-testid="lock-element"
-      className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-transparent px-2 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
+      className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border border-[var(--border-strong)] bg-transparent px-2 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-primary)]"
       onClick={() => setElementLocked(sceneId, nodeId, !locked)}
       title={locked ? "Unlock element" : "Lock element"}
     >
@@ -226,7 +226,7 @@ function PropertyControl({
     ) : null;
 
   const inputClass =
-    "h-7 w-full rounded-[var(--radius-sm)] border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
+    "h-7 w-full rounded-md border border-[var(--border-strong)] bg-[var(--bg-app)] px-2 text-[12px] text-[var(--fg-primary)] outline-none focus:border-[var(--border-focus)] disabled:opacity-40";
 
   const lockBtn =
     target != null ? (
@@ -448,7 +448,7 @@ export function SchemaInspector() {
                   ) : null}
 
                   {!context || context.targets.length === 0 ? (
-                    <div className="rounded-[var(--radius-sm)] border border-dashed border-[var(--border-strong)] px-3 py-4 text-[12px] text-[var(--fg-muted)]">
+                    <div className="rounded-md border border-dashed border-[var(--border-strong)] px-3 py-4 text-[12px] text-[var(--fg-muted)]">
                       Chưa có selection — click stage hoặc Layer tree.
                     </div>
                   ) : (

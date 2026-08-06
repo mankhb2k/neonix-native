@@ -26,7 +26,7 @@ function LayerTree() {
   return (
     <div className="space-y-1 p-2" data-testid="layer-tree">
       {nodes.length === 0 ? (
-        <p className="p-2 text-[length:var(--fs-body)] leading-[var(--lh-normal)] text-[var(--fg-muted)]">
+        <p className="p-2 text-body leading-normal text-[var(--fg-muted)]">
           Chưa có layer.
         </p>
       ) : (
@@ -41,7 +41,7 @@ function LayerTree() {
               type="button"
               data-testid={`layer-row-${node.id}`}
               className={cn(
-                "flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-sm)] px-2.5 py-1.5 text-left text-[12px] border-0",
+                "flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-left text-[12px] border-0",
                 selected
                   ? "bg-[var(--accent-soft)] text-[var(--accent-text)]"
                   : "bg-transparent text-[var(--fg-secondary)] hover:bg-[var(--bg-hover)]",
@@ -64,7 +64,7 @@ function LayerTree() {
       {selection.kind === "node" ? (
         <button
           type="button"
-          className="mt-2 w-full cursor-pointer rounded-[var(--radius-sm)] border-0 bg-transparent px-2 py-1.5 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
+          className="mt-2 w-full cursor-pointer rounded-md border-0 bg-transparent px-2 py-1.5 text-[11px] text-[var(--fg-muted)] hover:text-[var(--fg-secondary)]"
           onClick={() =>
             useEditorStore.setState({ selection: selectionNone() })
           }
@@ -100,7 +100,7 @@ function AssetsPanel() {
 
       <div className="min-h-0 flex-1 overflow-auto p-3">
         {assets.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-[var(--radius)] border border-dashed border-[var(--border-subtle)] px-3 py-8 text-center">
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-[var(--border-subtle)] px-3 py-8 text-center">
             <div className="flex items-center gap-2 text-[var(--fg-disabled)]">
               <ImagePlus size={20} />
               <FileAudio size={20} />
@@ -114,7 +114,7 @@ function AssetsPanel() {
             {assets.map((asset) => (
               <li
                 key={asset.id}
-                className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-2"
+                className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-surface)] px-2.5 py-2"
               >
                 <p className="truncate text-[12px] font-medium text-[var(--fg-primary)]">
                   {asset.id}
