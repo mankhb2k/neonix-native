@@ -28,12 +28,50 @@ const PAINT_KINDS = new Set([
   "video",
 ]);
 
+function itemNeedsLayer(item: RenderSnapshotItem): boolean {
+  const c = item.compositing;
+  if (!c) return false;
+  return (
+    c.needsOffscreen ||
+    c.isolation === "isolate" ||
+    c.isAdjustment ||
+    Boolean(c.mask) ||
+    c.groupCompositing === "isolate" ||
+    (c.effectOrder?.length ?? 0) > 0
+  );
+}
+
+function pushBeginLayer(
+  item: RenderSnapshotItem,
+  commands: PaintCommand[],
+): void {
+  const c = item.compositing!;
+  commands.push({
+    op: "beginLayer",
+    key: item.key,
+    nodeId: item.nodeId,
+    isolation: c.isolation === "isolate",
+    offscreen: c.needsOffscreen,
+    ...(c.mask
+      ? {
+          mask: {
+            mode: c.mask.mode,
+            sourceKey: `${item.sceneId}:${c.mask.sourceNodeId}`,
+          },
+        }
+      : {}),
+  });
+}
+
 function emitItem(
   item: RenderSnapshotItem,
   commands: PaintCommand[],
   diagnostics: RenderDiagnostic[],
 ): void {
   if (!item.visible) return;
+
+  const wrapLayer = itemNeedsLayer(item);
+  if (wrapLayer) pushBeginLayer(item, commands);
 
   commands.push({
     op: "setTransform",
@@ -51,6 +89,7 @@ function emitItem(
   if (payload.kind === "group") {
     commands.push({ op: "beginGroup", key: item.key, nodeId: item.nodeId });
     commands.push({ op: "endGroup", key: item.key });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -69,6 +108,7 @@ function emitItem(
       height: item.worldBounds.height,
       ...(effects?.length ? { effects } : {}),
     });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -85,6 +125,7 @@ function emitItem(
       cornerRadius: payload.cornerRadius,
       ...(effects?.length ? { effects } : {}),
     });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -98,6 +139,7 @@ function emitItem(
       height: payload.height,
       ...(effects?.length ? { effects } : {}),
     });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -121,6 +163,7 @@ function emitItem(
       height: payload.height,
       ...(effects?.length ? { effects } : {}),
     });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -148,6 +191,7 @@ function emitItem(
       strokeOpacity: payload.strokeOpacity,
       ...(effects?.length ? { effects } : {}),
     });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -170,6 +214,7 @@ function emitItem(
       mediaTime: payload.mediaTime,
       ...(effects?.length ? { effects } : {}),
     });
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -187,6 +232,7 @@ function emitItem(
     nodeType: item.nodeType,
     message: `payload.kind=${payload.kind}`,
   });
+  if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
 }
 
 /**

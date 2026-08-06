@@ -63,6 +63,7 @@ export function syncPaintBufferToCache(
 
   for (const cmd of buffer.commands) {
     if (cmd.op === "beginFrame" || cmd.op === "endFrame") continue;
+    if (cmd.op === "beginLayer" || cmd.op === "endLayer") continue;
     if (cmd.op === "setTransform") {
       pending = cmd;
       continue;

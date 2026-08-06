@@ -30,7 +30,7 @@ export function RemotionPaintRenderer({
       background = cmd.background ?? "#ffffff";
       continue;
     }
-    if (cmd.op === "endFrame" || cmd.op === "beginGroup" || cmd.op === "endGroup") {
+    if (cmd.op === "endFrame" || cmd.op === "beginGroup" || cmd.op === "endGroup" || cmd.op === "beginLayer" || cmd.op === "endLayer") {
       continue;
     }
     if (cmd.op === "setTransform") {

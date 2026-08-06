@@ -125,4 +125,33 @@ describe("decodePaintCommandBuffer", () => {
     expect(list.roots).toHaveLength(1);
     expect(list.roots[0]?.kind).toBe("drawable");
   });
+
+  it("wraps effect isolation in beginLayer/endLayer", () => {
+    const withFx: RenderSnapshot = {
+      ...snapshot,
+      items: [
+        {
+          ...snapshot.items[0]!,
+          effects: [{ id: "fx1", type: "blur", radius: 4 }],
+          compositing: {
+            isolation: "isolate",
+            needsOffscreen: true,
+            isAdjustment: false,
+            effectOrder: [{ id: "fx1", type: "blur" }],
+          },
+        },
+      ],
+    };
+    const buffer = buildPaintCommandBuffer(withFx);
+    const ops = buffer.commands.map((c) => c.op);
+    expect(ops).toContain("beginLayer");
+    expect(ops).toContain("endLayer");
+    const list = decodePaintCommandBuffer(buffer);
+    expect(list.roots[0]?.kind).toBe("layer");
+    if (list.roots[0]?.kind === "layer") {
+      expect(list.roots[0].isolation).toBe(true);
+      expect(list.roots[0].offscreen).toBe(true);
+      expect(list.roots[0].children).toHaveLength(1);
+    }
+  });
 });

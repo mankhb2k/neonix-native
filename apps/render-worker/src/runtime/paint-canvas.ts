@@ -135,7 +135,7 @@ export function paintCommandsToContext(
       ctx.restore();
       continue;
     }
-    if (cmd.op === "endFrame" || cmd.op === "beginGroup" || cmd.op === "endGroup") {
+    if (cmd.op === "endFrame" || cmd.op === "beginGroup" || cmd.op === "endGroup" || cmd.op === "beginLayer" || cmd.op === "endLayer") {
       continue;
     }
     if (cmd.op === "setTransform") {
@@ -224,7 +224,7 @@ async function paintCommandsToContextAsync(
       ctx.restore();
       continue;
     }
-    if (cmd.op === "endFrame" || cmd.op === "beginGroup" || cmd.op === "endGroup") continue;
+    if (cmd.op === "endFrame" || cmd.op === "beginGroup" || cmd.op === "endGroup" || cmd.op === "beginLayer" || cmd.op === "endLayer") continue;
     if (cmd.op === "setTransform") {
       pending = cmd;
       continue;

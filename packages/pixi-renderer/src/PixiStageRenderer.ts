@@ -235,6 +235,7 @@ export function createPixiStageRenderer(): PixiStageRenderer {
         continue;
       }
       if (cmd.op === "endFrame") continue;
+      if (cmd.op === "beginLayer" || cmd.op === "endLayer") continue;
       if (cmd.op === "setTransform") {
         pendingTransform = cmd;
         continue;

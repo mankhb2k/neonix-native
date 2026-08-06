@@ -8,6 +8,7 @@ import {
 } from "./evaluator";
 import { cameraViewMatrix } from "./camera-view";
 import type { PathContour } from "./geometry";
+import { buildRenderPlan } from "./render-plan";
 import { containsPoint, invertMatrix, transformBounds, type Bounds2D, type Point2D } from "./spatial";
 
 export type RenderItemKey = string;
@@ -102,6 +103,19 @@ export type RenderSnapshotItem = {
   projectedOffset: { x: number; y: number };
   blendMode?: "normal" | "multiply" | "screen" | "add";
   effects?: RuntimeEffect[];
+  /** Compositing scope from {@link buildRenderPlan} — drives beginLayer/endLayer. */
+  compositing?: {
+    isolation: "pass-through" | "isolate";
+    needsOffscreen: boolean;
+    isAdjustment: boolean;
+    groupCompositing?: "pass-through" | "isolate";
+    mask?: {
+      mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
+      sourceNodeId: string;
+      sourceVisibility: "mask-only" | "content-and-mask";
+    };
+    effectOrder: Array<{ id: string; type: string }>;
+  };
 };
 
 export type RenderSnapshot = {
@@ -365,6 +379,10 @@ export function buildRenderSnapshot(input: {
   assetUriById?: Map<string, string> | Record<string, string>;
 }): RenderSnapshot {
   const evaluated = evaluateScene(input.scene, input.time);
+  const renderPlan = buildRenderPlan(input.scene, evaluated, {
+    time: input.time,
+  });
+  const passByNodeId = new Map(renderPlan.passes.map((pass) => [pass.nodeId, pass]));
   const cameraMatrix = resolveCameraMatrix(
     input.scene,
     evaluated,
@@ -384,6 +402,7 @@ export function buildRenderSnapshot(input: {
     if (!isDrawable(item.node.type)) continue;
     const worldMatrix = multiplyMatrix(cameraMatrix, item.worldMatrix);
     const worldBounds = transformBounds(cameraMatrix, item.worldBounds);
+    const pass = passByNodeId.get(item.node.id);
     items.push({
       key: `${input.scene.id}:${item.node.id}`,
       sceneId: input.scene.id,
@@ -402,6 +421,31 @@ export function buildRenderSnapshot(input: {
       projectedOffset: item.projectedOffset,
       ...(item.node.blendMode ? { blendMode: item.node.blendMode } : {}),
       ...(item.effects?.length ? { effects: item.effects } : {}),
+      ...(pass
+        ? {
+            compositing: {
+              isolation: pass.isolation,
+              needsOffscreen: pass.needsOffscreen,
+              isAdjustment: pass.isAdjustment,
+              ...(pass.groupCompositing
+                ? { groupCompositing: pass.groupCompositing }
+                : {}),
+              ...(pass.mask
+                ? {
+                    mask: {
+                      mode: pass.mask.mode,
+                      sourceNodeId: pass.mask.sourceNodeId,
+                      sourceVisibility: pass.mask.sourceVisibility,
+                    },
+                  }
+                : {}),
+              effectOrder: pass.effects.map((fx) => ({
+                id: fx.id,
+                type: fx.type,
+              })),
+            },
+          }
+        : {}),
     });
   }
 
