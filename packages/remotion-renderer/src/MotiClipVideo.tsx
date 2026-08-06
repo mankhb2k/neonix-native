@@ -7,7 +7,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import type { RenderManifest } from "@motionvideo/render-contracts";
-import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
+import { RemotionFramePainter } from "./RemotionFramePainter";
 
 export type MotiClipVideoProps = {
   manifest: RenderManifest;
@@ -16,8 +16,7 @@ export type MotiClipVideoProps = {
 
 /**
  * Production Remotion composition — evaluates once per frame into EvaluatedFrame,
- * paints paint buffer, and mounts audio from AudioRenderPlan.
- * Does not use spring()/interpolate() for motion semantics.
+ * paints via RemotionFramePainter (shared decode), mounts AudioRenderPlan.
  */
 export function MotiClipVideo({ manifest, runtime }: MotiClipVideoProps) {
   const frame = useCurrentFrame();
@@ -49,7 +48,7 @@ export function MotiClipVideo({ manifest, runtime }: MotiClipVideoProps) {
 
   return (
     <AbsoluteFill>
-      <RemotionPaintRenderer paint={evaluated.paint} />
+      <RemotionFramePainter paint={evaluated.paint} fps={fps} />
       <MotiClipAudio plan={audioPlan} />
     </AbsoluteFill>
   );
