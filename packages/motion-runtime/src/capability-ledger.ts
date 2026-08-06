@@ -1,6 +1,6 @@
 /**
  * Capability ledger — wave-1 four primitives + wave-2 path/effects/video/camera.
- * Columns: schema | command | compiler | evaluator | pixi | worker | parity | editor
+ * Columns: schema | command | compiler | evaluator | pixi | remotion | worker | parity | editor
  */
 
 export type CapabilityColumn =
@@ -9,6 +9,7 @@ export type CapabilityColumn =
   | "compiler"
   | "evaluator"
   | "pixi"
+  | "remotion"
   | "worker"
   | "parity"
   | "editor";
@@ -16,7 +17,7 @@ export type CapabilityColumn =
 export type CapabilityStatus = "yes" | "partial" | "no" | "planned";
 
 /** Bump when ledger columns change for AI prompts. */
-export const CAPABILITY_MANIFEST_VERSION = "wave2.0";
+export const CAPABILITY_MANIFEST_VERSION = "wave2.1";
 
 export type CapabilityRow = {
   id: string;
@@ -31,6 +32,7 @@ const yesPartial = {
   compiler: "yes",
   evaluator: "yes",
   pixi: "yes",
+  remotion: "partial",
   worker: "partial",
   parity: "planned",
   editor: "yes",
@@ -88,6 +90,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "partial",
@@ -103,6 +106,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "partial",
@@ -117,6 +121,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "yes",
@@ -131,6 +136,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "partial",
@@ -145,6 +151,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "partial",
@@ -160,6 +167,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "partial",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "partial",
@@ -175,6 +183,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "partial",
       worker: "yes",
       parity: "planned",
       editor: "yes",
@@ -190,6 +199,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "partial",
+      remotion: "planned",
       worker: "partial",
       parity: "planned",
       editor: "partial",
@@ -204,6 +214,7 @@ export const WAVE2_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
       compiler: "yes",
       evaluator: "yes",
       pixi: "planned",
+      remotion: "partial",
       worker: "partial",
       parity: "planned",
       editor: "partial",
@@ -225,6 +236,7 @@ export function capabilityReadyForAi(row: CapabilityRow): boolean {
     "compiler",
     "evaluator",
     "pixi",
+    "remotion",
     "worker",
   ];
   return required.every((col) => row.columns[col] === "yes");

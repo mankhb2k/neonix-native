@@ -9,7 +9,7 @@ export * from "./render-plan";
 export * from "./procedural-driver";
 export * from "./motion-blur";
 export * from "./render-snapshot";
-export * from "./paint-commands";
+export * from "./paint";
 export * from "./evaluated-frame";
 export * from "./frame-painter-contract";
 export * from "./audio-render-plan";

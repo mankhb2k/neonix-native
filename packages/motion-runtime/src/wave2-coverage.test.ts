@@ -120,7 +120,7 @@ describe("wave2 path + camera paint", () => {
   });
 
   it("bumps manifest for wave2 ledger rows", () => {
-    expect(CAPABILITY_MANIFEST_VERSION).toBe("wave2.0");
+    expect(CAPABILITY_MANIFEST_VERSION).toBe("wave2.1");
     expect(WAVE2_CAPABILITY_LEDGER.some((r) => r.id === "primitive.path")).toBe(
       true,
     );

@@ -12,7 +12,7 @@ import {
   buildPaintCommandBuffer,
   type PaintCommandBuffer,
   type RenderDiagnostic,
-} from "./paint-commands";
+} from "./paint";
 import {
   buildRenderSnapshot,
   type RenderSnapshot,
