@@ -1,6 +1,6 @@
 /**
- * Optional Remotion composition adapter.
- * Timeline helpers live in `@motionvideo/motion-runtime`.
+ * Optional Remotion production adapter (MotiClipVideo).
+ * Preview Player removed — Pixi is the only editor preview engine.
  */
 
 export { MotionComposition } from "./MotionComposition";
@@ -10,8 +10,6 @@ export type { MotiClipVideoProps } from "./MotiClipVideo";
 export { RemotionSnapshotRenderer } from "./RemotionSnapshotRenderer";
 export type { RemotionSnapshotRendererProps } from "./RemotionSnapshotRenderer";
 export { RemotionPaintRenderer } from "./RemotionPaintRenderer";
-export { Player } from "@remotion/player";
-export type { PlayerRef } from "@remotion/player";
 
 export {
   evaluateCompositionSnapshot,

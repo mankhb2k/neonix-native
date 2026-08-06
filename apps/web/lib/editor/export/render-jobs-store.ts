@@ -56,7 +56,7 @@ export const useRenderJobsStore = create<RenderJobsState>((set) => ({
     const jobId = activeJobId;
     activeJobId = null;
     if (jobId) {
-      void fetch(`/api/export/jobs/${jobId}`, { method: "DELETE" });
+      void fetch(`/api/renders/${jobId}`, { method: "DELETE" });
     }
     set({ phase: "cancelled", progress: 0 });
   },
@@ -124,62 +124,74 @@ export const useRenderJobsStore = create<RenderJobsState>((set) => ({
     });
 
     try {
-      const createRes = await fetch("/api/export/jobs", {
+      const createRes = await fetch("/api/renders", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(project),
+        headers: {
+          "content-type": "application/json",
+          "x-user-id": "web-editor",
+        },
+        body: JSON.stringify({
+          projectId: project.metadata.id,
+          projectRevision: projectRevisionId,
+          preset: "export-1080p",
+          idempotencyKey: `web-editor:${project.metadata.id}:${projectRevisionId}:export-1080p`,
+        }),
       });
       const createJson = (await createRes.json()) as {
-        ok?: boolean;
-        job?: { jobId: string };
+        jobId?: string;
+        status?: string;
         error?: string;
       };
-      if (!createRes.ok || !createJson.job?.jobId) {
+      if (!createRes.ok || !createJson.jobId) {
         throw new Error(createJson.error || `HTTP ${createRes.status}`);
       }
       if (token !== cancelToken) return;
 
-      const jobId = createJson.job.jobId;
+      const jobId = createJson.jobId;
       activeJobId = jobId;
       set({ jobId, phase: "planning", progress: 8 });
 
       while (token === cancelToken) {
         await new Promise((r) => setTimeout(r, 400));
         if (token !== cancelToken) return;
-        const poll = await fetch(`/api/export/jobs/${jobId}`);
+        const poll = await fetch(`/api/renders/${jobId}`, {
+          headers: { "x-user-id": "web-editor" },
+        });
         const json = (await poll.json()) as {
-          ok?: boolean;
-          job?: {
-            status: string;
-            progress: number;
-            error?: string;
-            hasArtifact?: boolean;
-          };
+          status?: string;
+          progress?: number;
           error?: string;
         };
-        if (!poll.ok || !json.job) {
+        if (!poll.ok || !json.status) {
           throw new Error(json.error || "Job poll failed");
         }
-        const phase = mapStatus(json.job.status);
+        const phase = mapStatus(json.status);
         set({
           phase: phase === "ready" ? "uploading" : phase,
-          progress: Math.round(Math.min(99, (json.job.progress ?? 0) * 100)),
-          error: json.job.error ?? null,
+          progress: Math.round(Math.min(99, (json.progress ?? 0) * 100)),
+          error: json.error ?? null,
         });
-        if (json.job.status === "failed") {
-          set({ phase: "failed", progress: 100, error: json.job.error ?? "Export failed" });
+        if (json.status === "failed") {
+          set({
+            phase: "failed",
+            progress: 100,
+            error: json.error ?? "Export failed",
+          });
           return;
         }
-        if (json.job.status === "cancelled") {
+        if (json.status === "cancelled") {
           set({ phase: "cancelled", progress: 0 });
           return;
         }
-        if (json.job.status === "done") {
-          const artifactUrl = `/api/export/jobs/${jobId}/artifact`;
+        if (json.status === "done") {
+          const downloadRes = await fetch(`/api/renders/${jobId}/download`, {
+            headers: { "x-user-id": "web-editor" },
+          });
+          const downloadJson = (await downloadRes.json()) as { url?: string };
           set({
             phase: "ready",
             progress: 100,
-            artifactUrl: `${artifactUrl}?format=${format}`,
+            artifactUrl: downloadJson.url ?? `/api/renders/${jobId}/download`,
           });
           return;
         }

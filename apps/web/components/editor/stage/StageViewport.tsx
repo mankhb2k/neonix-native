@@ -6,7 +6,6 @@ import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
 import type { MotionProject } from "@motionvideo/motion-schema";
-import dynamic from "next/dynamic";
 import { useMemo } from "react";
 
 type Props = {
@@ -15,26 +14,12 @@ type Props = {
   height: number;
 };
 
-/**
- * Stage renderer selection (P7):
- * - pixi (default): PreviewStageHost + PixiStageRenderer
- * - dom: PreviewStageHost + DOM painter
- * - remotion: optional fallback Player (one-release internal)
- */
-function resolveStageMode(): "remotion" | "dom" | "pixi" {
+/** Pixi is the only production preview engine (DOM available for debug). */
+function resolveStageMode(): "dom" | "pixi" {
   const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
-  if (raw === "remotion") return "remotion";
   if (raw === "dom") return "dom";
   return "pixi";
 }
-
-const RemotionPreview = dynamic(
-  () =>
-    import("@/components/editor/stage/RemotionPreview").then(
-      (mod) => mod.RemotionPreview,
-    ),
-  { ssr: false },
-);
 
 export function StageViewport({ project, width, height }: Props) {
   const clips = useEditorStore((s) => s.timelineClips);
@@ -59,15 +44,11 @@ export function StageViewport({ project, width, height }: Props) {
           className="editor-stage-board"
           style={{ aspectRatio: `${width} / ${height}` }}
         >
-          {mode === "remotion" ? (
-            <RemotionPreview project={project} width={width} height={height} />
-          ) : (
-            <PreviewStageHost
-              project={preview.project}
-              clips={paintClips}
-              lanes={paintLanes}
-            />
-          )}
+          <PreviewStageHost
+            project={preview.project}
+            clips={paintClips}
+            lanes={paintLanes}
+          />
         </div>
       </div>
 

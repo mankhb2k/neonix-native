@@ -2,9 +2,8 @@
  * Pixi ↔ Remotion sampled-frame parity harness.
  *
  * Both backends consume the same EvaluatedFrame.paint from motion-runtime.
- * This harness samples before/start/middle/end/after frames, writes paint digests
- * + PNG artifacts from the shared paint path (Pixi contract), and asserts Remotion
- * MotiClipVideo evaluation yields identical paint digests.
+ * Samples before/start/middle/end/after, writes digests + PNG artifacts, asserts
+ * Remotion MotiClipVideo evaluation yields identical paint digests.
  *
  * Usage: pnpm test:parity
  */
@@ -75,7 +74,6 @@ async function main() {
     );
     if (!evaluated) throw new Error(`No evaluated frame at ${label}/${frame}`);
 
-    // Remotion MotiClipVideo path uses the same evaluateCompositionFrame entrypoint.
     const remotionEvaluated = evaluateCompositionFrame(
       runtime,
       frame,
@@ -92,14 +90,15 @@ async function main() {
 
     const scene = runtime.scenes.find((s) => s.id === evaluated.sceneId);
     if (scene) {
-      const png = await drawSceneFramePaint({
+      const png = await drawSceneFramePaint(
         scene,
-        time: evaluated.time,
-        frame: evaluated.frame,
+        runtime.metadata,
+        runtime.assets,
+        evaluated.time,
         width,
         height,
-        background: "#0d9488",
-      });
+        outRoot,
+      );
       await writeFile(path.join(outRoot, `${label}-${frame}.png`), png);
     }
     await writeFile(

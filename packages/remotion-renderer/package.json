@@ -18,7 +18,6 @@
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
-    "@remotion/player": "4.0.506",
     "remotion": "4.0.506"
   },
   "peerDependencies": {

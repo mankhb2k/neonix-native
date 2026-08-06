@@ -1,20 +1,27 @@
+/**
+ * Request MP4 export via Remotion Lambda BFF (POST /api/renders).
+ */
+
 import type { MotionProject } from "@motionvideo/motion-schema";
 
 export type ExportError = {
   error: string;
 };
 
-/**
- * Request MP4 export from the Next API (spawns render-worker CLI server-side).
- * Lives in lib/api so UI never calls raw fetch.
- */
 export async function exportMotionProject(
   project: MotionProject,
-): Promise<Blob> {
-  const res = await fetch("/api/export", {
+): Promise<{ jobId: string }> {
+  const res = await fetch("/api/renders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(project),
+    headers: {
+      "Content-Type": "application/json",
+      "x-user-id": "web-editor",
+    },
+    body: JSON.stringify({
+      projectId: project.metadata.id,
+      projectRevision: 0,
+      preset: "export-1080p",
+    }),
   });
 
   if (!res.ok) {
@@ -23,12 +30,13 @@ export async function exportMotionProject(
       const data = (await res.json()) as ExportError;
       if (data.error) message = data.error;
     } catch {
-      // ignore non-JSON error bodies
+      // ignore
     }
     throw new Error(message);
   }
 
-  return res.blob();
+  const json = (await res.json()) as { jobId: string };
+  return { jobId: json.jobId };
 }
 
 export function downloadBlob(blob: Blob, filename: string) {
