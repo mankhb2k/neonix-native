@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useTimelineViewportMetrics } from "./use-timeline-viewport-metrics";
+import { useTimelineViewportMetrics } from "@motionvideo/editor-react";
 
 describe("useTimelineViewportMetrics scroll scheduling", () => {
   let nextRafId = 1;

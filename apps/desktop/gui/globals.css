@@ -26,7 +26,8 @@
   --warning: #d4a017;
   --success: #22c55e;
 
-  --timeline-track-lane: #1f1f1e;
+  --timeline-track-lane: #20201f;
+  --timeline-track-lane-mute: #1a1a18;
   --timeline-clip-frame: #0f766e;
   --timeline-clip-frame-hover: #0d9488;
   --timeline-clip-audio: #164e63;
@@ -80,4 +81,3 @@ body,
   height: 0;
   display: none;
 }
-

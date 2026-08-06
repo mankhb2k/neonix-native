@@ -502,4 +502,93 @@ describe("drop-host CapCut policy", () => {
     expect(preview?.snapGuideTime).toBe(2);
     expect(resolveLibraryPlacement(195, 30, video)?.startTime).toBe(2);
   });
+
+  it("layer mode always inserts at gaps — never parks ghost on a row body", () => {
+    const scrollEl = mountScrollWithLanes([
+      {
+        id: "layer-node:n1",
+        type: "overlay",
+        order: 1,
+        top: 0,
+        height: 24,
+      },
+      {
+        id: "layer-node:n2",
+        type: "overlay",
+        order: 0,
+        top: 26,
+        height: 32,
+      },
+    ]);
+
+    setHost({
+      scrollEl,
+      lanes: [
+        {
+          id: "layer-node:n1",
+          kind: "visual",
+          role: "overlay",
+          name: "Text",
+          order: 1,
+          policy: BASE_POLICY,
+        },
+        {
+          id: "layer-node:n2",
+          kind: "visual",
+          role: "overlay",
+          name: "Video",
+          order: 0,
+          policy: BASE_POLICY,
+        },
+      ],
+      lanesTop: 0,
+      laneHeight: 24,
+      pixelsPerSecond: 100,
+      tracksOriginX: 0,
+      laneHitLayout: {
+        topPadding: 0,
+        laneHeightPrefix: [0, 26],
+        laneContentHeights: [24, 32],
+      },
+      layerMode: {
+        sceneId: "sc1",
+        containerStartTime: 1,
+        containerDuration: 5,
+      },
+      clipsByLane: new Map([
+        [
+          "layer-node:n2",
+          [{ id: "n2", startTime: 1, duration: 5 }],
+        ],
+      ]),
+    });
+
+    const video: LibraryPayload = {
+      kind: "video",
+      id: "v1",
+      label: "Clip",
+      assetId: "asset_v",
+      duration: 2,
+    };
+
+    // Pointer mid video body → still insert (gap), not body placement.
+    const preview = resolveDropGeometryAtPoint(100, 42, video);
+    expect(preview).toMatchObject({
+      valid: true,
+      isInsert: true,
+      laneId: null,
+      track: "overlay",
+    });
+    expect(preview?.contentTop).toBeDefined();
+
+    const placement = resolveLibraryPlacement(100, 42, video);
+    expect(placement).toMatchObject({
+      track: "overlay",
+      insertNewLane: true,
+      layerSceneId: "sc1",
+      layerContainerStart: 1,
+      layerContainerDuration: 5,
+    });
+    expect(placement?.laneId).toBeUndefined();
+  });
 });

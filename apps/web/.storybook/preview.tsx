@@ -11,34 +11,25 @@ const preview: Preview = {
       },
     },
     backgrounds: {
-      default: "dark",
-      values: [
-        { name: "dark", value: "#0F0F11" },
-        { name: "light", value: "#FFFFFF" },
-      ],
+      default: "light",
+      values: [{ name: "light", value: "#F5F6F8" }],
     },
   },
   decorators: [
-    (Story, context) => {
-      const selectedBg = context.globals.backgrounds?.value;
-      const theme = selectedBg === "#FFFFFF" ? "light" : "dark";
-
-      return (
-        <div
-          data-theme={theme}
-          className={theme}
-          style={{
-            padding: "20px",
-            background: "var(--bg)",
-            color: "var(--fg)",
-            borderRadius: "8px",
-            minHeight: "100px",
-          }}
-        >
-          <Story />
-        </div>
-      );
-    },
+    (Story) => (
+      <div
+        data-theme="light"
+        style={{
+          padding: "20px",
+          background: "var(--bg-app)",
+          color: "var(--fg-primary)",
+          borderRadius: "12px",
+          minHeight: "100px",
+        }}
+      >
+        <Story />
+      </div>
+    ),
   ],
 };
 

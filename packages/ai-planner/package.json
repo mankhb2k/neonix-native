@@ -10,14 +10,19 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "lint": "echo \"no lint yet\""
   },
   "dependencies": {
+    "@motionvideo/motion-compiler": "workspace:*",
+    "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",
-    "@motionvideo/template-library": "workspace:*",
-    "@motionvideo/motion-grammar": "workspace:*"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "typescript": "^5.8.2"
+    "@types/node": "^22.20.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.10"
   }
 }

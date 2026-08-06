@@ -1,0 +1,43 @@
+{
+  "format": "moticlip-scene-design-plan",
+  "formatVersion": 1,
+  "planId": "plan.hook-offer-cta",
+  "scenes": [
+    {
+      "sceneBriefId": "scene.hook",
+      "layout": { "kind": "hero", "safeArea": "tiktok" },
+      "nodes": [
+        {
+          "id": "node.hook.copy",
+          "semanticKey": "hook.copy",
+          "nodeHint": "text",
+          "copyIndex": 0
+        }
+      ]
+    },
+    {
+      "sceneBriefId": "scene.offer",
+      "layout": { "kind": "centered" },
+      "nodes": [
+        {
+          "id": "node.offer.copy",
+          "semanticKey": "offer.copy",
+          "nodeHint": "text",
+          "copyIndex": 0
+        }
+      ]
+    },
+    {
+      "sceneBriefId": "scene.cta",
+      "layout": { "kind": "cta", "safeArea": "tiktok" },
+      "nodes": [
+        {
+          "id": "node.cta.copy",
+          "semanticKey": "cta.copy",
+          "nodeHint": "text",
+          "copyIndex": 0
+        }
+      ]
+    }
+  ]
+}

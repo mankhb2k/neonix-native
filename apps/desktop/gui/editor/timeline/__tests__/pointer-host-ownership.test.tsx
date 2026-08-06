@@ -9,8 +9,8 @@ import { useEffect } from "react";
 import {
   PointerSessionController,
   resetActivePointerSessionToken,
-} from "../interactions/pointer-session-controller";
-import { usePointerSessionHost } from "../interactions/use-pointer-session";
+} from "@motionvideo/editor-interactions";
+import { usePointerSessionHost } from "@motionvideo/editor-react";
 
 function Host({
   onReady,

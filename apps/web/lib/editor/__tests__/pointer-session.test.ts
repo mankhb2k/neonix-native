@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   selectionIdsEqual,
   shouldCommitPointerSession,
-} from "@/lib/editor/pointer-session";
+} from "@motionvideo/editor-interactions";
 
 describe("UX-02 pointer session contract", () => {
   it("commits only on pointerup", () => {
@@ -11,8 +11,9 @@ describe("UX-02 pointer session contract", () => {
     expect(shouldCommitPointerSession("escape")).toBe(false);
   });
 
-  it("compares marquee selection sets without order sensitivity", () => {
-    expect(selectionIdsEqual(["a", "b"], ["b", "a"])).toBe(true);
+  it("compares marquee selection id lists in order", () => {
+    expect(selectionIdsEqual(["a", "b"], ["a", "b"])).toBe(true);
+    expect(selectionIdsEqual(["a", "b"], ["b", "a"])).toBe(false);
     expect(selectionIdsEqual(["a"], ["a", "b"])).toBe(false);
   });
 });

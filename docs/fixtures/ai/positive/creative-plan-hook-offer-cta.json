@@ -1,0 +1,75 @@
+{
+  "format": "moticlip-creative-plan",
+  "formatVersion": 1,
+  "concept": "Bold kinetic type for F&B morning offer",
+  "tone": ["energetic", "friendly"],
+  "artDirection": {
+    "palette": ["#D9381E", "#111111", "#FFFFFF"],
+    "typographyMood": "bold sans",
+    "visualStyle": "flat kinetic"
+  },
+  "pacing": {
+    "energy": "high",
+    "beatsPerMinute": 118
+  },
+  "scenes": [
+    {
+      "id": "scene.hook",
+      "role": "hook",
+      "duration": 4,
+      "onScreenCopy": ["Wake up better."],
+      "visualConcept": "Large centered headline",
+      "layoutIntent": { "kind": "hero", "safeArea": "tiktok" },
+      "motionIntents": [
+        {
+          "type": "entrance",
+          "target": { "kind": "semantic", "key": "hook.copy" },
+          "style": "fade-up",
+          "intensity": 0.8
+        }
+      ],
+      "assetRequests": []
+    },
+    {
+      "id": "scene.offer",
+      "role": "offer",
+      "duration": 5,
+      "onScreenCopy": ["30% off today."],
+      "visualConcept": "Offer number emphasis",
+      "layoutIntent": { "kind": "centered" },
+      "motionIntents": [
+        {
+          "type": "emphasis",
+          "target": { "kind": "semantic", "key": "offer.copy" },
+          "style": "pulse"
+        }
+      ],
+      "assetRequests": []
+    },
+    {
+      "id": "scene.cta",
+      "role": "cta",
+      "duration": 6,
+      "onScreenCopy": ["Order now."],
+      "visualConcept": "CTA button and brand",
+      "layoutIntent": { "kind": "cta", "safeArea": "tiktok" },
+      "motionIntents": [
+        {
+          "type": "entrance",
+          "target": { "kind": "semantic", "key": "cta.copy" },
+          "style": "pop",
+          "intensity": 0.7
+        },
+        {
+          "type": "transition",
+          "style": "crossfade"
+        }
+      ],
+      "assetRequests": []
+    }
+  ],
+  "audioDirection": {
+    "mood": "upbeat",
+    "voiceover": false
+  }
+}

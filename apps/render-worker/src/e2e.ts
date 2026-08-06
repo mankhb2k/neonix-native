@@ -2,16 +2,11 @@ import { mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import {
-  parseMotionProject,
-  serializeMotionProject,
-} from "@motionvideo/motion-schema";
-import {
-  templates,
-  validateMotionProjectPresets,
-} from "@motionvideo/template-library";
+import { serializeMotionProject } from "@motionvideo/motion-schema";
+import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { compileMotionProject } from "./compiler";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
+import { createSmokeMotionProject } from "./fixtures/smoke-project";
 import { renderCompiledProject } from "./runtime";
 import { uploadOutputs } from "./upload";
 
@@ -36,13 +31,7 @@ function probe(file: string): Promise<string> {
 }
 
 async function main() {
-  const template = templates[0];
-  if (!template) throw new Error("No seed template in template-library");
-
-  const project = parseMotionProject({
-    ...template.project,
-    metadata: { ...template.project.metadata, id: `e2e_${Date.now()}` },
-  });
+  const project = createSmokeMotionProject(String(Date.now()));
 
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {

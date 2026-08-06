@@ -5,7 +5,11 @@
 
 import type { RefObject } from "react";
 import { usePreviewSession } from "../interactions/timeline-preview-session";
-import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
+import {
+  SECONDARY_LANE_HEIGHT_PX,
+  TIMELINE_PLAYHEAD_GUTTER_PX,
+  clipStripHeightPx,
+} from "../timeline-scale";
 import { cn } from "../../../ui";
 import { clipVisualClassName } from "../clips/ClipStrip";
 
@@ -31,8 +35,6 @@ export function TimelineOverlays({
   scrollLeft = 0,
 }: Props) {
   const { dropGhost, clipMovePreview, marquee } = usePreviewSession();
-
-  if (timelineEmpty) return null;
 
   const extentWidth = Math.max(canvasWidth, trackViewWidth);
 
@@ -158,16 +160,22 @@ export function TimelineOverlays({
       {clipMovePreview &&
       clipMoveCyanLeft != null &&
       clipMovePreview.clientY != null ? (() => {
-        const primaryTop = clipMovePreview.clientY - (clipMovePreview.grabOffsetY ?? 16);
-        const validCls = clipMovePreview.valid ? "" : "border-2 border-[var(--danger)] bg-[var(--danger)]/40";
-        
+        const floatH = clipStripHeightPx(
+          clipMovePreview.laneHeightPx ?? SECONDARY_LANE_HEIGHT_PX,
+        );
+        const primaryTop =
+          clipMovePreview.clientY - (clipMovePreview.grabOffsetY ?? floatH / 2);
+        const validCls = clipMovePreview.valid
+          ? ""
+          : "border-2 border-[var(--danger)] bg-[var(--danger)]/40";
+
         return (
           <>
             <div
               className={cn(
                 "pointer-events-none fixed z-[60] flex items-center shadow-2xl will-change-[left]",
                 clipVisualClassName(clipMovePreview.trackKind, true),
-                validCls
+                validCls,
               )}
               aria-hidden
               data-testid="timeline-clip-move-float"
@@ -175,7 +183,7 @@ export function TimelineOverlays({
                 left: clipMoveCyanLeft,
                 top: primaryTop,
                 width: Math.max(24, clipMovePreview.duration * pixelsPerSecond),
-                height: clipMovePreview.trackKind === "main" ? 57.6 : 46.08,
+                height: floatH,
               }}
             >
               <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">
@@ -183,20 +191,28 @@ export function TimelineOverlays({
               </span>
             </div>
             {clipMovePreview.members?.map((m) => {
+              const memberH = clipStripHeightPx(
+                m.laneHeightPx ??
+                  clipMovePreview.laneHeightPx ??
+                  SECONDARY_LANE_HEIGHT_PX,
+              );
               return (
                 <div
                   key={`float-${m.clipId}`}
                   className={cn(
                     "pointer-events-none fixed z-[60] flex items-center shadow-2xl will-change-[left]",
                     clipVisualClassName(m.trackKind, true),
-                    validCls
+                    validCls,
                   )}
                   aria-hidden
                   style={{
-                    left: clipMoveCyanLeft + (m.startTime - clipMovePreview.startTime) * pixelsPerSecond,
+                    left:
+                      clipMoveCyanLeft +
+                      (m.startTime - clipMovePreview.startTime) *
+                        pixelsPerSecond,
                     top: primaryTop + m.offsetY,
                     width: Math.max(24, m.duration * pixelsPerSecond),
-                    height: m.trackKind === "main" ? 57.6 : 46.08,
+                    height: memberH,
                   }}
                 >
                   <span className="min-w-0 truncate font-semibold leading-tight pointer-events-none">

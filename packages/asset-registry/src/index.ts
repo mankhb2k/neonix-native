@@ -47,3 +47,22 @@ export {
   type SvgReimportConflict,
   type SvgReimportResult,
 } from "./svg-import";
+
+export {
+  assertAssetHash,
+  browserAssetRegistry,
+  createAssetManifest,
+  findAssetEntry,
+  normalizeSha256,
+  type AssetManifest,
+  type AssetManifestEntry,
+} from "./asset-manifest";
+
+export {
+  resolvedAssetFromManifestEntry,
+  isFontMime,
+  isVideoMime,
+  isAudioMime,
+  isImageMime,
+  type ResolvedAsset,
+} from "./resolved-asset";

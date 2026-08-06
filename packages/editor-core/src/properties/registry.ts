@@ -1,4 +1,4 @@
-import { motionPropertyCapability } from "@motionvideo/motion-schema";
+import { motionPropertyCapability, getTextPayloadPlain } from "@motionvideo/motion-schema";
 import { readUniform } from "./mixed";
 import type { DocumentPropertyCommand } from "./property-commands";
 import { findNode } from "./resolve-targets";
@@ -329,7 +329,7 @@ const textContent: PropertyDefinition<string> = {
   read: (ctx) => {
     const values = ctx.targets.map((t) => {
       const node = findNode(ctx.project, t.sceneId, t.nodeId);
-      return node?.type === "text" ? node.payload.text : "";
+      return node?.type === "text" ? getTextPayloadPlain(node.payload) : "";
     });
     return readUniform(values);
   },

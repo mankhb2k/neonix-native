@@ -2,9 +2,16 @@ import type { TimelineLane } from "@motionvideo/editor-core";
 import {
   BASE_LANE_HEIGHT_PX,
   SECONDARY_LANE_HEIGHT_PX,
+  LAYER_LANE_HEIGHT_PX,
+  LAYER_VIDEO_LANE_HEIGHT_PX,
 } from "../timeline-scale";
 
-export { BASE_LANE_HEIGHT_PX, SECONDARY_LANE_HEIGHT_PX };
+export {
+  BASE_LANE_HEIGHT_PX,
+  SECONDARY_LANE_HEIGHT_PX,
+  LAYER_LANE_HEIGHT_PX,
+  LAYER_VIDEO_LANE_HEIGHT_PX,
+};
 export const LANE_GAP_PX = 2;
 export const TIMELINE_TOP_PADDING_PX = 40;
 export const TIMELINE_BOTTOM_PADDING_PX = 40;
@@ -57,7 +64,7 @@ export function buildTimelineLaneRows(
       order: baseLane.order,
       name: baseLane.name,
       height: BASE_LANE_HEIGHT_PX,
-      heightClass: "h-15",
+      heightClass: "h-12",
       lane: baseLane,
     });
   }

@@ -13,21 +13,25 @@ import {
   type TimelineLane,
   DEFAULT_VISUAL_POLICY,
 } from "@motionvideo/editor-core";
-import { buildLaneHeightPrefix } from "../view-model/visible-lane-window";
+import { buildLaneHeightPrefix } from "@motionvideo/editor-react";
 import {
   clearPreviewSession,
   getPreviewSession,
 } from "../interactions/timeline-preview-session";
-import { resetActivePointerSessionToken } from "../interactions/pointer-session-controller";
-import { usePointerSessionHost } from "../interactions/use-pointer-session";
+import { resetActivePointerSessionToken } from "@motionvideo/editor-interactions";
+import { usePointerSessionHost } from "@motionvideo/editor-react";
 import { useTimelineMarquee } from "./use-timeline-marquee";
 
-vi.mock("../drop/auto-scroll", () => ({
-  autoScrollTimelineNearEdge: vi.fn(),
-  autoScrollElementNearEdge: vi.fn(),
-}));
+vi.mock("@motionvideo/editor-interactions", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@motionvideo/editor-interactions")>();
+  return {
+    ...actual,
+    autoScrollElementNearEdge: vi.fn(),
+  };
+});
 
-import { autoScrollElementNearEdge } from "../drop/auto-scroll";
+import { autoScrollElementNearEdge } from "@motionvideo/editor-interactions";
 
 function visualLane(
   id: string,
@@ -345,11 +349,48 @@ describe("useTimelineMarquee orchestration", () => {
     expect(seek).toHaveBeenCalledWith(180);
   });
 
+  it("seeks on empty click with layer-mode synthetic clips in the map", () => {
+    const onSelect = vi.fn();
+    const seek = vi.fn();
+    const layerLane = visualLane("layer-node:n1", "overlay", 0);
+    const layerClips = new Map<string, TimelineClip[]>([
+      [
+        layerLane.id,
+        [
+          {
+            kind: "scene",
+            id: "n1",
+            sceneId: "sc1",
+            laneId: layerLane.id,
+            startTime: 2,
+            duration: 3,
+            name: "Node",
+          },
+        ],
+      ],
+    ]);
+    const surface = renderHarness(selectionNone(), onSelect, seek, {
+      laneContentHeights: [40],
+      laneHeightPrefix: buildLaneHeightPrefix([40]),
+      sortedLanes: [layerLane],
+      clipsByLaneMap: layerClips,
+      topPadding: 10,
+    });
+
+    // Empty region to the left of the synthetic strip (strip starts at 2s * 100pps).
+    pointer(surface, "pointerdown", 50, 20);
+    pointer(window, "pointerup", 50, 20);
+
+    expect(seek).toHaveBeenCalledTimes(1);
+    expect(seek).toHaveBeenCalledWith(50);
+    expect(onSelect).toHaveBeenCalledWith(selectionNone());
+  });
+
   describe("integration: real auto-scroll", () => {
     it("scrolls the DOM node automatically when pointer is held near the bottom edge", async () => {
       const { autoScrollElementNearEdge: realAutoScroll } = await vi.importActual<
-        typeof import("../drop/auto-scroll")
-      >("../drop/auto-scroll");
+        typeof import("@motionvideo/editor-interactions")
+      >("@motionvideo/editor-interactions");
 
       vi.mocked(autoScrollElementNearEdge).mockImplementation((...args) => {
         realAutoScroll(...args);

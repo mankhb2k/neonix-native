@@ -1,10 +1,10 @@
 import { useState } from "react";
 import {
   Search,
-  SlidersHorizontal,
   ChevronDown,
   ChevronRight,
   Sparkles,
+  FolderPlus,
 } from "lucide-react";
 import type { TimelineCommand } from "@motionvideo/editor-core";
 import { commitLibraryPayload } from "../../library/adapters/commit-library-payload";
@@ -169,40 +169,37 @@ export function AudioPanel({ assets, onExecuteTimeline }: Props) {
       <div className="flex flex-1 min-w-0 flex-col h-full bg-[#121214]">
         {/* Top Header / Banner Area */}
         {activeCategory === "import" ? (
-          <div className="p-2 border-b border-[#27272a] bg-[#18181b]">
+          <div className="flex items-center gap-2.5 p-2">
             <button
               type="button"
-              className="flex items-center gap-1.5 rounded-full bg-[#27272a] px-3 py-1 text-[11px] font-medium text-zinc-200 hover:bg-[#323236] transition-colors"
+              className="flex items-center gap-2 rounded-full bg-[#27272a] px-4 py-1.5 text-[12px] font-medium text-zinc-200 hover:bg-[#323236] transition-colors"
             >
-              <Sparkles size={13} className="text-cyan-400" />
+              <FolderPlus size={15} className="text-cyan-400" />
+              <span>Import</span>
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-full bg-[#27272a] px-4 py-1.5 text-[12px] font-medium text-zinc-200 hover:bg-[#323236] transition-colors"
+            >
+              <Sparkles size={15} className="text-cyan-400" />
               <span>Extract audio</span>
-              <span className="rounded bg-purple-500/20 px-1 py-0.2 text-[9px] font-semibold text-purple-300">
-                1 use
-              </span>
             </button>
           </div>
-        ) : null}
-
-        {/* Search Bar */}
-        <div className="flex items-center gap-1.5 p-2 border-b border-[#27272a]">
-          <div className="flex flex-1 items-center gap-1.5 rounded-md border border-[#27272a] bg-[#1c1c1f] px-2 py-1 text-zinc-400 focus-within:border-cyan-500/50">
-            <Search size={13} className="shrink-0 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="People are searching typing"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent text-[11px] text-zinc-100 placeholder-zinc-500 outline-none"
-            />
+        ) : (
+          /* Search Bar — shown for Music & Sound Effects */
+          <div className="flex items-center p-2">
+            <div className="flex flex-1 items-center gap-1.5 rounded-md border border-[#27272a] bg-[#1c1c1f] px-2 py-1 text-zinc-400 focus-within:border-cyan-500/50">
+              <Search size={13} className="shrink-0 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="People are searching typing"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-[11px] text-zinc-100 placeholder-zinc-500 outline-none"
+              />
+            </div>
           </div>
-          <button
-            type="button"
-            className="flex h-7 w-7 items-center justify-center rounded-md border border-[#27272a] bg-[#1c1c1f] text-zinc-400 hover:text-zinc-200"
-            title="Filter"
-          >
-            <SlidersHorizontal size={13} />
-          </button>
-        </div>
+        )}
 
         {/* Audio List Viewport */}
         <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">

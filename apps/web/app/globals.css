@@ -1,165 +1,67 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   MotiClip — token màu + font/text + editor layout (chỉ giữ token đang dùng)
+   Radius, shadow, spacing chung → Tailwind sẵn có.
+   ========================================================================== */
+
 :root {
-  /* ========================================================================== */
-  /* 1. Nền (Backgrounds - --bg-*) */
-  /* ========================================================================== */
-  --bg-app: #0e0e10;
-  --bg-panel: #1b1b1a;
-  --bg-elevated: #222226;
-  --bg-surface: #222226;
-  --bg-hover: #2a2a2e;
-  --bg-active: #323238;
+  /* --- Backgrounds --- */
+  --bg-app: #f5f6f8;
+  --bg-panel: #f5f3f1;
+  --bg-surface: #f5f3f1;
+  --bg-elevated: #ffffff;
+  --bg-hover: #e8eaef;
 
-  /* ========================================================================== */
-  /* 2. Chữ & Icon (Foregrounds - --fg-*)  */
-  /* ========================================================================== */
-  --fg-primary: #d6d6d6;
-  --fg-secondary: #cecece;
-  --fg-muted: #808085;
-  --fg-disabled: #45454a;
+  /* --- Foreground --- */
+  --fg-primary: #0f1419;
+  --fg-secondary: #3d4654;
+  --fg-muted: #6b7285;
+  --fg-disabled: #9aa1b0;
 
-  /* ========================================================================== */
-  /* 3. Đường viền (Borders - --border-*) */
-  /* ========================================================================== */
-  --border-subtle: var(--bg-app);
-  --border-strong: #3f3f46;
-  --border-focus: #3f9a62;
+  /* --- Borders --- */
+  --border-subtle: rgba(15, 20, 25, 0.06);
+  --border-strong: rgba(15, 20, 25, 0.12);
+  --border-focus: #0d9488;
 
-  /* Aliases */
-  --line: var(--border-subtle);
-  --line-strong: var(--border-strong);
+  /* --- Brand accent --- */
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-soft: rgba(13, 148, 136, 0.12);
+  --accent-text: #0f766e;
+  --accent-on: #ffffff;
 
-  /* ==========================================================================
-     4. Điểm nhấn & Trạng thái (Accents & Status - --accent-*, --status-*) 
-     ========================================================================== */
-  --accent: #3f9a62;
-  --accent-soft: rgba(
-    63,
-    154,
-    98,
-    0.16
-  ); /* Màu nền mờ của điểm nhấn (cho badge/pill) */
-  --accent-text: #8fd4a8; /* Màu chữ của điểm nhấn */
-  --danger: #d45c5c; /* Màu đỏ báo lỗi/xóa */
-  --warning: #d4a017; /* Màu vàng cảnh báo/gói Pro */
-  --warn: var(--warning);
-  --success: #22c55e; /* Màu xanh lá hoàn thành/đã lưu */
+  /* --- Semantic --- */
+  --danger: #e11d48;
 
-  /* ==========================================================================
-     5. Component Tokens (Linh kiện UI cụ thể)
-     ========================================================================== */
-  /* Thanh Tab (--tab-*) */
-  --tab-fg: var(--fg-muted); /* màu mặc định (var(--fg-muted)) */
-  --tab-fg-hover: var(--fg-secondary); /* màu rê chuột (var(--fg-secondary)) */
-  --tab-fg-active: var(--fg-primary); /* màu đang chọn (var(--fg-primary)) */
+  /* --- Editor surfaces --- */
+  --stage-bg: #f5f3f1;
+  --preview-bg: #ffffff;
 
-  /* Khung Timeline (--timeline-*) */
-  --timeline-track-lane: #1f1f1e; /* màu nền dải đường băng TrackLane nổi rõ trên nền tối */
-  --timeline-clip-frame: #0f766e; /* màu khối Khung hình (Frame clip) */
-  --timeline-clip-frame-hover: #0d9488; /* màu khối Khung hình khi hover/active */
-  --timeline-clip-audio: #164e63; /* màu khối Audio clip */
-  --timeline-clip-audio-hover: #0891b2; /* màu khối Audio clip khi hover/active */
-  --timeline-playhead: #ffffff; /* màu kim thời gian */
-
-  /* Khung Stage (--stage-*) */
-  --stage-bg: #0c0c0e; /* màu nền canvas xem trước */
-
-  --preview-bg: #09090b;
-  --radius: 10px;
+  /* --- Fonts --- */
   --font-sans: "Be Vietnam Pro", "Segoe UI", sans-serif;
   --font-display: "Fraunces", Georgia, serif;
 
-  /* 6 Type scale — dùng text-micro | text-caption | text-ui | text-body | text-title | … */
-
+  /* --- Type scale (đang dùng: ui / caption / body) --- */
   --fs-caption: 11px;
   --fs-ui: 12px;
   --fs-body: 13px;
-  --fs-title: 13px;
-  --fs-micro: 10px;
-  --fs-subtitle: 16px;
-  --fs-heading: 18px;
-  --fs-display: 24px;
 
-  --fw-regular: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
-
-  --lh-tight: 1.25;
-  --lh-normal: 1.4;
+  /* --- Editor layout --- */
+  --editor-chrome-h: 48px;
+  --editor-timeline-h: 168px;
+  --editor-left-w: 380px;
+  --editor-right-w: 480px;
 }
 
-/* Light Theme Variables */
-[data-theme="light"],
-.light {
-  /* 1. Nền (Backgrounds) */
-  --bg-app: #f4f4f5;
-  --bg-panel: #f8f8fa;
-  --bg-elevated: #ffffff;
-  --bg-surface: #ffffff;
-  --bg-hover: #e4e4e7;
-  --bg-active: #d4d4d8;
-
-  /* 2. Chữ & Icon (Foregrounds) */
-  --fg-primary: #09090b;
-  --fg-secondary: #3f3f46;
-  --fg-muted: #71717a;
-  --fg-disabled: #a1a1aa;
-
-  /* 3. Đường viền (Borders) */
-  --border-subtle: rgba(9, 9, 11, 0.1);
-  --border-strong: rgba(9, 9, 11, 0.2);
-  --border-focus: #d9381e;
-
-  /* Aliases */
-  --line: var(--border-subtle);
-  --line-strong: var(--border-strong);
-
-  /* 4. Điểm nhấn & Trạng thái (Accents & Status) */
-  --accent: #d9381e;
-  --accent-soft: rgba(217, 56, 30, 0.15);
-  --accent-text: #d9381e;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --warn: var(--warning);
-  --success: #10b981;
-
-  /* 5. Component Tokens (Linh kiện UI cụ thể) */
-  --tab-fg: var(--fg-muted);
-  --tab-fg-hover: var(--fg-secondary);
-  --tab-fg-active: var(--fg-primary);
-
-  --timeline-track-bg: var(--bg-hover);
-  --timeline-playhead: #09090b;
-
-  --stage-bg: #e4e4e7;
-
-  --preview-bg: #e4e4e7;
-}
-
+/* Bridge → utilities text-caption / text-ui / text-body */
 @theme inline {
-  --text-micro: var(--fs-micro);
-  --text-micro--line-height: var(--lh-tight);
   --text-caption: var(--fs-caption);
-  --text-caption--line-height: var(--lh-tight);
+  --text-caption--line-height: 1.25;
   --text-ui: var(--fs-ui);
-  --text-ui--line-height: var(--lh-normal);
+  --text-ui--line-height: 1.4;
   --text-body: var(--fs-body);
-  --text-body--line-height: var(--lh-normal);
-  --text-title: var(--fs-title);
-  --text-title--line-height: var(--lh-normal);
-  --text-subtitle: var(--fs-subtitle);
-  --text-subtitle--line-height: var(--lh-normal);
-  --text-heading: var(--fs-heading);
-  --text-heading--line-height: var(--lh-tight);
-  --text-display: var(--fs-display);
-  --text-display--line-height: var(--lh-tight);
-
-  --font-weight-regular: var(--fw-regular);
-  --font-weight-medium: var(--fw-medium);
-  --font-weight-semibold: var(--fw-semibold);
-  --font-weight-bold: var(--fw-bold);
+  --text-body--line-height: 1.4;
 }
 
 * {
@@ -175,27 +77,28 @@ body {
   color: var(--fg-primary);
   font-family: var(--font-sans);
   font-size: var(--fs-ui);
-  font-weight: var(--fw-regular);
-  line-height: var(--lh-normal);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+body:has([data-surface="editor"]) {
   overflow: hidden;
 }
 
-/* Custom Scrollbar for Webkit */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 3px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  background: rgba(15, 20, 25, 0.14);
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(15, 20, 25, 0.24);
 }

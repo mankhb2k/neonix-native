@@ -53,6 +53,11 @@ export function createProjectLifecycleActions(
       // Reset transient UI/session — tránh rò state project trước sang project sau (STATE-04).
       set((state) => ({
         project,
+        envelope: {
+          id: project.metadata.id,
+          revision: 1,
+          authoring: { elementMeta: {} },
+        },
         timelineLanes: lanes,
         timelineClips: clips,
         timelineZoom: 50,

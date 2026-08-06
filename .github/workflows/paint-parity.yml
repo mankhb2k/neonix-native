@@ -1,0 +1,45 @@
+name: Paint Parity
+
+on:
+  pull_request:
+    paths:
+      - "apps/render-worker/**"
+      - "packages/motion-runtime/**"
+      - "packages/pixi-renderer/**"
+      - "scripts/validate-paint-parity.ts"
+      - ".github/workflows/paint-parity.yml"
+  push:
+    branches: [main, master, dev]
+    paths:
+      - "apps/render-worker/**"
+      - "packages/motion-runtime/**"
+      - "packages/pixi-renderer/**"
+      - "scripts/validate-paint-parity.ts"
+      - ".github/workflows/paint-parity.yml"
+
+concurrency:
+  group: paint-parity-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  paint-parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Paint-path parity (shared commands vs legacy draw)
+        run: pnpm validate:paint-parity

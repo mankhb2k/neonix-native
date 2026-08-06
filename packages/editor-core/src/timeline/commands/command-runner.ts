@@ -6,6 +6,7 @@ import {
 import { DEFAULT_FRAME_DURATION } from "../../frame-draft";
 import {
   selectionClips,
+  selectionNode,
   selectionNone,
   selectedClipIdsFrom,
   type EditorSelection,
@@ -32,6 +33,7 @@ import {
 import { resolveCollisionsAfterResize } from "../internal/resize-collision";
 import {
   cloneSceneWithNewIds,
+  createNodeFromFrameDraft,
   sceneFromFrameDraft,
   stageSizeForAspect,
 } from "../internal/scene-utils";
@@ -125,6 +127,67 @@ export function executeTimelineCommand(
       };
       events.push({ type: "document-rebuilt" });
       break;
+    }
+
+    case "add-scene-node": {
+      const sceneIdx = project.scenes.findIndex((s) => s.id === command.sceneId);
+      if (sceneIdx < 0) {
+        return {
+          status: "rejected",
+          reason: "missing",
+          message: "Scene không tồn tại.",
+        };
+      }
+      const scene = project.scenes[sceneIdx]!;
+      const composition = stageSizeForAspect(
+        project.metadata.aspectRatio ?? "16:9",
+      );
+      const nodeId = ctx.createId("node");
+      const node = createNodeFromFrameDraft(command.draft, nodeId, composition);
+      const maxZ = scene.nodes.reduce(
+        (m, n) => Math.max(m, n.zIndex ?? 0),
+        -1,
+      );
+      const zIndex =
+        command.zIndex != null && Number.isFinite(command.zIndex)
+          ? Math.floor(command.zIndex)
+          : maxZ + 1;
+      const sceneDuration = Math.max(0.001, scene.duration);
+      const timing =
+        command.timing &&
+        Number.isFinite(command.timing.start) &&
+        Number.isFinite(command.timing.duration) &&
+        command.timing.duration > 0
+          ? {
+              start: Math.max(0, Math.min(command.timing.start, sceneDuration)),
+              duration: Math.max(
+                0.001,
+                Math.min(
+                  command.timing.duration,
+                  sceneDuration - Math.max(0, command.timing.start),
+                ),
+              ),
+            }
+          : { start: 0, duration: sceneDuration };
+      const nextNode = { ...node, zIndex, timing };
+      const scenes = project.scenes.slice();
+      scenes[sceneIdx] = {
+        ...scene,
+        nodes: [...scene.nodes, nextNode],
+      };
+      nextProject = { ...project, scenes };
+      events.push({
+        type: "scene-node-added",
+        sceneId: command.sceneId,
+        nodeId,
+      });
+      return finish(
+        nextProject,
+        lanes,
+        clips,
+        selectionNode(command.sceneId, nodeId),
+        events,
+      );
     }
 
     case "add-clip-draft": {

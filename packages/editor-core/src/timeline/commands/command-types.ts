@@ -17,6 +17,14 @@ export type PlacementTarget = {
   startTime?: number;
   insertNewLane?: boolean;
   insertOrder?: number | null;
+  /**
+   * Layer mode: commit as `add-scene-node` into this scene instead of a
+   * timeline clip. `startTime` is global; local timing is derived via
+   * `layerContainerStart` / `layerContainerDuration`.
+   */
+  layerSceneId?: string;
+  layerContainerStart?: number;
+  layerContainerDuration?: number;
 };
 
 export type ClipMovePatch = {
@@ -40,6 +48,15 @@ export type TimelineLaneFlags = {
 export type TimelineCommand =
   | { type: "update-scene-duration"; sceneId: string; duration: number }
   | { type: "add-clip-draft"; draft: FrameDraft; target: PlacementTarget }
+  | {
+      type: "add-scene-node";
+      sceneId: string;
+      draft: FrameDraft;
+      /** Scene-local timing; defaults to full scene duration. */
+      timing?: { start: number; duration: number };
+      /** Higher = above. Defaults to max existing + 1. */
+      zIndex?: number;
+    }
   | { type: "add-audio-clip"; item: AudioLibraryItem; target: PlacementTarget }
   | { type: "move-clip"; clipId: string; patch: ClipMovePatch }
   | {
@@ -74,6 +91,11 @@ export type TimelineCommand =
 /** Domain Events được phát ra sau khi thực thi thành công một command. */
 export type TimelineDomainEvent =
   | { type: "clip-added"; clip: TimelineClip; lane: TimelineLane }
+  | {
+      type: "scene-node-added";
+      sceneId: string;
+      nodeId: string;
+    }
   | { type: "clip-moved"; clipId: string; fromLaneId: string; toLaneId: string }
   | { type: "clip-deleted"; clipIds: string[] }
   | { type: "clip-split"; originalClipId: string; newClipIds: string[] }

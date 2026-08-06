@@ -2,13 +2,10 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { parseMotionProject } from "@motionvideo/motion-schema";
-import {
-  templates,
-  validateMotionProjectPresets,
-} from "@motionvideo/template-library";
+import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { compileMotionProject } from "./compiler";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
+import { createSmokeMotionProject } from "./fixtures/smoke-project";
 import { renderCompiledProject } from "./runtime";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,13 +29,7 @@ function probe(file: string): Promise<string> {
  * the C++-vs-Node decision is based on measured numbers, not guesswork.
  */
 async function main() {
-  const template = templates[0];
-  if (!template) throw new Error("No seed template in template-library");
-
-  const project = parseMotionProject({
-    ...template.project,
-    metadata: { ...template.project.metadata, id: `bench_${Date.now()}` },
-  });
+  const project = createSmokeMotionProject(String(Date.now()));
 
   const presetCheck = validateMotionProjectPresets(project);
   if (!presetCheck.ok) {
@@ -53,7 +44,15 @@ async function main() {
   );
 
   const fps = 30;
-  const scale = 1; // 1.0 = full production resolution (1080x1920 for 9:16)
+  const scaleEnv = Number(process.env.MOTIONVIDEO_BENCH_SCALE);
+  const scaleArg = process.argv.find((a) => a.startsWith("--scale="));
+  const scaleFromArg = scaleArg ? Number(scaleArg.split("=")[1]) : NaN;
+  const scale =
+    Number.isFinite(scaleFromArg) && scaleFromArg > 0
+      ? scaleFromArg
+      : Number.isFinite(scaleEnv) && scaleEnv > 0
+        ? scaleEnv
+        : 1; // 1.0 = full production (1080p); 2.0 = 4K
 
   const t0 = performance.now();
   const rendered = await renderCompiledProject(compiled, {

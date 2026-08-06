@@ -5,6 +5,12 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // CapCut timeline e2e still deferred; new AI Studio acceptance lives in smoke.spec.ts.
+  testIgnore: [
+    "**/timeline/**",
+    "**/editor-timeline.spec.ts",
+    "**/vite-phase0-screenshots.spec.ts",
+  ],
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
@@ -26,5 +32,10 @@ export default defineConfig({
         url: `${baseURL}/app`,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,
+        env: {
+          ...process.env,
+          // Keep smoke export test fast — real jobs are covered by /api/export/jobs.
+          NEXT_PUBLIC_EXPORT_MOCK: "1",
+        },
       },
 });

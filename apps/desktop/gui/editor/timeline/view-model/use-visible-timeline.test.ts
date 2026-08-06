@@ -1,7 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useVisibleTimeline } from "./use-visible-timeline";
-import { TIMELINE_CLIP_OVERSCAN_PX } from "./visible-lane-window";
+import { useVisibleTimeline, TIMELINE_CLIP_OVERSCAN_PX } from "@motionvideo/editor-react";
 
 describe("useVisibleTimeline", () => {
   it("keeps clipsForLane identity stable when timeRange changes but clips are unchanged", () => {

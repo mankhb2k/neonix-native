@@ -1,16 +1,50 @@
 "use client";
 
-import { DesktopEditorShell } from "@/components/desktop/editor/DesktopEditorShell";
+import { SchemaInspector } from "@/components/editor/inspector/SchemaInspector";
+import { LeftRail } from "@/components/editor/left-rail/LeftRail";
+import { StageViewport } from "@/components/editor/stage/StageViewport";
+import { EditorTopBar } from "@/components/editor/topbar/EditorTopBar";
+import { useEditorAutosave } from "@/lib/editor/export/use-editor-autosave";
+import { useEditorStore } from "@/lib/editor/editor-store";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
+import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
+import { useEffect } from "react";
 
 type Props = {
   initialSnapshot: EditorProjectSnapshot;
 };
 
 /**
- * Primary Editor Shell — uses the CapCut-style 4-panel floating card gap layout
- * as the single unified standard for both Desktop and Web environments.
+ * AI Studio editor — 4 vùng: Header · Sidebar · Stage(+timeline) · Inspector(+AI).
  */
 export function EditorShell({ initialSnapshot }: Props) {
-  return <DesktopEditorShell initialSnapshot={initialSnapshot} />;
+  const loadProject = useEditorStore((s) => s.loadProject);
+  const project = useEditorStore((s) => s.project);
+  useEditorAutosave();
+
+  useEffect(() => {
+    loadProject(
+      initialSnapshot.project,
+      initialSnapshot.overlayScenes,
+      initialSnapshot.timelineClips,
+      initialSnapshot.timelineLanes,
+    );
+  }, [initialSnapshot, loadProject]);
+
+  const active = project ?? initialSnapshot.project;
+  const name = active.metadata.name || "Untitled";
+  const { width, height } = stageSizeForAspect(active.metadata.aspectRatio);
+
+  return (
+    <div
+      data-surface="editor"
+      data-testid="editor-shell"
+      className="grid h-screen w-screen overflow-hidden text-[var(--fg-primary)] [background:radial-gradient(ellipse_80%_50%_at_50%_-5%,rgba(13,148,136,0.06)_0%,transparent_55%),var(--bg-app)] [grid-template-areas:'topbar_topbar_topbar'_'left_stage_right'] [grid-template-columns:var(--editor-left-w)_1fr_var(--editor-right-w)] [grid-template-rows:var(--editor-chrome-h)_1fr]"
+    >
+      <EditorTopBar projectName={name} projectId={active.metadata.id} />
+      <LeftRail />
+      <StageViewport project={active} width={width} height={height} />
+      <SchemaInspector />
+    </div>
+  );
 }

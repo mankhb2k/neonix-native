@@ -1,0 +1,16 @@
+{
+  "id": "Z3",
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "App feature showcase",
+  "durationSeconds": 20,
+  "aspectRatio": "16:9",
+  "script": "Ship motion faster.\nTyped commands, live preview.\nTry MotiClip Studio.",
+  "language": "en",
+  "brand": {
+    "name": "MotiClip Studio",
+    "primaryColor": "#22c55e",
+    "secondaryColor": "#052e16"
+  },
+  "constraints": { "maxScenes": 4, "mustIncludeCta": true }
+}

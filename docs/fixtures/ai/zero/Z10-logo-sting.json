@@ -1,0 +1,19 @@
+{
+  "id": "Z10",
+  "format": "moticlip-creative-brief",
+  "formatVersion": 1,
+  "objective": "Brand logo sting with SVG mark",
+  "durationSeconds": 8,
+  "aspectRatio": "1:1",
+  "script": "MotiClip.\nMotion with structure.",
+  "language": "en",
+  "brand": { "name": "MotiClip", "primaryColor": "#fb923c", "secondaryColor": "#171717" },
+  "suppliedAssets": [
+    {
+      "id": "asset.logo.z10",
+      "uri": "docs/fixtures/ai/zero/assets/logo.svg",
+      "role": "logo"
+    }
+  ],
+  "constraints": { "maxScenes": 2, "mustIncludeCta": false }
+}

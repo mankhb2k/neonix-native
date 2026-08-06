@@ -18,3 +18,4 @@ export {
   ContextMenuContent,
   ContextMenuItem,
 } from "./ContextMenu/ContextMenu";
+export { PresetTile, type PresetTileProps } from "./PresetTile/PresetTile";

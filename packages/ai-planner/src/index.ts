@@ -1,6 +1,59 @@
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
-import { retrieveTemplates, templates } from "@motionvideo/template-library";
+import type { CreativeBriefV1, CreativePlanV1, SceneDesignPlanV1 } from "./contracts";
+import {
+  parseCreativeBriefV1,
+  parseCreativePlanV1,
+  parseSceneDesignPlanV1,
+  serializeCreativeBriefV1,
+  serializeCreativePlanV1,
+  serializeSceneDesignPlanV1,
+} from "./contracts";
+import {
+  executeCommandBatch,
+  createBlankMotionProject,
+  parseCommandBatch,
+  type CommandBatchResult,
+  type CommandReceipt,
+  type AuthoringCommand,
+  type CommandBatch,
+  type Diagnostic,
+} from "./commands";
+import {
+  planFromScratch,
+  buildCreativePlanFromBrief,
+  buildSceneDesignFromPlan,
+  buildBlankProjectCommands,
+} from "./from-scratch";
+export { critiqueProject, applyCriticRepair, type CriticReport, type CriticFinding } from "./critic";
+export { buildContactSheetPlan, type ContactSheetPlan, type ContactSheetFrame } from "./contact-sheet";
+export { runGenerationLoop, runGenerationLoopAsync, type GenerationLoopResult } from "./generation-loop";
+export {
+  runZeroTemplateGeneration,
+  runScopedRefine,
+  type ZeroTemplateGenerationResult,
+  type OrchestratorProgress,
+  type OrchestratorPhase,
+} from "./orchestrator";
+export {
+  findBeatNear,
+  listDownbeats,
+  summarizeEnergy,
+  createSceneMarkersFromBeats,
+  snapClipToBeat,
+  type AudioAnalysisLike,
+  type BeatMarker,
+} from "./tools/audio-beats";
 
+export {
+  MODEL_ALLOWED_COMMAND_TYPES,
+  MODEL_BLOCKED_COMMAND_TYPES,
+  isModelAllowedCommand,
+  modelCapabilityPromptBlock,
+} from "./model-allowlist";
+export { probeContactSheetPng, type ProbeContactSheetResult } from "./probe-frames";
+export { layoutRecipe, LAYOUT_RECIPES, type LayoutRecipeId } from "./commands/layout-recipes";
+
+/** @deprecated Use CreativeBriefV1 + planMotionProject({ brief }) instead. */
 export type PlanInput = {
   brandName: string;
   industry: string;
@@ -8,74 +61,112 @@ export type PlanInput = {
   tags?: string[];
   aspectRatio?: "9:16" | "16:9" | "1:1";
   primaryColor?: string;
-  /** Explicit template id — preferred when user picks from gallery */
-  templateId?: string;
 };
 
-/**
- * Stub planner: retrieve template by id/tags/industry, fill brand + script lines.
- * Replace internals with LLM later; keep output validated by Zod.
- */
-export function planMotionProject(input: PlanInput): MotionProject {
-  let template =
-    input.templateId != null
-      ? templates.find((t) => t.id === input.templateId)
-      : undefined;
+export type PlanRequest = {
+  brief:
+    | CreativeBriefV1
+    | (Omit<CreativeBriefV1, "format" | "formatVersion"> & {
+        format?: "moticlip-creative-brief";
+        formatVersion?: 1;
+      });
+  /** Only from-scratch is supported (zero-template MVP). */
+  mode?: "from-scratch";
+  seed?: string;
+  industry?: string;
+  tags?: string[];
+};
 
-  if (!template) {
-    const matched = retrieveTemplates({
-      industry: input.industry,
-      tags: input.tags,
-      limit: 1,
-    });
-    template =
-      matched[0] ??
-      retrieveTemplates({ tags: input.tags, limit: 1 })[0] ??
-      templates[0];
-  }
-
-  if (!template) {
-    throw new Error(`No template found for industry=${input.industry}`);
-  }
-
-  const lines = input.script
-    .split(/\n|。|\.|!|\?/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  let lineIndex = 0;
-  const project: MotionProject = {
-    ...template.project,
-    metadata: {
-      ...template.project.metadata,
-      id: `proj_${Date.now()}`,
-      name: input.brandName,
-      aspectRatio: input.aspectRatio ?? template.project.metadata.aspectRatio,
-      brand: {
-        ...template.project.metadata.brand,
-        name: input.brandName,
-        primaryColor: input.primaryColor ?? template.project.metadata.brand.primaryColor,
-      },
-    },
-    variables: template.project.variables.map((variable) => {
-      if (variable.id === "project.brandName" && variable.type === "string") return { ...variable, value: input.brandName };
-      if (variable.id === "project.primaryColor" && variable.type === "color") return { ...variable, value: input.primaryColor ?? template.project.metadata.brand.primaryColor ?? variable.value };
-      return variable;
-    }),
-    scenes: template.project.scenes.map((scene) => ({
-      ...scene,
-      nodes: scene.nodes.map((node) => {
-        if (node.type !== "text") return node;
-        if (node.semantic?.role === "logo") {
-          return { ...node, payload: { ...node.payload, text: input.brandName } };
-        }
-        const currentText = typeof node.payload?.text === "string" ? node.payload.text : "";
-        const text = lines[lineIndex] ?? currentText;
-        lineIndex += 1;
-        return { ...node, payload: { ...node.payload, text } };
-      }),
-    })),
+export type PlanResult = {
+  brief: CreativeBriefV1;
+  plan: CreativePlanV1;
+  sceneDesign: SceneDesignPlanV1;
+  project: MotionProject;
+  receipts: CommandReceipt[];
+  generation: {
+    planId: string;
+    seed: string;
+    model: string;
+    capabilityManifestVersion: string;
   };
+};
 
-  return parseMotionProject(project);
+export function briefFromLegacyInput(input: PlanInput): CreativeBriefV1 {
+  return parseCreativeBriefV1({
+    format: "moticlip-creative-brief",
+    formatVersion: 1,
+    objective: input.brandName,
+    durationSeconds: 15,
+    aspectRatio: input.aspectRatio ?? "9:16",
+    script: input.script,
+    language: "vi",
+    brand: {
+      name: input.brandName,
+      primaryColor: input.primaryColor,
+    },
+  });
 }
+
+/**
+ * AI planner entrypoint — zero-template from-scratch only.
+ */
+export function planMotionProject(input: PlanRequest | PlanInput): PlanResult {
+  const request: PlanRequest =
+    "brief" in input
+      ? input
+      : {
+          brief: briefFromLegacyInput(input),
+          industry: input.industry,
+          tags: input.tags,
+          mode: "from-scratch",
+        };
+
+  const artifacts = planFromScratch({
+    brief: request.brief,
+    seed: request.seed,
+    industry: request.industry,
+  });
+  if (!artifacts.batchResult.ok || !artifacts.batchResult.project) {
+    const errors = artifacts.receipts
+      .flatMap((receipt) => receipt.diagnostics)
+      .filter((item) => item.severity === "error")
+      .map((item) => `${item.code}: ${item.message}`)
+      .join("; ");
+    throw new Error(`From-scratch planning failed: ${errors || "unknown error"}`);
+  }
+  return {
+    brief: artifacts.brief,
+    plan: artifacts.plan,
+    sceneDesign: artifacts.sceneDesign,
+    project: artifacts.batchResult.project,
+    receipts: artifacts.receipts,
+    generation: artifacts.generation,
+  };
+}
+
+export {
+  parseCreativeBriefV1,
+  parseCreativePlanV1,
+  parseSceneDesignPlanV1,
+  serializeCreativeBriefV1,
+  serializeCreativePlanV1,
+  serializeSceneDesignPlanV1,
+  executeCommandBatch,
+  createBlankMotionProject,
+  parseCommandBatch,
+  buildCreativePlanFromBrief,
+  buildSceneDesignFromPlan,
+  buildBlankProjectCommands,
+  planFromScratch,
+};
+
+export type {
+  CreativeBriefV1,
+  CreativePlanV1,
+  SceneDesignPlanV1,
+  CommandBatchResult,
+  CommandReceipt,
+  AuthoringCommand,
+  CommandBatch,
+  Diagnostic,
+};

@@ -116,54 +116,23 @@ export function LibraryDragPreview() {
 
   if (session.phase !== "dragging" || !session.item) return null;
 
-  const overTimeline = hitTimelineDropZone(session.clientX, session.clientY);
-  const showTeal = overTimeline;
-
-  const host = getTimelineDropHost();
-  const pps = host?.pixelsPerSecond ?? 50;
-  const duration =
-    "duration" in session.item && typeof session.item.duration === "number"
-      ? Math.max(0.5, session.item.duration)
-      : DEFAULT_FRAME_DURATION;
-  const blockWidth = Math.max(duration * pps, 24);
-
-  const left = showTeal
-    ? session.clientX - CYAN_ANCHOR_X
-    : session.clientX - CARD_ANCHOR_X;
-  const top = showTeal
-    ? session.clientY - CYAN_ANCHOR_Y
-    : session.clientY - CARD_ANCHOR_Y;
+  const left = session.clientX - CARD_ANCHOR_X;
+  const top = session.clientY - CARD_ANCHOR_Y;
 
   return (
     <div
-      className={`pointer-events-none fixed top-0 left-0 will-change-transform ${
-        showTeal ? "z-[35]" : "z-[9999]"
-      }`}
+      className="pointer-events-none fixed top-0 left-0 z-[9999] will-change-transform"
       style={{ transform: `translate3d(${left}px, ${top}px, 0)` }}
       aria-hidden
     >
-      {/* CapCut Square Card — outside timeline */}
-      <div
-        className={`relative flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-xl border-2 border-[#22d3ee] bg-[#27272a] p-2 text-white shadow-2xl backdrop-blur-md ${
-          showTeal ? "hidden" : ""
-        }`}
-      >
+      {/* CapCut Square Floating Card Bubble */}
+      <div className="relative flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-xl border-2 border-[#22d3ee] bg-[#27272a] p-2 text-white shadow-2xl backdrop-blur-md">
         {renderDragItemPreview(session.item)}
 
         {/* Small plus badge at bottom-right corner */}
         <div className="absolute bottom-1 right-1 flex items-center justify-center rounded-full bg-cyan-500/90 p-0.5 text-zinc-950 shadow">
           <Plus size={9} strokeWidth={3} />
         </div>
-      </div>
-
-      {/* Teal bar — over timeline */}
-      <div
-        className={`flex h-8 items-center overflow-hidden rounded border border-[#14B8A6]/40 bg-[#0D7476] px-2.5 text-[11px] font-semibold text-white opacity-95 shadow-2xl ${
-          showTeal ? "" : "hidden"
-        }`}
-        style={{ width: blockWidth }}
-      >
-        <span className="truncate">{session.item.label}</span>
       </div>
     </div>
   );

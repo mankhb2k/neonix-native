@@ -12,7 +12,12 @@ import {
   resolveOccupancyAwarePlacement,
 } from "@motionvideo/editor-core";
 import type { LibraryPayload } from "../../library/model/library-payload";
-import { snapMoveStartToEdges } from "../clips/clip-move-geometry";
+import { snapMoveStartToEdges } from "@motionvideo/editor-interactions";
+import { isLayerModeLaneId } from "../layer-mode/build-layer-mode-view";
+import {
+  resolveLayerInsertGapAtClientY,
+  zIndexForLayerInsertGap,
+} from "../layer-mode/layer-row-reorder";
 import { hitTimelineDropZone } from "./drop-geometry";
 import {
   audioDropPolicy,
@@ -224,6 +229,65 @@ function targetToTrack(
 }
 
 /**
+ * Layer mode: ghost + drop only at above/below/between gaps — never on a row body.
+ */
+function resolveLayerModeDropPreview(
+  clientX: number,
+  clientY: number,
+  payload: LibraryPayload | null | undefined,
+  host: TimelineDropHost,
+): LibraryDropPreview | null {
+  const valid = payload?.kind !== "audio";
+  const snapped = snapLibraryStartTime(startTimeAtPoint(clientX), payload);
+  let startTime = snapped.startTime;
+  if (host.layerMode) {
+    startTime = Math.min(
+      host.layerMode.containerStartTime + host.layerMode.containerDuration,
+      Math.max(host.layerMode.containerStartTime, startTime),
+    );
+  }
+
+  const layout = host.laneHitLayout;
+  const gap = layout
+    ? resolveLayerInsertGapAtClientY(
+        host.scrollEl,
+        clientY,
+        host.lanes,
+        layout,
+      )
+    : null;
+
+  const layerLanes = host.lanes.filter((l) => isLayerModeLaneId(l.id));
+  const orderedZ = layerLanes.map((l) => l.order);
+  const insertBeforeIndex = gap?.insertBeforeIndex ?? 0;
+  const insertOrder = zIndexForLayerInsertGap(orderedZ, insertBeforeIndex);
+  const contentTop =
+    gap?.contentTop ??
+    (layout
+      ? layout.topPadding
+      : host.scrollEl.scrollTop);
+
+  wasInsertVisual = true;
+  wasInsertAudio = false;
+
+  return {
+    valid,
+    startTime,
+    track: "overlay",
+    laneId: null,
+    isInsert: true,
+    insertOrder,
+    indicatorTop: contentTop - host.scrollEl.scrollTop,
+    overBaseBody: false,
+    ghostWidthPx: ghostWidthFor(payload),
+    ghostHeightPx: ghostHeightFor(true, "overlay", null),
+    contentTop,
+    label: payloadLabel(payload),
+    snapGuideTime: snapped.snapGuideTime,
+  };
+}
+
+/**
  * Live drop preview (insert line / ghost). Null when pointer leaves the zone.
  */
 export function resolveDropGeometryAtPoint(
@@ -237,6 +301,10 @@ export function resolveDropGeometryAtPoint(
     wasInsertVisual = false;
     wasInsertAudio = false;
     return null;
+  }
+
+  if (host.layerMode) {
+    return resolveLayerModeDropPreview(clientX, clientY, payload, host);
   }
 
   const family = payload ? payloadFamily(payload) : "visual";
@@ -281,13 +349,16 @@ export function resolveDropGeometryAtPoint(
 
   const visualLaneCount = host.lanes.filter((l) => l.kind === "visual").length;
   const forceMain =
+    !host.layerMode &&
     family === "visual" &&
     visualLaneCount <= 1 &&
     !policyTarget.isInsert &&
     (payload?.kind === "image" || payload?.kind === "video");
 
   let valid = true;
-  if (payload?.kind === "audio") {
+  if (host.layerMode) {
+    valid = payload?.kind !== "audio";
+  } else if (payload?.kind === "audio") {
     valid = true;
   } else if (payload && (payload.kind === "text" || payload.kind === "shape")) {
     valid = track !== "audio";
@@ -334,18 +405,18 @@ export function resolveDropGeometryAtPoint(
                 : ("overlay" as const),
         }));
       const occupancy = resolveOccupancyAwarePlacement({
-        clipsOnLane: onLane,
-        desiredStart: nextStart,
-        duration: payloadDurationSec(payload),
-        laneId: lane.id,
-        laneOrder: lane.order,
-        laneRole,
-        siblingLanes,
-        allClips: host.clips,
-        clipsByLane: host.clipsByLane,
-        overlayLaneRefs: host.overlayLaneRefs,
-        audioLaneRefs: host.audioLaneRefs,
-      });
+            clipsOnLane: onLane,
+            desiredStart: nextStart,
+            duration: payloadDurationSec(payload),
+            laneId: lane.id,
+            laneOrder: lane.order,
+            laneRole,
+            siblingLanes,
+            allClips: host.clips,
+            clipsByLane: host.clipsByLane,
+            overlayLaneRefs: host.overlayLaneRefs,
+            audioLaneRefs: host.audioLaneRefs,
+          });
       nextStart = occupancy.startTime;
       if (occupancy.edgeGuideTime != null) {
         nextSnapGuide = occupancy.edgeGuideTime;
@@ -451,6 +522,32 @@ export function resolveLibraryPlacement(
 ): PlacementTarget | undefined {
   const preview = resolveDropGeometryAtPoint(clientX, clientY, payload);
   if (!preview || !preview.valid) return undefined;
+
+  const host = getTimelineDropHost();
+  const layerExtras =
+    host?.layerMode != null
+      ? {
+          layerSceneId: host.layerMode.sceneId,
+          layerContainerStart: host.layerMode.containerStartTime,
+          layerContainerDuration: host.layerMode.containerDuration,
+        }
+      : {};
+
+  // Layer mode: always insert a new stack row (never drop onto an existing body).
+  if (host?.layerMode) {
+    if (payload?.kind === "audio") return undefined;
+    const startTime = Math.min(
+      host.layerMode.containerStartTime + host.layerMode.containerDuration,
+      Math.max(host.layerMode.containerStartTime, preview.startTime),
+    );
+    return {
+      track: "overlay",
+      insertNewLane: true,
+      insertOrder: preview.insertOrder ?? 0,
+      startTime,
+      ...layerExtras,
+    };
+  }
 
   if (preview.track === "audio") {
     if (preview.isInsert || preview.laneId == null) {

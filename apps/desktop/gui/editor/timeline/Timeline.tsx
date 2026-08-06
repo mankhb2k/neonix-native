@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type {
+  DocumentPropertyCommand,
   TimelineClip,
   TimelineCommand,
   TimelineLane,
@@ -28,6 +29,11 @@ export type TimelineProps = {
   onDelete?: () => void;
   onSelect?: (selection: import("@motionvideo/editor-core").EditorSelection) => void;
   onExecute?: (command: TimelineCommand, label: string) => void;
+  onExecuteProperty?: (input: {
+    command: DocumentPropertyCommand;
+    label: string;
+    coalesceKey?: string;
+  }) => void;
   onCopy?: () => void;
   onCut?: () => void;
   onPaste?: () => void;
@@ -57,6 +63,7 @@ export const Timeline = memo(function Timeline({
   onDelete = noop,
   onSelect = noop,
   onExecute = noop,
+  onExecuteProperty = noop,
   onCopy,
   onCut,
   onPaste,
@@ -107,6 +114,7 @@ export const Timeline = memo(function Timeline({
           canPaste={canPaste}
           onSelect={onSelect}
           onExecute={onExecute}
+          onExecuteProperty={onExecuteProperty}
           onCopy={onCopy}
           onCut={onCut}
           onPaste={onPaste}

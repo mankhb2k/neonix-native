@@ -1,3 +1,6 @@
+/**
+ * Frame ↔ time helpers for web preview (ported from desktop/gui — no desktop imports).
+ */
 import { frameIndexAtTime } from "@motionvideo/motion-runtime";
 
 /** Shared floor-based frame index (matches preview + timecode). */

@@ -1,0 +1,176 @@
+import { describe, expect, it } from "vitest";
+import {
+  applyMoveDelta,
+  applyResizeDelta,
+  applyRotateDelta,
+  applyMoveConstraints,
+  clientToComposition,
+  compositionToClient,
+  createStageSession,
+  hitTestHandle,
+  toStagePropertyPatches,
+} from "../index";
+
+describe("stage coordinates", () => {
+  const metrics = {
+    contentLeft: 10,
+    contentTop: 20,
+    contentWidth: 200,
+    contentHeight: 100,
+    compositionWidth: 400,
+    compositionHeight: 200,
+  };
+
+  it("maps client to composition and back", () => {
+    const comp = clientToComposition({ x: 110, y: 70 }, metrics);
+    expect(comp).toEqual({ x: 200, y: 100 });
+    const client = compositionToClient(comp!, metrics);
+    expect(client.x).toBeCloseTo(110);
+    expect(client.y).toBeCloseTo(70);
+  });
+
+  it("returns null outside content", () => {
+    expect(clientToComposition({ x: 0, y: 0 }, metrics)).toBeNull();
+  });
+});
+
+describe("stage transform math", () => {
+  const base = {
+    sceneId: "s",
+    nodeId: "n",
+    x: 10,
+    y: 20,
+    width: 100,
+    height: 50,
+    rotation: 0,
+  };
+
+  it("moves by pointer delta", () => {
+    expect(
+      applyMoveDelta(base, { x: 0, y: 0 }, { x: 5, y: -3 }),
+    ).toMatchObject({ x: 15, y: 17 });
+  });
+
+  it("resizes from east handle", () => {
+    expect(
+      applyResizeDelta(base, "e", { x: 0, y: 0 }, { x: 20, y: 0 }),
+    ).toMatchObject({ width: 120, x: 10 });
+  });
+
+  it("resizes from west and shifts x", () => {
+    expect(
+      applyResizeDelta(base, "w", { x: 0, y: 0 }, { x: 20, y: 0 }),
+    ).toMatchObject({ width: 80, x: 30 });
+  });
+
+  it("rotates around center", () => {
+    const next = applyRotateDelta(base, { x: 110, y: 45 }, { x: 10, y: 45 });
+    expect(next.rotation).toBeCloseTo(180, 0);
+  });
+});
+
+describe("stage constraints", () => {
+  it("snaps move to guides", () => {
+    const { values, guides } = applyMoveConstraints(
+      {
+        sceneId: "s",
+        nodeId: "n",
+        x: 52,
+        y: 10,
+        width: 10,
+        height: 10,
+        rotation: 0,
+      },
+      { snapEdgesX: [50], snapThreshold: 4 },
+    );
+    expect(values.x).toBe(50);
+    expect(guides).toEqual([{ kind: "vline", x: 50 }]);
+  });
+});
+
+describe("transform handles", () => {
+  it("hits corner handles", () => {
+    const box = { x: 0, y: 0, width: 100, height: 80, rotation: 0 };
+    expect(hitTestHandle(box, { x: 0, y: 0 }, 8)).toBe("nw");
+    expect(hitTestHandle(box, { x: 100, y: 80 }, 8)).toBe("se");
+    expect(hitTestHandle(box, { x: 50, y: -24 }, 8)).toBe("rotate");
+  });
+});
+
+describe("createStageSession", () => {
+  it("previews move and commits transform command", () => {
+    const session = createStageSession();
+    const previews: unknown[] = [];
+    const base = {
+      sceneId: "scene",
+      nodeId: "node",
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 20,
+      rotation: 0,
+    };
+    session.beginMove(
+      {
+        interactionId: "i1",
+        base,
+        worldBounds: { x: 100, y: 50, width: 40, height: 20 },
+        pointer: { x: 0, y: 0 },
+      },
+      {
+        onPreview: (p) => {
+          previews.push(p);
+        },
+      },
+    );
+    session.updatePointer({ x: 10, y: 5 });
+    const commit = session.commit("pointerup");
+    expect(commit?.patches[0]?.values).toMatchObject({ x: 10, y: 5 });
+    expect(commit?.command).toMatchObject({
+      type: "set-node-transform",
+      patch: { x: 10, y: 5 },
+    });
+    expect(session.mode).toBe("idle");
+    expect(previews.length).toBeGreaterThan(1);
+  });
+
+  it("cancels without command", () => {
+    const session = createStageSession();
+    session.beginRotate(
+      {
+        interactionId: "i2",
+        base: {
+          sceneId: "s",
+          nodeId: "n",
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+          rotation: 0,
+        },
+        worldBounds: { x: 0, y: 0, width: 10, height: 10 },
+        pointer: { x: 20, y: 5 },
+      },
+      { onPreview: () => undefined },
+    );
+    session.cancel();
+    expect(session.commit()).toBeNull();
+  });
+});
+
+describe("toStagePropertyPatches", () => {
+  it("includes sizePatch when dimensions change", () => {
+    const base = {
+      sceneId: "s",
+      nodeId: "n",
+      x: 0,
+      y: 0,
+      width: 10,
+      height: 10,
+      rotation: 0,
+    };
+    const preview = { ...base, width: 30 };
+    const patches = toStagePropertyPatches(base, preview);
+    expect(patches[0]?.sizePatch).toEqual({ width: 30, height: 10 });
+  });
+});

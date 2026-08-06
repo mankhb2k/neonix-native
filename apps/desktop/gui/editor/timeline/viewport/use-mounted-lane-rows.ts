@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import {
   buildLaneHeightPrefix,
   visibleLaneWindow,
-} from "../view-model/visible-lane-window";
+} from "@motionvideo/editor-react";
 import {
   LANE_GAP_PX,
   type TimelineLaneRow,

@@ -17,8 +17,8 @@ const display = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "MotionVideo",
-  description: "AI TVC motion graphic 2D cho doanh nghiệp Việt",
+  title: "MotiClip",
+  description: "AI Studio — motion graphics 2.5D từ brief đến export",
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className={`${sans.variable} ${display.variable}`}>
+    <html lang="vi" data-theme="light" className={`${sans.variable} ${display.variable}`}>
       <body>{children}</body>
     </html>
   );

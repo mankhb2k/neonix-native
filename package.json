@@ -19,17 +19,22 @@
     "lint:desktop": "pnpm --filter @motionvideo/desktop lint",
     "typecheck": "pnpm -r run typecheck",
     "validate:v2-fixtures": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-motion-v2-fixtures.ts",
+    "validate:capability-ledger": "pnpm validate:v2-fixtures",
+    "validate:ai-fixtures": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/validate-ai-fixtures.ts",
+    "eval:zero-template": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/run-zero-template-eval.ts",
     "update:v2-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-goldens.ts",
     "update:v2-frame-goldens": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/update-motion-v2-frame-goldens.ts",
     "validate:primitives": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-runtime-primitives.ts",
     "validate:acceptance-export": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-export.ts",
     "validate:acceptance-web-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-web-parity.ts",
+    "validate:paint-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-paint-parity.ts",
+    "test:parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/parity-pixi-remotion.ts",
+    "bench:motion-runtime": "pnpm --filter @motionvideo/render-worker benchmark",
+    "bench:motion-runtime:4k": "pnpm --filter @motionvideo/render-worker exec tsx src/benchmark.ts --scale=2",
     "score:designer-corrections": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-designer-corrections.ts",
     "score:acceptance-pack": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-acceptance-pack.ts",
     "storybook": "pnpm --filter @motionvideo/web storybook",
     "storybook:desktop": "pnpm --filter @motionvideo/desktop storybook"
-
-
   },
   "engines": {
     "node": ">=20",
@@ -39,5 +44,9 @@
     "overrides": {
       "enhanced-resolve": "5.24.3"
     }
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "picomatch": "^4.0.5"
   }
 }

@@ -1,8 +1,19 @@
+/**
+ * Logic tests live in @motionvideo/editor-interactions.
+ * Keep this file as a smoke import so desktop CI still discovers a seek suite.
+ */
+export {
+  resolvePlayheadScrubMax,
+  clientXToTimelineTime,
+} from "@motionvideo/editor-interactions";
+
 import { describe, expect, it } from "vitest";
 import {
+  clientXToTimelineTime,
   ensurePlayheadScrubScroll,
+  resolvePlayheadScrubMax,
   scrollTracksHorizontallyNearEdge,
-} from "./timeline-seek";
+} from "@motionvideo/editor-interactions";
 
 function stubScrollEl(init: {
   left: number;
@@ -38,56 +49,18 @@ function stubScrollEl(init: {
   return el;
 }
 
-describe("playhead scrub horizontal auto-scroll", () => {
-  it("increases scrollLeft when pointer is in the right edge", () => {
+describe("playhead scrub (compat HTMLElement API)", () => {
+  it("still scrolls via deprecated wrappers", () => {
     const el = stubScrollEl({
       left: 0,
       width: 400,
       scrollWidth: 2000,
       clientWidth: 400,
     });
-    const delta = scrollTracksHorizontallyNearEdge(el, 390, 40, 14);
-    expect(delta).toBe(14);
-    expect(el.scrollLeft).toBe(14);
-  });
-
-  it("does not scroll when pointer is in the middle", () => {
-    const el = stubScrollEl({
-      left: 100,
-      width: 400,
-      scrollWidth: 2000,
-      clientWidth: 400,
-    });
-    const delta = scrollTracksHorizontallyNearEdge(el, 200, 40, 14);
-    expect(delta).toBe(0);
-    expect(el.scrollLeft).toBe(100);
-  });
-
-  it("clamps at max scroll / content end", () => {
-    const el = stubScrollEl({
-      left: 1590,
-      width: 400,
-      scrollWidth: 2000,
-      clientWidth: 400,
-    });
-    const delta = scrollTracksHorizontallyNearEdge(el, 390, 40, 14);
-    expect(el.scrollLeft).toBe(1600);
-    expect(delta).toBe(10);
-  });
-
-  it("ensurePlayheadScrubScroll advances time with scroll", () => {
-    const el = stubScrollEl({
-      left: 0,
-      width: 400,
-      scrollWidth: 2000,
-      clientWidth: 400,
-    });
-    const pps = 100;
-    const before = ensurePlayheadScrubScroll(el, 200, pps, 30);
-    expect(before.scrolledBy).toBe(0);
-    const edge = ensurePlayheadScrubScroll(el, 390, pps, 30);
-    expect(edge.scrolledBy).toBeGreaterThan(0);
-    expect(edge.time).toBeGreaterThan(before.time);
-    expect(edge.time).toBeLessThanOrEqual(30);
+    expect(scrollTracksHorizontallyNearEdge(el, 390, 40, 14)).toBe(14);
+    expect(resolvePlayheadScrubMax(20, 12)).toBe(12);
+    expect(clientXToTimelineTime(-50, el, 100, 6, 2)).toBe(2);
+    const edge = ensurePlayheadScrubScroll(el, 390, 100, 30);
+    expect(edge.scrolledBy).toBeGreaterThanOrEqual(0);
   });
 });

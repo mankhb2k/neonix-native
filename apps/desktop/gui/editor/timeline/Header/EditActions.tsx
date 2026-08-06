@@ -7,6 +7,7 @@ import {
   type TimelineClip,
 } from "@motionvideo/editor-core";
 import { Button } from "../../../ui";
+import { useEditorUiSession } from "../../session/editor-ui-session";
 import {
   usePlaybackClock,
   usePlaybackClockApi,
@@ -74,11 +75,10 @@ export function EditActions({
 
   const selectedClipIds = selectedClipIdsFrom(selection);
   const hasSelection = selectedClipIds.length > 0;
-  const canSplit = canSplitSelectedClips(
-    selectedClipIds,
-    clipsById,
-    displayTime,
-  );
+  const timelineMode = useEditorUiSession((s) => s.timelineMode);
+  const canSplit =
+    timelineMode !== "layer" &&
+    canSplitSelectedClips(selectedClipIds, clipsById, displayTime);
 
   return (
     <div className="flex items-center gap-1">
@@ -120,7 +120,7 @@ export function EditActions({
         variant="ghost"
         size="sm"
         iconOnly
-        disabled={disabled || !hasSelection}
+        disabled={disabled || timelineMode === "layer" || !hasSelection}
         aria-label="Xóa"
         title="Xóa (Del / Backspace)"
         leftIcon={<Trash2 {...editActionIcon} />}

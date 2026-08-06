@@ -1,6 +1,7 @@
 export * from "./v2";
 export * from "./capabilities";
 export * from "./scene-registry";
+export * from "./ai-schema-capability";
 
 import {
   parseMotionProjectV2,

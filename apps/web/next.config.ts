@@ -7,14 +7,13 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   transpilePackages: [
-    "@motionvideo/shared",
+    "@motionvideo/render-contracts",
     "@motionvideo/motion-schema",
     "@motionvideo/motion-runtime",
     "@motionvideo/motion-compiler",
-    "@motionvideo/template-library",
     "@motionvideo/ai-planner",
-    "@motionvideo/motion-grammar",
     "@motionvideo/asset-registry",
+    "@motionvideo/pixi-renderer",
   ],
 };
 

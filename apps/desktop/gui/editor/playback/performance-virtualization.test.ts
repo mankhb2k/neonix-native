@@ -4,7 +4,7 @@ import {
   visibleTimeRange,
 } from "@motionvideo/editor-core";
 import { playbackFrameIndex } from "./time-frame";
-import { TIMELINE_CLIP_OVERSCAN_PX } from "../timeline/view-model/use-visible-timeline";
+import { TIMELINE_CLIP_OVERSCAN_PX } from "@motionvideo/editor-react";
 import {
   createDenseTimelineFixture,
   expectedVisibleClipBudget,

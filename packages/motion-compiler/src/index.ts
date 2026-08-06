@@ -1,15 +1,20 @@
 import {
   NormalizedMotionProjectV2Schema,
+  getTextPayloadPlain,
   segmentTextUnits,
+  setTextPayloadPlain,
   type MotionClip,
   type MotionComponentV2,
   type MotionNode,
   type MotionProject,
   type NormalizedMotionProjectV2,
 } from "@motionvideo/motion-schema";
+import { applyFitText, applyLayoutConstraints } from "./layout-solver";
+import { expandMotionPreset } from "./preset-registry";
 
 type RuntimeTrack = NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+type SceneMarker = { id: string; t: number };
 
 export type CompileOptions = {
   components?: MotionComponentV2[];
@@ -88,7 +93,10 @@ function scheduleTimes(clips: MotionClip[], variables: Map<string, unknown> = ne
     visiting.add(clip.id);
     let at: number;
     if (clip.schedule.kind === "absolute") at = clip.schedule.at;
-    else {
+    else if (clip.schedule.kind === "scene-end") {
+      const duration = sceneDuration ?? 0;
+      at = Math.max(0, duration - clip.duration + clip.schedule.offset);
+    } else {
       const dependency = byId.get(clip.schedule.clipId);
       if (!dependency) throw new Error(`Unknown schedule clip: ${clip.schedule.clipId}`);
       const dependencyStart = resolve(dependency);
@@ -113,32 +121,52 @@ function canonicalTime(value: number): number {
   return Math.round(value * 1_000_000_000) / 1_000_000_000;
 }
 
-function presetTracks(node: RuntimeNode, preset: string, start: number, end: number): RuntimeTrack[] {
-  const x = node.transform.x;
-  const y = node.transform.y;
-  const opacity = (from = 0, to = node.transform.opacity): RuntimeTrack => ({
-    targetId: node.id,
-    property: "transform.opacity",
-    keys: [{ t: start, v: from }, { t: end, v: to, easing: "easeOut" }],
-  });
-  switch (preset) {
-    case "fade-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 48 }, { t: end, v: y, easing: "easeOut" }] }];
-    case "fade-down": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y - 48 }, { t: end, v: y, easing: "easeOut" }] }];
-    case "fade-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 48 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "fade-right": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x - 48 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "slide-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 120 }, { t: end, v: y, easing: "easeOut" }] }];
-    case "slide-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 120 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "slide-right": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x - 120 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "scale-in":
-    case "zoom-in":
-    case "pop": return [opacity(),
-      { targetId: node.id, property: "transform.scaleX", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleX, easing: preset === "pop" ? "spring" : "easeOut" }] },
-      { targetId: node.id, property: "transform.scaleY", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleY, easing: preset === "pop" ? "spring" : "easeOut" }] },
-    ];
-    case "counter": return [{ targetId: node.id, property: "payload.counterProgress", keys: [{ t: start, v: 0 }, { t: end, v: 1, easing: "easeOut" }] }];
-    case "fade-in":
-    default: return [opacity()];
+/** Closed allowlist of Clip.source.presetId values the compiler expands. Unknown IDs throw. */
+export {
+  COMPILED_PRESET_IDS,
+  isCompiledPreset,
+  expandMotionPreset,
+  type CompiledPresetId,
+} from "./presets";
+export {
+  validateMotionProjectPresets,
+  type UnknownPresetRef,
+  type PresetValidationResult,
+} from "./validate-presets";
+
+function literalPresetParams(
+  params: Record<string, unknown> | undefined,
+  variables: Map<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!params) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    out[key] = resolveValue(value, variables);
   }
+  return out;
+}
+
+function presetTracks(
+  node: RuntimeNode,
+  preset: string,
+  start: number,
+  end: number,
+  params?: Record<string, unknown>,
+): RuntimeTrack[] {
+  return expandMotionPreset({
+    presetId: preset,
+    nodeId: node.id,
+    start,
+    end,
+    transform: {
+      x: node.transform.x,
+      y: node.transform.y,
+      opacity: node.transform.opacity,
+      scaleX: node.transform.scaleX,
+      scaleY: node.transform.scaleY,
+    },
+    params,
+  }) as RuntimeTrack[];
 }
 
 function expandPlaybackTrack(
@@ -174,7 +202,24 @@ function expandPlaybackTrack(
   return { ...track, keys };
 }
 
-function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<string, unknown>, sceneDuration: number): RuntimeTrack[] {
+function resolveTrackTime(time: unknown, markers: Map<string, number>, clipId: string): number {
+  if (typeof time === "number" && Number.isFinite(time)) return time;
+  if (time && typeof time === "object" && "markerId" in time) {
+    const markerId = (time as { markerId: string; offset?: number }).markerId;
+    const offset = (time as { offset?: number }).offset ?? 0;
+    if (!markers.has(markerId)) throw new Error(`Unknown scene marker ${markerId} in clip ${clipId}`);
+    return markers.get(markerId)! + offset;
+  }
+  throw new Error(`Invalid keyframe time in clip ${clipId}: ${JSON.stringify(time)}`);
+}
+
+function compileClips(
+  nodes: RuntimeNode[],
+  clips: MotionClip[],
+  variables: Map<string, unknown>,
+  sceneDuration: number,
+  markers: Map<string, number> = new Map(),
+): RuntimeTrack[] {
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const starts = scheduleTimes(clips, variables, sceneDuration);
   const expanded = clips.flatMap((clip) => {
@@ -183,14 +228,27 @@ function compileClips(nodes: RuntimeNode[], clips: MotionClip[], variables: Map<
       return clip.source.tracks.map((track) => expandPlaybackTrack({
         targetId: track.targetId,
         property: track.property,
-        keys: track.keys.map((key) => ({ t: key.t, v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"], ...(key.easing ? { easing: key.easing } : {}) })),
+        ...(track.valueKind ? { valueKind: track.valueKind } : {}),
+        ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
+        ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
+        keys: track.keys.map((key) => ({
+          t: resolveTrackTime(key.t, markers, clip.id),
+          v: resolveValue(key.v, variables) as RuntimeTrack["keys"][number]["v"],
+          ...(key.easing ? { easing: key.easing } : {}),
+        })),
       }, clip, start, sceneDuration, variables));
     }
     if (clip.source.kind === "component-action") throw new Error(`Unexpanded Component Action clip: ${clip.id}`);
     if (!clip.targetId) throw new Error(`Preset clip ${clip.id} requires targetId`);
     const node = nodeById.get(clip.targetId);
     if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
-    return presetTracks(node, clip.source.presetId, 0, clip.duration)
+    return presetTracks(
+      node,
+      clip.source.presetId,
+      0,
+      clip.duration,
+      literalPresetParams(clip.source.params as Record<string, unknown> | undefined, variables),
+    )
       .map((track) => expandPlaybackTrack(track, clip, start, sceneDuration, variables));
   });
   const merged = new Map<string, RuntimeTrack>();
@@ -220,9 +278,13 @@ function expandComponents(
   const actionInvocationIds = new Set(clips.filter((clip) => clip.source.kind === "component-action").map((clip) => clip.id));
   const outputClips = clips
     .filter((clip) => clip.source.kind !== "component-action")
-    .map((clip) => clip.schedule.kind !== "absolute" && actionInvocationIds.has(clip.schedule.clipId)
-      ? { ...clone(clip), schedule: { kind: "absolute" as const, at: sceneStarts.get(clip.id) ?? 0 } }
-      : clone(clip));
+    .map((clip) =>
+      clip.schedule.kind !== "absolute" &&
+      clip.schedule.kind !== "scene-end" &&
+      actionInvocationIds.has(clip.schedule.clipId)
+        ? { ...clone(clip), schedule: { kind: "absolute" as const, at: sceneStarts.get(clip.id) ?? 0 } }
+        : clone(clip),
+    );
   const componentVariables = new Map<string, unknown>();
   for (const node of nodes) {
     if (node.type !== "component") {
@@ -360,9 +422,15 @@ function expandComponents(
           ...clone(resolved),
           id: `${node.id}::${resolved.id}${suffix}`,
           targetId: target.node?.id,
-          schedule: resolved.schedule.kind === "absolute"
-            ? { ...resolved.schedule, at: canonicalTime(resolved.schedule.at + stagger) }
-            : { ...resolved.schedule, clipId: `${node.id}::${resolved.schedule.clipId}${suffix}` },
+          schedule:
+            resolved.schedule.kind === "absolute"
+              ? { ...resolved.schedule, at: canonicalTime(resolved.schedule.at + stagger) }
+              : resolved.schedule.kind === "scene-end"
+                ? { ...resolved.schedule }
+                : {
+                    ...resolved.schedule,
+                    clipId: `${node.id}::${resolved.schedule.clipId}${suffix}`,
+                  },
           source: resolved.source.kind === "tracks"
             ? { ...clone(resolved.source), tracks: resolved.source.tracks.map((track) => {
                 const matching = targets.get(track.targetId)?.find((candidate) => candidate.repeatKey === target.repeatKey) ?? targets.get(track.targetId)?.[0];
@@ -415,6 +483,8 @@ function expandComponents(
                 return {
                   targetId: expandedTarget.id,
                   property: track.property,
+                  ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
+                  ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
                   keys: track.keys.map((keyframe) => ({
                     t: keyframe.t,
                     v: resolveValue(keyframe.v, actionValues) as RuntimeTrack["keys"][number]["v"],
@@ -437,10 +507,19 @@ function expandComponents(
           : (() => {
               const target = actionClip.targetId ? targets.get(actionClip.targetId)?.[0]?.node : undefined;
               if (!target) throw new Error(`Preset Component Action clip requires target: ${key}/${action.id}/${actionClip.id}`);
-              return presetTracks(target, actionClip.source.presetId, 0, actionClip.duration);
+              return presetTracks(
+                target,
+                actionClip.source.presetId,
+                0,
+                actionClip.duration,
+                literalPresetParams(
+                  actionClip.source.params as Record<string, unknown> | undefined,
+                  actionValues,
+                ),
+              );
             })();
         for (const track of baseTracks) {
-          cycleTracks.push(expandPlaybackTrack(track, { ...actionClip, playback: { ...actionClip.playback, rate: innerRate } }, localStart, action.duration, actionValues));
+          cycleTracks.push(expandPlaybackTrack(track as RuntimeTrack, { ...actionClip, playback: { ...actionClip.playback, rate: innerRate } }, localStart, action.duration, actionValues));
         }
       }
       const mergedCycle = new Map<string, RuntimeTrack>();
@@ -479,6 +558,8 @@ function expandComponents(
           tracks: [...mergedCycle.values()].map((track) => ({
             targetId: track.targetId,
             property: track.property,
+            ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
+            ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
             keys: track.keys.map((keyframe) => ({
               t: keyframe.t,
               v: keyframe.v,
@@ -501,7 +582,7 @@ function expandTextAnimators(nodes: MotionNode[]): { nodes: RuntimeNode[]; track
       continue;
     }
     const animator = node.textAnimator;
-    const units = segmentTextUnits(node.payload.text, animator.unit, animator.locale);
+    const units = segmentTextUnits(getTextPayloadPlain(node.payload), animator.unit, animator.locale);
     const horizontal = animator.unit !== "line";
     const cellWidth = horizontal ? node.transform.width / Math.max(1, units.length) : node.transform.width;
     const cellHeight = horizontal ? node.transform.height : node.transform.height / Math.max(1, units.length);
@@ -513,7 +594,7 @@ function expandTextAnimators(nodes: MotionNode[]): { nodes: RuntimeNode[]; track
       delete run.textAnimator;
       delete run.repeat;
       run.id = `${node.id}::${animator.id}::${index}`;
-      run.payload.text = text;
+      run.payload = setTextPayloadPlain(run.payload, text);
       run.transform.x = horizontal ? left + cellWidth * (index + 0.5) : left + cellWidth / 2;
       run.transform.y = horizontal ? top + cellHeight / 2 : top + cellHeight * (index + 0.5);
       run.transform.width = cellWidth;
@@ -560,14 +641,20 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
       const expanded = expandComponents(scene.nodes, scene.clips, componentPackages, projectVariables, scene.duration);
       const variables = new Map([...projectVariables, ...expanded.variables]);
       const resolvedAuthoringNodes = expanded.nodes.map((node) => resolveValue(node, variables) as unknown as MotionNode);
-      const textExpanded = expandTextAnimators(resolvedAuthoringNodes);
+      const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
+      const fitted = applyFitText(laidOut);
+      const textExpanded = expandTextAnimators(fitted.nodes);
+      const markers = new Map<string, number>((scene.markers ?? []).map((marker: SceneMarker) => [marker.id, marker.t]));
       return {
         id: scene.id,
         duration: scene.duration,
+        ...(scene.space ? { space: scene.space } : {}),
+        ...(scene.motionBlur ? { motionBlur: scene.motionBlur } : {}),
+        ...(scene.drivers && scene.drivers.length > 0 ? { drivers: clone(scene.drivers) } : {}),
         ...(scene.activeCameraId ? { activeCameraId: scene.activeCameraId } : {}),
         ...(scene.transition ? { transition: scene.transition } : {}),
         nodes: textExpanded.nodes,
-        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables, scene.duration), ...textExpanded.tracks],
+        tracks: [...compileClips(textExpanded.nodes, expanded.clips, variables, scene.duration, markers), ...textExpanded.tracks],
       };
     });
   return NormalizedMotionProjectV2Schema.parse({
@@ -581,3 +668,28 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
 }
 
 export type CompiledProject = NormalizedMotionProjectV2;
+
+export { applyFitText, applyLayoutConstraints } from "./layout-solver";
+export {
+  defaultTextMeasurementProvider,
+  estimateTextSize,
+  type TextMeasurementProvider,
+  type TextMeasureRequest,
+  type TextMeasureResult,
+} from "./text-layout";
+export {
+  compileCaptionTracks,
+  evaluateCaptionStateAtTime,
+  type CompiledCaptionTrack,
+  type CompiledCaptionCue,
+  type ActiveCaptionState,
+} from "./caption-compiler";
+export {
+  bakeMotionRecipe,
+  isMotionRecipe,
+  MOTION_RECIPE_IDS,
+  type MotionRecipeId,
+  type RecipeBakeInput,
+  type BakedRecipe,
+} from "./recipe-registry";
+

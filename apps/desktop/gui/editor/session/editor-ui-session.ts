@@ -6,7 +6,9 @@
 import { create } from "zustand";
 import {
   clipsContentEndSeconds,
+  isSceneClip,
   resolveFitAnchorSeconds,
+  selectionClips,
   selectionNone,
   sliderValueToZoomScale,
   type ClipClipboardItem,
@@ -15,6 +17,7 @@ import {
 } from "@motionvideo/editor-core";
 
 export type TimelineZoomMode = "manual" | "fit";
+export type TimelineDisplayMode = "track" | "layer";
 
 export type EditorUiPatch = {
   selection?: EditorSelection;
@@ -24,6 +27,8 @@ export type EditorUiPatch = {
   timelineZoomMode?: TimelineZoomMode;
   timelineFitAnchorSeconds?: number | null;
   timelineFitRevisionBump?: boolean;
+  timelineMode?: TimelineDisplayMode;
+  activeContainerClipId?: string | null;
 };
 
 export type EditorUiSessionState = {
@@ -32,10 +37,21 @@ export type EditorUiSessionState = {
   timelineZoomMode: TimelineZoomMode;
   timelineFitAnchorSeconds: number | null;
   timelineFitRevision: number;
+  timelineMode: TimelineDisplayMode;
+  activeContainerClipId: string | null;
   selection: EditorSelection;
   clipboard: ClipClipboardItem[];
   setZoom: (zoom: number) => void;
   fitTimeline: (clips: readonly TimelineClip[]) => void;
+  /**
+   * Enter layer mode for a scene clip. Audio / unknown ids are no-ops.
+   * Syncs selection to the container clip.
+   */
+  enterLayerMode: (
+    clipId: string,
+    clips: readonly TimelineClip[],
+  ) => void;
+  exitLayerMode: () => void;
   setSelection: (selection: EditorSelection) => void;
   setClipboard: (clipboard: ClipClipboardItem[]) => void;
   clearClipboard: () => void;
@@ -50,6 +66,8 @@ export const useEditorUiSession = create<EditorUiSessionState>((set) => ({
   timelineZoomMode: "fit",
   timelineFitAnchorSeconds: null,
   timelineFitRevision: 0,
+  timelineMode: "track",
+  activeContainerClipId: null,
   selection: selectionNone(),
   clipboard: [],
 
@@ -79,6 +97,27 @@ export const useEditorUiSession = create<EditorUiSessionState>((set) => ({
     }));
   },
 
+  enterLayerMode: (clipId, clips) => {
+    const clip = clips.find((c) => c.id === clipId);
+    if (!clip || !isSceneClip(clip) || !clip.sceneId) return;
+    set({
+      timelineMode: "layer",
+      activeContainerClipId: clipId,
+      selection: selectionClips([clipId]),
+    });
+  },
+
+  exitLayerMode: () => {
+    set((s) => ({
+      timelineMode: "track",
+      activeContainerClipId: null,
+      selection:
+        s.activeContainerClipId != null
+          ? selectionClips([s.activeContainerClipId])
+          : s.selection,
+    }));
+  },
+
   setSelection: (selection) => set({ selection }),
 
   setClipboard: (clipboard) => set({ clipboard }),
@@ -103,6 +142,12 @@ export const useEditorUiSession = create<EditorUiSessionState>((set) => ({
       if (patch.timelineFitRevisionBump) {
         next.timelineFitRevision = s.timelineFitRevision + 1;
       }
+      if (patch.timelineMode !== undefined) {
+        next.timelineMode = patch.timelineMode;
+      }
+      if (patch.activeContainerClipId !== undefined) {
+        next.activeContainerClipId = patch.activeContainerClipId;
+      }
       return next;
     });
   },
@@ -114,6 +159,8 @@ export const useEditorUiSession = create<EditorUiSessionState>((set) => ({
       timelineZoomMode: "fit",
       timelineFitAnchorSeconds: fitAnchorSeconds,
       timelineFitRevision: s.timelineFitRevision + 1,
+      timelineMode: "track",
+      activeContainerClipId: null,
       selection: selectionNone(),
       clipboard: [],
     }));

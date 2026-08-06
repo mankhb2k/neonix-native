@@ -1,4 +1,5 @@
 import type {
+  DocumentPropertyCommand,
   EditorSelection,
   TimelineClip,
   TimelineCommand,
@@ -12,9 +13,10 @@ import {
 } from "react";
 import { ClipStrip } from "../clips/ClipStrip";
 import { TimelineContextMenu } from "../context-menu/TimelineContextMenu";
-import type { BeginGesture } from "../interactions/use-pointer-session";
+import type { BeginGesture } from "@motionvideo/editor-react";
 import { LANE_GAP_PX, type TimelineLaneRow } from "../lanes/timeline-lane-rows";
 import { TIMELINE_PLAYHEAD_GUTTER_PX } from "../timeline-scale";
+import type { TimelineStripFlags } from "../view-model/resolve-timeline-surface";
 import { EmptyTimelineDash } from "./EmptyTimelineDash";
 import { TimelineOverlays } from "./TimelineOverlays";
 import type { MountedLaneRow } from "./use-mounted-lane-rows";
@@ -73,11 +75,20 @@ export type TrackCanvasActions = {
   beginGesture: BeginGesture;
   onSelect: (selection: EditorSelection) => void;
   onExecute: (command: TimelineCommand, label: string) => void;
+  onExecuteProperty: (input: {
+    command: DocumentPropertyCommand;
+    label: string;
+    coalesceKey?: string;
+  }) => void;
   getPlayheadTime: () => number;
   onCopy?: () => void;
   onCut?: () => void;
   onPaste?: () => void;
   clipsForLane: (laneId: string) => TimelineClip[];
+  isLayerMode: boolean;
+  stripFlags: TimelineStripFlags;
+  /** Layer mode mute bands outside the container clip window. */
+  layerWorkWindow?: { startTime: number; endTime: number } | null;
 };
 
 type Props = {
@@ -124,19 +135,38 @@ export const TimelineTrackCanvas = memo(function TimelineTrackCanvas({
     beginGesture,
     onSelect,
     onExecute,
+    onExecuteProperty,
     getPlayheadTime,
     onCopy,
     onCut,
     onPaste,
     clipsForLane,
+    isLayerMode,
+    stripFlags,
+    layerWorkWindow = null,
   } = actions;
+
+  const pps = Math.max(pixelsPerSecond, 0.001);
+  const laneExtentPx = Math.max(canvasWidth, trackViewWidth);
+  const muteLeftPx =
+    layerWorkWindow != null
+      ? Math.max(0, layerWorkWindow.startTime * pps)
+      : 0;
+  const muteRightLeftPx =
+    layerWorkWindow != null
+      ? Math.max(0, layerWorkWindow.endTime * pps)
+      : 0;
+  const muteRightPx =
+    layerWorkWindow != null
+      ? Math.max(0, laneExtentPx - muteRightLeftPx)
+      : 0;
 
   return (
     <div className="relative z-0 flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <TimelineContextMenu
         className="relative z-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         selection={selection}
-        disabled={disabled}
+        disabled={disabled || isLayerMode}
         canPaste={canPaste}
         onCopy={onCopy}
         onCut={onCut}
@@ -157,13 +187,14 @@ export const TimelineTrackCanvas = memo(function TimelineTrackCanvas({
               if (target.closest("[data-clip-id]")) return;
               if (target.closest("button")) return;
               if (target.closest("[data-marquee-ignore]")) return;
-              // Web/CapCut: empty-runway drag → marquee (no Shift required).
               beginMarquee(event);
             }}
           >
             {laneRows.length === 0 ? (
               <p className="p-6 text-[13px] text-[var(--fg-muted)]">
-                No lanes in this project.
+                {isLayerMode
+                  ? "Scene has no layers yet."
+                  : "No lanes in this project."}
               </p>
             ) : (
               <div
@@ -177,7 +208,7 @@ export const TimelineTrackCanvas = memo(function TimelineTrackCanvas({
                   paddingLeft: TIMELINE_PLAYHEAD_GUTTER_PX,
                 }}
               >
-                {timelineEmpty ? (
+                {timelineEmpty && !isLayerMode ? (
                   <>
                     <div style={{ height: topPadding }} aria-hidden />
                     <EmptyTimelineDash
@@ -217,17 +248,41 @@ export const TimelineTrackCanvas = memo(function TimelineTrackCanvas({
                           data-track-lane="true"
                           {...laneDropDomAttrs(lane)}
                         >
+                          {/* Mute ends only on the lane body — keep panel bg between rows. */}
+                          {muteLeftPx > 0 ? (
+                            <div
+                              data-testid="timeline-layer-mute-left"
+                              className="pointer-events-none absolute inset-y-0 left-0 z-[1] bg-[var(--timeline-track-lane-mute)]"
+                              aria-hidden
+                              style={{ width: muteLeftPx }}
+                            />
+                          ) : null}
+                          {muteRightPx > 0 ? (
+                            <div
+                              data-testid="timeline-layer-mute-right"
+                              className="pointer-events-none absolute inset-y-0 z-[1] bg-[var(--timeline-track-lane-mute)]"
+                              aria-hidden
+                              style={{
+                                left: muteRightLeftPx,
+                                width: muteRightPx,
+                              }}
+                            />
+                          ) : null}
                           <ClipStrip
                             clips={visibleClips}
-                            allClips={clips}
+                            allClips={isLayerMode ? visibleClips : clips}
                             lanes={lanes}
                             lane={lane}
+                            laneHeightPx={h}
                             pixelsPerSecond={pixelsPerSecond}
                             selection={selection}
                             disabled={disabled}
+                            trimEnabled={stripFlags.trimEnabled}
+                            layerSession={stripFlags.layerSession}
                             beginGesture={beginGesture}
                             onSelect={onSelect}
                             onExecute={onExecute}
+                            onExecuteProperty={onExecuteProperty}
                           />
                         </div>
                       );

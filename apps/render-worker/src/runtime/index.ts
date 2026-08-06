@@ -42,12 +42,29 @@ export type RenderOptions = {
   concurrency?: number;
   /** Base directory used to resolve safe relative asset URIs. */
   assetBaseDir?: string;
+  /** Shared paint-command canvas path (P6). Env MOTIONVIDEO_PAINT_PATH=1 also enables. */
+  paintPath?: boolean;
+  /** 0..1 frame raster progress (chunk granularity when parallel). */
+  onProgress?: (ratio: number) => void;
 };
 
-function runFrameWorker(input: FrameWorkerInput): Promise<void> {
+function usePaintPath(options: RenderOptions): boolean {
+  if (options.paintPath != null) return options.paintPath;
+  const env = (process.env.MOTIONVIDEO_PAINT_PATH ?? "").toLowerCase();
+  return env === "1" || env === "true" || env === "paint";
+}
+
+function runFrameWorker(
+  input: FrameWorkerInput,
+  onFrame?: () => void,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(FRAME_WORKER_URL, { workerData: input });
-    worker.once("message", (msg: { ok: boolean; error?: string }) => {
+    worker.on("message", (msg: { ok?: boolean; error?: string; type?: string }) => {
+      if (msg.type === "progress") {
+        onFrame?.();
+        return;
+      }
       worker.terminate();
       if (msg.ok) resolve();
       else reject(new Error(msg.error ?? "frame worker failed"));
@@ -75,6 +92,7 @@ export async function renderCompiledProject(
   const outDir =
     options.outDir ?? path.join(REPO_ROOT, "tmp", "frames", compiled.metadata.id);
   const assetBaseDir = path.resolve(options.assetBaseDir ?? REPO_ROOT);
+  const paintPath = usePaintPath(options);
 
   await mkdir(outDir, { recursive: true });
 
@@ -86,13 +104,33 @@ export async function renderCompiledProject(
   );
   const chunks = chunkFramePlan(jobs, concurrency);
 
+  let completedFrames = 0;
+  const total = Math.max(1, jobs.length);
+  const bump = () => {
+    completedFrames += 1;
+    options.onProgress?.(completedFrames / total);
+  };
+
   await Promise.all(
     chunks
       .filter((chunk) => chunk.length > 0)
       .map((chunk) =>
-        runFrameWorker({ compiled, width, height, outDir, assetBaseDir, jobs: chunk }),
+        runFrameWorker(
+          {
+            compiled,
+            width,
+            height,
+            outDir,
+            assetBaseDir,
+            jobs: chunk,
+            paintPath,
+          },
+          bump,
+        ),
       ),
   );
+
+  options.onProgress?.(1);
 
   return {
     projectId: compiled.metadata.id,

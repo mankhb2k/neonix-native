@@ -140,6 +140,10 @@ Mỗi property normative đăng ký `valueKind`, `animatable`, `bindable`, `publ
 
 AI và schema-driven controls chỉ enumerate property có `public: true`; việc một field tồn tại trong Node schema không tự động cho phép AI animate field đó.
 
+Capability public/AI được xuất từ ledger `docs/fixtures/v2/primitives-coverage.json` (gate thật) vào `ai-capability-manifest.json` khi chạy `pnpm validate:v2-fixtures`. `transform.depth`, parallax modifier và Adjustment node chưa ship — ledger `planned-p0` (R4/R5), không quảng cáo `runtimeSupport: "evaluated"`.
+
+Unknown Clip `presetId` không còn silent fallback sang `fade-in`: compiler chỉ expand `COMPILED_PRESET_IDS` và throw `Unknown preset: …`. Cycle extrapolation hỗ trợ `mode: "repeat" | "pingpong"`.
+
 ## List và repeater
 
 Variable list khai báo `itemSchema`. Node template có `repeat.source` dạng `list { variableId, keyPath }` hoặc `count { count, keyPrefix }`; layout là `none`, `linear`, `grid` hoặc `radial`. Binding con có source `context`, ví dụ `item.title`. Compiler clone subtree/binding/clip bằng ID deterministic, áp `timeStagger`, canonicalize timestamp và xóa directive khỏi Runtime IR. Count, list item và grid columns đều có hard limit; renderer không biết Repeater.

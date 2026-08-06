@@ -118,14 +118,14 @@ export {
   setSnappingPolicy,
 } from "@motionvideo/editor-core";
 
-// Interaction sessions stay in web (DOM / pointer machines)
+// Interaction sessions — pointer controller from shared package
 export type {
   PointerPos,
   PointerSessionConfig,
   SessionState,
-} from "@/lib/editor/timeline/sessions/pointer-session-controller";
+} from "@motionvideo/editor-interactions";
 
-export { PointerSessionController } from "@/lib/editor/timeline/sessions/pointer-session-controller";
+export { PointerSessionController } from "@motionvideo/editor-interactions";
 
 export type { MoveSessionState } from "@/lib/editor/timeline/sessions/clip-move-session";
 export {

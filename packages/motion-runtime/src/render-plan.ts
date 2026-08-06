@@ -1,6 +1,7 @@
 import { MOTION_V2_LIMITS } from "@motionvideo/motion-schema";
 import type { EvaluatedNode, RuntimeScene, RuntimeNode } from "./evaluator";
 import type { Bounds2D } from "./spatial";
+import { calculateMotionBlurTimestamps, type MotionBlurSettings } from "./motion-blur";
 
 export type IsolationMode = "pass-through" | "isolate";
 
@@ -21,6 +22,7 @@ export type RenderPass = {
   };
   effects: NonNullable<RuntimeNode["effects"]>;
   isAdjustment: boolean;
+  groupCompositing?: IsolationMode;
 };
 
 export type RenderPlanDiagnostic = {
@@ -34,6 +36,7 @@ export type RenderPlan = {
   passes: RenderPass[];
   totalAllocatedPixels: number;
   diagnostics: RenderPlanDiagnostic[];
+  motionBlur?: MotionBlurSettings & { sampleTimes: number[] };
 };
 
 export function inflateBoundsForEffects(bounds: Bounds2D, effects: NonNullable<RuntimeNode["effects"]>): Bounds2D {
@@ -52,11 +55,14 @@ export function inflateBoundsForEffects(bounds: Bounds2D, effects: NonNullable<R
   };
 }
 
-export function buildRenderPlan(scene: RuntimeScene, evaluatedNodes: EvaluatedNode[]): RenderPlan {
+export function buildRenderPlan(
+  scene: RuntimeScene,
+  evaluatedNodes: EvaluatedNode[],
+  options: { time?: number; fps?: number } = {},
+): RenderPlan {
   const diagnostics: RenderPlanDiagnostic[] = [];
   let totalAllocatedPixels = 0;
 
-  const nodeMap = new Map(evaluatedNodes.map((item) => [item.node.id, item]));
   const sorted = evaluatedNodes.slice().sort((a, b) => (a.node.zIndex ?? 0) - (b.node.zIndex ?? 0));
 
   const passes: RenderPass[] = [];
@@ -68,8 +74,12 @@ export function buildRenderPlan(scene: RuntimeScene, evaluatedNodes: EvaluatedNo
     const effects = node.effects ?? [];
     const inflatedBounds = inflateBoundsForEffects(evaluated.worldBounds, effects);
     const isAdjustment = node.type === "adjustment";
-    const needsOffscreen = Boolean(node.mask) || effects.length > 0 || isAdjustment;
-    const isolation: IsolationMode = needsOffscreen ? "isolate" : "pass-through";
+    const groupCompositingMode =
+      node.type === "group" ? String(node.payload?.compositing?.mode ?? "pass-through") : "pass-through";
+    const needsOffscreen =
+      Boolean(node.mask) || effects.length > 0 || isAdjustment || groupCompositingMode === "isolate";
+    const isolation: IsolationMode =
+      needsOffscreen || groupCompositingMode === "isolate" ? "isolate" : "pass-through";
 
     if (needsOffscreen) {
       const area = Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
@@ -96,13 +106,32 @@ export function buildRenderPlan(scene: RuntimeScene, evaluatedNodes: EvaluatedNo
       mask: node.mask,
       effects,
       isAdjustment,
+      ...(groupCompositingMode === "isolate" || groupCompositingMode === "pass-through"
+        ? { groupCompositing: groupCompositingMode as "pass-through" | "isolate" }
+        : {}),
     });
   }
+
+  const motionBlurConfig = scene.motionBlur;
+  const motionBlur =
+    motionBlurConfig && options.time !== undefined && options.fps !== undefined
+      ? {
+          enabled: motionBlurConfig.enabled,
+          shutterAngle: motionBlurConfig.shutterAngle ?? 180,
+          sampleCount: motionBlurConfig.sampleCount ?? 4,
+          sampleTimes: calculateMotionBlurTimestamps(options.time, options.fps, {
+            enabled: motionBlurConfig.enabled,
+            shutterAngle: motionBlurConfig.shutterAngle ?? 180,
+            sampleCount: motionBlurConfig.sampleCount ?? 4,
+          }),
+        }
+      : undefined;
 
   return {
     sceneId: scene.id,
     passes,
     totalAllocatedPixels,
     diagnostics,
+    ...(motionBlur ? { motionBlur } : {}),
   };
 }

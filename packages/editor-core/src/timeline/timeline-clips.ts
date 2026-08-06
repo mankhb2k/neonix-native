@@ -50,6 +50,7 @@ export {
   findLaneAbove,
   rangesOverlap,
   resolveLaneStartTimeNearest,
+  resolveLayerStackPlacement,
   resolveMainStartTime,
   resolveOccupancyAwarePlacement,
   type OccupancyAwarePlacement,

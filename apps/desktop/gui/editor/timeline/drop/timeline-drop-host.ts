@@ -45,6 +45,15 @@ export type TimelineDropHost = {
     laneHeightPrefix: readonly number[];
     laneContentHeights: readonly number[];
   };
+  /**
+   * When set, library drops add scene nodes (layer mode) with stack-only
+   * occupancy — never side-by-side on the same row.
+   */
+  layerMode?: {
+    sceneId: string;
+    containerStartTime: number;
+    containerDuration: number;
+  };
 };
 
 let host: TimelineDropHost | null = null;

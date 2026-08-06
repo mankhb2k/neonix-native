@@ -47,6 +47,37 @@ describe("Pure Command Runner Engine", () => {
     }
   });
 
+  it("executes add-scene-node into an existing scene (layer mode)", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const doc: TimelineDocument = { project, clips, lanes };
+    const sceneId = project.scenes[0]!.id;
+    const beforeCount = project.scenes[0]!.nodes.length;
+
+    const result = executeTimelineCommand(doc, {
+      type: "add-scene-node",
+      sceneId,
+      draft: {
+        id: "draft.layer",
+        name: "Layer Text",
+        text: "Hello",
+        duration: 2,
+        kind: "text",
+      },
+      timing: { start: 0.5, duration: 1.5 },
+      zIndex: 3,
+    });
+
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const scene = result.document.project.scenes.find((s) => s.id === sceneId)!;
+    expect(scene.nodes.length).toBe(beforeCount + 1);
+    const added = scene.nodes[scene.nodes.length - 1]!;
+    expect(added.zIndex).toBe(3);
+    expect(added.timing).toEqual({ start: 0.5, duration: 1.5 });
+    expect(result.selection?.kind).toBe("node");
+    expect(result.events.some((e) => e.type === "scene-node-added")).toBe(true);
+  });
+
   it("add-clip-draft with shape kind emits a shape node", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };

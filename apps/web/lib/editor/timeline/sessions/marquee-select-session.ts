@@ -1,5 +1,5 @@
 import type { TimelineClip } from "@/lib/editor/model/timeline-types";
-import type { PointerPos } from "@/lib/editor/timeline/sessions/pointer-session-controller";
+import type { PointerPos } from "@motionvideo/editor-interactions";
 
 export type MarqueeBox = {
   left: number;

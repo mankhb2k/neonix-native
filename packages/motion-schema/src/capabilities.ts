@@ -57,6 +57,26 @@ export const MOTION_V2_LIMITS = Object.freeze({
   dashLength: 4_096,
   pathBendAmount: 1,
   parallaxFactor: 8,
+  /** Max rich-text runs per text node. */
+  richTextRuns: 64,
+  /** Max caption tokens per caption track. */
+  captionTokensPerTrack: 4_096,
+  /** Max caption cues after segmentation. */
+  captionCuesPerTrack: 1_024,
+  /** Max caption tracks on the project timeline. */
+  captionTracksPerProject: 32,
+  /** Max beat markers in AudioAnalysis. */
+  audioBeatsPerAsset: 10_000,
+  /** Max energy envelope samples in AudioAnalysis. */
+  audioEnergySamples: 32_768,
+  /** Preset distance (px) for directional entrance/exit. */
+  presetDistance: 2_048,
+  /** Preset overshoot scale factor. */
+  presetOvershoot: 2,
+  /** Highlight padding for rich-text runs. */
+  richTextHighlightPadding: 128,
+  /** Font scale relative multiplier for a run. */
+  richTextFontScale: 4,
 });
 
 export type MotionPropertyValueKind = "number" | "angle" | "vec2" | "color" | "boolean" | "string" | "asset" | "path" | "gradient" | "json";
@@ -75,7 +95,7 @@ export type MotionPropertyCapability = {
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> = Object.freeze({
   "transform.x": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   "transform.y": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.depth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+  "transform.depth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.parallaxFactor, max: MOTION_V2_LIMITS.parallaxFactor },
   "transform.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
   "transform.rotation": { valueKind: "angle", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
@@ -118,7 +138,6 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
     "payload.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
     "payload.color": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
   },
-  adjustment: {},
   svg: {
     "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
     "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
@@ -133,9 +152,15 @@ const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPro
   },
   camera: {
     "payload.zoom": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", minExclusive: 0, max: MOTION_V2_LIMITS.transformScale },
+    "payload.parallaxStrength": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.parallaxFactor },
   },
   bone: {
     "payload.length": { valueKind: "number", animatable: false, bindable: true, public: false, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+  },
+  adjustment: {
+    "payload.brightness": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -1, max: 1 },
+    "payload.contrast": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 4 },
+    "payload.saturation": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 4 },
   },
 });
 
@@ -197,6 +222,11 @@ export function motionPropertyCapabilities(nodeType: string, motionPathModifierI
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
     ...motionPathModifierIds.map((id) => [`modifiers.${id}.progress`, motionPropertyCapability(nodeType, `modifiers.${id}.progress`)!] as const),
   ].map(([property, capability]) => ({ property, ...capability }));
+}
+
+/** Public AI/control surface only — callers must not expose non-public capabilities. */
+export function publicMotionPropertyCapabilities(nodeType: string, motionPathModifierIds: readonly string[] = []): MotionPropertyCapabilityEntry[] {
+  return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter((capability) => capability.public);
 }
 
 export function motionLiteralMatchesValueKind(kind: MotionPropertyValueKind, value: unknown): boolean {

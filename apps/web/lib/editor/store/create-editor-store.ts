@@ -9,6 +9,7 @@ import { createProjectLifecycleActions } from "@/lib/editor/store/actions/projec
 import { createSelectionActions } from "@/lib/editor/store/actions/selection-actions";
 import { createUiActions } from "@/lib/editor/store/actions/ui-actions";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
+import { mapNode } from "@/lib/editor/store/internal/scene-utils";
 import type { EditorStore } from "@/lib/editor/store/types";
 import { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
 import { documentFromStoreState } from "@/lib/editor/timeline/document";
@@ -19,9 +20,22 @@ import {
   createHistoryState,
   pushHistory,
   redoHistory,
+  replaceOrPushHistory,
   undoHistory,
 } from "@/lib/editor/timeline/history/history-manager";
 import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
+import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
+import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
+import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
+import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
+import {
+  isPropertyLocked,
+  markUserModified,
+  toggleElementLock,
+  togglePropertyLock,
+} from "@/lib/editor/authoring/web-project-envelope";
+import { executePropertyCommand } from "@motionvideo/editor-core";
+import { applyAiProjectToStore } from "@/lib/editor/ai/apply-ai-project";
 
 export function createEditorStore(initialState?: Partial<EditorStore>) {
   let historyState = createHistoryState();
@@ -64,6 +78,21 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     clearHistory: () => {
       historyState = clearHistory();
       set({ canUndo: false, canRedo: false });
+    },
+    applyAiProject: (project, meta) => {
+      applyAiProjectToStore(
+        set,
+        get,
+        (entry) => {
+          historyState = pushHistory(historyState, entry);
+        },
+        project,
+        meta,
+      );
+      set({
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
     },
     executeTimelineCommand: (command) => {
       const state = get();
@@ -136,6 +165,187 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
     markDocumentSaved: () => {
       const { dirtyRevision } = get();
       set({ savedRevision: dirtyRevision });
+    },
+    commitNodeTransform: (sceneId, nodeId, patch) => {
+      const state = get();
+      if (!state.project) return;
+      const lockedPaths = Object.keys(patch).map((k) => `transform.${k}`);
+      if (
+        lockedPaths.some((path) =>
+          isPropertyLocked(state.envelope, sceneId, nodeId, path),
+        )
+      ) {
+        return;
+      }
+      const beforeDoc = documentFromStoreState(state);
+      if (!beforeDoc) return;
+
+      const nextProject = mapNode(state.project, sceneId, nodeId, (node) => ({
+        ...node,
+        transform: {
+          ...node.transform,
+          x: patch.x ?? node.transform.x,
+          y: patch.y ?? node.transform.y,
+          width: patch.width ?? node.transform.width,
+          height: patch.height ?? node.transform.height,
+          rotation: patch.rotation ?? node.transform.rotation,
+        },
+      }));
+
+      const envelope = state.envelope
+        ? markUserModified(state.envelope, sceneId, nodeId, lockedPaths)
+        : state.envelope;
+
+      set({
+        project: nextProject,
+        envelope,
+        dirtyRevision: state.dirtyRevision + 1,
+      });
+
+      const afterDoc = documentFromStoreState(get());
+      if (!afterDoc) return;
+
+      const entry: HistoryEntry = {
+        id: `hist_${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        label: "set-node-transform",
+        before: beforeDoc,
+        after: afterDoc,
+        beforeSelection: state.selection,
+        afterSelection: state.selection,
+      };
+      historyState = pushHistory(historyState, entry);
+      set({
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
+    },
+    setElementLocked: (sceneId, nodeId, locked) => {
+      const state = get();
+      if (!state.envelope) return;
+      set({
+        envelope: toggleElementLock(state.envelope, sceneId, nodeId, locked),
+        dirtyRevision: state.dirtyRevision + 1,
+      });
+    },
+    setPropertyLocked: (sceneId, nodeId, propertyPath, locked) => {
+      const state = get();
+      if (!state.envelope) return;
+      set({
+        envelope: togglePropertyLock(
+          state.envelope,
+          sceneId,
+          nodeId,
+          propertyPath,
+          locked,
+        ),
+        dirtyRevision: state.dirtyRevision + 1,
+      });
+    },
+    dispatchPropertyCommand: (command, options) => {
+      const state = get();
+      let project = state.project;
+      if (!project) return;
+
+      if (project.scenes.length === 0) {
+        project = createFacebookHistoryDemoProject();
+        const { lanes, clips } = sceneOrderToTimelineClips(project);
+        set({
+          project,
+          timelineLanes: lanes,
+          timelineClips: clips,
+          envelope: state.envelope ?? {
+            id: project.metadata.id,
+            revision: 1,
+            authoring: { elementMeta: {} },
+          },
+        });
+        usePlaybackClock.getState().reset({
+          duration: clipsContentEndSeconds(clips),
+          currentTime: 0,
+        });
+      }
+
+      if (
+        command.type === "set-node-transform" ||
+        command.type === "set-node-style" ||
+        command.type === "set-node-text" ||
+        command.type === "set-node-metadata"
+      ) {
+        for (const target of command.targets) {
+          const paths =
+            command.type === "set-node-transform"
+              ? Object.keys(command.patch).map((k) => `transform.${k}`)
+              : command.type === "set-node-style"
+                ? Object.keys(command.patch).map((k) => `style.${k}`)
+                : command.type === "set-node-text"
+                  ? Object.keys(command.patch).map((k) => `text.${k}`)
+                  : ["metadata"];
+          if (
+            paths.some((path) =>
+              isPropertyLocked(
+                get().envelope,
+                target.sceneId,
+                target.nodeId,
+                path,
+              ),
+            )
+          ) {
+            return;
+          }
+        }
+      }
+
+      const doc = documentFromStoreState(get());
+      if (!doc?.project) return;
+      const beforeDoc = doc;
+      const result = executePropertyCommand(doc, command);
+      if (result.status !== "applied") return;
+
+      let envelope = get().envelope;
+      if (
+        envelope &&
+        (command.type === "set-node-transform" ||
+          command.type === "set-node-style" ||
+          command.type === "set-node-text")
+      ) {
+        for (const target of command.targets) {
+          const paths =
+            command.type === "set-node-transform"
+              ? Object.keys(command.patch).map((k) => `transform.${k}`)
+              : command.type === "set-node-style"
+                ? Object.keys(command.patch).map((k) => `style.${k}`)
+                : Object.keys(command.patch).map((k) => `text.${k}`);
+          envelope = markUserModified(
+            envelope,
+            target.sceneId,
+            target.nodeId,
+            paths,
+          );
+        }
+      }
+
+      const afterDoc = result.document;
+      const entry: HistoryEntry = {
+        id: `hist_${Math.random().toString(36).slice(2, 9)}`,
+        timestamp: Date.now(),
+        label: command.type,
+        before: beforeDoc,
+        after: afterDoc,
+        beforeSelection: state.selection,
+        afterSelection: state.selection,
+        coalesceKey: options?.coalesceKey,
+      };
+      historyState = replaceOrPushHistory(historyState, entry, {
+        coalesceKey: options?.coalesceKey,
+      });
+      set({
+        project: afterDoc.project,
+        envelope,
+        dirtyRevision: state.dirtyRevision + 1,
+        canUndo: canUndo(historyState),
+        canRedo: canRedo(historyState),
+      });
     },
     ...createUiActions(set, get),
     ...createSelectionActions(set, get),

@@ -1,11 +1,17 @@
 /**
  * Imperative stage renderer port — React owns mount/revision; ticks paint DOM.
  * G2: compile + lane index once per setDocument; paintFrame diffs keyed layer/node DOM.
+ *
+ * Shape aligned with Web `StageRendererPort` and
+ * `@motionvideo/motion-runtime` StageRendererPortShape.
  */
 
 import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { quantizeTimeToFrame } from "@motionvideo/motion-runtime";
+import {
+  quantizeTimeToFrame,
+  type StageRendererPortShape,
+} from "@motionvideo/motion-runtime";
 import {
   buildVisualLaneIndex,
   composeAtTime,
@@ -20,16 +26,12 @@ import {
 } from "../preview/preview-evaluate";
 import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-schema";
 
-export type StageRendererPort = {
+export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {
     project: MotionProject;
     clips: TimelineClip[];
     lanes: TimelineLane[];
   }): void;
-  setScale(scale: number): void;
-  setBackground(color: string): void;
-  paintFrame(frameIndex: number): void;
-  dispose(): void;
 };
 
 function nodeDomKey(clipId: string, nodeId: string): string {
@@ -233,6 +235,9 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       applyCanvasChrome();
     },
     paintFrame,
+    getLastEvaluatedFrame() {
+      return null;
+    },
     dispose() {
       clearDomCaches();
       canvas.remove();
