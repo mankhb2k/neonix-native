@@ -8,6 +8,14 @@ export {
 } from "./common";
 
 export {
+  SourceRefSchema,
+  SourceRefKindSchema,
+  sourceRefKey,
+  type SourceRef,
+  type SourceRefKind,
+} from "./source-ref";
+
+export {
   JsonValueSchema,
   VariableReferenceSchema,
   ResolvableValueSchema,

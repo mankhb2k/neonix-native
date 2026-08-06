@@ -57,6 +57,26 @@ export const MOTION_V2_LIMITS = Object.freeze({
   dashLength: 4_096,
   pathBendAmount: 1,
   parallaxFactor: 8,
+  /** Max rich-text runs per text node. */
+  richTextRuns: 64,
+  /** Max caption tokens per caption track. */
+  captionTokensPerTrack: 4_096,
+  /** Max caption cues after segmentation. */
+  captionCuesPerTrack: 1_024,
+  /** Max caption tracks on the project timeline. */
+  captionTracksPerProject: 32,
+  /** Max beat markers in AudioAnalysis. */
+  audioBeatsPerAsset: 10_000,
+  /** Max energy envelope samples in AudioAnalysis. */
+  audioEnergySamples: 32_768,
+  /** Preset distance (px) for directional entrance/exit. */
+  presetDistance: 2_048,
+  /** Preset overshoot scale factor. */
+  presetOvershoot: 2,
+  /** Highlight padding for rich-text runs. */
+  richTextHighlightPadding: 128,
+  /** Font scale relative multiplier for a run. */
+  richTextFontScale: 4,
 });
 
 export type MotionPropertyValueKind = "number" | "angle" | "vec2" | "color" | "boolean" | "string" | "asset" | "path" | "gradient" | "json";
