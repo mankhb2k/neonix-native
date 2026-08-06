@@ -11,15 +11,16 @@ import {
   type RuntimeEffect,
 } from "@motionvideo/motion-runtime";
 import {
-  Assets,
   BlurFilter,
   Container,
   FillGradient,
   Graphics,
+  Matrix,
   Sprite,
   Text,
   Texture,
 } from "pixi.js";
+import { createPixiAssetStore, type PixiAssetStore } from "./PixiAssetStore";
 
 type CachedObject = {
   kind: string;
@@ -32,11 +33,26 @@ export type PixiFramePainterOptions = {
   onBackground?: (color: string | undefined) => void;
   /** Fallback background when beginFrame omits one. */
   getBackground?: () => string;
+  /** Observes unsupported paint ops (preview diagnostic overlay). */
+  onUnsupported?: (info: {
+    key: string;
+    nodeId: string;
+    nodeType: string;
+    message: string;
+  }) => void;
+  /** Optional injected asset store (tests / shared host cache). */
+  assetStore?: PixiAssetStore;
 };
 
 export type PixiFramePainter = EvaluatedFramePainter & {
   paintCommands(buffer: PaintCommandBuffer): void;
   getLiveKeys(): readonly string[];
+  getUnsupported(): readonly {
+    key: string;
+    nodeId: string;
+    nodeType: string;
+    message: string;
+  }[];
   clear(): void;
   dispose(): void;
 };
@@ -48,8 +64,8 @@ function hexToNumber(color: string | undefined, fallback = 0xffffff): number {
   return Number.parseInt(m[1]!, 16);
 }
 
-/** Apply affine as translate/rotate/scale (PR-4 replaces with full matrix). */
-export function applyMatrixDecomposed(
+/** Apply full affine via Pixi Matrix + setFromMatrix (preserves skew). */
+export function applyAffineMatrix(
   display: Container | Text | Graphics | Sprite,
   matrix: { a: number; b: number; c: number; d: number; e: number; f: number },
   alpha: number,
@@ -57,12 +73,8 @@ export function applyMatrixDecomposed(
   zIndex: number,
   blendMode?: "normal" | "multiply" | "screen" | "add",
 ): void {
-  display.position.set(matrix.e, matrix.f);
-  display.rotation = Math.atan2(matrix.b, matrix.a);
-  display.scale.set(
-    Math.hypot(matrix.a, matrix.b) || 1,
-    Math.hypot(matrix.c, matrix.d) || 1,
-  );
+  const m = new Matrix(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+  display.setFromMatrix(m);
   display.alpha = alpha;
   display.visible = visible;
   display.zIndex = zIndex;
@@ -71,6 +83,9 @@ export function applyMatrixDecomposed(
   else if (blendMode === "add") display.blendMode = "add";
   else display.blendMode = "normal";
 }
+
+/** @deprecated Prefer {@link applyAffineMatrix}. */
+export const applyMatrixDecomposed = applyAffineMatrix;
 
 function paintFillStyle(
   fill: string | undefined,
@@ -179,9 +194,15 @@ export function createPixiFramePainter(
 ): PixiFramePainter {
   const { root } = options;
   const cache = new Map<string, CachedObject>();
-  const textureCache = new Map<string, Texture>();
+  const assetStore = options.assetStore ?? createPixiAssetStore();
   let lastPaint: PaintCommandBuffer | null = null;
   let lastLiveKeys: string[] = [];
+  let unsupported: Array<{
+    key: string;
+    nodeId: string;
+    nodeType: string;
+    message: string;
+  }> = [];
 
   const clear = () => {
     for (const entry of cache.values()) {
@@ -190,6 +211,7 @@ export function createPixiFramePainter(
     cache.clear();
     root.removeChildren();
     lastLiveKeys = [];
+    unsupported = [];
   };
 
   const ensureObject = <T extends Container | Text | Graphics | Sprite>(
@@ -214,6 +236,7 @@ export function createPixiFramePainter(
   const paintCommands = (buffer: PaintCommandBuffer) => {
     lastPaint = buffer;
     const live = new Set<string>();
+    unsupported = [];
     let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null =
       null;
 
@@ -236,7 +259,7 @@ export function createPixiFramePainter(
           () => new Container({ sortableChildren: true }),
         );
         if (pendingTransform && pendingTransform.key === cmd.key) {
-          applyMatrixDecomposed(
+          applyAffineMatrix(
             c,
             pendingTransform.matrix,
             pendingTransform.alpha,
@@ -250,6 +273,14 @@ export function createPixiFramePainter(
       }
       if (cmd.op === "unsupported") {
         live.add(cmd.key);
+        const info = {
+          key: cmd.key,
+          nodeId: cmd.nodeId,
+          nodeType: cmd.nodeType,
+          message: cmd.message,
+        };
+        unsupported.push(info);
+        options.onUnsupported?.(info);
         continue;
       }
 
@@ -277,7 +308,7 @@ export function createPixiFramePainter(
         text.style.fontSize = cmd.fontSize;
         text.style.fill = cmd.fill;
         if (xf) {
-          applyMatrixDecomposed(
+          applyAffineMatrix(
             text,
             xf.matrix,
             xf.alpha,
@@ -308,7 +339,7 @@ export function createPixiFramePainter(
             : hexToNumber(cmd.fill);
         g.fill(fillStyle);
         if (xf) {
-          applyMatrixDecomposed(
+          applyAffineMatrix(
             g,
             xf.matrix,
             xf.alpha,
@@ -355,7 +386,7 @@ export function createPixiFramePainter(
           });
         }
         if (xf) {
-          applyMatrixDecomposed(
+          applyAffineMatrix(
             g,
             xf.matrix,
             xf.alpha,
@@ -370,17 +401,15 @@ export function createPixiFramePainter(
 
       if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
         let texture = Texture.WHITE;
-        if (cmd.uri && textureCache.has(cmd.uri)) {
-          texture = textureCache.get(cmd.uri)!;
-        } else if (cmd.uri && cmd.op === "drawImage") {
-          void Assets.load(cmd.uri)
-            .then((loaded) => {
-              textureCache.set(cmd.uri!, loaded as Texture);
+        if (cmd.uri) {
+          const cached = assetStore.get(cmd.uri);
+          if (cached) {
+            texture = cached;
+          } else if (cmd.op === "drawImage") {
+            void assetStore.load(cmd.uri, () => {
               if (lastPaint) paintCommands(lastPaint);
-            })
-            .catch(() => {
-              /* placeholder WHITE */
             });
+          }
         }
         const sprite = ensureObject(
           cmd.key,
@@ -391,7 +420,7 @@ export function createPixiFramePainter(
         sprite.width = cmd.width;
         sprite.height = cmd.height;
         if (xf) {
-          applyMatrixDecomposed(
+          applyAffineMatrix(
             sprite,
             xf.matrix,
             xf.alpha,
@@ -419,10 +448,11 @@ export function createPixiFramePainter(
     },
     paintCommands,
     getLiveKeys: () => lastLiveKeys,
+    getUnsupported: () => unsupported,
     clear,
     dispose() {
       clear();
-      textureCache.clear();
+      assetStore.dispose();
       lastPaint = null;
     },
   };

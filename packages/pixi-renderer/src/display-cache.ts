@@ -7,11 +7,15 @@ import type { PaintCommand, PaintCommandBuffer } from "@motionvideo/motion-runti
 export type CachedDisplayDesc = {
   key: string;
   kind: "group" | "text" | "graphics" | "sprite" | "path" | "video" | "unsupported";
+  /** Full affine components (a b c d e f) — no hypot-only decompose. */
+  matrix: { a: number; b: number; c: number; d: number; e: number; f: number };
   x: number;
   y: number;
   rotation: number;
   scaleX: number;
   scaleY: number;
+  skewX: number;
+  skewY: number;
   alpha: number;
   visible: boolean;
   zIndex: number;
@@ -28,15 +32,28 @@ export type DisplayCacheStats = {
   removed: number;
 };
 
+/** Decompose affine including skew (matches Pixi Matrix.decompose intent). */
 function decompose(
   matrix: { a: number; b: number; c: number; d: number; e: number; f: number },
 ) {
+  const a = matrix.a;
+  const b = matrix.b;
+  const c = matrix.c;
+  const d = matrix.d;
+  const rotation = Math.atan2(b, a);
+  const denom = a * a + b * b;
+  const scaleX = Math.sqrt(denom) || 1;
+  const scaleY = (a * d - c * b) / scaleX;
+  const skewX = Math.atan2(a * c + b * d, denom);
   return {
+    matrix: { ...matrix },
     x: matrix.e,
     y: matrix.f,
-    rotation: Math.atan2(matrix.b, matrix.a),
-    scaleX: Math.hypot(matrix.a, matrix.b) || 1,
-    scaleY: Math.hypot(matrix.c, matrix.d) || 1,
+    rotation,
+    scaleX,
+    scaleY,
+    skewX,
+    skewY: 0,
   };
 }
 
@@ -71,13 +88,27 @@ export function syncPaintBufferToCache(
 
     const xf = pending?.key === cmd.key ? pending : null;
     if (pending?.key === cmd.key) pending = null;
-    const decomp = xf ? decompose(xf.matrix) : { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1 };
+    const decomp = xf
+      ? decompose(xf.matrix)
+      : {
+          matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          x: 0,
+          y: 0,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          skewX: 0,
+          skewY: 0,
+        };
     const base = {
+      matrix: decomp.matrix,
       x: decomp.x,
       y: decomp.y,
       rotation: decomp.rotation,
       scaleX: decomp.scaleX,
       scaleY: decomp.scaleY,
+      skewX: decomp.skewX,
+      skewY: decomp.skewY,
       alpha: xf?.alpha ?? 1,
       visible: xf?.visible ?? true,
       zIndex: xf?.zIndex ?? 0,

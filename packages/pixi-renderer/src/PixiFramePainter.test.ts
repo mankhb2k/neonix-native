@@ -75,4 +75,38 @@ describe("PixiFramePainter", () => {
     expect(root.children.length).toBe(0);
     painter.dispose();
   });
+
+  it("surfaces unsupported diagnostics", () => {
+    const root = new Container({ sortableChildren: true });
+    const seen: string[] = [];
+    const painter = createPixiFramePainter({
+      root,
+      onUnsupported: (info) => seen.push(info.key),
+    });
+    const buffer = buildPaintCommandBuffer({
+      ...snapshot,
+      items: [
+        {
+          key: "s1:bad",
+          sceneId: "s1",
+          nodeId: "bad",
+          nodeType: "mesh",
+          worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+          worldBounds: { x: 0, y: 0, width: 1, height: 1 },
+          worldOpacity: 1,
+          visible: true,
+          selectable: false,
+          locked: false,
+          renderOrder: 0,
+          payload: { kind: "unknown", nodeType: "mesh" },
+          depth: 0,
+          projectedOffset: { x: 0, y: 0 },
+        },
+      ],
+    });
+    painter.paintCommands(buffer);
+    expect(painter.getUnsupported()).toHaveLength(1);
+    expect(seen).toEqual(["s1:bad"]);
+    painter.dispose();
+  });
 });

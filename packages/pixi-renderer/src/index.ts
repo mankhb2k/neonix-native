@@ -130,6 +130,11 @@ export {
   type PixiFramePainterOptions,
 } from "./PixiFramePainter";
 export {
+  createPixiAssetStore,
+  type PixiAssetStore,
+  type PixiAssetStoreOptions,
+} from "./PixiAssetStore";
+export {
   syncPaintBufferToCache,
   type CachedDisplayDesc,
   type DisplayCacheStats,
