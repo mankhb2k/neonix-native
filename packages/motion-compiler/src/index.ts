@@ -8,6 +8,7 @@ import {
   type NormalizedMotionProjectV2,
 } from "@motionvideo/motion-schema";
 import { applyFitText, applyLayoutConstraints } from "./layout-solver";
+import { expandMotionPreset } from "./preset-registry";
 
 type RuntimeTrack = NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
 type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
@@ -90,7 +91,10 @@ function scheduleTimes(clips: MotionClip[], variables: Map<string, unknown> = ne
     visiting.add(clip.id);
     let at: number;
     if (clip.schedule.kind === "absolute") at = clip.schedule.at;
-    else {
+    else if (clip.schedule.kind === "scene-end") {
+      const duration = sceneDuration ?? 0;
+      at = Math.max(0, duration - clip.duration + clip.schedule.offset);
+    } else {
       const dependency = byId.get(clip.schedule.clipId);
       if (!dependency) throw new Error(`Unknown schedule clip: ${clip.schedule.clipId}`);
       const dependencyStart = resolve(dependency);
@@ -119,6 +123,7 @@ function canonicalTime(value: number): number {
 export {
   COMPILED_PRESET_IDS,
   isCompiledPreset,
+  expandMotionPreset,
   type CompiledPresetId,
 } from "./presets";
 export {
@@ -127,33 +132,39 @@ export {
   type PresetValidationResult,
 } from "./validate-presets";
 
-function presetTracks(node: RuntimeNode, preset: string, start: number, end: number): RuntimeTrack[] {
-  const x = node.transform.x;
-  const y = node.transform.y;
-  const opacity = (from = 0, to = node.transform.opacity): RuntimeTrack => ({
-    targetId: node.id,
-    property: "transform.opacity",
-    keys: [{ t: start, v: from }, { t: end, v: to, easing: "easeOut" }],
-  });
-  switch (preset) {
-    case "fade-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 48 }, { t: end, v: y, easing: "easeOut" }] }];
-    case "fade-down": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y - 48 }, { t: end, v: y, easing: "easeOut" }] }];
-    case "fade-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 48 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "fade-right": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x - 48 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "slide-up": return [opacity(), { targetId: node.id, property: "transform.y", keys: [{ t: start, v: y + 120 }, { t: end, v: y, easing: "easeOut" }] }];
-    case "slide-left": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x + 120 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "slide-right": return [opacity(), { targetId: node.id, property: "transform.x", keys: [{ t: start, v: x - 120 }, { t: end, v: x, easing: "easeOut" }] }];
-    case "scale-in":
-    case "zoom-in":
-    case "pop": return [opacity(),
-      { targetId: node.id, property: "transform.scaleX", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleX, easing: preset === "pop" ? "spring" : "easeOut" }] },
-      { targetId: node.id, property: "transform.scaleY", keys: [{ t: start, v: 0.65 }, { t: end, v: node.transform.scaleY, easing: preset === "pop" ? "spring" : "easeOut" }] },
-    ];
-    case "counter": return [{ targetId: node.id, property: "payload.counterProgress", keys: [{ t: start, v: 0 }, { t: end, v: 1, easing: "easeOut" }] }];
-    case "fade-in": return [opacity()];
-    default:
-      throw new Error(`Unknown preset: ${preset}`);
+function literalPresetParams(
+  params: Record<string, unknown> | undefined,
+  variables: Map<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!params) return undefined;
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(params)) {
+    out[key] = resolveValue(value, variables);
   }
+  return out;
+}
+
+function presetTracks(
+  node: RuntimeNode,
+  preset: string,
+  start: number,
+  end: number,
+  params?: Record<string, unknown>,
+): RuntimeTrack[] {
+  return expandMotionPreset({
+    presetId: preset,
+    nodeId: node.id,
+    start,
+    end,
+    transform: {
+      x: node.transform.x,
+      y: node.transform.y,
+      opacity: node.transform.opacity,
+      scaleX: node.transform.scaleX,
+      scaleY: node.transform.scaleY,
+    },
+    params,
+  }) as RuntimeTrack[];
 }
 
 function expandPlaybackTrack(
@@ -229,7 +240,13 @@ function compileClips(
     if (!clip.targetId) throw new Error(`Preset clip ${clip.id} requires targetId`);
     const node = nodeById.get(clip.targetId);
     if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
-    return presetTracks(node, clip.source.presetId, 0, clip.duration)
+    return presetTracks(
+      node,
+      clip.source.presetId,
+      0,
+      clip.duration,
+      literalPresetParams(clip.source.params as Record<string, unknown> | undefined, variables),
+    )
       .map((track) => expandPlaybackTrack(track, clip, start, sceneDuration, variables));
   });
   const merged = new Map<string, RuntimeTrack>();
@@ -259,9 +276,13 @@ function expandComponents(
   const actionInvocationIds = new Set(clips.filter((clip) => clip.source.kind === "component-action").map((clip) => clip.id));
   const outputClips = clips
     .filter((clip) => clip.source.kind !== "component-action")
-    .map((clip) => clip.schedule.kind !== "absolute" && actionInvocationIds.has(clip.schedule.clipId)
-      ? { ...clone(clip), schedule: { kind: "absolute" as const, at: sceneStarts.get(clip.id) ?? 0 } }
-      : clone(clip));
+    .map((clip) =>
+      clip.schedule.kind !== "absolute" &&
+      clip.schedule.kind !== "scene-end" &&
+      actionInvocationIds.has(clip.schedule.clipId)
+        ? { ...clone(clip), schedule: { kind: "absolute" as const, at: sceneStarts.get(clip.id) ?? 0 } }
+        : clone(clip),
+    );
   const componentVariables = new Map<string, unknown>();
   for (const node of nodes) {
     if (node.type !== "component") {
@@ -399,9 +420,15 @@ function expandComponents(
           ...clone(resolved),
           id: `${node.id}::${resolved.id}${suffix}`,
           targetId: target.node?.id,
-          schedule: resolved.schedule.kind === "absolute"
-            ? { ...resolved.schedule, at: canonicalTime(resolved.schedule.at + stagger) }
-            : { ...resolved.schedule, clipId: `${node.id}::${resolved.schedule.clipId}${suffix}` },
+          schedule:
+            resolved.schedule.kind === "absolute"
+              ? { ...resolved.schedule, at: canonicalTime(resolved.schedule.at + stagger) }
+              : resolved.schedule.kind === "scene-end"
+                ? { ...resolved.schedule }
+                : {
+                    ...resolved.schedule,
+                    clipId: `${node.id}::${resolved.schedule.clipId}${suffix}`,
+                  },
           source: resolved.source.kind === "tracks"
             ? { ...clone(resolved.source), tracks: resolved.source.tracks.map((track) => {
                 const matching = targets.get(track.targetId)?.find((candidate) => candidate.repeatKey === target.repeatKey) ?? targets.get(track.targetId)?.[0];
@@ -478,7 +505,16 @@ function expandComponents(
           : (() => {
               const target = actionClip.targetId ? targets.get(actionClip.targetId)?.[0]?.node : undefined;
               if (!target) throw new Error(`Preset Component Action clip requires target: ${key}/${action.id}/${actionClip.id}`);
-              return presetTracks(target, actionClip.source.presetId, 0, actionClip.duration);
+              return presetTracks(
+                target,
+                actionClip.source.presetId,
+                0,
+                actionClip.duration,
+                literalPresetParams(
+                  actionClip.source.params as Record<string, unknown> | undefined,
+                  actionValues,
+                ),
+              );
             })();
         for (const track of baseTracks) {
           cycleTracks.push(expandPlaybackTrack(track as RuntimeTrack, { ...actionClip, playback: { ...actionClip.playback, rate: innerRate } }, localStart, action.duration, actionValues));

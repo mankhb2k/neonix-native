@@ -7,6 +7,9 @@ export const MOTION_RECIPE_IDS = [
   "wiggle",
   "float",
   "pulse",
+  "breathing",
+  "drift",
+  "shimmer",
   "follow",
   "counter",
   "stagger",
@@ -19,6 +22,14 @@ export function isMotionRecipe(id: string): id is MotionRecipeId {
   return (MOTION_RECIPE_IDS as readonly string[]).includes(id);
 }
 
+/** Typed ambient recipe params (Phase 1). Prefer these over free-form speed strings. */
+export type AmbientRecipeParams = {
+  frequencyHz?: number;
+  intensity?: number;
+  phase?: number;
+  seed?: number;
+};
+
 export type RecipeBakeInput = {
   recipeId: MotionRecipeId;
   sceneId: string;
@@ -26,6 +37,8 @@ export type RecipeBakeInput = {
   duration: number;
   seed?: number;
   intensity?: number;
+  frequencyHz?: number;
+  phase?: number;
   /** For stagger: sibling node ids in order. */
   staggerNodeIds?: string[];
   /** For follow: source node to link from. */
@@ -45,6 +58,8 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
   const intensity = input.intensity ?? 1;
   const seed = input.seed ?? 1;
   const end = Math.max(0.01, input.duration);
+  const frequencyHz = input.frequencyHz;
+  const phase = input.phase ?? 0;
 
   switch (input.recipeId) {
     case "wiggle":
@@ -55,7 +70,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             type: "noise",
             targetNodeId: input.targetNodeId,
             targetProperty: "transform.rotation",
-            frequency: 3,
+            frequency: frequencyHz ?? 3,
             amplitude: 8 * intensity,
             seed,
           },
@@ -70,9 +85,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             type: "oscillator",
             targetNodeId: input.targetNodeId,
             targetProperty: "transform.y",
-            frequency: 0.6,
+            frequency: frequencyHz ?? 0.6,
             amplitude: 24 * intensity,
-            phase: 0,
+            phase,
             waveform: "sine",
           },
         ],
@@ -86,8 +101,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             type: "oscillator",
             targetNodeId: input.targetNodeId,
             targetProperty: "transform.scaleX",
-            frequency: 1.2,
+            frequency: frequencyHz ?? 1.2,
             amplitude: 0.08 * intensity,
+            phase,
             waveform: "sine",
           },
         ],
@@ -101,6 +117,54 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             ],
           },
         ],
+      };
+    case "breathing":
+      return {
+        drivers: [
+          {
+            id: `drv.${input.targetNodeId}.breathing`,
+            type: "oscillator",
+            targetNodeId: input.targetNodeId,
+            targetProperty: "transform.scaleX",
+            frequency: frequencyHz ?? 0.35,
+            amplitude: 0.04 * intensity,
+            phase,
+            waveform: "sine",
+          },
+        ],
+        tracks: [],
+      };
+    case "drift":
+      return {
+        drivers: [
+          {
+            id: `drv.${input.targetNodeId}.drift`,
+            type: "oscillator",
+            targetNodeId: input.targetNodeId,
+            targetProperty: "transform.x",
+            frequency: frequencyHz ?? 0.2,
+            amplitude: 16 * intensity,
+            phase,
+            waveform: "sine",
+          },
+        ],
+        tracks: [],
+      };
+    case "shimmer":
+      return {
+        drivers: [
+          {
+            id: `drv.${input.targetNodeId}.shimmer`,
+            type: "oscillator",
+            targetNodeId: input.targetNodeId,
+            targetProperty: "transform.opacity",
+            frequency: frequencyHz ?? 2.5,
+            amplitude: 0.12 * intensity,
+            phase,
+            waveform: "sine",
+          },
+        ],
+        tracks: [],
       };
     case "follow": {
       if (!input.sourceNodeId) throw new Error("follow recipe requires sourceNodeId");
@@ -169,7 +233,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             type: "noise",
             targetNodeId: input.targetNodeId,
             targetProperty: "transform.x",
-            frequency: 8,
+            frequency: frequencyHz ?? 8,
             amplitude: 12 * intensity,
             seed,
           },
@@ -178,7 +242,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             type: "noise",
             targetNodeId: input.targetNodeId,
             targetProperty: "transform.y",
-            frequency: 8,
+            frequency: frequencyHz ?? 8,
             amplitude: 10 * intensity,
             seed: seed + 17,
           },

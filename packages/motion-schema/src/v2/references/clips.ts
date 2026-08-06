@@ -8,7 +8,10 @@ import { duplicates } from "./helpers";
 import { validatePropertyPath, validateVariableCapabilityValue } from "./property-path";
 import type { ReferenceIssue } from "./types";
 
-export function clipScheduleStarts(clips: Array<MotionClip>): Map<string, number> {
+export function clipScheduleStarts(
+  clips: Array<MotionClip>,
+  sceneDuration = 0,
+): Map<string, number> {
   const byId = new Map(clips.map((clip) => [clip.id, clip]));
   const starts = new Map<string, number>();
   const visiting = new Set<string>();
@@ -19,10 +22,17 @@ export function clipScheduleStarts(clips: Array<MotionClip>): Map<string, number
     visiting.add(clip.id);
     let start: number | undefined;
     if (clip.schedule.kind === "absolute") start = clip.schedule.at;
-    else {
+    else if (clip.schedule.kind === "scene-end") {
+      start = Math.max(0, sceneDuration - clip.duration + clip.schedule.offset);
+    } else {
       const dependency = byId.get(clip.schedule.clipId);
       const dependencyStart = dependency ? resolve(dependency) : undefined;
-      if (dependency && dependencyStart !== undefined) start = dependencyStart + (clip.schedule.kind === "after" ? dependency.duration : 0) + (clip.schedule.offset ?? 0);
+      if (dependency && dependencyStart !== undefined) {
+        start =
+          dependencyStart +
+          (clip.schedule.kind === "after" ? dependency.duration : 0) +
+          (clip.schedule.offset ?? 0);
+      }
     }
     visiting.delete(clip.id);
     if (start !== undefined) starts.set(clip.id, start);
@@ -59,7 +69,11 @@ export function validateClips(
       if (!clip.targetId) issues.push({ path: `${prefix}.${clip.id}.targetId`, message: "Component Action requires a target Component instance" });
       else if (target && target.type !== "component") issues.push({ path: `${prefix}.${clip.id}.targetId`, message: `Component Action target has type ${target.type}, expected component` });
     }
-    if (clip.schedule.kind !== "absolute" && !clipById.has(clip.schedule.clipId)) {
+    if (
+      clip.schedule.kind !== "absolute" &&
+      clip.schedule.kind !== "scene-end" &&
+      !clipById.has(clip.schedule.clipId)
+    ) {
       issues.push({ path: `${prefix}.${clip.id}.schedule`, message: `Unknown schedule clip: ${clip.schedule.clipId}` });
     }
     if (clip.source.kind === "tracks") {
@@ -114,7 +128,7 @@ export function validateClips(
   for (const clip of clips) {
     const seen = new Set<string>([clip.id]);
     let cursor = clip;
-    while (cursor.schedule.kind !== "absolute") {
+    while (cursor.schedule.kind !== "absolute" && cursor.schedule.kind !== "scene-end") {
       const dependencyId = cursor.schedule.clipId;
       if (seen.has(dependencyId)) {
         issues.push({ path: `${prefix}.${clip.id}.schedule`, message: "Clip schedule cycle detected" });

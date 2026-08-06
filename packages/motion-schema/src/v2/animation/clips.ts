@@ -6,6 +6,11 @@ import { PropertyTrackSchema } from "./tracks";
 
 export const ClipScheduleSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("absolute"), at: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds) }).strict(),
+  z.object({
+    kind: z.literal("scene-end"),
+    /** 0 = clip ends at scene end; negative = pad before end. */
+    offset: FiniteNumberSchema.max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  }).strict(),
   z.object({ kind: z.literal("after"), clipId: IdSchema, offset: FiniteNumberSchema.optional() }).strict(),
   z.object({ kind: z.literal("with"), clipId: IdSchema, offset: FiniteNumberSchema.optional() }).strict(),
 ]);
