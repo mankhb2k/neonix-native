@@ -52,6 +52,7 @@
   "dependencies": {
     "@motionvideo/editor-core": "workspace:*",
     "@motionvideo/editor-interactions": "workspace:*",
+    "@motionvideo/editor-react": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
     "@motionvideo/motion-schema": "workspace:*",

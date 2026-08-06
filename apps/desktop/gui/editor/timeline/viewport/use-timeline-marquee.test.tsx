@@ -22,12 +22,16 @@ import { resetActivePointerSessionToken } from "../interactions/pointer-session-
 import { usePointerSessionHost } from "../interactions/use-pointer-session";
 import { useTimelineMarquee } from "./use-timeline-marquee";
 
-vi.mock("../drop/auto-scroll", () => ({
-  autoScrollTimelineNearEdge: vi.fn(),
-  autoScrollElementNearEdge: vi.fn(),
-}));
+vi.mock("@motionvideo/editor-interactions", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("@motionvideo/editor-interactions")>();
+  return {
+    ...actual,
+    autoScrollElementNearEdge: vi.fn(),
+  };
+});
 
-import { autoScrollElementNearEdge } from "../drop/auto-scroll";
+import { autoScrollElementNearEdge } from "@motionvideo/editor-interactions";
 
 function visualLane(
   id: string,
@@ -385,8 +389,8 @@ describe("useTimelineMarquee orchestration", () => {
   describe("integration: real auto-scroll", () => {
     it("scrolls the DOM node automatically when pointer is held near the bottom edge", async () => {
       const { autoScrollElementNearEdge: realAutoScroll } = await vi.importActual<
-        typeof import("../drop/auto-scroll")
-      >("../drop/auto-scroll");
+        typeof import("@motionvideo/editor-interactions")
+      >("@motionvideo/editor-interactions");
 
       vi.mocked(autoScrollElementNearEdge).mockImplementation((...args) => {
         realAutoScroll(...args);

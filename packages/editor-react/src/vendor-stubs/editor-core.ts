@@ -1,0 +1,94 @@
+/**
+ * Typecheck-only stubs so `tsc` does not pull pre-existing editor-core errors.
+ * Runtime resolves `@motionvideo/editor-core` via the workspace package.
+ */
+
+export type TimelineTrackKind = "main" | "overlay" | "audio";
+
+export type EditorSelection =
+  | { kind: "none" }
+  | { kind: "clips"; ids: string[] }
+  | { kind: "nodes"; ids: string[] }
+  | { kind: string; [key: string]: unknown };
+
+export type TimelineClip = {
+  id: string;
+  laneId: string;
+  startTime: number;
+  duration: number;
+  kind: string;
+};
+
+export type TimelineLane = {
+  id: string;
+  kind: TimelineTrackKind | string;
+  role: "base" | "overlay" | "audio";
+  order: number;
+};
+
+export type LaneTimelineIndex = {
+  clips: TimelineClip[];
+  [key: string]: unknown;
+};
+
+export function selectionNone(): EditorSelection {
+  return { kind: "none" };
+}
+
+export function selectionClips(ids: string[]): EditorSelection {
+  return { kind: "clips", ids };
+}
+
+export function selectedClipIdsFrom(selection: EditorSelection): string[] {
+  if (selection.kind === "clips" && Array.isArray(selection.ids)) {
+    return selection.ids;
+  }
+  return [];
+}
+
+export function visibleTimeRange(_input: {
+  scrollLeft: number;
+  viewWidth: number;
+  pixelsPerSecond: number;
+  overscanPx?: number;
+}): { start: number; end: number } {
+  return { start: 0, end: 0 };
+}
+
+export function buildLaneTimelineIndex(
+  clips: TimelineClip[],
+): LaneTimelineIndex {
+  return { clips };
+}
+
+export function clipsVisibleWithPins(
+  all: TimelineClip[],
+  _start: number,
+  _end: number,
+  _pins?: ReadonlySet<string>,
+  _index?: LaneTimelineIndex,
+): TimelineClip[] {
+  return all;
+}
+
+export function clipAcceptsTrack(
+  _clip: Pick<TimelineClip, "kind">,
+  _track: TimelineTrackKind,
+): boolean {
+  return true;
+}
+
+export function resolveOccupancyAwarePlacement(input: {
+  desiredStart: number;
+  duration: number;
+  [key: string]: unknown;
+}): {
+  startTime: number;
+  edgeGuideTime?: number | null;
+  retargetLaneId?: string;
+  retargetLaneRole?: "base" | "overlay" | "audio";
+  insertNewLane?: boolean;
+  insertOrder?: number | null;
+} {
+  return { startTime: input.desiredStart };
+}
