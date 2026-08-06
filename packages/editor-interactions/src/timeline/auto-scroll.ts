@@ -1,12 +1,76 @@
+import type { TimelineViewportMetrics } from "./coordinates";
+
 export type AutoScrollNearEdgeOptions = {
   maxScrollTop?: number;
   maxScrollLeft?: number;
 };
 
-/**
- * Edge-scroll a specific element. Returns applied deltas (app may ignore and
- * re-apply; mutating scrollEl is temporary until PR-2 metrics API).
- */
+export type AutoScrollDelta = {
+  scrollLeftDelta: number;
+  scrollTopDelta: number;
+  nextScrollLeft: number;
+  nextScrollTop: number;
+};
+
+/** Pure edge auto-scroll intent from metrics — caller applies to DOM. */
+export function computeAutoScrollNearEdge(input: {
+  clientX: number;
+  clientY: number;
+  viewport: TimelineViewportMetrics;
+  edgePx?: number;
+  stepPx?: number;
+  options?: AutoScrollNearEdgeOptions;
+}): AutoScrollDelta {
+  const edgePx = input.edgePx ?? 40;
+  const stepPx = input.stepPx ?? 14;
+  const v = input.viewport;
+  const right = v.clientLeft + v.clientWidth;
+  const bottom = v.clientTop + v.clientHeight;
+  const maxLeft = Math.max(0, v.scrollWidth - v.clientWidth);
+  const nativeMaxTop = Math.max(0, v.scrollHeight - v.clientHeight);
+  const maxTop =
+    input.options?.maxScrollTop != null
+      ? Math.min(Math.max(0, input.options.maxScrollTop), nativeMaxTop)
+      : nativeMaxTop;
+  const maxLeftOpt =
+    input.options?.maxScrollLeft != null
+      ? Math.min(Math.max(0, input.options.maxScrollLeft), maxLeft)
+      : maxLeft;
+
+  let nextLeft = v.scrollLeft;
+  let nextTop = v.scrollTop;
+
+  if (input.options?.maxScrollTop != null && nextTop > maxTop + 0.5) {
+    nextTop = maxTop;
+  }
+
+  if (input.clientX > right - edgePx) {
+    nextLeft = Math.min(nextLeft + stepPx, maxLeftOpt);
+  }
+  if (input.clientX < v.clientLeft + edgePx) {
+    nextLeft = Math.max(0, nextLeft - stepPx);
+  }
+
+  const distBottom = bottom - input.clientY;
+  const distTop = input.clientY - v.clientTop;
+  const nearBottom = input.clientY >= bottom - edgePx;
+  const nearTop = input.clientY <= v.clientTop + edgePx;
+
+  if (nearBottom && (!nearTop || distBottom <= distTop)) {
+    if (nextTop < maxTop) nextTop = Math.min(nextTop + stepPx, maxTop);
+  } else if (nearTop) {
+    nextTop = Math.max(0, nextTop - stepPx);
+  }
+
+  return {
+    scrollLeftDelta: nextLeft - v.scrollLeft,
+    scrollTopDelta: nextTop - v.scrollTop,
+    nextScrollLeft: nextLeft,
+    nextScrollTop: nextTop,
+  };
+}
+
+/** @deprecated Prefer computeAutoScrollNearEdge. */
 export function autoScrollElementNearEdge(
   scroll: HTMLElement,
   clientX: number,
@@ -16,46 +80,28 @@ export function autoScrollElementNearEdge(
   options?: AutoScrollNearEdgeOptions,
 ): { scrollLeftDelta: number; scrollTopDelta: number } {
   const rect = scroll.getBoundingClientRect();
-  const maxLeft = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
-  const nativeMaxTop = Math.max(0, scroll.scrollHeight - scroll.clientHeight);
-  const maxTop =
-    options?.maxScrollTop != null
-      ? Math.min(Math.max(0, options.maxScrollTop), nativeMaxTop)
-      : nativeMaxTop;
-  const maxLeftOpt =
-    options?.maxScrollLeft != null
-      ? Math.min(Math.max(0, options.maxScrollLeft), maxLeft)
-      : maxLeft;
-
-  const beforeLeft = scroll.scrollLeft;
-  const beforeTop = scroll.scrollTop;
-
-  if (options?.maxScrollTop != null && scroll.scrollTop > maxTop + 0.5) {
-    scroll.scrollTop = maxTop;
-  }
-
-  if (clientX > rect.right - edgePx) {
-    scroll.scrollLeft = Math.min(scroll.scrollLeft + stepPx, maxLeftOpt);
-  }
-  if (clientX < rect.left + edgePx) {
-    scroll.scrollLeft = Math.max(0, scroll.scrollLeft - stepPx);
-  }
-
-  const distBottom = rect.bottom - clientY;
-  const distTop = clientY - rect.top;
-  const nearBottom = clientY >= rect.bottom - edgePx;
-  const nearTop = clientY <= rect.top + edgePx;
-
-  if (nearBottom && (!nearTop || distBottom <= distTop)) {
-    if (scroll.scrollTop < maxTop) {
-      scroll.scrollTop = Math.min(scroll.scrollTop + stepPx, maxTop);
-    }
-  } else if (nearTop) {
-    scroll.scrollTop = Math.max(0, scroll.scrollTop - stepPx);
-  }
-
+  const delta = computeAutoScrollNearEdge({
+    clientX,
+    clientY,
+    viewport: {
+      clientLeft: rect.left,
+      clientTop: rect.top,
+      clientWidth: scroll.clientWidth,
+      clientHeight: scroll.clientHeight,
+      scrollLeft: scroll.scrollLeft,
+      scrollTop: scroll.scrollTop,
+      scrollWidth: scroll.scrollWidth,
+      scrollHeight: scroll.scrollHeight,
+      tracksOriginX: 0,
+    },
+    edgePx,
+    stepPx,
+    options,
+  });
+  scroll.scrollLeft = delta.nextScrollLeft;
+  scroll.scrollTop = delta.nextScrollTop;
   return {
-    scrollLeftDelta: scroll.scrollLeft - beforeLeft,
-    scrollTopDelta: scroll.scrollTop - beforeTop,
+    scrollLeftDelta: delta.scrollLeftDelta,
+    scrollTopDelta: delta.scrollTopDelta,
   };
 }

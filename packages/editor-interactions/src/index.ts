@@ -31,16 +31,23 @@ export {
   type TimelineViewportMetrics,
 } from "./timeline/coordinates";
 export {
+  metricsFromScrollElement,
+  clientPointToTimelineTime,
+  clientPointToStripTime,
+  timelineTimeToViewportLeft,
+  computeHorizontalEdgeScroll,
+  ensurePlayheadScrubScrollMetrics,
+  resolvePlayheadScrubMax,
   clientXToTimelineTime,
   clientXToStripTime,
-  timelineTimeToViewportLeft,
   scrollTracksHorizontallyNearEdge,
   ensurePlayheadScrubScroll,
-  resolvePlayheadScrubMax,
 } from "./timeline/seek";
 export {
+  computeAutoScrollNearEdge,
   autoScrollElementNearEdge,
   type AutoScrollNearEdgeOptions,
+  type AutoScrollDelta,
 } from "./timeline/auto-scroll";
 export {
   type ClipMovePreviewMember,
