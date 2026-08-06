@@ -1,20 +1,16 @@
 /**
  * PixiStageRenderer — real pixi.js Application + stable-key display cache.
- * Consumes EvaluatedFrame / PaintCommandBuffer from motion-runtime.
+ * Consumes EvaluatedFrame / PaintCommandBuffer from motion-runtime (no compile).
  */
 
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
-  evaluateFrame,
   type EvaluatedFrame,
+  type EvaluatedFramePainter,
   type PaintCommand,
   type PaintCommandBuffer,
   type RuntimeEffect,
 } from "@motionvideo/motion-runtime";
-import type {
-  MotionProject,
-  NormalizedMotionProjectV2,
-} from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
 import {
   Application,
   Assets,
@@ -33,11 +29,10 @@ export type StageViewport = {
   offsetY: number;
 };
 
-export type PixiStageRenderer = {
+export type PixiStageRenderer = EvaluatedFramePainter & {
   mount(host: HTMLElement): Promise<void>;
-  setProject(runtime: NormalizedMotionProjectV2): void;
-  setAuthoringProject(project: MotionProject): void;
-  paintFrame(frameIndex: number): EvaluatedFrame | null;
+  /** Optional metadata for canvas resize; paint uses EvaluatedFrame only. */
+  setProject(runtime: NormalizedMotionProjectV2 | null): void;
   setViewport(viewport: StageViewport): void;
   setQuality(tier: "interactive" | "high"): void;
   setBackground(color: string): void;
@@ -192,7 +187,7 @@ export function createPixiStageRenderer(): PixiStageRenderer {
   let background = "#ffffff";
   let quality: "interactive" | "high" = "interactive";
   let viewport: StageViewport = { scale: 1, offsetX: 0, offsetY: 0 };
-  let lastFrame = -1;
+  let lastPaint: PaintCommandBuffer | null = null;
 
   const cache = new Map<string, CachedObject>();
   const world = new Container({ sortableChildren: true });
@@ -365,9 +360,7 @@ export function createPixiStageRenderer(): PixiStageRenderer {
           void Assets.load(cmd.uri)
             .then((loaded) => {
               textureCache.set(cmd.uri!, loaded as Texture);
-              if (lastFrame >= 0) {
-                // re-paint after texture ready
-              }
+              if (lastPaint) paintCommands(lastPaint);
             })
             .catch(() => {
               /* placeholder WHITE */
@@ -420,55 +413,25 @@ export function createPixiStageRenderer(): PixiStageRenderer {
     setProject(next) {
       runtime = next;
       clearCache();
-      if (lastFrame >= 0) this.paintFrame(lastFrame);
     },
 
-    setAuthoringProject(project) {
-      this.setProject(compileMotionProject(project));
-    },
-
-    paintFrame(frameIndex) {
-      if (!runtime) return null;
-      lastFrame = frameIndex;
-      const fps = Math.max(1, Math.round(runtime.metadata.fps ?? 30));
-      const time = frameIndex / fps;
-      const scene =
-        runtime.scenes.find((s) => s.id === sceneId) ??
-        runtime.scenes.find((s) => s.id === runtime!.timeline.sceneOrder[0]) ??
-        runtime.scenes[0];
-      if (!scene) return null;
-
-      const aspect = runtime.metadata.aspectRatio;
-      const size =
-        aspect === "9:16"
-          ? { width: 1080, height: 1920 }
-          : aspect === "1:1"
-            ? { width: 1080, height: 1080 }
-            : { width: 1920, height: 1080 };
-
+    paintFrame(evaluated: EvaluatedFrame) {
+      const size = {
+        width: evaluated.interaction.width,
+        height: evaluated.interaction.height,
+      };
       if (
         app &&
         (app.screen.width !== size.width || app.screen.height !== size.height)
       ) {
         app.renderer.resize(size.width, size.height);
       }
-
-      const assetUriById = new Map(
-        runtime.assets.map((a) => [a.id, a.uri] as const),
-      );
-
-      const evaluated = evaluateFrame({
-        scene,
-        frame: frameIndex,
-        time,
-        width: size.width,
-        height: size.height,
-        background,
-        assetUriById,
-      });
-
+      if (evaluated.interaction.background) {
+        background = evaluated.interaction.background;
+        if (app) app.renderer.background.color = hexToNumber(background);
+      }
+      lastPaint = evaluated.paint;
       paintCommands(evaluated.paint);
-      return evaluated;
     },
 
     setViewport(next) {
@@ -488,6 +451,8 @@ export function createPixiStageRenderer(): PixiStageRenderer {
 
     setSceneId(id) {
       sceneId = id;
+      void sceneId;
+      void runtime;
     },
 
     dispose() {
@@ -502,7 +467,7 @@ export function createPixiStageRenderer(): PixiStageRenderer {
         host = null;
       }
       runtime = null;
-      lastFrame = -1;
+      lastPaint = null;
     },
   };
 }

@@ -30,7 +30,7 @@ const yesPartial = {
   command: "yes",
   compiler: "yes",
   evaluator: "yes",
-  pixi: "partial",
+  pixi: "yes",
   worker: "partial",
   parity: "planned",
   editor: "yes",
@@ -38,21 +38,43 @@ const yesPartial = {
 
 /** Four-primitive vertical slice + shared transform/keyframes. */
 export const WAVE1_CAPABILITY_LEDGER: readonly CapabilityRow[] = [
-  { id: "primitive.group", label: "Group", columns: { ...yesPartial } },
-  { id: "primitive.text", label: "Text", columns: { ...yesPartial } },
+  {
+    id: "primitive.group",
+    label: "Group",
+    columns: { ...yesPartial },
+    notes: "Pixi paints EvaluatedFrame.paint (no authoring compile)",
+  },
+  {
+    id: "primitive.text",
+    label: "Text",
+    columns: { ...yesPartial },
+    notes: "Pixi paints EvaluatedFrame.paint (no authoring compile)",
+  },
   {
     id: "primitive.shape",
     label: "Shape (rect/ellipse)",
     columns: { ...yesPartial },
+    notes: "Pixi paints EvaluatedFrame.paint (no authoring compile)",
   },
   {
     id: "primitive.image",
     label: "Image",
     columns: { ...yesPartial },
-    notes: "URI must resolve; missing URI → diagnostic placeholder",
+    notes:
+      "URI must resolve; missing URI → diagnostic placeholder; Pixi paints EvaluatedFrame.paint",
   },
-  { id: "anim.transform", label: "Transform keyframes", columns: { ...yesPartial } },
-  { id: "anim.opacity", label: "Opacity keyframes", columns: { ...yesPartial } },
+  {
+    id: "anim.transform",
+    label: "Transform keyframes",
+    columns: { ...yesPartial },
+    notes: "Pixi paints EvaluatedFrame.paint (no authoring compile)",
+  },
+  {
+    id: "anim.opacity",
+    label: "Opacity keyframes",
+    columns: { ...yesPartial },
+    notes: "Pixi paints EvaluatedFrame.paint (no authoring compile)",
+  },
 ] as const;
 
 /** Wave-2 coverage: path → gradient → svg → effects → video → camera. */

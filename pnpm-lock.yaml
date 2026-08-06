@@ -489,9 +489,6 @@ importers:
 
   packages/pixi-renderer:
     dependencies:
-      '@motionvideo/motion-compiler':
-        specifier: workspace:*
-        version: link:../motion-compiler
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime

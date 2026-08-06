@@ -3,12 +3,12 @@
 /**
  * Stage shell for web — patterned after desktop PreviewStage (no desktop imports).
  * React owns lifecycle + document revision; playback ticks paint via StageRendererPort.
+ * Overlay uses getLastEvaluatedFrame() so paint + hit-test share one evaluate.
  */
 
 import { InteractionOverlay } from "@/components/editor/stage/InteractionOverlay";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
-import { buildPreviewSnapshot } from "@/lib/editor/preview/preview-project";
 import {
   createStageRendererLazy,
   resolveStageRendererBackend,
@@ -16,6 +16,7 @@ import {
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+import type { RenderSnapshot } from "@motionvideo/motion-runtime";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -30,6 +31,9 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<StageRendererPort | null>(null);
   const [scale, setScale] = useState(0.25);
+  const [overlaySnapshot, setOverlaySnapshot] = useState<RenderSnapshot | null>(
+    null,
+  );
 
   const projectAvailable = project !== null;
   const aspectRatio = project?.metadata.aspectRatio;
@@ -51,7 +55,6 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
   backgroundRef.current = background;
   scaleRef.current = scale;
 
-  const currentTime = usePlaybackClock((s) => s.currentTime);
   const stageSize = useMemo(
     () =>
       aspectRatio
@@ -59,14 +62,12 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
         : { width: 1080, height: 1920 },
     [aspectRatio],
   );
-  const snapshot = useMemo(() => {
-    if (!project) return null;
-    return buildPreviewSnapshot(
-      project,
-      currentTime,
-      playbackFrameIndex(currentTime, fps),
+
+  const syncOverlayFromRenderer = () => {
+    setOverlaySnapshot(
+      rendererRef.current?.getLastEvaluatedFrame()?.interaction ?? null,
     );
-  }, [project, currentTime, fps]);
+  };
 
   useLayoutEffect(() => {
     const el = hostRef.current;
@@ -115,6 +116,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
               fpsRef.current,
             ),
           );
+          syncOverlayFromRenderer();
         }
       },
     );
@@ -124,6 +126,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
       rendererRef.current = null;
       renderer = null;
       active?.dispose();
+      setOverlaySnapshot(null);
     };
   }, [projectAvailable]);
 
@@ -135,6 +138,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
     renderer.paintFrame(
       playbackFrameIndex(usePlaybackClock.getState().currentTime, fps),
     );
+    syncOverlayFromRenderer();
   }, [project, clips, lanes, fps]);
 
   useEffect(() => {
@@ -153,6 +157,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
       if (frame === last) return;
       last = frame;
       rendererRef.current?.paintFrame(frame);
+      syncOverlayFromRenderer();
     });
   }, [projectAvailable]);
 
@@ -180,7 +185,7 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
         />
         <div className="absolute inset-0">
           <InteractionOverlay
-            snapshot={snapshot}
+            snapshot={overlaySnapshot}
             compositionWidth={stageSize.width}
             compositionHeight={stageSize.height}
           />

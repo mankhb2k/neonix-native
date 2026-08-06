@@ -1,5 +1,6 @@
 /**
  * Stage renderer factory for web (desktop-inspired — no desktop imports).
+ * Pixi path: compile once → evaluateCompositionFrame once per tick → paint EvaluatedFrame.
  */
 
 import {
@@ -8,7 +9,16 @@ import {
   type StageRendererPort,
 } from "@/lib/editor/stage/stage-renderer-port";
 import { createPixiStageRenderer } from "@motionvideo/pixi-renderer";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import { compileMotionProject } from "@motionvideo/motion-compiler";
+import {
+  evaluateCompositionFrame,
+  type EvaluatedFrame,
+} from "@motionvideo/motion-runtime";
+import type {
+  MotionProject,
+  NormalizedMotionProjectV2,
+} from "@motionvideo/motion-schema";
+import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 
 export function resolveStageRendererBackend(): StageRendererBackend {
   const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
@@ -29,17 +39,45 @@ export async function createStageRenderer(
     const pixi = createPixiStageRenderer();
     await pixi.mount(host);
     let project: MotionProject | null = null;
+    let compiled: NormalizedMotionProjectV2 | null = null;
     let lastFrame = 0;
+    let lastEvaluated: EvaluatedFrame | null = null;
     let scale = 1;
     let background = "#ffffff";
+
+    const paintEvaluated = (frameIndex: number) => {
+      lastFrame = frameIndex;
+      if (!project || !compiled) {
+        lastEvaluated = null;
+        return;
+      }
+      const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+      const size = stageSizeForAspect(project.metadata.aspectRatio);
+      const evaluated = evaluateCompositionFrame(
+        compiled,
+        frameIndex,
+        fps,
+        size.width,
+        size.height,
+        undefined,
+        background,
+      );
+      lastEvaluated = evaluated;
+      if (evaluated) pixi.paintFrame(evaluated);
+    };
 
     return {
       setDocument(input) {
         project = input.project;
-        pixi.setAuthoringProject(input.project);
+        try {
+          compiled = compileMotionProject(input.project);
+        } catch {
+          compiled = null;
+        }
+        pixi.setProject(compiled);
         pixi.setBackground(background);
         pixi.setViewport({ scale, offsetX: 0, offsetY: 0 });
-        pixi.paintFrame(lastFrame);
+        paintEvaluated(lastFrame);
       },
       setScale(next) {
         scale = next;
@@ -50,16 +88,16 @@ export async function createStageRenderer(
         pixi.setBackground(color);
       },
       paintFrame(frameIndex) {
-        lastFrame = frameIndex;
-        if (!project) return;
-        pixi.paintFrame(frameIndex);
+        paintEvaluated(frameIndex);
       },
       getLastEvaluatedFrame() {
-        return null;
+        return lastEvaluated;
       },
       dispose() {
         pixi.dispose();
         project = null;
+        compiled = null;
+        lastEvaluated = null;
       },
     };
   }
