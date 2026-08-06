@@ -1,28 +1,32 @@
+/**
+ * Thin Zustand façade over createStageSession for legacy web tests.
+ * Prefer @motionvideo/editor-react useStagePointerSession in UI.
+ */
+
 "use client";
 
 import { create } from "zustand";
+import {
+  createStageSession,
+  type ResizeHandle,
+  type StageSession,
+  type StageTransformValues,
+} from "@motionvideo/editor-interactions";
 
 export type StageInteractionMode = "idle" | "move" | "resize" | "rotate";
 
-export type StageTransformPatch = {
-  sceneId: string;
-  nodeId: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  rotation: number;
-};
+export type StageTransformPatch = StageTransformValues;
 
 type StageInteractionState = {
   mode: StageInteractionMode;
-  /** Base values at pointerdown */
   base: StageTransformPatch | null;
-  /** Live preview while dragging */
   preview: StageTransformPatch | null;
   handle: string | null;
   pointerStart: { x: number; y: number } | null;
-  beginMove: (base: StageTransformPatch, compositionPoint: { x: number; y: number }) => void;
+  beginMove: (
+    base: StageTransformPatch,
+    compositionPoint: { x: number; y: number },
+  ) => void;
   beginResize: (
     base: StageTransformPatch,
     handle: string,
@@ -37,54 +41,26 @@ type StageInteractionState = {
   takeCommit: () => StageTransformPatch | null;
 };
 
-function applyPointerDelta(
-  state: StageInteractionState,
-  point: { x: number; y: number },
-): StageTransformPatch | null {
-  if (!state.base || !state.pointerStart) return null;
-  const dx = point.x - state.pointerStart.x;
-  const dy = point.y - state.pointerStart.y;
+let session: StageSession = createStageSession();
+let interactionSeq = 0;
 
-  if (state.mode === "move") {
-    return {
-      ...state.base,
-      x: state.base.x + dx,
-      y: state.base.y + dy,
-    };
-  }
+function nextId(): string {
+  interactionSeq += 1;
+  return `legacy-stage-${interactionSeq}`;
+}
 
-  if (state.mode === "resize" && state.handle) {
-    const next = { ...state.base };
-    const h = state.handle;
-    if (h.includes("e")) next.width = Math.max(8, state.base.width + dx);
-    if (h.includes("s")) next.height = Math.max(8, state.base.height + dy);
-    if (h.includes("w")) {
-      next.width = Math.max(8, state.base.width - dx);
-      next.x = state.base.x + dx;
-    }
-    if (h.includes("n")) {
-      next.height = Math.max(8, state.base.height - dy);
-      next.y = state.base.y + dy;
-    }
-    return next;
-  }
-
-  if (state.mode === "rotate") {
-    const cx = state.base.x + state.base.width / 2;
-    const cy = state.base.y + state.base.height / 2;
-    const startAngle = Math.atan2(
-      state.pointerStart.y - cy,
-      state.pointerStart.x - cx,
-    );
-    const angle = Math.atan2(point.y - cy, point.x - cx);
-    const deltaDeg = ((angle - startAngle) * 180) / Math.PI;
-    return {
-      ...state.base,
-      rotation: state.base.rotation + deltaDeg,
-    };
-  }
-
-  return state.base;
+function syncFromSession(
+  set: (partial: Partial<StageInteractionState>) => void,
+  base: StageTransformPatch | null,
+  handle: string | null,
+  pointerStart: { x: number; y: number } | null,
+): void {
+  set({
+    mode: session.mode,
+    base,
+    handle,
+    pointerStart,
+  });
 }
 
 export const useStageInteractionStore = create<StageInteractionState>(
@@ -95,39 +71,87 @@ export const useStageInteractionStore = create<StageInteractionState>(
     handle: null,
     pointerStart: null,
     beginMove: (base, compositionPoint) => {
-      set({
-        mode: "move",
-        base,
-        preview: base,
-        handle: null,
-        pointerStart: compositionPoint,
-      });
+      session.beginMove(
+        {
+          interactionId: nextId(),
+          base,
+          worldBounds: {
+            x: base.x,
+            y: base.y,
+            width: base.width,
+            height: base.height,
+          },
+          pointer: compositionPoint,
+        },
+        {
+          onPreview: (payload) => {
+            set({
+              preview: payload.patches[0] ?? null,
+              mode: session.mode,
+            });
+          },
+        },
+      );
+      syncFromSession(set, base, null, compositionPoint);
+      set({ preview: base });
     },
     beginResize: (base, handle, compositionPoint) => {
-      set({
-        mode: "resize",
-        base,
-        preview: base,
-        handle,
-        pointerStart: compositionPoint,
-      });
+      session.beginResize(
+        {
+          interactionId: nextId(),
+          base,
+          worldBounds: {
+            x: base.x,
+            y: base.y,
+            width: base.width,
+            height: base.height,
+          },
+          handle: handle as ResizeHandle,
+          pointer: compositionPoint,
+        },
+        {
+          onPreview: (payload) => {
+            set({
+              preview: payload.patches[0] ?? null,
+              mode: session.mode,
+            });
+          },
+        },
+      );
+      syncFromSession(set, base, handle, compositionPoint);
+      set({ preview: base });
     },
     beginRotate: (base, compositionPoint) => {
-      set({
-        mode: "rotate",
-        base,
-        preview: base,
-        handle: "rotate",
-        pointerStart: compositionPoint,
-      });
+      session.beginRotate(
+        {
+          interactionId: nextId(),
+          base,
+          worldBounds: {
+            x: base.x,
+            y: base.y,
+            width: base.width,
+            height: base.height,
+          },
+          pointer: compositionPoint,
+        },
+        {
+          onPreview: (payload) => {
+            set({
+              preview: payload.patches[0] ?? null,
+              mode: session.mode,
+            });
+          },
+        },
+      );
+      syncFromSession(set, base, "rotate", compositionPoint);
+      set({ preview: base });
     },
     updatePointer: (compositionPoint) => {
-      const state = get();
-      if (state.mode === "idle") return;
-      const preview = applyPointerDelta(state, compositionPoint);
-      if (preview) set({ preview });
+      if (get().mode === "idle") return;
+      session.updatePointer(compositionPoint);
     },
     cancel: () => {
+      session.cancel();
       set({
         mode: "idle",
         base: null,
@@ -137,7 +161,7 @@ export const useStageInteractionStore = create<StageInteractionState>(
       });
     },
     takeCommit: () => {
-      const { preview, mode } = get();
+      const result = session.commit("pointerup");
       set({
         mode: "idle",
         base: null,
@@ -145,7 +169,7 @@ export const useStageInteractionStore = create<StageInteractionState>(
         handle: null,
         pointerStart: null,
       });
-      return mode === "idle" ? null : preview;
+      return result?.patches[0]?.values ?? null;
     },
   }),
 );

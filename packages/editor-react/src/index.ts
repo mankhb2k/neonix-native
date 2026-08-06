@@ -60,3 +60,20 @@ export type {
   LayerMoveHost,
   LayerMoveInsertGap,
 } from "./timeline/gesture-host";
+export {
+  useStagePointerSession,
+  type UseStagePointerSessionArgs,
+  type UseStagePointerSessionResult,
+} from "./stage/use-stage-pointer-session";
+export {
+  useNodeTransform,
+  type UseNodeTransformArgs,
+} from "./stage/use-node-transform";
+export {
+  useStageSelection,
+  type UseStageSelectionArgs,
+} from "./stage/use-stage-selection";
+export {
+  useStageHotkeys,
+  type UseStageHotkeysArgs,
+} from "./stage/use-stage-hotkeys";

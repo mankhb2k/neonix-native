@@ -1,15 +1,21 @@
 "use client";
 
 import {
-  hitTestRenderSnapshot,
-  type RenderSnapshot,
-} from "@motionvideo/motion-runtime";
+  clientToComposition,
+  resolveStageHit,
+  selectionBoxFromWorldAndDelta,
+  type ResizeHandle,
+} from "@motionvideo/editor-interactions";
+import {
+  useNodeTransform,
+  useStageHotkeys,
+  useStagePointerSession,
+} from "@motionvideo/editor-react";
 import {
   selectionNone,
   selectionNode,
 } from "@/lib/editor/model/editor-selection";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { useStageInteractionStore } from "@/lib/editor/interaction/stage-interaction-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
 import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
 import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
@@ -21,6 +27,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import type { RenderSnapshot } from "@motionvideo/motion-runtime";
 
 type Props = {
   snapshot: RenderSnapshot | null;
@@ -58,13 +65,24 @@ export function InteractionOverlay({
   const project = useEditorStore((s) => s.project);
   const envelope = useEditorStore((s) => s.envelope);
   const commitNodeTransform = useEditorStore((s) => s.commitNodeTransform);
-  const mode = useStageInteractionStore((s) => s.mode);
-  const preview = useStageInteractionStore((s) => s.preview);
-  const base = useStageInteractionStore((s) => s.base);
-  const beginMove = useStageInteractionStore((s) => s.beginMove);
-  const beginResize = useStageInteractionStore((s) => s.beginResize);
-  const beginRotate = useStageInteractionStore((s) => s.beginRotate);
-  const updatePointer = useStageInteractionStore((s) => s.updatePointer);
+
+  const {
+    mode,
+    preview,
+    base,
+    beginMove,
+    beginResize,
+    beginRotate,
+    updatePointer,
+    cancel,
+    commit,
+  } = useStagePointerSession();
+
+  const { startMove, startResize, startRotate } = useNodeTransform({
+    beginMove,
+    beginResize,
+    beginRotate,
+  });
 
   const selectedItem = useMemo(() => {
     if (!snapshot || selection.kind !== "node") return null;
@@ -92,12 +110,11 @@ export function InteractionOverlay({
     ) {
       return selectedItem.worldBounds;
     }
-    return {
-      x: selectedItem.worldBounds.x + (preview.x - base.x),
-      y: selectedItem.worldBounds.y + (preview.y - base.y),
-      width: selectedItem.worldBounds.width + (preview.width - base.width),
-      height: selectedItem.worldBounds.height + (preview.height - base.height),
-    };
+    return selectionBoxFromWorldAndDelta(
+      selectedItem.worldBounds,
+      base,
+      preview,
+    );
   }, [selectedItem, preview, base]);
 
   const toCompositionPoint = useCallback(
@@ -105,11 +122,17 @@ export function InteractionOverlay({
       const el = rootRef.current;
       if (!el) return null;
       const rect = el.getBoundingClientRect();
-      if (rect.width <= 0 || rect.height <= 0) return null;
-      return {
-        x: ((clientX - rect.left) / rect.width) * compositionWidth,
-        y: ((clientY - rect.top) / rect.height) * compositionHeight,
-      };
+      return clientToComposition(
+        { x: clientX, y: clientY },
+        {
+          contentLeft: rect.left,
+          contentTop: rect.top,
+          contentWidth: rect.width,
+          contentHeight: rect.height,
+          compositionWidth,
+          compositionHeight,
+        },
+      );
     },
     [compositionWidth, compositionHeight],
   );
@@ -135,8 +158,9 @@ export function InteractionOverlay({
   );
 
   const finishGesture = useCallback(() => {
-    const committed = useStageInteractionStore.getState().takeCommit();
-    if (!committed || !project) return;
+    const committed = commit();
+    const values = committed?.patches[0]?.values;
+    if (!values || !project) return;
 
     const resolved = resolvePreviewProject(project);
     if (resolved.usingDemo) {
@@ -148,59 +172,51 @@ export function InteractionOverlay({
       });
     }
 
-    commitNodeTransform(committed.sceneId, committed.nodeId, {
-      x: committed.x,
-      y: committed.y,
-      width: committed.width,
-      height: committed.height,
-      rotation: committed.rotation,
+    commitNodeTransform(values.sceneId, values.nodeId, {
+      x: values.x,
+      y: values.y,
+      width: values.width,
+      height: values.height,
+      rotation: values.rotation,
     });
-  }, [commitNodeTransform, project]);
+  }, [commit, commitNodeTransform, project]);
 
   const onPointerMove = useCallback(
     (event: ReactPointerEvent) => {
       const point = toCompositionPoint(event.clientX, event.clientY);
       if (!point) return;
 
-      if (useStageInteractionStore.getState().mode !== "idle") {
-        updatePointer(point);
+      if (mode !== "idle") {
+        updatePointer(point, {
+          shift: event.shiftKey,
+          alt: event.altKey,
+          meta: event.metaKey,
+          ctrl: event.ctrlKey,
+        });
         return;
       }
 
       if (!snapshot) return;
-      const hits = hitTestRenderSnapshot(snapshot, point);
-      setHoverKey(hits[0]?.key ?? null);
+      const hits = resolveStageHit(snapshot, point);
+      setHoverKey(hits.primary?.key ?? null);
     },
-    [snapshot, toCompositionPoint, updatePointer],
+    [mode, snapshot, toCompositionPoint, updatePointer],
   );
 
   const onPointerUp = useCallback(() => {
-    if (useStageInteractionStore.getState().mode !== "idle") {
+    if (mode !== "idle") {
       finishGesture();
     }
-  }, [finishGesture]);
+  }, [finishGesture, mode]);
 
   useEffect(() => {
     window.addEventListener("pointerup", onPointerUp);
     return () => window.removeEventListener("pointerup", onPointerUp);
   }, [onPointerUp]);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        useStageInteractionStore.getState().cancel();
-        return;
-      }
+  const nudge = useCallback(
+    (dx: number, dy: number) => {
       if (selection.kind !== "node" || !project) return;
-      const step = event.shiftKey ? 10 : 1;
-      let dx = 0;
-      let dy = 0;
-      if (event.key === "ArrowLeft") dx = -step;
-      if (event.key === "ArrowRight") dx = step;
-      if (event.key === "ArrowUp") dy = -step;
-      if (event.key === "ArrowDown") dy = step;
-      if (!dx && !dy) return;
-      event.preventDefault();
       const nodeBase = resolveNodeBase(selection.sceneId, selection.nodeId);
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
@@ -216,10 +232,15 @@ export function InteractionOverlay({
         x: nodeBase.x + dx,
         y: nodeBase.y + dy,
       });
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selection, project, resolveNodeBase, commitNodeTransform]);
+    },
+    [selection, project, resolveNodeBase, commitNodeTransform],
+  );
+
+  useStageHotkeys({
+    isGestureActive: () => mode !== "idle",
+    onCancelGesture: cancel,
+    onNudge: nudge,
+  });
 
   const onPointerDown = useCallback(
     (event: ReactPointerEvent) => {
@@ -237,15 +258,22 @@ export function InteractionOverlay({
         );
         if (!nodeBase) return;
         if (handle === "rotate") {
-          beginRotate(nodeBase, point);
+          startRotate(nodeBase, selectedItem.worldBounds, point);
         } else {
-          beginResize(nodeBase, handle, point);
+          startResize(
+            nodeBase,
+            selectedItem.worldBounds,
+            handle as ResizeHandle,
+            point,
+          );
         }
         return;
       }
 
       event.preventDefault();
-      const hits = hitTestRenderSnapshot(snapshot, point);
+      const hits = resolveStageHit(snapshot, point, {
+        respectSelectable: false,
+      }).items;
       if (hits.length === 0) {
         useEditorStore.setState({ selection: selectionNone() });
         setCycleIndex(0);
@@ -265,7 +293,7 @@ export function InteractionOverlay({
         nodeBase &&
         !isElementLocked(envelope, hit.sceneId, hit.nodeId)
       ) {
-        beginMove(nodeBase, point);
+        startMove(nodeBase, hit.worldBounds, point);
       }
     },
     [
@@ -273,9 +301,9 @@ export function InteractionOverlay({
       toCompositionPoint,
       selectedItem,
       resolveNodeBase,
-      beginMove,
-      beginResize,
-      beginRotate,
+      startMove,
+      startResize,
+      startRotate,
       cycleIndex,
       envelope,
     ],

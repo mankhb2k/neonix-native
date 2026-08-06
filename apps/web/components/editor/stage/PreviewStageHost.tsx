@@ -5,14 +5,19 @@
  * React owns lifecycle + document revision; playback ticks paint via StageRendererPort.
  */
 
+import { InteractionOverlay } from "@/components/editor/stage/InteractionOverlay";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
-import { createStageRendererLazy, resolveStageRendererBackend } from "@/lib/editor/stage/stage-renderer-factory";
+import { buildPreviewSnapshot } from "@/lib/editor/preview/preview-project";
+import {
+  createStageRendererLazy,
+  resolveStageRendererBackend,
+} from "@/lib/editor/stage/stage-renderer-factory";
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
 import type { MotionProject } from "@motionvideo/motion-schema";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 type Props = {
   project: MotionProject | null;
@@ -46,6 +51,23 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
   backgroundRef.current = background;
   scaleRef.current = scale;
 
+  const currentTime = usePlaybackClock((s) => s.currentTime);
+  const stageSize = useMemo(
+    () =>
+      aspectRatio
+        ? stageSizeForAspect(aspectRatio)
+        : { width: 1080, height: 1920 },
+    [aspectRatio],
+  );
+  const snapshot = useMemo(() => {
+    if (!project) return null;
+    return buildPreviewSnapshot(
+      project,
+      currentTime,
+      playbackFrameIndex(currentTime, fps),
+    );
+  }, [project, currentTime, fps]);
+
   useLayoutEffect(() => {
     const el = hostRef.current;
     if (!el || !aspectRatio) return undefined;
@@ -69,31 +91,33 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
     if (!mount) return undefined;
     let cancelled = false;
     let renderer: StageRendererPort | null = null;
-    void createStageRendererLazy(mount, resolveStageRendererBackend()).then((r) => {
-      renderer = r;
-      if (cancelled) {
-        renderer = null;
-        r.dispose();
-        return;
-      }
-      rendererRef.current = r;
-      const p = projectRef.current;
-      if (p) {
-        r.setDocument({
-          project: p,
-          clips: clipsRef.current,
-          lanes: lanesRef.current,
-        });
-        r.setBackground(backgroundRef.current);
-        r.setScale(scaleRef.current);
-        r.paintFrame(
-          playbackFrameIndex(
-            usePlaybackClock.getState().currentTime,
-            fpsRef.current,
-          ),
-        );
-      }
-    });
+    void createStageRendererLazy(mount, resolveStageRendererBackend()).then(
+      (r) => {
+        renderer = r;
+        if (cancelled) {
+          renderer = null;
+          r.dispose();
+          return;
+        }
+        rendererRef.current = r;
+        const p = projectRef.current;
+        if (p) {
+          r.setDocument({
+            project: p,
+            clips: clipsRef.current,
+            lanes: lanesRef.current,
+          });
+          r.setBackground(backgroundRef.current);
+          r.setScale(scaleRef.current);
+          r.paintFrame(
+            playbackFrameIndex(
+              usePlaybackClock.getState().currentTime,
+              fpsRef.current,
+            ),
+          );
+        }
+      },
+    );
     return () => {
       cancelled = true;
       const active = rendererRef.current ?? renderer;
@@ -149,11 +173,19 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
       data-testid="preview-stage"
       ref={hostRef}
     >
-      <div
-        className="preview-stage__viewport relative overflow-hidden"
-        ref={mountRef}
-        data-testid="editor-stage-frame"
-      />
+      <div className="relative inline-block" data-testid="editor-stage-frame">
+        <div
+          className="preview-stage__viewport overflow-hidden"
+          ref={mountRef}
+        />
+        <div className="absolute inset-0">
+          <InteractionOverlay
+            snapshot={snapshot}
+            compositionWidth={stageSize.width}
+            compositionHeight={stageSize.height}
+          />
+        </div>
+      </div>
     </div>
   );
 }
