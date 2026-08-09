@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { createPlaybackDriver } from "./playback-driver";
+import { createPlaybackDriver } from "@motionvideo/editor-core";
 import type { PlaybackClockApi } from "./playback-clock-store";
 
 /**

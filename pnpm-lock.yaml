@@ -409,6 +409,9 @@ importers:
 
   packages/editor-core:
     dependencies:
+      '@motionvideo/motion-runtime':
+        specifier: workspace:*
+        version: link:../motion-runtime
       '@motionvideo/motion-schema':
         specifier: workspace:*
         version: link:../motion-schema

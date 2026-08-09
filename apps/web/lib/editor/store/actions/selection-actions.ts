@@ -3,8 +3,8 @@ import {
   selectionNone,
   selectionNode,
   selectedSceneIdFrom,
-} from "@/lib/editor/model/editor-selection";
-import { isBaseLane } from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
+import { isBaseLane } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,

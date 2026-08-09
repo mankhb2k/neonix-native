@@ -12,7 +12,7 @@ import {
   removeLaneExplicitly,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 
 function audioLane(
   id: string,

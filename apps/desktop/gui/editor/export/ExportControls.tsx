@@ -12,9 +12,12 @@ import {
   DesktopIpcError,
   DesktopIpcErrorCode,
 } from "../../../shared/ipc/errors";
-import { buildExportProject } from "./build-export-project";
+import {
+  buildExportProject,
+  type TimelineClip,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 import type { DesktopAPI, ExportEvent } from "../../../shared/ipc/contracts";
-import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import "./export-controls.css";
 
 type Props = {

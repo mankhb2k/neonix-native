@@ -7,7 +7,15 @@
  * Target paint path: host evaluates once → {@link EvaluatedFramePainter}.
  */
 
-import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
+import {
+  buildVisualLaneIndex,
+  composeAtTime,
+  nodeText,
+  resolveScene,
+  type TimelineClip,
+  type TimelineLane,
+  type VisualLaneIndex,
+} from "@motionvideo/editor-core";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   quantizeTimeToFrame,
@@ -18,12 +26,6 @@ import type {
   MotionScene,
   NormalizedMotionProjectV2,
 } from "@motionvideo/motion-schema";
-import {
-  buildVisualLaneIndex,
-  composeAtTime,
-  resolveScene,
-  type VisualLaneIndex,
-} from "@/lib/editor/preview/compose-layers";
 import {
   matrixToCss,
   previewParitySnapshot,

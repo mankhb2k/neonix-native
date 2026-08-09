@@ -3,6 +3,7 @@
 import { memo, useMemo } from "react";
 import {
   capCutRulerScale,
+  computeRulerTickWindow,
   formatRulerLabel,
   TIMELINE_RULER_HEIGHT_PX,
 } from "../timeline-scale";
@@ -14,14 +15,8 @@ type Props = {
   scrollLeft: number;
   originOffsetPx?: number;
   viewWidth: number;
+  onSeekClick?: (clientX: number) => void;
 };
-
-type Tick = {
-  frame: number;
-  labeled: boolean;
-};
-
-const OVERSCAN_PX = 120;
 
 /**
  * CapCut-style time ruler: ticks rise from the baseline,
@@ -34,48 +29,42 @@ export const TimeRuler = memo(function TimeRuler({
   scrollLeft,
   originOffsetPx = 0,
   viewWidth,
+  onSeekClick,
 }: Props) {
   const safeFps = Math.max(1, Math.round(fps));
-  const { tickEveryFrames, labelEveryFrames, pixelsPerFrame } = useMemo(
-    () => capCutRulerScale(pixelsPerSecond, safeFps),
-    [pixelsPerSecond, safeFps],
-  );
-
-  const totalFrames = Math.max(safeFps, Math.ceil(duration * safeFps));
   const pps = Math.max(pixelsPerSecond, 0.001);
+  const { pixelsPerFrame } = useMemo(
+    () => capCutRulerScale(pps, safeFps),
+    [pps, safeFps],
+  );
   const contentScroll = Math.max(0, scrollLeft - originOffsetPx);
-  const startTime = Math.max(0, (contentScroll - OVERSCAN_PX) / pps);
-  const endTime = Math.min(
-    duration,
-    (contentScroll + Math.max(viewWidth, 0) + OVERSCAN_PX) / pps,
-  );
-  const startFrame =
-    Math.floor((startTime * safeFps) / tickEveryFrames) * tickEveryFrames;
-  const endFrame = Math.min(
-    totalFrames,
-    Math.ceil((endTime * safeFps) / tickEveryFrames) * tickEveryFrames,
-  );
 
-  const ticks: Tick[] = [];
-  for (
-    let frame = Math.max(0, startFrame);
-    frame <= endFrame;
-    frame += tickEveryFrames
-  ) {
-    ticks.push({
-      frame,
-      labeled: frame % labelEveryFrames === 0,
-    });
-  }
+  const { ticks } = useMemo(
+    () =>
+      computeRulerTickWindow({
+        contentScroll,
+        duration,
+        fps: safeFps,
+        pps,
+        viewWidth,
+      }),
+    [contentScroll, duration, safeFps, pps, viewWidth],
+  );
 
   return (
     <div
-      className="relative w-full shrink-0 select-none overflow-hidden border-b border-[var(--border-subtle)] bg-[var(--bg-panel)]"
+      className="relative w-full shrink-0 cursor-default select-none overflow-hidden bg-[var(--bg-panel)]"
       style={{ height: TIMELINE_RULER_HEIGHT_PX }}
       data-testid="timeline-ruler"
+      onPointerDown={(event) => {
+        if (!onSeekClick || event.button !== 0) return;
+        event.preventDefault();
+        onSeekClick(event.clientX);
+      }}
     >
       {ticks.map(({ frame, labeled }) => {
-        const left = originOffsetPx + frame * pixelsPerFrame - scrollLeft;
+        // Content coords — ruler lives inside the scrolled surface.
+        const left = originOffsetPx + frame * pixelsPerFrame;
         return (
           <div
             key={frame}
@@ -85,13 +74,13 @@ export const TimeRuler = memo(function TimeRuler({
             <div
               className={
                 labeled
-                  ? "h-3.5 shrink-0 bg-[var(--fg-muted)]"
-                  : "h-2 shrink-0 bg-[var(--fg-muted)]"
+                  ? "h-3.5 shrink-0 bg-[var(--timeline-ruler-tick)]"
+                  : "h-2 shrink-0 bg-[var(--timeline-ruler-tick)]"
               }
               style={{ width: 1 }}
             />
             {labeled ? (
-              <span className="mt-px select-none whitespace-nowrap pt-px font-[family-name:var(--font-mono)] text-[10px] leading-none tabular-nums tracking-tight text-[var(--fg-secondary)]">
+              <span className="mt-px select-none whitespace-nowrap pt-px text-[10px] leading-none tabular-nums tracking-tight text-[var(--timeline-ruler-label)]">
                 {formatRulerLabel(frame, safeFps, labelEveryFrames)}
               </span>
             ) : null}

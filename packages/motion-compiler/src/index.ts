@@ -667,7 +667,26 @@ export function compileMotionProject(project: MotionProject, options: CompileOpt
   });
 }
 
-export type CompiledProject = NormalizedMotionProjectV2;
+export type { CompiledProject } from "./compile-result";
+export {
+  DiagnosticCollector,
+  CompileDiagnosticError,
+  compileSuccess,
+  compileFailure,
+  type CompileDiagnostic,
+  type DiagnosticSeverity,
+  type DiagnosticCode,
+  type CompileResult,
+  type CompileSuccess,
+  type CompileFailure,
+} from "./compile-result";
+export {
+  CompileCache,
+  COMPILER_VERSION,
+  hashComponentDeps,
+  buildCompileCacheKey,
+  type CacheEntry,
+} from "./compile-cache";
 
 export { applyFitText, applyLayoutConstraints } from "./layout-solver";
 export {
@@ -692,4 +711,82 @@ export {
   type RecipeBakeInput,
   type BakedRecipe,
 } from "./recipe-registry";
+
+// ── Structured compile entry point (Phase 2) ──────────────────────────
+
+import {
+  DiagnosticCollector,
+  compileSuccess,
+  compileFailure,
+  type CompileResult,
+} from "./compile-result";
+
+/**
+ * Compile a MotionProject → NormalizedMotionProjectV2 with structured diagnostics.
+ *
+ * Unlike `compileMotionProject()` which throws on errors, this returns
+ * `{ ok: false, diagnostics }` so callers can surface issues without
+ * try/catch boilerplate.
+ */
+export function compileMotionProjectV2(
+  project: MotionProject,
+  options: CompileOptions = {},
+): CompileResult<NormalizedMotionProjectV2> {
+  const collector = new DiagnosticCollector();
+
+  try {
+    const compiled = compileMotionProject(project, options);
+    // Zod parse inside compileMotionProject may throw ZodError
+    const warnings: typeof collector.diagnostics = [];
+    // (Future: collect non-fatal warnings during compilation)
+    return compileSuccess(compiled, [...warnings]);
+  } catch (err: unknown) {
+    // Convert Zod validation errors to structured diagnostics
+    if (err && typeof err === "object" && "issues" in err) {
+      const zodErr = err as { issues: Array<{ path: (string | number)[]; message: string; code: string }> };
+      for (const issue of zodErr.issues) {
+        collector.error(
+          "RUNTIME_VALIDATION_ERROR",
+          issue.message,
+          { path: issue.path, details: { zodCode: issue.code } },
+        );
+      }
+    } else if (err instanceof Error) {
+      // Map known error messages to diagnostic codes
+      const msg = err.message;
+      if (msg.includes("Unknown variable reference")) {
+        collector.error("UNKNOWN_VARIABLE", msg);
+      } else if (msg.includes("Unknown clip target")) {
+        collector.error("UNKNOWN_CLIP_TARGET", msg);
+      } else if (msg.includes("Unknown scene marker")) {
+        collector.error("UNKNOWN_MARKER", msg);
+      } else if (msg.includes("Component package unavailable") || msg.includes("Unknown Component Action") || msg.includes("Unknown Component Action lip-sync")) {
+        collector.error("UNKNOWN_COMPONENT", msg);
+      } else if (msg.includes("Unknown variant")) {
+        collector.error("UNKNOWN_VARIANT", msg);
+      } else if (msg.includes("Invalid keyframe time")) {
+        collector.error("INVALID_KEYFRAME_TIME", msg);
+      } else if (msg.includes("must be > 0") || msg.includes("playback.rate must")) {
+        collector.error("INVALID_PLAYBACK_RATE", msg);
+      } else if (msg.includes("Clip schedule cycle")) {
+        collector.error("CLIP_SCHEDULE_CYCLE", msg);
+      } else if (msg.includes("exceeds invocation duration")) {
+        collector.error("CLIP_EXCEEDS_DURATION", msg);
+      } else if (msg.includes("Nested component") || msg.includes("Nested Component Action")) {
+        collector.error("NESTED_COMPONENT", msg);
+      } else if (msg.includes("Repeater source must be a list") || msg.includes("Repeater item") || msg.includes("Repeater key")) {
+        collector.error("REPEATER_INVALID_SOURCE", msg);
+      } else if (msg.includes("Preset clip") && msg.includes("requires targetId")) {
+        collector.error("PRESET_NO_TARGET", msg);
+      } else if (msg.includes("Unexpanded Component Action clip")) {
+        collector.error("UNEXPANDED_ACTION_CLIP", msg);
+      } else {
+        collector.error("RUNTIME_VALIDATION_ERROR", msg);
+      }
+    } else {
+      collector.error("RUNTIME_VALIDATION_ERROR", String(err));
+    }
+    return compileFailure([...collector.diagnostics]);
+  }
+}
 

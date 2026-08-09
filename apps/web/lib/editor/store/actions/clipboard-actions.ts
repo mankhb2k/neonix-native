@@ -1,14 +1,14 @@
-import { type ClipClipboardItem } from "@/lib/editor/clip-clipboard";
+import { type ClipClipboardItem } from "@motionvideo/editor-core";
 import {
   selectedClipIdsFrom,
-} from "@/lib/editor/model/editor-selection";
+} from "@motionvideo/editor-core";
 import {
   selectionHasLockedLane,
-} from "@/lib/editor/operations/lane-flags";
+} from "@motionvideo/editor-core";
 import {
   isAudioLane,
   isBaseLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,

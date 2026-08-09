@@ -3,7 +3,7 @@ import {
   fixtureBasePlusOverlay,
   fixtureMainOnly,
 } from "@/lib/editor/__fixtures__/projects";
-import { selectedClipIdsFrom } from "@/lib/editor/model/editor-selection";
+import { selectedClipIdsFrom } from "@motionvideo/editor-core";
 import { createEditorStore } from "@/lib/editor/store/create-editor-store";
 import {
   createHistoryState,
@@ -13,7 +13,7 @@ import {
   canUndo,
   canRedo,
   type TimelineDocument,
-} from "@/lib/editor/timeline";
+} from "@motionvideo/editor-core";
 
 describe("Pure History Manager Engine", () => {
   it("manages history push, undo, redo stack transitions correctly", () => {

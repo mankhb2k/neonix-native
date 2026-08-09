@@ -3,12 +3,12 @@ import {
   createDenseTimelineFixture,
   expectedVisibleClipBudget,
 } from "@/lib/editor/__fixtures__/large-timeline";
-import { clipsByLane } from "@/lib/editor/timeline/indexes";
+import { clipsByLane } from "@motionvideo/editor-core";
 import {
   clipsVisibleWithPins,
   visibleTimeRange,
-} from "@/lib/editor/timeline/selectors/visible-range";
-import type { TimelineDocument } from "@/lib/editor/timeline/document";
+} from "@motionvideo/editor-core";
+import type { TimelineDocument } from "@motionvideo/editor-core";
 
 describe("large timeline virtualization budget", () => {
   it.each([500, 2000] as const)(

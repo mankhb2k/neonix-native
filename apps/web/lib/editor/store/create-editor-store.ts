@@ -9,10 +9,10 @@ import { createProjectLifecycleActions } from "@/lib/editor/store/actions/projec
 import { createSelectionActions } from "@/lib/editor/store/actions/selection-actions";
 import { createUiActions } from "@/lib/editor/store/actions/ui-actions";
 import { createInitialEditorState } from "@/lib/editor/store/initial-state";
-import { mapNode } from "@/lib/editor/store/internal/scene-utils";
+import { mapNode } from "@motionvideo/editor-core";
 import type { EditorStore } from "@/lib/editor/store/types";
-import { executeTimelineCommand } from "@/lib/editor/timeline/commands/command-runner";
-import { documentFromStoreState } from "@/lib/editor/timeline/document";
+import { executeTimelineCommand } from "@motionvideo/editor-core";
+import { documentFromStoreState } from "@motionvideo/editor-core";
 import {
   canRedo,
   canUndo,
@@ -22,11 +22,11 @@ import {
   redoHistory,
   replaceOrPushHistory,
   undoHistory,
-} from "@/lib/editor/timeline/history/history-manager";
-import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
+} from "@motionvideo/editor-core";
+import type { HistoryEntry } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
-import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
-import { clipsContentEndSeconds } from "@/lib/editor/timeline-clips";
+import { sceneOrderToTimelineClips } from "@motionvideo/editor-core";
+import { clipsContentEndSeconds } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   isPropertyLocked,
@@ -53,7 +53,9 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           timelineLanes: entry.before.lanes,
           timelineClips: entry.before.clips,
           dirtyRevision: get().dirtyRevision + 1,
-          ...(entry.beforeSelection ? { selection: entry.beforeSelection } : {}),
+          ...(entry.beforeSelection
+            ? { selection: entry.beforeSelection }
+            : {}),
           canUndo: canUndo(historyState),
           canRedo: canRedo(historyState),
         });

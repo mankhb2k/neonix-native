@@ -7,8 +7,11 @@ import {
   reduceTimelineSession,
 } from "../../session/timeline-session";
 import { capCutRulerScale } from "../timeline-scale";
-import { computeViewportLayout } from "../viewport/viewport-layout";
-import { selectionNone, sliderValueToZoomScale } from "@motionvideo/editor-core";
+import {
+  computeViewportLayout,
+  selectionNone,
+  sliderValueToZoomScale,
+} from "@motionvideo/editor-core";
 
 describe("loadTimelineFromDocumentJson", () => {
   it("hydrates blank envelope with base lane", () => {
@@ -93,7 +96,9 @@ describe("capCutRulerScale", () => {
   it("returns positive tick/label steps", () => {
     const scale = capCutRulerScale(50, 30);
     expect(scale.tickEveryFrames).toBeGreaterThan(0);
-    expect(scale.labelEveryFrames).toBeGreaterThanOrEqual(scale.tickEveryFrames);
+    expect(scale.labelEveryFrames).toBeGreaterThanOrEqual(
+      scale.tickEveryFrames,
+    );
     expect(scale.pixelsPerFrame).toBeCloseTo(50 / 30, 5);
   });
 });

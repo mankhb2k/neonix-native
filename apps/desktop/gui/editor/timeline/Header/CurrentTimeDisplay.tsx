@@ -1,5 +1,5 @@
 import { usePlaybackClock } from "../../playback/playback-clock-store";
-import { playbackFrameIndex } from "../../playback/time-frame";
+import { playbackFrameIndex } from "@motionvideo/editor-core";
 import { formatTimecode } from "../timeline-scale";
 
 type Props = {

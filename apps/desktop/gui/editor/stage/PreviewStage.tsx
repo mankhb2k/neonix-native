@@ -1,6 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePlaybackClockApi } from "../playback/playback-clock-store";
-import { playbackFrameIndex } from "../playback/time-frame";
+import {
+  playbackFrameIndex,
+  type TimelineClip,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 import { stageSizeForAspect } from "../preview/preview-evaluate";
 import {
   createStageRendererLazy,
@@ -8,7 +12,6 @@ import {
   STAGE_RENDERER_BACKEND,
 } from "./stage-renderer-factory";
 import type { StageRendererPort } from "./stage-renderer-port";
-import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import "./stage-layout.css";
 

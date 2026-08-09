@@ -1,5 +1,11 @@
-import type { DesignLane } from "../lanes/timeline-lane-rows";
-import type { TimelineTrackKind } from "../lanes/track-kind";
+import type { DesignLaneRole, TimelineTrackKind } from "../lanes/track-kind";
+
+export type DesignLane = {
+  id: string;
+  name: string;
+  role: DesignLaneRole;
+  kind: "visual" | "audio";
+};
 
 export type DesignClip = {
   id: string;

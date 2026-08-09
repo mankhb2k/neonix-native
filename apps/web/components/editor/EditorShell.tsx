@@ -1,9 +1,10 @@
 "use client";
 
+import { EditorHeader } from "@/components/editor/header/EditorHeader";
 import { SchemaInspector } from "@/components/editor/inspector/SchemaInspector";
-import { LeftRail } from "@/components/editor/left-rail/LeftRail";
+import { LibraryDragPreview } from "@/components/editor/library/LibraryDragPreview";
+import { Sidebar } from "@/components/editor/sidebar/Sidebar";
 import { StageViewport } from "@/components/editor/stage/StageViewport";
-import { EditorTopBar } from "@/components/editor/topbar/EditorTopBar";
 import { useEditorAutosave } from "@/lib/editor/export/use-editor-autosave";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
@@ -39,12 +40,13 @@ export function EditorShell({ initialSnapshot }: Props) {
     <div
       data-surface="editor"
       data-testid="editor-shell"
-      className="grid h-screen w-screen overflow-hidden text-[var(--fg-primary)] [background:radial-gradient(ellipse_80%_50%_at_50%_-5%,rgba(13,148,136,0.06)_0%,transparent_55%),var(--bg-app)] [grid-template-areas:'topbar_topbar_topbar'_'left_stage_right'] [grid-template-columns:var(--editor-left-w)_1fr_var(--editor-right-w)] [grid-template-rows:var(--editor-chrome-h)_1fr]"
+      className="grid h-screen w-screen overflow-hidden text-[var(--fg-primary)] [background:radial-gradient(ellipse_80%_50%_at_50%_-5%,rgba(13,148,136,0.06)_0%,transparent_55%),var(--bg-app)] [grid-template-areas:'header_header_header'_'sidebar_stage_inspector'] [grid-template-columns:var(--editor-left-w)_1fr_var(--editor-right-w)] [grid-template-rows:var(--editor-chrome-h)_1fr]"
     >
-      <EditorTopBar projectName={name} projectId={active.metadata.id} />
-      <LeftRail />
+      <EditorHeader projectName={name} projectId={active.metadata.id} />
+      <Sidebar />
       <StageViewport project={active} width={width} height={height} />
       <SchemaInspector />
+      <LibraryDragPreview />
     </div>
   );
 }

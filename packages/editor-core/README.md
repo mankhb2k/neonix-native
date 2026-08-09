@@ -9,6 +9,7 @@ Domain logic thuần túy cho Timeline và Document của hệ thống (không p
 - Xử lý **Geometry & Policies**: Tính toán không gian timeline, va chạm khi thay đổi kích thước (resize-collision), quy tắc bắt dính (snapping), quy tắc thả clip (drop-target).
 - Quản lý **Lịch sử (History)**: Undo/Redo an toàn, gom nhóm các lịch sử liên tiếp (coalesce).
 - Quản lý **Selection & Clipboard**: Xử lý trạng thái đang chọn clip nào, sao chép/dán clip.
+- **Playback / compose / export bake**: RAF driver + frame↔time helpers, visual layer compose tại global time, và bake timeline → MotionProject tuần tự cho export.
 
 ## API chính
 
@@ -18,6 +19,9 @@ import {
   moveClipGroup,
   applyLaneFlagPatch,
   resolveCollisionsAfterResize,
+  createPlaybackDriver,
+  composeVisualLayersAtTime,
+  buildExportProject,
 } from "@motionvideo/editor-core";
 ```
 
@@ -28,6 +32,9 @@ import {
 | `timeline/policies` | Các quy tắc về không gian vật lý của timeline (snapping, zoom-fit) |
 | `history/` | Cấu trúc dữ liệu và logic cho Undo/Redo |
 | `properties/` | Quản lý thay đổi thuộc tính của đối tượng trên timeline |
+| `playback/` | Pure RAF playback driver + frame↔time helpers |
+| `preview/` | Compose visual layers tại global time |
+| `export/` | Slice scene + bake timeline → MotionProject cho export |
 
 ## Không làm
 
@@ -38,3 +45,4 @@ import {
 ## Phụ thuộc (Dependencies)
 
 - `@motionvideo/motion-schema`: Sử dụng schema chuẩn để định nghĩa và giao tiếp.
+- `@motionvideo/motion-runtime`: Frame index helpers (`frameIndexAtTime`) cho playback time-frame.

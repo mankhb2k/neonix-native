@@ -3,20 +3,20 @@
  * Merges elementMeta on refine; materializes timeline from sceneOrder.
  */
 
-import { resolveFitAnchorSeconds } from "@/lib/editor/timeline-fit";
+import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
 import {
   selectionClips,
   selectionNone,
-} from "@/lib/editor/model/editor-selection";
+} from "@motionvideo/editor-core";
 import {
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
-import { documentFromStoreState } from "@/lib/editor/timeline/document";
-import type { HistoryEntry } from "@/lib/editor/timeline/history/history-types";
+import { documentFromStoreState } from "@motionvideo/editor-core";
+import type { HistoryEntry } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import type {
   ElementAuthoringMeta,

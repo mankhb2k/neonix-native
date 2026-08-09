@@ -7,7 +7,7 @@ import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/model/timeline-types";
+} from "@motionvideo/editor-core";
 
 export const PERFORMANCE_BASELINE_CLIP_COUNTS = [20, 100, 500, 2000] as const;
 

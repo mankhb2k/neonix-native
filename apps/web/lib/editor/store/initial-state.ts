@@ -1,6 +1,6 @@
-import { selectionNone } from "@/lib/editor/model/editor-selection";
-import { ensureMainLane } from "@/lib/editor/timeline-clips";
-import type { ClipClipboardItem } from "@/lib/editor/clip-clipboard";
+import { selectionNone } from "@motionvideo/editor-core";
+import { ensureMainLane } from "@motionvideo/editor-core";
+import type { ClipClipboardItem } from "@motionvideo/editor-core";
 import type { EditorStoreState } from "@/lib/editor/store/types";
 
 export function createInitialEditorState(): EditorStoreState {

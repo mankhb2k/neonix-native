@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { fitPixelsPerSecond, timelineFitSpanSeconds } from "@/lib/editor/timeline-fit";
+import { fitPixelsPerSecond, timelineFitSpanSeconds } from "@motionvideo/editor-core";
 import { fixtureMainOnly } from "@/lib/editor/__fixtures__/projects";
 
 describe("Timeline Fit Lifecycle (5s -> Delete -> 12s)", () => {

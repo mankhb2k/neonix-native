@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   composeVisualLayersAtTime,
+  DEFAULT_VISUAL_POLICY,
   findActiveClipAtTime,
-} from "@/lib/editor/preview/compose-layers";
-import { DEFAULT_VISUAL_POLICY, type TimelineClip, type TimelineLane } from "@/lib/editor/timeline-clips";
+  type TimelineClip,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 
 const lanes: TimelineLane[] = [
   {

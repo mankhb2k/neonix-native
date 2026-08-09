@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sliceScene, clipLocalTime } from "@/lib/editor/export/slice-scene";
+import { sliceScene, clipLocalTime } from "@motionvideo/editor-core";
 import type { MotionScene } from "@motionvideo/motion-schema";
 
 describe("sliceScene", () => {

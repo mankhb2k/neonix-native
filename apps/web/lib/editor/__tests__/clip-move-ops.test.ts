@@ -2,13 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   applyRippleAfter,
   resolveVisualPlacement,
-} from "@/lib/editor/operations/clip-move";
+} from "@motionvideo/editor-core";
 import {
   DEFAULT_VISUAL_POLICY,
   resolveLaneStartTimeNearest,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 
 const lanes: TimelineLane[] = [
   {

@@ -10,18 +10,18 @@ import {
   documentFromStoreState,
   validateTimelineDocument,
   type TimelineDocument,
-} from "@/lib/editor/timeline/document";
+} from "@motionvideo/editor-core";
 import {
   clipsById,
   clipsByLane,
   contentEndSeconds,
   lanesById,
   visualCompositionIndex,
-} from "@/lib/editor/timeline/indexes";
+} from "@motionvideo/editor-core";
 import {
   migrateLanesAndClips,
   normalizeLaneOrders,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 
 describe("TimelineDocument Invariants & Validation", () => {
   it("validates fixtureMainOnly correctly", () => {

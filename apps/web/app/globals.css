@@ -68,6 +68,9 @@
   --timeline-clip-overlay-hover: #b09fd9;
   --timeline-clip-overlay-fg: #3b2f5c;
   --timeline-playhead: var(--fg-primary);
+  /* Ruler ticks + labels — đậm hơn border (đọc được trên bg-panel) */
+  --timeline-ruler-tick: rgba(15, 20, 25, 0.38);
+  --timeline-ruler-label: rgba(15, 20, 25, 0.58);
   --timeline-transport-h: 36px;
   --timeline-ruler-h: 28px;
   --timeline-label-w: 96px;
@@ -81,6 +84,8 @@
   --text-ui--line-height: 1.4;
   --text-body: var(--fs-body);
   --text-body--line-height: 1.4;
+  --font-mono: var(--font-roboto-mono), ui-monospace, "Cascadia Mono", Consolas,
+    monospace;
 }
 
 * {

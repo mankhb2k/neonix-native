@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Redo2, Scissors, Trash2, Undo2 } from "lucide-react";
 import {
   playheadSplitsClip,
+  playbackFrameIndex,
   selectedClipIdsFrom,
   type EditorSelection,
   type TimelineClip,
@@ -12,7 +13,6 @@ import {
   usePlaybackClock,
   usePlaybackClockApi,
 } from "../../playback/playback-clock-store";
-import { playbackFrameIndex } from "../../playback/time-frame";
 
 /** Shared Lucide props for TransportBar edit icons. */
 export const editActionIcon = {

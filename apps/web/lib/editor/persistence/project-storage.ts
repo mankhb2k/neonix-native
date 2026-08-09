@@ -1,13 +1,13 @@
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { parseMotionProject } from "@motionvideo/motion-schema";
-import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
+import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 import {
   CURRENT_STORAGE_VERSION,
   migrateStoredProject,

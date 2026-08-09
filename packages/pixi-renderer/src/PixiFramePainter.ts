@@ -9,6 +9,9 @@ import {
   type PaintCommand,
   type PaintCommandBuffer,
   type RuntimeEffect,
+  type PaintPatch,
+  isPatchStale,
+  type PatchSequence,
 } from "@motionvideo/motion-runtime";
 import {
   BlurFilter,
@@ -53,6 +56,13 @@ export type PixiFramePainter = EvaluatedFramePainter & {
     nodeType: string;
     message: string;
   }[];
+  /**
+   * Apply a paint-only patch without clearing the display cache.
+   * Stale patches (sequence < current) are silently dropped.
+   * Returns the new sequence number if applied, or current sequence if dropped.
+   * @since Phase 2
+   */
+  applyPatch(patch: PaintPatch): PatchSequence;
   clear(): void;
   dispose(): void;
 };
@@ -200,6 +210,7 @@ export function createPixiFramePainter(
   const assetStore = options.assetStore ?? createPixiAssetStore();
   let lastPaint: PaintCommandBuffer | null = null;
   let lastLiveKeys: string[] = [];
+  let currentSequence: PatchSequence = 0;
   let unsupported: Array<{
     key: string;
     nodeId: string;
@@ -468,6 +479,54 @@ export function createPixiFramePainter(
     paintCommands,
     getLiveKeys: () => lastLiveKeys,
     getUnsupported: () => unsupported,
+    applyPatch(patch: PaintPatch): PatchSequence {
+      // Drop stale patches
+      if (isPatchStale(patch, currentSequence)) return currentSequence;
+
+      // Find the cached display object by key
+      const entry = cache.get(patch.nodeId);
+      if (!entry) return currentSequence;
+
+      // Apply property update without clearing Graphics cache
+      const display = entry.display;
+      try {
+        if (patch.property === "transform.opacity" && typeof patch.value === "number") {
+          display.alpha = patch.value;
+        } else if (patch.property === "transform.visible" && typeof patch.value === "boolean") {
+          display.visible = patch.value;
+        } else if (patch.property === "style.fill" && entry.kind === "graphics" && typeof patch.value === "string") {
+          const g = display as Graphics;
+          // Only update fill for shape/solid graphics
+          if (lastPaint) {
+            // Re-execute the relevant paint command for this key
+            for (const cmd of lastPaint.commands) {
+              if (cmd.key === patch.nodeId && (cmd.op === "drawShape" || cmd.op === "drawSolid")) {
+                g.clear();
+                const w = cmd.width;
+                const h = cmd.height;
+                if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
+                  g.ellipse(w / 2, h / 2, w / 2, h / 2);
+                } else if (cmd.op === "drawShape" && cmd.cornerRadius) {
+                  g.roundRect(0, 0, w, h, cmd.cornerRadius);
+                } else {
+                  g.rect(0, 0, w, h);
+                }
+                const fillStyle = paintFillStyle(patch.value as string, cmd.fillPaint, w, h);
+                g.fill(fillStyle);
+                break;
+              }
+            }
+          }
+        }
+        // For other properties, fall through to full re-paint
+        currentSequence = patch.sequence;
+      } catch {
+        // On error, fallback to full re-paint next frame
+        // (don't increment sequence so next valid patch applies)
+      }
+
+      return currentSequence;
+    },
     clear,
     dispose() {
       clear();

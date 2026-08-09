@@ -31,10 +31,15 @@ export {
   type TimelineViewportMetrics,
 } from "./timeline/coordinates";
 export {
+  PLAYHEAD_SCRUB_EDGE_PX,
+  PLAYHEAD_SCRUB_STEP_PX,
+  PLAYHEAD_FOLLOW_MARGIN_PX,
   metricsFromScrollElement,
   clientPointToTimelineTime,
   clientPointToStripTime,
   timelineTimeToViewportLeft,
+  timelineTimeToContentLeft,
+  computePlayheadFollowScroll,
   computeHorizontalEdgeScroll,
   ensurePlayheadScrubScrollMetrics,
   resolvePlayheadScrubMax,
@@ -91,6 +96,23 @@ export {
   clipIdsInMarqueeIndexed,
 } from "./timeline/marquee";
 export type { TimelineDropTargetHint } from "./timeline/drop-target";
+export {
+  resolveDropGeometry,
+  type DropGeometryResult,
+  type DropGeometryPureInput,
+} from "./timeline/drop-geometry";
+export type { MoveSessionState } from "./timeline/clip-move-session";
+export {
+  buildClipMovePatch,
+  createClipMoveSessionState,
+  updateClipMoveSessionState,
+} from "./timeline/clip-move-session";
+export type { LibraryDropSessionState } from "./timeline/library-drop-session";
+export {
+  buildPlacementTarget,
+  createLibraryDropSessionState,
+  updateLibraryDropSessionState,
+} from "./timeline/library-drop-session";
 
 export {
   type StagePoint,

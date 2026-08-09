@@ -101,7 +101,10 @@ export function TransportBar({
             <Play size={14} fill="currentColor" strokeWidth={0} className="ml-0.5" />
           )}
         </button>
-        <span className="block w-[11ch] shrink-0 text-left font-[family-name:var(--font-mono)] text-[12px] leading-none tabular-nums tracking-tight text-[var(--fg-secondary)]">
+        <span
+          className="block w-[11ch] shrink-0 text-left font-mono text-[12px] leading-none tabular-nums tracking-tight text-[var(--fg-secondary)]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
           {formatTimecode(duration, fps)}
         </span>
       </div>

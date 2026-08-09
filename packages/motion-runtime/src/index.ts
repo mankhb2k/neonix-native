@@ -22,3 +22,5 @@ export * from "./evaluate-composition";
 export * from "./media-timing";
 export * from "./compositing-fingerprint";
 export * from "./pixel-diff";
+export * from "./runtime-patch";
+export * from "./determinism";

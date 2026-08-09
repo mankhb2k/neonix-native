@@ -9,7 +9,7 @@ import {
 } from "@motionvideo/editor-core";
 import { motionPropertyCapability } from "@motionvideo/motion-schema";
 import type { MotionProject } from "@motionvideo/motion-schema";
-import { AskAIBar } from "@/components/editor/ai/AskAIBar";
+import { AskAIBar } from "@/components/editor/inspector/ai/AskAIBar";
 import { Panel, Tabs } from "@/components/ui";
 import {
   isPropertyLocked,
@@ -414,7 +414,7 @@ export function SchemaInspector() {
   }, [activeProject, selection]);
 
   return (
-    <aside className="min-h-0 border-l-2 border-[var(--border-subtle)] [grid-area:right]">
+    <aside className="min-h-0 border-l-2 border-[var(--border-subtle)] [grid-area:inspector]">
       <Panel bodyClassName="!p-0" className="h-full rounded-none border-0">
         <Tabs
           defaultValue="ai"

@@ -135,6 +135,17 @@ export {
   type NormalizedMotionProjectV2,
 } from "./runtime";
 
+export {
+  type PreparedRuntimeProject,
+  type RuntimeSceneNode,
+  type RuntimeSceneTrack,
+  type RuntimeScene,
+  type StaticGeometry,
+  type TextLayoutInput,
+  type CompositingScope,
+  type DepGraphNode,
+} from "./prepared-runtime";
+
 export type { ReferenceIssue } from "./references/types";
 export { MotionV2ReferenceError } from "./references/types";
 export { validateMotionComponentV2References } from "./references/component";

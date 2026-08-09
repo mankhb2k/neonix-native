@@ -1,0 +1,133 @@
+{
+  "generatedAt": "2026-08-09T18:40:41.871Z",
+  "nodeVersion": "v24.12.0",
+  "platform": "win32 x64",
+  "results": [
+    {
+      "scenario": "small · 1s × 3L @ 30fps",
+      "size": "small",
+      "fps": 30,
+      "sceneCount": 1,
+      "layerCount": 3,
+      "totalFrames": 150,
+      "compileMs": 0.01,
+      "evaluateMs": 0.56,
+      "frameTimeMs": {
+        "p50": 0.0009000000000014552,
+        "p95": 0.0023000000000195087,
+        "p99": 0.027000000000015234,
+        "mean": 0.0017619999999995647,
+        "min": 0.0006999999999948159,
+        "max": 0.028099999999994907,
+        "samples": 150
+      },
+      "memoryRssMb": 69.33,
+      "timestamp": "2026-08-09T18:40:41.874Z"
+    },
+    {
+      "scenario": "small · 1s × 3L @ 60fps",
+      "size": "small",
+      "fps": 60,
+      "sceneCount": 1,
+      "layerCount": 3,
+      "totalFrames": 300,
+      "compileMs": 0,
+      "evaluateMs": 0.8,
+      "frameTimeMs": {
+        "p50": 0.0013000000000147338,
+        "p95": 0.0027000000000043656,
+        "p99": 0.051400000000001,
+        "mean": 0.002165333333334445,
+        "min": 0.0009999999999763531,
+        "max": 0.0671000000000106,
+        "samples": 300
+      },
+      "memoryRssMb": 69.49,
+      "timestamp": "2026-08-09T18:40:41.875Z"
+    },
+    {
+      "scenario": "medium · 3s × 10L @ 30fps",
+      "size": "medium",
+      "fps": 30,
+      "sceneCount": 3,
+      "layerCount": 30,
+      "totalFrames": 300,
+      "compileMs": 0,
+      "evaluateMs": 0.35,
+      "frameTimeMs": {
+        "p50": 0.0009000000000014552,
+        "p95": 0.0012000000000114142,
+        "p99": 0.0020000000000095497,
+        "mean": 0.0008963333333343826,
+        "min": 0.0003999999999848569,
+        "max": 0.007900000000006457,
+        "samples": 300
+      },
+      "memoryRssMb": 69.57,
+      "timestamp": "2026-08-09T18:40:41.876Z"
+    },
+    {
+      "scenario": "medium · 3s × 10L @ 60fps",
+      "size": "medium",
+      "fps": 60,
+      "sceneCount": 3,
+      "layerCount": 30,
+      "totalFrames": 600,
+      "compileMs": 0,
+      "evaluateMs": 1.31,
+      "frameTimeMs": {
+        "p50": 0.0009000000000014552,
+        "p95": 0.0011000000000080945,
+        "p99": 0.002900000000011005,
+        "mean": 0.0020250000000001005,
+        "min": 0.0007999999999981355,
+        "max": 0.6062000000000012,
+        "samples": 600
+      },
+      "memoryRssMb": 69.82,
+      "timestamp": "2026-08-09T18:40:41.878Z"
+    },
+    {
+      "scenario": "large · 10s × 30L @ 30fps",
+      "size": "large",
+      "fps": 30,
+      "sceneCount": 10,
+      "layerCount": 300,
+      "totalFrames": 900,
+      "compileMs": 0.07,
+      "evaluateMs": 2.62,
+      "frameTimeMs": {
+        "p50": 0.0021999999999877673,
+        "p95": 0.002900000000011005,
+        "p99": 0.011799999999993815,
+        "mean": 0.002773666666666846,
+        "min": 0.001299999999986312,
+        "max": 0.5320000000000107,
+        "samples": 900
+      },
+      "memoryRssMb": 70.13,
+      "timestamp": "2026-08-09T18:40:41.882Z"
+    },
+    {
+      "scenario": "large · 10s × 30L @ 60fps",
+      "size": "large",
+      "fps": 60,
+      "sceneCount": 10,
+      "layerCount": 300,
+      "totalFrames": 1800,
+      "compileMs": 0,
+      "evaluateMs": 6.39,
+      "frameTimeMs": {
+        "p50": 0.002600000000001046,
+        "p95": 0.0053000000000054115,
+        "p99": 0.013300000000015189,
+        "mean": 0.0032762222222219054,
+        "min": 0.001299999999986312,
+        "max": 0.272199999999998,
+        "samples": 1800
+      },
+      "memoryRssMb": 73.8,
+      "timestamp": "2026-08-09T18:40:41.889Z"
+    }
+  ]
+}

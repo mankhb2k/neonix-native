@@ -16,11 +16,11 @@ import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 import {
   executeTimelineCommand,
   type TimelineDocument,
-} from "@/lib/editor/timeline";
+} from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-schema";
 import { parseMotionProject } from "@motionvideo/motion-schema";
 

@@ -1,16 +1,17 @@
 import type { WebProjectEnvelope } from "@/lib/editor/authoring/web-project-envelope";
-import type { ClipClipboardItem } from "@/lib/editor/clip-clipboard";
-import type { FrameDraft } from "@/lib/editor/frame-library";
-import type { EditorSelection } from "@/lib/editor/model/editor-selection";
-import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+import type {
+  ClipClipboardItem,
+  CommandResult,
+  EditorSelection,
+  FrameDraft,
+  OverlaySceneItem,
+  PlacementTarget,
+  TimelineClip,
+  TimelineCommand,
+  TimelineLane,
+} from "@motionvideo/editor-core";
 import type { AspectRatio, MotionProject } from "@motionvideo/motion-schema";
 import type { StoreApi } from "zustand";
-
-import type {
-  CommandResult,
-  TimelineCommand,
-} from "@/lib/editor/timeline/commands/command-types";
 
 export type SidebarTabId =
   | "frame"
@@ -93,15 +94,7 @@ export type EditorStoreActions = {
   setAspectRatio: (aspectRatio: AspectRatio) => void;
   addClipFromDraft: (
     draft: FrameDraft,
-    target:
-      | { track: "main" }
-      | {
-          track: "overlay";
-          startTime: number;
-          laneId?: string;
-          insertNewLane?: boolean;
-          insertOrder?: number;
-        },
+    target?: PlacementTarget | { track: "main" },
   ) => void;
   /** track "main" = UI Main lane (domain role `base`) — API name kept for callers. */
   moveClip: (

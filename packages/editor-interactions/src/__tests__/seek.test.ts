@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   clientPointToTimelineTime,
   computeHorizontalEdgeScroll,
+  computePlayheadFollowScroll,
   ensurePlayheadScrubScrollMetrics,
   resolvePlayheadScrubMax,
 } from "../timeline/seek";
@@ -110,6 +111,52 @@ describe("resolvePlayheadScrubMax", () => {
     expect(resolvePlayheadScrubMax(20, 12)).toBe(12);
     expect(resolvePlayheadScrubMax(6, 30)).toBe(6);
     expect(resolvePlayheadScrubMax(6, 0)).toBe(6);
+  });
+});
+
+describe("computePlayheadFollowScroll", () => {
+  it("scrolls right when playhead crosses the right margin", () => {
+    const { scrollLeftDelta, nextScrollLeft } = computePlayheadFollowScroll({
+      time: 5,
+      tracksOriginX: 16,
+      pixelsPerSecond: 100,
+      scrollLeft: 0,
+      clientWidth: 400,
+      scrollWidth: 2000,
+      marginPx: 48,
+    });
+    // contentX = 16 + 500 = 516; viewRight-margin = 352 → need scroll
+    expect(scrollLeftDelta).toBeGreaterThan(0);
+    expect(nextScrollLeft).toBe(516 - 400 + 48);
+  });
+
+  it("scrolls left when playhead is before the left margin", () => {
+    const { scrollLeftDelta, nextScrollLeft } = computePlayheadFollowScroll({
+      time: 1,
+      tracksOriginX: 16,
+      pixelsPerSecond: 100,
+      scrollLeft: 400,
+      clientWidth: 400,
+      scrollWidth: 2000,
+      marginPx: 48,
+    });
+    // contentX = 116; viewLeft+margin = 448 → scroll back
+    expect(scrollLeftDelta).toBeLessThan(0);
+    expect(nextScrollLeft).toBe(Math.max(0, 116 - 48));
+  });
+
+  it("does nothing when playhead is already in view", () => {
+    const { scrollLeftDelta } = computePlayheadFollowScroll({
+      time: 3,
+      tracksOriginX: 16,
+      pixelsPerSecond: 100,
+      scrollLeft: 100,
+      clientWidth: 400,
+      scrollWidth: 2000,
+      marginPx: 48,
+    });
+    // contentX = 316; view = [100, 500]; margins [148, 452] → inside
+    expect(scrollLeftDelta).toBe(0);
   });
 });
 

@@ -1,7 +1,7 @@
 import {
   resolveFitAnchorSeconds,
   sliderValueToZoomScale,
-} from "@/lib/editor/timeline-fit";
+} from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,
