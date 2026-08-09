@@ -155,7 +155,9 @@ describe("RuntimePatch protocol", () => {
       kind: "track-values",
       sequence: 2,
       sceneId: "s",
-      tracks: [{ targetId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] }],
+      tracks: [
+        { targetId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] },
+      ],
     };
     expect(track.kind).toBe("track-values");
 

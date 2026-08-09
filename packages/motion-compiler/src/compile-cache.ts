@@ -119,7 +119,11 @@ export class CompileCache {
   }
 
   /** Get cache stats */
-  stats(): { size: number; maxSize: number; entries: Array<{ key: string; hitCount: number; ageMs: number }> } {
+  stats(): {
+    size: number;
+    maxSize: number;
+    entries: Array<{ key: string; hitCount: number; ageMs: number }>;
+  } {
     const now = Date.now();
     return {
       size: this._store.size,

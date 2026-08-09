@@ -16,10 +16,12 @@ import type { NormalizedMotionProjectV2 } from "./runtime";
 // ── Per-scene index ───────────────────────────────────────────────────
 
 /** A runtime node as it appears in NormalizedMotionProjectV2.scenes[].nodes */
-export type RuntimeSceneNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+export type RuntimeSceneNode =
+  NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
 
 /** A runtime track as it appears in NormalizedMotionProjectV2.scenes[].tracks */
-export type RuntimeSceneTrack = NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
+export type RuntimeSceneTrack =
+  NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
 
 export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
 
@@ -34,7 +36,14 @@ export type StaticGeometry = {
   /** Axis-aligned bounding box in local space */
   bounds: { x: number; y: number; width: number; height: number };
   /** Affine transform matrix (row-major: a,b,c,d,e,f) */
-  localMatrix: { a: number; b: number; c: number; d: number; e: number; f: number };
+  localMatrix: {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+    e: number;
+    f: number;
+  };
   /** Node type for type-specific paint decisions */
   nodeType: RuntimeSceneNode["type"];
 };

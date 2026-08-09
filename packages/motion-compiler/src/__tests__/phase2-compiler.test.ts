@@ -30,8 +30,12 @@ describe("DiagnosticCollector", () => {
   });
 
   it("collects errors and warnings separately", () => {
-    collector.error("UNKNOWN_VARIABLE", "Missing var: $foo", { path: ["variables", 0] });
-    collector.warn("TEXT_OVERFLOW", "Text may overflow", { path: ["scenes", 0, "nodes", 1] });
+    collector.error("UNKNOWN_VARIABLE", "Missing var: $foo", {
+      path: ["variables", 0],
+    });
+    collector.warn("TEXT_OVERFLOW", "Text may overflow", {
+      path: ["scenes", 0, "nodes", 1],
+    });
 
     expect(collector.hasErrors).toBe(true);
     expect(collector.errorCount).toBe(1);

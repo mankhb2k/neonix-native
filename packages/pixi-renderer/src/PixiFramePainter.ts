@@ -81,9 +81,23 @@ export function applyAffineMatrix(
   alpha: number,
   visible: boolean,
   zIndex: number,
-  blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay",
+  blendMode?:
+    | "normal"
+    | "multiply"
+    | "screen"
+    | "add"
+    | "darken"
+    | "lighten"
+    | "overlay",
 ): void {
-  const m = new Matrix(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+  const m = new Matrix(
+    matrix.a,
+    matrix.b,
+    matrix.c,
+    matrix.d,
+    matrix.e,
+    matrix.f,
+  );
   display.setFromMatrix(m);
   display.alpha = alpha;
   display.visible = visible;
@@ -304,7 +318,9 @@ export function createPixiFramePainter(
 
       if (cmd.op === "drawText") {
         const displayText =
-          cmd.runs && cmd.runs.length > 0 ? cmd.runs.map((r) => r.text).join("") : cmd.text;
+          cmd.runs && cmd.runs.length > 0
+            ? cmd.runs.map((r) => r.text).join("")
+            : cmd.text;
         const text = ensureObject(
           cmd.key,
           "text",
@@ -326,10 +342,12 @@ export function createPixiFramePainter(
         text.style.fontSize = cmd.fontSize;
         text.style.fill = cmd.runs?.[0]?.fill ?? cmd.fill;
         if (cmd.fontWeight != null) {
-          (text.style as { fontWeight?: number | string }).fontWeight = cmd.fontWeight;
+          (text.style as { fontWeight?: number | string }).fontWeight =
+            cmd.fontWeight;
         }
         if (cmd.lineHeight != null) text.style.lineHeight = cmd.lineHeight;
-        if (cmd.letterSpacing != null) text.style.letterSpacing = cmd.letterSpacing;
+        if (cmd.letterSpacing != null)
+          text.style.letterSpacing = cmd.letterSpacing;
         text.style.wordWrap = cmd.wrap !== "none";
         text.style.wordWrapWidth = Math.max(8, cmd.width);
         if (xf) {
@@ -401,7 +419,12 @@ export function createPixiFramePainter(
               ...c.segments.map((s) => s.to.y),
             ]),
           );
-          const style = paintFillStyle(cmd.fill, cmd.fillPaint, boundsW, boundsH);
+          const style = paintFillStyle(
+            cmd.fill,
+            cmd.fillPaint,
+            boundsW,
+            boundsH,
+          );
           if (typeof style === "number") {
             g.fill({ color: style, alpha: cmd.fillOpacity ?? 1 });
           } else {
@@ -490,17 +513,30 @@ export function createPixiFramePainter(
       // Apply property update without clearing Graphics cache
       const display = entry.display;
       try {
-        if (patch.property === "transform.opacity" && typeof patch.value === "number") {
+        if (
+          patch.property === "transform.opacity" &&
+          typeof patch.value === "number"
+        ) {
           display.alpha = patch.value;
-        } else if (patch.property === "transform.visible" && typeof patch.value === "boolean") {
+        } else if (
+          patch.property === "transform.visible" &&
+          typeof patch.value === "boolean"
+        ) {
           display.visible = patch.value;
-        } else if (patch.property === "style.fill" && entry.kind === "graphics" && typeof patch.value === "string") {
+        } else if (
+          patch.property === "style.fill" &&
+          entry.kind === "graphics" &&
+          typeof patch.value === "string"
+        ) {
           const g = display as Graphics;
           // Only update fill for shape/solid graphics
           if (lastPaint) {
             // Re-execute the relevant paint command for this key
             for (const cmd of lastPaint.commands) {
-              if (cmd.key === patch.nodeId && (cmd.op === "drawShape" || cmd.op === "drawSolid")) {
+              if (
+                cmd.key === patch.nodeId &&
+                (cmd.op === "drawShape" || cmd.op === "drawSolid")
+              ) {
                 g.clear();
                 const w = cmd.width;
                 const h = cmd.height;
@@ -511,7 +547,12 @@ export function createPixiFramePainter(
                 } else {
                   g.rect(0, 0, w, h);
                 }
-                const fillStyle = paintFillStyle(patch.value as string, cmd.fillPaint, w, h);
+                const fillStyle = paintFillStyle(
+                  patch.value as string,
+                  cmd.fillPaint,
+                  w,
+                  h,
+                );
                 g.fill(fillStyle);
                 break;
               }

@@ -97,18 +97,42 @@ export class DiagnosticCollector {
   }
 
   /** Add an error diagnostic */
-  error(code: DiagnosticCode, message: string, opts?: { path?: (string | number)[]; sourceRef?: string; details?: Record<string, unknown> }): void {
+  error(
+    code: DiagnosticCode,
+    message: string,
+    opts?: {
+      path?: (string | number)[];
+      sourceRef?: string;
+      details?: Record<string, unknown>;
+    },
+  ): void {
     this._diagnostics.push({ code, message, severity: "error", ...opts });
     this._errorCount++;
   }
 
   /** Add a warning diagnostic */
-  warn(code: DiagnosticCode, message: string, opts?: { path?: (string | number)[]; sourceRef?: string; details?: Record<string, unknown> }): void {
+  warn(
+    code: DiagnosticCode,
+    message: string,
+    opts?: {
+      path?: (string | number)[];
+      sourceRef?: string;
+      details?: Record<string, unknown>;
+    },
+  ): void {
     this._diagnostics.push({ code, message, severity: "warning", ...opts });
   }
 
   /** Add an info diagnostic */
-  info(code: DiagnosticCode, message: string, opts?: { path?: (string | number)[]; sourceRef?: string; details?: Record<string, unknown> }): void {
+  info(
+    code: DiagnosticCode,
+    message: string,
+    opts?: {
+      path?: (string | number)[];
+      sourceRef?: string;
+      details?: Record<string, unknown>;
+    },
+  ): void {
     this._diagnostics.push({ code, message, severity: "info", ...opts });
   }
 
@@ -151,10 +175,15 @@ export class CompileDiagnosticError extends Error {
 
 // ── Helpers for building results ──────────────────────────────────────
 
-export function compileSuccess<T>(project: T, diagnostics: CompileDiagnostic[] = []): CompileSuccess<T> {
+export function compileSuccess<T>(
+  project: T,
+  diagnostics: CompileDiagnostic[] = [],
+): CompileSuccess<T> {
   return { ok: true, project, diagnostics };
 }
 
-export function compileFailure(diagnostics: CompileDiagnostic[]): CompileFailure {
+export function compileFailure(
+  diagnostics: CompileDiagnostic[],
+): CompileFailure {
   return { ok: false, diagnostics };
 }

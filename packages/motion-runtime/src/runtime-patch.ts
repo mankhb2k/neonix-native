@@ -124,7 +124,10 @@ export function affectedSceneIds(patch: RuntimePatch): string[] {
  * Check whether a patch is stale (sequence < current sequence).
  * Painters/evaluators call this before applying.
  */
-export function isPatchStale(patch: RuntimePatch, currentSequence: PatchSequence): boolean {
+export function isPatchStale(
+  patch: RuntimePatch,
+  currentSequence: PatchSequence,
+): boolean {
   return patch.sequence < currentSequence;
 }
 
