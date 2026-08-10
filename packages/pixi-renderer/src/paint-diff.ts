@@ -8,7 +8,10 @@
  * and avoid re-creating Filters when nothing changed.
  */
 
-import type { PaintCommand, PaintDrawCommand } from "@motionvideo/motion-runtime";
+import type {
+  PaintCommand,
+  PaintDrawCommand,
+} from "@motionvideo/motion-runtime";
 import { computePaintItemFingerprint } from "@motionvideo/motion-runtime";
 
 // ── Types ─────────────────────────────────────────────────────────────
@@ -50,9 +53,7 @@ export type PaintDiffEngine = {
    * Compute the diff between the current paint buffer and the previous frame.
    * Call this once per frame, before painting.
    */
-  diffFrame(
-    commands: PaintCommand[],
-  ): PaintFrameDiff;
+  diffFrame(commands: PaintCommand[]): PaintFrameDiff;
 
   /**
    * Check if a single drawable changed vs last frame.
@@ -133,7 +134,11 @@ export function createPaintDiffEngine(): PaintDiffEngine {
         byKey.set(cmd.key, "unchanged");
         unchanged++;
         // Estimate skipped work
-        if (cmd.op === "drawShape" || cmd.op === "drawSolid" || cmd.op === "drawPath") {
+        if (
+          cmd.op === "drawShape" ||
+          cmd.op === "drawSolid" ||
+          cmd.op === "drawPath"
+        ) {
           clearsSkipped++;
         }
         if (cmd.op === "drawText") {
@@ -227,5 +232,7 @@ function isDrawCommand(
 }
 
 function hasEffects(cmd: PaintCommand): boolean {
-  return "effects" in cmd && Array.isArray(cmd.effects) && cmd.effects.length > 0;
+  return (
+    "effects" in cmd && Array.isArray(cmd.effects) && cmd.effects.length > 0
+  );
 }

@@ -108,7 +108,13 @@ export type PixiFramePainter = EvaluatedFramePainter & {
    * Get dirty diff statistics from the last paint frame.
    * @since Phase 8 (dirty diff)
    */
-  getDiffStats(): { changed: number; unchanged: number; new_: number; removed: number; skipped: number };
+  getDiffStats(): {
+    changed: number;
+    unchanged: number;
+    new_: number;
+    removed: number;
+    skipped: number;
+  };
 };
 
 function hexToNumber(color: string | undefined, fallback = 0xffffff): number {
@@ -389,7 +395,14 @@ export function createPixiFramePainter(
     key: string,
     commands: readonly PaintCommand[],
   ): {
-    matrix: { a: number; b: number; c: number; d: number; e: number; f: number };
+    matrix: {
+      a: number;
+      b: number;
+      c: number;
+      d: number;
+      e: number;
+      f: number;
+    };
     alpha: number;
     visible: boolean;
     zIndex: number;
@@ -415,9 +428,7 @@ export function createPixiFramePainter(
   };
 
   /** Whether the paint command is a draw op that can be diffed. */
-  const isDrawOp = (
-    cmd: PaintCommand,
-  ): cmd is PaintCommand & { key: string } =>
+  const isDrawOp = (cmd: PaintCommand): cmd is PaintCommand & { key: string } =>
     "key" in cmd &&
     [
       "drawText",
@@ -487,8 +498,10 @@ export function createPixiFramePainter(
       seenFp.add(key);
       const lastFp = lastFingerprints.get(key);
       if (!lastFp) new_++;
-      else if (lastFp === fp) { unchanged++; skipped++; }
-      else changed++;
+      else if (lastFp === fp) {
+        unchanged++;
+        skipped++;
+      } else changed++;
     }
     for (const key of lastFingerprints.keys()) {
       if (!seenFp.has(key)) removed++;
@@ -817,8 +830,12 @@ export function createPixiFramePainter(
     paintCommands,
     getLiveKeys: () => lastLiveKeys,
     getUnsupported: () => unsupported,
-    setPaused(p: boolean) { paused = p; },
-    get paused() { return paused; },
+    setPaused(p: boolean) {
+      paused = p;
+    },
+    get paused() {
+      return paused;
+    },
     getDiffStats: () => ({ ...diffStats }),
     applyPatch(patch: PaintPatch): PatchSequence {
       // Drop stale patches

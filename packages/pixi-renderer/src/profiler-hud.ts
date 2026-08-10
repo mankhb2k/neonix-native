@@ -67,9 +67,7 @@ export type ProfilerHud = {
   dispose(): void;
 };
 
-export function createProfilerHud(
-  opts?: ProfilerHudOptions,
-): ProfilerHud {
+export function createProfilerHud(opts?: ProfilerHudOptions): ProfilerHud {
   const options = { ...DEFAULT_OPTIONS, ...opts };
   const root = new Container();
   root.label = "profiler-hud";
@@ -118,7 +116,9 @@ export function createProfilerHud(
 
     // FPS & frame time
     const fpsColor = stats.fps >= 55 ? "" : stats.fps >= 25 ? "⚠ " : "🔴 ";
-    lines.push(`${fpsColor}FPS: ${formatFps(stats.fps)}  ${formatMs(stats.frameTimeMs)}ms`);
+    lines.push(
+      `${fpsColor}FPS: ${formatFps(stats.fps)}  ${formatMs(stats.frameTimeMs)}ms`,
+    );
 
     // Play state
     const stateIcon = stats.paused ? "⏸" : "▶";
@@ -128,17 +128,25 @@ export function createProfilerHud(
     // Engine metrics
     if (stats.engineMetrics) {
       const m = stats.engineMetrics;
-      lines.push(`eval:${formatMs(m.evaluateTimeMs)}ms  paint:${formatMs(m.paintTimeMs)}ms`);
-      lines.push(`frames:${m.evaluatedFrames}  drop:${m.droppedFrames}  starve:${m.starvedTicks}`);
+      lines.push(
+        `eval:${formatMs(m.evaluateTimeMs)}ms  paint:${formatMs(m.paintTimeMs)}ms`,
+      );
+      lines.push(
+        `frames:${m.evaluatedFrames}  drop:${m.droppedFrames}  starve:${m.starvedTicks}`,
+      );
     }
 
     // Paint diff stats
     if (stats.paintDiff) {
       const d = stats.paintDiff;
-      const skipped = d.clearsSkipped + d.filterResetsSkipped + d.styleUpdatesSkipped;
+      const skipped =
+        d.clearsSkipped + d.filterResetsSkipped + d.styleUpdatesSkipped;
       const total = d.totalItems;
-      const changeRate = total > 0 ? formatPercent(d.changedItems + d.newItems, total) : "  -";
-      lines.push(`dirty:${changeRate}  skip:${skipped}  new:${d.newItems}  rm:${d.removedItems}`);
+      const changeRate =
+        total > 0 ? formatPercent(d.changedItems + d.newItems, total) : "  -";
+      lines.push(
+        `dirty:${changeRate}  skip:${skipped}  new:${d.newItems}  rm:${d.removedItems}`,
+      );
     }
 
     return lines.join("\n");
@@ -202,7 +210,9 @@ export function createProfilerHud(
     container: root,
     update,
     setVisible: setVisibility,
-    get visible() { return visible; },
+    get visible() {
+      return visible;
+    },
     dispose,
   };
 }

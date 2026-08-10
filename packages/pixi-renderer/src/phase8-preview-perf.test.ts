@@ -123,12 +123,23 @@ function makeItem(
   };
 }
 
-function makeRectBuffer(key: string, x = 0, y = 0, fill = "#ff0000"): PaintCommandBuffer {
+function makeRectBuffer(
+  key: string,
+  x = 0,
+  y = 0,
+  fill = "#ff0000",
+): PaintCommandBuffer {
   return buildPaintCommandBuffer(
     makeSnapshot([
       makeItem(key, {
         worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: x, f: y },
-        payload: { kind: "shape", shape: "rectangle", fill, width: 100, height: 100 },
+        payload: {
+          kind: "shape",
+          shape: "rectangle",
+          fill,
+          width: 100,
+          height: 100,
+        },
       }),
     ]),
   );
@@ -139,11 +150,23 @@ function makeTwoRectBuffer(): PaintCommandBuffer {
     makeSnapshot([
       makeItem("r1", {
         worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-        payload: { kind: "shape", shape: "rectangle", fill: "#ff0000", width: 100, height: 100 },
+        payload: {
+          kind: "shape",
+          shape: "rectangle",
+          fill: "#ff0000",
+          width: 100,
+          height: 100,
+        },
       }),
       makeItem("r2", {
         worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 200, f: 0 },
-        payload: { kind: "shape", shape: "rectangle", fill: "#00ff00", width: 100, height: 100 },
+        payload: {
+          kind: "shape",
+          shape: "rectangle",
+          fill: "#00ff00",
+          width: 100,
+          height: 100,
+        },
       }),
     ]),
   );
@@ -280,15 +303,58 @@ describe("Task 8.1 — PaintDiffEngine", () => {
   it("handles mixed changed/unchanged/new", () => {
     const frame1 = buildPaintCommandBuffer(
       makeSnapshot([
-        makeItem("r1", { payload: { kind: "shape", shape: "rectangle", fill: "#ff0000", width: 100, height: 100 } }),
-        makeItem("r2", { worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 200, f: 0 }, payload: { kind: "shape", shape: "rectangle", fill: "#00ff00", width: 100, height: 100 } }),
+        makeItem("r1", {
+          payload: {
+            kind: "shape",
+            shape: "rectangle",
+            fill: "#ff0000",
+            width: 100,
+            height: 100,
+          },
+        }),
+        makeItem("r2", {
+          worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 200, f: 0 },
+          payload: {
+            kind: "shape",
+            shape: "rectangle",
+            fill: "#00ff00",
+            width: 100,
+            height: 100,
+          },
+        }),
       ]),
     );
     const frame2 = buildPaintCommandBuffer(
       makeSnapshot([
-        makeItem("r1", { payload: { kind: "shape", shape: "rectangle", fill: "#ff0000", width: 100, height: 100 } }),
-        makeItem("r2", { worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 200, f: 0 }, payload: { kind: "shape", shape: "rectangle", fill: "#0000ff", width: 100, height: 100 } }),
-        makeItem("r3", { worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 400, f: 0 }, payload: { kind: "shape", shape: "rectangle", fill: "#ffffff", width: 100, height: 100 } }),
+        makeItem("r1", {
+          payload: {
+            kind: "shape",
+            shape: "rectangle",
+            fill: "#ff0000",
+            width: 100,
+            height: 100,
+          },
+        }),
+        makeItem("r2", {
+          worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 200, f: 0 },
+          payload: {
+            kind: "shape",
+            shape: "rectangle",
+            fill: "#0000ff",
+            width: 100,
+            height: 100,
+          },
+        }),
+        makeItem("r3", {
+          worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 400, f: 0 },
+          payload: {
+            kind: "shape",
+            shape: "rectangle",
+            fill: "#ffffff",
+            width: 100,
+            height: 100,
+          },
+        }),
       ]),
     );
 
@@ -400,7 +466,10 @@ describe("Task 8.4 — imperative overlay", () => {
       selectionBox: null,
       viewport: { panX: 0, panY: 0, zoom: 1 },
     };
-    const bounds = new Map<string, { x: number; y: number; width: number; height: number }>();
+    const bounds = new Map<
+      string,
+      { x: number; y: number; width: number; height: number }
+    >();
     expect(() => overlay.paint(store, bounds)).not.toThrow();
   });
 
@@ -413,9 +482,7 @@ describe("Task 8.4 — imperative overlay", () => {
       selectionBox: null,
       viewport: { panX: 0, panY: 0, zoom: 1 },
     };
-    const bounds = new Map([
-      ["n1", { x: 10, y: 20, width: 100, height: 80 }],
-    ]);
+    const bounds = new Map([["n1", { x: 10, y: 20, width: 100, height: 80 }]]);
     expect(() => overlay.paint(store, bounds)).not.toThrow();
 
     const stats = overlay.getStats();
@@ -431,9 +498,7 @@ describe("Task 8.4 — imperative overlay", () => {
       selectionBox: null,
       viewport: { panX: 0, panY: 0, zoom: 1 },
     };
-    const bounds = new Map([
-      ["n2", { x: 50, y: 50, width: 200, height: 100 }],
-    ]);
+    const bounds = new Map([["n2", { x: 50, y: 50, width: 200, height: 100 }]]);
     expect(() => overlay.paint(store, bounds)).not.toThrow();
 
     const stats = overlay.getStats();
@@ -449,9 +514,7 @@ describe("Task 8.4 — imperative overlay", () => {
       selectionBox: null,
       viewport: { panX: 0, panY: 0, zoom: 1 },
     };
-    const bounds = new Map([
-      ["n3", { x: 100, y: 100, width: 50, height: 50 }],
-    ]);
+    const bounds = new Map([["n3", { x: 100, y: 100, width: 50, height: 50 }]]);
     expect(() => overlay.paint(store, bounds)).not.toThrow();
 
     const stats = overlay.getStats();
@@ -507,9 +570,7 @@ describe("Task 8.4 — imperative overlay", () => {
       selectionBox: null,
       viewport: { panX: 100, panY: 50, zoom: 2 },
     };
-    const bounds = new Map([
-      ["n1", { x: 10, y: 20, width: 100, height: 80 }],
-    ]);
+    const bounds = new Map([["n1", { x: 10, y: 20, width: 100, height: 80 }]]);
     expect(() => overlay.paint(store, bounds)).not.toThrow();
   });
 
@@ -522,9 +583,7 @@ describe("Task 8.4 — imperative overlay", () => {
       selectionBox: null,
       viewport: { panX: 0, panY: 0, zoom: 1 },
     };
-    const bounds = new Map([
-      ["n1", { x: 10, y: 20, width: 100, height: 80 }],
-    ]);
+    const bounds = new Map([["n1", { x: 10, y: 20, width: 100, height: 80 }]]);
     expect(() => overlay.paint(store, bounds)).not.toThrow();
 
     const stats = overlay.getStats();

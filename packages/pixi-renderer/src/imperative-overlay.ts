@@ -60,7 +60,13 @@ export type ImperativeOverlay = {
    * Paint the overlay from the external store.
    * Called once per frame, imperatively. No React involved.
    */
-  paint(store: OverlayStore, bounds: Map<string, { x: number; y: number; width: number; height: number }>): void;
+  paint(
+    store: OverlayStore,
+    bounds: Map<
+      string,
+      { x: number; y: number; width: number; height: number }
+    >,
+  ): void;
 
   /** Get last paint statistics. */
   getStats(): { boxesDrawn: number; guidesDrawn: number };
@@ -116,7 +122,10 @@ export function createImperativeOverlay(
 
   function paint(
     store: OverlayStore,
-    bounds: Map<string, { x: number; y: number; width: number; height: number }>,
+    bounds: Map<
+      string,
+      { x: number; y: number; width: number; height: number }
+    >,
   ): void {
     boxesGfx.clear();
     guidesGfx.clear();
@@ -136,7 +145,15 @@ export function createImperativeOverlay(
       const sh = b.height * zoom;
 
       // Selection rect
-      drawSelectionBox(boxesGfx, sx, sy, sw, sh, s.selectionColor, s.selectionWidth);
+      drawSelectionBox(
+        boxesGfx,
+        sx,
+        sy,
+        sw,
+        sh,
+        s.selectionColor,
+        s.selectionWidth,
+      );
       boxesDrawn++;
 
       // Corner handles
@@ -151,7 +168,10 @@ export function createImperativeOverlay(
     }
 
     // Draw hover rect
-    if (store.hoveredNodeId && !store.selectedNodeIds.includes(store.hoveredNodeId)) {
+    if (
+      store.hoveredNodeId &&
+      !store.selectedNodeIds.includes(store.hoveredNodeId)
+    ) {
       const b = bounds.get(store.hoveredNodeId);
       if (b) {
         drawSelectionBox(
