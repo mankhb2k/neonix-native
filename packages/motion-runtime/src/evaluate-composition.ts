@@ -25,6 +25,12 @@ import {
 import type { PaintCommandBuffer } from "./paint";
 import { cameraViewMatrix, type CameraViewParams } from "./camera-view";
 import { IDENTITY_MATRIX } from "./matrix";
+import {
+  IDENTITY_MATRIX4,
+  perspectiveMatrix,
+  lookAtMatrix,
+  matrix4ToArray,
+} from "./matrix4";
 
 function scenesForComposition(
   runtime: NormalizedMotionProjectV2,
@@ -245,6 +251,41 @@ export function evaluateCompositionFrameV3(
     });
   }
 
+  // ── Compute perspective projection early (needed for 3D frame evaluation) ─
+  const primaryScene =
+    layers.length > 0
+      ? sceneCache.get(layers[layers.length - 1]!.sceneId)
+      : null;
+  const perspectiveProjection = resolvePerspectiveProjection(
+    primaryScene,
+    width,
+    height,
+  );
+
+  // Now re-evaluate any layers that need the projection wired into paint
+  // (perspective-3d scenes only — other spaces don't need it)
+  if (perspectiveProjection) {
+    for (const layer of layers) {
+      const scene = sceneCache.get(layer.sceneId);
+      if (!scene || (scene.space ?? "flat-2d") !== "perspective-3d") continue;
+      const localFrame = Math.max(0, Math.round(layer.composition.localTime * safeFps));
+      const reEvaluated = evaluateFrame({
+        scene,
+        time: layer.composition.localTime,
+        frame: localFrame,
+        width,
+        height,
+        background,
+        assetUriById,
+        perspectiveProjection: {
+          viewMatrix: perspectiveProjection.viewMatrix,
+          projectionMatrix: perspectiveProjection.projectionMatrix,
+        },
+      });
+      layer.paint = reEvaluated.paint;
+    }
+  }
+
   // ── Combined interaction (last layer wins for hit-test) ────────
   const combinedInteraction =
     layers.length > 0 ? layers[layers.length - 1]!.interaction : null;
@@ -257,11 +298,6 @@ export function evaluateCompositionFrameV3(
   };
 
   // ── Projection ──────────────────────────────────────────────────
-  const primaryScene =
-    layers.length > 0
-      ? sceneCache.get(layers[layers.length - 1]!.sceneId)
-      : null;
-
   const projection = buildProjection(
     primaryScene,
     combinedInteraction,
@@ -320,7 +356,54 @@ export function evaluateCompositionSnapshot(
   return v3?.interaction ?? null;
 }
 
-// ── Projection helper ─────────────────────────────────────────────────
+// ── Projection helpers ────────────────────────────────────────────────
+
+/**
+ * Compute perspective 3D projection from scene camera config.
+ * Returns null for non-perspective-3d scenes.
+ * This is a scene-only projection — doesn't depend on evaluated frames.
+ */
+function resolvePerspectiveProjection(
+  scene: NormalizedMotionProjectV2["scenes"][number] | null,
+  width: number,
+  height: number,
+): { viewMatrix: number[]; projectionMatrix: number[] } | null {
+  if (!scene) return null;
+  if ((scene.space ?? "flat-2d") !== "perspective-3d") return null;
+  if (!scene.activeCameraId) return null;
+  const cameraNode = scene.nodes.find((n) => n.id === scene.activeCameraId);
+  if (!cameraNode || cameraNode.type !== "camera") return null;
+
+  const aspect = width / height;
+  const fov = cameraNode.payload.fov ?? 60;
+  const near = cameraNode.payload.near ?? 0.1;
+  const far = cameraNode.payload.far ?? 10000;
+  const projMat = perspectiveMatrix(fov, aspect, near, far);
+
+  // Camera at origin with look direction along -Z
+  const rotX = cameraNode.payload.rotationX ?? 0;
+  const rotY = cameraNode.payload.rotationY ?? 0;
+  const pitchRad = (rotX * Math.PI) / 180;
+  const yawRad = (rotY * Math.PI) / 180;
+  const camX = cameraNode.transform.x;
+  const camY = cameraNode.transform.y;
+  const camZ = (cameraNode.transform as unknown as Record<string, unknown>).z as number ?? 0;
+  const lookTarget = [
+    camX + Math.sin(yawRad) * Math.cos(pitchRad),
+    camY + Math.sin(pitchRad),
+    camZ - Math.cos(yawRad) * Math.cos(pitchRad),
+  ];
+  const viewMat = lookAtMatrix(
+    camX, camY, camZ,
+    lookTarget[0]!, lookTarget[1]!, lookTarget[2]!,
+    0, 1, 0,
+  );
+
+  return {
+    viewMatrix: matrix4ToArray(viewMat),
+    projectionMatrix: matrix4ToArray(projMat),
+  };
+}
 
 function buildProjection(
   scene: NormalizedMotionProjectV2["scenes"][number] | null,
@@ -356,6 +439,56 @@ function buildProjection(
         viewMatrix: viewMat,
         depthPolicy: "painter-order",
       };
+    }
+  }
+
+  // perspective-3d: compute 4×4 view + projection matrices from active camera
+  if (space === "perspective-3d" && scene?.activeCameraId && interaction) {
+    const cameraNode = interaction.items.find(
+      (n) => n.nodeId === scene.activeCameraId,
+    );
+    if (cameraNode && cameraNode.worldMatrix4) {
+      const sceneNode = scene.nodes.find((n) => n.id === scene.activeCameraId);
+      if (sceneNode?.type === "camera") {
+        const aspect = width / height;
+        const fov = sceneNode.payload.fov ?? 60;
+        const near = sceneNode.payload.near ?? 0.1;
+        const far = sceneNode.payload.far ?? 10000;
+        // Build perspective projection matrix (WebGL NDC convention)
+        const projMat = perspectiveMatrix(fov, aspect, near, far);
+        // Build view matrix from camera position/orientation
+        const rotX = sceneNode.payload.rotationX ?? 0;
+        const rotY = sceneNode.payload.rotationY ?? 0;
+        // Camera position from worldMatrix translation
+        const camX = cameraNode.worldMatrix.e;
+        const camY = cameraNode.worldMatrix.f;
+        const camZ = (sceneNode.transform as unknown as Record<string, unknown>).z as number ?? 0;
+        // Camera look direction: rotate (0,0,-1) by rotX/rotY
+        const pitchRad = (rotX * Math.PI) / 180;
+        const yawRad = (rotY * Math.PI) / 180;
+        const lookTarget = [
+          camX + Math.sin(yawRad) * Math.cos(pitchRad),
+          camY + Math.sin(pitchRad),
+          camZ - Math.cos(yawRad) * Math.cos(pitchRad),
+        ];
+        const viewMat = lookAtMatrix(
+          camX,
+          camY,
+          camZ,
+          lookTarget[0]!,
+          lookTarget[1]!,
+          lookTarget[2]!,
+          0, 1, 0,
+        );
+        return {
+          kind: "perspective-3d",
+          viewMatrix: matrix4ToArray(viewMat),
+          projectionMatrix: matrix4ToArray(projMat),
+          near,
+          far,
+          focalLengthPx: (height / 2) / Math.tan(((fov / 2) * Math.PI) / 180),
+        };
+      }
     }
   }
 

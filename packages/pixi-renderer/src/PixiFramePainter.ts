@@ -155,6 +155,100 @@ function hexToNumber(color: string | undefined, fallback = 0xffffff): number {
 }
 
 /** Apply full affine via Pixi Matrix + setFromMatrix (preserves skew). */
+
+// ── Phase 11: Perspective 3D helpers ─────────────────────────────
+
+/**
+ * Project a point through a 4×4 matrix (column-major, 16 elements).
+ * Returns [x, y] after perspective divide.
+ */
+function projectPoint(
+  m: number[],
+  x: number,
+  y: number,
+  z: number,
+): [number, number] {
+  const w = m[3] * x + m[7] * y + m[11] * z + m[15];
+  if (Math.abs(w) < 1e-10) return [0, 0];
+  const sx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+  const sy = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+  return [sx, sy];
+}
+
+/**
+ * Build a 2D affine matrix from 4 projected screen-space corners
+ * (top-left, top-right, bottom-right, bottom-left of the source rect).
+ * Uses least-squares fit on the three control points.
+ */
+function affineFromCorners(
+  tl: [number, number],
+  tr: [number, number],
+  br: [number, number],
+  srcW: number,
+  srcH: number,
+): { a: number; b: number; c: number; d: number; e: number; f: number } {
+  // Use 3 points: top-left (0,0), top-right (w,0), bottom-left (0,h)
+  const a = (tr[0] - tl[0]) / Math.max(srcW, 1);
+  const b = (tr[1] - tl[1]) / Math.max(srcW, 1);
+  const c = (br[0] - tl[0]) / Math.max(srcH, 1);
+  const d = (br[1] - tl[1]) / Math.max(srcH, 1);
+  return { a, b, c, d, e: tl[0], f: tl[1] };
+}
+
+/**
+ * Compute a 2D screen-space affine approximation from the full MVP chain:
+ *   projectionMatrix_4x4 × viewMatrix_4x4 × worldMatrix4 × localPoint
+ */
+function projectTo2DAffine(
+  projMatrix4: number[],
+  viewMatrix4: number[],
+  worldMatrix4: number[],
+  width: number,
+  height: number,
+  viewportW: number,
+  viewportH: number,
+): { a: number; b: number; c: number; d: number; e: number; f: number } | null {
+  // Compose view * world (row-major convention: multiply as column-major)
+  const vw = multiplyMat4(viewMatrix4, worldMatrix4);
+  // Compose projection * view * world
+  const mvp = multiplyMat4(projMatrix4, vw);
+
+  // Project 4 corners of the source rect
+  const tl = projectPoint(mvp, 0, 0, 0);
+  const tr = projectPoint(mvp, width, 0, 0);
+  const bl = projectPoint(mvp, 0, height, 0);
+  const br = projectPoint(mvp, width, height, 0);
+
+  // Convert from NDC [-1,1] to screen [0, viewportSize]
+  const toScreen = (x: number, y: number): [number, number] => [
+    (x + 1) * 0.5 * viewportW,
+    (1 - y) * 0.5 * viewportH,
+  ];
+  const stl = toScreen(tl[0], tl[1]);
+  const str = toScreen(tr[0], tr[1]);
+  const sbl = toScreen(bl[0], bl[1]);
+  const sbr = toScreen(br[0], br[1]);
+
+  return affineFromCorners(stl, str, sbr, width, height);
+}
+
+/** 4×4 column-major matrix multiply: C = A × B */
+function multiplyMat4(a: number[], b: number[]): number[] {
+  const r = new Array<number>(16);
+  for (let i = 0; i < 4; i++) {
+    for (let j = 0; j < 4; j++) {
+      r[j * 4 + i] =
+        a[0 * 4 + i] * b[j * 4 + 0]! +
+        a[1 * 4 + i] * b[j * 4 + 1]! +
+        a[2 * 4 + i] * b[j * 4 + 2]! +
+        a[3 * 4 + i] * b[j * 4 + 3]!;
+    }
+  }
+  return r;
+}
+
+// ── End Phase 11 helpers ─────────────────────────────────────────
+
 export function applyAffineMatrix(
   display: Container | Text | Graphics | Sprite,
   matrix: { a: number; b: number; c: number; d: number; e: number; f: number },
@@ -497,6 +591,8 @@ export function createPixiFramePainter(
     let frameH = 1080;
     let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null =
       null;
+    // Phase 11: perspective 3D projection from beginFrame
+    let projection: { viewMatrix: number[]; projectionMatrix: number[] } | null = null;
 
     // Find beginFrame for dimensions
     for (const cmd of buffer.commands) {
@@ -550,14 +646,41 @@ export function createPixiFramePainter(
     for (const cmd of buffer.commands) {
       if (cmd.op === "beginFrame") {
         options.onBackground?.(cmd.background ?? options.getBackground?.());
+        // Phase 11: store projection for 3D-aware transforms
+        projection = cmd.projection
+          ? { viewMatrix: cmd.projection.viewMatrix, projectionMatrix: cmd.projection.projectionMatrix }
+          : null;
         continue;
       }
       if (cmd.op === "endFrame") {
         compositingCtx.endFrame();
+        projection = null;
         continue;
       }
       if (cmd.op === "setTransform") {
-        pendingTransform = cmd;
+        // Phase 11: apply perspective 3D projection when available
+        if (cmd.matrix4 && projection) {
+          const obj = cache.get(cmd.key);
+          const projected2D = projectTo2DAffine(
+            projection.projectionMatrix,
+            projection.viewMatrix,
+            cmd.matrix4,
+            obj?.display?.width ?? 100,
+            obj?.display?.height ?? 100,
+            frameW,
+            frameH,
+          );
+          if (projected2D) {
+            pendingTransform = {
+              ...cmd,
+              matrix: projected2D,
+            };
+          } else {
+            pendingTransform = cmd;
+          }
+        } else {
+          pendingTransform = cmd;
+        }
         continue;
       }
 

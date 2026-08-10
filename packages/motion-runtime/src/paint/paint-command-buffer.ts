@@ -81,6 +81,7 @@ function emitItem(
     visible: item.visible,
     zIndex: item.renderOrder,
     ...(item.blendMode ? { blendMode: item.blendMode } : {}),
+    ...(item.worldMatrix4 ? { matrix4: Array.from(item.worldMatrix4) } : {}),
   });
 
   const payload = item.payload;
@@ -248,6 +249,7 @@ function emitItem(
  */
 export function buildPaintCommandBuffer(
   snapshot: RenderSnapshot,
+  perspectiveProjection?: { viewMatrix: number[]; projectionMatrix: number[] },
 ): PaintCommandBuffer {
   const commands: PaintCommand[] = [];
   const diagnostics: RenderDiagnostic[] = [];
@@ -260,6 +262,7 @@ export function buildPaintCommandBuffer(
     sceneId: snapshot.sceneId,
     frame: snapshot.frame,
     time: snapshot.time,
+    ...(perspectiveProjection ? { projection: perspectiveProjection } : {}),
   });
 
   const ordered = [...snapshot.items].sort(

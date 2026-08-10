@@ -86,7 +86,9 @@ export function checkWebCodecs(): PreflightCapability {
     label: "WebCodecs API",
     productionRequired: true,
     available,
-    reason: available ? undefined : "WebCodecs API not available in this runtime",
+    reason: available
+      ? undefined
+      : "WebCodecs API not available in this runtime",
   };
 }
 
@@ -95,15 +97,16 @@ export function checkWebCodecs(): PreflightCapability {
  */
 export function checkOffscreenCanvas(): PreflightCapability {
   const available =
-    typeof globalThis !== "undefined" &&
-    "OffscreenCanvas" in globalThis;
+    typeof globalThis !== "undefined" && "OffscreenCanvas" in globalThis;
   return {
     id: "offscreen-canvas",
     category: "offscreen",
     label: "OffscreenCanvas",
     productionRequired: true,
     available,
-    reason: available ? undefined : "OffscreenCanvas not available — worker rendering disabled",
+    reason: available
+      ? undefined
+      : "OffscreenCanvas not available — worker rendering disabled",
   };
 }
 
@@ -112,15 +115,16 @@ export function checkOffscreenCanvas(): PreflightCapability {
  */
 export function checkWebGL2(): PreflightCapability {
   const available =
-    typeof globalThis !== "undefined" &&
-    "WebGL2RenderingContext" in globalThis;
+    typeof globalThis !== "undefined" && "WebGL2RenderingContext" in globalThis;
   return {
     id: "webgl2",
     category: "shader",
     label: "WebGL 2.0",
     productionRequired: false,
     available,
-    reason: available ? undefined : "WebGL 2.0 not available — GPU effects degraded",
+    reason: available
+      ? undefined
+      : "WebGL 2.0 not available — GPU effects degraded",
   };
 }
 
@@ -137,7 +141,9 @@ export function checkAudioContext(): PreflightCapability {
     label: "Web Audio API",
     productionRequired: true,
     available,
-    reason: available ? undefined : "Web Audio API not available — audio export disabled",
+    reason: available
+      ? undefined
+      : "Web Audio API not available — audio export disabled",
   };
 }
 
@@ -225,13 +231,13 @@ export function runPreflight(
     checkTextureSize(env.maxTextureSize, opts.requiredTextureSize ?? 4096),
     checkMemory(
       typeof performance !== "undefined" &&
-      "memory" in performance &&
-      (performance as { memory?: { jsHeapSizeLimit: number } }).memory
+        "memory" in performance &&
+        (performance as { memory?: { jsHeapSizeLimit: number } }).memory
         ? Math.round(
-            ((performance as { memory: { jsHeapSizeLimit: number } }).memory
+            (performance as { memory: { jsHeapSizeLimit: number } }).memory
               .jsHeapSizeLimit /
               1024 /
-              1024),
+              1024,
           )
         : 2048,
       opts.requiredMemoryMb ?? 512,
@@ -246,16 +252,11 @@ export function runPreflight(
     (c) => c.productionRequired && !c.available,
   );
   const warnings = capabilities.filter(
-    (c) =>
-      !c.productionRequired &&
-      !c.available &&
-      (!opts.strict || true),
+    (c) => !c.productionRequired && !c.available && (!opts.strict || true),
   );
 
   const passed = failures.length === 0;
-  const strictPassed = opts.strict
-    ? passed && warnings.length === 0
-    : passed;
+  const strictPassed = opts.strict ? passed && warnings.length === 0 : passed;
 
   return {
     passed: strictPassed,

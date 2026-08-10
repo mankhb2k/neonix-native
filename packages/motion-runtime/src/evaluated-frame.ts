@@ -35,6 +35,8 @@ export type EvaluateFrameInput = {
   height: number;
   background?: string;
   assetUriById?: Map<string, string> | Record<string, string>;
+  /** Phase 11: perspective 3D projection from composition layer. */
+  perspectiveProjection?: { viewMatrix: number[]; projectionMatrix: number[] };
 };
 
 /**
@@ -51,7 +53,7 @@ export function evaluateFrame(input: EvaluateFrameInput): EvaluatedFrame {
     background: input.background,
     assetUriById: input.assetUriById,
   });
-  const paint = buildPaintCommandBuffer(interaction);
+  const paint = buildPaintCommandBuffer(interaction, input.perspectiveProjection);
   return {
     frame: input.frame,
     time: input.time,

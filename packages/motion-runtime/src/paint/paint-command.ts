@@ -3,6 +3,7 @@
  */
 
 import type { Matrix2D } from "../matrix";
+import type { Matrix4 } from "../matrix4";
 import type { RuntimeEffect } from "../evaluator";
 import type { PathContour } from "../geometry";
 import type { PaintFill } from "../render-snapshot";
@@ -24,6 +25,11 @@ export type PaintCommand =
       sceneId: string;
       frame: number;
       time: number;
+      /** Perspective 3D projection (Phase 11). When present, painters should use matrix4. */
+      projection?: {
+        viewMatrix: number[];      // 4×4
+        projectionMatrix: number[]; // 4×4
+      };
     }
   | { op: "endFrame" }
   | { op: "beginGroup"; key: string; nodeId: string }
@@ -49,6 +55,8 @@ export type PaintCommand =
       visible: boolean;
       zIndex: number;
       blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
+      /** 4×4 world matrix for perspective-3d projection (Phase 11). */
+      matrix4?: number[];
     }
   | {
       op: "drawText";

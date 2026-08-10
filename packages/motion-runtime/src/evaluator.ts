@@ -10,6 +10,13 @@ import {
   type Matrix2D,
   type Transform2D,
 } from "./matrix";
+import {
+  type Matrix4,
+  IDENTITY_MATRIX4,
+  localTransformMatrix3D,
+  multiplyMatrix4,
+  type Transform3DInput,
+} from "./matrix4";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
 import {
   bendPathContours,
@@ -38,6 +45,12 @@ export type EvaluatedNode = {
   node: RuntimeNode;
   transform: Transform2D;
   worldMatrix: Matrix2D;
+  /**
+   * 4×4 world matrix (perspective-3d only).
+   * When set, consumers should use this for projection instead of worldMatrix.
+   * @since Phase 11
+   */
+  worldMatrix4?: Matrix4;
   worldOpacity: number;
   visible: boolean;
   worldBounds: Bounds2D;
@@ -342,6 +355,77 @@ export function evaluateTransform(
   };
 }
 
+// ── Phase 11 — 3D transform evaluation ────────────────────────────────
+
+/** Extended 3D transform fields (added to existing Transform2D fields). */
+export type Transform3DFields = {
+  z: number;
+  rotationX: number;
+  rotationY: number;
+  rotationZ: number;
+  anchorZ: number;
+};
+
+/**
+ * Evaluate 3D-specific transform properties from a node.
+ * Returns all zeroes when the node has no 3D schema fields.
+ */
+export function evaluateTransform3DFields(
+  scene: RuntimeScene,
+  node: RuntimeNode,
+  time: number,
+  driven?: Map<string, number>,
+): Transform3DFields {
+  // 3D fields are optional in the schema — safely extract numbers
+  const t = node.transform as unknown as Record<string, unknown>;
+  const get = (key: string, fallback: number): number =>
+    typeof t[key] === "number" ? (t[key] as number) : fallback;
+  return {
+    z: numberProperty(scene, node, "transform.z", time, get("z", 0), driven),
+    rotationX: numberProperty(scene, node, "transform.rotationX", time, get("rotationX", 0), driven),
+    rotationY: numberProperty(scene, node, "transform.rotationY", time, get("rotationY", 0), driven),
+    rotationZ: numberProperty(scene, node, "transform.rotationZ", time, get("rotationZ", 0), driven),
+    anchorZ: numberProperty(scene, node, "transform.anchorZ", time, get("anchorZ", 0), driven),
+  };
+}
+
+/**
+ * Build a local 4×4 matrix from a node's 2D + 3D transform properties.
+ */
+export function buildEvaluatedMatrix4(
+  transform: Transform2D,
+  fields3D: Transform3DFields,
+): Matrix4 {
+  return localTransformMatrix3D({
+    x: transform.x,
+    y: transform.y,
+    z: fields3D.z,
+    width: transform.width,
+    height: transform.height,
+    rotation: transform.rotation,
+    rotationX: fields3D.rotationX,
+    rotationY: fields3D.rotationY,
+    rotationZ: fields3D.rotationZ,
+    scaleX: transform.scaleX,
+    scaleY: transform.scaleY,
+    anchorX: transform.anchorX,
+    anchorY: transform.anchorY,
+    anchorZ: fields3D.anchorZ,
+    flipX: transform.flipX,
+    flipY: transform.flipY,
+  });
+}
+
+/**
+ * Compute the 4×4 world matrix for a node by composing parentMatrix4 × localMatrix4.
+ */
+export function computeWorldMatrix4(
+  parentMatrix4: Matrix4,
+  localMatrix4: Matrix4,
+): Matrix4 {
+  return multiplyMatrix4(parentMatrix4, localMatrix4);
+}
+
 function topologicalNodes(scene: RuntimeScene): RuntimeNode[] {
   const byId = new Map(scene.nodes.map((node) => [node.id, node]));
   const declarationIndex = new Map(scene.nodes.map((node, index) => [node.id, index]));
@@ -513,6 +597,18 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
     }
 
     const worldMatrix = multiplyMatrix(parentMatrix, localTransformMatrix(transform));
+
+    // ── Phase 11: 3D world matrix for perspective-3d scenes ─────────
+    let worldMatrix4: Matrix4 | undefined;
+    if (scene.space === "perspective-3d") {
+      const fields3D = evaluateTransform3DFields(scene, node, time, driven);
+      const localM4 = buildEvaluatedMatrix4(transform, fields3D);
+      const parentM4 = node.parentId
+        ? (evaluated.get(node.parentId)?.worldMatrix4 ?? IDENTITY_MATRIX4)
+        : IDENTITY_MATRIX4;
+      worldMatrix4 = multiplyMatrix4(parentM4, localM4);
+    }
+
     let paintContours = node.type === "path" ? node.payload.contours : undefined;
     if (node.type === "path") {
       for (const modifier of node.modifiers ?? []) {
@@ -574,6 +670,7 @@ export function evaluateScene(scene: RuntimeScene, time: number): EvaluatedNode[
       node,
       transform,
       worldMatrix: projectedMatrix,
+      worldMatrix4,
       worldOpacity,
       visible,
       worldBounds,

@@ -70,14 +70,16 @@ export const RenderManifestSchema = z.object({
    * Audio manifest — summary of audio clips in the project.
    * @since Phase 10
    */
-  audio: z.object({
-    clipCount: z.number().int().nonnegative(),
-    totalDurationSeconds: z.number().nonnegative(),
-    /** Sample rate used for audio rendering (Hz). */
-    sampleRate: z.number().int().positive().default(48000),
-    /** Audio codec for export. */
-    codec: z.enum(["aac", "opus", "mp3", "pcm"]).default("aac"),
-  }).optional(),
+  audio: z
+    .object({
+      clipCount: z.number().int().nonnegative(),
+      totalDurationSeconds: z.number().nonnegative(),
+      /** Sample rate used for audio rendering (Hz). */
+      sampleRate: z.number().int().positive().default(48000),
+      /** Audio codec for export. */
+      codec: z.enum(["aac", "opus", "mp3", "pcm"]).default("aac"),
+    })
+    .optional(),
   output: z.object({
     codec: z.enum(["h264", "h265", "vp9", "prores"]),
     pixelFormat: z.string().min(1),

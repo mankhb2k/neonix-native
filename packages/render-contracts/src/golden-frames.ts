@@ -167,9 +167,10 @@ export function compareGoldenFrames(
     const frame = goldenSampleFrame(point, durationInFrames, fps);
 
     const paintMatch = goldenEntry?.paintHash === current.paintHash;
-    const pixelMatch = goldenEntry?.pixelHash != null && current.pixelHash != null
-      ? goldenEntry.pixelHash === current.pixelHash
-      : null;
+    const pixelMatch =
+      goldenEntry?.pixelHash != null && current.pixelHash != null
+        ? goldenEntry.pixelHash === current.pixelHash
+        : null;
     const structuralMatch =
       goldenEntry != null &&
       goldenEntry.layers === current.layers &&

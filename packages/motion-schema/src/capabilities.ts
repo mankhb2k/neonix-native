@@ -77,6 +77,19 @@ export const MOTION_V2_LIMITS = Object.freeze({
   richTextHighlightPadding: 128,
   /** Font scale relative multiplier for a run. */
   richTextFontScale: 4,
+
+  // ── Phase 11 — Perspective 3D limits ──────────────────────────────
+
+  /** Max absolute Z position in 3D space (px). */
+  zPositionRange: 100_000,
+  /** Max absolute rotation angle around any 3D axis (degrees). */
+  rotation3DAngle: 360,
+  /** Max perspective FOV (degrees). */
+  perspectiveFov: 179,
+  /** Min near clip distance. */
+  cameraNear: 0.001,
+  /** Max far clip distance. */
+  cameraFar: 1_000_000,
 });
 
 export type MotionPropertyValueKind = "number" | "angle" | "vec2" | "color" | "boolean" | "string" | "asset" | "path" | "gradient" | "json";

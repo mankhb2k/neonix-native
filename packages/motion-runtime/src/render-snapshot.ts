@@ -1,5 +1,10 @@
 import { applyMatrix, multiplyMatrix, type Matrix2D } from "./matrix";
 import {
+  IDENTITY_MATRIX4,
+  type Matrix4,
+  depthFromMat4,
+} from "./matrix4";
+import {
   evaluateScene,
   type EvaluatedNode,
   type RuntimeEffect,
@@ -110,6 +115,8 @@ export type RenderSnapshotItem = {
   parentNodeId?: string;
   nodeType: string;
   worldMatrix: Matrix2D;
+  /** 4×4 world matrix for perspective-3d space. @since Phase 11 */
+  worldMatrix4?: Matrix4;
   worldBounds: Bounds2D;
   worldOpacity: number;
   visible: boolean;
@@ -463,6 +470,12 @@ export function buildRenderSnapshot(input: {
     const zA = a.node.zIndex ?? 0;
     const zB = b.node.zIndex ?? 0;
     if (zA !== zB) return zA - zB;
+    // Phase 11: depth sort for perspective-3d
+    if (input.scene.space === "perspective-3d" && a.worldMatrix4 && b.worldMatrix4) {
+      const depthA = depthFromMat4(a.worldMatrix4, 0, 0);
+      const depthB = depthFromMat4(b.worldMatrix4, 0, 0);
+      if (Math.abs(depthA - depthB) > 1e-6) return depthA - depthB;
+    }
     return a.node.id.localeCompare(b.node.id);
   });
 
@@ -480,6 +493,7 @@ export function buildRenderSnapshot(input: {
       parentNodeId: item.node.parentId ?? undefined,
       nodeType: item.node.type,
       worldMatrix,
+      ...(item.worldMatrix4 ? { worldMatrix4: item.worldMatrix4 } : {}),
       worldBounds,
       worldOpacity: item.worldOpacity,
       visible: item.visible,

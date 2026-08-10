@@ -303,7 +303,10 @@ describe("Content Hash (Task 10.1)", () => {
     const nested = {
       project: {
         id: "test",
-        scenes: [{ id: "s1", duration: 10 }, { id: "s2", duration: 5 }],
+        scenes: [
+          { id: "s1", duration: 10 },
+          { id: "s2", duration: 5 },
+        ],
         metadata: { fps: 30 },
       },
     };
@@ -361,9 +364,33 @@ describe("Golden Frames (Task 10.5)", () => {
       height: 1920,
       compilerVersion: "1.0.0",
       frames: [
-        { point: "start", frame: 0, time: 0, paintHash: "hash0", layers: 3, groups: 1, drawables: 5 },
-        { point: "middle", frame: 45, time: 1.5, paintHash: "hash45", layers: 3, groups: 1, drawables: 5 },
-        { point: "end", frame: 89, time: 2.966, paintHash: "hash89", layers: 3, groups: 1, drawables: 5 },
+        {
+          point: "start",
+          frame: 0,
+          time: 0,
+          paintHash: "hash0",
+          layers: 3,
+          groups: 1,
+          drawables: 5,
+        },
+        {
+          point: "middle",
+          frame: 45,
+          time: 1.5,
+          paintHash: "hash45",
+          layers: 3,
+          groups: 1,
+          drawables: 5,
+        },
+        {
+          point: "end",
+          frame: 89,
+          time: 2.966,
+          paintHash: "hash89",
+          layers: 3,
+          groups: 1,
+          drawables: 5,
+        },
       ],
       generatedAt: "2025-01-01T00:00:00Z",
     };
@@ -396,7 +423,15 @@ describe("Golden Frames (Task 10.5)", () => {
       height: 1920,
       compilerVersion: "1.0.0",
       frames: [
-        { point: "start", frame: 0, time: 0, paintHash: "good", layers: 3, groups: 1, drawables: 5 },
+        {
+          point: "start",
+          frame: 0,
+          time: 0,
+          paintHash: "good",
+          layers: 3,
+          groups: 1,
+          drawables: 5,
+        },
       ],
       generatedAt: "2025-01-01T00:00:00Z",
     };
@@ -422,7 +457,15 @@ describe("Golden Frames (Task 10.5)", () => {
       height: 1920,
       compilerVersion: "1.0.0",
       frames: [
-        { point: "start", frame: 0, time: 0, paintHash: "hash", layers: 3, groups: 1, drawables: 5 },
+        {
+          point: "start",
+          frame: 0,
+          time: 0,
+          paintHash: "hash",
+          layers: 3,
+          groups: 1,
+          drawables: 5,
+        },
       ],
       generatedAt: "2025-01-01T00:00:00Z",
     };

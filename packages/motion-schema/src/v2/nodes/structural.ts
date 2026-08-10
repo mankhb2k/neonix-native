@@ -26,7 +26,23 @@ export const CameraNodeV2Schema = NodeBaseSchema.extend({
   type: z.literal("camera"),
   payload: z.object({
     zoom: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.transformScale),
-    projection: z.literal("orthographic").optional(),
+    projection: z.enum(["orthographic", "perspective"]).optional(),
+    /** Field of view in degrees (1–179). Required for perspective projection. */
+    fov: FiniteNumberSchema.min(1).max(179).optional(),
+    /** Near clip plane distance. */
+    near: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.cameraFar).optional(),
+    /** Far clip plane distance. */
+    far: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.cameraFar).optional(),
+    /**
+     * X rotation of the camera in degrees (pitch).
+     * @since Phase 11
+     */
+    rotationX: FiniteNumberSchema.min(-180).max(180).optional(),
+    /**
+     * Y rotation of the camera in degrees (yaw).
+     * @since Phase 11
+     */
+    rotationY: FiniteNumberSchema.min(-180).max(180).optional(),
     parallaxStrength: FiniteNumberSchema.min(0).max(MOTION_V2_LIMITS.parallaxFactor).optional(),
   }).strict(),
 }).strict();

@@ -72,7 +72,7 @@ const NormalizedMotionProjectV2BaseSchema = z
       z.object({
         id: IdSchema,
         duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
-        space: z.enum(["flat-2d", "layered-2.5d"]).optional(),
+        space: z.enum(["flat-2d", "layered-2.5d", "perspective-3d"]).optional(),
         motionBlur: MotionBlurSettingsSchema.optional(),
         drivers: z.array(ProceduralDriverSchema).max(512).optional(),
         activeCameraId: IdSchema.optional(),

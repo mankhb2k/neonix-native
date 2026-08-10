@@ -1,5 +1,7 @@
 import { MOTION_V2_LIMITS } from "@motionvideo/motion-schema";
 import { applyMatrix, type Matrix2D } from "./matrix";
+import { type Matrix4, transformPoint3D } from "./matrix4";
+import type { Point3D } from "./matrix4";
 
 export type Point2D = { x: number; y: number };
 export type Bounds2D = { x: number; y: number; width: number; height: number };
@@ -99,4 +101,65 @@ export function planOffscreenSurface(
     throw new Error(`Offscreen surface exceeds pixel limit ${limits.maxPixels}: ${pixelCount}`);
   }
   return { originX, originY, width, height, pixelCount };
+}
+
+// ── Phase 11 — 3D spatial helpers ────────────────────────────────────
+
+/** Axis-aligned bounding box in 3D. */
+export type Bounds3D = {
+  minX: number; minY: number; minZ: number;
+  maxX: number; maxY: number; maxZ: number;
+};
+
+/** Empty 3D bounds sentinel. */
+export const EMPTY_BOUNDS_3D: Bounds3D = {
+  minX: 0, minY: 0, minZ: 0, maxX: 0, maxY: 0, maxZ: 0,
+};
+
+/**
+ * Project a 2D bounds (in XY plane at z=0) through a 4×4 matrix,
+ * returning the screen-space AABB.
+ */
+export function projectAABB(
+  bounds: Bounds2D,
+  matrix4: Matrix4,
+): Bounds2D {
+  if (isEmptyBounds(bounds)) return { ...EMPTY_BOUNDS };
+
+  const corners: Point3D[] = [
+    { x: bounds.x, y: bounds.y, z: 0 },
+    { x: bounds.x + bounds.width, y: bounds.y, z: 0 },
+    { x: bounds.x, y: bounds.y + bounds.height, z: 0 },
+    { x: bounds.x + bounds.width, y: bounds.y + bounds.height, z: 0 },
+  ];
+
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+  for (const corner of corners) {
+    const p = transformPoint3D(matrix4, corner.x, corner.y, corner.z);
+    if (p.x < minX) minX = p.x;
+    if (p.y < minY) minY = p.y;
+    if (p.x > maxX) maxX = p.x;
+    if (p.y > maxY) maxY = p.y;
+  }
+
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
+/**
+ * Project 8 corners of a 3D AABB through a matrix for depth sorting.
+ */
+export function projectAABB3D(
+  bounds3d: Bounds3D,
+  matrix4: Matrix4,
+): Array<{ x: number; y: number; z: number }> {
+  const { minX, minY, minZ, maxX, maxY, maxZ } = bounds3d;
+  const corners: Point3D[] = [
+    { x: minX, y: minY, z: minZ }, { x: maxX, y: minY, z: minZ },
+    { x: minX, y: maxY, z: minZ }, { x: maxX, y: maxY, z: minZ },
+    { x: minX, y: minY, z: maxZ }, { x: maxX, y: minY, z: maxZ },
+    { x: minX, y: maxY, z: maxZ }, { x: maxX, y: maxY, z: maxZ },
+  ];
+
+  return corners.map((c) => transformPoint3D(matrix4, c.x, c.y, c.z));
 }
