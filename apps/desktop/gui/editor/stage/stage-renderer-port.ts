@@ -15,7 +15,7 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
@@ -38,6 +38,14 @@ export type StageRendererPort = StageRendererPortShape & {
 
 function nodeDomKey(clipId: string, nodeId: string): string {
   return `${clipId}\0${nodeId}`;
+}
+
+/** Derive legacy aspect label from v3 composition dimensions. */
+function compositionAspectLabel(project: MotionProject): "16:9" | "9:16" | "1:1" {
+  const ratio = project.composition.width / project.composition.height;
+  if (Math.abs(ratio - 9 / 16) < 0.01) return "9:16";
+  if (Math.abs(ratio - 1) < 0.01) return "1:1";
+  return "16:9";
 }
 
 function isRenderableNode(node: PreviewParityNode): boolean {
@@ -139,9 +147,9 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   const paintFrame = (frameIndex: number) => {
     if (!project || !visualIndex) return;
     lastFrame = frameIndex;
-    const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+    const fps = Math.max(1, Math.round(project.composition.fps));
     const previewTime = frameIndex / fps;
-    const stage = stageSizeForAspect(project.metadata.aspectRatio);
+    const stage = stageSizeForAspect(compositionAspectLabel(project));
     applyCanvasChrome(stage);
 
     if (!compiled) {
@@ -213,7 +221,8 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        compiled = compileMotionProject(project);
+        const result = compileMotionProjectV3(project);
+        compiled = result.ok ? result.project : null;
       } catch {
         compiled = null;
       }

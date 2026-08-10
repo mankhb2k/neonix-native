@@ -74,6 +74,21 @@ export function stageSizeForAspect(aspectRatio: string): CompositionSize {
   }
 }
 
+/** Composition size from a v2|v3 project (v3 reads `composition`, v2 falls back to `metadata.aspectRatio`). */
+export function stageSizeForProject(
+  project: Pick<MotionProject, "metadata" | "composition">,
+): CompositionSize {
+  if ("composition" in project && project.composition?.width && project.composition?.height) {
+    return {
+      width: project.composition.width,
+      height: project.composition.height,
+    };
+  }
+  const aspect =
+    (project.metadata as { aspectRatio?: string }).aspectRatio ?? "16:9";
+  return stageSizeForAspect(aspect);
+}
+
 const DEFAULT_COMPOSITION: CompositionSize = { width: 1920, height: 1080 };
 
 function baseTransform(

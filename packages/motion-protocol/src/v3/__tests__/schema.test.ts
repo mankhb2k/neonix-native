@@ -70,7 +70,9 @@ describe("v3 schema — positive fixtures", () => {
     // capabilities — required, optional, experimental
     expect(project.capabilities.required).toContain("primitive.text");
     expect(project.capabilities.optional).toContain("effect.blur");
-    expect(project.capabilities.experimental).toContain("projection.perspective-3d");
+    expect(project.capabilities.experimental).toContain(
+      "projection.perspective-3d",
+    );
 
     // dependencies — compiler, components, plugins
     expect(project.dependencies.compiler.range).toBe(">=1.0.0");
@@ -88,7 +90,15 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.variables).toHaveLength(7);
     const kinds = project.variables.map((v) => v.type);
     expect(kinds).toEqual(
-      expect.arrayContaining(["string", "color", "number", "boolean", "asset", "enum", "list"]),
+      expect.arrayContaining([
+        "string",
+        "color",
+        "number",
+        "boolean",
+        "asset",
+        "enum",
+        "list",
+      ]),
     );
 
     // assets — all 5 types
@@ -111,8 +121,16 @@ describe("v3 schema — positive fixtures", () => {
     const nodeTypes = allNodes.map((n) => n.type);
     expect(nodeTypes).toEqual(
       expect.arrayContaining([
-        "group", "text", "shape", "image", "bone", "camera",
-        "path", "adjustment", "video", "svg",
+        "group",
+        "text",
+        "shape",
+        "image",
+        "bone",
+        "camera",
+        "path",
+        "adjustment",
+        "video",
+        "svg",
       ]),
     );
 
@@ -147,7 +165,9 @@ describe("v3 schema — positive fixtures", () => {
 
     // bindings — scene + component targets
     expect(project.bindings).toHaveLength(3);
-    const componentBinding = project.bindings.find((b) => b.target.kind === "component")!;
+    const componentBinding = project.bindings.find(
+      (b) => b.target.kind === "component",
+    )!;
     expect(componentBinding.target.componentId).toBe("lower-third");
 
     // provenance — all 4 sub-fields

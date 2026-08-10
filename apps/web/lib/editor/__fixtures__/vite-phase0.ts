@@ -22,7 +22,7 @@ import {
   type TimelineDocument,
 } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 
 export const PHASE0_SAVED_AT = "2026-07-31T00:00:00.000Z";
 /** Schema caps `scenes` / `sceneOrder` at 100 — committed large fixture stays parseable. */
@@ -107,7 +107,7 @@ function textNode(id: string, text: string) {
 
 export function buildPhase0SmallFixture(): StoredEnvelope {
   const { project, clips, lanes } = fixtureMainOnly();
-  const projectWithId = parseMotionProject({
+  const projectWithId = parseProjectInput({
     ...project,
     metadata: {
       ...project.metadata,
@@ -160,7 +160,7 @@ export function buildPhase0MediumFixture(): StoredEnvelope {
       name: "Sfx",
     },
   ];
-  const project = parseMotionProject({
+  const project = parseProjectInput({
     ...base.project,
     metadata: {
       ...base.project.metadata,
@@ -331,7 +331,7 @@ export function buildPhase0LargeFixture(
     });
   }
 
-  const project = parseMotionProject({
+  const project = parseProjectInput({
     format: "motion-project",
     formatVersion: 2,
     metadata: {
@@ -382,10 +382,12 @@ function applyPure(
 export function buildPhase0Goldens(): Record<string, DocSnapshot> {
   return withDeterministicIds(() => {
     const { project, clips, lanes } = fixtureMainOnly();
-    const baseDoc: TimelineDocument = { project, clips, lanes };
+    // Goldens document command output on the current (v3) project shape.
+    const baseProject = parseProjectInput(project);
+    const baseDoc: TimelineDocument = { project: baseProject, clips, lanes };
     const overlay = fixtureBasePlusOverlay();
     const overlayDoc: TimelineDocument = {
-      project: overlay.project,
+      project: parseProjectInput(overlay.project),
       clips: overlay.clips,
       lanes: overlay.lanes,
     };

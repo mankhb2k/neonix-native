@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { compileMotionProject } from "./compiler";
+import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { createSmokeMotionProject } from "./fixtures/smoke-project";
 import { renderCompiledProject } from "./runtime";
@@ -63,7 +64,11 @@ async function main() {
   const renderMs = performance.now() - t0;
 
   const t1 = performance.now();
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
+  const files = await encodeOutputs(
+    rendered,
+    compositionAspectRatio(project),
+    compiled,
+  );
   const encodeMs = performance.now() - t1;
 
   const totalMs = renderMs + encodeMs;

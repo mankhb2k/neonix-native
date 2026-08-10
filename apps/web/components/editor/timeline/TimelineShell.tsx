@@ -12,6 +12,7 @@ import { TransportBar, type TimelineDesignMode } from "./Header/TransportBar";
 import { TIMELINE_ZOOM_DEFAULT } from "./timeline-scale";
 import { TimelineViewport } from "./viewport/TimelineViewport";
 import { useTimelineHotkeys } from "./interactions/use-timeline-hotkeys";
+import { compositionFps } from "@/lib/runtime/project-composition";
 
 /**
  * CapCut/Canva-style timeline shell: store document, seek/zoom, select + marquee.
@@ -46,7 +47,7 @@ export function TimelineShell() {
   const [zoom, setZoom] = useState(TIMELINE_ZOOM_DEFAULT);
   const [snapOn, setSnapOn] = useState(true);
 
-  const fps = project?.metadata.fps ?? 30;
+  const fps = project ? compositionFps(project) : 30;
   const duration = Math.max(clockDuration || 0, 0);
 
   const onSelect = useCallback(

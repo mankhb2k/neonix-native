@@ -6,6 +6,7 @@ import { ShapesDropdown } from "@/components/editor/header/shapes/ShapesDropdown
 import { TextDropdown } from "@/components/editor/header/text/TextDropdown";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { useRenderJobsStore } from "@/lib/editor/export/render-jobs-store";
+import { compositionAspectRatio } from "@/lib/runtime/project-composition";
 import { cn } from "@/lib/utils";
 import {
   Check,
@@ -63,7 +64,7 @@ export function EditorHeader({ projectName, projectId }: Props) {
     phase === "encoding" ||
     phase === "uploading";
   const dirty = dirtyRevision !== savedRevision;
-  const aspect = project?.metadata.aspectRatio;
+  const aspect = project ? compositionAspectRatio(project) : undefined;
 
   const meta = [
     projectId,

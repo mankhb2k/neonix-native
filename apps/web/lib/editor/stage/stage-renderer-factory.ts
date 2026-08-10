@@ -9,7 +9,7 @@ import {
   type StageRendererPort,
 } from "@/lib/editor/stage/stage-renderer-port";
 import { createPixiStageRenderer } from "@motionvideo/pixi-renderer";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { compileProjectV3 } from "@motionvideo/motion-runtime/testing";
 import {
   evaluateCompositionFrame,
   type EvaluatedFrame,
@@ -19,6 +19,10 @@ import type {
   NormalizedMotionProjectV2,
 } from "@motionvideo/motion-protocol";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
+import {
+  compositionAspectRatio,
+  compositionFps,
+} from "@/lib/runtime/project-composition";
 
 export function resolveStageRendererBackend(): StageRendererBackend {
   const raw = process.env.NEXT_PUBLIC_STAGE_RENDERER?.toLowerCase();
@@ -51,8 +55,8 @@ export async function createStageRenderer(
         lastEvaluated = null;
         return;
       }
-      const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
-      const size = stageSizeForAspect(project.metadata.aspectRatio);
+      const fps = compositionFps(project);
+      const size = stageSizeForAspect(compositionAspectRatio(project));
       const evaluated = evaluateCompositionFrame(
         compiled,
         frameIndex,
@@ -70,7 +74,7 @@ export async function createStageRenderer(
       setDocument(input) {
         project = input.project;
         try {
-          compiled = compileMotionProject(input.project);
+          compiled = compileProjectV3(input.project);
         } catch {
           compiled = null;
         }

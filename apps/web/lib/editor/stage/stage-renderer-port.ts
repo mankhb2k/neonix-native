@@ -16,7 +16,7 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { compileProjectV3 } from "@motionvideo/motion-runtime/testing";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
@@ -32,6 +32,10 @@ import {
   stageSizeForAspect,
   type PreviewParityNode,
 } from "@/lib/runtime/preview-evaluate";
+import {
+  compositionAspectRatio,
+  compositionFps,
+} from "@/lib/runtime/project-composition";
 
 export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {
@@ -160,9 +164,9 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   const paintFrame = (frameIndex: number) => {
     if (!project || !visualIndex) return;
     lastFrame = frameIndex;
-    const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+    const fps = compositionFps(project);
     const previewTime = frameIndex / fps;
-    const stage = stageSizeForAspect(project.metadata.aspectRatio);
+    const stage = stageSizeForAspect(compositionAspectRatio(project));
     applyCanvasChrome(stage);
 
     if (!compiled) {
@@ -236,7 +240,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        compiled = compileMotionProject(project);
+        compiled = compileProjectV3(project);
       } catch {
         compiled = null;
       }

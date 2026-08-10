@@ -61,8 +61,12 @@ function textNode(id: string, text: string) {
       flipX: false,
       flipY: false,
     },
-    payload: { text, fontSize: 24, fontWeight: 600, align: "left" as const },
-    style: { fill: "#111111" },
+    payload: {
+      content: { kind: "plain", text },
+      fontSize: 24,
+      color: "#111111",
+      alignment: "left" as const,
+    },
   };
 }
 
@@ -149,25 +153,52 @@ export function buildStoredProject(input: {
 }): StoredEditorProject {
   const project = {
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: input.projectId,
       name: input.name,
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: { name: "E2E", primaryColor: "#1A5D3A" },
     },
-    dependencies: { components: [] },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#1A5D3A",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     assets: input.assets ?? [],
     variables: [],
+    tokens: {},
+    components: [],
     timeline: {
-      sceneOrder: input.scenes.map((s) => s.id),
+      visualTracks: [
+        {
+          id: "main-track",
+          role: "main",
+          order: 0,
+          clips: (() => {
+            let cursor = 0;
+            return input.scenes.map((s) => {
+              const clip = {
+                id: `clip-${s.id}`,
+                source: { kind: "scene", sceneId: s.id },
+                start: cursor,
+                duration: s.duration,
+              };
+              cursor += s.duration;
+              return clip;
+            });
+          })(),
+        },
+      ],
       audioTracks: input.audioTracks ?? [],
+      captionTracks: [],
     },
     scenes: input.scenes,
     bindings: [],
-    extensions: { constraints: [], events: [] },
   };
 
   return {

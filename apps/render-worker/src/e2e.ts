@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { serializeMotionProject } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { compileMotionProject } from "./compiler";
+import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { createSmokeMotionProject } from "./fixtures/smoke-project";
 import { renderCompiledProject } from "./runtime";
@@ -60,7 +61,11 @@ async function main() {
     `[e2e] rendered ${rendered.frameCount} frames @ ${rendered.fps}fps (${rendered.width}x${rendered.height})`,
   );
 
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
+  const files = await encodeOutputs(
+    rendered,
+    compositionAspectRatio(project),
+    compiled,
+  );
   const urls = await uploadOutputs(files);
   const mp4 = files[0]!.path;
   const info = await stat(mp4);

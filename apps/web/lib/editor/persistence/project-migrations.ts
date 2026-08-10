@@ -1,5 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import {
   parseOverlayScenes,
   type OverlaySceneItem,
@@ -96,7 +96,7 @@ export function parseStoredProjectRecord(raw: unknown): StoredProject | null {
   if (!raw || typeof raw !== "object") return null;
   const item = raw as RawStoredRecord;
   try {
-    const project = parseMotionProject(item.project);
+    const project = parseProjectInput(item.project);
     const timelineClips = parseTimelineClips(item.timelineClips);
     const timelineLanes = parseTimelineLanes(item.timelineLanes);
     const base: StoredProject = {

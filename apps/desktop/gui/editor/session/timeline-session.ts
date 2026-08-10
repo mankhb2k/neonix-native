@@ -225,10 +225,6 @@ export function reduceTimelineSession(
         metadata: {
           ...state.project.metadata,
           name: trimmed,
-          brand: {
-            ...state.project.metadata.brand,
-            name: trimmed,
-          },
         },
       };
       const after: TimelineDocument = {

@@ -293,7 +293,7 @@ export function migrateMotionProjectV2ToV3(
             ]
           : [],
       audioTracks,
-      captionTracks: project.timeline.captionTracks.map((track) => ({
+      captionTracks: (project.timeline.captionTracks ?? []).map((track) => ({
         ...track,
       })),
     },
@@ -455,7 +455,15 @@ function mapNode(
         ...base,
         type: "text",
         payload: {
-          content: node.payload.content,
+          // v2 schema preprocess normalizes legacy `{ text }` to content, but
+          // raw v2-shaped inputs (e.g. in-memory fixtures) may still carry it.
+          content:
+            node.payload.content ??
+            {
+              kind: "plain",
+              text:
+                (node.payload as { text?: string }).text ?? "",
+            },
           fontAssetId: node.payload.fontAssetId,
           fontSize: node.payload.fontSize,
           color: fillToHexOrNull(node.style?.fill) ?? "#000000",

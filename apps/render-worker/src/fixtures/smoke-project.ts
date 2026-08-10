@@ -1,23 +1,30 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+﻿import { parseMotionProjectV3, type MotionProjectV3 } from "@motionvideo/motion-protocol";
 
 /** Minimal text+preset project for render-worker e2e / benchmark (replaces template-library seed). */
-export function createSmokeMotionProject(idSuffix?: string): MotionProject {
+export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
   const id = idSuffix ? `smoke_${idSuffix}` : `smoke_${Date.now()}`;
-  return parseMotionProject({
+  return parseMotionProjectV3({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id,
       name: "Smoke Export",
-      aspectRatio: "9:16",
-      fps: 30,
       locale: "vi-VN",
-      brand: { name: "MotiClip", primaryColor: "#1A5D3A", fontFamily: "Be Vietnam Pro" },
     },
-    dependencies: { components: [] },
-    assets: [],
+    composition: {
+      width: 1080,
+      height: 1920,
+      fps: 30,
+      background: "#1A5D3A",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {},
     variables: [],
-    timeline: { sceneOrder: ["hook", "offer", "cta"], audioTracks: [] },
+    assets: [],
+    components: [],
     scenes: [
       {
         id: "hook",
@@ -45,12 +52,11 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProject {
               flipY: false,
             },
             payload: {
-              text: "Smoke hook",
+              content: { kind: "plain", text: "Smoke hook" },
               fontSize: 64,
-              fontWeight: 600,
-              align: "center",
+              color: "#FFFFFF",
+              alignment: "center",
             },
-            style: { fill: "#FFFFFF" },
           },
         ],
         clips: [
@@ -89,12 +95,11 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProject {
               flipY: false,
             },
             payload: {
-              text: "Smoke offer",
+              content: { kind: "plain", text: "Smoke offer" },
               fontSize: 64,
-              fontWeight: 600,
-              align: "center",
+              color: "#FFFFFF",
+              alignment: "center",
             },
-            style: { fill: "#FFFFFF" },
           },
         ],
         clips: [
@@ -133,12 +138,11 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProject {
               flipY: false,
             },
             payload: {
-              text: "Smoke CTA",
+              content: { kind: "plain", text: "Smoke CTA" },
               fontSize: 64,
-              fontWeight: 700,
-              align: "center",
+              color: "#FFFFFF",
+              alignment: "center",
             },
-            style: { fill: "#FFFFFF" },
           },
         ],
         clips: [
@@ -152,5 +156,22 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProject {
         ],
       },
     ],
+    timeline: {
+      visualTracks: [
+        {
+          id: "track.main",
+          role: "main",
+          order: 0,
+          clips: [
+            { id: "clip.scene.hook", source: { kind: "scene", sceneId: "hook" }, start: 0, duration: 2, opacity: 1, loop: false },
+            { id: "clip.scene.offer", source: { kind: "scene", sceneId: "offer" }, start: 2, duration: 2, opacity: 1, loop: false },
+            { id: "clip.scene.cta", source: { kind: "scene", sceneId: "cta" }, start: 4, duration: 2, opacity: 1, loop: false },
+          ],
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
+    bindings: [],
   });
 }

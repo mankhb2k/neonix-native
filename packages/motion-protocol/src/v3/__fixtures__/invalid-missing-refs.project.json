@@ -1,22 +1,64 @@
 {
   "format": "motion-project",
   "formatVersion": 3,
-  "metadata": { "id": "v3-missing-refs", "name": "Invalid Missing Refs", "locale": "vi-VN" },
+  "metadata": {
+    "id": "v3-missing-refs",
+    "name": "Invalid Missing Refs",
+    "locale": "vi-VN"
+  },
   "composition": { "width": 1920, "height": 1080, "fps": 30 },
   "dependencies": { "compiler": { "range": ">=1.0.0" }, "components": [] },
   "scenes": [
     {
-      "id": "scene-a", "name": "A", "duration": 5,
+      "id": "scene-a",
+      "name": "A",
+      "duration": 5,
       "nodes": [
         {
-          "id": "node-img", "type": "image", "parentId": null,
-          "transform": { "x": 0, "y": 0, "width": 200, "height": 200, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
+          "id": "node-img",
+          "type": "image",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 200,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
           "payload": { "assetId": "asset-nonexistent" }
         },
         {
-          "id": "node-text", "type": "text", "parentId": null,
-          "transform": { "x": 0, "y": 0, "width": 400, "height": 60, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0, "anchorY": 0, "opacity": 1, "visible": true, "flipX": false, "flipY": false },
-          "payload": { "content": { "kind": "plain", "text": "Hello" }, "fontSize": 32, "fontAssetId": "font-missing" }
+          "id": "node-text",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 400,
+            "height": 60,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Hello" },
+            "fontSize": 32,
+            "fontAssetId": "font-missing"
+          }
         }
       ],
       "clips": []
@@ -25,15 +67,33 @@
   "timeline": {
     "visualTracks": [
       {
-        "id": "track-1", "role": "main", "order": 0,
+        "id": "track-1",
+        "role": "main",
+        "order": 0,
         "clips": [
-          { "id": "clip-missing-scene", "source": { "kind": "scene", "sceneId": "scene-nonexistent" }, "start": 0, "duration": 5 },
-          { "id": "clip-valid", "source": { "kind": "scene", "sceneId": "scene-a" }, "start": 5, "duration": 3 }
+          {
+            "id": "clip-missing-scene",
+            "source": { "kind": "scene", "sceneId": "scene-nonexistent" },
+            "start": 0,
+            "duration": 5
+          },
+          {
+            "id": "clip-valid",
+            "source": { "kind": "scene", "sceneId": "scene-a" },
+            "start": 5,
+            "duration": 3
+          }
         ]
       }
     ],
     "audioTracks": [
-      { "id": "audio-1", "role": "bgm", "assetId": "asset-missing-audio", "start": 0, "duration": 5 }
+      {
+        "id": "audio-1",
+        "role": "bgm",
+        "assetId": "asset-missing-audio",
+        "start": 0,
+        "duration": 5
+      }
     ],
     "captionTracks": []
   },
@@ -41,7 +101,12 @@
     {
       "id": "binding-missing-var",
       "source": { "kind": "variable", "variableId": "var-nonexistent" },
-      "target": { "kind": "scene", "sceneId": "scene-a", "nodeId": "node-text", "property": "payload.content.text" }
+      "target": {
+        "kind": "scene",
+        "sceneId": "scene-a",
+        "nodeId": "node-text",
+        "property": "payload.content.text"
+      }
     }
   ],
   "variables": [],

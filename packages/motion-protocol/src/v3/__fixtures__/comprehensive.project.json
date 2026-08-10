@@ -205,11 +205,19 @@
           "type": "solid",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 600, "height": 80,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0, "anchorY": 0,
-            "opacity": 0.9, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 0.9,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "width": 600, "height": 80, "color": "#000000" }
         }
@@ -278,11 +286,19 @@
           "parentId": null,
           "zIndex": 0,
           "transform": {
-            "x": 960, "y": 300, "width": 0, "height": 0,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 960,
+            "y": 300,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "compositing": { "mode": "isolate" } },
           "blendMode": "normal"
@@ -292,11 +308,19 @@
           "type": "text",
           "parentId": "node-group",
           "transform": {
-            "x": 0, "y": 0, "width": 800, "height": 120,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "content": { "kind": "plain", "text": "Hello MotiClip V3" },
@@ -316,11 +340,19 @@
           "type": "shape",
           "parentId": "node-group",
           "transform": {
-            "x": 0, "y": 80, "width": 200, "height": 4,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 80,
+            "width": 200,
+            "height": 4,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "shape": "rectangle", "cornerRadius": 2 },
           "style": { "fill": "#ff6b35" }
@@ -330,11 +362,19 @@
           "type": "image",
           "parentId": null,
           "transform": {
-            "x": 960, "y": 600, "width": 128, "height": 128,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 960,
+            "y": 600,
+            "width": 128,
+            "height": 128,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "assetId": "asset-logo", "fit": "contain" },
           "mask": {
@@ -348,11 +388,19 @@
           "type": "bone",
           "parentId": "node-group",
           "transform": {
-            "x": 0, "y": 0, "width": 0, "height": 0,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0, "anchorY": 0,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "length": 100,
@@ -365,11 +413,19 @@
           "type": "camera",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 0, "height": 0,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 0,
+            "height": 0,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "projection": "orthographic",
@@ -425,11 +481,19 @@
           "type": "path",
           "parentId": null,
           "transform": {
-            "x": 100, "y": 200, "width": 300, "height": 200,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0, "anchorY": 0,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 100,
+            "y": 200,
+            "width": 300,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "contours": [
@@ -439,7 +503,12 @@
                 "closed": false,
                 "segments": [
                   { "kind": "line", "to": { "x": 100, "y": 50 } },
-                  { "kind": "cubic", "to": { "x": 200, "y": 50 }, "control1": { "x": 130, "y": 0 }, "control2": { "x": 170, "y": 100 } }
+                  {
+                    "kind": "cubic",
+                    "to": { "x": 200, "y": 50 },
+                    "control1": { "x": 130, "y": 0 },
+                    "control2": { "x": 170, "y": 100 }
+                  }
                 ]
               }
             ]
@@ -451,11 +520,19 @@
           "type": "adjustment",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 1920, "height": 1080,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0, "anchorY": 0,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 1920,
+            "height": 1080,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "brightness": 0.1, "contrast": 1.1 }
         }
@@ -473,11 +550,19 @@
           "type": "video",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 1920, "height": 1080,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0, "anchorY": 0,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 1920,
+            "height": 1080,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "assetId": "asset-intro-video",
@@ -491,11 +576,19 @@
           "type": "svg",
           "parentId": null,
           "transform": {
-            "x": 960, "y": 540, "width": 64, "height": 64,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5,
-            "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 960,
+            "y": 540,
+            "width": 64,
+            "height": 64,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "assetId": "asset-icon" }
         }
@@ -506,9 +599,7 @@
   "timeline": {
     "duration": 18,
     "workArea": { "start": 0, "end": 18 },
-    "markers": [
-      { "id": "marker-project-start", "t": 0 }
-    ],
+    "markers": [{ "id": "marker-project-start", "t": 0 }],
     "visualTracks": [
       {
         "id": "track-main",

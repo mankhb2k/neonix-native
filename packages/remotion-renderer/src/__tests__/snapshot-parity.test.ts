@@ -1,4 +1,3 @@
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   buildRenderSnapshot,
   evaluateCompositionSnapshot,
@@ -6,13 +5,14 @@ import {
 import {
   createDemoMotionProject,
   DEMO_SCENE_ID,
+  compileProjectV3,
 } from "@motionvideo/motion-runtime/testing";
 import { describe, expect, it } from "vitest";
 
 describe("remotion-renderer snapshot contract", () => {
   it("builds drawable snapshot items from demo project", () => {
     const project = createDemoMotionProject();
-    const runtime = compileMotionProject(project);
+    const runtime = compileProjectV3(project);
     const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID);
     expect(scene).toBeTruthy();
 
@@ -41,7 +41,7 @@ describe("remotion-renderer snapshot contract", () => {
   });
 
   it("evaluateCompositionSnapshot matches buildRenderSnapshot at probe frames", () => {
-    const runtime = compileMotionProject(createDemoMotionProject());
+    const runtime = compileProjectV3(createDemoMotionProject());
     for (const frame of [0, 15, 45]) {
       const viaComposition = evaluateCompositionSnapshot(
         runtime,

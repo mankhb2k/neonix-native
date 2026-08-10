@@ -1,31 +1,34 @@
 import {
-  parseMotionProjectV2,
-  type MotionProjectV2,
+  parseMotionProjectV3,
+  type MotionProjectV3,
 } from "@motionvideo/motion-protocol";
 
 export const DEMO_SCENE_ID = "scene.demo";
 
 /** Minimal shape + text + group fixture for preview / snapshot parity tests. */
-export function createDemoMotionProject(): MotionProjectV2 {
-  return parseMotionProjectV2({
+export function createDemoMotionProject(): MotionProjectV3 {
+  return parseMotionProjectV3({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "proj_preview_demo",
       name: "Preview Demo",
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: {
-        name: "MotiClip",
-        primaryColor: "#0d9488",
-        fontFamily: "Be Vietnam Pro",
-      },
     },
-    dependencies: { components: [] },
-    assets: [],
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#ffffff",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {},
     variables: [],
-    timeline: { sceneOrder: [DEMO_SCENE_ID], audioTracks: [] },
+    assets: [],
+    components: [],
     scenes: [
       {
         id: DEMO_SCENE_ID,
@@ -125,12 +128,11 @@ export function createDemoMotionProject(): MotionProjectV2 {
               flipY: false,
             },
             payload: {
-              text: "MotiClip AI Studio",
+              content: { kind: "plain", text: "MotiClip AI Studio" },
               fontSize: 56,
-              fontWeight: 700,
-              align: "center",
+              color: "#0f1419",
+              alignment: "center",
             },
-            style: { fill: "#0f1419" },
           },
           {
             id: "node.dot",
@@ -160,7 +162,27 @@ export function createDemoMotionProject(): MotionProjectV2 {
         clips: [],
       },
     ],
+    timeline: {
+      visualTracks: [
+        {
+          id: "track.main",
+          role: "main",
+          order: 0,
+          clips: [
+            {
+              id: "clip.demo",
+              source: { kind: "scene", sceneId: DEMO_SCENE_ID },
+              start: 0,
+              duration: 3,
+              opacity: 1,
+              loop: false,
+            },
+          ],
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
     bindings: [],
-    extensions: { constraints: [], events: [] },
   });
 }

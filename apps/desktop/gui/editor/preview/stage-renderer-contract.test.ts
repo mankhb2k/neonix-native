@@ -81,7 +81,7 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     );
     const doc = { ...fixture, clips };
     const index = buildVisualLaneIndex(doc.clips, doc.lanes);
-    const fps = Math.max(1, Math.round(doc.project.metadata.fps ?? 30));
+    const fps = Math.max(1, Math.round(doc.project.composition.fps));
     expect(composeAtTime(index, 0 / fps).length).toBeGreaterThan(0);
     expect(composeAtTime(index, 60 / fps).length).toBe(0);
 

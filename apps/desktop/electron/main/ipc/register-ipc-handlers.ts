@@ -28,6 +28,7 @@ import {
 } from "../../../shared/ipc/schemas";
 import {
   buildBlankDesktopProject,
+  envelopeAspectRatio,
   parseDesktopProjectFile,
   projectIdFromEnvelope,
   projectNameFromEnvelope,
@@ -158,7 +159,7 @@ export function registerIpcHandlers(
         id: projectIdFromEnvelope(envelope),
         name: projectNameFromEnvelope(envelope),
         path: filePath,
-        aspectRatio: envelope.project.metadata.aspectRatio,
+        aspectRatio: envelopeAspectRatio(envelope),
       });
       await journal.record({
         type: "save",
@@ -328,7 +329,7 @@ export function registerIpcHandlers(
           projectId: blank.projectId,
           documentJson,
           name: envelope.project.metadata.name,
-          aspectRatio: envelope.project.metadata.aspectRatio,
+          aspectRatio: envelopeAspectRatio(envelope),
         };
       },
     ],
@@ -347,7 +348,7 @@ export function registerIpcHandlers(
           id: recovered.projectId,
           name: projectNameFromEnvelope(envelope),
           path: recovered.path,
-          aspectRatio: envelope.project.metadata.aspectRatio,
+          aspectRatio: envelopeAspectRatio(envelope),
         });
         setProjectSession(event.sender.id, {
           path: recovered.path,
@@ -383,7 +384,7 @@ export function registerIpcHandlers(
           id: recovered.projectId,
           name: projectNameFromEnvelope(envelope),
           path: recovered.path,
-          aspectRatio: envelope.project.metadata.aspectRatio,
+          aspectRatio: envelopeAspectRatio(envelope),
         });
         setProjectSession(event.sender.id, {
           path: recovered.path,

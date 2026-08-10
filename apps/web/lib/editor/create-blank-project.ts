@@ -1,33 +1,50 @@
-import { parseMotionProject, type AspectRatio, type MotionProject } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProjectV3,
+  type AspectRatio,
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
+
+const ASPECT_SIZES: Record<AspectRatio, { width: number; height: number }> = {
+  "16:9": { width: 1920, height: 1080 },
+  "9:16": { width: 1080, height: 1920 },
+  "1:1": { width: 1080, height: 1080 },
+};
 
 export function createBlankProject(input: {
   name: string;
   aspectRatio: AspectRatio;
 }): MotionProject {
-  return parseMotionProject({
+  const { width, height } = ASPECT_SIZES[input.aspectRatio];
+  return parseMotionProjectV3({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: `proj_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
       name: input.name,
-      aspectRatio: input.aspectRatio,
-      fps: 30,
       locale: "vi-VN",
-      brand: {
-        name: input.name,
-        primaryColor: "#1A5D3A",
-        fontFamily: "Be Vietnam Pro",
-      },
     },
-    dependencies: { components: [] },
-    assets: [],
+    composition: {
+      width,
+      height,
+      fps: 30,
+      background: "#1A5D3A",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {
+      colors: { brand: "#1A5D3A" },
+      fonts: { display: "Be Vietnam Pro" },
+    },
     variables: [
       { id: "project.brandName", type: "string", name: "Brand Name", value: input.name },
       { id: "project.primaryColor", type: "color", name: "Primary Color", value: "#1A5D3A" },
     ],
-    timeline: { sceneOrder: [], audioTracks: [] },
+    assets: [],
+    components: [],
     scenes: [],
+    timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
     bindings: [],
-    extensions: { constraints: [], events: [] },
   });
 }

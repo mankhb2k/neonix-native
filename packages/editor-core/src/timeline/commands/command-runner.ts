@@ -35,7 +35,7 @@ import {
   cloneSceneWithNewIds,
   createNodeFromFrameDraft,
   sceneFromFrameDraft,
-  stageSizeForAspect,
+  stageSizeForProject,
 } from "../internal/scene-utils";
 import { rebuildMainProject } from "../internal/timeline-project-sync";
 import {
@@ -139,9 +139,7 @@ export function executeTimelineCommand(
         };
       }
       const scene = project.scenes[sceneIdx]!;
-      const composition = stageSizeForAspect(
-        project.metadata.aspectRatio ?? "16:9",
-      );
+      const composition = stageSizeForProject(project);
       const nodeId = ctx.createId("node");
       const node = createNodeFromFrameDraft(command.draft, nodeId, composition);
       const maxZ = scene.nodes.reduce(
@@ -199,9 +197,7 @@ export function executeTimelineCommand(
         if (isLaneLocked(lanes, baseLane.id)) {
           return { status: "rejected", reason: "locked", message: "Base lane bị khóa." };
         }
-        const composition = stageSizeForAspect(
-          project.metadata.aspectRatio ?? "16:9",
-        );
+        const composition = stageSizeForProject(project);
         const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
         const startTime = resolveMainStartTime(
           clips,
@@ -222,7 +218,10 @@ export function executeTimelineCommand(
         };
         clips.push(clip);
         nextProject = rebuildMainProject(
-          { ...project, scenes: [...project.scenes, scene] },
+          {
+            ...project,
+            scenes: [...project.scenes, scene] as MotionProject["scenes"],
+          } as MotionProject,
           clips,
           lanes,
         );
@@ -258,9 +257,7 @@ export function executeTimelineCommand(
         return { status: "rejected", reason: "collision", message: "Không thể thêm clip lên overlay lane." };
       }
       lanes = placement.lanes;
-      const composition = stageSizeForAspect(
-        project.metadata.aspectRatio ?? "16:9",
-      );
+      const composition = stageSizeForProject(project);
       const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
       const clip: TimelineClip = {
         id: uid("clip"),

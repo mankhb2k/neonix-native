@@ -10,6 +10,7 @@ import {
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { validateProjectAssetIntegrity } from "./runtime/asset-integrity";
 import { compileMotionProject } from "./compiler";
+import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 
@@ -94,7 +95,7 @@ async function main() {
   const fps =
     Number.isFinite(fpsEnv) && fpsEnv > 0
       ? fpsEnv
-      : (project.metadata.fps ?? 24);
+      : (project.composition.fps ?? 24);
   const scale =
     Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
 
@@ -124,7 +125,7 @@ async function main() {
   emitProgress("encoding", 0.8);
   const files = await encodeOutputs(
     rendered,
-    project.metadata.aspectRatio,
+    compositionAspectRatio(project),
     compiled,
     assetBaseDir,
   );

@@ -1,0 +1,203 @@
+{
+  "project": {
+    "format": "motion-project",
+    "formatVersion": 3,
+    "metadata": {
+      "id": "fixture.main-only",
+      "name": "Main Only",
+      "locale": "vi-VN"
+    },
+    "composition": {
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "background": "#1A5D3A",
+      "colorSpace": "srgb",
+      "audioSampleRate": 48000
+    },
+    "capabilities": {
+      "required": []
+    },
+    "dependencies": {
+      "compiler": {
+        "range": ">=1.0.0"
+      },
+      "components": []
+    },
+    "tokens": {
+      "colors": {
+        "primary": "#1A5D3A"
+      }
+    },
+    "variables": [],
+    "assets": [],
+    "components": [],
+    "scenes": [
+      {
+        "id": "scene.main.a",
+        "duration": 2,
+        "space": "flat-2d",
+        "nodes": [
+          {
+            "id": "scene.main.a.title",
+            "type": "text",
+            "parentId": null,
+            "transform": {
+              "x": 40,
+              "y": 40,
+              "width": 200,
+              "height": 40,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "anchorX": 0,
+              "anchorY": 0,
+              "opacity": 1,
+              "visible": true,
+              "flipX": false,
+              "flipY": false
+            },
+            "inheritFlags": {
+              "position": true,
+              "rotation": true,
+              "scale": true,
+              "opacity": true
+            },
+            "visible": true,
+            "locked": false,
+            "payload": {
+              "content": {
+                "kind": "plain",
+                "text": "Intro"
+              },
+              "fontSize": 24,
+              "color": "#111111",
+              "alignment": "left",
+              "wrap": "word",
+              "overflow": "visible"
+            }
+          }
+        ],
+        "clips": []
+      },
+      {
+        "id": "scene.main.b",
+        "duration": 3,
+        "space": "flat-2d",
+        "nodes": [
+          {
+            "id": "scene.main.b.title",
+            "type": "text",
+            "parentId": null,
+            "transform": {
+              "x": 40,
+              "y": 40,
+              "width": 200,
+              "height": 40,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "anchorX": 0,
+              "anchorY": 0,
+              "opacity": 1,
+              "visible": true,
+              "flipX": false,
+              "flipY": false
+            },
+            "inheritFlags": {
+              "position": true,
+              "rotation": true,
+              "scale": true,
+              "opacity": true
+            },
+            "visible": true,
+            "locked": false,
+            "payload": {
+              "content": {
+                "kind": "plain",
+                "text": "Body"
+              },
+              "fontSize": 24,
+              "color": "#111111",
+              "alignment": "left",
+              "wrap": "word",
+              "overflow": "visible"
+            }
+          }
+        ],
+        "clips": []
+      }
+    ],
+    "timeline": {
+      "visualTracks": [
+        {
+          "id": "main-track",
+          "role": "main",
+          "order": 0,
+          "muted": false,
+          "clips": [
+            {
+              "id": "clip.main.a",
+              "source": {
+                "kind": "scene",
+                "sceneId": "scene.main.a"
+              },
+              "start": 0,
+              "duration": 2,
+              "opacity": 1,
+              "loop": false
+            },
+            {
+              "id": "clip.main.b",
+              "source": {
+                "kind": "scene",
+                "sceneId": "scene.main.b"
+              },
+              "start": 3,
+              "duration": 3,
+              "opacity": 1,
+              "loop": false
+            }
+          ]
+        }
+      ],
+      "audioTracks": [],
+      "captionTracks": []
+    },
+    "bindings": [],
+    "extensions": {}
+  },
+  "clips": [
+    {
+      "kind": "scene",
+      "id": "clip.main.a",
+      "sceneId": "scene.main.a",
+      "laneId": "lane.main",
+      "startTime": 0,
+      "duration": 2,
+      "name": "Intro"
+    },
+    {
+      "kind": "scene",
+      "id": "clip.main.b",
+      "sceneId": "scene.main.b",
+      "laneId": "lane.main",
+      "startTime": 3,
+      "duration": 3,
+      "name": "Body"
+    }
+  ],
+  "lanes": [
+    {
+      "id": "lane.main",
+      "kind": "visual",
+      "role": "base",
+      "name": "Main",
+      "order": -1,
+      "policy": {
+        "allowOverlap": false,
+        "rippleMode": false
+      }
+    }
+  ]
+}

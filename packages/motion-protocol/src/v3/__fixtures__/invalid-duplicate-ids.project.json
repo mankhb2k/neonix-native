@@ -1,7 +1,11 @@
 {
   "format": "motion-project",
   "formatVersion": 3,
-  "metadata": { "id": "v3-dup-ids", "name": "Invalid Duplicate IDs", "locale": "vi-VN" },
+  "metadata": {
+    "id": "v3-dup-ids",
+    "name": "Invalid Duplicate IDs",
+    "locale": "vi-VN"
+  },
   "composition": { "width": 1920, "height": 1080, "fps": 30 },
   "dependencies": { "compiler": { "range": ">=1.0.0" }, "components": [] },
   "scenes": [
@@ -11,9 +15,16 @@
   "timeline": {
     "visualTracks": [
       {
-        "id": "t1", "role": "main", "order": 0,
+        "id": "t1",
+        "role": "main",
+        "order": 0,
         "clips": [
-          { "id": "c1", "source": { "kind": "scene", "sceneId": "s1" }, "start": 0, "duration": 5 }
+          {
+            "id": "c1",
+            "source": { "kind": "scene", "sceneId": "s1" },
+            "start": 0,
+            "duration": 5
+          }
         ]
       }
     ],
@@ -25,13 +36,33 @@
     { "id": "v1", "name": "Dup var 2", "type": "string", "value": "b" }
   ],
   "assets": [
-    { "id": "a1", "uri": "a.png", "assetType": "image", "mimeType": "image/png", "width": 100, "height": 100 },
-    { "id": "a1", "uri": "b.png", "assetType": "image", "mimeType": "image/png", "width": 200, "height": 200 }
+    {
+      "id": "a1",
+      "uri": "a.png",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 100,
+      "height": 100
+    },
+    {
+      "id": "a1",
+      "uri": "b.png",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 200,
+      "height": 200
+    }
   ],
   "bindings": [
     {
-      "id": "b1", "source": { "kind": "variable", "variableId": "v1" },
-      "target": { "kind": "scene", "sceneId": "s1", "nodeId": "n1", "property": "transform.opacity" }
+      "id": "b1",
+      "source": { "kind": "variable", "variableId": "v1" },
+      "target": {
+        "kind": "scene",
+        "sceneId": "s1",
+        "nodeId": "n1",
+        "property": "transform.opacity"
+      }
     }
   ]
 }

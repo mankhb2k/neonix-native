@@ -13,7 +13,7 @@ import {
   serializeEditorProjectEnvelope,
 } from "@/lib/editor/export/editor-project-envelope";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { parseMotionProjectV2 } from "@motionvideo/motion-protocol";
 
 describe("buildExportProject", () => {
   it("bakes base + gap + overlay + muted audio into valid MotionProject", () => {
@@ -69,7 +69,7 @@ describe("buildExportProject", () => {
         muted: true,
       },
     ];
-    const withAsset = parseMotionProject({
+    const withAsset = parseMotionProjectV2({
       ...project,
       assets: [
         {
@@ -239,7 +239,7 @@ describe("export temporal parity (local-time bake)", () => {
   it("preserves base local-time across overlay boundary (pre / at / post)", () => {
     const baseScene = sceneWithAbsoluteAnim("scene.base", 6);
     const overlayScene = sceneWithAbsoluteAnim("scene.overlay", 2);
-    const project = parseMotionProject({
+    const project = parseMotionProjectV2({
       format: "motion-project",
       formatVersion: 2,
       metadata: {
@@ -414,7 +414,7 @@ describe("export temporal parity (local-time bake)", () => {
 
   it("exports muted audio at volume 0 and preserves trimStart", () => {
     const { project, lanes } = fixtureBasePlusOverlay();
-    const withAsset = parseMotionProject({
+    const withAsset = parseMotionProjectV2({
       ...project,
       assets: [
         {

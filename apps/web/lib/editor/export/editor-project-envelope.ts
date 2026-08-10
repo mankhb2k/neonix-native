@@ -2,7 +2,8 @@
  * Editor .mt envelope — giữ clips/lanes khi download/import (không mất placement).
  */
 
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+import { type MotionProject } from "@motionvideo/motion-protocol";
+import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import { overlaysFromClips } from "@/lib/editor/persistence/project-migrations";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
 import { parseTimelineClips, parseTimelineLanes } from "@motionvideo/editor-core";
@@ -65,7 +66,7 @@ export type ParsedEditorImport =
 /** Parse .mt — envelope editor hoặc MotionProject thuần. */
 export function parseEditorImport(raw: unknown): ParsedEditorImport {
   if (isEditorProjectEnvelope(raw)) {
-    const project = parseMotionProject(raw.project);
+    const project = parseProjectInput(raw.project);
     const timelineLanes = parseTimelineLanes(raw.timelineLanes);
     const timelineClips = parseTimelineClips(raw.timelineClips);
     return {
@@ -76,7 +77,7 @@ export function parseEditorImport(raw: unknown): ParsedEditorImport {
       overlayScenes: overlaysFromClips(timelineClips, timelineLanes),
     };
   }
-  const project = parseMotionProject(raw);
+  const project = parseProjectInput(raw);
   return {
     kind: "project",
     project,

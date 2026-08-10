@@ -9,6 +9,7 @@ import { useEditorAutosave } from "@/lib/editor/export/use-editor-autosave";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
+import { compositionAspectRatio } from "@/lib/runtime/project-composition";
 import { useEffect } from "react";
 
 type Props = {
@@ -34,7 +35,9 @@ export function EditorShell({ initialSnapshot }: Props) {
 
   const active = project ?? initialSnapshot.project;
   const name = active.metadata.name || "Untitled";
-  const { width, height } = stageSizeForAspect(active.metadata.aspectRatio);
+  const { width, height } = stageSizeForAspect(
+    compositionAspectRatio(active),
+  );
 
   return (
     <div

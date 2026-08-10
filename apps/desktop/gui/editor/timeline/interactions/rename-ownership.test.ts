@@ -41,7 +41,6 @@ describe("rename document ownership (UI-0)", () => {
     expect(session.projectName).toBe("Session Name");
     expect(session.sessionDocumentJson).toContain("Session Name");
     expect(session.project?.metadata.name).toBe("Session Name");
-    expect(session.project?.metadata.brand.name).toBe("Session Name");
 
     let app = createInitialAppState();
     app = reduceAppState(app, {

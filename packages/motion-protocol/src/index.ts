@@ -34,3 +34,15 @@ export function parseMotionProject(input: unknown): MotionProject {
 export function serializeMotionProject(project: MotionProject): string {
   return serializeMotionProjectV3(project);
 }
+
+// Phase 3: explicit V3 API (in addition to the `V3` namespace) so fixtures and
+// consumers can import the canonical parse/serialize/schema directly.
+export { parseMotionProjectV3, MotionProjectV3Schema, serializeMotionProjectV3 };
+export type {
+  MotionProjectV3,
+  VisualClipV3,
+  VisualTrackV3,
+  AudioTrackV3,
+} from "./v3";
+export { migrateMotionProjectV2ToV3 } from "./v3/migrations";
+export type { MigrateV2ToV3Options, MigrateV2ToV3Result } from "./v3/migrations";

@@ -1,6 +1,6 @@
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { describe, expect, it } from "vitest";
 import { createFacebookHistoryDemoProject } from "./testing/facebook-history-demo";
+import { compileProjectV3 } from "./testing/compile";
 import {
   listTimelineSegments,
   resolveTimelineAtTime,
@@ -9,11 +9,8 @@ import {
 import { compositionDurationInFrames } from "./evaluate-composition";
 
 describe("resolveTimelineAtTime", () => {
-  // compileMotionProject still accepts V2 authoring input as MotionProject (now V3).
-  // Cast needed until Phase 4 cuts the compiler over to V3-only input.
-  const runtime = compileMotionProject(
-    createFacebookHistoryDemoProject() as any,
-  );
+  // v3 authoring project compiled through the v3 compiler (Phase 3).
+  const runtime = compileProjectV3(createFacebookHistoryDemoProject());
 
   it("lists six scene segments totaling 27s", () => {
     const segments = listTimelineSegments(runtime);

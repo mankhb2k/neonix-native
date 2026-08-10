@@ -15,6 +15,10 @@ import {
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 import {
+  compositionAspectRatio,
+  compositionFps,
+} from "@/lib/runtime/project-composition";
+import {
   playbackFrameIndex,
   type TimelineClip,
   type TimelineLane,
@@ -39,11 +43,12 @@ export function PreviewStageHost({ project, clips, lanes }: Props) {
   );
 
   const projectAvailable = project !== null;
-  const aspectRatio = project?.metadata.aspectRatio;
-  const background = project?.metadata.brand?.primaryColor ?? "#ffffff";
-  const fps = project
-    ? Math.max(1, Math.round(project.metadata.fps ?? 30))
-    : 30;
+  const aspectRatio = project ? compositionAspectRatio(project) : undefined;
+  const background =
+    project?.composition.background ??
+    project?.tokens.colors?.brand ??
+    "#ffffff";
+  const fps = project ? compositionFps(project) : 30;
   const fpsRef = useRef(fps);
   fpsRef.current = fps;
 

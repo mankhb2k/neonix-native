@@ -15,22 +15,35 @@ export type DesktopProjectEnvelope = {
     metadata: {
       id: string;
       name: string;
-      aspectRatio: string;
-      fps: number;
       locale: string;
-      brand: {
-        name: string;
-        primaryColor: string;
-        fontFamily: string;
-      };
     };
-    dependencies: { components: unknown[] };
-    assets: unknown[];
+    composition: {
+      width: number;
+      height: number;
+      fps: number;
+      background: string;
+      colorSpace: string;
+      audioSampleRate: number;
+    };
+    capabilities: Record<string, unknown>;
+    dependencies: {
+      compiler: { range: string };
+      components: unknown[];
+    };
+    tokens: {
+      colors?: Record<string, string>;
+      fonts?: Record<string, string>;
+    };
     variables: unknown[];
-    timeline: { sceneOrder: unknown[]; audioTracks: unknown[] };
+    assets: unknown[];
+    components: unknown[];
     scenes: unknown[];
+    timeline: {
+      visualTracks: unknown[];
+      audioTracks: unknown[];
+      captionTracks: unknown[];
+    };
     bindings: unknown[];
-    extensions: { constraints: unknown[]; events: unknown[] };
   };
   timelineClips: unknown[];
   timelineLanes: unknown[];
@@ -162,9 +175,26 @@ export function projectNameFromEnvelope(
   return envelope.project.metadata.name;
 }
 
+/** Derive legacy aspect-ratio label from v3 composition dimensions. */
+export function envelopeAspectRatio(
+  envelope: DesktopProjectEnvelope,
+): "16:9" | "9:16" | "1:1" {
+  const { width, height } = envelope.project.composition;
+  const ratio = width / height;
+  if (Math.abs(ratio - 9 / 16) < 0.01) return "9:16";
+  if (Math.abs(ratio - 1) < 0.01) return "1:1";
+  return "16:9";
+}
+
 function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
+
+const ASPECT_SIZES: Record<"16:9" | "9:16" | "1:1", { width: number; height: number }> = {
+  "16:9": { width: 1920, height: 1080 },
+  "9:16": { width: 1080, height: 1920 },
+  "1:1": { width: 1080, height: 1080 },
+};
 
 /** In-memory blank project (not written to disk until save/saveAs). */
 export function buildBlankDesktopProject(input?: {
@@ -176,26 +206,32 @@ export function buildBlankDesktopProject(input?: {
   const name = input?.name?.trim() || "Untitled";
   const aspectRatio = input?.aspectRatio ?? "16:9";
   const projectId = uid("proj");
+  const { width, height } = ASPECT_SIZES[aspectRatio];
   const envelope: DesktopProjectEnvelope = {
     format: EDITOR_PROJECT_FORMAT,
     formatVersion: EDITOR_ENVELOPE_VERSION,
     project: {
       format: "motion-project",
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: projectId,
         name,
-        aspectRatio,
-        fps: 30,
         locale: "vi-VN",
-        brand: {
-          name,
-          primaryColor: "#1A5D3A",
-          fontFamily: "Be Vietnam Pro",
-        },
       },
-      dependencies: { components: [] },
-      assets: [],
+      composition: {
+        width,
+        height,
+        fps: 30,
+        background: "#1A5D3A",
+        colorSpace: "srgb",
+        audioSampleRate: 48000,
+      },
+      capabilities: {},
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+      tokens: {
+        colors: { brand: "#1A5D3A" },
+        fonts: { display: "Be Vietnam Pro" },
+      },
       variables: [
         {
           id: "project.brandName",
@@ -210,10 +246,11 @@ export function buildBlankDesktopProject(input?: {
           value: "#1A5D3A",
         },
       ],
-      timeline: { sceneOrder: [], audioTracks: [] },
+      assets: [],
+      components: [],
       scenes: [],
+      timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
       bindings: [],
-      extensions: { constraints: [], events: [] },
     },
     timelineClips: [],
     timelineLanes: [

@@ -13,14 +13,16 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   compositionDurationInFrames,
   compositingFingerprint,
   evaluateCompositionFrame,
   type EvaluatedFrame,
 } from "@motionvideo/motion-runtime";
-import { createDemoMotionProject } from "@motionvideo/motion-runtime/testing";
+import {
+  createDemoMotionProject,
+  compileProjectV3,
+} from "@motionvideo/motion-runtime/testing";
 import {
   buildRemotionPaintTree,
   flattenRemotionDrawables,
@@ -55,7 +57,7 @@ function sampleFrames(
 async function main() {
   await mkdir(outRoot, { recursive: true });
   const project = createDemoMotionProject();
-  const runtime = compileMotionProject(project);
+  const runtime = compileProjectV3(project);
   const fps = runtime.metadata.fps || 30;
   const durationInFrames = compositionDurationInFrames(runtime, undefined, fps);
   const width = 640;

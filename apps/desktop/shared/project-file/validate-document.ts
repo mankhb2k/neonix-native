@@ -12,6 +12,7 @@ import {
 } from "@motionvideo/editor-core";
 import {
   parseMotionProject,
+  migrateMotionProjectV2ToV3,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 import {
@@ -19,6 +20,14 @@ import {
   ProjectFileParseError,
   type DesktopProjectEnvelope,
 } from "./envelope";
+
+/** Version-aware: legacy v2 projects inside old .mt files are migrated. */
+function parseEnvelopeProject(project: DesktopProjectEnvelope["project"]): MotionProject {
+  if (project.formatVersion === 2) {
+    return migrateMotionProjectV2ToV3(project as never).project;
+  }
+  return parseMotionProject(project);
+}
 
 export function validateDesktopDocumentJson(documentJson: string): {
   envelope: DesktopProjectEnvelope;
@@ -39,7 +48,7 @@ export function validateDesktopDocumentJson(documentJson: string): {
 
   let project: MotionProject;
   try {
-    project = parseMotionProject(envelope.project);
+    project = parseEnvelopeProject(envelope.project);
   } catch (error) {
     throw new ProjectFileParseError(
       "CORRUPT_FILE",

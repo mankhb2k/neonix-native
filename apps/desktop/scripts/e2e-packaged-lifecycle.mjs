@@ -114,19 +114,45 @@ fs.mkdirSync(exportOutDir, { recursive: true });
 
 const minimalProject = {
   format: "motion-project",
-  formatVersion: 2,
+  formatVersion: 3,
   metadata: {
     id: "e2e_export",
     name: "E2E",
-    aspectRatio: "16:9",
-    fps: 24,
     locale: "vi-VN",
-    brand: { name: "E2E", primaryColor: "#111", fontFamily: "Arial" },
   },
-  dependencies: { components: [] },
+  composition: {
+    width: 1920,
+    height: 1080,
+    fps: 24,
+    background: "#111111",
+    colorSpace: "srgb",
+    audioSampleRate: 48000,
+  },
+  capabilities: {},
+  dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
   assets: [],
   variables: [],
-  timeline: { sceneOrder: ["scene_e2e"], audioTracks: [] },
+  tokens: {},
+  components: [],
+  timeline: {
+    visualTracks: [
+      {
+        id: "main-track",
+        role: "main",
+        order: 0,
+        clips: [
+          {
+            id: "clip_e2e",
+            source: { kind: "scene", sceneId: "scene_e2e" },
+            start: 0,
+            duration: 0.2,
+          },
+        ],
+      },
+    ],
+    audioTracks: [],
+    captionTracks: [],
+  },
   scenes: [
     {
       id: "scene_e2e",
@@ -152,15 +178,18 @@ const minimalProject = {
             flipX: false,
             flipY: false,
           },
-          payload: { text: "E2E", fontSize: 24, fontWeight: 600, align: "left" },
-          style: { fill: "#ffffff" },
+          payload: {
+            content: { kind: "plain", text: "E2E" },
+            fontSize: 24,
+            color: "#ffffff",
+            alignment: "left",
+          },
         },
       ],
       clips: [],
     },
   ],
   bindings: [],
-  extensions: { constraints: [], events: [] },
 };
 fs.writeFileSync(bakedProject, JSON.stringify(minimalProject));
 
