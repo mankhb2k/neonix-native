@@ -16,6 +16,15 @@ export type CompiledProject = NormalizedMotionProjectV2;
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
 export type DiagnosticCode =
+  // V3 compiler (Phase 5) — CMP_* family
+  | "CMP_UNRESOLVED_VARIABLE"
+  | "CMP_UNRESOLVED_COMPONENT"
+  | "CMP_UNRESOLVED_ASSET"
+  | "CMP_UNRESOLVED_PRESET"
+  | "CMP_CYCLE_DETECTED"
+  | "CMP_COMPONENT_INTEGRITY_MISMATCH"
+  | "CMP_BINDING_TYPE_MISMATCH"
+  | "CMP_CLIP_TARGET_MISSING"
   // Schema / reference
   | "UNKNOWN_VARIABLE"
   | "UNKNOWN_CLIP_TARGET"

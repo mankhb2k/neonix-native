@@ -33,8 +33,12 @@ export const SvgNodeV3Schema = NodeBaseV3Schema.extend({
 export const VideoNodeV3Schema = NodeBaseV3Schema.extend({
   type: z.literal("video"),
   payload: MediaPayloadSchema.extend({
-    trimStart: PositiveNumberSchema.max(MOTION_V2_LIMITS.mediaDurationSeconds).optional(),
-    trimEnd: PositiveNumberSchema.max(MOTION_V2_LIMITS.mediaDurationSeconds).optional(),
+    trimStart: PositiveNumberSchema.max(
+      MOTION_V2_LIMITS.mediaDurationSeconds,
+    ).optional(),
+    trimEnd: PositiveNumberSchema.max(
+      MOTION_V2_LIMITS.mediaDurationSeconds,
+    ).optional(),
     loop: z.boolean().optional(),
     muted: z.boolean().optional(),
     framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
@@ -45,11 +49,23 @@ export const CameraNodeV3Schema = NodeBaseV3Schema.extend({
   type: z.literal("camera"),
   payload: z
     .object({
-      projection: z.enum(["orthographic", "perspective"]).default("orthographic"),
-      zoom: PositiveNumberSchema.max(MOTION_V2_LIMITS.transformScale).optional(),
-      parallaxStrength: z.number().min(0).max(MOTION_V2_LIMITS.parallaxFactor).optional(),
+      projection: z
+        .enum(["orthographic", "perspective"])
+        .default("orthographic"),
+      zoom: PositiveNumberSchema.max(
+        MOTION_V2_LIMITS.transformScale,
+      ).optional(),
+      parallaxStrength: z
+        .number()
+        .min(0)
+        .max(MOTION_V2_LIMITS.parallaxFactor)
+        .optional(),
       focalLength: PositiveNumberSchema.optional(),
-      fieldOfView: z.number().min(1).max(MOTION_V2_LIMITS.perspectiveFov).optional(),
+      fieldOfView: z
+        .number()
+        .min(1)
+        .max(MOTION_V2_LIMITS.perspectiveFov)
+        .optional(),
       near: PositiveNumberSchema.max(MOTION_V2_LIMITS.cameraFar).optional(),
       far: PositiveNumberSchema.max(MOTION_V2_LIMITS.cameraFar).optional(),
     })

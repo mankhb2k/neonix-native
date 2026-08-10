@@ -30,13 +30,28 @@ export const EmbeddedComponentV3Schema = z
     id: IdSchema,
     version: SemverSchema,
     integrity: z.string().min(1),
-    publicParams: z.array(PublicParamV3Schema).max(MOTION_V2_LIMITS.publicParamsPerComponent).default([]),
-    variables: z.array(VariableV2Schema).max(MOTION_V2_LIMITS.variablesPerArtifact).default([]),
+    publicParams: z
+      .array(PublicParamV3Schema)
+      .max(MOTION_V2_LIMITS.publicParamsPerComponent)
+      .default([]),
+    variables: z
+      .array(VariableV2Schema)
+      .max(MOTION_V2_LIMITS.variablesPerArtifact)
+      .default([]),
     nodes: z.array(NodeV3Schema).max(MOTION_V2_LIMITS.nodesPerComponent),
-    bindings: z.array(ProjectBindingV3Schema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
-    actions: z.array(ComponentActionV3Schema).max(MOTION_V2_LIMITS.actionsPerComponent).default([]),
+    bindings: z
+      .array(ProjectBindingV3Schema)
+      .max(MOTION_V2_LIMITS.bindingsPerArtifact)
+      .default([]),
+    actions: z
+      .array(ComponentActionV3Schema)
+      .max(MOTION_V2_LIMITS.actionsPerComponent)
+      .default([]),
     variants: z.record(JsonValueSchema).optional(),
-    assetDependencies: z.array(IdSchema).max(MOTION_V2_LIMITS.assetsPerArtifact).optional(),
+    assetDependencies: z
+      .array(IdSchema)
+      .max(MOTION_V2_LIMITS.assetsPerArtifact)
+      .optional(),
   })
   .strict();
 
@@ -60,8 +75,14 @@ export const PluginDependencySchema = z
 export const ProjectDependenciesV3Schema = z
   .object({
     compiler: z.object({ range: z.string().min(1) }).strict(),
-    components: z.array(ComponentDependencyV3Schema).max(MOTION_V2_LIMITS.dependenciesPerProject).default([]),
-    plugins: z.array(PluginDependencySchema).max(MOTION_V2_LIMITS.dependenciesPerProject).optional(),
+    components: z
+      .array(ComponentDependencyV3Schema)
+      .max(MOTION_V2_LIMITS.dependenciesPerProject)
+      .default([]),
+    plugins: z
+      .array(PluginDependencySchema)
+      .max(MOTION_V2_LIMITS.dependenciesPerProject)
+      .optional(),
   })
   .strict();
 

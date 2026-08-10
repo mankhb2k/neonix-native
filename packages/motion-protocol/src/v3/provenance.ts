@@ -22,7 +22,9 @@ export const ProjectProvenanceSchema = z
   .object({
     workspaceId: IdSchema.optional(),
     sourceHash: z.string().min(1).optional(),
-    bundleProfile: z.enum(["embedded-components", "flattened-components"]).optional(),
+    bundleProfile: z
+      .enum(["embedded-components", "flattened-components"])
+      .optional(),
     sourceMap: SourceMapSchema.optional(),
   })
   .strict();

@@ -41,10 +41,7 @@ export {
   SolidNodeV3Schema,
   AdjustmentNodeV3Schema,
 } from "./structural";
-export {
-  ShapeNodeV3Schema,
-  PathNodeV3Schema,
-} from "./geometry";
+export { ShapeNodeV3Schema, PathNodeV3Schema } from "./geometry";
 
 export const NodeV3Schema = z.discriminatedUnion("type", [
   GroupNodeV3Schema,

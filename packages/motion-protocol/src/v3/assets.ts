@@ -47,7 +47,9 @@ export const VideoAssetV3Schema = AssetBaseV3Schema.extend({
   mimeType: z.enum(["video/mp4", "video/webm"]),
   width: AssetDimensionSchema,
   height: AssetDimensionSchema,
-  duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  duration: FiniteNumberSchema.positive().max(
+    MOTION_V2_LIMITS.mediaDurationSeconds,
+  ),
   fps: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.frameRate),
   codec: z.string().min(1).optional(),
   pixelFormat: z.string().min(1).optional(),
@@ -63,7 +65,9 @@ export const VideoAssetV3Schema = AssetBaseV3Schema.extend({
 export const AudioAssetV3Schema = AssetBaseV3Schema.extend({
   assetType: z.literal("audio"),
   mimeType: z.enum(["audio/mpeg", "audio/wav", "audio/aac", "audio/ogg"]),
-  duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  duration: FiniteNumberSchema.positive().max(
+    MOTION_V2_LIMITS.mediaDurationSeconds,
+  ),
   codec: z.string().min(1).optional(),
   sampleRate: NonNegativeIntegerSchema.positive()
     .max(MOTION_V2_LIMITS.sampleRate)
@@ -79,7 +83,11 @@ export const FontAssetV3Schema = AssetBaseV3Schema.extend({
   family: z.string().min(1),
   weight: NonNegativeIntegerSchema.min(1).max(1000).default(400),
   style: z.enum(["normal", "italic"]).default("normal"),
-  localeCoverage: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.localeCoverage).optional(),
+  localeCoverage: z
+    .array(IdSchema)
+    .min(1)
+    .max(MOTION_V2_LIMITS.localeCoverage)
+    .optional(),
 }).strict();
 
 export const AssetV3Schema = z.discriminatedUnion("assetType", [

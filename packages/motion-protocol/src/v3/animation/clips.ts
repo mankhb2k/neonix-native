@@ -42,7 +42,11 @@ export const MotionClipV3Schema = z
     id: IdSchema,
     targetId: IdSchema.optional(),
     schedule: ScheduleV3Schema,
-    duration: z.number().positive().finite().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    duration: z
+      .number()
+      .positive()
+      .finite()
+      .max(MOTION_V2_LIMITS.mediaDurationSeconds),
     playback: PlaybackV3Schema.default({}),
     source: ClipSourceV3Schema,
   })

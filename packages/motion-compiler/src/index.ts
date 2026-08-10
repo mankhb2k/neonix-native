@@ -1116,6 +1116,14 @@ export function compileMotionProject(
 
 export type { CompiledProject } from "./compile-result";
 export {
+  compileMotionProjectV3,
+  buildCompileCacheKeyV3,
+  detectScheduleCycles,
+  COMPILER_VERSION_V3,
+  type CompileV3Options,
+  type CompileV3Profile,
+} from "./compile-v3";
+export {
   DiagnosticCollector,
   CompileDiagnosticError,
   compileSuccess,

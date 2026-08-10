@@ -18,8 +18,5 @@ export {
   type ScheduleV3,
   type ClipSourceV3,
 } from "./clips";
-export {
-  KeyframeEasingV2Schema,
-  type KeyframeEasingV3,
-} from "./easing";
+export { KeyframeEasingV2Schema, type KeyframeEasingV3 } from "./easing";
 export { ProceduralDriverSchema } from "./drivers";

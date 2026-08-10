@@ -19,14 +19,21 @@ export const SceneDefinitionV3Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
-    duration: z.number().positive().finite().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    duration: z
+      .number()
+      .positive()
+      .finite()
+      .max(MOTION_V2_LIMITS.mediaDurationSeconds),
     semantic: SemanticSchema.optional(),
     space: z.enum(["flat-2d", "layered-2.5d"]).default("flat-2d"),
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
     nodes: z.array(NodeV3Schema).max(MOTION_V2_LIMITS.nodesPerScene),
-    clips: z.array(MotionClipV3Schema).max(MOTION_V2_LIMITS.clipsPerScene).default([]),
+    clips: z
+      .array(MotionClipV3Schema)
+      .max(MOTION_V2_LIMITS.clipsPerScene)
+      .default([]),
     activeCameraId: IdSchema.optional(),
   })
   .strict()

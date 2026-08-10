@@ -70,15 +70,24 @@ describe("v3 schema — negative fixtures", () => {
   });
 
   it("rejects unknown root fields", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       MotionProjectV3Schema.parse({ ...input, unexpected: true }),
     ).toThrow();
   });
 
   it("rejects missing composition width", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
-    const { width: _width, ...withoutWidth } = input.composition as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    const { width: _width, ...withoutWidth } = input.composition as Record<
+      string,
+      unknown
+    >;
     void _width;
     expect(() =>
       MotionProjectV3Schema.parse({
@@ -89,7 +98,10 @@ describe("v3 schema — negative fixtures", () => {
   });
 
   it("rejects invalid enum value in visual track role", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       MotionProjectV3Schema.parse({
         ...input,
@@ -116,7 +128,10 @@ describe("v3 schema — negative fixtures", () => {
   });
 
   it("rejects invalid capability id shape", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       MotionProjectV3Schema.parse({
         ...input,
@@ -126,7 +141,10 @@ describe("v3 schema — negative fixtures", () => {
   });
 
   it("rejects negative composition dimensions", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       MotionProjectV3Schema.parse({
         ...input,
@@ -146,7 +164,10 @@ describe("v3 isolation from v2 parser", () => {
   });
 
   it("formatVersion 2 never parses through MotionProjectV3Schema", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       MotionProjectV3Schema.parse({ ...input, formatVersion: 2 }),
     ).toThrow();
@@ -164,7 +185,10 @@ describe("v3 isolation from v2 parser", () => {
 
 describe("v3 extensions — namespaced keys", () => {
   it("accepts valid namespaced extensions", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     const project = MotionProjectV3Schema.parse({
       ...input,
       extensions: { "com.moticlip.constraints": [{ maxDuration: 10 }] },
@@ -175,7 +199,10 @@ describe("v3 extensions — namespaced keys", () => {
   });
 
   it("rejects non-namespaced extension keys", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       MotionProjectV3Schema.parse({
         ...input,

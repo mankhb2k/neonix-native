@@ -20,7 +20,11 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("rectangle"),
-      cornerRadius: z.number().nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+      cornerRadius: z
+        .number()
+        .nonnegative()
+        .max(MOTION_V2_LIMITS.nodeDimension)
+        .optional(),
     })
     .strict(),
   z.object({ shape: z.literal("ellipse") }).strict(),
@@ -42,14 +46,17 @@ export const PathNodeV3Schema = NodeBaseV3Schema.extend({
   type: z.literal("path"),
   payload: z
     .object({
-      contours: z.array(PathContourV2Schema).min(1).max(MOTION_V2_LIMITS.pathContours),
-      morphTargets: z.array(PathMorphTargetV2Schema).max(MOTION_V2_LIMITS.pathMorphTargets).optional(),
+      contours: z
+        .array(PathContourV2Schema)
+        .min(1)
+        .max(MOTION_V2_LIMITS.pathContours),
+      morphTargets: z
+        .array(PathMorphTargetV2Schema)
+        .max(MOTION_V2_LIMITS.pathMorphTargets)
+        .optional(),
     })
     .strict(),
   style: PaintStyleSchema.optional(),
 }).strict();
 
-export type {
-  ShapeNodeV3,
-  PathNodeV3,
-} from "./geometry-types";
+export type { ShapeNodeV3, PathNodeV3 } from "./geometry-types";

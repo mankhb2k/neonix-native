@@ -26,9 +26,7 @@ export {
   SemverSchema,
 };
 
-export type {
-  AspectRatio,
-} from "../v2/common";
+export type { AspectRatio } from "../v2/common";
 
 /** #rrggbb (6 hex digits). */
 export const ColorHexSchema = z

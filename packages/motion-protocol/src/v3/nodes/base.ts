@@ -28,13 +28,7 @@ export const InheritFlagsSchema = z
 export const NodeMaskV3Schema = z
   .object({
     sourceNodeId: IdSchema,
-    mode: z.enum([
-      "clip",
-      "alpha",
-      "inverse-alpha",
-      "luma",
-      "inverse-luma",
-    ]),
+    mode: z.enum(["clip", "alpha", "inverse-alpha", "luma", "inverse-luma"]),
     sourceVisibility: z.enum(["mask-only", "content-and-mask"]),
   })
   .strict();
@@ -48,7 +42,10 @@ export const NodeBaseV3Schema = z.object({
   transform: TransformV3Schema,
   timing: NodeTimingV2Schema.optional(),
   semantic: SemanticSchema.optional(),
-  effects: z.array(EffectV2Schema).max(MOTION_V2_LIMITS.effectsPerNode).optional(),
+  effects: z
+    .array(EffectV2Schema)
+    .max(MOTION_V2_LIMITS.effectsPerNode)
+    .optional(),
   blendMode: z
     .enum([
       "normal",

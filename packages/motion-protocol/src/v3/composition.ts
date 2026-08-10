@@ -47,7 +47,9 @@ export const CompositionSettingsSchema = z
     background: ColorHexSchema.default("#ffffff"),
     colorSpace: z.literal("srgb").default("srgb"),
     pixelAspectRatio: PositiveNumberSchema.optional(),
-    audioSampleRate: z.union([z.literal(44100), z.literal(48000)]).default(48000),
+    audioSampleRate: z
+      .union([z.literal(44100), z.literal(48000)])
+      .default(48000),
     safeArea: SafeAreaSchema.optional(),
     motionBlur: MotionBlurDefaultsSchema.optional(),
   })
