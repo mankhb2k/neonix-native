@@ -1081,6 +1081,73 @@ type AuthoringScene = MotionProject["scenes"][number] & {
   sourceRef?: RuntimeSourceRef;
 };
 
+/**
+ * Shared per-scene compilation pipeline (Phase 4).
+ *
+ * Takes a pre-expanded scene (no component references, no unresolved
+ * bindings — all nodes and clips are already V2-shaped) and produces
+ * runtime scene data with resolved variables, layout, text expansion,
+ * and compiled tracks.
+ *
+ * Called by both the V2 compile path (after component expansion) and
+ * the V3 compile path (after down-migration).
+ *
+ * @internal — exported for `compile-v3.ts`; not part of the public API.
+ */
+export function _compileScenePipeline(input: {
+  id: string;
+  duration: number;
+  nodes: MotionNode[];
+  clips: MotionClip[];
+  variables: Map<string, unknown>;
+  markers?: Array<{ id: string; t: number }>;
+  space?: string;
+  motionBlur?: unknown;
+  drivers?: unknown[];
+  activeCameraId?: string;
+  transition?: unknown;
+  sourceRef?: RuntimeSourceRef;
+}): MotionRuntimeProject["scenes"][number] {
+  const variables = input.variables;
+  const resolvedAuthoringNodes = input.nodes.map(
+    (node) => resolveValue(node, variables) as unknown as MotionNode,
+  );
+  const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
+  const fitted = applyFitText(laidOut);
+  const textExpanded = expandTextAnimators(fitted.nodes);
+  const markers = new Map<string, number>(
+    (input.markers ?? []).map((m) => [m.id, m.t]),
+  );
+  const sourceRef = input.sourceRef ?? {
+    projectPath: ["scenes", input.id],
+  };
+  return {
+    id: input.id,
+    duration: input.duration,
+    ...(input.space ? { space: input.space } : {}),
+    ...(input.motionBlur ? { motionBlur: input.motionBlur } : {}),
+    ...(input.drivers && input.drivers.length > 0
+      ? { drivers: clone(input.drivers) }
+      : {}),
+    ...(input.activeCameraId
+      ? { activeCameraId: input.activeCameraId }
+      : {}),
+    ...(input.transition ? { transition: input.transition } : {}),
+    sourceRef,
+    nodes: textExpanded.nodes,
+    tracks: [
+      ...compileClips(
+        textExpanded.nodes,
+        input.clips,
+        variables,
+        input.duration,
+        markers,
+      ),
+      ...textExpanded.tracks,
+    ],
+  };
+}
+
 export function compileMotionProject(
   project: MotionProject,
   options: CompileOptions = {},
@@ -1140,46 +1207,20 @@ export function compileMotionProject(
         scene.duration,
       );
       const variables = new Map([...projectVariables, ...expanded.variables]);
-      const resolvedAuthoringNodes = expanded.nodes.map(
-        (node) => resolveValue(node, variables) as unknown as MotionNode,
-      );
-      const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
-      const fitted = applyFitText(laidOut);
-      const textExpanded = expandTextAnimators(fitted.nodes);
-      const markers = new Map<string, number>(
-        (scene.markers ?? []).map((marker: SceneMarker) => [
-          marker.id,
-          marker.t,
-        ]),
-      );
-      const sourceRef = (scene as AuthoringScene).sourceRef ?? {
-        projectPath: ["scenes", scene.id],
-      };
-      return {
+      return _compileScenePipeline({
         id: scene.id,
         duration: scene.duration,
-        ...(scene.space ? { space: scene.space } : {}),
-        ...(scene.motionBlur ? { motionBlur: scene.motionBlur } : {}),
-        ...(scene.drivers && scene.drivers.length > 0
-          ? { drivers: clone(scene.drivers) }
-          : {}),
-        ...(scene.activeCameraId
-          ? { activeCameraId: scene.activeCameraId }
-          : {}),
-        ...(scene.transition ? { transition: scene.transition } : {}),
-        sourceRef,
-        nodes: textExpanded.nodes,
-        tracks: [
-          ...compileClips(
-            textExpanded.nodes,
-            expanded.clips,
-            variables,
-            scene.duration,
-            markers,
-          ),
-          ...textExpanded.tracks,
-        ],
-      };
+        nodes: expanded.nodes,
+        clips: expanded.clips,
+        variables,
+        markers: scene.markers,
+        space: scene.space,
+        motionBlur: scene.motionBlur,
+        drivers: scene.drivers,
+        activeCameraId: scene.activeCameraId,
+        transition: scene.transition,
+        sourceRef: (scene as AuthoringScene).sourceRef,
+      });
     });
   const sourceRefIndex: Record<string, string> = {};
   for (const scene of scenes) {
@@ -1276,8 +1317,12 @@ import {
  * Unlike `compileMotionProject()` which throws on errors, this returns
  * `{ ok: false, diagnostics }` so callers can surface issues without
  * try/catch boilerplate.
+ *
+ * @deprecated Use `compileMotionProjectV3` directly. Kept as a private
+ *   implementation detail for the V2→V3 migration path.
+ * @internal
  */
-export function compileMotionProjectV2(
+function compileMotionProjectV2(
   project: MotionProject,
   options: CompileOptions = {},
 ): CompileResult<MotionRuntimeProject> {

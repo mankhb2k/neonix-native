@@ -22,8 +22,8 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "000f32f6a5fbf9e32da383b51db91047",
-  "compilerVersion": "2.0.0-phase6",
+  "runtimeHash": "97cc347e00eecbd5743e6bf432425aef",
+  "compilerVersion": "3.0.0-phase5",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
     "scenes": {

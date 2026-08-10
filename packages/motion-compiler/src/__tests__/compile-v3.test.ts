@@ -191,7 +191,7 @@ describe("compileMotionProjectV3 — Phase 6 runtime IR enrichment", () => {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     });
-    expect(project.compilerVersion).toBe("2.0.0-phase6");
+    expect(project.compilerVersion).toBe("3.0.0-phase5");
     expect(project.capabilityFingerprint).toMatch(/^[0-9a-f]{16}$/);
     expect(project.runtimeHash).toMatch(/^[0-9a-f]{32}$/);
     expect(project.sourceRef).toEqual({ scenes: {} });

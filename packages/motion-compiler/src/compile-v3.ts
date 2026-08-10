@@ -29,6 +29,9 @@ import { createHash } from "node:crypto";
 import {
   canonicalJson,
   computeRuntimeHash,
+  MotionRuntimeProjectSchema,
+  MOTION_RUNTIME_VERSION,
+  buildCapabilityFingerprint,
   type MotionProject,
   type MotionRuntimeProject,
   V3,
@@ -40,7 +43,7 @@ import {
   compileFailure,
   type CompileResult,
 } from "./compile-result";
-import { compileMotionProjectV2 } from "./index";
+import { _compileScenePipeline } from "./index";
 
 // ── Public types ──────────────────────────────────────────────────────
 
@@ -995,20 +998,159 @@ export function compileMotionProjectV3(
     return compileFailure([...collector.diagnostics]);
   }
 
-  // Down-migrate onto the v2 pipeline and compile.
+  // Build V2-shaped project data from the V3 project.
   const v2Shape = downMigrateProject(normalized, collector);
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
   }
+
   const warnings = [...collector.diagnostics].filter(
     (diagnostic) => diagnostic.severity !== "error",
   );
 
-  const compiled = compileMotionProjectV2(v2Shape, {});
-  if (!compiled.ok) {
-    return compileFailure([...warnings, ...compiled.diagnostics]);
+  // ── Compile each scene directly (Phase 4: no compileMotionProjectV2) ──
+
+  try {
+    const projectVariables = new Map<string, unknown>(
+      v2Shape.variables.map(
+        (v: { id: string; value: unknown }) => [v.id, clone(v.value)] as const,
+      ),
+    );
+    const sceneOrder: string[] = (
+      v2Shape.timeline as { sceneOrder: string[] }
+    ).sceneOrder;
+    const sceneById = new Map(
+      v2Shape.scenes.map((s: Record<string, unknown>) => [s.id as string, s]),
+    );
+
+    const compiledScenes = sceneOrder.map((id) => {
+      const scene = sceneById.get(id);
+      if (!scene) {
+        collector.error(
+          "CMP_CLIP_TARGET_MISSING",
+          `Scene "${id}" referenced in sceneOrder but not found in scenes array`,
+          { path: ["timeline", "sceneOrder"], details: { sceneId: id } },
+        );
+        throw new Error(`Missing scene: ${id}`);
+      }
+      const variables = new Map(projectVariables);
+
+      // Apply project bindings for this scene (Phase 4: bindings are in
+      // the down-migrated project shape, injected before pipeline).
+      const sceneBindings = (
+        v2Shape.bindings as Array<{
+          target: { sceneId: string; nodeId: string; property: string };
+          source: { variableId: string };
+        }>
+      ).filter((b) => b.target.sceneId === id);
+      for (const binding of sceneBindings) {
+        const nodes = (scene.nodes ?? []) as Array<Record<string, unknown>>;
+        const target = nodes.find(
+          (n: Record<string, unknown>) => n.id === binding.target.nodeId,
+        );
+        if (target && variables.has(binding.source.variableId)) {
+          // Mimic setPath: walk dotted path, set last segment.
+          const parts = binding.target.property.split(".");
+          let cursor: Record<string, unknown> = target;
+          for (let i = 0; i < parts.length - 1; i++) {
+            const part = parts[i]!;
+            if (!cursor[part] || typeof cursor[part] !== "object") {
+              cursor[part] = {};
+            }
+            cursor = cursor[part] as Record<string, unknown>;
+          }
+          const last = parts[parts.length - 1]!;
+          cursor[last] = variables.get(binding.source.variableId);
+        }
+      }
+
+      return _compileScenePipeline({
+        id: scene.id as string,
+        duration: scene.duration as number,
+        nodes: (scene.nodes ?? []) as Parameters<
+          typeof _compileScenePipeline
+        >[0]["nodes"],
+        clips: (scene.clips ?? []) as Parameters<
+          typeof _compileScenePipeline
+        >[0]["clips"],
+        variables,
+        markers: scene.markers as
+          | Array<{ id: string; t: number }>
+          | undefined,
+        space: scene.space as string | undefined,
+        motionBlur: scene.motionBlur,
+        drivers: scene.drivers as unknown[] | undefined,
+        activeCameraId: scene.activeCameraId as string | undefined,
+        transition: scene.transition,
+        sourceRef: scene.sourceRef as
+          | NonNullable<
+              Parameters<typeof _compileScenePipeline>[0]["sourceRef"]
+            >
+          | undefined,
+      });
+    });
+
+    const sourceRefIndex: Record<string, string> = {};
+    for (const scene of compiledScenes) {
+      const srcRef = scene.sourceRef;
+      sourceRefIndex[scene.id] =
+        srcRef.sourceModule
+          ? `${srcRef.projectPath.join(":")}#${srcRef.sourceModule}`
+          : srcRef.projectPath.join(":");
+    }
+
+    const ir = {
+      format: "motion-runtime" as const,
+      formatVersion: 2 as const,
+      runtimeVersion: MOTION_RUNTIME_VERSION,
+      metadata: v2Shape.metadata,
+      assets: v2Shape.assets,
+      composition: v2Shape.composition,
+      compilerVersion: COMPILER_VERSION_V3,
+      capabilityFingerprint: buildCapabilityFingerprint(),
+      timeline: v2Shape.timeline,
+      sourceRef: { scenes: sourceRefIndex },
+      scenes: compiledScenes,
+    };
+
+    const validated = MotionRuntimeProjectSchema.parse({
+      ...ir,
+      runtimeHash: computeRuntimeHash(
+        ir as unknown as Record<string, unknown>,
+      ),
+    });
+
+    return compileSuccess(validated, warnings);
+  } catch (err: unknown) {
+    // Convert errors to structured diagnostics (same pattern as compileMotionProjectV2).
+    if (err && typeof err === "object" && "issues" in err) {
+      const zodErr = err as {
+        issues: Array<{
+          path: (string | number)[];
+          message: string;
+          code: string;
+        }>;
+      };
+      for (const issue of zodErr.issues) {
+        collector.error("RUNTIME_VALIDATION_ERROR", issue.message, {
+          path: issue.path,
+          details: { zodCode: issue.code },
+        });
+      }
+    } else if (err instanceof Error) {
+      const msg = err.message;
+      if (msg.includes("Unknown variable reference")) {
+        collector.error("UNKNOWN_VARIABLE", msg);
+      } else if (msg.includes("Unknown clip target")) {
+        collector.error("UNKNOWN_CLIP_TARGET", msg);
+      } else if (msg.includes("Unknown scene marker")) {
+        collector.error("UNKNOWN_MARKER", msg);
+      } else {
+        collector.error("COMPILE_ERROR", msg);
+      }
+    }
+    return compileFailure([...collector.diagnostics]);
   }
-  return compileSuccess(compiled.project, warnings);
 }
 
 // ── Cache key ─────────────────────────────────────────────────────────
