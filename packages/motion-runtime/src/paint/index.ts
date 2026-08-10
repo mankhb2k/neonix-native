@@ -28,3 +28,39 @@ export {
   type PaintFallbackPolicy,
   type PaintOpCapability,
 } from "./paint-capabilities";
+export {
+  paintContractVersion,
+  validatePaintBuffer,
+  assertValidPaintBuffer,
+  countUnsupportedCommands,
+  collectPaintDiagnostics,
+} from "./paint-buffer-contract";
+export {
+  type EvaluatedGeometry,
+  type Affine2DGeometry,
+  type ProjectedQuadGeometry,
+  type MeshGeometry,
+  type Bounds2D,
+  type Vec2,
+  makeAffine2DGeometry,
+  identityAffine2DGeometry,
+  flattenToAffine2D,
+  isAffine2D,
+} from "./evaluated-geometry";
+export {
+  type PaintResourceDescriptor,
+  type PaintTextResource,
+  type PaintShapeResource,
+  type PaintImageResource,
+  type PaintVideoResource,
+  type PaintPathResource,
+  type PaintFrameProperty,
+  type SplitPaintCommand,
+  extractPaintResource,
+  extractPaintFrameProperty,
+  splitPaintCommand,
+} from "./paint-resource-descriptor";
+export {
+  computePaintItemFingerprint,
+  computePaintResourceFingerprint,
+} from "./paint-item-fingerprint";

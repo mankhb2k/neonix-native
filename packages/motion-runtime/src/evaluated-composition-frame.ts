@@ -22,17 +22,34 @@ export const COMPOSITION_FRAME_CONTRACT_VERSION = "3.0.0";
 
 // ── Projection ────────────────────────────────────────────────────────
 
-export type ProjectionKind = "orthographic-2d" | "layered-2.5d" | "perspective-3d";
+export type ProjectionKind =
+  | "orthographic-2d"
+  | "layered-2.5d"
+  | "perspective-3d";
 
 export type OrthographicProjection = {
   kind: "orthographic-2d";
   /** World→Screen 3x3 affine matrix */
-  viewMatrix: { a: number; b: number; c: number; d: number; e: number; f: number };
+  viewMatrix: {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+    e: number;
+    f: number;
+  };
 };
 
 export type Layered25DProjection = {
   kind: "layered-2.5d";
-  viewMatrix: { a: number; b: number; c: number; d: number; e: number; f: number };
+  viewMatrix: {
+    a: number;
+    b: number;
+    c: number;
+    d: number;
+    e: number;
+    f: number;
+  };
   depthPolicy: "painter-order" | "depth-sort";
 };
 
@@ -102,8 +119,14 @@ export type StableLayerKey = string;
  * Build a stable layer key from scene and node IDs.
  * Deterministic — same inputs always produce the same key.
  */
-export function stableLayerKey(sceneId: string, nodeId: string, iteration?: number): StableLayerKey {
-  return iteration != null ? `${sceneId}:${nodeId}::iter${iteration}` : `${sceneId}:${nodeId}`;
+export function stableLayerKey(
+  sceneId: string,
+  nodeId: string,
+  iteration?: number,
+): StableLayerKey {
+  return iteration != null
+    ? `${sceneId}:${nodeId}::iter${iteration}`
+    : `${sceneId}:${nodeId}`;
 }
 
 /**

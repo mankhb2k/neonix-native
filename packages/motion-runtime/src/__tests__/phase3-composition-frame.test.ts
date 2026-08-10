@@ -36,7 +36,13 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
         scale: 1,
         zIndex: 0,
       },
-      interaction: { sceneId: "s1", time: 0.5, nodes: [], width: 1920, height: 1080 },
+      interaction: {
+        sceneId: "s1",
+        time: 0.5,
+        nodes: [],
+        width: 1920,
+        height: 1080,
+      },
       paint: { commands: [], diagnostics: [] },
     };
     expect(layer.layerKey).toBe("s1:n1");
@@ -69,7 +75,16 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
 
   it("EvaluatedAudioState has required fields", () => {
     const audio: EvaluatedAudioState = {
-      tracks: [{ trackId: "t1", assetId: "a1", mediaTime: 1.5, volume: 0.8, muted: false, fadeActive: false }],
+      tracks: [
+        {
+          trackId: "t1",
+          assetId: "a1",
+          mediaTime: 1.5,
+          volume: 0.8,
+          muted: false,
+          fadeActive: false,
+        },
+      ],
     };
     expect(audio.tracks).toHaveLength(1);
   });
@@ -121,7 +136,11 @@ describe("parseStableLayerKey", () => {
 
   it("round-trips with iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a::iter3");
-    expect(parsed).toEqual({ sceneId: "scene-1", nodeId: "node-a", iteration: 3 });
+    expect(parsed).toEqual({
+      sceneId: "scene-1",
+      nodeId: "node-a",
+      iteration: 3,
+    });
   });
 
   it("returns null for invalid key", () => {
@@ -139,16 +158,44 @@ function emptyRuntime(): NormalizedMotionProjectV2 {
   return {
     format: "motion-runtime",
     formatVersion: 2,
-    metadata: { id: "test", title: "Test", aspectRatio: "16:9", width: 1920, height: 1080 },
+    metadata: {
+      id: "test",
+      title: "Test",
+      aspectRatio: "16:9",
+      width: 1920,
+      height: 1080,
+    },
     assets: [],
     timeline: { sceneOrder: ["s1"], audioTracks: [], captionTracks: [] },
-    scenes: [{
-      id: "s1",
-      duration: 2,
-      space: "flat-2d",
-      nodes: [{ type: "group", id: "n1", parentId: null, zIndex: 0, transform: { x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1, anchorX: 0, anchorY: 0, scaleX: 1, scaleY: 1 }, payload: {} } as any],
-      tracks: [],
-    }],
+    scenes: [
+      {
+        id: "s1",
+        duration: 2,
+        space: "flat-2d",
+        nodes: [
+          {
+            type: "group",
+            id: "n1",
+            parentId: null,
+            zIndex: 0,
+            transform: {
+              x: 0,
+              y: 0,
+              width: 100,
+              height: 100,
+              rotation: 0,
+              opacity: 1,
+              anchorX: 0,
+              anchorY: 0,
+              scaleX: 1,
+              scaleY: 1,
+            },
+            payload: {},
+          } as any,
+        ],
+        tracks: [],
+      },
+    ],
   };
 }
 
@@ -182,7 +229,9 @@ describe("evaluateCompositionFrameV3", () => {
   it("stageView:'flat' produces orthographic-2d even for 2.5d space", () => {
     const runtime = emptyRuntime();
     runtime.scenes[0]!.space = "layered-2.5d";
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080, { stageView: "flat" });
+    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080, {
+      stageView: "flat",
+    });
     expect(frame?.projection.kind).toBe("orthographic-2d");
   });
 
@@ -217,7 +266,13 @@ describe("transition fixtures", () => {
   });
 
   it("all 5 fixture keys exist", () => {
-    expect(TRANSITION_FIXTURE_KEYS).toEqual(["before", "start", "middle", "end", "after"]);
+    expect(TRANSITION_FIXTURE_KEYS).toEqual([
+      "before",
+      "start",
+      "middle",
+      "end",
+      "after",
+    ]);
   });
 
   it("fixtureGlobalTimes returns increasing times", () => {
@@ -243,17 +298,23 @@ describe("transition fixtures", () => {
 
   it("cut has 1 layer before and 1 after (no overlap)", () => {
     const digests = generateFixtureDigests();
-    const cutBefore = digests.find((d) => d.fixture === "cut" && d.key === "before");
+    const cutBefore = digests.find(
+      (d) => d.fixture === "cut" && d.key === "before",
+    );
     expect(cutBefore?.layers).toHaveLength(1);
 
-    const cutAfter = digests.find((d) => d.fixture === "cut" && d.key === "after");
+    const cutAfter = digests.find(
+      (d) => d.fixture === "cut" && d.key === "after",
+    );
     // After cut, scene-b is playing
     expect(cutAfter?.layers.length).toBeGreaterThanOrEqual(1);
   });
 
   it("crossfade has 2 layers during middle", () => {
     const digests = generateFixtureDigests();
-    const xfMiddle = digests.find((d) => d.fixture === "crossfade" && d.key === "middle");
+    const xfMiddle = digests.find(
+      (d) => d.fixture === "crossfade" && d.key === "middle",
+    );
     expect(xfMiddle?.layers).toHaveLength(2);
   });
 

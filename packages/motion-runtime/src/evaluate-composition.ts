@@ -26,7 +26,9 @@ import type { PaintCommandBuffer } from "./paint";
 import { cameraViewMatrix, type CameraViewParams } from "./camera-view";
 import { IDENTITY_MATRIX } from "./matrix";
 
-function scenesForComposition(runtime: NormalizedMotionProjectV2): CompositionSceneInput[] {
+function scenesForComposition(
+  runtime: NormalizedMotionProjectV2,
+): CompositionSceneInput[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
   const order =
     runtime.timeline.sceneOrder.length > 0
@@ -48,7 +50,12 @@ export function planCompositionFrame(
   width: number,
   height: number,
 ): CompositionFramePlan {
-  return evaluateCompositionLayers(scenesForComposition(runtime), globalTime, width, height);
+  return evaluateCompositionLayers(
+    scenesForComposition(runtime),
+    globalTime,
+    width,
+    height,
+  );
 }
 
 function resolveCompositionEvaluateTarget(
@@ -111,7 +118,14 @@ export function evaluateCompositionFrame(
   sceneId?: string,
   background?: string,
 ): EvaluatedFrame | null {
-  const target = resolveCompositionEvaluateTarget(runtime, frame, fps, sceneId, width, height);
+  const target = resolveCompositionEvaluateTarget(
+    runtime,
+    frame,
+    fps,
+    sceneId,
+    width,
+    height,
+  );
   if (!target) return null;
   const assetUriById = new Map(
     runtime.assets.map((asset) => [asset.id, asset.uri] as const),
@@ -126,8 +140,9 @@ export function evaluateCompositionFrame(
     assetUriById,
   });
   if (target.layerPlan) {
-    (evaluated as EvaluatedFrame & { compositionLayers?: CompositionFramePlan }).compositionLayers =
-      target.layerPlan;
+    (
+      evaluated as EvaluatedFrame & { compositionLayers?: CompositionFramePlan }
+    ).compositionLayers = target.layerPlan;
   }
   return evaluated;
 }
@@ -185,7 +200,10 @@ export function evaluateCompositionFrameV3(
 
   // ── Evaluate each layer ─────────────────────────────────────────
   const layers: EvaluatedLayer[] = [];
-  const sceneCache = new Map<string, NormalizedMotionProjectV2["scenes"][number]>();
+  const sceneCache = new Map<
+    string,
+    NormalizedMotionProjectV2["scenes"][number]
+  >();
 
   for (let i = 0; i < layerPlan.layers.length; i++) {
     const layer = layerPlan.layers[i]!;
@@ -208,8 +226,14 @@ export function evaluateCompositionFrameV3(
     });
 
     // Generate stable keys for each drawable
-    const iterIdx = layerPlan.layers.filter((l) => l.sceneId === layer.sceneId).indexOf(layer);
-    const layerKey = stableLayerKey(layer.sceneId, `layer_${i}`, iterIdx > 0 ? iterIdx : undefined);
+    const iterIdx = layerPlan.layers
+      .filter((l) => l.sceneId === layer.sceneId)
+      .indexOf(layer);
+    const layerKey = stableLayerKey(
+      layer.sceneId,
+      `layer_${i}`,
+      iterIdx > 0 ? iterIdx : undefined,
+    );
 
     layers.push({
       layerKey,
@@ -222,9 +246,8 @@ export function evaluateCompositionFrameV3(
   }
 
   // ── Combined interaction (last layer wins for hit-test) ────────
-  const combinedInteraction = layers.length > 0
-    ? layers[layers.length - 1]!.interaction
-    : null;
+  const combinedInteraction =
+    layers.length > 0 ? layers[layers.length - 1]!.interaction : null;
 
   // ── Combined paint (merge all layer buffers) ────────────────────
   const allCommands = layers.flatMap((l) => l.paint.commands);
@@ -234,9 +257,10 @@ export function evaluateCompositionFrameV3(
   };
 
   // ── Projection ──────────────────────────────────────────────────
-  const primaryScene = layers.length > 0
-    ? sceneCache.get(layers[layers.length - 1]!.sceneId)
-    : null;
+  const primaryScene =
+    layers.length > 0
+      ? sceneCache.get(layers[layers.length - 1]!.sceneId)
+      : null;
 
   const projection = buildProjection(
     primaryScene,
@@ -262,13 +286,16 @@ export function evaluateCompositionFrameV3(
     fps: safeFps,
     viewport: { width, height },
     layers,
-    interaction: combinedInteraction ?? layers[0]?.interaction ?? {
-      sceneId: "",
-      time: globalTime,
-      items: [],
-      width,
-      height,
-    } as RenderSnapshot,
+    interaction:
+      combinedInteraction ??
+      layers[0]?.interaction ??
+      ({
+        sceneId: "",
+        time: globalTime,
+        items: [],
+        width,
+        height,
+      } as RenderSnapshot),
     paint: combinedPaint,
     audio,
     media,
@@ -350,9 +377,10 @@ function buildAudioState(
     const duration = 1; // simplified — full impl in Phase 7
     const localTime = Math.max(0, globalTime - start + trimStart);
     const volume = Math.min(1, Math.max(0, track.volume ?? 1));
-    const fadeInEnd = (track.fadeIn ?? 0);
+    const fadeInEnd = track.fadeIn ?? 0;
     const fadeOutStart = duration - (track.fadeOut ?? 0);
-    const fadeActive = (track.fadeIn && localTime < fadeInEnd) ||
+    const fadeActive =
+      (track.fadeIn && localTime < fadeInEnd) ||
       (track.fadeOut && localTime > fadeOutStart);
 
     return {
@@ -388,9 +416,14 @@ function buildMediaState(
         nodeId: node.nodeId,
         mediaTime: layer.composition.localTime,
         sourceFrame: Math.round(layer.composition.localTime * 30),
-        assetId: (sceneNode as { payload?: { assetId?: string } })?.payload?.assetId ?? node.nodeId,
+        assetId:
+          (sceneNode as { payload?: { assetId?: string } })?.payload?.assetId ??
+          node.nodeId,
         uri: (sceneNode as { payload?: { assetId?: string } })?.payload?.assetId
-          ? assetUriById.get((sceneNode as { payload?: { assetId?: string } }).payload!.assetId!)
+          ? assetUriById.get(
+              (sceneNode as { payload?: { assetId?: string } }).payload!
+                .assetId!,
+            )
           : undefined,
         playbackRate: 1,
         active: true,
@@ -421,7 +454,10 @@ export function compositionDurationInFrames(
 
   const total = compositionTotalDuration(scenesForComposition(runtime));
   const fallback = timelineTotalDuration(runtime);
-  const duration = Math.max(1 / safeFps, total > 0 ? total : fallback > 0 ? fallback : 1);
+  const duration = Math.max(
+    1 / safeFps,
+    total > 0 ? total : fallback > 0 ? fallback : 1,
+  );
   return Math.max(
     1,
     frameIndexAtTime(duration, safeFps) || Math.ceil(duration * safeFps),
