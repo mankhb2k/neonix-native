@@ -86,8 +86,14 @@ function buildVolumeEnvelope(input: {
   fadeOutSeconds: number;
   fps: number;
 }): AudioVolumeKeyframe[] {
-  const { startFrame, durationInFrames, volume, fadeInSeconds, fadeOutSeconds, fps } =
-    input;
+  const {
+    startFrame,
+    durationInFrames,
+    volume,
+    fadeInSeconds,
+    fadeOutSeconds,
+    fps,
+  } = input;
   const safeVolume = Math.min(1, Math.max(0, volume));
   const fadeInFrames = Math.max(0, Math.round(fadeInSeconds * fps));
   const fadeOutFrames = Math.max(0, Math.round(fadeOutSeconds * fps));
@@ -136,21 +142,22 @@ export function buildAudioRenderPlan(
 
     // Compute duration from resolved asset: clip duration capped by asset
     // duration (accounting for trim) and composition remaining time.
-    const assetDurationFrames = asset.duration > 0
-      ? Math.round(asset.duration / playbackRate * fps)
-      : remainingFrames;
+    const assetDurationFrames =
+      asset.duration > 0
+        ? Math.round((asset.duration / playbackRate) * fps)
+        : remainingFrames;
     const durationInFrames = Math.min(remainingFrames, assetDurationFrames);
     if (durationInFrames <= 0) continue;
 
     // Resolve channel policy from track or default to stereo
     const channelPolicy: AudioChannelPolicy =
-      (track as { channelPolicy?: AudioChannelPolicy }).channelPolicy ?? "stereo";
+      (track as { channelPolicy?: AudioChannelPolicy }).channelPolicy ??
+      "stereo";
 
     // Resolve loop window from track (if loop is enabled)
-    const loopWindowStart =
-      (track as { loopWindowStart?: number }).loopWindowStart;
-    const loopWindowEnd =
-      (track as { loopWindowEnd?: number }).loopWindowEnd;
+    const loopWindowStart = (track as { loopWindowStart?: number })
+      .loopWindowStart;
+    const loopWindowEnd = (track as { loopWindowEnd?: number }).loopWindowEnd;
 
     clips.push({
       assetId: track.assetId,

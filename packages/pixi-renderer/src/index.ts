@@ -151,3 +151,22 @@ export {
   type CachedDisplayDesc,
   type DisplayCacheStats,
 } from "./display-cache";
+export {
+  createPaintDiffEngine,
+  type PaintDiffEngine,
+  type PaintDiffResult,
+  type PaintDiffStats,
+  type PaintFrameDiff,
+} from "./paint-diff";
+export {
+  createImperativeOverlay,
+  type ImperativeOverlay,
+  type OverlayStore,
+  type OverlayStyle,
+} from "./imperative-overlay";
+export {
+  createProfilerHud,
+  type ProfilerHud,
+  type ProfilerHudStats,
+  type ProfilerHudOptions,
+} from "./profiler-hud";

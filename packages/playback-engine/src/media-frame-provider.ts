@@ -190,14 +190,18 @@ export function createMediaFrameProvider(
         handle.frameReady = true;
         opts?.onFrameReady?.(handle);
         if (handles.has(assetId)) {
-          (video as HTMLVideoElement & {
-            requestVideoFrameCallback(cb: () => void): void;
-          }).requestVideoFrameCallback(rvfc);
+          (
+            video as HTMLVideoElement & {
+              requestVideoFrameCallback(cb: () => void): void;
+            }
+          ).requestVideoFrameCallback(rvfc);
         }
       };
-      (video as HTMLVideoElement & {
-        requestVideoFrameCallback(cb: () => void): void;
-      }).requestVideoFrameCallback(rvfc);
+      (
+        video as HTMLVideoElement & {
+          requestVideoFrameCallback(cb: () => void): void;
+        }
+      ).requestVideoFrameCallback(rvfc);
     }
 
     return handle;

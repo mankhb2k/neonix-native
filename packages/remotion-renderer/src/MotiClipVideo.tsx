@@ -88,16 +88,19 @@ function AudioClipVolume({
   const volume = sampleAudioVolumeLinear(clip.volumeEnvelope, absoluteFrame);
 
   // Compute loop window for Remotion Audio
-  const loopStartInFrames = clip.loopWindowStartSeconds != null
-    ? Math.round(clip.loopWindowStartSeconds * fps)
-    : Math.round(clip.trimStartSeconds * fps);
-
-  const loopDurationInFrames = clip.loopWindowEndSeconds != null &&
+  const loopStartInFrames =
     clip.loopWindowStartSeconds != null
-    ? Math.round((clip.loopWindowEndSeconds - clip.loopWindowStartSeconds) * fps)
-    : clip.trimEndSeconds > 0
-      ? Math.round((clip.trimEndSeconds - clip.trimStartSeconds) * fps)
-      : undefined;
+      ? Math.round(clip.loopWindowStartSeconds * fps)
+      : Math.round(clip.trimStartSeconds * fps);
+
+  const loopDurationInFrames =
+    clip.loopWindowEndSeconds != null && clip.loopWindowStartSeconds != null
+      ? Math.round(
+          (clip.loopWindowEndSeconds - clip.loopWindowStartSeconds) * fps,
+        )
+      : clip.trimEndSeconds > 0
+        ? Math.round((clip.trimEndSeconds - clip.trimStartSeconds) * fps)
+        : undefined;
 
   // Map channel policy to Remotion Audio props
   const channelPolicy = clip.channelPolicy ?? "stereo";
@@ -106,18 +109,22 @@ function AudioClipVolume({
     <Audio
       src={clip.uri}
       startFrom={Math.max(0, Math.round(clip.trimStartSeconds * fps))}
-      endAt={clip.trimEndSeconds > 0
-        ? Math.round(clip.trimEndSeconds * fps)
-        : undefined}
+      endAt={
+        clip.trimEndSeconds > 0
+          ? Math.round(clip.trimEndSeconds * fps)
+          : undefined
+      }
       volume={volume}
       playbackRate={clip.playbackRate}
       loop={clip.loop}
       loopVolumeCurveBehavior="repeat"
-      toneFrequency={channelPolicy === "left-only"
-        ? undefined
-        : channelPolicy === "right-only"
+      toneFrequency={
+        channelPolicy === "left-only"
           ? undefined
-          : undefined}
+          : channelPolicy === "right-only"
+            ? undefined
+            : undefined
+      }
     />
   );
 }

@@ -27,9 +27,7 @@ export type AudioContextLike = {
   readonly state: AudioContextState;
   readonly destination: AudioDestinationNode;
   readonly sampleRate: number;
-  decodeAudioData(
-    buffer: ArrayBuffer,
-  ): Promise<AudioBuffer>;
+  decodeAudioData(buffer: ArrayBuffer): Promise<AudioBuffer>;
   createGain(): GainNode;
   createBufferSource(): AudioBufferSourceNode;
   createChannelSplitter(numberOfOutputs: number): ChannelSplitterNode;
@@ -49,18 +47,17 @@ export type AudioBufferSourceNodeLike = {
   disconnect(): void;
   start(when?: number, offset?: number, duration?: number): void;
   stop(when?: number): void;
-  addEventListener(
-    type: "ended",
-    listener: EventListener,
-  ): void;
-  removeEventListener(
-    type: "ended",
-    listener: EventListener,
-  ): void;
+  addEventListener(type: "ended", listener: EventListener): void;
+  removeEventListener(type: "ended", listener: EventListener): void;
 };
 
 export type GainNodeLike = {
-  gain: { value: number; cancelScheduledValues(startTime: number): void; setValueAtTime(value: number, startTime: number): void; linearRampToValueAtTime(value: number, endTime: number): void };
+  gain: {
+    value: number;
+    cancelScheduledValues(startTime: number): void;
+    setValueAtTime(value: number, startTime: number): void;
+    linearRampToValueAtTime(value: number, endTime: number): void;
+  };
   connect(destination: AudioNode | AudioParam): void;
   disconnect(): void;
 };
@@ -74,12 +71,20 @@ export type AudioBufferLike = {
 };
 
 export type ChannelSplitterNodeLike = {
-  connect(destination: AudioNode | AudioParam, output?: number, input?: number): void;
+  connect(
+    destination: AudioNode | AudioParam,
+    output?: number,
+    input?: number,
+  ): void;
   disconnect(): void;
 };
 
 export type ChannelMergerNodeLike = {
-  connect(destination: AudioNode | AudioParam, output?: number, input?: number): void;
+  connect(
+    destination: AudioNode | AudioParam,
+    output?: number,
+    input?: number,
+  ): void;
   disconnect(): void;
 };
 
@@ -184,7 +189,10 @@ export function createAudioScheduler(
 
   // ── Buffer decoding ─────────────────────────────────────────────
 
-  async function decodeBuffer(uri: string, arrayBuffer: ArrayBuffer): Promise<AudioBufferLike> {
+  async function decodeBuffer(
+    uri: string,
+    arrayBuffer: ArrayBuffer,
+  ): Promise<AudioBufferLike> {
     const buffer = await ctx.decodeAudioData(arrayBuffer);
     return buffer;
   }
@@ -279,14 +287,15 @@ export function createAudioScheduler(
 
     // Compute the wall-clock offset for scheduling
     const compOffset = Math.max(0, compositionTimeNow - clipStartComp);
-    const sourceOffsetSeconds = clip.trimStartSeconds +
-      compOffset * clip.playbackRate;
+    const sourceOffsetSeconds =
+      clip.trimStartSeconds + compOffset * clip.playbackRate;
 
     // When to start on the AudioContext timeline
     const when = now + FADE_MS;
 
     // Duration of the source (remaining)
-    const remainingCompSeconds = clipEndComp - Math.max(compositionTimeNow, clipStartComp);
+    const remainingCompSeconds =
+      clipEndComp - Math.max(compositionTimeNow, clipStartComp);
     const durationSeconds = remainingCompSeconds / clip.playbackRate;
 
     // Don't schedule if duration is negligible
@@ -315,7 +324,14 @@ export function createAudioScheduler(
     buildChannelGraph(clip, trackState.gainNode, source);
 
     // Volume ramp: schedule envelope via GainNode automation
-    scheduleVolumeEnvelope(clip, trackState, now, when, fps, compositionTimeNow);
+    scheduleVolumeEnvelope(
+      clip,
+      trackState,
+      now,
+      when,
+      fps,
+      compositionTimeNow,
+    );
 
     // Start the source
     const clipId = `${clip.assetId}:${clip.fromFrame}:${Date.now()}:${Math.random().toString(36).slice(2, 6)}`;
@@ -358,18 +374,20 @@ export function createAudioScheduler(
 
     // Set initial gain with fade-in to avoid click
     gain.setValueAtTime(0, now);
-    gain.linearRampToValueAtTime(
-      effectiveVolume,
-      sourceWhen,
-    );
+    gain.linearRampToValueAtTime(effectiveVolume, sourceWhen);
 
     // Schedule volume envelope keyframes after source start
     if (effectiveVolume > 0 && clip.volumeEnvelope.length > 0) {
       for (const key of clip.volumeEnvelope) {
         const keyCompTime = frameToSeconds(key.frame);
         // Schedule relative to source start
-        const keyWallTime = sourceWhen +
-          Math.max(0, (keyCompTime - Math.max(compositionTimeNow, frameToSeconds(clip.fromFrame)))) /
+        const keyWallTime =
+          sourceWhen +
+          Math.max(
+            0,
+            keyCompTime -
+              Math.max(compositionTimeNow, frameToSeconds(clip.fromFrame)),
+          ) /
             clip.playbackRate;
 
         if (keyWallTime > sourceWhen) {
@@ -390,8 +408,8 @@ export function createAudioScheduler(
 
     for (const clip of currentPlan.clips) {
       const clipStartComp = clip.fromFrame / currentPlan.fps;
-      const clipEndComp = clipStartComp +
-        clip.durationInFrames / currentPlan.fps;
+      const clipEndComp =
+        clipStartComp + clip.durationInFrames / currentPlan.fps;
 
       // Only schedule if clip overlaps the look-ahead window
       if (clipEndComp <= compositionTimeNow) continue;
@@ -508,7 +526,9 @@ export function createAudioScheduler(
     for (const [, ts] of trackStates) {
       try {
         ts.gainNode.disconnect();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     trackStates.clear();
     bufferCache.clear();

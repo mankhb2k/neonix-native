@@ -11,6 +11,11 @@
  *   - Image/Video: trim, fit, crop, stale guard
  *   - Unsupported diagnostic overlay pattern
  *   - Dispose: textures, filters, offscreen, assets
+ *
+ * Phase 8 (Task 8.1–8.3):
+ *   - Dirty diff via fingerprint: skip clear/updates when unchanged
+ *   - Render on-demand: pause stops ticker rendering
+ *   - Adaptive resolution: composition size vs CSS display size
  */
 
 import {
@@ -22,6 +27,7 @@ import {
   type PaintPatch,
   isPatchStale,
   type PatchSequence,
+  computePaintItemFingerprint,
 } from "@motionvideo/motion-runtime";
 import {
   BlurFilter,
@@ -60,6 +66,15 @@ export type PixiFramePainterOptions = {
   }) => void;
   /** Optional injected asset store (tests / shared host cache). */
   assetStore?: PixiAssetStore;
+  /**
+   * CSS display size (may differ from composition resolution in
+   * interactive quality mode). When set, the painter renders at
+   * composition resolution but scales the output to this size.
+   * @since Phase 8 (adaptive resolution)
+   */
+  displayWidth?: number;
+  /** CSS display size height. */
+  displayHeight?: number;
 };
 
 export type PixiFramePainter = EvaluatedFramePainter & {
@@ -78,8 +93,22 @@ export type PixiFramePainter = EvaluatedFramePainter & {
    * @since Phase 2
    */
   applyPatch(patch: PaintPatch): PatchSequence;
+  /** Clear all cached display objects. */
   clear(): void;
+  /** Dispose all resources. */
   dispose(): void;
+  /**
+   * Whether the painter should skip rendering (paused state).
+   * When true, paintCommands is a no-op.
+   * @since Phase 8 (render on-demand)
+   */
+  setPaused(paused: boolean): void;
+  readonly paused: boolean;
+  /**
+   * Get dirty diff statistics from the last paint frame.
+   * @since Phase 8 (dirty diff)
+   */
+  getDiffStats(): { changed: number; unchanged: number; new_: number; removed: number; skipped: number };
 };
 
 function hexToNumber(color: string | undefined, fallback = 0xffffff): number {
@@ -298,12 +327,21 @@ export function createPixiFramePainter(
   let lastPaint: PaintCommandBuffer | null = null;
   let lastLiveKeys: string[] = [];
   let currentSequence: PatchSequence = 0;
+  let paused = false;
   let unsupported: Array<{
     key: string;
     nodeId: string;
     nodeType: string;
     message: string;
   }> = [];
+
+  // ── Phase 8: Dirty diff state ──────────────────────────────────
+  const lastFingerprints = new Map<string, string>();
+  let diffStats = { changed: 0, unchanged: 0, new_: 0, removed: 0, skipped: 0 };
+
+  // ── Phase 8: Adaptive resolution ───────────────────────────────
+  const displayW = options.displayWidth ?? 1920;
+  const displayH = options.displayHeight ?? 1080;
 
   const clear = () => {
     for (const entry of cache.values()) {
@@ -344,7 +382,67 @@ export function createPixiFramePainter(
     return display;
   };
 
+  // ── Phase 8: Dirty diff helpers ─────────────────────────────────
+
+  /** Extract transform for a given key from the command buffer. */
+  const findTransformFor = (
+    key: string,
+    commands: readonly PaintCommand[],
+  ): {
+    matrix: { a: number; b: number; c: number; d: number; e: number; f: number };
+    alpha: number;
+    visible: boolean;
+    zIndex: number;
+    blendMode?: string;
+  } => {
+    for (const cmd of commands) {
+      if (cmd.op === "setTransform" && cmd.key === key) {
+        return {
+          matrix: cmd.matrix,
+          alpha: cmd.alpha,
+          visible: cmd.visible,
+          zIndex: cmd.zIndex,
+          blendMode: cmd.blendMode,
+        };
+      }
+    }
+    return {
+      matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+      alpha: 1,
+      visible: true,
+      zIndex: 0,
+    };
+  };
+
+  /** Whether the paint command is a draw op that can be diffed. */
+  const isDrawOp = (
+    cmd: PaintCommand,
+  ): cmd is PaintCommand & { key: string } =>
+    "key" in cmd &&
+    [
+      "drawText",
+      "drawShape",
+      "drawSolid",
+      "drawImage",
+      "drawVideo",
+      "drawPath",
+    ].includes(cmd.op);
+
+  /** Check if fingerprint changed since last frame. */
+  const fpChanged = (key: string): boolean => {
+    const lastFp = lastFingerprints.get(key);
+    if (!lastFp) return true; // new item
+    const thisFp = thisFingerprints.get(key);
+    return lastFp !== thisFp;
+  };
+
+  // ── Phase 8: Track fingerprint map for diff computation ───────
+  const thisFingerprints = new Map<string, string>();
+
   const paintCommands = (buffer: PaintCommandBuffer) => {
+    // Phase 8: No-op when paused (render on-demand)
+    if (paused) return;
+
     lastPaint = buffer;
     const live = new Set<string>();
     unsupported = [];
@@ -367,6 +465,37 @@ export function createPixiFramePainter(
         break;
       }
     }
+
+    // ── Phase 8: Pre-compute all fingerprints for dirty diff ─────
+    thisFingerprints.clear();
+    for (const cmd of buffer.commands) {
+      if (isDrawOp(cmd)) {
+        const xf = findTransformFor(cmd.key, buffer.commands);
+        thisFingerprints.set(cmd.key, computePaintItemFingerprint(cmd, xf));
+      }
+    }
+
+    // ── Phase 8: Compute diff vs last frame ──────────────────────
+    let changed = 0;
+    let unchanged = 0;
+    let new_ = 0;
+    let removed = 0;
+    let skipped = 0;
+
+    const seenFp = new Set<string>();
+    for (const [key, fp] of thisFingerprints) {
+      seenFp.add(key);
+      const lastFp = lastFingerprints.get(key);
+      if (!lastFp) new_++;
+      else if (lastFp === fp) { unchanged++; skipped++; }
+      else changed++;
+    }
+    for (const key of lastFingerprints.keys()) {
+      if (!seenFp.has(key)) removed++;
+    }
+    diffStats = { changed, unchanged, new_: new_, removed, skipped };
+    lastFingerprints.clear();
+    for (const [k, v] of thisFingerprints) lastFingerprints.set(k, v);
 
     // Create compositing context with proper nesting stack
     compositingCtx = createCompositingContext({
@@ -493,28 +622,31 @@ export function createPixiFramePainter(
             }),
           parent,
         );
-        text.text = displayText;
-        text.style.fontSize = cmd.fontSize;
-        text.style.fill = cmd.runs?.[0]?.fill ?? cmd.fill;
-        if (cmd.fontWeight != null) {
-          text.style.fontWeight = String(cmd.fontWeight);
+        // Phase 8: Skip updates if fingerprint unchanged
+        if (fpChanged(cmd.key)) {
+          text.text = displayText;
+          text.style.fontSize = cmd.fontSize;
+          text.style.fill = cmd.runs?.[0]?.fill ?? cmd.fill;
+          if (cmd.fontWeight != null) {
+            text.style.fontWeight = String(cmd.fontWeight);
+          }
+          if (cmd.lineHeight != null) text.style.lineHeight = cmd.lineHeight;
+          if (cmd.letterSpacing != null)
+            text.style.letterSpacing = cmd.letterSpacing;
+          text.style.wordWrap = cmd.wrap !== "none";
+          text.style.wordWrapWidth = Math.max(8, cmd.width);
+          if (xf) {
+            applyAffineMatrix(
+              text,
+              xf.matrix,
+              xf.alpha,
+              xf.visible,
+              xf.zIndex,
+              xf.blendMode,
+            );
+          }
+          applyEffects(text, cmd.effects);
         }
-        if (cmd.lineHeight != null) text.style.lineHeight = cmd.lineHeight;
-        if (cmd.letterSpacing != null)
-          text.style.letterSpacing = cmd.letterSpacing;
-        text.style.wordWrap = cmd.wrap !== "none";
-        text.style.wordWrapWidth = Math.max(8, cmd.width);
-        if (xf) {
-          applyAffineMatrix(
-            text,
-            xf.matrix,
-            xf.alpha,
-            xf.visible,
-            xf.zIndex,
-            xf.blendMode,
-          );
-        }
-        applyEffects(text, cmd.effects);
         continue;
       }
 
@@ -525,89 +657,95 @@ export function createPixiFramePainter(
           () => new Graphics(),
           parent,
         );
-        g.clear();
-        const w = cmd.width;
-        const h = cmd.height;
-        if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
-          g.ellipse(w / 2, h / 2, w / 2, h / 2);
-        } else if (cmd.op === "drawShape" && cmd.shape === "polygon") {
-          g.moveTo(w / 2, 0);
-          g.lineTo(0, h);
-          g.lineTo(w, h);
-          g.closePath();
-        } else if (cmd.op === "drawShape" && cmd.cornerRadius) {
-          g.roundRect(0, 0, w, h, cmd.cornerRadius);
-        } else {
-          g.rect(0, 0, w, h);
+        // Phase 8: Skip clear + redraw if fingerprint unchanged
+        if (fpChanged(cmd.key)) {
+          g.clear();
+          const w = cmd.width;
+          const h = cmd.height;
+          if (cmd.op === "drawShape" && cmd.shape === "ellipse") {
+            g.ellipse(w / 2, h / 2, w / 2, h / 2);
+          } else if (cmd.op === "drawShape" && cmd.shape === "polygon") {
+            g.moveTo(w / 2, 0);
+            g.lineTo(0, h);
+            g.lineTo(w, h);
+            g.closePath();
+          } else if (cmd.op === "drawShape" && cmd.cornerRadius) {
+            g.roundRect(0, 0, w, h, cmd.cornerRadius);
+          } else {
+            g.rect(0, 0, w, h);
+          }
+          const fillStyle =
+            cmd.op === "drawShape"
+              ? paintFillStyle(cmd.fill, cmd.fillPaint, w, h)
+              : hexToNumber(cmd.fill);
+          g.fill(fillStyle);
+          if (xf) {
+            applyAffineMatrix(
+              g,
+              xf.matrix,
+              xf.alpha,
+              xf.visible,
+              xf.zIndex,
+              xf.blendMode,
+            );
+          }
+          applyEffects(g, cmd.effects);
         }
-        const fillStyle =
-          cmd.op === "drawShape"
-            ? paintFillStyle(cmd.fill, cmd.fillPaint, w, h)
-            : hexToNumber(cmd.fill);
-        g.fill(fillStyle);
-        if (xf) {
-          applyAffineMatrix(
-            g,
-            xf.matrix,
-            xf.alpha,
-            xf.visible,
-            xf.zIndex,
-            xf.blendMode,
-          );
-        }
-        applyEffects(g, cmd.effects);
         continue;
       }
 
       if (cmd.op === "drawPath") {
         const g = ensureObject(cmd.key, "path", () => new Graphics(), parent);
-        g.clear();
-        strokePathContours(g, cmd.contours);
-        if (cmd.fill || cmd.fillPaint) {
-          const boundsW = Math.max(
-            1,
-            ...cmd.contours.flatMap((c) => [
-              c.start.x,
-              ...c.segments.map((s) => s.to.x),
-            ]),
-          );
-          const boundsH = Math.max(
-            1,
-            ...cmd.contours.flatMap((c) => [
-              c.start.y,
-              ...c.segments.map((s) => s.to.y),
-            ]),
-          );
-          const style = paintFillStyle(
-            cmd.fill,
-            cmd.fillPaint,
-            boundsW,
-            boundsH,
-          );
-          if (typeof style === "number") {
-            g.fill({ color: style, alpha: cmd.fillOpacity ?? 1 });
-          } else {
-            g.fill({ fill: style, alpha: cmd.fillOpacity ?? 1 });
+        // Phase 8: Skip clear + redraw if fingerprint unchanged
+        if (fpChanged(cmd.key)) {
+          g.clear();
+          strokePathContours(g, cmd.contours);
+          if (cmd.fill || cmd.fillPaint) {
+            const boundsW = Math.max(
+              1,
+              ...cmd.contours.flatMap((c) => [
+                c.start.x,
+                ...c.segments.map((s) => s.to.x),
+              ]),
+            );
+            const boundsH = Math.max(
+              1,
+              ...cmd.contours.flatMap((c) => [
+                c.start.y,
+                ...c.segments.map((s) => s.to.y),
+              ]),
+            );
+            const style = paintFillStyle(
+              cmd.fill,
+              cmd.fillPaint,
+              boundsW,
+              boundsH,
+            );
+            if (typeof style === "number") {
+              g.fill({ color: style, alpha: cmd.fillOpacity ?? 1 });
+            } else {
+              g.fill({ fill: style, alpha: cmd.fillOpacity ?? 1 });
+            }
           }
+          if (cmd.stroke) {
+            g.stroke({
+              color: hexToNumber(cmd.stroke),
+              width: cmd.strokeWidth ?? 1,
+              alpha: cmd.strokeOpacity ?? 1,
+            });
+          }
+          if (xf) {
+            applyAffineMatrix(
+              g,
+              xf.matrix,
+              xf.alpha,
+              xf.visible,
+              xf.zIndex,
+              xf.blendMode,
+            );
+          }
+          applyEffects(g, cmd.effects);
         }
-        if (cmd.stroke) {
-          g.stroke({
-            color: hexToNumber(cmd.stroke),
-            width: cmd.strokeWidth ?? 1,
-            alpha: cmd.strokeOpacity ?? 1,
-          });
-        }
-        if (xf) {
-          applyAffineMatrix(
-            g,
-            xf.matrix,
-            xf.alpha,
-            xf.visible,
-            xf.zIndex,
-            xf.blendMode,
-          );
-        }
-        applyEffects(g, cmd.effects);
         continue;
       }
 
@@ -631,31 +769,35 @@ export function createPixiFramePainter(
           () => new Sprite(texture),
           parent,
         );
-        // Stale guard: keep previous texture instead of flashing WHITE
-        if (!staleAsset || sprite.texture === Texture.WHITE) {
-          sprite.texture = texture;
-        }
-        sprite.width = cmd.width;
-        sprite.height = cmd.height;
+        // Phase 8: Skip texture/size updates if fingerprint unchanged
+        if (fpChanged(cmd.key)) {
+          // Stale guard: keep previous texture instead of flashing WHITE
+          if (!staleAsset || sprite.texture === Texture.WHITE) {
+            sprite.texture = texture;
+          }
+          sprite.width = cmd.width;
+          sprite.height = cmd.height;
 
-        // Stale asset diagnostic: magenta tint
-        if (staleAsset && sprite.texture === Texture.WHITE) {
-          sprite.tint = 0xff00ff;
-        } else {
-          sprite.tint = 0xffffff;
-        }
+          // Stale asset diagnostic: magenta tint
+          if (staleAsset && sprite.texture === Texture.WHITE) {
+            sprite.tint = 0xff00ff;
+          } else {
+            sprite.tint = 0xffffff;
+          }
 
-        if (xf) {
-          applyAffineMatrix(
-            sprite,
-            xf.matrix,
-            xf.alpha,
-            xf.visible,
-            xf.zIndex,
-            xf.blendMode,
-          );
+          if (xf) {
+            applyAffineMatrix(
+              sprite,
+              xf.matrix,
+              xf.alpha,
+              xf.visible,
+              xf.zIndex,
+              xf.blendMode,
+            );
+          }
+          applyEffects(sprite, cmd.effects);
         }
-        applyEffects(sprite, cmd.effects);
+        continue;
       }
     }
 
@@ -675,6 +817,9 @@ export function createPixiFramePainter(
     paintCommands,
     getLiveKeys: () => lastLiveKeys,
     getUnsupported: () => unsupported,
+    setPaused(p: boolean) { paused = p; },
+    get paused() { return paused; },
+    getDiffStats: () => ({ ...diffStats }),
     applyPatch(patch: PaintPatch): PatchSequence {
       // Drop stale patches
       if (isPatchStale(patch, currentSequence)) return currentSequence;

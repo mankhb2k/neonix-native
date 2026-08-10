@@ -30,7 +30,16 @@ function createMockAudioContext(): AudioContextLike {
   let _currentTime = 0;
   let _state: AudioContextState = "running";
 
-  const mockGain: { gain: { value: number; cancelScheduledValues: ReturnType<typeof vi.fn>; setValueAtTime: ReturnType<typeof vi.fn>; linearRampToValueAtTime: ReturnType<typeof vi.fn> }; connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> } = {
+  const mockGain: {
+    gain: {
+      value: number;
+      cancelScheduledValues: ReturnType<typeof vi.fn>;
+      setValueAtTime: ReturnType<typeof vi.fn>;
+      linearRampToValueAtTime: ReturnType<typeof vi.fn>;
+    };
+    connect: ReturnType<typeof vi.fn>;
+    disconnect: ReturnType<typeof vi.fn>;
+  } = {
     gain: {
       value: 0,
       cancelScheduledValues: vi.fn(),
@@ -42,10 +51,17 @@ function createMockAudioContext(): AudioContextLike {
   };
 
   const mockSource: {
-    buffer: null; playbackRate: { value: number }; loop: boolean; loopStart: number; loopEnd: number;
-    connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>;
-    start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn>;
-    addEventListener: ReturnType<typeof vi.fn>; removeEventListener: ReturnType<typeof vi.fn>;
+    buffer: null;
+    playbackRate: { value: number };
+    loop: boolean;
+    loopStart: number;
+    loopEnd: number;
+    connect: ReturnType<typeof vi.fn>;
+    disconnect: ReturnType<typeof vi.fn>;
+    start: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
+    addEventListener: ReturnType<typeof vi.fn>;
+    removeEventListener: ReturnType<typeof vi.fn>;
   } = {
     buffer: null,
     playbackRate: { value: 1 },
@@ -61,8 +77,12 @@ function createMockAudioContext(): AudioContextLike {
   };
 
   return {
-    get currentTime() { return _currentTime; },
-    get state() { return _state; },
+    get currentTime() {
+      return _currentTime;
+    },
+    get state() {
+      return _state;
+    },
     destination: {} as AudioDestinationNode,
     sampleRate: 44100,
     decodeAudioData: vi.fn().mockResolvedValue({
@@ -74,15 +94,23 @@ function createMockAudioContext(): AudioContextLike {
     } as AudioBufferLike),
     createGain: vi.fn(() => mockGain),
     createBufferSource: vi.fn(() => mockSource),
-    createChannelSplitter: vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() })),
-    createChannelMerger: vi.fn(() => ({ connect: vi.fn(), disconnect: vi.fn() })),
+    createChannelSplitter: vi.fn(() => ({
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+    })),
+    createChannelMerger: vi.fn(() => ({
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+    })),
     resume: vi.fn().mockResolvedValue(undefined),
     suspend: vi.fn().mockResolvedValue(undefined),
     close: vi.fn().mockResolvedValue(undefined),
   };
 }
 
-function makeTestAudioPlan(overrides?: Partial<AudioRenderPlan>): AudioRenderPlan {
+function makeTestAudioPlan(
+  overrides?: Partial<AudioRenderPlan>,
+): AudioRenderPlan {
   return {
     fps: 30,
     clips: [
@@ -570,7 +598,10 @@ describe("Phase 7 integration", () => {
           trimEndSeconds: 3,
           assetDurationSeconds: 3,
           playbackRate: 1,
-          volumeEnvelope: [{ frame: 30, value: 1 }, { frame: 120, value: 1 }],
+          volumeEnvelope: [
+            { frame: 30, value: 1 },
+            { frame: 120, value: 1 },
+          ],
           role: "voiceover" as const,
           loop: false,
           channelPolicy: "mono" as const,
