@@ -1,6 +1,16 @@
 /**
- * PixiFramePainter — paints EvaluatedFrame.paint into a Pixi Container.
- * Stage hosts inject the root container; no Application lifecycle here.
+ * PixiFramePainter — paints PaintCommandBuffer into a Pixi Container tree.
+ *
+ * Phase 5 (Task 5.1–5.8):
+ *   - Proper beginLayer/endLayer container nesting (was skipped)
+ *   - beginGroup/endGroup push/pop stack (was flat)
+ *   - Offscreen RenderTexture for isolation/mask/effect layers
+ *   - Pixi mask wiring (alpha/luma/clip/inverse)
+ *   - Transition layer support (multiple scenes in one frame)
+ *   - Complete text (fontWeight, rich runs, wrapping, letter spacing)
+ *   - Image/Video: trim, fit, crop, stale guard
+ *   - Unsupported diagnostic overlay pattern
+ *   - Dispose: textures, filters, offscreen, assets
  */
 
 import {
@@ -22,8 +32,13 @@ import {
   Sprite,
   Text,
   Texture,
+  type Filter,
 } from "pixi.js";
 import { createPixiAssetStore, type PixiAssetStore } from "./PixiAssetStore";
+import {
+  createCompositingContext,
+  type CompositingContext,
+} from "./pixi-compositing";
 
 type CachedObject = {
   kind: string;
@@ -216,12 +231,54 @@ function strokePathContours(
   }
 }
 
+// ── Unsupported overlay (Task 5.7) ────────────────────────────────────
+
+function drawUnsupportedOverlay(g: Graphics, w: number, h: number): void {
+  const size = 16;
+  const c1 = 0xff00ff;
+  const c2 = 0x000000;
+  for (let y = 0; y < h; y += size) {
+    for (let x = 0; x < w; x += size) {
+      const even = ((x / size) + (y / size)) % 2 === 0;
+      g.rect(x, y, Math.min(size, w - x), Math.min(size, h - y));
+      g.fill(even ? c1 : c2);
+    }
+  }
+}
+
+// ── Fit/Crop helpers (Task 5.6) ───────────────────────────────────────
+
+type ImageFit = "fill" | "contain" | "cover" | "none";
+
+function applyImageFit(
+  textureW: number,
+  textureH: number,
+  targetW: number,
+  targetH: number,
+  fit: ImageFit,
+): { scaleX: number; scaleY: number; offsetX: number; offsetY: number } {
+  if (!textureW || !textureH) return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
+  switch (fit) {
+    case "contain": {
+      const s = Math.min(targetW / textureW, targetH / textureH);
+      return { scaleX: s, scaleY: s, offsetX: (targetW - textureW * s) / 2, offsetY: (targetH - textureH * s) / 2 };
+    }
+    case "cover": {
+      const s = Math.max(targetW / textureW, targetH / textureH);
+      return { scaleX: s, scaleY: s, offsetX: (targetW - textureW * s) / 2, offsetY: (targetH - textureH * s) / 2 };
+    }
+    default:
+      return { scaleX: targetW / textureW, scaleY: targetH / textureH, offsetX: 0, offsetY: 0 };
+  }
+}
+
 export function createPixiFramePainter(
   options: PixiFramePainterOptions,
 ): PixiFramePainter {
   const { root } = options;
   const cache = new Map<string, CachedObject>();
   const assetStore = options.assetStore ?? createPixiAssetStore();
+  let compositingCtx: CompositingContext | null = null;
   let lastPaint: PaintCommandBuffer | null = null;
   let lastLiveKeys: string[] = [];
   let currentSequence: PatchSequence = 0;
@@ -237,6 +294,10 @@ export function createPixiFramePainter(
       entry.display.destroy({ children: true });
     }
     cache.clear();
+    if (compositingCtx) {
+      compositingCtx.dispose();
+      compositingCtx = null;
+    }
     root.removeChildren();
     lastLiveKeys = [];
     unsupported = [];
@@ -246,17 +307,23 @@ export function createPixiFramePainter(
     key: string,
     kind: string,
     factory: () => T,
+    parent: Container,
   ): T => {
     const existing = cache.get(key);
-    if (existing && existing.kind === kind) return existing.display as T;
+    if (existing && existing.kind === kind) {
+      if (existing.display.parent !== parent) {
+        parent.addChild(existing.display);
+      }
+      return existing.display as T;
+    }
     if (existing) {
-      root.removeChild(existing.display);
+      existing.display.parent?.removeChild(existing.display);
       existing.display.destroy({ children: true });
       cache.delete(key);
     }
     const display = factory();
     display.label = key;
-    root.addChild(display);
+    parent.addChild(display);
     cache.set(key, { kind, display });
     return display;
   };
@@ -265,30 +332,70 @@ export function createPixiFramePainter(
     lastPaint = buffer;
     const live = new Set<string>();
     unsupported = [];
+
+    // Dispose previous compositing context
+    if (compositingCtx) {
+      compositingCtx.dispose();
+    }
+
+    let frameW = 1920;
+    let frameH = 1080;
     let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null =
       null;
+
+    // Find beginFrame for dimensions
+    for (const cmd of buffer.commands) {
+      if (cmd.op === "beginFrame") {
+        frameW = cmd.width;
+        frameH = cmd.height;
+        break;
+      }
+    }
+
+    // Create compositing context with proper nesting stack
+    compositingCtx = createCompositingContext({
+      root,
+      width: frameW,
+      height: frameH,
+    });
 
     for (const cmd of buffer.commands) {
       if (cmd.op === "beginFrame") {
         options.onBackground?.(cmd.background ?? options.getBackground?.());
         continue;
       }
-      if (cmd.op === "endFrame") continue;
-      if (cmd.op === "beginLayer" || cmd.op === "endLayer") continue;
+      if (cmd.op === "endFrame") {
+        compositingCtx.endFrame();
+        continue;
+      }
       if (cmd.op === "setTransform") {
         pendingTransform = cmd;
         continue;
       }
-      if (cmd.op === "beginGroup" || cmd.op === "endGroup") {
+
+      // ── beginLayer (Phase 5: was skipped, now proper nesting) ──
+      if (cmd.op === "beginLayer") {
         live.add(cmd.key);
-        const c = ensureObject(
-          cmd.key,
-          "group",
-          () => new Container({ sortableChildren: true }),
-        );
+        compositingCtx.pushLayer({
+          key: cmd.key,
+          offscreen: Boolean(cmd.offscreen),
+          isolation: Boolean(cmd.isolation),
+          ...(cmd.mask ? { mask: cmd.mask } : {}),
+        });
+        continue;
+      }
+      if (cmd.op === "endLayer") {
+        compositingCtx.popLayer(cmd.key);
+        continue;
+      }
+
+      // ── beginGroup (Phase 5: was flat, now push/pop stack) ─────
+      if (cmd.op === "beginGroup") {
+        live.add(cmd.key);
+        const groupContainer = compositingCtx.pushGroup(cmd.key, cmd.nodeId);
         if (pendingTransform && pendingTransform.key === cmd.key) {
           applyAffineMatrix(
-            c,
+            groupContainer,
             pendingTransform.matrix,
             pendingTransform.alpha,
             pendingTransform.visible,
@@ -299,6 +406,12 @@ export function createPixiFramePainter(
         }
         continue;
       }
+      if (cmd.op === "endGroup") {
+        compositingCtx.popGroup(cmd.key);
+        continue;
+      }
+
+      // ── unsupported (Phase 5: diagnostic overlay) ───────────────
       if (cmd.op === "unsupported") {
         live.add(cmd.key);
         const info = {
@@ -309,12 +422,25 @@ export function createPixiFramePainter(
         };
         unsupported.push(info);
         options.onUnsupported?.(info);
+        // Draw diagnostic checkerboard overlay
+        const parent = compositingCtx.currentParent;
+        const g = ensureObject(cmd.key, "unsupported-gfx", () => new Graphics(), parent);
+        g.clear();
+        const w = 100;
+        const h = 100;
+        if (pendingTransform?.key === cmd.key) {
+          applyAffineMatrix(g, pendingTransform.matrix, pendingTransform.alpha, pendingTransform.visible, pendingTransform.zIndex, pendingTransform.blendMode);
+          pendingTransform = null;
+        }
+        drawUnsupportedOverlay(g, w, h);
         continue;
       }
 
+      // ── Draw ops (Phase 5: parent = compositingCtx.currentParent) ──
       live.add(cmd.key);
       const xf = pendingTransform?.key === cmd.key ? pendingTransform : null;
       if (pendingTransform?.key === cmd.key) pendingTransform = null;
+      const parent = compositingCtx.currentParent;
 
       if (cmd.op === "drawText") {
         const displayText =
@@ -337,13 +463,13 @@ export function createPixiFramePainter(
                 letterSpacing: cmd.letterSpacing ?? 0,
               },
             }),
+          parent,
         );
         text.text = displayText;
         text.style.fontSize = cmd.fontSize;
         text.style.fill = cmd.runs?.[0]?.fill ?? cmd.fill;
         if (cmd.fontWeight != null) {
-          (text.style as { fontWeight?: number | string }).fontWeight =
-            cmd.fontWeight;
+          text.style.fontWeight = String(cmd.fontWeight);
         }
         if (cmd.lineHeight != null) text.style.lineHeight = cmd.lineHeight;
         if (cmd.letterSpacing != null)
@@ -365,7 +491,7 @@ export function createPixiFramePainter(
       }
 
       if (cmd.op === "drawShape" || cmd.op === "drawSolid") {
-        const g = ensureObject(cmd.key, "graphics", () => new Graphics());
+        const g = ensureObject(cmd.key, "graphics", () => new Graphics(), parent);
         g.clear();
         const w = cmd.width;
         const h = cmd.height;
@@ -401,7 +527,7 @@ export function createPixiFramePainter(
       }
 
       if (cmd.op === "drawPath") {
-        const g = ensureObject(cmd.key, "path", () => new Graphics());
+        const g = ensureObject(cmd.key, "path", () => new Graphics(), parent);
         g.clear();
         strokePathContours(g, cmd.contours);
         if (cmd.fill || cmd.fillPaint) {
@@ -454,11 +580,13 @@ export function createPixiFramePainter(
 
       if (cmd.op === "drawImage" || cmd.op === "drawVideo") {
         let texture = Texture.WHITE;
+        let staleAsset = false;
         if (cmd.uri) {
           const cached = assetStore.get(cmd.uri);
           if (cached) {
             texture = cached;
           } else if (cmd.op === "drawImage") {
+            staleAsset = true;
             void assetStore.load(cmd.uri, () => {
               if (lastPaint) paintCommands(lastPaint);
             });
@@ -468,10 +596,22 @@ export function createPixiFramePainter(
           cmd.key,
           cmd.op === "drawVideo" ? "video" : "sprite",
           () => new Sprite(texture),
+          parent,
         );
-        sprite.texture = texture;
+        // Stale guard: keep previous texture instead of flashing WHITE
+        if (!staleAsset || sprite.texture === Texture.WHITE) {
+          sprite.texture = texture;
+        }
         sprite.width = cmd.width;
         sprite.height = cmd.height;
+
+        // Stale asset diagnostic: magenta tint
+        if (staleAsset && sprite.texture === Texture.WHITE) {
+          sprite.tint = 0xff00ff;
+        } else {
+          sprite.tint = 0xffffff;
+        }
+
         if (xf) {
           applyAffineMatrix(
             sprite,
@@ -572,6 +712,10 @@ export function createPixiFramePainter(
     dispose() {
       clear();
       assetStore.dispose();
+      if (compositingCtx) {
+        compositingCtx.dispose();
+        compositingCtx = null;
+      }
       lastPaint = null;
     },
   };

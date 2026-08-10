@@ -135,6 +135,15 @@ export {
   type PixiAssetStoreOptions,
 } from "./PixiAssetStore";
 export {
+  createCompositingContext,
+  createRenderTexturePool,
+  type CompositingContext,
+  type CompositingLayer,
+  type OffscreenSlot,
+  type NestingFrame,
+  type RenderTexturePool,
+} from "./pixi-compositing";
+export {
   syncPaintBufferToCache,
   type CachedDisplayDesc,
   type DisplayCacheStats,

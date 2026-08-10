@@ -186,7 +186,9 @@ export function extractPaintFrameProperty(
 }
 
 /** Split a draw command into static resource + frame properties. */
-export function splitPaintCommand(cmd: PaintDrawCommand): SplitPaintCommand | null {
+export function splitPaintCommand(
+  cmd: PaintDrawCommand,
+): SplitPaintCommand | null {
   const resource = extractPaintResource(cmd);
   if (!resource) return null;
   return {

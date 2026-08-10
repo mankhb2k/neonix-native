@@ -30,7 +30,14 @@ import type { PaintDrawCommand } from "./paint-command";
 export function computePaintItemFingerprint(
   drawCmd: PaintDrawCommand,
   transform: {
-    matrix: { a: number; b: number; c: number; d: number; e: number; f: number };
+    matrix: {
+      a: number;
+      b: number;
+      c: number;
+      d: number;
+      e: number;
+      f: number;
+    };
     alpha: number;
     visible: boolean;
     zIndex: number;

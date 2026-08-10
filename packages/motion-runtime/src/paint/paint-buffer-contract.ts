@@ -71,7 +71,11 @@ export function countUnsupportedCommands(buffer: PaintCommandBuffer): number {
  */
 export function collectPaintDiagnostics(
   buffer: PaintCommandBuffer,
-): Array<{ severity: "info" | "warning" | "error"; code: string; message: string }> {
+): Array<{
+  severity: "info" | "warning" | "error";
+  code: string;
+  message: string;
+}> {
   const diags = [...buffer.diagnostics];
   for (const cmd of buffer.commands) {
     if (cmd.op === "unsupported") {

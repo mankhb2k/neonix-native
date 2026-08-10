@@ -44,7 +44,9 @@ function makeBlurSnapshot(items: RenderSnapshotItem[]): RenderSnapshot {
   };
 }
 
-function makeItem(overrides: Partial<RenderSnapshotItem> = {}): RenderSnapshotItem {
+function makeItem(
+  overrides: Partial<RenderSnapshotItem> = {},
+): RenderSnapshotItem {
   return {
     key: "test:n1",
     sceneId: "test",
@@ -57,7 +59,13 @@ function makeItem(overrides: Partial<RenderSnapshotItem> = {}): RenderSnapshotIt
     selectable: true,
     locked: false,
     renderOrder: 0,
-    payload: { kind: "shape", shape: "rectangle", fill: "#f00", width: 100, height: 100 },
+    payload: {
+      kind: "shape",
+      shape: "rectangle",
+      fill: "#f00",
+      width: 100,
+      height: 100,
+    },
     depth: 0,
     projectedOffset: { x: 0, y: 0 },
     ...overrides,
@@ -145,7 +153,13 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
   });
 
   it("mask supports all modes: alpha, luma, clip, inverse", () => {
-    const modes = ["alpha", "inverse-alpha", "luma", "inverse-luma", "clip"] as const;
+    const modes = [
+      "alpha",
+      "inverse-alpha",
+      "luma",
+      "inverse-luma",
+      "clip",
+    ] as const;
     for (const mode of modes) {
       const snapshot = makeBlurSnapshot([
         makeItem({
@@ -161,7 +175,9 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
       ]);
       const buffer = buildPaintCommandBuffer(snapshot);
       const beginLayerCmd = buffer.commands.find((c) => c.op === "beginLayer");
-      expect(beginLayerCmd?.op === "beginLayer" && beginLayerCmd.mask?.mode).toBe(mode);
+      expect(
+        beginLayerCmd?.op === "beginLayer" && beginLayerCmd.mask?.mode,
+      ).toBe(mode);
     }
   });
 
@@ -188,9 +204,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
   });
 
   it("blend mode is set on transform command", () => {
-    const snapshot = makeBlurSnapshot([
-      makeItem({ blendMode: "multiply" }),
-    ]);
+    const snapshot = makeBlurSnapshot([makeItem({ blendMode: "multiply" })]);
     const buffer = buildPaintCommandBuffer(snapshot);
     const setTransform = buffer.commands.find((c) => c.op === "setTransform");
     expect(setTransform).toBeDefined();
@@ -209,7 +223,14 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
         key: "test:multiFx",
         effects: [
           { id: "e1", type: "blur", radius: 3 },
-          { id: "e2", type: "shadow", offsetX: 2, offsetY: 2, blur: 4, color: "#000" },
+          {
+            id: "e2",
+            type: "shadow",
+            offsetX: 2,
+            offsetY: 2,
+            blur: 4,
+            color: "#000",
+          },
         ],
         compositing: {
           isolation: "isolate",
@@ -289,7 +310,13 @@ describe("Task 4.1 — resource / frame property split", () => {
   });
 
   it("splitPaintCommand returns null for unsupported op", () => {
-    const result = splitPaintCommand({ op: "unsupported", key: "x", nodeId: "n", nodeType: "unknown", message: "" });
+    const result = splitPaintCommand({
+      op: "unsupported",
+      key: "x",
+      nodeId: "n",
+      nodeType: "unknown",
+      message: "",
+    });
     expect(result).toBeNull();
   });
 
@@ -401,10 +428,7 @@ describe("Task 4.2 — item fingerprint", () => {
 
 // ── Task 4.3: Explicit unsupported ──────────────────────────────────
 
-import {
-  countUnsupportedCommands,
-  collectPaintDiagnostics,
-} from "../paint";
+import { countUnsupportedCommands, collectPaintDiagnostics } from "../paint";
 
 describe("Task 4.3 — explicit unsupported diagnostic", () => {
   it("countUnsupportedCommands returns 0 for valid buffer", () => {
@@ -417,14 +441,29 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
       version: 1,
       diagnostics: [],
       commands: [
-        { op: "beginFrame", width: 10, height: 10, sceneId: "s", frame: 0, time: 0 },
+        {
+          op: "beginFrame",
+          width: 10,
+          height: 10,
+          sceneId: "s",
+          frame: 0,
+          time: 0,
+        },
         {
           op: "setTransform",
           key: "unknown",
           matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-          alpha: 1, visible: true, zIndex: 0,
+          alpha: 1,
+          visible: true,
+          zIndex: 0,
         },
-        { op: "unsupported", key: "unknown", nodeId: "n", nodeType: "webgl", message: "not supported" },
+        {
+          op: "unsupported",
+          key: "unknown",
+          nodeId: "n",
+          nodeType: "webgl",
+          message: "not supported",
+        },
         { op: "endFrame" },
       ],
     };
@@ -434,16 +473,33 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
   it("collectPaintDiagnostics includes unsupported ops as errors", () => {
     const buffer: PaintCommandBuffer = {
       version: 1,
-      diagnostics: [{ severity: "warning", code: "test_warn", message: "Test" }],
+      diagnostics: [
+        { severity: "warning", code: "test_warn", message: "Test" },
+      ],
       commands: [
-        { op: "beginFrame", width: 10, height: 10, sceneId: "s", frame: 0, time: 0 },
+        {
+          op: "beginFrame",
+          width: 10,
+          height: 10,
+          sceneId: "s",
+          frame: 0,
+          time: 0,
+        },
         {
           op: "setTransform",
           key: "bad",
           matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-          alpha: 1, visible: true, zIndex: 0,
+          alpha: 1,
+          visible: true,
+          zIndex: 0,
         },
-        { op: "unsupported", key: "bad", nodeId: "n", nodeType: "3d-model", message: "3D models not yet" },
+        {
+          op: "unsupported",
+          key: "bad",
+          nodeId: "n",
+          nodeType: "3d-model",
+          message: "3D models not yet",
+        },
         { op: "endFrame" },
       ],
     };
@@ -455,10 +511,7 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
 
 // ── Task 4.4: Contract versioning + validator ───────────────────────
 
-import {
-  PAINT_COMMAND_VERSION,
-  validatePaintCommandBuffer,
-} from "../paint";
+import { PAINT_COMMAND_VERSION, validatePaintCommandBuffer } from "../paint";
 import {
   paintContractVersion,
   validatePaintBuffer,
@@ -487,9 +540,20 @@ describe("Task 4.4 — contract versioning + validator", () => {
     const buffer: PaintCommandBuffer = {
       version: 1,
       diagnostics: [],
-      commands: [{ op: "beginFrame", width: 10, height: 10, sceneId: "s", frame: 0, time: 0 }],
+      commands: [
+        {
+          op: "beginFrame",
+          width: 10,
+          height: 10,
+          sceneId: "s",
+          frame: 0,
+          time: 0,
+        },
+      ],
     };
-    expect(() => assertValidPaintBuffer(buffer)).toThrow("Paint buffer validation failed");
+    expect(() => assertValidPaintBuffer(buffer)).toThrow(
+      "Paint buffer validation failed",
+    );
   });
 
   it("assertValidPaintBuffer does not throw on good buffer", () => {
@@ -502,12 +566,21 @@ describe("Task 4.4 — contract versioning + validator", () => {
       version: 1,
       diagnostics: [],
       commands: [
-        { op: "beginFrame", width: 10, height: 10, sceneId: "s", frame: 0, time: 0 },
+        {
+          op: "beginFrame",
+          width: 10,
+          height: 10,
+          sceneId: "s",
+          frame: 0,
+          time: 0,
+        },
         {
           op: "setTransform",
           key: "g1",
           matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-          alpha: 1, visible: true, zIndex: 0,
+          alpha: 1,
+          visible: true,
+          zIndex: 0,
         },
         { op: "beginGroup", key: "g1", nodeId: "n" },
         { op: "endGroup", key: "g2" }, // mismatched
@@ -516,7 +589,9 @@ describe("Task 4.4 — contract versioning + validator", () => {
     };
     const result = validatePaintBuffer(buffer);
     expect(result.ok).toBe(false);
-    expect(result.issues.some((i) => i.code === "group_scope_mismatch")).toBe(true);
+    expect(result.issues.some((i) => i.code === "group_scope_mismatch")).toBe(
+      true,
+    );
   });
 
   it("validation rejects unclosed layer", () => {
@@ -524,12 +599,21 @@ describe("Task 4.4 — contract versioning + validator", () => {
       version: 1,
       diagnostics: [],
       commands: [
-        { op: "beginFrame", width: 10, height: 10, sceneId: "s", frame: 0, time: 0 },
+        {
+          op: "beginFrame",
+          width: 10,
+          height: 10,
+          sceneId: "s",
+          frame: 0,
+          time: 0,
+        },
         {
           op: "setTransform",
           key: "l1",
           matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-          alpha: 1, visible: true, zIndex: 0,
+          alpha: 1,
+          visible: true,
+          zIndex: 0,
         },
         { op: "beginLayer", key: "l1", offscreen: true },
         { op: "endFrame" },
@@ -584,7 +668,12 @@ describe("Task 4.5 — geometry union seam", () => {
 
     const quad: ProjectedQuadGeometry = {
       kind: "projected-quad",
-      corners: [[0, 0], [1, 0], [1, 1], [0, 1]],
+      corners: [
+        [0, 0],
+        [1, 0],
+        [1, 1],
+        [0, 1],
+      ],
       depth: 0.5,
     };
     expect(isAffine2D(quad)).toBe(false);
@@ -602,7 +691,12 @@ describe("Task 4.5 — geometry union seam", () => {
   it("flattenToAffine2D converts projected-quad to bounding box", () => {
     const quad: ProjectedQuadGeometry = {
       kind: "projected-quad",
-      corners: [[10, 10], [110, 10], [110, 60], [10, 60]],
+      corners: [
+        [10, 10],
+        [110, 10],
+        [110, 60],
+        [10, 60],
+      ],
       depth: 0.3,
     };
     const flat = flattenToAffine2D(quad);
@@ -628,11 +722,13 @@ describe("Task 4.5 — geometry union seam", () => {
 
 describe("Phase 4 integration", () => {
   it("multi-item snapshot decodes to correct drawable count", () => {
-    const buffer = buildPaintCommandBuffer(makeBlurSnapshot([
-      makeItem({ key: "test:a", nodeId: "a" }),
-      makeItem({ key: "test:b", nodeId: "b" }),
-      makeItem({ key: "test:c", nodeId: "c" }),
-    ]));
+    const buffer = buildPaintCommandBuffer(
+      makeBlurSnapshot([
+        makeItem({ key: "test:a", nodeId: "a" }),
+        makeItem({ key: "test:b", nodeId: "b" }),
+        makeItem({ key: "test:c", nodeId: "c" }),
+      ]),
+    );
     const list = decodePaintCommandBuffer(buffer);
     expect(list.roots).toHaveLength(3);
     expect(list.roots.every((n) => n.kind === "drawable")).toBe(true);
@@ -644,8 +740,12 @@ describe("Phase 4 integration", () => {
     const list1 = decodePaintCommandBuffer(buf1);
     const list2 = decodePaintCommandBuffer(buf2);
 
-    const nodes1 = list1.roots.filter((n) => n.kind === "drawable") as PaintDrawable[];
-    const nodes2 = list2.roots.filter((n) => n.kind === "drawable") as PaintDrawable[];
+    const nodes1 = list1.roots.filter(
+      (n) => n.kind === "drawable",
+    ) as PaintDrawable[];
+    const nodes2 = list2.roots.filter(
+      (n) => n.kind === "drawable",
+    ) as PaintDrawable[];
     expect(nodes1).toHaveLength(1);
     expect(nodes2).toHaveLength(1);
 

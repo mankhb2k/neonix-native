@@ -103,7 +103,12 @@ export function flattenToAffine2D(geo: EvaluatedGeometry): Affine2DGeometry {
     return {
       kind: "affine-2d",
       matrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
-      bounds: { x: 0, y: 0, width: Math.max(v[0] ?? 0, v[3] ?? 0), height: Math.max(v[1] ?? 0, v[4] ?? 0) },
+      bounds: {
+        x: 0,
+        y: 0,
+        width: Math.max(v[0] ?? 0, v[3] ?? 0),
+        height: Math.max(v[1] ?? 0, v[4] ?? 0),
+      },
     };
   }
   return identityAffine2DGeometry(0, 0);
