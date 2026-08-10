@@ -72,10 +72,7 @@ export const MotionWorkspaceManifestSchema = z
       .strict()
       .optional(),
     /** Scene module order (determines timeline order). */
-    sceneOrder: z
-      .array(z.string().regex(MODULE_NAME_REGEX))
-      .min(1)
-      .max(256),
+    sceneOrder: z.array(z.string().regex(MODULE_NAME_REGEX)).min(1).max(256),
     /** Component module references. */
     components: z.array(ModuleRefSchema).max(128).default([]),
     /** Variable module references. */

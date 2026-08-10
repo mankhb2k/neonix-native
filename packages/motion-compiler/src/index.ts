@@ -21,8 +21,7 @@ import { expandMotionPreset } from "./preset-registry";
 import { COMPILER_VERSION } from "./compile-cache";
 import { compileMotionProjectV3 } from "./compile-v3";
 
-type RuntimeTrack =
-  MotionRuntimeProject["scenes"][number]["tracks"][number];
+type RuntimeTrack = MotionRuntimeProject["scenes"][number]["tracks"][number];
 type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
 type SceneMarker = { id: string; t: number };
 

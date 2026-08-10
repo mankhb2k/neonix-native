@@ -126,7 +126,10 @@ describe("linkMotionWorkspace", () => {
     const result = await linkMotionWorkspace(reader);
     if (!result.ok) {
       // eslint-disable-next-line no-console
-      console.error("Link diagnostics:", JSON.stringify(result.diagnostics, null, 2));
+      console.error(
+        "Link diagnostics:",
+        JSON.stringify(result.diagnostics, null, 2),
+      );
     }
     expect(result.ok).toBe(true);
     expect(result.project?.scenes).toHaveLength(1);
@@ -146,9 +149,7 @@ describe("linkMotionWorkspace", () => {
   it("rejects absolute paths in asset declarations", async () => {
     const reader = new MemoryWorkspaceReader({
       ...minimalManifest,
-      assets: [
-        { id: "logo", type: "image", path: "C:\\Users\\logo.png" },
-      ],
+      assets: [{ id: "logo", type: "image", path: "C:\\Users\\logo.png" }],
     });
     reader.addModule({
       name: "intro",

@@ -91,7 +91,9 @@ const HASH_STRIP_PATHS = new Set([
  * project always produces the same hash regardless of timestamps,
  * provenance metadata, or extension data.
  */
-function stripNonDeterministic(project: Record<string, unknown>): Record<string, unknown> {
+function stripNonDeterministic(
+  project: Record<string, unknown>,
+): Record<string, unknown> {
   const cloned = JSON.parse(JSON.stringify(project)) as Record<string, unknown>;
   if (cloned.provenance) delete cloned.provenance;
   if (cloned.extensions) delete cloned.extensions;
@@ -121,7 +123,9 @@ export function computeProjectHash(project: Record<string, unknown>): string {
 /**
  * Short project hash (first 16 chars) for display / cache keys.
  */
-export function computeProjectHashShort(project: Record<string, unknown>): string {
+export function computeProjectHashShort(
+  project: Record<string, unknown>,
+): string {
   return shortHash(computeProjectHash(project));
 }
 
@@ -149,7 +153,9 @@ export function computeRuntimeHash(ir: Record<string, unknown>): string {
  */
 export function computeContentHash(value: object): string {
   const sorted = deepSortKeys(value);
-  return createHash("sha256").update(JSON.stringify(sorted), "utf8").digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(sorted), "utf8")
+    .digest("hex");
 }
 
 // ── Capability Fingerprint ─────────────────────────────────────────────

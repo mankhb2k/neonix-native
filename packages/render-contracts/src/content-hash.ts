@@ -30,7 +30,9 @@ function deepSortKeys(value: unknown): unknown {
  */
 export function computeContentHash(runtimeJson: object): string {
   const sorted = deepSortKeys(runtimeJson);
-  return createHash("sha256").update(JSON.stringify(sorted), "utf8").digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(sorted), "utf8")
+    .digest("hex");
 }
 
 /**

@@ -139,7 +139,9 @@ export async function linkMotionWorkspace(
       const mod = await reader.readModule(sceneName, "scene");
       const sceneJson = JSON.parse(mod.content) as Record<string, unknown>;
       // Normalize node transforms to include all required fields.
-      const nodes = (Array.isArray(sceneJson.nodes) ? sceneJson.nodes : []) as Record<string, unknown>[];
+      const nodes = (
+        Array.isArray(sceneJson.nodes) ? sceneJson.nodes : []
+      ) as Record<string, unknown>[];
       const normalizedNodes = nodes.map(normalizeNode);
       // Namespace the scene id to avoid collisions
       const sceneId = `workspace.${sceneName}`;
@@ -201,9 +203,7 @@ export async function linkMotionWorkspace(
       componentList.push({
         componentId: compJson.id ?? `component.${compRef.name}`,
         version: compRef.version ?? "1.0.0",
-        ...(compJson.integrity
-          ? { integrity: compJson.integrity }
-          : {}),
+        ...(compJson.integrity ? { integrity: compJson.integrity } : {}),
       });
     } catch (err) {
       diagnostics.push({
@@ -246,10 +246,7 @@ export async function linkMotionWorkspace(
 
   // 8. Reject absolute local paths (C:\, /, etc.)
   for (const asset of manifest.assets ?? []) {
-    if (
-      asset.path.startsWith("/") ||
-      /^[A-Za-z]:[\\/]/.test(asset.path)
-    ) {
+    if (asset.path.startsWith("/") || /^[A-Za-z]:[\\/]/.test(asset.path)) {
       diagnostics.push({
         severity: "error",
         code: "absolute_path",
