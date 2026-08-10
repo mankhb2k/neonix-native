@@ -22,10 +22,10 @@ describe("render-contracts", () => {
     expect(progress.jobId).toBe("j1");
   });
 
-  it("parses full render manifest (§6.1)", () => {
+  it("parses full render manifest (§6.1 + Phase 10)", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
-      formatVersion: 1,
+      formatVersion: 2,
       projectId: "p1",
       projectRevision: 0,
       versions: {
@@ -34,6 +34,15 @@ describe("render-contracts", () => {
         runtime: "0.0.1",
         remotion: "4.0.506",
         capabilityManifest: "wave-1",
+      },
+      contentHash: "a".repeat(64),
+      determinism: {
+        version: 1,
+        frameEpsilon: 1.7763568394002505e-15,
+        geometryEpsilon: 1e-12,
+        lengthEpsilon: 1e-9,
+        hashAlgorithm: "sha256",
+        canonicalJson: true,
       },
       composition: {
         width: 1080,
@@ -63,5 +72,8 @@ describe("render-contracts", () => {
     expect(manifest.composition.fps).toBe(30);
     expect(manifest.assets).toHaveLength(1);
     expect(manifest.versions.remotion).toBe("4.0.506");
+    expect(manifest.formatVersion).toBe(2);
+    expect(manifest.contentHash).toHaveLength(64);
+    expect(manifest.determinism.hashAlgorithm).toBe("sha256");
   });
 });

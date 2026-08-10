@@ -51,10 +51,7 @@ export type MediaFallbackBridge = {
    * Register a video element for a given asset URI.
    * The bridge takes ownership of pumping frames.
    */
-  registerVideo(
-    assetUri: string,
-    provider: VideoFrameProvider,
-  ): void;
+  registerVideo(assetUri: string, provider: VideoFrameProvider): void;
 
   /**
    * Unregister a video provider.
@@ -95,7 +92,11 @@ export function createMediaFallbackBridge(): MediaFallbackBridge {
     // Dispose existing provider for same URI
     const existing = providers.get(assetUri);
     if (existing) {
-      try { existing.dispose(); } catch { /* ignore */ }
+      try {
+        existing.dispose();
+      } catch {
+        /* ignore */
+      }
     }
     providers.set(assetUri, provider);
   }
@@ -103,7 +104,11 @@ export function createMediaFallbackBridge(): MediaFallbackBridge {
   function unregister(assetUri: string): void {
     const provider = providers.get(assetUri);
     if (provider) {
-      try { provider.dispose(); } catch { /* ignore */ }
+      try {
+        provider.dispose();
+      } catch {
+        /* ignore */
+      }
     }
     providers.delete(assetUri);
   }
@@ -134,13 +139,21 @@ export function createMediaFallbackBridge(): MediaFallbackBridge {
 
   function seekAll(timeSeconds: number): void {
     for (const [, provider] of providers) {
-      try { provider.seek(timeSeconds); } catch { /* ignore */ }
+      try {
+        provider.seek(timeSeconds);
+      } catch {
+        /* ignore */
+      }
     }
   }
 
   function dispose(): void {
     for (const [, provider] of providers) {
-      try { provider.dispose(); } catch { /* ignore */ }
+      try {
+        provider.dispose();
+      } catch {
+        /* ignore */
+      }
     }
     providers.clear();
   }

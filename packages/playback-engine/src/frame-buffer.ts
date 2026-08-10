@@ -87,9 +87,7 @@ export type FrameBuffer = {
   dispose(): void;
 };
 
-export function createFrameBuffer(
-  opts?: FrameBufferOptions,
-): FrameBuffer {
+export function createFrameBuffer(opts?: FrameBufferOptions): FrameBuffer {
   const capacity = opts?.capacity ?? 128;
   const targetSec = Math.max(0.5, opts?.targetSec ?? 3.0);
 
@@ -100,7 +98,8 @@ export function createFrameBuffer(
 
   function push(entry: FrameBufferEntry): void {
     // Drop stale frames, but only when a sequence has been set
-    if (currentSequenceId >= 0 && entry.sequenceId !== currentSequenceId) return;
+    if (currentSequenceId >= 0 && entry.sequenceId !== currentSequenceId)
+      return;
 
     // Drop if we already have a newer frame at the same time
     const existingIdx = entries.findIndex((e) => e.time === entry.time);
@@ -189,7 +188,9 @@ export function createFrameBuffer(
     aheadSec,
     prune,
     setSequenceId,
-    get size() { return entries.length; },
+    get size() {
+      return entries.length;
+    },
     status,
     clear,
     dispose,

@@ -75,6 +75,19 @@ export type PixiFramePainterOptions = {
   displayWidth?: number;
   /** CSS display size height. */
   displayHeight?: number;
+  /**
+   * Optional renderer reference for canvas capture (Phase 10).
+   * When provided, captureImage() and captureDataURL() become available.
+   */
+  renderer?: {
+    extract: {
+      canvas(root: Container): HTMLCanvasElement;
+      image(root: Container): HTMLImageElement;
+      pixels(root: Container): Uint8ClampedArray;
+    };
+    width: number;
+    height: number;
+  };
 };
 
 export type PixiFramePainter = EvaluatedFramePainter & {
@@ -115,6 +128,23 @@ export type PixiFramePainter = EvaluatedFramePainter & {
     removed: number;
     skipped: number;
   };
+  /**
+   * Capture the current frame as an ImageBitmap (if renderer provided).
+   * Returns null if no renderer is available or capture fails.
+   * @since Phase 10
+   */
+  captureImage(): Promise<ImageBitmap | null>;
+  /**
+   * Capture the current frame as a base64 data URL (if renderer provided).
+   * Returns null if no renderer is available or capture fails.
+   * @since Phase 10
+   */
+  captureDataURL(type?: string, quality?: number): string | null;
+  /**
+   * Get the root container (for external capture).
+   * @since Phase 10
+   */
+  getRoot(): Container;
 };
 
 function hexToNumber(color: string | undefined, fallback = 0xffffff): number {
@@ -837,6 +867,25 @@ export function createPixiFramePainter(
       return paused;
     },
     getDiffStats: () => ({ ...diffStats }),
+    async captureImage(): Promise<ImageBitmap | null> {
+      if (!opts.renderer) return null;
+      try {
+        const canvas = opts.renderer.extract.canvas(root);
+        return await createImageBitmap(canvas);
+      } catch {
+        return null;
+      }
+    },
+    captureDataURL(type = "image/png", quality?: number): string | null {
+      if (!opts.renderer) return null;
+      try {
+        const canvas = opts.renderer.extract.canvas(root);
+        return canvas.toDataURL(type, quality);
+      } catch {
+        return null;
+      }
+    },
+    getRoot: () => root,
     applyPatch(patch: PaintPatch): PatchSequence {
       // Drop stale patches
       if (isPatchStale(patch, currentSequence)) return currentSequence;

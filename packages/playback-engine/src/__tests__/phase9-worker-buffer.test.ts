@@ -35,10 +35,7 @@ function makeEntry(
   };
 }
 
-function createMockVideoProvider(
-  id: string,
-  assetUri: string,
-) {
+function createMockVideoProvider(id: string, assetUri: string) {
   let _frameReady = false;
   let _sourceFrame = 0;
   const provider: VideoFrameProvider = {
@@ -46,15 +43,28 @@ function createMockVideoProvider(
     assetUri,
     width: 1920,
     height: 1080,
-    get frameReady() { return _frameReady; },
-    get sourceFrame() { return _sourceFrame; },
-    seek(_timeSeconds: number) { _frameReady = false; },
-    grabFrame(): VideoFrame | ImageBitmap | null { _frameReady = false; return null; },
+    get frameReady() {
+      return _frameReady;
+    },
+    get sourceFrame() {
+      return _sourceFrame;
+    },
+    seek(_timeSeconds: number) {
+      _frameReady = false;
+    },
+    grabFrame(): VideoFrame | ImageBitmap | null {
+      _frameReady = false;
+      return null;
+    },
     dispose() {},
   };
   return Object.assign(provider, {
-    _setReady(v: boolean) { _frameReady = v; },
-    _setSourceFrame(f: number) { _sourceFrame = f; },
+    _setReady(v: boolean) {
+      _frameReady = v;
+    },
+    _setSourceFrame(f: number) {
+      _sourceFrame = f;
+    },
   });
 }
 
@@ -323,15 +333,15 @@ describe("BufferPolicy (Task 9.3)", () => {
   // ── shouldTopUp — playing mode ──────────────────────────────────
 
   it("shouldTopUp returns true when aheadSec < target in playing mode", () => {
-    expect(policy.shouldTopUp(0, 0)).toBe(true);   // no frames, no inflight
-    expect(policy.shouldTopUp(2.0, 0)).toBe(true);  // below 3.0 target
+    expect(policy.shouldTopUp(0, 0)).toBe(true); // no frames, no inflight
+    expect(policy.shouldTopUp(2.0, 0)).toBe(true); // below 3.0 target
     expect(policy.shouldTopUp(4.0, 0)).toBe(false); // above 3.0 target
   });
 
   it("shouldTopUp returns false when inflight at max", () => {
-    expect(policy.shouldTopUp(1.0, 4)).toBe(false);  // 4 inflight = max
-    expect(policy.shouldTopUp(1.0, 5)).toBe(false);  // over max
-    expect(policy.shouldTopUp(1.0, 3)).toBe(true);   // 3 inflight < max 4
+    expect(policy.shouldTopUp(1.0, 4)).toBe(false); // 4 inflight = max
+    expect(policy.shouldTopUp(1.0, 5)).toBe(false); // over max
+    expect(policy.shouldTopUp(1.0, 3)).toBe(true); // 3 inflight < max 4
   });
 
   // ── shouldTopUp — interactive mode ──────────────────────────────
@@ -340,9 +350,9 @@ describe("BufferPolicy (Task 9.3)", () => {
     policy.setMode("interactive");
 
     expect(policy.shouldTopUp(0, 0)).toBe(true);
-    expect(policy.shouldTopUp(0.5, 0)).toBe(false);   // has ahead, no need
-    expect(policy.shouldTopUp(0, 1)).toBe(false);      // already 1 inflight
-    expect(policy.shouldTopUp(0, 2)).toBe(false);      // over max
+    expect(policy.shouldTopUp(0.5, 0)).toBe(false); // has ahead, no need
+    expect(policy.shouldTopUp(0, 1)).toBe(false); // already 1 inflight
+    expect(policy.shouldTopUp(0, 2)).toBe(false); // over max
   });
 
   // ── shouldTopUp — paused mode ───────────────────────────────────
@@ -350,18 +360,18 @@ describe("BufferPolicy (Task 9.3)", () => {
   it("paused mode with refine: tops up only once", () => {
     policy.setMode("paused");
     // Playing→paused triggers refineRequested = true
-    expect(policy.shouldTopUp(0, 0)).toBe(true);   // refine allowed
+    expect(policy.shouldTopUp(0, 0)).toBe(true); // refine allowed
 
     // After consume, no more top-ups
-    expect(policy.shouldTopUp(0, 0)).toBe(true);   // still true (we haven't consumed yet through getState)
+    expect(policy.shouldTopUp(0, 0)).toBe(true); // still true (we haven't consumed yet through getState)
     // Actually shouldTopUp doesn't auto-consume refine. Let's check consumeRefine separately.
   });
 
   it("consumeRefine returns true once after playing→paused transition", () => {
-    expect(policy.consumeRefine()).toBe(false);  // no refine yet
+    expect(policy.consumeRefine()).toBe(false); // no refine yet
     policy.setMode("paused");
-    expect(policy.consumeRefine()).toBe(true);   // refine triggered
-    expect(policy.consumeRefine()).toBe(false);  // consumed
+    expect(policy.consumeRefine()).toBe(true); // refine triggered
+    expect(policy.consumeRefine()).toBe(false); // consumed
   });
 
   it("paused mode without refine: no top-ups after refine consumed", () => {
@@ -564,7 +574,11 @@ describe("MediaFallbackBridge (Task 9.4)", () => {
 describe("Buffer + Policy integration", () => {
   it("playing mode: buffer fills until target then stops", () => {
     const buf = createFrameBuffer({ capacity: 200, targetSec: 1.0 });
-    const policy = createBufferPolicy({ targetSec: 1.0, maxInflight: 4, fps: 30 });
+    const policy = createBufferPolicy({
+      targetSec: 1.0,
+      maxInflight: 4,
+      fps: 30,
+    });
 
     let inflight = 0;
 
@@ -573,7 +587,7 @@ describe("Buffer + Policy integration", () => {
       const ahead = buf.aheadSec(t);
       if (policy.shouldTopUp(ahead, inflight) && inflight < 4) {
         inflight++;
-        const producedTime = t + (inflight * 0.1);
+        const producedTime = t + inflight * 0.1;
         buf.push(makeEntry(producedTime));
         inflight--;
       }
@@ -588,7 +602,11 @@ describe("Buffer + Policy integration", () => {
 
   it("interactive mode: minimal buffer", () => {
     const buf = createFrameBuffer({ capacity: 10, targetSec: 0.5 });
-    const policy = createBufferPolicy({ targetSec: 0.5, maxInflight: 1, fps: 30 });
+    const policy = createBufferPolicy({
+      targetSec: 0.5,
+      maxInflight: 1,
+      fps: 30,
+    });
     policy.setMode("interactive");
 
     // Push a few frames
@@ -603,7 +621,11 @@ describe("Buffer + Policy integration", () => {
   });
 
   it("starvation fallback triggers after consecutive misses", () => {
-    const policy = createBufferPolicy({ targetSec: 3.0, maxInflight: 4, fps: 30 });
+    const policy = createBufferPolicy({
+      targetSec: 3.0,
+      maxInflight: 4,
+      fps: 30,
+    });
 
     // Simulate no buffer available for 5+ ticks
     let triggered = false;
@@ -617,7 +639,11 @@ describe("Buffer + Policy integration", () => {
   });
 
   it("refine on pause: playing→paused triggers one final frame request", () => {
-    const policy = createBufferPolicy({ targetSec: 3.0, maxInflight: 4, fps: 30 });
+    const policy = createBufferPolicy({
+      targetSec: 3.0,
+      maxInflight: 4,
+      fps: 30,
+    });
 
     // Playing
     expect(policy.shouldTopUp(2.0, 0)).toBe(true);
