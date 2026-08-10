@@ -138,7 +138,20 @@ export { MotionPatchSchema, type MotionPatch, applyMotionPatch } from "./patch";
 
 export {
   NormalizedMotionProjectV2Schema,
+  RuntimeCompositionMetadataSchema,
+  RuntimeClipSourceSchema,
+  RuntimeVisualClipSchema,
+  RuntimeVisualTrackSchema,
+  RuntimeSourceRefSchema,
+  RuntimeSourceRefMapSchema,
   type NormalizedMotionProjectV2,
+  type MotionRuntimeIR,
+  type RuntimeCompositionMetadata,
+  type RuntimeClipSource,
+  type RuntimeVisualClip,
+  type RuntimeVisualTrack,
+  type RuntimeSourceRef,
+  type RuntimeSourceRefMap,
 } from "./runtime";
 
 export {

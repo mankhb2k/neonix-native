@@ -35,7 +35,8 @@ export function validateNodeAssetsV3(
         }
       }
     }
-    const fontAssetId = node.type === "text" ? node.payload.fontAssetId : undefined;
+    const fontAssetId =
+      node.type === "text" ? node.payload.fontAssetId : undefined;
     if (typeof fontAssetId === "string") {
       const asset = byId.get(fontAssetId);
       const path = `${prefix}.${node.id}.payload.fontAssetId`;

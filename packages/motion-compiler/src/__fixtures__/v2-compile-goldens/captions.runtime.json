@@ -13,6 +13,22 @@
     "description": "Scene with a caption track"
   },
   "assets": [],
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 44100
+  },
+  "runtimeHash": "d12c57888257ff9fefba80b047cbb334",
+  "compilerVersion": "2.0.0-phase6",
+  "capabilityFingerprint": "2cb4034e1c85f151",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro"
+    }
+  },
   "timeline": {
     "sceneOrder": [
       "intro"
@@ -58,6 +74,12 @@
       "id": "intro",
       "duration": 5,
       "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
+      },
       "nodes": [
         {
           "id": "title",

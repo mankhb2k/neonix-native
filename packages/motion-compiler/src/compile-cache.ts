@@ -21,7 +21,7 @@ import type { CompileResult } from "./compile-result";
  * This is NOT the schema formatVersion (which is v2); it's a
  * compiler-specific version for cache invalidation.
  */
-export const COMPILER_VERSION = "2.0.0-phase2";
+export const COMPILER_VERSION = "2.0.0-phase6";
 
 /**
  * Compute a deterministic hash of component dependencies.

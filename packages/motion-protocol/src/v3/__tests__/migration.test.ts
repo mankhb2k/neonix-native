@@ -26,7 +26,10 @@ function writeGolden(name: string, value: unknown): void {
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-const GOLDEN_CASES: Array<{ name: string; options?: Parameters<typeof migrateMotionProjectV2ToV3>[1] }> = [
+const GOLDEN_CASES: Array<{
+  name: string;
+  options?: Parameters<typeof migrateMotionProjectV2ToV3>[1];
+}> = [
   { name: "v2-minimal" },
   { name: "scene-order" },
   { name: "transition" },
@@ -84,7 +87,9 @@ describe("migration round-trip validity", () => {
 });
 
 describe("migration diagnostics", () => {
-  function codesFor(diagnostics: Array<{ code: MigrationDiagnosticCode }>): string[] {
+  function codesFor(
+    diagnostics: Array<{ code: MigrationDiagnosticCode }>,
+  ): string[] {
     return diagnostics.map((d) => d.code).sort();
   }
 
@@ -121,9 +126,9 @@ describe("migration diagnostics", () => {
   });
 
   it("MIG_TRANSITION_OVERFLOW when transition exceeds scene duration", () => {
-    const input = parseMotionProjectV2(loadJson("transition.in.json")) as ReturnType<
-      typeof parseMotionProjectV2
-    >;
+    const input = parseMotionProjectV2(
+      loadJson("transition.in.json"),
+    ) as ReturnType<typeof parseMotionProjectV2>;
     const scene = input.scenes.find((s) => s.id === "a")!;
     scene.transition = {
       type: "fade",

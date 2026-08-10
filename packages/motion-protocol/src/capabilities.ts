@@ -92,6 +92,15 @@ export const MOTION_V2_LIMITS = Object.freeze({
   cameraFar: 1_000_000,
 });
 
+/**
+ * Version of the capability manifest (v2 property/effect tables).
+ *
+ * Bump when the capability tables change in a way that could alter which
+ * properties are animatable/bindable — the compiler records a hash of this
+ * in `NormalizedMotionProjectV2.capabilityFingerprint` (Phase 6).
+ */
+export const CAPABILITY_MANIFEST_VERSION = "2.0";
+
 export type MotionPropertyValueKind =
   | "number"
   | "angle"

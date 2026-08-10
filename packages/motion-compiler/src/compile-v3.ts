@@ -42,9 +42,7 @@ import { compileMotionProjectV2 } from "./index";
 
 // ── Public types ──────────────────────────────────────────────────────
 
-export type CompileV3Profile =
-  | "embedded-components"
-  | "flattened-components";
+export type CompileV3Profile = "embedded-components" | "flattened-components";
 
 export type CompileV3Options = {
   /**
@@ -58,9 +56,9 @@ export type CompileV3Options = {
   /** Reserved for Phase 7 — text measurement override. */
   textMeasurementProvider?: unknown;
   /** Reserved for Phase 7 — asset metadata (duration/dimensions) resolver. */
-  assetMetadataProvider?: (assetId: string) =>
-    | { duration?: number; width?: number; height?: number }
-    | undefined;
+  assetMetadataProvider?: (
+    assetId: string,
+  ) => { duration?: number; width?: number; height?: number } | undefined;
 };
 
 /**
@@ -151,8 +149,10 @@ function downMigrateMetadata(project: V3.MotionProjectV3): JsonRecord {
   if (project.metadata.industry) metadata.industry = project.metadata.industry;
   if (project.metadata.description)
     metadata.description = project.metadata.description;
-  if (project.metadata.createdAt) metadata.createdAt = project.metadata.createdAt;
-  if (project.metadata.updatedAt) metadata.updatedAt = project.metadata.updatedAt;
+  if (project.metadata.createdAt)
+    metadata.createdAt = project.metadata.createdAt;
+  if (project.metadata.updatedAt)
+    metadata.updatedAt = project.metadata.updatedAt;
   if (composition.safeArea) {
     // v2 safe area requires a `platform` discriminator; v3 is platform
     // agnostic — default to "generic".
@@ -438,9 +438,7 @@ function downMigrateNode(node: V3.NodeV3): JsonRecord {
   }
 }
 
-type V3SceneClip = NonNullable<
-  V3.SceneDefinitionV3["clips"]
->[number];
+type V3SceneClip = NonNullable<V3.SceneDefinitionV3["clips"]>[number];
 
 function downMigrateClip(clip: V3SceneClip): JsonRecord {
   return clone(clip);
@@ -514,7 +512,10 @@ function buildVisualPlan(
     // so nothing silently disappears from the runtime IR.
     for (const scene of project.scenes) {
       const entry: VisualPlanEntry = { clipId: scene.id, sceneId: scene.id };
-      sceneOverrides.set(scene.id, downMigrateScene(scene));
+      sceneOverrides.set(scene.id, {
+        ...downMigrateScene(scene),
+        sourceRef: { projectPath: ["scenes", scene.id] },
+      });
       entries.push(entry);
     }
     return { entries, sceneOverrides };
@@ -524,10 +525,14 @@ function buildVisualPlan(
       if (clip.source.kind === "scene") {
         const source = scenes.get(clip.source.sceneId);
         if (!source) {
-          collector.error("CMP_CLIP_TARGET_MISSING", `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`, {
-            path: ["timeline", "visualTracks", track.id, "clips", clip.id],
-            details: { clipId: clip.id, sceneId: clip.source.sceneId },
-          });
+          collector.error(
+            "CMP_CLIP_TARGET_MISSING",
+            `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
+            {
+              path: ["timeline", "visualTracks", track.id, "clips", clip.id],
+              details: { clipId: clip.id, sceneId: clip.source.sceneId },
+            },
+          );
           continue;
         }
         const usage = sceneUsage.get(source.id) ?? 0;
@@ -542,6 +547,12 @@ function buildVisualPlan(
           scene.id = sceneId;
           scene.duration = clip.duration;
         }
+        scene.sourceRef = reuse
+          ? {
+              projectPath: ["scenes", source.id],
+              sourceModule: clip.id,
+            }
+          : { projectPath: ["scenes", source.id] };
         sceneOverrides.set(sceneId, scene);
         entries.push({ clipId: clip.id, sceneId });
         continue;
@@ -565,6 +576,10 @@ function buildVisualPlan(
         duration: clip.duration,
         nodes: component.nodes.map((node) => downMigrateNode(node)),
         clips: [],
+        sourceRef: {
+          projectPath: ["components", component.id],
+          sourceModule: `${component.id}@${component.version}`,
+        },
       };
       sceneOverrides.set(clip.id, scene);
       entries.push({ clipId: clip.id, sceneId: clip.id });
@@ -577,7 +592,12 @@ function buildVisualPlan(
 
 function expectedVariableTypeForProperty(property: string): string | undefined {
   const prop = property.toLowerCase();
-  if (prop.endsWith(".text") || prop.endsWith(".label") || prop.endsWith(".name")) return "string";
+  if (
+    prop.endsWith(".text") ||
+    prop.endsWith(".label") ||
+    prop.endsWith(".name")
+  )
+    return "string";
   if (prop.includes("color")) return "color";
   if (
     prop.endsWith(".visible") ||
@@ -611,7 +631,10 @@ function validateV3Semantics(
         `Binding "${binding.id}" references unknown variable "${binding.source.variableId}"`,
         {
           path: ["bindings", binding.id],
-          details: { bindingId: binding.id, variableId: binding.source.variableId },
+          details: {
+            bindingId: binding.id,
+            variableId: binding.source.variableId,
+          },
         },
       );
       continue;
@@ -662,7 +685,11 @@ function validateV3Semantics(
           `Scene "${scene.id}" node "${ref.nodeId}" references unknown asset "${ref.assetId}"`,
           {
             path: ["scenes", scene.id, "nodes", ref.nodeId],
-            details: { sceneId: scene.id, nodeId: ref.nodeId, assetId: ref.assetId },
+            details: {
+              sceneId: scene.id,
+              nodeId: ref.nodeId,
+              assetId: ref.assetId,
+            },
           },
         );
       }
@@ -674,17 +701,28 @@ function validateV3Semantics(
           `Scene "${scene.id}" clip "${clip.id}" references unknown node "${clip.targetId}"`,
           {
             path: ["scenes", scene.id, "clips", clip.id],
-            details: { sceneId: scene.id, clipId: clip.id, targetId: clip.targetId },
+            details: {
+              sceneId: scene.id,
+              clipId: clip.id,
+              targetId: clip.targetId,
+            },
           },
         );
       }
-      if (clip.source.kind === "preset" && !isCompiledPreset(clip.source.presetId)) {
+      if (
+        clip.source.kind === "preset" &&
+        !isCompiledPreset(clip.source.presetId)
+      ) {
         collector.error(
           "CMP_UNRESOLVED_PRESET",
           `Scene "${scene.id}" clip "${clip.id}" references unknown preset "${clip.source.presetId}"`,
           {
             path: ["scenes", scene.id, "clips", clip.id],
-            details: { sceneId: scene.id, clipId: clip.id, presetId: clip.source.presetId },
+            details: {
+              sceneId: scene.id,
+              clipId: clip.id,
+              presetId: clip.source.presetId,
+            },
           },
         );
       }
@@ -704,7 +742,9 @@ function validateV3Semantics(
 
   // ── Visual tracks ──
   const sceneIds = new Set(project.scenes.map((scene) => scene.id));
-  const componentIds = new Set(project.components.map((component) => component.id));
+  const componentIds = new Set(
+    project.components.map((component) => component.id),
+  );
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
       if (clip.source.kind === "scene" && !sceneIds.has(clip.source.sceneId)) {
@@ -749,10 +789,10 @@ function validateV3Semantics(
 
   // ── Component dependency integrity ──
   const embeddedByKey = new Map(
-    project.components.map((component) => [
-      `${component.id}@${component.version}`,
-      component,
-    ] as const),
+    project.components.map(
+      (component) =>
+        [`${component.id}@${component.version}`, component] as const,
+    ),
   );
   for (const dep of project.dependencies.components) {
     const embedded = embeddedByKey.get(`${dep.componentId}@${dep.version}`);
@@ -762,7 +802,11 @@ function validateV3Semantics(
       // unused, the compiler can still proceed.
       continue;
     }
-    if (dep.integrity && embedded.integrity && dep.integrity !== embedded.integrity) {
+    if (
+      dep.integrity &&
+      embedded.integrity &&
+      dep.integrity !== embedded.integrity
+    ) {
       collector.error(
         "CMP_COMPONENT_INTEGRITY_MISMATCH",
         `Component "${dep.componentId}@${dep.version}" integrity mismatch: dependency declares "${dep.integrity}", embedded definition has "${embedded.integrity}"`,
@@ -835,7 +879,10 @@ function downMigrateProject(
         `Binding "${binding.id}" targets component "${binding.target.componentId}" but no visual clip instantiates it`,
         {
           path: ["bindings", binding.id],
-          details: { bindingId: binding.id, componentId: binding.target.componentId },
+          details: {
+            bindingId: binding.id,
+            componentId: binding.target.componentId,
+          },
         },
       );
       continue;
@@ -862,7 +909,9 @@ function downMigrateProject(
   const extensions: JsonRecord = { constraints: [], events: [] };
   const v2Extensions = project.extensions;
   if (v2Extensions && typeof v2Extensions === "object") {
-    const constraints = (v2Extensions as JsonRecord)["com.moticlip.constraints"];
+    const constraints = (v2Extensions as JsonRecord)[
+      "com.moticlip.constraints"
+    ];
     const events = (v2Extensions as JsonRecord)["com.moticlip.events"];
     if (Array.isArray(constraints)) extensions.constraints = constraints;
     if (Array.isArray(events)) extensions.events = events;
@@ -879,6 +928,24 @@ function downMigrateProject(
         source: dep.source ?? "embedded",
         integrity: dep.integrity,
       })),
+    },
+    // Phase 6 — carry v3 composition settings through to the runtime IR
+    // (colorSpace / audioSampleRate / background fidelity).
+    composition: {
+      width: project.composition.width,
+      height: project.composition.height,
+      fps: project.composition.fps,
+      background: project.composition.background,
+      colorSpace: project.composition.colorSpace,
+      audioSampleRate: project.composition.audioSampleRate,
+      ...(project.composition.safeArea
+        ? {
+            safeArea: {
+              platform: "generic",
+              ...project.composition.safeArea,
+            },
+          }
+        : {}),
     },
     assets: project.assets.map((asset) => downMigrateAsset(asset)),
     variables: project.variables.map((variable) =>

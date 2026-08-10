@@ -31,6 +31,7 @@ import {
 } from "./nodes";
 import {
   AudioTrackSchema,
+  PlatformSafeAreaSchema,
   ProjectMetadataV2Schema,
   SceneTransitionSchema,
 } from "./project";
@@ -80,15 +81,140 @@ const RuntimeTrackSchema = z
   })
   .strict();
 
+// ── Phase 6 — Runtime IR VNext ────────────────────────────────────────
+//
+// The runtime IR (`NormalizedMotionProjectV2`, aliased `MotionRuntimeIR`)
+// is the compiler's serializable output. Phase 6 adds composition-level
+// metadata, an optional visual track plan, source refs for error mapping,
+// and runtime hash inputs — all OPTIONAL so pre-Phase-6 IR still parses
+// (backward-compatible schema growth).
+
+/**
+ * Composition-level runtime metadata.
+ *
+ * Makes the IR self-contained for renderers: pixel dimensions, frame rate,
+ * background, color space, and audio sample rate no longer need to be
+ * derived from `metadata.aspectRatio` at paint time.
+ */
+export const RuntimeCompositionMetadataSchema = z
+  .object({
+    width: FiniteNumberSchema.int()
+      .positive()
+      .max(MOTION_V2_LIMITS.assetDimension),
+    height: FiniteNumberSchema.int()
+      .positive()
+      .max(MOTION_V2_LIMITS.assetDimension),
+    fps: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.frameRate),
+    background: z.string().min(1).max(64).optional(),
+    colorSpace: z.enum(["srgb", "display-p3"]).default("srgb"),
+    audioSampleRate: FiniteNumberSchema.int()
+      .positive()
+      .max(MOTION_V2_LIMITS.sampleRate)
+      .optional(),
+    safeArea: PlatformSafeAreaSchema.optional(),
+  })
+  .strict();
+export type RuntimeCompositionMetadata = z.infer<
+  typeof RuntimeCompositionMetadataSchema
+>;
+
+/**
+ * Source of a runtime visual clip.
+ *
+ * Scenes are the runtime unit; components are resolved into synthesized
+ * scenes at compile time (Phase 5) but the component variant is kept so
+ * tooling can still identify the origin without consulting `sourceRef`.
+ */
+export const RuntimeClipSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
+  z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
+]);
+export type RuntimeClipSource = z.infer<typeof RuntimeClipSourceSchema>;
+
+/**
+ * A runtime visual clip: an instantiation of a runtime scene on a visual
+ * track, with timeline placement and optional playback trimming.
+ */
+export const RuntimeVisualClipSchema = z
+  .object({
+    id: IdSchema,
+    source: RuntimeClipSourceSchema,
+    start: FiniteNumberSchema.nonnegative().max(
+      MOTION_V2_LIMITS.mediaDurationSeconds,
+    ),
+    duration: FiniteNumberSchema.positive().max(
+      MOTION_V2_LIMITS.mediaDurationSeconds,
+    ),
+    trimStart: FiniteNumberSchema.nonnegative()
+      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .optional(),
+    playbackRate: FiniteNumberSchema.positive().max(16).optional(),
+    loop: z.boolean().optional(),
+    opacity: FiniteNumberSchema.min(0).max(1).optional(),
+    transitionIn: SceneTransitionSchema.optional(),
+    transitionOut: SceneTransitionSchema.optional(),
+  })
+  .strict();
+export type RuntimeVisualClip = z.infer<typeof RuntimeVisualClipSchema>;
+
+/**
+ * A runtime visual track: an ordered list of visual clips.
+ */
+export const RuntimeVisualTrackSchema = z
+  .object({
+    id: IdSchema,
+    role: z.enum(["primary", "overlay", "background"]),
+    order: FiniteNumberSchema.int().nonnegative().optional(),
+    muted: z.boolean().optional(),
+    clips: z
+      .array(RuntimeVisualClipSchema)
+      .max(MOTION_V2_LIMITS.clipsPerScene),
+  })
+  .strict();
+export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
+
+/**
+ * Per-scene source ref — maps a runtime scene back to its authoring origin
+ * (scene id, component id, or timeline clip). Used for debug + error
+ * mapping only; deliberately excluded from render hashing.
+ */
+export const RuntimeSourceRefSchema = z
+  .object({
+    projectPath: z.array(z.string().min(1)).min(1).max(8),
+    sourceModule: z.string().min(1).max(128).optional(),
+  })
+  .strict();
+export type RuntimeSourceRef = z.infer<typeof RuntimeSourceRefSchema>;
+
+/**
+ * Project-level source ref index: runtime sceneId → authoring origin
+ * description (e.g. `"scenes:intro"`, `"components:button@1.0.0"`).
+ */
+export const RuntimeSourceRefMapSchema = z
+  .object({
+    scenes: z.record(z.string().min(1).max(256)),
+  })
+  .strict();
+export type RuntimeSourceRefMap = z.infer<typeof RuntimeSourceRefMapSchema>;
+
 const NormalizedMotionProjectV2BaseSchema = z
   .object({
     format: z.literal("motion-runtime"),
     formatVersion: z.literal(MOTION_PROJECT_FORMAT_VERSION),
     metadata: ProjectMetadataV2Schema,
     assets: z.array(AssetV2Schema).max(MOTION_V2_LIMITS.assetsPerArtifact),
+    composition: RuntimeCompositionMetadataSchema.optional(),
+    runtimeHash: z.string().min(1).max(128).optional(),
+    compilerVersion: z.string().min(1).max(128).optional(),
+    capabilityFingerprint: z.string().min(1).max(128).optional(),
+    sourceRef: RuntimeSourceRefMapSchema.optional(),
     timeline: z
       .object({
         sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
+        visualTracks: z
+          .array(RuntimeVisualTrackSchema)
+          .max(MOTION_V2_LIMITS.audioTracksPerProject)
+          .optional(),
         audioTracks: z
           .array(AudioTrackSchema)
           .max(MOTION_V2_LIMITS.audioTracksPerProject),
@@ -113,6 +239,7 @@ const NormalizedMotionProjectV2BaseSchema = z
             drivers: z.array(ProceduralDriverSchema).max(512).optional(),
             activeCameraId: IdSchema.optional(),
             transition: SceneTransitionSchema.optional(),
+            sourceRef: RuntimeSourceRefSchema.optional(),
             nodes: z
               .array(RuntimeNodeSchema)
               .max(MOTION_V2_LIMITS.nodesPerScene),
@@ -563,3 +690,13 @@ export const NormalizedMotionProjectV2Schema =
 export type NormalizedMotionProjectV2 = z.infer<
   typeof NormalizedMotionProjectV2Schema
 >;
+
+/**
+ * Alias for the runtime IR type (Phase 6 naming decision).
+ *
+ * `NormalizedMotionProjectV2` is kept as the canonical name for backward
+ * compatibility; `MotionRuntimeIR` is the v3-era name for the same shape.
+ * Both names refer to the identical, serializable runtime intermediate
+ * representation emitted by the compiler.
+ */
+export type MotionRuntimeIR = NormalizedMotionProjectV2;

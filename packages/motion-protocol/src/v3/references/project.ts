@@ -35,7 +35,10 @@ export function validateMotionProjectV3References(
     issues.push({ path: "bindings", message: `Duplicate binding id: ${id}` });
   }
   for (const id of new Set(duplicates(project.components.map((c) => c.id)))) {
-    issues.push({ path: "components", message: `Duplicate component id: ${id}` });
+    issues.push({
+      path: "components",
+      message: `Duplicate component id: ${id}`,
+    });
   }
   const trackIds = project.timeline.visualTracks.map((track) => track.id);
   for (const id of new Set(duplicates(trackIds))) {
@@ -105,7 +108,9 @@ export function validateMotionProjectV3References(
           path: `${path}.target.sceneId`,
           message: `Unknown scene: ${binding.target.sceneId}`,
         });
-      } else if (!scene.nodes.some((node) => node.id === binding.target.nodeId)) {
+      } else if (
+        !scene.nodes.some((node) => node.id === binding.target.nodeId)
+      ) {
         issues.push({
           path: `${path}.target.nodeId`,
           message: `Unknown node: ${binding.target.nodeId}`,
@@ -131,9 +136,15 @@ export function validateMotionProjectV3References(
 
   // ── scenes ───────────────────────────────────────────────────────────
   for (const scene of project.scenes) {
-    issues.push(...validateNodeGraphV3(scene.nodes, `scenes.${scene.id}.nodes`));
     issues.push(
-      ...validateNodeAssetsV3(scene.nodes, project.assets, `scenes.${scene.id}.nodes`),
+      ...validateNodeGraphV3(scene.nodes, `scenes.${scene.id}.nodes`),
+    );
+    issues.push(
+      ...validateNodeAssetsV3(
+        scene.nodes,
+        project.assets,
+        `scenes.${scene.id}.nodes`,
+      ),
     );
     const nodeIds = new Set(scene.nodes.map((node) => node.id));
     for (const clip of scene.clips) {
@@ -149,7 +160,10 @@ export function validateMotionProjectV3References(
   // ── components ───────────────────────────────────────────────────────
   for (const component of project.components) {
     issues.push(
-      ...validateNodeGraphV3(component.nodes, `components.${component.id}.nodes`),
+      ...validateNodeGraphV3(
+        component.nodes,
+        `components.${component.id}.nodes`,
+      ),
     );
     issues.push(
       ...validateNodeAssetsV3(

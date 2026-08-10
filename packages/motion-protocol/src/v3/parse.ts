@@ -12,7 +12,9 @@ import { validateMotionProjectV3References } from "./references";
 import { MotionV3ReferenceError } from "./references/types";
 
 export function parseMotionProjectV3(input: unknown): MotionProjectV3 {
-  const project = MotionProjectV3Schema.parse(normalizeLegacyMotionInput(input));
+  const project = MotionProjectV3Schema.parse(
+    normalizeLegacyMotionInput(input),
+  );
   const issues = validateMotionProjectV3References(project);
   if (issues.length > 0) throw new MotionV3ReferenceError(issues);
   return project;

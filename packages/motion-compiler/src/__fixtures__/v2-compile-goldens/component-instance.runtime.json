@@ -13,6 +13,22 @@
     "description": "Project with a component instance"
   },
   "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 44100
+  },
+  "runtimeHash": "85a51ad94ebd488611c618c2ca034867",
+  "compilerVersion": "2.0.0-phase6",
+  "capabilityFingerprint": "2cb4034e1c85f151",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro"
+    }
+  },
   "timeline": {
     "sceneOrder": [
       "intro"
@@ -25,6 +41,12 @@
       "id": "intro",
       "duration": 5,
       "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
+      },
       "nodes": [
         {
           "id": "logo-reveal-instance::logo",

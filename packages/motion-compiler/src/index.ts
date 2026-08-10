@@ -1,5 +1,6 @@
 import {
   NormalizedMotionProjectV2Schema,
+  CAPABILITY_MANIFEST_VERSION,
   getTextPayloadPlain,
   segmentTextUnits,
   setTextPayloadPlain,
@@ -8,9 +9,13 @@ import {
   type MotionNode,
   type MotionProject,
   type NormalizedMotionProjectV2,
+  type RuntimeCompositionMetadata,
+  type RuntimeSourceRef,
 } from "@motionvideo/motion-protocol";
+import { createHash } from "node:crypto";
 import { applyFitText, applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
+import { COMPILER_VERSION } from "./compile-cache";
 
 type RuntimeTrack =
   NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
@@ -255,12 +260,10 @@ function expandPlaybackTrack(
       clip.playback.direction === "reverse" ||
       (clip.playback.direction === "alternate" && iteration % 2 === 1);
     const sourceKeys = reverse
-      ? [...track.keys]
-          .reverse()
-          .map((key) => ({
-            ...key,
-            t: canonicalTime((clip.duration - key.t) / rate),
-          }))
+      ? [...track.keys].reverse().map((key) => ({
+          ...key,
+          t: canonicalTime((clip.duration - key.t) / rate),
+        }))
       : track.keys.map((key) => ({ ...key, t: canonicalTime(key.t / rate) }));
     for (const key of sourceKeys) {
       const absolute = canonicalTime(cycleStart + key.t);
@@ -1026,6 +1029,87 @@ function expandTextAnimators(nodes: MotionNode[]): {
 }
 
 /** Authoring IR v2 → renderer-only literal Runtime IR. */
+
+// ── Phase 6 — runtime IR enrichment ───────────────────────────────────
+
+const ASPECT_RATIO_DIMENSIONS: Record<string, { width: number; height: number }> =
+  {
+    "9:16": { width: 1080, height: 1920 },
+    "16:9": { width: 1920, height: 1080 },
+    "1:1": { width: 1080, height: 1080 },
+  };
+
+/**
+ * Derive composition-level runtime metadata from the v2 authoring
+ * metadata. The runtime IR becomes self-contained for renderers.
+ */
+function buildRuntimeComposition(
+  metadata: MotionProject["metadata"],
+): RuntimeCompositionMetadata {
+  const dims =
+    ASPECT_RATIO_DIMENSIONS[metadata.aspectRatio] ?? {
+      width: 1920,
+      height: 1080,
+    };
+  const background = metadata.designTokens?.colors?.["background"] ?? "#000000";
+  return {
+    width: dims.width,
+    height: dims.height,
+    fps: metadata.fps,
+    background,
+    colorSpace: "srgb",
+    audioSampleRate: 44100,
+    ...(metadata.safeArea ? { safeArea: metadata.safeArea } : {}),
+  };
+}
+
+/**
+ * Deterministic fingerprint of the capability manifest used to compile.
+ * Bumped via `CAPABILITY_MANIFEST_VERSION` in motion-protocol.
+ */
+function buildCapabilityFingerprint(): string {
+  return createHash("sha256")
+    .update(`motion-capabilities:${CAPABILITY_MANIFEST_VERSION}`)
+    .digest("hex")
+    .slice(0, 16);
+}
+
+/** Recursive key-sorted canonical JSON for deterministic hashing. */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * Deterministic runtime hash over the IR (excluding the `runtimeHash`
+ * field itself). Same project + same compiler → same hash.
+ */
+function computeRuntimeHash(ir: Record<string, unknown>): string {
+  const { runtimeHash: _omit, ...hashInputs } = ir;
+  return createHash("sha256")
+    .update(canonicalJson(hashInputs))
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/** Encode a scene sourceRef as a stable human-readable string. */
+function encodeSourceRef(ref: RuntimeSourceRef): string {
+  const base = ref.projectPath.join(":");
+  return ref.sourceModule ? `${base}#${ref.sourceModule}` : base;
+}
+
+/** Authoring scene with an optional pre-attached runtime sourceRef. */
+type AuthoringScene = MotionProject["scenes"][number] & {
+  sourceRef?: RuntimeSourceRef;
+};
+
 export function compileMotionProject(
   project: MotionProject,
   options: CompileOptions = {},
@@ -1079,6 +1163,9 @@ export function compileMotionProject(
           marker.t,
         ]),
       );
+      const sourceRef = (scene as AuthoringScene).sourceRef ?? {
+        projectPath: ["scenes", scene.id],
+      };
       return {
         id: scene.id,
         duration: scene.duration,
@@ -1091,6 +1178,7 @@ export function compileMotionProject(
           ? { activeCameraId: scene.activeCameraId }
           : {}),
         ...(scene.transition ? { transition: scene.transition } : {}),
+        sourceRef,
         nodes: textExpanded.nodes,
         tracks: [
           ...compileClips(
@@ -1104,13 +1192,29 @@ export function compileMotionProject(
         ],
       };
     });
-  return NormalizedMotionProjectV2Schema.parse({
+  const sourceRefIndex: Record<string, string> = {};
+  for (const scene of scenes) {
+    sourceRefIndex[scene.id] = encodeSourceRef(scene.sourceRef);
+  }
+  const ir = {
     format: "motion-runtime",
     formatVersion: 2,
     metadata: project.metadata,
     assets: project.assets,
+    // v3 compiles carry explicit composition settings; v2 compiles derive
+    // them from metadata (aspect ratio → pixel dimensions).
+    composition:
+      (project as { composition?: RuntimeCompositionMetadata }).composition ??
+      buildRuntimeComposition(project.metadata),
+    compilerVersion: COMPILER_VERSION,
+    capabilityFingerprint: buildCapabilityFingerprint(),
     timeline: project.timeline,
+    sourceRef: { scenes: sourceRefIndex },
     scenes,
+  };
+  return NormalizedMotionProjectV2Schema.parse({
+    ...ir,
+    runtimeHash: computeRuntimeHash(ir as unknown as Record<string, unknown>),
   });
 }
 

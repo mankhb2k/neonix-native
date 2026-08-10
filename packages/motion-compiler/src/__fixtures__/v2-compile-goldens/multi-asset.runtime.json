@@ -64,6 +64,22 @@
       "channels": 2
     }
   ],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 44100
+  },
+  "runtimeHash": "c48390a68b1993dd5fb747d32a528184",
+  "compilerVersion": "2.0.0-phase6",
+  "capabilityFingerprint": "2cb4034e1c85f151",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro"
+    }
+  },
   "timeline": {
     "sceneOrder": [
       "intro"
@@ -89,6 +105,12 @@
       "duration": 5,
       "space": "flat-2d",
       "activeCameraId": "main-camera",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
+      },
       "nodes": [
         {
           "id": "main-camera",

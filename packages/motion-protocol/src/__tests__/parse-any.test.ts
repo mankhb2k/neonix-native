@@ -4,10 +4,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  MotionProjectParseError,
-  parseMotionProjectAny,
-} from "../parse-any";
+import { MotionProjectParseError, parseMotionProjectAny } from "../parse-any";
 import { parseMotionProjectV3, serializeMotionProjectV3 } from "../v3/parse";
 import { MotionV3ReferenceError } from "../v3/references/types";
 import { parseMotionProjectV2 } from "../v2/parse";
@@ -43,7 +40,9 @@ describe("parseMotionProjectAny", () => {
 
   it("throws MotionProjectParseError for non-object input", () => {
     expect(() => parseMotionProjectAny(null)).toThrow(MotionProjectParseError);
-    expect(() => parseMotionProjectAny("nope")).toThrow(MotionProjectParseError);
+    expect(() => parseMotionProjectAny("nope")).toThrow(
+      MotionProjectParseError,
+    );
   });
 
   it("throws invalid_input for wrong format", () => {
@@ -73,11 +72,17 @@ describe("parseMotionProjectAny", () => {
   });
 
   it("wraps v3 validation failures as parse_failed with issues", () => {
-    const input = loadV3("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadV3("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     try {
       parseMotionProjectAny({
         ...input,
-        composition: { ...(input.composition as Record<string, unknown>), width: 0 },
+        composition: {
+          ...(input.composition as Record<string, unknown>),
+          width: 0,
+        },
       });
       expect.unreachable();
     } catch (error) {
@@ -103,7 +108,10 @@ describe("parseMotionProjectV3", () => {
   });
 
   it("accepts legacy text payload via shared normalizer", () => {
-    const input = loadV3("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadV3("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     const project = parseMotionProjectV3({
       ...input,
       scenes: [
@@ -158,12 +166,18 @@ describe("parseMotionProjectV3", () => {
     const node = project.scenes[0]!.nodes[0]!;
     expect(node.type).toBe("text");
     if (node.type === "text") {
-      expect(node.payload.content).toEqual({ kind: "plain", text: "Legacy text" });
+      expect(node.payload.content).toEqual({
+        kind: "plain",
+        text: "Legacy text",
+      });
     }
   });
 
   it("throws MotionV3ReferenceError for bad binding targets", () => {
-    const input = loadV3("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadV3("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     expect(() =>
       parseMotionProjectV3({
         ...input,
@@ -172,7 +186,12 @@ describe("parseMotionProjectV3", () => {
           {
             id: "b1",
             source: { kind: "variable", variableId: "v1" },
-            target: { kind: "scene", sceneId: "ghost", nodeId: "ghost", property: "transform.x" },
+            target: {
+              kind: "scene",
+              sceneId: "ghost",
+              nodeId: "ghost",
+              property: "transform.x",
+            },
           },
         ],
       }),
@@ -194,7 +213,7 @@ describe("parseMotionProjectV3", () => {
     const parsed = JSON.parse(first) as Record<string, unknown>;
     expect(Object.keys(parsed)).toEqual(Object.keys(parsed).sort());
     expect(
-      Object.keys((parsed.composition as Record<string, unknown>)).sort(),
+      Object.keys(parsed.composition as Record<string, unknown>).sort(),
     ).toEqual(Object.keys(parsed.composition as Record<string, unknown>));
   });
 

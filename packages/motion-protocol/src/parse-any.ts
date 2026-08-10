@@ -53,9 +53,13 @@ function issuesFromError(error: unknown): MotionProjectParseIssue[] {
   return [];
 }
 
-function wrapParseError(version: 2 | 3, error: unknown): MotionProjectParseError {
+function wrapParseError(
+  version: 2 | 3,
+  error: unknown,
+): MotionProjectParseError {
   const issues = issuesFromError(error);
-  const summary = issues.length > 0 ? `: ${issues[0]!.path ?? ""} ${issues[0]!.message}` : "";
+  const summary =
+    issues.length > 0 ? `: ${issues[0]!.path ?? ""} ${issues[0]!.message}` : "";
   return new MotionProjectParseError(
     "parse_failed",
     `Failed to parse motion project (v${version})${summary}`,

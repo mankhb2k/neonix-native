@@ -13,6 +13,23 @@
     "description": "Two scenes with a fade transition between them"
   },
   "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 44100
+  },
+  "runtimeHash": "1d1351d4b7984930f5c8ae76e028ab36",
+  "compilerVersion": "2.0.0-phase6",
+  "capabilityFingerprint": "2cb4034e1c85f151",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro",
+      "outro": "scenes:outro"
+    }
+  },
   "timeline": {
     "sceneOrder": [
       "intro",
@@ -31,6 +48,12 @@
         "duration": 0.5,
         "color": "#000000",
         "easing": "easeInOut"
+      },
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
       },
       "nodes": [
         {
@@ -69,6 +92,12 @@
       "id": "outro",
       "duration": 2,
       "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "outro"
+        ]
+      },
       "nodes": [
         {
           "id": "outro-title",
