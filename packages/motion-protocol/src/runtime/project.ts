@@ -17,7 +17,12 @@ import { ProceduralDriverSchema } from "../v3/animation/drivers";
 import { ExtrapolationBehaviorSchema } from "../v3/animation/tracks";
 import { KeyframeEasingSchema } from "../v3/animation/easing";
 import { AssetV2Schema } from "./assets";
-import { FiniteNumberSchema, IdSchema, PropertyPathSchema } from "../v3/common";
+import {
+  AspectRatioSchema,
+  FiniteNumberSchema,
+  IdSchema,
+  PropertyPathSchema,
+} from "../v3/common";
 
 /**
  * Runtime IR format version — independent of the authoring format.
@@ -39,15 +44,147 @@ import {
   TextNodeV2Schema,
   VideoNodeV2Schema,
 } from "./nodes";
-import {
-  AudioTrackSchema,
-  PlatformSafeAreaSchema,
-  ProjectMetadataV2Schema,
-  SceneTransitionSchema,
-} from "../compat/project";
+
+
+// ── Runtime IR schemas (inlined from compat/project) ─────────────────
+
 import { CaptionTrackSchema } from "../v3/captions";
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
 import { LiteralValueSchema, ValueKindSchema } from "../v3/values";
+
+export const PlatformSafeAreaSchema = z
+  .object({
+    platform: z.enum(["tiktok", "reels", "youtube", "generic"]),
+    top: FiniteNumberSchema.nonnegative().max(1).optional(),
+    right: FiniteNumberSchema.nonnegative().max(1).optional(),
+    bottom: FiniteNumberSchema.nonnegative().max(1).optional(),
+    left: FiniteNumberSchema.nonnegative().max(1).optional(),
+  })
+  .strict();
+
+const DesignTokensSchema = z
+  .object({
+    colors: z.record(z.string().min(1).max(64)).optional(),
+    fonts: z.record(z.string().min(1).max(128)).optional(),
+    spacing: z.record(FiniteNumberSchema).optional(),
+  })
+  .strict();
+
+const BrandV2Schema = z
+  .object({
+    name: z.string().min(1),
+    primaryColor: z.string().optional(),
+    secondaryColor: z.string().optional(),
+    logoAssetId: IdSchema.optional(),
+    fontFamily: z.string().optional(),
+  })
+  .strict();
+
+export const ProjectMetadataV2Schema = z
+  .object({
+    id: IdSchema,
+    name: z.string().min(1),
+    aspectRatio: AspectRatioSchema,
+    fps: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.frameRate),
+    locale: z.literal("vi-VN"),
+    industry: z.string().optional(),
+    brand: BrandV2Schema,
+    designTokens: DesignTokensSchema.optional(),
+    safeArea: PlatformSafeAreaSchema.optional(),
+    description: z.string().optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+  })
+  .strict();
+
+export const AudioTrackSchema = z
+  .object({
+    id: IdSchema,
+    role: z.enum(["bgm", "voiceover", "sfx"]),
+    assetId: IdSchema,
+    start: FiniteNumberSchema.nonnegative().max(
+      MOTION_V2_LIMITS.mediaDurationSeconds,
+    ),
+    trimStart: FiniteNumberSchema.nonnegative()
+      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .default(0),
+    volume: FiniteNumberSchema.min(0).max(1).default(1),
+    loop: z.boolean().default(false),
+    fadeIn: FiniteNumberSchema.nonnegative()
+      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .default(0),
+    fadeOut: FiniteNumberSchema.nonnegative()
+      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .default(0),
+  })
+  .strict();
+
+export const SceneTransitionSchema = z.discriminatedUnion("type", [
+  z
+    .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
+    .strict(),
+  z
+    .object({
+      type: z.literal("fade"),
+      duration: FiniteNumberSchema.positive().max(
+        MOTION_V2_LIMITS.mediaDurationSeconds,
+      ),
+      color: z.string().min(1).optional(),
+      easing: z
+        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
+        .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("crossfade"),
+      duration: FiniteNumberSchema.positive().max(
+        MOTION_V2_LIMITS.mediaDurationSeconds,
+      ),
+      easing: z
+        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
+        .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("slide"),
+      duration: FiniteNumberSchema.positive().max(
+        MOTION_V2_LIMITS.mediaDurationSeconds,
+      ),
+      direction: z.enum(["left", "right", "up", "down"]),
+      mode: z.enum(["push", "cover"]).default("push"),
+      easing: z
+        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
+        .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("wipe"),
+      duration: FiniteNumberSchema.positive().max(
+        MOTION_V2_LIMITS.mediaDurationSeconds,
+      ),
+      direction: z.enum(["left", "right", "up", "down"]),
+      softness: FiniteNumberSchema.min(0).max(1).optional(),
+      easing: z
+        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
+        .optional(),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("zoom"),
+      duration: FiniteNumberSchema.positive().max(
+        MOTION_V2_LIMITS.mediaDurationSeconds,
+      ),
+      direction: z.enum(["in", "out"]),
+      easing: z
+        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
+        .optional(),
+    })
+    .strict(),
+]);
 
 /**
  * Runtime IR version — independent of the project format version.

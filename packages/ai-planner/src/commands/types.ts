@@ -253,7 +253,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       nodeId: Id,
       effectId: Id,
       effect: z.discriminatedUnion("type", [
-        z.object({ type: z.literal("blur"), radius: Finite.nonnegative() }).strict(),
+        z
+          .object({ type: z.literal("blur"), radius: Finite.nonnegative() })
+          .strict(),
         z
           .object({
             type: z.literal("shadow"),
@@ -450,7 +452,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       type: z.literal("setSceneTransition"),
       sceneId: Id,
       transition: z.discriminatedUnion("type", [
-        z.object({ type: z.literal("cut"), duration: z.literal(0).optional() }).strict(),
+        z
+          .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
+          .strict(),
         z
           .object({
             type: z.literal("fade"),
