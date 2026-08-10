@@ -31,6 +31,15 @@ import {
   lookAtMatrix,
   matrix4ToArray,
 } from "./matrix4";
+import { throwIfAborted, cancelledDiagnostic } from "./cancellation";
+import {
+  RuntimeDiagnosticCollector,
+  RuntimeDiagnosticCode,
+  createDiagnostic,
+  toRenderDiagnostic,
+  type RuntimeDiagnostic,
+} from "./diagnostics";
+import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 
 function scenesForComposition(
   runtime: NormalizedMotionProjectV2,
@@ -175,6 +184,10 @@ export function evaluateCompositionFrameV3(
     background?: string;
     /** Camera override — "flat" ignores camera transforms */
     stageView?: "camera" | "flat";
+    /** Phase 12: Cancellation signal */
+    signal?: AbortSignal;
+    /** Phase 12: Feature flags for gradual rollout */
+    featureFlags?: readonly string[];
   },
 ): EvaluatedCompositionFrame | null {
   const safeFps = Math.max(1, fps);
@@ -182,6 +195,15 @@ export function evaluateCompositionFrameV3(
   const sceneId = opts?.sceneId;
   const background = opts?.background;
   const stageView = opts?.stageView ?? "camera";
+
+  // Phase 12: Check cancellation before any work
+  throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
+
+  const collector = new RuntimeDiagnosticCollector({
+    frame,
+    time: globalTime,
+    sceneId: sceneId,
+  });
 
   const assetUriById = new Map(
     runtime.assets.map((asset) => [asset.id, asset.uri] as const),
@@ -212,6 +234,9 @@ export function evaluateCompositionFrameV3(
   >();
 
   for (let i = 0; i < layerPlan.layers.length; i++) {
+    // Phase 12: Periodically check cancellation during layer evaluation
+    throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
+
     const layer = layerPlan.layers[i]!;
     let scene = sceneCache.get(layer.sceneId);
     if (!scene) {
@@ -266,9 +291,13 @@ export function evaluateCompositionFrameV3(
   // (perspective-3d scenes only — other spaces don't need it)
   if (perspectiveProjection) {
     for (const layer of layers) {
+      throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
       const scene = sceneCache.get(layer.sceneId);
       if (!scene || (scene.space ?? "flat-2d") !== "perspective-3d") continue;
-      const localFrame = Math.max(0, Math.round(layer.composition.localTime * safeFps));
+      const localFrame = Math.max(
+        0,
+        Math.round(layer.composition.localTime * safeFps),
+      );
       const reEvaluated = evaluateFrame({
         scene,
         time: layer.composition.localTime,
@@ -313,7 +342,30 @@ export function evaluateCompositionFrameV3(
   const media = buildMediaState(layers, runtime);
 
   // ── All diagnostics ─────────────────────────────────────────────
-  const diagnostics = layers.flatMap((l) => l.paint.diagnostics);
+  // Merge paint diagnostics with runtime collector diagnostics
+  const paintDiagnostics = layers.flatMap((l) => l.paint.diagnostics);
+  const runtimeDiagnostics = collector.diagnostics.map(toRenderDiagnostic);
+  const allDiagnostics = [...paintDiagnostics, ...runtimeDiagnostics];
+
+  // Phase 12: record cancellation diagnostic if signal was aborted
+  if (opts?.signal?.aborted) {
+    allDiagnostics.push(
+      toRenderDiagnostic(
+        cancelledDiagnostic("EVALUATION_CANCELLED", {
+          frame,
+          time: globalTime,
+          sceneId,
+        }),
+      ),
+    );
+  }
+
+  // Phase 12: Feature-flag awareness — skip perspective-3d if flag not enabled
+  const effectiveProjection = isFeatureEnabled(FeatureFlag.PERSPECTIVE_3D, opts)
+    ? projection
+    : projection.kind === "perspective-3d"
+      ? { kind: "orthographic-2d" as const, viewMatrix: IDENTITY_MATRIX }
+      : projection;
 
   return {
     contractVersion: COMPOSITION_FRAME_CONTRACT_VERSION,
@@ -335,8 +387,8 @@ export function evaluateCompositionFrameV3(
     paint: combinedPaint,
     audio,
     media,
-    projection,
-    diagnostics,
+    projection: effectiveProjection,
+    diagnostics: allDiagnostics,
   };
 }
 
@@ -387,16 +439,24 @@ function resolvePerspectiveProjection(
   const yawRad = (rotY * Math.PI) / 180;
   const camX = cameraNode.transform.x;
   const camY = cameraNode.transform.y;
-  const camZ = (cameraNode.transform as unknown as Record<string, unknown>).z as number ?? 0;
+  const camZ =
+    ((cameraNode.transform as unknown as Record<string, unknown>)
+      .z as number) ?? 0;
   const lookTarget = [
     camX + Math.sin(yawRad) * Math.cos(pitchRad),
     camY + Math.sin(pitchRad),
     camZ - Math.cos(yawRad) * Math.cos(pitchRad),
   ];
   const viewMat = lookAtMatrix(
-    camX, camY, camZ,
-    lookTarget[0]!, lookTarget[1]!, lookTarget[2]!,
-    0, 1, 0,
+    camX,
+    camY,
+    camZ,
+    lookTarget[0]!,
+    lookTarget[1]!,
+    lookTarget[2]!,
+    0,
+    1,
+    0,
   );
 
   return {
@@ -462,7 +522,9 @@ function buildProjection(
         // Camera position from worldMatrix translation
         const camX = cameraNode.worldMatrix.e;
         const camY = cameraNode.worldMatrix.f;
-        const camZ = (sceneNode.transform as unknown as Record<string, unknown>).z as number ?? 0;
+        const camZ =
+          ((sceneNode.transform as unknown as Record<string, unknown>)
+            .z as number) ?? 0;
         // Camera look direction: rotate (0,0,-1) by rotX/rotY
         const pitchRad = (rotX * Math.PI) / 180;
         const yawRad = (rotY * Math.PI) / 180;
@@ -478,7 +540,9 @@ function buildProjection(
           lookTarget[0]!,
           lookTarget[1]!,
           lookTarget[2]!,
-          0, 1, 0,
+          0,
+          1,
+          0,
         );
         return {
           kind: "perspective-3d",
@@ -486,7 +550,7 @@ function buildProjection(
           projectionMatrix: matrix4ToArray(projMat),
           near,
           far,
-          focalLengthPx: (height / 2) / Math.tan(((fov / 2) * Math.PI) / 180),
+          focalLengthPx: height / 2 / Math.tan(((fov / 2) * Math.PI) / 180),
         };
       }
     }

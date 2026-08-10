@@ -592,7 +592,10 @@ export function createPixiFramePainter(
     let pendingTransform: Extract<PaintCommand, { op: "setTransform" }> | null =
       null;
     // Phase 11: perspective 3D projection from beginFrame
-    let projection: { viewMatrix: number[]; projectionMatrix: number[] } | null = null;
+    let projection: {
+      viewMatrix: number[];
+      projectionMatrix: number[];
+    } | null = null;
 
     // Find beginFrame for dimensions
     for (const cmd of buffer.commands) {
@@ -648,7 +651,10 @@ export function createPixiFramePainter(
         options.onBackground?.(cmd.background ?? options.getBackground?.());
         // Phase 11: store projection for 3D-aware transforms
         projection = cmd.projection
-          ? { viewMatrix: cmd.projection.viewMatrix, projectionMatrix: cmd.projection.projectionMatrix }
+          ? {
+              viewMatrix: cmd.projection.viewMatrix,
+              projectionMatrix: cmd.projection.projectionMatrix,
+            }
           : null;
         continue;
       }

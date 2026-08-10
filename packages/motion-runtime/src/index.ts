@@ -26,6 +26,9 @@ export * from "./pixel-diff";
 export * from "./runtime-patch";
 export * from "./determinism";
 export * from "./evaluated-composition-frame";
+export * from "./diagnostics";
+export * from "./cancellation";
+export * from "./version-policy";
 export {
   buildAudioExportManifest,
   type AudioExportManifest,

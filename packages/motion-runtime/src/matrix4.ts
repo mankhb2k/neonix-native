@@ -36,7 +36,10 @@ export function createMatrix4(values?: number[]): Matrix4 {
     }
   } else {
     // Identity
-    m[0] = 1; m[5] = 1; m[10] = 1; m[15] = 1;
+    m[0] = 1;
+    m[5] = 1;
+    m[10] = 1;
+    m[15] = 1;
   }
   return m;
 }
@@ -144,8 +147,10 @@ export function rotationMatrixX(degrees: number): Matrix4 {
   const c = Math.cos(r);
   const s = Math.sin(r);
   const m = createMatrix4();
-  m[5] = c;  m[6] = s;
-  m[9] = -s; m[10] = c;
+  m[5] = c;
+  m[6] = s;
+  m[9] = -s;
+  m[10] = c;
   return m;
 }
 
@@ -154,8 +159,10 @@ export function rotationMatrixY(degrees: number): Matrix4 {
   const c = Math.cos(r);
   const s = Math.sin(r);
   const m = createMatrix4();
-  m[0] = c;   m[8] = s;
-  m[2] = -s;  m[10] = c;
+  m[0] = c;
+  m[8] = s;
+  m[2] = -s;
+  m[10] = c;
   return m;
 }
 
@@ -164,8 +171,10 @@ export function rotationMatrixZ(degrees: number): Matrix4 {
   const c = Math.cos(r);
   const s = Math.sin(r);
   const m = createMatrix4();
-  m[0] = c;  m[1] = s;
-  m[4] = -s; m[5] = c;
+  m[0] = c;
+  m[1] = s;
+  m[4] = -s;
+  m[5] = c;
   return m;
 }
 
@@ -196,23 +205,37 @@ export function perspectiveMatrix(
  * Camera lookAt matrix (world space → camera space).
  */
 export function lookAtMatrix(
-  eyeX: number, eyeY: number, eyeZ: number,
-  targetX: number, targetY: number, targetZ: number,
-  upX: number, upY: number, upZ: number,
+  eyeX: number,
+  eyeY: number,
+  eyeZ: number,
+  targetX: number,
+  targetY: number,
+  targetZ: number,
+  upX: number,
+  upY: number,
+  upZ: number,
 ): Matrix4 {
   // Forward vector (target - eye)
   let fx = targetX - eyeX;
   let fy = targetY - eyeY;
   let fz = targetZ - eyeZ;
   const fLen = Math.sqrt(fx * fx + fy * fy + fz * fz);
-  if (fLen > 0) { fx /= fLen; fy /= fLen; fz /= fLen; }
+  if (fLen > 0) {
+    fx /= fLen;
+    fy /= fLen;
+    fz /= fLen;
+  }
 
   // Right vector (forward × up)
   let rx = fy * upZ - fz * upY;
   let ry = fz * upX - fx * upZ;
   let rz = fx * upY - fy * upX;
   const rLen = Math.sqrt(rx * rx + ry * ry + rz * rz);
-  if (rLen > 0) { rx /= rLen; ry /= rLen; rz /= rLen; }
+  if (rLen > 0) {
+    rx /= rLen;
+    ry /= rLen;
+    rz /= rLen;
+  }
 
   // True up vector (right × forward)
   const ux = ry * fz - rz * fy;
@@ -220,9 +243,18 @@ export function lookAtMatrix(
   const uz = rx * fy - ry * fx;
 
   const m = createMatrix4();
-  m[0] = rx;  m[4] = ry;  m[8]  = rz;  m[12] = -(rx * eyeX + ry * eyeY + rz * eyeZ);
-  m[1] = ux;  m[5] = uy;  m[9]  = uz;  m[13] = -(ux * eyeX + uy * eyeY + uz * eyeZ);
-  m[2] = -fx; m[6] = -fy; m[10] = -fz; m[14] = fx * eyeX + fy * eyeY + fz * eyeZ;
+  m[0] = rx;
+  m[4] = ry;
+  m[8] = rz;
+  m[12] = -(rx * eyeX + ry * eyeY + rz * eyeZ);
+  m[1] = ux;
+  m[5] = uy;
+  m[9] = uz;
+  m[13] = -(ux * eyeX + uy * eyeY + uz * eyeZ);
+  m[2] = -fx;
+  m[6] = -fy;
+  m[10] = -fz;
+  m[14] = fx * eyeX + fy * eyeY + fz * eyeZ;
   return m;
 }
 
@@ -231,15 +263,20 @@ export function lookAtMatrix(
 /**
  * Transform a 3D point by a 4×4 matrix (divides by w).
  */
-export function transformPoint3D(m: Matrix4, x: number, y: number, z: number): Point3D {
+export function transformPoint3D(
+  m: Matrix4,
+  x: number,
+  y: number,
+  z: number,
+): Point3D {
   const w = m[3]! * x + m[7]! * y + m[11]! * z + m[15]!;
   if (Math.abs(w) < GEOMETRY_EPSILON) {
     return { x: 0, y: 0, z: 0 };
   }
   const invW = 1 / w;
   return {
-    x: (m[0]! * x + m[4]! * y + m[8]!  * z + m[12]!) * invW,
-    y: (m[1]! * x + m[5]! * y + m[9]!  * z + m[13]!) * invW,
+    x: (m[0]! * x + m[4]! * y + m[8]! * z + m[12]!) * invW,
+    y: (m[1]! * x + m[5]! * y + m[9]! * z + m[13]!) * invW,
     z: (m[2]! * x + m[6]! * y + m[10]! * z + m[14]!) * invW,
   };
 }
@@ -325,7 +362,11 @@ export function localTransformMatrix3D(t: Transform3DInput): Matrix4 {
  * Extract the transformed Z coordinate of a point through a 4×4 matrix.
  * Used for painter's depth-sort key.
  */
-export function depthFromMat4(m: Matrix4, centerX: number, centerY: number): number {
+export function depthFromMat4(
+  m: Matrix4,
+  centerX: number,
+  centerY: number,
+): number {
   const p = transformPoint3D(m, centerX, centerY, 0);
   return p.z;
 }

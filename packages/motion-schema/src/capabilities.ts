@@ -92,7 +92,17 @@ export const MOTION_V2_LIMITS = Object.freeze({
   cameraFar: 1_000_000,
 });
 
-export type MotionPropertyValueKind = "number" | "angle" | "vec2" | "color" | "boolean" | "string" | "asset" | "path" | "gradient" | "json";
+export type MotionPropertyValueKind =
+  | "number"
+  | "angle"
+  | "vec2"
+  | "color"
+  | "boolean"
+  | "string"
+  | "asset"
+  | "path"
+  | "gradient"
+  | "json";
 
 export type MotionPropertyCapability = {
   valueKind: MotionPropertyValueKind;
@@ -105,86 +115,467 @@ export type MotionPropertyCapability = {
   max?: number;
 };
 
-const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> = Object.freeze({
-  "transform.x": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.y": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.depth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.parallaxFactor, max: MOTION_V2_LIMITS.parallaxFactor },
-  "transform.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-  "transform.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-  "transform.rotation": { valueKind: "angle", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.scaleX": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.transformScale },
-  "transform.scaleY": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.transformScale },
-  "transform.anchorX": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-  "transform.anchorY": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-  "transform.opacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-  "transform.visible": { valueKind: "boolean", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.flipX": { valueKind: "boolean", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-  "transform.flipY": { valueKind: "boolean", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-});
+const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
+  Object.freeze({
+    "transform.x": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "transform.y": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "transform.depth": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_V2_LIMITS.parallaxFactor,
+      max: MOTION_V2_LIMITS.parallaxFactor,
+    },
+    "transform.width": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "transform.height": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "transform.rotation": {
+      valueKind: "angle",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "transform.scaleX": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.transformScale,
+    },
+    "transform.scaleY": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.transformScale,
+    },
+    "transform.anchorX": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "transform.anchorY": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "transform.opacity": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "transform.visible": {
+      valueKind: "boolean",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "transform.flipX": {
+      valueKind: "boolean",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "transform.flipY": {
+      valueKind: "boolean",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+  });
 
-const NODE_PROPERTIES: Readonly<Record<string, Readonly<Record<string, MotionPropertyCapability>>>> = Object.freeze({
+const NODE_PROPERTIES: Readonly<
+  Record<string, Readonly<Record<string, MotionPropertyCapability>>>
+> = Object.freeze({
   text: {
-    "payload.text": { valueKind: "string", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-    "payload.fontSize": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", minExclusive: 0, max: MOTION_V2_LIMITS.nodeDimension },
-    "payload.counterProgress": { valueKind: "number", animatable: true, bindable: false, public: false, runtimeSupport: "evaluated", min: 0, max: 1 },
-    "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "payload.text": {
+      valueKind: "string",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "payload.fontSize": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      minExclusive: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "payload.counterProgress": {
+      valueKind: "number",
+      animatable: true,
+      bindable: false,
+      public: false,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "style.fill": {
+      valueKind: "color",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
   },
   shape: {
-    "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-    "style.fillOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-    "style.stroke": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-    "style.strokeWidth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-    "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-    "style.dashOffset": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.dashLength, max: MOTION_V2_LIMITS.dashLength },
-    "payload.cornerRadius": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "style.fill": {
+      valueKind: "color",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "style.fillOpacity": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "style.stroke": {
+      valueKind: "color",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "style.strokeWidth": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "style.strokeOpacity": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "style.dashOffset": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_V2_LIMITS.dashLength,
+      max: MOTION_V2_LIMITS.dashLength,
+    },
+    "payload.cornerRadius": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
   },
   path: {
-    "style.fill": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-    "style.fillOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-    "style.stroke": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-    "style.strokeWidth": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-    "style.strokeOpacity": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 },
-    "style.dashOffset": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.dashLength, max: MOTION_V2_LIMITS.dashLength },
+    "style.fill": {
+      valueKind: "color",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "style.fillOpacity": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "style.stroke": {
+      valueKind: "color",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "style.strokeWidth": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "style.strokeOpacity": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "style.dashOffset": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_V2_LIMITS.dashLength,
+      max: MOTION_V2_LIMITS.dashLength,
+    },
   },
   solid: {
-    "payload.width": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-    "payload.height": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
-    "payload.color": { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "payload.width": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "payload.height": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
+    "payload.color": {
+      valueKind: "color",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
   },
   svg: {
-    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
-    "style.fill": { valueKind: "color", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
+    "payload.assetId": {
+      valueKind: "asset",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
+    "style.fill": {
+      valueKind: "color",
+      animatable: false,
+      bindable: true,
+      public: true,
+      runtimeSupport: "compile-time",
+    },
   },
   image: {
-    "payload.assetId": { valueKind: "asset", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" },
+    "payload.assetId": {
+      valueKind: "asset",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    },
   },
   video: {
-    "payload.assetId": { valueKind: "asset", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
-    "payload.trimStart": { valueKind: "number", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.mediaDurationSeconds },
-    "payload.muted": { valueKind: "boolean", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" },
+    "payload.assetId": {
+      valueKind: "asset",
+      animatable: false,
+      bindable: true,
+      public: true,
+      runtimeSupport: "compile-time",
+    },
+    "payload.trimStart": {
+      valueKind: "number",
+      animatable: false,
+      bindable: true,
+      public: true,
+      runtimeSupport: "compile-time",
+      min: 0,
+      max: MOTION_V2_LIMITS.mediaDurationSeconds,
+    },
+    "payload.muted": {
+      valueKind: "boolean",
+      animatable: false,
+      bindable: true,
+      public: true,
+      runtimeSupport: "compile-time",
+    },
   },
   camera: {
-    "payload.zoom": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", minExclusive: 0, max: MOTION_V2_LIMITS.transformScale },
-    "payload.parallaxStrength": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: MOTION_V2_LIMITS.parallaxFactor },
+    "payload.zoom": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      minExclusive: 0,
+      max: MOTION_V2_LIMITS.transformScale,
+    },
+    "payload.parallaxStrength": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: MOTION_V2_LIMITS.parallaxFactor,
+    },
   },
   bone: {
-    "payload.length": { valueKind: "number", animatable: false, bindable: true, public: false, runtimeSupport: "compile-time", min: 0, max: MOTION_V2_LIMITS.nodeDimension },
+    "payload.length": {
+      valueKind: "number",
+      animatable: false,
+      bindable: true,
+      public: false,
+      runtimeSupport: "compile-time",
+      min: 0,
+      max: MOTION_V2_LIMITS.nodeDimension,
+    },
   },
   adjustment: {
-    "payload.brightness": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -1, max: 1 },
-    "payload.contrast": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 4 },
-    "payload.saturation": { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 4 },
+    "payload.brightness": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -1,
+      max: 1,
+    },
+    "payload.contrast": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 4,
+    },
+    "payload.saturation": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 4,
+    },
   },
 });
 
-export function motionPropertyCapability(nodeType: string, property: string): MotionPropertyCapability | undefined {
+export function motionPropertyCapability(
+  nodeType: string,
+  property: string,
+): MotionPropertyCapability | undefined {
   const transform = TRANSFORM_PROPERTIES[property];
   if (transform) return transform;
-  if (/^modifiers\.[^.]+\.progress$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
-  if (/^modifiers\.[^.]+\.(start|end)$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
-  if (/^modifiers\.[^.]+\.offset$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" };
-  if (/^modifiers\.[^.]+\.amount$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: -MOTION_V2_LIMITS.pathBendAmount, max: MOTION_V2_LIMITS.pathBendAmount };
-  if (/^modifiers\.[^.]+\.weight$/.test(property)) return { valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min: 0, max: 1 };
+  if (/^modifiers\.[^.]+\.progress$/.test(property))
+    return {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    };
+  if (/^modifiers\.[^.]+\.(start|end)$/.test(property))
+    return {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    };
+  if (/^modifiers\.[^.]+\.offset$/.test(property))
+    return {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+    };
+  if (/^modifiers\.[^.]+\.amount$/.test(property))
+    return {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_V2_LIMITS.pathBendAmount,
+      max: MOTION_V2_LIMITS.pathBendAmount,
+    };
+  if (/^modifiers\.[^.]+\.weight$/.test(property))
+    return {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    };
   const effectMatch = /^effects\.[^.]+\.([^.]+)$/.exec(property);
   if (effectMatch) {
     for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {
@@ -192,34 +583,74 @@ export function motionPropertyCapability(nodeType: string, property: string): Mo
       if (capability) return capability;
     }
   }
-  if (nodeType === "component" && property.startsWith("payload.props.") && property.length > "payload.props.".length) {
-    return { valueKind: "json", animatable: false, bindable: true, public: true, runtimeSupport: "compile-time" };
+  if (
+    nodeType === "component" &&
+    property.startsWith("payload.props.") &&
+    property.length > "payload.props.".length
+  ) {
+    return {
+      valueKind: "json",
+      animatable: false,
+      bindable: true,
+      public: true,
+      runtimeSupport: "compile-time",
+    };
   }
   return NODE_PROPERTIES[nodeType]?.[property];
 }
 
-export type MotionPropertyCapabilityEntry = MotionPropertyCapability & { property: string };
+export type MotionPropertyCapabilityEntry = MotionPropertyCapability & {
+  property: string;
+};
 
 export function motionEffectPropertyCapability(
   effectType: "blur" | "shadow" | "glow" | "color-adjust",
   field: string,
 ): MotionPropertyCapability | undefined {
   const number = (min?: number, max?: number): MotionPropertyCapability => ({
-    valueKind: "number", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated", min, max,
+    valueKind: "number",
+    animatable: true,
+    bindable: true,
+    public: true,
+    runtimeSupport: "evaluated",
+    min,
+    max,
   });
   switch (effectType) {
-    case "blur": return field === "radius" ? number(0, MOTION_V2_LIMITS.effectRadius) : undefined;
+    case "blur":
+      return field === "radius"
+        ? number(0, MOTION_V2_LIMITS.effectRadius)
+        : undefined;
     case "shadow":
-      if (field === "offsetX" || field === "offsetY") return number(-MOTION_V2_LIMITS.effectOffset, MOTION_V2_LIMITS.effectOffset);
+      if (field === "offsetX" || field === "offsetY")
+        return number(
+          -MOTION_V2_LIMITS.effectOffset,
+          MOTION_V2_LIMITS.effectOffset,
+        );
       if (field === "blur") return number(0, MOTION_V2_LIMITS.effectRadius);
       if (field === "opacity") return number(0, 1);
-      if (field === "color") return { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" };
+      if (field === "color")
+        return {
+          valueKind: "color",
+          animatable: true,
+          bindable: true,
+          public: true,
+          runtimeSupport: "evaluated",
+        };
       return undefined;
     case "glow":
       if (field === "radius") return number(0, MOTION_V2_LIMITS.effectRadius);
-      if (field === "intensity") return number(0, MOTION_V2_LIMITS.effectIntensity);
+      if (field === "intensity")
+        return number(0, MOTION_V2_LIMITS.effectIntensity);
       if (field === "opacity") return number(0, 1);
-      if (field === "color") return { valueKind: "color", animatable: true, bindable: true, public: true, runtimeSupport: "evaluated" };
+      if (field === "color")
+        return {
+          valueKind: "color",
+          animatable: true,
+          bindable: true,
+          public: true,
+          runtimeSupport: "evaluated",
+        };
       return undefined;
     case "color-adjust":
       if (field === "brightness") return number(-1, 1);
@@ -229,35 +660,73 @@ export function motionEffectPropertyCapability(
 }
 
 /** Enumerable safe vocabulary for AI authoring and schema-driven controls. */
-export function motionPropertyCapabilities(nodeType: string, motionPathModifierIds: readonly string[] = []): MotionPropertyCapabilityEntry[] {
+export function motionPropertyCapabilities(
+  nodeType: string,
+  motionPathModifierIds: readonly string[] = [],
+): MotionPropertyCapabilityEntry[] {
   return [
     ...Object.entries(TRANSFORM_PROPERTIES),
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
-    ...motionPathModifierIds.map((id) => [`modifiers.${id}.progress`, motionPropertyCapability(nodeType, `modifiers.${id}.progress`)!] as const),
+    ...motionPathModifierIds.map(
+      (id) =>
+        [
+          `modifiers.${id}.progress`,
+          motionPropertyCapability(nodeType, `modifiers.${id}.progress`)!,
+        ] as const,
+    ),
   ].map(([property, capability]) => ({ property, ...capability }));
 }
 
 /** Public AI/control surface only — callers must not expose non-public capabilities. */
-export function publicMotionPropertyCapabilities(nodeType: string, motionPathModifierIds: readonly string[] = []): MotionPropertyCapabilityEntry[] {
-  return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter((capability) => capability.public);
+export function publicMotionPropertyCapabilities(
+  nodeType: string,
+  motionPathModifierIds: readonly string[] = [],
+): MotionPropertyCapabilityEntry[] {
+  return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter(
+    (capability) => capability.public,
+  );
 }
 
-export function motionLiteralMatchesValueKind(kind: MotionPropertyValueKind, value: unknown): boolean {
+export function motionLiteralMatchesValueKind(
+  kind: MotionPropertyValueKind,
+  value: unknown,
+): boolean {
   if (kind === "json") return true;
-  if (kind === "number" || kind === "angle") return typeof value === "number" && Number.isFinite(value);
+  if (kind === "number" || kind === "angle")
+    return typeof value === "number" && Number.isFinite(value);
   if (kind === "boolean") return typeof value === "boolean";
   if (kind === "vec2") {
-    if (Array.isArray(value) && value.length === 2 && value.every((item) => typeof item === "number" && Number.isFinite(item))) return true;
-    if (value !== null && typeof value === "object" && "x" in value && "y" in value) {
+    if (
+      Array.isArray(value) &&
+      value.length === 2 &&
+      value.every((item) => typeof item === "number" && Number.isFinite(item))
+    )
+      return true;
+    if (
+      value !== null &&
+      typeof value === "object" &&
+      "x" in value &&
+      "y" in value
+    ) {
       const v = value as { x: unknown; y: unknown };
-      return typeof v.x === "number" && Number.isFinite(v.x) && typeof v.y === "number" && Number.isFinite(v.y);
+      return (
+        typeof v.x === "number" &&
+        Number.isFinite(v.x) &&
+        typeof v.y === "number" &&
+        Number.isFinite(v.y)
+      );
     }
     return false;
   }
-  return typeof value === "string" || (value !== null && typeof value === "object");
+  return (
+    typeof value === "string" || (value !== null && typeof value === "object")
+  );
 }
 
-export function motionVariableTypeMatchesValueKind(kind: MotionPropertyValueKind, variableType: string): boolean {
+export function motionVariableTypeMatchesValueKind(
+  kind: MotionPropertyValueKind,
+  variableType: string,
+): boolean {
   if (kind === "json") return true;
   if (kind === "asset") return variableType === "asset";
   if (kind === "color") return variableType === "color";
@@ -265,11 +734,19 @@ export function motionVariableTypeMatchesValueKind(kind: MotionPropertyValueKind
   return kind === variableType;
 }
 
-export function motionPropertyValueError(capability: MotionPropertyCapability, value: unknown, property: string): string | undefined {
-  if (!motionLiteralMatchesValueKind(capability.valueKind, value)) return `Expected ${capability.valueKind} value for ${property}`;
+export function motionPropertyValueError(
+  capability: MotionPropertyCapability,
+  value: unknown,
+  property: string,
+): string | undefined {
+  if (!motionLiteralMatchesValueKind(capability.valueKind, value))
+    return `Expected ${capability.valueKind} value for ${property}`;
   if (typeof value !== "number") return undefined;
-  if (capability.min !== undefined && value < capability.min) return `Value ${value} is below minimum ${capability.min} for ${property}`;
-  if (capability.minExclusive !== undefined && value <= capability.minExclusive) return `Value ${value} must be greater than ${capability.minExclusive} for ${property}`;
-  if (capability.max !== undefined && value > capability.max) return `Value ${value} exceeds maximum ${capability.max} for ${property}`;
+  if (capability.min !== undefined && value < capability.min)
+    return `Value ${value} is below minimum ${capability.min} for ${property}`;
+  if (capability.minExclusive !== undefined && value <= capability.minExclusive)
+    return `Value ${value} must be greater than ${capability.minExclusive} for ${property}`;
+  if (capability.max !== undefined && value > capability.max)
+    return `Value ${value} exceeds maximum ${capability.max} for ${property}`;
   return undefined;
 }

@@ -145,7 +145,9 @@ describe("Matrix4 — transpose", () => {
   });
 
   it("transpose swaps rows and columns", () => {
-    const m = createMatrix4([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    const m = createMatrix4([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]);
     const t = transposeMatrix4(m);
     expect(t[0]).toBe(1);
     expect(t[1]).toBe(5); // row 0, col 1 → row 1, col 0
@@ -265,20 +267,24 @@ describe("Phase 11 — Identity gate (3D ≈ 2D)", () => {
     });
 
     // 2D matrix columns should match 4×4 upper-left
-    expect(m4[0]).toBeCloseTo(m2.a, 8);  // scaleX
-    expect(m4[1]).toBeCloseTo(m2.b, 8);  // skewY
-    expect(m4[4]).toBeCloseTo(m2.c, 8);  // skewX
-    expect(m4[5]).toBeCloseTo(m2.d, 8);  // scaleY
+    expect(m4[0]).toBeCloseTo(m2.a, 8); // scaleX
+    expect(m4[1]).toBeCloseTo(m2.b, 8); // skewY
+    expect(m4[4]).toBeCloseTo(m2.c, 8); // skewX
+    expect(m4[5]).toBeCloseTo(m2.d, 8); // scaleY
     expect(m4[12]).toBeCloseTo(m2.e, 8); // tx
     expect(m4[13]).toBeCloseTo(m2.f, 8); // ty
-    expect(m4[14]).toBeCloseTo(0, 8);    // tz = 0
-    expect(m4[15]).toBeCloseTo(1, 8);    // w = 1
+    expect(m4[14]).toBeCloseTo(0, 8); // tz = 0
+    expect(m4[15]).toBeCloseTo(1, 8); // w = 1
   });
 
   it("localTransformMatrix3D with flipX negates scaleX", () => {
     const m4 = localTransformMatrix3D({
       ...transform2D,
-      z: 0, rotationX: 0, rotationY: 0, rotationZ: 0, anchorZ: 0,
+      z: 0,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
+      anchorZ: 0,
       flipX: true,
       flipY: false,
     });
@@ -303,13 +309,25 @@ describe("Matrix4 — depthFromMat4", () => {
 
   it("depth after 3D rotation differs from 2D depth", () => {
     const m = localTransformMatrix3D({
-      x: 0, y: 0, z: 50,
-      width: 100, height: 100,
-      rotation: 0, rotationX: 0, rotationY: 30, rotationZ: 0,
-      scaleX: 1, scaleY: 1,
-      anchorX: 0.5, anchorY: 0.5, anchorZ: 0,
-      flipX: false, flipY: false,
-      depth: 0, opacity: 1, visible: true,
+      x: 0,
+      y: 0,
+      z: 50,
+      width: 100,
+      height: 100,
+      rotation: 0,
+      rotationX: 0,
+      rotationY: 30,
+      rotationZ: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      anchorZ: 0,
+      flipX: false,
+      flipY: false,
+      depth: 0,
+      opacity: 1,
+      visible: true,
     });
     // RotY(30) should affect depth
     const d = depthFromMat4(m, 0, 0);
@@ -347,13 +365,25 @@ describe("Phase 11 — Spatial 3D", () => {
     // Import dynamically to avoid circular issues — but these are in spatial.ts
     // Test via the evaluator path instead
     const m = localTransformMatrix3D({
-      x: 100, y: 200, z: 0,
-      width: 400, height: 300,
-      rotation: 0, rotationX: 0, rotationY: 0, rotationZ: 0,
-      scaleX: 1, scaleY: 1,
-      anchorX: 0, anchorY: 0, anchorZ: 0,
-      flipX: false, flipY: false,
-      depth: 0, opacity: 1, visible: true,
+      x: 100,
+      y: 200,
+      z: 0,
+      width: 400,
+      height: 300,
+      rotation: 0,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0,
+      anchorY: 0,
+      anchorZ: 0,
+      flipX: false,
+      flipY: false,
+      depth: 0,
+      opacity: 1,
+      visible: true,
     });
     // 4×4 matrix should encode translation
     expect(m[12]).toBeCloseTo(100);

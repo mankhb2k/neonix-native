@@ -1,9 +1,5 @@
 import { applyMatrix, multiplyMatrix, type Matrix2D } from "./matrix";
-import {
-  IDENTITY_MATRIX4,
-  type Matrix4,
-  depthFromMat4,
-} from "./matrix4";
+import { IDENTITY_MATRIX4, type Matrix4, depthFromMat4 } from "./matrix4";
 import {
   evaluateScene,
   type EvaluatedNode,
@@ -14,7 +10,13 @@ import {
 import { cameraViewMatrix } from "./camera-view";
 import type { PathContour } from "./geometry";
 import { buildRenderPlan } from "./render-plan";
-import { containsPoint, invertMatrix, transformBounds, type Bounds2D, type Point2D } from "./spatial";
+import {
+  containsPoint,
+  invertMatrix,
+  transformBounds,
+  type Bounds2D,
+  type Point2D,
+} from "./spatial";
 
 export type RenderItemKey = string;
 
@@ -53,7 +55,12 @@ export type RenderItemPayload =
         fontStyle?: "normal" | "italic";
         fontScale?: number;
         letterSpacing?: number;
-        highlight?: { fill: string; paddingX?: number; paddingY?: number; radius?: number };
+        highlight?: {
+          fill: string;
+          paddingX?: number;
+          paddingY?: number;
+          radius?: number;
+        };
         sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
       }>;
     }
@@ -126,7 +133,14 @@ export type RenderSnapshotItem = {
   payload: RenderItemPayload;
   depth: number;
   projectedOffset: { x: number; y: number };
-  blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
+  blendMode?:
+    | "normal"
+    | "multiply"
+    | "screen"
+    | "add"
+    | "darken"
+    | "lighten"
+    | "overlay";
   effects?: RuntimeEffect[];
   /** Compositing scope from {@link buildRenderPlan} — drives beginLayer/endLayer. */
   compositing?: {
@@ -166,7 +180,10 @@ function resolvePaintFill(style: { fill?: unknown } | undefined): {
 } {
   if (!style?.fill) return {};
   if (typeof style.fill === "string") {
-    return { fill: style.fill, fillPaint: { type: "solid", color: style.fill } };
+    return {
+      fill: style.fill,
+      fillPaint: { type: "solid", color: style.fill },
+    };
   }
   if (
     typeof style.fill === "object" &&
@@ -199,13 +216,15 @@ function resolvePaintFill(style: { fill?: unknown } | undefined): {
   return {};
 }
 
-function nodeStyle(node: RuntimeNode): {
-  fill?: unknown;
-  stroke?: unknown;
-  strokeWidth?: number;
-  fillOpacity?: number;
-  strokeOpacity?: number;
-} | undefined {
+function nodeStyle(node: RuntimeNode):
+  | {
+      fill?: unknown;
+      stroke?: unknown;
+      strokeWidth?: number;
+      fillOpacity?: number;
+      strokeOpacity?: number;
+    }
+  | undefined {
   if ("style" in node) {
     return (node as { style?: Record<string, unknown> }).style as
       | {
@@ -233,19 +252,29 @@ function payloadForNode(
     case "text": {
       const textNode = node as RuntimeNode & {
         payload: {
-          content?: { kind: "plain"; text: string } | { kind: "runs"; runs: Array<{
-            id: string;
-            text: string;
-            style?: {
-              fill?: string;
-              fontAssetId?: string;
-              fontWeight?: number;
-              fontStyle?: "normal" | "italic";
-              fontScale?: number;
-              letterSpacing?: number;
-              highlight?: { fill: string; paddingX?: number; paddingY?: number; radius?: number };
-            };
-          }> };
+          content?:
+            | { kind: "plain"; text: string }
+            | {
+                kind: "runs";
+                runs: Array<{
+                  id: string;
+                  text: string;
+                  style?: {
+                    fill?: string;
+                    fontAssetId?: string;
+                    fontWeight?: number;
+                    fontStyle?: "normal" | "italic";
+                    fontScale?: number;
+                    letterSpacing?: number;
+                    highlight?: {
+                      fill: string;
+                      paddingX?: number;
+                      paddingY?: number;
+                      radius?: number;
+                    };
+                  };
+                }>;
+              };
           text?: string;
           fontSize: number;
           fontWeight?: number;
@@ -371,9 +400,15 @@ function payloadForNode(
         fill: paint.fill,
         ...(paint.fillPaint ? { fillPaint: paint.fillPaint } : {}),
         ...(typeof style?.stroke === "string" ? { stroke: style.stroke } : {}),
-        ...(style?.strokeWidth != null ? { strokeWidth: style.strokeWidth } : {}),
-        ...(style?.fillOpacity != null ? { fillOpacity: style.fillOpacity } : {}),
-        ...(style?.strokeOpacity != null ? { strokeOpacity: style.strokeOpacity } : {}),
+        ...(style?.strokeWidth != null
+          ? { strokeWidth: style.strokeWidth }
+          : {}),
+        ...(style?.fillOpacity != null
+          ? { fillOpacity: style.fillOpacity }
+          : {}),
+        ...(style?.strokeOpacity != null
+          ? { strokeOpacity: style.strokeOpacity }
+          : {}),
       };
     }
     case "video": {
@@ -422,7 +457,9 @@ function resolveCameraMatrix(
   if (!cameraId) {
     return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   }
-  const cam = evaluated.find((item) => item.node.id === cameraId && item.node.type === "camera");
+  const cam = evaluated.find(
+    (item) => item.node.id === cameraId && item.node.type === "camera",
+  );
   if (!cam || cam.node.type !== "camera") {
     return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   }
@@ -459,7 +496,9 @@ export function buildRenderSnapshot(input: {
   const renderPlan = buildRenderPlan(input.scene, evaluated, {
     time: input.time,
   });
-  const passByNodeId = new Map(renderPlan.passes.map((pass) => [pass.nodeId, pass]));
+  const passByNodeId = new Map(
+    renderPlan.passes.map((pass) => [pass.nodeId, pass]),
+  );
   const cameraMatrix = resolveCameraMatrix(
     input.scene,
     evaluated,
@@ -471,7 +510,11 @@ export function buildRenderSnapshot(input: {
     const zB = b.node.zIndex ?? 0;
     if (zA !== zB) return zA - zB;
     // Phase 11: depth sort for perspective-3d
-    if (input.scene.space === "perspective-3d" && a.worldMatrix4 && b.worldMatrix4) {
+    if (
+      input.scene.space === "perspective-3d" &&
+      a.worldMatrix4 &&
+      b.worldMatrix4
+    ) {
       const depthA = depthFromMat4(a.worldMatrix4, 0, 0);
       const depthB = depthFromMat4(b.worldMatrix4, 0, 0);
       if (Math.abs(depthA - depthB) > 1e-6) return depthA - depthB;
@@ -543,7 +586,9 @@ export function buildRenderSnapshot(input: {
     space: input.scene.space ?? "flat-2d",
     projection: {
       kind: "orthographic",
-      ...(input.scene.activeCameraId ? { cameraId: input.scene.activeCameraId } : {}),
+      ...(input.scene.activeCameraId
+        ? { cameraId: input.scene.activeCameraId }
+        : {}),
     },
     cameraMatrix,
     items,
@@ -560,10 +605,7 @@ export function worldOrigin(matrix: Matrix2D): { x: number; y: number } {
 
 function itemLocalHit(item: RenderSnapshotItem, point: Point2D): boolean {
   if (!item.visible || !item.selectable || item.locked) return false;
-  if (
-    item.payload.kind === "group" ||
-    item.payload.kind === "unknown"
-  ) {
+  if (item.payload.kind === "group" || item.payload.kind === "unknown") {
     return false;
   }
   if (!containsPoint(item.worldBounds, point)) return false;

@@ -27,7 +27,7 @@ export type PaintCommand =
       time: number;
       /** Perspective 3D projection (Phase 11). When present, painters should use matrix4. */
       projection?: {
-        viewMatrix: number[];      // 4×4
+        viewMatrix: number[]; // 4×4
         projectionMatrix: number[]; // 4×4
       };
     }
@@ -54,7 +54,14 @@ export type PaintCommand =
       alpha: number;
       visible: boolean;
       zIndex: number;
-      blendMode?: "normal" | "multiply" | "screen" | "add" | "darken" | "lighten" | "overlay";
+      blendMode?:
+        | "normal"
+        | "multiply"
+        | "screen"
+        | "add"
+        | "darken"
+        | "lighten"
+        | "overlay";
       /** 4×4 world matrix for perspective-3d projection (Phase 11). */
       matrix4?: number[];
     }
@@ -85,7 +92,12 @@ export type PaintCommand =
         fontStyle?: "normal" | "italic";
         fontScale?: number;
         letterSpacing?: number;
-        highlight?: { fill: string; paddingX?: number; paddingY?: number; radius?: number };
+        highlight?: {
+          fill: string;
+          paddingX?: number;
+          paddingY?: number;
+          radius?: number;
+        };
         sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
       }>;
       effects?: RuntimeEffect[];

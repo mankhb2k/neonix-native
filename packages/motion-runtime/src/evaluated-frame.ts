@@ -13,10 +13,7 @@ import {
   type PaintCommandBuffer,
   type RenderDiagnostic,
 } from "./paint";
-import {
-  buildRenderSnapshot,
-  type RenderSnapshot,
-} from "./render-snapshot";
+import { buildRenderSnapshot, type RenderSnapshot } from "./render-snapshot";
 
 export type EvaluatedFrame = {
   frame: number;
@@ -53,7 +50,10 @@ export function evaluateFrame(input: EvaluateFrameInput): EvaluatedFrame {
     background: input.background,
     assetUriById: input.assetUriById,
   });
-  const paint = buildPaintCommandBuffer(interaction, input.perspectiveProjection);
+  const paint = buildPaintCommandBuffer(
+    interaction,
+    input.perspectiveProjection,
+  );
   return {
     frame: input.frame,
     time: input.time,
