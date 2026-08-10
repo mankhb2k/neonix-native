@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   getTextPayloadPlain,
   normalizeTextPayloadInput,
-  parseMotionProjectV2,
   TextContentSchema,
   TextPayloadSchema,
-} from "./index";
+} from "./v2";
+import { parseMotionProjectV2 } from "./v2/parse";
 
 describe("rich text content", () => {
   it("normalizes legacy payload.text to content.plain", () => {

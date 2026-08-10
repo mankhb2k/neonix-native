@@ -8,11 +8,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import {
-  parseMotionProjectV2,
-  serializeMotionProjectV2,
-  MotionProjectV2Schema,
-} from "../../index";
+import { parseMotionProjectV2, serializeMotionProjectV2 } from "../parse";
+import { MotionProjectV2Schema } from "../project";
 
 const fixtureDir = fileURLToPath(
   new URL("../../__fixtures__/v2", import.meta.url),

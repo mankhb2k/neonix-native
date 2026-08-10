@@ -18,8 +18,7 @@ function loadSchema(name: string): {
 }
 
 describe("committed JSON schemas", () => {
-  it("schema/v2.json and schema/v3.json exist", () => {
-    expect(existsSync(join(SCHEMA_DIR, "v2.json"))).toBe(true);
+  it("schema/v3.json exists", () => {
     expect(existsSync(join(SCHEMA_DIR, "v3.json"))).toBe(true);
   });
 
@@ -59,14 +58,5 @@ describe("committed JSON schemas", () => {
     const timelineProps = Object.keys(timeline.properties ?? {});
     expect(timelineProps).toContain("visualTracks");
     expect(timelineProps).not.toContain("sceneOrder");
-  });
-
-  it("v2 schema still encodes sceneOrder", () => {
-    const schema = loadSchema("v2.json");
-    const definition = schema.definitions.MotionProjectV2;
-    const timeline = definition.properties!.timeline as unknown as {
-      properties?: Record<string, unknown>;
-    };
-    expect(Object.keys(timeline.properties ?? {})).toContain("sceneOrder");
   });
 });

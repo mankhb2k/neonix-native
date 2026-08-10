@@ -21,7 +21,7 @@ import {
   RuntimeSourceRefMapSchema,
   type MotionRuntimeIR,
   type MotionRuntimeProject,
-} from "../../index";
+} from "../runtime";
 
 /** Minimal runtime scene mirroring the Phase 1 single-scene golden. */
 function runtimeScene(id = "intro"): Record<string, unknown> {

@@ -8,11 +8,9 @@
  *  - `formatVersion: 3` can never parse through the v2 parser
  */
 import { describe, expect, it } from "vitest";
-import {
-  MotionProjectV2Schema,
-  MOTION_PROJECT_FORMAT_VERSION,
-  parseMotionProjectV2,
-} from "../../index";
+import { MotionProjectV2Schema } from "../project";
+import { MOTION_PROJECT_FORMAT_VERSION } from "../common";
+import { parseMotionProjectV2 } from "../parse";
 
 describe("v2 schema freeze", () => {
   it("MOTION_PROJECT_FORMAT_VERSION stays 2", () => {
