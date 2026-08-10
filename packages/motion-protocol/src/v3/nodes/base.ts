@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../../capabilities";
 import { EffectV2Schema } from "../../v2/effects";
+import { MotionModifierSchema } from "../../v2/modifiers";
 import { NodeTimingV2Schema } from "../../v2/nodes/base";
 import { PaintStyleSchema } from "../../v2/nodes/paint";
 import { TransformV2Schema } from "../../v2/transform";
@@ -61,6 +62,7 @@ export const NodeBaseV3Schema = z.object({
   inheritFlags: InheritFlagsSchema.optional(),
   visible: z.boolean().default(true),
   locked: z.boolean().default(false),
+  modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
 });
 
 export { PaintStyleSchema };

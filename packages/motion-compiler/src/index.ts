@@ -1,6 +1,7 @@
 import {
   NormalizedMotionProjectV2Schema,
   CAPABILITY_MANIFEST_VERSION,
+  MOTION_RUNTIME_VERSION,
   getTextPayloadPlain,
   segmentTextUnits,
   setTextPayloadPlain,
@@ -16,6 +17,7 @@ import { createHash } from "node:crypto";
 import { applyFitText, applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 import { COMPILER_VERSION } from "./compile-cache";
+import { compileMotionProjectV3 } from "./compile-v3";
 
 type RuntimeTrack =
   NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
@@ -1114,6 +1116,19 @@ export function compileMotionProject(
   project: MotionProject,
   options: CompileOptions = {},
 ): NormalizedMotionProjectV2 {
+  // Phase 4: v3 projects compile through the v3 pipeline.
+  if ((project as Record<string, unknown>).formatVersion === 3) {
+    const result = compileMotionProjectV3(project as Parameters<typeof compileMotionProjectV3>[0], options);
+    if (!result.ok) {
+      throw new Error(
+        `compileMotionProject failed: ${result.diagnostics
+          .map((d: { code: string; message: string }) => `${d.code}: ${d.message}`)
+          .join(" | ")}`,
+      );
+    }
+    return result.project;
+  }
+
   const projectVariables = new Map(
     project.variables.map((variable) => [variable.id, clone(variable.value)]),
   );
@@ -1199,6 +1214,7 @@ export function compileMotionProject(
   const ir = {
     format: "motion-runtime",
     formatVersion: 2,
+    runtimeVersion: MOTION_RUNTIME_VERSION,
     metadata: project.metadata,
     assets: project.assets,
     // v3 compiles carry explicit composition settings; v2 compiles derive

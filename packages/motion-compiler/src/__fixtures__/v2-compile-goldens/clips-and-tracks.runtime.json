@@ -1,6 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 2,
+  "runtimeVersion": 1,
   "metadata": {
     "id": "clips-and-tracks",
     "name": "Clips And Tracks",
@@ -21,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 44100
   },
-  "runtimeHash": "f85679fe06c265f4da4f8aa937845726",
+  "runtimeHash": "4568ec6f4a49786c2f96112b60552c17",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "2cb4034e1c85f151",
   "sourceRef": {

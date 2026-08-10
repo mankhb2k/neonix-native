@@ -2,7 +2,7 @@ import { bakeMotionRecipe, compileMotionProject, isMotionRecipe } from "@motionv
 import {
   applyMotionPatch,
   normalizeTextPayloadInput,
-  parseMotionProjectV2,
+  parseMotionProject,
   ProceduralDriverSchema,
   type MotionNode,
   type MotionProject,
@@ -59,29 +59,43 @@ export function createBlankMotionProject(input: {
   primaryColor?: string;
   fps?: number;
 }): MotionProject {
-  return parseMotionProjectV2({
+  const dims = ASPECT_DIMS[input.aspectRatio];
+  return parseMotionProject({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: input.projectId,
       name: input.name,
-      aspectRatio: input.aspectRatio,
-      fps: input.fps ?? 30,
       locale: "vi-VN",
-      brand: {
-        name: input.brandName,
-        ...(input.primaryColor ? { primaryColor: input.primaryColor } : {}),
-      },
     },
-    dependencies: { components: [] },
+    composition: {
+      width: dims.width,
+      height: dims.height,
+      fps: input.fps ?? 30,
+      background: input.primaryColor ?? "#0b1220",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {
+      colors: { brand: input.primaryColor ?? "#0b1220" },
+      fonts: { display: "Be Vietnam Pro" },
+    },
     assets: [],
     variables: [],
-    timeline: { sceneOrder: [], audioTracks: [] },
+    components: [],
     scenes: [],
+    timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
     bindings: [],
-    extensions: { constraints: [], events: [] },
-  });
+  }) as unknown as MotionProject;
 }
+
+const ASPECT_DIMS: Record<string, { width: number; height: number }> = {
+  "16:9": { width: 1920, height: 1080 },
+  "1:1": { width: 1080, height: 1080 },
+  "9:16": { width: 1080, height: 1920 },
+};
 
 function applyOne(
   project: MotionProject | null,
@@ -121,13 +135,15 @@ function applyOne(
         }
         const next = cloneProject(project);
         if (command.projectName) next.metadata.name = command.projectName;
-        if (command.brandName) next.metadata.brand.name = command.brandName;
-        if (command.primaryColor) next.metadata.brand.primaryColor = command.primaryColor;
-        if (command.secondaryColor) next.metadata.brand.secondaryColor = command.secondaryColor;
-        if (command.fontFamily) next.metadata.brand.fontFamily = command.fontFamily;
+        // Phase 9: v3 tokens replace v2 metadata.brand.
+        const tokens = (next as Record<string, unknown>).tokens as Record<string, Record<string, string>> | undefined;
+        if (command.brandName && tokens?.fonts) tokens.fonts.display = command.brandName;
+        if (command.primaryColor && tokens?.colors) tokens.colors.brand = command.primaryColor;
+        if (command.secondaryColor && tokens?.colors) tokens.colors.accent = command.secondaryColor;
+        if (command.fontFamily && tokens?.fonts) tokens.fonts.display = command.fontFamily;
         changedIds.push(next.metadata.id);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next as Parameters<typeof parseMotionProject>[0]),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -160,12 +176,30 @@ function applyOne(
           nodes: [] as MotionNode[],
           clips: [],
         };
-        const insertAt = command.insertAt ?? next.timeline.sceneOrder.length;
+        const insertAt = command.insertAt ?? next.scenes.length;
         next.scenes.splice(Math.min(insertAt, next.scenes.length), 0, scene);
-        next.timeline.sceneOrder.splice(Math.min(insertAt, next.timeline.sceneOrder.length), 0, command.sceneId);
+        // Phase 9: v3 visualTracks replace v2 sceneOrder.
+        const tl = next.timeline as Record<string, unknown>;
+        const visualTracks = (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
+        let mainTrack = visualTracks.find((t) => t.role === "main") as Record<string, unknown> | undefined;
+        if (!mainTrack) {
+          mainTrack = { id: "main-track", role: "main", order: 0, muted: false, clips: [] };
+          visualTracks.push(mainTrack);
+          tl.visualTracks = visualTracks;
+        }
+        const clips = (mainTrack.clips as Array<Record<string, unknown>>) ?? [];
+        clips.splice(Math.min(insertAt, clips.length), 0, {
+          id: `clip-${command.sceneId}`,
+          source: { kind: "scene", sceneId: command.sceneId },
+          start: 0,
+          duration: command.duration,
+          opacity: 1,
+          loop: false,
+        });
+        mainTrack.clips = clips;
         changedIds.push(command.sceneId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next as Parameters<typeof parseMotionProject>[0]),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -195,7 +229,7 @@ function applyOne(
         scene.duration = command.duration;
         changedIds.push(command.sceneId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -229,11 +263,30 @@ function applyOne(
           };
         }
         const next = cloneProject(project);
-        next.timeline.sceneOrder = [...command.sceneOrder];
+        // Phase 9: v3 visualTracks replace v2 sceneOrder.
         next.scenes = command.sceneOrder.map((id) => next.scenes.find((scene) => scene.id === id)!);
+        const tl = next.timeline as Record<string, unknown>;
+        const visualTracks = (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
+        const mainTrack = visualTracks.find((t) => t.role === "main") as Record<string, unknown> | undefined;
+        if (mainTrack) {
+          let cursor = 0;
+          mainTrack.clips = command.sceneOrder.map((sceneId) => {
+            const scene = next.scenes.find((s) => s.id === sceneId);
+            const clip = {
+              id: `clip-${sceneId}`,
+              source: { kind: "scene", sceneId },
+              start: cursor,
+              duration: (scene as Record<string, unknown> | undefined)?.duration ?? 2,
+              opacity: 1,
+              loop: false,
+            };
+            cursor += (scene as Record<string, unknown> | undefined)?.duration as number ?? 2;
+            return clip;
+          });
+        }
         changedIds.push(...command.sceneOrder);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next as Parameters<typeof parseMotionProject>[0]),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -302,9 +355,9 @@ function applyOne(
             payload: {
               content: { kind: "plain" as const, text: command.text ?? "" },
               fontSize: command.fontSize ?? 48,
-              align: "center" as const,
+              color: command.fill ?? "#ffffff",
+              alignment: "center" as const,
             },
-            style: { fill: command.fill ?? "#ffffff" },
             ...(semantic ? { semantic } : {}),
           };
         } else {
@@ -321,7 +374,7 @@ function applyOne(
         scene.nodes.push(node);
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -377,7 +430,7 @@ function applyOne(
         });
         changedIds.push(...removeIds);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -443,7 +496,7 @@ function applyOne(
         });
         changedIds.push(command.clipId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -458,7 +511,7 @@ function applyOne(
             },
           };
         }
-        parseMotionProjectV2(project);
+        parseMotionProject(project);
         return {
           project,
           receipt: {
@@ -479,7 +532,7 @@ function applyOne(
             },
           };
         }
-        const compiled = compileMotionProject(parseMotionProjectV2(project));
+        const compiled = compileMotionProject(parseMotionProject(project));
         return {
           project,
           compiled,
@@ -567,7 +620,7 @@ function applyOne(
         node.modifiers = modifiers;
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -617,7 +670,7 @@ function applyOne(
         };
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -699,7 +752,7 @@ function applyOne(
         node.effects = effects;
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -763,11 +816,11 @@ function applyOne(
         }
         if (command.makeActive !== false) {
           scene.activeCameraId = command.cameraId;
-          if (!scene.space) scene.space = "layered-2.5d";
+          if (!scene.space || scene.space === "flat-2d") scene.space = "layered-2.5d";
         }
         changedIds.push(command.cameraId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -836,7 +889,7 @@ function applyOne(
         scene.drivers = drivers;
         changedIds.push(parsed.data.id);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -927,7 +980,7 @@ function applyOne(
           changedIds.push(clipId);
         }
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1018,7 +1071,7 @@ function applyOne(
         next.assets.push(command.asset as MotionProject["assets"][number]);
         changedIds.push(command.asset.id);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1108,7 +1161,7 @@ function applyOne(
         scene.nodes.push(node);
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1187,7 +1240,7 @@ function applyOne(
         scene.nodes.push(node);
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1226,7 +1279,7 @@ function applyOne(
         }
         changedIds.push(command.nodeId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1259,7 +1312,7 @@ function applyOne(
             : command.transition;
         changedIds.push(command.sceneId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1288,8 +1341,10 @@ function applyOne(
         }
         const bgId = "__scene_background__";
         const existing = scene.nodes.find((n) => n.id === bgId);
-        const width = next.metadata.aspectRatio === "9:16" ? 1080 : next.metadata.aspectRatio === "1:1" ? 1080 : 1920;
-        const height = next.metadata.aspectRatio === "9:16" ? 1920 : next.metadata.aspectRatio === "1:1" ? 1080 : 1080;
+        // Phase 9: v3 composition replaces v2 metadata.aspectRatio.
+        const comp = (next as Record<string, unknown>).composition as Record<string, number> | undefined;
+        const width = comp?.width ?? 1920;
+        const height = comp?.height ?? 1080;
         if (existing && existing.type === "solid") {
           existing.payload = { ...existing.payload, color: command.fill, width, height };
           existing.transform = {
@@ -1332,7 +1387,7 @@ function applyOne(
         }
         changedIds.push(bgId);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -1368,7 +1423,7 @@ function applyOne(
         next.timeline = { ...next.timeline, captionTracks: tracks };
         changedIds.push(track.id);
         return {
-          project: parseMotionProjectV2(next),
+          project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }

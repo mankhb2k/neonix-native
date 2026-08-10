@@ -15,6 +15,13 @@ import {
   MOTION_PROJECT_FORMAT_VERSION,
   PropertyPathSchema,
 } from "./common";
+
+/**
+ * Runtime IR version — independent of the project format version.
+ * Incremented when the runtime shape changes (new fields, new node types).
+ * Renderers check this to reject incompatible IR.
+ */
+export const MOTION_RUNTIME_VERSION = 1 as const;
 import {
   AdjustmentNodeV2Schema,
   BoneNodeV2Schema,
@@ -201,6 +208,7 @@ const NormalizedMotionProjectV2BaseSchema = z
   .object({
     format: z.literal("motion-runtime"),
     formatVersion: z.literal(MOTION_PROJECT_FORMAT_VERSION),
+    runtimeVersion: z.literal(MOTION_RUNTIME_VERSION).optional(),
     metadata: ProjectMetadataV2Schema,
     assets: z.array(AssetV2Schema).max(MOTION_V2_LIMITS.assetsPerArtifact),
     composition: RuntimeCompositionMetadataSchema.optional(),
@@ -700,3 +708,5 @@ export type NormalizedMotionProjectV2 = z.infer<
  * representation emitted by the compiler.
  */
 export type MotionRuntimeIR = NormalizedMotionProjectV2;
+/** Preferred Phase 5+ alias for the runtime IR. */
+export type MotionRuntimeProject = NormalizedMotionProjectV2;

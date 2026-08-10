@@ -1,6 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 2,
+  "runtimeVersion": 1,
   "metadata": {
     "id": "empty-project",
     "name": "Empty Project",
@@ -20,7 +21,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 44100
   },
-  "runtimeHash": "35b4bbd4fb61a8c59b42b8cc2fd9fcce",
+  "runtimeHash": "22e1ec451e5cb48c7429e6f8b80cc6a7",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "2cb4034e1c85f151",
   "sourceRef": {
