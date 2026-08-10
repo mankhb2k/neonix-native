@@ -17,7 +17,10 @@ import {
   type TimelineDocument,
 } from "..";
 import { getPropertyDefinition } from "../properties/registry";
-import { fixtureMainOnly, fixtureMainPlusAudioOverlap } from "../testing/fixtures/projects";
+import {
+  fixtureMainOnly,
+  fixtureMainPlusAudioOverlap,
+} from "../testing/fixtures/projects";
 
 describe("property commands", () => {
   it("applies transform.x to focused scene node", () => {
@@ -276,9 +279,9 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(withEffect.status).toBe("applied");
     if (withEffect.status !== "applied") return;
-    expect(withEffect.document.project.scenes[0]!.nodes[0]!.effects?.[0]).toEqual(
-      { id: "fx.blur", type: "blur", radius: 8 },
-    );
+    expect(
+      withEffect.document.project.scenes[0]!.nodes[0]!.effects?.[0],
+    ).toEqual({ id: "fx.blur", type: "blur", radius: 8 });
 
     const withKey = executePropertyCommand(withEffect.document, {
       type: "set-property-keyframe",
@@ -580,9 +583,7 @@ describe("history coalesce", () => {
             ? {
                 ...s,
                 nodes: s.nodes.map((n, j) =>
-                  j === 0
-                    ? { ...n, transform: { ...n.transform, x: 10 } }
-                    : n,
+                  j === 0 ? { ...n, transform: { ...n.transform, x: 10 } } : n,
                 ),
               }
             : s,
@@ -614,9 +615,7 @@ describe("history coalesce", () => {
             ? {
                 ...s,
                 nodes: s.nodes.map((n, j) =>
-                  j === 0
-                    ? { ...n, transform: { ...n.transform, x: 50 } }
-                    : n,
+                  j === 0 ? { ...n, transform: { ...n.transform, x: 50 } } : n,
                 ),
               }
             : s,

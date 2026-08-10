@@ -1,4 +1,7 @@
-import { parseMotionProjectV2, type MotionProjectV2 } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProjectV2,
+  type MotionProjectV2,
+} from "@motionvideo/motion-protocol";
 import type { OverlaySceneItem } from "../../overlay-scenes";
 import {
   DEFAULT_VISUAL_POLICY,
@@ -64,7 +67,12 @@ function scene(id: string, name: string, duration = 3) {
           flipX: false,
           flipY: false,
         },
-        payload: { content: { kind: "plain" as const, text: name }, fontSize: 24, fontWeight: 600, align: "left" as const },
+        payload: {
+          content: { kind: "plain" as const, text: name },
+          fontSize: 24,
+          fontWeight: 600,
+          align: "left" as const,
+        },
         style: { fill: "#111111" },
       },
     ],
@@ -72,7 +80,11 @@ function scene(id: string, name: string, duration = 3) {
   };
 }
 
-function baseProject(id: string, name: string, scenes: ReturnType<typeof scene>[]): MotionProjectV2 {
+function baseProject(
+  id: string,
+  name: string,
+  scenes: ReturnType<typeof scene>[],
+): MotionProjectV2 {
   return parseMotionProjectV2({
     format: "motion-project",
     formatVersion: 2,
@@ -167,9 +179,11 @@ export function fixtureBasePlusOverlay() {
 
 /** Main + nhiều audio track overlap (để kiểm tra migration lane). */
 export function fixtureMainPlusAudioOverlap() {
-  const base = baseProject("fixture.main-audio-overlap", "Main + Audio Overlap", [
-    scene("scene.main", "Main", 6),
-  ]);
+  const base = baseProject(
+    "fixture.main-audio-overlap",
+    "Main + Audio Overlap",
+    [scene("scene.main", "Main", 6)],
+  );
   const project = parseMotionProjectV2({
     ...base,
     assets: [
@@ -334,7 +348,12 @@ export function fixtureMultiSceneReferences() {
               flipX: false,
               flipY: false,
             },
-            payload: { content: { kind: "plain", text: "A" }, fontSize: 18, fontWeight: 400, align: "left" },
+            payload: {
+              content: { kind: "plain", text: "A" },
+              fontSize: 18,
+              fontWeight: 400,
+              align: "left",
+            },
             style: { fill: "#000" },
           },
         ],
@@ -384,7 +403,12 @@ export function fixtureMultiSceneReferences() {
               flipX: false,
               flipY: false,
             },
-            payload: { content: { kind: "plain", text: "B" }, fontSize: 20, fontWeight: 600, align: "left" },
+            payload: {
+              content: { kind: "plain", text: "B" },
+              fontSize: 20,
+              fontWeight: 600,
+              align: "left",
+            },
             style: { fill: "#222" },
           },
         ],

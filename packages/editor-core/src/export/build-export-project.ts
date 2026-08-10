@@ -35,7 +35,11 @@ function uid(prefix: string): string {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function emptyPadScene(id: string, duration: number, name: string): MotionScene {
+function emptyPadScene(
+  id: string,
+  duration: number,
+  name: string,
+): MotionScene {
   return {
     id,
     name,
@@ -154,7 +158,9 @@ function findClipById(
  * Base gaps → pad scenes; overlay active → merge nodes vào segment.
  * Rejects invalid TimelineDocument when validation fails.
  */
-export function buildExportProject(snapshot: EditorExportSnapshot): MotionProjectV2 {
+export function buildExportProject(
+  snapshot: EditorExportSnapshot,
+): MotionProjectV2 {
   const { project, timelineClips, timelineLanes } = snapshot;
   const doc = documentFromStoreState({
     project,
@@ -302,7 +308,10 @@ export function resolveBakedLocalTime(
       if (globalTime >= cursor || Math.abs(globalTime - cursor) < 1e-9) {
         return {
           sceneId,
-          localTime: Math.max(0, Math.min(scene.duration - 1e-6, globalTime - cursor)),
+          localTime: Math.max(
+            0,
+            Math.min(scene.duration - 1e-6, globalTime - cursor),
+          ),
         };
       }
     }
