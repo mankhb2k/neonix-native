@@ -78,7 +78,11 @@ describe("rich text content", () => {
                 content: {
                   kind: "runs",
                   runs: [
-                    { id: "r1", text: "Hello ", style: { fill: "#fff", fontWeight: 700 } },
+                    {
+                      id: "r1",
+                      text: "Hello ",
+                      style: { fill: "#fff", fontWeight: 700 },
+                    },
                     { id: "r2", text: "World", style: { fill: "#0f0" } },
                   ],
                 },

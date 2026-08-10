@@ -1,0 +1,248 @@
+{
+  "format": "motion-project",
+  "formatVersion": 3,
+  "metadata": {
+    "id": "clips-and-tracks",
+    "name": "Clips And Tracks",
+    "description": "Scene with property tracks and a preset clip",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": []
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [],
+  "components": [],
+  "scenes": [
+    {
+      "id": "intro",
+      "name": "Introduction",
+      "duration": 5,
+      "space": "flat-2d",
+      "nodes": [
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Animated Title"
+            },
+            "fontSize": 64,
+            "color": "#000000",
+            "alignment": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          }
+        },
+        {
+          "id": "subtitle",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 960,
+            "y": 700,
+            "width": 600,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Property track clip"
+            },
+            "fontSize": 32,
+            "color": "#000000",
+            "alignment": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          }
+        }
+      ],
+      "clips": [
+        {
+          "id": "title-fade-in",
+          "targetId": "title",
+          "schedule": {
+            "kind": "absolute",
+            "at": 0
+          },
+          "duration": 1,
+          "playback": {
+            "iterations": 1,
+            "direction": "normal",
+            "rate": 1
+          },
+          "source": {
+            "kind": "tracks",
+            "tracks": [
+              {
+                "targetId": "title",
+                "property": "transform.opacity",
+                "valueKind": "number",
+                "keys": [
+                  {
+                    "t": 0,
+                    "v": 0
+                  },
+                  {
+                    "t": 1,
+                    "v": 1,
+                    "easing": "easeOut"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "title-pop",
+          "targetId": "title",
+          "schedule": {
+            "kind": "after",
+            "clipId": "title-fade-in",
+            "offset": 0.5
+          },
+          "duration": 1,
+          "playback": {
+            "iterations": 1,
+            "direction": "normal",
+            "rate": 1
+          },
+          "source": {
+            "kind": "preset",
+            "presetId": "pop",
+            "params": {
+              "fromScale": 0.8
+            }
+          }
+        },
+        {
+          "id": "subtitle-slide",
+          "targetId": "subtitle",
+          "schedule": {
+            "kind": "absolute",
+            "at": 1
+          },
+          "duration": 1.5,
+          "playback": {
+            "iterations": 1,
+            "direction": "normal",
+            "rate": 1
+          },
+          "source": {
+            "kind": "tracks",
+            "tracks": [
+              {
+                "targetId": "subtitle",
+                "property": "transform.x",
+                "valueKind": "number",
+                "preBehavior": {
+                  "type": "clamp"
+                },
+                "postBehavior": {
+                  "type": "clamp"
+                },
+                "keys": [
+                  {
+                    "t": 0,
+                    "v": 1200
+                  },
+                  {
+                    "t": 1.5,
+                    "v": 960,
+                    "easing": "easeInOut"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main-track",
+        "role": "main",
+        "order": 0,
+        "muted": false,
+        "clips": [
+          {
+            "id": "clip-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 5,
+            "loop": false,
+            "opacity": 1
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "bindings": [],
+  "extensions": {}
+}

@@ -9,7 +9,7 @@
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Default"
+      "name": "Empty Project"
     }
   },
   "assets": [],
@@ -17,11 +17,11 @@
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "background": "#000000",
+    "background": "#ffffff",
     "colorSpace": "srgb",
-    "audioSampleRate": 44100
+    "audioSampleRate": 48000
   },
-  "runtimeHash": "67cced7bbb9da5772e630cbe2783c4f6",
+  "runtimeHash": "226bf6ea1af27fd5bb925bed8405b0ee",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {

@@ -1,18 +1,31 @@
 {
-  "format": "motion-runtime",
-  "formatVersion": 2,
-  "runtimeVersion": 1,
+  "format": "motion-project",
+  "formatVersion": 3,
   "metadata": {
     "id": "multi-asset",
     "name": "Multi Asset",
-    "aspectRatio": "16:9",
-    "fps": 30,
-    "locale": "vi-VN",
-    "brand": {
-      "name": "Default"
-    },
-    "description": "Scene with text, image, svg, video nodes and an audio track"
+    "description": "Scene with text, image, svg, video nodes and an audio track",
+    "locale": "vi-VN"
   },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": []
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
   "assets": [
     {
       "id": "logo-png",
@@ -46,12 +59,11 @@
       "height": 1080,
       "duration": 10,
       "fps": 30,
-      "videoCodec": "h264",
+      "codec": "h264",
       "pixelFormat": "yuv420p",
-      "hasAudio": true,
       "audioCodec": "aac",
-      "sampleRate": 48000,
-      "channels": 2
+      "audioSampleRate": 48000,
+      "audioChannels": 2
     },
     {
       "id": "bgm",
@@ -65,53 +77,13 @@
       "channels": 2
     }
   ],
-  "composition": {
-    "width": 1920,
-    "height": 1080,
-    "fps": 30,
-    "background": "#000000",
-    "colorSpace": "srgb",
-    "audioSampleRate": 44100
-  },
-  "runtimeHash": "2e2c2a7bbfb4faf06ee730e84fa1bdcd",
-  "compilerVersion": "2.0.0-phase6",
-  "capabilityFingerprint": "9b160197f31b7b54",
-  "sourceRef": {
-    "scenes": {
-      "intro": "scenes:intro"
-    }
-  },
-  "timeline": {
-    "sceneOrder": [
-      "intro"
-    ],
-    "audioTracks": [
-      {
-        "id": "track-bgm",
-        "role": "bgm",
-        "assetId": "bgm",
-        "start": 0,
-        "trimStart": 0,
-        "volume": 0.8,
-        "loop": false,
-        "fadeIn": 0.5,
-        "fadeOut": 1
-      }
-    ],
-    "captionTracks": []
-  },
+  "components": [],
   "scenes": [
     {
       "id": "intro",
+      "name": "Introduction",
       "duration": 5,
       "space": "flat-2d",
-      "activeCameraId": "main-camera",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "intro"
-        ]
-      },
       "nodes": [
         {
           "id": "main-camera",
@@ -132,9 +104,17 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
           "payload": {
-            "zoom": 1,
             "projection": "orthographic",
+            "zoom": 1,
             "parallaxStrength": 1
           }
         },
@@ -158,13 +138,24 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
           "payload": {
             "content": {
               "kind": "plain",
               "text": "Multi Asset Scene"
             },
             "fontSize": 48,
-            "align": "center"
+            "color": "#000000",
+            "alignment": "center",
+            "wrap": "word",
+            "overflow": "visible"
           }
         },
         {
@@ -187,6 +178,14 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
           "payload": {
             "assetId": "logo-png",
             "fit": "contain"
@@ -212,6 +211,14 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
           "payload": {
             "assetId": "logo-svg",
             "fit": "contain"
@@ -237,6 +244,14 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
           "payload": {
             "assetId": "clip-video",
             "fit": "cover",
@@ -244,7 +259,50 @@
           }
         }
       ],
-      "tracks": []
+      "clips": [],
+      "activeCameraId": "main-camera"
     }
-  ]
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main-track",
+        "role": "main",
+        "order": 0,
+        "muted": false,
+        "clips": [
+          {
+            "id": "clip-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 5,
+            "loop": false,
+            "opacity": 1
+          }
+        ]
+      }
+    ],
+    "audioTracks": [
+      {
+        "id": "track-bgm",
+        "role": "bgm",
+        "assetId": "bgm",
+        "start": 0,
+        "duration": 42.5,
+        "trimStart": 0,
+        "playbackRate": 1,
+        "volume": 0.8,
+        "loop": false,
+        "fadeIn": 0.5,
+        "fadeOut": 1,
+        "muted": false
+      }
+    ],
+    "captionTracks": []
+  },
+  "bindings": [],
+  "extensions": {}
 }

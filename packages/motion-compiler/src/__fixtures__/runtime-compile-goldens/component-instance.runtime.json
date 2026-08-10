@@ -9,54 +9,54 @@
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Default"
+      "name": "Component Instance"
     },
-    "description": "Project with a component instance"
+    "description": "Project with an embedded component used by a visual clip"
   },
   "assets": [],
   "composition": {
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "background": "#000000",
+    "background": "#ffffff",
     "colorSpace": "srgb",
-    "audioSampleRate": 44100
+    "audioSampleRate": 48000
   },
-  "runtimeHash": "f54f59fad60c562705483280a5b0fc4d",
+  "runtimeHash": "f8cd67c0ef1a7b373737b29a3fe2b1be",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
     "scenes": {
-      "intro": "scenes:intro"
+      "clip-logo-reveal": "components:logo-reveal#logo-reveal@1.0.0"
     }
   },
   "timeline": {
     "sceneOrder": [
-      "intro"
+      "clip-logo-reveal"
     ],
     "audioTracks": [],
     "captionTracks": []
   },
   "scenes": [
     {
-      "id": "intro",
-      "duration": 5,
-      "space": "flat-2d",
+      "id": "clip-logo-reveal",
+      "duration": 4,
       "sourceRef": {
         "projectPath": [
-          "scenes",
-          "intro"
-        ]
+          "components",
+          "logo-reveal"
+        ],
+        "sourceModule": "logo-reveal@1.0.0"
       },
       "nodes": [
         {
-          "id": "logo-reveal-instance::logo",
+          "id": "logo",
           "type": "solid",
           "parentId": null,
-          "zIndex": 2,
+          "zIndex": 1,
           "transform": {
-            "x": 960,
-            "y": 540,
+            "x": 0,
+            "y": 0,
             "width": 256,
             "height": 256,
             "rotation": 0,
@@ -69,6 +69,10 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "width": 256,
             "height": 256,

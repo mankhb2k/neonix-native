@@ -3,38 +3,37 @@
   "formatVersion": 2,
   "runtimeVersion": 1,
   "metadata": {
-    "id": "transition",
-    "name": "Transition",
+    "id": "variables-bindings",
+    "name": "Variables And Bindings",
     "aspectRatio": "16:9",
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Default"
+      "name": "Variables And Bindings",
+      "primaryColor": "#1877f2"
     },
-    "description": "Two scenes with a fade transition between them"
+    "description": "Project with variables and project bindings"
   },
   "assets": [],
   "composition": {
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "background": "#000000",
+    "background": "#1877f2",
     "colorSpace": "srgb",
-    "audioSampleRate": 44100
+    "audioSampleRate": 48000
   },
-  "runtimeHash": "cb815427e28a0ecc6ff397cea5883c48",
+  "runtimeHash": "f68f21ec2fa2a8202cb968f04f1fc246",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
     "scenes": {
-      "intro": "scenes:intro",
-      "outro": "scenes:outro"
+      "intro": "scenes:intro"
     }
   },
   "timeline": {
     "sceneOrder": [
-      "intro",
-      "outro"
+      "intro"
     ],
     "audioTracks": [],
     "captionTracks": []
@@ -42,14 +41,8 @@
   "scenes": [
     {
       "id": "intro",
-      "duration": 3,
+      "duration": 5,
       "space": "flat-2d",
-      "transition": {
-        "type": "fade",
-        "duration": 0.5,
-        "color": "#000000",
-        "easing": "easeInOut"
-      },
       "sourceRef": {
         "projectPath": [
           "scenes",
@@ -58,13 +51,13 @@
       },
       "nodes": [
         {
-          "id": "intro-title",
+          "id": "title",
           "type": "text",
           "parentId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
-            "y": 540,
+            "y": 400,
             "width": 800,
             "height": 120,
             "rotation": 0,
@@ -72,44 +65,39 @@
             "scaleY": 1,
             "anchorX": 0.5,
             "anchorY": 0.5,
-            "opacity": 1,
+            "opacity": 0.9,
             "visible": true,
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "content": {
               "kind": "plain",
-              "text": "First Scene"
+              "text": "Founder:"
             },
             "fontSize": 64,
-            "align": "center"
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
           }
-        }
-      ],
-      "tracks": []
-    },
-    {
-      "id": "outro",
-      "duration": 2,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "outro"
-        ]
-      },
-      "nodes": [
+        },
         {
-          "id": "outro-title",
+          "id": "subtitle",
           "type": "text",
           "parentId": null,
-          "zIndex": 1,
+          "zIndex": 2,
           "transform": {
             "x": 960,
-            "y": 540,
+            "y": 600,
             "width": 800,
-            "height": 120,
+            "height": 100,
             "rotation": 0,
             "scaleX": 1,
             "scaleY": 1,
@@ -120,13 +108,22 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "content": {
               "kind": "plain",
-              "text": "Second Scene"
+              "text": "Mark Zuckerberg"
             },
-            "fontSize": 64,
-            "align": "center"
+            "fontSize": 48,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
           }
         }
       ],

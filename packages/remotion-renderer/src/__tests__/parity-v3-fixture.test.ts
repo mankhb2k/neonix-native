@@ -1,5 +1,5 @@
 /**
- * Phase 1 — v2 fixture parity (Remotion side).
+ * Phase 3 — v3 fixture parity (Remotion side).
  *
  * The F3 multi-asset fixture is compiled and evaluated at three key frames.
  * The Remotion paint tree must consume the same evaluated `PaintCommandBuffer`
@@ -10,9 +10,9 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { compileMotionProjectV2 } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
 import {
-  parseMotionProjectV2,
+  parseMotionProjectV3,
   type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
@@ -26,13 +26,13 @@ import {
 } from "../build-remotion-paint-tree";
 
 const projectFixtureDir = fileURLToPath(
-  new URL("../../../motion-protocol/src/__fixtures__/v2", import.meta.url),
+  new URL("../../../motion-protocol/src/__fixtures__/v3", import.meta.url),
 );
 
 function loadMultiAsset(): MotionRuntimeProject {
   const file = path.join(projectFixtureDir, "multi-asset.project.json");
-  const project = parseMotionProjectV2(JSON.parse(readFileSync(file, "utf8")));
-  const result = compileMotionProjectV2(project);
+  const project = parseMotionProjectV3(JSON.parse(readFileSync(file, "utf8")));
+  const result = compileMotionProjectV3(project);
   if (!result.ok) {
     throw new Error(
       result.diagnostics.map((diagnostic) => diagnostic.message).join("; "),
@@ -47,7 +47,7 @@ function keyFrames(totalDuration: number, fps: number): number[] {
   return [0, middleFrame, lastFrame];
 }
 
-describe("v2 fixture parity (Remotion)", () => {
+describe("v3 fixture parity (Remotion)", () => {
   it("builds Remotion paint tree for multi-asset evaluated frames", () => {
     const runtime = loadMultiAsset();
     const fps = 30;

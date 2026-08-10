@@ -273,9 +273,9 @@ describe("source refs (Task 6.4)", () => {
         sourceModule: "button@1.0.0",
       }).success,
     ).toBe(true);
-    expect(
-      RuntimeSourceRefSchema.safeParse({ projectPath: [] }).success,
-    ).toBe(false);
+    expect(RuntimeSourceRefSchema.safeParse({ projectPath: [] }).success).toBe(
+      false,
+    );
   });
 
   it("validates the project-level source ref map", () => {
@@ -372,8 +372,6 @@ describe("serializability (Task 6.6)", () => {
     const ir = baseIR();
     ir.composition = { width: 1080, height: 1920, fps: 30 };
     const parsed = MotionRuntimeProjectSchema.parse(ir);
-    expect(
-      MotionRuntimeProjectSchema.safeParse(parsed).success,
-    ).toBe(true);
+    expect(MotionRuntimeProjectSchema.safeParse(parsed).success).toBe(true);
   });
 });

@@ -37,4 +37,4 @@ const runtime = compileMotionProject(project, { components });
 ## Docs
 
 - [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md)
-- Runtime goldens: `pnpm validate:v2-fixtures` / `pnpm update:v2-goldens`
+- Runtime goldens: `pnpm validate:motion-fixtures` / `pnpm update:runtime-goldens`

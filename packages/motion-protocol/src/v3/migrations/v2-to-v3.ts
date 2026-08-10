@@ -457,13 +457,10 @@ function mapNode(
         payload: {
           // v2 schema preprocess normalizes legacy `{ text }` to content, but
           // raw v2-shaped inputs (e.g. in-memory fixtures) may still carry it.
-          content:
-            node.payload.content ??
-            {
-              kind: "plain",
-              text:
-                (node.payload as { text?: string }).text ?? "",
-            },
+          content: node.payload.content ?? {
+            kind: "plain",
+            text: (node.payload as { text?: string }).text ?? "",
+          },
           fontAssetId: node.payload.fontAssetId,
           fontSize: node.payload.fontSize,
           color: fillToHexOrNull(node.style?.fill) ?? "#000000",
@@ -478,11 +475,12 @@ function mapNode(
     case "image":
       return { ...base, type: "image", payload: node.payload };
     case "svg":
+      // V3 SvgNodeV3Schema is strict and carries no top-level `style`;
+      // v2 svg style is not representable in the v3 media node.
       return {
         ...base,
         type: "svg",
         payload: node.payload,
-        style: node.style,
       };
     case "video":
       return { ...base, type: "video", payload: node.payload };

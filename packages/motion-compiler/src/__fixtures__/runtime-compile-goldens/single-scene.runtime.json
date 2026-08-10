@@ -3,27 +3,26 @@
   "formatVersion": 2,
   "runtimeVersion": 1,
   "metadata": {
-    "id": "variables-bindings",
-    "name": "Variables And Bindings",
+    "id": "single-scene",
+    "name": "Single Scene",
     "aspectRatio": "16:9",
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Default",
-      "primaryColor": "#1877f2"
+      "name": "Single Scene"
     },
-    "description": "Project with variables and project bindings"
+    "description": "One scene with a single text node"
   },
   "assets": [],
   "composition": {
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "background": "#000000",
+    "background": "#ffffff",
     "colorSpace": "srgb",
-    "audioSampleRate": 44100
+    "audioSampleRate": 48000
   },
-  "runtimeHash": "d99a0b4837be84abd3297fb4c58ce8dd",
+  "runtimeHash": "000f32f6a5fbf9e32da383b51db91047",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
@@ -57,38 +56,9 @@
           "zIndex": 1,
           "transform": {
             "x": 960,
-            "y": 400,
+            "y": 540,
             "width": 800,
             "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 0.9,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Founder:"
-            },
-            "fontSize": 64,
-            "align": "center"
-          }
-        },
-        {
-          "id": "subtitle",
-          "type": "text",
-          "parentId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 960,
-            "y": 600,
-            "width": 800,
-            "height": 100,
             "rotation": 0,
             "scaleX": 1,
             "scaleY": 1,
@@ -99,13 +69,22 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "content": {
               "kind": "plain",
-              "text": "Mark Zuckerberg"
+              "text": "Hello MotiClip"
             },
-            "fontSize": 48,
-            "align": "center"
+            "fontSize": 64,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
           }
         }
       ],

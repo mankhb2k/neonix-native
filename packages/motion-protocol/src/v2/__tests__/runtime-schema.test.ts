@@ -91,9 +91,8 @@ describe("runtime IR backward compatibility", () => {
 
   it("MotionRuntimeIR is the same type as MotionRuntimeProject", () => {
     // Compile-time alias check: assignment in both directions.
-    const asAlias: MotionRuntimeIR = NormalizedMotionProjectV2Schema.parse(
-      baseIR(),
-    );
+    const asAlias: MotionRuntimeIR =
+      NormalizedMotionProjectV2Schema.parse(baseIR());
     const asCanonical: MotionRuntimeProject = asAlias;
     expect(asCanonical.format).toBe("motion-runtime");
   });
@@ -277,9 +276,9 @@ describe("source refs (Task 6.4)", () => {
         sourceModule: "button@1.0.0",
       }).success,
     ).toBe(true);
-    expect(
-      RuntimeSourceRefSchema.safeParse({ projectPath: [] }).success,
-    ).toBe(false);
+    expect(RuntimeSourceRefSchema.safeParse({ projectPath: [] }).success).toBe(
+      false,
+    );
   });
 
   it("validates the project-level source ref map", () => {
@@ -378,8 +377,8 @@ describe("serializability (Task 6.6)", () => {
     const ir = baseIR();
     ir.composition = { width: 1080, height: 1920, fps: 30 };
     const parsed = NormalizedMotionProjectV2Schema.parse(ir);
-    expect(
-      NormalizedMotionProjectV2Schema.safeParse(parsed).success,
-    ).toBe(true);
+    expect(NormalizedMotionProjectV2Schema.safeParse(parsed).success).toBe(
+      true,
+    );
   });
 });

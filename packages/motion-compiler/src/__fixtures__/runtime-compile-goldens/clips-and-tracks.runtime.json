@@ -9,7 +9,7 @@
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Default"
+      "name": "Clips And Tracks"
     },
     "description": "Scene with property tracks and a preset clip"
   },
@@ -18,11 +18,11 @@
     "width": 1920,
     "height": 1080,
     "fps": 30,
-    "background": "#000000",
+    "background": "#ffffff",
     "colorSpace": "srgb",
-    "audioSampleRate": 44100
+    "audioSampleRate": 48000
   },
-  "runtimeHash": "cf1b802b12bdda448249ffbe406099a2",
+  "runtimeHash": "42535d28ed67e7374d8706d4c0da72b9",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
@@ -69,13 +69,22 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "content": {
               "kind": "plain",
               "text": "Animated Title"
             },
             "fontSize": 64,
-            "align": "center"
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
           }
         },
         {
@@ -98,13 +107,22 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "content": {
               "kind": "plain",
               "text": "Property track clip"
             },
             "fontSize": 32,
-            "align": "center"
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
           }
         }
       ],

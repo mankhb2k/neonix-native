@@ -1,5 +1,5 @@
 /**
- * Phase 1 — v2 fixture parity (Pixi side).
+ * Phase 3 — v3 fixture parity (Pixi side).
  *
  * The F3 multi-asset fixture is compiled and evaluated at three key frames.
  * The Pixi painter must be able to consume the evaluated `PaintCommandBuffer`
@@ -10,9 +10,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { Container } from "pixi.js";
-import { compileMotionProjectV2 } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
 import {
-  parseMotionProjectV2,
+  parseMotionProjectV3,
   type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
@@ -23,13 +23,13 @@ import { paintParityDrawKeys } from "@motionvideo/motion-runtime/testing";
 import { createPixiFramePainter } from "../PixiFramePainter";
 
 const projectFixtureDir = fileURLToPath(
-  new URL("../../../motion-protocol/src/__fixtures__/v2", import.meta.url),
+  new URL("../../../motion-protocol/src/__fixtures__/v3", import.meta.url),
 );
 
 function loadMultiAsset(): MotionRuntimeProject {
   const file = path.join(projectFixtureDir, "multi-asset.project.json");
-  const project = parseMotionProjectV2(JSON.parse(readFileSync(file, "utf8")));
-  const result = compileMotionProjectV2(project);
+  const project = parseMotionProjectV3(JSON.parse(readFileSync(file, "utf8")));
+  const result = compileMotionProjectV3(project);
   if (!result.ok) {
     throw new Error(
       result.diagnostics.map((diagnostic) => diagnostic.message).join("; "),
@@ -44,7 +44,7 @@ function keyFrames(totalDuration: number, fps: number): number[] {
   return [0, middleFrame, lastFrame];
 }
 
-describe("v2 fixture parity (Pixi)", () => {
+describe("v3 fixture parity (Pixi)", () => {
   it("paints multi-asset evaluated frames headless-safely with matching draw keys", () => {
     const runtime = loadMultiAsset();
     const fps = 30;

@@ -10,10 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import {
-  MotionRuntimeProjectSchema,
-  V3,
-} from "@motionvideo/motion-protocol";
+import { MotionRuntimeProjectSchema, V3 } from "@motionvideo/motion-protocol";
 import {
   buildCompileCacheKeyV3,
   compileMotionProjectV3,

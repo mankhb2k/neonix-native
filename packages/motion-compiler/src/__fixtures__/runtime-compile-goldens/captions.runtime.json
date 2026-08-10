@@ -9,7 +9,7 @@
     "fps": 30,
     "locale": "vi-VN",
     "brand": {
-      "name": "Default"
+      "name": "Captions"
     },
     "description": "Scene with a caption track"
   },
@@ -18,11 +18,11 @@
     "width": 1080,
     "height": 1920,
     "fps": 30,
-    "background": "#000000",
+    "background": "#ffffff",
     "colorSpace": "srgb",
-    "audioSampleRate": 44100
+    "audioSampleRate": 48000
   },
-  "runtimeHash": "b40c9e5dab8ac2fc92f488e50da07339",
+  "runtimeHash": "dd3c77e042e67bb02c32debd99314cb5",
   "compilerVersion": "2.0.0-phase6",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
@@ -102,13 +102,22 @@
             "flipX": false,
             "flipY": false
           },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
           "payload": {
             "content": {
               "kind": "plain",
               "text": "Captioned Video"
             },
             "fontSize": 64,
-            "align": "center"
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
           }
         }
       ],

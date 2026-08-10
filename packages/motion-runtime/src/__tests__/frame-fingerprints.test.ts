@@ -1,7 +1,7 @@
 /**
- * Phase 1 — v2 runtime frame fingerprints.
+ * Phase 3 — runtime frame fingerprints.
  *
- * Every v2 fixture is compiled to runtime IR and evaluated at three key
+ * Every v3 fixture is compiled to runtime IR and evaluated at three key
  * frames (first / middle / last). The structural fingerprint of each frame
  * is compared against a checked-in golden file, guaranteeing that v3 work
  * cannot silently change current runtime output.
@@ -12,12 +12,8 @@ import { describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { compileMotionProjectV2 } from "@motionvideo/motion-compiler";
-import {
-  parseMotionProjectV2,
-  parseMotionComponentV2,
-  type MotionComponentV2,
-} from "@motionvideo/motion-protocol";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
+import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
 import {
   evaluateCompositionFrameV3,
   timelineTotalDuration,
@@ -25,10 +21,10 @@ import {
 } from "../index";
 
 const projectFixtureDir = fileURLToPath(
-  new URL("../../../motion-protocol/src/__fixtures__/v2", import.meta.url),
+  new URL("../../../motion-protocol/src/__fixtures__/v3", import.meta.url),
 );
 const goldenDir = fileURLToPath(
-  new URL("../__fixtures__/v2-frame-goldens", import.meta.url),
+  new URL("../__fixtures__/runtime-frame-goldens", import.meta.url),
 );
 
 const UPDATE_GOLDENS = process.env.UPDATE_GOLDENS === "1";
@@ -47,10 +43,6 @@ const FIXTURE_NAMES = [
 function loadJson(name: string, suffix: string): unknown {
   const file = path.join(projectFixtureDir, `${name}.${suffix}`);
   return JSON.parse(readFileSync(file, "utf8")) as unknown;
-}
-
-function loadComponent(name: string): MotionComponentV2 {
-  return parseMotionComponentV2(loadJson(name, "component.json"));
 }
 
 /** Deterministic JSON serialization (sorted object keys). */
@@ -125,10 +117,8 @@ function evaluateFixture(name: string): {
   frameNumbers: number[];
 } {
   const input = loadJson(name, "project.json");
-  const project = parseMotionProjectV2(input);
-  const components =
-    name === "component-instance" ? [loadComponent("logo-reveal")] : [];
-  const result = compileMotionProjectV2(project, { components });
+  const project = parseMotionProjectV3(input);
+  const result = compileMotionProjectV3(project);
   if (!result.ok) {
     throw new Error(
       `Compile failed for ${name}: ${result.diagnostics
