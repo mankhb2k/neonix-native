@@ -581,6 +581,9 @@ importers:
       '@motionvideo/motion-schema':
         specifier: workspace:*
         version: link:../motion-schema
+      '@motionvideo/render-contracts':
+        specifier: workspace:*
+        version: link:../render-contracts
     devDependencies:
       typescript:
         specifier: ^5.8.2

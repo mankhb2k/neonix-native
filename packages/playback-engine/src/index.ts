@@ -48,3 +48,25 @@ export {
   type MediaFrameProviderOptions,
   type MediaTextureHandle,
 } from "./media-frame-provider";
+
+export {
+  createFrameBuffer,
+  type FrameBuffer,
+  type FrameBufferEntry,
+  type FrameBufferOptions,
+  type BufferStatus,
+} from "./frame-buffer";
+
+export {
+  createBufferPolicy,
+  type BufferPolicy,
+  type BufferPolicyMode,
+  type BufferPolicyConfig,
+  type BufferPolicyState,
+} from "./buffer-policy";
+
+export {
+  createMediaFallbackBridge,
+  type MediaFallbackBridge,
+  type VideoFrameProvider,
+} from "./media-fallback";
