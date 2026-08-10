@@ -12,7 +12,11 @@
  *   - Task 5.8: Dispose lifecycle (textures, filters, offscreen)
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { buildPaintCommandBuffer, type RenderSnapshot, type PaintCommandBuffer } from "@motionvideo/motion-runtime";
+import {
+  buildPaintCommandBuffer,
+  type RenderSnapshot,
+  type PaintCommandBuffer,
+} from "@motionvideo/motion-runtime";
 import { Container } from "pixi.js";
 import { createPixiFramePainter } from "./PixiFramePainter";
 import {
@@ -63,7 +67,10 @@ function makeSnapshot(items: RenderSnapshot["items"]): RenderSnapshot {
   };
 }
 
-function makeItem(key: string, overrides: Partial<RenderSnapshot["items"][0]> = {}): RenderSnapshot["items"][0] {
+function makeItem(
+  key: string,
+  overrides: Partial<RenderSnapshot["items"][0]> = {},
+): RenderSnapshot["items"][0] {
   return {
     key,
     sceneId: "test",
@@ -76,7 +83,13 @@ function makeItem(key: string, overrides: Partial<RenderSnapshot["items"][0]> = 
     selectable: true,
     locked: false,
     renderOrder: 0,
-    payload: { kind: "shape", shape: "rectangle", fill: "#f00", width: 100, height: 100 },
+    payload: {
+      kind: "shape",
+      shape: "rectangle",
+      fill: "#f00",
+      width: 100,
+      height: 100,
+    },
     depth: 0,
     projectedOffset: { x: 0, y: 0 },
     ...overrides,
@@ -283,10 +296,9 @@ describe("Task 5.4 — transition layer support", () => {
   it("multiple scene items in one buffer all render", () => {
     const root = new Container({ sortableChildren: true });
     const painter = createPixiFramePainter({ root });
-    const buffer = buildPaintCommandBuffer(makeSnapshot([
-      makeItem("sceneA:a"),
-      makeItem("sceneB:b"),
-    ]));
+    const buffer = buildPaintCommandBuffer(
+      makeSnapshot([makeItem("sceneA:a"), makeItem("sceneB:b")]),
+    );
     painter.paintCommands(buffer);
     expect(painter.getLiveKeys()).toContain("sceneA:a");
     expect(painter.getLiveKeys()).toContain("sceneB:b");
@@ -298,10 +310,12 @@ describe("Task 5.4 — transition layer support", () => {
     const root = new Container({ sortableChildren: true });
     const painter = createPixiFramePainter({ root });
     // Simulate a crossfade: scene A fading out, scene B fading in
-    const buffer = buildPaintCommandBuffer(makeSnapshot([
-      makeItem("sceneA:content", { worldOpacity: 0.3 }),
-      makeItem("sceneB:content", { worldOpacity: 0.7, renderOrder: 1 }),
-    ]));
+    const buffer = buildPaintCommandBuffer(
+      makeSnapshot([
+        makeItem("sceneA:content", { worldOpacity: 0.3 }),
+        makeItem("sceneB:content", { worldOpacity: 0.7, renderOrder: 1 }),
+      ]),
+    );
     expect(() => painter.paintCommands(buffer)).not.toThrow();
     expect(painter.getLiveKeys()).toHaveLength(2);
     painter.dispose();
@@ -455,15 +469,17 @@ describe("Task 5.6 — image/path fit/crop", () => {
         nodeType: "path",
         payload: {
           kind: "path",
-          contours: [{
-            start: { x: 0, y: 0 },
-            closed: true,
-            segments: [
-              { kind: "line", to: { x: 50, y: 0 } },
-              { kind: "line", to: { x: 50, y: 50 } },
-              { kind: "line", to: { x: 0, y: 50 } },
-            ],
-          }],
+          contours: [
+            {
+              start: { x: 0, y: 0 },
+              closed: true,
+              segments: [
+                { kind: "line", to: { x: 50, y: 0 } },
+                { kind: "line", to: { x: 50, y: 50 } },
+                { kind: "line", to: { x: 0, y: 50 } },
+              ],
+            },
+          ],
           fillRule: "nonzero",
           fill: "#0f0",
           stroke: "#000",
@@ -491,12 +507,14 @@ describe("Task 5.7 — unsupported diagnostic overlay", () => {
       root,
       onUnsupported: (info) => seen.push(info.nodeType),
     });
-    const buffer = buildPaintCommandBuffer(makeSnapshot([
-      makeItem("test:bad", {
-        nodeType: "mesh",
-        payload: { kind: "unknown", nodeType: "mesh" } as any,
-      }),
-    ]));
+    const buffer = buildPaintCommandBuffer(
+      makeSnapshot([
+        makeItem("test:bad", {
+          nodeType: "mesh",
+          payload: { kind: "unknown", nodeType: "mesh" } as any,
+        }),
+      ]),
+    );
     painter.paintCommands(buffer);
     expect(painter.getUnsupported()).toHaveLength(1);
     expect(seen).toContain("mesh");
@@ -510,12 +528,21 @@ describe("Task 5.7 — unsupported diagnostic overlay", () => {
     const calls: Array<{ key: string; nodeType: string }> = [];
     const painter = createPixiFramePainter({
       root,
-      onUnsupported: (info) => calls.push({ key: info.key, nodeType: info.nodeType }),
+      onUnsupported: (info) =>
+        calls.push({ key: info.key, nodeType: info.nodeType }),
     });
-    const buffer = buildPaintCommandBuffer(makeSnapshot([
-      makeItem("test:a", { nodeType: "3d", payload: { kind: "unknown", nodeType: "3d" } as any }),
-      makeItem("test:b", { nodeType: "webgl", payload: { kind: "unknown", nodeType: "webgl" } as any }),
-    ]));
+    const buffer = buildPaintCommandBuffer(
+      makeSnapshot([
+        makeItem("test:a", {
+          nodeType: "3d",
+          payload: { kind: "unknown", nodeType: "3d" } as any,
+        }),
+        makeItem("test:b", {
+          nodeType: "webgl",
+          payload: { kind: "unknown", nodeType: "webgl" } as any,
+        }),
+      ]),
+    );
     painter.paintCommands(buffer);
     expect(painter.getUnsupported()).toHaveLength(2);
     expect(calls).toHaveLength(2);
@@ -532,9 +559,9 @@ describe("Task 5.8 — dispose lifecycle", () => {
 
     // Paint 3 times
     for (let i = 0; i < 3; i++) {
-      const buffer = buildPaintCommandBuffer(makeSnapshot([
-        makeItem(`test:n${i}`),
-      ]));
+      const buffer = buildPaintCommandBuffer(
+        makeSnapshot([makeItem(`test:n${i}`)]),
+      );
       painter.paintCommands(buffer);
     }
 
@@ -562,10 +589,9 @@ describe("Task 5.8 — dispose lifecycle", () => {
     const painter = createPixiFramePainter({ root });
 
     for (let cycle = 0; cycle < 5; cycle++) {
-      const buffer = buildPaintCommandBuffer(makeSnapshot([
-        makeItem(`test:a`),
-        makeItem(`test:b`),
-      ]));
+      const buffer = buildPaintCommandBuffer(
+        makeSnapshot([makeItem(`test:a`), makeItem(`test:b`)]),
+      );
       painter.paintCommands(buffer);
       painter.clear();
     }

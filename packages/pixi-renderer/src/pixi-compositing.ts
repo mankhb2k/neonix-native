@@ -17,7 +17,10 @@ import {
 
 function isCanvasAvailable(): boolean {
   try {
-    return typeof document !== "undefined" && typeof document.createElement === "function";
+    return (
+      typeof document !== "undefined" &&
+      typeof document.createElement === "function"
+    );
   } catch {
     return false;
   }
@@ -202,13 +205,8 @@ export function createCompositingContext(
 ): CompositingContext {
   const pool = createRenderTexturePool();
   const layers = new Map<string, CompositingLayer>();
-  const stack: NestingFrame[] = [
-    { kind: "root", container: opts.root },
-  ];
-  const pendingMasks = new Map<
-    string,
-    { mode: string; sourceKey: string }
-  >();
+  const stack: NestingFrame[] = [{ kind: "root", container: opts.root }];
+  const pendingMasks = new Map<string, { mode: string; sourceKey: string }>();
   const maskSourceKeys = new Set<string>();
 
   pool.beginFrame();
@@ -217,7 +215,11 @@ export function createCompositingContext(
 
   function getOrCreateLayer(
     key: string,
-    cfg: { offscreen: boolean; isolation: boolean; mask?: { mode: string; sourceKey: string } },
+    cfg: {
+      offscreen: boolean;
+      isolation: boolean;
+      mask?: { mode: string; sourceKey: string };
+    },
   ): CompositingLayer {
     let layer = layers.get(key);
     if (!layer) {
@@ -233,19 +235,35 @@ export function createCompositingContext(
           layer = {
             display: proxy,
             childContainer,
-            offscreen: { renderTexture: rt, proxy, container: childContainer, filters: [], live: true },
+            offscreen: {
+              renderTexture: rt,
+              proxy,
+              container: childContainer,
+              filters: [],
+              live: true,
+            },
             live: true,
           };
         } else {
           // No canvas available (test env): fallback to flat container
           const container = new Container({ sortableChildren: true });
           container.label = key;
-          layer = { display: container, childContainer: container, offscreen: null, live: true };
+          layer = {
+            display: container,
+            childContainer: container,
+            offscreen: null,
+            live: true,
+          };
         }
       } else {
         const container = new Container({ sortableChildren: true });
         container.label = key;
-        layer = { display: container, childContainer: container, offscreen: null, live: true };
+        layer = {
+          display: container,
+          childContainer: container,
+          offscreen: null,
+          live: true,
+        };
       }
 
       if (cfg.mask) {
@@ -283,9 +301,9 @@ export function createCompositingContext(
   function pushGroup(key: string, nodeId: string): Container {
     const parent = stack[stack.length - 1]!.container;
     // Look for existing group container by key
-    let groupContainer = parent.children.find(
-      (c) => c.label === key,
-    ) as Container | undefined;
+    let groupContainer = parent.children.find((c) => c.label === key) as
+      | Container
+      | undefined;
     if (!groupContainer) {
       groupContainer = new Container({ sortableChildren: true });
       groupContainer.label = `${key}_${nodeId}`;
@@ -298,14 +316,18 @@ export function createCompositingContext(
   function popLayer(key: string): void {
     const top = stack.pop();
     if (!top || top.kind !== "layer") {
-      throw new Error(`popLayer: expected layer on stack for ${key}, got ${top?.kind}`);
+      throw new Error(
+        `popLayer: expected layer on stack for ${key}, got ${top?.kind}`,
+      );
     }
   }
 
   function popGroup(key: string): void {
     const top = stack.pop();
     if (!top || top.kind !== "group") {
-      throw new Error(`popGroup: expected group on stack for ${key}, got ${top?.kind}`);
+      throw new Error(
+        `popGroup: expected group on stack for ${key}, got ${top?.kind}`,
+      );
     }
   }
 

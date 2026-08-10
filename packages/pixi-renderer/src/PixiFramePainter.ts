@@ -239,7 +239,7 @@ function drawUnsupportedOverlay(g: Graphics, w: number, h: number): void {
   const c2 = 0x000000;
   for (let y = 0; y < h; y += size) {
     for (let x = 0; x < w; x += size) {
-      const even = ((x / size) + (y / size)) % 2 === 0;
+      const even = (x / size + y / size) % 2 === 0;
       g.rect(x, y, Math.min(size, w - x), Math.min(size, h - y));
       g.fill(even ? c1 : c2);
     }
@@ -257,18 +257,34 @@ function applyImageFit(
   targetH: number,
   fit: ImageFit,
 ): { scaleX: number; scaleY: number; offsetX: number; offsetY: number } {
-  if (!textureW || !textureH) return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
+  if (!textureW || !textureH)
+    return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
   switch (fit) {
     case "contain": {
       const s = Math.min(targetW / textureW, targetH / textureH);
-      return { scaleX: s, scaleY: s, offsetX: (targetW - textureW * s) / 2, offsetY: (targetH - textureH * s) / 2 };
+      return {
+        scaleX: s,
+        scaleY: s,
+        offsetX: (targetW - textureW * s) / 2,
+        offsetY: (targetH - textureH * s) / 2,
+      };
     }
     case "cover": {
       const s = Math.max(targetW / textureW, targetH / textureH);
-      return { scaleX: s, scaleY: s, offsetX: (targetW - textureW * s) / 2, offsetY: (targetH - textureH * s) / 2 };
+      return {
+        scaleX: s,
+        scaleY: s,
+        offsetX: (targetW - textureW * s) / 2,
+        offsetY: (targetH - textureH * s) / 2,
+      };
     }
     default:
-      return { scaleX: targetW / textureW, scaleY: targetH / textureH, offsetX: 0, offsetY: 0 };
+      return {
+        scaleX: targetW / textureW,
+        scaleY: targetH / textureH,
+        offsetX: 0,
+        offsetY: 0,
+      };
   }
 }
 
@@ -424,12 +440,24 @@ export function createPixiFramePainter(
         options.onUnsupported?.(info);
         // Draw diagnostic checkerboard overlay
         const parent = compositingCtx.currentParent;
-        const g = ensureObject(cmd.key, "unsupported-gfx", () => new Graphics(), parent);
+        const g = ensureObject(
+          cmd.key,
+          "unsupported-gfx",
+          () => new Graphics(),
+          parent,
+        );
         g.clear();
         const w = 100;
         const h = 100;
         if (pendingTransform?.key === cmd.key) {
-          applyAffineMatrix(g, pendingTransform.matrix, pendingTransform.alpha, pendingTransform.visible, pendingTransform.zIndex, pendingTransform.blendMode);
+          applyAffineMatrix(
+            g,
+            pendingTransform.matrix,
+            pendingTransform.alpha,
+            pendingTransform.visible,
+            pendingTransform.zIndex,
+            pendingTransform.blendMode,
+          );
           pendingTransform = null;
         }
         drawUnsupportedOverlay(g, w, h);
@@ -491,7 +519,12 @@ export function createPixiFramePainter(
       }
 
       if (cmd.op === "drawShape" || cmd.op === "drawSolid") {
-        const g = ensureObject(cmd.key, "graphics", () => new Graphics(), parent);
+        const g = ensureObject(
+          cmd.key,
+          "graphics",
+          () => new Graphics(),
+          parent,
+        );
         g.clear();
         const w = cmd.width;
         const h = cmd.height;

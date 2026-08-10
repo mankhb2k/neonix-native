@@ -3,7 +3,10 @@
  * GPU backend is optional; sync logic is deterministic and unit-testable without WebGL.
  */
 
-import type { RenderSnapshot, RenderSnapshotItem } from "@motionvideo/motion-runtime";
+import type {
+  RenderSnapshot,
+  RenderSnapshotItem,
+} from "@motionvideo/motion-runtime";
 
 export type DisplayObjectLike = {
   id: string;
