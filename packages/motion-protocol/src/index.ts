@@ -89,6 +89,26 @@ export type {
   V3PatchDiagnostic,
   V3PatchResult,
 } from "./v3/patch";
+
+// V3 Skills (AI Agent / MCP instruction layer)
+export {
+  MotionSkillManifestSchema,
+  validateSkillManifest,
+  validateMotionSkillOutput,
+  getBuiltinSkill,
+  BUILTIN_SKILLS,
+  BRAND_INTRO_SKILL,
+  SOCIAL_AD_SKILL,
+  SUBTITLE_STYLING_SKILL,
+  PRODUCT_DEMO_SKILL,
+  CORPORATE_TEMPLATE_SKILL,
+} from "./v3/skills";
+export type {
+  MotionSkillManifest,
+  SkillOutputContract,
+  SkillExecutionResult,
+  SkillValidationResult,
+} from "./v3/skills";
 // ── Runtime IR (canonical path) ──────────────────────────────────────
 export {
   MotionRuntimeProjectSchema,

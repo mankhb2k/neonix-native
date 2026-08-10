@@ -620,12 +620,10 @@ describe("V3 patch contract", () => {
       ],
     });
     expect(result.diagnostics).toHaveLength(0);
-    expect(
-      result.project!.timeline.captionTracks[0]!.tokens,
-    ).toHaveLength(1);
-    expect(
-      result.project!.timeline.captionTracks[0]!.tokens[0]!.text,
-    ).toBe("Hello world");
+    expect(result.project!.timeline.captionTracks[0]!.tokens).toHaveLength(1);
+    expect(result.project!.timeline.captionTracks[0]!.tokens[0]!.text).toBe(
+      "Hello world",
+    );
   });
 
   // ── Unknown references ──────────────────────────────────────────────

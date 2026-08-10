@@ -80,3 +80,4 @@ export * from "./nodes";
 export * from "./animation";
 export * from "./canonical-hash";
 export * from "./patch";
+export * from "./skills";

@@ -308,10 +308,7 @@ export function applyMotionProjectV3Patch(
         const idx = next.scenes.findIndex((s) => s.id === op.sceneId);
         if (idx === -1) {
           diagnostics.push(
-            diagnostic(
-              `${opPrefix}.sceneId`,
-              `Unknown scene: ${op.sceneId}`,
-            ),
+            diagnostic(`${opPrefix}.sceneId`, `Unknown scene: ${op.sceneId}`),
           );
           break;
         }
@@ -352,10 +349,7 @@ export function applyMotionProjectV3Patch(
         // …and any bindings targeting this scene
         const bindings = next.bindings.filter(
           (b) =>
-            !(
-              b.target.kind === "scene" &&
-              b.target.sceneId === op.sceneId
-            ),
+            !(b.target.kind === "scene" && b.target.sceneId === op.sceneId),
         );
         next = {
           ...next,
@@ -417,10 +411,7 @@ export function applyMotionProjectV3Patch(
         const clipIdx = trimTrack.clips.findIndex((c) => c.id === op.clipId);
         if (clipIdx === -1) {
           diagnostics.push(
-            diagnostic(
-              `${opPrefix}.clipId`,
-              `Clip not found: ${op.clipId}`,
-            ),
+            diagnostic(`${opPrefix}.clipId`, `Clip not found: ${op.clipId}`),
           );
           break;
         }
@@ -538,9 +529,7 @@ export function applyMotionProjectV3Patch(
 
       case "addAsset":
       case "updateAsset": {
-        const existingIdx = next.assets.findIndex(
-          (a) => a.id === op.asset.id,
-        );
+        const existingIdx = next.assets.findIndex((a) => a.id === op.asset.id);
         if (existingIdx >= 0) {
           if (op.op === "addAsset") {
             diagnostics.push(
@@ -571,9 +560,7 @@ export function applyMotionProjectV3Patch(
 
       case "addVariable":
       case "updateVariable": {
-        const varIdx = next.variables.findIndex(
-          (v) => v.id === op.variable.id,
-        );
+        const varIdx = next.variables.findIndex((v) => v.id === op.variable.id);
         if (varIdx >= 0) {
           if (op.op === "addVariable") {
             diagnostics.push(
@@ -607,9 +594,7 @@ export function applyMotionProjectV3Patch(
 
       case "addBinding":
       case "updateBinding": {
-        const bindIdx = next.bindings.findIndex(
-          (b) => b.id === op.binding.id,
-        );
+        const bindIdx = next.bindings.findIndex((b) => b.id === op.binding.id);
         if (bindIdx >= 0) {
           if (op.op === "addBinding") {
             diagnostics.push(
@@ -701,9 +686,7 @@ export function applyMotionProjectV3Patch(
           break;
         }
         const capTrack = next.timeline.captionTracks[capIdx]!;
-        const tokenIdx = capTrack.tokens.findIndex(
-          (t) => t.id === op.token.id,
-        );
+        const tokenIdx = capTrack.tokens.findIndex((t) => t.id === op.token.id);
         const updCaps = [...next.timeline.captionTracks];
         if (tokenIdx >= 0) {
           if (op.op === "addCaptionCue") {
