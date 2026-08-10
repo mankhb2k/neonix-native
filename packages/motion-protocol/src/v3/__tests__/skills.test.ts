@@ -41,7 +41,11 @@ describe("V3 Skill contract", () => {
       version: "2.1.0-beta.1",
       author: { name: "Author", url: "https://example.com" },
       requiredCapabilities: ["primitive.text", "anim.opacity"],
-      inputSchema: { type: "object", required: ["x"], properties: { x: { type: "number" } } },
+      inputSchema: {
+        type: "object",
+        required: ["x"],
+        properties: { x: { type: "number" } },
+      },
       outputContract: { kind: "patch", description: "Produces a patch" },
       tags: ["pro", "premium"],
       thumbnailUrl: "https://example.com/thumb.png",

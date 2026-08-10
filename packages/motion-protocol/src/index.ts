@@ -109,6 +109,49 @@ export type {
   SkillExecutionResult,
   SkillValidationResult,
 } from "./v3/skills";
+
+// V3 MCP Tool Contract (server-agnostic automation surface)
+export {
+  MCPCreateProjectInputSchema,
+  MCPValidateProjectInputSchema,
+  MCPApplyPatchInputSchema,
+  MCPCompileProjectInputSchema,
+  MCPRenderPreviewFrameInputSchema,
+  MCPListCapabilitiesInputSchema,
+  MCPInspectTimelineInputSchema,
+  MCPExplainDiagnosticsInputSchema,
+  MCP_TOOLS,
+  preflightCapabilities,
+  canExecuteTool,
+  computeMCPProjectHash,
+  listCapabilities,
+  inspectTimeline,
+  explainDiagnostics,
+} from "./v3/mcp";
+export type {
+  MCPCapabilityCheck,
+  MCPBaseResult,
+  MCPCreateProjectInput,
+  MCPCreateProjectResult,
+  MCPValidateProjectInput,
+  MCPValidateProjectResult,
+  MCPApplyPatchInput,
+  MCPApplyPatchResult,
+  MCPCompileProjectInput,
+  MCPCompileProjectResult,
+  MCPRenderPreviewFrameInput,
+  MCPRenderPreviewFrameResult,
+  MCPListCapabilitiesInput,
+  MCPListCapabilitiesResult,
+  MCPInspectTimelineInput,
+  MCPInspectTimelineResult,
+  MCPExplainDiagnosticsInput,
+  MCPExplainDiagnosticsResult,
+  MCPToolOperation,
+  MCPToolResult,
+  MCPToolDescriptor,
+} from "./v3/mcp";
+
 // ── Runtime IR (canonical path) ──────────────────────────────────────
 export {
   MotionRuntimeProjectSchema,

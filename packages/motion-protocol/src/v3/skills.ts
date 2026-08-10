@@ -80,11 +80,9 @@ export const MotionSkillManifestSchema = z
     description: z.string().min(1).max(1024),
 
     /** Semantic version. */
-    version: z
-      .string()
-      .regex(/^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/, {
-        message: "version must be semver (e.g. 1.0.0)",
-      }),
+    version: z.string().regex(/^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/, {
+      message: "version must be semver (e.g. 1.0.0)",
+    }),
 
     /** Author attribution. */
     author: z
@@ -98,10 +96,7 @@ export const MotionSkillManifestSchema = z
     instructionFormat: z.literal("text/markdown").default("text/markdown"),
 
     /** Capabilities the skill requires at runtime. */
-    requiredCapabilities: z
-      .array(CapabilityIdSchema)
-      .max(256)
-      .default([]),
+    requiredCapabilities: z.array(CapabilityIdSchema).max(256).default([]),
 
     /**
      * JSON Schema (Draft-07) describing the template parameters the skill
@@ -111,8 +106,7 @@ export const MotionSkillManifestSchema = z
     inputSchema: z
       .record(z.unknown())
       .refine(
-        (val) =>
-          typeof val.type === "string" || val.$ref !== undefined || true,
+        (val) => typeof val.type === "string" || val.$ref !== undefined || true,
         { message: "inputSchema should be a valid JSON Schema object" },
       ),
 
@@ -267,9 +261,7 @@ export function validateMotionSkillOutput(
 /**
  * Validate a skill manifest metadata only (no output to check).
  */
-export function validateSkillManifest(
-  input: unknown,
-): SkillValidationResult {
+export function validateSkillManifest(input: unknown): SkillValidationResult {
   const result = MotionSkillManifestSchema.safeParse(input);
   if (!result.success) {
     return {
