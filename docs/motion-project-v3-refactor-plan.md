@@ -1,370 +1,298 @@
-# Motion Project V3 Refactor Plan
+# Motion Project V3 Cutover Plan
 
-> Status: Draft implementation plan
+> Status: direct cutover plan
 >
 > Source design: [`json-project-design.md`](../json-project-design.md)
 >
-> **Chi tiết triển khai từng task:** [`motion-project-v3-implementation-detail.md`](./motion-project-v3-implementation-detail.md) — chứa breakdown granular đến từng file, function signature, và acceptance criteria.
->
-> Goal: upgrade the current v2 authoring format into Motion Project v3 while preserving the single source of truth model:
->
-> ```text
-> MotionProject v3 authoring JSON
->   -> compile/link/prepare
->   -> MotionRuntime IR
->   -> evaluateCompositionFrame
->   -> Pixi preview / Remotion export / playback
-> ```
+> Decision: the product has not shipped real projects yet, so v3 becomes the canonical format now. We do not need a long v2 compatibility/migration period.
 
-## 0. Current State
+## Goal
 
-The repo already has the right package shape:
-
-| Package                          | Current responsibility                                                                 |
-| -------------------------------- | -------------------------------------------------------------------------------------- |
-| `@motionvideo/motion-protocol`   | v2 authoring schema, runtime IR schema, limits, references, patch schema, capabilities |
-| `@motionvideo/motion-compiler`   | v2 authoring project -> `NormalizedMotionProjectV2`                                    |
-| `@motionvideo/motion-runtime`    | frame evaluation, paint/audio/media plans, diagnostics                                 |
-| `@motionvideo/playback-engine`   | playback clock and frame scheduling over runtime IR                                    |
-| `@motionvideo/pixi-renderer`     | preview painter over runtime output                                                    |
-| `@motionvideo/remotion-renderer` | export painter over runtime output                                                     |
-| `@motionvideo/render-contracts`  | render jobs, manifest, worker protocol                                                 |
-| `@motionvideo/editor-core`       | editor commands, projection, selection, history                                        |
-
-Important existing split:
+Move the whole system to Motion Project v3 as the only authoring project format.
 
 ```text
-MotionProjectV2
-  authoring data for AI/editor/save
-
-NormalizedMotionProjectV2
-  compiled runtime artifact for preview/export/playback
+MotionProject v3
+  -> motion-compiler
+  -> MotionRuntime IR
+  -> motion-runtime evaluateCompositionFrame
+  -> Pixi preview / Remotion export / playback-engine
 ```
 
-V3 should keep this split. The refactor is not to make one object do every job. The refactor is to make `MotionProjectV3` the only persisted authoring source of truth, and make all runtime artifacts derived from it.
-
-## 1. Non-Negotiable Rules
-
-- Keep v2 parsing and fixtures stable until v3 parity is proven.
-- Do not make Pixi, Remotion, playback, or React read workspace modules directly.
-- Do not move compiler semantics into runtime or painters.
-- Do not store editor UI state inside canonical project JSON.
-- Do not add v3 fields to AI/editor allowlists until schema -> compiler -> runtime -> Pixi -> Remotion gates are green.
-- Runtime IR remains generated output, not an editable project format.
-- Any v3 migration must be deterministic and fixture-backed.
-
-## 2. Target Artifact Model
+Important distinction:
 
 ```text
-motion-workspace
-  Multi-file authoring source for humans, AI, Git, and larger projects.
-
-motion-project v3
-  Portable canonical authoring JSON. This is the persisted source of truth.
-
-motion-runtime
-  Compiled renderer artifact. This is generated and cacheable.
-
-render-manifest
-  Build metadata for cloud/local render reproducibility.
+MotionProject v3 is the source of truth.
+MotionRuntime IR is generated output.
+Editor UI state lives outside project JSON.
 ```
 
-Required discriminators:
+## Current Repo Notes
 
-| Artifact           | `format`                                     | Editable | Renderer reads directly |
-| ------------------ | -------------------------------------------- | -------- | ----------------------- |
-| Workspace manifest | `motion-workspace`                           | yes      | no                      |
-| Project bundle     | `motion-project`                             | yes      | no                      |
-| Runtime IR         | `motion-runtime`                             | no       | yes                     |
-| Render manifest    | `motion-render-manifest` or current contract | no       | render worker only      |
+The repo already has `@motionvideo/motion-protocol`, and there are signs of partial v3 work:
 
-## 3. Phase 1 - Freeze V2 Baseline
+- `packages/motion-protocol/src/v3/`
+- `packages/motion-protocol/schema/v3.json`
+- `packages/motion-compiler/src/compile-v3.ts`
+- tests and docs that still mention v2 compatibility
 
-Purpose: make sure v3 work cannot accidentally change current output.
+This plan changes the direction from gradual compatibility to direct replacement.
+
+## What Changes Now
+
+Remove v2 as a first-class path:
+
+- `MotionProject` should mean `MotionProjectV3`.
+- `MotionProjectSchema` should mean `MotionProjectV3Schema`.
+- `parseMotionProject()` should accept v3 only.
+- New editor projects should be v3 only.
+- AI generation should target v3 only.
+- Compiler should accept v3 as the canonical input.
+- Runtime, Pixi, Remotion, playback, and render-worker should consume runtime IR, not v2 authoring JSON.
+
+Keep v2 only as temporary scaffolding while converting local fixtures/demo data. Once equivalent v3 fixtures exist, delete v2 production exports and tests.
+
+## Target Package Responsibilities
+
+| Package | Responsibility after cutover |
+| --- | --- |
+| `@motionvideo/motion-protocol` | v3 authoring schema, runtime IR schema, limits, capabilities, references, patch schema, JSON Schema |
+| `@motionvideo/motion-compiler` | v3 authoring -> runtime IR, tokens/variables/components/layout/presets/captions expansion |
+| `@motionvideo/motion-runtime` | timeline evaluation, composition frame, projection, paint/audio/media plans, hit-test, diagnostics |
+| `@motionvideo/playback-engine` | playback clock and frame scheduling over runtime IR |
+| `@motionvideo/pixi-renderer` | preview painter over evaluated frame / paint contract |
+| `@motionvideo/remotion-renderer` | export painter over the same evaluated frame / paint contract |
+| `@motionvideo/render-contracts` | render job, manifest, worker protocol |
+| `@motionvideo/editor-core` | editor commands, selection, history, v3 project transactions |
+
+## Target V3 Authoring Shape
+
+Canonical root:
+
+```ts
+type MotionProject = MotionProjectV3;
+```
+
+Target root:
+
+```ts
+type MotionProjectV3 = {
+  format: "motion-project";
+  formatVersion: 3;
+  metadata: ProjectMetadata;
+  composition: CompositionSettings;
+  capabilities: ProjectCapabilityRequirements;
+  dependencies: ProjectDependencies;
+  tokens: DesignTokens;
+  variables: ProjectVariable[];
+  assets: AssetDeclaration[];
+  components: EmbeddedComponent[];
+  scenes: SceneDefinition[];
+  timeline: ProjectTimeline;
+  bindings: ProjectBinding[];
+  provenance?: ProjectProvenance;
+  extensions?: Record<string, JsonValue>;
+};
+```
+
+Main differences from v2:
+
+| Area | v2 | v3 |
+| --- | --- | --- |
+| Composition | `metadata.aspectRatio` + `metadata.fps` | `composition.width/height/fps/background/audioSampleRate` |
+| Brand/tokens | `metadata.brand` / `metadata.designTokens` | top-level `tokens` |
+| Visual timeline | `timeline.sceneOrder` | `timeline.visualTracks[].clips[]` |
+| Transition | `scene.transition` | `visualClip.transitionIn/transitionOut` |
+| Components | dependency plus component node | embedded/flattened portable component profile |
+| Audio | partial lifetime/rate | explicit duration, trim, playbackRate |
+| Workspace | not formalized | `motion-workspace` manifest and linker |
+
+## Phase 1 - Make V3 Canonical In Protocol
+
+Purpose: stop the main API from pointing at v2.
 
 Tasks:
 
-- [ ] Add/confirm representative v2 fixtures:
-  - minimal empty project
-  - single scene
-  - scene with text/image/svg/video/audio
-  - scene with clips/tracks/presets
-  - scene with caption track
-  - scene with transition
-  - project with variables and bindings
-  - project with component instance
-- [ ] Add parse -> serialize -> parse round-trip tests for v2.
-- [ ] Add compile v2 -> runtime fixture snapshots.
-- [ ] Add runtime frame fingerprints for key frames.
-- [ ] Add Pixi/Remotion structural parity fixtures where currently supported.
-- [ ] Add migration guard: v2 meaning must not change in-place.
-
-Gate:
-
-- [ ] `@motionvideo/motion-protocol` tests pass.
-- [ ] `@motionvideo/motion-compiler` tests pass.
-- [ ] `@motionvideo/motion-runtime` tests pass.
-- [ ] Pixi and Remotion existing parity tests pass.
-- [ ] Golden v2 compile outputs are checked in or reproducible through a fixture command.
-
-## 4. Phase 2 - Add V3 Protocol Types Beside V2
-
-Purpose: introduce v3 without switching consumers.
-
-Files to add:
-
-```text
-packages/motion-protocol/src/v3/
-  index.ts
-  common.ts
-  metadata.ts
-  composition.ts
-  capabilities.ts
-  assets.ts
-  variables.ts
-  components.ts
-  scenes.ts
-  timeline.ts
-  nodes/
-  animation/
-  extensions.ts
-  provenance.ts
-  references/
-```
-
-Tasks:
-
-- [ ] Add `MOTION_PROJECT_V3_FORMAT_VERSION = 3`.
-- [ ] Add `MotionProjectV3Schema`.
-- [ ] Add `CompositionSettingsSchema`:
-  - `width`
-  - `height`
-  - `fps`
-  - `background`
-  - `colorSpace`
-  - `audioSampleRate`
-  - optional `safeArea`
-  - optional `motionBlur`
-- [ ] Move brand/design-system authoring from v2 metadata shape into v3 `tokens`.
-- [ ] Add `ProjectCapabilityRequirementsSchema`.
-- [ ] Add v3 `ProjectTimelineSchema` with `visualTracks`, `audioTracks`, and `captionTracks`.
-- [ ] Add v3 `VisualTrackSchema` and `VisualClipSchema`.
-- [ ] Remove `scene.transition` from v3 scene shape.
-- [ ] Keep scene-local `clips` for node animation.
-- [ ] Add embedded component profile shape:
-  - `components: EmbeddedComponent[]`
-  - dependency pinning remains in `dependencies`.
-- [ ] Add namespaced `extensions: Record<string, JsonValue>`.
-- [ ] Add `ProjectProvenanceSchema`, excluded from render hash.
-- [ ] Export v3 types from `@motionvideo/motion-protocol/v3` or from the main barrel with explicit names.
+- [ ] Confirm/complete `packages/motion-protocol/src/v3/` schema modules.
+- [ ] Export `MotionProjectV3Schema` and `MotionProjectV3`.
+- [ ] Change `MotionProject = MotionProjectV3`.
+- [ ] Change `MotionProjectSchema = MotionProjectV3Schema`.
+- [ ] Change `MOTION_FORMAT_VERSION = 3`.
+- [ ] Change `parseMotionProject()` to parse v3 only.
+- [ ] Change `serializeMotionProject()` to serialize v3 only.
+- [ ] Move v2 exports behind explicit legacy names or remove them from the main barrel.
+- [ ] Make canonical parser reject `formatVersion: 2`.
 
 Gate:
 
 - [ ] Minimal v3 project parses.
 - [ ] Representative v3 project parses.
-- [ ] Unknown fields reject except allowed extension namespaces.
-- [ ] `formatVersion: 3` never parses through v2 parser by accident.
+- [ ] `parseMotionProject({ formatVersion: 2, ... })` fails.
+- [ ] Unknown fields reject except allowed namespaced `extensions`.
 
-## 5. Phase 3 - V2 To V3 Migration
+## Phase 2 - Finish V3 Schema Coverage
 
-Purpose: make existing projects open cleanly as v3.
-
-Files to add:
-
-```text
-packages/motion-protocol/src/v3/migrations/v2-to-v3.ts
-packages/motion-protocol/src/v3/migrations/v2-to-v3.test.ts
-```
-
-Migration rules:
-
-| V2                                      | V3                                                         |
-| --------------------------------------- | ---------------------------------------------------------- |
-| `metadata.aspectRatio` + `metadata.fps` | `composition.width/height/fps`                             |
-| `metadata.safeArea`                     | `composition.safeArea`                                     |
-| `metadata.designTokens`                 | `tokens`                                                   |
-| `metadata.brand`                        | `tokens` plus optional variables/provenance                |
-| `timeline.sceneOrder`                   | `timeline.visualTracks[main].clips`                        |
-| `scene.transition`                      | corresponding visual clip `transitionOut`                  |
-| `timeline.audioTracks`                  | v3 audio tracks with explicit duration/rate where possible |
-| `extensions.constraints/events`         | namespaced `extensions` keys                               |
+Purpose: make the v3 schema complete enough for editor and AI.
 
 Tasks:
 
-- [ ] Implement `migrateMotionProjectV2ToV3(project, options)`.
-- [ ] Accept an optional asset metadata resolver for audio/video duration.
-- [ ] Emit structured migration diagnostics:
-  - missing asset duration
-  - transition longer than clip/scene lifetime
-  - unsupported component dependency
-  - brand font not resolvable to font asset
-  - aspect ratio mapped through default preset
-- [ ] Add golden fixtures:
-  - v2 minimal -> v3 minimal
-  - v2 sceneOrder -> v3 main visual track
-  - v2 transition -> v3 clip transition
-  - v2 brand/designTokens -> v3 tokens
-  - v2 audio -> v3 audio
+- [ ] `metadata`: identity-only fields.
+- [ ] `composition`: width, height, fps, background, colorSpace, audioSampleRate, safeArea, motionBlur.
+- [ ] `capabilities`: required, optional, experimental.
+- [ ] `tokens`: colors, fonts, spacing, radii, motion.
+- [ ] `variables`: string, color, number, boolean, asset, enum, list.
+- [ ] `assets`: image, svg, video, audio, font with integrity and metadata.
+- [ ] `components`: embedded component definitions and bundle profiles.
+- [ ] `scenes`: scene definitions without `scene.transition`.
+- [ ] `timeline`: visualTracks, audioTracks, captionTracks, markers, workArea.
+- [ ] `nodes`: reuse valid node primitives but align imports/types with v3.
+- [ ] `animation`: keep scene-local clips/tracks for node animation.
+- [ ] `extensions`: namespaced JSON records.
+- [ ] `provenance`: source map and bundle profile metadata.
+- [ ] `references`: v3 cross-reference validation.
+- [ ] Generate/update `packages/motion-protocol/schema/v3.json`.
 
 Gate:
 
-- [ ] Migration is deterministic.
-- [ ] V2 source hash and v3 project hash are separately defined.
-- [ ] Every migration warning has a stable code and path.
+- [ ] Positive fixtures cover every top-level v3 field.
+- [ ] Negative fixtures cover duplicate IDs, missing refs, invalid clip ranges, invalid asset refs, invalid capability IDs.
+- [ ] JSON Schema output is usable by AI/tooling.
 
-## 6. Phase 4 - Parse API And Compatibility Surface
+## Phase 3 - Convert Fixtures And Project Creation
 
-Purpose: allow apps to adopt v3 gradually.
+Purpose: stop the repo from creating or relying on v2 projects.
 
 Tasks:
 
-- [ ] Add `parseMotionProjectAny(input)` returning a tagged union:
-  - `{ version: 2, project: MotionProjectV2 }`
-  - `{ version: 3, project: MotionProjectV3 }`
-- [ ] Add `parseMotionProjectV3`.
-- [ ] Add `serializeMotionProjectV3`.
-- [ ] Decide when the canonical alias flips:
-  - short term: `MotionProject = MotionProjectV2`
-  - migration phase: `MotionProject = MotionProjectV2 | MotionProjectV3`
-  - final phase: `MotionProject = MotionProjectV3`
-- [ ] Add `normalizeLegacyMotionInput` support only where it is still valid.
-- [ ] Generate JSON Schema for v2 and v3.
+- [ ] Convert minimal fixture to v3.
+- [ ] Convert representative/demo projects to v3.
+- [ ] Convert large timeline fixture to v3 visual tracks.
+- [ ] Convert render-worker smoke project to v3.
+- [ ] Convert AI planner fixtures to v3.
+- [ ] Convert web/desktop create-blank-project helpers to v3.
+- [ ] Delete v2 fixture snapshots once v3 equivalents pass.
+
+Temporary allowance:
+
+```ts
+convertV2FixtureToV3(input)
+```
+
+Use this only to port local test/demo data. Do not expose it as the product migration strategy.
 
 Gate:
 
-- [ ] Apps can continue loading v2.
-- [ ] Tests can explicitly target v3.
-- [ ] No runtime package needs to parse authoring JSON directly.
+- [ ] New project creation emits `formatVersion: 3`.
+- [ ] `rg "formatVersion: 2"` finds no production fixtures.
+- [ ] `rg '"formatVersion": 2'` finds no production fixtures.
 
-## 7. Phase 5 - Compiler V3 Entry Point
+## Phase 4 - Compiler Cutover
 
-Purpose: make compiler the only conversion path from v3 authoring to runtime.
-
-Files likely touched:
-
-```text
-packages/motion-compiler/src/index.ts
-packages/motion-compiler/src/compile-v3.ts
-packages/motion-compiler/src/timeline-v3.ts
-packages/motion-compiler/src/compile-result.ts
-```
+Purpose: make `motion-compiler` compile v3 directly.
 
 Tasks:
 
-- [ ] Add `compileMotionProjectV3(project, options)`.
-- [ ] Keep `compileMotionProject(project)` working for v2 during transition.
-- [ ] Compile v3 `composition` into runtime metadata/viewport settings.
-- [ ] Compile `timeline.visualTracks` into composition-level runtime plan.
+- [ ] Make `compileMotionProject(project)` accept canonical `MotionProjectV3`.
+- [ ] Keep `compileMotionProjectV3` only if it helps during the transition, then fold it into `compileMotionProject`.
+- [ ] Remove down-migration from v3 to v2 inside compiler.
+- [ ] Compile `composition` into runtime composition metadata.
+- [ ] Compile `timeline.visualTracks` into runtime composition plan.
 - [ ] Compile visual clips:
   - scene source
   - component source
-  - start/duration
+  - start
+  - duration
   - trimStart
   - playbackRate
   - loop
   - opacity
   - transitionIn/transitionOut
-- [ ] Compile scene-local clips/tracks into runtime scene tracks.
-- [ ] Resolve variables and bindings before runtime IR.
-- [ ] Flatten component instances or embed/namespace as required by the chosen profile.
-- [ ] Bake layout and text measurement inputs where compile-time.
-- [ ] Bake caption token segmentation into runtime-ready caption/cue data if needed.
-- [ ] Add compiler diagnostics with project paths/source refs.
-- [ ] Add compile cache key that includes:
-  - project hash
-  - compiler version
-  - protocol version
-  - capability registry version
-  - component dependency hashes
+- [ ] Resolve tokens, variables, and bindings before runtime IR.
+- [ ] Flatten/namespace components according to bundle profile.
+- [ ] Expand presets/actions into literal tracks.
+- [ ] Expand repeaters.
+- [ ] Bake compile-time layout.
+- [ ] Bake caption cues if runtime expects cue windows.
+- [ ] Emit structured diagnostics with v3 project paths/source refs.
+- [ ] Include protocol version, compiler version, capability version, project hash, and dependency hashes in compile fingerprints.
 
 Gate:
 
-- [ ] v3 minimal compiles.
-- [ ] v3 representative project compiles.
-- [ ] Runtime IR has no unresolved variable/component/layout/preset.
-- [ ] v3 compile result validates against runtime schema.
+- [ ] Minimal v3 project compiles.
+- [ ] Representative v3 project compiles.
+- [ ] Runtime IR contains no unresolved variable/component/layout/preset.
+- [ ] Compile output validates against runtime schema.
+- [ ] Compiler no longer calls v2 compiler for v3 input.
 
-## 8. Phase 6 - Runtime IR VNext
+## Phase 5 - Runtime IR Naming And Shape
 
-Purpose: make runtime represent v3 composition semantics without leaking authoring concerns.
+Purpose: remove v2 naming from runtime-facing contracts.
 
-Decision:
+Preferred public names:
 
-- Keep serialized runtime format named `format: "motion-runtime"`.
-- Add a runtime version field if needed, separate from project `formatVersion`.
-- Consider renaming the type from `NormalizedMotionProjectV2` to a neutral alias:
-  - `MotionRuntimeProject`
-  - `MotionRuntimeIR`
-  - `NormalizedMotionRuntimeProject`
-
-Tasks:
-
-- [ ] Add composition-level runtime metadata:
-  - width
-  - height
-  - fps
-  - background
-  - color space
-  - audio sample rate
-- [ ] Add runtime visual track/clip plan, or a compiled composition layer plan.
-- [ ] Keep runtime scenes literal and renderer-ready.
-- [ ] Add stable clip/layer keys for repeated scene usage.
-- [ ] Add source refs that map runtime output back to v3 project paths.
-- [ ] Add runtime hash inputs.
-- [ ] Decide whether `PreparedRuntimeProject` remains in `motion-protocol` or moves to `motion-compiler`.
-
-Gate:
-
-- [ ] Runtime IR is serializable without `Map`.
-- [ ] Prepared in-memory indexes are generated separately.
-- [ ] Runtime IR validates independently of authoring project.
-
-## 9. Phase 7 - Composition Evaluator V3
-
-Purpose: evaluate project-level visual tracks instead of only `timeline.sceneOrder`.
-
-Files likely touched:
-
-```text
-packages/motion-runtime/src/evaluate-composition.ts
-packages/motion-runtime/src/resolve-timeline.ts
-packages/motion-runtime/src/audio-render-plan.ts
-packages/motion-runtime/src/evaluated-frame.ts
+```ts
+type MotionRuntimeProject = ...
+type MotionRuntimeScene = ...
+type MotionRuntimeTrack = ...
 ```
 
 Tasks:
 
-- [ ] Evaluate all active visual clips at composition time.
-- [ ] Resolve scene local time from:
-  - clip start
-  - trimStart
-  - playbackRate
-  - loop
-  - scene intrinsic duration
-- [ ] Evaluate overlay tracks deterministically.
-- [ ] Resolve transition layers from visual clip transitions.
-- [ ] Produce one `EvaluatedCompositionFrame`.
-- [ ] Ensure hit-test and paint use the same evaluated transforms.
-- [ ] Resolve audio plan from v3 audio tracks.
-- [ ] Resolve caption/cue/token activity from v3 caption tracks.
-- [ ] Carry diagnostics with source paths.
+- [ ] Rename public runtime type aliases away from `NormalizedMotionProjectV2`.
+- [ ] Keep `format: "motion-runtime"`.
+- [ ] Add `runtimeVersion`.
+- [ ] Add runtime composition metadata:
+  - width
+  - height
+  - fps
+  - background
+  - colorSpace
+  - audioSampleRate
+- [ ] Add compiled visual track/clip plan or compiled composition layer plan.
+- [ ] Add stable runtime keys for repeated scene usage.
+- [ ] Add source refs back to v3 project paths.
+- [ ] Keep serialized runtime IR JSON-only.
+- [ ] Keep `PreparedRuntimeProject` as in-memory indexes, not persisted JSON.
 
 Gate:
 
-- [ ] cut/fade/crossfade/slide/wipe/zoom fixtures pass at before/start/middle/end/after frames.
-- [ ] Same runtime frame gives same structural fingerprint.
-- [ ] Hit-test snapshots match paint snapshots.
+- [ ] Runtime IR can serialize/deserialize.
+- [ ] Prepared indexes can rebuild from serialized runtime IR.
+- [ ] No production API exposes `NormalizedMotionProjectV2`.
 
-## 10. Phase 8 - Paint, Pixi, Remotion, Playback Adoption
+## Phase 6 - Composition Evaluator V3
 
-Purpose: consumers should read only runtime/evaluated contracts.
+Purpose: evaluate the real visual timeline.
 
 Tasks:
 
-- [ ] Update Pixi preview to consume the v3 evaluated frame without reading v3 authoring fields.
+- [ ] Evaluate active visual clips at composition time.
+- [ ] Resolve scene local time from clip start, trimStart, playbackRate, loop, and scene duration.
+- [ ] Support main and overlay tracks.
+- [ ] Support deterministic track and clip ordering.
+- [ ] Resolve transition layers from visual clip transitions.
+- [ ] Produce one `EvaluatedCompositionFrame`.
+- [ ] Resolve audio plan from v3 audio tracks.
+- [ ] Resolve caption/cue/token activity from v3 caption tracks.
+- [ ] Ensure hit-test and paint use the same evaluated transforms.
+- [ ] Carry diagnostics with source refs.
+
+Gate:
+
+- [ ] Cut, fade, crossfade, slide, wipe, and zoom fixtures pass.
+- [ ] Same runtime frame gives same structural fingerprint.
+- [ ] Hit-test snapshots match paint snapshots.
+
+## Phase 7 - Renderer, Playback, Render Worker
+
+Purpose: make every consumer read the same runtime/evaluated contracts.
+
+Tasks:
+
+- [ ] Update Pixi renderer to consume v3 runtime/evaluated output only.
 - [ ] Update Remotion renderer to consume the same evaluated frame contract.
-- [ ] Update playback-engine load type to neutral runtime type, not v2-named type.
-- [ ] Update render-worker to compile v3 before render.
+- [ ] Update playback-engine to load `MotionRuntimeProject`.
+- [ ] Update render-worker to parse v3 -> compile -> render.
+- [ ] Update frame-plan/render-worker logic so it no longer reads `scene.transition`.
 - [ ] Update render manifest to include:
   - project hash
   - runtime hash
@@ -372,56 +300,77 @@ Tasks:
   - protocol version
   - capability fingerprint
   - asset/font hashes
-- [ ] Add preflight for required capabilities.
+- [ ] Add required capability preflight.
 
 Gate:
 
-- [ ] Pixi and Remotion render the same composition plan.
-- [ ] Export does not compile differently from preview.
-- [ ] Playback never compiles in RAF/play loop.
+- [ ] Pixi and Remotion consume the same composition plan.
+- [ ] Export does not compile through a separate path from preview.
+- [ ] Playback never compiles in the play loop.
 
-## 11. Phase 9 - Editor And AI Adoption
+## Phase 8 - Editor Cutover
 
-Purpose: move authoring surfaces from v2 assumptions to v3.
+Purpose: make the editor write v3 project transactions.
 
-Editor tasks:
+Tasks:
 
-- [ ] Update project creation to emit v3.
-- [ ] Update persistence/load envelope to accept v2 and v3.
-- [ ] Add migration prompt or automatic migration policy.
-- [ ] Update timeline projection:
-  - v2 `sceneOrder` projection remains compatibility
-  - v3 `visualTracks` becomes canonical timeline
-- [ ] Update editor commands so timeline move/trim/reorder edits v3 visual clips.
-- [ ] Keep editor-only state in workspace/editor state files, not project JSON.
+- [ ] Update project creation to v3.
+- [ ] Update load/save envelopes to v3.
+- [ ] Update timeline projection to read `timeline.visualTracks`.
+- [ ] Update move/trim/reorder commands to edit visual clips.
+- [ ] Update scene reorder to edit main visual track.
+- [ ] Update transition editing to write visual clip transitions.
+- [ ] Update audio editing to write explicit v3 audio tracks.
+- [ ] Update caption editing to write v3 caption tracks.
+- [ ] Keep editor UI state outside project JSON:
+  - currentTime
+  - playing
+  - selection
+  - timeline zoom/scroll
+  - collapsed lanes
+  - stage pan/scale
+  - undo history
 
-AI tasks:
+Gate:
 
-- [ ] Update prompt schema block to v3 JSON Schema.
-- [ ] Keep AI allowlist capability-gated.
-- [ ] Add v3 command patching for:
-  - variables
-  - tokens
-  - visual clip edits
-  - scene node edits
-  - caption edits
-- [ ] Add critic checks for v3 timeline/capability invariants.
+- [ ] Editor creates v3.
+- [ ] Editor saves v3.
+- [ ] Editor previews v3.
+- [ ] Undo/redo commits v3 project transactions.
+- [ ] `timeline.sceneOrder` is not used in production editor code.
+
+## Phase 9 - AI Cutover
+
+Purpose: make AI generate and patch v3 only.
+
+Tasks:
+
+- [ ] Update AI prompt schema block to v3 JSON Schema.
+- [ ] Update AI command/patch types for v3.
+- [ ] Add critic checks for:
+  - composition dimensions
+  - visual track ranges
+  - scene/component refs
+  - capability requirements
+  - asset refs
+  - caption timing
+  - audio duration/rate
+- [ ] Keep AI capability allowlist gated by schema -> compiler -> runtime -> Pixi -> Remotion support.
 
 Gate:
 
 - [ ] AI can generate minimal v3 project.
-- [ ] Editor can open v2, migrate to v3, save v3, compile v3, preview v3.
-- [ ] Undo/redo commits canonical v3 project transactions.
+- [ ] AI can generate representative v3 project.
+- [ ] AI patch output parses and compiles.
 
-## 12. Phase 10 - Workspace And Linker
+## Phase 10 - Workspace Linker
 
-Purpose: support multi-file projects without letting renderers know about workspace shape.
+Purpose: support multi-file authoring without leaking workspace layout into runtime/renderers.
 
 New package:
 
 ```text
 packages/motion-workspace/
-  package.json
   src/schema.ts
   src/loader.ts
   src/resolver.ts
@@ -433,9 +382,9 @@ packages/motion-workspace/
 Tasks:
 
 - [ ] Add `MotionWorkspaceManifestSchema` with `format: "motion-workspace"`.
-- [ ] Add `MotionWorkspaceReader` interface.
+- [ ] Add `MotionWorkspaceReader`.
 - [ ] Add memory reader for tests.
-- [ ] Add filesystem reader for local tooling if needed.
+- [ ] Add filesystem reader for local tooling.
 - [ ] Implement linker:
   - read manifest
   - parse modules
@@ -451,17 +400,16 @@ Tasks:
 - [ ] Add bundle profiles:
   - `embedded-components`
   - `flattened-components`
-- [ ] Ensure runtime/renderers never import `motion-workspace`.
 
 Gate:
 
 - [ ] Workspace bundle equals equivalent single-file v3 project semantically.
-- [ ] Source map is deterministic.
+- [ ] Runtime/renderers never import `motion-workspace`.
 - [ ] Absolute local paths are rejected in portable bundles.
 
-## 13. Phase 11 - Hashing, Manifests, And Determinism
+## Phase 11 - Hashing And Determinism
 
-Purpose: make preview/export reproducible and debuggable.
+Purpose: make preview/export reproducible.
 
 Tasks:
 
@@ -470,66 +418,58 @@ Tasks:
 - [ ] Add `runtimeHash`.
 - [ ] Add `sourceHash` for workspace modules.
 - [ ] Exclude timestamps/provenance/editor state from render hash.
-- [ ] Add render manifest versioning.
-- [ ] Add deterministic sorting rules:
-  - declaration order
-  - stable ID tie-break
-  - no object map order as render order
+- [ ] Add deterministic sort rules with stable ID tie-breaks.
 - [ ] Add deterministic time/frame quantization in one place.
+- [ ] Add render manifest versioning.
 
 Gate:
 
-- [ ] Same semantic project -> same project hash.
-- [ ] Same runtime artifact -> same runtime hash.
-- [ ] Render manifest can reproduce a render job input.
+- [ ] Same semantic v3 project gives same project hash.
+- [ ] Same runtime artifact gives same runtime hash.
+- [ ] Render manifest can reproduce render job input.
 
-## 14. Phase 12 - Remove V2 As Canonical
+## Phase 12 - Delete V2 Production Path
 
-Purpose: complete migration after v3 is stable.
+Purpose: remove old shape after v3 path is green.
 
 Tasks:
 
-- [ ] Flip `MotionProject` alias to v3.
-- [ ] Keep `MotionProjectV2` as legacy explicit type.
-- [ ] Keep v2 parser for old file import.
-- [ ] Stop new project creation from emitting v2.
-- [ ] Stop editor commands from writing v2-only timeline shape.
-- [ ] Deprecate v2-specific app code.
-- [ ] Remove or quarantine v2-only renderer fallbacks.
+- [ ] Delete or archive `packages/motion-protocol/src/v2`.
+- [ ] Delete v2 parse/serialize exports.
+- [ ] Delete v2 runtime schema exports after neutral runtime schema exists.
+- [ ] Delete v2 fixtures and snapshots.
+- [ ] Delete v2-specific compiler branches.
+- [ ] Delete v2-specific editor adapters.
+- [ ] Delete docs that imply v2 is canonical.
+- [ ] Update README files to describe v3 only.
+- [ ] Update `docs/motion-project-v3-implementation-detail.md` or replace it, because it currently describes a compatibility migration path.
 
 Gate:
 
-- [ ] `rg "timeline.sceneOrder"` only finds migration/tests/legacy adapters.
-- [ ] `rg "scene.transition"` only finds migration/tests/legacy adapters.
-- [ ] New projects are v3 only.
-- [ ] v2 projects still import through migration.
+- [ ] `rg "MotionProjectV2"` returns no production code.
+- [ ] `rg "NormalizedMotionProjectV2"` returns no production code.
+- [ ] `rg "timeline.sceneOrder"` returns no production code.
+- [ ] `rg "scene.transition"` returns no production code.
+- [ ] All package tests pass.
 
-## 15. Suggested PR Order
+## Suggested PR Order
 
-1. `protocol-v3-00`: freeze v2 fixtures and round-trip tests.
-2. `protocol-v3-01`: add v3 schemas and minimal fixtures.
-3. `protocol-v3-02`: add v2 -> v3 migration with golden fixtures.
-4. `protocol-v3-03`: add parse/serialize compatibility APIs.
-5. `compiler-v3-01`: compile v3 minimal project to current runtime IR.
-6. `compiler-v3-02`: compile v3 visual tracks and scene clips.
-7. `compiler-v3-03`: compile v3 audio/caption/component profiles.
-8. `runtime-v3-01`: add neutral runtime type aliases and runtime versioning.
-9. `runtime-v3-02`: evaluate v3 visual track composition.
-10. `runtime-v3-03`: transition fixtures and diagnostics.
-11. `render-v3-01`: Pixi/Remotion consume v3 composition output.
-12. `playback-v3-01`: playback-engine neutral runtime loading.
-13. `editor-v3-01`: create/load/save v3 project.
-14. `editor-v3-02`: timeline edits write v3 visual clips.
-15. `ai-v3-01`: v3 schema prompt and AI patch support.
-16. `workspace-v3-01`: add `motion-workspace` manifest and memory linker.
-17. `workspace-v3-02`: filesystem linker and bundle profiles.
-18. `determinism-v3-01`: canonical serializer, hashes, manifest.
-19. `cleanup-v3-01`: flip canonical alias to v3.
-20. `cleanup-v3-02`: quarantine v2 as legacy import path only.
+1. `v3-cutover-00`: make protocol canonical parser/type aliases point to v3.
+2. `v3-cutover-01`: finish v3 schema/reference validation and JSON Schema output.
+3. `v3-cutover-02`: convert fixtures, demos, and project creation to v3.
+4. `v3-cutover-03`: compile v3 directly without down-migrating to v2.
+5. `v3-cutover-04`: rename runtime-facing types and add runtime composition metadata.
+6. `v3-cutover-05`: evaluate v3 visual timeline and transitions.
+7. `v3-cutover-06`: update Pixi, Remotion, playback, and render-worker.
+8. `v3-cutover-07`: update editor persistence and timeline commands.
+9. `v3-cutover-08`: update AI planner/prompts/patches.
+10. `v3-cutover-09`: add workspace manifest/linker.
+11. `v3-cutover-10`: add canonical serializer, hashes, and render manifest.
+12. `v3-cutover-11`: delete v2 production path and stale docs.
 
-## 16. Test Matrix
+## Test Matrix
 
-Run these after each major phase:
+Run after each major phase:
 
 ```powershell
 pnpm.cmd --filter @motionvideo/motion-protocol test
@@ -541,46 +481,34 @@ pnpm.cmd --filter @motionvideo/remotion-renderer test
 pnpm.cmd --filter @motionvideo/render-contracts test
 ```
 
-Add these as v3-specific suites:
+Add v3-specific suites:
 
 - [ ] protocol v3 positive fixtures
 - [ ] protocol v3 negative fixtures
-- [ ] v2 -> v3 migration goldens
 - [ ] v3 compile snapshots
-- [ ] v3 evaluated frame structural fingerprints
+- [ ] v3 evaluated frame fingerprints
 - [ ] v3 transition frame fixtures
 - [ ] v3 audio plan fixtures
 - [ ] v3 caption/cue fixtures
 - [ ] Pixi/Remotion parity over v3 runtime
 - [ ] editor command transaction fixtures over visual clips
-- [ ] AI generation/patch fixtures over v3 JSON Schema
+- [ ] AI generation and patch fixtures over v3 JSON Schema
 
-## 17. Main Risks
+## Definition Of Done
 
-| Risk                                           | Mitigation                                                      |
-| ---------------------------------------------- | --------------------------------------------------------------- |
-| v3 becomes another parallel source of truth    | Keep v2 legacy-only and migrate through one compiler path       |
-| Runtime starts reading authoring fields        | Architecture tests blocking runtime -> workspace/editor imports |
-| Pixi and Remotion diverge                      | Both consume `EvaluatedCompositionFrame`, not project JSON      |
-| Timeline migration breaks old projects         | Golden fixtures for `sceneOrder` -> `visualTracks`              |
-| Audio/video lifetime differs preview/export    | Explicit v3 duration/trim/rate and shared audio/media plans     |
-| Components become network-dependent            | Portable bundles pin integrity and embed or flatten profiles    |
-| AI writes fields before renderers support them | Capability gate before AI allowlist                             |
-| Hashes change because of metadata/editor state | Canonical serializer excludes non-render fields                 |
+V3 cutover is complete when:
 
-## 18. Definition Of Done
-
-V3 is ready when:
-
-- [ ] `MotionProjectV3Schema` is strict and documented.
-- [ ] v2 projects migrate deterministically to v3.
-- [ ] New editor projects are v3.
-- [ ] AI can generate and patch v3.
-- [ ] Compiler produces runtime IR from v3 without unresolved authoring constructs.
-- [ ] Runtime evaluates visual tracks, transitions, audio, captions, and overlays from compiled runtime IR.
+- [ ] `MotionProject` means `MotionProjectV3`.
+- [ ] `parseMotionProject` accepts v3 only.
+- [ ] New projects are v3 only.
+- [ ] AI generates v3 only.
+- [ ] Editor saves v3 only.
+- [ ] Compiler accepts v3 as canonical project input.
+- [ ] Runtime consumes generated runtime IR, not authoring JSON.
 - [ ] Pixi preview and Remotion export consume the same evaluated frame contract.
-- [ ] Playback loads runtime IR and never compiles in the play loop.
-- [ ] Workspace linker can produce the same canonical project as a single-file bundle.
-- [ ] Project/runtime/render hashes are stable.
-- [ ] Required capabilities fail preflight when unsupported.
-- [ ] V2 remains importable but is no longer the canonical authoring shape.
+- [ ] Playback loads runtime IR and never compiles during playback.
+- [ ] Workspace linker produces canonical v3 project bundles.
+- [ ] Project/runtime/render hashes are deterministic.
+- [ ] Required capability preflight exists.
+- [ ] v2 names and timeline assumptions are gone from production code.
+

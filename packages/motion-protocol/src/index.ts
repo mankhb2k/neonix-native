@@ -6,33 +6,31 @@ export * from "./parse-any";
 export * as V3 from "./v3";
 
 import {
-  parseMotionProjectV2,
-  MotionProjectV2Schema,
-  serializeMotionProjectV2,
-  type MotionProjectV2,
-  type MotionNode,
-  type MotionScene,
-} from "./v2";
+  parseMotionProjectV3,
+  MotionProjectV3Schema,
+  serializeMotionProjectV3,
+  type MotionProjectV3,
+} from "./v3";
 
 /**
- * Canonical alias strategy (Phase 4 decision):
- *  - Short term (now):        `MotionProject = MotionProjectV2`
- *  - Migration (after P5):    `MotionProject = MotionProjectV2 | MotionProjectV3`
- *  - Final (after P12):       `MotionProject = MotionProjectV3`
+ * Phase 1 cutover: canonical type aliases now point to V3.
  *
- * Consumers that need both versions today should use `parseMotionProjectAny`.
+ * V2 types remain accessible via explicit legacy imports:
+ *   `parseMotionProjectV2`, `MotionProjectV2`, `MotionProjectV2Schema`,
+ *   `MotionNode`, `MotionScene`, etc. (all re-exported from `./v2` above).
+ *
+ * Phases 8+ (Editor / AI / Workspace) will update downstream consumers.
+ * Phase 12 will delete `./v2` entirely.
  */
-export type MotionProject = MotionProjectV2;
-export type Node = MotionNode;
-export type Scene = MotionScene;
+export type MotionProject = MotionProjectV3;
 
-export const MotionProjectSchema = MotionProjectV2Schema;
-export const MOTION_FORMAT_VERSION = 2 as const;
+export const MotionProjectSchema = MotionProjectV3Schema;
+export const MOTION_FORMAT_VERSION = 3 as const;
 
 export function parseMotionProject(input: unknown): MotionProject {
-  return parseMotionProjectV2(input);
+  return parseMotionProjectV3(input);
 }
 
 export function serializeMotionProject(project: MotionProject): string {
-  return serializeMotionProjectV2(project);
+  return serializeMotionProjectV3(project);
 }

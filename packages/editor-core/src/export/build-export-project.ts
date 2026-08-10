@@ -4,9 +4,9 @@
  */
 
 import {
-  parseMotionProject,
+  parseMotionProjectV2,
   type MotionNode,
-  type MotionProject,
+  type MotionProjectV2,
   type MotionScene,
 } from "@motionvideo/motion-protocol";
 import {
@@ -26,7 +26,7 @@ import {
 import { clipLocalTime, sliceScene } from "./slice-scene";
 
 export type EditorExportSnapshot = {
-  project: MotionProject;
+  project: MotionProjectV2;
   timelineClips: TimelineClip[];
   timelineLanes: TimelineLane[];
 };
@@ -113,10 +113,10 @@ function collectBoundaryTimes(
 }
 
 function buildAudioTracks(
-  project: MotionProject,
+  project: MotionProjectV2,
   clips: TimelineClip[],
   lanes: TimelineLane[],
-): MotionProject["timeline"]["audioTracks"] {
+): MotionProjectV2["timeline"]["audioTracks"] {
   const mutedLanes = new Set(
     lanes
       .filter((lane) => lane.kind === "audio" && lane.muted)
@@ -154,7 +154,7 @@ function findClipById(
  * Base gaps → pad scenes; overlay active → merge nodes vào segment.
  * Rejects invalid TimelineDocument when validation fails.
  */
-export function buildExportProject(snapshot: EditorExportSnapshot): MotionProject {
+export function buildExportProject(snapshot: EditorExportSnapshot): MotionProjectV2 {
   const { project, timelineClips, timelineLanes } = snapshot;
   const doc = documentFromStoreState({
     project,
@@ -181,7 +181,7 @@ export function buildExportProject(snapshot: EditorExportSnapshot): MotionProjec
   if (boundaries.length === 0 || contentEnd <= 0) {
     const fallback =
       project.scenes[0] ?? emptyPadScene(uid("pad"), 0.5, "Empty");
-    return parseMotionProject({
+    return parseMotionProjectV2({
       ...project,
       scenes: [{ ...fallback, duration: Math.max(0.5, fallback.duration) }],
       timeline: {
@@ -262,7 +262,7 @@ export function buildExportProject(snapshot: EditorExportSnapshot): MotionProjec
     sceneOrder.push(pad.id);
   }
 
-  return parseMotionProject({
+  return parseMotionProjectV2({
     ...project,
     scenes: bakedScenes,
     timeline: {
@@ -290,7 +290,7 @@ export function findBaseClipAtTimeForExport(
 
 /** Map global timeline time → baked scene + local time within that scene. */
 export function resolveBakedLocalTime(
-  baked: MotionProject,
+  baked: MotionProjectV2,
   globalTime: number,
 ): { sceneId: string; localTime: number } | null {
   let cursor = 0;

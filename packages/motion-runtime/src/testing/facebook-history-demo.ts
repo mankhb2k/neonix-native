@@ -1,8 +1,8 @@
 import {
-  parseMotionProject,
+  parseMotionProjectV2,
   type MotionClip,
   type MotionNode,
-  type MotionProject,
+  type MotionProjectV2,
   type MotionScene,
 } from "@motionvideo/motion-protocol";
 
@@ -675,7 +675,7 @@ function buildOutro(): MotionScene {
 }
 
 /** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
-export function createFacebookHistoryDemoProject(): MotionProject {
+export function createFacebookHistoryDemoProject(): MotionProjectV2 {
   const scenes = [
     buildHook(),
     buildHarvard(),
@@ -685,7 +685,7 @@ export function createFacebookHistoryDemoProject(): MotionProject {
     buildOutro(),
   ];
 
-  return parseMotionProject({
+  return parseMotionProjectV2({
     format: "motion-project",
     formatVersion: 2,
     metadata: {

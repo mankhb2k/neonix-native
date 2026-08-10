@@ -9,7 +9,9 @@ import {
 import { compositionDurationInFrames } from "./evaluate-composition";
 
 describe("resolveTimelineAtTime", () => {
-  const runtime = compileMotionProject(createFacebookHistoryDemoProject());
+  // compileMotionProject still accepts V2 authoring input as MotionProject (now V3).
+  // Cast needed until Phase 4 cuts the compiler over to V3-only input.
+  const runtime = compileMotionProject(createFacebookHistoryDemoProject() as any);
 
   it("lists six scene segments totaling 27s", () => {
     const segments = listTimelineSegments(runtime);

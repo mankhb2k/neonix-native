@@ -1,4 +1,4 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+import { parseMotionProjectV2, type MotionProjectV2 } from "@motionvideo/motion-protocol";
 import type { OverlaySceneItem } from "../../overlay-scenes";
 import {
   DEFAULT_VISUAL_POLICY,
@@ -72,8 +72,8 @@ function scene(id: string, name: string, duration = 3) {
   };
 }
 
-function baseProject(id: string, name: string, scenes: ReturnType<typeof scene>[]): MotionProject {
-  return parseMotionProject({
+function baseProject(id: string, name: string, scenes: ReturnType<typeof scene>[]): MotionProjectV2 {
+  return parseMotionProjectV2({
     format: "motion-project",
     formatVersion: 2,
     metadata: {
@@ -170,7 +170,7 @@ export function fixtureMainPlusAudioOverlap() {
   const base = baseProject("fixture.main-audio-overlap", "Main + Audio Overlap", [
     scene("scene.main", "Main", 6),
   ]);
-  const project = parseMotionProject({
+  const project = parseMotionProjectV2({
     ...base,
     assets: [
       {
@@ -275,7 +275,7 @@ export function fixtureLegacyTrackLayerIndex() {
 
 /** Nhiều scene/node để kiểm tra clone/remap reference. */
 export function fixtureMultiSceneReferences() {
-  const project = parseMotionProject({
+  const project = parseMotionProjectV2({
     format: "motion-project",
     formatVersion: 2,
     metadata: {
