@@ -39,34 +39,70 @@ describe("motion-protocol R2–R5 contract", () => {
   });
 
   it("accepts transform.depth", () => {
-    expect(TransformV2Schema.parse({ ...baseTransform, depth: 1.5 }).depth).toBe(1.5);
+    expect(
+      TransformV2Schema.parse({ ...baseTransform, depth: 1.5 }).depth,
+    ).toBe(1.5);
   });
 
   it("accepts cycle pingpong mode and rejects unknown modes", () => {
-    expect(ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "pingpong" })).toEqual({
+    expect(
+      ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "pingpong" }),
+    ).toEqual({
       type: "cycle",
       mode: "pingpong",
     });
-    expect(() => ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "bounce" })).toThrow();
+    expect(() =>
+      ExtrapolationBehaviorSchema.parse({ type: "cycle", mode: "bounce" }),
+    ).toThrow();
   });
 
   it("exposes transform.depth in public AI vocabulary", () => {
-    expect(motionPropertyCapability("group", "transform.depth")?.public).toBe(true);
-    expect(publicMotionPropertyCapabilities("text").some((entry) => entry.property === "transform.depth")).toBe(true);
+    expect(motionPropertyCapability("group", "transform.depth")?.public).toBe(
+      true,
+    );
+    expect(
+      publicMotionPropertyCapabilities("text").some(
+        (entry) => entry.property === "transform.depth",
+      ),
+    ).toBe(true);
   });
 
   it("exposes adjustment payload vocabulary", () => {
-    expect(publicMotionPropertyCapabilities("adjustment").some((entry) => entry.property === "payload.brightness")).toBe(true);
+    expect(
+      publicMotionPropertyCapabilities("adjustment").some(
+        (entry) => entry.property === "payload.brightness",
+      ),
+    ).toBe(true);
   });
 
   it("accepts cubic-bezier and spring easing objects", () => {
     expect(
-      KeyframeEasingV2Schema.parse({ type: "cubic-bezier", x1: 0.42, y1: 0, x2: 0.58, y2: 1 }),
+      KeyframeEasingV2Schema.parse({
+        type: "cubic-bezier",
+        x1: 0.42,
+        y1: 0,
+        x2: 0.58,
+        y2: 1,
+      }),
     ).toMatchObject({ type: "cubic-bezier" });
-    expect(KeyframeEasingV2Schema.parse({ type: "spring", stiffness: 180, damping: 12 })).toMatchObject({
+    expect(
+      KeyframeEasingV2Schema.parse({
+        type: "spring",
+        stiffness: 180,
+        damping: 12,
+      }),
+    ).toMatchObject({
       type: "spring",
     });
-    expect(() => KeyframeEasingV2Schema.parse({ type: "cubic-bezier", x1: 2, y1: 0, x2: 0, y2: 1 })).toThrow();
+    expect(() =>
+      KeyframeEasingV2Schema.parse({
+        type: "cubic-bezier",
+        x1: 2,
+        y1: 0,
+        x2: 0,
+        y2: 1,
+      }),
+    ).toThrow();
   });
 
   it("parses solid nodes", () => {
@@ -84,7 +120,13 @@ describe("motion-protocol R2–R5 contract", () => {
           id: "plate",
           type: "solid",
           parentId: null,
-          transform: { ...baseTransform, width: 100, height: 100, anchorX: 0, anchorY: 0 },
+          transform: {
+            ...baseTransform,
+            width: 100,
+            height: 100,
+            anchorX: 0,
+            anchorY: 0,
+          },
           payload: { width: 100, height: 100, color: "#111111" },
         },
       ],

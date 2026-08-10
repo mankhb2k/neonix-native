@@ -28,11 +28,11 @@ import {
 } from "@motionvideo/remotion-renderer";
 ```
 
-| Nhóm | Chức năng |
-|---|---|
-| `MotionComposition` / `MotiClipVideo` | Entry composition Remotion |
-| `RemotionFramePainter*` | Vẽ frame từ tree / snapshot |
-| `build-remotion-paint-tree` | Flatten drawables → tree Remotion |
+| Nhóm                                  | Chức năng                         |
+| ------------------------------------- | --------------------------------- |
+| `MotionComposition` / `MotiClipVideo` | Entry composition Remotion        |
+| `RemotionFramePainter*`               | Vẽ frame từ tree / snapshot       |
+| `build-remotion-paint-tree`           | Flatten drawables → tree Remotion |
 
 ## Không làm
 

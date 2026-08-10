@@ -59,13 +59,13 @@ JSON Input  ──► normalizeLegacyMotionInput()
              Pixi preview  /  Remotion export
 ```
 
-| Schema / Type | Version | Mô tả |
-| ------------- | ------- | ----- |
-| `MotionProjectV2Schema` / `MotionProject` | `2` | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
-| `MotionComponentV2Schema` / `MotionComponentV2` | `2` | Linh kiện tái sử dụng (`.mvc`): `publicParams`, `bindings`, `nodes`, `clips`, `cutoutRigs`, `actions`. |
-| `NormalizedMotionProjectV2Schema` | `2` | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer. |
-| `MotionPatchSchema` | `1` | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance). |
-| `SceneComponentRegistrySchema` | `1` | Catalog linh kiện scene cho AI/Editor template picker. |
+| Schema / Type                                   | Version | Mô tả                                                                                                          |
+| ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
+| `MotionProjectV2Schema` / `MotionProject`       | `2`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
+| `MotionComponentV2Schema` / `MotionComponentV2` | `2`     | Linh kiện tái sử dụng (`.mvc`): `publicParams`, `bindings`, `nodes`, `clips`, `cutoutRigs`, `actions`.         |
+| `NormalizedMotionProjectV2Schema`               | `2`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
+| `MotionPatchSchema`                             | `1`     | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance).                                  |
+| `SceneComponentRegistrySchema`                  | `1`     | Catalog linh kiện scene cho AI/Editor template picker.                                                         |
 
 ---
 
@@ -201,14 +201,14 @@ Compiler chia token → cues deterministic; runtime biết token nào active the
 
 - **Scene Transition** (`SceneTransitionSchema`) gắn trên scene đi ra:
 
-| type | Ý nghĩa ngắn gọn |
-| ---- | ---------------- |
-| `cut` | Cắt cứng |
-| `fade` | Fade qua màu nền (`color?`) — khác crossfade |
-| `crossfade` | Hai scene chồng alpha |
-| `slide` | Đẩy / phủ theo hướng (`push` \| `cover`) |
-| `wipe` | Reveal kiểu mask (`softness?`) |
-| `zoom` | Zoom composition `in` \| `out` |
+| type        | Ý nghĩa ngắn gọn                             |
+| ----------- | -------------------------------------------- |
+| `cut`       | Cắt cứng                                     |
+| `fade`      | Fade qua màu nền (`color?`) — khác crossfade |
+| `crossfade` | Hai scene chồng alpha                        |
+| `slide`     | Đẩy / phủ theo hướng (`push` \| `cover`)     |
+| `wipe`      | Reveal kiểu mask (`softness?`)               |
+| `zoom`      | Zoom composition `in` \| `out`               |
 
 Evaluator composition dùng chung ở motion-runtime (một layer plan cho preview và export).
 
@@ -237,13 +237,13 @@ Layout chỉ chạy ở compile/edit với `TextMeasurementProvider` determinist
 
 Khi preview cần map vùng paint về authoring:
 
-| kind | Cần có |
-| ---- | ------ |
-| `text-run` | `nodeId`, `runId` |
+| kind            | Cần có                      |
+| --------------- | --------------------------- |
+| `text-run`      | `nodeId`, `runId`           |
 | `caption-token` | `captionTrackId`, `tokenId` |
-| `caption-cue` | `captionTrackId`, `cueId` |
-| `node` | `nodeId` |
-| `clip` | `clipId` |
+| `caption-cue`   | `captionTrackId`, `cueId`   |
+| `node`          | `nodeId`                    |
+| `clip`          | `clipId`                    |
 
 `sourceRefKey(ref)` tạo khóa ổn định để gắn lên paint / hit-test.
 
@@ -395,14 +395,14 @@ console.log("Animatable:", cap?.animatable); // true
 
 ## 📦 Ranh giới Package
 
-| Thuộc motion-protocol | Không thuộc package này |
-| ------------------- | ----------------------- |
-| Zod schemas, limits, SourceRef | Speech-to-text |
-| Parse normalize / serialize | Đo text bằng DOM |
-| Property vocabulary + AI matrix | Expand preset / bake caption cue (`motion-compiler`) |
-| Shape `AudioAnalysis` / `CaptionTrack` | Tool beat planner (`ai-planner`) |
-| | Evaluate composition / paint (`motion-runtime`) |
-| | Pixi / Remotion painters |
+| Thuộc motion-protocol                  | Không thuộc package này                              |
+| -------------------------------------- | ---------------------------------------------------- |
+| Zod schemas, limits, SourceRef         | Speech-to-text                                       |
+| Parse normalize / serialize            | Đo text bằng DOM                                     |
+| Property vocabulary + AI matrix        | Expand preset / bake caption cue (`motion-compiler`) |
+| Shape `AudioAnalysis` / `CaptionTrack` | Tool beat planner (`ai-planner`)                     |
+|                                        | Evaluate composition / paint (`motion-runtime`)      |
+|                                        | Pixi / Remotion painters                             |
 
 ---
 

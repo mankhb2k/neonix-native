@@ -44,10 +44,7 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["electron/**/*.test.ts", "shared/**/*.test.ts"],
-          exclude: [
-            ...PERF_FILES,
-            "gui/**/stage-renderer-contract.test.ts",
-          ],
+          exclude: [...PERF_FILES, "gui/**/stage-renderer-contract.test.ts"],
         },
       },
       {

@@ -52,13 +52,13 @@ Cay thu muc source de con nguoi, AI va Git lam viec. Workspace co the chia proje
 
 `runtime.mtir.json` la compiler output da resolve variables/components/layout, normalize tracks va tao indexes. Runtime IR khong phai format de edit.
 
-| Artifact | Editable | Multi-file | Chua indexes | Chua editor UI | Renderer doc truc tiep |
-| --- | --- | --- | --- | --- | --- |
-| Workspace modules | Co | Co | Khong | Khong | Khong |
-| `project.bundle.mt` | Co the | Khong | Khong | Khong | Khong |
-| `runtime.mtir.json` | Khong | Khong | Co | Khong | Co |
-| `editor/workspace.mt` | Co | Khong | UI-only | Co | Khong |
-| `render-manifest.json` | Khong | Khong | Build metadata | Khong | Render worker doc |
+| Artifact               | Editable | Multi-file | Chua indexes   | Chua editor UI | Renderer doc truc tiep |
+| ---------------------- | -------- | ---------- | -------------- | -------------- | ---------------------- |
+| Workspace modules      | Co       | Co         | Khong          | Khong          | Khong                  |
+| `project.bundle.mt`    | Co the   | Khong      | Khong          | Khong          | Khong                  |
+| `runtime.mtir.json`    | Khong    | Khong      | Co             | Khong          | Co                     |
+| `editor/workspace.mt`  | Co       | Khong      | UI-only        | Co             | Khong                  |
+| `render-manifest.json` | Khong    | Khong      | Build metadata | Khong          | Render worker doc      |
 
 ## 3. Quy tac serialization bat buoc
 
@@ -160,18 +160,18 @@ type MotionProjectV3 = {
 };
 ```
 
-| Field | Owner | Render hash | Bat buoc |
-| --- | --- | --- | --- |
-| `format`, `formatVersion` | Schema/migration | Co | Co |
-| `metadata` | Project identity | Mot phan | Co |
-| `composition` | Runtime settings | Co | Co |
-| `capabilities` | Compiler/preflight | Co | Co |
-| `dependencies` | Linker/compiler | Co | Co |
-| `tokens`, `variables` | Authoring/compiler | Co | Co |
-| `assets`, `components` | Registry/linker | Co | Co |
-| `scenes`, `timeline`, `bindings` | Authoring/runtime | Co | Co |
-| `provenance` | Linker/debug | Khong | Khong |
-| `extensions` | Namespaced plugins | Tuy namespace | Khong |
+| Field                            | Owner              | Render hash   | Bat buoc |
+| -------------------------------- | ------------------ | ------------- | -------- |
+| `format`, `formatVersion`        | Schema/migration   | Co            | Co       |
+| `metadata`                       | Project identity   | Mot phan      | Co       |
+| `composition`                    | Runtime settings   | Co            | Co       |
+| `capabilities`                   | Compiler/preflight | Co            | Co       |
+| `dependencies`                   | Linker/compiler    | Co            | Co       |
+| `tokens`, `variables`            | Authoring/compiler | Co            | Co       |
+| `assets`, `components`           | Registry/linker    | Co            | Co       |
+| `scenes`, `timeline`, `bindings` | Authoring/runtime  | Co            | Co       |
+| `provenance`                     | Linker/debug       | Khong         | Khong    |
+| `extensions`                     | Namespaced plugins | Tuy namespace | Khong    |
 
 ## 6. `metadata`
 
@@ -331,13 +331,13 @@ type AssetBase = {
 };
 ```
 
-| Kind | Metadata chinh |
-| --- | --- |
-| image | mime, width, height, pixelFormat, hasAlpha |
-| svg | mime, width, height, viewBox, sanitized |
+| Kind  | Metadata chinh                                                         |
+| ----- | ---------------------------------------------------------------------- |
+| image | mime, width, height, pixelFormat, hasAlpha                             |
+| svg   | mime, width, height, viewBox, sanitized                                |
 | video | mime, width, height, duration, fps, codec, pixelFormat, audio metadata |
-| audio | mime, duration, codec, sampleRate, channels, optional analysis |
-| font | mime, family, weight, style, locale coverage |
+| audio | mime, duration, codec, sampleRate, channels, optional analysis         |
+| font  | mime, family, weight, style, locale coverage                           |
 
 Rules:
 
@@ -942,10 +942,7 @@ Workspace manifest dung discriminator rieng:
   "imports": {
     "tokens": ["variables/brand.mt", "variables/theme.mt"],
     "variables": ["variables/globals.mt"],
-    "scenes": [
-      "scenes/intro/scene.mt",
-      "scenes/harvard/scene.mt"
-    ],
+    "scenes": ["scenes/intro/scene.mt", "scenes/harvard/scene.mt"],
     "components": [
       "components/timeline-card/component.mvc",
       "components/logo-reveal/component.mvc"
@@ -979,7 +976,7 @@ interface MotionWorkspaceLinker {
     manifestPath: string,
     options: {
       profile: "embedded-components" | "flattened-components";
-    }
+    },
   ): Promise<{
     project: MotionProject;
     diagnostics: LinkDiagnostic[];
@@ -1115,10 +1112,7 @@ orthographic camera
 Future union:
 
 ```ts
-type SceneSpace =
-  | "flat-2d"
-  | "layered-2.5d"
-  | "perspective-3d";
+type SceneSpace = "flat-2d" | "layered-2.5d" | "perspective-3d";
 
 type CameraPayload =
   | {

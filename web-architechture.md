@@ -271,7 +271,7 @@ Ví dụ `mask:luma` có trong schema nhưng Remotion painter chưa hỗ trợ t
 | Package/app hiện tại | Lý do không là package độc lập                                      | Nơi sở hữu contract trong kiến trúc đích                                               |
 | -------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `motion-grammar`     | Chỉ là policy của AI planning                                       | `ai-planner/planning`                                                                  |
-| `shared`             | Misc bucket làm mờ ownership                                        | App config, `motion-protocol` hoặc `render-contracts` tùy loại dữ liệu                   |
+| `shared`             | Misc bucket làm mờ ownership                                        | App config, `motion-protocol` hoặc `render-contracts` tùy loại dữ liệu                 |
 | `preview-kit`        | Composition evaluation không chỉ phục vụ preview                    | `motion-runtime`; fixtures nằm ngoài production barrel                                 |
 | `template-library`   | Template không thuộc zero-template MVP                              | Ngoài active dependency graph; chỉ quay lại như feature module khi có template product |
 | `apps/render-worker` | Không phải production renderer khi Remotion Lambda là export engine | Chỉ là công cụ local/golden/parity trong giai đoạn chuyển tiếp                         |

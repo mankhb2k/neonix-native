@@ -32,16 +32,16 @@ Contract: [Motion Format](docs/motion-format-v2.md). Catalog: [Primitive objects
 
 ## Monorepo
 
-| Package | Trách nhiệm |
-|---|---|
-| `apps/web` | Next.js workspace/editor, import/export và local project storage |
-| `apps/render-worker` | Compiler, literal-track renderer, FFmpeg và upload adapter |
-| `packages/motion-protocol` | Zod contract, reference validator và Runtime IR |
-| `packages/template-library` | Seed project, block/preset registry và retrieval |
-| `packages/ai-planner` | Chọn template và tạo project đã validate |
-| `packages/motion-grammar` | Grammar Hook → Offer → CTA |
-| `packages/asset-registry` | Asset/font policy |
-| `packages/shared` | Kiểu dùng chung ngoài motion domain |
+| Package                     | Trách nhiệm                                                      |
+| --------------------------- | ---------------------------------------------------------------- |
+| `apps/web`                  | Next.js workspace/editor, import/export và local project storage |
+| `apps/render-worker`        | Compiler, literal-track renderer, FFmpeg và upload adapter       |
+| `packages/motion-protocol`  | Zod contract, reference validator và Runtime IR                  |
+| `packages/template-library` | Seed project, block/preset registry và retrieval                 |
+| `packages/ai-planner`       | Chọn template và tạo project đã validate                         |
+| `packages/motion-grammar`   | Grammar Hook → Offer → CTA                                       |
+| `packages/asset-registry`   | Asset/font policy                                                |
+| `packages/shared`           | Kiểu dùng chung ngoài motion domain                              |
 
 ## Chạy local
 
