@@ -49,7 +49,12 @@ export type TimelineSessionEvent =
   | { type: "REPLACE_DOCUMENT"; documentJson: string }
   | { type: "APPLY_DOCUMENT_JSON"; documentJson: string }
   | { type: "CLEAR_ERROR" }
-  | { type: "SET_PROJECT_NAME"; name: string; entryId: string; selection: EditorSelection }
+  | {
+      type: "SET_PROJECT_NAME";
+      name: string;
+      entryId: string;
+      selection: EditorSelection;
+    }
   | {
       type: "EXECUTE_PROPERTY_COMMAND";
       command: DocumentPropertyCommand;
@@ -370,7 +375,11 @@ export function reduceTimelineSession(
       }
       const { state: nextHistory, entry } = undoHistory(state.history);
       if (!entry) return { state };
-      const applied = applyDocument(state, entry.before, state.baseDocumentJson);
+      const applied = applyDocument(
+        state,
+        entry.before,
+        state.baseDocumentJson,
+      );
       return {
         state: {
           ...state,

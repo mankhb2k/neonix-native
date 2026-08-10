@@ -13,7 +13,7 @@ import { Container } from "pixi.js";
 import { compileMotionProjectV2 } from "@motionvideo/motion-compiler";
 import {
   parseMotionProjectV2,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
   evaluateCompositionFrameV3,
@@ -26,7 +26,7 @@ const projectFixtureDir = fileURLToPath(
   new URL("../../../motion-protocol/src/__fixtures__/v2", import.meta.url),
 );
 
-function loadMultiAsset(): NormalizedMotionProjectV2 {
+function loadMultiAsset(): MotionRuntimeProject {
   const file = path.join(projectFixtureDir, "multi-asset.project.json");
   const project = parseMotionProjectV2(JSON.parse(readFileSync(file, "utf8")));
   const result = compileMotionProjectV2(project);

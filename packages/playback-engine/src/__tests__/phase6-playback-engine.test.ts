@@ -20,7 +20,7 @@ import {
   type FrameConsumer,
 } from "../index";
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 
 // ── Helpers for test runtime ─────────────────────────────────────────
@@ -28,7 +28,7 @@ import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 function makeRuntime(
   duration: number,
   extraScenes: number = 0,
-): NormalizedMotionProjectV2 {
+): MotionRuntimeProject {
   const scenes = [
     {
       id: "s1",

@@ -9,7 +9,7 @@
  */
 
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { createHash } from "node:crypto";
+import { computeProjectHashShort } from "@motionvideo/motion-protocol";
 import { sceneOrderToTimelineClips } from "../timeline/selectors/scene-order-clips";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";
 import type { TimelineDocument } from "./document";
@@ -29,32 +29,11 @@ export const INITIAL_REVISION = 1;
 // ── Fingerprint ───────────────────────────────────────────────────────
 
 /**
- * JSON.stringify with recursively sorted keys for deterministic output.
- */
-function stableStringify(value: unknown): string {
-  if (value == null || typeof value !== "object") {
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) {
-    return "[" + value.map(stableStringify).join(",") + "]";
-  }
-  const keys = Object.keys(value as Record<string, unknown>).sort();
-  const pairs = keys.map(
-    (k) =>
-      stableStringify(k) +
-      ":" +
-      stableStringify((value as Record<string, unknown>)[k]),
-  );
-  return "{" + pairs.join(",") + "}";
-}
-
-/**
  * Compute a stable fingerprint of a MotionProject for drift detection.
- * Uses deterministic JSON-stable keys (recursively sorted) → SHA-256.
+ * Phase 11: delegates to @motionvideo/motion-protocol canonical hash.
  */
 export function computeProjectFingerprint(project: MotionProject): string {
-  const stable = stableStringify(project);
-  return createHash("sha256").update(stable).digest("hex").slice(0, 16);
+  return computeProjectHashShort(project as Record<string, unknown>);
 }
 
 /**

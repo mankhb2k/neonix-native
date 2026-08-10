@@ -1,7 +1,7 @@
 /**
  * Phase 1 — v2 compile snapshot tests.
  *
- * Every v2 fixture is compiled to `NormalizedMotionProjectV2` and the output
+ * Every v2 fixture is compiled to `MotionRuntimeProject` and the output
  * is compared against a checked-in golden file. Goldens can be refreshed with
  * `UPDATE_GOLDENS=1` when a compile change is intentional.
  */

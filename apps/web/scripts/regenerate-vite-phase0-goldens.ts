@@ -11,7 +11,10 @@ import {
   buildPhase0SmallFixture,
 } from "../lib/editor/__fixtures__/vite-phase0";
 
-const PHASE0_DIR = path.resolve(__dirname, "../../../docs/migration/vite-phase-0");
+const PHASE0_DIR = path.resolve(
+  __dirname,
+  "../../../docs/migration/vite-phase-0",
+);
 const FIXTURES_DIR = path.join(PHASE0_DIR, "fixtures");
 const GOLDENS_DIR = path.join(PHASE0_DIR, "goldens");
 
@@ -22,9 +25,18 @@ function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
-writeJson(path.join(FIXTURES_DIR, "small.project.json"), buildPhase0SmallFixture());
-writeJson(path.join(FIXTURES_DIR, "medium.project.json"), buildPhase0MediumFixture());
-writeJson(path.join(FIXTURES_DIR, "large.project.json"), buildPhase0LargeFixture());
+writeJson(
+  path.join(FIXTURES_DIR, "small.project.json"),
+  buildPhase0SmallFixture(),
+);
+writeJson(
+  path.join(FIXTURES_DIR, "medium.project.json"),
+  buildPhase0MediumFixture(),
+);
+writeJson(
+  path.join(FIXTURES_DIR, "large.project.json"),
+  buildPhase0LargeFixture(),
+);
 
 for (const [name, snapshot] of Object.entries(buildPhase0Goldens())) {
   writeJson(path.join(GOLDENS_DIR, `${name}.after.json`), snapshot);

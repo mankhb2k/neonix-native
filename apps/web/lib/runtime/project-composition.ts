@@ -19,5 +19,8 @@ export function compositionSize(project: MotionProject): {
   width: number;
   height: number;
 } {
-  return { width: project.composition.width, height: project.composition.height };
+  return {
+    width: project.composition.width,
+    height: project.composition.height,
+  };
 }

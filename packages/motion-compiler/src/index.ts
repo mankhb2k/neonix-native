@@ -2,6 +2,9 @@ import {
   NormalizedMotionProjectV2Schema,
   CAPABILITY_MANIFEST_VERSION,
   MOTION_RUNTIME_VERSION,
+  buildCapabilityFingerprint,
+  canonicalJson,
+  computeRuntimeHash,
   getTextPayloadPlain,
   segmentTextUnits,
   setTextPayloadPlain,
@@ -9,19 +12,18 @@ import {
   type MotionComponentV2,
   type MotionNode,
   type MotionProject,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
   type RuntimeCompositionMetadata,
   type RuntimeSourceRef,
 } from "@motionvideo/motion-protocol";
-import { createHash } from "node:crypto";
 import { applyFitText, applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 import { COMPILER_VERSION } from "./compile-cache";
 import { compileMotionProjectV3 } from "./compile-v3";
 
 type RuntimeTrack =
-  NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
-type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+  MotionRuntimeProject["scenes"][number]["tracks"][number];
+type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
 type SceneMarker = { id: string; t: number };
 
 export type CompileOptions = {
@@ -1034,12 +1036,14 @@ function expandTextAnimators(nodes: MotionNode[]): {
 
 // ── Phase 6 — runtime IR enrichment ───────────────────────────────────
 
-const ASPECT_RATIO_DIMENSIONS: Record<string, { width: number; height: number }> =
-  {
-    "9:16": { width: 1080, height: 1920 },
-    "16:9": { width: 1920, height: 1080 },
-    "1:1": { width: 1080, height: 1080 },
-  };
+const ASPECT_RATIO_DIMENSIONS: Record<
+  string,
+  { width: number; height: number }
+> = {
+  "9:16": { width: 1080, height: 1920 },
+  "16:9": { width: 1920, height: 1080 },
+  "1:1": { width: 1080, height: 1080 },
+};
 
 /**
  * Derive composition-level runtime metadata from the v2 authoring
@@ -1048,11 +1052,10 @@ const ASPECT_RATIO_DIMENSIONS: Record<string, { width: number; height: number }>
 function buildRuntimeComposition(
   metadata: MotionProject["metadata"],
 ): RuntimeCompositionMetadata {
-  const dims =
-    ASPECT_RATIO_DIMENSIONS[metadata.aspectRatio] ?? {
-      width: 1920,
-      height: 1080,
-    };
+  const dims = ASPECT_RATIO_DIMENSIONS[metadata.aspectRatio] ?? {
+    width: 1920,
+    height: 1080,
+  };
   const background = metadata.designTokens?.colors?.["background"] ?? "#000000";
   return {
     width: dims.width,
@@ -1065,41 +1068,8 @@ function buildRuntimeComposition(
   };
 }
 
-/**
- * Deterministic fingerprint of the capability manifest used to compile.
- * Bumped via `CAPABILITY_MANIFEST_VERSION` in motion-protocol.
- */
-function buildCapabilityFingerprint(): string {
-  return createHash("sha256")
-    .update(`motion-capabilities:${CAPABILITY_MANIFEST_VERSION}`)
-    .digest("hex")
-    .slice(0, 16);
-}
-
-/** Recursive key-sorted canonical JSON for deterministic hashing. */
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-
-/**
- * Deterministic runtime hash over the IR (excluding the `runtimeHash`
- * field itself). Same project + same compiler → same hash.
- */
-function computeRuntimeHash(ir: Record<string, unknown>): string {
-  const { runtimeHash: _omit, ...hashInputs } = ir;
-  return createHash("sha256")
-    .update(canonicalJson(hashInputs))
-    .digest("hex")
-    .slice(0, 32);
-}
+// Phase 11: canonicalJson, computeRuntimeHash, buildCapabilityFingerprint
+// are now imported from @motionvideo/motion-protocol (single source of truth).
 
 /** Encode a scene sourceRef as a stable human-readable string. */
 function encodeSourceRef(ref: RuntimeSourceRef): string {
@@ -1115,14 +1085,19 @@ type AuthoringScene = MotionProject["scenes"][number] & {
 export function compileMotionProject(
   project: MotionProject,
   options: CompileOptions = {},
-): NormalizedMotionProjectV2 {
+): MotionRuntimeProject {
   // Phase 4: v3 projects compile through the v3 pipeline.
   if ((project as Record<string, unknown>).formatVersion === 3) {
-    const result = compileMotionProjectV3(project as Parameters<typeof compileMotionProjectV3>[0], options);
+    const result = compileMotionProjectV3(
+      project as Parameters<typeof compileMotionProjectV3>[0],
+      options,
+    );
     if (!result.ok) {
       throw new Error(
         `compileMotionProject failed: ${result.diagnostics
-          .map((d: { code: string; message: string }) => `${d.code}: ${d.message}`)
+          .map(
+            (d: { code: string; message: string }) => `${d.code}: ${d.message}`,
+          )
           .join(" | ")}`,
       );
     }
@@ -1297,7 +1272,7 @@ import {
 } from "./compile-result";
 
 /**
- * Compile a MotionProject → NormalizedMotionProjectV2 with structured diagnostics.
+ * Compile a MotionProject → MotionRuntimeProject with structured diagnostics.
  *
  * Unlike `compileMotionProject()` which throws on errors, this returns
  * `{ ok: false, diagnostics }` so callers can surface issues without
@@ -1306,7 +1281,7 @@ import {
 export function compileMotionProjectV2(
   project: MotionProject,
   options: CompileOptions = {},
-): CompileResult<NormalizedMotionProjectV2> {
+): CompileResult<MotionRuntimeProject> {
   const collector = new DiagnosticCollector();
 
   try {

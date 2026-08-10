@@ -79,12 +79,19 @@ async function persistTrace(
     "utf8",
   );
   if (result.project) {
-    await writeFile(path.join(dir, "project.mt.json"), JSON.stringify(result.project, null, 2), "utf8");
+    await writeFile(
+      path.join(dir, "project.mt.json"),
+      JSON.stringify(result.project, null, 2),
+      "utf8",
+    );
   }
   return dir;
 }
 
-async function handleGenerate(body: GenerationBody, onProgress?: (p: OrchestratorProgress) => void) {
+async function handleGenerate(
+  body: GenerationBody,
+  onProgress?: (p: OrchestratorProgress) => void,
+) {
   let brief = body.brief;
   if (!brief && body.prompt) {
     brief = {
@@ -152,18 +159,20 @@ export async function POST(request: Request): Promise<Response> {
           format: "moticlip-command-batch",
           formatVersion: 1,
           baseRevision: body.baseRevision ?? 0,
-          commands: result.receipts.length
-            ? undefined
-            : undefined,
+          commands: result.receipts.length ? undefined : undefined,
         },
         proposal: {
           id: `prop_${Date.now().toString(36)}`,
           baseRevision: body.baseRevision ?? 0,
           scope: body.scope ?? "element",
           summary: result.summary,
-          affectedElementKeys: body.selectionKey ? [body.selectionKey] : [`scope:${body.scope ?? "video"}`],
+          affectedElementKeys: body.selectionKey
+            ? [body.selectionKey]
+            : [`scope:${body.scope ?? "video"}`],
           warnings: result.receipts.flatMap((r) =>
-            r.diagnostics.filter((d) => d.severity === "warning").map((d) => d.message),
+            r.diagnostics
+              .filter((d) => d.severity === "warning")
+              .map((d) => d.message),
           ),
           commandLabels: result.commandLabels,
           project: result.project,
@@ -225,7 +234,9 @@ export async function POST(request: Request): Promise<Response> {
           });
           send("done", { ok: result.ok });
         } catch (error) {
-          send("error", { error: error instanceof Error ? error.message : String(error) });
+          send("error", {
+            error: error instanceof Error ? error.message : String(error),
+          });
         } finally {
           controller.close();
         }

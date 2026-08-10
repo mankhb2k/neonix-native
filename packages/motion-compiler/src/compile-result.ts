@@ -6,10 +6,10 @@
  * source locations, severity, and codes.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 /** Canonical alias for the normalized project output. */
-export type CompiledProject = NormalizedMotionProjectV2;
+export type CompiledProject = MotionRuntimeProject;
 
 // ── Diagnostic types ──────────────────────────────────────────────────
 

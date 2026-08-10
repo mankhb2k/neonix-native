@@ -16,7 +16,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import type {
   MotionProject,
-  NormalizedMotionProjectV2,
+  MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 import {
@@ -43,7 +43,7 @@ export async function createStageRenderer(
     const pixi = createPixiStageRenderer();
     await pixi.mount(host);
     let project: MotionProject | null = null;
-    let compiled: NormalizedMotionProjectV2 | null = null;
+    let compiled: MotionRuntimeProject | null = null;
     let lastFrame = 0;
     let lastEvaluated: EvaluatedFrame | null = null;
     let scale = 1;

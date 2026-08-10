@@ -104,10 +104,7 @@ export function parseDesktopProjectFile(
   }
 
   if (typeof root.formatVersion !== "number") {
-    throw new ProjectFileParseError(
-      "CORRUPT_FILE",
-      "Missing formatVersion.",
-    );
+    throw new ProjectFileParseError("CORRUPT_FILE", "Missing formatVersion.");
   }
   if (root.formatVersion > EDITOR_ENVELOPE_VERSION) {
     throw new ProjectFileParseError(
@@ -165,7 +162,9 @@ export function serializeDesktopProjectEnvelope(
   return `${JSON.stringify(envelope, null, 2)}\n`;
 }
 
-export function projectIdFromEnvelope(envelope: DesktopProjectEnvelope): string {
+export function projectIdFromEnvelope(
+  envelope: DesktopProjectEnvelope,
+): string {
   return envelope.project.metadata.id;
 }
 
@@ -190,7 +189,10 @@ function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 }
 
-const ASPECT_SIZES: Record<"16:9" | "9:16" | "1:1", { width: number; height: number }> = {
+const ASPECT_SIZES: Record<
+  "16:9" | "9:16" | "1:1",
+  { width: number; height: number }
+> = {
   "16:9": { width: 1920, height: 1080 },
   "9:16": { width: 1080, height: 1920 },
   "1:1": { width: 1080, height: 1080 },
@@ -201,7 +203,11 @@ export function buildBlankDesktopProject(input?: {
   name?: string;
   aspectRatio?: "16:9" | "9:16" | "1:1";
   createId?: (prefix: string) => string;
-}): { envelope: DesktopProjectEnvelope; documentJson: string; projectId: string } {
+}): {
+  envelope: DesktopProjectEnvelope;
+  documentJson: string;
+  projectId: string;
+} {
   const uid = input?.createId ?? createId;
   const name = input?.name?.trim() || "Untitled";
   const aspectRatio = input?.aspectRatio ?? "16:9";

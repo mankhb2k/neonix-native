@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, GlobalFonts, Image, loadImage, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
-import type { AspectRatio, MotionPaintStyle, NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { AspectRatio, MotionPaintStyle, MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import {
   evaluateNodeEffects,
   evaluateProperty,
@@ -24,9 +24,9 @@ const REPO_ROOT = path.resolve(__dirname, "../../../..");
 const FONT_PATH = path.join(REPO_ROOT, "assets/fonts/BeVietnamPro-Regular.ttf");
 const require = createRequire(import.meta.url);
 
-type RuntimeAsset = NormalizedMotionProjectV2["assets"][number];
-type Brand = NormalizedMotionProjectV2["metadata"]["brand"];
-type RuntimeNode = NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+type RuntimeAsset = MotionRuntimeProject["assets"][number];
+type Brand = MotionRuntimeProject["metadata"]["brand"];
+type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
 type PaintNode = Extract<RuntimeNode, { type: "shape" | "path" }>;
 type BlendMode = NonNullable<RuntimeNode["blendMode"]>;
 type GradientFill = Exclude<MotionPaintStyle["fill"], string | undefined>;
@@ -495,7 +495,7 @@ function applyCameraView(
 
 export async function drawSceneFrame(
   scene: RuntimeScene,
-  metadata: NormalizedMotionProjectV2["metadata"],
+  metadata: MotionRuntimeProject["metadata"],
   assets: RuntimeAsset[],
   localTime: number,
   width: number,
@@ -581,7 +581,7 @@ export async function drawSceneFrame(
 /** Draws all scene layers at a project-global timestamp. Crossfades overlap
  * authored scene durations; each layer is independently rendered and blended. */
 export async function drawProjectFrame(
-  project: NormalizedMotionProjectV2,
+  project: MotionRuntimeProject,
   globalTime: number,
   width: number,
   height: number,

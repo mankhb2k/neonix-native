@@ -24,7 +24,7 @@ import {
 import type {
   MotionProject,
   MotionScene,
-  NormalizedMotionProjectV2,
+  MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
   matrixToCss,
@@ -53,9 +53,7 @@ function nodeDomKey(clipId: string, nodeId: string): string {
 
 function isRenderableNode(node: PreviewParityNode): boolean {
   return (
-    node.type !== "group" &&
-    node.type !== "bone" &&
-    node.type !== "camera"
+    node.type !== "group" && node.type !== "bone" && node.type !== "camera"
   );
 }
 
@@ -128,7 +126,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   let background = "#ffffff";
   let lastFrame = -1;
 
-  let compiled: NormalizedMotionProjectV2 | null = null;
+  let compiled: MotionRuntimeProject | null = null;
   let scenesById: Map<string, MotionScene> = new Map();
   let sceneNodeMaps: Map<string, SceneNodeMap> = new Map();
   let visualIndex: VisualLaneIndex | null = null;

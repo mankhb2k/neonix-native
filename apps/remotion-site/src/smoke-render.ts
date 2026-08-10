@@ -12,7 +12,10 @@ import {
   compositionDurationInFrames,
   CAPABILITY_MANIFEST_VERSION,
 } from "@motionvideo/motion-runtime";
-import { createDemoMotionProject, compileProjectV3 } from "@motionvideo/motion-runtime/testing";
+import {
+  createDemoMotionProject,
+  compileProjectV3,
+} from "@motionvideo/motion-runtime/testing";
 import {
   parseRenderManifest,
   REMOTION_PIN,

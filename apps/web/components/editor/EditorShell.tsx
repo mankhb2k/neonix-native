@@ -35,9 +35,7 @@ export function EditorShell({ initialSnapshot }: Props) {
 
   const active = project ?? initialSnapshot.project;
   const name = active.metadata.name || "Untitled";
-  const { width, height } = stageSizeForAspect(
-    compositionAspectRatio(active),
-  );
+  const { width, height } = stageSizeForAspect(compositionAspectRatio(active));
 
   return (
     <div

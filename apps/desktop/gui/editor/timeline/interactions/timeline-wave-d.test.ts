@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canUndo, selectionClips, selectionNone } from "@motionvideo/editor-core";
+import {
+  canUndo,
+  selectionClips,
+  selectionNone,
+} from "@motionvideo/editor-core";
 import { buildBlankDesktopProject } from "../../../../shared/project-file/envelope";
 import {
   createInitialTimelineSession,

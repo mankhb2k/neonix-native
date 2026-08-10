@@ -173,9 +173,7 @@ export const RuntimeVisualTrackSchema = z
     role: z.enum(["primary", "overlay", "background"]),
     order: FiniteNumberSchema.int().nonnegative().optional(),
     muted: z.boolean().optional(),
-    clips: z
-      .array(RuntimeVisualClipSchema)
-      .max(MOTION_V2_LIMITS.clipsPerScene),
+    clips: z.array(RuntimeVisualClipSchema).max(MOTION_V2_LIMITS.clipsPerScene),
   })
   .strict();
 export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
@@ -695,18 +693,17 @@ export const NormalizedMotionProjectV2Schema =
       }
     }
   });
-export type NormalizedMotionProjectV2 = z.infer<
+export type MotionRuntimeProject = z.infer<
   typeof NormalizedMotionProjectV2Schema
 >;
 
 /**
- * Alias for the runtime IR type (Phase 6 naming decision).
+ * Phase 12: `MotionRuntimeProject` is the canonical runtime IR type.
+ * `NormalizedMotionProjectV2` is kept as a deprecated backward-compat alias.
+ * `MotionRuntimeIR` is kept as a v3-era shorthand.
  *
- * `NormalizedMotionProjectV2` is kept as the canonical name for backward
- * compatibility; `MotionRuntimeIR` is the v3-era name for the same shape.
- * Both names refer to the identical, serializable runtime intermediate
- * representation emitted by the compiler.
+ * @deprecated Use `MotionRuntimeProject` instead.
  */
-export type MotionRuntimeIR = NormalizedMotionProjectV2;
-/** Preferred Phase 5+ alias for the runtime IR. */
-export type MotionRuntimeProject = NormalizedMotionProjectV2;
+export type NormalizedMotionProjectV2 = MotionRuntimeProject;
+/** @deprecated Use `MotionRuntimeProject` instead. */
+export type MotionRuntimeIR = MotionRuntimeProject;

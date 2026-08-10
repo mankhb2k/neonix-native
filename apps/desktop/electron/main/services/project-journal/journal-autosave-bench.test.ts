@@ -133,9 +133,21 @@ describe("journal autosave size bench", () => {
     const blank = buildBlankDesktopProject({ name: "Bench" });
     const rounds = 5;
     const sizes = [
-      { label: "1MB", bytes: 1_000_000, softMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS },
-      { label: "5MB", bytes: 5_000_000, softMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS },
-      { label: "20MB", bytes: 20_000_000, softMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS },
+      {
+        label: "1MB",
+        bytes: 1_000_000,
+        softMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS,
+      },
+      {
+        label: "5MB",
+        bytes: 5_000_000,
+        softMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS,
+      },
+      {
+        label: "20MB",
+        bytes: 20_000_000,
+        softMs: JOURNAL_VALIDATE_SOFT_BUDGET_MS,
+      },
     ] as const;
 
     const rows: Array<Record<string, unknown>> = [];

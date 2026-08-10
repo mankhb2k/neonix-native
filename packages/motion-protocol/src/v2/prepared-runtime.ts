@@ -1,29 +1,29 @@
 /**
  * PreparedRuntimeProject — compiled runtime IR with precomputed indexes.
  *
- * This is the output of a Phase 2 compile: a NormalizedMotionProjectV2
+ * This is the output of a Phase 2 compile: a MotionRuntimeProject
  * wrapped with O(1) lookup indexes that the evaluator, painter, and
  * renderer consume directly.
  *
  * Architecture: this type lives in motion-protocol so both compiler and
  * runtime can reference it without circular deps. It is an in-memory
- * type (Maps, not serialized) — the underlying NormalizedMotionProjectV2
+ * type (Maps, not serialized) — the underlying MotionRuntimeProject
  * remains the serialization format.
  */
 
-import type { NormalizedMotionProjectV2 } from "./runtime";
+import type { MotionRuntimeProject } from "./runtime";
 
 // ── Per-scene index ───────────────────────────────────────────────────
 
-/** A runtime node as it appears in NormalizedMotionProjectV2.scenes[].nodes */
+/** A runtime node as it appears in MotionRuntimeProject.scenes[].nodes */
 export type RuntimeSceneNode =
-  NormalizedMotionProjectV2["scenes"][number]["nodes"][number];
+  MotionRuntimeProject["scenes"][number]["nodes"][number];
 
-/** A runtime track as it appears in NormalizedMotionProjectV2.scenes[].tracks */
+/** A runtime track as it appears in MotionRuntimeProject.scenes[].tracks */
 export type RuntimeSceneTrack =
-  NormalizedMotionProjectV2["scenes"][number]["tracks"][number];
+  MotionRuntimeProject["scenes"][number]["tracks"][number];
 
-export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
+export type RuntimeScene = MotionRuntimeProject["scenes"][number];
 
 // ── Static geometry descriptor ───────────────────────────────────────
 
@@ -108,7 +108,7 @@ export type DepGraphNode = {
  */
 export type PreparedRuntimeProject = {
   /** The underlying normalized project (serializable) */
-  normalized: NormalizedMotionProjectV2;
+  normalized: MotionRuntimeProject;
 
   /** Compiler version that produced this artifact */
   compilerVersion: string;

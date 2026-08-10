@@ -29,7 +29,10 @@ import {
 } from "../packages/remotion-renderer/src/build-remotion-paint-tree";
 import { drawSceneFramePaint } from "../apps/render-worker/src/runtime/paint-canvas";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 const outRoot = path.join(repoRoot, "tmp", "parity-pixi-remotion");
 
 const SAMPLE_LABELS = ["before", "start", "middle", "end", "after"] as const;

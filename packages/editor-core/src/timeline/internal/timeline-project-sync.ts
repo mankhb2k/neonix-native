@@ -132,24 +132,24 @@ function rebuildV3Timeline(
   const tracks: VisualTrackV3[] = [];
 
   if (mainClips.length > 0) {
-    const mainTrack =
-      existingTracks.find((track) => track.role === "main") ?? {
-        id: uniqueId(usedIds, "main-track"),
-        role: "main" as const,
-        order: 0,
+    const mainTrack = existingTracks.find((track) => track.role === "main") ?? {
+      id: uniqueId(usedIds, "main-track"),
+      role: "main" as const,
+      order: 0,
+      muted: false,
+      clips: [] as VisualClipV3[],
+    };
+    tracks.push({ ...mainTrack, clips: mainClips.map(toV3Clip) });
+    if (overlayClips.length > 0) {
+      const overlayTrack = existingTracks.find(
+        (track) => track.role === "overlay",
+      ) ?? {
+        id: uniqueId(usedIds, "track.overlay"),
+        role: "overlay" as const,
+        order: existingTracks.length,
         muted: false,
         clips: [] as VisualClipV3[],
       };
-    tracks.push({ ...mainTrack, clips: mainClips.map(toV3Clip) });
-    if (overlayClips.length > 0) {
-      const overlayTrack =
-        existingTracks.find((track) => track.role === "overlay") ?? {
-          id: uniqueId(usedIds, "track.overlay"),
-          role: "overlay" as const,
-          order: existingTracks.length,
-          muted: false,
-          clips: [] as VisualClipV3[],
-        };
       tracks.push({ ...overlayTrack, clips: overlayClips.map(toV3Clip) });
     }
   } else {
@@ -173,14 +173,15 @@ function rebuildV3Timeline(
         cursor += scene.duration;
         return clip;
       });
-      const mainTrack =
-        existingTracks.find((track) => track.role === "main") ?? {
-          id: uniqueId(usedIds, "main-track"),
-          role: "main" as const,
-          order: 0,
-          muted: false,
-          clips: [] as VisualClipV3[],
-        };
+      const mainTrack = existingTracks.find(
+        (track) => track.role === "main",
+      ) ?? {
+        id: uniqueId(usedIds, "main-track"),
+        role: "main" as const,
+        order: 0,
+        muted: false,
+        clips: [] as VisualClipV3[],
+      };
       tracks.push({ ...mainTrack, clips: fallbackClips });
     }
   }

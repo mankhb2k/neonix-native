@@ -1,5 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type TimelineProjectLike = {
   timeline: { sceneOrder: readonly string[] };
@@ -109,4 +109,4 @@ export function resolveTimelineAtTime(
 }
 
 /** @deprecated Prefer TimelineProjectLike — kept for call-site clarity. */
-export type TimelineRuntime = NormalizedMotionProjectV2 | MotionProject;
+export type TimelineRuntime = MotionRuntimeProject | MotionProject;

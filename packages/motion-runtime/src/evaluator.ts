@@ -1,6 +1,6 @@
 import {
   motionPropertyCapability,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
   IDENTITY_MATRIX,
@@ -43,7 +43,7 @@ import {
   createDiagnostic,
 } from "./diagnostics";
 
-export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
+export type RuntimeScene = MotionRuntimeProject["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
 export type RuntimeTrack = RuntimeScene["tracks"][number];
 export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];

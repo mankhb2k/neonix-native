@@ -1,10 +1,10 @@
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { evaluateCompositionFrame } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import { RemotionPaintRenderer } from "./RemotionPaintRenderer";
 
 export type MotionCompositionProps = {
-  runtime: NormalizedMotionProjectV2;
+  runtime: MotionRuntimeProject;
   width: number;
   height: number;
   background?: string;

@@ -22,7 +22,9 @@ import {
 } from "./envelope";
 
 /** Version-aware: legacy v2 projects inside old .mt files are migrated. */
-function parseEnvelopeProject(project: DesktopProjectEnvelope["project"]): MotionProject {
+function parseEnvelopeProject(
+  project: DesktopProjectEnvelope["project"],
+): MotionProject {
   if (project.formatVersion === 2) {
     return migrateMotionProjectV2ToV3(project as never).project;
   }

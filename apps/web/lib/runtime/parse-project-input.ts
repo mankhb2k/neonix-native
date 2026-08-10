@@ -12,11 +12,7 @@ import {
  */
 export function parseProjectInput(input: unknown): MotionProjectV3 {
   const maybe = input as { formatVersion?: unknown } | null | undefined;
-  if (
-    input &&
-    typeof input === "object" &&
-    maybe?.formatVersion === 2
-  ) {
+  if (input && typeof input === "object" && maybe?.formatVersion === 2) {
     return migrateMotionProjectV2ToV3(input as never).project;
   }
   return parseMotionProject(input);

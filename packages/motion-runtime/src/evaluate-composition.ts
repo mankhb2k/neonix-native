@@ -1,6 +1,6 @@
 import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import {
   resolveTimelineAtTime,
   timelineTotalDuration,
@@ -42,7 +42,7 @@ import {
 import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 
 function scenesForComposition(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
   const order =
@@ -60,7 +60,7 @@ function scenesForComposition(
 }
 
 export function planCompositionFrame(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   globalTime: number,
   width: number,
   height: number,
@@ -74,14 +74,14 @@ export function planCompositionFrame(
 }
 
 function resolveCompositionEvaluateTarget(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   sceneId?: string,
   width = 1080,
   height = 1920,
 ): {
-  scene: NormalizedMotionProjectV2["scenes"][number];
+  scene: MotionRuntimeProject["scenes"][number];
   time: number;
   frame: number;
   layerPlan?: CompositionFramePlan;
@@ -125,7 +125,7 @@ function resolveCompositionEvaluateTarget(
  *             {@link EvaluatedCompositionFrame} with layers, projection, audio, and media state.
  */
 export function evaluateCompositionFrame(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   width: number,
@@ -174,7 +174,7 @@ export function evaluateCompositionFrame(
  *  - `sceneId`: local to a single scene; omit for global composition timeline.
  */
 export function evaluateCompositionFrameV3(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   width: number,
@@ -230,7 +230,7 @@ export function evaluateCompositionFrameV3(
   const layers: EvaluatedLayer[] = [];
   const sceneCache = new Map<
     string,
-    NormalizedMotionProjectV2["scenes"][number]
+    MotionRuntimeProject["scenes"][number]
   >();
 
   for (let i = 0; i < layerPlan.layers.length; i++) {
@@ -393,7 +393,7 @@ export function evaluateCompositionFrameV3(
 }
 
 export function evaluateCompositionSnapshot(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   width: number,
@@ -416,7 +416,7 @@ export function evaluateCompositionSnapshot(
  * This is a scene-only projection — doesn't depend on evaluated frames.
  */
 function resolvePerspectiveProjection(
-  scene: NormalizedMotionProjectV2["scenes"][number] | null,
+  scene: MotionRuntimeProject["scenes"][number] | null,
   width: number,
   height: number,
 ): { viewMatrix: number[]; projectionMatrix: number[] } | null {
@@ -466,7 +466,7 @@ function resolvePerspectiveProjection(
 }
 
 function buildProjection(
-  scene: NormalizedMotionProjectV2["scenes"][number] | null,
+  scene: MotionRuntimeProject["scenes"][number] | null,
   interaction: RenderSnapshot | null,
   stageView: "camera" | "flat",
   width: number,
@@ -565,7 +565,7 @@ function buildProjection(
 // ── Audio state helper ────────────────────────────────────────────────
 
 function buildAudioState(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   globalTime: number,
 ): EvaluatedAudioState {
   const assetDurationById = new Map(
@@ -603,7 +603,7 @@ function buildAudioState(
 
 function buildMediaState(
   layers: EvaluatedLayer[],
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
 ): EvaluatedMediaState[] {
   const mediaStates: EvaluatedMediaState[] = [];
   const assetUriById = new Map(runtime.assets.map((a) => [a.id, a.uri]));
@@ -642,7 +642,7 @@ function buildMediaState(
 }
 
 export function compositionDurationInFrames(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   sceneId?: string,
   fps = 30,
 ): number {

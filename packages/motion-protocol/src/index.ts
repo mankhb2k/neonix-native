@@ -5,6 +5,20 @@ export * from "./ai-schema-capability";
 export * from "./parse-any";
 export * as V3 from "./v3";
 
+// Phase 11: canonical hash functions are version-agnostic, export directly.
+export {
+  canonicalJson,
+  computeProjectHash,
+  computeProjectHashShort,
+  computeRuntimeHash,
+  computeContentHash,
+  deepSortKeys,
+  shortHash,
+  hashesMatch,
+  buildCapabilityFingerprint,
+  RENDER_MANIFEST_VERSION,
+} from "./v3/canonical-hash";
+
 import {
   parseMotionProjectV3,
   MotionProjectV3Schema,
@@ -37,7 +51,11 @@ export function serializeMotionProject(project: MotionProject): string {
 
 // Phase 3: explicit V3 API (in addition to the `V3` namespace) so fixtures and
 // consumers can import the canonical parse/serialize/schema directly.
-export { parseMotionProjectV3, MotionProjectV3Schema, serializeMotionProjectV3 };
+export {
+  parseMotionProjectV3,
+  MotionProjectV3Schema,
+  serializeMotionProjectV3,
+};
 export type {
   MotionProjectV3,
   VisualClipV3,
@@ -45,4 +63,7 @@ export type {
   AudioTrackV3,
 } from "./v3";
 export { migrateMotionProjectV2ToV3 } from "./v3/migrations";
-export type { MigrateV2ToV3Options, MigrateV2ToV3Result } from "./v3/migrations";
+export type {
+  MigrateV2ToV3Options,
+  MigrateV2ToV3Result,
+} from "./v3/migrations";

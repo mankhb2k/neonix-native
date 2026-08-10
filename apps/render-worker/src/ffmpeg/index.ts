@@ -5,7 +5,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { AspectRatio } from "@motionvideo/motion-protocol";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import type { RenderResult } from "../runtime";
 
 const require = createRequire(import.meta.url);
@@ -17,7 +17,7 @@ export type EncodedFile = {
   aspectRatio: AspectRatio;
 };
 
-export type AudioMixProject = Pick<NormalizedMotionProjectV2, "assets" | "timeline">;
+export type AudioMixProject = Pick<MotionRuntimeProject, "assets" | "timeline">;
 
 export function resolveFfmpegPath(): string {
   const fromEnv = process.env.FFMPEG_BIN;

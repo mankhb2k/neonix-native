@@ -53,9 +53,7 @@ export function buildPreviewSnapshot(
   const runtime = compileProjectV3(preview.project);
   const resolved = resolveTimelineAtTime(runtime, time);
   const scene =
-    (resolved
-      ? runtime.scenes.find((s) => s.id === resolved.sceneId)
-      : null) ??
+    (resolved ? runtime.scenes.find((s) => s.id === resolved.sceneId) : null) ??
     runtime.scenes.find((s) => s.id === preview.sceneId) ??
     runtime.scenes[0];
   if (!scene) return null;

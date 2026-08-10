@@ -73,13 +73,7 @@ if (!fs.existsSync(electronBin)) {
 const resolveElectron = () => {
   const candidates = [
     path.join(desktopRoot, "node_modules", "electron", "cli.js"),
-    path.join(
-      desktopRoot,
-      "..",
-      "..",
-      "node_modules",
-      ".pnpm",
-    ),
+    path.join(desktopRoot, "..", "..", "node_modules", ".pnpm"),
   ];
   // Prefer electron executable via require('electron')
   try {
@@ -164,7 +158,9 @@ try {
 }
 
 if (!probeJson.canvasOk) {
-  fail(`canvas-fail: Cannot find native binding (probe=${JSON.stringify(probeJson)})`);
+  fail(
+    `canvas-fail: Cannot find native binding (probe=${JSON.stringify(probeJson)})`,
+  );
 }
 if (!probeJson.ffmpegExists) {
   fail(`ffmpeg-exists: false (probe=${JSON.stringify(probeJson)})`);

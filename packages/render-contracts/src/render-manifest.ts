@@ -23,7 +23,7 @@ export const RenderManifestSchema = z.object({
   }),
   /**
    * SHA-256 of the canonical compiled runtime JSON.
-   * Guarantees: same NormalizedMotionProjectV2 → same hash.
+   * Guarantees: same MotionRuntimeProject → same hash.
    * @since Phase 10
    */
   contentHash: z.string().length(64),

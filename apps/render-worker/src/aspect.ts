@@ -1,4 +1,7 @@
-import type { AspectRatio, MotionProjectV3 } from "@motionvideo/motion-protocol";
+import type {
+  AspectRatio,
+  MotionProjectV3,
+} from "@motionvideo/motion-protocol";
 
 /**
  * Phase 3: v3 projects carry width/height on `composition` (metadata lost

@@ -37,8 +37,8 @@ export function ProjectList({ onNewProject }: Props) {
             </h3>
           </div>
           <p className="mt-2 text-xs text-[var(--fg-muted)]">
-            Tạo TVC motion 2D từ template tiếng Việt (9:16, 16:9, 1:1) để bắt đầu
-            biên tập ngay.
+            Tạo TVC motion 2D từ template tiếng Việt (9:16, 16:9, 1:1) để bắt
+            đầu biên tập ngay.
           </p>
         </button>
       </div>

@@ -8,7 +8,7 @@
  * in Phase 8 without changing the public API.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import { createHash } from "node:crypto";
 import type { MotionComponentV2 } from "@motionvideo/motion-protocol";
 import type { CompileResult } from "./compile-result";
@@ -53,7 +53,7 @@ export function buildCompileCacheKey(
 // ── Cache ─────────────────────────────────────────────────────────────
 
 export type CacheEntry = {
-  result: CompileResult<NormalizedMotionProjectV2>;
+  result: CompileResult<MotionRuntimeProject>;
   createdAt: number;
   hitCount: number;
 };
@@ -87,7 +87,7 @@ export class CompileCache {
   }
 
   /** Look up a cached compilation result */
-  get(key: string): CompileResult<NormalizedMotionProjectV2> | undefined {
+  get(key: string): CompileResult<MotionRuntimeProject> | undefined {
     const entry = this._store.get(key);
     if (!entry) return undefined;
     entry.hitCount++;
@@ -95,7 +95,7 @@ export class CompileCache {
   }
 
   /** Store a compilation result */
-  set(key: string, result: CompileResult<NormalizedMotionProjectV2>): void {
+  set(key: string, result: CompileResult<MotionRuntimeProject>): void {
     // Evict oldest entry if at capacity (simple FIFO)
     if (this._store.size >= this._maxSize) {
       const first = this._store.keys().next().value;

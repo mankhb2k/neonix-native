@@ -20,7 +20,7 @@ import {
   RuntimeSourceRefSchema,
   RuntimeSourceRefMapSchema,
   type MotionRuntimeIR,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "../../index";
 
 /** Minimal runtime scene mirroring the Phase 1 single-scene golden. */
@@ -89,12 +89,12 @@ describe("runtime IR backward compatibility", () => {
     expect(parsed.success).toBe(true);
   });
 
-  it("MotionRuntimeIR is the same type as NormalizedMotionProjectV2", () => {
+  it("MotionRuntimeIR is the same type as MotionRuntimeProject", () => {
     // Compile-time alias check: assignment in both directions.
     const asAlias: MotionRuntimeIR = NormalizedMotionProjectV2Schema.parse(
       baseIR(),
     );
-    const asCanonical: NormalizedMotionProjectV2 = asAlias;
+    const asCanonical: MotionRuntimeProject = asAlias;
     expect(asCanonical.format).toBe("motion-runtime");
   });
 });
@@ -259,7 +259,7 @@ describe("visual track plan (Task 6.3)", () => {
     const parsed = NormalizedMotionProjectV2Schema.safeParse(ir);
     expect(parsed.success).toBe(true);
     expect(
-      (parsed.data as NormalizedMotionProjectV2).timeline.visualTracks,
+      (parsed.data as MotionRuntimeProject).timeline.visualTracks,
     ).toHaveLength(1);
   });
 });

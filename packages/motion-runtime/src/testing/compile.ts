@@ -1,6 +1,6 @@
 import {
   compileMotionProjectV3,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "@motionvideo/motion-compiler";
 import type { MotionProjectV3 } from "@motionvideo/motion-protocol";
 
@@ -13,7 +13,7 @@ import type { MotionProjectV3 } from "@motionvideo/motion-protocol";
  */
 export function compileProjectV3(
   project: MotionProjectV3,
-): NormalizedMotionProjectV2 {
+): MotionRuntimeProject {
   const result = compileMotionProjectV3(project);
   if (!result.ok) {
     throw new Error(

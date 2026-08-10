@@ -5,7 +5,7 @@ import {
   type CompileOptions,
   type CompiledPresetId,
   type CompiledProject,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "@motionvideo/motion-compiler";
 
 /**

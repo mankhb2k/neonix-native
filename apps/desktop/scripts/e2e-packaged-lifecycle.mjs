@@ -43,7 +43,12 @@ function ok(payload) {
 function ensureBuild() {
   const mainJs = path.join(desktopRoot, "dist", "main", "index.js");
   const preloadJs = path.join(desktopRoot, "dist", "preload", "index.js");
-  const cli = path.join(desktopRoot, "resources", "export-cli", "cli-export.cjs");
+  const cli = path.join(
+    desktopRoot,
+    "resources",
+    "export-cli",
+    "cli-export.cjs",
+  );
   const steps = [];
   if (!fs.existsSync(mainJs) || !fs.existsSync(preloadJs)) {
     steps.push(["build:main"]);
@@ -75,12 +80,7 @@ ensureBuild();
 {
   const vitest = runVitest(
     desktopRoot,
-    [
-      "run",
-      "--project",
-      "node",
-      "src/__tests__/lifecycle-file-io.test.ts",
-    ],
+    ["run", "--project", "node", "src/__tests__/lifecycle-file-io.test.ts"],
     { cwd: desktopRoot },
   );
   if (vitest.status !== 0) {

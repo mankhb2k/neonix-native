@@ -6,7 +6,7 @@ import {
   type EvaluatedFrame,
   type EvaluatedFramePainter,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import { Application, Container } from "pixi.js";
 import {
   createPixiFramePainter,
@@ -23,7 +23,7 @@ export type StageViewport = {
 export type PixiStageRenderer = EvaluatedFramePainter & {
   mount(host: HTMLElement): Promise<void>;
   /** Optional metadata for canvas resize; paint uses EvaluatedFrame only. */
-  setProject(runtime: NormalizedMotionProjectV2 | null): void;
+  setProject(runtime: MotionRuntimeProject | null): void;
   setViewport(viewport: StageViewport): void;
   setQuality(tier: "interactive" | "high"): void;
   setBackground(color: string): void;
@@ -34,7 +34,7 @@ export type PixiStageRenderer = EvaluatedFramePainter & {
 export function createPixiStageRenderer(): PixiStageRenderer {
   let app: Application | null = null;
   let host: HTMLElement | null = null;
-  let runtime: NormalizedMotionProjectV2 | null = null;
+  let runtime: MotionRuntimeProject | null = null;
   let sceneId: string | undefined;
   let background = "#ffffff";
   let quality: "interactive" | "high" = "interactive";

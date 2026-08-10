@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 44100
   },
-  "runtimeHash": "ef2321341a01e9e8bec3a18315b7daad",
+  "runtimeHash": "b40c9e5dab8ac2fc92f488e50da07339",
   "compilerVersion": "2.0.0-phase6",
-  "capabilityFingerprint": "2cb4034e1c85f151",
+  "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
     "scenes": {
       "intro": "scenes:intro"

@@ -130,7 +130,9 @@ export function executeTimelineCommand(
     }
 
     case "add-scene-node": {
-      const sceneIdx = project.scenes.findIndex((s) => s.id === command.sceneId);
+      const sceneIdx = project.scenes.findIndex(
+        (s) => s.id === command.sceneId,
+      );
       if (sceneIdx < 0) {
         return {
           status: "rejected",
@@ -142,10 +144,7 @@ export function executeTimelineCommand(
       const composition = stageSizeForProject(project);
       const nodeId = ctx.createId("node");
       const node = createNodeFromFrameDraft(command.draft, nodeId, composition);
-      const maxZ = scene.nodes.reduce(
-        (m, n) => Math.max(m, n.zIndex ?? 0),
-        -1,
-      );
+      const maxZ = scene.nodes.reduce((m, n) => Math.max(m, n.zIndex ?? 0), -1);
       const zIndex =
         command.zIndex != null && Number.isFinite(command.zIndex)
           ? Math.floor(command.zIndex)
@@ -195,10 +194,18 @@ export function executeTimelineCommand(
       );
       if (command.target.track === "main") {
         if (isLaneLocked(lanes, baseLane.id)) {
-          return { status: "rejected", reason: "locked", message: "Base lane bị khóa." };
+          return {
+            status: "rejected",
+            reason: "locked",
+            message: "Base lane bị khóa.",
+          };
         }
         const composition = stageSizeForProject(project);
-        const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
+        const scene = sceneFromFrameDraft(
+          command.draft,
+          ctx.createId,
+          composition,
+        );
         const startTime = resolveMainStartTime(
           clips,
           lanes,
@@ -227,7 +234,13 @@ export function executeTimelineCommand(
         );
         lanes = normalizeLaneOrders(lanes);
         events.push({ type: "clip-added", clip, lane: baseLane });
-        return finish(nextProject, lanes, clips, selectionClips([clip.id]), events);
+        return finish(
+          nextProject,
+          lanes,
+          clips,
+          selectionClips([clip.id]),
+          events,
+        );
       }
 
       const insertNew = command.target.insertNewLane ?? false;
@@ -254,11 +267,19 @@ export function executeTimelineCommand(
             };
       const placement = applyVisualPlacement(lanes, clips, intent);
       if (!placement) {
-        return { status: "rejected", reason: "collision", message: "Không thể thêm clip lên overlay lane." };
+        return {
+          status: "rejected",
+          reason: "collision",
+          message: "Không thể thêm clip lên overlay lane.",
+        };
       }
       lanes = placement.lanes;
       const composition = stageSizeForProject(project);
-      const scene = sceneFromFrameDraft(command.draft, ctx.createId, composition);
+      const scene = sceneFromFrameDraft(
+        command.draft,
+        ctx.createId,
+        composition,
+      );
       const clip: TimelineClip = {
         id: uid("clip"),
         kind: "scene",
@@ -275,9 +296,16 @@ export function executeTimelineCommand(
         lanes,
       );
       lanes = normalizeLaneOrders(lanes);
-      const targetLane = lanes.find((l) => l.id === placement.laneId) ?? baseLane;
+      const targetLane =
+        lanes.find((l) => l.id === placement.laneId) ?? baseLane;
       events.push({ type: "clip-added", clip, lane: targetLane });
-      return finish(nextProject, lanes, clips, selectionClips([clip.id]), events);
+      return finish(
+        nextProject,
+        lanes,
+        clips,
+        selectionClips([clip.id]),
+        events,
+      );
     }
 
     case "add-audio-clip": {
@@ -294,7 +322,11 @@ export function executeTimelineCommand(
         insertNew ? (command.target.insertOrder ?? null) : null,
       );
       if (!placement) {
-        return { status: "rejected", reason: "collision", message: "Không thể thả audio clip." };
+        return {
+          status: "rejected",
+          reason: "collision",
+          message: "Không thể thả audio clip.",
+        };
       }
       lanes = placement.lanes;
       const assetId = command.item.assetId;
@@ -354,18 +386,33 @@ export function executeTimelineCommand(
           audioTracks: [...project.timeline.audioTracks, newTrack],
         },
       };
-      const targetLane = lanes.find((l) => l.id === placement.laneId) ?? baseLane;
+      const targetLane =
+        lanes.find((l) => l.id === placement.laneId) ?? baseLane;
       events.push({ type: "clip-added", clip, lane: targetLane });
-      return finish(nextProject, lanes, clips, selectionClips([clip.id]), events);
+      return finish(
+        nextProject,
+        lanes,
+        clips,
+        selectionClips([clip.id]),
+        events,
+      );
     }
 
     case "move-clip": {
       const existing = clips.find((c) => c.id === command.clipId);
       if (!existing) {
-        return { status: "rejected", reason: "missing_clip", message: "Clip không tồn tại." };
+        return {
+          status: "rejected",
+          reason: "missing_clip",
+          message: "Clip không tồn tại.",
+        };
       }
       if (selectionHasLockedLane(clips, lanes, [command.clipId])) {
-        return { status: "rejected", reason: "locked", message: "Lane bị khóa." };
+        return {
+          status: "rejected",
+          reason: "locked",
+          message: "Lane bị khóa.",
+        };
       }
       const startTime = Math.max(0, command.patch.startTime);
       const otherClips = clips.filter((c) => c.id !== command.clipId);
@@ -378,7 +425,11 @@ export function executeTimelineCommand(
 
       if (effectiveTrack === "audio") {
         if (!existingOnAudio) {
-          return { status: "rejected", reason: "collision", message: "Clip visual không thể chuyển sang audio lane." };
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Clip visual không thể chuyển sang audio lane.",
+          };
         }
         const insertNew = command.patch.insertNewLane ?? false;
         const preferredLaneId = insertNew
@@ -398,10 +449,19 @@ export function executeTimelineCommand(
           command.clipId,
         );
         if (!placement) {
-          return { status: "rejected", reason: "collision", message: "Không thể di chuyển audio clip." };
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Không thể di chuyển audio clip.",
+          };
         }
         lanes = placement.lanes;
-        if (existing.kind !== "audio") return { status: "rejected", reason: "collision", message: "Invalid audio clip." };
+        if (existing.kind !== "audio")
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Invalid audio clip.",
+          };
         moved = {
           ...existing,
           kind: "audio",
@@ -421,13 +481,28 @@ export function executeTimelineCommand(
             ),
           },
         };
-        events.push({ type: "clip-moved", clipId: moved.id, fromLaneId: existing.laneId, toLaneId: moved.laneId });
-        return finish(nextProject, lanes, otherClips, selectionClips([moved.id]), events);
+        events.push({
+          type: "clip-moved",
+          clipId: moved.id,
+          fromLaneId: existing.laneId,
+          toLaneId: moved.laneId,
+        });
+        return finish(
+          nextProject,
+          lanes,
+          otherClips,
+          selectionClips([moved.id]),
+          events,
+        );
       }
 
       if (effectiveTrack === "overlay") {
         if (existingOnAudio || existing.kind !== "scene") {
-          return { status: "rejected", reason: "collision", message: "Audio clip không thể di chuyển lên overlay lane." };
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Audio clip không thể di chuyển lên overlay lane.",
+          };
         }
         const insertNew = command.patch.insertNewLane ?? false;
         const intent: VisualPlacementIntent = insertNew
@@ -440,8 +515,7 @@ export function executeTimelineCommand(
           : {
               type: "overlay-lane",
               laneId:
-                command.patch.laneId ??
-                (existingOnBase ? "" : existing.laneId),
+                command.patch.laneId ?? (existingOnBase ? "" : existing.laneId),
               startTime,
               duration: existing.duration,
             };
@@ -460,7 +534,11 @@ export function executeTimelineCommand(
               )
             : applyVisualPlacement(lanes, otherClips, intent, command.clipId);
         if (!placement) {
-          return { status: "rejected", reason: "collision", message: "Không thể di chuyển clip lên overlay lane." };
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Không thể di chuyển clip lên overlay lane.",
+          };
         }
         lanes = placement.lanes;
         moved = {
@@ -472,7 +550,11 @@ export function executeTimelineCommand(
         };
       } else {
         if (existingOnAudio || existing.kind !== "scene") {
-          return { status: "rejected", reason: "collision", message: "Audio clip không thể di chuyển sang base lane." };
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Audio clip không thể di chuyển sang base lane.",
+          };
         }
         const placed = resolveVisualPlacement(
           lanes,
@@ -481,7 +563,11 @@ export function executeTimelineCommand(
           command.clipId,
         );
         if (placed.status !== "placed") {
-          return { status: "rejected", reason: "collision", message: "Không thể di chuyển clip sang base lane." };
+          return {
+            status: "rejected",
+            reason: "collision",
+            message: "Không thể di chuyển clip sang base lane.",
+          };
         }
         moved = {
           ...existing,
@@ -495,8 +581,19 @@ export function executeTimelineCommand(
       otherClips.push(moved);
       lanes = pruneEmptyLanes(lanes, otherClips);
       nextProject = rebuildMainProject(nextProject, otherClips, lanes);
-      events.push({ type: "clip-moved", clipId: moved.id, fromLaneId: existing.laneId, toLaneId: moved.laneId });
-      return finish(nextProject, lanes, otherClips, selectionClips([moved.id]), events);
+      events.push({
+        type: "clip-moved",
+        clipId: moved.id,
+        fromLaneId: existing.laneId,
+        toLaneId: moved.laneId,
+      });
+      return finish(
+        nextProject,
+        lanes,
+        otherClips,
+        selectionClips([moved.id]),
+        events,
+      );
     }
 
     case "move-clips": {
@@ -510,10 +607,18 @@ export function executeTimelineCommand(
     case "delete-selected-clips": {
       const ids = new Set(selectedClipIdsFrom(selection));
       if (ids.size === 0) {
-        return { status: "rejected", reason: "empty_selection", message: "Không có clip nào được chọn." };
+        return {
+          status: "rejected",
+          reason: "empty_selection",
+          message: "Không có clip nào được chọn.",
+        };
       }
       if (selectionHasLockedLane(clips, lanes, ids)) {
-        return { status: "rejected", reason: "locked", message: "Có clip nằm trên lane bị khóa." };
+        return {
+          status: "rejected",
+          reason: "locked",
+          message: "Có clip nằm trên lane bị khóa.",
+        };
       }
 
       const removed = clips.filter((c) => ids.has(c.id));
@@ -550,8 +655,14 @@ export function executeTimelineCommand(
     }
 
     case "split-selected-clips": {
-      if (selectionHasLockedLane(clips, lanes, selectedClipIdsFrom(selection))) {
-        return { status: "rejected", reason: "locked", message: "Lane bị khóa." };
+      if (
+        selectionHasLockedLane(clips, lanes, selectedClipIdsFrom(selection))
+      ) {
+        return {
+          status: "rejected",
+          reason: "locked",
+          message: "Lane bị khóa.",
+        };
       }
       const t = Math.max(0, command.time);
       const selectedClips = clips.filter((c) =>
@@ -559,7 +670,11 @@ export function executeTimelineCommand(
       );
       const splittable = selectedClips.filter((c) => playheadSplitsClip(c, t));
       if (splittable.length === 0) {
-        return { status: "rejected", reason: "collision", message: "Không có clip hợp lệ để cắt tại thời điểm này." };
+        return {
+          status: "rejected",
+          reason: "collision",
+          message: "Không có clip hợp lệ để cắt tại thời điểm này.",
+        };
       }
 
       let scenes = [...project.scenes];
@@ -579,12 +694,17 @@ export function executeTimelineCommand(
           );
           const leftScene = scenes.find((s) => s.id === clip.sceneId);
           if (!leftScene) continue;
-          const rightScene = cloneSceneWithNewIds({
-            ...leftScene,
-            duration: rightDur,
-          }, ctx.createId);
+          const rightScene = cloneSceneWithNewIds(
+            {
+              ...leftScene,
+              duration: rightDur,
+            },
+            ctx.createId,
+          );
           scenes.push(rightScene);
-          clips = clips.map((c) => (c.id === clip.id ? { ...c, duration: leftDur } : c));
+          clips = clips.map((c) =>
+            c.id === clip.id ? { ...c, duration: leftDur } : c,
+          );
           const rightClip: TimelineClip = {
             id: rightScene.id,
             kind: "scene",
@@ -596,13 +716,25 @@ export function executeTimelineCommand(
           };
           clips.push(rightClip);
           newSelection.push(clip.id, rightClip.id);
-          events.push({ type: "clip-split", originalClipId: clip.id, newClipIds: [clip.id, rightClip.id] });
+          events.push({
+            type: "clip-split",
+            originalClipId: clip.id,
+            newClipIds: [clip.id, rightClip.id],
+          });
         } else if (isAudioLane(lanes, clip.laneId)) {
-          const trackIdKey = clip.kind === "audio" ? clip.audioTrackId ?? clip.id : clip.id;
-          const track = audioTracks.find((tr) => tr.id === trackIdKey || tr.id === clip.id);
-          clips = clips.map((c) => (c.id === clip.id ? { ...c, duration: leftDur } : c));
+          const trackIdKey =
+            clip.kind === "audio" ? (clip.audioTrackId ?? clip.id) : clip.id;
+          const track = audioTracks.find(
+            (tr) => tr.id === trackIdKey || tr.id === clip.id,
+          );
+          clips = clips.map((c) =>
+            c.id === clip.id ? { ...c, duration: leftDur } : c,
+          );
           const trackId = uid("audio");
-          const assetId = (clip.kind === "audio" ? clip.assetId : undefined) ?? track?.assetId ?? clip.name;
+          const assetId =
+            (clip.kind === "audio" ? clip.assetId : undefined) ??
+            track?.assetId ??
+            clip.name;
           audioTracks = [
             ...audioTracks.map((tr) =>
               tr.id === track?.id
@@ -642,14 +774,25 @@ export function executeTimelineCommand(
           };
           clips.push(rightClip);
           newSelection.push(clip.id, rightClip.id);
-          events.push({ type: "clip-split", originalClipId: clip.id, newClipIds: [clip.id, rightClip.id] });
+          events.push({
+            type: "clip-split",
+            originalClipId: clip.id,
+            newClipIds: [clip.id, rightClip.id],
+          });
         } else if (clip.kind === "scene") {
-          scenes = scenes.map((s) => (s.id === clip.sceneId ? { ...s, duration: leftDur } : s));
+          scenes = scenes.map((s) =>
+            s.id === clip.sceneId ? { ...s, duration: leftDur } : s,
+          );
           const leftScene = scenes.find((s) => s.id === clip.sceneId);
           if (!leftScene) continue;
-          const rightScene = cloneSceneWithNewIds({ ...leftScene, duration: rightDur }, ctx.createId);
+          const rightScene = cloneSceneWithNewIds(
+            { ...leftScene, duration: rightDur },
+            ctx.createId,
+          );
           scenes.push(rightScene);
-          clips = clips.map((c) => (c.id === clip.id ? { ...c, duration: leftDur } : c));
+          clips = clips.map((c) =>
+            c.id === clip.id ? { ...c, duration: leftDur } : c,
+          );
           const rightClip: TimelineClip = {
             id: uid("clip"),
             kind: "scene",
@@ -661,12 +804,20 @@ export function executeTimelineCommand(
           };
           clips.push(rightClip);
           newSelection.push(clip.id, rightClip.id);
-          events.push({ type: "clip-split", originalClipId: clip.id, newClipIds: [clip.id, rightClip.id] });
+          events.push({
+            type: "clip-split",
+            originalClipId: clip.id,
+            newClipIds: [clip.id, rightClip.id],
+          });
         }
       }
 
       if (newSelection.length === 0) {
-        return { status: "rejected", reason: "collision", message: "Độ dài slice quá nhỏ để split." };
+        return {
+          status: "rejected",
+          reason: "collision",
+          message: "Độ dài slice quá nhỏ để split.",
+        };
       }
 
       nextProject = {
@@ -676,20 +827,34 @@ export function executeTimelineCommand(
       };
       lanes = normalizeLaneOrders(lanes);
       nextProject = rebuildMainProject(nextProject, clips, lanes);
-      return finish(nextProject, lanes, clips, selectionClips(newSelection), events);
+      return finish(
+        nextProject,
+        lanes,
+        clips,
+        selectionClips(newSelection),
+        events,
+      );
     }
 
     case "duplicate-selected-clips": {
       const selectedIds = selectedClipIdsFrom(selection);
       if (selectionHasLockedLane(clips, lanes, selectedIds)) {
-        return { status: "rejected", reason: "locked", message: "Lane bị khóa." };
+        return {
+          status: "rejected",
+          reason: "locked",
+          message: "Lane bị khóa.",
+        };
       }
       const newIds: string[] = [];
       const toDup = clips
         .filter((c) => selectedIds.includes(c.id))
         .sort((a, b) => a.startTime - b.startTime);
       if (toDup.length === 0) {
-        return { status: "rejected", reason: "empty_selection", message: "Không có clip nào được chọn." };
+        return {
+          status: "rejected",
+          reason: "empty_selection",
+          message: "Không có clip nào được chọn.",
+        };
       }
 
       const scenes = [...project.scenes];
@@ -703,7 +868,12 @@ export function executeTimelineCommand(
           if (!scene) continue;
           const cloned = cloneSceneWithNewIds(scene, ctx.createId);
           scenes.push(cloned);
-          const resolvedStart = resolveMainStartTime(clips, lanes, startTime, clip.duration);
+          const resolvedStart = resolveMainStartTime(
+            clips,
+            lanes,
+            startTime,
+            clip.duration,
+          );
           const next: TimelineClip = {
             id: cloned.id,
             kind: "scene",
@@ -717,16 +887,30 @@ export function executeTimelineCommand(
           newIds.push(next.id);
         } else if (isAudioLane(lanes, clip.laneId)) {
           if (isLaneLocked(lanes, clip.laneId)) continue;
-          const trackIdKey = clip.kind === "audio" ? clip.audioTrackId ?? clip.id : clip.id;
-          const track = audioTracks.find((t) => t.id === trackIdKey || t.id === clip.id);
-          const placement = resolveAudioPlacement(lanes, clips, startTime, clip.duration, clip.laneId, false, null);
+          const trackIdKey =
+            clip.kind === "audio" ? (clip.audioTrackId ?? clip.id) : clip.id;
+          const track = audioTracks.find(
+            (t) => t.id === trackIdKey || t.id === clip.id,
+          );
+          const placement = resolveAudioPlacement(
+            lanes,
+            clips,
+            startTime,
+            clip.duration,
+            clip.laneId,
+            false,
+            null,
+          );
           if (!placement) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
           audioTracks.push({
             id: trackId,
             role: track?.role ?? ("bgm" as const),
-            assetId: (clip.kind === "audio" ? clip.assetId : undefined) ?? track?.assetId ?? clip.name,
+            assetId:
+              (clip.kind === "audio" ? clip.assetId : undefined) ??
+              track?.assetId ??
+              clip.name,
             start: placement.startTime,
             trimStart: track?.trimStart ?? 0,
             volume: track?.volume ?? 1,
@@ -738,7 +922,10 @@ export function executeTimelineCommand(
             id: trackId,
             kind: "audio",
             audioTrackId: trackId,
-            assetId: (clip.kind === "audio" ? clip.assetId : undefined) ?? track?.assetId ?? clip.name,
+            assetId:
+              (clip.kind === "audio" ? clip.assetId : undefined) ??
+              track?.assetId ??
+              clip.name,
             laneId: placement.laneId,
             startTime: placement.startTime,
             duration: clip.duration,
@@ -748,7 +935,15 @@ export function executeTimelineCommand(
           newIds.push(next.id);
         } else if (clip.kind === "scene") {
           if (isLaneLocked(lanes, clip.laneId)) continue;
-          const placement = resolveOverlayPlacement(lanes, clips, startTime, clip.duration, clip.laneId, false, null);
+          const placement = resolveOverlayPlacement(
+            lanes,
+            clips,
+            startTime,
+            clip.duration,
+            clip.laneId,
+            false,
+            null,
+          );
           if (!placement) continue;
           lanes = placement.lanes;
           const scene = scenes.find((sc) => sc.id === clip.sceneId);
@@ -782,7 +977,11 @@ export function executeTimelineCommand(
 
     case "paste-clips": {
       if (!clipboard || clipboard.length === 0) {
-        return { status: "rejected", reason: "empty_clipboard", message: "Clipboard rỗng." };
+        return {
+          status: "rejected",
+          reason: "empty_clipboard",
+          message: "Clipboard rỗng.",
+        };
       }
       const pasteAt = Math.max(0, command.atTime ?? 0);
       const newIds: string[] = [];
@@ -793,9 +992,17 @@ export function executeTimelineCommand(
         const startTime = pasteAt + item.offsetStart;
         if (item.kind === "main" && item.scene) {
           if (isLaneLocked(lanes, baseLane.id)) continue;
-          const scene = cloneSceneWithNewIds({ ...item.scene, duration: item.duration, name: item.name }, ctx.createId);
+          const scene = cloneSceneWithNewIds(
+            { ...item.scene, duration: item.duration, name: item.name },
+            ctx.createId,
+          );
           scenes.push(scene);
-          const resolvedStart = resolveMainStartTime(clips, lanes, startTime, item.duration);
+          const resolvedStart = resolveMainStartTime(
+            clips,
+            lanes,
+            startTime,
+            item.duration,
+          );
           const clip: TimelineClip = {
             id: scene.id,
             kind: "scene",
@@ -808,7 +1015,15 @@ export function executeTimelineCommand(
           clips.push(clip);
           newIds.push(clip.id);
         } else if (item.kind === "audio") {
-          const placement = resolveAudioPlacement(lanes, clips, startTime, item.duration, null, true, null);
+          const placement = resolveAudioPlacement(
+            lanes,
+            clips,
+            startTime,
+            item.duration,
+            null,
+            true,
+            null,
+          );
           if (!placement) continue;
           lanes = placement.lanes;
           const trackId = uid("audio");
@@ -836,10 +1051,21 @@ export function executeTimelineCommand(
           clips.push(clip);
           newIds.push(clip.id);
         } else if (item.scene) {
-          const placement = resolveOverlayPlacement(lanes, clips, startTime, item.duration, null, true, null);
+          const placement = resolveOverlayPlacement(
+            lanes,
+            clips,
+            startTime,
+            item.duration,
+            null,
+            true,
+            null,
+          );
           if (!placement) continue;
           lanes = placement.lanes;
-          const scene = cloneSceneWithNewIds({ ...item.scene, duration: item.duration, name: item.name }, ctx.createId);
+          const scene = cloneSceneWithNewIds(
+            { ...item.scene, duration: item.duration, name: item.name },
+            ctx.createId,
+          );
           scenes.push(scene);
           const clip: TimelineClip = {
             id: uid("clip"),
@@ -866,7 +1092,9 @@ export function executeTimelineCommand(
     }
 
     case "rename-lane": {
-      lanes = lanes.map((l) => (l.id === command.laneId ? { ...l, name: command.name } : l));
+      lanes = lanes.map((l) =>
+        l.id === command.laneId ? { ...l, name: command.name } : l,
+      );
       events.push({ type: "lane-updated", laneId: command.laneId });
       break;
     }
@@ -971,7 +1199,10 @@ export function executeTimelineCommand(
         toClipId: command.toClipId,
         kind: command.kind ?? ("cut" as const),
       };
-      transitions = [...(transitions ?? []).filter((t) => t.id !== next.id), next];
+      transitions = [
+        ...(transitions ?? []).filter((t) => t.id !== next.id),
+        next,
+      ];
       events.push({ type: "transition-added", transitionId: next.id });
       return finish(nextProject, lanes, clips, selection, events);
     }

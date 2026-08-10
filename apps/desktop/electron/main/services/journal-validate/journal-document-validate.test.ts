@@ -89,7 +89,10 @@ afterEach(() => {
 describe("journal-document.validator", () => {
   it("falls back to sync when worker path is unusable", async () => {
     const blank = buildBlankDesktopProject({ name: "Fallback" });
-    const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+    const doc = inflateToBytes(
+      blank.documentJson,
+      JOURNAL_VALIDATE_OFFLOAD_BYTES,
+    );
     const diagnostics: string[] = [];
     const result = await validateAndHashDocument(doc, {
       workerPath: path.join(os.tmpdir(), "missing-journal-worker.js"),
@@ -236,7 +239,10 @@ setInterval(() => {}, 1 << 30);
     );
     try {
       const blank = buildBlankDesktopProject({ name: "Hang" });
-      const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+      const doc = inflateToBytes(
+        blank.documentJson,
+        JOURNAL_VALIDATE_OFFLOAD_BYTES,
+      );
       const result = await validateAndHashDocument(doc, {
         workerPath: hangWorker,
         offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,
@@ -265,7 +271,10 @@ setInterval(() => {}, 1 << 30);
 
   it("keeps autosave validate path when diagnostic callback throws", async () => {
     const blank = buildBlankDesktopProject({ name: "DiagThrow" });
-    const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+    const doc = inflateToBytes(
+      blank.documentJson,
+      JOURNAL_VALIDATE_OFFLOAD_BYTES,
+    );
     const result = await validateAndHashDocument(doc, {
       workerPath: path.join(os.tmpdir(), "missing-journal-worker.js"),
       offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,

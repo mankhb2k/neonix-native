@@ -62,7 +62,10 @@ export const NodeBaseV3Schema = z.object({
   inheritFlags: InheritFlagsSchema.optional(),
   visible: z.boolean().default(true),
   locked: z.boolean().default(false),
-  modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
+  modifiers: z
+    .array(MotionModifierSchema)
+    .max(MOTION_V2_LIMITS.modifiersPerNode)
+    .optional(),
 });
 
 export { PaintStyleSchema };

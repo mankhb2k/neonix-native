@@ -372,7 +372,10 @@ export function moveClipGroup(
   };
 
   const document: TimelineDocument = {
-    project: { ...rebuilt, timeline: nextTimeline } as TimelineDocument["project"],
+    project: {
+      ...rebuilt,
+      timeline: nextTimeline,
+    } as TimelineDocument["project"],
     lanes: nextLanes,
     clips: nextClips,
     ...(doc.transitions?.length ? { transitions: doc.transitions } : {}),

@@ -1,4 +1,8 @@
-import { bakeMotionRecipe, compileMotionProject, isMotionRecipe } from "@motionvideo/motion-compiler";
+import {
+  bakeMotionRecipe,
+  compileMotionProject,
+  isMotionRecipe,
+} from "@motionvideo/motion-compiler";
 import {
   applyMotionPatch,
   normalizeTextPayloadInput,
@@ -6,9 +10,13 @@ import {
   ProceduralDriverSchema,
   type MotionNode,
   type MotionProject,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
-import { type CommandReceipt, diagnostic, unsupportedCapability } from "./diagnostics";
+import {
+  type CommandReceipt,
+  diagnostic,
+  unsupportedCapability,
+} from "./diagnostics";
 import {
   type AuthoringCommand,
   type CommandBatch,
@@ -23,7 +31,7 @@ export type CommandBatchResult = {
   project: MotionProject | null;
   revision: number;
   receipts: CommandReceipt[];
-  compiled?: NormalizedMotionProjectV2;
+  compiled?: MotionRuntimeProject;
   contactSheet?: ReturnType<typeof buildContactSheetPlan>;
   critic?: CriticReport;
 };
@@ -101,7 +109,13 @@ function applyOne(
   project: MotionProject | null,
   command: AuthoringCommand,
   revision: number,
-): { project: MotionProject | null; receipt: CommandReceipt; compiled?: NormalizedMotionProjectV2; contactSheet?: ReturnType<typeof buildContactSheetPlan>; critic?: CriticReport } {
+): {
+  project: MotionProject | null;
+  receipt: CommandReceipt;
+  compiled?: MotionRuntimeProject;
+  contactSheet?: ReturnType<typeof buildContactSheetPlan>;
+  critic?: CriticReport;
+} {
   const changedIds: string[] = [];
   const diagnostics: CommandReceipt["diagnostics"] = [];
 
@@ -129,21 +143,35 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setArtDirection", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setArtDirection",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
         const next = cloneProject(project);
         if (command.projectName) next.metadata.name = command.projectName;
         // Phase 9: v3 tokens replace v2 metadata.brand.
-        const tokens = (next as Record<string, unknown>).tokens as Record<string, Record<string, string>> | undefined;
-        if (command.brandName && tokens?.fonts) tokens.fonts.display = command.brandName;
-        if (command.primaryColor && tokens?.colors) tokens.colors.brand = command.primaryColor;
-        if (command.secondaryColor && tokens?.colors) tokens.colors.accent = command.secondaryColor;
-        if (command.fontFamily && tokens?.fonts) tokens.fonts.display = command.fontFamily;
+        const tokens = (next as Record<string, unknown>).tokens as
+          | Record<string, Record<string, string>>
+          | undefined;
+        if (command.brandName && tokens?.fonts)
+          tokens.fonts.display = command.brandName;
+        if (command.primaryColor && tokens?.colors)
+          tokens.colors.brand = command.primaryColor;
+        if (command.secondaryColor && tokens?.colors)
+          tokens.colors.accent = command.secondaryColor;
+        if (command.fontFamily && tokens?.fonts)
+          tokens.fonts.display = command.fontFamily;
         changedIds.push(next.metadata.id);
         return {
-          project: parseMotionProject(next as Parameters<typeof parseMotionProject>[0]),
+          project: parseMotionProject(
+            next as Parameters<typeof parseMotionProject>[0],
+          ),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -154,7 +182,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addScene", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addScene",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -164,7 +198,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `scenes.${command.sceneId}`, `Scene already exists: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `scenes.${command.sceneId}`,
+                  `Scene already exists: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -180,10 +220,19 @@ function applyOne(
         next.scenes.splice(Math.min(insertAt, next.scenes.length), 0, scene);
         // Phase 9: v3 visualTracks replace v2 sceneOrder.
         const tl = next.timeline as Record<string, unknown>;
-        const visualTracks = (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
-        let mainTrack = visualTracks.find((t) => t.role === "main") as Record<string, unknown> | undefined;
+        const visualTracks =
+          (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
+        let mainTrack = visualTracks.find((t) => t.role === "main") as
+          | Record<string, unknown>
+          | undefined;
         if (!mainTrack) {
-          mainTrack = { id: "main-track", role: "main", order: 0, muted: false, clips: [] };
+          mainTrack = {
+            id: "main-track",
+            role: "main",
+            order: 0,
+            muted: false,
+            clips: [],
+          };
           visualTracks.push(mainTrack);
           tl.visualTracks = visualTracks;
         }
@@ -199,7 +248,9 @@ function applyOne(
         mainTrack.clips = clips;
         changedIds.push(command.sceneId);
         return {
-          project: parseMotionProject(next as Parameters<typeof parseMotionProject>[0]),
+          project: parseMotionProject(
+            next as Parameters<typeof parseMotionProject>[0],
+          ),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -210,7 +261,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setSceneTiming", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setSceneTiming",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -222,7 +279,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -240,12 +303,21 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "reorderScenes", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "reorderScenes",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
         const ids = new Set(project.scenes.map((scene) => scene.id));
-        if (command.sceneOrder.length !== ids.size || command.sceneOrder.some((id) => !ids.has(id))) {
+        if (
+          command.sceneOrder.length !== ids.size ||
+          command.sceneOrder.some((id) => !ids.has(id))
+        ) {
           return {
             project,
             receipt: {
@@ -256,7 +328,10 @@ function applyOne(
                   "invalid_scene_order",
                   "timeline.sceneOrder",
                   "sceneOrder must list each project scene exactly once",
-                  { repairHint: "Pass the full permutation of existing scene ids" },
+                  {
+                    repairHint:
+                      "Pass the full permutation of existing scene ids",
+                  },
                 ),
               ],
             },
@@ -264,10 +339,15 @@ function applyOne(
         }
         const next = cloneProject(project);
         // Phase 9: v3 visualTracks replace v2 sceneOrder.
-        next.scenes = command.sceneOrder.map((id) => next.scenes.find((scene) => scene.id === id)!);
+        next.scenes = command.sceneOrder.map(
+          (id) => next.scenes.find((scene) => scene.id === id)!,
+        );
         const tl = next.timeline as Record<string, unknown>;
-        const visualTracks = (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
-        const mainTrack = visualTracks.find((t) => t.role === "main") as Record<string, unknown> | undefined;
+        const visualTracks =
+          (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
+        const mainTrack = visualTracks.find((t) => t.role === "main") as
+          | Record<string, unknown>
+          | undefined;
         if (mainTrack) {
           let cursor = 0;
           mainTrack.clips = command.sceneOrder.map((sceneId) => {
@@ -276,17 +356,22 @@ function applyOne(
               id: `clip-${sceneId}`,
               source: { kind: "scene", sceneId },
               start: cursor,
-              duration: (scene as Record<string, unknown> | undefined)?.duration ?? 2,
+              duration:
+                (scene as Record<string, unknown> | undefined)?.duration ?? 2,
               opacity: 1,
               loop: false,
             };
-            cursor += (scene as Record<string, unknown> | undefined)?.duration as number ?? 2;
+            cursor +=
+              ((scene as Record<string, unknown> | undefined)
+                ?.duration as number) ?? 2;
             return clip;
           });
         }
         changedIds.push(...command.sceneOrder);
         return {
-          project: parseMotionProject(next as Parameters<typeof parseMotionProject>[0]),
+          project: parseMotionProject(
+            next as Parameters<typeof parseMotionProject>[0],
+          ),
           receipt: { revision: revision + 1, changedIds, diagnostics },
         };
       }
@@ -297,7 +382,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addNode", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addNode",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -309,7 +400,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -319,18 +416,31 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `nodes.${command.nodeId}`, `Node already exists: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `nodes.${command.nodeId}`,
+                  `Node already exists: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
-        const parentId = command.parentId === undefined ? null : command.parentId;
+        const parentId =
+          command.parentId === undefined ? null : command.parentId;
         if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
           return {
             project,
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_parent", `nodes.${command.nodeId}.parentId`, `Unknown parent: ${parentId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_parent",
+                  `nodes.${command.nodeId}.parentId`,
+                  `Unknown parent: ${parentId}`,
+                ),
+              ],
             },
           };
         }
@@ -345,7 +455,13 @@ function applyOne(
             : undefined;
         let node: MotionNode;
         if (command.nodeType === "group") {
-          node = { id: command.nodeId, type: "group", parentId, transform, ...(semantic ? { semantic } : {}) };
+          node = {
+            id: command.nodeId,
+            type: "group",
+            parentId,
+            transform,
+            ...(semantic ? { semantic } : {}),
+          };
         } else if (command.nodeType === "text") {
           node = {
             id: command.nodeId,
@@ -385,7 +501,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "removeNode", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "removeNode",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -397,7 +519,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -407,7 +535,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_node",
+                  `nodes.${command.nodeId}`,
+                  `Unknown node: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
@@ -423,7 +557,9 @@ function applyOne(
         scene.clips = scene.clips.filter((clip) => {
           if (clip.targetId && removeIds.has(clip.targetId)) return false;
           if (clip.source.kind === "tracks") {
-            clip.source.tracks = clip.source.tracks.filter((track) => !removeIds.has(track.targetId));
+            clip.source.tracks = clip.source.tracks.filter(
+              (track) => !removeIds.has(track.targetId),
+            );
             return clip.source.tracks.length > 0;
           }
           return true;
@@ -441,7 +577,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addTrack", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addTrack",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -453,7 +595,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -463,7 +611,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_node", `nodes.${command.targetId}`, `Unknown track target: ${command.targetId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_node",
+                  `nodes.${command.targetId}`,
+                  `Unknown track target: ${command.targetId}`,
+                ),
+              ],
             },
           };
         }
@@ -473,7 +627,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `clips.${command.clipId}`, `Clip already exists: ${command.clipId}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `clips.${command.clipId}`,
+                  `Clip already exists: ${command.clipId}`,
+                ),
+              ],
             },
           };
         }
@@ -507,7 +667,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "validateProject", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "validateProject",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -517,7 +683,14 @@ function applyOne(
           receipt: {
             revision,
             changedIds: [],
-            diagnostics: [diagnostic("validated", "project", "Project parsed successfully", { severity: "info" })],
+            diagnostics: [
+              diagnostic(
+                "validated",
+                "project",
+                "Project parsed successfully",
+                { severity: "info" },
+              ),
+            ],
           },
         };
       }
@@ -528,7 +701,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "compileProject", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "compileProject",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -539,7 +718,14 @@ function applyOne(
           receipt: {
             revision,
             changedIds: [],
-            diagnostics: [diagnostic("compiled", "project", "Project compiled to runtime IR", { severity: "info" })],
+            diagnostics: [
+              diagnostic(
+                "compiled",
+                "project",
+                "Project compiled to runtime IR",
+                { severity: "info" },
+              ),
+            ],
           },
         };
       }
@@ -550,7 +736,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "applyRepairPatch", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "applyRepairPatch",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -568,7 +760,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setLayoutConstraint", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setLayoutConstraint",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -580,7 +778,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -591,11 +795,19 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_node",
+                  `nodes.${command.nodeId}`,
+                  `Unknown node: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
-        const modifiers = [...(node.modifiers ?? [])].filter((modifier) => modifier.id !== command.modifierId);
+        const modifiers = [...(node.modifiers ?? [])].filter(
+          (modifier) => modifier.id !== command.modifierId,
+        );
         modifiers.push({
           id: command.modifierId,
           type: "layout",
@@ -615,7 +827,10 @@ function applyOne(
                   gapY: command.constraint.gapY ?? 0,
                 }
               : {}),
-          } as Extract<NonNullable<MotionNode["modifiers"]>[number], { type: "layout" }>["constraint"],
+          } as Extract<
+            NonNullable<MotionNode["modifiers"]>[number],
+            { type: "layout" }
+          >["constraint"],
         });
         node.modifiers = modifiers;
         changedIds.push(command.nodeId);
@@ -631,7 +846,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addMask", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addMask",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -643,12 +864,20 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
         const node = scene.nodes.find((item) => item.id === command.nodeId);
-        const source = scene.nodes.find((item) => item.id === command.sourceNodeId);
+        const source = scene.nodes.find(
+          (item) => item.id === command.sourceNodeId,
+        );
         if (!node || !source) {
           return {
             project,
@@ -656,9 +885,14 @@ function applyOne(
               revision,
               changedIds: [],
               diagnostics: [
-                diagnostic("unknown_node", `nodes.${command.nodeId}`, "addMask requires existing node and sourceNodeId", {
-                  repairHint: "Create both nodes before addMask",
-                }),
+                diagnostic(
+                  "unknown_node",
+                  `nodes.${command.nodeId}`,
+                  "addMask requires existing node and sourceNodeId",
+                  {
+                    repairHint: "Create both nodes before addMask",
+                  },
+                ),
               ],
             },
           };
@@ -681,7 +915,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addEffect", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addEffect",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -693,7 +933,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -704,7 +950,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_node",
+                  `nodes.${command.nodeId}`,
+                  `Unknown node: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
@@ -715,12 +967,22 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `effects.${command.effectId}`, `Effect already exists: ${command.effectId}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `effects.${command.effectId}`,
+                  `Effect already exists: ${command.effectId}`,
+                ),
+              ],
             },
           };
         }
         if (command.effect.type === "blur") {
-          effects.push({ id: command.effectId, type: "blur", radius: command.effect.radius });
+          effects.push({
+            id: command.effectId,
+            type: "blur",
+            radius: command.effect.radius,
+          });
         } else if (command.effect.type === "shadow") {
           effects.push({
             id: command.effectId,
@@ -763,7 +1025,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setCamera", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setCamera",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -775,7 +1043,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -789,7 +1063,9 @@ function applyOne(
             payload: {
               zoom: command.zoom ?? 1,
               projection: "orthographic",
-              ...(command.parallaxStrength !== undefined ? { parallaxStrength: command.parallaxStrength } : {}),
+              ...(command.parallaxStrength !== undefined
+                ? { parallaxStrength: command.parallaxStrength }
+                : {}),
             },
           };
           scene.nodes.push(camera);
@@ -799,7 +1075,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("invalid_node_type", `nodes.${command.cameraId}`, `Node ${command.cameraId} is not a camera`)],
+              diagnostics: [
+                diagnostic(
+                  "invalid_node_type",
+                  `nodes.${command.cameraId}`,
+                  `Node ${command.cameraId} is not a camera`,
+                ),
+              ],
             },
           };
         } else {
@@ -807,16 +1089,20 @@ function applyOne(
             camera.transform = {
               ...camera.transform,
               ...Object.fromEntries(
-                Object.entries(command.transform).filter(([, value]) => value !== undefined),
+                Object.entries(command.transform).filter(
+                  ([, value]) => value !== undefined,
+                ),
               ),
             };
           }
           if (command.zoom !== undefined) camera.payload.zoom = command.zoom;
-          if (command.parallaxStrength !== undefined) camera.payload.parallaxStrength = command.parallaxStrength;
+          if (command.parallaxStrength !== undefined)
+            camera.payload.parallaxStrength = command.parallaxStrength;
         }
         if (command.makeActive !== false) {
           scene.activeCameraId = command.cameraId;
-          if (!scene.space || scene.space === "flat-2d") scene.space = "layered-2.5d";
+          if (!scene.space || scene.space === "flat-2d")
+            scene.space = "layered-2.5d";
         }
         changedIds.push(command.cameraId);
         return {
@@ -831,7 +1117,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addDriver", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addDriver",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -843,9 +1135,14 @@ function applyOne(
               revision,
               changedIds: [],
               diagnostics: [
-                diagnostic("invalid_driver", "addDriver", parsed.error.message, {
-                  repairHint: "Pass a closed ProceduralDriverSchema object",
-                }),
+                diagnostic(
+                  "invalid_driver",
+                  "addDriver",
+                  parsed.error.message,
+                  {
+                    repairHint: "Pass a closed ProceduralDriverSchema object",
+                  },
+                ),
               ],
             },
           };
@@ -858,7 +1155,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -869,7 +1172,11 @@ function applyOne(
               revision,
               changedIds: [],
               diagnostics: [
-                diagnostic("unknown_node", `drivers.${parsed.data.id}`, `Unknown targetNodeId: ${parsed.data.targetNodeId}`),
+                diagnostic(
+                  "unknown_node",
+                  `drivers.${parsed.data.id}`,
+                  `Unknown targetNodeId: ${parsed.data.targetNodeId}`,
+                ),
               ],
             },
           };
@@ -881,7 +1188,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `drivers.${parsed.data.id}`, `Driver already exists: ${parsed.data.id}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `drivers.${parsed.data.id}`,
+                  `Driver already exists: ${parsed.data.id}`,
+                ),
+              ],
             },
           };
         }
@@ -900,7 +1213,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "applyRecipe", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "applyRecipe",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -911,9 +1230,14 @@ function applyOne(
               revision,
               changedIds: [],
               diagnostics: [
-                diagnostic("unknown_recipe", "applyRecipe", `Unknown recipe: ${command.recipeId}`, {
-                  repairHint: "Use MOTION_RECIPE_IDS allowlist",
-                }),
+                diagnostic(
+                  "unknown_recipe",
+                  "applyRecipe",
+                  `Unknown recipe: ${command.recipeId}`,
+                  {
+                    repairHint: "Use MOTION_RECIPE_IDS allowlist",
+                  },
+                ),
               ],
             },
           };
@@ -926,7 +1250,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -949,7 +1279,13 @@ function applyOne(
               receipt: {
                 revision,
                 changedIds: [],
-                diagnostics: [diagnostic("duplicate_id", `drivers.${parsed.id}`, `Driver already exists: ${parsed.id}`)],
+                diagnostics: [
+                  diagnostic(
+                    "duplicate_id",
+                    `drivers.${parsed.id}`,
+                    `Driver already exists: ${parsed.id}`,
+                  ),
+                ],
               },
             };
           }
@@ -958,7 +1294,9 @@ function applyOne(
         }
         scene.drivers = drivers;
         if (baked.tracks.length > 0) {
-          const clipId = command.clipId ?? `clip.recipe.${command.recipeId}.${command.targetNodeId}`;
+          const clipId =
+            command.clipId ??
+            `clip.recipe.${command.recipeId}.${command.targetNodeId}`;
           scene.clips.push({
             id: clipId,
             schedule: { kind: "absolute", at: 0 },
@@ -972,7 +1310,9 @@ function applyOne(
                 keys: track.keys.map((key) => ({
                   t: key.t,
                   v: key.v,
-                  ...(key.easing ? { easing: key.easing as "easeOut" | "linear" | "step" } : {}),
+                  ...(key.easing
+                    ? { easing: key.easing as "easeOut" | "linear" | "step" }
+                    : {}),
                 })),
               })),
             },
@@ -991,7 +1331,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "renderContactSheet", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "renderContactSheet",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1008,9 +1354,14 @@ function applyOne(
             revision,
             changedIds: [],
             diagnostics: [
-              diagnostic("contact_sheet", "renderContactSheet", `Contact sheet ${sheet.frames.length} frames`, {
-                severity: "info",
-              }),
+              diagnostic(
+                "contact_sheet",
+                "renderContactSheet",
+                `Contact sheet ${sheet.frames.length} frames`,
+                {
+                  severity: "info",
+                },
+              ),
             ],
           },
           contactSheet: sheet,
@@ -1024,23 +1375,38 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "renderPreviewRange", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "renderPreviewRange",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
         const fps = command.fps ?? 6;
         const times: number[] = [];
-        for (let t = command.start; t <= command.end + 1e-9; t += 1 / fps) times.push(Number(t.toFixed(6)));
-        const sheet = buildContactSheetPlan(project, { sceneId: command.sceneId, times });
+        for (let t = command.start; t <= command.end + 1e-9; t += 1 / fps)
+          times.push(Number(t.toFixed(6)));
+        const sheet = buildContactSheetPlan(project, {
+          sceneId: command.sceneId,
+          times,
+        });
         return {
           project,
           receipt: {
             revision,
             changedIds: [],
             diagnostics: [
-              diagnostic("preview_range", "renderPreviewRange", `Preview range ${times.length} samples`, {
-                severity: "info",
-              }),
+              diagnostic(
+                "preview_range",
+                "renderPreviewRange",
+                `Preview range ${times.length} samples`,
+                {
+                  severity: "info",
+                },
+              ),
             ],
           },
           contactSheet: sheet,
@@ -1053,7 +1419,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "registerAsset", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "registerAsset",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1064,7 +1436,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `assets.${command.asset.id}`, `Asset already exists: ${command.asset.id}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `assets.${command.asset.id}`,
+                  `Asset already exists: ${command.asset.id}`,
+                ),
+              ],
             },
           };
         }
@@ -1083,7 +1461,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", command.type, "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  command.type,
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1095,7 +1479,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -1105,7 +1495,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `nodes.${command.nodeId}`, `Node already exists: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `nodes.${command.nodeId}`,
+                  `Node already exists: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
@@ -1127,14 +1523,21 @@ function applyOne(
             },
           };
         }
-        const parentId = command.parentId === undefined ? null : command.parentId;
+        const parentId =
+          command.parentId === undefined ? null : command.parentId;
         if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
           return {
             project,
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_parent", `nodes.${command.nodeId}.parentId`, `Unknown parent: ${parentId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_parent",
+                  `nodes.${command.nodeId}.parentId`,
+                  `Unknown parent: ${parentId}`,
+                ),
+              ],
             },
           };
         }
@@ -1172,7 +1575,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "addPathNode", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "addPathNode",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1184,7 +1593,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -1194,18 +1609,31 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("duplicate_id", `nodes.${command.nodeId}`, `Node already exists: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "duplicate_id",
+                  `nodes.${command.nodeId}`,
+                  `Node already exists: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
-        const parentId = command.parentId === undefined ? null : command.parentId;
+        const parentId =
+          command.parentId === undefined ? null : command.parentId;
         if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
           return {
             project,
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_parent", `nodes.${command.nodeId}.parentId`, `Unknown parent: ${parentId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_parent",
+                  `nodes.${command.nodeId}.parentId`,
+                  `Unknown parent: ${parentId}`,
+                ),
+              ],
             },
           };
         }
@@ -1222,7 +1650,9 @@ function applyOne(
             ? {
                 ...(command.fill ? { fill: command.fill } : {}),
                 ...(command.stroke ? { stroke: command.stroke } : {}),
-                ...(command.strokeWidth != null ? { strokeWidth: command.strokeWidth } : {}),
+                ...(command.strokeWidth != null
+                  ? { strokeWidth: command.strokeWidth }
+                  : {}),
               }
             : undefined;
         const node: MotionNode = {
@@ -1251,7 +1681,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setNodePayload", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setNodePayload",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1264,7 +1700,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_node", `nodes.${command.nodeId}`, `Unknown node: ${command.nodeId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_node",
+                  `nodes.${command.nodeId}`,
+                  `Unknown node: ${command.nodeId}`,
+                ),
+              ],
             },
           };
         }
@@ -1273,9 +1715,14 @@ function applyOne(
             ...(node.payload as Record<string, unknown>),
             ...command.payload,
           };
-          node.payload = normalizeTextPayloadInput(merged) as typeof node.payload;
+          node.payload = normalizeTextPayloadInput(
+            merged,
+          ) as typeof node.payload;
         } else {
-          node.payload = { ...(node.payload as Record<string, unknown>), ...command.payload } as typeof node.payload;
+          node.payload = {
+            ...(node.payload as Record<string, unknown>),
+            ...command.payload,
+          } as typeof node.payload;
         }
         changedIds.push(command.nodeId);
         return {
@@ -1290,7 +1737,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setSceneTransition", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setSceneTransition",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1302,7 +1755,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
@@ -1323,7 +1782,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "setSceneBackground", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "setSceneBackground",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1335,18 +1800,31 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("unknown_scene", `scenes.${command.sceneId}`, `Unknown scene: ${command.sceneId}`)],
+              diagnostics: [
+                diagnostic(
+                  "unknown_scene",
+                  `scenes.${command.sceneId}`,
+                  `Unknown scene: ${command.sceneId}`,
+                ),
+              ],
             },
           };
         }
         const bgId = "__scene_background__";
         const existing = scene.nodes.find((n) => n.id === bgId);
         // Phase 9: v3 composition replaces v2 metadata.aspectRatio.
-        const comp = (next as Record<string, unknown>).composition as Record<string, number> | undefined;
+        const comp = (next as Record<string, unknown>).composition as
+          | Record<string, number>
+          | undefined;
         const width = comp?.width ?? 1920;
         const height = comp?.height ?? 1080;
         if (existing && existing.type === "solid") {
-          existing.payload = { ...existing.payload, color: command.fill, width, height };
+          existing.payload = {
+            ...existing.payload,
+            color: command.fill,
+            width,
+            height,
+          };
           existing.transform = {
             ...existing.transform,
             x: width / 2,
@@ -1398,7 +1876,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("missing_project", "upsertCaptionTrack", "createProject must run first")],
+              diagnostics: [
+                diagnostic(
+                  "missing_project",
+                  "upsertCaptionTrack",
+                  "createProject must run first",
+                ),
+              ],
             },
           };
         }
@@ -1412,7 +1896,13 @@ function applyOne(
             receipt: {
               revision,
               changedIds: [],
-              diagnostics: [diagnostic("invalid_caption_track", "upsertCaptionTrack", "track.id is required")],
+              diagnostics: [
+                diagnostic(
+                  "invalid_caption_track",
+                  "upsertCaptionTrack",
+                  "track.id is required",
+                ),
+              ],
             },
           };
         }
@@ -1447,7 +1937,8 @@ function applyOne(
         changedIds: [],
         diagnostics: [
           diagnostic("command_failed", `commands.${command.type}`, message, {
-            repairHint: "Fix command arguments or project state, then retry the batch",
+            repairHint:
+              "Fix command arguments or project state, then retry the batch",
           }),
         ],
       },
@@ -1467,7 +1958,7 @@ export function executeCommandBatch(
   let project = initialProject ? cloneProject(initialProject) : null;
   let revision = batch.baseRevision;
   const receipts: CommandReceipt[] = [];
-  let compiled: NormalizedMotionProjectV2 | undefined;
+  let compiled: MotionRuntimeProject | undefined;
   let contactSheet: ReturnType<typeof buildContactSheetPlan> | undefined;
   let critic: CriticReport | undefined;
 

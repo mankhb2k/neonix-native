@@ -2,7 +2,7 @@
  * Phase 5 — Compiler V3 entry point.
  *
  * `compileMotionProjectV3()` compiles a `MotionProjectV3` authoring project
- * into the runtime IR (`NormalizedMotionProjectV2`). The v2 runtime shape
+ * into the runtime IR (`MotionRuntimeProject`). The v2 runtime shape
  * is the only serialized runtime contract today (the vNext runtime IR is
  * introduced in Phase 6), so the v3 authoring model is down-migrated onto
  * the proven v2 compile pipeline:
@@ -27,8 +27,10 @@
 
 import { createHash } from "node:crypto";
 import {
+  canonicalJson,
+  computeRuntimeHash,
   type MotionProject,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
   V3,
 } from "@motionvideo/motion-protocol";
 import { isCompiledPreset } from "./preset-registry";
@@ -971,7 +973,7 @@ function downMigrateProject(
 export function compileMotionProjectV3(
   project: V3.MotionProjectV3,
   options: CompileV3Options = {},
-): CompileResult<NormalizedMotionProjectV2> {
+): CompileResult<MotionRuntimeProject> {
   const collector = new DiagnosticCollector();
 
   // Materialize defaults + reject structurally invalid v3 projects.
@@ -1011,17 +1013,7 @@ export function compileMotionProjectV3(
 
 // ── Cache key ─────────────────────────────────────────────────────────
 
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value && typeof value === "object") {
-    const record = value as JsonRecord;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
+// Phase 11: canonicalJson imported from motion-protocol
 
 /**
  * Deterministic cache key for a v3 compile.
