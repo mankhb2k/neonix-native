@@ -134,6 +134,7 @@ function buildAudioTracks(
   return clips.filter(isAudioClip).map((clip) => {
     const existing = byTrackId.get(clip.audioTrackId);
     const muted = mutedLanes.has(clip.laneId);
+    const asset = project.assets?.find((a) => a.id === clip.assetId);
     return {
       id: clip.audioTrackId,
       role: existing?.role ?? ("bgm" as const),
@@ -144,6 +145,7 @@ function buildAudioTracks(
       loop: existing?.loop ?? false,
       fadeIn: existing?.fadeIn ?? 0,
       fadeOut: existing?.fadeOut ?? 0,
+      duration: asset?.duration ?? clip.duration,
     };
   });
 }
@@ -198,6 +200,7 @@ export function buildExportProject(
           {
             id: "primary",
             role: "main",
+            order: 0,
             clips: [
               {
                 id: `vclip-${fallback.id}`,
@@ -341,7 +344,7 @@ export function resolveBakedLocalTime(
   globalTime: number,
 ): { sceneId: string; localTime: number } | null {
   const primaryTrack = baked.timeline.visualTracks?.find(
-    (t) => t.role === "primary",
+    (t) => t.role === "main",
   );
   const clips = primaryTrack?.clips ?? [];
   for (const clip of clips) {
@@ -351,27 +354,10 @@ export function resolveBakedLocalTime(
         sceneId:
           clip.source.kind === "scene"
             ? clip.source.sceneId
-            : clip.source.componentId ?? "",
+            : (clip.source.componentId ?? ""),
         localTime: globalTime - clip.start,
       };
     }
-  }
-  // Legacy fallback: sceneOrder (V2 model)
-  let cursor = 0;
-  for (const sceneId of baked.timeline.sceneOrder) {
-    const scene = baked.scenes.find((s) => s.id === sceneId);
-    if (!scene) continue;
-    const end = cursor + scene.duration;
-    if (globalTime >= cursor && globalTime < end) {
-      return {
-        sceneId,
-        localTime: Math.max(
-          0,
-          Math.min(scene.duration - 1e-6, globalTime - cursor),
-        ),
-      };
-    }
-    cursor = end;
   }
   return null;
 }

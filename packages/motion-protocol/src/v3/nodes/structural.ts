@@ -61,6 +61,16 @@ export const AdjustmentNodeV3Schema = NodeBaseV3Schema.extend({
     .optional(),
 }).strict();
 
+// ── Motion blur (shared by scenes + runtime) ──────────────────────────
+
+export const MotionBlurSettingsSchema = z
+  .object({
+    enabled: z.boolean(),
+    shutterAngle: z.number().positive().max(360).optional(),
+    sampleCount: z.number().int().positive().max(32).optional(),
+  })
+  .strict();
+
 export type {
   GroupNodeV3,
   BoneNodeV3,

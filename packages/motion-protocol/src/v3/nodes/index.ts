@@ -26,9 +26,26 @@ export {
   InheritFlagsSchema,
   TransformV3Schema,
   type TransformV3,
+  NodeTimingV2Schema,
+  type NodeTimingV2,
   PaintStyleSchema,
+  type MotionPaintStyle,
 } from "./base";
 export { TextNodeV3Schema } from "./text";
+export {
+  // Shared text content schemas and helpers
+  segmentTextUnits,
+  TextContentSchema,
+  RichTextRunSchema,
+  TextPayloadSchema,
+  textContentPlain,
+  getTextPayloadPlain,
+  setTextPayloadPlain,
+  normalizeTextPayloadInput,
+  type TextContent,
+  type RichTextRun,
+  type TextNodePayload,
+} from "./text-content";
 export {
   ImageNodeV3Schema,
   SvgNodeV3Schema,
@@ -41,7 +58,18 @@ export {
   SolidNodeV3Schema,
   AdjustmentNodeV3Schema,
 } from "./structural";
-export { ShapeNodeV3Schema, PathNodeV3Schema } from "./geometry";
+export {
+  ShapeNodeV3Schema,
+  PathNodeV3Schema,
+  PointV2Schema,
+  PathSegmentV2Schema,
+  PathContourV2Schema,
+  PathMorphTargetV2Schema,
+  type MotionPoint,
+  type MotionPathSegment,
+  type MotionPathContour,
+  type MotionPathMorphTarget,
+} from "./geometry";
 
 export const NodeV3Schema = z.discriminatedUnion("type", [
   GroupNodeV3Schema,

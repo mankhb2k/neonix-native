@@ -2,12 +2,12 @@ import {
   parseMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
-import type { OverlaySceneItem } from "../../overlay-scenes";
+import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
-} from "../../timeline/timeline-clips";
+} from "@motionvideo/editor-core";
 
 function baseLane(id = "lane.main"): TimelineLane {
   return {
@@ -118,7 +118,10 @@ function baseProject(
           clips: scenes.map((s, i) => ({
             id: `vclip-${i}-${s.id}`,
             source: { kind: "scene" as const, sceneId: s.id },
-            start: i > 0 ? scenes.slice(0, i).reduce((acc, sc) => acc + sc.duration, 0) : 0,
+            start:
+              i > 0
+                ? scenes.slice(0, i).reduce((acc, sc) => acc + sc.duration, 0)
+                : 0,
             duration: s.duration,
           })),
         },

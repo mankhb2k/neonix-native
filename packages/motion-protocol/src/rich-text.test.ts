@@ -4,8 +4,8 @@ import {
   normalizeTextPayloadInput,
   TextContentSchema,
   TextPayloadSchema,
-} from "./v2";
-import { parseMotionProjectV2 } from "./v2/parse";
+} from "./v3/nodes/text-content";
+import { parseMotionProjectV3 } from "./v3";
 
 describe("rich text content", () => {
   it("normalizes legacy payload.text to content.plain", () => {
@@ -35,21 +35,36 @@ describe("rich text content", () => {
   });
 
   it("parses project with rich text runs", () => {
-    const project = parseMotionProjectV2({
+    const project = parseMotionProjectV3({
       format: "motion-project",
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: "p1",
         name: "Rich",
-        aspectRatio: "9:16",
-        fps: 30,
         locale: "vi-VN",
-        brand: { name: "Brand" },
       },
-      dependencies: { components: [] },
+      composition: { width: 1080, height: 1920, fps: 30 },
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
       assets: [],
       variables: [],
-      timeline: { sceneOrder: ["s1"], audioTracks: [] },
+      timeline: {
+        visualTracks: [
+          {
+            id: "primary",
+            role: "main" as const,
+            order: 0,
+            clips: [
+              {
+                id: "vclip-s1",
+                source: { kind: "scene" as const, sceneId: "s1" },
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+        ],
+        audioTracks: [],
+      },
       scenes: [
         {
           id: "s1",
@@ -81,9 +96,9 @@ describe("rich text content", () => {
                     {
                       id: "r1",
                       text: "Hello ",
-                      style: { fill: "#fff", fontWeight: 700 },
+                      style: { fill: "#ffffff", fontWeight: 700 },
                     },
-                    { id: "r2", text: "World", style: { fill: "#0f0" } },
+                    { id: "r2", text: "World", style: { fill: "#00ff00" } },
                   ],
                 },
                 fontSize: 48,
@@ -94,7 +109,7 @@ describe("rich text content", () => {
         },
       ],
       bindings: [],
-      extensions: { constraints: [], events: [] },
+      extensions: {},
     });
     const node = project.scenes[0]!.nodes[0]!;
     expect(node.type).toBe("text");

@@ -1,11 +1,9 @@
-import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  parseMotionComponentV2,
   parseMotionProject,
   serializeMotionProject,
-  type MotionComponentV2,
 } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { validateProjectAssetIntegrity } from "./runtime/asset-integrity";
@@ -22,20 +20,6 @@ const REPO_ROOT = process.env.MOTIONVIDEO_REPO_ROOT
 
 function emitProgress(stage: string, ratio: number): void {
   process.stderr.write(`progress\t${stage}\t${ratio}\n`);
-}
-
-async function loadFixtureComponents(): Promise<MotionComponentV2[]> {
-  const componentRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2", "components");
-  try {
-    const files = (await readdir(componentRoot)).filter((file) => file.endsWith(".json"));
-    return Promise.all(
-      files.map(async (file) =>
-        parseMotionComponentV2(JSON.parse(await readFile(path.join(componentRoot, file), "utf8"))),
-      ),
-    );
-  } catch {
-    return [];
-  }
 }
 
 async function readInput(): Promise<unknown> {
@@ -96,8 +80,7 @@ async function main() {
     Number.isFinite(fpsEnv) && fpsEnv > 0
       ? fpsEnv
       : (project.composition.fps ?? 24);
-  const scale =
-    Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
+  const scale = Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
 
   const integrity = await validateProjectAssetIntegrity(project, assetBaseDir);
   if (!integrity.ok) {
@@ -108,7 +91,7 @@ async function main() {
   const mtPath = path.join(outDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
 
-  const components = await loadFixtureComponents();
+  const components = [];
   const compiled = compileMotionProject(project, { components });
 
   emitProgress("rendering", 0.1);

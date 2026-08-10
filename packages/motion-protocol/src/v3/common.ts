@@ -1,32 +1,45 @@
 /**
- * V3 shared primitives.
+ * V3 shared primitives — canonical source of truth for common schemas.
  *
- * Re-exports the v2 primitives that remain stable across versions and adds
- * v3-only numeric/string helpers. Nothing here references v2 project shape.
+ * Previously re-exported from legacy/common. Phase 2 moves ownership here
+ * so V3 modules no longer depend on legacy/.
  */
 import { z } from "zod";
-import {
-  FiniteNumberSchema,
-  IdSchema,
-  LocaleIdentifierSchema,
-  PropertyPathSchema,
-  SemanticSchema,
-  SemverSchema,
-} from "../v2/common";
+import { MOTION_V2_LIMITS } from "../capabilities";
 
 export const MOTION_PROJECT_V3_FORMAT_VERSION = 3 as const;
 export const MOTION_WORKSPACE_FORMAT_VERSION = 1 as const;
 
-export {
-  FiniteNumberSchema,
-  IdSchema,
-  LocaleIdentifierSchema,
-  PropertyPathSchema,
-  SemanticSchema,
-  SemverSchema,
-};
+// ── Primitives (copied from legacy/common — same definitions) ─────────
 
-export type { AspectRatio } from "../v2/common";
+export const AspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);
+
+export const IdSchema = z.string().min(1).max(MOTION_V2_LIMITS.idLength);
+export const PropertyPathSchema = z.string().min(1);
+export const SemverSchema = z
+  .string()
+  .regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, "Expected semantic version");
+export const FiniteNumberSchema = z.number().finite();
+export const LocaleIdentifierSchema = z
+  .string()
+  .min(1)
+  .refine((locale) => {
+    try {
+      return Intl.getCanonicalLocales(locale).length === 1;
+    } catch {
+      return false;
+    }
+  }, "Invalid locale identifier");
+
+export const SemanticSchema = z
+  .object({
+    role: IdSchema,
+    key: IdSchema.optional(),
+    tags: z.array(IdSchema).max(MOTION_V2_LIMITS.semanticTags).default([]),
+  })
+  .strict();
+
+export type AspectRatio = z.infer<typeof AspectRatioSchema>;
 
 /** #rrggbb (6 hex digits). */
 export const ColorHexSchema = z

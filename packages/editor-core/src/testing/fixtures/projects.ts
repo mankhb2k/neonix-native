@@ -118,7 +118,10 @@ function baseProject(
           clips: scenes.map((s, i) => ({
             id: `vclip-${i}-${s.id}`,
             source: { kind: "scene" as const, sceneId: s.id },
-            start: i > 0 ? scenes.slice(0, i).reduce((acc, sc) => acc + sc.duration, 0) : 0,
+            start:
+              i > 0
+                ? scenes.slice(0, i).reduce((acc, sc) => acc + sc.duration, 0)
+                : 0,
             duration: s.duration,
           })),
         },

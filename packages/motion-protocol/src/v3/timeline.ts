@@ -8,7 +8,7 @@
  */
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../capabilities";
-import { CaptionTrackSchema } from "../v2/captions";
+import { CaptionTrackSchema } from "./captions";
 import {
   FiniteNumberSchema,
   IdSchema,

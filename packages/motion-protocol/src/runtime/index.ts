@@ -1,5 +1,5 @@
 ﻿/**
- * Canonical runtime IR types — neutral location, no V2 baggage.
+ * Canonical runtime IR types — neutral location, no legacy naming.
  *
  * Core exports:
  *   - MotionRuntimeProjectSchema / MotionRuntimeProject
@@ -26,10 +26,6 @@ export {
   type RuntimeVisualTrack,
   type RuntimeSourceRef,
   type RuntimeSourceRefMap,
-  // Deprecated backward-compat aliases
-  NormalizedMotionProjectV2Schema,
-  type NormalizedMotionProjectV2,
-  type MotionRuntimeIR,
 } from "./project";
 
 export {

@@ -1,6 +1,6 @@
 import type { TimelineClip, TimelineLane } from "../timeline-clips";
+import type { MotionProjectV2 } from "@motionvideo/motion-protocol/src/compat/project";
 import type {
-  MotionProjectV2,
   MotionProjectV3,
   VisualClipV3,
   VisualTrackV3,

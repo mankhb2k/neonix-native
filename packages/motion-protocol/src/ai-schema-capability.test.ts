@@ -6,7 +6,7 @@ import {
   listAiSchemaProductionCapabilities,
 } from "./ai-schema-capability";
 import { MOTION_V2_LIMITS } from "./capabilities";
-import { SourceRefSchema, sourceRefKey } from "./v2/source-ref";
+import { SourceRefSchema, sourceRefKey } from "./v3/source-ref";
 
 describe("Phase 0 AI schema expansion foundation", () => {
   it("exposes new MOTION_V2_LIMITS for expansion phases", () => {
@@ -34,8 +34,10 @@ describe("Phase 0 AI schema expansion foundation", () => {
     expect(ready.some((r) => r.id === "baseline.hard-cut")).toBe(true);
     expect(ready.some((r) => r.id === "baseline.entrance-preset")).toBe(true);
     expect(ready.some((r) => r.id === "preset.scene-end")).toBe(true);
-    expect(aiSchemaCapabilityReady(AI_SCHEMA_CAPABILITY_MATRIX.find((r) => r.id === "caption.track")!)).toBe(
-      false,
-    );
+    expect(
+      aiSchemaCapabilityReady(
+        AI_SCHEMA_CAPABILITY_MATRIX.find((r) => r.id === "caption.track")!,
+      ),
+    ).toBe(false);
   });
 });

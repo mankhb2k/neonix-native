@@ -13,7 +13,6 @@ import {
   MotionProjectV3Schema,
 } from "../index";
 import { parseMotionProjectV3 } from "../parse";
-import { parseMotionProjectV2 } from "../../v2/parse";
 import { MotionV3ReferenceError } from "../references/types";
 
 const FIXTURES_DIR = join(__dirname, "..", "__fixtures__");
@@ -516,11 +515,6 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
 // ── Isolation from v2 ──────────────────────────────────────────────────
 
 describe("v3 isolation from v2 parser", () => {
-  it("formatVersion 3 never parses through parseMotionProjectV2", () => {
-    const input = loadFixture("minimal-empty.project.json");
-    expect(() => parseMotionProjectV2(input)).toThrow();
-  });
-
   it("formatVersion 2 never parses through MotionProjectV3Schema", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,

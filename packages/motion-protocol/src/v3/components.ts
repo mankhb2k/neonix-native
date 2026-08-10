@@ -7,8 +7,8 @@
  */
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../capabilities";
-import { PublicParamV2Schema, VariableV2Schema } from "../v2/variables";
-import { JsonValueSchema } from "../v2/values";
+import { PublicParamV2Schema, VariableV2Schema } from "./variables";
+import { JsonValueSchema } from "./values";
 import { IdSchema, SemverSchema } from "./common";
 import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";

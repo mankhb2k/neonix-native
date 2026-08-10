@@ -2,7 +2,7 @@
  * V3 node-graph validation: duplicate ids, parent refs, mask sources.
  */
 import type { NodeV3 } from "../nodes";
-import { duplicates } from "../../v2/references/helpers";
+import { duplicates } from "./helpers";
 import type { ReferenceIssue } from "./types";
 
 export function validateNodeGraphV3(

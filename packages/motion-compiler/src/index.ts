@@ -9,13 +9,13 @@ import {
   segmentTextUnits,
   setTextPayloadPlain,
   type MotionClip,
-  type MotionComponentV2,
   type MotionNode,
   type MotionProject,
   type MotionRuntimeProject,
   type RuntimeCompositionMetadata,
   type RuntimeSourceRef,
 } from "@motionvideo/motion-protocol";
+import type { ComponentInput } from "./types";
 import { applyFitText, applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 import { COMPILER_VERSION } from "./compile-cache";
@@ -26,7 +26,7 @@ type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
 type SceneMarker = { id: string; t: number };
 
 export type CompileOptions = {
-  components?: MotionComponentV2[];
+  components?: ComponentInput[];
 };
 
 function clone<T>(value: T): T {
@@ -369,7 +369,7 @@ function compileClips(
 function expandComponents(
   nodes: MotionNode[],
   clips: MotionClip[],
-  componentPackages: Map<string, MotionComponentV2>,
+  componentPackages: Map<string, ComponentInput>,
   projectVariables: Map<string, unknown>,
   sceneDuration: number,
 ): {
@@ -1150,7 +1150,7 @@ export function compileMotionProject(
   project: MotionProject,
   options: CompileOptions = {},
 ): MotionRuntimeProject {
-  // Phase 4: v3 projects compile through the v3 pipeline.
+  // v3 projects route through the v3 compile pipeline.
   if ((project as Record<string, unknown>).formatVersion === 3) {
     const result = compileMotionProjectV3(
       project as Parameters<typeof compileMotionProjectV3>[0],
@@ -1230,8 +1230,8 @@ export function compileMotionProject(
     runtimeVersion: MOTION_RUNTIME_VERSION,
     metadata: project.metadata,
     assets: project.assets,
-    // v3 compiles carry explicit composition settings; v2 compiles derive
-    // them from metadata (aspect ratio → pixel dimensions).
+    // composition settings from formatVersion 3 projects carry full fidelity;
+    // legacy projects derive them from metadata (aspect ratio → pixel dimensions).
     composition:
       (project as { composition?: RuntimeCompositionMetadata }).composition ??
       buildRuntimeComposition(project.metadata),

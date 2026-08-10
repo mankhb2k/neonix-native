@@ -6,23 +6,12 @@ import {
   runZeroTemplateGeneration,
   type OrchestratorProgress,
 } from "@motionvideo/ai-planner";
-import {
-  migrateMotionProjectV2ToV3,
-  parseMotionProject,
-  type MotionProjectV3,
-} from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-/**
- * Phase 3 boundary: the AI planner still authors v2 projects internally
- * (its executor cutover is a later phase). Web consumers parse v3 only, so
- * migrate the AI output to v3 here before it leaves the route.
- */
-function toV3Project(project: unknown): MotionProjectV3 {
-  return migrateMotionProjectV2ToV3(project as never).project;
-}
+/** AI output is already V3 (Phase 7 cutover). */
 
 function repoRoot(): string {
   const cwd = process.cwd();
@@ -131,7 +120,7 @@ async function handleRefine(body: GenerationBody) {
     baseRevision: body.baseRevision ?? 0,
     selectionKey: body.selectionKey,
   });
-  return { ...result, project: toV3Project(result.project) };
+  return { ...result, project: result.project };
 }
 
 /** POST /api/ai/generations — zero-template generation or scoped refine (SSE optional). */

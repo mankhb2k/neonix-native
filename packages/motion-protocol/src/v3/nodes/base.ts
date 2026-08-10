@@ -7,11 +7,11 @@
  */
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../../capabilities";
-import { EffectV2Schema } from "../../v2/effects";
-import { MotionModifierSchema } from "../../v2/modifiers";
-import { NodeTimingV2Schema } from "../../v2/nodes/base";
-import { PaintStyleSchema } from "../../v2/nodes/paint";
-import { TransformV2Schema } from "../../v2/transform";
+import { EffectV2Schema } from "../effects";
+import { MotionModifierSchema } from "../modifiers";
+import { NodeTimingV2Schema } from "./timing";
+import { PaintStyleSchema } from "./paint";
+import { TransformV2Schema } from "../transform";
 import { IdSchema, SemanticSchema } from "../common";
 
 export const TransformV3Schema = TransformV2Schema;

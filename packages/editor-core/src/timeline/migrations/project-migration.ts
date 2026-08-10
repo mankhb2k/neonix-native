@@ -203,26 +203,42 @@ function migrateLegacyClipInputs(
         }),
       );
 
-    const overlayClips: LegacyClipInput[] = timeline.visualTracks
-      .filter((track) => track.role === "overlay")
-      .flatMap((track) =>
-        track.clips.flatMap((clip) => {
-          if (clip.source.kind !== "scene") return [];
-          return [
-            {
-              id: clip.id,
-              kind: "scene" as const,
-              sceneId: clip.source.sceneId,
-              laneId: "",
-              startTime: clip.start,
-              duration: clip.duration,
-              name: sceneName(clip.source.sceneId),
-              track: "overlay" as const,
-              layerIndex: track.order,
-            },
-          ];
+    const overlayClips: LegacyClipInput[] = [
+      ...timeline.visualTracks
+        .filter((track) => track.role === "overlay")
+        .flatMap((track) =>
+          track.clips.flatMap((clip) => {
+            if (clip.source.kind !== "scene") return [];
+            return [
+              {
+                id: clip.id,
+                kind: "scene" as const,
+                sceneId: clip.source.sceneId,
+                laneId: "",
+                startTime: clip.start,
+                duration: clip.duration,
+                name: sceneName(clip.source.sceneId),
+                track: "overlay" as const,
+                layerIndex: track.order,
+              },
+            ];
+          }),
+        ),
+      // Legacy overlay sidecar: overlays from separate layerIndex data
+      ...overlays.map(
+        (item): LegacyClipInput => ({
+          id: item.id,
+          kind: "scene" as const,
+          sceneId: item.id,
+          laneId: "",
+          startTime: item.startTime,
+          duration: item.duration,
+          name: item.name,
+          track: "overlay" as const,
+          layerIndex: item.layerIndex ?? 0,
         }),
-      );
+      ),
+    ];
 
     const audio: LegacyClipInput[] = timeline.audioTracks.map((track) => ({
       id: track.id,

@@ -1765,7 +1765,7 @@ function applyOne(
             },
           };
         }
-        // Phase 9: v3 visual clip transitions replace v2 scene.transition.
+        // Visual clip transitions replace legacy scene.transition.
         const tl = next.timeline as Record<string, unknown>;
         const visualTracks =
           (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
@@ -1773,7 +1773,8 @@ function applyOne(
           | Record<string, unknown>
           | undefined;
         if (mainTrack) {
-          const clips = (mainTrack.clips as Array<Record<string, unknown>>) ?? [];
+          const clips =
+            (mainTrack.clips as Array<Record<string, unknown>>) ?? [];
           const clip = clips.find(
             (c) =>
               (c.source as Record<string, unknown>)?.sceneId ===

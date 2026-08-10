@@ -1,15 +1,15 @@
 # `@motionvideo/motion-compiler`
 
-Biên dịch **Motion Project / Component authoring** → **Normalized Runtime IR** (literal). Expand Component instance, Repeater, Text Animator, bindings, presets/actions thành nodes/tracks không còn tham chiếu authoring.
+Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject** (literal). Expand Component instance, Repeater, Text Animator, bindings, presets/actions thành nodes/tracks không còn tham chiếu authoring.
 
 ## Vai trò
 
 ```text
-MotionProjectV2 (+ Component registry)
+MotionProjectV3 (+ Component registry)
         ↓
-  compileMotionProject
+  compileMotionProjectV3
         ↓
-NormalizedMotionProjectV2  →  runtime / draw / encode
+MotionRuntimeProject  →  runtime / draw / encode
 ```
 
 Browser và render-worker phải dùng cùng compiler (hoặc bản tương đương) để parity preview/export.
@@ -26,7 +26,7 @@ import {
 const runtime = compileMotionProject(project, { components });
 ```
 
-`CompiledProject` = alias của `NormalizedMotionProjectV2`.
+`CompiledProject` = alias của `MotionRuntimeProject`.
 
 ## Không làm
 
@@ -36,5 +36,5 @@ const runtime = compileMotionProject(project, { components });
 
 ## Docs
 
-- [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md)
-- Runtime goldens: `pnpm validate:motion-fixtures` / `pnpm update:runtime-goldens`
+- [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
+- Runtime goldens: `pnpm validate:v3-source-of-truth`

@@ -10,8 +10,8 @@
 
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import { createHash } from "node:crypto";
-import type { MotionComponentV2 } from "@motionvideo/motion-protocol";
 import type { CompileResult } from "./compile-result";
+import type { ComponentInput } from "./types";
 
 // ── Cache key ─────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ export const COMPILER_VERSION = "2.0.0-phase6";
  * Even if projectRevision is unchanged, if a component package
  * changes, we must recompile.
  */
-export function hashComponentDeps(components: MotionComponentV2[]): string {
+export function hashComponentDeps(components: ComponentInput[]): string {
   if (components.length === 0) return "no-deps";
   const normalized = components
     .map((c) => `${c.componentId}@${c.componentVersion}`)
@@ -42,7 +42,7 @@ export function hashComponentDeps(components: MotionComponentV2[]): string {
  */
 export function buildCompileCacheKey(
   projectRevision: number,
-  componentDeps: MotionComponentV2[],
+  componentDeps: ComponentInput[],
   testSalt?: string,
 ): string {
   const depsHash = hashComponentDeps(componentDeps);

@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "20e4e257e4fea0d269c869b777fc9460",
+  "runtimeHash": "8a46ff59ff5e4e630457bb3f485ef9e1",
   "compilerVersion": "3.0.0-phase5",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
@@ -38,6 +38,7 @@
       {
         "id": "primary",
         "role": "primary",
+        "order": 0,
         "clips": [
           {
             "id": "vclip-0-intro",

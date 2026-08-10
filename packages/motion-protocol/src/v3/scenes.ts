@@ -8,7 +8,7 @@
  */
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../capabilities";
-import { MotionBlurSettingsSchema } from "../v2/nodes/structural";
+import { MotionBlurSettingsSchema } from "./nodes/structural";
 import { IdSchema, SemanticSchema } from "./common";
 import { MotionClipV3Schema } from "./animation/clips";
 import { ProceduralDriverSchema } from "./animation/drivers";

@@ -2,7 +2,7 @@
  * V3 project-wide reference validation.
  */
 import type { MotionProjectV3 } from "../index";
-import { duplicates } from "../../v2/references/helpers";
+import { duplicates } from "./helpers";
 import { validateNodeGraphV3 } from "./node-graph";
 import { validateNodeAssetsV3 } from "./node-assets";
 import type { ReferenceIssue } from "./types";

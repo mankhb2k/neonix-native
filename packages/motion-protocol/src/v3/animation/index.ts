@@ -1,7 +1,23 @@
 /**
  * V3 animation barrel.
  */
+
+// Easing
 export {
+  KeyframeEasingNamedSchema,
+  KeyframeEasingCubicSchema,
+  KeyframeEasingSpringSchema,
+  KeyframeEasingSchema,
+  KeyframeEasingV2Schema,
+  type KeyframeEasingV3,
+} from "./easing";
+
+// Tracks
+export {
+  ExtrapolationBehaviorSchema,
+  SceneMarkerSchema,
+  TrackTimeSchema,
+  PropertyTrackSchema,
   PropertyTrackV3Schema,
   ExtrapolationBehaviorV3Schema,
   TrackTimeV3Schema,
@@ -9,14 +25,23 @@ export {
   TimeSecondsSchema,
   type PropertyTrackV3,
 } from "./tracks";
+
+// Clips
 export {
+  ClipScheduleSchema,
+  PlaybackSchema,
+  ClipSourceV3Schema,
   ScheduleV3Schema,
   PlaybackV3Schema,
-  ClipSourceV3Schema,
   MotionClipV3Schema,
   type MotionClipV3,
   type ScheduleV3,
   type ClipSourceV3,
 } from "./clips";
-export { KeyframeEasingV2Schema, type KeyframeEasingV3 } from "./easing";
-export { ProceduralDriverSchema } from "./drivers";
+
+// Drivers
+export {
+  ProceduralDriverSchema,
+  type ProceduralDriver,
+  type ProceduralDriverV2,
+} from "./drivers";

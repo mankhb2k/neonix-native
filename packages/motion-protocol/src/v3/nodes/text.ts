@@ -6,7 +6,7 @@
  */
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../../capabilities";
-import { TextContentSchema } from "../../v2/nodes/text";
+import { TextContentSchema } from "./text-content";
 import { ColorHexSchema, IdSchema, PositiveNumberSchema } from "../common";
 import { NodeBaseV3Schema } from "./base";
 

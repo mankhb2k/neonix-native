@@ -1,20 +1,71 @@
 /**
  * V3 geometry nodes — shape + path.
  *
- * Reuses v2 point/path primitives and paint style so path data is portable
- * between versions.
+ * Owns point/path primitives so V3 is self-contained for path data.
  */
+
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../../capabilities";
-import {
-  PathContourV2Schema,
-  PathMorphTargetV2Schema,
-  PathSegmentV2Schema,
-  PointV2Schema,
-} from "../../v2/nodes/geometry";
-import { PaintStyleSchema } from "../../v2/nodes/paint";
-import { IdSchema } from "../common";
+import { FiniteNumberSchema, IdSchema } from "../common";
+import { PaintStyleSchema } from "./paint";
 import { NodeBaseV3Schema } from "./base";
+
+// ── Shared point / path primitives ────────────────────────────────────
+
+export const PointV2Schema = z
+  .object({
+    x: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(
+      MOTION_V2_LIMITS.nodeDimension,
+    ),
+    y: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(
+      MOTION_V2_LIMITS.nodeDimension,
+    ),
+  })
+  .strict();
+
+export type MotionPoint = z.infer<typeof PointV2Schema>;
+
+export const PathSegmentV2Schema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("line"), to: PointV2Schema }).strict(),
+  z
+    .object({
+      kind: z.literal("cubic"),
+      control1: PointV2Schema,
+      control2: PointV2Schema,
+      to: PointV2Schema,
+    })
+    .strict(),
+]);
+
+export type MotionPathSegment = z.infer<typeof PathSegmentV2Schema>;
+
+export const PathContourV2Schema = z
+  .object({
+    id: IdSchema,
+    start: PointV2Schema,
+    segments: z
+      .array(PathSegmentV2Schema)
+      .min(1)
+      .max(MOTION_V2_LIMITS.pathSegmentsPerContour),
+    closed: z.boolean(),
+  })
+  .strict();
+
+export type MotionPathContour = z.infer<typeof PathContourV2Schema>;
+
+export const PathMorphTargetV2Schema = z
+  .object({
+    id: IdSchema,
+    contours: z
+      .array(PathContourV2Schema)
+      .min(1)
+      .max(MOTION_V2_LIMITS.pathContours),
+  })
+  .strict();
+
+export type MotionPathMorphTarget = z.infer<typeof PathMorphTargetV2Schema>;
+
+// ── V3 geometry nodes ─────────────────────────────────────────────────
 
 const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z

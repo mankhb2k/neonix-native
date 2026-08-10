@@ -36,7 +36,7 @@ function overlapFromTransition(
 /**
  * Extract ordered clips from the primary visual track.
  * Falls back to building clips from sceneOrder when visualTracks is absent
- * (legacy runtime IR during V2→V3 cutover).
+ * (legacy runtime IR during format cutover).
  */
 function primaryClips(compiled: CompiledProject): VisualClipLike[] {
   const track = compiled.timeline.visualTracks?.find(

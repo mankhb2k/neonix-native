@@ -67,7 +67,7 @@ export type CompileV3Options = {
 };
 
 /**
- * Compiler version for v3 compilation. Distinct from the v2
+ * Compiler version for v3 compilation. Separate from the legacy
  * `COMPILER_VERSION` so cache keys never collide across pipelines.
  */
 export const COMPILER_VERSION_V3 = "3.0.0-phase5";
@@ -133,7 +133,7 @@ export function detectScheduleCycles(
   return [...new Set(cycles)];
 }
 
-// ── V3 → V2 shape down-migration ──────────────────────────────────────
+// ── V3 → internal shape down-migration ────────────────────────────────
 
 function downMigrateMetadata(project: V3.MotionProjectV3): JsonRecord {
   const composition = project.composition;
@@ -998,7 +998,7 @@ export function compileMotionProjectV3(
     return compileFailure([...collector.diagnostics]);
   }
 
-  // Build V2-shaped project data from the V3 project.
+  // Build internal project shape from the V3 project.
   const v2Shape = downMigrateProject(normalized, collector);
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
@@ -1008,7 +1008,7 @@ export function compileMotionProjectV3(
     (diagnostic) => diagnostic.severity !== "error",
   );
 
-  // ── Compile each scene directly (Phase 4: no compileMotionProjectV2) ──
+  // ── Compile each scene directly (Phase 4: direct compile pipeline) ──
 
   try {
     const projectVariables = new Map<string, unknown>(
@@ -1107,6 +1107,7 @@ export function compileMotionProjectV3(
       {
         id: "primary",
         role: "primary" as const,
+        order: 0,
         clips: visualClips,
       },
     ];
@@ -1143,7 +1144,7 @@ export function compileMotionProjectV3(
 
     return compileSuccess(validated, warnings);
   } catch (err: unknown) {
-    // Convert errors to structured diagnostics (same pattern as compileMotionProjectV2).
+    // Convert errors to structured diagnostics (same pattern as the legacy compiler).
     if (err && typeof err === "object" && "issues" in err) {
       const zodErr = err as {
         issues: Array<{

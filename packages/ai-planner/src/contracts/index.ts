@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Hard budgets for AI-facing artifacts (independent of MOTION_V2_LIMITS). */
+/** Hard budgets for AI-facing artifacts (independent of protocol limits). */
 export const AI_ARTIFACT_LIMITS = Object.freeze({
   objectiveLength: 2_000,
   scriptLength: 20_000,
@@ -26,7 +26,13 @@ const FinitePositive = z.number().finite().positive();
 const IntensitySchema = z.number().finite().min(0).max(1);
 
 export const AspectRatioIntentSchema = z.enum(["9:16", "16:9", "1:1"]);
-export const PlatformIntentSchema = z.enum(["tiktok", "reels", "youtube", "presentation", "custom"]);
+export const PlatformIntentSchema = z.enum([
+  "tiktok",
+  "reels",
+  "youtube",
+  "presentation",
+  "custom",
+]);
 export const SceneRoleSchema = z.enum([
   "hook",
   "problem",
@@ -51,13 +57,20 @@ export const AssetReferenceSchema = z
   .object({
     id: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
     uri: z.string().min(1).max(2_048).optional(),
-    role: z.enum(["logo", "product", "background", "talent", "other"]).optional(),
+    role: z
+      .enum(["logo", "product", "background", "talent", "other"])
+      .optional(),
   })
   .strict();
 
 export const CreativeConstraintsSchema = z
   .object({
-    maxScenes: z.number().int().positive().max(AI_ARTIFACT_LIMITS.scenes).optional(),
+    maxScenes: z
+      .number()
+      .int()
+      .positive()
+      .max(AI_ARTIFACT_LIMITS.scenes)
+      .optional(),
     mustIncludeCta: z.boolean().optional(),
     bannedWords: z.array(NonEmptyString(64)).max(64).optional(),
   })
@@ -65,7 +78,9 @@ export const CreativeConstraintsSchema = z
 
 export const CreativeBriefV1Schema = z
   .object({
-    format: z.literal("moticlip-creative-brief").default("moticlip-creative-brief"),
+    format: z
+      .literal("moticlip-creative-brief")
+      .default("moticlip-creative-brief"),
     formatVersion: z.literal(1).default(1),
     objective: NonEmptyString(AI_ARTIFACT_LIMITS.objectiveLength),
     audience: NonEmptyString(AI_ARTIFACT_LIMITS.audienceLength).optional(),
@@ -81,14 +96,30 @@ export const CreativeBriefV1Schema = z
   .strict();
 
 export const SemanticTargetSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("semantic"), key: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength) }).strict(),
+  z
+    .object({
+      kind: z.literal("semantic"),
+      key: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
+    })
+    .strict(),
   z.object({ kind: z.literal("role"), role: NonEmptyString(64) }).strict(),
 ]);
 
-export const EntranceStyleSchema = z.enum(["fade", "fade-up", "scale", "slide", "pop"]);
+export const EntranceStyleSchema = z.enum([
+  "fade",
+  "fade-up",
+  "scale",
+  "slide",
+  "pop",
+]);
 export const ExitStyleSchema = z.enum(["fade", "scale", "slide"]);
 export const EmphasisStyleSchema = z.enum(["pulse", "shake", "flash"]);
-export const CameraStyleSchema = z.enum(["zoom-in", "zoom-out", "pan", "static"]);
+export const CameraStyleSchema = z.enum([
+  "zoom-in",
+  "zoom-out",
+  "pan",
+  "static",
+]);
 export const TransitionStyleSchema = z.enum(["cut", "fade", "crossfade"]);
 
 export const ParallaxLayerIntentSchema = z
@@ -161,7 +192,17 @@ export const MotionIntentSchema = z.discriminatedUnion("type", [
 
 export const LayoutIntentSchema = z
   .object({
-    kind: z.enum(["hero", "split", "stack", "compare", "steps", "quote", "cta", "collage", "centered"]),
+    kind: z.enum([
+      "hero",
+      "split",
+      "stack",
+      "compare",
+      "steps",
+      "quote",
+      "cta",
+      "collage",
+      "centered",
+    ]),
     safeArea: z.enum(["tiktok", "reels", "youtube", "generic"]).optional(),
   })
   .strict();
@@ -186,8 +227,12 @@ export const SceneBriefSchema = z
       .max(AI_ARTIFACT_LIMITS.sceneCopyItems),
     visualConcept: NonEmptyString(AI_ARTIFACT_LIMITS.visualConceptLength),
     layoutIntent: LayoutIntentSchema,
-    motionIntents: z.array(MotionIntentSchema).max(AI_ARTIFACT_LIMITS.motionIntentsPerScene),
-    assetRequests: z.array(AssetRequestSchema).max(AI_ARTIFACT_LIMITS.assetRequestsPerScene),
+    motionIntents: z
+      .array(MotionIntentSchema)
+      .max(AI_ARTIFACT_LIMITS.motionIntentsPerScene),
+    assetRequests: z
+      .array(AssetRequestSchema)
+      .max(AI_ARTIFACT_LIMITS.assetRequestsPerScene),
   })
   .strict();
 
@@ -218,7 +263,9 @@ export const CreativePlanV1Schema = z
     format: z.literal("moticlip-creative-plan"),
     formatVersion: z.literal(1),
     concept: NonEmptyString(AI_ARTIFACT_LIMITS.conceptLength),
-    tone: z.array(NonEmptyString(AI_ARTIFACT_LIMITS.toneTagLength)).max(AI_ARTIFACT_LIMITS.toneTags),
+    tone: z
+      .array(NonEmptyString(AI_ARTIFACT_LIMITS.toneTagLength))
+      .max(AI_ARTIFACT_LIMITS.toneTags),
     artDirection: ArtDirectionSchema,
     pacing: PacingPlanSchema,
     scenes: z.array(SceneBriefSchema).min(1).max(AI_ARTIFACT_LIMITS.scenes),
@@ -226,7 +273,13 @@ export const CreativePlanV1Schema = z
   })
   .strict();
 
-export const DesignNodeHintSchema = z.enum(["text", "shape", "group", "image", "camera"]);
+export const DesignNodeHintSchema = z.enum([
+  "text",
+  "shape",
+  "group",
+  "image",
+  "camera",
+]);
 
 export const SceneDesignNodeSchema = z
   .object({
@@ -241,7 +294,9 @@ export const SceneDesignEntrySchema = z
   .object({
     sceneBriefId: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
     layout: LayoutIntentSchema,
-    nodes: z.array(SceneDesignNodeSchema).max(AI_ARTIFACT_LIMITS.designNodesPerScene),
+    nodes: z
+      .array(SceneDesignNodeSchema)
+      .max(AI_ARTIFACT_LIMITS.designNodesPerScene),
   })
   .strict();
 
@@ -250,7 +305,10 @@ export const SceneDesignPlanV1Schema = z
     format: z.literal("moticlip-scene-design-plan"),
     formatVersion: z.literal(1),
     planId: NonEmptyString(AI_ARTIFACT_LIMITS.semanticKeyLength),
-    scenes: z.array(SceneDesignEntrySchema).min(1).max(AI_ARTIFACT_LIMITS.scenes),
+    scenes: z
+      .array(SceneDesignEntrySchema)
+      .min(1)
+      .max(AI_ARTIFACT_LIMITS.scenes),
   })
   .strict();
 
@@ -268,12 +326,16 @@ export class AiArtifactParseError extends Error {
     public readonly artifact: string,
     public readonly issues: Array<{ path: string; message: string }>,
   ) {
-    super(`${artifact}: ${issues.map((issue) => `${issue.path}: ${issue.message}`).join("; ")}`);
+    super(
+      `${artifact}: ${issues.map((issue) => `${issue.path}: ${issue.message}`).join("; ")}`,
+    );
     this.name = "AiArtifactParseError";
   }
 }
 
-function zodIssues(error: z.ZodError): Array<{ path: string; message: string }> {
+function zodIssues(
+  error: z.ZodError,
+): Array<{ path: string; message: string }> {
   return error.issues.map((issue) => ({
     path: issue.path.join(".") || "(root)",
     message: issue.message,
@@ -282,19 +344,25 @@ function zodIssues(error: z.ZodError): Array<{ path: string; message: string }> 
 
 export function parseCreativeBriefV1(input: unknown): CreativeBriefV1 {
   const result = CreativeBriefV1Schema.safeParse(input);
-  if (!result.success) throw new AiArtifactParseError("CreativeBriefV1", zodIssues(result.error));
+  if (!result.success)
+    throw new AiArtifactParseError("CreativeBriefV1", zodIssues(result.error));
   return result.data;
 }
 
 export function parseCreativePlanV1(input: unknown): CreativePlanV1 {
   const result = CreativePlanV1Schema.safeParse(input);
-  if (!result.success) throw new AiArtifactParseError("CreativePlanV1", zodIssues(result.error));
+  if (!result.success)
+    throw new AiArtifactParseError("CreativePlanV1", zodIssues(result.error));
   return result.data;
 }
 
 export function parseSceneDesignPlanV1(input: unknown): SceneDesignPlanV1 {
   const result = SceneDesignPlanV1Schema.safeParse(input);
-  if (!result.success) throw new AiArtifactParseError("SceneDesignPlanV1", zodIssues(result.error));
+  if (!result.success)
+    throw new AiArtifactParseError(
+      "SceneDesignPlanV1",
+      zodIssues(result.error),
+    );
   return result.data;
 }
 

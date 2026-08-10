@@ -7,7 +7,7 @@
  * so two identical projects always serialize byte-identically.
  */
 import { MotionProjectV3Schema, type MotionProjectV3 } from "./index";
-import { normalizeLegacyMotionInput } from "../v2/parse";
+import { normalizeLegacyMotionInput } from "./normalize-input";
 import { validateMotionProjectV3References } from "./references";
 import { MotionV3ReferenceError } from "./references/types";
 

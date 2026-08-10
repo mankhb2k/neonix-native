@@ -4,12 +4,10 @@ import {
   KeyframeEasingV2Schema,
   NodeV2Schema,
   TransformV2Schema,
-} from "./v2";
-import { parseMotionComponentV2 } from "./v2/parse";
-import {
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
 } from "./index";
+import { parseMotionComponentV2 } from "./compat/parse-v2";
 
 const baseTransform = {
   x: 0,

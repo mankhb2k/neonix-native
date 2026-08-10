@@ -8,7 +8,7 @@
  */
 import { z } from "zod";
 import { MOTION_V2_LIMITS } from "../../capabilities";
-import { CropSchema, FitSchema } from "../../v2/nodes/paint";
+import { CropSchema, FitSchema } from "./paint";
 import { IdSchema, PositiveNumberSchema } from "../common";
 import { NodeBaseV3Schema } from "./base";
 
