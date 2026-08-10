@@ -199,6 +199,61 @@ describe("v3 schema — positive fixtures", () => {
     const cam = intro.nodes.find((node) => node.id === "cam")!;
     expect(cam.type).toBe("camera");
   });
+
+  // ── Phase 0 example fixtures ──────────────────────────────────────
+
+  it("parses multi-scene project with overlay track", () => {
+    const input = loadFixture("multi-scene.project.json");
+    const project = MotionProjectV3Schema.parse(input);
+    expect(project.scenes).toHaveLength(3);
+    expect(project.timeline.visualTracks).toHaveLength(2);
+    expect(project.timeline.visualTracks[0]!.role).toBe("main");
+    expect(project.timeline.visualTracks[1]!.role).toBe("overlay");
+    expect(project.timeline.visualTracks[0]!.clips).toHaveLength(3);
+  });
+
+  it("parses transition project with clip-level transitionIn/transitionOut", () => {
+    const input = loadFixture("transition.project.json");
+    const project = MotionProjectV3Schema.parse(input);
+    const clips = project.timeline.visualTracks[0]!.clips;
+    expect(clips[0]!.transitionIn?.type).toBe("fade");
+    expect(clips[0]!.transitionOut?.type).toBe("slide");
+    expect(clips[1]!.transitionIn?.type).toBe("crossfade");
+    expect(clips[2]!.transitionIn?.type).toBe("wipe");
+    // Verifies V3 scenes do NOT have scene.transition
+    for (const scene of project.scenes) {
+      expect(scene).not.toHaveProperty("transition");
+    }
+  });
+
+  it("parses component project with embedded component and component-source clip", () => {
+    const input = loadFixture("component.project.json");
+    const project = MotionProjectV3Schema.parse(input);
+    expect(project.components).toHaveLength(1);
+    expect(project.components[0]!.publicParams).toHaveLength(2);
+    const overlayTrack = project.timeline.visualTracks.find(
+      (t) => t.role === "overlay",
+    )!;
+    expect(overlayTrack.clips[0]!.source.kind).toBe("component");
+  });
+
+  it("parses caption project with bilingual caption tracks", () => {
+    const input = loadFixture("caption.project.json");
+    const project = MotionProjectV3Schema.parse(input);
+    expect(project.timeline.captionTracks).toHaveLength(2);
+    expect(project.timeline.captionTracks[0]!.locale).toBe("vi-VN");
+    expect(project.timeline.captionTracks[1]!.locale).toBe("en-US");
+    expect(project.timeline.captionTracks[0]!.tokens).toHaveLength(5);
+  });
+
+  it("parses audio project with BGM, voiceover, and SFX tracks", () => {
+    const input = loadFixture("audio.project.json");
+    const project = MotionProjectV3Schema.parse(input);
+    expect(project.timeline.audioTracks).toHaveLength(4);
+    const roles = project.timeline.audioTracks.map((t) => t.role);
+    expect(roles).toEqual(["bgm", "voiceover", "sfx", "sfx"]);
+    expect(project.timeline.audioTracks[0]!.volume).toBe(0.3);
+  });
 });
 
 // ── Negative Zod-level fixtures ────────────────────────────────────────

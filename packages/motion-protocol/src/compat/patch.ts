@@ -14,7 +14,13 @@ import { JsonValueSchema } from "../runtime/values";
 
 const PatchTargetSchema = z.union([
   z.object({ variableId: IdSchema }).strict(),
-  z.object({ sceneId: IdSchema, nodeId: IdSchema, property: PropertyPathSchema }).strict(),
+  z
+    .object({
+      sceneId: IdSchema,
+      nodeId: IdSchema,
+      property: PropertyPathSchema,
+    })
+    .strict(),
 ]);
 
 export const MotionPatchSchema = z
@@ -22,18 +28,37 @@ export const MotionPatchSchema = z
     format: z.literal("motion-patch"),
     formatVersion: z.literal(MOTION_PATCH_FORMAT_VERSION),
     baseRevision: FiniteNumberSchema.int().nonnegative(),
-    operations: z.array(z.object({ op: z.literal("set"), target: PatchTargetSchema, value: JsonValueSchema }).strict()).max(MOTION_V2_LIMITS.patchOperations),
+    operations: z
+      .array(
+        z
+          .object({
+            op: z.literal("set"),
+            target: PatchTargetSchema,
+            value: JsonValueSchema,
+          })
+          .strict(),
+      )
+      .max(MOTION_V2_LIMITS.patchOperations),
   })
   .strict();
 
 export type MotionPatch = z.infer<typeof MotionPatchSchema>;
 
-function setRecordPath(target: Record<string, unknown>, path: string, value: unknown): void {
+function setRecordPath(
+  target: Record<string, unknown>,
+  path: string,
+  value: unknown,
+): void {
   const parts = path.split(".");
   let cursor: Record<string, unknown> = target;
   for (const part of parts.slice(0, -1)) {
     const current = cursor[part];
-    if (current === null || typeof current !== "object" || Array.isArray(current)) cursor[part] = {};
+    if (
+      current === null ||
+      typeof current !== "object" ||
+      Array.isArray(current)
+    )
+      cursor[part] = {};
     cursor = cursor[part] as Record<string, unknown>;
   }
   const last = parts.at(-1);
@@ -41,7 +66,10 @@ function setRecordPath(target: Record<string, unknown>, path: string, value: unk
 }
 
 /** Apply a public-surface patch: project variables or Component Instance `payload.props.*` only. */
-export function applyMotionPatch(project: MotionProjectV2, patchInput: unknown): MotionProjectV2 {
+export function applyMotionPatch(
+  project: MotionProjectV2,
+  patchInput: unknown,
+): MotionProjectV2 {
   const patch = MotionPatchSchema.parse(patchInput);
   const next = JSON.parse(JSON.stringify(project)) as MotionProjectV2;
   const issues: ReferenceIssue[] = [];
@@ -51,9 +79,14 @@ export function applyMotionPatch(project: MotionProjectV2, patchInput: unknown):
     const target = operation.target;
     if ("variableId" in target) {
       const variableId = target.variableId;
-      const variable = next.variables.find((candidate) => candidate.id === variableId);
+      const variable = next.variables.find(
+        (candidate) => candidate.id === variableId,
+      );
       if (!variable) {
-        issues.push({ path: `${path}.target.variableId`, message: `Unknown variable: ${variableId}` });
+        issues.push({
+          path: `${path}.target.variableId`,
+          message: `Unknown variable: ${variableId}`,
+        });
         continue;
       }
       (variable as { value: unknown }).value = operation.value;
@@ -61,24 +94,41 @@ export function applyMotionPatch(project: MotionProjectV2, patchInput: unknown):
     }
     const { sceneId, nodeId, property } = target;
     if (!property.startsWith("payload.props.")) {
-      issues.push({ path: `${path}.target.property`, message: "Patch may only set public payload.props.* or project variables" });
+      issues.push({
+        path: `${path}.target.property`,
+        message:
+          "Patch may only set public payload.props.* or project variables",
+      });
       continue;
     }
     const scene = next.scenes.find((candidate) => candidate.id === sceneId);
     if (!scene) {
-      issues.push({ path: `${path}.target.sceneId`, message: `Unknown scene: ${sceneId}` });
+      issues.push({
+        path: `${path}.target.sceneId`,
+        message: `Unknown scene: ${sceneId}`,
+      });
       continue;
     }
     const node = scene.nodes.find((candidate) => candidate.id === nodeId);
     if (!node) {
-      issues.push({ path: `${path}.target.nodeId`, message: `Unknown node: ${nodeId}` });
+      issues.push({
+        path: `${path}.target.nodeId`,
+        message: `Unknown node: ${nodeId}`,
+      });
       continue;
     }
     if (node.type !== "component") {
-      issues.push({ path: `${path}.target.nodeId`, message: `Patch node target must be a component instance: ${nodeId}` });
+      issues.push({
+        path: `${path}.target.nodeId`,
+        message: `Patch node target must be a component instance: ${nodeId}`,
+      });
       continue;
     }
-    setRecordPath(node as unknown as Record<string, unknown>, property, operation.value);
+    setRecordPath(
+      node as unknown as Record<string, unknown>,
+      property,
+      operation.value,
+    );
   }
   if (issues.length > 0) throw new MotionV2ReferenceError(issues);
   return parseMotionProjectV2(next);

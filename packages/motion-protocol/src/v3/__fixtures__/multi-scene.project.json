@@ -1,0 +1,154 @@
+{
+  "format": "motion-project",
+  "formatVersion": 3,
+  "metadata": {
+    "id": "v3-multi-scene",
+    "name": "V3 Multi-Scene Example",
+    "description": "Demonstrates multiple scenes arranged on visualTracks with overlay",
+    "locale": "vi-VN",
+    "tags": ["example", "v3", "multi-scene"]
+  },
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#f5f5f5",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": ["primitive.text", "primitive.image"]
+  },
+  "dependencies": {
+    "compiler": { "range": ">=1.0.0" },
+    "components": []
+  },
+  "tokens": {
+    "colors": { "primary": "#1877f2", "text": "#111111" }
+  },
+  "variables": [
+    {
+      "id": "headline-text",
+      "name": "Headline",
+      "type": "string",
+      "value": "Welcome to V3"
+    }
+  ],
+  "assets": [
+    {
+      "id": "logo",
+      "uri": "./assets/logo.png",
+      "integrity": "sha256:logo",
+      "assetType": "image",
+      "mimeType": "image/png",
+      "width": 512,
+      "height": 512,
+      "pixelFormat": "rgba",
+      "hasAlpha": true
+    }
+  ],
+  "components": [],
+  "scenes": [
+    {
+      "id": "intro",
+      "name": "Intro",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "headline",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": -300, "width": 800, "height": 100,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Welcome" },
+            "fontSize": 64,
+            "color": "#111111",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "body",
+      "name": "Body Content",
+      "duration": 5,
+      "nodes": [
+        {
+          "id": "body-text",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 700, "height": 200,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "This is body content" },
+            "fontSize": 48,
+            "color": "#333333",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "outro",
+      "name": "Outro",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "thanks",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 600, "height": 80,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Thank you!" },
+            "fontSize": 56,
+            "color": "#1877f2",
+            "alignment": "center"
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main",
+        "role": "main",
+        "order": 0,
+        "clips": [
+          { "id": "c-intro", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 3 },
+          { "id": "c-body", "source": { "kind": "scene", "sceneId": "body" }, "start": 3, "duration": 5 },
+          { "id": "c-outro", "source": { "kind": "scene", "sceneId": "outro" }, "start": 8, "duration": 2 }
+        ]
+      },
+      {
+        "id": "overlay-logo",
+        "role": "overlay",
+        "order": 1,
+        "clips": [
+          { "id": "c-logo", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 10, "opacity": 0.3 }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "id": "bind-headline",
+      "source": { "kind": "variable", "variableId": "headline-text" },
+      "target": { "kind": "scene", "sceneId": "intro", "nodeId": "headline", "property": "payload.content.text" }
+    }
+  ]
+}

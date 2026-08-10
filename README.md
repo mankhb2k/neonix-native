@@ -1,10 +1,37 @@
 # MotionVideo
 
-MotionVideo là editor và render pipeline cho TVC motion graphic 2D tiếng Việt. Hệ thống tạo project có cấu trúc từ brief/template, cho phép chỉnh nội dung, brand, scene, node và timing trước khi xuất MP4.
+MotionVideo là editor và render pipeline cho TVC motion graphic 2D tiếng Việt.
+Hệ thống tạo project có cấu trúc từ brief/template, cho phép chỉnh nội dung,
+brand, scene, node và timing trước khi xuất MP4.
 
-Phạm vi đích gồm limited/cut-out character animation từ SVG rig được chuẩn bị trong Figma và map lại trong app; không nhằm trở thành công cụ vẽ frame-by-frame.
+Phạm vi đích gồm limited/cut-out character animation từ SVG rig được chuẩn bị
+trong Figma và map lại trong app; không nhằm trở thành công cụ vẽ frame-by-frame.
 
-## Kiến trúc
+## Canonical Format: Motion Project V3
+
+**MotionProjectV3 is the ONLY authoring contract.** Tất cả product paths
+(editor, compiler, runtime, preview, export, AI planner, MCP tools, Skill
+templates) đều dùng chung format này.
+
+```text
+format: "motion-project"
+formatVersion: 3
+```
+
+Parser chính thức (`parseMotionProject`) chỉ chấp nhận V3. Dữ liệu
+`formatVersion: 2` bị từ chối với lỗi rõ ràng.
+
+Tài liệu đầy đủ: [Motion Format V3](docs/motion-format-v3.md).
+JSON Schema (Draft-07): `packages/motion-protocol/schema/v3.json`.
+
+### Editor UI State
+
+Editor UI state **không phải là một phần của V3 project JSON.**
+Scroll position, selected node, undo stack, panel layout, zoom level,
+playhead position — đây là local UI state, không được lưu vào project.
+Project chỉ chứa dữ liệu authoring thuần túy.
+
+### Kiến trúc
 
 ```text
 Brief / Template
@@ -28,7 +55,7 @@ Các nguyên tắc chính:
 - AI User và Web chỉ sửa Project Variable, text Node và public props của Component.
 - Preview và export phải tiến tới dùng chung property vocabulary, transform convention và track evaluator.
 
-Contract: [Motion Format](docs/motion-format-v2.md). Catalog: [Primitive objects](docs/primitives-object.md). Tiến độ: [roadmap-status](docs/roadmap-status.md). Kiến trúc: [refactor](docs/refactor.md). Freeze policy: [P0 schema freeze](docs/p0-schema-freeze-checklist.md). Browser preview remaining: [browser-preview roadmap](docs/browser-preview-atomic-roadmap.md).
+Contract: **[Motion Format V3](docs/motion-format-v3.md)** (canonical). V2 format: [đã loại bỏ](docs/motion-format-v2.md) (archive). Catalog: [Primitive objects](docs/primitives-object.md). Tiến độ: [roadmap-status](docs/roadmap-status.md). Kiến trúc: [refactor](docs/refactor.md). Freeze policy: [P0 schema freeze](docs/p0-schema-freeze-checklist.md). V3 completion: [plan](docs/v3-source-of-truth-completion-plan.md). Browser preview: [roadmap](docs/browser-preview-atomic-roadmap.md).
 
 ## Monorepo
 

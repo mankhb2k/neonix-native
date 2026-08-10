@@ -1,0 +1,179 @@
+{
+  "format": "motion-project",
+  "formatVersion": 3,
+  "metadata": {
+    "id": "v3-transition",
+    "name": "V3 Transition Example",
+    "description": "Demonstrates clip-level transitions (transitionIn/transitionOut) on visual clips",
+    "locale": "vi-VN",
+    "tags": ["example", "v3", "transition"]
+  },
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": ["primitive.text", "primitive.solid"],
+    "optional": ["transition.fade", "transition.slide", "transition.zoom"]
+  },
+  "dependencies": {
+    "compiler": { "range": ">=1.0.0" },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [],
+  "components": [],
+  "scenes": [
+    {
+      "id": "scene-a",
+      "name": "Scene A",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "bg-a",
+          "type": "solid",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 1080, "height": 1920,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": { "width": 1080, "height": 1920, "color": "#ff6b35" }
+        },
+        {
+          "id": "text-a",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 800, "height": 120,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Scene A" },
+            "fontSize": 72,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene-b",
+      "name": "Scene B",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "bg-b",
+          "type": "solid",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 1080, "height": 1920,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": { "width": 1080, "height": 1920, "color": "#004e89" }
+        },
+        {
+          "id": "text-b",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 800, "height": 120,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Scene B" },
+            "fontSize": 72,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene-c",
+      "name": "Scene C",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "bg-c",
+          "type": "solid",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 1080, "height": 1920,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": { "width": 1080, "height": 1920, "color": "#2ecc71" }
+        },
+        {
+          "id": "text-c",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0, "y": 0, "width": 800, "height": 120,
+            "rotation": 0, "scaleX": 1, "scaleY": 1,
+            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
+            "flipX": false, "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Scene C" },
+            "fontSize": 72,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main",
+        "role": "main",
+        "order": 0,
+        "clips": [
+          {
+            "id": "clip-a",
+            "source": { "kind": "scene", "sceneId": "scene-a" },
+            "start": 0,
+            "duration": 3,
+            "transitionIn": { "type": "fade", "duration": 0.5, "easing": "easeOut" },
+            "transitionOut": { "type": "slide", "duration": 0.3, "direction": "left" }
+          },
+          {
+            "id": "clip-b",
+            "source": { "kind": "scene", "sceneId": "scene-b" },
+            "start": 2.7,
+            "duration": 3,
+            "transitionIn": { "type": "crossfade", "duration": 0.3, "easing": "easeInOut" },
+            "transitionOut": { "type": "zoom", "duration": 0.4, "direction": "out" }
+          },
+          {
+            "id": "clip-c",
+            "source": { "kind": "scene", "sceneId": "scene-c" },
+            "start": 5.4,
+            "duration": 3,
+            "transitionIn": { "type": "wipe", "duration": 0.5, "direction": "left" },
+            "transitionOut": { "type": "fade", "duration": 0.3, "easing": "easeIn" }
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "bindings": []
+}

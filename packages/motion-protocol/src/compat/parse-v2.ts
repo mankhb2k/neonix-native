@@ -26,7 +26,8 @@ export function normalizeLegacyMotionInput(input: unknown): unknown {
 
   if (Array.isArray(root.scenes)) {
     root.scenes = root.scenes.map((scene) => {
-      if (!scene || typeof scene !== "object" || Array.isArray(scene)) return scene;
+      if (!scene || typeof scene !== "object" || Array.isArray(scene))
+        return scene;
       const nextScene = { ...(scene as Record<string, unknown>) };
       nextScene.nodes = normalizeNodes(nextScene.nodes);
       return nextScene;
@@ -41,14 +42,18 @@ export function normalizeLegacyMotionInput(input: unknown): unknown {
 }
 
 export function parseMotionComponentV2(input: unknown): MotionComponentV2 {
-  const component = MotionComponentV2Schema.parse(normalizeLegacyMotionInput(input));
+  const component = MotionComponentV2Schema.parse(
+    normalizeLegacyMotionInput(input),
+  );
   const issues = validateMotionComponentV2References(component);
   if (issues.length > 0) throw new MotionV2ReferenceError(issues);
   return component;
 }
 
 export function parseMotionProjectV2(input: unknown): MotionProjectV2 {
-  const project = MotionProjectV2Schema.parse(normalizeLegacyMotionInput(input));
+  const project = MotionProjectV2Schema.parse(
+    normalizeLegacyMotionInput(input),
+  );
   const issues = validateMotionProjectV2References(project);
   if (issues.length > 0) throw new MotionV2ReferenceError(issues);
   return project;

@@ -19,7 +19,10 @@ export function validateNodeAssets(
       else {
         const expected = node.type;
         if (asset.assetType !== expected) {
-          issues.push({ path, message: `Asset ${assetId} has type ${asset.assetType}, expected ${expected}` });
+          issues.push({
+            path,
+            message: `Asset ${assetId} has type ${asset.assetType}, expected ${expected}`,
+          });
         } else if (node.type === "video" && asset.assetType === "video") {
           const trimStart = node.payload.trimStart ?? 0;
           const trimEnd = node.payload.trimEnd ?? asset.duration;
@@ -32,12 +35,18 @@ export function validateNodeAssets(
         }
       }
     }
-    const fontAssetId = node.type === "text" ? node.payload.fontAssetId : undefined;
+    const fontAssetId =
+      node.type === "text" ? node.payload.fontAssetId : undefined;
     if (typeof fontAssetId === "string") {
       const asset = assetById.get(fontAssetId);
       const path = `${prefix}.${node.id}.payload.fontAssetId`;
-      if (!asset) issues.push({ path, message: `Unknown asset: ${fontAssetId}` });
-      else if (asset.assetType !== "font") issues.push({ path, message: `Asset ${fontAssetId} has type ${asset.assetType}, expected font` });
+      if (!asset)
+        issues.push({ path, message: `Unknown asset: ${fontAssetId}` });
+      else if (asset.assetType !== "font")
+        issues.push({
+          path,
+          message: `Asset ${fontAssetId} has type ${asset.assetType}, expected font`,
+        });
     }
   }
   return issues;
