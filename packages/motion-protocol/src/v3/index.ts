@@ -34,12 +34,27 @@ export const MotionProjectV3Schema = z
     capabilities: ProjectCapabilityRequirementsSchema.default({}),
     dependencies: ProjectDependenciesV3Schema,
     tokens: DesignTokensSchema.default({}),
-    variables: z.array(ProjectVariableV3Schema).max(MOTION_V2_LIMITS.variablesPerArtifact).default([]),
-    assets: z.array(AssetV3Schema).max(MOTION_V2_LIMITS.assetsPerArtifact).default([]),
-    components: z.array(EmbeddedComponentV3Schema).max(MOTION_V2_LIMITS.dependenciesPerProject).default([]),
-    scenes: z.array(SceneDefinitionV3Schema).max(MOTION_V2_LIMITS.scenesPerProject).default([]),
+    variables: z
+      .array(ProjectVariableV3Schema)
+      .max(MOTION_V2_LIMITS.variablesPerArtifact)
+      .default([]),
+    assets: z
+      .array(AssetV3Schema)
+      .max(MOTION_V2_LIMITS.assetsPerArtifact)
+      .default([]),
+    components: z
+      .array(EmbeddedComponentV3Schema)
+      .max(MOTION_V2_LIMITS.dependenciesPerProject)
+      .default([]),
+    scenes: z
+      .array(SceneDefinitionV3Schema)
+      .max(MOTION_V2_LIMITS.scenesPerProject)
+      .default([]),
     timeline: ProjectTimelineV3Schema,
-    bindings: z.array(ProjectBindingV3Schema).max(MOTION_V2_LIMITS.bindingsPerArtifact).default([]),
+    bindings: z
+      .array(ProjectBindingV3Schema)
+      .max(MOTION_V2_LIMITS.bindingsPerArtifact)
+      .default([]),
     provenance: ProjectProvenanceSchema.optional(),
     extensions: NamespacedExtensionsSchema,
   })
@@ -59,5 +74,6 @@ export * from "./scenes";
 export * from "./timeline";
 export * from "./extensions";
 export * from "./provenance";
+export * from "./migrations";
 export * from "./nodes";
 export * from "./animation";

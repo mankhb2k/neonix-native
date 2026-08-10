@@ -1,0 +1,92 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "mig-scene-order",
+    "name": "Scene Order",
+    "aspectRatio": "9:16",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Default" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [],
+  "variables": [],
+  "timeline": {
+    "sceneOrder": ["intro", "outro"],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "name": "Intro",
+      "duration": 3,
+      "nodes": [
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 500,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Intro" },
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": { "fill": "#111111" }
+        }
+      ],
+      "clips": []
+    },
+    {
+      "id": "outro",
+      "name": "Outro",
+      "duration": 2,
+      "nodes": [
+        {
+          "id": "thanks",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 500,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Thanks" },
+            "fontSize": 48,
+            "align": "center"
+          },
+          "style": { "fill": "#111111" }
+        }
+      ],
+      "clips": []
+    }
+  ],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}

@@ -1,0 +1,45 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "mig-audio",
+    "name": "Audio",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": { "name": "Default" }
+  },
+  "dependencies": { "components": [] },
+  "assets": [
+    {
+      "id": "bgm",
+      "uri": "./assets/audio/bgm.mp3",
+      "integrity": "sha256:bgm",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 42.5,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 2
+    }
+  ],
+  "variables": [],
+  "timeline": {
+    "sceneOrder": [],
+    "audioTracks": [
+      {
+        "id": "track-bgm",
+        "role": "bgm",
+        "assetId": "bgm",
+        "start": 0,
+        "volume": 0.8,
+        "fadeIn": 0.5,
+        "fadeOut": 1
+      }
+    ],
+    "captionTracks": []
+  },
+  "scenes": [],
+  "bindings": [],
+  "extensions": { "constraints": [], "events": [] }
+}
