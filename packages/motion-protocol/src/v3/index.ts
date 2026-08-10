@@ -75,5 +75,7 @@ export * from "./timeline";
 export * from "./extensions";
 export * from "./provenance";
 export * from "./migrations";
+export * from "./references";
+export * from "./parse";
 export * from "./nodes";
 export * from "./animation";

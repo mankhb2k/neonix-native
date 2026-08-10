@@ -2,6 +2,7 @@ export * from "./v2";
 export * from "./capabilities";
 export * from "./scene-registry";
 export * from "./ai-schema-capability";
+export * from "./parse-any";
 export * as V3 from "./v3";
 
 import {
@@ -13,7 +14,14 @@ import {
   type MotionScene,
 } from "./v2";
 
-/** Canonical application model. */
+/**
+ * Canonical alias strategy (Phase 4 decision):
+ *  - Short term (now):        `MotionProject = MotionProjectV2`
+ *  - Migration (after P5):    `MotionProject = MotionProjectV2 | MotionProjectV3`
+ *  - Final (after P12):       `MotionProject = MotionProjectV3`
+ *
+ * Consumers that need both versions today should use `parseMotionProjectAny`.
+ */
 export type MotionProject = MotionProjectV2;
 export type Node = MotionNode;
 export type Scene = MotionScene;

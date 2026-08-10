@@ -1,0 +1,52 @@
+name: Protocol Schema Freeze
+
+# Ensures committed JSON Schema files (schema/v2.json, schema/v3.json) stay
+# in sync with the zod schemas. Also runs the motion-protocol test suite so
+# v2/v3 schema changes are always covered.
+
+on:
+  pull_request:
+    paths:
+      - "packages/motion-protocol/**"
+      - ".github/workflows/protocol-schema.yml"
+  push:
+    branches: [main, master, dev]
+    paths:
+      - "packages/motion-protocol/**"
+      - ".github/workflows/protocol-schema.yml"
+
+concurrency:
+  group: protocol-schema-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  protocol-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck motion-protocol
+        run: pnpm --filter @motionvideo/motion-protocol typecheck
+
+      - name: Regenerate JSON schemas
+        run: pnpm --filter @motionvideo/motion-protocol generate:schema
+
+      - name: Assert schemas are up-to-date
+        run: git diff --exit-code packages/motion-protocol/schema
+
+      - name: Run motion-protocol tests
+        run: pnpm --filter @motionvideo/motion-protocol test
