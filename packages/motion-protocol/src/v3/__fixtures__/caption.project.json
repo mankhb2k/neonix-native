@@ -38,10 +38,19 @@
           "type": "solid",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 1080, "height": 1920,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 1920,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "width": 1080, "height": 1920, "color": "#1a1a2e" }
         }

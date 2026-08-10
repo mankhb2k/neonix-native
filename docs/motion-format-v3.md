@@ -62,13 +62,13 @@ VisualClipV3 {
 
 Khác biệt chính:
 
-| V2 (đã bỏ) | V3 (canonical) |
-|---|---|
-| `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV3[]` |
-| `scene.transition` | `visualClip.transitionIn / transitionOut` |
-| Một lane duy nhất | Nhiều track lane (`main` + `overlay`) |
-| Scene-level transition | Clip-level transition |
-| Không có loop/playbackRate | Có loop, playbackRate, opacity |
+| V2 (đã bỏ)                      | V3 (canonical)                            |
+| ------------------------------- | ----------------------------------------- |
+| `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV3[]`  |
+| `scene.transition`              | `visualClip.transitionIn / transitionOut` |
+| Một lane duy nhất               | Nhiều track lane (`main` + `overlay`)     |
+| Scene-level transition          | Clip-level transition                     |
+| Không có loop/playbackRate      | Có loop, playbackRate, opacity            |
 
 ## Transitions
 
@@ -148,22 +148,50 @@ Dự án với 2 scene (intro + outro) được sắp xếp trong một `visualT
       "id": "intro",
       "duration": 3,
       "nodes": [
-        { "id": "title", "type": "text", "parentId": null,
-          "transform": { "x": 0, "y": 0, "width": 1080, "height": 200,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true },
-          "payload": { "content": { "kind": "plain", "text": "Hello" } } }
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true
+          },
+          "payload": { "content": { "kind": "plain", "text": "Hello" } }
+        }
       ]
     },
     {
       "id": "outro",
       "duration": 2,
       "nodes": [
-        { "id": "end-text", "type": "text", "parentId": null,
-          "transform": { "x": 0, "y": 0, "width": 1080, "height": 200,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true },
-          "payload": { "content": { "kind": "plain", "text": "Thanks" } } }
+        {
+          "id": "end-text",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 1080,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true
+          },
+          "payload": { "content": { "kind": "plain", "text": "Thanks" } }
+        }
       ]
     }
   ],
@@ -174,8 +202,18 @@ Dự án với 2 scene (intro + outro) được sắp xếp trong một `visualT
         "role": "main",
         "order": 0,
         "clips": [
-          { "id": "c1", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 3 },
-          { "id": "c2", "source": { "kind": "scene", "sceneId": "outro" }, "start": 3, "duration": 2 }
+          {
+            "id": "c1",
+            "source": { "kind": "scene", "sceneId": "intro" },
+            "start": 0,
+            "duration": 3
+          },
+          {
+            "id": "c2",
+            "source": { "kind": "scene", "sceneId": "outro" },
+            "start": 3,
+            "duration": 2
+          }
         ]
       }
     ]

@@ -237,19 +237,11 @@ export {
 // V2-specific clip types (component-action, not in V3)
 export { ClipV2Schema, type MotionClip } from "./runtime/animation/clips";
 
-// Project scene type (still used by editor packages)
-export {
-  DesignTokensSchema,
-  PlatformSafeAreaSchema,
-  type MotionScene,
-} from "./compat/project";
+// Project scene type — V3 canonical
+export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";
 
-// Patch (used by ai-planner)
-export {
-  MotionPatchSchema,
-  type MotionPatch,
-  applyMotionPatch,
-} from "./compat/patch";
+// Design tokens — V3 canonical (extends compat with radii, motion)
+export { DesignTokensSchema, type DesignTokens } from "./v3/variables";
 
 // Runtime IR schemas/types (also available via ./runtime, re-exported for compat)
 export {

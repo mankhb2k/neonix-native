@@ -60,8 +60,18 @@
         }
       ],
       "variables": [
-        { "id": "cta-label", "name": "CTA Label", "type": "string", "value": "Click me" },
-        { "id": "cta-color", "name": "CTA Color", "type": "color", "value": "#1877f2" }
+        {
+          "id": "cta-label",
+          "name": "CTA Label",
+          "type": "string",
+          "value": "Click me"
+        },
+        {
+          "id": "cta-color",
+          "name": "CTA Color",
+          "type": "color",
+          "value": "#1877f2"
+        }
       ],
       "nodes": [
         {
@@ -69,10 +79,19 @@
           "type": "solid",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 600, "height": 120,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": { "width": 600, "height": 120, "color": "#1877f2" }
         },
@@ -81,10 +100,19 @@
           "type": "text",
           "parentId": "cta-bg",
           "transform": {
-            "x": 0, "y": 0, "width": 500, "height": 60,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 500,
+            "height": 60,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "content": { "kind": "plain", "text": "Click me" },
@@ -115,10 +143,19 @@
           "type": "text",
           "parentId": null,
           "transform": {
-            "x": 0, "y": -200, "width": 800, "height": 120,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": -200,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "content": { "kind": "plain", "text": "Welcome to MotiClip" },
@@ -155,8 +192,16 @@
             "source": { "kind": "component", "componentId": "call-to-action" },
             "start": 1,
             "duration": 2.5,
-            "transitionIn": { "type": "fade", "duration": 0.3, "easing": "easeOut" },
-            "transitionOut": { "type": "fade", "duration": 0.3, "easing": "easeIn" }
+            "transitionIn": {
+              "type": "fade",
+              "duration": 0.3,
+              "easing": "easeOut"
+            },
+            "transitionOut": {
+              "type": "fade",
+              "duration": 0.3,
+              "easing": "easeIn"
+            }
           }
         ]
       }
@@ -166,7 +211,12 @@
     {
       "id": "bind-cta",
       "source": { "kind": "variable", "variableId": "cta-text" },
-      "target": { "kind": "component", "componentId": "call-to-action", "nodeId": "cta-label-node", "property": "payload.content.text" }
+      "target": {
+        "kind": "component",
+        "componentId": "call-to-action",
+        "nodeId": "cta-label-node",
+        "property": "payload.content.text"
+      }
     }
   ]
 }

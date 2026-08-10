@@ -27,10 +27,7 @@ export {
   TransformV3Schema,
   type TransformV3,
 } from "./base";
-export {
-  NodeTimingV2Schema,
-  type NodeTimingV2,
-} from "./timing";
+export { NodeTimingV2Schema, type NodeTimingV2 } from "./timing";
 export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextNodeV3Schema } from "./text";
 export {

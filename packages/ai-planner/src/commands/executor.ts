@@ -4,7 +4,6 @@ import {
   isMotionRecipe,
 } from "@motionvideo/motion-compiler";
 import {
-  applyMotionPatch,
   normalizeTextPayloadInput,
   parseMotionProject,
   ProceduralDriverSchema,
@@ -12,6 +11,7 @@ import {
   type MotionProject,
   type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
+import { applyMotionPatch } from "@motionvideo/motion-protocol/compat/patch";
 import {
   type CommandReceipt,
   diagnostic,

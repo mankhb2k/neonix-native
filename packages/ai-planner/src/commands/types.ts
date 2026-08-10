@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MotionPatchSchema } from "@motionvideo/motion-protocol";
+import { MotionPatchSchema } from "@motionvideo/motion-protocol/compat/patch";
 
 const Id = z.string().min(1).max(128);
 const Finite = z.number().finite();

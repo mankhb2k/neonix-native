@@ -72,10 +72,19 @@
           "type": "text",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 800, "height": 100,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 800,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
             "content": { "kind": "plain", "text": "Opening Scene" },
@@ -96,13 +105,25 @@
           "type": "text",
           "parentId": null,
           "transform": {
-            "x": 0, "y": 0, "width": 700, "height": 200,
-            "rotation": 0, "scaleX": 1, "scaleY": 1,
-            "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true,
-            "flipX": false, "flipY": false
+            "x": 0,
+            "y": 0,
+            "width": 700,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Main Content with Voiceover" },
+            "content": {
+              "kind": "plain",
+              "text": "Main Content with Voiceover"
+            },
             "fontSize": 48,
             "color": "#ffffff",
             "alignment": "center"
