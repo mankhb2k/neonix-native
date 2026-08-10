@@ -371,17 +371,23 @@ function buildAudioState(
   runtime: NormalizedMotionProjectV2,
   globalTime: number,
 ): EvaluatedAudioState {
+  const assetDurationById = new Map(
+    runtime.assets
+      .filter((a) => a.assetType === "audio")
+      .map((a) => [a.id, (a as { duration?: number }).duration ?? 0]),
+  );
+
   const tracks = (runtime.timeline.audioTracks ?? []).map((track) => {
     const start = track.start ?? 0;
     const trimStart = track.trimStart ?? 0;
-    const duration = 1; // simplified — full impl in Phase 7
+    const assetDuration = assetDurationById.get(track.assetId) ?? 0;
     const localTime = Math.max(0, globalTime - start + trimStart);
     const volume = Math.min(1, Math.max(0, track.volume ?? 1));
     const fadeInEnd = track.fadeIn ?? 0;
-    const fadeOutStart = duration - (track.fadeOut ?? 0);
+    const fadeOutStart = assetDuration - (track.fadeOut ?? 0);
     const fadeActive =
-      (track.fadeIn && localTime < fadeInEnd) ||
-      (track.fadeOut && localTime > fadeOutStart);
+      ((track.fadeIn ?? 0) > 0 && localTime < fadeInEnd) ||
+      ((track.fadeOut ?? 0) > 0 && localTime > fadeOutStart);
 
     return {
       trackId: track.id,
@@ -415,7 +421,11 @@ function buildMediaState(
       mediaStates.push({
         nodeId: node.nodeId,
         mediaTime: layer.composition.localTime,
-        sourceFrame: Math.round(layer.composition.localTime * 30),
+        // Use composition fps from the runtime metadata (fallback 30)
+        sourceFrame: Math.round(
+          layer.composition.localTime *
+            ((runtime.metadata as { fps?: number }).fps ?? 30),
+        ),
         assetId:
           (sceneNode as { payload?: { assetId?: string } })?.payload?.assetId ??
           node.nodeId,

@@ -1,5 +1,5 @@
 /**
- * Playback Engine — transport, clock, scheduler, metrics.
+ * Playback Engine — transport, clock, scheduler, metrics, audio, media.
  *
  * Pure TypeScript package. No React, no DOM, no Pixi.
  * Consumed by web, desktop, and test harnesses.
@@ -31,3 +31,20 @@ export {
   type PlaybackMetrics,
   type PlaybackMetricsSnapshot,
 } from "./metrics";
+
+export {
+  createAudioScheduler,
+  type AudioScheduler,
+  type AudioSchedulerOptions,
+  type AudioContextLike,
+  type AudioBufferSourceNodeLike,
+  type GainNodeLike,
+  type AudioBufferLike,
+} from "./audio-scheduler";
+
+export {
+  createMediaFrameProvider,
+  type MediaFrameProvider,
+  type MediaFrameProviderOptions,
+  type MediaTextureHandle,
+} from "./media-frame-provider";

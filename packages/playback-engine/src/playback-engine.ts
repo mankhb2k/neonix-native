@@ -109,8 +109,7 @@ export function createPlaybackEngine(
     opts.requestFrame ??
     ((cb: FrameRequestCallback) => requestAnimationFrame(cb));
   const cancelFrame =
-    opts.cancelFrame ??
-    ((id: number) => cancelAnimationFrame(id));
+    opts.cancelFrame ?? ((id: number) => cancelAnimationFrame(id));
   const quality = createQualityController(opts.quality);
   const metrics = createPlaybackMetrics();
 
@@ -145,13 +144,7 @@ export function createPlaybackEngine(
     const h = Math.round(runtime.metadata.height * scale);
 
     // Evaluate
-    const result = evaluateCompositionFrameV3(
-      runtime,
-      frame,
-      opts.fps,
-      w,
-      h,
-    );
+    const result = evaluateCompositionFrameV3(runtime, frame, opts.fps, w, h);
 
     const evalMs = performance.now() - t0;
 

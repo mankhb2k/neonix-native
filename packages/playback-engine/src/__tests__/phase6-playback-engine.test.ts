@@ -25,7 +25,10 @@ import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 
 // ── Helpers for test runtime ─────────────────────────────────────────
 
-function makeRuntime(duration: number, extraScenes: number = 0): NormalizedMotionProjectV2 {
+function makeRuntime(
+  duration: number,
+  extraScenes: number = 0,
+): NormalizedMotionProjectV2 {
   const scenes = [
     {
       id: "s1",
@@ -37,7 +40,18 @@ function makeRuntime(duration: number, extraScenes: number = 0): NormalizedMotio
           id: "n1",
           parentId: null,
           zIndex: 0,
-          transform: { x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1, anchorX: 0, anchorY: 0, scaleX: 1, scaleY: 1 },
+          transform: {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            opacity: 1,
+            anchorX: 0,
+            anchorY: 0,
+            scaleX: 1,
+            scaleY: 1,
+          },
           payload: {},
         },
       ],
@@ -56,7 +70,18 @@ function makeRuntime(duration: number, extraScenes: number = 0): NormalizedMotio
           id: `n_extra_${i}`,
           parentId: null,
           zIndex: 0,
-          transform: { x: 0, y: 0, width: 100, height: 100, rotation: 0, opacity: 1, anchorX: 0, anchorY: 0, scaleX: 1, scaleY: 1 },
+          transform: {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            opacity: 1,
+            anchorX: 0,
+            anchorY: 0,
+            scaleX: 1,
+            scaleY: 1,
+          },
           payload: {},
         },
       ],
@@ -67,9 +92,19 @@ function makeRuntime(duration: number, extraScenes: number = 0): NormalizedMotio
   return {
     format: "motion-runtime",
     formatVersion: 2,
-    metadata: { id: "test", title: "Test", aspectRatio: "16:9", width: 1920, height: 1080 },
+    metadata: {
+      id: "test",
+      title: "Test",
+      aspectRatio: "16:9",
+      width: 1920,
+      height: 1080,
+    },
     assets: [],
-    timeline: { sceneOrder: scenes.map((s) => s.id), audioTracks: [], captionTracks: [] },
+    timeline: {
+      sceneOrder: scenes.map((s) => s.id),
+      audioTracks: [],
+      captionTracks: [],
+    },
     scenes,
   };
 }
@@ -531,7 +566,11 @@ describe("Phase 6 integration", () => {
 
   it("setQuality changes mode", () => {
     const consumer = makeConsumer();
-    const engine = createPlaybackEngine({ fps: 30, consumer, quality: "interactive" });
+    const engine = createPlaybackEngine({
+      fps: 30,
+      consumer,
+      quality: "interactive",
+    });
     engine.load(makeRuntime(5));
     engine.setQuality("playback");
     engine.setQuality("final");

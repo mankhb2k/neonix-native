@@ -73,7 +73,8 @@ export type PlaybackClock = {
 export function createPlaybackClock(opts: PlaybackClockOptions): PlaybackClock {
   const fps = Math.max(1, opts.fps);
   const duration = opts.duration;
-  const getMonotonic = opts.getMonotonicTime ?? (() => performance.now() / 1000);
+  const getMonotonic =
+    opts.getMonotonicTime ?? (() => performance.now() / 1000);
   const audioCtx = opts.audioContext ?? null;
 
   let running = false;
@@ -112,7 +113,8 @@ export function createPlaybackClock(opts: PlaybackClockOptions): PlaybackClock {
   const computeCurrent = (): number => {
     if (!running) return frozenTime;
 
-    const audioWall = audioCtx?.state === "running" ? getOrInitAudioTime() : null;
+    const audioWall =
+      audioCtx?.state === "running" ? getOrInitAudioTime() : null;
     const wallNow = audioWall ?? getMonotonic();
 
     const elapsed = (wallNow - anchorWall) * anchorRate;
@@ -127,9 +129,10 @@ export function createPlaybackClock(opts: PlaybackClockOptions): PlaybackClock {
       return {
         currentTime: computeCurrent(),
         running,
-        source: (audioCtx?.state === "running" && getOrInitAudioTime() !== null)
-          ? "audio"
-          : "monotonic",
+        source:
+          audioCtx?.state === "running" && getOrInitAudioTime() !== null
+            ? "audio"
+            : "monotonic",
       };
     },
 
