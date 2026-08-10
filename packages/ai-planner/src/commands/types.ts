@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MotionPatchSchema } from "@motionvideo/motion-protocol/compat/patch";
+import { MotionProjectV3PatchSchema } from "@motionvideo/motion-protocol";
 
 const Id = z.string().min(1).max(128);
 const Finite = z.number().finite();
@@ -191,7 +191,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("applyRepairPatch"),
-      patch: MotionPatchSchema,
+      patch: MotionProjectV3PatchSchema,
     })
     .strict(),
   z

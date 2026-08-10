@@ -45,7 +45,6 @@ import {
   VideoNodeV2Schema,
 } from "./nodes";
 
-
 // ── Runtime IR schemas (inlined from compat/project) ─────────────────
 
 import { CaptionTrackSchema } from "../v3/captions";

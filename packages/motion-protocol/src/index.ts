@@ -78,7 +78,17 @@ export {
   buildCapabilityFingerprint,
   RENDER_MANIFEST_VERSION,
 } from "./v3/canonical-hash";
-
+// V3 Patch (AI / MCP editing surface)
+export {
+  MotionProjectV3PatchSchema,
+  applyMotionProjectV3Patch,
+} from "./v3/patch";
+export type {
+  MotionProjectV3Patch,
+  V3PatchOp,
+  V3PatchDiagnostic,
+  V3PatchResult,
+} from "./v3/patch";
 // ── Runtime IR (canonical path) ──────────────────────────────────────
 export {
   MotionRuntimeProjectSchema,

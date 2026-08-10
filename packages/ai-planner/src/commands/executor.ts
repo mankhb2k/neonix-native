@@ -4,6 +4,7 @@ import {
   isMotionRecipe,
 } from "@motionvideo/motion-compiler";
 import {
+  applyMotionProjectV3Patch,
   normalizeTextPayloadInput,
   parseMotionProject,
   ProceduralDriverSchema,
@@ -11,7 +12,6 @@ import {
   type MotionProject,
   type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
-import { applyMotionPatch } from "@motionvideo/motion-protocol/compat/patch";
 import {
   type CommandReceipt,
   diagnostic,
@@ -746,11 +746,39 @@ function applyOne(
             },
           };
         }
-        const patched = applyMotionPatch(project, command.patch);
-        changedIds.push(patched.metadata.id);
+        const result = applyMotionProjectV3Patch(project, command.patch);
+        if (!result.project) {
+          return {
+            project,
+            receipt: {
+              revision,
+              changedIds: [],
+              diagnostics: [
+                ...diagnostics,
+                ...result.diagnostics.map((d) =>
+                  diagnostic("patch_failure", d.path, d.message, {
+                    severity: d.severity,
+                  }),
+                ),
+              ],
+            },
+          };
+        }
+        changedIds.push(result.project.metadata.id);
         return {
-          project: patched,
-          receipt: { revision: revision + 1, changedIds, diagnostics },
+          project: result.project,
+          receipt: {
+            revision: revision + 1,
+            changedIds,
+            diagnostics: [
+              ...diagnostics,
+              ...result.diagnostics.map((d) =>
+                diagnostic("patch_diag", d.path, d.message, {
+                  severity: d.severity,
+                }),
+              ),
+            ],
+          },
         };
       }
       case "setLayoutConstraint": {
