@@ -121,8 +121,7 @@ export function projectFrameLayers(
     const incoming = prevClip
       ? overlapFromTransition(prevClip.transitionOut)
       : 0;
-    if (incoming > 0 && localTime < incoming)
-      opacity *= localTime / incoming;
+    if (incoming > 0 && localTime < incoming) opacity *= localTime / incoming;
     return [{ sceneIndex, localTime, opacity }];
   });
 }
@@ -133,10 +132,7 @@ export function buildFramePlan(
   fps: number,
 ): FrameJob[] {
   const jobs: FrameJob[] = [];
-  const frameCount = Math.max(
-    1,
-    Math.round(projectDuration(compiled) * fps),
-  );
+  const frameCount = Math.max(1, Math.round(projectDuration(compiled) * fps));
   for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
     const globalTime = frameTimestamp(frameIndex, fps).time;
     const layers = projectFrameLayers(compiled, globalTime);
@@ -153,10 +149,7 @@ export function buildFramePlan(
 }
 
 /** Split into N contiguous chunks (frames are independent — any split is safe). */
-export function chunkFramePlan(
-  jobs: FrameJob[],
-  chunks: number,
-): FrameJob[][] {
+export function chunkFramePlan(jobs: FrameJob[], chunks: number): FrameJob[][] {
   const size = Math.ceil(jobs.length / chunks);
   const out: FrameJob[][] = [];
   for (let i = 0; i < jobs.length; i += size) {

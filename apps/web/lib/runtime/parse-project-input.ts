@@ -1,19 +1,20 @@
 import {
-  migrateMotionProjectV2ToV3,
   parseMotionProject,
-  type MotionProjectV3,
+  type MotionProject,
 } from "@motionvideo/motion-protocol";
 
 /**
- * Phase 3: canonical projects are v3. Pre-cutover saves / legacy fixtures are
- * still v2 — load them through the official v2→v3 migration instead of
- * rejecting them. Only v2-shaped records take the migration path; v3 and
- * corrupt input behave exactly like `parseMotionProject`.
+ * Phase 7: V2 is no longer accepted. Only V3 projects parse successfully.
+ * V2 inputs are rejected with a clear error directing users to migrate.
  */
-export function parseProjectInput(input: unknown): MotionProjectV3 {
+export function parseProjectInput(input: unknown): MotionProject {
   const maybe = input as { formatVersion?: unknown } | null | undefined;
   if (input && typeof input === "object" && maybe?.formatVersion === 2) {
-    return migrateMotionProjectV2ToV3(input as never).project;
+    throw new Error(
+      "V2 motion projects are no longer supported. " +
+        "Please migrate your project to V3 using the legacy migration helper " +
+        "in packages/motion-protocol/src/v3/migrations/v2-to-v3.",
+    );
   }
   return parseMotionProject(input);
 }

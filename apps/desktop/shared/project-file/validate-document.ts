@@ -12,7 +12,6 @@ import {
 } from "@motionvideo/editor-core";
 import {
   parseMotionProject,
-  migrateMotionProjectV2ToV3,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 import {
@@ -21,12 +20,16 @@ import {
   type DesktopProjectEnvelope,
 } from "./envelope";
 
-/** Version-aware: legacy v2 projects inside old .mt files are migrated. */
+/** Phase 7: V2 is no longer accepted. Reject with clear error. */
 function parseEnvelopeProject(
   project: DesktopProjectEnvelope["project"],
 ): MotionProject {
   if (project.formatVersion === 2) {
-    return migrateMotionProjectV2ToV3(project as never).project;
+    throw new ProjectFileParseError(
+      "UNSUPPORTED_VERSION",
+      "V2 motion projects are no longer supported. " +
+        "Please migrate your project to V3.",
+    );
   }
   return parseMotionProject(project);
 }

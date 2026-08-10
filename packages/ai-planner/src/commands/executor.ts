@@ -1765,10 +1765,30 @@ function applyOne(
             },
           };
         }
-        scene.transition =
-          command.transition.type === "slide"
-            ? { ...command.transition, mode: command.transition.mode ?? "push" }
-            : command.transition;
+        // Phase 9: v3 visual clip transitions replace v2 scene.transition.
+        const tl = next.timeline as Record<string, unknown>;
+        const visualTracks =
+          (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
+        const mainTrack = visualTracks.find((t) => t.role === "main") as
+          | Record<string, unknown>
+          | undefined;
+        if (mainTrack) {
+          const clips = (mainTrack.clips as Array<Record<string, unknown>>) ?? [];
+          const clip = clips.find(
+            (c) =>
+              (c.source as Record<string, unknown>)?.sceneId ===
+              command.sceneId,
+          );
+          if (clip) {
+            clip.transitionOut =
+              command.transition.type === "slide"
+                ? {
+                    ...command.transition,
+                    mode: command.transition.mode ?? "push",
+                  }
+                : command.transition;
+          }
+        }
         changedIds.push(command.sceneId);
         return {
           project: parseMotionProject(next),

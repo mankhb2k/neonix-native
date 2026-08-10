@@ -1,12 +1,14 @@
 /**
- * Bake editor timeline → MotionProject tuần tự hợp lệ cho export/compiler.
+ * Bake editor timeline → MotionProject V3 tuần tự hợp lệ cho export/compiler.
  * Overlay compose ngoài schema — flatten theo interval với local-time slice.
+ *
+ * Phase 7: Outputs V3 visualTracks instead of V2 sceneOrder.
  */
 
 import {
-  parseMotionProjectV2,
+  parseMotionProject,
   type MotionNode,
-  type MotionProjectV2,
+  type MotionProject,
   type MotionScene,
 } from "@motionvideo/motion-protocol";
 import {
@@ -26,7 +28,7 @@ import {
 import { clipLocalTime, sliceScene } from "./slice-scene";
 
 export type EditorExportSnapshot = {
-  project: MotionProjectV2;
+  project: MotionProject;
   timelineClips: TimelineClip[];
   timelineLanes: TimelineLane[];
 };
@@ -117,10 +119,10 @@ function collectBoundaryTimes(
 }
 
 function buildAudioTracks(
-  project: MotionProjectV2,
+  project: MotionProject,
   clips: TimelineClip[],
   lanes: TimelineLane[],
-): MotionProjectV2["timeline"]["audioTracks"] {
+): MotionProject["timeline"]["audioTracks"] {
   const mutedLanes = new Set(
     lanes
       .filter((lane) => lane.kind === "audio" && lane.muted)
@@ -154,13 +156,13 @@ function findClipById(
 }
 
 /**
- * Flatten editor snapshot → MotionProject tuần tự.
+ * Flatten editor snapshot → MotionProject V3 tuần tự.
  * Base gaps → pad scenes; overlay active → merge nodes vào segment.
  * Rejects invalid TimelineDocument when validation fails.
  */
 export function buildExportProject(
   snapshot: EditorExportSnapshot,
-): MotionProjectV2 {
+): MotionProject {
   const { project, timelineClips, timelineLanes } = snapshot;
   const doc = documentFromStoreState({
     project,
@@ -187,14 +189,28 @@ export function buildExportProject(
   if (boundaries.length === 0 || contentEnd <= 0) {
     const fallback =
       project.scenes[0] ?? emptyPadScene(uid("pad"), 0.5, "Empty");
-    return parseMotionProjectV2({
+    return parseMotionProject({
       ...project,
       scenes: [{ ...fallback, duration: Math.max(0.5, fallback.duration) }],
       timeline: {
-        sceneOrder: [fallback.id],
+        ...project.timeline,
+        visualTracks: [
+          {
+            id: "primary",
+            role: "main",
+            clips: [
+              {
+                id: `vclip-${fallback.id}`,
+                source: { kind: "scene", sceneId: fallback.id },
+                start: 0,
+                duration: Math.max(0.5, fallback.duration),
+              },
+            ],
+          },
+        ],
         audioTracks: buildAudioTracks(project, timelineClips, timelineLanes),
       },
-    });
+    }) as MotionProject;
   }
 
   const lastBoundary = boundaries[boundaries.length - 1] ?? 0;
@@ -203,7 +219,13 @@ export function buildExportProject(
   }
 
   const bakedScenes: MotionScene[] = [];
-  const sceneOrder: string[] = [];
+  const visualClips: Array<{
+    id: string;
+    source: { kind: "scene"; sceneId: string };
+    start: number;
+    duration: number;
+  }> = [];
+  let clipCursor = 0;
 
   for (let i = 0; i < boundaries.length - 1; i += 1) {
     const t0 = boundaries[i] ?? 0;
@@ -259,23 +281,42 @@ export function buildExportProject(
     }
 
     bakedScenes.push(scene);
-    sceneOrder.push(scene.id);
+    visualClips.push({
+      id: `vclip-${i}-${scene.id}`,
+      source: { kind: "scene", sceneId: scene.id },
+      start: clipCursor,
+      duration,
+    });
+    clipCursor += duration;
   }
 
   if (bakedScenes.length === 0) {
     const pad = emptyPadScene(uid("pad"), 0.5, "Empty");
     bakedScenes.push(pad);
-    sceneOrder.push(pad.id);
+    visualClips.push({
+      id: `vclip-${pad.id}`,
+      source: { kind: "scene", sceneId: pad.id },
+      start: 0,
+      duration: 0.5,
+    });
   }
 
-  return parseMotionProjectV2({
+  return parseMotionProject({
     ...project,
     scenes: bakedScenes,
     timeline: {
-      sceneOrder,
+      ...project.timeline,
+      visualTracks: [
+        {
+          id: "primary",
+          role: "main",
+          order: 0,
+          clips: visualClips,
+        },
+      ],
       audioTracks: buildAudioTracks(project, timelineClips, timelineLanes),
     },
-  });
+  }) as MotionProject;
 }
 
 /** Helper test — clip base active tại time (sau bake logic). */
@@ -296,27 +337,39 @@ export function findBaseClipAtTimeForExport(
 
 /** Map global timeline time → baked scene + local time within that scene. */
 export function resolveBakedLocalTime(
-  baked: MotionProjectV2,
+  baked: MotionProject,
   globalTime: number,
 ): { sceneId: string; localTime: number } | null {
+  const primaryTrack = baked.timeline.visualTracks?.find(
+    (t) => t.role === "primary",
+  );
+  const clips = primaryTrack?.clips ?? [];
+  for (const clip of clips) {
+    const end = clip.start + clip.duration;
+    if (globalTime >= clip.start && globalTime < end) {
+      return {
+        sceneId:
+          clip.source.kind === "scene"
+            ? clip.source.sceneId
+            : clip.source.componentId ?? "",
+        localTime: globalTime - clip.start,
+      };
+    }
+  }
+  // Legacy fallback: sceneOrder (V2 model)
   let cursor = 0;
   for (const sceneId of baked.timeline.sceneOrder) {
     const scene = baked.scenes.find((s) => s.id === sceneId);
     if (!scene) continue;
     const end = cursor + scene.duration;
-    if (globalTime < end || Math.abs(globalTime - end) < 1e-9) {
-      if (globalTime >= cursor || Math.abs(globalTime - cursor) < 1e-9) {
-        return {
-          sceneId,
-          localTime: Math.max(
-            0,
-            Math.min(scene.duration - 1e-6, globalTime - cursor),
-          ),
-        };
-      }
-    }
     if (globalTime >= cursor && globalTime < end) {
-      return { sceneId, localTime: globalTime - cursor };
+      return {
+        sceneId,
+        localTime: Math.max(
+          0,
+          Math.min(scene.duration - 1e-6, globalTime - cursor),
+        ),
+      };
     }
     cursor = end;
   }

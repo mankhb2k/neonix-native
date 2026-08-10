@@ -46,7 +46,21 @@ function withSceneClip(
       ...envelope.project,
       timeline: {
         ...envelope.project.timeline,
-        sceneOrder: [sceneId],
+        visualTracks: [
+          {
+            id: "main-track",
+            role: "main",
+            order: 0,
+            clips: [
+              {
+                id: clipId,
+                source: { kind: "scene", sceneId },
+                start: 0,
+                duration: 4,
+              },
+            ],
+          },
+        ],
       },
       scenes: [
         {
@@ -75,10 +89,10 @@ function withSceneClip(
                 flipY: false,
               },
               payload: {
-                text: name,
+                content: { kind: "plain", text: name },
                 fontSize: 28,
-                fontWeight: 600,
-                align: "left",
+                color: "#000000",
+                alignment: "left",
               },
             },
           ],

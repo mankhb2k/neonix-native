@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MOTION_V2_LIMITS,
   getTextPayloadPlain,
-  parseMotionProjectV2,
+  parseMotionProject,
 } from "@motionvideo/motion-protocol";
 import {
   createHistoryState,
@@ -567,7 +567,7 @@ describe("Logic-2 property domain depth", () => {
     expect(kf!.duration).toBeLessThanOrEqual(
       MOTION_V2_LIMITS.mediaDurationSeconds,
     );
-    expect(() => parseMotionProjectV2(result.document.project)).not.toThrow();
+    expect(() => parseMotionProject(result.document.project)).not.toThrow();
   });
 });
 
