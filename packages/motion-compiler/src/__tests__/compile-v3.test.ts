@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  NormalizedMotionProjectV2Schema,
+  MotionRuntimeProjectSchema,
   V3,
 } from "@motionvideo/motion-protocol";
 import {
@@ -39,7 +39,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const result = compileMotionProjectV3(minimal);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const parsed = NormalizedMotionProjectV2Schema.safeParse(result.project);
+    const parsed = MotionRuntimeProjectSchema.safeParse(result.project);
     expect(parsed.success).toBe(true);
     expect(result.project.scenes).toEqual([]);
     expect(result.project.timeline.sceneOrder).toEqual([]);
@@ -56,7 +56,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }
-    const parsed = NormalizedMotionProjectV2Schema.safeParse(result.project);
+    const parsed = MotionRuntimeProjectSchema.safeParse(result.project);
     expect(parsed.success).toBe(true);
 
     // visualTracks → sceneOrder, in clip order.

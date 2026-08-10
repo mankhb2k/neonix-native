@@ -1,5 +1,5 @@
 import {
-  NormalizedMotionProjectV2Schema,
+  MotionRuntimeProjectSchema,
   CAPABILITY_MANIFEST_VERSION,
   MOTION_RUNTIME_VERSION,
   buildCapabilityFingerprint,
@@ -1202,7 +1202,7 @@ export function compileMotionProject(
     sourceRef: { scenes: sourceRefIndex },
     scenes,
   };
-  return NormalizedMotionProjectV2Schema.parse({
+  return MotionRuntimeProjectSchema.parse({
     ...ir,
     runtimeHash: computeRuntimeHash(ir as unknown as Record<string, unknown>),
   });

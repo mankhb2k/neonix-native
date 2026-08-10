@@ -1,7 +1,17 @@
+export * from "./v2";
 export * from "./capabilities";
 export * from "./scene-registry";
 export * from "./ai-schema-capability";
 export * as V3 from "./v3";
+
+// Canonical runtime schema aliases (Phase 2 — neutralized location).
+// The actual schema still lives in v2/runtime.ts; these are forward-looking
+// names that will become the only names after Phase 8 file deletion.
+export {
+  MotionRuntimeProjectSchema,
+  type MotionRuntimeScene,
+  type MotionRuntimeTrack,
+} from "./runtime";
 
 // Phase 11: canonical hash functions are version-agnostic, export directly.
 export {
