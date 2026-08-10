@@ -7,15 +7,25 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { parseMotionProjectV2 } from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { drawSceneFrame } from "./runtime/draw";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 
-function stageSize(aspect: string): { width: number; height: number } {
-  if (aspect === "16:9") return { width: 640, height: 360 };
-  if (aspect === "1:1") return { width: 480, height: 480 };
-  return { width: 360, height: 640 };
+/**
+ * Derive a contact-sheet preview size from composition dimensions.
+ * Caps at 640px on the longest edge.
+ */
+function contactSheetSize(
+  composition: { width: number; height: number },
+): { width: number; height: number } {
+  const maxDim = Math.max(composition.width, composition.height);
+  if (maxDim <= 640) return { width: composition.width, height: composition.height };
+  const scale = 640 / maxDim;
+  return {
+    width: Math.round(composition.width * scale),
+    height: Math.round(composition.height * scale),
+  };
 }
 
 async function main(): Promise<void> {
@@ -28,7 +38,7 @@ async function main(): Promise<void> {
   const outDir = resolve(process.argv[3] ?? resolve(REPO_ROOT, "tmp", "ai-contact-sheets", String(Date.now())));
   await mkdir(outDir, { recursive: true });
 
-  const project = parseMotionProjectV2(JSON.parse(await readFile(resolve(mtPath), "utf8")));
+  const project = parseMotionProject(JSON.parse(await readFile(resolve(mtPath), "utf8")));
   const runtime = compileMotionProject(project);
   const scene = runtime.scenes[0];
   if (!scene) {
@@ -37,8 +47,9 @@ async function main(): Promise<void> {
     return;
   }
 
-  const { width, height } = stageSize(project.metadata.aspectRatio);
-  const fractions = [0, 0.1, 0.5, 0.85, Math.max(0, 1 - 1 / Math.max(1, project.metadata.fps))];
+  const { width, height } = contactSheetSize(project.composition);
+  const fps = project.composition.fps;
+  const fractions = [0, 0.1, 0.5, 0.85, Math.max(0, 1 - 1 / Math.max(1, fps))];
   const frames: Array<{ time: number; path: string }> = [];
 
   for (const fraction of fractions) {

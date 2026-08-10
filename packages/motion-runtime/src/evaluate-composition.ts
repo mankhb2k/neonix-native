@@ -251,10 +251,7 @@ export function evaluateCompositionFrameV3(
 
   // ── Evaluate each layer ─────────────────────────────────────────
   const layers: EvaluatedLayer[] = [];
-  const sceneCache = new Map<
-    string,
-    MotionRuntimeProject["scenes"][number]
-  >();
+  const sceneCache = new Map<string, MotionRuntimeProject["scenes"][number]>();
 
   for (let i = 0; i < layerPlan.layers.length; i++) {
     // Phase 12: Periodically check cancellation during layer evaluation
