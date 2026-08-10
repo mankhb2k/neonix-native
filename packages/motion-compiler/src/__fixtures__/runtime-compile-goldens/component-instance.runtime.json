@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a58e0f14c42902a4d47b8310e6cfce19",
+  "runtimeHash": "877b0eed906e16f757953c833389ba16",
   "compilerVersion": "3.0.0-phase5",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
@@ -33,6 +33,23 @@
   "timeline": {
     "sceneOrder": [
       "clip-logo-reveal"
+    ],
+    "visualTracks": [
+      {
+        "id": "primary",
+        "role": "primary",
+        "clips": [
+          {
+            "id": "vclip-0-clip-logo-reveal",
+            "source": {
+              "kind": "scene",
+              "sceneId": "clip-logo-reveal"
+            },
+            "start": 0,
+            "duration": 4
+          }
+        ]
+      }
     ],
     "audioTracks": [],
     "captionTracks": []

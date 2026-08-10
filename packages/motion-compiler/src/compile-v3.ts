@@ -1016,9 +1016,8 @@ export function compileMotionProjectV3(
         (v: { id: string; value: unknown }) => [v.id, clone(v.value)] as const,
       ),
     );
-    const sceneOrder: string[] = (
-      v2Shape.timeline as { sceneOrder: string[] }
-    ).sceneOrder;
+    const sceneOrder: string[] = (v2Shape.timeline as { sceneOrder: string[] })
+      .sceneOrder;
     const sceneById = new Map(
       v2Shape.scenes.map((s: Record<string, unknown>) => [s.id as string, s]),
     );
@@ -1074,9 +1073,7 @@ export function compileMotionProjectV3(
           typeof _compileScenePipeline
         >[0]["clips"],
         variables,
-        markers: scene.markers as
-          | Array<{ id: string; t: number }>
-          | undefined,
+        markers: scene.markers as Array<{ id: string; t: number }> | undefined,
         space: scene.space as string | undefined,
         motionBlur: scene.motionBlur,
         drivers: scene.drivers as unknown[] | undefined,
@@ -1090,13 +1087,36 @@ export function compileMotionProjectV3(
       });
     });
 
+    // ── Build visualTracks (V3 runtime model) from the compiled scene plan ─
+    let clipCursor = 0;
+    const visualClips = sceneOrder.map((id, idx) => {
+      const scene = sceneById.get(id)!;
+      const start = clipCursor;
+      const duration = scene.duration as number;
+      clipCursor += duration;
+      return {
+        id: `vclip-${idx}-${id}`,
+        source: { kind: "scene" as const, sceneId: id },
+        start,
+        duration,
+        transitionOut: scene.transition ?? undefined,
+      };
+    });
+
+    const visualTracks = [
+      {
+        id: "primary",
+        role: "primary" as const,
+        clips: visualClips,
+      },
+    ];
+
     const sourceRefIndex: Record<string, string> = {};
     for (const scene of compiledScenes) {
       const srcRef = scene.sourceRef;
-      sourceRefIndex[scene.id] =
-        srcRef.sourceModule
-          ? `${srcRef.projectPath.join(":")}#${srcRef.sourceModule}`
-          : srcRef.projectPath.join(":");
+      sourceRefIndex[scene.id] = srcRef.sourceModule
+        ? `${srcRef.projectPath.join(":")}#${srcRef.sourceModule}`
+        : srcRef.projectPath.join(":");
     }
 
     const ir = {
@@ -1108,16 +1128,17 @@ export function compileMotionProjectV3(
       composition: v2Shape.composition,
       compilerVersion: COMPILER_VERSION_V3,
       capabilityFingerprint: buildCapabilityFingerprint(),
-      timeline: v2Shape.timeline,
+      timeline: {
+        ...v2Shape.timeline,
+        visualTracks,
+      },
       sourceRef: { scenes: sourceRefIndex },
       scenes: compiledScenes,
     };
 
     const validated = MotionRuntimeProjectSchema.parse({
       ...ir,
-      runtimeHash: computeRuntimeHash(
-        ir as unknown as Record<string, unknown>,
-      ),
+      runtimeHash: computeRuntimeHash(ir as unknown as Record<string, unknown>),
     });
 
     return compileSuccess(validated, warnings);

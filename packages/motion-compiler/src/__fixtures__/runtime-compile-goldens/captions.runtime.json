@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "7a081ed07a0b76567472e1a447bb3d95",
+  "runtimeHash": "14fe09cfe3f34b04574558645b80a7fa",
   "compilerVersion": "3.0.0-phase5",
   "capabilityFingerprint": "9b160197f31b7b54",
   "sourceRef": {
@@ -33,6 +33,23 @@
   "timeline": {
     "sceneOrder": [
       "intro"
+    ],
+    "visualTracks": [
+      {
+        "id": "primary",
+        "role": "primary",
+        "clips": [
+          {
+            "id": "vclip-0-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 5
+          }
+        ]
+      }
     ],
     "audioTracks": [],
     "captionTracks": [

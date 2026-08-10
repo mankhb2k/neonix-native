@@ -1129,9 +1129,7 @@ export function _compileScenePipeline(input: {
     ...(input.drivers && input.drivers.length > 0
       ? { drivers: clone(input.drivers) }
       : {}),
-    ...(input.activeCameraId
-      ? { activeCameraId: input.activeCameraId }
-      : {}),
+    ...(input.activeCameraId ? { activeCameraId: input.activeCameraId } : {}),
     ...(input.transition ? { transition: input.transition } : {}),
     sourceRef,
     nodes: textExpanded.nodes,

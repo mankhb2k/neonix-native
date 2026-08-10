@@ -2,7 +2,18 @@ import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type TimelineProjectLike = {
-  timeline: { sceneOrder: readonly string[] };
+  timeline: {
+    sceneOrder: readonly string[];
+    /** Phase 5: V3 visual tracks — preferred over sceneOrder when present. */
+    visualTracks?: ReadonlyArray<{
+      role: string;
+      clips: ReadonlyArray<{
+        source: { kind: string; sceneId?: string; componentId?: string };
+        start: number;
+        duration: number;
+      }>;
+    }>;
+  };
   scenes: readonly {
     id: string;
     duration: number;
@@ -29,11 +40,39 @@ export type TimelineSceneSegment = {
 
 /**
  * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
+ *
+ * Phase 5: prefers the primary `visualTracks` track when available (V3 model).
+ * Falls back to `sceneOrder` for legacy runtime IR.
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
 ): TimelineSceneSegment[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
+
+  // Phase 5: prefer visualTracks primary track (V3 model)
+  const primaryTrack = runtime.timeline.visualTracks?.find(
+    (t) => t.role === "primary",
+  );
+  if (primaryTrack && primaryTrack.clips.length > 0) {
+    const sortedClips = [...primaryTrack.clips].sort(
+      (a, b) => a.start - b.start,
+    );
+    return sortedClips.map((clip) => {
+      const sourceId =
+        clip.source.kind === "scene"
+          ? clip.source.sceneId
+          : clip.source.componentId;
+      const scene = sourceId ? byId.get(sourceId) : undefined;
+      return {
+        sceneId: sourceId ?? "",
+        name: scene?.name,
+        start: clip.start,
+        duration: clip.duration,
+      };
+    });
+  }
+
+  // Legacy fallback: sceneOrder (V2 model)
   const order =
     runtime.timeline.sceneOrder.length > 0
       ? runtime.timeline.sceneOrder

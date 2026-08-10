@@ -44,6 +44,29 @@ import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
+  // Phase 5: prefer visualTracks (V3 model). The primary track's clips
+  // carry timeline placement and clip-level transitionOut.
+  const primaryTrack = runtime.timeline.visualTracks?.find(
+    (t) => t.role === "primary",
+  );
+  if (primaryTrack && primaryTrack.clips.length > 0) {
+    const sortedClips = [...primaryTrack.clips].sort(
+      (a, b) => a.start - b.start,
+    );
+    return sortedClips.map((clip) => {
+      const sourceId =
+        clip.source.kind === "scene"
+          ? clip.source.sceneId
+          : clip.source.componentId;
+      return {
+        sceneId: sourceId,
+        duration: clip.duration,
+        transition: clip.transitionOut as CompositionSceneInput["transition"],
+      };
+    });
+  }
+
+  // Legacy fallback: sceneOrder (V2 model, retained for tests during cutover).
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
   const order =
     runtime.timeline.sceneOrder.length > 0
