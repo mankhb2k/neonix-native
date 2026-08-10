@@ -5,7 +5,7 @@ import {
   resolveTimelineAtTime,
   type RenderSnapshot,
 } from "@motionvideo/motion-runtime";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   createFacebookHistoryDemoProject,
   FB_HISTORY_SCENE_IDS,

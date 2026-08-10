@@ -3,7 +3,10 @@
  * GPU backend is optional; sync logic is deterministic and unit-testable without WebGL.
  */
 
-import type { RenderSnapshot, RenderSnapshotItem } from "@motionvideo/motion-runtime";
+import type {
+  RenderSnapshot,
+  RenderSnapshotItem,
+} from "@motionvideo/motion-runtime";
 
 export type DisplayObjectLike = {
   id: string;
@@ -135,7 +138,35 @@ export {
   type PixiAssetStoreOptions,
 } from "./PixiAssetStore";
 export {
+  createCompositingContext,
+  createRenderTexturePool,
+  type CompositingContext,
+  type CompositingLayer,
+  type OffscreenSlot,
+  type NestingFrame,
+  type RenderTexturePool,
+} from "./pixi-compositing";
+export {
   syncPaintBufferToCache,
   type CachedDisplayDesc,
   type DisplayCacheStats,
 } from "./display-cache";
+export {
+  createPaintDiffEngine,
+  type PaintDiffEngine,
+  type PaintDiffResult,
+  type PaintDiffStats,
+  type PaintFrameDiff,
+} from "./paint-diff";
+export {
+  createImperativeOverlay,
+  type ImperativeOverlay,
+  type OverlayStore,
+  type OverlayStyle,
+} from "./imperative-overlay";
+export {
+  createProfilerHud,
+  type ProfilerHud,
+  type ProfilerHudStats,
+  type ProfilerHudOptions,
+} from "./profiler-hud";

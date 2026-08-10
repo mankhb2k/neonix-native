@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { sliceScene, clipLocalTime } from "@/lib/editor/export/slice-scene";
-import type { MotionScene } from "@motionvideo/motion-schema";
+import { sliceScene, clipLocalTime } from "@motionvideo/editor-core";
+import type { MotionScene } from "@motionvideo/motion-protocol";
 
 describe("sliceScene", () => {
   it("shifts absolute schedule and keyframe times by localStart", () => {

@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   buildVisualLaneIndex,
   composeAtTime,
-} from "./compose-layers";
+} from "@motionvideo/editor-core";
 import { createDomStageRenderer } from "../stage/stage-renderer-port";
 import { createCanvasStageRenderer } from "../stage/canvas-stage-renderer";
 import {

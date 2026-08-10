@@ -1,4 +1,5 @@
 export * from "./matrix";
+export * from "./matrix4";
 export * from "./evaluator";
 export * from "./spatial";
 export * from "./hit-test";
@@ -22,3 +23,14 @@ export * from "./evaluate-composition";
 export * from "./media-timing";
 export * from "./compositing-fingerprint";
 export * from "./pixel-diff";
+export * from "./runtime-patch";
+export * from "./determinism";
+export * from "./evaluated-composition-frame";
+export * from "./diagnostics";
+export * from "./cancellation";
+export * from "./version-policy";
+export {
+  buildAudioExportManifest,
+  type AudioExportManifest,
+  type AudioExportClip,
+} from "./audio-export-manifest";

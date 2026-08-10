@@ -17,7 +17,7 @@ import { EnumPropertyEditor } from "./property-editors/EnumPropertyEditor";
 import { NumberPropertyEditor } from "./property-editors/NumberPropertyEditor";
 import { StringPropertyEditor } from "./property-editors/StringPropertyEditor";
 import { VectorPropertyEditor } from "./property-editors/VectorPropertyEditor";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import "./inspector.css";
 
 type Props = {

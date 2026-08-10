@@ -1,21 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   buildExportProject,
+  composeVisualLayersAtTime,
+  DEFAULT_VISUAL_POLICY,
   resolveBakedLocalTime,
-} from "@/lib/editor/export/build-export-project";
+  type TimelineClip,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 import {
   buildEditorProjectEnvelope,
   parseEditorImport,
   serializeEditorProjectEnvelope,
 } from "@/lib/editor/export/editor-project-envelope";
-import { composeVisualLayersAtTime } from "@/lib/editor/preview/compose-layers";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
-import {
-  DEFAULT_VISUAL_POLICY,
-  type TimelineClip,
-  type TimelineLane,
-} from "@/lib/editor/timeline-clips";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 
 describe("buildExportProject", () => {
   it("bakes base + gap + overlay + muted audio into valid MotionProject", () => {

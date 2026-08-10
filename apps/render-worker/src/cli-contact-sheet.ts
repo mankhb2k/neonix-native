@@ -7,7 +7,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { parseMotionProjectV2 } from "@motionvideo/motion-schema";
+import { parseMotionProjectV2 } from "@motionvideo/motion-protocol";
 import { drawSceneFrame } from "./runtime/draw";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");

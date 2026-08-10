@@ -2,6 +2,10 @@
  * Typecheck-only stubs so `tsc` does not pull pre-existing editor-core errors.
  * Runtime resolves `@motionvideo/editor-core` via the workspace package.
  */
+
+/** Mirrors editor-core capcut-ruler-scale (runtime uses real package). */
+export const TIMELINE_PLAYHEAD_GUTTER_PX = 16;
+
 export type TimelineTrackKind = "main" | "overlay" | "audio";
 
 export type TimelineClip = {

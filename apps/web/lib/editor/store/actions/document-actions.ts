@@ -1,4 +1,4 @@
-import { mapNode, uid, updateVariable } from "@/lib/editor/store/internal/scene-utils";
+import { mapNode, uid, updateVariable } from "@motionvideo/editor-core";
 import type {
   EditorStoreActions,
   EditorStoreGet,

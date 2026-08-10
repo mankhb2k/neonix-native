@@ -1,5 +1,15 @@
 import type { TimelineLane } from "@motionvideo/editor-core";
 import {
+  buildLaneRows,
+  timelineVerticalInsets as timelineVerticalInsetsCore,
+  timelineLanesStackHeightWithGap as timelineLanesStackHeightCore,
+  timelineLanesContentHeight as timelineLanesContentHeightCore,
+  laneContentOffsetTop as laneContentOffsetTopCore,
+  laneHeightsWithGaps as laneHeightsWithGapsCore,
+  type GenericLaneRow,
+  type LaneRowConfig,
+} from "@motionvideo/editor-core";
+import {
   BASE_LANE_HEIGHT_PX,
   SECONDARY_LANE_HEIGHT_PX,
   LAYER_LANE_HEIGHT_PX,
@@ -16,6 +26,20 @@ export const LANE_GAP_PX = 2;
 export const TIMELINE_TOP_PADDING_PX = 40;
 export const TIMELINE_BOTTOM_PADDING_PX = 40;
 
+// ── Desktop chrome config ───────────────────────────────────────────
+
+const desktopLaneRowConfig: LaneRowConfig = {
+  baseHeight: BASE_LANE_HEIGHT_PX,
+  secondaryHeight: SECONDARY_LANE_HEIGHT_PX,
+  layerHeight: LAYER_LANE_HEIGHT_PX,
+  layerVideoHeight: LAYER_VIDEO_LANE_HEIGHT_PX,
+  gapPx: LANE_GAP_PX,
+  topPaddingPx: TIMELINE_TOP_PADDING_PX,
+  bottomPaddingPx: TIMELINE_BOTTOM_PADDING_PX,
+};
+
+// ── Desktop row shape ───────────────────────────────────────────────
+
 export type TimelineLaneRow = {
   id: string;
   kind: "visual" | "audio";
@@ -27,86 +51,43 @@ export type TimelineLaneRow = {
   lane: TimelineLane;
 };
 
+/** Map a GenericLaneRow from core → desktop's TimelineLaneRow. */
+function toDesktopRow(r: GenericLaneRow): TimelineLaneRow {
+  return {
+    id: r.lane.id,
+    kind: r.kind,
+    role: r.role,
+    order: r.order,
+    name: r.lane.name,
+    height: r.height,
+    heightClass: "h-12",
+    lane: r.lane,
+  };
+}
+
+// ── Thin adapters — delegate to editor-core ─────────────────────────
+
 /** Web order: overlays (desc) → main/base → audios (asc). */
 export function buildTimelineLaneRows(
   timelineLanes: ReadonlyArray<TimelineLane>,
 ): TimelineLaneRow[] {
-  const baseLane = timelineLanes.find(
-    (l) => l.kind === "visual" && l.role === "base",
-  );
-  const overlayLanes = timelineLanes
-    .filter((l) => l.kind === "visual" && l.role === "overlay")
-    .sort((a, b) => b.order - a.order);
-  const audioLanes = timelineLanes
-    .filter((l) => l.kind === "audio")
-    .sort((a, b) => a.order - b.order);
-
-  const rows: TimelineLaneRow[] = [];
-
-  for (const lane of overlayLanes) {
-    rows.push({
-      id: lane.id,
-      kind: "visual",
-      role: "overlay",
-      order: lane.order,
-      name: lane.name,
-      height: SECONDARY_LANE_HEIGHT_PX,
-      heightClass: "h-12",
-      lane,
-    });
-  }
-
-  if (baseLane) {
-    rows.push({
-      id: baseLane.id,
-      kind: "visual",
-      role: "base",
-      order: baseLane.order,
-      name: baseLane.name,
-      height: BASE_LANE_HEIGHT_PX,
-      heightClass: "h-12",
-      lane: baseLane,
-    });
-  }
-
-  for (const lane of audioLanes) {
-    rows.push({
-      id: lane.id,
-      kind: "audio",
-      role: "audio",
-      order: lane.order,
-      name: lane.name,
-      height: SECONDARY_LANE_HEIGHT_PX,
-      heightClass: "h-12",
-      lane,
-    });
-  }
-
-  return rows;
+  return buildLaneRows(timelineLanes, desktopLaneRowConfig).map(toDesktopRow);
 }
 
 /** Content height including top/bottom padding and gaps between rows. */
-export function timelineLanesContentHeight(rows: readonly TimelineLaneRow[]): number {
-  if (rows.length === 0) {
-    return TIMELINE_TOP_PADDING_PX + TIMELINE_BOTTOM_PADDING_PX;
-  }
-  let sum = TIMELINE_TOP_PADDING_PX + TIMELINE_BOTTOM_PADDING_PX;
-  for (let i = 0; i < rows.length; i += 1) {
-    sum += rows[i]!.height;
-    if (i < rows.length - 1) sum += LANE_GAP_PX;
-  }
-  return sum;
+export function timelineLanesContentHeight(
+  rows: readonly TimelineLaneRow[],
+): number {
+  const genericRows: GenericLaneRow[] = rows.map(toGenericRow);
+  return timelineLanesContentHeightCore(genericRows, desktopLaneRowConfig);
 }
 
 /** Lane stack height without outer padding. */
-export function timelineLanesStackHeight(rows: readonly TimelineLaneRow[]): number {
-  if (rows.length === 0) return 0;
-  let sum = 0;
-  for (let i = 0; i < rows.length; i += 1) {
-    sum += rows[i]!.height;
-    if (i < rows.length - 1) sum += LANE_GAP_PX;
-  }
-  return sum;
+export function timelineLanesStackHeight(
+  rows: readonly TimelineLaneRow[],
+): number {
+  const genericRows: GenericLaneRow[] = rows.map(toGenericRow);
+  return timelineLanesStackHeightCore(genericRows, desktopLaneRowConfig);
 }
 
 /**
@@ -118,14 +99,12 @@ export function timelineVerticalInsets(
   rows: readonly TimelineLaneRow[],
   viewHeight: number,
 ): { top: number; bottom: number; contentHeight: number } {
-  const stack = timelineLanesStackHeight(rows);
-  const minContent =
-    stack + TIMELINE_TOP_PADDING_PX + TIMELINE_BOTTOM_PADDING_PX;
-  const contentHeight = Math.max(minContent, Math.max(0, viewHeight), 1);
-  const leftover = Math.max(0, contentHeight - stack);
-  const top = Math.max(TIMELINE_TOP_PADDING_PX, Math.floor(leftover / 2));
-  const bottom = Math.max(TIMELINE_BOTTOM_PADDING_PX, leftover - top);
-  return { top, bottom, contentHeight };
+  const genericRows: GenericLaneRow[] = rows.map(toGenericRow);
+  return timelineVerticalInsetsCore(
+    genericRows,
+    viewHeight,
+    desktopLaneRowConfig,
+  );
 }
 
 /** Y offset of lane index within content (after top padding). */
@@ -133,19 +112,26 @@ export function laneContentOffsetTop(
   rows: readonly TimelineLaneRow[],
   laneIndex: number,
 ): number {
-  let top = TIMELINE_TOP_PADDING_PX;
-  for (let i = 0; i < laneIndex; i += 1) {
-    top += rows[i]!.height + LANE_GAP_PX;
-  }
-  return top;
+  const genericRows: GenericLaneRow[] = rows.map(toGenericRow);
+  return laneContentOffsetTopCore(genericRows, laneIndex, desktopLaneRowConfig);
 }
 
 /** Heights array for virtualization (padding as fake spacers not included — caller adds padding). */
-export function laneHeightsWithGaps(rows: readonly TimelineLaneRow[]): number[] {
-  const heights: number[] = [];
-  for (let i = 0; i < rows.length; i += 1) {
-    heights.push(rows[i]!.height);
-    if (i < rows.length - 1) heights.push(LANE_GAP_PX);
-  }
-  return heights;
+export function laneHeightsWithGaps(
+  rows: readonly TimelineLaneRow[],
+): number[] {
+  const genericRows: GenericLaneRow[] = rows.map(toGenericRow);
+  return laneHeightsWithGapsCore(genericRows, desktopLaneRowConfig);
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+function toGenericRow(r: TimelineLaneRow): GenericLaneRow {
+  return {
+    lane: r.lane,
+    kind: r.kind,
+    role: r.role,
+    order: r.order,
+    height: r.height,
+  };
 }

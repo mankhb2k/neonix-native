@@ -2,7 +2,7 @@ import {
   usePlaybackClock,
   usePlaybackClockApi,
 } from "../playback/playback-clock-store";
-import { playbackFrameIndex, playbackFrameTime } from "../playback/time-frame";
+import { playbackFrameIndex, playbackFrameTime } from "@motionvideo/editor-core";
 import { formatTimecode } from "../timeline/timeline-scale";
 import "./transport.css";
 

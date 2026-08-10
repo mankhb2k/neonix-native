@@ -5,7 +5,7 @@ import {
   type MotiClipVideoProps,
 } from "@motionvideo/remotion-renderer";
 import { parseRenderManifest } from "@motionvideo/render-contracts";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 
 export type MotiClipCompositionProps = MotiClipVideoProps;
 

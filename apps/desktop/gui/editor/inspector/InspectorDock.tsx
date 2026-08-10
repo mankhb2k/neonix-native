@@ -7,7 +7,7 @@ import type {
   TimelineClip,
   TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 type Props = {
   project: MotionProject | null;

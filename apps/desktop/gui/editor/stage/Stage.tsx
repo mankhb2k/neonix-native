@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { PanelHeader } from "../../ui";
 import { PreviewStage } from "./PreviewStage";
 

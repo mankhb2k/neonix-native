@@ -23,7 +23,7 @@ import {
   subtreeBounds,
   pathMorphContours,
 } from "../packages/motion-runtime/src/index";
-import { NormalizedMotionProjectV2Schema, parseMotionComponentV2, parseMotionProjectV2, segmentTextUnits } from "../packages/motion-schema/src/index";
+import { NormalizedMotionProjectV2Schema, parseMotionComponentV2, parseMotionProjectV2, segmentTextUnits } from "../packages/motion-protocol/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");

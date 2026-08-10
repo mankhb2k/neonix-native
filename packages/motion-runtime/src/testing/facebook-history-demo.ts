@@ -4,7 +4,7 @@ import {
   type MotionNode,
   type MotionProject,
   type MotionScene,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 export const FB_HISTORY_SCENE_IDS = {
   hook: "scene.hook",

@@ -3,14 +3,11 @@
  */
 import { createBlankProject } from "@/lib/editor/create-blank-project";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
-import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
+import { sceneOrderToTimelineClips } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 
-export type WebUiFixtureId =
-  | "blank-16x9"
-  | "blank-9x16"
-  | "facebook-history";
+export type WebUiFixtureId = "blank-16x9" | "blank-9x16" | "facebook-history";
 
 export type WebEditorSeed = {
   kind: "editor";

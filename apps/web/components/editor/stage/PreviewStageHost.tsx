@@ -8,16 +8,19 @@
 
 import { InteractionOverlay } from "@/components/editor/stage/InteractionOverlay";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
 import {
   createStageRendererLazy,
   resolveStageRendererBackend,
 } from "@/lib/editor/stage/stage-renderer-factory";
 import type { StageRendererPort } from "@/lib/editor/stage/stage-renderer-port";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
+import {
+  playbackFrameIndex,
+  type TimelineClip,
+  type TimelineLane,
+} from "@motionvideo/editor-core";
 import type { RenderSnapshot } from "@motionvideo/motion-runtime";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 type Props = {

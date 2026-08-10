@@ -1,5 +1,5 @@
 import type { TimelineClip, TimelineLane } from "../timeline-clips";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 /** Giữ mọi scene được visual clip tham chiếu; sceneOrder chỉ từ base lane. */
 export function rebuildMainProject(

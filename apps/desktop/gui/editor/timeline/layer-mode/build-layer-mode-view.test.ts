@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_VISUAL_POLICY, type SceneTimelineClip } from "@motionvideo/editor-core";
-import type { MotionScene } from "@motionvideo/motion-schema";
+import type { MotionScene } from "@motionvideo/motion-protocol";
 import {
   buildLayerModeView,
   clampNodeLocalTiming,

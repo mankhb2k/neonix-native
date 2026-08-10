@@ -2,7 +2,7 @@
  * Request MP4 export via Remotion Lambda BFF (POST /api/renders).
  */
 
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type ExportError = {
   error: string;

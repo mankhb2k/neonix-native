@@ -3,8 +3,8 @@ import {
   clipsIntersectingRange,
   clipsVisibleWithPins,
   visibleTimeRange,
-} from "@/lib/editor/timeline/selectors/visible-range";
-import type { TimelineClip } from "@/lib/editor/model/timeline-types";
+} from "@motionvideo/editor-core";
+import type { TimelineClip } from "@motionvideo/editor-core";
 
 function scene(
   id: string,

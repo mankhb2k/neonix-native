@@ -1,16 +1,16 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import {
   parseOverlayScenes,
   type OverlaySceneItem,
-} from "@/lib/editor/overlay-scenes";
+} from "@motionvideo/editor-core";
 import {
   migrateLanesAndClips,
   parseTimelineClips,
   parseTimelineLanes,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 
 /** Phiên bản envelope persistence hiện tại. Tăng khi đổi schema lưu. */
 export const CURRENT_STORAGE_VERSION = 2;

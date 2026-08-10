@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { createPlaybackClockStore } from "./playback-clock-store";
-import { createPlaybackDriver } from "./playback-driver";
 import {
   buildVisualLaneIndex,
   composeAtTime,
-} from "../preview/compose-layers";
+  createPlaybackDriver,
+} from "@motionvideo/editor-core";
 import { previewParitySnapshot } from "../preview/preview-evaluate";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {

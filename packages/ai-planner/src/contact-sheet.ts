@@ -1,6 +1,6 @@
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { evaluateScene } from "@motionvideo/motion-runtime";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type ContactSheetFrame = {
   sceneId: string;

@@ -6,25 +6,27 @@
  * `@motionvideo/motion-runtime` StageRendererPortShape.
  */
 
-import { nodeText, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
+import {
+  buildVisualLaneIndex,
+  composeAtTime,
+  nodeText,
+  resolveScene,
+  type TimelineClip,
+  type TimelineLane,
+  type VisualLaneIndex,
+} from "@motionvideo/editor-core";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
 } from "@motionvideo/motion-runtime";
 import {
-  buildVisualLaneIndex,
-  composeAtTime,
-  resolveScene,
-  type VisualLaneIndex,
-} from "../preview/compose-layers";
-import {
   matrixToCss,
   previewParitySnapshot,
   stageSizeForAspect,
   type PreviewParityNode,
 } from "../preview/preview-evaluate";
-import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-protocol";
 
 export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {

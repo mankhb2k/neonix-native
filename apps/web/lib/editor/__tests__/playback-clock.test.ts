@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { playbackFrameIndex } from "@/lib/editor/playback/time-frame";
+import { playbackFrameIndex } from "@motionvideo/editor-core";
 
 describe("playback clock store", () => {
   beforeEach(() => {

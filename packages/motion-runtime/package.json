@@ -15,7 +15,7 @@
     "lint": "echo \"no lint yet\""
   },
   "dependencies": {
-    "@motionvideo/motion-schema": "workspace:*"
+    "@motionvideo/motion-protocol": "workspace:*"
   },
   "devDependencies": {
     "@motionvideo/motion-compiler": "workspace:*",

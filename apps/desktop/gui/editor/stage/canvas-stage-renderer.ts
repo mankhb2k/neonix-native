@@ -7,10 +7,10 @@ import {
   buildVisualLaneIndex,
   composeAtTime,
   type VisualLaneIndex,
-} from "../preview/compose-layers";
+} from "@motionvideo/editor-core";
 import type { StageRendererPort } from "./stage-renderer-port";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 type NodePaint = {
   id: string;

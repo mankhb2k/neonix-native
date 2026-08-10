@@ -6,7 +6,7 @@ import {
   parseMotionProject,
   serializeMotionProject,
   type MotionComponentV2,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { validateProjectAssetIntegrity } from "./runtime/asset-integrity";
 import { compileMotionProject } from "./compiler";

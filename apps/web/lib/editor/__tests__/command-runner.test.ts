@@ -9,7 +9,7 @@ import {
   executeTimelineCommand,
   validateTimelineDocument,
   type TimelineDocument,
-} from "@/lib/editor/timeline";
+} from "@motionvideo/editor-core";
 
 describe("Pure Command Runner Engine", () => {
   it("executes update-scene-duration command atomically", () => {

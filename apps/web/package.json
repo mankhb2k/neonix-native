@@ -26,7 +26,7 @@
     "@motionvideo/editor-react": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/pixi-renderer": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*",
     "@remotion/lambda-client": "4.0.506",

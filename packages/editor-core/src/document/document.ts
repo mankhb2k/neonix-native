@@ -1,9 +1,15 @@
-import type { TimelineClip, TimelineLane } from "../timeline/model/timeline-types";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type {
+  TimelineClip,
+  TimelineLane,
+} from "../timeline/model/timeline-types";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 /**
  * TimelineDocument — domain aggregate gom project, lanes, clips.
  * Mọi committed mutation phải nhận/trả về TimelineDocument hợp lệ.
+ *
+ * ADR 001: project là canonical source of truth;
+ * lanes/clips là derived projection có revision + fingerprint.
  */
 /** Optional transition metadata (document-only; no UI yet). */
 export type TimelineTransition = {
@@ -19,6 +25,18 @@ export type TimelineDocument = {
   clips: TimelineClip[];
   /** Document-only transition refs — optional until feature ships. */
   transitions?: TimelineTransition[];
+  /**
+   * Monotonic revision — incremented on every project mutation.
+   * Renderers reject documents with revision <= 0 or mismatched fingerprint.
+   * @since Phase 1 (ADR 001)
+   */
+  revision?: number;
+  /**
+   * SHA-256 fingerprint of the project snapshot (first 16 hex chars).
+   * Used to detect stale/divergent documents.
+   * @since Phase 1 (ADR 001)
+   */
+  fingerprint?: string;
 };
 
 export type TimelineViolationReason =
@@ -33,7 +51,9 @@ export type TimelineViolationReason =
   | "dangling_audio_track_reference"
   | "clip_overlap_violation"
   | "dangling_transition_clip"
-  | "duplicate_transition_id";
+  | "duplicate_transition_id"
+  | "stale_fingerprint"
+  | "missing_revision";
 
 export type TimelineViolation = {
   reason: TimelineViolationReason;
@@ -50,12 +70,16 @@ export function documentFromStoreState(state: {
   project: MotionProject | null;
   timelineLanes: TimelineLane[];
   timelineClips: TimelineClip[];
+  revision?: number;
+  fingerprint?: string;
 }): TimelineDocument | null {
   if (!state.project) return null;
   return {
     project: state.project,
     lanes: state.timelineLanes,
     clips: state.timelineClips,
+    revision: state.revision,
+    fingerprint: state.fingerprint,
   };
 }
 
@@ -64,11 +88,15 @@ export function storeStateFromDocument(doc: TimelineDocument): {
   project: MotionProject;
   timelineLanes: TimelineLane[];
   timelineClips: TimelineClip[];
+  revision?: number;
+  fingerprint?: string;
 } {
   return {
     project: doc.project,
     timelineLanes: doc.lanes,
     timelineClips: doc.clips,
+    revision: doc.revision,
+    fingerprint: doc.fingerprint,
   };
 }
 
@@ -194,7 +222,11 @@ export function validateTimelineDocument(
         });
       }
     } else if (clip.kind === "audio") {
-      if (audioTrackIds.size > 0 && clip.audioTrackId && !audioTrackIds.has(clip.audioTrackId)) {
+      if (
+        audioTrackIds.size > 0 &&
+        clip.audioTrackId &&
+        !audioTrackIds.has(clip.audioTrackId)
+      ) {
         violations.push({
           reason: "dangling_audio_track_reference",
           message: `Audio clip "${clip.name}" (id: ${clip.id}) tham chiếu audioTrackId "${clip.audioTrackId}" không có trong project.timeline.audioTracks.`,
@@ -222,7 +254,9 @@ export function validateTimelineDocument(
       for (let j = i + 1; j < laneClips.length; j++) {
         const c1 = laneClips[i];
         const c2 = laneClips[j];
-        if (clipsOverlap(c1.startTime, c1.duration, c2.startTime, c2.duration)) {
+        if (
+          clipsOverlap(c1.startTime, c1.duration, c2.startTime, c2.duration)
+        ) {
           violations.push({
             reason: "clip_overlap_violation",
             message: `Xảy ra va chạm thời gian giữa clip "${c1.name}" (${c1.startTime}s - ${c1.startTime + c1.duration}s) và clip "${c2.name}" (${c2.startTime}s - ${c2.startTime + c2.duration}s) trên lane "${lane.name}".`,

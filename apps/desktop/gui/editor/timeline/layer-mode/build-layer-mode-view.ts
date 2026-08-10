@@ -9,7 +9,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import { clampNodeLocalTiming as clampNodeLocalTimingShared } from "@motionvideo/editor-interactions";
-import type { MotionNode, MotionScene } from "@motionvideo/motion-schema";
+import type { MotionNode, MotionScene } from "@motionvideo/motion-protocol";
 import {
   LAYER_LANE_HEIGHT_PX,
   LAYER_VIDEO_LANE_HEIGHT_PX,

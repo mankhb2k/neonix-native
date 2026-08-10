@@ -16,13 +16,13 @@ import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 import {
   executeTimelineCommand,
   type TimelineDocument,
-} from "@/lib/editor/timeline";
-import type { MotionProject } from "@motionvideo/motion-schema";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+} from "@motionvideo/editor-core";
+import type { MotionProject } from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 
 export const PHASE0_SAVED_AT = "2026-07-31T00:00:00.000Z";
 /** Schema caps `scenes` / `sceneOrder` at 100 — committed large fixture stays parseable. */

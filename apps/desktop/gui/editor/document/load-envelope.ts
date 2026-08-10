@@ -11,7 +11,7 @@ import {
 import {
   parseMotionProject,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import {
   parseDesktopProjectFile,
   type DesktopProjectEnvelope,

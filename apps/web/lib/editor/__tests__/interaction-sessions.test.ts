@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
+import { TimelineGeometry } from "@motionvideo/editor-core";
 import {
-  TimelineGeometry,
   PointerSessionController,
-  createClipMoveSessionState,
-  updateClipMoveSessionState,
   buildClipMovePatch,
-  createLibraryDropSessionState,
-  updateLibraryDropSessionState,
   buildPlacementTarget,
-  createMarqueeSessionState,
-  updateMarqueeSessionState,
-} from "@/lib/editor/timeline";
+  clipIdsInMarquee,
+  createClipMoveSessionState,
+  createLibraryDropSessionState,
+  normalizeMarquee,
+  updateClipMoveSessionState,
+  updateLibraryDropSessionState,
+} from "@motionvideo/editor-interactions";
 
 describe("TimelineGeometry Engine", () => {
   it("converts time to pixels and pixels to time accurately", () => {
@@ -178,21 +178,13 @@ describe("Specialized Domain Sessions", () => {
     expect(target.track).toBe("main");
   });
 
-  it("manages Marquee Select Session box intersection", () => {
-    let state = createMarqueeSessionState({ x: 10, y: 10 });
-    const clipsWithRects = [
-      {
-        clip: { id: "c1", kind: "scene" as const, sceneId: "s1", laneId: "l1", startTime: 0, duration: 2, name: "C1" },
-        rect: { left: 15, top: 15, width: 20, height: 20 },
-      },
-      {
-        clip: { id: "c2", kind: "scene" as const, sceneId: "s2", laneId: "l1", startTime: 10, duration: 2, name: "C2" },
-        rect: { left: 200, top: 200, width: 20, height: 20 },
-      },
-    ];
-
-    state = updateMarqueeSessionState(state, { x: 50, y: 50 }, clipsWithRects);
-    expect(state.selectedClipIds).toContain("c1");
-    expect(state.selectedClipIds).not.toContain("c2");
+  it("selects clips intersecting a normalized marquee", () => {
+    const rect = normalizeMarquee({ x: 10, y: 10 }, { x: 50, y: 50 });
+    const ids = clipIdsInMarquee(rect, [
+      { id: "c1", left: 15, top: 15, right: 35, bottom: 35 },
+      { id: "c2", left: 200, top: 200, right: 220, bottom: 220 },
+    ]);
+    expect(ids).toContain("c1");
+    expect(ids).not.toContain("c2");
   });
 });

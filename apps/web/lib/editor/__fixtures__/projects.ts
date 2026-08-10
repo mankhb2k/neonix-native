@@ -1,10 +1,10 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
-import type { OverlaySceneItem } from "@/lib/editor/overlay-scenes";
+import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 
 function baseLane(id = "lane.main"): TimelineLane {
   return {

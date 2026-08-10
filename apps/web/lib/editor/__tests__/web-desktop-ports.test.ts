@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { playbackFrameIndex, playbackFrameTime } from "@/lib/editor/playback/time-frame";
+import { playbackFrameIndex, playbackFrameTime } from "@motionvideo/editor-core";
 import {
   clientXToStripTime,
   resolvePlayheadScrubMax,

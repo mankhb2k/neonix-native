@@ -3,7 +3,7 @@ import {
   MOTION_V2_LIMITS,
   getTextPayloadPlain,
   parseMotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import {
   createHistoryState,
   executePropertyCommand,

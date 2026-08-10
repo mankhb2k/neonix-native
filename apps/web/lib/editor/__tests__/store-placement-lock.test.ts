@@ -4,8 +4,8 @@ import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
 import {
   selectionClips,
   selectedSceneIdFrom,
-} from "@/lib/editor/model/editor-selection";
-import { DEFAULT_VISUAL_POLICY } from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
+import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("editor-store placement + lock", () => {
   beforeEach(() => {

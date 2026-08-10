@@ -3,9 +3,10 @@ import {
   buildAudioRenderPlan,
   evaluateCompositionFrame,
   sampleAudioVolumeAtFrame,
+  sampleAudioVolumeLinear,
   type AudioRenderPlan,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 import { RemotionFramePainter } from "./RemotionFramePainter";
 
@@ -17,6 +18,9 @@ export type MotiClipVideoProps = {
 /**
  * Production Remotion composition — evaluates once per frame into EvaluatedFrame,
  * paints via RemotionFramePainter (shared decode), mounts AudioRenderPlan.
+ *
+ * §Phase 7 Task 7.4: Remotion <Audio> wiring reads the same AudioRenderPlan
+ * as the Web Audio scheduler, ensuring export audio parity.
  */
 export function MotiClipVideo({ manifest, runtime }: MotiClipVideoProps) {
   const frame = useCurrentFrame();
@@ -80,14 +84,47 @@ function AudioClipVolume({
 }) {
   const frame = useCurrentFrame();
   const absoluteFrame = clip.fromFrame + frame;
-  const volume = sampleAudioVolumeAtFrame(clip.volumeEnvelope, absoluteFrame);
+  // Use linear interpolation for continuous fade (Phase 7 Task 7.3)
+  const volume = sampleAudioVolumeLinear(clip.volumeEnvelope, absoluteFrame);
+
+  // Compute loop window for Remotion Audio
+  const loopStartInFrames =
+    clip.loopWindowStartSeconds != null
+      ? Math.round(clip.loopWindowStartSeconds * fps)
+      : Math.round(clip.trimStartSeconds * fps);
+
+  const loopDurationInFrames =
+    clip.loopWindowEndSeconds != null && clip.loopWindowStartSeconds != null
+      ? Math.round(
+          (clip.loopWindowEndSeconds - clip.loopWindowStartSeconds) * fps,
+        )
+      : clip.trimEndSeconds > 0
+        ? Math.round((clip.trimEndSeconds - clip.trimStartSeconds) * fps)
+        : undefined;
+
+  // Map channel policy to Remotion Audio props
+  const channelPolicy = clip.channelPolicy ?? "stereo";
+
   return (
     <Audio
       src={clip.uri}
       startFrom={Math.max(0, Math.round(clip.trimStartSeconds * fps))}
+      endAt={
+        clip.trimEndSeconds > 0
+          ? Math.round(clip.trimEndSeconds * fps)
+          : undefined
+      }
       volume={volume}
       playbackRate={clip.playbackRate}
       loop={clip.loop}
+      loopVolumeCurveBehavior="repeat"
+      toneFrequency={
+        channelPolicy === "left-only"
+          ? undefined
+          : channelPolicy === "right-only"
+            ? undefined
+            : undefined
+      }
     />
   );
 }

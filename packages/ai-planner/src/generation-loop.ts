@@ -3,7 +3,7 @@ import { executeCommandBatch, type CommandBatchResult } from "./commands";
 import { planFromScratch } from "./from-scratch";
 import { applyCriticRepair, critiqueProject, type CriticReport } from "./critic";
 import { buildContactSheetPlan, type ContactSheetPlan } from "./contact-sheet";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { runZeroTemplateGeneration, type ZeroTemplateGenerationResult } from "./orchestrator";
 
 export type GenerationLoopResult = {

@@ -3,25 +3,21 @@ import {
   fixtureMainOnly,
   fixtureMainPlusAudioOverlap,
 } from "@/lib/editor/__fixtures__/projects";
-import {
-  ensureAudioClipsFromTracks,
-} from "@/lib/editor/timeline-clips";
 import { createEditorStore } from "@/lib/editor/store/create-editor-store";
 import {
   assertNever,
   clipCapabilities,
   defaultSnappingPolicy,
+  ensureAudioClipsFromTracks,
   executeTimelineCommand,
+  resolveVisualPlacement,
   setSnappingPolicy,
   validateTimelineDocument,
   type SnappingPolicy,
   type TimelineClip,
   type TimelineCommand,
   type TimelineDocument,
-} from "@/lib/editor/timeline";
-import {
-  resolveVisualPlacement,
-} from "@/lib/editor/operations/clip-move";
+} from "@motionvideo/editor-core";
 import {
   loadEditorProjectSnapshot,
   saveProject,

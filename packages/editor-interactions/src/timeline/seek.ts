@@ -3,6 +3,16 @@ import {
   type TimelineViewportMetrics,
 } from "./coordinates";
 
+/**
+ * Shared scrub edge/step constants — used by both web and desktop timeline viewports.
+ */
+/** Width of the horizontal edge band that triggers auto-scroll while scrubbing. */
+export const PLAYHEAD_SCRUB_EDGE_PX = 40;
+/** Pixels to scroll per animation frame while in the edge band. */
+export const PLAYHEAD_SCRUB_STEP_PX = 14;
+/** Minimum distance between the playhead and viewport edges during playback follow. */
+export const PLAYHEAD_FOLLOW_MARGIN_PX = 48;
+
 export function metricsFromScrollElement(
   scrollContainer: HTMLElement,
   tracksOriginX = TIMELINE_PLAYHEAD_GUTTER_PX,
@@ -68,6 +78,49 @@ export function timelineTimeToViewportLeft(
   return tracksOriginX + time * Math.max(pixelsPerSecond, 0.001) - scrollLeft;
 }
 
+/** Content X of the playhead (scroll-container content coordinates). */
+export function timelineTimeToContentLeft(
+  time: number,
+  tracksOriginX: number,
+  pixelsPerSecond: number,
+): number {
+  return tracksOriginX + time * Math.max(pixelsPerSecond, 0.001);
+}
+
+/**
+ * Keep playhead inside the viewport during playback (CapCut-style follow).
+ * Pure — caller applies nextScrollLeft to the DOM.
+ */
+export function computePlayheadFollowScroll(input: {
+  time: number;
+  tracksOriginX: number;
+  pixelsPerSecond: number;
+  scrollLeft: number;
+  clientWidth: number;
+  scrollWidth: number;
+  /** Keep this many px between playhead and viewport edges. */
+  marginPx?: number;
+}): { scrollLeftDelta: number; nextScrollLeft: number } {
+  const margin = Math.max(0, input.marginPx ?? 48);
+  const viewW = Math.max(1, input.clientWidth);
+  const maxScroll = Math.max(0, input.scrollWidth - viewW);
+  const contentX = timelineTimeToContentLeft(
+    input.time,
+    input.tracksOriginX,
+    input.pixelsPerSecond,
+  );
+  const viewLeft = input.scrollLeft;
+  const viewRight = viewLeft + viewW;
+  let next = viewLeft;
+  if (contentX > viewRight - margin) {
+    next = contentX - viewW + margin;
+  } else if (contentX < viewLeft + margin) {
+    next = contentX - margin;
+  }
+  next = Math.min(maxScroll, Math.max(0, next));
+  return { scrollLeftDelta: next - viewLeft, nextScrollLeft: next };
+}
+
 /** Pure edge-scroll intent — caller applies scrollLeftDelta to the DOM. */
 export function computeHorizontalEdgeScroll(input: {
   clientX: number;
@@ -87,7 +140,8 @@ export function computeHorizontalEdgeScroll(input: {
   );
   const before = input.viewport.scrollLeft;
   let next = before;
-  if (input.clientX > right - edgePx) next = Math.min(maxScroll, before + stepPx);
+  if (input.clientX > right - edgePx)
+    next = Math.min(maxScroll, before + stepPx);
   else if (input.clientX < input.viewport.clientLeft + edgePx) {
     next = Math.max(0, before - stepPx);
   }

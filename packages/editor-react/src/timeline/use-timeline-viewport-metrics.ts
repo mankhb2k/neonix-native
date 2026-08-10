@@ -17,6 +17,12 @@ type Args = {
   resetKey: string | number | null;
   /** Re-measure H-scroll content when canvas/clips change. */
   contentMeasureKey?: string | number;
+  /**
+   * Optional separate element whose clientHeight drives trackViewHeight.
+   * When omitted, trackViewHeight is read from tracksScrollRef.
+   * Web passes its tracksAreaRef here (ruler is outside the scroll area).
+   */
+  trackAreaRef?: RefObject<HTMLElement | null>;
 };
 
 type ScrollSnapshot = { left: number; top: number };
@@ -26,6 +32,7 @@ export function useTimelineViewportMetrics({
   tracksScrollRef,
   resetKey,
   contentMeasureKey = 0,
+  trackAreaRef,
 }: Args) {
   const [viewWidth, setViewWidth] = useState(0);
   const [trackViewHeight, setTrackViewHeight] = useState(0);
@@ -80,14 +87,14 @@ export function useTimelineViewportMetrics({
   }, [boardRef]);
 
   useLayoutEffect(() => {
-    const el = tracksScrollRef.current;
+    const el = trackAreaRef?.current ?? tracksScrollRef.current;
     if (!el) return undefined;
     const update = () => setTrackViewHeight(el.clientHeight);
     update();
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [tracksScrollRef]);
+  }, [tracksScrollRef, trackAreaRef]);
 
   useLayoutEffect(() => {
     const root = tracksScrollRef.current;

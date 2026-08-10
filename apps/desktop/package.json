@@ -55,7 +55,7 @@
     "@motionvideo/editor-react": "workspace:*",
     "@motionvideo/motion-compiler": "workspace:*",
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/motion-protocol": "workspace:*",
     "clsx": "^2.1.1",
     "lucide-react": "^1.25.0",
     "react": "^19.0.0",

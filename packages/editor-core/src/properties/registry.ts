@@ -1,4 +1,4 @@
-import { motionPropertyCapability, getTextPayloadPlain } from "@motionvideo/motion-schema";
+import { motionPropertyCapability, getTextPayloadPlain } from "@motionvideo/motion-protocol";
 import { readUniform } from "./mixed";
 import type { DocumentPropertyCommand } from "./property-commands";
 import { findNode } from "./resolve-targets";

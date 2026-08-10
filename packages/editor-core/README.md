@@ -1,16 +1,84 @@
 # `@motionvideo/editor-core`
 
-Domain logic thuần túy cho Timeline và Document của hệ thống (không phụ thuộc vào React, DOM, hay Zustand). Đóng vai trò là "bộ não" xử lý mọi thao tác của người dùng trên giao diện chỉnh sửa video.
+`editor-core` la lop domain thuan cua editor. Package nay khong phu thuoc React, DOM, Zustand, hay UI framework nao. No gom toan bo logic "business" cua timeline/document de app web, app desktop, test, va cac lop adapter co the dung chung.
 
-## Vai trò
+## Editor core gom gi?
 
-- Quản lý **Timeline & Document**: Cấu trúc track, clip, lane, overlay scenes.
-- Xử lý **Operations & Commands**: Các thao tác tương tác như kéo thả (clip-move), di chuyển theo nhóm (clip-move-group), thay đổi thuộc tính (properties), bật/tắt hiển thị (mute, hide lane).
-- Xử lý **Geometry & Policies**: Tính toán không gian timeline, va chạm khi thay đổi kích thước (resize-collision), quy tắc bắt dính (snapping), quy tắc thả clip (drop-target).
-- Quản lý **Lịch sử (History)**: Undo/Redo an toàn, gom nhóm các lịch sử liên tiếp (coalesce).
-- Quản lý **Selection & Clipboard**: Xử lý trạng thái đang chọn clip nào, sao chép/dán clip.
+### 1. Document va canonical projection
 
-## API chính
+- Mo hinh document/timeline chinh
+- Chuyen doi giua frame draft, scene, clip, lane
+- Tao document canonical va dong bo du lieu timeline
+
+### 2. Selection va clipboard
+
+- Quan ly selection cho clip/lane/doi tuong
+- Tinh toan selectors cho trang thai dang chon
+- Copy/paste clipboard cho timeline
+
+### 3. Command system va timeline actions
+
+- Command pattern de thuc thi thay doi tren document
+- `executeTimelineCommand`
+- Timeline context actions
+- Property commands va property execution
+
+### 4. Operations
+
+- Move clip
+- Move nhieu clip theo group
+- Lane flags: mute, hide, lock, v.v.
+- Resize collision resolution
+- Placement adapters cho visual/audio
+
+### 5. Geometry va policy
+
+- Timeline geometry
+- Viewport layout
+- Lane rows
+- Track kind / lane kind resolution
+- Visible range selectors
+- Drop target policy
+- Snapping policy
+- Zoom-fit policy
+- CapCut ruler scale va ruler ticks
+
+### 6. History
+
+- Undo/redo data model
+- History manager
+- History coalescing
+
+### 7. Playback
+
+- Playback driver
+- Frame <-> time helpers
+- Logic chung cho transport clock thuan
+
+### 8. Preview composition
+
+- Compose visual layers tai global time
+- Tim active clip tai mot moc thoi gian
+- Tao visual lane index cho preview/render
+
+### 9. Export
+
+- Slice scene
+- Bake timeline sang MotionProject / export snapshot
+
+### 10. Internal compat helpers
+
+Mot so helper dung lai tu app store/legacy layer duoc gom vao day de app co the chia se logic:
+
+- `uid`
+- `mapNode`
+- `nodeText`
+- `updateVariable`
+- `sceneFromFrameDraft`
+- `cloneSceneWithNewIds`
+- `stageSizeForAspect`
+
+## Public API chinh
 
 ```ts
 import {
@@ -18,23 +86,57 @@ import {
   moveClipGroup,
   applyLaneFlagPatch,
   resolveCollisionsAfterResize,
+  createPlaybackDriver,
+  playbackFrameIndex,
+  composeVisualLayersAtTime,
+  buildExportProject,
 } from "@motionvideo/editor-core";
 ```
 
-| Nhóm | Chức năng |
+## Module map
+
+| Nhom | Chuc nang |
 |---|---|
-| `timeline/commands` | Hệ thống command pattern (Command Runner) để áp dụng thay đổi trên timeline |
-| `operations/` | Logic di chuyển, sắp xếp clip (visual/audio placement), điều chỉnh cờ của track/lane |
-| `timeline/policies` | Các quy tắc về không gian vật lý của timeline (snapping, zoom-fit) |
-| `history/` | Cấu trúc dữ liệu và logic cho Undo/Redo |
-| `properties/` | Quản lý thay đổi thuộc tính của đối tượng trên timeline |
+| `document/` | Document model, canonical projection |
+| `selection/` | Selection state va selectors |
+| `timeline/model/` | Kieu du lieu timeline chinh |
+| `timeline/commands/` | Command types va command runner |
+| `timeline/actions/` | Timeline context actions |
+| `timeline/geometry/` | Timeline geometry, viewport layout, lane rows |
+| `timeline/policies/` | Snapping, zoom-fit, ruler ticks, drop target |
+| `timeline/selectors/` | Visible range, track kind, scene-order clips |
+| `timeline/internal/` | Compatibility helpers va adapters noi bo |
+| `operations/` | Clip move, group move, lane flags |
+| `history/` | Undo/redo va coalesce |
+| `properties/` | Property commands, registry, mixed state |
+| `playback/` | Playback driver va frame-time helpers |
+| `preview/` | Compose visual layers |
+| `export/` | Slice scene va build export project |
+| `overlay-scenes/` | Overlay scene helpers |
+| `testing/` | Fixtures va helper cho test |
 
-## Không làm
+## Khong co trong editor-core
 
-- **Không chứa UI Component**: Tuyệt đối không import React hay sử dụng DOM ở đây. UI sẽ nằm ở ngoài các apps (`desktop` hoặc `web`).
-- **Không quản lý State Toàn Cục**: Không dùng Zustand trực tiếp trong package này. Thay vào đó, app sẽ gọi hàm từ package này và tự update state của app.
-- **Không Render Image/Video**: Việc diễn giải timeline thành tọa độ hình ảnh thuộc về `@motionvideo/motion-runtime`, việc encode video thuộc về `@motionvideo/motion-compiler` và `render-worker`.
+- React components
+- DOM measurement
+- Pointer capture / gesture hooks
+- Zustand store
+- UI shell, CSS, layout cua app
+- Renderer-specific code nhu Pixi, Remotion, canvas painting
 
-## Phụ thuộc (Dependencies)
+Neu mot tinh nang can UI hoac gesture, no thuong nam o `@motionvideo/editor-interactions` hoac `@motionvideo/editor-react`.
 
-- `@motionvideo/motion-schema`: Sử dụng schema chuẩn để định nghĩa và giao tiếp.
+## Dependencies
+
+- `@motionvideo/motion-protocol`
+- `@motionvideo/motion-runtime`
+
+## Lua chon thiet ke
+
+`editor-core` co y dinh giu "pure" de:
+
+- test de
+- import duoc tu nhieu app
+- khong bi nut voi React/DOM
+- co the tach sang package khac neu can
+

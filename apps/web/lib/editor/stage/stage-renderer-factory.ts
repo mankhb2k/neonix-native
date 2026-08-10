@@ -17,7 +17,7 @@ import {
 import type {
   MotionProject,
   NormalizedMotionProjectV2,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 
 export function resolveStageRendererBackend(): StageRendererBackend {

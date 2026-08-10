@@ -1,16 +1,16 @@
-import { resolveFitAnchorSeconds } from "@/lib/editor/timeline-fit";
+import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
 import {
   selectionClips,
   selectionNone,
-} from "@/lib/editor/model/editor-selection";
+} from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
-} from "@/lib/editor/timeline-clips";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+} from "@motionvideo/editor-core";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import type {
   EditorStoreActions,
   EditorStoreGet,

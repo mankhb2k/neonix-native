@@ -4,7 +4,7 @@
  */
 
 import type { RenderJobProgress } from "@motionvideo/render-contracts";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type ExportJobRecord = RenderJobProgress & {
   projectId: string;

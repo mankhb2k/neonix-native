@@ -12,7 +12,7 @@ import {
   migrateLanesAndClips,
   type TimelineClip,
   type TimelineLane,
-} from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
 import {
   CURRENT_STORAGE_VERSION,
   deleteProject,

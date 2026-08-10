@@ -4,7 +4,7 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import type { MotionProject, MotionScene } from "@motionvideo/motion-protocol";
 import { layerLaneIdForNode } from "../layer-mode/build-layer-mode-view";
 import { resolveTimelineSurface } from "./resolve-timeline-surface";
 

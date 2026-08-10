@@ -1,4 +1,4 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
 
 export const DEMO_SCENE_ID = "scene.demo";
 

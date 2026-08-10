@@ -2,10 +2,10 @@
  * Editor .mt envelope — giữ clips/lanes khi download/import (không mất placement).
  */
 
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
 import { overlaysFromClips } from "@/lib/editor/persistence/project-migrations";
-import type { TimelineClip, TimelineLane } from "@/lib/editor/timeline-clips";
-import { parseTimelineClips, parseTimelineLanes } from "@/lib/editor/timeline-clips";
+import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
+import { parseTimelineClips, parseTimelineLanes } from "@motionvideo/editor-core";
 
 export const EDITOR_PROJECT_FORMAT = "motion-editor-project" as const;
 export const EDITOR_ENVELOPE_VERSION = 1;

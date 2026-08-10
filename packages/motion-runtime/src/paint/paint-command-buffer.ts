@@ -2,10 +2,7 @@
  * PaintCommandBuffer builder — snapshot → ordered commands.
  */
 
-import type {
-  RenderSnapshot,
-  RenderSnapshotItem,
-} from "../render-snapshot";
+import type { RenderSnapshot, RenderSnapshotItem } from "../render-snapshot";
 import type { PaintCommand, RenderDiagnostic } from "./paint-command";
 
 /** Bump when paint op semantics or required fields change. */
@@ -81,6 +78,7 @@ function emitItem(
     visible: item.visible,
     zIndex: item.renderOrder,
     ...(item.blendMode ? { blendMode: item.blendMode } : {}),
+    ...(item.worldMatrix4 ? { matrix4: Array.from(item.worldMatrix4) } : {}),
   });
 
   const payload = item.payload;
@@ -109,7 +107,9 @@ function emitItem(
       ...(payload.fontAssetId ? { fontAssetId: payload.fontAssetId } : {}),
       ...(payload.wrap ? { wrap: payload.wrap } : {}),
       ...(payload.lineHeight != null ? { lineHeight: payload.lineHeight } : {}),
-      ...(payload.letterSpacing != null ? { letterSpacing: payload.letterSpacing } : {}),
+      ...(payload.letterSpacing != null
+        ? { letterSpacing: payload.letterSpacing }
+        : {}),
       ...(payload.maxLines != null ? { maxLines: payload.maxLines } : {}),
       ...(payload.overflow ? { overflow: payload.overflow } : {}),
       ...(payload.runs ? { runs: payload.runs } : {}),
@@ -248,6 +248,7 @@ function emitItem(
  */
 export function buildPaintCommandBuffer(
   snapshot: RenderSnapshot,
+  perspectiveProjection?: { viewMatrix: number[]; projectionMatrix: number[] },
 ): PaintCommandBuffer {
   const commands: PaintCommand[] = [];
   const diagnostics: RenderDiagnostic[] = [];
@@ -260,6 +261,7 @@ export function buildPaintCommandBuffer(
     sceneId: snapshot.sceneId,
     frame: snapshot.frame,
     time: snapshot.time,
+    ...(perspectiveProjection ? { projection: perspectiveProjection } : {}),
   });
 
   const ordered = [...snapshot.items].sort(
@@ -267,7 +269,10 @@ export function buildPaintCommandBuffer(
   );
 
   for (const item of ordered) {
-    if (!PAINT_KINDS.has(item.payload.kind) && item.payload.kind !== "unknown") {
+    if (
+      !PAINT_KINDS.has(item.payload.kind) &&
+      item.payload.kind !== "unknown"
+    ) {
       diagnostics.push({
         severity: "error",
         code: "capability_not_in_ledger",

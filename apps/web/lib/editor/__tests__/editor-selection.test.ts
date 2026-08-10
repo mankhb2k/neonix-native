@@ -6,8 +6,8 @@ import {
   selectedClipIdsFrom,
   selectedOverlayIdFrom,
   selectedSceneIdFrom,
-} from "@/lib/editor/model/editor-selection";
-import { DEFAULT_VISUAL_POLICY, type TimelineClip, type TimelineLane } from "@/lib/editor/timeline-clips";
+} from "@motionvideo/editor-core";
+import { DEFAULT_VISUAL_POLICY, type TimelineClip, type TimelineLane } from "@motionvideo/editor-core";
 
 const lanes: TimelineLane[] = [
   {

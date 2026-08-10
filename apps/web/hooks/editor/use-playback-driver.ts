@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { createPlaybackDriver } from "@/lib/editor/playback/playback-driver";
+import { createPlaybackDriver } from "@motionvideo/editor-core";
 
 /**
  * Absolute-time RAF driver for `mode === "playing"`.

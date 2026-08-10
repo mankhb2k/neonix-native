@@ -3,11 +3,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
-import { parseMotionProjectV2 } from "../packages/motion-schema/src/index";
+import { parseMotionProjectV2 } from "../packages/motion-protocol/src/index";
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
 import { encodeOutputs, resolveFfmpegPath } from "../apps/render-worker/src/ffmpeg/index";
 import { renderCompiledProject } from "../apps/render-worker/src/runtime/index";
-import { parseMotionComponentV2 } from "../packages/motion-schema/src/index";
+import { parseMotionComponentV2 } from "../packages/motion-protocol/src/index";
 import { readdir } from "node:fs/promises";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");

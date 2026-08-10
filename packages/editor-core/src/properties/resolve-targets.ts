@@ -4,7 +4,7 @@ import {
   type EditorSelection,
 } from "../selection/editor-selection";
 import type { TimelineClip, TimelineLane } from "../timeline/model/timeline-types";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { NodeTarget } from "./types";
 
 function firstEditableNodeId(

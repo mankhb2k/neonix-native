@@ -11,7 +11,7 @@ import {
   type PaintCommandBuffer,
   type PaintFill,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 import { projectFrameLayers } from "./frame-plan";
 import { ensureFont } from "./draw";
 

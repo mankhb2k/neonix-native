@@ -14,7 +14,7 @@
     "lint": "echo \"no lint yet\""
   },
   "dependencies": {
-    "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/motion-protocol": "workspace:*",
     "zod": "^3.24.2"
   },
   "devDependencies": {

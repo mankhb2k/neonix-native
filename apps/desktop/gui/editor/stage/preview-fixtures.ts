@@ -11,7 +11,7 @@ import {
 import {
   parseMotionProject,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 export const PREVIEW_FIXTURE_SIZES = [100, 500, 2000] as const;
 

@@ -1,5 +1,5 @@
-import type { MotionNode } from "@motionvideo/motion-schema";
-import { getTextPayloadPlain } from "@motionvideo/motion-schema";
+import type { MotionNode } from "@motionvideo/motion-protocol";
+import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 import {
   estimateTextSize,
   type TextMeasurementProvider,

@@ -1,7 +1,7 @@
 /**
  * Selection union — nguồn sự thật duy nhất; field cũ derive qua selector (STATE-02).
  */
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { TimelineClip, TimelineLane } from "../timeline/timeline-clips";
 import { isAudioLane, isBaseLane } from "../timeline/timeline-clips";
 

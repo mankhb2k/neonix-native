@@ -1,4 +1,4 @@
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 
 import type { Transform2D } from "./matrix";
 import type { Bounds2D } from "./spatial";

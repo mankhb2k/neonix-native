@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
-import { createPlaybackDriver } from "@/lib/editor/playback/playback-driver";
+import { createPlaybackDriver } from "@motionvideo/editor-core";
 
 describe("playback driver seek re-anchor", () => {
   beforeEach(() => {

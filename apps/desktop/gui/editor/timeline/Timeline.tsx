@@ -5,7 +5,7 @@ import type {
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { useEditorUiSession } from "../session/editor-ui-session";
 import { EMPTY_EDITOR_VIEW_PROPS } from "../workspace-props";
 import { TransportBar } from "./Header/TransportBar";

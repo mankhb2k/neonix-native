@@ -13,9 +13,9 @@ const sharedAlias = {
     __dirname,
     "../../packages/editor-core/src/index.ts",
   ),
-  "@motionvideo/motion-schema": path.resolve(
+  "@motionvideo/motion-protocol": path.resolve(
     __dirname,
-    "../../packages/motion-schema/src/index.ts",
+    "../../packages/motion-protocol/src/index.ts",
   ),
   "@motionvideo/motion-runtime": path.resolve(
     __dirname,
@@ -44,10 +44,7 @@ export default defineConfig({
           name: "node",
           environment: "node",
           include: ["electron/**/*.test.ts", "shared/**/*.test.ts"],
-          exclude: [
-            ...PERF_FILES,
-            "gui/**/stage-renderer-contract.test.ts",
-          ],
+          exclude: [...PERF_FILES, "gui/**/stage-renderer-contract.test.ts"],
         },
       },
       {

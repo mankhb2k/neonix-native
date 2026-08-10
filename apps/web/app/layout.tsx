@@ -1,4 +1,4 @@
-import { Be_Vietnam_Pro, Fraunces } from "next/font/google";
+import { Be_Vietnam_Pro, Fraunces, Roboto_Mono } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -16,6 +16,13 @@ const display = Fraunces({
   display: "swap",
 });
 
+const mono = Roboto_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-roboto-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "MotiClip",
   description: "AI Studio — motion graphics 2.5D từ brief đến export",
@@ -27,7 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" data-theme="light" className={`${sans.variable} ${display.variable}`}>
+    <html
+      lang="vi"
+      data-theme="light"
+      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

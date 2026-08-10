@@ -3,7 +3,7 @@ import {
   clipsVisibleWithPins,
   visibleTimeRange,
 } from "@motionvideo/editor-core";
-import { playbackFrameIndex } from "./time-frame";
+import { playbackFrameIndex } from "@motionvideo/editor-core";
 import { TIMELINE_CLIP_OVERSCAN_PX } from "@motionvideo/editor-react";
 import {
   createDenseTimelineFixture,

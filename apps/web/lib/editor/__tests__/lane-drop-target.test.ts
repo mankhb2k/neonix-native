@@ -8,7 +8,7 @@ import {
   type AudioLaneHit,
   type LaneHit,
   type VideoLaneHit,
-} from "@/lib/editor/timeline/policies/drop-target-policy";
+} from "@motionvideo/editor-core";
 
 const lanes: VideoLaneHit[] = [
   { top: 100, bottom: 140, type: "overlay", laneId: "ov1", order: 1 },

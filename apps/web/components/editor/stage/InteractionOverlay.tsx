@@ -14,10 +14,10 @@ import {
 import {
   selectionNone,
   selectionNode,
-} from "@/lib/editor/model/editor-selection";
+  sceneOrderToTimelineClips,
+} from "@motionvideo/editor-core";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
-import { sceneOrderToTimelineClips } from "@/lib/editor/timeline/scene-order-clips";
 import { isElementLocked } from "@/lib/editor/authoring/web-project-envelope";
 import {
   useCallback,
@@ -289,10 +289,7 @@ export function InteractionOverlay({
       });
 
       const nodeBase = resolveNodeBase(hit.sceneId, hit.nodeId);
-      if (
-        nodeBase &&
-        !isElementLocked(envelope, hit.sceneId, hit.nodeId)
-      ) {
+      if (nodeBase && !isElementLocked(envelope, hit.sceneId, hit.nodeId)) {
         startMove(nodeBase, hit.worldBounds, point);
       }
     },

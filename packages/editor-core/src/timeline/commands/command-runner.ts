@@ -59,7 +59,7 @@ import type {
   TimelineCommand,
   TimelineDomainEvent,
 } from "./command-types";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   defaultCommandContext,
   type CommandContext,

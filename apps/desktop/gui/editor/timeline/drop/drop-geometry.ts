@@ -1,19 +1,18 @@
 /**
  * Map pointer position to timeline drop placement (N5).
- * Pure geometry — no document mutation.
+ * DOM wrappers + shared pure math from @motionvideo/editor-interactions.
  */
 
 import type { TimelineLane } from "@motionvideo/editor-core";
+import { trackForLane, type TimelineTrackKind } from "../lanes/track-kind";
 import {
-  trackForLane,
-  type TimelineTrackKind,
-} from "../lanes/track-kind";
+  resolveDropGeometry as resolveDropGeometryPure,
+  type DropGeometryResult,
+} from "@motionvideo/editor-interactions";
 
-export type TimelineDropGeometry = {
-  laneId: string;
-  startTime: number;
-  track: TimelineTrackKind;
-};
+export type { DropGeometryResult };
+
+export type TimelineDropGeometry = DropGeometryResult;
 
 export type DropGeometryInput = {
   clientX: number;
@@ -33,10 +32,7 @@ export type DropGeometryInput = {
   tracksOriginX: number;
 };
 
-export function hitTimelineDropZone(
-  clientX: number,
-  clientY: number,
-): boolean {
+export function hitTimelineDropZone(clientX: number, clientY: number): boolean {
   const el = document.elementFromPoint(clientX, clientY);
   return Boolean(el?.closest('[data-timeline-drop-zone="true"]'));
 }
@@ -57,37 +53,22 @@ export function resolveTimelineDropGeometry(
   input: DropGeometryInput,
 ): TimelineDropGeometry | null {
   const rect = input.scrollEl.getBoundingClientRect();
-  const y =
+  const contentY =
     input.clientY - rect.top + input.scrollEl.scrollTop - input.lanesTop;
-  const x = contentXFromPointer({
+  const contentX = contentXFromPointer({
     clientX: input.clientX,
     scrollEl: input.scrollEl,
     tracksOriginX: input.tracksOriginX,
   });
-  if (y < 0 || input.lanes.length === 0) return null;
 
-  const ordered = input.lanes;
-  const heightOf = (lane: TimelineLane) =>
-    input.laneHeightFor?.(lane) ?? input.laneHeight;
-  const gap = Math.max(0, input.laneGapPx ?? 0);
-
-  let acc = 0;
-  let lane = ordered[ordered.length - 1]!;
-  for (let i = 0; i < ordered.length; i += 1) {
-    const candidate = ordered[i]!;
-    const h = Math.max(1, heightOf(candidate));
-    if (y < acc + h) {
-      lane = candidate;
-      break;
-    }
-    acc += h;
-    if (i < ordered.length - 1) acc += gap;
-  }
-
-  const startTime = Math.max(0, x / Math.max(1e-6, input.pixelsPerSecond));
-  return {
-    laneId: lane.id,
-    startTime,
-    track: trackForLane(lane),
-  };
+  return resolveDropGeometryPure({
+    contentX,
+    contentY,
+    lanes: input.lanes,
+    laneHeightFor: input.laneHeightFor,
+    laneHeight: input.laneHeight,
+    laneGapPx: input.laneGapPx,
+    pixelsPerSecond: input.pixelsPerSecond,
+    trackForLane,
+  });
 }

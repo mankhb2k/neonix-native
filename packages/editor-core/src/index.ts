@@ -8,14 +8,23 @@ export * from "./selection/editor-selection";
 export * from "./selection/editor-selectors";
 export * from "./timeline/model/timeline-types";
 export * from "./document/document";
+export * from "./document/canonical-projection";
 export * from "./timeline/timeline-clips";
 export * from "./timeline/assert-never";
 export * from "./timeline/clip-capabilities";
 export * from "./timeline/indexes";
 export * from "./timeline/selectors/visible-range";
+export * from "./timeline/selectors/track-kind";
+export * from "./timeline/selectors/scene-order-clips";
 export * from "./timeline/geometry/timeline-geometry";
+export * from "./timeline/geometry/viewport-layout";
+export * from "./timeline/geometry/lane-rows";
+export * from "./timeline/layer-mode/build-layer-tree";
+export * from "./timeline/actions/timeline-context-actions";
 export * from "./timeline/policies/snapping-policy";
 export * from "./timeline/policies/zoom-fit-policy";
+export * from "./timeline/policies/capcut-ruler-scale";
+export * from "./timeline/policies/ruler-ticks";
 export * from "./timeline/policies/drop-target-policy";
 export * from "./history/history-types";
 export * from "./history/history-manager";
@@ -90,3 +99,32 @@ export {
 } from "./timeline/internal/placement-adapter";
 export { resolveCollisionsAfterResize } from "./timeline/internal/resize-collision";
 export { rebuildMainProject } from "./timeline/internal/timeline-project-sync";
+
+export type {
+  PlaybackDriver,
+  PlaybackDriverClock,
+  PlaybackDriverDeps,
+} from "./playback/playback-driver";
+export { createPlaybackDriver } from "./playback/playback-driver";
+export { playbackFrameIndex, playbackFrameTime } from "./playback/time-frame";
+
+export type {
+  ComposedSceneLayer,
+  VisualLaneIndex,
+} from "./preview/compose-layers";
+export {
+  buildVisualLaneIndex,
+  clipContainsTime,
+  composeAtTime,
+  composeVisualLayersAtTime,
+  findActiveClipAtTime,
+  resolveScene,
+} from "./preview/compose-layers";
+
+export { clipLocalTime, sliceScene } from "./export/slice-scene";
+export type { EditorExportSnapshot } from "./export/build-export-project";
+export {
+  buildExportProject,
+  findBaseClipAtTimeForExport,
+  resolveBakedLocalTime,
+} from "./export/build-export-project";

@@ -1,4 +1,4 @@
-import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import type { MotionProject, MotionScene } from "@motionvideo/motion-protocol";
 import type { TimelineClip, TimelineLane } from "../timeline/timeline-clips";
 import {
   focusedNodeIdFrom,

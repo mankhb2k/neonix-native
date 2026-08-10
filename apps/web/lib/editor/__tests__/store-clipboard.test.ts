@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
 import { useEditorStore } from "@/lib/editor/editor-store";
-import { DEFAULT_VISUAL_POLICY } from "@/lib/editor/timeline-clips";
+import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("editor-store clipboard", () => {
   beforeEach(() => {

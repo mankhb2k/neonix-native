@@ -6,7 +6,7 @@ import {
   runZeroTemplateGeneration,
   type OrchestratorProgress,
 } from "@motionvideo/ai-planner";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 
 export const runtime = "nodejs";
 export const maxDuration = 180;

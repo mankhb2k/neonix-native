@@ -27,7 +27,7 @@ import {
 import { loadTimelineFromDocumentJson } from "../document/load-envelope";
 import { serializeProjectIntoDocumentJson } from "../document/serialize-envelope";
 import type { EditorUiPatch } from "./editor-ui-session";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type TimelineSessionState = {
   projectId: string | null;

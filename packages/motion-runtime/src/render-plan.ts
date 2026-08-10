@@ -1,4 +1,4 @@
-import { MOTION_V2_LIMITS } from "@motionvideo/motion-schema";
+import { MOTION_V2_LIMITS } from "@motionvideo/motion-protocol";
 import type { EvaluatedNode, RuntimeScene, RuntimeNode } from "./evaluator";
 import type { Bounds2D } from "./spatial";
 import { calculateMotionBlurTimestamps, type MotionBlurSettings } from "./motion-blur";
