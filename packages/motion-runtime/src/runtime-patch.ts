@@ -13,7 +13,7 @@
  * editor commands and the playback evaluator/painter pipeline.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 
 // ── Sequence ──────────────────────────────────────────────────────────
 

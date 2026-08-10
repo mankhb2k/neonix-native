@@ -8,9 +8,9 @@
  * in Phase 8 without changing the public API.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 import { createHash } from "node:crypto";
-import type { MotionComponentV2 } from "@motionvideo/motion-schema";
+import type { MotionComponentV2 } from "@motionvideo/motion-protocol";
 import type { CompileResult } from "./compile-result";
 
 // ── Cache key ─────────────────────────────────────────────────────────

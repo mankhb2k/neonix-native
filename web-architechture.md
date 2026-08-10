@@ -65,7 +65,7 @@ flowchart TB
   end
 
   subgraph Canonical["Canonical MotiClip language"]
-    Schema["@motionvideo/motion-schema<br/>MotionProject JSON + Zod validation"]
+    Schema["@motionvideo/motion-protocol<br/>MotionProject JSON + Zod validation"]
     Project["MotionProject revision<br/>stable IDs · assets · scenes · nodes · tracks"]
     Compiler["@motionvideo/motion-compiler<br/>MotionProject → Normalized Runtime IR"]
     Runtime["@motionvideo/motion-runtime<br/>timeline resolve · evaluateFrame(frame)"]
@@ -254,7 +254,7 @@ Ví dụ `mask:luma` có trong schema nhưng Remotion painter chưa hỗ trợ t
 
 | Package               | Vai trò kiến trúc                                                                                                                                                                                                                         | Ranh giới                                                                        |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `motion-schema`       | Canonical JSON, Zod parse, reference validation, versioning                                                                                                                                                                               | Giữ độc lập với mọi renderer                                                     |
+| `motion-protocol`     | Canonical JSON, Zod parse, reference validation, versioning                                                                                                                                                                               | Giữ độc lập với mọi renderer                                                     |
 | `motion-compiler`     | Authoring JSON → Runtime IR                                                                                                                                                                                                               | Compiler version là một phần của render manifest                                 |
 | `motion-runtime`      | Timeline resolve, evaluator, `EvaluatedFrame`, hit-test, paint commands, audio plan                                                                                                                                                       | Sở hữu toàn bộ composition evaluation dùng chung preview/export                  |
 | `editor-core`         | Commands, selection, history, document operations<br/>Timeline: lane rows, ruler ticks, viewport layout, drop target policy, layer tree, context actions                                                                                  | Không React/DOM/Zustand                                                          |
@@ -271,7 +271,7 @@ Ví dụ `mask:luma` có trong schema nhưng Remotion painter chưa hỗ trợ t
 | Package/app hiện tại | Lý do không là package độc lập                                      | Nơi sở hữu contract trong kiến trúc đích                                               |
 | -------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `motion-grammar`     | Chỉ là policy của AI planning                                       | `ai-planner/planning`                                                                  |
-| `shared`             | Misc bucket làm mờ ownership                                        | App config, `motion-schema` hoặc `render-contracts` tùy loại dữ liệu                   |
+| `shared`             | Misc bucket làm mờ ownership                                        | App config, `motion-protocol` hoặc `render-contracts` tùy loại dữ liệu                   |
 | `preview-kit`        | Composition evaluation không chỉ phục vụ preview                    | `motion-runtime`; fixtures nằm ngoài production barrel                                 |
 | `template-library`   | Template không thuộc zero-template MVP                              | Ngoài active dependency graph; chỉ quay lại như feature module khi có template product |
 | `apps/render-worker` | Không phải production renderer khi Remotion Lambda là export engine | Chỉ là công cụ local/golden/parity trong giai đoạn chuyển tiếp                         |
@@ -386,7 +386,7 @@ Desktop không gọi AWS trực tiếp; Desktop gọi cùng Web API render như 
 3. `ai-planner` tạo `CreativePlan` và `SceneDesignPlan`.
 4. Model chỉ trả typed `CommandBatch`; không trả TSX/CSS/JS.
 5. Command executor apply batch vào draft transaction.
-6. `motion-schema` parse/reference validation.
+6. `motion-protocol` parse/reference validation.
 7. `motion-compiler` compile probe.
 8. `motion-runtime` evaluate probe frames và trả diagnostics.
 9. Critic sửa theo command batch, tối đa số vòng đã cấu hình.

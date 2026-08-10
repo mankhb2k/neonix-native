@@ -5,7 +5,7 @@
  * Moved from apps/desktop/gui/editor/timeline/layer-mode/build-layer-tree.ts
  */
 
-import type { MotionNode, MotionScene } from "@motionvideo/motion-schema";
+import type { MotionNode, MotionScene } from "@motionvideo/motion-protocol";
 
 export type LayerTreeNode = {
   id: string;

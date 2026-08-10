@@ -49,5 +49,5 @@ import {
 ## Phụ thuộc
 
 - `remotion`
-- `@motionvideo/motion-compiler` · `motion-runtime` · `motion-schema`
+- `@motionvideo/motion-compiler` · `motion-runtime` · `motion-protocol`
 - `@motionvideo/render-contracts`

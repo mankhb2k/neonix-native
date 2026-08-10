@@ -8,7 +8,7 @@
  *       The inverse path (rebuildMainProject) is DEPRECATED and will be removed in Phase 3.
  */
 
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { createHash } from "node:crypto";
 import { sceneOrderToTimelineClips } from "../timeline/selectors/scene-order-clips";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";

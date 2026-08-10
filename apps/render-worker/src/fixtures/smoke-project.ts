@@ -1,4 +1,4 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
 
 /** Minimal text+preset project for render-worker e2e / benchmark (replaces template-library seed). */
 export function createSmokeMotionProject(idSuffix?: string): MotionProject {

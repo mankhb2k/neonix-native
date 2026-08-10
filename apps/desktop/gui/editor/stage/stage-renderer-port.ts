@@ -26,7 +26,7 @@ import {
   stageSizeForAspect,
   type PreviewParityNode,
 } from "../preview/preview-evaluate";
-import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-protocol";
 
 export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {

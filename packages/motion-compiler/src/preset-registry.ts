@@ -7,7 +7,7 @@ import { z } from "zod";
 import {
   KeyframeEasingV2Schema,
   MOTION_V2_LIMITS,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 type KeyframeEasing = z.infer<typeof KeyframeEasingV2Schema>;
 

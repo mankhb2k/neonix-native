@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type AssetIntegrityResult = {
   ok: boolean;

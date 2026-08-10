@@ -1,4 +1,4 @@
-# `@motionvideo/motion-schema`
+# `@motionvideo/motion-protocol`
 
 Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion Format v2. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**.
 
@@ -313,7 +313,7 @@ import {
   aiSchemaCapabilityReady,
   listAiSchemaProductionCapabilities,
   aiSchemaCapabilityPromptBlock,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 ```
 
 Mỗi hàng có các cột: `schema`, `compiler`, `runtime`, `paint`, `pixi`, `remotion`, `ai`.  
@@ -331,7 +331,7 @@ import {
   parseMotionComponentV2,
   serializeMotionProject,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 // Parse & Validate JSON Project (.mt) — đã gồm legacy normalize
 try {
@@ -351,7 +351,7 @@ const jsonString = serializeMotionProject(project);
 import {
   getTextPayloadPlain,
   setTextPayloadPlain,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 const plain = getTextPayloadPlain(textNode.payload);
 
@@ -361,7 +361,7 @@ textNode.payload = setTextPayloadPlain(textNode.payload, "Nội dung mới");
 ### 3. Áp dụng Patch
 
 ```ts
-import { applyMotionPatch } from "@motionvideo/motion-schema";
+import { applyMotionPatch } from "@motionvideo/motion-protocol";
 
 const updatedProject = applyMotionPatch(project, {
   format: "motion-patch",
@@ -383,7 +383,7 @@ const updatedProject = applyMotionPatch(project, {
 import {
   publicMotionPropertyCapabilities,
   motionPropertyCapability,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 const textCapabilities = publicMotionPropertyCapabilities("text");
 
@@ -395,7 +395,7 @@ console.log("Animatable:", cap?.animatable); // true
 
 ## 📦 Ranh giới Package
 
-| Thuộc motion-schema | Không thuộc package này |
+| Thuộc motion-protocol | Không thuộc package này |
 | ------------------- | ----------------------- |
 | Zod schemas, limits, SourceRef | Speech-to-text |
 | Parse normalize / serialize | Đo text bằng DOM |
@@ -408,7 +408,7 @@ console.log("Animatable:", cap?.animatable); // true
 
 ## 📄 Tài liệu Tham chiếu liên quan
 
-- Kế hoạch mở rộng AI schema: [`ai-motion-schema-expansion-plan.md`](../../ai-motion-schema-expansion-plan.md)
+- Kế hoạch mở rộng AI schema: [`ai-motion-protocol-expansion-plan.md`](../../ai-motion-protocol-expansion-plan.md)
 - Compiler: [`packages/motion-compiler`](../motion-compiler)
 - Runtime / paint: [`packages/motion-runtime`](../motion-runtime)
 - AI planner: [`packages/ai-planner`](../ai-planner)
@@ -416,6 +416,6 @@ console.log("Animatable:", cap?.animatable); // true
 ### Kiểm thử trong package
 
 ```bash
-pnpm --filter @motionvideo/motion-schema test
-pnpm --filter @motionvideo/motion-schema typecheck
+pnpm --filter @motionvideo/motion-protocol test
+pnpm --filter @motionvideo/motion-protocol typecheck
 ```

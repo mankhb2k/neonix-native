@@ -48,4 +48,4 @@ import {
 ## Phụ thuộc
 
 - `pixi.js`
-- `@motionvideo/motion-runtime` · `@motionvideo/motion-schema`
+- `@motionvideo/motion-runtime` · `@motionvideo/motion-protocol`

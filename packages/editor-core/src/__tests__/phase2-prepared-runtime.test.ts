@@ -1,6 +1,6 @@
 /**
  * Phase 2 tests for editor-core: PreparedRuntimeProject types + RuntimePatch protocol.
- * These only need @motionvideo/motion-schema and @motionvideo/motion-runtime.
+ * These only need @motionvideo/motion-protocol and @motionvideo/motion-runtime.
  */
 import { describe, it, expect } from "vitest";
 
@@ -12,7 +12,7 @@ import type {
   TextLayoutInput,
   CompositingScope,
   DepGraphNode,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 
 describe("PreparedRuntimeProject (type smoke)", () => {
   it("StaticGeometry shape is valid", () => {

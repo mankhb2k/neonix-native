@@ -25,7 +25,7 @@ import type {
   MotionProject,
   MotionScene,
   NormalizedMotionProjectV2,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import {
   matrixToCss,
   previewParitySnapshot,

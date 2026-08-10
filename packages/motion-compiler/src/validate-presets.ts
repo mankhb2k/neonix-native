@@ -1,4 +1,4 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { isCompiledPreset } from "./presets";
 
 export type UnknownPresetRef = {

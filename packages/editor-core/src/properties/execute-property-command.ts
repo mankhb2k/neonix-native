@@ -4,7 +4,7 @@ import {
   setTextPayloadPlain,
   type MotionNode,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import type { TimelineDocument } from "../document/document";
 import { mapNode } from "../timeline/internal/scene-utils";
 import type {

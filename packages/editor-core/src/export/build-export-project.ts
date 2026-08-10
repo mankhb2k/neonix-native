@@ -8,7 +8,7 @@ import {
   type MotionNode,
   type MotionProject,
   type MotionScene,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import {
   documentFromStoreState,
   validateTimelineDocument,

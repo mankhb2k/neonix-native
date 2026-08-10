@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type ProbeFrame = { time: number; path: string };
 

@@ -7,7 +7,7 @@ import {
   serializeDesktopProjectEnvelope,
 } from "../../../shared/project-file/envelope";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export function serializeProjectIntoDocumentJson(
   baseDocumentJson: string,

@@ -14,7 +14,7 @@ import {
   migrateLanesAndClips,
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
 import { documentFromStoreState } from "@motionvideo/editor-core";
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";

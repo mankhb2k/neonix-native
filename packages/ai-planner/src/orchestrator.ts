@@ -1,4 +1,4 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   parseCreativeBriefV1,
   parseCreativePlanV1,

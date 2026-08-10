@@ -32,12 +32,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../../packages/motion-compiler
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../../packages/motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../../packages/motion-schema
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -165,12 +165,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../../packages/motion-compiler
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../../packages/motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../../packages/motion-schema
       '@motionvideo/remotion-renderer':
         specifier: workspace:*
         version: link:../../packages/remotion-renderer
@@ -217,12 +217,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../../packages/motion-compiler
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../../packages/motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../../packages/motion-schema
       '@motionvideo/render-contracts':
         specifier: workspace:*
         version: link:../../packages/render-contracts
@@ -260,12 +260,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../../packages/motion-compiler
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../../packages/motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../../packages/motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../../packages/motion-schema
       '@motionvideo/pixi-renderer':
         specifier: workspace:*
         version: link:../../packages/pixi-renderer
@@ -372,12 +372,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../motion-compiler
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -409,12 +409,12 @@ importers:
 
   packages/editor-core:
     dependencies:
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
     devDependencies:
       '@eslint/js':
         specifier: ^9.22.0
@@ -440,12 +440,12 @@ importers:
       '@motionvideo/editor-core':
         specifier: workspace:*
         version: link:../editor-core
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
     devDependencies:
       '@eslint/js':
         specifier: ^9.22.0
@@ -511,9 +511,22 @@ importers:
 
   packages/motion-compiler:
     dependencies:
-      '@motionvideo/motion-schema':
+      '@motionvideo/motion-protocol':
         specifier: workspace:*
-        version: link:../motion-schema
+        version: link:../motion-protocol
+      zod:
+        specifier: ^3.24.2
+        version: 3.25.76
+    devDependencies:
+      typescript:
+        specifier: ^5.8.2
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
+
+  packages/motion-protocol:
+    dependencies:
       zod:
         specifier: ^3.24.2
         version: 3.25.76
@@ -527,9 +540,9 @@ importers:
 
   packages/motion-runtime:
     dependencies:
-      '@motionvideo/motion-schema':
+      '@motionvideo/motion-protocol':
         specifier: workspace:*
-        version: link:../motion-schema
+        version: link:../motion-protocol
     devDependencies:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
@@ -541,27 +554,14 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
 
-  packages/motion-schema:
-    dependencies:
-      zod:
-        specifier: ^3.24.2
-        version: 3.25.76
-    devDependencies:
-      typescript:
-        specifier: ^5.8.2
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.10
-        version: 4.1.10(@types/node@22.20.1)(happy-dom@20.11.1)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
-
   packages/pixi-renderer:
     dependencies:
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
       pixi.js:
         specifier: ^8.19.0
         version: 8.19.0
@@ -575,12 +575,12 @@ importers:
 
   packages/playback-engine:
     dependencies:
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
       '@motionvideo/render-contracts':
         specifier: workspace:*
         version: link:../render-contracts
@@ -597,12 +597,12 @@ importers:
       '@motionvideo/motion-compiler':
         specifier: workspace:*
         version: link:../motion-compiler
+      '@motionvideo/motion-protocol':
+        specifier: workspace:*
+        version: link:../motion-protocol
       '@motionvideo/motion-runtime':
         specifier: workspace:*
         version: link:../motion-runtime
-      '@motionvideo/motion-schema':
-        specifier: workspace:*
-        version: link:../motion-schema
       '@motionvideo/render-contracts':
         specifier: workspace:*
         version: link:../render-contracts

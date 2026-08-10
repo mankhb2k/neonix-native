@@ -27,3 +27,4 @@ playwright/.cache
 apps/web/.next.bak*
 /konva
 /remotion
+/clipkit

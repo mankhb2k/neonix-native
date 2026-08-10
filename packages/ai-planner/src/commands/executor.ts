@@ -7,7 +7,7 @@ import {
   type MotionNode,
   type MotionProject,
   type NormalizedMotionProjectV2,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import { type CommandReceipt, diagnostic, unsupportedCapability } from "./diagnostics";
 import {
   type AuthoringCommand,

@@ -8,7 +8,7 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   buildLayerModeView,
   type LayerModeView,

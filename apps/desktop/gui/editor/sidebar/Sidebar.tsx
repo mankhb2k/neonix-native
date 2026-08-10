@@ -23,7 +23,7 @@ export type { EditorSidebarProps };
 
 export type SidebarProps = Partial<Omit<EditorSidebarProps, "selection">> & {
   media?: ReactNode;
-  project?: import("@motionvideo/motion-schema").MotionProject | null;
+  project?: import("@motionvideo/motion-protocol").MotionProject | null;
   projectPath?: string | null;
   documentJson?: string;
   assetsApi?: AssetRepository;

@@ -3,7 +3,7 @@
  * Index memo theo clips/lanes; frame chỉ binary search (PERF).
  */
 
-import type { MotionScene } from "@motionvideo/motion-schema";
+import type { MotionScene } from "@motionvideo/motion-protocol";
 import {
   isSceneClip,
   type TimelineClip,

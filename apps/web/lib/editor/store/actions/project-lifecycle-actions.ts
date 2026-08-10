@@ -10,7 +10,7 @@ import {
   migrateLanesAndClips,
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import type {
   EditorStoreActions,
   EditorStoreGet,

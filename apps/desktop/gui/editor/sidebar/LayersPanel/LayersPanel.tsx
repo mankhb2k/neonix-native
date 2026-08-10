@@ -16,7 +16,7 @@ import {
   type TimelineCommand,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { useEditorUiSession } from "../../session/editor-ui-session";
 import {
   buildLayerTree,

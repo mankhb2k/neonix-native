@@ -49,4 +49,4 @@ import {
 ## Phụ thuộc
 
 - `@motionvideo/editor-core` — types timeline, selection helpers, gutter constants
-- `@motionvideo/motion-schema` / `@motionvideo/motion-runtime` — stage/transform khi cần schema runtime
+- `@motionvideo/motion-protocol` / `@motionvideo/motion-runtime` — stage/transform khi cần schema runtime

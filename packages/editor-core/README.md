@@ -128,7 +128,7 @@ Neu mot tinh nang can UI hoac gesture, no thuong nam o `@motionvideo/editor-inte
 
 ## Dependencies
 
-- `@motionvideo/motion-schema`
+- `@motionvideo/motion-protocol`
 - `@motionvideo/motion-runtime`
 
 ## Lua chon thiet ke

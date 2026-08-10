@@ -1,4 +1,4 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
 import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   DEFAULT_VISUAL_POLICY,

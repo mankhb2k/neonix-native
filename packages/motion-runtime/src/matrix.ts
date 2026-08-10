@@ -1,4 +1,4 @@
-import type { MotionTransform } from "@motionvideo/motion-schema";
+import type { MotionTransform } from "@motionvideo/motion-protocol";
 
 export type Transform2D = MotionTransform;
 

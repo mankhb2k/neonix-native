@@ -12,7 +12,7 @@ import {
   STAGE_RENDERER_BACKEND,
 } from "./stage-renderer-factory";
 import type { StageRendererPort } from "./stage-renderer-port";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import "./stage-layout.css";
 
 type Props = {

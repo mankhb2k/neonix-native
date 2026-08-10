@@ -8,7 +8,7 @@ import { sceneOrderToTimelineClips } from "@motionvideo/editor-core";
 import { subscribeLibraryDrag } from "@/lib/editor/library/library-drag-session";
 import { isOverStageDropZone } from "@/lib/editor/library/timeline-library-drop";
 import { cn } from "@/lib/utils";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { useEffect, useMemo, useState } from "react";
 
 type Props = {

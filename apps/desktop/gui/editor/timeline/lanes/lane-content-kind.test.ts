@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   buildLaneContentKindById,
   buildSceneById,

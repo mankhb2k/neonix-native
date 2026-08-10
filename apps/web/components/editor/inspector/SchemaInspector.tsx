@@ -7,8 +7,8 @@ import {
   type PropertyContext,
   type PropertyDefinition,
 } from "@motionvideo/editor-core";
-import { motionPropertyCapability } from "@motionvideo/motion-schema";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import { motionPropertyCapability } from "@motionvideo/motion-protocol";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { AskAIBar } from "@/components/editor/inspector/ai/AskAIBar";
 import { Panel, Tabs } from "@/components/ui";
 import {

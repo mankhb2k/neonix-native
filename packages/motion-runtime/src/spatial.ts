@@ -1,4 +1,4 @@
-import { MOTION_V2_LIMITS } from "@motionvideo/motion-schema";
+import { MOTION_V2_LIMITS } from "@motionvideo/motion-protocol";
 import { applyMatrix, type Matrix2D } from "./matrix";
 import { type Matrix4, transformPoint3D } from "./matrix4";
 import type { Point3D } from "./matrix4";

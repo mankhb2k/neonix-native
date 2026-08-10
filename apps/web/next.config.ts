@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: [
     "@motionvideo/render-contracts",
-    "@motionvideo/motion-schema",
+    "@motionvideo/motion-protocol",
     "@motionvideo/motion-runtime",
     "@motionvideo/motion-compiler",
     "@motionvideo/ai-planner",

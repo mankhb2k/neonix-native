@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/motion-protocol": "workspace:*",
     "@motionvideo/render-contracts": "workspace:*"
   },
   "devDependencies": {

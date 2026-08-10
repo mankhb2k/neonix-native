@@ -2,7 +2,7 @@ import { mkdir, writeFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { serializeMotionProject } from "@motionvideo/motion-schema";
+import { serializeMotionProject } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { compileMotionProject } from "./compiler";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";

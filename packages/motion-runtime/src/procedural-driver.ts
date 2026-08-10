@@ -1,4 +1,4 @@
-import type { ProceduralDriverV2 } from "@motionvideo/motion-schema";
+import type { ProceduralDriverV2 } from "@motionvideo/motion-protocol";
 
 export type ProceduralDriver = ProceduralDriverV2;
 

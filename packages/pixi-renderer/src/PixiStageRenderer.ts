@@ -6,7 +6,7 @@ import {
   type EvaluatedFrame,
   type EvaluatedFramePainter,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 import { Application, Container } from "pixi.js";
 import {
   createPixiFramePainter,

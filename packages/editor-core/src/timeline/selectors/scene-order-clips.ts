@@ -1,4 +1,4 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { TimelineClip, TimelineLane } from "../model/timeline-types";
 import { migrateLanesAndClips } from "../migrations/project-migration";
 

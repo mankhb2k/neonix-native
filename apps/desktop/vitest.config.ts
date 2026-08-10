@@ -13,9 +13,9 @@ const sharedAlias = {
     __dirname,
     "../../packages/editor-core/src/index.ts",
   ),
-  "@motionvideo/motion-schema": path.resolve(
+  "@motionvideo/motion-protocol": path.resolve(
     __dirname,
-    "../../packages/motion-schema/src/index.ts",
+    "../../packages/motion-protocol/src/index.ts",
   ),
   "@motionvideo/motion-runtime": path.resolve(
     __dirname,

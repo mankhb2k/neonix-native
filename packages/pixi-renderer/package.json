@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@motionvideo/motion-runtime": "workspace:*",
-    "@motionvideo/motion-schema": "workspace:*",
+    "@motionvideo/motion-protocol": "workspace:*",
     "pixi.js": "^8.19.0"
   },
   "devDependencies": {

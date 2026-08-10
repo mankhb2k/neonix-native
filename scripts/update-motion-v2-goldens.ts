@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { compileMotionProject } from "../apps/render-worker/src/compiler/index";
-import { parseMotionComponentV2, parseMotionProjectV2 } from "../packages/motion-schema/src/index";
+import { parseMotionComponentV2, parseMotionProjectV2 } from "../packages/motion-protocol/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");

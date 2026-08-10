@@ -8,7 +8,7 @@ import {
   type MotionNode,
   type MotionProject,
   type NormalizedMotionProjectV2,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import { applyFitText, applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 

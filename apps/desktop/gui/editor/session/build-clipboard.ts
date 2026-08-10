@@ -11,7 +11,7 @@ import {
   type TimelineClip,
   type TimelineLane,
 } from "@motionvideo/editor-core";
-import type { MotionProject, MotionScene } from "@motionvideo/motion-schema";
+import type { MotionProject, MotionScene } from "@motionvideo/motion-protocol";
 
 export function buildClipboardFromSelection(input: {
   selection: EditorSelection;

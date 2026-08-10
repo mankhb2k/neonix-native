@@ -13,7 +13,7 @@ import {
   serializeEditorProjectEnvelope,
 } from "@/lib/editor/export/editor-project-envelope";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 
 describe("buildExportProject", () => {
   it("bakes base + gap + overlay + muted audio into valid MotionProject", () => {

@@ -1,5 +1,5 @@
-import type { MotionProject } from "@motionvideo/motion-schema";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import {
   parseOverlayScenes,
   type OverlaySceneItem,

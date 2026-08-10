@@ -3,8 +3,8 @@ import {
   defaultCreateId,
   type CommandContext,
 } from "../../ports/command-context";
-import type { MotionNode, MotionProject, MotionScene } from "@motionvideo/motion-schema";
-import { getTextPayloadPlain } from "@motionvideo/motion-schema";
+import type { MotionNode, MotionProject, MotionScene } from "@motionvideo/motion-protocol";
+import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 
 /** Tạo ID duy nhất với tiền tố — injectable for tests. */
 export function uid(

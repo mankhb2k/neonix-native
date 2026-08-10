@@ -25,7 +25,7 @@ const baseTransform = {
   flipY: false,
 };
 
-describe("motion-schema R2–R5 contract", () => {
+describe("motion-protocol R2–R5 contract", () => {
   it("accepts adjustment nodes", () => {
     expect(
       NodeV2Schema.parse({

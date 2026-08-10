@@ -1,4 +1,4 @@
-import { parseMotionProject, type AspectRatio, type MotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject, type AspectRatio, type MotionProject } from "@motionvideo/motion-protocol";
 
 export function createBlankProject(input: {
   name: string;

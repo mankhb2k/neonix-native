@@ -12,7 +12,7 @@ import {
   INITIAL_REVISION,
 } from "../document/canonical-projection";
 import { validateTimelineDocument } from "../document/document";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { TimelineDocument } from "../document/document";
 
 // ── Fixtures ──────────────────────────────────────────────────────────

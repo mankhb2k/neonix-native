@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 
 export type AiJobPhase =
   | "idle"

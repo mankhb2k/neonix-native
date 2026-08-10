@@ -1,7 +1,7 @@
 import {
   motionPropertyCapability,
   type NormalizedMotionProjectV2,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import {
   IDENTITY_MATRIX,
   applyMatrix,

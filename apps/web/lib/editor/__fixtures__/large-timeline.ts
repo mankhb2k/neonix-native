@@ -2,7 +2,7 @@
  * Large timeline fixtures for virtualization / DOM-count gates.
  */
 
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,

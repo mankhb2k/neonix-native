@@ -4,7 +4,7 @@
  * so animations continue across timeline segment boundaries.
  */
 
-import type { MotionClip, MotionScene } from "@motionvideo/motion-schema";
+import type { MotionClip, MotionScene } from "@motionvideo/motion-protocol";
 
 type TrackTime = Extract<
   MotionClip["source"],

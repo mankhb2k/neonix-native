@@ -3,7 +3,7 @@
 import {
   parseMotionProject,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 
 export { useEditorStore } from "@/lib/editor/store/create-editor-store";

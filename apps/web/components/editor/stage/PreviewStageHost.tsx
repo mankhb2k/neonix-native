@@ -20,7 +20,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import type { RenderSnapshot } from "@motionvideo/motion-runtime";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 type Props = {

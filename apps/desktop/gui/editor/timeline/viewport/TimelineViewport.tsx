@@ -41,7 +41,7 @@ import { TimeRuler } from "../TimeRuler/TimeRuler";
 import { resolveTimelineSurface } from "../view-model/resolve-timeline-surface";
 import { timelineVerticalInsets } from "../lanes/timeline-lane-rows";
 import { useTimelineInteractionPrefs } from "../timeline-interaction-prefs";
-import type { MotionProject } from "@motionvideo/motion-schema";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { TimelineLaneLabels } from "./TimelineLaneLabels";
 import { TimelineTrackCanvas } from "./TimelineTrackCanvas";
 import { useMountedLaneRows } from "./use-mounted-lane-rows";

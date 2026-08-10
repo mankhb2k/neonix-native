@@ -4,7 +4,7 @@ import {
   type EvaluatedNode,
   type Matrix2D,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 
 export type PreviewParityNode = {
   id: string;

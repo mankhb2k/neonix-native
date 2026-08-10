@@ -5,7 +5,7 @@
  * wrapped with O(1) lookup indexes that the evaluator, painter, and
  * renderer consume directly.
  *
- * Architecture: this type lives in motion-schema so both compiler and
+ * Architecture: this type lives in motion-protocol so both compiler and
  * runtime can reference it without circular deps. It is an in-memory
  * type (Maps, not serialized) — the underlying NormalizedMotionProjectV2
  * remains the serialization format.

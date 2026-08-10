@@ -19,7 +19,7 @@ import {
   motionPropertyCapabilities,
   publicMotionPropertyCapabilities,
   segmentTextUnits,
-} from "../packages/motion-schema/src/index";
+} from "../packages/motion-protocol/src/index";
 import { compileMotionProject, COMPILED_PRESET_IDS, isCompiledPreset } from "../apps/render-worker/src/compiler/index";
 import { encodeOutputs } from "../apps/render-worker/src/ffmpeg";
 import { renderCompiledProject } from "../apps/render-worker/src/runtime";

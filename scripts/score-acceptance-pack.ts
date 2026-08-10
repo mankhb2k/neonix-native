@@ -10,7 +10,7 @@ import {
   applyMotionPatch,
   parseMotionComponentV2,
   parseMotionProjectV2,
-} from "../packages/motion-schema/src/index";
+} from "../packages/motion-protocol/src/index";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const fixturesRoot = resolve(repoRoot, "docs", "fixtures", "v2");

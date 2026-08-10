@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   serializeMotionProject,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import {
   DEFAULT_EXPORT_PRESET_ID,
   EXPORT_PRESETS,

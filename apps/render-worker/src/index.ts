@@ -1,7 +1,7 @@
 import {
   parseMotionProject,
   type MotionProject,
-} from "@motionvideo/motion-schema";
+} from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import type { RenderJobStatus } from "@motionvideo/render-contracts";
 import { compileMotionProject } from "./compiler";

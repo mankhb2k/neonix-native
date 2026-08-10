@@ -19,7 +19,7 @@
  * All platform dependencies are injected via options.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 import {
   evaluateCompositionFrameV3,
   type EvaluatedCompositionFrame,

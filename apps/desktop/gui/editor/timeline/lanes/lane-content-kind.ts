@@ -3,7 +3,7 @@
  */
 
 import type { TimelineClip, TimelineLane } from "@motionvideo/editor-core";
-import type { MotionProject, Scene } from "@motionvideo/motion-schema";
+import type { MotionProject, Scene } from "@motionvideo/motion-protocol";
 
 export type LaneContentKind = "video" | "text" | "component" | "audio";
 

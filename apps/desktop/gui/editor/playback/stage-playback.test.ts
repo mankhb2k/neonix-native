@@ -7,7 +7,7 @@ import {
 } from "@motionvideo/editor-core";
 import { previewParitySnapshot } from "../preview/preview-evaluate";
 import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {

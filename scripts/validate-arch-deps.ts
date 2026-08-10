@@ -79,7 +79,7 @@ function workspacePackages(root: string): PkgMeta[] {
 // ── Classification by package name suffix ────────────────────────────
 
 const CORE_PACKAGES = new Set([
-  "@motionvideo/motion-schema",
+  "@motionvideo/motion-protocol",
   "@motionvideo/motion-compiler",
   "@motionvideo/motion-runtime",
   "@motionvideo/editor-core",

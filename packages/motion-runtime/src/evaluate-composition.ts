@@ -1,6 +1,6 @@
 import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 import {
   resolveTimelineAtTime,
   timelineTotalDuration,

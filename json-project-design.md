@@ -1199,7 +1199,7 @@ Migration emit warning neu asset duration thieu, transition vuot scene duration,
 ## 34. De xuat package/file layout
 
 ```text
-packages/motion-schema/src/v3/
+packages/motion-protocol/src/v3/
   project.ts
   metadata.ts
   composition.ts

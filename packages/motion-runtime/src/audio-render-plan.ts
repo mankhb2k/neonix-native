@@ -4,7 +4,7 @@
  * §Phase 7 Tasks 7.1, 7.3 in core-engine-tasks.md
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-schema";
+import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
 
 export type AudioVolumeKeyframe = {
   frame: number;

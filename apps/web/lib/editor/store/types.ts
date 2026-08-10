@@ -10,7 +10,7 @@ import type {
   TimelineCommand,
   TimelineLane,
 } from "@motionvideo/editor-core";
-import type { AspectRatio, MotionProject } from "@motionvideo/motion-schema";
+import type { AspectRatio, MotionProject } from "@motionvideo/motion-protocol";
 import type { StoreApi } from "zustand";
 
 export type SidebarTabId =

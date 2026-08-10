@@ -6,7 +6,7 @@ import {
   updateAssetUriInDocumentJson,
 } from "./document-assets";
 import { buildBlankDesktopProject } from "../../../shared/project-file/envelope";
-import { parseMotionProject } from "@motionvideo/motion-schema";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { parseDesktopProjectFile } from "../../../shared/project-file/envelope";
 
 describe("document-assets merge", () => {
