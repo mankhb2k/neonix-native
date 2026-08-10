@@ -504,7 +504,8 @@ function numberProperty(
     return fallback;
   }
   const value = evaluateProperty(scene, node, property, time, fallback);
-  const result = typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  const result =
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
   if (!Number.isFinite(result)) {
     collector?.warn("NON_FINITE_VALUE", {
       nodeId: node.id,
@@ -684,7 +685,15 @@ export function evaluateTransform3DFields(
   const get = (key: string, fallback: number): number =>
     typeof t[key] === "number" ? (t[key] as number) : fallback;
   return {
-    z: numberProperty(scene, node, "transform.z", time, get("z", 0), driven, collector),
+    z: numberProperty(
+      scene,
+      node,
+      "transform.z",
+      time,
+      get("z", 0),
+      driven,
+      collector,
+    ),
     rotationX: numberProperty(
       scene,
       node,
@@ -868,7 +877,8 @@ export function evaluateScene(
           amplitude: modifier.amplitude,
         },
         (sampleTime) =>
-          evaluateTransform(scene, driver, sampleTime, driven, collector).rotation,
+          evaluateTransform(scene, driver, sampleTime, driven, collector)
+            .rotation,
       );
       for (let index = 0; index < modifier.chainNodeIds.length; index += 1) {
         const chainNodeId = modifier.chainNodeIds[index]!;
@@ -894,13 +904,20 @@ export function evaluateScene(
       const stub: EvaluatedNode = {
         node,
         transform: {
-          x: 0, y: 0, depth: 0,
+          x: 0,
+          y: 0,
+          depth: 0,
           width: node.transform.width,
           height: node.transform.height,
-          rotation: 0, scaleX: 1, scaleY: 1,
-          anchorX: 0, anchorY: 0,
-          opacity: 0, visible: false,
-          flipX: false, flipY: false,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0,
+          anchorY: 0,
+          opacity: 0,
+          visible: false,
+          flipX: false,
+          flipY: false,
         },
         worldMatrix: IDENTITY_MATRIX,
         worldOpacity: 0,
@@ -959,83 +976,87 @@ export function evaluateScene(
         });
         // Skip motion path — continue with current transform
       } else {
-      const path = evaluate(pathNode);
-      const rawProgress = evaluateProperty(
-        scene,
-        node,
-        `modifiers.${motionPath.id}.progress`,
-        time,
-        motionPath.progress,
-      );
-      const progress =
-        typeof rawProgress === "number" ? rawProgress : motionPath.progress;
-      const mappedProgress =
-        motionPath.startOffset +
-        (motionPath.endOffset - motionPath.startOffset) * progress;
-      const sourceMorph = pathNode.modifiers?.find(
-        (modifier) => modifier.type === "path-morph",
-      );
-      const sourceProgress = sourceMorph
-        ? evaluateProperty(
-            scene,
-            pathNode,
-            `modifiers.${sourceMorph.id}.progress`,
-            time,
-            sourceMorph.progress,
-          )
-        : undefined;
-      const sourceContours = sourceMorph
-        ? pathMorphContours(
-            pathNode,
-            typeof sourceProgress === "number" ? sourceProgress : 0,
-          )
-        : pathNode.payload.contours;
-      const sample = samplePathContour(
-        pathNode,
-        motionPath.contourId,
-        mappedProgress,
-        sourceContours,
-      );
-      const worldPoint = applyMatrix(
-        path.worldMatrix,
-        sample.point.x,
-        sample.point.y,
-      );
-      const worldTangentPoint = applyMatrix(
-        path.worldMatrix,
-        sample.point.x + sample.tangent.x,
-        sample.point.y + sample.tangent.y,
-      );
-      const inverseParent = invertMatrix(parentMatrix);
-      if (!inverseParent) {
-        collector?.warn("MATRIX_NOT_INVERTIBLE", {
-          nodeId: node.id,
-          message: `Motion Path parent matrix not invertible: ${node.id}. Skipping motion path.`,
-        });
-        // Skip motion path transform — keep current transform
-      } else {
-      const localPoint = applyMatrix(inverseParent, worldPoint.x, worldPoint.y);
-      const localTangentPoint = applyMatrix(
-        inverseParent,
-        worldTangentPoint.x,
-        worldTangentPoint.y,
-      );
-      transform = {
-        ...transform,
-        x: localPoint.x,
-        y: localPoint.y,
-        rotation: motionPath.orientToPath
-          ? (Math.atan2(
-              localTangentPoint.y - localPoint.y,
-              localTangentPoint.x - localPoint.x,
-            ) *
-              180) /
-              Math.PI +
-            motionPath.rotationOffset
-          : transform.rotation,
-      };
-    } // else (inverseParent exists)
-    } // else (pathNode exists)
+        const path = evaluate(pathNode);
+        const rawProgress = evaluateProperty(
+          scene,
+          node,
+          `modifiers.${motionPath.id}.progress`,
+          time,
+          motionPath.progress,
+        );
+        const progress =
+          typeof rawProgress === "number" ? rawProgress : motionPath.progress;
+        const mappedProgress =
+          motionPath.startOffset +
+          (motionPath.endOffset - motionPath.startOffset) * progress;
+        const sourceMorph = pathNode.modifiers?.find(
+          (modifier) => modifier.type === "path-morph",
+        );
+        const sourceProgress = sourceMorph
+          ? evaluateProperty(
+              scene,
+              pathNode,
+              `modifiers.${sourceMorph.id}.progress`,
+              time,
+              sourceMorph.progress,
+            )
+          : undefined;
+        const sourceContours = sourceMorph
+          ? pathMorphContours(
+              pathNode,
+              typeof sourceProgress === "number" ? sourceProgress : 0,
+            )
+          : pathNode.payload.contours;
+        const sample = samplePathContour(
+          pathNode,
+          motionPath.contourId,
+          mappedProgress,
+          sourceContours,
+        );
+        const worldPoint = applyMatrix(
+          path.worldMatrix,
+          sample.point.x,
+          sample.point.y,
+        );
+        const worldTangentPoint = applyMatrix(
+          path.worldMatrix,
+          sample.point.x + sample.tangent.x,
+          sample.point.y + sample.tangent.y,
+        );
+        const inverseParent = invertMatrix(parentMatrix);
+        if (!inverseParent) {
+          collector?.warn("MATRIX_NOT_INVERTIBLE", {
+            nodeId: node.id,
+            message: `Motion Path parent matrix not invertible: ${node.id}. Skipping motion path.`,
+          });
+          // Skip motion path transform — keep current transform
+        } else {
+          const localPoint = applyMatrix(
+            inverseParent,
+            worldPoint.x,
+            worldPoint.y,
+          );
+          const localTangentPoint = applyMatrix(
+            inverseParent,
+            worldTangentPoint.x,
+            worldTangentPoint.y,
+          );
+          transform = {
+            ...transform,
+            x: localPoint.x,
+            y: localPoint.y,
+            rotation: motionPath.orientToPath
+              ? (Math.atan2(
+                  localTangentPoint.y - localPoint.y,
+                  localTangentPoint.x - localPoint.x,
+                ) *
+                  180) /
+                  Math.PI +
+                motionPath.rotationOffset
+              : transform.rotation,
+          };
+        } // else (inverseParent exists)
+      } // else (pathNode exists)
     } // if (motionPath)
 
     for (const constraint of (node.modifiers ?? []).filter(
@@ -1125,7 +1146,13 @@ export function evaluateScene(
     // ── Phase 11: 3D world matrix for perspective-3d scenes ─────────
     let worldMatrix4: Matrix4 | undefined;
     if (scene.space === "perspective-3d") {
-      const fields3D = evaluateTransform3DFields(scene, node, time, driven, collector);
+      const fields3D = evaluateTransform3DFields(
+        scene,
+        node,
+        time,
+        driven,
+        collector,
+      );
       const localM4 = buildEvaluatedMatrix4(transform, fields3D);
       const parentM4 = node.parentId
         ? (evaluated.get(node.parentId)?.worldMatrix4 ?? IDENTITY_MATRIX4)

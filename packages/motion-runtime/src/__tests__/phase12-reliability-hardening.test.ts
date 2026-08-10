@@ -445,10 +445,19 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           id: "n1",
           parentId: "missing-parent",
           transform: {
-            x: 0, y: 0, width: 100, height: 100,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5, opacity: 1,
-            visible: true, flipX: false, flipY: false,
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0.5,
+            anchorY: 0.5,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
           },
           zIndex: 0,
           name: "orphan",
@@ -479,10 +488,19 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           id: "n1",
           parentId: "n2",
           transform: {
-            x: 0, y: 0, width: 100, height: 100,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5, opacity: 1,
-            visible: true, flipX: false, flipY: false,
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0.5,
+            anchorY: 0.5,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
           },
           zIndex: 0,
           name: "child",
@@ -492,10 +510,19 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           id: "n2",
           parentId: "n1",
           transform: {
-            x: 0, y: 0, width: 100, height: 100,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5, opacity: 1,
-            visible: true, flipX: false, flipY: false,
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0.5,
+            anchorY: 0.5,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
           },
           zIndex: 0,
           name: "parent",
@@ -506,8 +533,8 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
     const result = evaluateScene(scene, 0, collector);
     expect(result).toHaveLength(2);
     expect(collector.hasErrors).toBe(true);
-    expect(
-      collector.diagnostics.some((d) => d.code === "PARENT_CYCLE"),
-    ).toBe(true);
+    expect(collector.diagnostics.some((d) => d.code === "PARENT_CYCLE")).toBe(
+      true,
+    );
   });
 });

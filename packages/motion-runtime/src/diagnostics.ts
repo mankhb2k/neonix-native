@@ -244,7 +244,10 @@ export const RUNTIME_DIAGNOSTIC_CODE_META: Record<
     severity: "info",
     message: "Frame evaluation was cancelled.",
   },
-  COMPILE_CANCELLED: { severity: "info", message: "Compilation was cancelled." },
+  COMPILE_CANCELLED: {
+    severity: "info",
+    message: "Compilation was cancelled.",
+  },
   RENDER_CANCELLED: { severity: "info", message: "Render was cancelled." },
   EXPORT_CANCELLED: { severity: "info", message: "Export was cancelled." },
 
@@ -357,9 +360,13 @@ export function createDiagnostic(
  * Convert a RuntimeDiagnostic to a RenderDiagnostic (backward compat).
  * Strips runtime-only fields like `frame`, `time`, `path`.
  */
-export function toRenderDiagnostic(
-  diag: RuntimeDiagnostic,
-): { severity: DiagnosticSeverity; code: string; message: string; nodeId?: string; key?: string } {
+export function toRenderDiagnostic(diag: RuntimeDiagnostic): {
+  severity: DiagnosticSeverity;
+  code: string;
+  message: string;
+  nodeId?: string;
+  key?: string;
+} {
   return {
     severity: diag.severity,
     code: diag.code,
@@ -433,9 +440,7 @@ export class RuntimeDiagnosticCollector {
       details?: Record<string, unknown>;
     },
   ): void {
-    this._diagnostics.push(
-      this._build("error", code, opts?.message, opts),
-    );
+    this._diagnostics.push(this._build("error", code, opts?.message, opts));
   }
 
   /** Add a warning diagnostic */
@@ -450,9 +455,7 @@ export class RuntimeDiagnosticCollector {
       details?: Record<string, unknown>;
     },
   ): void {
-    this._diagnostics.push(
-      this._build("warning", code, opts?.message, opts),
-    );
+    this._diagnostics.push(this._build("warning", code, opts?.message, opts));
   }
 
   /** Add an info diagnostic */
@@ -536,6 +539,4 @@ export class RuntimeDiagnosticError extends Error {
 
 // ── Re-exports for convenience ────────────────────────────────────────
 
-export {
-  type DiagnosticCodeMeta,
-};
+export { type DiagnosticCodeMeta };

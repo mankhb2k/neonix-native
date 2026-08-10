@@ -34,10 +34,18 @@ import { createDiagnostic, type RuntimeDiagnostic } from "./diagnostics";
  * Thrown when an operation is cancelled via AbortSignal.
  */
 export class CancellationError extends Error {
-  readonly code: "EVALUATION_CANCELLED" | "COMPILE_CANCELLED" | "RENDER_CANCELLED" | "EXPORT_CANCELLED";
+  readonly code:
+    | "EVALUATION_CANCELLED"
+    | "COMPILE_CANCELLED"
+    | "RENDER_CANCELLED"
+    | "EXPORT_CANCELLED";
 
   constructor(
-    code: "EVALUATION_CANCELLED" | "COMPILE_CANCELLED" | "RENDER_CANCELLED" | "EXPORT_CANCELLED",
+    code:
+      | "EVALUATION_CANCELLED"
+      | "COMPILE_CANCELLED"
+      | "RENDER_CANCELLED"
+      | "EXPORT_CANCELLED",
     message?: string,
   ) {
     super(message ?? `Operation cancelled: ${code}`);
@@ -61,7 +69,11 @@ export function isAborted(signal?: AbortSignal | null): boolean {
  */
 export function throwIfAborted(
   signal?: AbortSignal | null,
-  code: "EVALUATION_CANCELLED" | "COMPILE_CANCELLED" | "RENDER_CANCELLED" | "EXPORT_CANCELLED" = "EVALUATION_CANCELLED",
+  code:
+    | "EVALUATION_CANCELLED"
+    | "COMPILE_CANCELLED"
+    | "RENDER_CANCELLED"
+    | "EXPORT_CANCELLED" = "EVALUATION_CANCELLED",
 ): void {
   if (isAborted(signal)) {
     throw new CancellationError(code, signal?.reason?.message ?? undefined);
@@ -72,7 +84,11 @@ export function throwIfAborted(
  * Create a diagnostic record for a cancellation event.
  */
 export function cancelledDiagnostic(
-  code: "EVALUATION_CANCELLED" | "COMPILE_CANCELLED" | "RENDER_CANCELLED" | "EXPORT_CANCELLED",
+  code:
+    | "EVALUATION_CANCELLED"
+    | "COMPILE_CANCELLED"
+    | "RENDER_CANCELLED"
+    | "EXPORT_CANCELLED",
   opts?: {
     frame?: number;
     time?: number;
