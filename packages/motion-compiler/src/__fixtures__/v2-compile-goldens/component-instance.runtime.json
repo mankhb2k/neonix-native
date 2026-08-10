@@ -1,0 +1,59 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "component-instance",
+    "name": "Component Instance",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Default"
+    },
+    "description": "Project with a component instance"
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "intro"
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "duration": 5,
+      "space": "flat-2d",
+      "nodes": [
+        {
+          "id": "logo-reveal-instance::logo",
+          "type": "solid",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 256,
+            "height": 256,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "width": 256,
+            "height": 256,
+            "color": "#1877f2"
+          }
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

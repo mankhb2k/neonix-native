@@ -1,0 +1,106 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "transition",
+    "name": "Transition",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Default"
+    },
+    "description": "Two scenes with a fade transition between them"
+  },
+  "assets": [],
+  "timeline": {
+    "sceneOrder": [
+      "intro",
+      "outro"
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "duration": 3,
+      "space": "flat-2d",
+      "transition": {
+        "type": "fade",
+        "duration": 0.5,
+        "color": "#000000",
+        "easing": "easeInOut"
+      },
+      "nodes": [
+        {
+          "id": "intro-title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "First Scene"
+            },
+            "fontSize": 64,
+            "align": "center"
+          }
+        }
+      ],
+      "tracks": []
+    },
+    {
+      "id": "outro",
+      "duration": 2,
+      "space": "flat-2d",
+      "nodes": [
+        {
+          "id": "outro-title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Second Scene"
+            },
+            "fontSize": 64,
+            "align": "center"
+          }
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

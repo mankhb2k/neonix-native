@@ -566,6 +566,9 @@ importers:
         specifier: ^8.19.0
         version: 8.19.0
     devDependencies:
+      '@motionvideo/motion-compiler':
+        specifier: workspace:*
+        version: link:../motion-compiler
       typescript:
         specifier: ^5.8.2
         version: 5.9.3

@@ -1,0 +1,152 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "variables-bindings",
+    "name": "Variables And Bindings",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Default",
+      "primaryColor": "#1877f2"
+    },
+    "description": "Project with variables and project bindings"
+  },
+  "dependencies": {
+    "components": []
+  },
+  "assets": [],
+  "variables": [
+    {
+      "id": "founder-name",
+      "name": "Founder name",
+      "type": "string",
+      "value": "Mark Zuckerberg"
+    },
+    {
+      "id": "facebook-blue",
+      "name": "Facebook blue",
+      "type": "color",
+      "value": "#1877f2"
+    },
+    {
+      "id": "title-opacity",
+      "name": "Title opacity",
+      "type": "number",
+      "value": 0.9,
+      "min": 0,
+      "max": 1
+    },
+    {
+      "id": "show-subtitle",
+      "name": "Show subtitle",
+      "type": "boolean",
+      "value": true
+    }
+  ],
+  "timeline": {
+    "sceneOrder": ["intro"],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "name": "Introduction",
+      "duration": 5,
+      "space": "flat-2d",
+      "nodes": [
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 400,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Founder:"
+            },
+            "fontSize": 64,
+            "align": "center"
+          }
+        },
+        {
+          "id": "subtitle",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 960,
+            "y": 600,
+            "width": 800,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Mark Zuckerberg"
+            },
+            "fontSize": 48,
+            "align": "center"
+          }
+        }
+      ],
+      "clips": []
+    }
+  ],
+  "bindings": [
+    {
+      "id": "binding-founder-name",
+      "source": {
+        "kind": "variable",
+        "variableId": "founder-name"
+      },
+      "target": {
+        "sceneId": "intro",
+        "nodeId": "subtitle",
+        "property": "payload.text"
+      }
+    },
+    {
+      "id": "binding-title-opacity",
+      "source": {
+        "kind": "variable",
+        "variableId": "title-opacity"
+      },
+      "target": {
+        "sceneId": "intro",
+        "nodeId": "title",
+        "property": "transform.opacity"
+      }
+    }
+  ],
+  "extensions": {
+    "constraints": [],
+    "events": []
+  }
+}

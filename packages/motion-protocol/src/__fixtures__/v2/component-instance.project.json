@@ -1,0 +1,76 @@
+{
+  "format": "motion-project",
+  "formatVersion": 2,
+  "metadata": {
+    "id": "component-instance",
+    "name": "Component Instance",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Default"
+    },
+    "description": "Project with a component instance"
+  },
+  "dependencies": {
+    "components": [
+      {
+        "componentId": "logo-reveal",
+        "version": "1.0.0",
+        "source": "logo-reveal",
+        "integrity": "sha256:logo-reveal-1.0.0"
+      }
+    ]
+  },
+  "assets": [],
+  "variables": [],
+  "timeline": {
+    "sceneOrder": ["intro"],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "name": "Introduction",
+      "duration": 5,
+      "space": "flat-2d",
+      "nodes": [
+        {
+          "id": "logo-reveal-instance",
+          "type": "component",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 512,
+            "height": 512,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "logo-reveal",
+            "componentVersion": "1.0.0",
+            "props": {
+              "duration": 1.5
+            }
+          }
+        }
+      ],
+      "clips": []
+    }
+  ],
+  "bindings": [],
+  "extensions": {
+    "constraints": [],
+    "events": []
+  }
+}
