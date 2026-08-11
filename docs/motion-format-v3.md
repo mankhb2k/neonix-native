@@ -144,13 +144,13 @@ Scene                                   ← implicit root
 
 ### Thuật Ngữ
 
-| Thuật ngữ             | Ý nghĩa                                                                 |
-|------------------------|--------------------------------------------------------------------------|
-| `timeline track/lane`  | Lane của scene trong `timeline.visualTracks` (`main`, `overlay`)        |
-| `timeline layer`       | Node layer bên trong một scene                                          |
-| `group layer`          | Node `type: "group"` có thể chứa child layer                            |
-| `root layer`           | Node có `parentId: null`, trực thuộc scene                              |
-| `child layer`          | Node có `parentId` trỏ đến một node khác                                |
+| Thuật ngữ             | Ý nghĩa                                                          |
+| --------------------- | ---------------------------------------------------------------- |
+| `timeline track/lane` | Lane của scene trong `timeline.visualTracks` (`main`, `overlay`) |
+| `timeline layer`      | Node layer bên trong một scene                                   |
+| `group layer`         | Node `type: "group"` có thể chứa child layer                     |
+| `root layer`          | Node có `parentId: null`, trực thuộc scene                       |
+| `child layer`         | Node có `parentId` trỏ đến một node khác                         |
 
 > ⚠️ Không dùng `track`, `lane`, và `layer` thay thế cho nhau.
 
@@ -171,6 +171,7 @@ nodeGlobalEnd   = min(parentGlobalEnd, nodeGlobalStart + node.timing.duration)
 ```
 
 **Default timing**: Nếu `node.timing` bị thiếu:
+
 - `start = 0`
 - `duration = parent effective duration`
 
@@ -201,11 +202,15 @@ Scene
 ### Transform & Animation
 
 Group layer có cùng quyền animation như mọi node khác:
+
 - `transform`, `opacity`, `visible`, `timing`, `zIndex`
 - `effects`, `blendMode`, `mask`, `modifiers`
 - Animation clips target `group.id`
 
 Khi group transform thay đổi, **tất cả child layer di chuyển theo**. Khi child transform thay đổi, nó được evaluate trong **group local coordinate space**.
+
+> **Future consideration — `schedule.space`**: Hiện tại, animation `schedule` luôn là scene-local (`absolute`, `scene-end`, `after`, `with`).
+> Nếu sau này cần animation schedule tương đối với parent group, có thể thêm field `schedule.space: "scene" | "parent"` vào clip.
 
 ### Compositing
 
@@ -232,10 +237,19 @@ Group payload hỗ trợ `compositing`:
       "zIndex": 3,
       "timing": { "start": 5, "duration": 4 },
       "transform": {
-        "x": 540, "y": 960, "width": 500, "height": 700,
-        "rotation": 0, "scaleX": 1, "scaleY": 1,
-        "anchorX": 0.5, "anchorY": 0.5,
-        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+        "x": 540,
+        "y": 960,
+        "width": 500,
+        "height": 700,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
       "payload": { "compositing": { "mode": "pass-through" } }
     },
@@ -246,10 +260,19 @@ Group payload hỗ trợ `compositing`:
       "zIndex": 2,
       "timing": { "start": 1, "duration": 2 },
       "transform": {
-        "x": 0, "y": -120, "width": 360, "height": 380,
-        "rotation": 0, "scaleX": 1, "scaleY": 1,
-        "anchorX": 0.5, "anchorY": 0.5,
-        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+        "x": 0,
+        "y": -120,
+        "width": 360,
+        "height": 380,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
       "payload": { "compositing": { "mode": "pass-through" } }
     },
@@ -260,10 +283,19 @@ Group payload hỗ trợ `compositing`:
       "zIndex": 3,
       "timing": { "start": 0.5, "duration": 1.5 },
       "transform": {
-        "x": 0, "y": -140, "width": 180, "height": 180,
-        "rotation": 0, "scaleX": 1, "scaleY": 1,
-        "anchorX": 0.5, "anchorY": 0.5,
-        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+        "x": 0,
+        "y": -140,
+        "width": 180,
+        "height": 180,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
       "payload": { "compositing": { "mode": "isolate" } }
     },
@@ -274,10 +306,19 @@ Group payload hỗ trợ `compositing`:
       "zIndex": 0,
       "timing": { "start": 0, "duration": 1 },
       "transform": {
-        "x": 0, "y": 0, "width": 160, "height": 160,
-        "rotation": 0, "scaleX": 1, "scaleY": 1,
-        "anchorX": 0.5, "anchorY": 0.5,
-        "opacity": 1, "visible": true, "flipX": false, "flipY": false
+        "x": 0,
+        "y": 0,
+        "width": 160,
+        "height": 160,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
       "payload": { "assetId": "asset.head" }
     }
