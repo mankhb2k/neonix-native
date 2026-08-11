@@ -1,8 +1,6 @@
 /**
- * Legacy geometry — point/path primitives re-exported from V3;
- * V2-specific ShapeNodeSchema and PathNodeSchema kept here.
- *
- * @deprecated Import from `@motionvideo/motion-protocol/v3` for primitives.
+ * Runtime geometry — point/path primitives re-exported from V3;
+ * shape and path node schemas use the runtime NodeBaseSchema.
  */
 
 import { z } from "zod";
@@ -29,7 +27,7 @@ export {
   type MotionPathMorphTarget,
 } from "../../v3/nodes/geometry";
 
-// V2-specific shape node (uses legacy NodeBaseSchema)
+// Shape node (runtime NodeBaseSchema)
 const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
@@ -54,7 +52,7 @@ export const ShapeNodeSchema = NodeBaseSchema.extend({
   style: PaintStyleSchema.optional(),
 }).strict();
 
-// V2-specific path node (uses legacy NodeBaseSchema, has fillRule)
+// Path node (runtime NodeBaseSchema, has fillRule)
 export const PathNodeSchema = NodeBaseSchema.extend({
   type: z.literal("path"),
   payload: z

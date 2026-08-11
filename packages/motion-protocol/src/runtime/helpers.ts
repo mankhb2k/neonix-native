@@ -1,8 +1,5 @@
 /**
- * Runtime geometry validation helpers — canonical source of truth.
- *
- * Previously in legacy/references/helpers.ts.
- * Phase 9: moved here so runtime/project.ts has zero legacy imports.
+ * Runtime geometry validation helpers.
  */
 import type { MotionPathContour } from "../v3/nodes/geometry";
 

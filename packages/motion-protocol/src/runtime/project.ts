@@ -844,7 +844,3 @@ export type MotionRuntimeProject = z.infer<typeof MotionRuntimeProjectSchema>;
 export type MotionRuntimeScene = MotionRuntimeProject["scenes"][number];
 export type MotionRuntimeTrack =
   MotionRuntimeProject["scenes"][number]["tracks"][number];
-
-// ── Deprecated backward-compat aliases ─────────────────────────────────
-//
-// These will be removed once all consumers migrate.
