@@ -30,6 +30,7 @@ const FIXTURE_NAMES = [
   "transition",
   "variables-bindings",
   "component-instance",
+  "nested-groups",
 ] as const;
 
 function loadProjectJson(name: string): unknown {

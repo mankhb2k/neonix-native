@@ -247,8 +247,14 @@ function prepareRuntimeNode(node: V3.NodeV3): JsonRecord {
         },
       };
     case "group":
-      // v2 group payload is empty; `compositing` is not representable.
-      return { ...base, payload: {} };
+      return {
+        ...base,
+        payload: {
+          ...(payload.compositing
+            ? { compositing: clone(payload.compositing) }
+            : {}),
+        },
+      };
     case "bone":
       return {
         ...base,

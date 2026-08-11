@@ -1079,3 +1079,125 @@ describe("buildCompileCacheKeyV3", () => {
     expect(buildCompileCacheKeyV3(changed)).not.toBe(base);
   });
 });
+
+// ── Phase 6: Group Layer Semantics — Compiler Preservation ────────────
+
+describe("Phase 6 — compiler preserves group semantics", () => {
+  const nestedFixture = (() => {
+    const raw = readFileSync(
+      `${fixtureDir}/nested-groups.project.json`,
+      "utf8",
+    );
+    return V3.MotionProjectV3Schema.parse(JSON.parse(raw));
+  })();
+
+  const compileResult = compileMotionProjectV3(nestedFixture);
+
+  it("compiles nested-groups fixture successfully", () => {
+    expect(compileResult.ok).toBe(true);
+  });
+
+  it("preserves three-level parentId chain", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+
+    // group.character is root
+    expect(byId.get("group.character")!.parentId).toBeNull();
+    // group.upper-body is child of group.character
+    expect(byId.get("group.upper-body")!.parentId).toBe("group.character");
+    // group.head-rig is child of group.upper-body
+    expect(byId.get("group.head-rig")!.parentId).toBe("group.upper-body");
+    // head-image is child of group.head-rig
+    expect(byId.get("head-image")!.parentId).toBe("group.head-rig");
+  });
+
+  it("preserves zIndex on all nodes", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+
+    expect(byId.get("group.character")!.zIndex).toBe(3);
+    expect(byId.get("group.upper-body")!.zIndex).toBe(2);
+    expect(byId.get("group.head-rig")!.zIndex).toBe(3);
+    expect(byId.get("head-image")!.zIndex).toBe(0);
+  });
+
+  it("preserves parent-relative timing", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+
+    expect(byId.get("group.character")!.timing).toEqual({
+      start: 5,
+      duration: 4,
+    });
+    expect(byId.get("group.upper-body")!.timing).toEqual({
+      start: 1,
+      duration: 2,
+    });
+    expect(byId.get("group.head-rig")!.timing).toEqual({
+      start: 0.5,
+      duration: 1.5,
+    });
+    expect(byId.get("head-image")!.timing).toEqual({
+      start: 0,
+      duration: 1,
+    });
+  });
+
+  it("preserves `type: group` on group nodes", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+
+    expect(byId.get("group.character")!.type).toBe("group");
+    expect(byId.get("group.upper-body")!.type).toBe("group");
+    expect(byId.get("group.head-rig")!.type).toBe("group");
+    expect(byId.get("head-image")!.type).toBe("image");
+  });
+
+  it("preserves compositing payload on group nodes", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+
+    expect((byId.get("group.character")!.payload as Record<string, unknown>).compositing).toEqual({
+      mode: "pass-through",
+    });
+    expect((byId.get("group.upper-body")!.payload as Record<string, unknown>).compositing).toEqual({
+      mode: "pass-through",
+    });
+    expect((byId.get("group.head-rig")!.payload as Record<string, unknown>).compositing).toEqual({
+      mode: "isolate",
+    });
+  });
+
+  it("preserves transform fields on all nodes", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+
+    // Spot-check a few transform fields on group.character
+    const char = byId.get("group.character")!.transform;
+    expect(char.x).toBe(540);
+    expect(char.y).toBe(960);
+    expect(char.width).toBe(500);
+    expect(char.height).toBe(700);
+    expect(char.opacity).toBe(1);
+    expect(char.visible).toBe(true);
+
+    // Spot-check head-image
+    const head = byId.get("head-image")!.transform;
+    expect(head.width).toBe(160);
+    expect(head.height).toBe(160);
+    expect(head.opacity).toBe(1);
+    expect(head.visible).toBe(true);
+  });
+
+  it("produces empty tracks array for scene without animations", () => {
+    expect(compileResult.ok).toBe(true);
+    const scene = compileResult.project.scenes[0]!;
+    expect(scene.tracks).toEqual([]);
+  });
+});
