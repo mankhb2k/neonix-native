@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema, IdSchema } from "./common";
 import { LayoutConstraintSchema, LayoutItemPolicySchema } from "./layout";
 import { ResolvableValueSchema } from "./values";
@@ -27,10 +27,10 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     id: IdSchema,
     type: z.literal("secondary-motion"),
     driverNodeId: IdSchema,
-    chainNodeIds: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.secondaryMotionChainLength),
+    chainNodeIds: z.array(IdSchema).min(1).max(MOTION_PROTOCOL_LIMITS.secondaryMotionChainLength),
     stiffness: FiniteNumberSchema.positive(),
     damping: FiniteNumberSchema.nonnegative(),
-    lag: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    lag: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
     amplitude: FiniteNumberSchema,
     axis: z.literal("rotation"), // TODO: implement position axis
   }).strict(),
@@ -44,7 +44,7 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
   z.object({
     id: IdSchema,
     type: z.literal("path-bend"),
-    amount: FiniteNumberSchema.min(-MOTION_V2_LIMITS.pathBendAmount).max(MOTION_V2_LIMITS.pathBendAmount),
+    amount: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.pathBendAmount).max(MOTION_PROTOCOL_LIMITS.pathBendAmount),
   }).strict(),
   z.object({
     id: IdSchema,
@@ -56,7 +56,7 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
   z.object({
     id: IdSchema,
     type: z.literal("parallax"),
-    factor: FiniteNumberSchema.min(-MOTION_V2_LIMITS.parallaxFactor).max(MOTION_V2_LIMITS.parallaxFactor).default(1),
+    factor: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.parallaxFactor).max(MOTION_PROTOCOL_LIMITS.parallaxFactor).default(1),
   }).strict(),
   z.object({
     id: IdSchema,

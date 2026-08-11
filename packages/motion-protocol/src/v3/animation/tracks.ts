@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, PropertyPathSchema } from "../common";
 import { ResolvableValueSchema, ValueKindSchema } from "../values";
 import { KeyframeEasingSchema } from "./easing";
@@ -23,14 +23,14 @@ export const SceneMarkerSchema = z
   .object({
     id: IdSchema,
     t: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
   })
   .strict();
 
 /** Absolute seconds or marker-relative time resolved at compile time. */
 export const TrackTimeSchema = z.union([
-  FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+  FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
   z
     .object({
       markerId: IdSchema,
@@ -57,7 +57,7 @@ export const PropertyTrackSchema = z
           .strict(),
       )
       .min(1)
-      .max(MOTION_V2_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
   })
   .strict();
 
@@ -70,7 +70,7 @@ export const SceneMarkerV3Schema = SceneMarkerSchema;
 
 /** Clip-local time in seconds (must be non-negative). */
 export const TimeSecondsSchema = FiniteNumberSchema.nonnegative().max(
-  MOTION_V2_LIMITS.mediaDurationSeconds,
+  MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
 );
 
 export type PropertyTrackV3 = z.infer<typeof PropertyTrackV3Schema>;

@@ -4,7 +4,7 @@
  * Phase 2: copied from legacy/modifiers.ts → V3 now owns these definitions.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema, IdSchema } from "./common";
 import { LayoutConstraintSchema, LayoutItemPolicySchema } from "./layout";
 import { ResolvableValueSchema } from "./values";
@@ -40,11 +40,11 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
       chainNodeIds: z
         .array(IdSchema)
         .min(1)
-        .max(MOTION_V2_LIMITS.secondaryMotionChainLength),
+        .max(MOTION_PROTOCOL_LIMITS.secondaryMotionChainLength),
       stiffness: FiniteNumberSchema.positive(),
       damping: FiniteNumberSchema.nonnegative(),
       lag: FiniteNumberSchema.nonnegative().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
       amplitude: FiniteNumberSchema,
       axis: z.literal("rotation"),
@@ -63,8 +63,8 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     .object({
       id: IdSchema,
       type: z.literal("path-bend"),
-      amount: FiniteNumberSchema.min(-MOTION_V2_LIMITS.pathBendAmount).max(
-        MOTION_V2_LIMITS.pathBendAmount,
+      amount: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.pathBendAmount).max(
+        MOTION_PROTOCOL_LIMITS.pathBendAmount,
       ),
     })
     .strict(),
@@ -81,8 +81,8 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     .object({
       id: IdSchema,
       type: z.literal("parallax"),
-      factor: FiniteNumberSchema.min(-MOTION_V2_LIMITS.parallaxFactor)
-        .max(MOTION_V2_LIMITS.parallaxFactor)
+      factor: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.parallaxFactor)
+        .max(MOTION_PROTOCOL_LIMITS.parallaxFactor)
         .default(1),
     })
     .strict(),

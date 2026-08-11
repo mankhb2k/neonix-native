@@ -4,7 +4,7 @@
  * Phase 2: copied from legacy/layout.ts → V3 now owns these definitions.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema, IdSchema, PropertyPathSchema } from "./common";
 
 export const RepeatSourceSchema = z.discriminatedUnion("kind", [
@@ -20,7 +20,7 @@ export const RepeatSourceSchema = z.discriminatedUnion("kind", [
       kind: z.literal("count"),
       count: FiniteNumberSchema.int()
         .positive()
-        .max(MOTION_V2_LIMITS.repeaterInstances),
+        .max(MOTION_PROTOCOL_LIMITS.repeaterInstances),
       keyPrefix: IdSchema.default("item"),
     })
     .strict(),
@@ -40,7 +40,7 @@ export const RepeatLayoutSchema = z.discriminatedUnion("kind", [
       kind: z.literal("grid"),
       columns: FiniteNumberSchema.int()
         .positive()
-        .max(MOTION_V2_LIMITS.repeaterGridColumns),
+        .max(MOTION_PROTOCOL_LIMITS.repeaterGridColumns),
       gapX: FiniteNumberSchema,
       gapY: FiniteNumberSchema,
     })
@@ -49,7 +49,7 @@ export const RepeatLayoutSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("radial"),
       radius: FiniteNumberSchema.nonnegative().max(
-        MOTION_V2_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.nodeDimension,
       ),
       startAngle: FiniteNumberSchema,
       endAngle: FiniteNumberSchema,
@@ -65,19 +65,19 @@ export const RepeaterSchema = z
     indexAlias: IdSchema.default("index"),
     layout: RepeatLayoutSchema,
     timeStagger: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
   })
   .strict();
 
 export const EdgeInsetsSchema = z
   .object({
-    top: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
-    right: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    top: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    right: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
     bottom: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
     ),
-    left: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    left: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
   })
   .strict();
 
@@ -89,22 +89,22 @@ export const LayoutItemPolicySchema = z
     shrink: FiniteNumberSchema.nonnegative().max(100).optional(),
     alignSelf: z.enum(["auto", "start", "center", "end", "stretch"]).optional(),
     minWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
     maxWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
     minHeight: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
     maxHeight: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
   })
   .strict();
 
 const PaddingSchema = z.union([
-  FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+  FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
   EdgeInsetsSchema,
 ]);
 

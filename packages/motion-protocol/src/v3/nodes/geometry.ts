@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 import { PaintStyleSchema } from "./paint";
 import { NodeBaseV3Schema } from "./base";
@@ -14,11 +14,11 @@ import { NodeBaseV3Schema } from "./base";
 
 export const PointV2Schema = z
   .object({
-    x: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(
-      MOTION_V2_LIMITS.nodeDimension,
+    x: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.nodeDimension).max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
     ),
-    y: FiniteNumberSchema.min(-MOTION_V2_LIMITS.nodeDimension).max(
-      MOTION_V2_LIMITS.nodeDimension,
+    y: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.nodeDimension).max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
     ),
   })
   .strict();
@@ -46,7 +46,7 @@ export const PathContourV2Schema = z
     segments: z
       .array(PathSegmentV2Schema)
       .min(1)
-      .max(MOTION_V2_LIMITS.pathSegmentsPerContour),
+      .max(MOTION_PROTOCOL_LIMITS.pathSegmentsPerContour),
     closed: z.boolean(),
   })
   .strict();
@@ -59,7 +59,7 @@ export const PathMorphTargetV2Schema = z
     contours: z
       .array(PathContourV2Schema)
       .min(1)
-      .max(MOTION_V2_LIMITS.pathContours),
+      .max(MOTION_PROTOCOL_LIMITS.pathContours),
   })
   .strict();
 
@@ -74,7 +74,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
       cornerRadius: z
         .number()
         .nonnegative()
-        .max(MOTION_V2_LIMITS.nodeDimension)
+        .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
         .optional(),
     })
     .strict(),
@@ -82,7 +82,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("polygon"),
-      points: z.array(PointV2Schema).min(3).max(MOTION_V2_LIMITS.polygonPoints),
+      points: z.array(PointV2Schema).min(3).max(MOTION_PROTOCOL_LIMITS.polygonPoints),
     })
     .strict(),
 ]);
@@ -100,10 +100,10 @@ export const PathNodeV3Schema = NodeBaseV3Schema.extend({
       contours: z
         .array(PathContourV2Schema)
         .min(1)
-        .max(MOTION_V2_LIMITS.pathContours),
+        .max(MOTION_PROTOCOL_LIMITS.pathContours),
       morphTargets: z
         .array(PathMorphTargetV2Schema)
-        .max(MOTION_V2_LIMITS.pathMorphTargets)
+        .max(MOTION_PROTOCOL_LIMITS.pathMorphTargets)
         .optional(),
     })
     .strict(),

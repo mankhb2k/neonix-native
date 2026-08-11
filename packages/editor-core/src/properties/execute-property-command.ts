@@ -1,5 +1,5 @@
 import {
-  MOTION_V2_LIMITS,
+  MOTION_PROTOCOL_LIMITS,
   motionPropertyCapability,
   setTextPayloadPlain,
   type MotionNode,
@@ -137,7 +137,7 @@ function applyMetadata(node: MotionNode, patch: MetadataPatch): MotionNode {
       delete (rest as { name?: string }).name;
       next = rest as MotionNode;
     } else {
-      next = { ...next, name: name.slice(0, MOTION_V2_LIMITS.idLength) };
+      next = { ...next, name: name.slice(0, MOTION_PROTOCOL_LIMITS.idLength) };
     }
   }
   return next;
@@ -403,7 +403,7 @@ function clampKeyframeClipDuration(
   keyTime: number,
 ): number {
   return Math.min(
-    MOTION_V2_LIMITS.mediaDurationSeconds,
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     Math.max(currentDuration, keyTime + 0.001),
   );
 }
@@ -413,7 +413,7 @@ function allocateUniqueClipId(
   nodeId: string,
   property: string,
 ): string {
-  const maxLen = MOTION_V2_LIMITS.idLength;
+  const maxLen = MOTION_PROTOCOL_LIMITS.idLength;
   const sanitized = property.replace(/\W+/g, "_");
   // Include a short property fingerprint so a.b vs a-b do not collide after sanitize.
   let hash = 0;
@@ -490,7 +490,7 @@ function upsertKeyframeOnScene(
       };
       if (keyIdx >= 0) keys[keyIdx] = key;
       else {
-        if (keys.length >= MOTION_V2_LIMITS.keysPerTrack) {
+        if (keys.length >= MOTION_PROTOCOL_LIMITS.keysPerTrack) {
           overflow = true;
           return tr;
         }
@@ -503,7 +503,7 @@ function upsertKeyframeOnScene(
       return {
         project,
         missing: false,
-        invalid: `Keyframe track exceeds keysPerTrack (${MOTION_V2_LIMITS.keysPerTrack}).`,
+        invalid: `Keyframe track exceeds keysPerTrack (${MOTION_PROTOCOL_LIMITS.keysPerTrack}).`,
       };
     }
     clips[clipIdx] = {
@@ -981,9 +981,9 @@ export function executePropertyCommand(
       if (!Number.isFinite(command.t)) {
         return rejectedInvalid("Keyframe time must be a finite number.");
       }
-      if (command.t < 0 || command.t > MOTION_V2_LIMITS.mediaDurationSeconds) {
+      if (command.t < 0 || command.t > MOTION_PROTOCOL_LIMITS.mediaDurationSeconds) {
         return rejectedInvalid(
-          `Keyframe time must be within 0..${MOTION_V2_LIMITS.mediaDurationSeconds}.`,
+          `Keyframe time must be within 0..${MOTION_PROTOCOL_LIMITS.mediaDurationSeconds}.`,
         );
       }
       if (typeof command.v === "number" && !Number.isFinite(command.v)) {
@@ -1008,7 +1008,7 @@ export function executePropertyCommand(
     case "move-property-keyframe": {
       if (!command.targets.length) return { status: "rejected", reason: "empty_targets", message: "No targets specified." };
       if (!Number.isFinite(command.newT)) return rejectedInvalid("New time must be finite.");
-      if (command.newT < 0 || command.newT > MOTION_V2_LIMITS.mediaDurationSeconds) return rejectedInvalid("New time out of bounds.");
+      if (command.newT < 0 || command.newT > MOTION_PROTOCOL_LIMITS.mediaDurationSeconds) return rejectedInvalid("New time out of bounds.");
       if (typeof command.newV === "number" && !Number.isFinite(command.newV)) return rejectedInvalid("Numeric value must be finite.");
 
       let updated = document.project;

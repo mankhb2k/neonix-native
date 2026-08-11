@@ -73,6 +73,11 @@ const FORBIDDEN = [
     pattern: /\b\w+V2Schema\b/,
     label: "*V2Schema name in production",
   },
+  // Phase 2 (v3-residue): V2-named constants must not exist
+  {
+    pattern: /MOTION_V2_LIMITS/,
+    label: "MOTION_V2_LIMITS (use MOTION_PROTOCOL_LIMITS)",
+  },
 ];
 
 // ── Allowlist (tightened Phase 13) ───────────────────────────────────
@@ -214,7 +219,9 @@ function main(): void {
 
   // ── Hard gate: compat/ folder must not exist ──────────────────────
 
-  if (existsSync(resolve(ROOT, "packages", "motion-protocol", "src", "compat"))) {
+  if (
+    existsSync(resolve(ROOT, "packages", "motion-protocol", "src", "compat"))
+  ) {
     allViolations.push({
       file: "packages/motion-protocol/src/compat/",
       line: 0,

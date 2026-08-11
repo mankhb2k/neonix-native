@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 
 export const FitSchema = z.enum(["contain", "cover", "fill", "none"]);
@@ -21,14 +21,14 @@ const GradientPaintSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("linear-gradient"),
     angle: FiniteNumberSchema.optional(),
-    stops: z.array(GradientStopSchema).min(2).max(MOTION_V2_LIMITS.gradientStops),
+    stops: z.array(GradientStopSchema).min(2).max(MOTION_PROTOCOL_LIMITS.gradientStops),
   }).strict(),
   z.object({
     type: z.literal("radial-gradient"),
     cx: FiniteNumberSchema.min(0).max(1),
     cy: FiniteNumberSchema.min(0).max(1),
     radius: FiniteNumberSchema.positive().max(2),
-    stops: z.array(GradientStopSchema).min(2).max(MOTION_V2_LIMITS.gradientStops),
+    stops: z.array(GradientStopSchema).min(2).max(MOTION_PROTOCOL_LIMITS.gradientStops),
   }).strict(),
 ]);
 
@@ -36,13 +36,13 @@ export const PaintStyleSchema = z.object({
   fill: z.union([z.string().min(1), GradientPaintSchema]).optional(),
   fillOpacity: FiniteNumberSchema.min(0).max(1).optional(),
   stroke: z.string().min(1).optional(),
-  strokeWidth: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension).optional(),
+  strokeWidth: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension).optional(),
   strokeOpacity: FiniteNumberSchema.min(0).max(1).optional(),
   lineCap: z.enum(["butt", "round", "square"]).optional(),
   lineJoin: z.enum(["miter", "round", "bevel"]).optional(),
-  miterLimit: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.nodeDimension).optional(),
-  dash: z.array(FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.dashLength)).min(1).max(MOTION_V2_LIMITS.dashSegments).optional(),
-  dashOffset: FiniteNumberSchema.min(-MOTION_V2_LIMITS.dashLength).max(MOTION_V2_LIMITS.dashLength).optional(),
+  miterLimit: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension).optional(),
+  dash: z.array(FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.dashLength)).min(1).max(MOTION_PROTOCOL_LIMITS.dashSegments).optional(),
+  dashOffset: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.dashLength).max(MOTION_PROTOCOL_LIMITS.dashLength).optional(),
 }).strict().superRefine((style, context) => {
   const fill = style.fill;
   if (fill && typeof fill === "object" && "stops" in fill) {

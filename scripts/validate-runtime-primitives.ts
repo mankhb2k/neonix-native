@@ -17,7 +17,7 @@ const repoRoot = resolve(__dirname, "..");
 
 console.log("Running V3 runtime primitives via vitest...");
 execSync(
-  'pnpm --filter @motionvideo/motion-runtime exec vitest run --reporter=verbose src/__tests__/v3-primitives-smoke.test.ts',
+  "pnpm --filter @motionvideo/motion-runtime exec vitest run --reporter=verbose src/__tests__/v3-primitives-smoke.test.ts",
   { cwd: repoRoot, stdio: "inherit" },
 );
 console.log("V3 runtime primitives smoke test PASSED");

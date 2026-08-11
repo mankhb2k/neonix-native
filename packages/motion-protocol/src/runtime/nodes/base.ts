@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, SemanticSchema } from "../common";
 import { EffectV2Schema } from "../effects";
 import { RepeaterSchema } from "../layout";
@@ -9,8 +9,8 @@ import { TransformV2Schema } from "../transform";
 /** Optional scene-local in/out for Layer Mode timeline strips. */
 export const NodeTimingV2Schema = z
   .object({
-    start: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds),
-    duration: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds),
+    start: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+    duration: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
   })
   .strict();
 
@@ -27,8 +27,8 @@ export const NodeBaseSchema = z.object({
   timing: NodeTimingV2Schema.optional(),
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
-  modifiers: z.array(MotionModifierSchema).max(MOTION_V2_LIMITS.modifiersPerNode).optional(),
-  effects: z.array(EffectV2Schema).max(MOTION_V2_LIMITS.effectsPerNode).optional(),
+  modifiers: z.array(MotionModifierSchema).max(MOTION_PROTOCOL_LIMITS.modifiersPerNode).optional(),
+  effects: z.array(EffectV2Schema).max(MOTION_PROTOCOL_LIMITS.effectsPerNode).optional(),
   blendMode: z.enum(["normal", "multiply", "screen", "add", "darken", "lighten", "overlay"]).optional(),
   inheritPosition: z.boolean().optional(),
   inheritRotation: z.boolean().optional(),

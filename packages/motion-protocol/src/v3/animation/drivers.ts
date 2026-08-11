@@ -5,7 +5,7 @@
  */
 
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, PropertyPathSchema } from "../common";
 
 export const ProceduralDriverSchema = z.discriminatedUnion("type", [
@@ -104,7 +104,7 @@ export const ProceduralDriverSchema = z.discriminatedUnion("type", [
       sourceNodeId: IdSchema,
       sourceProperty: PropertyPathSchema,
       delay: FiniteNumberSchema.nonnegative().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
     })
     .strict(),

@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema } from "../common";
 import { NodeBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
@@ -35,7 +35,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
     .object({
       shape: z.literal("rectangle"),
       cornerRadius: FiniteNumberSchema.nonnegative()
-        .max(MOTION_V2_LIMITS.nodeDimension)
+        .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
         .optional(),
     })
     .strict(),
@@ -43,7 +43,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("polygon"),
-      points: z.array(PointV2Schema).min(3).max(MOTION_V2_LIMITS.polygonPoints),
+      points: z.array(PointV2Schema).min(3).max(MOTION_PROTOCOL_LIMITS.polygonPoints),
     })
     .strict(),
 ]);
@@ -62,11 +62,11 @@ export const PathNodeV2Schema = NodeBaseSchema.extend({
       contours: z
         .array(PathContourV2Schema)
         .min(1)
-        .max(MOTION_V2_LIMITS.pathContours),
+        .max(MOTION_PROTOCOL_LIMITS.pathContours),
       fillRule: z.enum(["nonzero", "evenodd"]).default("nonzero"),
       morphTargets: z
         .array(PathMorphTargetV2Schema)
-        .max(MOTION_V2_LIMITS.pathMorphTargets)
+        .max(MOTION_PROTOCOL_LIMITS.pathMorphTargets)
         .optional(),
     })
     .strict(),

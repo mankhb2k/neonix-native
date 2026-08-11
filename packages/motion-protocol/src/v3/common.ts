@@ -5,7 +5,7 @@
  * so V3 modules no longer depend on legacy/.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 
 export const MOTION_PROJECT_V3_FORMAT_VERSION = 3 as const;
 export const MOTION_WORKSPACE_FORMAT_VERSION = 1 as const;
@@ -14,7 +14,7 @@ export const MOTION_WORKSPACE_FORMAT_VERSION = 1 as const;
 
 export const AspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);
 
-export const IdSchema = z.string().min(1).max(MOTION_V2_LIMITS.idLength);
+export const IdSchema = z.string().min(1).max(MOTION_PROTOCOL_LIMITS.idLength);
 export const PropertyPathSchema = z.string().min(1);
 export const SemverSchema = z
   .string()
@@ -35,7 +35,7 @@ export const SemanticSchema = z
   .object({
     role: IdSchema,
     key: IdSchema.optional(),
-    tags: z.array(IdSchema).max(MOTION_V2_LIMITS.semanticTags).default([]),
+    tags: z.array(IdSchema).max(MOTION_PROTOCOL_LIMITS.semanticTags).default([]),
   })
   .strict();
 

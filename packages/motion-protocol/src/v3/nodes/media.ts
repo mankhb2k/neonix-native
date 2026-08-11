@@ -7,7 +7,7 @@
  * `focalLength` distance semantics.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { CropSchema, FitSchema } from "./paint";
 import { IdSchema, PositiveNumberSchema } from "../common";
 import { NodeBaseV3Schema } from "./base";
@@ -34,10 +34,10 @@ export const VideoNodeV3Schema = NodeBaseV3Schema.extend({
   type: z.literal("video"),
   payload: MediaPayloadSchema.extend({
     trimStart: PositiveNumberSchema.max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ).optional(),
     trimEnd: PositiveNumberSchema.max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ).optional(),
     loop: z.boolean().optional(),
     muted: z.boolean().optional(),
@@ -53,21 +53,21 @@ export const CameraNodeV3Schema = NodeBaseV3Schema.extend({
         .enum(["orthographic", "perspective"])
         .default("orthographic"),
       zoom: PositiveNumberSchema.max(
-        MOTION_V2_LIMITS.transformScale,
+        MOTION_PROTOCOL_LIMITS.transformScale,
       ).optional(),
       parallaxStrength: z
         .number()
         .min(0)
-        .max(MOTION_V2_LIMITS.parallaxFactor)
+        .max(MOTION_PROTOCOL_LIMITS.parallaxFactor)
         .optional(),
       focalLength: PositiveNumberSchema.optional(),
       fieldOfView: z
         .number()
         .min(1)
-        .max(MOTION_V2_LIMITS.perspectiveFov)
+        .max(MOTION_PROTOCOL_LIMITS.perspectiveFov)
         .optional(),
-      near: PositiveNumberSchema.max(MOTION_V2_LIMITS.cameraFar).optional(),
-      far: PositiveNumberSchema.max(MOTION_V2_LIMITS.cameraFar).optional(),
+      near: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.cameraFar).optional(),
+      far: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.cameraFar).optional(),
     })
     .strict(),
 }).strict();

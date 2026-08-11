@@ -6,7 +6,7 @@
  */
 
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 import { ResolvableValueSchema } from "../values";
 import { PropertyTrackSchema } from "../../v3/animation/tracks";
@@ -29,7 +29,7 @@ export const ClipSourceSchema = z.discriminatedUnion("kind", [
       tracks: z
         .array(PropertyTrackSchema)
         .min(1)
-        .max(MOTION_V2_LIMITS.tracksPerClip),
+        .max(MOTION_PROTOCOL_LIMITS.tracksPerClip),
     })
     .strict(),
   z
@@ -48,7 +48,7 @@ export const ClipV2Schema = z
     targetId: IdSchema.optional(),
     schedule: z.lazy(() => ClipScheduleSchema),
     duration: FiniteNumberSchema.positive().max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
     playback: z.lazy(() => PlaybackSchema).default({}),
     source: ClipSourceSchema,

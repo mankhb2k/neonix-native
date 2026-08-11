@@ -7,7 +7,7 @@
  * Bindings may target either a scene node or a component instance node.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
@@ -44,7 +44,7 @@ export const ListFieldSchema: z.ZodType<ListField> = z.lazy(() =>
       options: z
         .array(z.string())
         .min(1)
-        .max(MOTION_V2_LIMITS.enumOptions)
+        .max(MOTION_PROTOCOL_LIMITS.enumOptions)
         .optional(),
       itemSchema: z.lazy(() => ListFieldSchema).optional(),
     })
@@ -78,14 +78,14 @@ export const ProjectVariableV3Schema = z.discriminatedUnion("type", [
   ScalarVariableBaseSchema.extend({
     type: z.literal("enum"),
     value: z.string(),
-    options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions),
+    options: z.array(z.string()).min(1).max(MOTION_PROTOCOL_LIMITS.enumOptions),
   }).strict(),
   ScalarVariableBaseSchema.extend({
     type: z.literal("list"),
     itemSchema: z
       .object({ type: z.literal("object"), fields: z.record(ListFieldSchema) })
       .strict(),
-    value: z.array(z.record(JsonValueSchema)).max(MOTION_V2_LIMITS.listItems),
+    value: z.array(z.record(JsonValueSchema)).max(MOTION_PROTOCOL_LIMITS.listItems),
   }).strict(),
 ]);
 
@@ -176,7 +176,7 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
   ScalarVariableSchema.extend({
     type: z.literal("enum"),
     value: z.string(),
-    options: z.array(z.string()).min(1).max(MOTION_V2_LIMITS.enumOptions),
+    options: z.array(z.string()).min(1).max(MOTION_PROTOCOL_LIMITS.enumOptions),
   }).strict(),
   ScalarVariableSchema.extend({
     type: z.literal("list"),
@@ -186,7 +186,7 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
         fields: z.record(ObjectFieldSchema),
       })
       .strict(),
-    value: z.array(z.record(JsonValueSchema)).max(MOTION_V2_LIMITS.listItems),
+    value: z.array(z.record(JsonValueSchema)).max(MOTION_PROTOCOL_LIMITS.listItems),
   }).strict(),
 ]);
 
@@ -243,7 +243,7 @@ export const PublicParamV2Schema = z
     options: z
       .array(z.string())
       .min(1)
-      .max(MOTION_V2_LIMITS.enumOptions)
+      .max(MOTION_PROTOCOL_LIMITS.enumOptions)
       .optional(),
     group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
     control: z

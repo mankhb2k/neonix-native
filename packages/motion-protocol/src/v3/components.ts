@@ -6,7 +6,7 @@
  * compiler + component + plugin versions.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { PublicParamV2Schema, VariableV2Schema } from "./variables";
 import { JsonValueSchema } from "./values";
 import { IdSchema, SemverSchema } from "./common";
@@ -20,7 +20,7 @@ export const ComponentActionV3Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
-    clips: z.array(MotionClipV3Schema).max(MOTION_V2_LIMITS.clipsPerAction),
+    clips: z.array(MotionClipV3Schema).max(MOTION_PROTOCOL_LIMITS.clipsPerAction),
     params: z.record(JsonValueSchema).optional(),
   })
   .strict();
@@ -32,25 +32,25 @@ export const EmbeddedComponentV3Schema = z
     integrity: z.string().min(1),
     publicParams: z
       .array(PublicParamV3Schema)
-      .max(MOTION_V2_LIMITS.publicParamsPerComponent)
+      .max(MOTION_PROTOCOL_LIMITS.publicParamsPerComponent)
       .default([]),
     variables: z
       .array(VariableV2Schema)
-      .max(MOTION_V2_LIMITS.variablesPerArtifact)
+      .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
       .default([]),
-    nodes: z.array(NodeV3Schema).max(MOTION_V2_LIMITS.nodesPerComponent),
+    nodes: z.array(NodeV3Schema).max(MOTION_PROTOCOL_LIMITS.nodesPerComponent),
     bindings: z
       .array(ProjectBindingV3Schema)
-      .max(MOTION_V2_LIMITS.bindingsPerArtifact)
+      .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
       .default([]),
     actions: z
       .array(ComponentActionV3Schema)
-      .max(MOTION_V2_LIMITS.actionsPerComponent)
+      .max(MOTION_PROTOCOL_LIMITS.actionsPerComponent)
       .default([]),
     variants: z.record(JsonValueSchema).optional(),
     assetDependencies: z
       .array(IdSchema)
-      .max(MOTION_V2_LIMITS.assetsPerArtifact)
+      .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)
       .optional(),
   })
   .strict();
@@ -77,11 +77,11 @@ export const ProjectDependenciesV3Schema = z
     compiler: z.object({ range: z.string().min(1) }).strict(),
     components: z
       .array(ComponentDependencyV3Schema)
-      .max(MOTION_V2_LIMITS.dependenciesPerProject)
+      .max(MOTION_PROTOCOL_LIMITS.dependenciesPerProject)
       .default([]),
     plugins: z
       .array(PluginDependencySchema)
-      .max(MOTION_V2_LIMITS.dependenciesPerProject)
+      .max(MOTION_PROTOCOL_LIMITS.dependenciesPerProject)
       .optional(),
   })
   .strict();

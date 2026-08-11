@@ -6,7 +6,7 @@
  * of truth; `locked` prevents editing, not rendering.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { EffectV2Schema } from "../effects";
 import { MotionModifierSchema } from "../modifiers";
 import { NodeTimingV2Schema } from "./timing";
@@ -45,7 +45,7 @@ export const NodeBaseV3Schema = z.object({
   semantic: SemanticSchema.optional(),
   effects: z
     .array(EffectV2Schema)
-    .max(MOTION_V2_LIMITS.effectsPerNode)
+    .max(MOTION_PROTOCOL_LIMITS.effectsPerNode)
     .optional(),
   blendMode: z
     .enum([
@@ -64,7 +64,7 @@ export const NodeBaseV3Schema = z.object({
   locked: z.boolean().default(false),
   modifiers: z
     .array(MotionModifierSchema)
-    .max(MOTION_V2_LIMITS.modifiersPerNode)
+    .max(MOTION_PROTOCOL_LIMITS.modifiersPerNode)
     .optional(),
 });
 

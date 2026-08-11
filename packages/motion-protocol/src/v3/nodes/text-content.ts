@@ -5,7 +5,7 @@
  * Node-level text type (TextNodeV3) lives in v3/nodes/text.ts.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
@@ -36,13 +36,13 @@ const RunHighlightSchema = z
   .object({
     fill: z.string().min(1),
     paddingX: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.richTextHighlightPadding)
+      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
       .optional(),
     paddingY: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.richTextHighlightPadding)
+      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
       .optional(),
     radius: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.richTextHighlightPadding)
+      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
       .optional(),
   })
   .strict();
@@ -54,7 +54,7 @@ const RichTextRunStyleSchema = z
     fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     fontStyle: z.enum(["normal", "italic"]).optional(),
     fontScale: FiniteNumberSchema.positive()
-      .max(MOTION_V2_LIMITS.richTextFontScale)
+      .max(MOTION_PROTOCOL_LIMITS.richTextFontScale)
       .optional(),
     letterSpacing: FiniteNumberSchema.optional(),
     highlight: RunHighlightSchema.optional(),
@@ -76,7 +76,7 @@ export const TextContentPlainSchema = z
 export const TextContentRunsSchema = z
   .object({
     kind: z.literal("runs"),
-    runs: z.array(RichTextRunSchema).min(1).max(MOTION_V2_LIMITS.richTextRuns),
+    runs: z.array(RichTextRunSchema).min(1).max(MOTION_PROTOCOL_LIMITS.richTextRuns),
   })
   .strict();
 
@@ -162,13 +162,13 @@ export const TextPayloadSchema = z.preprocess(
       content: TextContentSchema,
       fontAssetId: IdSchema.optional(),
       fontSize: FiniteNumberSchema.positive().max(
-        MOTION_V2_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.nodeDimension,
       ),
       fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
       align: z.enum(["left", "center", "right"]).optional(),
       wrap: z.enum(["none", "word", "character"]).optional(),
       lineHeight: FiniteNumberSchema.positive()
-        .max(MOTION_V2_LIMITS.nodeDimension)
+        .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
         .optional(),
       letterSpacing: FiniteNumberSchema.optional(),
       maxLines: FiniteNumberSchema.int().positive().optional(),
@@ -177,10 +177,10 @@ export const TextPayloadSchema = z.preprocess(
       fitText: z
         .object({
           minFontSize: FiniteNumberSchema.positive().max(
-            MOTION_V2_LIMITS.nodeDimension,
+            MOTION_PROTOCOL_LIMITS.nodeDimension,
           ),
           maxFontSize: FiniteNumberSchema.positive().max(
-            MOTION_V2_LIMITS.nodeDimension,
+            MOTION_PROTOCOL_LIMITS.nodeDimension,
           ),
         })
         .strict()

@@ -6,7 +6,7 @@
 import { z } from "zod";
 import {
   KeyframeEasingSchema,
-  MOTION_V2_LIMITS,
+  MOTION_PROTOCOL_LIMITS,
 } from "@motionvideo/motion-protocol";
 
 type KeyframeEasing = z.infer<typeof KeyframeEasingSchema>;
@@ -17,14 +17,14 @@ export const DirectionalPresetParamsSchema = z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.presetDistance)
+      .max(MOTION_PROTOCOL_LIMITS.presetDistance)
       .optional(),
     easing: KeyframeEasingSchema.optional(),
     overshoot: z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.presetOvershoot)
+      .max(MOTION_PROTOCOL_LIMITS.presetOvershoot)
       .optional(),
   })
   .strict();
@@ -35,14 +35,14 @@ export const ScalePresetParamsSchema = z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.transformScale)
+      .max(MOTION_PROTOCOL_LIMITS.transformScale)
       .optional(),
     easing: KeyframeEasingSchema.optional(),
     overshoot: z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.presetOvershoot)
+      .max(MOTION_PROTOCOL_LIMITS.presetOvershoot)
       .optional(),
   })
   .strict();

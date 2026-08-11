@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema, IdSchema } from "./common";
 
 const AssetBaseSchema = z.object({
@@ -10,7 +10,7 @@ const AssetBaseSchema = z.object({
 
 const AssetDimensionSchema = FiniteNumberSchema.int()
   .positive()
-  .max(MOTION_V2_LIMITS.assetDimension);
+  .max(MOTION_PROTOCOL_LIMITS.assetDimension);
 
 function pixelFormatHasAlpha(pixelFormat: string): boolean {
   return /(?:rgba|bgra|argb|abgr|yuva|graya)/i.test(pixelFormat);
@@ -40,20 +40,20 @@ export const VideoAssetV2Schema = AssetBaseSchema.extend({
   width: AssetDimensionSchema,
   height: AssetDimensionSchema,
   duration: FiniteNumberSchema.positive().max(
-    MOTION_V2_LIMITS.mediaDurationSeconds,
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
   ),
-  fps: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.frameRate),
+  fps: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
   videoCodec: z.string().min(1),
   pixelFormat: z.string().min(1),
   hasAudio: z.boolean(),
   audioCodec: z.string().min(1).optional(),
   sampleRate: FiniteNumberSchema.int()
     .positive()
-    .max(MOTION_V2_LIMITS.sampleRate)
+    .max(MOTION_PROTOCOL_LIMITS.sampleRate)
     .optional(),
   channels: FiniteNumberSchema.int()
     .positive()
-    .max(MOTION_V2_LIMITS.audioChannels)
+    .max(MOTION_PROTOCOL_LIMITS.audioChannels)
     .optional(),
 }).strict();
 
@@ -67,23 +67,23 @@ export const AudioAnalysisSchema = z
         z
           .object({
             time: FiniteNumberSchema.nonnegative().max(
-              MOTION_V2_LIMITS.mediaDurationSeconds,
+              MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
             ),
             strength: FiniteNumberSchema.min(0).max(1).optional(),
             downbeat: z.boolean().optional(),
           })
           .strict(),
       )
-      .max(MOTION_V2_LIMITS.audioBeatsPerAsset)
+      .max(MOTION_PROTOCOL_LIMITS.audioBeatsPerAsset)
       .optional(),
     energy: z
       .object({
         sampleRateHz: FiniteNumberSchema.positive().max(
-          MOTION_V2_LIMITS.sampleRate,
+          MOTION_PROTOCOL_LIMITS.sampleRate,
         ),
         values: z
           .array(FiniteNumberSchema.min(0).max(1))
-          .max(MOTION_V2_LIMITS.audioEnergySamples),
+          .max(MOTION_PROTOCOL_LIMITS.audioEnergySamples),
       })
       .strict()
       .optional(),
@@ -94,15 +94,15 @@ export const AudioAssetV2Schema = AssetBaseSchema.extend({
   assetType: z.literal("audio"),
   mimeType: z.enum(["audio/mpeg", "audio/wav", "audio/aac", "audio/ogg"]),
   duration: FiniteNumberSchema.positive().max(
-    MOTION_V2_LIMITS.mediaDurationSeconds,
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
   ),
   codec: z.string().min(1),
   sampleRate: FiniteNumberSchema.int()
     .positive()
-    .max(MOTION_V2_LIMITS.sampleRate),
+    .max(MOTION_PROTOCOL_LIMITS.sampleRate),
   channels: FiniteNumberSchema.int()
     .positive()
-    .max(MOTION_V2_LIMITS.audioChannels),
+    .max(MOTION_PROTOCOL_LIMITS.audioChannels),
   analysis: AudioAnalysisSchema.optional(),
 }).strict();
 
@@ -112,7 +112,7 @@ export const FontAssetV2Schema = AssetBaseSchema.extend({
   family: z.string().min(1),
   weight: FiniteNumberSchema.int().min(1).max(1000),
   style: z.enum(["normal", "italic"]),
-  localeCoverage: z.array(IdSchema).min(1).max(MOTION_V2_LIMITS.localeCoverage),
+  localeCoverage: z.array(IdSchema).min(1).max(MOTION_PROTOCOL_LIMITS.localeCoverage),
 }).strict();
 
 export const AssetV2Schema = z

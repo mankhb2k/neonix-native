@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 import { NodeBaseSchema } from "./base";
 import { CropSchema, FitSchema, PaintStyleSchema } from "./paint";
@@ -28,8 +28,8 @@ export const VideoNodeV2Schema = NodeBaseSchema.extend({
   payload: z.object({
     assetId: IdSchema,
     fit: FitSchema.optional(),
-    trimStart: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.mediaDurationSeconds).optional(),
-    trimEnd: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.mediaDurationSeconds).optional(),
+    trimStart: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds).optional(),
+    trimEnd: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds).optional(),
     loop: z.boolean().optional(),
     muted: z.boolean().optional(),
     framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),

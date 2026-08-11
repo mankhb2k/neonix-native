@@ -5,7 +5,7 @@
  * timeline level as visual-clip sources, not as scene nodes).
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { ColorHexSchema, IdSchema, PositiveNumberSchema } from "../common";
 import { NodeBaseV3Schema } from "./base";
 
@@ -28,7 +28,7 @@ export const BoneNodeV3Schema = NodeBaseV3Schema.extend({
   type: z.literal("bone"),
   payload: z
     .object({
-      length: PositiveNumberSchema.max(MOTION_V2_LIMITS.nodeDimension),
+      length: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.nodeDimension),
       restRotation: z.number().finite().optional(),
       rotationLimits: z
         .object({ min: z.number().finite(), max: z.number().finite() })
@@ -42,8 +42,8 @@ export const SolidNodeV3Schema = NodeBaseV3Schema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
-      width: PositiveNumberSchema.max(MOTION_V2_LIMITS.nodeDimension),
-      height: PositiveNumberSchema.max(MOTION_V2_LIMITS.nodeDimension),
+      width: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+      height: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.nodeDimension),
       color: ColorHexSchema.default("#000000"),
     })
     .strict(),

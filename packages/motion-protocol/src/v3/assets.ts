@@ -6,7 +6,7 @@
  * keeping the same discriminated `assetType` union and validation policy.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
@@ -21,7 +21,7 @@ const AssetBaseV3Schema = z.object({
 });
 
 const AssetDimensionSchema = NonNegativeIntegerSchema.positive().max(
-  MOTION_V2_LIMITS.assetDimension,
+  MOTION_PROTOCOL_LIMITS.assetDimension,
 );
 
 export const ImageAssetV3Schema = AssetBaseV3Schema.extend({
@@ -48,17 +48,17 @@ export const VideoAssetV3Schema = AssetBaseV3Schema.extend({
   width: AssetDimensionSchema,
   height: AssetDimensionSchema,
   duration: FiniteNumberSchema.positive().max(
-    MOTION_V2_LIMITS.mediaDurationSeconds,
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
   ),
-  fps: FiniteNumberSchema.positive().max(MOTION_V2_LIMITS.frameRate),
+  fps: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
   codec: z.string().min(1).optional(),
   pixelFormat: z.string().min(1).optional(),
   audioCodec: z.string().min(1).optional(),
   audioSampleRate: NonNegativeIntegerSchema.positive()
-    .max(MOTION_V2_LIMITS.sampleRate)
+    .max(MOTION_PROTOCOL_LIMITS.sampleRate)
     .optional(),
   audioChannels: NonNegativeIntegerSchema.positive()
-    .max(MOTION_V2_LIMITS.audioChannels)
+    .max(MOTION_PROTOCOL_LIMITS.audioChannels)
     .optional(),
 }).strict();
 
@@ -66,14 +66,14 @@ export const AudioAssetV3Schema = AssetBaseV3Schema.extend({
   assetType: z.literal("audio"),
   mimeType: z.enum(["audio/mpeg", "audio/wav", "audio/aac", "audio/ogg"]),
   duration: FiniteNumberSchema.positive().max(
-    MOTION_V2_LIMITS.mediaDurationSeconds,
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
   ),
   codec: z.string().min(1).optional(),
   sampleRate: NonNegativeIntegerSchema.positive()
-    .max(MOTION_V2_LIMITS.sampleRate)
+    .max(MOTION_PROTOCOL_LIMITS.sampleRate)
     .default(48000),
   channels: NonNegativeIntegerSchema.positive()
-    .max(MOTION_V2_LIMITS.audioChannels)
+    .max(MOTION_PROTOCOL_LIMITS.audioChannels)
     .default(2),
 }).strict();
 
@@ -86,7 +86,7 @@ export const FontAssetV3Schema = AssetBaseV3Schema.extend({
   localeCoverage: z
     .array(IdSchema)
     .min(1)
-    .max(MOTION_V2_LIMITS.localeCoverage)
+    .max(MOTION_PROTOCOL_LIMITS.localeCoverage)
     .optional(),
 }).strict();
 

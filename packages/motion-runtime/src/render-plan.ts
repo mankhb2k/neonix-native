@@ -1,4 +1,4 @@
-import { MOTION_V2_LIMITS } from "@motionvideo/motion-protocol";
+import { MOTION_PROTOCOL_LIMITS } from "@motionvideo/motion-protocol";
 import type { EvaluatedNode, RuntimeScene, RuntimeNode } from "./evaluator";
 import type { Bounds2D } from "./spatial";
 import { calculateMotionBlurTimestamps, type MotionBlurSettings } from "./motion-blur";
@@ -84,10 +84,10 @@ export function buildRenderPlan(
     if (needsOffscreen) {
       const area = Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
       totalAllocatedPixels += area;
-      if (totalAllocatedPixels > MOTION_V2_LIMITS.offscreenPixels) {
+      if (totalAllocatedPixels > MOTION_PROTOCOL_LIMITS.offscreenPixels) {
         diagnostics.push({
           kind: "budget_exceeded",
-          message: `Offscreen pixel budget exceeded: ${totalAllocatedPixels} > ${MOTION_V2_LIMITS.offscreenPixels}`,
+          message: `Offscreen pixel budget exceeded: ${totalAllocatedPixels} > ${MOTION_PROTOCOL_LIMITS.offscreenPixels}`,
           allocatedPixels: totalAllocatedPixels,
         });
       }

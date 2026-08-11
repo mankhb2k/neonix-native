@@ -1,4 +1,4 @@
-export const MOTION_V2_LIMITS = Object.freeze({
+export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   idLength: 128,
   scenesPerProject: 100,
   nodesPerScene: 2_000,
@@ -146,8 +146,8 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       bindable: true,
       public: true,
       runtimeSupport: "evaluated",
-      min: -MOTION_V2_LIMITS.parallaxFactor,
-      max: MOTION_V2_LIMITS.parallaxFactor,
+      min: -MOTION_PROTOCOL_LIMITS.parallaxFactor,
+      max: MOTION_PROTOCOL_LIMITS.parallaxFactor,
     },
     "transform.width": {
       valueKind: "number",
@@ -156,7 +156,7 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "transform.height": {
       valueKind: "number",
@@ -165,7 +165,7 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "transform.rotation": {
       valueKind: "angle",
@@ -181,7 +181,7 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.transformScale,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
     },
     "transform.scaleY": {
       valueKind: "number",
@@ -190,7 +190,7 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.transformScale,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
     },
     "transform.anchorX": {
       valueKind: "number",
@@ -260,7 +260,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       minExclusive: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "payload.counterProgress": {
       valueKind: "number",
@@ -310,7 +310,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "style.strokeOpacity": {
       valueKind: "number",
@@ -327,8 +327,8 @@ const NODE_PROPERTIES: Readonly<
       bindable: true,
       public: true,
       runtimeSupport: "evaluated",
-      min: -MOTION_V2_LIMITS.dashLength,
-      max: MOTION_V2_LIMITS.dashLength,
+      min: -MOTION_PROTOCOL_LIMITS.dashLength,
+      max: MOTION_PROTOCOL_LIMITS.dashLength,
     },
     "payload.cornerRadius": {
       valueKind: "number",
@@ -337,7 +337,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
   },
   path: {
@@ -371,7 +371,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "style.strokeOpacity": {
       valueKind: "number",
@@ -388,8 +388,8 @@ const NODE_PROPERTIES: Readonly<
       bindable: true,
       public: true,
       runtimeSupport: "evaluated",
-      min: -MOTION_V2_LIMITS.dashLength,
-      max: MOTION_V2_LIMITS.dashLength,
+      min: -MOTION_PROTOCOL_LIMITS.dashLength,
+      max: MOTION_PROTOCOL_LIMITS.dashLength,
     },
   },
   solid: {
@@ -400,7 +400,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "payload.height": {
       valueKind: "number",
@@ -409,7 +409,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
     "payload.color": {
       valueKind: "color",
@@ -459,7 +459,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "compile-time",
       min: 0,
-      max: MOTION_V2_LIMITS.mediaDurationSeconds,
+      max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     },
     "payload.muted": {
       valueKind: "boolean",
@@ -477,7 +477,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       minExclusive: 0,
-      max: MOTION_V2_LIMITS.transformScale,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
     },
     "payload.parallaxStrength": {
       valueKind: "number",
@@ -486,7 +486,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_V2_LIMITS.parallaxFactor,
+      max: MOTION_PROTOCOL_LIMITS.parallaxFactor,
     },
   },
   bone: {
@@ -497,7 +497,7 @@ const NODE_PROPERTIES: Readonly<
       public: false,
       runtimeSupport: "compile-time",
       min: 0,
-      max: MOTION_V2_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
     },
   },
   adjustment: {
@@ -572,8 +572,8 @@ export function motionPropertyCapability(
       bindable: true,
       public: true,
       runtimeSupport: "evaluated",
-      min: -MOTION_V2_LIMITS.pathBendAmount,
-      max: MOTION_V2_LIMITS.pathBendAmount,
+      min: -MOTION_PROTOCOL_LIMITS.pathBendAmount,
+      max: MOTION_PROTOCOL_LIMITS.pathBendAmount,
     };
   if (/^modifiers\.[^.]+\.weight$/.test(property))
     return {
@@ -628,15 +628,15 @@ export function motionEffectPropertyCapability(
   switch (effectType) {
     case "blur":
       return field === "radius"
-        ? number(0, MOTION_V2_LIMITS.effectRadius)
+        ? number(0, MOTION_PROTOCOL_LIMITS.effectRadius)
         : undefined;
     case "shadow":
       if (field === "offsetX" || field === "offsetY")
         return number(
-          -MOTION_V2_LIMITS.effectOffset,
-          MOTION_V2_LIMITS.effectOffset,
+          -MOTION_PROTOCOL_LIMITS.effectOffset,
+          MOTION_PROTOCOL_LIMITS.effectOffset,
         );
-      if (field === "blur") return number(0, MOTION_V2_LIMITS.effectRadius);
+      if (field === "blur") return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
       if (field === "opacity") return number(0, 1);
       if (field === "color")
         return {
@@ -648,9 +648,9 @@ export function motionEffectPropertyCapability(
         };
       return undefined;
     case "glow":
-      if (field === "radius") return number(0, MOTION_V2_LIMITS.effectRadius);
+      if (field === "radius") return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
       if (field === "intensity")
-        return number(0, MOTION_V2_LIMITS.effectIntensity);
+        return number(0, MOTION_PROTOCOL_LIMITS.effectIntensity);
       if (field === "opacity") return number(0, 1);
       if (field === "color")
         return {

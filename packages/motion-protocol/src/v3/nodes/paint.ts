@@ -4,7 +4,7 @@
  * Phase 2: copied from legacy/nodes/paint.ts → V3 now owns these definitions.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 
 export const FitSchema = z.enum(["contain", "cover", "fill", "none"]);
@@ -34,7 +34,7 @@ const GradientPaintSchema = z.discriminatedUnion("type", [
       stops: z
         .array(GradientStopSchema)
         .min(2)
-        .max(MOTION_V2_LIMITS.gradientStops),
+        .max(MOTION_PROTOCOL_LIMITS.gradientStops),
     })
     .strict(),
   z
@@ -46,7 +46,7 @@ const GradientPaintSchema = z.discriminatedUnion("type", [
       stops: z
         .array(GradientStopSchema)
         .min(2)
-        .max(MOTION_V2_LIMITS.gradientStops),
+        .max(MOTION_PROTOCOL_LIMITS.gradientStops),
     })
     .strict(),
 ]);
@@ -57,21 +57,21 @@ export const PaintStyleSchema = z
     fillOpacity: FiniteNumberSchema.min(0).max(1).optional(),
     stroke: z.string().min(1).optional(),
     strokeWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
     strokeOpacity: FiniteNumberSchema.min(0).max(1).optional(),
     lineCap: z.enum(["butt", "round", "square"]).optional(),
     lineJoin: z.enum(["miter", "round", "bevel"]).optional(),
     miterLimit: FiniteNumberSchema.positive()
-      .max(MOTION_V2_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
     dash: z
-      .array(FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.dashLength))
+      .array(FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.dashLength))
       .min(1)
-      .max(MOTION_V2_LIMITS.dashSegments)
+      .max(MOTION_PROTOCOL_LIMITS.dashSegments)
       .optional(),
-    dashOffset: FiniteNumberSchema.min(-MOTION_V2_LIMITS.dashLength)
-      .max(MOTION_V2_LIMITS.dashLength)
+    dashOffset: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.dashLength)
+      .max(MOTION_PROTOCOL_LIMITS.dashLength)
       .optional(),
   })
   .strict()

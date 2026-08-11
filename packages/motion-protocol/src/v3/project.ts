@@ -6,7 +6,7 @@
  * of from ./index, which re-exports those same modules.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { MOTION_PROJECT_V3_FORMAT_VERSION } from "./common";
 import { ProjectMetadataV3Schema } from "./metadata";
 import { CompositionSettingsSchema } from "./composition";
@@ -35,24 +35,24 @@ export const MotionProjectV3Schema = z
     tokens: DesignTokensSchema.default({}),
     variables: z
       .array(ProjectVariableV3Schema)
-      .max(MOTION_V2_LIMITS.variablesPerArtifact)
+      .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
       .default([]),
     assets: z
       .array(AssetV3Schema)
-      .max(MOTION_V2_LIMITS.assetsPerArtifact)
+      .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)
       .default([]),
     components: z
       .array(EmbeddedComponentV3Schema)
-      .max(MOTION_V2_LIMITS.dependenciesPerProject)
+      .max(MOTION_PROTOCOL_LIMITS.dependenciesPerProject)
       .default([]),
     scenes: z
       .array(SceneDefinitionV3Schema)
-      .max(MOTION_V2_LIMITS.scenesPerProject)
+      .max(MOTION_PROTOCOL_LIMITS.scenesPerProject)
       .default([]),
     timeline: ProjectTimelineV3Schema,
     bindings: z
       .array(ProjectBindingV3Schema)
-      .max(MOTION_V2_LIMITS.bindingsPerArtifact)
+      .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
       .default([]),
     provenance: ProjectProvenanceSchema.optional(),
     extensions: NamespacedExtensionsSchema,

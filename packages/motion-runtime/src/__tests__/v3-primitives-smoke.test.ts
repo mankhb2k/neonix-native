@@ -44,10 +44,20 @@ function makeHierarchyScene() {
         type: "group" as const,
         parentId: null,
         transform: {
-          x: 540, y: 960, width: 540, height: 540,
-          rotation: 0, scaleX: 1, scaleY: 1,
-          anchorX: 0.5, anchorY: 0.5, opacity: 1,
-          visible: true, flipX: false, flipY: false, depth: 0,
+          x: 540,
+          y: 960,
+          width: 540,
+          height: 540,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0.5,
+          anchorY: 0.5,
+          opacity: 1,
+          visible: true,
+          flipX: false,
+          flipY: false,
+          depth: 0,
         },
         timing: { start: 0, duration: 3 },
       },
@@ -56,10 +66,20 @@ function makeHierarchyScene() {
         type: "group" as const,
         parentId: "group.root",
         transform: {
-          x: 100, y: -200, width: 60, height: 60,
-          rotation: 0, scaleX: 1, scaleY: 1,
-          anchorX: 0.5, anchorY: 0.5, opacity: 1,
-          visible: true, flipX: false, flipY: false, depth: 0,
+          x: 100,
+          y: -200,
+          width: 60,
+          height: 60,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0.5,
+          anchorY: 0.5,
+          opacity: 1,
+          visible: true,
+          flipX: false,
+          flipY: false,
+          depth: 0,
         },
         timing: { start: 0, duration: 3 },
       },
@@ -68,10 +88,20 @@ function makeHierarchyScene() {
         type: "shape" as const,
         parentId: "group.child",
         transform: {
-          x: 80, y: 0, width: 40, height: 40,
-          rotation: 0, scaleX: 1, scaleY: 1,
-          anchorX: 0.5, anchorY: 0.5, opacity: 0.65,
-          visible: true, flipX: false, flipY: false, depth: 0,
+          x: 80,
+          y: 0,
+          width: 40,
+          height: 40,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0.5,
+          anchorY: 0.5,
+          opacity: 0.65,
+          visible: true,
+          flipX: false,
+          flipY: false,
+          depth: 0,
         },
         payload: { width: 40, height: 40, color: "#ff0000" },
         timing: { start: 0, duration: 3 },
@@ -86,7 +116,9 @@ function makeHierarchyScene() {
 describe("V3 runtime primitives smoke", () => {
   it("frame clock and determinism", () => {
     expect(frameTimestamp(30, 30)).toEqual({
-      frameIndex: 30, fps: 30, time: 1,
+      frameIndex: 30,
+      fps: 30,
+      time: 1,
     });
     expect(frameIndexAtTime(0.999, 30)).toBe(29);
     expect(() => frameTimestamp(-1, 30)).toThrow();
@@ -127,9 +159,7 @@ describe("V3 runtime primitives smoke", () => {
 
     // Hide prop — hit-test must skip it
     const hiddenScene = makeHierarchyScene();
-    const hiddenProp = hiddenScene.nodes.find(
-      (n: any) => n.id === "prop",
-    )!;
+    const hiddenProp = hiddenScene.nodes.find((n: any) => n.id === "prop")!;
     hiddenProp.transform.visible = false;
     const hiddenHits = hitTestScene(hiddenScene, 0, { x: 420, y: 460 });
     expect(hiddenHits.some((h) => h.node.id === "prop")).toBe(false);
@@ -164,7 +194,11 @@ describe("V3 runtime primitives smoke", () => {
       2,
     );
     expect(surface).toEqual({
-      originX: -2, originY: -1, width: 15, height: 25, pixelCount: 375,
+      originX: -2,
+      originY: -1,
+      width: 15,
+      height: 25,
+      pixelCount: 375,
     });
 
     expect(() =>

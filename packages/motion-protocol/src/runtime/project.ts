@@ -8,7 +8,7 @@
 
 import { z } from "zod";
 import {
-  MOTION_V2_LIMITS,
+  MOTION_PROTOCOL_LIMITS,
   motionEffectPropertyCapability,
   motionPropertyCapability,
   motionPropertyValueError,
@@ -84,7 +84,7 @@ export const ProjectMetadataV2Schema = z
     id: IdSchema,
     name: z.string().min(1),
     aspectRatio: AspectRatioSchema,
-    fps: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.frameRate),
+    fps: FiniteNumberSchema.int().positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
     locale: z.literal("vi-VN"),
     industry: z.string().optional(),
     brand: BrandV2Schema,
@@ -102,18 +102,18 @@ export const AudioTrackSchema = z
     role: z.enum(["bgm", "voiceover", "sfx"]),
     assetId: IdSchema,
     start: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
     trimStart: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
     volume: FiniteNumberSchema.min(0).max(1).default(1),
     loop: z.boolean().default(false),
     fadeIn: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
     fadeOut: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
   })
   .strict();
@@ -126,7 +126,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("fade"),
       duration: FiniteNumberSchema.positive().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
       color: z.string().min(1).optional(),
       easing: z
@@ -138,7 +138,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("crossfade"),
       duration: FiniteNumberSchema.positive().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
       easing: z
         .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
@@ -149,7 +149,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("slide"),
       duration: FiniteNumberSchema.positive().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
       direction: z.enum(["left", "right", "up", "down"]),
       mode: z.enum(["push", "cover"]).default("push"),
@@ -162,7 +162,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("wipe"),
       duration: FiniteNumberSchema.positive().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
       direction: z.enum(["left", "right", "up", "down"]),
       softness: FiniteNumberSchema.min(0).max(1).optional(),
@@ -175,7 +175,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
     .object({
       type: z.literal("zoom"),
       duration: FiniteNumberSchema.positive().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
       direction: z.enum(["in", "out"]),
       easing: z
@@ -218,7 +218,7 @@ const RuntimeTrackSchema = z
         z
           .object({
             t: FiniteNumberSchema.nonnegative().max(
-              MOTION_V2_LIMITS.mediaDurationSeconds,
+              MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
             ),
             v: LiteralValueSchema,
             easing: KeyframeEasingSchema.optional(),
@@ -226,7 +226,7 @@ const RuntimeTrackSchema = z
           .strict(),
       )
       .min(1)
-      .max(MOTION_V2_LIMITS.keysPerTrack),
+      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
   })
   .strict();
 
@@ -248,16 +248,16 @@ export const RuntimeCompositionMetadataSchema = z
   .object({
     width: FiniteNumberSchema.int()
       .positive()
-      .max(MOTION_V2_LIMITS.assetDimension),
+      .max(MOTION_PROTOCOL_LIMITS.assetDimension),
     height: FiniteNumberSchema.int()
       .positive()
-      .max(MOTION_V2_LIMITS.assetDimension),
-    fps: FiniteNumberSchema.int().positive().max(MOTION_V2_LIMITS.frameRate),
+      .max(MOTION_PROTOCOL_LIMITS.assetDimension),
+    fps: FiniteNumberSchema.int().positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
     background: z.string().min(1).max(64).optional(),
     colorSpace: z.enum(["srgb", "display-p3"]).default("srgb"),
     audioSampleRate: FiniteNumberSchema.int()
       .positive()
-      .max(MOTION_V2_LIMITS.sampleRate)
+      .max(MOTION_PROTOCOL_LIMITS.sampleRate)
       .optional(),
     safeArea: PlatformSafeAreaSchema.optional(),
   })
@@ -288,13 +288,13 @@ export const RuntimeVisualClipSchema = z
     id: IdSchema,
     source: RuntimeClipSourceSchema,
     start: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
     duration: FiniteNumberSchema.positive().max(
-      MOTION_V2_LIMITS.mediaDurationSeconds,
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
     trimStart: FiniteNumberSchema.nonnegative()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds)
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .optional(),
     playbackRate: FiniteNumberSchema.positive().max(16).optional(),
     loop: z.boolean().optional(),
@@ -314,7 +314,7 @@ export const RuntimeVisualTrackSchema = z
     role: z.enum(["primary", "overlay", "background"]),
     order: FiniteNumberSchema.int().nonnegative().optional(),
     muted: z.boolean().optional(),
-    clips: z.array(RuntimeVisualClipSchema).max(MOTION_V2_LIMITS.clipsPerScene),
+    clips: z.array(RuntimeVisualClipSchema).max(MOTION_PROTOCOL_LIMITS.clipsPerScene),
   })
   .strict();
 export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
@@ -349,7 +349,7 @@ const MotionRuntimeProjectBaseSchema = z
     formatVersion: z.literal(RUNTIME_IR_FORMAT_VERSION),
     runtimeVersion: z.literal(MOTION_RUNTIME_VERSION).optional(),
     metadata: ProjectMetadataV2Schema,
-    assets: z.array(AssetV2Schema).max(MOTION_V2_LIMITS.assetsPerArtifact),
+    assets: z.array(AssetV2Schema).max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact),
     composition: RuntimeCompositionMetadataSchema.optional(),
     runtimeHash: z.string().min(1).max(128).optional(),
     compilerVersion: z.string().min(1).max(128).optional(),
@@ -360,18 +360,18 @@ const MotionRuntimeProjectBaseSchema = z
         /** @deprecated sceneOrder is derived from visualTracks; kept optional for backward compat. */
         sceneOrder: z
           .array(IdSchema)
-          .max(MOTION_V2_LIMITS.scenesPerProject)
+          .max(MOTION_PROTOCOL_LIMITS.scenesPerProject)
           .optional(),
         visualTracks: z
           .array(RuntimeVisualTrackSchema)
           .min(1)
-          .max(MOTION_V2_LIMITS.audioTracksPerProject),
+          .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject),
         audioTracks: z
           .array(AudioTrackSchema)
-          .max(MOTION_V2_LIMITS.audioTracksPerProject),
+          .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject),
         captionTracks: z
           .array(CaptionTrackSchema)
-          .max(MOTION_V2_LIMITS.captionTracksPerProject)
+          .max(MOTION_PROTOCOL_LIMITS.captionTracksPerProject)
           .default([]),
       })
       .strict(),
@@ -381,7 +381,7 @@ const MotionRuntimeProjectBaseSchema = z
           .object({
             id: IdSchema,
             duration: FiniteNumberSchema.positive().max(
-              MOTION_V2_LIMITS.mediaDurationSeconds,
+              MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
             ),
             space: z
               .enum(["flat-2d", "layered-2.5d", "perspective-3d"])
@@ -394,16 +394,16 @@ const MotionRuntimeProjectBaseSchema = z
             sourceRef: RuntimeSourceRefSchema.optional(),
             nodes: z
               .array(RuntimeNodeSchema)
-              .max(MOTION_V2_LIMITS.nodesPerScene),
+              .max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
             tracks: z
               .array(RuntimeTrackSchema)
               .max(
-                MOTION_V2_LIMITS.clipsPerScene * MOTION_V2_LIMITS.tracksPerClip,
+                MOTION_PROTOCOL_LIMITS.clipsPerScene * MOTION_PROTOCOL_LIMITS.tracksPerClip,
               ),
           })
           .strict(),
       )
-      .max(MOTION_V2_LIMITS.scenesPerProject),
+      .max(MOTION_PROTOCOL_LIMITS.scenesPerProject),
   })
   .strict();
 

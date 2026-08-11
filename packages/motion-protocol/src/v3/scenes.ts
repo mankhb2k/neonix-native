@@ -7,7 +7,7 @@
  * motion clips remain available as `clips`.
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { MotionBlurSettingsSchema } from "./nodes/structural";
 import { IdSchema, SemanticSchema } from "./common";
 import { MotionClipV3Schema } from "./animation/clips";
@@ -23,16 +23,16 @@ export const SceneDefinitionV3Schema = z
       .number()
       .positive()
       .finite()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
     semantic: SemanticSchema.optional(),
     space: z.enum(["flat-2d", "layered-2.5d"]).default("flat-2d"),
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
-    nodes: z.array(NodeV3Schema).max(MOTION_V2_LIMITS.nodesPerScene),
+    nodes: z.array(NodeV3Schema).max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
     clips: z
       .array(MotionClipV3Schema)
-      .max(MOTION_V2_LIMITS.clipsPerScene)
+      .max(MOTION_PROTOCOL_LIMITS.clipsPerScene)
       .default([]),
     activeCameraId: IdSchema.optional(),
   })

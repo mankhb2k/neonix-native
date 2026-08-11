@@ -7,7 +7,7 @@
  */
 
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 import { ResolvableValueSchema } from "../values";
 import { PropertyTrackV3Schema } from "./tracks";
@@ -19,7 +19,7 @@ export const ClipScheduleSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("absolute"),
       at: FiniteNumberSchema.nonnegative().max(
-        MOTION_V2_LIMITS.mediaDurationSeconds,
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),
     })
     .strict(),
@@ -27,7 +27,7 @@ export const ClipScheduleSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("scene-end"),
       /** 0 = clip ends at scene end; negative = pad before end. */
-      offset: FiniteNumberSchema.max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      offset: FiniteNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
     })
     .strict(),
   z
@@ -52,7 +52,7 @@ export const PlaybackSchema = z
       .union([
         FiniteNumberSchema.int()
           .positive()
-          .max(MOTION_V2_LIMITS.playbackIterations),
+          .max(MOTION_PROTOCOL_LIMITS.playbackIterations),
         z.literal("infinite"),
       ])
       .default(1),
@@ -89,7 +89,7 @@ export const ClipSourceV3Schema = z.discriminatedUnion("kind", [
       tracks: z
         .array(PropertyTrackV3Schema)
         .min(1)
-        .max(MOTION_V2_LIMITS.tracksPerClip),
+        .max(MOTION_PROTOCOL_LIMITS.tracksPerClip),
     })
     .strict(),
 ]);
@@ -105,7 +105,7 @@ export const MotionClipV3Schema = z
       .number()
       .positive()
       .finite()
-      .max(MOTION_V2_LIMITS.mediaDurationSeconds),
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
     playback: PlaybackSchema.default({}),
     source: ClipSourceV3Schema,
   })

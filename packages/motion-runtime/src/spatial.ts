@@ -1,4 +1,4 @@
-import { MOTION_V2_LIMITS } from "@motionvideo/motion-protocol";
+import { MOTION_PROTOCOL_LIMITS } from "@motionvideo/motion-protocol";
 import { applyMatrix, type Matrix2D } from "./matrix";
 import { type Matrix4, transformPoint3D } from "./matrix4";
 import type { Point3D } from "./matrix4";
@@ -86,8 +86,8 @@ export type OffscreenSurfacePlan = {
 
 export const DEFAULT_OFFSCREEN_SURFACE_LIMITS: OffscreenSurfaceLimits =
   Object.freeze({
-    maxDimension: MOTION_V2_LIMITS.offscreenDimension,
-    maxPixels: MOTION_V2_LIMITS.offscreenPixels,
+    maxDimension: MOTION_PROTOCOL_LIMITS.offscreenDimension,
+    maxPixels: MOTION_PROTOCOL_LIMITS.offscreenPixels,
   });
 
 export function planOffscreenSurface(

@@ -5,36 +5,36 @@
  * The canonical name is `TransformSchema` (was `TransformV2Schema`).
  */
 import { z } from "zod";
-import { MOTION_V2_LIMITS } from "../capabilities";
+import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema } from "./common";
 
 export const TransformSchema = z
   .object({
     x: FiniteNumberSchema,
     y: FiniteNumberSchema,
-    z: FiniteNumberSchema.min(-MOTION_V2_LIMITS.zPositionRange)
-      .max(MOTION_V2_LIMITS.zPositionRange)
+    z: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.zPositionRange)
+      .max(MOTION_PROTOCOL_LIMITS.zPositionRange)
       .optional(),
     depth: FiniteNumberSchema.optional(),
-    width: FiniteNumberSchema.nonnegative().max(MOTION_V2_LIMITS.nodeDimension),
+    width: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
     height: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
     ),
     rotation: FiniteNumberSchema,
-    rotationX: FiniteNumberSchema.min(-MOTION_V2_LIMITS.rotation3DAngle)
-      .max(MOTION_V2_LIMITS.rotation3DAngle)
+    rotationX: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.rotation3DAngle)
+      .max(MOTION_PROTOCOL_LIMITS.rotation3DAngle)
       .optional(),
-    rotationY: FiniteNumberSchema.min(-MOTION_V2_LIMITS.rotation3DAngle)
-      .max(MOTION_V2_LIMITS.rotation3DAngle)
+    rotationY: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.rotation3DAngle)
+      .max(MOTION_PROTOCOL_LIMITS.rotation3DAngle)
       .optional(),
-    rotationZ: FiniteNumberSchema.min(-MOTION_V2_LIMITS.rotation3DAngle)
-      .max(MOTION_V2_LIMITS.rotation3DAngle)
+    rotationZ: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.rotation3DAngle)
+      .max(MOTION_PROTOCOL_LIMITS.rotation3DAngle)
       .optional(),
     scaleX: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.transformScale,
+      MOTION_PROTOCOL_LIMITS.transformScale,
     ),
     scaleY: FiniteNumberSchema.nonnegative().max(
-      MOTION_V2_LIMITS.transformScale,
+      MOTION_PROTOCOL_LIMITS.transformScale,
     ),
     anchorX: FiniteNumberSchema.min(0).max(1),
     anchorY: FiniteNumberSchema.min(0).max(1),
