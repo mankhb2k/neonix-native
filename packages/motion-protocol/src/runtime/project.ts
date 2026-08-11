@@ -388,8 +388,6 @@ const MotionRuntimeProjectBaseSchema = z
             motionBlur: MotionBlurSettingsSchema.optional(),
             drivers: z.array(ProceduralDriverSchema).max(512).optional(),
             activeCameraId: IdSchema.optional(),
-            /** @deprecated Transitions are clip-level in V3 (transitionIn / transitionOut on visual clips). */
-            transition: SceneTransitionSchema.optional(),
             sourceRef: RuntimeSourceRefSchema.optional(),
             nodes: z
               .array(RuntimeNodeSchema)
