@@ -69,7 +69,7 @@ const DesignTokensSchema = z
   })
   .strict();
 
-const BrandV2Schema = z
+const BrandSchema = z
   .object({
     name: z.string().min(1),
     primaryColor: z.string().optional(),
@@ -87,7 +87,7 @@ export const ProjectMetadataSchema = z
     fps: FiniteNumberSchema.int().positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
     locale: z.literal("vi-VN"),
     industry: z.string().optional(),
-    brand: BrandV2Schema,
+    brand: BrandSchema,
     designTokens: DesignTokensSchema.optional(),
     safeArea: PlatformSafeAreaSchema.optional(),
     description: z.string().optional(),
@@ -854,8 +854,7 @@ export type MotionRuntimeTrack =
 /** @deprecated Use `MotionRuntimeProjectSchema` instead. */
 export const NormalizedMotionProjectSchema = MotionRuntimeProjectSchema;
 
-/** @deprecated Use `MotionRuntimeProject` instead. */
-export type NormalizedMotionProjectV2 = MotionRuntimeProject;
+
 
 /** @deprecated Use `MotionRuntimeIR` instead. */
 export type MotionRuntimeIR = MotionRuntimeProject;

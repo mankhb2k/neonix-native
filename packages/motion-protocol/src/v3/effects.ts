@@ -61,5 +61,3 @@ export const EffectSchema = z.discriminatedUnion("type", [
 ]);
 
 export type MotionEffect = z.infer<typeof EffectSchema>;
-
-/** @deprecated Use `EffectSchema` instead. */

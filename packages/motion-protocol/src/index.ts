@@ -175,7 +175,7 @@ export {
 // V2 AUTHORING TYPES INTENTIONALLY EXCLUDED:
 //   MotionProjectV2, MotionComponentV2, parseMotionProjectV2,
 //   parseMotionComponentV2, serializeMotionProjectV2,
-//   NormalizedMotionProjectV2, MotionRuntimeIR,
+//   (removed V2 types — no longer in public API)
 //   LipSyncSchema, LipSyncCueSchema
 
 // Common / Primitives — owned by V3 (Phase 2)
@@ -311,7 +311,10 @@ export {
   TrackTimeSchema,
 } from "./v3/animation";
 
-export { type MotionClip } from "./runtime/animation/clips";
+export { type MotionClipV3 } from "./v3/animation/clips";
+
+/** @deprecated Use `MotionClipV3` instead — excludes legacy component-action source kind. */
+export type { MotionClipV3 as MotionClip }; 
 
 // Project scene type — V3 canonical
 export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";

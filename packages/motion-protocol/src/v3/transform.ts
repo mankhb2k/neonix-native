@@ -48,5 +48,4 @@ export const TransformSchema = z
 
 export type MotionTransform = z.infer<typeof TransformSchema>;
 
-// Backward-compat alias — use `TransformSchema` / `MotionTransform`.
-/** @deprecated Use `TransformSchema` instead. */
+

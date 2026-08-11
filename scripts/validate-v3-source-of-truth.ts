@@ -98,6 +98,8 @@ const ALLOWLIST = [
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]/,
   // Protocol test verifying ./compat is removed from exports (Phase 7-8 gate)
   /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]schema-files\.test\.ts$/,
+  // Protocol test: root API V2 regression guard (Phase 4) — lists forbidden strings
+  /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]root-api-v2-regression\.test\.ts$/,
   // V3 schema tests — negative tests verifying scene.transition is absent from V3 scenes
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]__tests__[\\/]schema\.test\.ts$/,
   // Compiler: legacy v2 path (index.ts) + sceneOrder in test assertions
