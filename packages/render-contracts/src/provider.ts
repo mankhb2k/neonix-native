@@ -158,7 +158,7 @@ export interface ProviderCapabilities extends ProviderInfo {
   supportedEffects: string[];
   /** Transition types the provider can composite (e.g. "cut", "fade"). */
   supportedTransitions: string[];
-/** Phase 8 — Group compositing mode. */
+  /** Phase 8 — Group compositing mode. */
   supportedGroupCompositingModes?: GroupCompositingMode[];
   /** Maximum output resolution (in pixels). */
   maxResolution: { width: number; height: number };

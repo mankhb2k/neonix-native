@@ -124,6 +124,34 @@ export function zIndexForLayerInsertGap(
   return above;
 }
 
+/**
+ * V3 group layers: compute zIndex scoped to siblings of the same parent.
+ *
+ * Unlike `zIndexForLayerInsertGap` (which uses a global ordered list),
+ * this function only considers `siblingZIndices` — the zIndex values of
+ * nodes that share the same `parentId`. When adjacent integer zIndex values
+ * leave no gap, the result may intentionally tie with the sibling above; V3
+ * render/editor order then falls back to declaration order.
+ */
+export function zIndexForLayerInsertGapInGroup(
+  siblingZIndices: readonly number[],
+  insertBeforeIndex: number,
+): number {
+  const sorted = [...siblingZIndices].sort((a, b) => b - a); // desc
+  const n = sorted.length;
+  if (n === 0) return 0;
+  if (insertBeforeIndex <= 0) {
+    return Math.max(...sorted) + 1;
+  }
+  if (insertBeforeIndex >= n) {
+    return Math.min(...sorted) - 1;
+  }
+  const above = sorted[insertBeforeIndex - 1]!;
+  const below = sorted[insertBeforeIndex]!;
+  if (above > below + 1) return below + 1;
+  return above;
+}
+
 /** Resolve which layer lane body (or nearest) is under the pointer. */
 export function resolveLayerLaneAtClientY(
   scrollEl: HTMLElement,
@@ -198,5 +226,7 @@ export function isSiblingLocalMove(
   // first sibling, between siblings, or after the last sibling.
   const firstSibling = siblingIndices[0]!;
   const lastSibling = siblingIndices[siblingIndices.length - 1]!;
-  return insertBeforeIndex >= firstSibling && insertBeforeIndex <= lastSibling + 1;
+  return (
+    insertBeforeIndex >= firstSibling && insertBeforeIndex <= lastSibling + 1
+  );
 }

@@ -144,29 +144,82 @@ export function executeTimelineCommand(
       const composition = stageSizeForProject(project);
       const nodeId = ctx.createId("node");
       const node = createNodeFromFrameDraft(command.draft, nodeId, composition);
-      const maxZ = scene.nodes.reduce((m, n) => Math.max(m, n.zIndex ?? 0), -1);
+      const parentId = command.parentId ?? null;
+      if (parentId != null) {
+        const parent = scene.nodes.find((n) => n.id === parentId);
+        if (!parent || parent.type !== "group") {
+          return {
+            status: "rejected",
+            reason: "invalid_document",
+            message: "Parent layer must be an existing group node.",
+          };
+        }
+      }
+      const siblingNodes = scene.nodes.filter(
+        (n) => (n.parentId ?? null) === parentId,
+      );
+      const maxZ = siblingNodes.reduce(
+        (m, n) => Math.max(m, n.zIndex ?? 0),
+        -1,
+      );
       const zIndex =
         command.zIndex != null && Number.isFinite(command.zIndex)
           ? Math.floor(command.zIndex)
           : maxZ + 1;
       const sceneDuration = Math.max(0.001, scene.duration);
+      const nodeById = new Map(scene.nodes.map((n) => [n.id, n]));
+      const timingCache = new Map<string, { start: number; end: number }>();
+      const effectiveTimingFor = (
+        existingNode: (typeof scene.nodes)[number],
+      ): { start: number; end: number } => {
+        const cached = timingCache.get(existingNode.id);
+        if (cached) return cached;
+        const parent = existingNode.parentId
+          ? nodeById.get(existingNode.parentId)
+          : undefined;
+        const parentTiming = parent
+          ? effectiveTimingFor(parent)
+          : { start: 0, end: sceneDuration };
+        const start = parentTiming.start + Math.max(0, existingNode.timing?.start ?? 0);
+        const duration =
+          existingNode.timing?.duration ?? parentTiming.end - parentTiming.start;
+        const end = Math.min(parentTiming.end, start + Math.max(0, duration));
+        const result = { start, end };
+        timingCache.set(existingNode.id, result);
+        return result;
+      };
+      const parentWindow =
+        parentId != null
+          ? effectiveTimingFor(nodeById.get(parentId)!)
+          : { start: 0, end: sceneDuration };
+      const parentDuration = Math.max(0, parentWindow.end - parentWindow.start);
+      if (parentDuration < 0.001) {
+        return {
+          status: "rejected",
+          reason: "invalid_document",
+          message: "Parent layer has no active duration.",
+        };
+      }
       const timing =
         command.timing &&
         Number.isFinite(command.timing.start) &&
         Number.isFinite(command.timing.duration) &&
         command.timing.duration > 0
           ? {
-              start: Math.max(0, Math.min(command.timing.start, sceneDuration)),
+              start: Math.max(
+                0,
+                Math.min(command.timing.start, Math.max(0, parentDuration - 0.001)),
+              ),
               duration: Math.max(
                 0.001,
                 Math.min(
                   command.timing.duration,
-                  sceneDuration - Math.max(0, command.timing.start),
+                  parentDuration - Math.max(0, command.timing.start),
                 ),
               ),
             }
-          : { start: 0, duration: sceneDuration };
-      const nextNode = { ...node, zIndex, timing };
+          : { start: 0, duration: parentDuration };
+      const nextNode = { ...node, parentId, zIndex, timing };
       const scenes = project.scenes.slice();
       scenes[sceneIdx] = {
         ...scene,

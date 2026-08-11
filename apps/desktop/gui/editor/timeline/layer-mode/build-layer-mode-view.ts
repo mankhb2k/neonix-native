@@ -100,6 +100,80 @@ export function resolveNodeLocalTiming(
   return { start: 0, duration: safeDuration };
 }
 
+// ── Phase 1 Editor Alignment: Effective node timing (parent-relative) ─
+
+export type EffectiveNodeTiming = {
+  /** Scene-local start time (sum of all ancestor timing.starts + node.timing.start). */
+  sceneLocalStart: number;
+  /** Effective duration, clipped by ancestor timing bounds. */
+  sceneLocalDuration: number;
+  /** Scene-local end time (sceneLocalStart + sceneLocalDuration). */
+  sceneLocalEnd: number;
+  /** The node's own timing.start (parent-relative, preserved for property commits). */
+  localStart: number;
+};
+
+/**
+ * Compute effective scene-local timing for a node, walking the parent chain.
+ *
+ * V3 contract: child timing is parent-relative. This function:
+ * 1. Accumulates all ancestor `timing.start` offsets to get `sceneLocalStart`.
+ * 2. Computes `sceneLocalEnd = sceneLocalStart + node.timing.duration`.
+ * 3. Clips `sceneLocalEnd` by every ancestor's effective end (child cannot
+ *    outlive its parent).
+ * 4. Returns the clipped `sceneLocalDuration`.
+ *
+ * Root nodes (parentId: null) are relative to the container (scene duration).
+ */
+export function resolveEffectiveNodeTiming(
+  node: MotionNode,
+  allNodes: readonly MotionNode[],
+  containerDuration: number,
+): EffectiveNodeTiming {
+  const byId = new Map(allNodes.map((n) => [n.id, n]));
+  const safeDuration = Math.max(0.001, containerDuration);
+  const cache = new Map<string, EffectiveNodeTiming>();
+
+  const readStart = (n: MotionNode): number => {
+    const s = n.timing?.start;
+    if (s != null && Number.isFinite(s))
+      return Math.max(0, Math.min(s, safeDuration));
+    return 0;
+  };
+
+  const resolve = (n: MotionNode): EffectiveNodeTiming => {
+    const cached = cache.get(n.id);
+    if (cached) return cached;
+
+    const parent = n.parentId ? byId.get(n.parentId) : undefined;
+    const parentTiming = parent ? resolve(parent) : undefined;
+    const parentStart = parentTiming?.sceneLocalStart ?? 0;
+    const parentEnd = parentTiming?.sceneLocalEnd ?? safeDuration;
+    const parentDuration = Math.max(0, parentEnd - parentStart);
+
+    const localStart = readStart(n);
+    const duration =
+      n.timing?.duration != null &&
+      Number.isFinite(n.timing.duration) &&
+      n.timing.duration > 0
+        ? n.timing.duration
+        : parentDuration;
+    const sceneLocalStart = parentStart + localStart;
+    const rawEnd = sceneLocalStart + duration;
+    const sceneLocalEnd = Math.min(parentEnd, rawEnd);
+    const result: EffectiveNodeTiming = {
+      sceneLocalStart,
+      sceneLocalDuration: Math.max(0, sceneLocalEnd - sceneLocalStart),
+      sceneLocalEnd,
+      localStart,
+    };
+    cache.set(n.id, result);
+    return result;
+  };
+
+  return resolve(node);
+}
+
 /**
  * Clamp proposed local timing into the container `[0, containerDuration]`.
  */
@@ -122,13 +196,58 @@ function nodeDisplayName(node: MotionNode): string {
   return `${node.type}:${node.id}`;
 }
 
+/**
+ * Sort scene nodes into hierarchy-aware DFS pre-order for the timeline.
+ *
+ * V3 contract: `zIndex` is sibling-local. This function:
+ * 1. Groups siblings by `parentId` (null → root).
+ * 2. Within each group, sorts by zIndex DESC (highest on top like Figma/After Effects).
+ * 3. DFS pre-order: parent → children (sorted) → next sibling.
+ *
+ * Result: child nodes appear immediately below their parent group,
+ * and a high-z child inside a low-z group never escapes above root siblings.
+ */
 function sortNodesForLayerMode(nodes: readonly MotionNode[]): MotionNode[] {
-  return [...nodes].sort((a, b) => {
-    const za = a.zIndex ?? 0;
-    const zb = b.zIndex ?? 0;
-    if (zb !== za) return zb - za;
-    return a.id.localeCompare(b.id);
-  });
+  const declarationIndex = new Map(nodes.map((node, index) => [node.id, index]));
+  const byParent = new Map<string | null, MotionNode[]>();
+  for (const n of nodes) {
+    const pid = n.parentId ?? null;
+    const list = byParent.get(pid);
+    if (list) list.push(n);
+    else byParent.set(pid, [n]);
+  }
+
+  const sortGroup = (list: MotionNode[]) => {
+    list.sort((a, b) => {
+      const za = a.zIndex ?? 0;
+      const zb = b.zIndex ?? 0;
+      if (zb !== za) return zb - za;
+      return (declarationIndex.get(a.id) ?? 0) - (declarationIndex.get(b.id) ?? 0);
+    });
+  };
+
+  // Sort every sibling group.
+  for (const [, list] of byParent) sortGroup(list);
+
+  const sorted: MotionNode[] = [];
+  const visit = (pid: string | null) => {
+    const siblings = byParent.get(pid);
+    if (!siblings) return;
+    for (const node of siblings) {
+      sorted.push(node);
+      visit(node.id); // children appear immediately after parent
+    }
+  };
+
+  visit(null); // roots first
+
+  // Catch orphans (nodes whose parentId is not in the set but may have been
+  // grouped under wrong parent due to parent not being a real node).
+  for (const node of nodes) {
+    if (!sorted.includes(node)) sorted.push(node);
+  }
+
+  return sorted;
 }
 
 /**
@@ -207,6 +326,12 @@ export function buildLayerModeView(
     const laneId = layerLaneIdForNode(node.id);
     const zIndex = node.zIndex ?? nodes.length - i;
     const name = nodeDisplayName(node);
+    // Phase 1: effective timing walks the parent chain + clips by ancestor ends.
+    const effective = resolveEffectiveNodeTiming(
+      node,
+      nodeList,
+      container.duration,
+    );
     const localTiming = resolveNodeLocalTiming(node, container.duration);
     const nodeParentId = node.parentId ?? null;
     const nodeHasChildren = (childrenByParent.get(node.id)?.length ?? 0) > 0;
@@ -221,8 +346,9 @@ export function buildLayerModeView(
       laneId,
       name,
       nodeType: node.type,
-      startTime: container.startTime + localTiming.start,
-      duration: localTiming.duration,
+      // Phase 1: use effective scene-local position, not flat container-local.
+      startTime: container.startTime + effective.sceneLocalStart,
+      duration: effective.sceneLocalDuration,
       localTiming,
       parentId: nodeParentId,
       parentRelativeStart,
@@ -324,9 +450,13 @@ export function resolveParentRelativeTimingWindow(
   const parent = allById.get(node.parentId);
   if (!parent) return null;
 
-  const parentTiming = resolveNodeLocalTiming(parent, containerDuration);
-  const parentStart = parentTiming.start;
-  const parentEnd = parentStart + parentTiming.duration;
+  const parentTiming = resolveEffectiveNodeTiming(
+    parent,
+    allNodes,
+    containerDuration,
+  );
+  const parentStart = parentTiming.sceneLocalStart;
+  const parentEnd = parentTiming.sceneLocalEnd;
 
   return {
     parentId: parent.id,
@@ -336,10 +466,13 @@ export function resolveParentRelativeTimingWindow(
 }
 
 /**
- * Compute the global timeline position of a child node by walking its
+ * Compute the global timeline position of a node by walking its
  * parent chain. Pure computation — no side effects.
  *
- * Returns `{ globalStart, globalEnd }` or null for root nodes.
+ * Phase 1: end is clipped by every ancestor's effective end
+ * (child duration cannot visually exceed parent duration).
+ *
+ * Returns `{ globalStart, globalEnd }` or null for orphan nodes.
  */
 export function resolveNodeGlobalTiming(
   node: MotionNode,
@@ -347,22 +480,13 @@ export function resolveNodeGlobalTiming(
   containerStartTime: number,
   containerDuration: number,
 ): { globalStart: number; globalEnd: number } | null {
-  // For root nodes, return container-relative timing.
-  const timing = resolveNodeLocalTiming(node, containerDuration);
-  let offset = timing.start;
-  let current: MotionNode | undefined = node;
-  const allById = new Map(allNodes.map((n) => [n.id, n]));
-
-  while (current?.parentId) {
-    const parent = allById.get(current.parentId);
-    if (!parent) break;
-    const parentTiming = resolveNodeLocalTiming(parent, containerDuration);
-    offset += parentTiming.start;
-    current = parent;
-  }
-
+  const effective = resolveEffectiveNodeTiming(
+    node,
+    allNodes,
+    containerDuration,
+  );
   return {
-    globalStart: containerStartTime + offset,
-    globalEnd: containerStartTime + offset + timing.duration,
+    globalStart: containerStartTime + effective.sceneLocalStart,
+    globalEnd: containerStartTime + effective.sceneLocalEnd,
   };
 }

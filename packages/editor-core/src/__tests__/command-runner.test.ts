@@ -78,6 +78,61 @@ describe("Pure Command Runner Engine", () => {
     expect(result.events.some((e) => e.type === "scene-node-added")).toBe(true);
   });
 
+  it("executes add-scene-node into a group with parent-relative timing and sibling zIndex", () => {
+    const { project, clips, lanes } = fixtureMainOnly();
+    const scene = project.scenes[0]!;
+    scene.duration = 10;
+    scene.nodes = [
+      {
+        id: "group.char",
+        type: "group",
+        parentId: null,
+        zIndex: 0,
+        timing: { start: 5, duration: 2 },
+        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
+        payload: {},
+      },
+      {
+        id: "root.title",
+        type: "text",
+        parentId: null,
+        zIndex: 99,
+        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
+        payload: { text: "Root", fontSize: 12 },
+      },
+      {
+        id: "child.existing",
+        type: "text",
+        parentId: "group.char",
+        zIndex: 1,
+        transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
+        payload: { text: "Child", fontSize: 12 },
+      },
+    ] as typeof scene.nodes;
+    const doc: TimelineDocument = { project, clips, lanes };
+
+    const result = executeTimelineCommand(doc, {
+      type: "add-scene-node",
+      sceneId: scene.id,
+      draft: {
+        id: "draft.child",
+        name: "Child",
+        text: "Hello",
+        duration: 5,
+        kind: "text",
+      },
+      parentId: "group.char",
+      timing: { start: 1.5, duration: 5 },
+    });
+
+    expect(result.status).toBe("applied");
+    if (result.status !== "applied") return;
+    const added = result.document.project.scenes[0]!.nodes.at(-1)!;
+    expect(added.parentId).toBe("group.char");
+    expect(added.zIndex).toBe(2);
+    expect(added.timing).toEqual({ start: 1.5, duration: 0.5 });
+  });
+
   it("add-clip-draft with shape kind emits a shape node", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };

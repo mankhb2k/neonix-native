@@ -225,12 +225,13 @@ Group payload hỗ trợ `compositing`:
 
 > **Provider compositing contract (Phase 8)**: Mọi renderer (Pixi.js, Remotion, Canvas worker, WebGPU) phải tuân theo contract sau khi xử lý group compositing:
 >
-> | Mode | Offscreen | Group effects | Blend mode | Transform inheritance |
-> |------|-----------|--------------|------------|----------------------|
-> | `pass-through` | ❌ Không | Áp dụng riêng từng child | Child-level | Qua `parent.worldMatrix` |
-> | `isolate` | ✅ Có | Áp dụng lên composited result | Group-level | Proxy sprite đã có parent transform |
+> | Mode           | Offscreen | Group effects                 | Blend mode  | Transform inheritance               |
+> | -------------- | --------- | ----------------------------- | ----------- | ----------------------------------- |
+> | `pass-through` | ❌ Không  | Áp dụng riêng từng child      | Child-level | Qua `parent.worldMatrix`            |
+> | `isolate`      | ✅ Có     | Áp dụng lên composited result | Group-level | Proxy sprite đã có parent transform |
 >
 > **Implementation notes**:
+>
 > - Pixi.js: `beginLayer` với `offscreen: true` → `RenderTexture` + `Sprite` proxy; `beginGroup` tạo plain `Container` bên trong offscreen surface.
 > - Remotion: `<div>` wrapper với `opacity`/`mix-blend-mode`/`filter` CSS; children absolute-positioned bên trong.
 > - Canvas (export): `OffscreenCanvas` → `ctx.drawImage()` với `globalAlpha` + `globalCompositeOperation`.

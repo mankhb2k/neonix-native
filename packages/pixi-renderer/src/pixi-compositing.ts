@@ -310,9 +310,9 @@ export function createCompositingContext(
   function pushGroup(key: string, nodeId: string): Container {
     const parent = stack[stack.length - 1]!.container;
     // Look for existing group container by key
-    let groupContainer = parent.children.find((c) => c.label === `${key}_${nodeId}`) as
-      | Container
-      | undefined;
+    let groupContainer = parent.children.find(
+      (c) => c.label === `${key}_${nodeId}`,
+    ) as Container | undefined;
     if (!groupContainer) {
       groupContainer = new Container({ sortableChildren: true });
       groupContainer.label = `${key}_${nodeId}`;

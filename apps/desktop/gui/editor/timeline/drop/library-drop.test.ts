@@ -591,4 +591,127 @@ describe("drop-host CapCut policy", () => {
     });
     expect(placement?.laneId).toBeUndefined();
   });
+
+  it("layer mode gap before a child targets that child sibling group", () => {
+    const scrollEl = mountScrollWithLanes([
+      {
+        id: "layer-node:group.char",
+        type: "overlay",
+        order: 3,
+        top: 0,
+        height: 24,
+      },
+      {
+        id: "layer-node:child.a",
+        type: "overlay",
+        order: 5,
+        top: 26,
+        height: 24,
+      },
+      {
+        id: "layer-node:title",
+        type: "overlay",
+        order: 1,
+        top: 52,
+        height: 24,
+      },
+    ]);
+
+    setHost({
+      scrollEl,
+      lanes: [
+        {
+          id: "layer-node:group.char",
+          kind: "visual",
+          role: "overlay",
+          name: "Group",
+          order: 3,
+          policy: BASE_POLICY,
+        },
+        {
+          id: "layer-node:child.a",
+          kind: "visual",
+          role: "overlay",
+          name: "Child",
+          order: 5,
+          policy: BASE_POLICY,
+        },
+        {
+          id: "layer-node:title",
+          kind: "visual",
+          role: "overlay",
+          name: "Title",
+          order: 1,
+          policy: BASE_POLICY,
+        },
+      ],
+      lanesTop: 0,
+      laneHeight: 24,
+      pixelsPerSecond: 100,
+      tracksOriginX: 0,
+      laneHitLayout: {
+        topPadding: 0,
+        laneHeightPrefix: [0, 26, 52],
+        laneContentHeights: [24, 24, 24],
+      },
+      layerMode: {
+        sceneId: "sc1",
+        containerStartTime: 2,
+        containerDuration: 10,
+        nodes: [
+          {
+            id: "group.char",
+            laneId: "layer-node:group.char",
+            type: "group",
+            parentId: null,
+            zIndex: 3,
+            sceneLocalStart: 5,
+            sceneLocalDuration: 4,
+          },
+          {
+            id: "child.a",
+            laneId: "layer-node:child.a",
+            type: "text",
+            parentId: "group.char",
+            zIndex: 5,
+            sceneLocalStart: 6,
+            sceneLocalDuration: 2,
+          },
+          {
+            id: "title",
+            laneId: "layer-node:title",
+            type: "text",
+            parentId: null,
+            zIndex: 1,
+            sceneLocalStart: 0,
+            sceneLocalDuration: 10,
+          },
+        ],
+      },
+    });
+
+    const payload: LibraryPayload = {
+      kind: "text",
+      id: "t1",
+      label: "Child text",
+      text: "Hi",
+      duration: 1,
+    };
+
+    const preview = resolveDropGeometryAtPoint(800, 30, payload);
+    expect(preview).toMatchObject({
+      layerParentId: "group.char",
+      layerParentSceneStart: 5,
+      layerParentDuration: 4,
+      insertOrder: 6,
+    });
+
+    const placement = resolveLibraryPlacement(800, 30, payload);
+    expect(placement).toMatchObject({
+      layerParentId: "group.char",
+      layerParentSceneStart: 5,
+      layerParentDuration: 4,
+      insertOrder: 6,
+    });
+  });
 });
