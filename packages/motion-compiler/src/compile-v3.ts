@@ -3,7 +3,7 @@
  *
  * `compileMotionProjectV3()` compiles a `MotionProjectV3` authoring project
  * directly into the runtime IR (`MotionRuntimeProject`) — no intermediate
- * V2 project shape is built:
+ * project shape is built:
  *
  *   composition            → runtime metadata (aspectRatio derived from
  *                            dimensions, fps, background as brand color)
@@ -19,8 +19,8 @@
  * callers can surface structured errors instead of string exceptions.
  *
  * Note on options: `textMeasurementProvider` / `assetMetadataProvider`
- * are reserved for Phase 7 (runtime evaluator) — the v2 pipeline uses its
- * own built-in text measurement, so these are accepted but not consumed.
+ * are reserved for the runtime evaluator — the compiler uses built-in
+ * text measurement, so these are accepted but not consumed.
  */
 
 import { createHash } from "node:crypto";
@@ -43,7 +43,7 @@ import {
   compileFailure,
   type CompileResult,
 } from "./compile-result";
-import { _compileScenePipeline } from "./index";
+import { compileSceneToRuntime } from "./index";
 
 // ── Public types ──────────────────────────────────────────────────────
 
@@ -873,7 +873,7 @@ function validateV3Semantics(
  * diagnostics.
  *
  * Compiles scenes directly from `timeline.visualTracks` — no intermediate
- * V2-shaped project is built. Scene ordering is driven by visual track clip
+ * project shape is built. Scene ordering is driven by visual track clip
  * order; component clips synthesize runtime scenes from embedded definitions.
  *
  * Returns `{ ok: true, project }` on success or `{ ok: false, diagnostics }`
@@ -1087,14 +1087,14 @@ export function compileMotionProjectV3(
         }
       }
 
-      return _compileScenePipeline({
+      return compileSceneToRuntime({
         id: scene.id as string,
         duration: scene.duration as number,
         nodes: (scene.nodes ?? []) as Parameters<
-          typeof _compileScenePipeline
+          typeof compileSceneToRuntime
         >[0]["nodes"],
         clips: (scene.clips ?? []) as Parameters<
-          typeof _compileScenePipeline
+          typeof compileSceneToRuntime
         >[0]["clips"],
         variables,
         markers: scene.markers as Array<{ id: string; t: number }> | undefined,
@@ -1104,7 +1104,7 @@ export function compileMotionProjectV3(
         activeCameraId: scene.activeCameraId as string | undefined,
         sourceRef: scene.sourceRef as
           | NonNullable<
-              Parameters<typeof _compileScenePipeline>[0]["sourceRef"]
+              Parameters<typeof compileSceneToRuntime>[0]["sourceRef"]
             >
           | undefined,
       });

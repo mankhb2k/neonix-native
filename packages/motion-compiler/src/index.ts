@@ -477,8 +477,6 @@ function expandTextAnimators(nodes: MotionNode[]): {
   return { nodes: outputNodes, tracks: outputTracks };
 }
 
-/** Authoring IR v2 → renderer-only literal Runtime IR. */
-
 /** Encode a scene sourceRef as a stable human-readable string. */
 function encodeSourceRef(ref: RuntimeSourceRef): string {
   const base = ref.projectPath.join(":");
@@ -486,19 +484,17 @@ function encodeSourceRef(ref: RuntimeSourceRef): string {
 }
 
 /**
- * Shared per-scene compilation pipeline (Phase 4).
+ * V3-native per-scene compilation: prepares a runtime-ready scene from
+ * normalized authoring nodes, clips, and variables.
  *
- * Takes a pre-expanded scene (no component references, no unresolved
- * bindings — all nodes and clips are already V2-shaped) and produces
- * runtime scene data with resolved variables, layout, text expansion,
- * and compiled tracks.
+ * Pipeline: resolve variables → layout constraints → fit text → expand
+ * text animators → compile clips → assemble runtime scene.
  *
- * Called by both the V2 compile path (after component expansion) and
- * the V3 compile path (after down-migration).
+ * This is the canonical V3 → Runtime IR path. No V2 intermediate shape.
  *
  * @internal — exported for `compile-v3.ts`; not part of the public API.
  */
-export function _compileScenePipeline(input: {
+export function compileSceneToRuntime(input: {
   id: string;
   duration: number;
   nodes: MotionNode[];
