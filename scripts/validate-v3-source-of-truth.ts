@@ -1,19 +1,29 @@
-/**
+﻿/**
  * V3 Source-of-Truth Architecture Gate
  *
- * Scans packages/, apps/, and scripts/ for forbidden V2 patterns.
+ * Scans packages/, apps/, scripts/ for forbidden V2 patterns.
  * Fails the build if any production code contains V2 references.
  *
- * Usage: pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-v3-source-of-truth.ts
+ * Usage: tsx scripts/validate-v3-source-of-truth.ts
  *
  * Allowed in:
- *   - docs/ (archived docs about the migration)
  *   - scripts/validate-v3-source-of-truth.ts (this file)
- *   - packages/motion-protocol/src/legacy/ (internal shared schemas)
- *   - compile-v3.ts (Phase 4 pending — V3 direct compiler not yet complete)
- *   - Runtime IR goldens (formatVersion: 2 is runtime IR, not authoring)
- *   - Editor-core internal migration helpers (compatibility with legacy data)
- *   - AI planner comments referencing the phase transition
+ *   - packages/motion-protocol/src/compat/ (internal compat layer, not exported)
+ *   - packages/motion-protocol/src/runtime/ (runtime IR format, not V2 authoring)
+ *   - packages/motion-protocol/src/index.ts (comment block documents excluded V2 types)
+ *   - packages/motion-compiler/src/index.ts (legacy V2 compiler path, internal only)
+ *   - packages/motion-compiler/src/compile-v3.ts (runtime IR formatVersion:2)
+ *   - packages/motion-runtime/src/composition/ (runtime IR field scene.transition)
+ *   - Acceptance/validation scripts still using compat fixtures
+ *   - READMEs / docs documenting the migration
+ *   - Test files exercising compat isolation or negative assertions
+ *
+ * Phase 9: added V2Schema forbidden pattern; removed dead allowlist entries
+ *   (render-worker compiler bridge, duplicate entries).
+ * Phase 8: removed ./compat/* from public package.json exports.
+ * Phase 13: tightened — removed allowlist entries for files cleaned up in
+ * Phases 6-12 (editor-core, ai-planner, runtime timeline, render-worker). Added
+ * downMigrate and compat-path forbidden patterns.
  */
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
@@ -49,47 +59,62 @@ const FORBIDDEN = [
   { pattern: /\bscene\.transition\b/, label: "scene.transition" },
   // V2 fixture paths
   { pattern: /__fixtures__\/v2/, label: "__fixtures__/v2" },
-  { pattern: /__fixtures__\*\*\\v2/, label: "__fixtures__\\v2 (Windows)" },
+  { pattern: /__fixtures__\\v2/, label: "__fixtures__\\v2 (Windows)" },
   // V2 format version in authoring JSON (not runtime IR)
   { pattern: /"formatVersion"\s*:\s*2/, label: '"formatVersion": 2' },
+  // Phase 13: removed migration code
+  { pattern: /\bdownMigrate\b/, label: "downMigrate" },
+  // Phase 13: compat imports outside the compat directory itself
+  {
+    pattern: /from\s+["']\.\.?\/compat\//,
+    label: "from ./compat or ../compat",
+  },
+  // Phase 8: compat/ must not appear in package.json exports
+  {
+    pattern: /"\.\/compat/,
+    label: '"./compat" in package.json exports',
+  },
+  // Phase 9: no V2-prefixed schema names in production code
+  {
+    pattern: /\b\w+V2Schema\b/,
+    label: "*V2Schema name in production",
+  },
 ];
 
-// ── Allowlist ─────────────────────────────────────────────────────────
+// ── Allowlist (tightened Phase 13) ───────────────────────────────────
 
 const ALLOWLIST = [
-  // The plan document itself
+  // The plan documents
   /docs[\\/]remove-v2-keep-v3-source-of-truth-plan\.md$/,
+  /docs[\\/]motion-project-v3-refactor-plan\.md$/,
+  /docs[\\/]v3-source-of-truth-completion-plan\.md$/,
   // This script
   /scripts[\\/]validate-v3-source-of-truth\.ts$/,
-  // V2 compatibility layer — parse, component, patch, project, references
+  // V2 compatibility layer — parse, component, patch, project, references (Phase 8: no longer exported)
   /packages[\\/]motion-protocol[\\/]src[\\/]compat[\\/]/,
   // Protocol root barrel — comment block documents excluded V2 types
   /packages[\\/]motion-protocol[\\/]src[\\/]index\.ts$/,
-  // Runtime re-exports from legacy — Phase 2: forward-looking aliases
+  // Runtime re-exports — runtime IR format, not V2 authoring
   /packages[\\/]motion-protocol[\\/]src[\\/]runtime[\\/]/,
-  // Phase 4 pending: V3 compiler still uses internal V2 pipeline (downMigration)
-  /packages[\\/]motion-compiler[\\/]src[\\/]compile-v3\.ts$/,
-  /packages[\\/]motion-compiler[\\/]src[\\/]index\.ts$/,
-  /packages[\\/]motion-compiler[\\/]src[\\/]compile-cache\.ts$/,
-  /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
-  // Protocol tests — reference legacy parser for isolation/migration tests
+  // V3 canonical definitions — defines V2-prefixed primitives for backward compat
+  /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]/,
+  // Protocol test verifying ./compat is removed from exports (Phase 8 gate)
+  /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]schema-files\.test\.ts$/,
+  // Protocol test importing compat for isolation
   /packages[\\/]motion-protocol[\\/]src[\\/]capabilities\.test\.ts$/,
   /packages[\\/]motion-protocol[\\/]src[\\/]ai-schema-capability\.test\.ts$/,
+  // V3 schema tests — negative tests verifying scene.transition is absent from V3 scenes
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]__tests__[\\/]schema\.test\.ts$/,
+  // Compiler: legacy v2 path (index.ts) + sceneOrder in test assertions
+  /packages[\\/]motion-compiler[\\/]src[\\/]index\.ts$/,
+  /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
+  // Compiler: V3 pipeline passes scene.transition=undefined to legacy _compileScenePipeline
+  /packages[\\/]motion-compiler[\\/]src[\\/]compile-v3\.ts$/,
   // Runtime IR goldens use formatVersion: 2 (runtime format, not authoring)
   /runtime-compile-goldens[\\/].*\.runtime\.json$/,
-  // Editor-core internal migration helpers — transitional compatibility
-  /packages[\\/]editor-core[\\/]src[\\/]timeline[\\/]internal[\\/]timeline-project-sync\.ts$/,
-  /packages[\\/]editor-core[\\/]src[\\/]timeline[\\/]selectors[\\/]scene-order-clips\.ts$/,
-  /packages[\\/]editor-core[\\/]src[\\/]timeline[\\/]migrations[\\/]project-migration\.ts$/,
-  // AI planner executor — comments mention the transition
-  /packages[\\/]ai-planner[\\/]src[\\/]commands[\\/]executor\.ts$/,
-  // Motion-runtime — Phase 5 legacy fallback paths (still have sceneOrder/transition refs)
-  /packages[\\/]motion-runtime[\\/]src[\\/]evaluate-composition\.ts$/,
-  /packages[\\/]motion-runtime[\\/]src[\\/]resolve-timeline\.ts$/,
+  // Motion-runtime: scene.transition is runtime IR field, not V2 authoring
   /packages[\\/]motion-runtime[\\/]src[\\/]composition[\\/]evaluate-composition-layers\.ts$/,
   /packages[\\/]motion-runtime[\\/]src[\\/]composition[\\/]transition-fixtures\.ts$/,
-  /packages[\\/]motion-runtime[\\/]src[\\/]testing[\\/]compile\.ts$/,
   /packages[\\/]motion-runtime[\\/]src[\\/]__tests__[\\/]/,
   // Motion-runtime README
   /packages[\\/]motion-runtime[\\/]README\.md$/,
@@ -102,13 +127,11 @@ const ALLOWLIST = [
   /docs[\\/]/,
   // Desktop smoke test probe
   /apps[\\/]desktop[\\/]electron[\\/]main[\\/]services[\\/]journal-worker-smoke[\\/]/,
-  // Render worker frame-plan — legacy fallback for older compiled projects
-  /apps[\\/]render-worker[\\/]src[\\/]runtime[\\/]frame-plan\.ts$/,
   // Desktop export service references docs/fixtures path
   /apps[\\/]desktop[\\/]electron[\\/]main[\\/]services[\\/]export[\\/]export\.service\.ts$/,
   // Web vite-phase0 fixtures — generated golden data
   /apps[\\/]web[\\/]lib[\\/]editor[\\/]__fixtures__[\\/]vite-phase0\.ts$/,
-  // Acceptance and validation scripts — work with fixtures
+  // Acceptance and validation scripts — work with compat fixtures
   /scripts[\\/]score-acceptance-pack\.ts$/,
   /scripts[\\/]validate-acceptance-export\.ts$/,
   /scripts[\\/]validate-acceptance-web-parity\.ts$/,
@@ -139,6 +162,7 @@ function* walkDir(dir: string): Generator<string> {
         entry.name === ".git" ||
         entry.name === "dist" ||
         entry.name === ".next" ||
+        entry.name === "dist-renderer" ||
         entry.name.startsWith("dist-")
       )
         continue;
@@ -195,7 +219,6 @@ function main(): void {
     resolve(ROOT, "packages"),
     resolve(ROOT, "apps"),
     resolve(ROOT, "scripts"),
-    resolve(ROOT, "docs"),
   ];
 
   for (const root of scanRoots) {
