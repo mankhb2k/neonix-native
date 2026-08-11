@@ -136,63 +136,13 @@ export const ProjectBindingV3Schema = z
 
 export type ProjectBindingV3 = z.infer<typeof ProjectBindingV3Schema>;
 
-// ── V2 backward-compat schemas (owned by V3) ──────────────────────────
+// ── Public canonical variable schema ──────────────────────────────────
 //
-// These are the original V2 variable/binding/public-param schemas.
-// They differ from V3 in minor ways (no `semantic` on variables,
-// `ComponentBindingSchema` supports context bindings, etc.)
+// VariableSchema is the canonical V3 variable type used by both project
+// variables and component variables. Supports `semantic` tagging,
+// `list` variables with structured item schemas, and all scalar types.
 
-const ScalarVariableSchema = z.object({
-  id: IdSchema,
-  name: z.string().min(1),
-});
-
-const ObjectFieldSchema = z.object({
-  type: z.enum(["string", "color", "number", "boolean", "asset"]),
-});
-
-export const VariableSchema = z.discriminatedUnion("type", [
-  ScalarVariableSchema.extend({
-    type: z.literal("string"),
-    value: z.string(),
-  }).strict(),
-  ScalarVariableSchema.extend({
-    type: z.literal("color"),
-    value: z.string().min(1),
-  }).strict(),
-  ScalarVariableSchema.extend({
-    type: z.literal("number"),
-    value: FiniteNumberSchema,
-    min: FiniteNumberSchema.optional(),
-    max: FiniteNumberSchema.optional(),
-  }).strict(),
-  ScalarVariableSchema.extend({
-    type: z.literal("boolean"),
-    value: z.boolean(),
-  }).strict(),
-  ScalarVariableSchema.extend({
-    type: z.literal("asset"),
-    assetKind: z.enum(["image", "video", "audio", "svg", "font"]),
-    value: IdSchema,
-  }).strict(),
-  ScalarVariableSchema.extend({
-    type: z.literal("enum"),
-    value: z.string(),
-    options: z.array(z.string()).min(1).max(MOTION_PROTOCOL_LIMITS.enumOptions),
-  }).strict(),
-  ScalarVariableSchema.extend({
-    type: z.literal("list"),
-    itemSchema: z
-      .object({
-        type: z.literal("object"),
-        fields: z.record(ObjectFieldSchema),
-      })
-      .strict(),
-    value: z
-      .array(z.record(JsonValueSchema))
-      .max(MOTION_PROTOCOL_LIMITS.listItems),
-  }).strict(),
-]);
+export const VariableSchema = ProjectVariableV3Schema;
 
 export type MotionVariable = z.infer<typeof VariableSchema>;
 
