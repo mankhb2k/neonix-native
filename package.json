@@ -26,7 +26,6 @@
     "validate:ai-fixtures": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/validate-ai-fixtures.ts",
     "eval:zero-template": "pnpm --filter @motionvideo/ai-planner exec tsx ../../scripts/run-zero-template-eval.ts",
     "validate:primitives": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-runtime-primitives.ts",
-    "validate:acceptance-export": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-export.ts",
     "validate:acceptance-web-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-acceptance-web-parity.ts",
     "validate:paint-parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/validate-paint-parity.ts",
     "test:parity": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/parity-pixi-remotion.ts",

@@ -133,7 +133,6 @@ const ALLOWLIST = [
   /apps[\\/]web[\\/]lib[\\/]editor[\\/]__fixtures__[\\/]vite-phase0\.ts$/,
   // Acceptance and validation scripts — work with compat fixtures
   /scripts[\\/]score-acceptance-pack\.ts$/,
-  /scripts[\\/]validate-acceptance-export\.ts$/,
   /scripts[\\/]validate-acceptance-web-parity\.ts$/,
   /scripts[\\/]validate-runtime-primitives\.ts$/,
 ];
