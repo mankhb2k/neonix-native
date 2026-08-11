@@ -7,9 +7,8 @@ import type { MotionProjectV3 } from "@motionvideo/motion-protocol";
 /**
  * Compile a v3 authoring project into the runtime IR, throwing on failure.
  *
- * Phase 3 helper: `compileMotionProject` (v2 path) reads `timeline.sceneOrder`
- * and throws at runtime with real v3 data, so v3 fixtures must go through the
- * v3 compiler and have `.project` unwrapped.
+ * Phase 12 helper: uses `compileMotionProjectV3` directly. All V3 fixtures
+ * must go through the v3 compiler and have `.project` unwrapped.
  */
 export function compileProjectV3(
   project: MotionProjectV3,

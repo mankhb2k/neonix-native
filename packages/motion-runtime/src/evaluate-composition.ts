@@ -1,10 +1,7 @@
 import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
-import {
-  resolveTimelineAtTime,
-  timelineTotalDuration,
-} from "./resolve-timeline";
+import { timelineTotalDuration } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
 import {
   compositionTotalDuration,
@@ -44,42 +41,26 @@ import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  // Phase 5: prefer visualTracks (V3 model). The primary track's clips
-  // carry timeline placement and clip-level transitionOut.
-  const primaryTrack = runtime.timeline.visualTracks?.find(
+  // Phase 7: visualTracks primary track is the sole source of scene ordering.
+  // Clip-level transitionOut carries per-scene transitions directly.
+  const primaryTrack = runtime.timeline.visualTracks.find(
     (t) => t.role === "primary",
   );
-  if (primaryTrack && primaryTrack.clips.length > 0) {
-    const sortedClips = [...primaryTrack.clips].sort(
-      (a, b) => a.start - b.start,
-    );
-    return sortedClips.map((clip) => {
-      const sourceId =
-        clip.source.kind === "scene"
-          ? clip.source.sceneId
-          : clip.source.componentId;
-      return {
-        sceneId: sourceId,
-        duration: clip.duration,
-        transition: clip.transitionOut as CompositionSceneInput["transition"],
-      };
-    });
+  if (!primaryTrack || primaryTrack.clips.length === 0) {
+    return [];
   }
-
-  // Legacy fallback: sceneOrder (V2 model, retained for tests during cutover).
-  const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
-  const order =
-    runtime.timeline.sceneOrder.length > 0
-      ? runtime.timeline.sceneOrder
-      : runtime.scenes.map((scene) => scene.id);
-  return order
-    .map((id) => byId.get(id))
-    .filter((scene): scene is NonNullable<typeof scene> => scene != null)
-    .map((scene) => ({
-      sceneId: scene.id,
-      duration: scene.duration,
-      transition: scene.transition as CompositionSceneInput["transition"],
-    }));
+  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
+  return sortedClips.map((clip) => {
+    const sourceId =
+      clip.source.kind === "scene"
+        ? clip.source.sceneId
+        : clip.source.componentId;
+    return {
+      sceneId: sourceId,
+      duration: clip.duration,
+      transition: clip.transitionOut as CompositionSceneInput["transition"],
+    };
+  });
 }
 
 export function planCompositionFrame(
@@ -129,12 +110,9 @@ function resolveCompositionEvaluateTarget(
     return { scene, time: primary.localTime, frame: localFrame, layerPlan };
   }
 
-  const resolved = resolveTimelineAtTime(runtime, globalTime);
-  if (!resolved) return null;
-  const scene = runtime.scenes.find((s) => s.id === resolved.sceneId);
-  if (!scene) return null;
-  const localFrame = Math.max(0, Math.round(resolved.localTime * safeFps));
-  return { scene, time: resolved.localTime, frame: localFrame, layerPlan };
+  // Phase 7: composition layers are resolved exclusively from visualTracks.
+  // When no layers match (e.g. empty timeline), return null.
+  return null;
 }
 
 /**

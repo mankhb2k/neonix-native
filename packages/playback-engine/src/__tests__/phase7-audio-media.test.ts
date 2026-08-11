@@ -232,7 +232,21 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
       ],
       variables: [],
       timeline: {
-        sceneOrder: ["s1"],
+        visualTracks: [
+          {
+            id: "primary",
+            role: "primary",
+            order: 0,
+            clips: [
+              {
+                id: "clip-s1",
+                source: { kind: "scene" as const, sceneId: "s1" },
+                start: 0,
+                duration: 5,
+              },
+            ],
+          },
+        ],
         audioTracks: [
           {
             id: "aud.bgm",

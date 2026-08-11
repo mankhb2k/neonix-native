@@ -166,7 +166,25 @@ function emptyRuntime(): MotionRuntimeProject {
       height: 1080,
     },
     assets: [],
-    timeline: { sceneOrder: ["s1"], audioTracks: [], captionTracks: [] },
+    timeline: {
+      visualTracks: [
+        {
+          id: "primary",
+          role: "primary",
+          order: 0,
+          clips: [
+            {
+              id: "clip-s1",
+              source: { kind: "scene", sceneId: "s1" },
+              start: 0,
+              duration: 2,
+            },
+          ],
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
     scenes: [
       {
         id: "s1",
@@ -328,5 +346,229 @@ describe("transition fixtures", () => {
     const d1 = generateFixtureDigests(0.3);
     const d2 = generateFixtureDigests(0.5);
     expect(d1).not.toEqual(d2);
+  });
+});
+
+// ── Phase 5 — multi-track runtime evaluation ──────────────────────────
+
+import {
+  listTimelineSegments,
+  resolveTimelineAtTime,
+  timelineTotalDuration,
+} from "../resolve-timeline";
+
+describe("Phase 5 — multi-track timeline resolution", () => {
+  it("listTimelineSegments from primary track only", () => {
+    const rt = emptyRuntime();
+    rt.timeline.visualTracks = [
+      {
+        id: "primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-s1",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0,
+            duration: 2,
+          },
+        ],
+      },
+      {
+        id: "overlay-track",
+        role: "overlay",
+        order: 1,
+        clips: [
+          {
+            id: "clip-over",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 1,
+            duration: 1,
+          },
+        ],
+      },
+    ];
+    const segments = listTimelineSegments(rt);
+    expect(segments).toHaveLength(1);
+    expect(segments[0]!.sceneId).toBe("s1");
+    expect(segments[0]!.duration).toBe(2);
+  });
+
+  it("listTimelineSegments returns empty for no primary track", () => {
+    const rt = emptyRuntime();
+    rt.timeline.visualTracks = [
+      {
+        id: "overlay-only",
+        role: "overlay",
+        order: 0,
+        clips: [
+          {
+            id: "clip-over",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0,
+            duration: 3,
+          },
+        ],
+      },
+    ];
+    const segments = listTimelineSegments(rt);
+    expect(segments).toHaveLength(0);
+  });
+
+  it("listTimelineSegments with 2 primary clips → ordered by start", () => {
+    const rt = emptyRuntime();
+    rt.scenes.push({
+      id: "s2",
+      duration: 3,
+      nodes: [],
+      tracks: [],
+    });
+    rt.timeline.visualTracks = [
+      {
+        id: "primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-s2",
+            source: { kind: "scene", sceneId: "s2" },
+            start: 2,
+            duration: 3,
+          },
+          {
+            id: "clip-s1",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0,
+            duration: 2,
+          },
+        ],
+      },
+    ];
+    const segments = listTimelineSegments(rt);
+    expect(segments).toHaveLength(2);
+    // Sorted by start
+    expect(segments[0]!.sceneId).toBe("s1");
+    expect(segments[0]!.start).toBe(0);
+    expect(segments[1]!.sceneId).toBe("s2");
+    expect(segments[1]!.start).toBe(2);
+  });
+
+  it("totalDuration sums primary track clips", () => {
+    const rt = emptyRuntime();
+    rt.scenes.push({
+      id: "s2",
+      duration: 3,
+      nodes: [],
+      tracks: [],
+    });
+    rt.timeline.visualTracks = [
+      {
+        id: "primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-s1",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0,
+            duration: 2,
+          },
+          {
+            id: "clip-s2",
+            source: { kind: "scene", sceneId: "s2" },
+            start: 2,
+            duration: 3,
+          },
+        ],
+      },
+    ];
+    expect(timelineTotalDuration(rt)).toBe(5);
+  });
+
+  it("resolveTimelineAtTime resolves correct scene at time", () => {
+    const rt = emptyRuntime();
+    rt.scenes.push({
+      id: "s2",
+      duration: 3,
+      nodes: [],
+      tracks: [],
+    });
+    rt.timeline.visualTracks = [
+      {
+        id: "primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-s1",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0,
+            duration: 2,
+          },
+          {
+            id: "clip-s2",
+            source: { kind: "scene", sceneId: "s2" },
+            start: 2,
+            duration: 3,
+          },
+        ],
+      },
+    ];
+
+    const mid = resolveTimelineAtTime(rt, 1);
+    expect(mid).not.toBeNull();
+    expect(mid!.sceneId).toBe("s1");
+    expect(mid!.localTime).toBe(1);
+
+    const cross = resolveTimelineAtTime(rt, 3);
+    expect(cross).not.toBeNull();
+    expect(cross!.sceneId).toBe("s2");
+    expect(cross!.localTime).toBe(1);
+
+    const pastEnd = resolveTimelineAtTime(rt, 10);
+    expect(pastEnd).not.toBeNull();
+    expect(pastEnd!.sceneId).toBe("s2");
+  });
+
+  it("resolveTimelineAtTime returns null for empty timeline", () => {
+    const rt = emptyRuntime();
+    rt.timeline.visualTracks = [];
+    expect(resolveTimelineAtTime(rt, 0)).toBeNull();
+  });
+
+  it("multitrack: evaluateCompositionFrameV3 from primary + overlay", () => {
+    const rt = emptyRuntime();
+    rt.timeline.visualTracks = [
+      {
+        id: "primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-s1",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0,
+            duration: 2,
+          },
+        ],
+      },
+      {
+        id: "overlay-track",
+        role: "overlay",
+        order: 1,
+        clips: [
+          {
+            id: "clip-over",
+            source: { kind: "scene", sceneId: "s1" },
+            start: 0.5,
+            duration: 1,
+          },
+        ],
+      },
+    ];
+    // Frame at global time 0.5 → primary clip is active
+    const frame = evaluateCompositionFrameV3(rt, 0, 30, 1920, 1080);
+    expect(frame).not.toBeNull();
+    expect(frame!.compositionTime).toBe(0);
   });
 });

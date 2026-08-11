@@ -101,7 +101,19 @@ function makeRuntime(
     },
     assets: [],
     timeline: {
-      sceneOrder: scenes.map((s) => s.id),
+      visualTracks: [
+        {
+          id: "primary",
+          role: "primary",
+          order: 0,
+          clips: scenes.map((s) => ({
+            id: `clip-${s.id}`,
+            source: { kind: "scene" as const, sceneId: s.id },
+            start: 0,
+            duration: s.duration,
+          })),
+        },
+      ],
       audioTracks: [],
       captionTracks: [],
     },

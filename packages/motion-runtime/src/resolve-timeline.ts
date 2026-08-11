@@ -1,11 +1,9 @@
-import type { MotionProject } from "@motionvideo/motion-protocol";
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type TimelineProjectLike = {
   timeline: {
-    sceneOrder: readonly string[];
-    /** Phase 5: V3 visual tracks — preferred over sceneOrder when present. */
-    visualTracks?: ReadonlyArray<{
+    /** V3 visual tracks — the sole source of timeline ordering. */
+    visualTracks: ReadonlyArray<{
       role: string;
       clips: ReadonlyArray<{
         source: { kind: string; sceneId?: string; componentId?: string };
@@ -41,58 +39,34 @@ export type TimelineSceneSegment = {
 /**
  * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
  *
- * Phase 5: prefers the primary `visualTracks` track when available (V3 model).
- * Falls back to `sceneOrder` for legacy runtime IR.
+ * Phase 7: resolves exclusively from the primary visualTracks track (V3 model).
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
 ): TimelineSceneSegment[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
 
-  // Phase 5: prefer visualTracks primary track (V3 model)
-  const primaryTrack = runtime.timeline.visualTracks?.find(
+  // Phase 7: visualTracks primary track is the sole source
+  const primaryTrack = runtime.timeline.visualTracks.find(
     (t) => t.role === "primary",
   );
-  if (primaryTrack && primaryTrack.clips.length > 0) {
-    const sortedClips = [...primaryTrack.clips].sort(
-      (a, b) => a.start - b.start,
-    );
-    return sortedClips.map((clip) => {
-      const sourceId =
-        clip.source.kind === "scene"
-          ? clip.source.sceneId
-          : clip.source.componentId;
-      const scene = sourceId ? byId.get(sourceId) : undefined;
-      return {
-        sceneId: sourceId ?? "",
-        name: scene?.name,
-        start: clip.start,
-        duration: clip.duration,
-      };
-    });
+  if (!primaryTrack || primaryTrack.clips.length === 0) {
+    return [];
   }
-
-  // Legacy fallback: sceneOrder (V2 model)
-  const order =
-    runtime.timeline.sceneOrder.length > 0
-      ? runtime.timeline.sceneOrder
-      : runtime.scenes.map((scene) => scene.id);
-
-  const segments: TimelineSceneSegment[] = [];
-  let cursor = 0;
-  for (const sceneId of order) {
-    const scene = byId.get(sceneId);
-    if (!scene) continue;
-    const duration = Math.max(0, scene.duration ?? 0);
-    segments.push({
-      sceneId,
-      name: scene.name,
-      start: cursor,
-      duration,
-    });
-    cursor += duration;
-  }
-  return segments;
+  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
+  return sortedClips.map((clip) => {
+    const sourceId =
+      clip.source.kind === "scene"
+        ? clip.source.sceneId
+        : clip.source.componentId;
+    const scene = sourceId ? byId.get(sourceId) : undefined;
+    return {
+      sceneId: sourceId ?? "",
+      name: scene?.name,
+      start: clip.start,
+      duration: clip.duration,
+    };
+  });
 }
 
 export function timelineTotalDuration(runtime: TimelineProjectLike): number {
@@ -148,4 +122,4 @@ export function resolveTimelineAtTime(
 }
 
 /** @deprecated Prefer TimelineProjectLike — kept for call-site clarity. */
-export type TimelineRuntime = MotionRuntimeProject | MotionProject;
+export type TimelineRuntime = MotionRuntimeProject;

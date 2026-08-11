@@ -37,7 +37,21 @@ function fixtureInput(
       ],
       variables: [],
       timeline: {
-        sceneOrder: ["scene.a"],
+        visualTracks: [
+          {
+            id: "primary",
+            role: "primary",
+            order: 0,
+            clips: [
+              {
+                id: "clip-a",
+                source: { kind: "scene", sceneId: "scene.a" },
+                start: 0,
+                duration: 5,
+              },
+            ],
+          },
+        ],
         audioTracks: [
           {
             id: "aud.bgm",
