@@ -1,6 +1,8 @@
 # `@motionvideo/motion-protocol`
 
-Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion Format v3. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**.
+Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion Format V3 — the only authoring protocol. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**. Compat và V2 authoring types đã bị xóa khỏi source tree.
+
+> **V3 is the only authoring protocol.** Compat was removed; old V2 fixtures are archived outside product paths. All public APIs use V3-neutral names (`EffectSchema`, not `EffectV2Schema`).
 
 ---
 
@@ -10,14 +12,14 @@ Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion For
 
 2. **Authoring IR vs. Runtime IR Pipeline**:
    - **Authoring IR** (`MotionProjectV3`, `MotionComponentV3`): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), tham số công khai (`publicParams`), binding, component instances (`type: "component"`), repeat directives, presets, text animators, caption tracks, và layout modifiers.
-   - **Runtime IR** (`MotionRuntimeProject`, alias `NormalizedMotionProjectV2`): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat nodes được clone, presets & text animators được biên dịch thành keyframe tracks thực tế. Ranh giới chuyển đổi nằm ở `@motionvideo/motion-compiler`.
+   - **Runtime IR** (`MotionRuntimeProject`): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat nodes được clone, presets & text animators được biên dịch thành keyframe tracks thực tế. Ranh giới chuyển đổi nằm ở `@motionvideo/motion-compiler`.
 
 3. **An toàn dữ liệu nghiêm ngặt (Strict Validation & Bounds)**:
    - Sử dụng Zod `discriminatedUnion` và `.strict()` nhằm reject thuộc tính lạ hoặc dữ liệu rác.
    - Cấm giá trị numeric không hữu hạn (`NaN`, `Infinity`).
-   - Kiểm soát giới hạn cứng qua [`MOTION_V2_LIMITS`](./src/capabilities.ts) (số node, clip, keyframe, caption token, beat, kích thước asset, độ sâu hierarchy, …) — áp dụng cho cả V3 authoring lẫn runtime IR.
+   - Kiểm soát giới hạn cứng qua `MOTION_V2_LIMITS` (internal, [`src/capabilities.ts`](./src/capabilities.ts)) — áp dụng cho cả V3 authoring lẫn runtime IR.
 
-4. **Normalize legacy tại biên parse**: Shape cũ (ví dụ `payload.text`) được chuẩn hóa khi gọi `parseMotionProject` / `parseMotionProjectV3`. Serializer chỉ ghi shape mới (`payload.content`). Nhờ vậy file cũ vẫn đọc được, còn file ghi ra luôn đồng nhất.
+4. **Normalize tại biên parse**: Payload cũ (ví dụ `payload.text`) được chuẩn hóa khi gọi `parseMotionProject`. Serializer chỉ ghi shape mới (`payload.content`). File cũ vẫn đọc được, file ghi ra luôn đồng nhất.
 
 5. **Property Capability Registry + AI matrix**: Quản lý từ vựng thuộc tính (animate / bind / public UI) và bảng [`AI_SCHEMA_CAPABILITY_MATRIX`](./src/ai-schema-capability.ts) ghi rõ capability nào đã đi xuyên suốt schema → compile → runtime → paint → Pixi → Remotion. AI allowlist chỉ mở khi gate E2E xanh.
 
@@ -33,9 +35,9 @@ Package gồm các module chính trong [`src/`](./src):
   - `nodes/` — text, geometry, media, structural, paint, base
   - `animation/` — clips (gồm `scene-end`), tracks, easing, drivers
   - `captions.ts`, `source-ref.ts`, `project.ts`, `component.ts`, `runtime.ts`
-  - `parse.ts` — parse + legacy normalize + serialize
+  - `parse.ts` — parse + normalize + serialize
   - `patch.ts`, `references/` — kiểm tra tham chiếu sau Zod
-- [`capabilities.ts`](./src/capabilities.ts): [`MOTION_V2_LIMITS`](./src/capabilities.ts) và bảng đăng ký khả năng thuộc tính (`motionPropertyCapability`) cho AI/UI.
+- [`capabilities.ts`](./src/capabilities.ts): `MOTION_V2_LIMITS` (internal) và bảng đăng ký khả năng thuộc tính (`motionPropertyCapability`) cho AI/UI.
 - [`ai-schema-capability.ts`](./src/ai-schema-capability.ts): Ma trận E2E cho AI schema expansion (phiên bản `ai-schema.1`).
 - [`scene-registry.ts`](./src/scene-registry.ts): Registry template scene theo role (`hook`, `solution`, `cta`, …).
 
@@ -110,7 +112,7 @@ Mỗi `RichTextRun` có `id` duy nhất trong node, `text`, và `style` tùy ch�
 
 Typography cấp node vẫn nằm cạnh `content`: `fontSize`, `fontWeight`, `align`, `wrap`, `lineHeight`, `letterSpacing`, `maxLines`, `overflow`, `fitText`, `counterProgress`.
 
-**Migration legacy tự động khi parse:**
+**Normalize tự động khi parse:**
 
 ```ts
 // Input cũ
@@ -185,7 +187,6 @@ Beat phải sorted và nằm trong `duration` asset; số lượng bị giới h
 ### 6. Timeline, Audio, Caption & Visual Tracks
 
 - **`timeline.visualTracks`**: Danh sách các track visual (`primary`, `overlay`, `background`) với `VisualClip[]` — mỗi clip có `source` (`scene` hoặc `component`), `start`, `duration`, và `transitionOut`.
-- **`timeline.sceneOrder`**: (Legacy) Thứ tự phát canonical của các scene — vẫn được compiler tạo ra cho backward compatibility với runtime IR cũ.
 - **`audioTracks`**: BGM / voiceover / SFX với `start`, `trimStart`, `volume`, `loop`, `fadeIn` / `fadeOut`.
 - **`captionTracks`**: Caption là **timeline content** (giây project global), không gắn tùy ý vào một text node.
 
@@ -211,8 +212,7 @@ Transition nằm trên `VisualClip.transitionOut`, không còn trên `Scene`:
 | `wipe`      | Reveal kiểu mask (`softness?`)               |
 | `zoom`      | Zoom composition `in` \| `out`               |
 
-> **Legacy:** `scene.transition` vẫn tồn tại trong legacy schema để hỗ trợ runtime IR cũ,
-> nhưng V3 authoring chỉ dùng `VisualClip.transitionOut`.
+> **Lưu ý:** V3 authoring chỉ dùng `VisualClip.transitionOut`. `scene.transition` không còn tồn tại trong schema V3.
 
 Evaluator composition dùng chung ở motion-runtime (một layer plan cho preview và export).
 
@@ -298,7 +298,7 @@ Các thuộc tính dưới đây có `animatable: true` trong [`capabilities.ts`
 
 - Blur / Glow / Shadow / Color Adjust — các field `radius`, `offset*`, `intensity`, `color`, …
 
-### 5. Easing (`KeyframeEasingV3`, internal schema: `KeyframeEasingV2Schema`)
+### 5. Easing (`KeyframeEasingSchema`)
 
 - Presets: `linear`, `easeIn`, `easeOut`, `easeInOut`, `step`
 - `{ type: "cubic-bezier", x1, y1, x2, y2 }`
@@ -337,7 +337,7 @@ import {
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 
-// Parse & Validate JSON Project (.mt) — đã gồm legacy normalize
+// Parse & Validate JSON Project (.mt) — đã gồm normalize
 try {
   const project: MotionProject = parseMotionProject(rawJsonData);
   console.log("Project hợp lệ:", project.metadata.id);
@@ -365,17 +365,17 @@ textNode.payload = setTextPayloadPlain(textNode.payload, "Nội dung mới");
 ### 3. Áp dụng Patch
 
 ```ts
-import { applyMotionPatch } from "@motionvideo/motion-protocol";
+import { applyMotionProjectV3Patch } from "@motionvideo/motion-protocol";
 
-const updatedProject = applyMotionPatch(project, {
+const result = applyMotionProjectV3Patch(project, {
   format: "motion-patch",
   formatVersion: 1,
   baseRevision: 1,
   operations: [
     {
-      op: "set",
-      target: { kind: "variable", id: "var.primaryColor" },
-      value: "#FF0055",
+      op: "updateVariable",
+      variableId: "var.primaryColor",
+      changes: { value: "#FF0055" },
     },
   ],
 });

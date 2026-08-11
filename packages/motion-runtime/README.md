@@ -5,7 +5,7 @@ Evaluator thời gian chạy cho **Runtime IR** (literal). Không parse authorin
 ## Vai trò
 
 ```text
-NormalizedMotionProjectV2 (Runtime IR)
+MotionRuntimeProject (Runtime IR)
         ↓
   evaluateScene / evaluateProperty
         ↓
@@ -42,6 +42,6 @@ import {
 
 ## Docs
 
-- [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md)
+- [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
 - [`docs/primitives-object.md`](../../docs/primitives-object.md)
 - Gate visual: `pnpm validate:primitives`
