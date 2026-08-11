@@ -405,17 +405,18 @@ Skills là instruction template được validate bởi protocol. Mỗi skill c�
 
 **5 built-in skills** trong [`src/v3/skills.ts`](./src/v3/skills.ts):
 
-| Skill ID              | Loại        | Mô tả                                      |
-| --------------------- | ----------- | ------------------------------------------ |
-| `motion/brand-intro`  | template    | Brand intro với logo + text reveal         |
-| `motion/hook`         | template    | Hook ngắn (3-5s) grab attention            |
-| `motion/solution`     | template    | Solution step với problem → solution flow  |
-| `motion/cta`          | template    | Call-to-action cuối video                  |
-| `motion/outro`        | template    | Outro với branding + social links          |
+| Skill ID             | Loại     | Mô tả                                     |
+| -------------------- | -------- | ----------------------------------------- |
+| `motion/brand-intro` | template | Brand intro với logo + text reveal        |
+| `motion/hook`        | template | Hook ngắn (3-5s) grab attention           |
+| `motion/solution`    | template | Solution step với problem → solution flow |
+| `motion/cta`         | template | Call-to-action cuối video                 |
+| `motion/outro`       | template | Outro với branding + social links         |
 
 **Skill validation:** `validateMotionSkillOutput(manifest, output)` — reject nếu output chứa V2 fields (`sceneOrder`, `scene.transition`, `formatVersion: 2`).
 
 **Authoring rules cho AI agents:**
+
 - Luôn dùng `MotionProjectV3` (formatVersion: 3)
 - Timeline dùng `visualTracks`, không dùng `sceneOrder`
 - Transitions nằm trên `VisualClip.transitionOut`, không trên `Scene`

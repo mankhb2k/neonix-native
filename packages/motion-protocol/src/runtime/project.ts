@@ -851,8 +851,3 @@ export type MotionRuntimeTrack =
 //
 // These will be removed once all consumers migrate.
 
-/** @deprecated Use `MotionRuntimeProjectSchema` instead. */
-export const NormalizedMotionProjectSchema = MotionRuntimeProjectSchema;
-
-/** @deprecated Use `MotionRuntimeIR` instead. */
-export type MotionRuntimeIR = MotionRuntimeProject;

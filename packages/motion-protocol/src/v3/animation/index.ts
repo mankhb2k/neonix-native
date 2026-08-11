@@ -42,5 +42,4 @@ export {
 export {
   ProceduralDriverSchema,
   type ProceduralDriver,
-  type ProceduralDriverV2,
 } from "./drivers";

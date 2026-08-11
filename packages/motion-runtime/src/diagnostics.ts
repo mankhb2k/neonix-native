@@ -321,12 +321,6 @@ export type RuntimeDiagnostic = {
   details?: Record<string, unknown>;
 };
 
-/**
- * @deprecated Backward-compat alias for {@link RuntimeDiagnostic}.
- * Import from `./diagnostics` directly for new code.
- */
-export type RuntimeDiagnosticV2 = RuntimeDiagnostic;
-
 // ── Diagnostic helpers ────────────────────────────────────────────────
 
 /**

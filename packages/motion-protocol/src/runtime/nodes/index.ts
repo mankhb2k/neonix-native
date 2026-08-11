@@ -11,7 +11,7 @@ import {
   SolidNodeSchema,
 } from "./structural";
 
-export { NodeTimingSchema, type NodeTimingV2, NodeBaseSchema } from "./base";
+export { NodeTimingSchema, type NodeTiming, NodeBaseSchema } from "./base";
 export {
   PaintStyleSchema,
   type MotionPaintStyle,

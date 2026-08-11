@@ -133,8 +133,3 @@ export const ProceduralDriverSchema = z.discriminatedUnion("type", [
 ]);
 
 export type ProceduralDriver = z.infer<typeof ProceduralDriverSchema>;
-
-// ── Deprecated backward-compat alias ───────────────────────────────────
-
-/** @deprecated Use `ProceduralDriver` instead. */
-export type ProceduralDriverV2 = ProceduralDriver;

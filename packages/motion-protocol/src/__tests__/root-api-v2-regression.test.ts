@@ -30,7 +30,6 @@ describe("root API — no V2-shaped exports", () => {
       "parseMotionProjectV2",
       "parseMotionComponentV2",
       "serializeMotionProjectV2",
-      "MotionRuntimeIR",
     ];
     const present = forbidden.filter((k) => exported.has(k));
     expect(present).toEqual([]);

@@ -14,7 +14,7 @@ export const NodeTimingSchema = z
   })
   .strict();
 
-export type NodeTimingV2 = z.infer<typeof NodeTimingSchema>;
+export type NodeTiming = z.infer<typeof NodeTimingSchema>;
 
 export const NodeBaseSchema = z.object({
   id: IdSchema,

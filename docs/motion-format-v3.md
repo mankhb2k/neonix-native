@@ -274,16 +274,17 @@ PaintCommandBuffer  (evaluated per-frame paint commands)
 
 ### Provider Expectations
 
-| Provider          | Package                          | Input            | Output              | Use Case              |
-| ----------------- | -------------------------------- | ---------------- | ------------------- | --------------------- |
-| Pixi Preview      | `@motionvideo/pixi-renderer`     | PaintCommandBuffer | WebGL draw calls | Editor preview, MCP   |
-| Remotion Export   | `@motionvideo/remotion-renderer` | PaintCommandBuffer | MP4, GIF, still    | Export, CI            |
-| Future: Canvas    | (planned)                        | PaintCommandBuffer | 2D canvas draw      | Thumbnail generation  |
-| Future: Headless  | (planned)                        | PaintCommandBuffer | pixel buffer        | CI snapshot testing   |
+| Provider         | Package                          | Input              | Output           | Use Case             |
+| ---------------- | -------------------------------- | ------------------ | ---------------- | -------------------- |
+| Pixi Preview     | `@motionvideo/pixi-renderer`     | PaintCommandBuffer | WebGL draw calls | Editor preview, MCP  |
+| Remotion Export  | `@motionvideo/remotion-renderer` | PaintCommandBuffer | MP4, GIF, still  | Export, CI           |
+| Future: Canvas   | (planned)                        | PaintCommandBuffer | 2D canvas draw   | Thumbnail generation |
+| Future: Headless | (planned)                        | PaintCommandBuffer | pixel buffer     | CI snapshot testing  |
 
 ### MCP Preview/Export Provider
 
 MCP server sử dụng `@motionvideo/playback-engine` để preview và export:
+
 - **Preview mode**: Pixi renderer chạy trong browser context
 - **Export mode**: Remotion renderer chạy server-side với composition parameters
 

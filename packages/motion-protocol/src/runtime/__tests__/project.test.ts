@@ -6,7 +6,7 @@
  *  - `timeline.visualTracks` visual track plan (Task 6.3)
  *  - `sourceRef` scene + project source refs (Task 6.4)
  *  - `runtimeHash` / `compilerVersion` / `capabilityFingerprint` (Task 6.5)
- *  - `MotionRuntimeProject` canonical type (was MotionRuntimeIR)
+ *  - `MotionRuntimeProject` canonical type
  *  - backward compatibility: pre-Phase-6 IR still parses
  *  - serializability: no `Map`/`Set`/`Date` survive in the IR
  */
