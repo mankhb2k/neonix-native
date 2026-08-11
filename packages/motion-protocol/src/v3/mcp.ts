@@ -24,10 +24,7 @@ import { MotionProjectV3PatchSchema, type MotionProjectV3Patch } from "./patch";
 import type { MotionProjectV3 as _MotionProjectV3 } from "./index";
 import type { MotionProjectV3Patch as _MotionProjectV3Patch } from "./patch";
 import type { MotionSkillManifest } from "./skills";
-import {
-  computeProjectHash,
-  computeProjectHashShort,
-} from "./canonical-hash";
+import { computeProjectHash, computeProjectHashShort } from "./canonical-hash";
 
 // ── MCP format constants ──────────────────────────────────────────────
 
@@ -65,7 +62,10 @@ export const MCPCreateProjectInputSchema = z
     composition: CompositionSettingsSchema,
     tokens: DesignTokensSchema.optional(),
     capabilities: z.array(CapabilityIdSchema).max(256).optional(),
-    skillId: z.string().optional().describe("Built-in skill to use as template"),
+    skillId: z
+      .string()
+      .optional()
+      .describe("Built-in skill to use as template"),
   })
   .strict();
 
@@ -489,9 +489,10 @@ export function canExecuteTool(
  * Compute the project hash for MCP results, excluding non-deterministic
  * fields (timestamps, provenance, extensions).
  */
-export function computeMCPProjectHash(
-  project: MotionProjectV3,
-): { projectHash: string; projectHashShort: string } {
+export function computeMCPProjectHash(project: MotionProjectV3): {
+  projectHash: string;
+  projectHashShort: string;
+} {
   const projectHash = computeProjectHash(project);
   return {
     projectHash,

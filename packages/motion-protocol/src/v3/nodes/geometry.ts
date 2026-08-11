@@ -111,3 +111,10 @@ export const PathNodeV3Schema = NodeBaseV3Schema.extend({
 }).strict();
 
 export type { ShapeNodeV3, PathNodeV3 } from "./geometry-types";
+
+// ── Phase 7 neutral aliases (geometry primitives) ───────────────────
+
+export const PointSchema = PointV2Schema;
+export const PathSegmentSchema = PathSegmentV2Schema;
+export const PathContourSchema = PathContourV2Schema;
+export const PathMorphTargetSchema = PathMorphTargetV2Schema;

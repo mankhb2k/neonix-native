@@ -160,7 +160,11 @@ describe("V3 MCP contract", () => {
   it("parses explain_diagnostics input", () => {
     const input = MCPExplainDiagnosticsInputSchema.parse({
       diagnostics: [
-        { path: "timeline", message: "Unknown scene: intro", severity: "error" },
+        {
+          path: "timeline",
+          message: "Unknown scene: intro",
+          severity: "error",
+        },
       ],
     });
     expect(input.diagnostics).toHaveLength(1);
@@ -267,9 +271,9 @@ describe("V3 MCP contract", () => {
 
   it("filters capabilities by prefix", () => {
     const result = listCapabilities("primitive.");
-    expect(result.capabilities.every((c) => c.id.startsWith("primitive."))).toBe(
-      true,
-    );
+    expect(
+      result.capabilities.every((c) => c.id.startsWith("primitive.")),
+    ).toBe(true);
   });
 
   it("includes experimental when requested", () => {
@@ -426,9 +430,7 @@ describe("V3 MCP contract", () => {
       ],
     });
     expect(result.explanations).toHaveLength(1);
-    expect(result.explanations[0]!.explanation).toContain(
-      "doesn't exist",
-    );
+    expect(result.explanations[0]!.explanation).toContain("doesn't exist");
   });
 
   it("explains sceneOrder V2 leak diagnostics", () => {
@@ -473,19 +475,17 @@ describe("V3 MCP contract", () => {
 
   it("honors suggestFixes flag", () => {
     const withFixes = explainDiagnostics({
-      diagnostics: [
-        { path: "x", message: "Required", severity: "error" },
-      ],
+      diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: true,
     });
     expect(withFixes.explanations[0]!.suggestedAction).toBeDefined();
 
     const withoutFixes = explainDiagnostics({
-      diagnostics: [
-        { path: "x", message: "Required", severity: "error" },
-      ],
+      diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: false,
     });
-    expect(withoutFixes.explanations[0]!.suggestedPatchOperation).toBeUndefined();
+    expect(
+      withoutFixes.explanations[0]!.suggestedPatchOperation,
+    ).toBeUndefined();
   });
 });

@@ -5,17 +5,24 @@
  * (e.g. `primitive.group`, `effect.blur`, `projection.perspective-3d`).
  * `required` capabilities gate hard errors at preflight; `optional` produce
  * warnings; `experimental` are blocked unless a feature flag opts in.
+ *
+ * Phase 11: extended with text.rich, video.trim, video.loop,
+ * component.embedding, ai.patching, asset.external, caption.track,
+ * transition.*, and audio.export IDs.
  */
 import { z } from "zod";
 
 const KNOWN_CAPABILITY_IDS = [
+  // Projection spaces
   "projection.orthographic-2d",
   "projection.layered-2.5d",
   "projection.perspective-3d",
+  // Effects
   "effect.blur",
   "effect.shadow",
   "effect.glow",
   "effect.color-adjust",
+  // Primitives
   "primitive.group",
   "primitive.text",
   "primitive.shape",
@@ -23,14 +30,40 @@ const KNOWN_CAPABILITY_IDS = [
   "primitive.svg",
   "primitive.video",
   "primitive.path",
+  // Text features
+  "text.rich",
+  // Video features
+  "video.trim",
+  "video.loop",
+  // Animation
   "anim.transform",
   "anim.opacity",
+  "anim.drivers",
+  // Styling
   "style.gradient",
   "style.blend",
+  // Camera
   "camera.orthographic",
   "camera.parallax",
+  // Audio
   "audio.render-plan",
+  "audio.export",
+  // Transitions
+  "transition.crossfade",
+  "transition.slide",
+  "transition.dissolve",
+  "transition.wipe",
+  // Composition features
+  "component.embedding",
+  // Integration
+  "ai.patching",
+  "asset.external",
+  // Captions
+  "caption.track",
 ] as const;
+
+/** Capability manifest version used for fingerprinting. */
+export const CAPABILITY_MANIFEST_VERSION_V3 = "v3.1" as const;
 
 export const CapabilityIdSchema = z.union([
   z.enum(KNOWN_CAPABILITY_IDS),
@@ -38,6 +71,8 @@ export const CapabilityIdSchema = z.union([
     message: "Capability IDs must be dotted lowercase identifiers",
   }),
 ]);
+
+export type CapabilityId = z.infer<typeof CapabilityIdSchema>;
 
 export const ProjectCapabilityRequirementsSchema = z
   .object({
@@ -50,3 +85,164 @@ export const ProjectCapabilityRequirementsSchema = z
 export type ProjectCapabilityRequirements = z.infer<
   typeof ProjectCapabilityRequirementsSchema
 >;
+
+// ── Capability inspection (Phase 11) ──────────────────────────────────
+
+/** Map of node type → required capability. */
+const NODE_CAPABILITY: Record<string, string> = {
+  text: "primitive.text",
+  image: "primitive.image",
+  svg: "primitive.svg",
+  video: "primitive.video",
+  shape: "primitive.shape",
+  path: "primitive.path",
+  group: "primitive.group",
+  bone: "primitive.group",
+  camera: "camera.orthographic",
+  adjustment: "effect.color-adjust",
+  solid: "primitive.shape",
+};
+
+/** Transition kind → capability ID. */
+const TRANSITION_CAPABILITY: Record<string, string> = {
+  crossfade: "transition.crossfade",
+  slide: "transition.slide",
+  dissolve: "transition.dissolve",
+  wipe: "transition.wipe",
+  fade: "transition.dissolve",
+};
+
+/**
+ * Inspect a V3 project and return the set of capabilities it actually
+ * uses. This is derived from the project structure — node types, visual
+ * clips, audio tracks, component references, etc.
+ */
+export function inspectProjectCapabilities(project: {
+  scenes?: Array<{ nodes?: Array<{ type: string }> }>;
+  components?: Array<{ nodes?: Array<{ type: string }> }>;
+  timeline?: {
+    visualTracks?: Array<{
+      clips?: Array<{
+        source?: { kind: string };
+        transitionIn?: { kind?: string };
+        transitionOut?: { kind?: string };
+      }>;
+    }>;
+    audioTracks?: Array<unknown>;
+    captionTracks?: Array<unknown>;
+  };
+}): Set<string> {
+  const caps = new Set<string>();
+
+  // Scenes → node type capabilities
+  for (const scene of project.scenes ?? []) {
+    for (const node of scene.nodes ?? []) {
+      const cap = NODE_CAPABILITY[node.type];
+      if (cap) caps.add(cap);
+    }
+  }
+
+  // Components → node type capabilities + embedding
+  if ((project.components ?? []).length > 0) {
+    caps.add("component.embedding");
+    for (const component of project.components ?? []) {
+      for (const node of component.nodes ?? []) {
+        const cap = NODE_CAPABILITY[node.type];
+        if (cap) caps.add(cap);
+      }
+    }
+  }
+
+  // Visual tracks → transition capabilities
+  for (const track of project.timeline?.visualTracks ?? []) {
+    for (const clip of track.clips ?? []) {
+      if (clip.transitionIn?.kind) {
+        const cap = TRANSITION_CAPABILITY[clip.transitionIn.kind];
+        if (cap) caps.add(cap);
+      }
+      if (clip.transitionOut?.kind) {
+        const cap = TRANSITION_CAPABILITY[clip.transitionOut.kind];
+        if (cap) caps.add(cap);
+      }
+    }
+  }
+
+  // Audio tracks
+  if ((project.timeline?.audioTracks ?? []).length > 0) {
+    caps.add("audio.render-plan");
+  }
+
+  // Caption tracks
+  if ((project.timeline?.captionTracks ?? []).length > 0) {
+    caps.add("caption.track");
+  }
+
+  return caps;
+}
+
+/**
+ * Result of a capability preflight check.
+ */
+export interface CapabilityPreflightResult {
+  /** Whether all required capabilities are covered. */
+  ok: boolean;
+  /** Capabilities actually used by the project. */
+  used: string[];
+  /** Declared required capabilities. */
+  declared: string[];
+  /** Used capabilities not declared in `required`. */
+  undeclared: string[];
+  /** Experimental capabilities in use. */
+  experimentalInUse: string[];
+  /** Missing required capabilities (declared but unavailable). */
+  missing: string[];
+}
+
+/**
+ * Run a capability preflight on a V3 project.
+ *
+ * Compares the capabilities actually used by the project against the
+ * capabilities declared in `project.capabilities`. Returns structured
+ * diagnostics instead of throwing.
+ *
+ * @param project       Parsed V3 project
+ * @param _availableIds Available capability IDs in the current runtime (reserved)
+ */
+export function preflightProjectCapabilities(
+  project: {
+    capabilities?: ProjectCapabilityRequirements;
+    scenes?: Array<{ nodes?: Array<{ type: string }> }>;
+    components?: Array<{ nodes?: Array<{ type: string }> }>;
+    timeline?: {
+      visualTracks?: Array<{
+        clips?: Array<{
+          source?: { kind: string };
+          transitionIn?: { kind?: string };
+          transitionOut?: { kind?: string };
+        }>;
+      }>;
+      audioTracks?: Array<unknown>;
+      captionTracks?: Array<unknown>;
+    };
+  },
+  _availableIds?: Set<string>,
+): CapabilityPreflightResult {
+  const used = inspectProjectCapabilities(project);
+  const required = new Set(project.capabilities?.required ?? []);
+  const experimental = new Set(project.capabilities?.experimental ?? []);
+
+  const usedArray = [...used].sort();
+  const declaredArray = [...required].sort();
+  const undeclared = usedArray.filter((id) => !required.has(id));
+  const experimentalInUse = usedArray.filter((id) => experimental.has(id));
+  const missing: string[] = [];
+
+  return {
+    ok: undeclared.length === 0 && experimentalInUse.length === 0,
+    used: usedArray,
+    declared: declaredArray,
+    undeclared,
+    experimentalInUse,
+    missing,
+  };
+}

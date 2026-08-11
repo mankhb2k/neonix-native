@@ -60,3 +60,90 @@ describe("committed JSON schemas", () => {
     expect(timelineProps).not.toContain("sceneOrder");
   });
 });
+
+// ── Phase 7 — V3 naming gate ────────────────────────────────────────
+
+import * as Protocol from "../index";
+import type {
+  NodeTiming,
+  ProceduralDriver,
+  MotionPoint,
+  MotionPathSegment,
+  MotionPathContour,
+  MotionPathMorphTarget,
+} from "../index";
+
+describe("Phase 7 — public API V3 naming", () => {
+  it("every V2-named schema/value export has a neutral counterpart", () => {
+    // Only runtime values (Zod schemas, constants, functions), not types.
+    const runtimeExports = Object.keys(Protocol);
+
+    const requiredNeutralValues = [
+      "EffectSchema",
+      "TransformSchema",
+      "ImageAssetSchema",
+      "SvgAssetSchema",
+      "VideoAssetSchema",
+      "AudioAssetSchema",
+      "FontAssetSchema",
+      "AssetSchema",
+      "VariableSchema",
+      "PublicParamSchema",
+      "PointSchema",
+      "PathSegmentSchema",
+      "PathContourSchema",
+      "PathMorphTargetSchema",
+      "NodeTimingSchema",
+      "GroupNodeSchema",
+      "BoneNodeSchema",
+      "TextNodeSchema",
+      "ShapeNodeSchema",
+      "PathNodeSchema",
+      "ImageNodeSchema",
+      "SvgNodeSchema",
+      "VideoNodeSchema",
+      "CameraNodeSchema",
+      "SolidNodeSchema",
+      "AdjustmentNodeSchema",
+      "NodeSchema",
+      "KeyframeEasingSchema",
+      "ProceduralDriverSchema",
+    ];
+
+    for (const name of requiredNeutralValues) {
+      expect(runtimeExports, `Missing neutral export: ${name}`).toContain(name);
+    }
+  });
+
+  it("type-only neutral names are importable", () => {
+    // Compile-time check: if these types didn't exist, TS would fail here.
+    // Declare dummy vars to suppress no-unused-vars.
+    void (null as unknown as NodeTiming);
+    void (null as unknown as ProceduralDriver);
+    void (null as unknown as MotionPoint);
+    void (null as unknown as MotionPathSegment);
+    void (null as unknown as MotionPathContour);
+    void (null as unknown as MotionPathMorphTarget);
+
+    // If we got this far, the types imported successfully.
+    // Also check MotionTransform, MotionEffect which already exist.
+  });
+});
+
+// ── Phase 8 — package.json exports gate ─────────────────────────────
+
+describe("Phase 8 — package.json exports", () => {
+  it("does not expose compat/ in public exports", () => {
+    const pkgJsonPath = join(__dirname, "..", "..", "package.json");
+    const pkg = JSON.parse(readFileSync(pkgJsonPath, "utf8")) as {
+      exports?: Record<string, string>;
+    };
+
+    const exportKeys = Object.keys(pkg.exports ?? {});
+    expect(exportKeys).not.toContain("./compat");
+    expect(exportKeys).not.toContain("./compat/*");
+
+    // Only the root export should remain
+    expect(exportKeys).toEqual(["."]);
+  });
+});

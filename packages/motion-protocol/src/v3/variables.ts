@@ -261,5 +261,9 @@ export const PublicParamV2Schema = z
   })
   .strict();
 
-/** @deprecated Use `PublicParamV2Schema` instead. */
+/** @deprecated Use `VariableSchema` instead. */
 export const PublicParamSchema = PublicParamV2Schema;
+
+// ── Phase 7 neutral aliases ─────────────────────────────────────────
+
+export const VariableSchema = VariableV2Schema;

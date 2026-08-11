@@ -12,7 +12,12 @@ import {
 } from "./structural";
 
 export { NodeTimingV2Schema, type NodeTimingV2, NodeBaseSchema } from "./base";
-export { PaintStyleSchema, type MotionPaintStyle, FitSchema, CropSchema } from "./paint";
+export {
+  PaintStyleSchema,
+  type MotionPaintStyle,
+  FitSchema,
+  CropSchema,
+} from "./paint";
 export {
   segmentTextUnits,
   TextNodeV2Schema,
@@ -66,3 +71,18 @@ export const NodeV2Schema = z.discriminatedUnion("type", [
 ]);
 
 export type MotionNode = z.infer<typeof NodeV2Schema>;
+
+// ── Phase 7 neutral aliases ─────────────────────────────────────────
+
+export const GroupNodeSchema = GroupNodeV2Schema;
+export const BoneNodeSchema = BoneNodeV2Schema;
+export const TextNodeSchema = TextNodeV2Schema;
+export const ShapeNodeSchema = ShapeNodeV2Schema;
+export const PathNodeSchema = PathNodeV2Schema;
+export const ImageNodeSchema = ImageNodeV2Schema;
+export const SvgNodeSchema = SvgNodeV2Schema;
+export const VideoNodeSchema = VideoNodeV2Schema;
+export const CameraNodeSchema = CameraNodeV2Schema;
+export const SolidNodeSchema = SolidNodeV2Schema;
+export const AdjustmentNodeSchema = AdjustmentNodeV2Schema;
+export const NodeSchema = NodeV2Schema;

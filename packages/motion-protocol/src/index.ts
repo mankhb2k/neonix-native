@@ -13,6 +13,12 @@
 
 // ── Capabilities / Registry / AI matrix ───────────────────────────────
 export * from "./capabilities";
+export {
+  CAPABILITY_MANIFEST_VERSION_V3,
+  preflightProjectCapabilities,
+  inspectProjectCapabilities,
+  type CapabilityPreflightResult,
+} from "./v3/capabilities";
 export * from "./scene-registry";
 export * from "./ai-schema-capability";
 
@@ -200,17 +206,28 @@ export {
   ValueKindSchema,
 } from "./v3/values";
 
-// Effects / Transform — owned by V3 (Phase 2)
-export { EffectV2Schema, type MotionEffect } from "./v3/effects";
-export { TransformV2Schema, type MotionTransform } from "./v3/transform";
-
-// Assets — still in legacy (owned by V3 as AssetV3, re-exported for compat)
+// Effects / Transform — V3 canonical (Phase 7 neutral names)
+export { EffectSchema, EffectV2Schema, type MotionEffect } from "./v3/effects";
 export {
+  TransformSchema,
+  TransformV2Schema,
+  type MotionTransform,
+} from "./v3/transform";
+
+// Assets — V3 canonical (Phase 7 neutral names)
+export {
+  ImageAssetSchema,
+  SvgAssetSchema,
+  VideoAssetSchema,
+  AudioAssetSchema,
+  AudioAnalysisSchema,
+  FontAssetSchema,
+  AssetSchema,
+  // @deprecated V2 aliases — use neutral names above
   ImageAssetV2Schema,
   SvgAssetV2Schema,
   VideoAssetV2Schema,
   AudioAssetV2Schema,
-  AudioAnalysisSchema,
   FontAssetV2Schema,
   AssetV2Schema,
 } from "./runtime/assets";
@@ -222,13 +239,14 @@ export {
   type CaptionToken,
 } from "./v3/captions";
 
-// Variables / Bindings — owned by V3 (Phase 6)
+// Variables / Bindings — V3 canonical (Phase 7 neutral names)
 export {
+  VariableSchema,
   VariableV2Schema,
   ComponentBindingSchema,
   ProjectBindingSchema,
-  PublicParamV2Schema,
   PublicParamSchema,
+  PublicParamV2Schema,
 } from "./v3/variables";
 
 // Layout — owned by V3 (Phase 2)
@@ -240,20 +258,27 @@ export {
   type LayoutItemPolicy,
 } from "./v3/layout";
 
-// Nodes — geometry primitives owned by V3 (Phase 5)
+// Nodes — geometry primitives (Phase 7 neutral names)
 export {
-  PointV2Schema,
+  PointSchema,
   type MotionPoint,
-  PathSegmentV2Schema,
+  PathSegmentSchema,
   type MotionPathSegment,
-  PathContourV2Schema,
+  PathContourSchema,
   type MotionPathContour,
-  PathMorphTargetV2Schema,
+  PathMorphTargetSchema,
   type MotionPathMorphTarget,
+  // @deprecated V2 aliases
+  PointV2Schema,
+  PathSegmentV2Schema,
+  PathContourV2Schema,
+  PathMorphTargetV2Schema,
 } from "./v3/nodes/geometry";
 
-// Nodes — timing, paint, text owned by V3 (Phase 2)
+// Nodes — timing, paint, text (Phase 7 neutral names)
 export {
+  NodeTimingSchema,
+  type NodeTiming,
   NodeTimingV2Schema,
   type NodeTimingV2,
   PaintStyleSchema,
@@ -274,8 +299,21 @@ export {
 // Nodes — structural: MotionBlur owned by V3 (Phase 5)
 export { MotionBlurSettingsSchema } from "./v3/nodes/structural";
 
-// Nodes — V2-specific schemas still in legacy
+// Nodes — V3 structural (Phase 7 neutral names)
 export {
+  GroupNodeSchema,
+  BoneNodeSchema,
+  TextNodeSchema,
+  ShapeNodeSchema,
+  PathNodeSchema,
+  ImageNodeSchema,
+  SvgNodeSchema,
+  VideoNodeSchema,
+  CameraNodeSchema,
+  SolidNodeSchema,
+  AdjustmentNodeSchema,
+  NodeSchema,
+  // @deprecated V2 aliases — use neutral names above
   GroupNodeV2Schema,
   BoneNodeV2Schema,
   TextNodeV2Schema,
@@ -292,22 +330,24 @@ export {
   type MotionNode,
 } from "./runtime/nodes";
 
-// Animation
+// Animation — V3 canonical (Phase 7 neutral names)
 export {
   ClipScheduleSchema,
   PlaybackSchema,
   KeyframeEasingNamedSchema,
   KeyframeEasingCubicSchema,
   KeyframeEasingSpringSchema,
+  KeyframeEasingSchema,
   KeyframeEasingV2Schema,
   ExtrapolationBehaviorSchema,
   ProceduralDriverSchema,
+  type ProceduralDriver,
   type ProceduralDriverV2,
   SceneMarkerSchema,
   TrackTimeSchema,
 } from "./v3/animation";
 
-// V2-specific clip types (component-action, not in V3)
+// @deprecated V2-specific clip types (component-action, not in V3)
 export { ClipV2Schema, type MotionClip } from "./runtime/animation/clips";
 
 // Project scene type — V3 canonical

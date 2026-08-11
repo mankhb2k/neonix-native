@@ -1,6 +1,6 @@
-import type { ProceduralDriverV2 } from "@motionvideo/motion-protocol";
+import type { ProceduralDriver as ProceduralDriverProtocol } from "@motionvideo/motion-protocol";
 
-export type ProceduralDriver = ProceduralDriverV2;
+export type ProceduralDriver = ProceduralDriverProtocol;
 
 export function evaluateOscillator(
   driver: Extract<ProceduralDriver, { type: "oscillator" }>,
@@ -21,7 +21,10 @@ export function evaluateOscillator(
   }
 }
 
-export function evaluateNoise(driver: Extract<ProceduralDriver, { type: "noise" }>, time: number): number {
+export function evaluateNoise(
+  driver: Extract<ProceduralDriver, { type: "noise" }>,
+  time: number,
+): number {
   const t = time * driver.frequency + driver.seed;
   const sample = Math.sin(t * 12.9898 + driver.seed * 78.233) * 43758.5453123;
   const fract = sample - Math.floor(sample);
@@ -36,7 +39,7 @@ function wrap(value: number, min: number, max: number): number {
   const span = max - min;
   if (span <= 0) return min;
   const shifted = value - min;
-  return min + ((((shifted % span) + span) % span));
+  return min + (((shifted % span) + span) % span);
 }
 
 export type DriverSampleContext = {
@@ -48,7 +51,10 @@ export type DriverSampleContext = {
 };
 
 /** Evaluate one driver to a numeric contribution/override for its target. */
-export function evaluateDriverValue(driver: ProceduralDriver, ctx: DriverSampleContext): number {
+export function evaluateDriverValue(
+  driver: ProceduralDriver,
+  ctx: DriverSampleContext,
+): number {
   const read = (nodeId: string, property: string): number => {
     const driven = ctx.readDriven(nodeId, property);
     if (driven !== undefined) return driven;
@@ -57,26 +63,49 @@ export function evaluateDriverValue(driver: ProceduralDriver, ctx: DriverSampleC
 
   switch (driver.type) {
     case "oscillator":
-      return ctx.readBase(driver.targetNodeId, driver.targetProperty) + evaluateOscillator(driver, ctx.time);
+      return (
+        ctx.readBase(driver.targetNodeId, driver.targetProperty) +
+        evaluateOscillator(driver, ctx.time)
+      );
     case "noise":
-      return ctx.readBase(driver.targetNodeId, driver.targetProperty) + evaluateNoise(driver, ctx.time);
+      return (
+        ctx.readBase(driver.targetNodeId, driver.targetProperty) +
+        evaluateNoise(driver, ctx.time)
+      );
     case "link":
-      return read(driver.sourceNodeId, driver.sourceProperty) * (driver.multiplier ?? 1) + (driver.offset ?? 0);
+      return (
+        read(driver.sourceNodeId, driver.sourceProperty) *
+          (driver.multiplier ?? 1) +
+        (driver.offset ?? 0)
+      );
     case "remap": {
       const raw = read(driver.sourceNodeId, driver.sourceProperty);
-      const t = (raw - driver.inMin) / Math.max(1e-9, driver.inMax - driver.inMin);
+      const t =
+        (raw - driver.inMin) / Math.max(1e-9, driver.inMax - driver.inMin);
       return driver.outMin + clamp(t, 0, 1) * (driver.outMax - driver.outMin);
     }
     case "clamp":
-      return clamp(read(driver.sourceNodeId, driver.sourceProperty), driver.min, driver.max);
+      return clamp(
+        read(driver.sourceNodeId, driver.sourceProperty),
+        driver.min,
+        driver.max,
+      );
     case "wrap":
-      return wrap(read(driver.sourceNodeId, driver.sourceProperty), driver.min, driver.max);
+      return wrap(
+        read(driver.sourceNodeId, driver.sourceProperty),
+        driver.min,
+        driver.max,
+      );
     case "quantize": {
       const raw = read(driver.sourceNodeId, driver.sourceProperty);
       return Math.round(raw / driver.step) * driver.step;
     }
     case "delay-follow":
-      return ctx.readBase(driver.sourceNodeId, driver.sourceProperty, Math.max(0, ctx.time - driver.delay));
+      return ctx.readBase(
+        driver.sourceNodeId,
+        driver.sourceProperty,
+        Math.max(0, ctx.time - driver.delay),
+      );
     case "spring-follow": {
       const target = read(driver.sourceNodeId, driver.sourceProperty);
       const current = ctx.readBase(driver.targetNodeId, driver.targetProperty);
@@ -87,7 +116,9 @@ export function evaluateDriverValue(driver: ProceduralDriver, ctx: DriverSampleC
     }
     case "time-remap": {
       const remapped = ctx.time * (driver.scale ?? 1) + (driver.offset ?? 0);
-      return ctx.readBase(driver.targetNodeId, driver.targetProperty) + remapped * 0;
+      return (
+        ctx.readBase(driver.targetNodeId, driver.targetProperty) + remapped * 0
+      );
     }
     default: {
       const neverDriver: never = driver;
@@ -102,10 +133,13 @@ export function evaluateDriverValue(driver: ProceduralDriver, ctx: DriverSampleC
  */
 export function evaluateDriverGraph(
   drivers: readonly ProceduralDriver[],
-  ctx: Omit<DriverSampleContext, "readDriven"> & { readDriven?: DriverSampleContext["readDriven"] },
+  ctx: Omit<DriverSampleContext, "readDriven"> & {
+    readDriven?: DriverSampleContext["readDriven"];
+  },
 ): Map<string, number> {
   const byId = new Map(drivers.map((driver) => [driver.id, driver]));
-  if (byId.size !== drivers.length) throw new Error("Duplicate procedural driver id");
+  if (byId.size !== drivers.length)
+    throw new Error("Duplicate procedural driver id");
 
   const indegree = new Map<string, number>();
   const dependents = new Map<string, string[]>();
@@ -123,7 +157,10 @@ export function evaluateDriverGraph(
 
   const producers = new Map<string, string>();
   for (const driver of drivers) {
-    producers.set(`${driver.targetNodeId}::${driver.targetProperty}`, driver.id);
+    producers.set(
+      `${driver.targetNodeId}::${driver.targetProperty}`,
+      driver.id,
+    );
   }
 
   for (const driver of drivers) {
@@ -135,7 +172,9 @@ export function evaluateDriverGraph(
     indegree.set(driver.id, (indegree.get(driver.id) ?? 0) + 1);
   }
 
-  const queue = [...drivers].filter((driver) => (indegree.get(driver.id) ?? 0) === 0).map((driver) => driver.id);
+  const queue = [...drivers]
+    .filter((driver) => (indegree.get(driver.id) ?? 0) === 0)
+    .map((driver) => driver.id);
   const order: string[] = [];
   while (queue.length > 0) {
     const id = queue.shift()!;
@@ -145,10 +184,12 @@ export function evaluateDriverGraph(
       if (indegree.get(next) === 0) queue.push(next);
     }
   }
-  if (order.length !== drivers.length) throw new Error("Procedural driver cycle detected");
+  if (order.length !== drivers.length)
+    throw new Error("Procedural driver cycle detected");
 
   const outputs = new Map<string, number>();
-  const readDriven = (nodeId: string, property: string) => outputs.get(`${nodeId}::${property}`);
+  const readDriven = (nodeId: string, property: string) =>
+    outputs.get(`${nodeId}::${property}`);
 
   for (const id of order) {
     const driver = byId.get(id)!;
