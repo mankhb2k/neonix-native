@@ -1,7 +1,7 @@
 /**
  * V3 project-wide reference validation.
  */
-import type { MotionProjectV3 } from "../index";
+import type { MotionProjectV3 } from "../project";
 import { duplicates } from "./helpers";
 import { validateNodeGraphV3 } from "./node-graph";
 import { validateNodeAssetsV3 } from "./node-assets";

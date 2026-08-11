@@ -8,7 +8,6 @@ export {
   KeyframeEasingCubicSchema,
   KeyframeEasingSpringSchema,
   KeyframeEasingSchema,
-  KeyframeEasingV2Schema,
   type KeyframeEasingV3,
 } from "./easing";
 

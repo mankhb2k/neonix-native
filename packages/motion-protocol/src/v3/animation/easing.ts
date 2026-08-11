@@ -43,8 +43,3 @@ export const KeyframeEasingSchema = z.union([
 ]);
 
 export type KeyframeEasingV3 = z.infer<typeof KeyframeEasingSchema>;
-
-// ── Deprecated backward-compat alias ───────────────────────────────────
-
-/** @deprecated Use `KeyframeEasingSchema` instead. */
-export const KeyframeEasingV2Schema = KeyframeEasingSchema;

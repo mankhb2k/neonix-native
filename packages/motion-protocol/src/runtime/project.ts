@@ -2,8 +2,7 @@
  * MotionRuntimeProject — canonical runtime IR schemas and types.
  *
  * This module OWNS the runtime IR schema definitions.
- * Legacy/deprecated aliases (NormalizedMotionProjectV2, MotionRuntimeIR)
- * are retained for transitional backward compat.
+ * Phase 6: formatVersion bumped to 3, sceneOrder removed.
  */
 
 import { z } from "zod";

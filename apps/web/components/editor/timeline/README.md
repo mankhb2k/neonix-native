@@ -51,7 +51,7 @@
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `timeline-scale.ts`                    | Web-specific layout constants (lane heights, gaps, padding) + re-exports `computeRulerTickWindow`           |
 | `lanes/timeline-lane-rows.ts`          | Thin adapter — delegates to `buildLaneRows` with web config, adds `buildLayerLaneRows`                      |
-| `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads    |
+| `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads     |
 | `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from editor-react; supplies web `ClipMoveHost` (auto-scroll, same-lane-only) |
 | `clips/use-clip-trim.ts`               | Adapter wrapping `useClipTrim` from editor-react; thin pass-through                                         |
 | `interactions/use-timeline-hotkeys.ts` | Adapter wrapping `useTimelineHotkeys` from editor-react; wires Zustand store                                |

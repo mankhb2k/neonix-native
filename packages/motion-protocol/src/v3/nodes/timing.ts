@@ -2,7 +2,7 @@
  * V3 node timing schema — canonical source of truth.
  *
  * Phase 2: copied from legacy/nodes/base.ts → V3 now owns this definition.
- * The canonical name is `NodeTimingSchema` (was `NodeTimingV2Schema`).
+ * The canonical name is `NodeTimingSchema` (was `NodeTimingV2` in Phase 2).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

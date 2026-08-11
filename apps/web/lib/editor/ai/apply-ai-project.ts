@@ -4,17 +4,17 @@
  */
 
 import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
-import {
-  selectionClips,
-  selectionNone,
-} from "@motionvideo/editor-core";
+import { selectionClips, selectionNone } from "@motionvideo/editor-core";
 import {
   clipsContentEndSeconds,
   ensureAudioClipsFromTracks,
   migrateLanesAndClips,
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProject,
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
 import { documentFromStoreState } from "@motionvideo/editor-core";
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
@@ -22,10 +22,7 @@ import type {
   ElementAuthoringMeta,
   WebProjectEnvelope,
 } from "@/lib/editor/authoring/web-project-envelope";
-import type {
-  EditorStoreGet,
-  EditorStoreSet,
-} from "@/lib/editor/store/types";
+import type { EditorStoreGet, EditorStoreSet } from "@/lib/editor/store/types";
 
 export type AiApplyGenerationMeta = NonNullable<
   WebProjectEnvelope["authoring"]["generation"]

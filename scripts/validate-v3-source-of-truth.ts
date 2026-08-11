@@ -85,22 +85,20 @@ const ALLOWLIST = [
   /scripts[\\/]validate-v3-source-of-truth\.ts$/,
   // Protocol root barrel — comment block documents excluded V2 types
   /packages[\\/]motion-protocol[\\/]src[\\/]index\.ts$/,
-  // Runtime re-exports — runtime IR format, not V2 authoring
-  /packages[\\/]motion-protocol[\\/]src[\\/]runtime[\\/]/,
-  // V3 canonical definitions — defines V2-prefixed primitives for backward compat
-  /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]/,
-  // Protocol test verifying ./compat is removed from exports (Phase 7-8 gate)
+  // Protocol tests: intentional negative tests + regression guards
   /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]schema-files\.test\.ts$/,
-  // Protocol test: root API V2 regression guard (Phase 4) — lists forbidden strings
   /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]root-api-v2-regression\.test\.ts$/,
-  // V3 schema tests — negative tests verifying scene.transition is absent from V3 scenes
+  // V3 schema negative tests — verifying scene.transition absence
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]__tests__[\\/]schema\.test\.ts$/,
-  // Compiler: legacy v2 path (index.ts) + sceneOrder in test assertions
-  /packages[\\/]motion-compiler[\\/]src[\\/]index\.ts$/,
-  /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
-  // Compiler: V3 pipeline passes scene.transition=undefined to legacy _compileScenePipeline
+  /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]__tests__[\\/]skills\.test\.ts$/,
+  /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]__tests__[\\/]mcp\.test\.ts$/,
+  // V3 validation modules: scene.transition in diagnostic/error messages
+  /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]skills\.ts$/,
+  /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]mcp\.ts$/,
+  // Compiler: V3 pipeline passes scene.transition=undefined to _compileScenePipeline
   /packages[\\/]motion-compiler[\\/]src[\\/]compile-v3\.ts$/,
-  // Runtime IR goldens use formatVersion: 3 (Phase 6 bump)
+  /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
+  // Runtime IR goldens (Phase 6)
   /runtime-compile-goldens[\\/].*\.runtime\.json$/,
   // Motion-runtime: scene.transition is runtime IR field, not V2 authoring
   /packages[\\/]motion-runtime[\\/]src[\\/]composition[\\/]evaluate-composition-layers\.ts$/,

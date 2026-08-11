@@ -264,8 +264,3 @@ export const PublicParamSchema = z
     capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
   })
   .strict();
-
-// ── Phase 7 neutral aliases ─────────────────────────────────────────
-
-/** @deprecated Use `VariableSchema` instead. */
-export const VariableV2Schema = VariableSchema;
