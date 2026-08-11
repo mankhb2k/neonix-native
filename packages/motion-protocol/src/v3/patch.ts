@@ -10,8 +10,8 @@
  */
 
 import { z } from "zod";
-import type { MotionProjectV3 } from "./index";
-import { MotionProjectV3Schema } from "./index";
+import type { MotionProjectV3 } from "./project";
+import { MotionProjectV3Schema } from "./project";
 import { IdSchema, FiniteNumberSchema } from "./common";
 import { CompositionSettingsSchema } from "./composition";
 import { DesignTokensSchema } from "./variables";

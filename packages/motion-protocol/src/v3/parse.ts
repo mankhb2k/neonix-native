@@ -6,7 +6,7 @@
  * `serializeMotionProjectV3` emits canonical (alphabetically sorted) keys
  * so two identical projects always serialize byte-identically.
  */
-import { MotionProjectV3Schema, type MotionProjectV3 } from "./index";
+import { MotionProjectV3Schema, type MotionProjectV3 } from "./project";
 import { normalizeLegacyMotionInput } from "./normalize-input";
 import { validateMotionProjectV3References } from "./references";
 import { MotionV3ReferenceError } from "./references/types";
