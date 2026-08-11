@@ -59,6 +59,11 @@ const FORBIDDEN = [
     pattern: /\b\w+V2Schema\b/,
     label: "*V2Schema name in production",
   },
+  // Final polish: no generic V2-suffixed identifiers in production code.
+  {
+    pattern: /\b[A-Za-z0-9_]+V2\b/,
+    label: "*V2 identifier in production",
+  },
   // Phase 2 (v3-residue): V2-named constants must not exist
   {
     pattern: /MOTION_V2_LIMITS/,

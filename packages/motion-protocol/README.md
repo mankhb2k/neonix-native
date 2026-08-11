@@ -88,6 +88,29 @@ Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node t
 - **`solid`**: Mảng màu phẳng (`width`, `height`, `color`) — cũng dùng cho scene background synthetic.
 - **`adjustment`**: Layer chỉnh `brightness`, `contrast`, `saturation`.
 
+#### Group Layer Semantics
+
+`group` node (`type: "group"`) là một **timeline layer thực sự** — không phải folder thụ động. Nó có timing, transform, z-order, animation, effects riêng, và có thể chứa child layer.
+
+**Thuật ngữ**: `timeline track/lane` (lane của scene trong `visualTracks`), `timeline layer` (node layer trong scene), `group layer` (node `group` có child), `root layer` (`parentId: null`), `child layer` (có `parentId` trỏ node khác). Không dùng `track`/`lane`/`layer` thay thế cho nhau.
+
+**Parent relationship**: `parentId: null` → relative với scene. `parentId` → relative với parent. Chỉ `group` node được phép có children.
+
+**Timing**: Child timing là **parent-relative**:
+```
+nodeGlobalStart = parentGlobalStart + node.timing.start
+nodeGlobalEnd   = min(parentGlobalEnd, nodeGlobalStart + node.timing.duration)
+```
+Default: `start=0`, `duration=parent duration`. Child chỉ visible khi scene time nằm trong timing của **tất cả ancestor**.
+
+**zIndex**: Chỉ so sánh giữa **sibling** (cùng `parentId`). Child zIndex cao không vượt ra ngoài parent group.
+
+**Animation**: Group có đầy đủ animation (transform, opacity, effects, blend, mask). Khi group transform → tất cả child di chuyển theo. Child animation evaluate trong group local coordinate space.
+
+**Compositing**: `pass-through` (children render trong parent context) | `isolate` (render ra offscreen surface trước, rồi áp group effects/blend/mask).
+
+Xem ví dụ 3 cấp group lồng nhau tại [`docs/motion-format-v3.md#group-layer-semantics`](../../docs/motion-format-v3.md#group-layer-semantics).
+
 #### Thuộc tính mở rộng trên Node
 
 - **Transform** (`TransformV3`): `x`, `y`, `depth` (2.5D parallax), `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY` (0..1), `opacity`, `visible`, `flipX`, `flipY`.
@@ -188,7 +211,19 @@ Beat phải sorted và nằm trong `duration` asset; số lượng bị giới h
 
 ### 6. Timeline, Audio, Caption & Visual Tracks
 
+**Thuật ngữ thống nhất**:
+
+- `timeline track/lane` là lane của scene trong `timeline.visualTracks`, có `role: main | overlay`.
+- `timeline layer` là node layer bên trong một scene, được sắp bởi `node.zIndex`.
+- `visualTracks[].order` quyết định track/lane nào vẽ trước, nào vẽ sau.
+- `node.zIndex` chỉ quyết định thứ tự node bên trong scene, không dùng để so sánh track/lane.
+
 - **`timeline.visualTracks`**: Danh sách các track visual (`primary`, `overlay`, `background`) với `VisualClip[]` — mỗi clip có `source` (`scene` hoặc `component`), `start`, `duration`, và `transitionOut`.
+- **Quy tắc chồng lớp**:
+  - `visualTracks[].order` quyết định track nào vẽ trước/vẽ sau.
+  - `order` nhỏ hơn nằm dưới, `order` lớn hơn nằm trên.
+  - `role` chỉ là ý nghĩa sematic của track/lane, không thay thế `order`.
+  - `node.zIndex` chỉ dùng để sắp xếp node bên trong scene, không dùng để quyết định overlay/base giữa các track/lane.
 - **`audioTracks`**: BGM / voiceover / SFX với `start`, `trimStart`, `volume`, `loop`, `fadeIn` / `fadeOut`.
 - **`captionTracks`**: Caption là **timeline content** (giây project global), không gắn tùy ý vào một text node.
 

@@ -1,8 +1,7 @@
 /**
  * Compiler-internal type definitions.
  *
- * Phase 10: `ComponentInput` replaces the V2 `MotionComponentV2` import
- * so the compiler has zero dependencies on legacy/ schemas.
+ * `ComponentInput` keeps the compiler decoupled from authoring schema modules.
  */
 import type { MotionNode } from "@motionvideo/motion-protocol";
 

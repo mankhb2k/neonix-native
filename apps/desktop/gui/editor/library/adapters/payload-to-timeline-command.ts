@@ -95,7 +95,7 @@ function layerNodeCommit(
 /**
  * Map a typed library payload to a TimelineCommand.
  * Image/video use MotionScene image/video nodes via FrameDraft.kind + assetId
- * (schema ImageNodeV2 / VideoNodeV2). Audio uses add-audio-clip.
+ * (image/video node schemas). Audio uses add-audio-clip.
  * Layer mode (`target.layerSceneId`) → `add-scene-node`.
  */
 export function payloadToTimelineCommand(
