@@ -169,7 +169,16 @@ export type CompositingContext = {
     mask?: { mode: string; sourceKey: string };
   }): Container;
 
-  /** Push a new group scope. Returns the new parent for child ops. */
+  /** Push a new group scope. Returns the new parent for child ops.
+   *
+   * Phase 8: Group compositing is handled at the layer level via
+   * beginLayer/endLayer. When a group has `compositing.mode: "isolate"`,
+   * the render plan wraps it in a layer with `offscreen: true` —
+   * children render into the offscreen surface, and the composited
+   * result is displayed as a Sprite proxy with group effects applied.
+   *
+   * Group containers are always plain — no direct isolation here.
+   */
   pushGroup(key: string, nodeId: string): Container;
 
   /** Pop the current layer scope. */
@@ -301,7 +310,7 @@ export function createCompositingContext(
   function pushGroup(key: string, nodeId: string): Container {
     const parent = stack[stack.length - 1]!.container;
     // Look for existing group container by key
-    let groupContainer = parent.children.find((c) => c.label === key) as
+    let groupContainer = parent.children.find((c) => c.label === `${key}_${nodeId}`) as
       | Container
       | undefined;
     if (!groupContainer) {

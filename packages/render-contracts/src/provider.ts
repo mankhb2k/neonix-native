@@ -41,6 +41,70 @@
 import { z } from "zod";
 
 // ═══════════════════════════════════════════════════════════════════════
+// Phase 8 — Group compositing contract
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Group compositing mode — aligns all renderers on group layer behaviour.
+ *
+ * V3 group semantics (see `docs/motion-format-v3.md` § Group Layer
+ * Semantics) define two compositing modes for `type: "group"` nodes:
+ *
+ * ## `pass-through`
+ *
+ * Children render directly into the parent context. The group is a
+ * structural container only — no isolation boundary.
+ *
+ * - Children inherit parent transform, opacity, visibility.
+ * - Group effects/blendMode apply to each child individually (not
+ *   composited as a single unit).
+ * - Providers should NOT create an offscreen surface.
+ * - This is the **default** mode when `compositing` is absent.
+ *
+ * ## `isolate`
+ *
+ * Children render into an offscreen surface first. The group's
+ * opacity, effects, blendMode, and mask apply to the composited
+ * result as a single unit.
+ *
+ * - Providers MUST create an offscreen surface (RenderTexture,
+ *   OffscreenCanvas, etc.) at the group's logical dimensions.
+ * - Children paint into the offscreen surface.
+ * - The offscreen surface is composited into the parent context with
+ *   the group's transform/filters applied.
+ * - This is required for group-level blend modes and effects.
+ *
+ * ## Provider requirements
+ *
+ * - **Canvas (export)**: `OffscreenCanvas` → `drawImage()` with
+ *   `globalAlpha` and `globalCompositeOperation`.
+ * - **Pixi.js (preview)**: `RenderTexture` + `Sprite` proxy with
+ *   container filters.
+ * - **Remotion (export)**: HTML `<div>` wrapper with `opacity` +
+ *   `mix-blend-mode` + `filter` CSS; children absolutely positioned
+ *   inside.
+ *
+ * ## Recommendation
+ *
+ * `isolate` is **RECOMMENDED for the first implementation**. The
+ * offscreen infrastructure already exists in Pixi (RenderTexture pool)
+ * and Canvas (OffscreenCanvas). `pass-through` is the default and
+ * requires no special handling.
+ */
+export type GroupCompositingMode = "pass-through" | "isolate";
+
+/**
+ * Provider requirements for group compositing.
+ *
+ * Every renderer MUST declare which compositing modes it supports in
+ * `ProviderCapabilities.supportedGroupCompositingModes`.
+ */
+export const GROUP_COMPOSITING_MODES: readonly GroupCompositingMode[] = [
+  "pass-through",
+  "isolate",
+] as const;
+
+// ═══════════════════════════════════════════════════════════════════════
 // Provider metadata
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -94,6 +158,8 @@ export interface ProviderCapabilities extends ProviderInfo {
   supportedEffects: string[];
   /** Transition types the provider can composite (e.g. "cut", "fade"). */
   supportedTransitions: string[];
+/** Phase 8 — Group compositing mode. */
+  supportedGroupCompositingModes?: GroupCompositingMode[];
   /** Maximum output resolution (in pixels). */
   maxResolution: { width: number; height: number };
   /** Whether the provider can produce RGBA output (necessary for overlays). */

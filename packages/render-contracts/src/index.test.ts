@@ -4,6 +4,11 @@ import {
   RenderJobProgressSchema,
   RenderJobStatusSchema,
 } from "./index";
+import {
+  GROUP_COMPOSITING_MODES,
+  type GroupCompositingMode,
+  type ProviderCapabilities,
+} from "./provider";
 
 describe("render-contracts", () => {
   it("parses job status", () => {
@@ -75,5 +80,63 @@ describe("render-contracts", () => {
     expect(manifest.manifestVersion).toBe(2);
     expect(manifest.contentHash).toHaveLength(64);
     expect(manifest.determinism.hashAlgorithm).toBe("sha256");
+  });
+});
+
+// ── Phase 8: Group compositing contract ──────────────────────────────
+
+describe("Phase 8 — group compositing contract", () => {
+  it("GROUP_COMPOSITING_MODES includes pass-through and isolate", () => {
+    expect(GROUP_COMPOSITING_MODES).toContain("pass-through");
+    expect(GROUP_COMPOSITING_MODES).toContain("isolate");
+    expect(GROUP_COMPOSITING_MODES).toHaveLength(2);
+  });
+
+  it("GroupCompositingMode type is a string union", () => {
+    const pass: GroupCompositingMode = "pass-through";
+    const isolate: GroupCompositingMode = "isolate";
+    expect(pass).toBe("pass-through");
+    expect(isolate).toBe("isolate");
+  });
+
+  it("ProviderCapabilities should declare supportedGroupCompositingModes", () => {
+    const caps: ProviderCapabilities = {
+      providerId: "test-provider",
+      displayName: "Test",
+      version: "1.0.0",
+      backend: "canvas",
+      supportedNodeTypes: ["group", "text", "image"],
+      supportedEffects: [],
+      supportedTransitions: [],
+      supportedGroupCompositingModes: ["pass-through", "isolate"],
+      maxResolution: { width: 1920, height: 1080 },
+      supportsAlpha: true,
+      supportsAudio: false,
+      supportsFinalExport: true,
+    };
+    expect(caps.supportedGroupCompositingModes).toEqual([
+      "pass-through",
+      "isolate",
+    ]);
+  });
+
+  it("pass-through does not require offscreen surface", () => {
+    // Providers must NOT create offscreen for pass-through groups.
+    // This is a contract assertion, not a runtime test.
+    const passOnly: ProviderCapabilities = {
+      providerId: "simple-provider",
+      displayName: "Simple",
+      version: "1.0.0",
+      backend: "canvas",
+      supportedNodeTypes: ["group", "text"],
+      supportedEffects: [],
+      supportedTransitions: [],
+      supportedGroupCompositingModes: ["pass-through"],
+      maxResolution: { width: 1920, height: 1080 },
+      supportsAlpha: false,
+      supportsAudio: false,
+      supportsFinalExport: true,
+    };
+    expect(passOnly.supportedGroupCompositingModes).not.toContain("isolate");
   });
 });
