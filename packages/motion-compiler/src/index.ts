@@ -1227,7 +1227,7 @@ export function compileMotionProject(
   }
   const ir = {
     format: "motion-runtime",
-    formatVersion: 2,
+    formatVersion: 3,
     runtimeVersion: MOTION_RUNTIME_VERSION,
     metadata: project.metadata,
     assets: project.assets,

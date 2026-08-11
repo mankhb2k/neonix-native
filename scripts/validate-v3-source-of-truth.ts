@@ -54,8 +54,6 @@ const FORBIDDEN = [
   // V2 fixture paths
   { pattern: /__fixtures__\/v2/, label: "__fixtures__/v2" },
   { pattern: /__fixtures__\\v2/, label: "__fixtures__\\v2 (Windows)" },
-  // V2 format version in authoring JSON (not runtime IR)
-  { pattern: /"formatVersion"\s*:\s*2/, label: '"formatVersion": 2' },
   // Phase 13: removed migration code
   { pattern: /\bdownMigrate\b/, label: "downMigrate" },
   // Phase 13: compat imports outside the compat directory itself
@@ -107,7 +105,7 @@ const ALLOWLIST = [
   /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
   // Compiler: V3 pipeline passes scene.transition=undefined to legacy _compileScenePipeline
   /packages[\\/]motion-compiler[\\/]src[\\/]compile-v3\.ts$/,
-  // Runtime IR goldens use formatVersion: 2 (runtime format, not authoring)
+  // Runtime IR goldens use formatVersion: 3 (Phase 6 bump)
   /runtime-compile-goldens[\\/].*\.runtime\.json$/,
   // Motion-runtime: scene.transition is runtime IR field, not V2 authoring
   /packages[\\/]motion-runtime[\\/]src[\\/]composition[\\/]evaluate-composition-layers\.ts$/,
@@ -183,10 +181,6 @@ function scanFile(filePath: string): Violation[] {
   const violations: Violation[] = [];
 
   for (const rule of FORBIDDEN) {
-    // For JSON files, only check formatVersion:2
-    if (filePath.endsWith(".json") && rule.label !== '"formatVersion": 2')
-      continue;
-
     for (let i = 0; i < lines.length; i++) {
       if (rule.pattern.test(lines[i]!)) {
         violations.push({

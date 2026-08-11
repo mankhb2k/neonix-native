@@ -157,7 +157,7 @@ import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 function emptyRuntime(): MotionRuntimeProject {
   return {
     format: "motion-runtime",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "test",
       title: "Test",

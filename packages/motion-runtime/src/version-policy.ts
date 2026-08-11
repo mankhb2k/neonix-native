@@ -24,8 +24,8 @@
 
 // ── Layer versions ────────────────────────────────────────────────────
 
-/** Schema format version (authoring and runtime IR) */
-export const SCHEMA_FORMAT_VERSION = 2 as const;
+/** Schema format version (authoring and runtime IR — bumped Phase 6) */
+export const SCHEMA_FORMAT_VERSION = 3 as const;
 
 /** Project manifest format version */
 export const PROJECT_FORMAT_VERSION = 2 as const;

@@ -354,7 +354,7 @@ describe("Phase 12.3 — Soak: 20× evaluate/dispose", () => {
 
 describe("Phase 12.4 — Version constants", () => {
   it("schema format version is defined", () => {
-    expect(SCHEMA_FORMAT_VERSION).toBe(2);
+    expect(SCHEMA_FORMAT_VERSION).toBe(3);
   });
 
   it("paint command version is defined", () => {
@@ -381,7 +381,7 @@ describe("Phase 12.4 — Version constants", () => {
 describe("Phase 12.4 — buildVersionManifest", () => {
   it("returns complete manifest", () => {
     const m = buildVersionManifest();
-    expect(m.schema).toBe(2);
+    expect(m.schema).toBe(3);
     expect(m.paintCommand).toBe(1);
     expect(m.compositionFrame).toBe("3.0.0");
     expect(m.diagnostic).toBe(1);

@@ -14,7 +14,7 @@ function fixtureInput(
     playbackRateByTrackId: { "aud.bgm": 1.25 },
     runtime: {
       format: "motion-runtime",
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: "proj.audio",
         name: "Audio",

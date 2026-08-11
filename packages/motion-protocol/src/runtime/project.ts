@@ -25,11 +25,10 @@ import {
 } from "../v3/common";
 
 /**
- * Runtime IR format version — independent of the authoring format.
- * Currently 2 (V2-shaped IR), will increment when the runtime IR shape
- * changes independently of the V3 authoring format.
+ * Runtime IR format version — bumped to 3 (Phase 6)
+ * to match the V3 authoring format. No V2-shaped runtime IR remains.
  */
-const RUNTIME_IR_FORMAT_VERSION = 2 as const;
+const RUNTIME_IR_FORMAT_VERSION = 3 as const;
 import {
   AdjustmentNodeSchema,
   BoneNodeSchema,

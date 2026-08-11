@@ -91,7 +91,7 @@ function makeRuntime(
 
   return {
     format: "motion-runtime",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "test",
       title: "Test",

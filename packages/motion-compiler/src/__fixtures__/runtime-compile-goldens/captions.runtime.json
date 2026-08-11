@@ -1,6 +1,6 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 2,
+  "formatVersion": 3,
   "runtimeVersion": 1,
   "metadata": {
     "id": "captions",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "df442ed4f3bb8e6c7ab0a3276e4a5863",
+  "runtimeHash": "977e1756784be5f36a99b53511a83e79",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {

@@ -1149,7 +1149,7 @@ export function compileMotionProjectV3(
 
     const ir = {
       format: "motion-runtime" as const,
-      formatVersion: 2 as const,
+      formatVersion: 3 as const,
       runtimeVersion: MOTION_RUNTIME_VERSION,
       metadata,
       assets: runtimeAssets,
