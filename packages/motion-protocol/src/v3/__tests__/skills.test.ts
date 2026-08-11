@@ -210,6 +210,114 @@ describe("V3 Skill contract", () => {
     ).toBe(true);
   });
 
+  it("validateMotionSkillOutput rejects scene.transition on scenes", () => {
+    const manifest: MotionSkillManifest = {
+      id: "test/skill",
+      name: "Test",
+      description: "Test",
+      version: "1.0.0",
+      author: { name: "Tester" },
+      requiredCapabilities: [],
+      inputSchema: { type: "object" },
+      outputContract: { kind: "full-project" },
+      tags: [],
+    };
+    const projectWithSceneTransition = {
+      format: "motion-project",
+      formatVersion: 3,
+      metadata: { id: "p1", name: "P", locale: "en-US" },
+      composition: {
+        width: 1080,
+        height: 1920,
+        fps: 30,
+        background: "#fff",
+        colorSpace: "srgb",
+        audioSampleRate: 48000,
+      },
+      capabilities: {},
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+      tokens: {},
+      variables: [],
+      assets: [],
+      components: [],
+      scenes: [
+        {
+          id: "s1",
+          name: "Scene 1",
+          duration: 5,
+          nodes: [],
+          // @ts-expect-error — intentionally inject V2 field for testing
+          transition: { type: "fade", duration: 0.5 },
+        },
+      ],
+      timeline: {
+        visualTracks: [],
+        audioTracks: [],
+        captionTracks: [],
+      },
+      bindings: [],
+      extensions: {},
+    } as any;
+    const result = validateMotionSkillOutput(manifest, {
+      kind: "full-project",
+      project: projectWithSceneTransition,
+    });
+    expect(result.valid).toBe(false);
+    expect(
+      result.diagnostics.some((d) => d.message.includes("scene.transition")),
+    ).toBe(true);
+  });
+
+  it("validateMotionSkillOutput rejects formatVersion: 2", () => {
+    const manifest: MotionSkillManifest = {
+      id: "test/skill",
+      name: "Test",
+      description: "Test",
+      version: "1.0.0",
+      author: { name: "Tester" },
+      requiredCapabilities: [],
+      inputSchema: { type: "object" },
+      outputContract: { kind: "full-project" },
+      tags: [],
+    };
+    const projectWithV2Format = {
+      format: "motion-project",
+      // @ts-expect-error — intentionally inject V2 formatVersion for testing
+      formatVersion: 2,
+      metadata: { id: "p1", name: "P", locale: "en-US" },
+      composition: {
+        width: 1080,
+        height: 1920,
+        fps: 30,
+        background: "#fff",
+        colorSpace: "srgb",
+        audioSampleRate: 48000,
+      },
+      capabilities: {},
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+      tokens: {},
+      variables: [],
+      assets: [],
+      components: [],
+      scenes: [],
+      timeline: {
+        visualTracks: [],
+        audioTracks: [],
+        captionTracks: [],
+      },
+      bindings: [],
+      extensions: {},
+    } as any;
+    const result = validateMotionSkillOutput(manifest, {
+      kind: "full-project",
+      project: projectWithV2Format,
+    });
+    expect(result.valid).toBe(false);
+    expect(
+      result.diagnostics.some((d) => d.message.includes("formatVersion")),
+    ).toBe(true);
+  });
+
   it("validateMotionSkillOutput rejects mismatched output kind", () => {
     const manifest: MotionSkillManifest = {
       id: "test/skill",

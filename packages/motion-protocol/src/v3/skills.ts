@@ -201,6 +201,43 @@ export function validateMotionSkillOutput(
   // Validate output content
   switch (output.kind) {
     case "full-project": {
+      // Check for V2 leaks BEFORE schema parse (Zod .strict() would reject
+      // V2 fields, but we want explicit, actionable diagnostics).
+      const raw = output.project as Record<string, unknown>;
+      if (raw.formatVersion === 2) {
+        diagnostics.push({
+          path: "output.project.formatVersion",
+          message:
+            "Skill output contains formatVersion: 2 — V3 projects must use formatVersion: 3",
+          severity: "error",
+        });
+      }
+      const timeline = raw.timeline as Record<string, unknown> | undefined;
+      if (timeline && "sceneOrder" in timeline) {
+        diagnostics.push({
+          path: "output.project.timeline",
+          message:
+            "Skill output contains V2 field 'sceneOrder' — use visualTracks instead",
+          severity: "error",
+        });
+      }
+      const scenes = raw.scenes as
+        | Array<Record<string, unknown>>
+        | undefined;
+      if (scenes) {
+        for (let i = 0; i < scenes.length; i++) {
+          const scene = scenes[i]!;
+          if ("transition" in scene) {
+            diagnostics.push({
+              path: `output.project.scenes.${i}.transition`,
+              message:
+                "Skill output contains V2 field 'scene.transition' — transitions belong on timeline VisualClip.transitionOut",
+              severity: "error",
+            });
+          }
+        }
+      }
+
       const projectCheck = MotionProjectV3Schema.safeParse(output.project);
       if (!projectCheck.success) {
         diagnostics.push(
@@ -210,18 +247,6 @@ export function validateMotionSkillOutput(
             severity: "error" as const,
           })),
         );
-      } else {
-        // Verify no V2 fields leaked
-        const raw = output.project as Record<string, unknown>;
-        const timeline = raw.timeline as Record<string, unknown> | undefined;
-        if (timeline && "sceneOrder" in timeline) {
-          diagnostics.push({
-            path: "output.project.timeline",
-            message:
-              "Skill output contains V2 field 'sceneOrder' — use visualTracks instead",
-            severity: "error",
-          });
-        }
       }
       break;
     }

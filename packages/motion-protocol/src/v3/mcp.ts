@@ -815,6 +815,24 @@ function explainSingle(diag: {
     };
   }
 
+  // Scene transition / V2 leak
+  if (diag.message.includes("scene.transition")) {
+    return {
+      explanation: `A scene contains a 'transition' field, which is a V2 concept. In V3, transitions are defined on individual VisualClips via 'transitionOut', not on scenes. Each clip can have its own transition independent of the scene definition.`,
+      suggestedAction:
+        "Remove 'transition' from the scene and add 'transitionOut' to the timeline VisualClip that references this scene.",
+    };
+  }
+
+  // formatVersion 2 / V2 leak
+  if (diag.message.includes("formatVersion")) {
+    return {
+      explanation: `The project uses formatVersion 2, which is the old V2 authoring format. V3 uses formatVersion 3 with a different structure: visualTracks instead of sceneOrder, clip-level transitions, and richer asset/capability models.`,
+      suggestedAction:
+        "Change formatVersion to 3 and restructure the project to use V3 conventions (visualTracks, no scene.transition, capability manifests).",
+    };
+  }
+
   // Generic fallback
   return {
     explanation: `A "${diag.severity}" diagnostic occurred at "${diag.path}": ${diag.message}. This is a schema or reference integrity issue in the motion project.`,

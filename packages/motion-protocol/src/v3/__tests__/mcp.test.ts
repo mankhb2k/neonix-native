@@ -448,6 +448,37 @@ describe("V3 MCP contract", () => {
     expect(result.explanations[0]!.explanation).toContain("visualTracks");
   });
 
+  it("explains scene.transition V2 leak diagnostics", () => {
+    const result = explainDiagnostics({
+      diagnostics: [
+        {
+          path: "output.project.scenes.0.transition",
+          message:
+            "Skill output contains V2 field 'scene.transition' — transitions belong on timeline VisualClip.transitionOut",
+          severity: "error",
+        },
+      ],
+    });
+    expect(result.explanations[0]!.explanation).toContain("scene");
+    expect(result.explanations[0]!.explanation).toContain("transition");
+    expect(result.explanations[0]!.explanation).toContain("transitionOut");
+  });
+
+  it("explains formatVersion: 2 V2 leak diagnostics", () => {
+    const result = explainDiagnostics({
+      diagnostics: [
+        {
+          path: "output.project.formatVersion",
+          message:
+            "Skill output contains formatVersion: 2 — V3 projects must use formatVersion: 3",
+          severity: "error",
+        },
+      ],
+    });
+    expect(result.explanations[0]!.explanation).toContain("formatVersion");
+    expect(result.explanations[0]!.explanation).toContain("V3");
+  });
+
   it("explains post-patch validation failures", () => {
     const result = explainDiagnostics({
       diagnostics: [
