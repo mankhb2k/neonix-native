@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   ExtrapolationBehaviorSchema,
-  KeyframeEasingV2Schema,
-  NodeV2Schema,
-  TransformV2Schema,
+  KeyframeEasingSchema,
+  NodeSchema,
+  TransformSchema,
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
 } from "./index";
-import { parseMotionComponentV2 } from "./compat/parse-v2";
 
 const baseTransform = {
   x: 0,
@@ -28,7 +27,7 @@ const baseTransform = {
 describe("motion-protocol R2–R5 contract", () => {
   it("accepts adjustment nodes", () => {
     expect(
-      NodeV2Schema.parse({
+      NodeSchema.parse({
         id: "grade",
         type: "adjustment",
         parentId: null,
@@ -40,7 +39,7 @@ describe("motion-protocol R2–R5 contract", () => {
 
   it("accepts transform.depth", () => {
     expect(
-      TransformV2Schema.parse({ ...baseTransform, depth: 1.5 }).depth,
+      TransformSchema.parse({ ...baseTransform, depth: 1.5 }).depth,
     ).toBe(1.5);
   });
 
@@ -77,7 +76,7 @@ describe("motion-protocol R2–R5 contract", () => {
 
   it("accepts cubic-bezier and spring easing objects", () => {
     expect(
-      KeyframeEasingV2Schema.parse({
+      KeyframeEasingSchema.parse({
         type: "cubic-bezier",
         x1: 0.42,
         y1: 0,
@@ -86,7 +85,7 @@ describe("motion-protocol R2–R5 contract", () => {
       }),
     ).toMatchObject({ type: "cubic-bezier" });
     expect(
-      KeyframeEasingV2Schema.parse({
+      KeyframeEasingSchema.parse({
         type: "spring",
         stiffness: 180,
         damping: 12,
@@ -95,7 +94,7 @@ describe("motion-protocol R2–R5 contract", () => {
       type: "spring",
     });
     expect(() =>
-      KeyframeEasingV2Schema.parse({
+      KeyframeEasingSchema.parse({
         type: "cubic-bezier",
         x1: 2,
         y1: 0,
@@ -105,34 +104,20 @@ describe("motion-protocol R2–R5 contract", () => {
     ).toThrow();
   });
 
-  it("parses solid nodes", () => {
-    const component = parseMotionComponentV2({
-      format: "motion-component",
-      formatVersion: 2,
-      componentId: "test.solid",
-      componentVersion: "1.0.0",
-      metadata: { name: "solid" },
-      assets: [],
-      variables: [],
-      publicAPI: [],
-      nodes: [
-        {
-          id: "plate",
-          type: "solid",
-          parentId: null,
-          transform: {
-            ...baseTransform,
-            width: 100,
-            height: 100,
-            anchorX: 0,
-            anchorY: 0,
-          },
-          payload: { width: 100, height: 100, color: "#111111" },
-        },
-      ],
-      bindings: [],
-      clips: [],
+  it("parses solid nodes via V3 NodeSchema", () => {
+    const node = NodeSchema.parse({
+      id: "plate",
+      type: "solid",
+      parentId: null,
+      transform: {
+        ...baseTransform,
+        width: 100,
+        height: 100,
+        anchorX: 0,
+        anchorY: 0,
+      },
+      payload: { width: 100, height: 100, color: "#111111" },
     });
-    expect(component.nodes[0]?.type).toBe("solid");
+    expect(node.type).toBe("solid");
   });
 });
