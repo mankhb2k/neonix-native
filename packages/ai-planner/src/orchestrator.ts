@@ -82,7 +82,7 @@ function reconcileSceneDurations(plan: CreativePlanV1, targetSeconds: number): C
     }
     const used = plan.scenes
       .slice(0, -1)
-      .reduce((acc, item, i) => acc + Math.max(0.5, Number((item.duration * scale).toFixed(3))), 0);
+      .reduce((acc, item, _i) => acc + Math.max(0.5, Number((item.duration * scale).toFixed(3))), 0);
     return { ...scene, duration: Math.max(0.5, Number((targetSeconds - used).toFixed(3))) };
   });
   return parseCreativePlanV1({ ...plan, scenes });
@@ -207,7 +207,7 @@ export async function runZeroTemplateGeneration(input: {
       seed,
       maxOutputTokens: 4_096,
     });
-    let plan = reconcileSceneDurations(parseCreativePlanV1(planRaw.value), brief.durationSeconds);
+    const plan = reconcileSceneDurations(parseCreativePlanV1(planRaw.value), brief.durationSeconds);
 
     emit({ phase: "designing", progress: 35, message: "Scene design" });
     const designRaw = await gateway.generateStructured<SceneDesignPlanV1>({

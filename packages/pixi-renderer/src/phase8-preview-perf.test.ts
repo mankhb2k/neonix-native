@@ -27,7 +27,6 @@ import {
 import {
   createProfilerHud,
   type ProfilerHud,
-  type ProfilerHudStats,
 } from "./profiler-hud";
 
 // ── Mock canvas for Node.js (Text/TextStyle needs document) ──────────
@@ -169,19 +168,6 @@ function makeTwoRectBuffer(): PaintCommandBuffer {
         },
       }),
     ]),
-  );
-}
-
-/** Extract draw commands from a paint buffer for the diff engine. */
-function extractDrawCommands(buffer: PaintCommandBuffer) {
-  return buffer.commands.filter(
-    (c) =>
-      c.op === "drawShape" ||
-      c.op === "drawSolid" ||
-      c.op === "drawText" ||
-      c.op === "drawImage" ||
-      c.op === "drawVideo" ||
-      c.op === "drawPath",
   );
 }
 

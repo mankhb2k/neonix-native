@@ -38,7 +38,6 @@ import {
   Sprite,
   Text,
   Texture,
-  type Filter,
 } from "pixi.js";
 import { createPixiAssetStore, type PixiAssetStore } from "./PixiAssetStore";
 import {
@@ -216,7 +215,6 @@ function projectTo2DAffine(
   // Project 4 corners of the source rect
   const tl = projectPoint(mvp, 0, 0, 0);
   const tr = projectPoint(mvp, width, 0, 0);
-  const bl = projectPoint(mvp, 0, height, 0);
   const br = projectPoint(mvp, width, height, 0);
 
   // Convert from NDC [-1,1] to screen [0, viewportSize]
@@ -226,7 +224,6 @@ function projectTo2DAffine(
   ];
   const stl = toScreen(tl[0], tl[1]);
   const str = toScreen(tr[0], tr[1]);
-  const sbl = toScreen(bl[0], bl[1]);
   const sbr = toScreen(br[0], br[1]);
 
   return affineFromCorners(stl, str, sbr, width, height);
@@ -404,49 +401,6 @@ function drawUnsupportedOverlay(g: Graphics, w: number, h: number): void {
     }
   }
 }
-
-// ── Fit/Crop helpers (Task 5.6) ───────────────────────────────────────
-
-type ImageFit = "fill" | "contain" | "cover" | "none";
-
-function applyImageFit(
-  textureW: number,
-  textureH: number,
-  targetW: number,
-  targetH: number,
-  fit: ImageFit,
-): { scaleX: number; scaleY: number; offsetX: number; offsetY: number } {
-  if (!textureW || !textureH)
-    return { scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 };
-  switch (fit) {
-    case "contain": {
-      const s = Math.min(targetW / textureW, targetH / textureH);
-      return {
-        scaleX: s,
-        scaleY: s,
-        offsetX: (targetW - textureW * s) / 2,
-        offsetY: (targetH - textureH * s) / 2,
-      };
-    }
-    case "cover": {
-      const s = Math.max(targetW / textureW, targetH / textureH);
-      return {
-        scaleX: s,
-        scaleY: s,
-        offsetX: (targetW - textureW * s) / 2,
-        offsetY: (targetH - textureH * s) / 2,
-      };
-    }
-    default:
-      return {
-        scaleX: targetW / textureW,
-        scaleY: targetH / textureH,
-        offsetX: 0,
-        offsetY: 0,
-      };
-  }
-}
-
 export function createPixiFramePainter(
   options: PixiFramePainterOptions,
 ): PixiFramePainter {
@@ -468,10 +422,6 @@ export function createPixiFramePainter(
   // ── Phase 8: Dirty diff state ──────────────────────────────────
   const lastFingerprints = new Map<string, string>();
   let diffStats = { changed: 0, unchanged: 0, new_: 0, removed: 0, skipped: 0 };
-
-  // ── Phase 8: Adaptive resolution ───────────────────────────────
-  const displayW = options.displayWidth ?? 1920;
-  const displayH = options.displayHeight ?? 1080;
 
   const clear = () => {
     for (const entry of cache.values()) {

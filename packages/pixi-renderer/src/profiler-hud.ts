@@ -93,8 +93,8 @@ export function createProfilerHud(opts?: ProfilerHudOptions): ProfilerHud {
   root.addChild(text);
 
   let visible = true;
-  let viewportW = 800;
-  let viewportH = 600;
+  const viewportW = 800;
+  const viewportH = 600;
 
   function formatMs(ms: number): string {
     return ms.toFixed(1).padStart(6);

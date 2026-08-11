@@ -18,7 +18,6 @@ import {
   IDENTITY_MATRIX4,
   localTransformMatrix3D,
   multiplyMatrix4,
-  type Transform3DInput,
 } from "./matrix4";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
 import {
@@ -39,8 +38,6 @@ import {
 import { evaluateDriverGraph } from "./procedural-driver";
 import {
   RuntimeDiagnosticCollector,
-  RuntimeDiagnosticCode,
-  createDiagnostic,
 } from "./diagnostics";
 import {
   resolveEffectiveTiming,

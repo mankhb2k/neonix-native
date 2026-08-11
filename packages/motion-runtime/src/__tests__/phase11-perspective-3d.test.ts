@@ -33,7 +33,6 @@ import {
   arrayToMatrix4,
 } from "../matrix4";
 import {
-  IDENTITY_MATRIX,
   localTransformMatrix,
   type Transform2D,
 } from "../matrix";
@@ -163,7 +162,6 @@ describe("Matrix4 — transpose", () => {
 describe("Matrix4 — rotation", () => {
   it("rotationX 90° maps (0,1,0) → (0,0,1)", () => {
     const r = rotationMatrixX(90);
-    const y = r[5]! * 1 + r[9]! * 0 + r[13]! * 0; // approximates
     // RotX(90): Y → Z
     expect(r[5]).toBeCloseTo(0, 8); // cos(90) ≈ 0
     expect(r[6]).toBeCloseTo(1, 8); // sin(90) = 1

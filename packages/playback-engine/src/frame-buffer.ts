@@ -89,7 +89,6 @@ export type FrameBuffer = {
 
 export function createFrameBuffer(opts?: FrameBufferOptions): FrameBuffer {
   const capacity = opts?.capacity ?? 128;
-  const targetSec = Math.max(0.5, opts?.targetSec ?? 3.0);
 
   // Sorted array by time (ascending), maintained on push
   let entries: FrameBufferEntry[] = [];

@@ -12,7 +12,6 @@ import { compileMotionProjectV3 } from "./compile-v3";
 
 type RuntimeTrack = MotionRuntimeProject["scenes"][number]["tracks"][number];
 type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
-type SceneMarker = { id: string; t: number };
 
 export type CompileOptions = {
   components?: ComponentInput[];
@@ -20,41 +19,6 @@ export type CompileOptions = {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function setPath(
-  target: Record<string, unknown>,
-  path: string,
-  value: unknown,
-): void {
-  const parts = path.split(".");
-  let cursor = target;
-  for (const part of parts.slice(0, -1)) {
-    const current = cursor[part];
-    if (
-      current === null ||
-      typeof current !== "object" ||
-      Array.isArray(current)
-    )
-      cursor[part] = {};
-    cursor = cursor[part] as Record<string, unknown>;
-  }
-  const last = parts.at(-1);
-  if (last) cursor[last] = clone(value);
-}
-
-function getPath(value: unknown, path: string): unknown {
-  let current = value;
-  for (const part of path.split(".")) {
-    if (
-      current === null ||
-      typeof current !== "object" ||
-      Array.isArray(current)
-    )
-      return undefined;
-    current = (current as Record<string, unknown>)[part];
-  }
-  return current;
 }
 
 function resolveValue(
@@ -96,8 +60,6 @@ function resolveValue(
     ]),
   );
 }
-
-type PlaybackDirection = MotionClip["playback"]["direction"];
 
 function playbackRate(
   clip: MotionClip,
@@ -473,12 +435,6 @@ function expandTextAnimators(nodes: MotionNode[]): {
     });
   }
   return { nodes: outputNodes, tracks: outputTracks };
-}
-
-/** Encode a scene sourceRef as a stable human-readable string. */
-function encodeSourceRef(ref: RuntimeSourceRef): string {
-  const base = ref.projectPath.join(":");
-  return ref.sourceModule ? `${base}#${ref.sourceModule}` : base;
 }
 
 /**

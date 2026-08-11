@@ -227,6 +227,7 @@ export function preflightProjectCapabilities(
   },
   _availableIds?: Set<string>,
 ): CapabilityPreflightResult {
+  void _availableIds;
   const used = inspectProjectCapabilities(project);
   const required = new Set(project.capabilities?.required ?? []);
   const experimental = new Set(project.capabilities?.experimental ?? []);

@@ -11,7 +11,6 @@ import {
   FiniteNumberSchema,
   IdSchema,
   NonNegativeIntegerSchema,
-  PositiveNumberSchema,
 } from "./common";
 
 const AssetBaseV3Schema = z.object({

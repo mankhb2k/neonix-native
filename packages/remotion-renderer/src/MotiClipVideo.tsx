@@ -2,7 +2,6 @@ import { AbsoluteFill, Audio, Sequence, useCurrentFrame } from "remotion";
 import {
   buildAudioRenderPlan,
   evaluateCompositionFrame,
-  sampleAudioVolumeAtFrame,
   sampleAudioVolumeLinear,
   type AudioRenderPlan,
 } from "@motionvideo/motion-runtime";
@@ -87,12 +86,13 @@ function AudioClipVolume({
   // Use linear interpolation for continuous fade (Phase 7 Task 7.3)
   const volume = sampleAudioVolumeLinear(clip.volumeEnvelope, absoluteFrame);
 
-  // Compute loop window for Remotion Audio
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loopStartInFrames =
     clip.loopWindowStartSeconds != null
       ? Math.round(clip.loopWindowStartSeconds * fps)
       : Math.round(clip.trimStartSeconds * fps);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loopDurationInFrames =
     clip.loopWindowEndSeconds != null && clip.loopWindowStartSeconds != null
       ? Math.round(

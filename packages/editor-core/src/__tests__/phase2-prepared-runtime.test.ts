@@ -7,7 +7,6 @@ import { describe, it, expect } from "vitest";
 // ── Task 2.1: PreparedRuntimeProject types ────────────────────────────
 
 import type {
-  PreparedRuntimeProject,
   StaticGeometry,
   TextLayoutInput,
   CompositingScope,

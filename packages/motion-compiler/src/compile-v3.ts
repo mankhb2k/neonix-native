@@ -409,52 +409,6 @@ function prepareRuntimeAsset(asset: V3.AssetV3): JsonRecord {
   }
 }
 
-function prepareRuntimeVariable(variable: V3.ProjectVariableV3): JsonRecord {
-  const base: JsonRecord = { id: variable.id, name: variable.name };
-  switch (variable.type) {
-    case "string":
-      return { ...base, type: "string", value: variable.value };
-    case "color":
-      return { ...base, type: "color", value: variable.value };
-    case "number":
-      return {
-        ...base,
-        type: "number",
-        value: variable.value,
-        ...(variable.min !== undefined ? { min: variable.min } : {}),
-        ...(variable.max !== undefined ? { max: variable.max } : {}),
-      };
-    case "boolean":
-      return { ...base, type: "boolean", value: variable.value };
-    case "asset":
-      return {
-        ...base,
-        type: "asset",
-        assetKind: variable.assetKind,
-        value: variable.value,
-      };
-    case "enum":
-      return {
-        ...base,
-        type: "enum",
-        value: variable.value,
-        options: variable.options,
-      };
-    case "list": {
-      const fields: JsonRecord = {};
-      for (const [key, field] of Object.entries(variable.itemSchema.fields)) {
-        fields[key] = { type: field.type };
-      }
-      return {
-        ...base,
-        type: "list",
-        itemSchema: { type: "object", fields },
-        value: clone(variable.value),
-      };
-    }
-  }
-}
-
 // ── Visual plan ───────────────────────────────────────────────────────
 
 type VisualPlanEntry = {
@@ -884,6 +838,7 @@ export function compileMotionProjectV3(
   project: V3.MotionProjectV3,
   options: CompileV3Options = {},
 ): CompileResult<MotionRuntimeProject> {
+  void options;
   const collector = new DiagnosticCollector();
 
   // Materialize defaults + reject structurally invalid v3 projects.
@@ -982,7 +937,6 @@ export function compileMotionProjectV3(
     };
 
     const runtimeAssets = normalized.assets.map(prepareRuntimeAsset);
-    const runtimeVariables = normalized.variables.map(prepareRuntimeVariable);
 
     // Project variables for binding injection
     const projectVariables = new Map<string, unknown>(

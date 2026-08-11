@@ -1,4 +1,4 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+import { type MotionProject } from "@motionvideo/motion-protocol";
 import type { CreativeBriefV1, CreativePlanV1, SceneDesignPlanV1 } from "./contracts";
 import {
   parseCreativeBriefV1,

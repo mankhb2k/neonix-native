@@ -9,7 +9,6 @@ import {
   Container,
   RenderTexture,
   Sprite,
-  Texture,
   type Filter,
 } from "pixi.js";
 
@@ -219,8 +218,6 @@ export function createCompositingContext(
   const maskSourceKeys = new Set<string>();
 
   pool.beginFrame();
-
-  const currentParent: Container = opts.root;
 
   function getOrCreateLayer(
     key: string,

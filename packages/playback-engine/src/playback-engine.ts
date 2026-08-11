@@ -23,17 +23,14 @@ import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import {
   evaluateCompositionFrameV3,
   type EvaluatedCompositionFrame,
-  type EvaluatedFrame,
 } from "@motionvideo/motion-runtime";
 import { createPlaybackClock, type PlaybackClock } from "./playback-clock";
 import {
   createQualityController,
-  type QualityController,
   type QualityMode,
 } from "./quality";
 import {
   createPlaybackMetrics,
-  type PlaybackMetrics,
   type PlaybackMetricsSnapshot,
 } from "./metrics";
 
@@ -117,7 +114,7 @@ export function createPlaybackEngine(
   let runtime: MotionRuntimeProject | null = null;
   let duration = 0;
   let loop = false;
-  let sequenceId = 0;
+  let _sequenceId = 0;
   let lastPaintedFrame = -1;
 
   // RAF state (Task 6.3)
@@ -137,7 +134,6 @@ export function createPlaybackEngine(
     if (!runtime) return null;
 
     const t0 = performance.now();
-    const time = clock.currentTime();
     const frame = clock.currentFrame();
     const scale = quality.getResolutionScale();
     const w = Math.round(runtime.metadata.width * scale);
@@ -161,11 +157,6 @@ export function createPlaybackEngine(
     metrics.recordFrame(evalMs, paintMs);
     metrics.setBufferSize(0); // Phase 9 will set this
 
-    // Sequence guard (Task 6.4)
-    const currentSeq = sequenceId;
-    // (sequence comparison done at paint time by the consumer, which is
-    //  expected to check sequence before committing pixels)
-
     lastPaintedFrame = frame;
     return result;
   };
@@ -187,7 +178,7 @@ export function createPlaybackEngine(
     if (time >= duration) {
       if (loop) {
         clock.seek(0);
-        sequenceId += 1;
+        _sequenceId += 1;
       } else {
         clock.pause();
         playing = false;
@@ -224,14 +215,14 @@ export function createPlaybackEngine(
         audioContext: opts.audioContext,
       });
       clock.seek(0);
-      sequenceId += 1;
+      _sequenceId += 1;
       lastPaintedFrame = -1;
       metrics.reset();
     },
 
     applyPatch(_patch: { type: string; [key: string]: unknown }) {
       // Phase 2 structural/visual patches — forward to runtime recompile
-      sequenceId += 1;
+      _sequenceId += 1;
       // Painter's applyPatch handles the visual part separately
     },
 
@@ -259,7 +250,7 @@ export function createPlaybackEngine(
     seek(time: number) {
       const clampedTime = Math.min(duration, Math.max(0, time));
       clock.seek(clampedTime);
-      sequenceId += 1;
+      _sequenceId += 1;
       lastPaintedFrame = -1;
 
       // If paused, render the seeked frame immediately
@@ -271,7 +262,7 @@ export function createPlaybackEngine(
 
     setRate(rate: number) {
       clock.setRate(rate);
-      sequenceId += 1;
+      _sequenceId += 1;
     },
 
     setLoop(shouldLoop: boolean) {
@@ -285,7 +276,7 @@ export function createPlaybackEngine(
     renderFrameAt(time: number): EvaluatedCompositionFrame | null {
       const clampedTime = Math.min(duration, Math.max(0, time));
       clock.seek(clampedTime);
-      sequenceId += 1;
+      _sequenceId += 1;
       lastPaintedFrame = -1;
       return renderCurrentFrame();
     },

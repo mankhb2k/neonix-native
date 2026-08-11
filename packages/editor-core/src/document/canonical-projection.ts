@@ -13,10 +13,6 @@ import { computeProjectHashShort } from "@motionvideo/motion-protocol";
 import { visualTracksToTimelineClips } from "../timeline/selectors/scene-order-clips";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";
 import type { TimelineDocument } from "./document";
-import type {
-  TimelineClip,
-  TimelineLane,
-} from "../timeline/model/timeline-types";
 
 // ── Revision ──────────────────────────────────────────────────────────
 

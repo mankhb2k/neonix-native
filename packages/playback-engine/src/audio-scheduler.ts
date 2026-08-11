@@ -17,7 +17,6 @@
 import type {
   AudioRenderPlan,
   AudioRenderClip,
-  AudioChannelPolicy,
 } from "@motionvideo/motion-runtime";
 
 // ── Minimal Web Audio surface (injectable for testing) ────────────────
@@ -169,7 +168,7 @@ export function createAudioScheduler(
   opts: AudioSchedulerOptions,
 ): AudioScheduler {
   const ctx = opts.audioContext;
-  const onError = opts.onError;
+  void opts.onError;
 
   // Buffer cache keyed by asset URI
   const bufferCache = new Map<string, AudioBufferLike>();
@@ -189,6 +188,7 @@ export function createAudioScheduler(
 
   // ── Buffer decoding ─────────────────────────────────────────────
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async function decodeBuffer(
     uri: string,
     arrayBuffer: ArrayBuffer,
@@ -403,9 +403,6 @@ export function createAudioScheduler(
   function scheduleAhead(compositionTimeNow: number): void {
     if (!currentPlan || currentPlan.clips.length === 0) return;
 
-    const now = ctx.currentTime;
-    const lookAheadEnd = now + LOOK_AHEAD_SECONDS;
-
     for (const clip of currentPlan.clips) {
       const clipStartComp = clip.fromFrame / currentPlan.fps;
       const clipEndComp =
@@ -416,7 +413,6 @@ export function createAudioScheduler(
       if (clipStartComp > compositionTimeNow + LOOK_AHEAD_SECONDS * 2) continue;
 
       // Check if already scheduled
-      const trackKey = `${clip.assetId}:${clip.role}`;
       const alreadyScheduled = Array.from(scheduledSources.entries()).some(
         ([id]) => id.startsWith(`${clip.assetId}:`),
       );

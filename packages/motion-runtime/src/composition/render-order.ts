@@ -17,8 +17,6 @@
  * Hierarchy sort produces: group.character → head → title  — correct.
  */
 
-import type { RuntimeNode } from "../evaluator";
-
 /** A node-like item that carries zIndex and parentId for render ordering. */
 export interface OrderableNode {
   readonly node: {

@@ -6,7 +6,6 @@ import {
   getBuiltinSkill,
   BUILTIN_SKILLS,
   type MotionSkillManifest,
-  type SkillExecutionResult,
 } from "../skills";
 import type { MotionProjectV3 } from "../index";
 

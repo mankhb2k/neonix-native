@@ -9,7 +9,6 @@ import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
-  LocaleIdentifierSchema,
 } from "../common";
 
 // ── Text segmentation ─────────────────────────────────────────────────

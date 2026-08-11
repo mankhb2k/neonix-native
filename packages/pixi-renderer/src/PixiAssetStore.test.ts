@@ -41,7 +41,6 @@ describe("PixiAssetStore", () => {
     expect(
       (
         await (async () => {
-          const s = createPixiAssetStore({ load: async () => tex });
           const calls = vi.fn(async () => tex);
           const s2 = createPixiAssetStore({ load: calls });
           await s2.load("y.png");

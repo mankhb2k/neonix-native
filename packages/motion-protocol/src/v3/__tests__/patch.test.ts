@@ -171,7 +171,7 @@ describe("V3 patch contract", () => {
   });
 
   it("updates a scene", () => {
-    let project = minimalProject();
+    const project = minimalProject();
     const add = applyMotionProjectV3Patch(project, {
       format: "motion-project-patch",
       formatVersion: 1,

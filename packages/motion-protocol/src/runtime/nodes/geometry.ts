@@ -12,7 +12,6 @@ import { PaintStyleSchema } from "./paint";
 // Shared primitives — imported from V3 for local use, then re-exported
 import {
   PointSchema,
-  PathSegmentSchema,
   PathContourSchema,
   PathMorphTargetSchema,
 } from "../../v3/nodes/geometry";

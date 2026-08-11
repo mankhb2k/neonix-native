@@ -221,7 +221,6 @@ export function generateFixtureDigests(
 function computeFixtureLayers(
   scenes: CompositionSceneInput[],
   globalTime: number,
-  _totalDuration: number,
 ): CompositionLayerPlan[] {
   const layers: CompositionLayerPlan[] = [];
   let cursor = 0;

@@ -68,7 +68,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const result = compileMotionProjectV3(representative);
     expect(result.ok).toBe(true);
     if (!result.ok) {
-      // eslint-disable-next-line no-console
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }
@@ -145,7 +144,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
-      // eslint-disable-next-line no-console
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }

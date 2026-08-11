@@ -334,7 +334,7 @@ export function applyMotionProjectV3Patch(
           break;
         }
         // Remove the scene definition…
-        let scenes = next.scenes.filter((s) => s.id !== op.sceneId);
+        const scenes = next.scenes.filter((s) => s.id !== op.sceneId);
         // …and any clips that reference it from visual tracks
         const visualTracks = next.timeline.visualTracks.map((track) => ({
           ...track,

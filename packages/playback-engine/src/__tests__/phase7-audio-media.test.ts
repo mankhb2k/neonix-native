@@ -27,8 +27,8 @@ import {
 // ── Mock AudioContext for scheduler tests ──────────────────────────
 
 function createMockAudioContext(): AudioContextLike {
-  let _currentTime = 0;
-  let _state: AudioContextState = "running";
+  const _currentTime = 0;
+  const _state: AudioContextState = "running";
 
   const mockGain: {
     gain: {
