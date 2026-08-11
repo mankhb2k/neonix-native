@@ -1,0 +1,109 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 3,
+  "runtimeVersion": 1,
+  "metadata": {
+    "id": "single-scene",
+    "name": "Single Scene",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Single Scene"
+    },
+    "description": "One scene with a single text node"
+  },
+  "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "runtimeHash": "3ea623498c1372a287d1936cec961e2a",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro"
+    }
+  },
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main-track",
+        "role": "primary",
+        "order": 0,
+        "clips": [
+          {
+            "id": "clip-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 5
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "duration": 5,
+      "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Hello MotiClip"
+            },
+            "fontSize": 64,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
+          }
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

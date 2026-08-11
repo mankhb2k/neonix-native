@@ -10,8 +10,8 @@ export const REMOTION_PIN = "4.0.506" as const;
 
 export const RenderManifestSchema = z.object({
   format: z.literal("moticlip-render-manifest"),
-  /** Bumped to 2 for Phase 10 — determinism + content hash added. */
-  formatVersion: z.literal(2),
+  /** Manifest protocol version — NOT a MotionProject formatVersion. Bumped to 2 for Phase 10 (determinism + content hash). */
+  manifestVersion: z.literal(2),
   projectId: z.string().min(1),
   projectRevision: z.number().int().nonnegative(),
   versions: z.object({
@@ -23,7 +23,7 @@ export const RenderManifestSchema = z.object({
   }),
   /**
    * SHA-256 of the canonical compiled runtime JSON.
-   * Guarantees: same NormalizedMotionProjectV2 → same hash.
+   * Guarantees: same MotionRuntimeProject → same hash.
    * @since Phase 10
    */
   contentHash: z.string().length(64),

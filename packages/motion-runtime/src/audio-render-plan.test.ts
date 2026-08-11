@@ -14,7 +14,7 @@ function fixtureInput(
     playbackRateByTrackId: { "aud.bgm": 1.25 },
     runtime: {
       format: "motion-runtime",
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: "proj.audio",
         name: "Audio",
@@ -37,7 +37,21 @@ function fixtureInput(
       ],
       variables: [],
       timeline: {
-        sceneOrder: ["scene.a"],
+        visualTracks: [
+          {
+            id: "primary",
+            role: "primary",
+            order: 0,
+            clips: [
+              {
+                id: "clip-a",
+                source: { kind: "scene", sceneId: "scene.a" },
+                start: 0,
+                duration: 5,
+              },
+            ],
+          },
+        ],
         audioTracks: [
           {
             id: "aud.bgm",

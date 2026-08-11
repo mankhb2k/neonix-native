@@ -3,9 +3,9 @@
  */
 import { createBlankProject } from "@/lib/editor/create-blank-project";
 import type { EditorProjectSnapshot } from "@/lib/editor/project-storage";
-import { sceneOrderToTimelineClips } from "@motionvideo/editor-core";
+import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
 
 export type WebUiFixtureId = "blank-16x9" | "blank-9x16" | "facebook-history";
 
@@ -21,7 +21,7 @@ function withUniqueId(
   id: string,
   name: string,
 ) {
-  return parseMotionProject({
+  return parseMotionProjectV3({
     ...project,
     metadata: {
       ...project.metadata,
@@ -39,7 +39,7 @@ export function seedWebEditorUi(fixture: WebUiFixtureId): WebEditorSeed {
       `proj_fb_seed_${Date.now().toString(36)}`,
       "Facebook History — Demo",
     );
-    const { lanes, clips } = sceneOrderToTimelineClips(project);
+    const { lanes, clips } = visualTracksToTimelineClips(project);
     return {
       kind: "editor",
       projectId: project.metadata.id,

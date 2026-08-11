@@ -1,15 +1,19 @@
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import { describe, expect, it } from "vitest";
 import {
   evaluateCompositionFrame,
   evaluateCompositionSnapshot,
 } from "./evaluate-composition";
 import { evaluateFrame } from "./evaluated-frame";
+import { compileProjectV3 } from "./testing/compile";
 import { createDemoMotionProject, DEMO_SCENE_ID } from "./testing/demo-project";
+
+function compileDemo() {
+  return compileProjectV3(createDemoMotionProject());
+}
 
 describe("evaluateCompositionFrame", () => {
   it("returns one EvaluatedFrame with interaction and paint from the same pass", () => {
-    const runtime = compileMotionProject(createDemoMotionProject());
+    const runtime = compileDemo();
     const evaluated = evaluateCompositionFrame(
       runtime,
       0,
@@ -26,7 +30,7 @@ describe("evaluateCompositionFrame", () => {
   });
 
   it("shares one evaluate with evaluateCompositionSnapshot", () => {
-    const runtime = compileMotionProject(createDemoMotionProject());
+    const runtime = compileDemo();
     const evaluated = evaluateCompositionFrame(
       runtime,
       15,
@@ -47,7 +51,7 @@ describe("evaluateCompositionFrame", () => {
   });
 
   it("matches scene-local evaluateFrame for the same inputs", () => {
-    const runtime = compileMotionProject(createDemoMotionProject());
+    const runtime = compileDemo();
     const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
     const composed = evaluateCompositionFrame(
       runtime,

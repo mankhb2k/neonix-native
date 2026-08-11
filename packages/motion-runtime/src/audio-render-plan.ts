@@ -4,7 +4,7 @@
  * §Phase 7 Tasks 7.1, 7.3 in core-engine-tasks.md
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type AudioVolumeKeyframe = {
   frame: number;
@@ -41,7 +41,7 @@ export type AudioRenderPlan = {
 };
 
 export type BuildAudioRenderPlanInput = {
-  runtime: NormalizedMotionProjectV2;
+  runtime: MotionRuntimeProject;
   fps: number;
   /** Composition duration used to clamp fades / loops. */
   durationInFrames: number;
@@ -62,7 +62,7 @@ type ResolvedAsset = {
 };
 
 function resolveAsset(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   assetId: string,
 ): ResolvedAsset | null {
   const asset = runtime.assets.find(

@@ -1,15 +1,14 @@
-import { copyFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  parseMotionComponentV2,
   parseMotionProject,
   serializeMotionProject,
-  type MotionComponentV2,
 } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { validateProjectAssetIntegrity } from "./runtime/asset-integrity";
-import { compileMotionProject } from "./compiler";
+import { compileProject } from "./compiler";
+import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
 
@@ -21,20 +20,6 @@ const REPO_ROOT = process.env.MOTIONVIDEO_REPO_ROOT
 
 function emitProgress(stage: string, ratio: number): void {
   process.stderr.write(`progress\t${stage}\t${ratio}\n`);
-}
-
-async function loadFixtureComponents(): Promise<MotionComponentV2[]> {
-  const componentRoot = path.join(REPO_ROOT, "docs", "fixtures", "v2", "components");
-  try {
-    const files = (await readdir(componentRoot)).filter((file) => file.endsWith(".json"));
-    return Promise.all(
-      files.map(async (file) =>
-        parseMotionComponentV2(JSON.parse(await readFile(path.join(componentRoot, file), "utf8"))),
-      ),
-    );
-  } catch {
-    return [];
-  }
 }
 
 async function readInput(): Promise<unknown> {
@@ -59,7 +44,7 @@ async function readInput(): Promise<unknown> {
  *
  * Env (optional, backward compatible):
  * - MOTIONVIDEO_EXPORT_OUT_DIR — work dir (default repo tmp/)
- * - MOTIONVIDEO_EXPORT_ASSET_BASE — assetBaseDir (default docs/fixtures/v2)
+ * - MOTIONVIDEO_EXPORT_ASSET_BASE — assetBaseDir (default docs/fixtures/assets)
  * - MOTIONVIDEO_EXPORT_MP4_PATH — copy final MP4 here after encode
  * - MOTIONVIDEO_EXPORT_FPS — render fps (default 24)
  * - MOTIONVIDEO_EXPORT_SCALE — scale vs FHD (default 0.5; 2 = 4K for 16:9/9:16)
@@ -94,9 +79,8 @@ async function main() {
   const fps =
     Number.isFinite(fpsEnv) && fpsEnv > 0
       ? fpsEnv
-      : (project.metadata.fps ?? 24);
-  const scale =
-    Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
+      : (project.composition.fps ?? 24);
+  const scale = Number.isFinite(scaleEnv) && scaleEnv > 0 ? scaleEnv : 0.5;
 
   const integrity = await validateProjectAssetIntegrity(project, assetBaseDir);
   if (!integrity.ok) {
@@ -107,8 +91,8 @@ async function main() {
   const mtPath = path.join(outDir, `${project.metadata.id}.mt`);
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
 
-  const components = await loadFixtureComponents();
-  const compiled = compileMotionProject(project, { components });
+  const components = [];
+  const compiled = compileProject(project);
 
   emitProgress("rendering", 0.1);
   const rendered = await renderCompiledProject(compiled, {
@@ -124,7 +108,7 @@ async function main() {
   emitProgress("encoding", 0.8);
   const files = await encodeOutputs(
     rendered,
-    project.metadata.aspectRatio,
+    compositionAspectRatio(project),
     compiled,
     assetBaseDir,
   );

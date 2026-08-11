@@ -9,7 +9,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import {
-  parseMotionProject,
+  parseMotionProjectV3,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 
@@ -92,33 +92,55 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
         flipY: false,
       },
       payload: {
-        text: `N${i}`,
+        content: { kind: "plain", text: `N${i}` },
         fontSize: 12,
-        fontWeight: 500,
-        align: "left" as const,
+        color: "#111111",
+        alignment: "left",
       },
     };
   });
 
-  const project = parseMotionProject({
+  const project = parseMotionProjectV3({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "proj_stage_bench",
       name: "Stage bench",
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: {
-        name: "Bench",
-        primaryColor: "#1A5D3A",
-        fontFamily: "Be Vietnam Pro",
-      },
     },
-    dependencies: { components: [] },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#1A5D3A",
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {},
     assets: [],
     variables: [],
-    timeline: { sceneOrder: ["scene_bench"], audioTracks: [] },
+    components: [],
+    timeline: {
+      visualTracks: [
+        {
+          id: "main-track",
+          role: "main",
+          order: 0,
+          clips: [
+            {
+              id: "clip_bench",
+              source: { kind: "scene", sceneId: "scene_bench" },
+              start: 0,
+              duration: 4,
+            },
+          ],
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
     scenes: [
       {
         id: "scene_bench",
@@ -129,7 +151,6 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
       },
     ],
     bindings: [],
-    extensions: { constraints: [], events: [] },
   });
 
   const lanes: TimelineLane[] = [

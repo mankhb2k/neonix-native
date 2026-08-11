@@ -3,7 +3,11 @@ import {
   defaultCreateId,
   type CommandContext,
 } from "../../ports/command-context";
-import type { MotionNode, MotionProject, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionNode,
+  MotionProject,
+  MotionScene,
+} from "@motionvideo/motion-protocol";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 
 /** Tạo ID duy nhất với tiền tố — injectable for tests. */
@@ -72,6 +76,25 @@ export function stageSizeForAspect(aspectRatio: string): CompositionSize {
     default:
       return { width: 1080, height: 1920 };
   }
+}
+
+/** Composition size from a MotionProject (reads `composition` with metadata.aspectRatio fallback). */
+export function stageSizeForProject(
+  project: Pick<MotionProject, "metadata" | "composition">,
+): CompositionSize {
+  if (
+    "composition" in project &&
+    project.composition?.width &&
+    project.composition?.height
+  ) {
+    return {
+      width: project.composition.width,
+      height: project.composition.height,
+    };
+  }
+  const aspect =
+    (project.metadata as { aspectRatio?: string }).aspectRatio ?? "16:9";
+  return stageSizeForAspect(aspect);
 }
 
 const DEFAULT_COMPOSITION: CompositionSize = { width: 1920, height: 1080 };

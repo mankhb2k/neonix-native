@@ -13,7 +13,12 @@ export type CompositionEasing =
 
 export type CompositionTransition =
   | { type: "cut"; duration?: 0 }
-  | { type: "fade"; duration: number; color?: string; easing?: CompositionEasing }
+  | {
+      type: "fade";
+      duration: number;
+      color?: string;
+      easing?: CompositionEasing;
+    }
   | { type: "crossfade"; duration: number; easing?: CompositionEasing }
   | {
       type: "slide";
@@ -29,12 +34,17 @@ export type CompositionTransition =
       softness?: number;
       easing?: CompositionEasing;
     }
-  | { type: "zoom"; duration: number; direction: "in" | "out"; easing?: CompositionEasing };
+  | {
+      type: "zoom";
+      duration: number;
+      direction: "in" | "out";
+      easing?: CompositionEasing;
+    };
 
 export type CompositionSceneInput = {
   sceneId: string;
   duration: number;
-  transition?: CompositionTransition;
+  transitionOut?: CompositionTransition;
 };
 
 export type CompositionLayerPlan = {
@@ -87,7 +97,7 @@ type Segment = {
   sceneId: string;
   contentStart: number;
   contentDuration: number;
-  transition?: CompositionTransition;
+  transitionOut?: CompositionTransition;
 };
 
 function buildSegments(scenes: CompositionSceneInput[]): {
@@ -100,18 +110,16 @@ function buildSegments(scenes: CompositionSceneInput[]): {
     const scene = scenes[i]!;
     if (i > 0) {
       const prev = scenes[i - 1]!;
-      const prevTransition = prev.transition;
+      const prevOut = prev.transitionOut;
       const overlap =
-        prevTransition && prevTransition.type !== "cut"
-          ? Math.max(0, prevTransition.duration)
-          : 0;
+        prevOut && prevOut.type !== "cut" ? Math.max(0, prevOut.duration) : 0;
       if (overlap > 0) cursor = Math.max(0, cursor - overlap);
     }
     segments.push({
       sceneId: scene.sceneId,
       contentStart: cursor,
       contentDuration: scene.duration,
-      transition: scene.transition,
+      transitionOut: scene.transitionOut,
     });
     cursor += scene.duration;
   }
@@ -135,21 +143,26 @@ export function evaluateCompositionLayers(
     const seg = segments[i]!;
     const next = segments[i + 1];
     const localTime = t - seg.contentStart;
-    const inContent = localTime >= -1e-9 && localTime < seg.contentDuration + 1e-9;
+    const inContent =
+      localTime >= -1e-9 && localTime < seg.contentDuration + 1e-9;
 
-    const outgoing = seg.transition;
+    const outgoing = seg.transitionOut;
     const overlap =
       outgoing && outgoing.type !== "cut" ? Math.max(0, outgoing.duration) : 0;
     const transitionStart = seg.contentStart + seg.contentDuration - overlap;
     const inOutgoingTransition =
-      overlap > 0 && t >= transitionStart && t < transitionStart + overlap && next != null;
+      overlap > 0 &&
+      t >= transitionStart &&
+      t < transitionStart + overlap &&
+      next != null;
     const inIncomingTransition =
       i > 0 &&
-      segments[i - 1]!.transition &&
-      segments[i - 1]!.transition!.type !== "cut" &&
+      segments[i - 1]!.transitionOut &&
+      segments[i - 1]!.transitionOut!.type !== "cut" &&
       (() => {
         const prev = segments[i - 1]!;
-        const prevOverlap = Math.max(0, (prev.transition as { duration: number }).duration);
+        const prevOut = prev.transitionOut!;
+        const prevOverlap = Math.max(0, prevOut.duration);
         const start = prev.contentStart + prev.contentDuration - prevOverlap;
         return t >= start && t < start + prevOverlap;
       })();
@@ -158,7 +171,10 @@ export function evaluateCompositionLayers(
 
     const base: CompositionLayerPlan = {
       sceneId: seg.sceneId,
-      localTime: Math.min(Math.max(0, localTime), Math.max(0, seg.contentDuration - 1e-6)),
+      localTime: Math.min(
+        Math.max(0, localTime),
+        Math.max(0, seg.contentDuration - 1e-6),
+      ),
       opacity: 1,
       translateX: 0,
       translateY: 0,
@@ -174,10 +190,13 @@ export function evaluateCompositionLayers(
       applyOutgoing(base, outgoing, u, width, height);
     } else if (inIncomingTransition) {
       const prev = segments[i - 1]!;
-      const tr = prev.transition!;
+      const tr = prev.transitionOut!;
       const prevOverlap = Math.max(0, (tr as { duration: number }).duration);
       const start = prev.contentStart + prev.contentDuration - prevOverlap;
-      const u = ease((t - start) / Math.max(1e-6, prevOverlap), "easing" in tr ? tr.easing : undefined);
+      const u = ease(
+        (t - start) / Math.max(1e-6, prevOverlap),
+        "easing" in tr ? tr.easing : undefined,
+      );
       applyIncoming(base, tr, u, width, height);
     }
 
@@ -189,7 +208,10 @@ export function evaluateCompositionLayers(
     const last = segments[segments.length - 1]!;
     layers.push({
       sceneId: last.sceneId,
-      localTime: Math.min(last.contentDuration, Math.max(0, t - last.contentStart)),
+      localTime: Math.min(
+        last.contentDuration,
+        Math.max(0, t - last.contentStart),
+      ),
       opacity: 1,
       translateX: 0,
       translateY: 0,
@@ -221,9 +243,14 @@ function applyOutgoing(
       layer.opacity = 1 - u;
       return;
     case "slide": {
-      const dist = transition.direction === "left" || transition.direction === "right" ? width : height;
+      const dist =
+        transition.direction === "left" || transition.direction === "right"
+          ? width
+          : height;
       const sign =
-        transition.direction === "left" || transition.direction === "up" ? -1 : 1;
+        transition.direction === "left" || transition.direction === "up"
+          ? -1
+          : 1;
       if (transition.direction === "left" || transition.direction === "right") {
         layer.translateX = sign * dist * u;
       } else {
@@ -238,7 +265,8 @@ function applyOutgoing(
       layer.wipeSoftness = transition.softness ?? 0;
       return;
     case "zoom":
-      layer.scale = transition.direction === "out" ? 1 + 0.25 * u : 1 - 0.15 * u;
+      layer.scale =
+        transition.direction === "out" ? 1 + 0.25 * u : 1 - 0.15 * u;
       layer.opacity = 1 - u * 0.5;
       return;
   }
@@ -263,9 +291,14 @@ function applyIncoming(
       layer.opacity = u;
       return;
     case "slide": {
-      const dist = transition.direction === "left" || transition.direction === "right" ? width : height;
+      const dist =
+        transition.direction === "left" || transition.direction === "right"
+          ? width
+          : height;
       const from =
-        transition.direction === "left" || transition.direction === "up" ? dist : -dist;
+        transition.direction === "left" || transition.direction === "up"
+          ? dist
+          : -dist;
       if (transition.direction === "left" || transition.direction === "right") {
         layer.translateX = from * (1 - u);
       } else {
@@ -279,12 +312,15 @@ function applyIncoming(
       layer.wipeSoftness = transition.softness ?? 0;
       return;
     case "zoom":
-      layer.scale = transition.direction === "in" ? 0.85 + 0.15 * u : 1.25 - 0.25 * u;
+      layer.scale =
+        transition.direction === "in" ? 0.85 + 0.15 * u : 1.25 - 0.25 * u;
       layer.opacity = Math.min(1, 0.5 + 0.5 * u);
       return;
   }
 }
 
-export function compositionTotalDuration(scenes: CompositionSceneInput[]): number {
+export function compositionTotalDuration(
+  scenes: CompositionSceneInput[],
+): number {
   return buildSegments(scenes).totalDuration;
 }

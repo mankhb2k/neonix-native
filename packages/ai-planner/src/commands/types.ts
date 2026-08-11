@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MotionPatchSchema } from "@motionvideo/motion-protocol";
+import { MotionProjectV3PatchSchema } from "@motionvideo/motion-protocol";
 
 const Id = z.string().min(1).max(128);
 const Finite = z.number().finite();
@@ -149,7 +149,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("reorderScenes"),
-      sceneOrder: z.array(Id).min(1).max(100),
+      sceneIds: z.array(Id).min(1).max(100),
     })
     .strict(),
   z
@@ -191,7 +191,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("applyRepairPatch"),
-      patch: MotionPatchSchema,
+      patch: MotionProjectV3PatchSchema,
     })
     .strict(),
   z
@@ -253,7 +253,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       nodeId: Id,
       effectId: Id,
       effect: z.discriminatedUnion("type", [
-        z.object({ type: z.literal("blur"), radius: Finite.nonnegative() }).strict(),
+        z
+          .object({ type: z.literal("blur"), radius: Finite.nonnegative() })
+          .strict(),
         z
           .object({
             type: z.literal("shadow"),
@@ -450,7 +452,9 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
       type: z.literal("setSceneTransition"),
       sceneId: Id,
       transition: z.discriminatedUnion("type", [
-        z.object({ type: z.literal("cut"), duration: z.literal(0).optional() }).strict(),
+        z
+          .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
+          .strict(),
         z
           .object({
             type: z.literal("fade"),

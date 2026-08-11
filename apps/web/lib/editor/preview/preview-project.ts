@@ -1,16 +1,30 @@
 import { assertSnapshotContract } from "@motionvideo/pixi-renderer";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   evaluateFrame,
   resolveTimelineAtTime,
   type RenderSnapshot,
 } from "@motionvideo/motion-runtime";
-import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   createFacebookHistoryDemoProject,
   FB_HISTORY_SCENE_IDS,
+  compileProjectV3,
 } from "@motionvideo/motion-runtime/testing";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
+import { compositionAspectRatio } from "@/lib/runtime/project-composition";
+
+/** First scene from the v3 main visual track, else first scene. */
+export function firstSceneId(project: MotionProject): string | null {
+  const timeline = project.timeline;
+  if ("visualTracks" in timeline && Array.isArray(timeline.visualTracks)) {
+    for (const track of timeline.visualTracks) {
+      if (track.role !== "main") continue;
+      const first = track.clips[0];
+      if (first && first.source.kind === "scene") return first.source.sceneId;
+    }
+  }
+  return project.scenes[0]?.id ?? null;
+}
 
 /** Project used for stage preview + hit-test (Facebook History when blank). */
 export function resolvePreviewProject(project: MotionProject): {
@@ -18,9 +32,8 @@ export function resolvePreviewProject(project: MotionProject): {
   usingDemo: boolean;
   sceneId: string;
 } {
-  if (project.scenes.length > 0) {
-    const sceneId =
-      project.timeline.sceneOrder[0] ?? project.scenes[0]!.id;
+  const sceneId = firstSceneId(project);
+  if (sceneId) {
     return { project, usingDemo: false, sceneId };
   }
   const demo = createFacebookHistoryDemoProject();
@@ -37,17 +50,15 @@ export function buildPreviewSnapshot(
   frame = 0,
 ): RenderSnapshot | null {
   const preview = resolvePreviewProject(project);
-  const runtime = compileMotionProject(preview.project);
+  const runtime = compileProjectV3(preview.project);
   const resolved = resolveTimelineAtTime(runtime, time);
   const scene =
-    (resolved
-      ? runtime.scenes.find((s) => s.id === resolved.sceneId)
-      : null) ??
+    (resolved ? runtime.scenes.find((s) => s.id === resolved.sceneId) : null) ??
     runtime.scenes.find((s) => s.id === preview.sceneId) ??
     runtime.scenes[0];
   if (!scene) return null;
   const { width, height } = stageSizeForAspect(
-    preview.project.metadata.aspectRatio,
+    compositionAspectRatio(preview.project),
   );
   const localTime = resolved?.localTime ?? time;
   const localFrame = resolved

@@ -8,12 +8,14 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
 import {
   compositionDurationInFrames,
   CAPABILITY_MANIFEST_VERSION,
 } from "@motionvideo/motion-runtime";
-import { createDemoMotionProject } from "@motionvideo/motion-runtime/testing";
+import {
+  createDemoMotionProject,
+  compileProjectV3,
+} from "@motionvideo/motion-runtime/testing";
 import {
   parseRenderManifest,
   REMOTION_PIN,
@@ -26,7 +28,7 @@ const OUT_DIR = path.resolve(SITE_ROOT, "../../tmp/remotion-smoke");
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
   const project = createDemoMotionProject();
-  const runtime = compileMotionProject(project);
+  const runtime = compileProjectV3(project);
   const fps = runtime.metadata.fps || 30;
   const durationInFrames = compositionDurationInFrames(runtime, undefined, fps);
   const size =
@@ -41,7 +43,7 @@ async function main() {
 
   const manifest = parseRenderManifest({
     format: "moticlip-render-manifest",
-    formatVersion: 1,
+    manifestVersion: 1,
     projectId: project.metadata.id,
     projectRevision: 0,
     versions: {

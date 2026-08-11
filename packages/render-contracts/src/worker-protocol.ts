@@ -39,7 +39,7 @@ export type InitWorkerMsg = {
   type: "init";
   /** Protocol version handshake. */
   protocolVersion: typeof WORKER_PROTOCOL_VERSION;
-  /** Serialized NormalizedMotionProjectV2 (JSON). */
+  /** Serialized MotionRuntimeProject (JSON). */
   runtimeJson: string;
   /** Composition dimensions. */
   width: number;

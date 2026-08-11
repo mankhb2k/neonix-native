@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppLink } from "@/components/AppLink";
 import { listProjects, type StoredProject } from "@/lib/editor/project-storage";
+import { compositionAspectRatio } from "@/lib/runtime/project-composition";
 import { Plus } from "lucide-react";
 
 type Props = {
@@ -36,8 +37,8 @@ export function ProjectList({ onNewProject }: Props) {
             </h3>
           </div>
           <p className="mt-2 text-xs text-[var(--fg-muted)]">
-            Tạo TVC motion 2D từ template tiếng Việt (9:16, 16:9, 1:1) để bắt đầu
-            biên tập ngay.
+            Tạo TVC motion 2D từ template tiếng Việt (9:16, 16:9, 1:1) để bắt
+            đầu biên tập ngay.
           </p>
         </button>
       </div>
@@ -53,11 +54,10 @@ export function ProjectList({ onNewProject }: Props) {
           className={cardClass}
         >
           <h3 className="mb-1.5 text-[0.95rem] font-semibold text-[var(--fg-primary)]">
-            {project.metadata.brand.name}
+            {project.metadata.name}
           </h3>
           <p className="m-0 text-[0.8rem] leading-[1.45] text-[var(--fg-muted)]">
-            {project.metadata.industry ?? "general"} · {project.metadata.aspectRatio}{" "}
-            · {project.scenes.length} scene
+            {compositionAspectRatio(project)} · {project.scenes.length} scene
           </p>
           <p className="mt-2 text-[0.8rem] text-[var(--fg-muted)]">
             {new Date(savedAt).toLocaleString("vi-VN")}

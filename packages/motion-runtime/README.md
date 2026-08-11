@@ -5,7 +5,7 @@ Evaluator thời gian chạy cho **Runtime IR** (literal). Không parse authorin
 ## Vai trò
 
 ```text
-NormalizedMotionProjectV2 (Runtime IR)
+MotionRuntimeProject (Runtime IR)
         ↓
   evaluateScene / evaluateProperty
         ↓
@@ -31,17 +31,17 @@ import {
 } from "@motionvideo/motion-runtime";
 ```
 
-| Module | Chức năng |
-|---|---|
-| `evaluator` | Property tracks, hierarchy, constraints, modifiers |
-| `matrix` / `spatial` | World matrix, bounds |
-| `hit-test` | Hit-test theo draw order / mask |
-| `clock` | Frame ↔ time deterministic |
-| `geometry` | Path sample, trim, bend, morph |
-| `secondary-motion` | Bone chain follow-through (rotation) |
+| Module               | Chức năng                                          |
+| -------------------- | -------------------------------------------------- |
+| `evaluator`          | Property tracks, hierarchy, constraints, modifiers |
+| `matrix` / `spatial` | World matrix, bounds                               |
+| `hit-test`           | Hit-test theo draw order / mask                    |
+| `clock`              | Frame ↔ time deterministic                         |
+| `geometry`           | Path sample, trim, bend, morph                     |
+| `secondary-motion`   | Bone chain follow-through (rotation)               |
 
 ## Docs
 
-- [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md)
+- [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
 - [`docs/primitives-object.md`](../../docs/primitives-object.md)
 - Gate visual: `pnpm validate:primitives`

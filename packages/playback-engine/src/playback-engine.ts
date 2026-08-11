@@ -19,7 +19,7 @@
  * All platform dependencies are injected via options.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import {
   evaluateCompositionFrameV3,
   type EvaluatedCompositionFrame,
@@ -67,7 +67,7 @@ export type PlaybackEngineOptions = {
 export type PlaybackEngine = {
   // ── Lifecycle ──────────────────────────────────────────────────
   /** Load (or reload) the runtime project. Resets clock to frame 0. */
-  load(runtime: NormalizedMotionProjectV2): void;
+  load(runtime: MotionRuntimeProject): void;
 
   /** Apply a runtime patch (Phase 2 protocol). */
   applyPatch(patch: { type: string; [key: string]: unknown }): void;
@@ -114,7 +114,7 @@ export function createPlaybackEngine(
   const metrics = createPlaybackMetrics();
 
   // Runtime state
-  let runtime: NormalizedMotionProjectV2 | null = null;
+  let runtime: MotionRuntimeProject | null = null;
   let duration = 0;
   let loop = false;
   let sequenceId = 0;
@@ -214,7 +214,7 @@ export function createPlaybackEngine(
   // ── Public API ────────────────────────────────────────────────────
 
   return {
-    load(next: NormalizedMotionProjectV2) {
+    load(next: MotionRuntimeProject) {
       runtime = next;
       duration = next.scenes.reduce((sum, s) => sum + s.duration, 0);
       // Re-create clock with new duration

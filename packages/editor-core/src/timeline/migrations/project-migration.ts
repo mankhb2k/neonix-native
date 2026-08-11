@@ -171,38 +171,92 @@ function migrateLegacyClipInputs(
 ): LegacyClipInput[] {
   const overlayIds = new Set(overlays.map((item) => item.id));
   const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
-  let startTime = 0;
-  const main = project.timeline.sceneOrder.flatMap((sceneId) => {
-    if (overlayIds.has(sceneId)) return [];
-    const scene = scenesById.get(sceneId);
-    if (!scene) return [];
-    const clip: LegacyClipInput = {
-      id: scene.id,
-      kind: "scene",
-      sceneId: scene.id,
+
+  // Phase 8: derive main/overlay/audio clips from visualTracks + audioTracks.
+  const timeline = project.timeline;
+  if ("visualTracks" in timeline && Array.isArray(timeline.visualTracks)) {
+    const sceneName = (sceneId: string): string =>
+      scenesById.get(sceneId)?.name ??
+      scenesById.get(sceneId)?.semantic?.role ??
+      sceneId;
+
+    const main: LegacyClipInput[] = timeline.visualTracks
+      .filter((track) => track.role === "main")
+      .flatMap((track) =>
+        track.clips.flatMap((clip) => {
+          if (clip.source.kind !== "scene") return [];
+          const scene = scenesById.get(clip.source.sceneId);
+          if (!scene) return [];
+          return [
+            {
+              id: clip.id,
+              kind: "scene" as const,
+              sceneId: clip.source.sceneId,
+              laneId: "",
+              startTime: clip.start,
+              duration: clip.duration,
+              name: sceneName(clip.source.sceneId),
+              track: "main" as const,
+            },
+          ];
+        }),
+      );
+
+    const overlayClips: LegacyClipInput[] = [
+      ...timeline.visualTracks
+        .filter((track) => track.role === "overlay")
+        .flatMap((track) =>
+          track.clips.flatMap((clip) => {
+            if (clip.source.kind !== "scene") return [];
+            return [
+              {
+                id: clip.id,
+                kind: "scene" as const,
+                sceneId: clip.source.sceneId,
+                laneId: "",
+                startTime: clip.start,
+                duration: clip.duration,
+                name: sceneName(clip.source.sceneId),
+                track: "overlay" as const,
+                layerIndex: track.order,
+              },
+            ];
+          }),
+        ),
+      // Legacy overlay sidecar: overlays from separate layerIndex data
+      ...overlays.map(
+        (item): LegacyClipInput => ({
+          id: item.id,
+          kind: "scene" as const,
+          sceneId: item.id,
+          laneId: "",
+          startTime: item.startTime,
+          duration: item.duration,
+          name: item.name,
+          track: "overlay" as const,
+          layerIndex: item.layerIndex ?? 0,
+        }),
+      ),
+    ];
+
+    const audio: LegacyClipInput[] = timeline.audioTracks.map((track) => ({
+      id: track.id,
+      kind: "audio" as const,
+      audioTrackId: track.id,
+      assetId: track.assetId,
       laneId: "",
-      startTime,
-      duration: scene.duration,
-      name: scene.name ?? scene.semantic?.role ?? scene.id,
-      track: "main",
-    };
-    startTime += scene.duration;
-    return [clip];
-  });
-  const overlay = overlays.map(
-    (item): LegacyClipInput => ({
-      id: item.id,
-      kind: "scene",
-      sceneId: item.id,
-      laneId: "",
-      startTime: item.startTime,
-      duration: item.duration,
-      name: item.name,
-      track: "overlay",
-      layerIndex: item.layerIndex ?? 0,
-    }),
-  );
-  return [...main, ...overlay];
+      startTime: track.start,
+      duration: track.duration,
+      name: track.id,
+      track: "audio" as const,
+    }));
+
+    return [...main, ...overlayClips, ...audio];
+  }
+
+  // Phase 8: no legacy sceneOrder fallback — projects without visualTracks
+  // return an empty array.
+  return [];
 }
 
 /** Converts the original scene sequence and overlay sidecar into unified clips (pre-lane). */

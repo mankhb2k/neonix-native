@@ -8,27 +8,27 @@
  * in Phase 8 without changing the public API.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import { createHash } from "node:crypto";
-import type { MotionComponentV2 } from "@motionvideo/motion-protocol";
 import type { CompileResult } from "./compile-result";
+import type { ComponentInput } from "./types";
 
 // ── Cache key ─────────────────────────────────────────────────────────
 
 /**
  * Physical compiler version — bump when compilation logic changes
  * in a way that could produce different output from same input.
- * This is NOT the schema formatVersion (which is v2); it's a
+ * This is NOT the schema formatVersion; it's a
  * compiler-specific version for cache invalidation.
  */
-export const COMPILER_VERSION = "2.0.0-phase2";
+export const COMPILER_VERSION = "2.0.0-phase6";
 
 /**
  * Compute a deterministic hash of component dependencies.
  * Even if projectRevision is unchanged, if a component package
  * changes, we must recompile.
  */
-export function hashComponentDeps(components: MotionComponentV2[]): string {
+export function hashComponentDeps(components: ComponentInput[]): string {
   if (components.length === 0) return "no-deps";
   const normalized = components
     .map((c) => `${c.componentId}@${c.componentVersion}`)
@@ -42,7 +42,7 @@ export function hashComponentDeps(components: MotionComponentV2[]): string {
  */
 export function buildCompileCacheKey(
   projectRevision: number,
-  componentDeps: MotionComponentV2[],
+  componentDeps: ComponentInput[],
   testSalt?: string,
 ): string {
   const depsHash = hashComponentDeps(componentDeps);
@@ -53,7 +53,7 @@ export function buildCompileCacheKey(
 // ── Cache ─────────────────────────────────────────────────────────────
 
 export type CacheEntry = {
-  result: CompileResult<NormalizedMotionProjectV2>;
+  result: CompileResult<MotionRuntimeProject>;
   createdAt: number;
   hitCount: number;
 };
@@ -65,7 +65,7 @@ export type CacheEntry = {
  *   const cache = new CompileCache({ maxSize: 50 });
  *   const cached = cache.get(key);
  *   if (cached) return cached;
- *   const result = compileMotionProjectV2(project, options);
+ *   const result = compileMotionProjectV3(project, options);
  *   cache.set(key, result);
  */
 export class CompileCache {
@@ -87,7 +87,7 @@ export class CompileCache {
   }
 
   /** Look up a cached compilation result */
-  get(key: string): CompileResult<NormalizedMotionProjectV2> | undefined {
+  get(key: string): CompileResult<MotionRuntimeProject> | undefined {
     const entry = this._store.get(key);
     if (!entry) return undefined;
     entry.hitCount++;
@@ -95,7 +95,7 @@ export class CompileCache {
   }
 
   /** Store a compilation result */
-  set(key: string, result: CompileResult<NormalizedMotionProjectV2>): void {
+  set(key: string, result: CompileResult<MotionRuntimeProject>): void {
     // Evict oldest entry if at capacity (simple FIFO)
     if (this._store.size >= this._maxSize) {
       const first = this._store.keys().next().value;

@@ -1,6 +1,6 @@
 import {
   motionPropertyCapability,
-  type NormalizedMotionProjectV2,
+  type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
   IDENTITY_MATRIX,
@@ -42,8 +42,13 @@ import {
   RuntimeDiagnosticCode,
   createDiagnostic,
 } from "./diagnostics";
+import {
+  resolveEffectiveTiming,
+  isNodeTimeActive,
+  nodeLocalTime,
+} from "./composition/effective-timing";
 
-export type RuntimeScene = NormalizedMotionProjectV2["scenes"][number];
+export type RuntimeScene = MotionRuntimeProject["scenes"][number];
 export type RuntimeNode = RuntimeScene["nodes"][number];
 export type RuntimeTrack = RuntimeScene["tracks"][number];
 export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
@@ -889,12 +894,55 @@ export function evaluateScene(
       }
     }
   }
+  // Phase 3: Resolve effective timing for parent-relative time windows
+  const effectiveTimings = resolveEffectiveTiming(
+    topologicalNodes(scene),
+    scene.duration,
+  );
   const evaluated = new Map<string, EvaluatedNode>();
   const visiting = new Set<string>();
 
   const evaluate = (node: RuntimeNode): EvaluatedNode => {
     const cached = evaluated.get(node.id);
     if (cached) return cached;
+
+    // Phase 3: Time-activity culling (parent-relative effective timing)
+    const nodeTiming = effectiveTimings.get(node.id);
+    if (nodeTiming && !isNodeTimeActive(nodeTiming, time)) {
+      const culled: EvaluatedNode = {
+        node,
+        transform: {
+          x: 0,
+          y: 0,
+          depth: 0,
+          width: node.transform.width,
+          height: node.transform.height,
+          rotation: 0,
+          scaleX: 1,
+          scaleY: 1,
+          anchorX: 0,
+          anchorY: 0,
+          opacity: 0,
+          visible: false,
+          flipX: false,
+          flipY: false,
+        },
+        worldMatrix: IDENTITY_MATRIX,
+        worldOpacity: 0,
+        visible: false,
+        worldBounds: { x: 0, y: 0, width: 0, height: 0 },
+        depth: 0,
+        projectedOffset: { x: 0, y: 0 },
+      };
+      evaluated.set(node.id, culled);
+      return culled;
+    }
+
+    // Phase 3: Node-local time for animation (0 = node effective start)
+    const animTime = nodeTiming
+      ? nodeLocalTime(nodeTiming, time)
+      : time;
+
     if (visiting.has(node.id)) {
       collector?.error("PARENT_CYCLE", {
         nodeId: node.id,
@@ -931,7 +979,7 @@ export function evaluateScene(
     }
     visiting.add(node.id);
 
-    let transform = evaluateTransform(scene, node, time, driven, collector);
+    let transform = evaluateTransform(scene, node, animTime, driven, collector);
     const secondaryRotation = secondaryRotations.get(node.id);
     if (secondaryRotation !== undefined)
       transform = {

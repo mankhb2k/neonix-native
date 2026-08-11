@@ -4,7 +4,8 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { serializeMotionProject } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
-import { compileMotionProject } from "./compiler";
+import { compileProject } from "./compiler";
+import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { createSmokeMotionProject } from "./fixtures/smoke-project";
 import { renderCompiledProject } from "./runtime";
@@ -46,7 +47,7 @@ async function main() {
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
   console.log(`[e2e] wrote ${mtPath}`);
 
-  const compiled = compileMotionProject(project);
+  const compiled = compileProject(project);
   console.log(
     `[e2e] compiled ${compiled.scenes.length} scenes · ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s`,
   );
@@ -60,7 +61,11 @@ async function main() {
     `[e2e] rendered ${rendered.frameCount} frames @ ${rendered.fps}fps (${rendered.width}x${rendered.height})`,
   );
 
-  const files = await encodeOutputs(rendered, project.metadata.aspectRatio, compiled);
+  const files = await encodeOutputs(
+    rendered,
+    compositionAspectRatio(project),
+    compiled,
+  );
   const urls = await uploadOutputs(files);
   const mp4 = files[0]!.path;
   const info = await stat(mp4);

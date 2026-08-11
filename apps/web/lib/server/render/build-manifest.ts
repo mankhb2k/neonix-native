@@ -21,7 +21,7 @@ export function buildStubRenderManifest(input: {
     process.env.REMOTION_SERVE_URL ?? "https://example.invalid/remotion-site";
   return parseRenderManifest({
     format: "moticlip-render-manifest",
-    formatVersion: 1,
+    manifestVersion: 1,
     projectId: input.projectId,
     projectRevision: input.projectRevision,
     versions: {

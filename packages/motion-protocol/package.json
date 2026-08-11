@@ -11,13 +11,16 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "generate:schema": "tsx scripts/generate-json-schema.ts",
     "lint": "echo \"no lint yet\""
   },
   "dependencies": {
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/node": "^22.13.10",
     "typescript": "^5.8.2",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "zod-to-json-schema": "^3.25.2"
   }
 }

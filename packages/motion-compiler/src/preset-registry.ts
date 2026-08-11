@@ -5,11 +5,11 @@
 
 import { z } from "zod";
 import {
-  KeyframeEasingV2Schema,
-  MOTION_V2_LIMITS,
+  KeyframeEasingSchema,
+  MOTION_PROTOCOL_LIMITS,
 } from "@motionvideo/motion-protocol";
 
-type KeyframeEasing = z.infer<typeof KeyframeEasingV2Schema>;
+type KeyframeEasing = z.infer<typeof KeyframeEasingSchema>;
 
 export const DirectionalPresetParamsSchema = z
   .object({
@@ -17,14 +17,14 @@ export const DirectionalPresetParamsSchema = z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.presetDistance)
+      .max(MOTION_PROTOCOL_LIMITS.presetDistance)
       .optional(),
-    easing: KeyframeEasingV2Schema.optional(),
+    easing: KeyframeEasingSchema.optional(),
     overshoot: z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.presetOvershoot)
+      .max(MOTION_PROTOCOL_LIMITS.presetOvershoot)
       .optional(),
   })
   .strict();
@@ -35,21 +35,23 @@ export const ScalePresetParamsSchema = z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.transformScale)
+      .max(MOTION_PROTOCOL_LIMITS.transformScale)
       .optional(),
-    easing: KeyframeEasingV2Schema.optional(),
+    easing: KeyframeEasingSchema.optional(),
     overshoot: z
       .number()
       .finite()
       .min(0)
-      .max(MOTION_V2_LIMITS.presetOvershoot)
+      .max(MOTION_PROTOCOL_LIMITS.presetOvershoot)
       .optional(),
   })
   .strict();
 
 export const EmptyPresetParamsSchema = z.object({}).strict();
 
-export type DirectionalPresetParams = z.infer<typeof DirectionalPresetParamsSchema>;
+export type DirectionalPresetParams = z.infer<
+  typeof DirectionalPresetParamsSchema
+>;
 export type ScalePresetParams = z.infer<typeof ScalePresetParamsSchema>;
 
 export type RuntimeTrackBake = {
@@ -469,11 +471,15 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
 
 const BY_ID = new Map(PRESETS.map((preset) => [preset.id, preset]));
 
-export const COMPILED_PRESET_IDS = Object.freeze(PRESETS.map((preset) => preset.id));
+export const COMPILED_PRESET_IDS = Object.freeze(
+  PRESETS.map((preset) => preset.id),
+);
 
 export type CompiledPresetId = (typeof COMPILED_PRESET_IDS)[number];
 
-export function isCompiledPreset(presetId: string): presetId is CompiledPresetId {
+export function isCompiledPreset(
+  presetId: string,
+): presetId is CompiledPresetId {
   return BY_ID.has(presetId);
 }
 
@@ -522,6 +528,7 @@ export function expandMotionPreset(input: {
 
 /** Document ownership when IDs overlap preset vs recipe surfaces. */
 export const PRESET_RECIPE_OWNERSHIP = {
-  counter: "both — preset is finite progress bake; recipe is driver/track recipe API",
+  counter:
+    "both — preset is finite progress bake; recipe is driver/track recipe API",
   stagger: "recipe-only",
 } as const;

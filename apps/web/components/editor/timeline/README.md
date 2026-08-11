@@ -39,11 +39,11 @@
 
 ## Shared Packages
 
-| Package                            | What web uses                                                                                                                                                                                                                                            |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@motionvideo/editor-core`         | `computeViewportLayout`, `buildLaneRows`, `sortLanesOverlayBaseAudio`, `computeRulerTickWindow`, `resolveLaneTrackKind`, `sceneOrderToTimelineClips`, `selectedClipIdsFrom`, `selectionClips`, `sliderValueToZoomScale`, `executeTimelineCommand`, types |
-| `@motionvideo/editor-interactions` | `computePlayheadFollowScroll`, `ensurePlayheadScrubScroll`, `computeAutoScrollNearEdge`, `resolvePlayheadScrubMax`, `timelineTimeToContentLeft`, `resolveClipTrimUpdate`, `resolveClipMoveDrag`, constants                                               |
-| `@motionvideo/editor-react`        | `useTimelineViewportMetrics`, `useVisibleTimeline`, `useTimelineSeek`, `useTimelineMarquee`, `useTimelineHotkeys`, `useClipMove`, `useClipTrim`, `usePointerSessionHost`, `buildLaneHeightPrefix`                                                        |
+| Package                            | What web uses                                                                                                                                                                                                                                              |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@motionvideo/editor-core`         | `computeViewportLayout`, `buildLaneRows`, `sortLanesOverlayBaseAudio`, `computeRulerTickWindow`, `resolveLaneTrackKind`, `visualTracksToTimelineClips`, `selectedClipIdsFrom`, `selectionClips`, `sliderValueToZoomScale`, `executeTimelineCommand`, types |
+| `@motionvideo/editor-interactions` | `computePlayheadFollowScroll`, `ensurePlayheadScrubScroll`, `computeAutoScrollNearEdge`, `resolvePlayheadScrubMax`, `timelineTimeToContentLeft`, `resolveClipTrimUpdate`, `resolveClipMoveDrag`, constants                                                 |
+| `@motionvideo/editor-react`        | `useTimelineViewportMetrics`, `useVisibleTimeline`, `useTimelineSeek`, `useTimelineMarquee`, `useTimelineHotkeys`, `useClipMove`, `useClipTrim`, `usePointerSessionHost`, `buildLaneHeightPrefix`                                                          |
 
 ## Web-only Files (Thin Adapters)
 
@@ -51,7 +51,7 @@
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | `timeline-scale.ts`                    | Web-specific layout constants (lane heights, gaps, padding) + re-exports `computeRulerTickWindow`           |
 | `lanes/timeline-lane-rows.ts`          | Thin adapter — delegates to `buildLaneRows` with web config, adds `buildLayerLaneRows`                      |
-| `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for compat                 |
+| `lanes/track-kind.ts`                  | Re-exports `resolveLaneTrackKind` from core; keeps deprecated `trackKindForRole` for legacy store reads     |
 | `clips/use-clip-move.ts`               | Adapter wrapping `useClipMove` from editor-react; supplies web `ClipMoveHost` (auto-scroll, same-lane-only) |
 | `clips/use-clip-trim.ts`               | Adapter wrapping `useClipTrim` from editor-react; thin pass-through                                         |
 | `interactions/use-timeline-hotkeys.ts` | Adapter wrapping `useTimelineHotkeys` from editor-react; wires Zustand store                                |

@@ -19,6 +19,7 @@
     "pixi.js": "^8.19.0"
   },
   "devDependencies": {
+    "@motionvideo/motion-compiler": "workspace:*",
     "typescript": "^5.8.2",
     "vitest": "^4.1.10"
   }

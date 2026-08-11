@@ -28,7 +28,11 @@ describe("timeline session property bus", () => {
     const withScene = JSON.parse(blank.documentJson) as {
       project: {
         scenes: unknown[];
-        timeline: { sceneOrder: string[] };
+        timeline: {
+          visualTracks: unknown[];
+          audioTracks: unknown[];
+          captionTracks: unknown[];
+        };
       };
       timelineClips: unknown[];
       timelineLanes: unknown[];
@@ -58,18 +62,31 @@ describe("timeline session property bus", () => {
               flipY: false,
             },
             payload: {
-              text: "Hi",
+              content: { kind: "plain", text: "Hi" },
               fontSize: 24,
-              fontWeight: 600,
-              align: "left",
+              color: "#111111",
+              alignment: "left",
             },
-            style: { fill: "#111111" },
           },
         ],
         clips: [],
       },
     ];
-    withScene.project.timeline.sceneOrder = ["scene_1"];
+    withScene.project.timeline.visualTracks = [
+      {
+        id: "main-track",
+        role: "main",
+        order: 0,
+        clips: [
+          {
+            id: "clip_1",
+            source: { kind: "scene", sceneId: "scene_1" },
+            start: 0,
+            duration: 3,
+          },
+        ],
+      },
+    ];
     withScene.timelineLanes = [
       {
         id: "lane.main",

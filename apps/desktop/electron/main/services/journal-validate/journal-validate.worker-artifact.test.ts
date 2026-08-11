@@ -27,7 +27,11 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
     project: {
       scenes: Array<Record<string, unknown>>;
-      timeline: { sceneOrder: string[]; audioTracks: unknown[] };
+      timeline: {
+        visualTracks: unknown[];
+        audioTracks: unknown[];
+        captionTracks: unknown[];
+      };
     };
   };
   const id = "scene_artifact";
@@ -51,16 +55,37 @@ function inflateToBytes(base: string, targetBytes: number): string {
       flipX: false,
       flipY: false,
     },
-    payload: { text: "", fontSize: 12, fontWeight: 400, align: "left" },
+    payload: {
+      content: { kind: "plain", text: "" },
+      fontSize: 12,
+      color: "#000000",
+      alignment: "left",
+    },
   };
   envelope.project.scenes = [
     { id, name: "Artifact", duration: 1, nodes: [node], clips: [] },
   ];
-  envelope.project.timeline.sceneOrder = [id];
+  envelope.project.timeline.visualTracks = [
+    {
+      id: "main-track",
+      role: "main",
+      order: 0,
+      clips: [
+        {
+          id: "clip_artifact",
+          source: { kind: "scene", sceneId: id },
+          start: 0,
+          duration: 1,
+        },
+      ],
+    },
+  ];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
-    (node.payload as { text: string }).text = "x".repeat(deficit);
+    (node.payload as { content: { text: string } }).content.text = "x".repeat(
+      deficit,
+    );
     json = JSON.stringify(envelope);
   }
   return json;

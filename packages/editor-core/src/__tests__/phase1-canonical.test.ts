@@ -19,24 +19,38 @@ import type { TimelineDocument } from "../document/document";
 
 function minimalProject(overrides?: Partial<MotionProject>): MotionProject {
   return {
+    format: "motion-project",
+    formatVersion: 3,
     metadata: {
       id: "test-proj",
-      title: "Test Project",
-      aspectRatio: "16:9",
-      width: 1920,
-      height: 1080,
+      name: "Test Project",
+      locale: "en-US",
       ...overrides?.metadata,
     },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      ...overrides?.composition,
+    },
+    dependencies: {
+      compiler: { range: ">=1.0.0" },
+      ...overrides?.dependencies,
+    },
     timeline: {
-      sceneOrder: [],
+      visualTracks: [],
       audioTracks: [],
       captionTracks: [],
       ...overrides?.timeline,
     },
+    extensions: overrides?.extensions ?? {},
     scenes: overrides?.scenes ?? [],
     assets: overrides?.assets ?? [],
     components: overrides?.components ?? [],
     variables: overrides?.variables ?? [],
+    bindings: overrides?.bindings ?? [],
+    tokens: overrides?.tokens ?? {},
+    capabilities: overrides?.capabilities ?? {},
   };
 }
 
@@ -97,18 +111,24 @@ describe("projectToTimelineDocument", () => {
   it("fingerprint is stable under JSON key ordering", () => {
     const proj1 = minimalProject();
     const proj2: MotionProject = {
+      format: "motion-project",
+      formatVersion: 3,
       metadata: {
         id: "test-proj",
-        title: "Test Project",
-        aspectRatio: "16:9",
-        width: 1920,
-        height: 1080,
+        name: "Test Project",
+        locale: "en-US",
       },
+      composition: { width: 1920, height: 1080, fps: 30 },
+      dependencies: { compiler: { range: ">=1.0.0" } },
       assets: [],
       components: [],
       variables: [],
+      bindings: [],
+      tokens: {},
+      extensions: {},
+      capabilities: {},
       scenes: [],
-      timeline: { sceneOrder: [], audioTracks: [], captionTracks: [] },
+      timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
     };
 
     expect(computeProjectFingerprint(proj1)).toBe(

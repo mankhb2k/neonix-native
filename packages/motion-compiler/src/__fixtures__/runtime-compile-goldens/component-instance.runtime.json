@@ -1,0 +1,101 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 3,
+  "runtimeVersion": 1,
+  "metadata": {
+    "id": "component-instance",
+    "name": "Component Instance",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Component Instance"
+    },
+    "description": "Project with an embedded component used by a visual clip"
+  },
+  "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "runtimeHash": "13d8430bcb0d1ab2a546a8884fc334c1",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
+  "sourceRef": {
+    "scenes": {
+      "clip-logo-reveal": "components:logo-reveal#logo-reveal@1.0.0"
+    }
+  },
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "component-track",
+        "role": "primary",
+        "order": 0,
+        "clips": [
+          {
+            "id": "clip-logo-reveal",
+            "source": {
+              "kind": "scene",
+              "sceneId": "clip-logo-reveal"
+            },
+            "start": 0,
+            "duration": 4
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "clip-logo-reveal",
+      "duration": 4,
+      "sourceRef": {
+        "projectPath": [
+          "components",
+          "logo-reveal"
+        ],
+        "sourceModule": "logo-reveal@1.0.0"
+      },
+      "nodes": [
+        {
+          "id": "logo",
+          "type": "solid",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 256,
+            "height": 256,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
+          "payload": {
+            "width": 256,
+            "height": 256,
+            "color": "#1877f2"
+          }
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

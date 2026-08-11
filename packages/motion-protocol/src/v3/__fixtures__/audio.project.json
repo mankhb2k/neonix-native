@@ -1,0 +1,202 @@
+{
+  "format": "motion-project",
+  "formatVersion": 3,
+  "metadata": {
+    "id": "v3-audio",
+    "name": "V3 Audio Example",
+    "description": "Demonstrates audio tracks (BGM + voiceover) on the timeline",
+    "locale": "vi-VN",
+    "tags": ["example", "v3", "audio"]
+  },
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#000000",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": ["primitive.text", "primitive.image", "audio.playback"]
+  },
+  "dependencies": {
+    "compiler": { "range": ">=1.0.0" },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [
+    {
+      "id": "bgm-track",
+      "uri": "./assets/audio/background.mp3",
+      "integrity": "sha256:bgm",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 30,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 2
+    },
+    {
+      "id": "voiceover",
+      "uri": "./assets/audio/voiceover.mp3",
+      "integrity": "sha256:voiceover",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 10,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 1
+    },
+    {
+      "id": "sfx-whoosh",
+      "uri": "./assets/audio/whoosh.mp3",
+      "integrity": "sha256:sfx-whoosh",
+      "assetType": "audio",
+      "mimeType": "audio/mpeg",
+      "duration": 1,
+      "codec": "mp3",
+      "sampleRate": 48000,
+      "channels": 2
+    }
+  ],
+  "components": [],
+  "scenes": [
+    {
+      "id": "scene-1",
+      "name": "Opening",
+      "duration": 5,
+      "nodes": [
+        {
+          "id": "opening-text",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 800,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": { "kind": "plain", "text": "Opening Scene" },
+            "fontSize": 56,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scene-2",
+      "name": "Main Content",
+      "duration": 5,
+      "nodes": [
+        {
+          "id": "content-text",
+          "type": "text",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 700,
+            "height": 200,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Main Content with Voiceover"
+            },
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main",
+        "role": "main",
+        "order": 0,
+        "clips": [
+          {
+            "id": "c-scene1",
+            "source": { "kind": "scene", "sceneId": "scene-1" },
+            "start": 0,
+            "duration": 5,
+            "transitionIn": { "type": "fade", "duration": 0.5 }
+          },
+          {
+            "id": "c-scene2",
+            "source": { "kind": "scene", "sceneId": "scene-2" },
+            "start": 5,
+            "duration": 5,
+            "transitionOut": { "type": "fade", "duration": 0.5 }
+          }
+        ]
+      }
+    ],
+    "audioTracks": [
+      {
+        "id": "bgm",
+        "role": "bgm",
+        "assetId": "bgm-track",
+        "start": 0,
+        "duration": 10,
+        "volume": 0.3,
+        "loop": false,
+        "fadeIn": 1,
+        "fadeOut": 1
+      },
+      {
+        "id": "vo",
+        "role": "voiceover",
+        "assetId": "voiceover",
+        "start": 0.5,
+        "duration": 9,
+        "volume": 1,
+        "loop": false
+      },
+      {
+        "id": "sfx-1",
+        "role": "sfx",
+        "assetId": "sfx-whoosh",
+        "start": 4.8,
+        "duration": 1,
+        "volume": 0.8,
+        "loop": false
+      },
+      {
+        "id": "sfx-2",
+        "role": "sfx",
+        "assetId": "sfx-whoosh",
+        "start": 9.8,
+        "duration": 1,
+        "volume": 0.8,
+        "loop": false
+      }
+    ],
+    "captionTracks": []
+  },
+  "bindings": []
+}

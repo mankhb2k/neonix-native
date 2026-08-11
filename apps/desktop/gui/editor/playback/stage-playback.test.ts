@@ -6,8 +6,8 @@ import {
   createPlaybackDriver,
 } from "@motionvideo/editor-core";
 import { previewParitySnapshot } from "../preview/preview-evaluate";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
+import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {
@@ -116,25 +116,47 @@ describe("playback driver", () => {
 
 describe("compose + evaluate smoke", () => {
   it("composes a scene clip layer and evaluates nodes", () => {
-    const project = parseMotionProject({
+    const project = parseMotionProjectV3({
       format: "motion-project",
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: "proj_test",
         name: "Test",
-        aspectRatio: "16:9",
-        fps: 30,
         locale: "vi-VN",
-        brand: {
-          name: "Test",
-          primaryColor: "#1A5D3A",
-          fontFamily: "Be Vietnam Pro",
-        },
       },
-      dependencies: { components: [] },
+      composition: {
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        background: "#1A5D3A",
+        colorSpace: "srgb",
+        audioSampleRate: 48000,
+      },
+      capabilities: {},
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
       assets: [],
       variables: [],
-      timeline: { sceneOrder: ["scene_1"], audioTracks: [] },
+      tokens: {},
+      components: [],
+      timeline: {
+        visualTracks: [
+          {
+            id: "main-track",
+            role: "main",
+            order: 0,
+            clips: [
+              {
+                id: "clip_1",
+                source: { kind: "scene", sceneId: "scene_1" },
+                start: 0,
+                duration: 3,
+              },
+            ],
+          },
+        ],
+        audioTracks: [],
+        captionTracks: [],
+      },
       scenes: [
         {
           id: "scene_1",
@@ -162,10 +184,10 @@ describe("compose + evaluate smoke", () => {
                 flipY: false,
               },
               payload: {
-                text: "Hello",
+                content: { kind: "plain", text: "Hello" },
                 fontSize: 64,
-                fontWeight: 600,
-                align: "center",
+                color: "#111111",
+                alignment: "center",
               },
             },
           ],
@@ -173,7 +195,6 @@ describe("compose + evaluate smoke", () => {
         },
       ],
       bindings: [],
-      extensions: { constraints: [], events: [] },
     });
 
     const lanes = [
@@ -203,7 +224,10 @@ describe("compose + evaluate smoke", () => {
     expect(layers).toHaveLength(1);
     expect(layers[0]?.sceneId).toBe("scene_1");
 
-    const compiled = compileMotionProject(project);
+    const compiledResult = compileMotionProjectV3(project);
+    expect(compiledResult.ok).toBe(true);
+    const compiled = compiledResult.ok ? compiledResult.project : null;
+    if (!compiled) return;
     const snapshot = previewParitySnapshot(compiled, "scene_1", 0.5);
     expect(snapshot.nodes.length).toBeGreaterThan(0);
     expect(snapshot.nodes.some((n) => n.type === "text")).toBe(true);

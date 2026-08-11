@@ -1,10 +1,7 @@
 import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
-import {
-  resolveTimelineAtTime,
-  timelineTotalDuration,
-} from "./resolve-timeline";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import { timelineTotalDuration } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
 import {
   compositionTotalDuration,
@@ -42,25 +39,33 @@ import {
 import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 
 function scenesForComposition(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
-  const order =
-    runtime.timeline.sceneOrder.length > 0
-      ? runtime.timeline.sceneOrder
-      : runtime.scenes.map((scene) => scene.id);
-  return order
-    .map((id) => byId.get(id))
-    .filter((scene): scene is NonNullable<typeof scene> => scene != null)
-    .map((scene) => ({
-      sceneId: scene.id,
-      duration: scene.duration,
-      transition: scene.transition as CompositionSceneInput["transition"],
-    }));
+  // Phase 7: visualTracks primary track is the sole source of scene ordering.
+  // Clip-level transitionOut carries per-scene transitions directly.
+  const primaryTrack = runtime.timeline.visualTracks.find(
+    (t) => t.role === "primary",
+  );
+  if (!primaryTrack || primaryTrack.clips.length === 0) {
+    return [];
+  }
+  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
+  return sortedClips.map((clip) => {
+    const sourceId =
+      clip.source.kind === "scene"
+        ? clip.source.sceneId
+        : clip.source.componentId;
+    return {
+      sceneId: sourceId,
+      duration: clip.duration,
+      transitionOut:
+        clip.transitionOut as CompositionSceneInput["transitionOut"],
+    };
+  });
 }
 
 export function planCompositionFrame(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   globalTime: number,
   width: number,
   height: number,
@@ -74,14 +79,14 @@ export function planCompositionFrame(
 }
 
 function resolveCompositionEvaluateTarget(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   sceneId?: string,
   width = 1080,
   height = 1920,
 ): {
-  scene: NormalizedMotionProjectV2["scenes"][number];
+  scene: MotionRuntimeProject["scenes"][number];
   time: number;
   frame: number;
   layerPlan?: CompositionFramePlan;
@@ -106,12 +111,9 @@ function resolveCompositionEvaluateTarget(
     return { scene, time: primary.localTime, frame: localFrame, layerPlan };
   }
 
-  const resolved = resolveTimelineAtTime(runtime, globalTime);
-  if (!resolved) return null;
-  const scene = runtime.scenes.find((s) => s.id === resolved.sceneId);
-  if (!scene) return null;
-  const localFrame = Math.max(0, Math.round(resolved.localTime * safeFps));
-  return { scene, time: resolved.localTime, frame: localFrame, layerPlan };
+  // Phase 7: composition layers are resolved exclusively from visualTracks.
+  // When no layers match (e.g. empty timeline), return null.
+  return null;
 }
 
 /**
@@ -125,7 +127,7 @@ function resolveCompositionEvaluateTarget(
  *             {@link EvaluatedCompositionFrame} with layers, projection, audio, and media state.
  */
 export function evaluateCompositionFrame(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   width: number,
@@ -174,7 +176,7 @@ export function evaluateCompositionFrame(
  *  - `sceneId`: local to a single scene; omit for global composition timeline.
  */
 export function evaluateCompositionFrameV3(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   width: number,
@@ -228,10 +230,7 @@ export function evaluateCompositionFrameV3(
 
   // ── Evaluate each layer ─────────────────────────────────────────
   const layers: EvaluatedLayer[] = [];
-  const sceneCache = new Map<
-    string,
-    NormalizedMotionProjectV2["scenes"][number]
-  >();
+  const sceneCache = new Map<string, MotionRuntimeProject["scenes"][number]>();
 
   for (let i = 0; i < layerPlan.layers.length; i++) {
     // Phase 12: Periodically check cancellation during layer evaluation
@@ -393,7 +392,7 @@ export function evaluateCompositionFrameV3(
 }
 
 export function evaluateCompositionSnapshot(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
   width: number,
@@ -416,7 +415,7 @@ export function evaluateCompositionSnapshot(
  * This is a scene-only projection — doesn't depend on evaluated frames.
  */
 function resolvePerspectiveProjection(
-  scene: NormalizedMotionProjectV2["scenes"][number] | null,
+  scene: MotionRuntimeProject["scenes"][number] | null,
   width: number,
   height: number,
 ): { viewMatrix: number[]; projectionMatrix: number[] } | null {
@@ -466,7 +465,7 @@ function resolvePerspectiveProjection(
 }
 
 function buildProjection(
-  scene: NormalizedMotionProjectV2["scenes"][number] | null,
+  scene: MotionRuntimeProject["scenes"][number] | null,
   interaction: RenderSnapshot | null,
   stageView: "camera" | "flat",
   width: number,
@@ -565,7 +564,7 @@ function buildProjection(
 // ── Audio state helper ────────────────────────────────────────────────
 
 function buildAudioState(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   globalTime: number,
 ): EvaluatedAudioState {
   const assetDurationById = new Map(
@@ -603,7 +602,7 @@ function buildAudioState(
 
 function buildMediaState(
   layers: EvaluatedLayer[],
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
 ): EvaluatedMediaState[] {
   const mediaStates: EvaluatedMediaState[] = [];
   const assetUriById = new Map(runtime.assets.map((a) => [a.id, a.uri]));
@@ -642,7 +641,7 @@ function buildMediaState(
 }
 
 export function compositionDurationInFrames(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   sceneId?: string,
   fps = 30,
 ): number {

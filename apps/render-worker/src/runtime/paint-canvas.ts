@@ -11,11 +11,11 @@ import {
   type PaintCommandBuffer,
   type PaintFill,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import { projectFrameLayers } from "./frame-plan";
 import { ensureFont } from "./draw";
 
-type RuntimeAsset = NormalizedMotionProjectV2["assets"][number];
+type RuntimeAsset = MotionRuntimeProject["assets"][number];
 
 function hexColor(color: string | undefined, fallback = "#ffffff"): string {
   if (!color) return fallback;
@@ -302,8 +302,8 @@ async function paintCommandsToContextAsync(
 }
 
 export async function drawSceneFramePaint(
-  scene: NormalizedMotionProjectV2["scenes"][number],
-  metadata: NormalizedMotionProjectV2["metadata"],
+  scene: MotionRuntimeProject["scenes"][number],
+  metadata: MotionRuntimeProject["metadata"],
   assets: RuntimeAsset[],
   localTime: number,
   width: number,
@@ -335,7 +335,7 @@ export async function drawSceneFramePaint(
 
 /** Project-global timestamp via shared paint semantics (multi-scene layers). */
 export async function drawProjectFramePaint(
-  project: NormalizedMotionProjectV2,
+  project: MotionRuntimeProject,
   globalTime: number,
   width: number,
   height: number,

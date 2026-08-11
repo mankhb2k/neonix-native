@@ -6,16 +6,28 @@
  * source locations, severity, and codes.
  */
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 /** Canonical alias for the normalized project output. */
-export type CompiledProject = NormalizedMotionProjectV2;
+export type CompiledProject = MotionRuntimeProject;
 
 // ── Diagnostic types ──────────────────────────────────────────────────
 
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
 export type DiagnosticCode =
+  // V3 compiler (Phase 5) — CMP_* family
+  | "CMP_UNRESOLVED_VARIABLE"
+  | "CMP_UNRESOLVED_COMPONENT"
+  | "CMP_UNRESOLVED_ASSET"
+  | "CMP_UNRESOLVED_PRESET"
+  | "CMP_CYCLE_DETECTED"
+  | "CMP_COMPONENT_INTEGRITY_MISMATCH"
+  | "CMP_BINDING_TYPE_MISMATCH"
+  | "CMP_CLIP_TARGET_MISSING"
+  // Capability preflight (Phase 11)
+  | "CAP_UNDECLARED_CAPABILITY"
+  | "CAP_EXPERIMENTAL_IN_USE"
   // Schema / reference
   | "UNKNOWN_VARIABLE"
   | "UNKNOWN_CLIP_TARGET"
@@ -40,7 +52,9 @@ export type DiagnosticCode =
   | "TEXT_OVERFLOW"
   | "LAYOUT_CONSTRAINT_FAILED"
   // Runtime schema validation
-  | "RUNTIME_VALIDATION_ERROR";
+  | "RUNTIME_VALIDATION_ERROR"
+  // Compiler internal
+  | "COMPILE_ERROR";
 
 export type CompileDiagnostic = {
   /** Diagnostic code for programmatic handling */

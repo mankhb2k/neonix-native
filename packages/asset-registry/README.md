@@ -22,9 +22,9 @@ import {
 } from "@motionvideo/asset-registry";
 ```
 
-Binary font/image/video **không** nằm trong package — sống dưới `docs/fixtures/v2/assets/` hoặc CDN/product storage.
+Binary font/image/video **không** nằm trong package — sống dưới `assets/` hoặc CDN/product storage.
 
 ## Docs
 
-- SVG cut-out / import: [`docs/motion-format-v2.md`](../../docs/motion-format-v2.md)
-- Fixture import: `docs/fixtures/v2/imports/`
+- SVG cut-out / import: [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
+- Fixture import: `assets/`

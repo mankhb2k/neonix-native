@@ -53,6 +53,15 @@ export type TimelineDropHost = {
     sceneId: string;
     containerStartTime: number;
     containerDuration: number;
+    nodes?: ReadonlyArray<{
+      id: string;
+      laneId: string;
+      type: string;
+      parentId: string | null;
+      zIndex: number;
+      sceneLocalStart: number;
+      sceneLocalDuration: number;
+    }>;
   };
 };
 

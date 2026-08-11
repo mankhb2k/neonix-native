@@ -4,10 +4,7 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  buildVisualLaneIndex,
-  composeAtTime,
-} from "@motionvideo/editor-core";
+import { buildVisualLaneIndex, composeAtTime } from "@motionvideo/editor-core";
 import { createDomStageRenderer } from "../stage/stage-renderer-port";
 import { createCanvasStageRenderer } from "../stage/canvas-stage-renderer";
 import {
@@ -28,8 +25,14 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     const el = document.createElement("div");
     el.style.width = "320px";
     el.style.height = "180px";
-    Object.defineProperty(el, "clientWidth", { value: 320, configurable: true });
-    Object.defineProperty(el, "clientHeight", { value: 180, configurable: true });
+    Object.defineProperty(el, "clientWidth", {
+      value: 320,
+      configurable: true,
+    });
+    Object.defineProperty(el, "clientHeight", {
+      value: 180,
+      configurable: true,
+    });
     document.body.appendChild(el);
     hosts.push(el);
     return el;
@@ -81,7 +84,7 @@ describe("StageRendererPort contract DOM vs canvas-experimental", () => {
     );
     const doc = { ...fixture, clips };
     const index = buildVisualLaneIndex(doc.clips, doc.lanes);
-    const fps = Math.max(1, Math.round(doc.project.metadata.fps ?? 30));
+    const fps = Math.max(1, Math.round(doc.project.composition.fps));
     expect(composeAtTime(index, 0 / fps).length).toBeGreaterThan(0);
     expect(composeAtTime(index, 60 / fps).length).toBe(0);
 

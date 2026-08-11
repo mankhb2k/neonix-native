@@ -219,6 +219,18 @@ export function resolveTimelineSurface(args: {
       sceneId: layerModeView.sceneId,
       containerStartTime: c.startTime,
       containerDuration: c.duration,
+      nodes: layerModeView.rows.map((row) => {
+        const strip = layerModeView.stripsByLaneId.get(row.laneId);
+        return {
+          id: row.nodeId,
+          laneId: row.laneId,
+          type: row.nodeType,
+          parentId: row.parentId,
+          zIndex: row.zIndex,
+          sceneLocalStart: strip ? strip.startTime - c.startTime : 0,
+          sceneLocalDuration: strip?.duration ?? c.duration,
+        };
+      }),
     },
     stripFlags: {
       trimEnabled: true,

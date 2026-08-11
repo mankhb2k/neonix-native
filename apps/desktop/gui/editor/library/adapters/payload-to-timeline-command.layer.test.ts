@@ -28,6 +28,35 @@ describe("payloadToTimelineCommand layer mode", () => {
     });
   });
 
+  it("converts layer group drop time to parent-relative node timing", () => {
+    const payload: LibraryPayload = {
+      kind: "text",
+      id: "t2",
+      label: "Child",
+      text: "Hi",
+      duration: 2,
+    };
+    const { command } = payloadToTimelineCommand(payload, {
+      track: "overlay",
+      startTime: 8,
+      layerSceneId: "sc1",
+      layerContainerStart: 2,
+      layerContainerDuration: 10,
+      layerParentId: "group.char",
+      layerParentSceneStart: 5,
+      layerParentDuration: 4,
+      insertOrder: 3,
+    });
+
+    expect(command).toMatchObject({
+      type: "add-scene-node",
+      sceneId: "sc1",
+      parentId: "group.char",
+      timing: { start: 1, duration: 3 },
+      zIndex: 3,
+    });
+  });
+
   it("rejects audio as a scene layer", () => {
     const payload: LibraryPayload = {
       kind: "audio",

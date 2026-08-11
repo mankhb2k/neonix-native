@@ -69,13 +69,21 @@ function layerNodeCommit(
     0.001,
     target.layerContainerDuration ?? draft.duration,
   );
+  const parentSceneStart = Math.max(0, target.layerParentSceneStart ?? 0);
+  const parentDuration = Math.max(
+    0.001,
+    target.layerParentDuration ?? containerDuration,
+  );
   const globalStart = Math.max(0, target.startTime ?? containerStart);
   const localStart = Math.max(
     0,
-    Math.min(containerDuration, globalStart - containerStart),
+    Math.min(
+      Math.max(0, parentDuration - 0.001),
+      globalStart - containerStart - parentSceneStart,
+    ),
   );
   // Layer mode: full-height stack strips — new node spans remaining container.
-  const localDuration = Math.max(0.001, containerDuration - localStart);
+  const localDuration = Math.max(0.001, parentDuration - localStart);
   const zIndex =
     target.insertOrder != null && Number.isFinite(target.insertOrder)
       ? Math.floor(target.insertOrder)
@@ -87,6 +95,7 @@ function layerNodeCommit(
       draft,
       timing: { start: localStart, duration: localDuration },
       zIndex,
+      parentId: target.layerParentId,
     },
     label: `Add layer ${payload.label}`,
   };
@@ -95,7 +104,7 @@ function layerNodeCommit(
 /**
  * Map a typed library payload to a TimelineCommand.
  * Image/video use MotionScene image/video nodes via FrameDraft.kind + assetId
- * (schema ImageNodeV2 / VideoNodeV2). Audio uses add-audio-clip.
+ * (image/video node schemas). Audio uses add-audio-clip.
  * Layer mode (`target.layerSceneId`) → `add-scene-node`.
  */
 export function payloadToTimelineCommand(
@@ -157,7 +166,9 @@ export function payloadToTimelineCommand(
 
     default: {
       const _exhaustive: never = payload;
-      throw new Error(`Unsupported library payload: ${JSON.stringify(_exhaustive)}`);
+      throw new Error(
+        `Unsupported library payload: ${JSON.stringify(_exhaustive)}`,
+      );
     }
   }
 }

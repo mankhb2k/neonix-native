@@ -1,5 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
+import { getTextPayloadPlain, V3 } from "@motionvideo/motion-protocol";
 
 export type CriticFinding = {
   code: string;
@@ -14,10 +14,143 @@ export type CriticReport = {
   findings: CriticFinding[];
 };
 
-/** Structural/layout critic — deterministic, no CSS/JS (R7). */
+/** Structural/layout critic — deterministic, no CSS/JS (R7). Phase 9: V3-aware. */
 export function critiqueProject(project: MotionProject): CriticReport {
   const findings: CriticFinding[] = [];
   let score = 100;
+
+  // ── Phase 9: V3 schema validity ──
+  const parsed = V3.MotionProjectV3Schema.safeParse(project);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      findings.push({
+        code: "schema_invalid",
+        severity: "error",
+        path: issue.path.join("."),
+        message: issue.message,
+        repairHint: "Fix the schema violation before proceeding",
+      });
+      score -= 20;
+    }
+    return { score: Math.max(0, score), findings };
+  }
+
+  // ── V3 visualTracks integrity ──
+  const sceneIds = new Set(project.scenes.map((s) => s.id));
+  const componentIds = new Set(project.components.map((c) => c.id));
+  for (const track of project.timeline.visualTracks) {
+    for (const clip of track.clips) {
+      if (clip.source.kind === "scene" && !sceneIds.has(clip.source.sceneId)) {
+        findings.push({
+          code: "clip_target_missing",
+          severity: "error",
+          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
+          message: `Visual clip references unknown scene "${clip.source.sceneId}"`,
+          repairHint: "Add the scene first, or point clip to an existing scene",
+        });
+        score -= 25;
+      }
+      if (
+        clip.source.kind === "component" &&
+        !componentIds.has(clip.source.componentId)
+      ) {
+        findings.push({
+          code: "clip_component_missing",
+          severity: "error",
+          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
+          message: `Visual clip references unknown component "${clip.source.componentId}"`,
+          repairHint:
+            "Embed the component definition, or point clip to an existing component",
+        });
+        score -= 25;
+      }
+    }
+  }
+
+  // ── Clip timing ──
+  for (const track of project.timeline.visualTracks) {
+    if (track.role !== "main") continue;
+    const sorted = [...track.clips].sort((a, b) => a.start - b.start);
+    for (let i = 0; i < sorted.length; i += 1) {
+      const clip = sorted[i]!;
+      if (clip.start < 0) {
+        findings.push({
+          code: "clip_negative_start",
+          severity: "error",
+          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
+          message: `Clip start is negative (${clip.start})`,
+          repairHint: "Set clip start >= 0",
+        });
+        score -= 10;
+      }
+      if (clip.duration <= 0) {
+        findings.push({
+          code: "clip_zero_duration",
+          severity: "error",
+          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
+          message: `Clip duration is non-positive (${clip.duration})`,
+          repairHint: "Set clip duration > 0",
+        });
+        score -= 10;
+      }
+      // Check for overlapping clips in the base lane
+      if (i > 0) {
+        const prev = sorted[i - 1]!;
+        const prevEnd = prev.start + prev.duration;
+        if (clip.start < prevEnd - 1e-9) {
+          findings.push({
+            code: "clip_overlap",
+            severity: "warning",
+            path: `timeline.visualTracks.${track.id}.clips`,
+            message: `Clips "${prev.id}" and "${clip.id}" overlap`,
+            repairHint:
+              "Adjust clip start times to eliminate overlap, or use overlay tracks",
+          });
+          score -= 5;
+        }
+      }
+    }
+  }
+
+  // ── Asset integrity ──
+  const assetIds = new Set(project.assets.map((a) => a.id));
+  for (const scene of project.scenes) {
+    for (const node of scene.nodes) {
+      const payload = node.payload as Record<string, unknown>;
+      if (
+        (node.type === "image" ||
+          node.type === "svg" ||
+          node.type === "video") &&
+        typeof payload.assetId === "string" &&
+        !assetIds.has(payload.assetId)
+      ) {
+        findings.push({
+          code: "asset_missing",
+          severity: "error",
+          path: `scenes.${scene.id}.nodes.${node.id}`,
+          message: `Node references unknown asset "${payload.assetId}"`,
+          repairHint:
+            "registerAsset before referencing it, or use a valid asset id",
+        });
+        score -= 15;
+      }
+    }
+  }
+
+  // ── Unsupported capabilities ──
+  const capabilities = project.capabilities;
+  const experimental = capabilities?.experimental ?? [];
+  if (experimental.length > 0) {
+    findings.push({
+      code: "experimental_capabilities",
+      severity: "warning",
+      path: "capabilities.experimental",
+      message: `Project requires experimental capabilities: ${experimental.join(", ")}`,
+      repairHint:
+        "Remove experimental capability requirements for production use",
+    });
+    score -= 5;
+  }
 
   if (project.scenes.length === 0) {
     findings.push({
@@ -32,8 +165,10 @@ export function critiqueProject(project: MotionProject): CriticReport {
 
   const hasCta = project.scenes.some(
     (scene) =>
-      scene.nodes.some((node) => node.semantic?.role === "cta" || node.semantic?.key?.includes("cta")) ||
-      scene.id.includes("cta"),
+      scene.nodes.some(
+        (node) =>
+          node.semantic?.role === "cta" || node.semantic?.key?.includes("cta"),
+      ) || scene.id.includes("cta"),
   );
   if (!hasCta) {
     findings.push({
@@ -76,7 +211,9 @@ export function critiqueProject(project: MotionProject): CriticReport {
         score -= 5;
       }
       if (safe) {
-        const top = (safe.top ?? 0) * (project.metadata.aspectRatio === "9:16" ? 1920 : 1080);
+        const top =
+          (safe.top ?? 0) *
+          (project.metadata.aspectRatio === "9:16" ? 1920 : 1080);
         if (node.transform.y < top) {
           findings.push({
             code: "safe_area",
@@ -119,7 +256,10 @@ export function critiqueProject(project: MotionProject): CriticReport {
 }
 
 /** Apply one targeted repair from critic findings (R7). */
-export function applyCriticRepair(project: MotionProject, finding: CriticFinding): MotionProject {
+export function applyCriticRepair(
+  project: MotionProject,
+  finding: CriticFinding,
+): MotionProject {
   const next = JSON.parse(JSON.stringify(project)) as MotionProject;
   if (finding.code === "text_overflow") {
     const match = /^scenes\.([^.]+)\.nodes\.(.+)$/.exec(finding.path);
@@ -132,8 +272,12 @@ export function applyCriticRepair(project: MotionProject, finding: CriticFinding
           maxFontSize: node.payload.fontSize,
         };
         const box = Math.max(1, node.transform.width);
-        const needed = box / Math.max(1, getTextPayloadPlain(node.payload).length * 0.55);
-        node.payload.fontSize = Math.min(node.payload.fontSize, Math.max(12, needed));
+        const needed =
+          box / Math.max(1, getTextPayloadPlain(node.payload).length * 0.55);
+        node.payload.fontSize = Math.min(
+          node.payload.fontSize,
+          Math.max(12, needed),
+        );
       }
     }
   }
@@ -169,7 +313,11 @@ export function applyCriticRepair(project: MotionProject, finding: CriticFinding
           flipX: false,
           flipY: false,
         },
-        payload: { content: { kind: "plain", text: "Continue" }, fontSize: 48, align: "center" },
+        payload: {
+          content: { kind: "plain", text: "Continue" },
+          fontSize: 48,
+          align: "center",
+        },
         style: { fill: "#ffffff" },
         semantic: { role: "hook", key: "hook.copy", tags: [] },
       });

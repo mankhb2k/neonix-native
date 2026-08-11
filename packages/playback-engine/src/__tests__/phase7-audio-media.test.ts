@@ -210,7 +210,7 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
   it("buildAudioRenderPlan resolves asset duration from runtime", () => {
     const runtime = {
       format: "motion-runtime" as const,
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: "test",
         title: "Test",
@@ -232,7 +232,21 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
       ],
       variables: [],
       timeline: {
-        sceneOrder: ["s1"],
+        visualTracks: [
+          {
+            id: "primary",
+            role: "primary",
+            order: 0,
+            clips: [
+              {
+                id: "clip-s1",
+                source: { kind: "scene" as const, sceneId: "s1" },
+                start: 0,
+                duration: 5,
+              },
+            ],
+          },
+        ],
         audioTracks: [
           {
             id: "aud.bgm",

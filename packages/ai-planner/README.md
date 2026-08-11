@@ -1,6 +1,6 @@
 # `@motionvideo/ai-planner`
 
-AI-facing contracts and typed authoring commands for Motion Format v2 (R1).
+AI-facing contracts and typed authoring commands for Motion Format V3.
 
 ## Pipeline
 
@@ -13,7 +13,7 @@ SceneDesignPlanV1
       ↓
 ValidatedCommandBatch → executeCommandBatch
       ↓
-MotionProject v2 (+ generation provenance, outside Runtime IR)
+MotionProject V3 (+ generation provenance, outside Runtime IR)
 ```
 
 Default mode is **from-scratch**. Templates are optional retrieval priors (`mode: "template"`).
@@ -65,4 +65,4 @@ Unsupported stubs return `unsupported_capability` (`addComponentInstance`, `addA
 ## Docs
 
 - Roadmap: `v2-refactor.md` §R1 / §5.1–5.3
-- Capability ledger: `docs/fixtures/v2/ai-capability-manifest.json`
+- Capability ledger: `docs/fixtures/ai/`

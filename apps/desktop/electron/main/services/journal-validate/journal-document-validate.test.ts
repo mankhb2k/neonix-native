@@ -18,7 +18,11 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
     project: {
       scenes: Array<Record<string, unknown>>;
-      timeline: { sceneOrder: string[]; audioTracks: unknown[] };
+      timeline: {
+        visualTracks: unknown[];
+        audioTracks: unknown[];
+        captionTracks: unknown[];
+      };
     };
   };
   const id = "scene_pad";
@@ -42,16 +46,37 @@ function inflateToBytes(base: string, targetBytes: number): string {
       flipX: false,
       flipY: false,
     },
-    payload: { text: "", fontSize: 12, fontWeight: 400, align: "left" },
+    payload: {
+      content: { kind: "plain", text: "" },
+      fontSize: 12,
+      color: "#000000",
+      alignment: "left",
+    },
   };
   envelope.project.scenes = [
     { id, name: "Pad", duration: 1, nodes: [node], clips: [] },
   ];
-  envelope.project.timeline.sceneOrder = [id];
+  envelope.project.timeline.visualTracks = [
+    {
+      id: "main-track",
+      role: "main",
+      order: 0,
+      clips: [
+        {
+          id: "clip_pad",
+          source: { kind: "scene", sceneId: id },
+          start: 0,
+          duration: 1,
+        },
+      ],
+    },
+  ];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
-    (node.payload as { text: string }).text = "x".repeat(deficit);
+    (node.payload as { content: { text: string } }).content.text = "x".repeat(
+      deficit,
+    );
     json = JSON.stringify(envelope);
   }
   return json;
@@ -64,7 +89,10 @@ afterEach(() => {
 describe("journal-document.validator", () => {
   it("falls back to sync when worker path is unusable", async () => {
     const blank = buildBlankDesktopProject({ name: "Fallback" });
-    const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+    const doc = inflateToBytes(
+      blank.documentJson,
+      JOURNAL_VALIDATE_OFFLOAD_BYTES,
+    );
     const diagnostics: string[] = [];
     const result = await validateAndHashDocument(doc, {
       workerPath: path.join(os.tmpdir(), "missing-journal-worker.js"),
@@ -211,7 +239,10 @@ setInterval(() => {}, 1 << 30);
     );
     try {
       const blank = buildBlankDesktopProject({ name: "Hang" });
-      const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+      const doc = inflateToBytes(
+        blank.documentJson,
+        JOURNAL_VALIDATE_OFFLOAD_BYTES,
+      );
       const result = await validateAndHashDocument(doc, {
         workerPath: hangWorker,
         offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,
@@ -240,7 +271,10 @@ setInterval(() => {}, 1 << 30);
 
   it("keeps autosave validate path when diagnostic callback throws", async () => {
     const blank = buildBlankDesktopProject({ name: "DiagThrow" });
-    const doc = inflateToBytes(blank.documentJson, JOURNAL_VALIDATE_OFFLOAD_BYTES);
+    const doc = inflateToBytes(
+      blank.documentJson,
+      JOURNAL_VALIDATE_OFFLOAD_BYTES,
+    );
     const result = await validateAndHashDocument(doc, {
       workerPath: path.join(os.tmpdir(), "missing-journal-worker.js"),
       offloadBytes: JOURNAL_VALIDATE_OFFLOAD_BYTES,

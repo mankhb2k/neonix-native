@@ -93,9 +93,12 @@ Vi du tot: `scene-intro`, `facebook-logo`, `track-narration`, `clip-harvard`.
 - Canonical serializer sort object keys de tao content hash.
 - Timestamp va provenance khong duoc nam trong deterministic render hash.
 
-## 4. Compatibility baseline - v2 hien tai
+## 4. Historical baseline — v2 (đã ngừng sử dụng)
 
-Root v2 dang duoc codebase trien khai:
+> **Status: Đã xóa (Phase 8).** V3 là định dạng authoring duy nhất.
+> Root v2 trước đây được triển khai trong codebase như sau (lưu trữ tham khảo):
+
+Root v2 đã từng được codebase triển khai:
 
 ```ts
 type MotionProjectV2 = {
@@ -136,7 +139,7 @@ Gioi han v2:
 - Component dependency duoc pin nhung definition khong embed trong root.
 - Chua co project capability requirements va source map profile.
 
-V2 tiep tuc duoc parse va migrate; khong sua meaning cua field v2 tai cho.
+V2 không còn được chấp nhận; không sửa meaning của field V2 tại chỗ.
 
 ## 5. Target root - Motion Project v3
 

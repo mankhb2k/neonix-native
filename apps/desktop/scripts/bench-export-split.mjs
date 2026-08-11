@@ -60,19 +60,45 @@ fs.mkdirSync(exportOutDir, { recursive: true });
 
 const project = {
   format: "motion-project",
-  formatVersion: 2,
+  formatVersion: 3,
   metadata: {
     id: "bench.export",
     name: "Bench",
-    aspectRatio: "16:9",
-    fps: 24,
     locale: "vi-VN",
-    brand: { name: "Bench", primaryColor: "#111", fontFamily: "Arial" },
   },
-  dependencies: { components: [] },
+  composition: {
+    width: 1920,
+    height: 1080,
+    fps: 24,
+    background: "#111111",
+    colorSpace: "srgb",
+    audioSampleRate: 48000,
+  },
+  capabilities: {},
+  dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
   assets: [],
   variables: [],
-  timeline: { sceneOrder: ["scene.a"], audioTracks: [] },
+  tokens: {},
+  components: [],
+  timeline: {
+    visualTracks: [
+      {
+        id: "main-track",
+        role: "main",
+        order: 0,
+        clips: [
+          {
+            id: "clip.a",
+            source: { kind: "scene", sceneId: "scene.a" },
+            start: 0,
+            duration: wantUhd ? 0.5 : 0.25,
+          },
+        ],
+      },
+    ],
+    audioTracks: [],
+    captionTracks: [],
+  },
   scenes: [
     {
       id: "scene.a",
@@ -97,15 +123,18 @@ const project = {
             flipX: false,
             flipY: false,
           },
-          payload: { text: "Bench", fontSize: 48, align: "left" },
-          style: { fill: "#ffffff" },
+          payload: {
+            content: { kind: "plain", text: "Bench" },
+            fontSize: 48,
+            color: "#ffffff",
+            alignment: "left",
+          },
         },
       ],
       clips: [],
     },
   ],
   bindings: [],
-  extensions: { constraints: [], events: [] },
 };
 
 fs.writeFileSync(projectPath, JSON.stringify(project));

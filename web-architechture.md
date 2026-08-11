@@ -170,7 +170,7 @@ Không để Pixi đọc `MotionProject` rồi tự tính animation, trong khi R
 MotionProject JSON
   → parseMotionProject()
   → compileMotionProject()
-  → NormalizedMotionProjectV2 / Runtime IR
+  → MotionRuntimeProject / Runtime IR
   → resolve global timeline + local scene time
   → evaluateFrame(frame)
   → EvaluatedFrame
@@ -194,7 +194,7 @@ Là JSON mà AI, editor, database và API hiểu:
 - capability/version metadata;
 - không có Pixi object, React element, CSS animation hoặc function tùy ý.
 
-#### Runtime contract — `NormalizedMotionProjectV2`
+#### Runtime contract — MotionRuntimeProject
 
 Là kết quả compiler đã resolve:
 

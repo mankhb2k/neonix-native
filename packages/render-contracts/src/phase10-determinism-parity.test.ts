@@ -36,10 +36,10 @@ import type { PreflightResult } from "./preflight.js";
 // ═══════════════════════════════════════════════════════════════════
 
 describe("RenderManifest expansion (Task 10.1)", () => {
-  it("formatVersion is now 2 (Phase 10)", () => {
+  it("manifestVersion is now 2 (Phase 10)", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
-      formatVersion: 2,
+      manifestVersion: 2,
       projectId: "p1",
       projectRevision: 0,
       versions: {
@@ -76,14 +76,14 @@ describe("RenderManifest expansion (Task 10.1)", () => {
         privacy: "private",
       },
     });
-    expect(manifest.formatVersion).toBe(2);
+    expect(manifest.manifestVersion).toBe(2);
   });
 
   it("contentHash must be exactly 64 hex chars (SHA-256)", () => {
     expect(() =>
       parseRenderManifest({
         format: "moticlip-render-manifest",
-        formatVersion: 2,
+        manifestVersion: 2,
         projectId: "p1",
         projectRevision: 0,
         versions: {
@@ -119,7 +119,7 @@ describe("RenderManifest expansion (Task 10.1)", () => {
   it("determinism block has all required fields", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
-      formatVersion: 2,
+      manifestVersion: 2,
       projectId: "p1",
       projectRevision: 0,
       versions: {
@@ -160,7 +160,7 @@ describe("RenderManifest expansion (Task 10.1)", () => {
   it("audio block is optional", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
-      formatVersion: 2,
+      manifestVersion: 2,
       projectId: "p1",
       projectRevision: 0,
       versions: {
@@ -197,7 +197,7 @@ describe("RenderManifest expansion (Task 10.1)", () => {
   it("audio block with data parses correctly", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
-      formatVersion: 2,
+      manifestVersion: 2,
       projectId: "p1",
       projectRevision: 0,
       versions: {

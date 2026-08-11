@@ -4,7 +4,7 @@ import { PreviewStageHost } from "@/components/editor/stage/PreviewStageHost";
 import { TimelineShell } from "@/components/editor/timeline/TimelineShell";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
-import { sceneOrderToTimelineClips } from "@motionvideo/editor-core";
+import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
 import { subscribeLibraryDrag } from "@/lib/editor/library/library-drag-session";
 import { isOverStageDropZone } from "@/lib/editor/library/timeline-library-drop";
 import { cn } from "@/lib/utils";
@@ -33,7 +33,7 @@ export function StageViewport({ project, width, height }: Props) {
   const preview = useMemo(() => resolvePreviewProject(project), [project]);
   const { paintClips, paintLanes } = useMemo(() => {
     if (clips.length > 0) return { paintClips: clips, paintLanes: lanes };
-    const derived = sceneOrderToTimelineClips(preview.project);
+    const derived = visualTracksToTimelineClips(preview.project);
     return { paintClips: derived.clips, paintLanes: derived.lanes };
   }, [clips, lanes, preview.project]);
 

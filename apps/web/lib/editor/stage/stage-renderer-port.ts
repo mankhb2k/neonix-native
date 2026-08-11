@@ -16,7 +16,7 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { compileProjectV3 } from "@motionvideo/motion-runtime/testing";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
@@ -24,7 +24,7 @@ import {
 import type {
   MotionProject,
   MotionScene,
-  NormalizedMotionProjectV2,
+  MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
 import {
   matrixToCss,
@@ -32,6 +32,10 @@ import {
   stageSizeForAspect,
   type PreviewParityNode,
 } from "@/lib/runtime/preview-evaluate";
+import {
+  compositionAspectRatio,
+  compositionFps,
+} from "@/lib/runtime/project-composition";
 
 export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {
@@ -49,9 +53,7 @@ function nodeDomKey(clipId: string, nodeId: string): string {
 
 function isRenderableNode(node: PreviewParityNode): boolean {
   return (
-    node.type !== "group" &&
-    node.type !== "bone" &&
-    node.type !== "camera"
+    node.type !== "group" && node.type !== "bone" && node.type !== "camera"
   );
 }
 
@@ -124,7 +126,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   let background = "#ffffff";
   let lastFrame = -1;
 
-  let compiled: NormalizedMotionProjectV2 | null = null;
+  let compiled: MotionRuntimeProject | null = null;
   let scenesById: Map<string, MotionScene> = new Map();
   let sceneNodeMaps: Map<string, SceneNodeMap> = new Map();
   let visualIndex: VisualLaneIndex | null = null;
@@ -160,9 +162,9 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   const paintFrame = (frameIndex: number) => {
     if (!project || !visualIndex) return;
     lastFrame = frameIndex;
-    const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+    const fps = compositionFps(project);
     const previewTime = frameIndex / fps;
-    const stage = stageSizeForAspect(project.metadata.aspectRatio);
+    const stage = stageSizeForAspect(compositionAspectRatio(project));
     applyCanvasChrome(stage);
 
     if (!compiled) {
@@ -236,7 +238,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        compiled = compileMotionProject(project);
+        compiled = compileProjectV3(project);
       } catch {
         compiled = null;
       }

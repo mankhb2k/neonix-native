@@ -1,4 +1,7 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProject,
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
 import type { OverlaySceneItem } from "../../overlay-scenes";
 import {
   DEFAULT_VISUAL_POLICY,
@@ -39,7 +42,7 @@ function sceneClip(input: {
   return { kind: "scene", ...input };
 }
 
-/** Scene tối giản dùng trong fixture editor. */
+/** Scene tối giản dùng trong fixture editor (V3 nodes). */
 function scene(id: string, name: string, duration = 3) {
   return {
     id,
@@ -49,6 +52,7 @@ function scene(id: string, name: string, duration = 3) {
         id: `${id}.title`,
         type: "text" as const,
         parentId: null,
+        zIndex: 0,
         transform: {
           x: 40,
           y: 40,
@@ -64,37 +68,70 @@ function scene(id: string, name: string, duration = 3) {
           flipX: false,
           flipY: false,
         },
-        payload: { content: { kind: "plain" as const, text: name }, fontSize: 24, fontWeight: 600, align: "left" as const },
-        style: { fill: "#111111" },
+        payload: {
+          content: { kind: "plain" as const, text: name },
+          fontSize: 24,
+          color: "#111111",
+          alignment: "left" as const,
+        },
       },
     ],
     clips: [],
   };
 }
 
-function baseProject(id: string, name: string, scenes: ReturnType<typeof scene>[]): MotionProject {
+function baseProject(
+  id: string,
+  name: string,
+  scenes: ReturnType<typeof scene>[],
+): MotionProject {
   return parseMotionProject({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id,
       name,
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: { name, primaryColor: "#1A5D3A", fontFamily: "Be Vietnam Pro" },
     },
-    dependencies: { components: [] },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#FFFFFF",
+      colorSpace: "srgb",
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {
+      colors: { brand: "#1A5D3A" },
+      fonts: { display: "Be Vietnam Pro" },
+    },
     assets: [],
     variables: [],
+    components: [],
     timeline: {
-      sceneOrder: scenes.map((s) => s.id),
+      visualTracks: [
+        {
+          id: "primary",
+          role: "main",
+          order: 0,
+          clips: scenes.map((s, i) => ({
+            id: `vclip-${i}-${s.id}`,
+            source: { kind: "scene" as const, sceneId: s.id },
+            start:
+              i > 0
+                ? scenes.slice(0, i).reduce((acc, sc) => acc + sc.duration, 0)
+                : 0,
+            duration: s.duration,
+          })),
+        },
+      ],
       audioTracks: [],
+      captionTracks: [],
     },
     scenes,
     bindings: [],
-    extensions: { constraints: [], events: [] },
-  });
+  }) as MotionProject;
 }
 
 /** Project chỉ có main/base timeline. */
@@ -167,9 +204,11 @@ export function fixtureBasePlusOverlay() {
 
 /** Main + nhiều audio track overlap (để kiểm tra migration lane). */
 export function fixtureMainPlusAudioOverlap() {
-  const base = baseProject("fixture.main-audio-overlap", "Main + Audio Overlap", [
-    scene("scene.main", "Main", 6),
-  ]);
+  const base = baseProject(
+    "fixture.main-audio-overlap",
+    "Main + Audio Overlap",
+    [scene("scene.main", "Main", 6)],
+  );
   const project = parseMotionProject({
     ...base,
     assets: [
@@ -208,13 +247,28 @@ export function fixtureMainPlusAudioOverlap() {
       },
     ],
     timeline: {
-      sceneOrder: ["scene.main"],
+      visualTracks: [
+        {
+          id: "primary",
+          role: "main",
+          order: 0,
+          clips: [
+            {
+              id: "vclip-main",
+              source: { kind: "scene" as const, sceneId: "scene.main" },
+              start: 0,
+              duration: 6,
+            },
+          ],
+        },
+      ],
       audioTracks: [
         {
           id: "audio.a",
           role: "bgm",
           assetId: "asset.audio.a",
           start: 0,
+          duration: 4,
           volume: 1,
         },
         {
@@ -222,6 +276,7 @@ export function fixtureMainPlusAudioOverlap() {
           role: "sfx",
           assetId: "asset.audio.b",
           start: 2,
+          duration: 3,
           volume: 0.8,
         },
         {
@@ -229,11 +284,13 @@ export function fixtureMainPlusAudioOverlap() {
           role: "voiceover",
           assetId: "asset.audio.c",
           start: 2.5,
+          duration: 2,
           volume: 1,
         },
       ],
+      captionTracks: [],
     },
-  });
+  }) as MotionProject;
   const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [
     sceneClip({
@@ -248,10 +305,14 @@ export function fixtureMainPlusAudioOverlap() {
   return { project, clips, lanes, overlayScenes: [] as OverlaySceneItem[] };
 }
 
-/** Legacy lưu bằng overlay sidecar + sceneOrder, chưa có clips/lanes. */
+/**
+ * @migrationOnly — Tests legacy overlay-scene deserialization from the
+ * pre-visualTracks era. Clips/Lanes are empty; scene placement is derived
+ * from the envelope's overlayScenes sidecar via layerIndex.
+ */
 export function fixtureLegacyTrackLayerIndex() {
-  // Legacy: scene vẫn nằm trong project (schema yêu cầu schedule);
-  // placement overlay lấy từ sidecar layerIndex, không từ sceneOrder.
+  // Scene placement is resolved from overlayScenes sidecar,
+  // not from visualTracks or the old V2 sceneOrder field.
   const project = baseProject("fixture.legacy-track", "Legacy Track", [
     scene("scene.main", "Main", 3),
     scene("scene.ov", "Overlay", 2),
@@ -277,19 +338,53 @@ export function fixtureLegacyTrackLayerIndex() {
 export function fixtureMultiSceneReferences() {
   const project = parseMotionProject({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "fixture.multi-ref",
       name: "Multi Scene Refs",
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: { name: "Refs", primaryColor: "#1A5D3A" },
     },
-    dependencies: { components: [] },
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: "#FFFFFF",
+      colorSpace: "srgb",
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {
+      colors: { brand: "#1A5D3A" },
+      fonts: { display: "Be Vietnam Pro" },
+    },
     assets: [],
     variables: [],
-    timeline: { sceneOrder: ["scene.a", "scene.b"], audioTracks: [] },
+    components: [],
+    timeline: {
+      visualTracks: [
+        {
+          id: "primary",
+          role: "main",
+          order: 0,
+          clips: [
+            {
+              id: "vclip-a",
+              source: { kind: "scene" as const, sceneId: "scene.a" },
+              start: 0,
+              duration: 2,
+            },
+            {
+              id: "vclip-b",
+              source: { kind: "scene" as const, sceneId: "scene.b" },
+              start: 2,
+              duration: 2,
+            },
+          ],
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
     scenes: [
       {
         id: "scene.a",
@@ -334,8 +429,12 @@ export function fixtureMultiSceneReferences() {
               flipX: false,
               flipY: false,
             },
-            payload: { content: { kind: "plain", text: "A" }, fontSize: 18, fontWeight: 400, align: "left" },
-            style: { fill: "#000" },
+            payload: {
+              content: { kind: "plain", text: "A" },
+              fontSize: 18,
+              color: "#000000",
+              alignment: "left" as const,
+            },
           },
         ],
         clips: [
@@ -384,26 +483,19 @@ export function fixtureMultiSceneReferences() {
               flipX: false,
               flipY: false,
             },
-            payload: { content: { kind: "plain", text: "B" }, fontSize: 20, fontWeight: 600, align: "left" },
-            style: { fill: "#222" },
+            payload: {
+              content: { kind: "plain", text: "B" },
+              fontSize: 20,
+              color: "#222222",
+              alignment: "left" as const,
+            },
           },
         ],
         clips: [],
       },
     ],
     bindings: [],
-    extensions: {
-      constraints: [
-        {
-          id: "constraint.a",
-          type: "lookAt",
-          sourceId: "node.a.child",
-          targetId: "node.a.root",
-        },
-      ],
-      events: [],
-    },
-  });
+  }) as MotionProject;
   const lanes: TimelineLane[] = [baseLane()];
   const clips: TimelineClip[] = [
     sceneClip({

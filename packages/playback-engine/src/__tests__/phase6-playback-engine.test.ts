@@ -20,7 +20,7 @@ import {
   type FrameConsumer,
 } from "../index";
 
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 
 // ── Helpers for test runtime ─────────────────────────────────────────
@@ -28,7 +28,7 @@ import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 function makeRuntime(
   duration: number,
   extraScenes: number = 0,
-): NormalizedMotionProjectV2 {
+): MotionRuntimeProject {
   const scenes = [
     {
       id: "s1",
@@ -91,7 +91,7 @@ function makeRuntime(
 
   return {
     format: "motion-runtime",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "test",
       title: "Test",
@@ -101,7 +101,19 @@ function makeRuntime(
     },
     assets: [],
     timeline: {
-      sceneOrder: scenes.map((s) => s.id),
+      visualTracks: [
+        {
+          id: "primary",
+          role: "primary",
+          order: 0,
+          clips: scenes.map((s) => ({
+            id: `clip-${s.id}`,
+            source: { kind: "scene" as const, sceneId: s.id },
+            start: 0,
+            duration: s.duration,
+          })),
+        },
+      ],
       audioTracks: [],
       captionTracks: [],
     },

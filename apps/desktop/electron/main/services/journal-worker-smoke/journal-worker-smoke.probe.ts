@@ -18,7 +18,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
     project: {
       scenes: Array<Record<string, unknown>>;
-      timeline: { sceneOrder: string[]; audioTracks: unknown[] };
+      timeline: { audioTracks: unknown[] };
     };
   };
   const id = "scene_smoke_pad";
@@ -47,7 +47,6 @@ function inflateToBytes(base: string, targetBytes: number): string {
   envelope.project.scenes = [
     { id, name: "Smoke", duration: 1, nodes: [node], clips: [] },
   ];
-  envelope.project.timeline.sceneOrder = [id];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
@@ -91,7 +90,7 @@ export async function runJournalWorkerSmokeProbe(): Promise<number> {
     workerExists: Boolean(workerPath && fs.existsSync(workerPath)),
     bytes,
     via: result.ok ? result.via : null,
-    fallbackFrom: result.ok ? result.fallbackFrom ?? null : null,
+    fallbackFrom: result.ok ? (result.fallbackFrom ?? null) : null,
     error: result.ok ? null : result.error,
     kind: result.ok ? null : result.kind,
     smokeTokenPresent: true,

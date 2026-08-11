@@ -14,7 +14,7 @@ import {
 import {
   selectionNone,
   selectionNode,
-  sceneOrderToTimelineClips,
+  visualTracksToTimelineClips,
 } from "@motionvideo/editor-core";
 import { useEditorStore } from "@/lib/editor/editor-store";
 import { resolvePreviewProject } from "@/lib/editor/preview/preview-project";
@@ -164,7 +164,7 @@ export function InteractionOverlay({
 
     const resolved = resolvePreviewProject(project);
     if (resolved.usingDemo) {
-      const { lanes, clips } = sceneOrderToTimelineClips(resolved.project);
+      const { lanes, clips } = visualTracksToTimelineClips(resolved.project);
       useEditorStore.setState({
         project: resolved.project,
         timelineLanes: lanes,
@@ -221,7 +221,7 @@ export function InteractionOverlay({
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
       if (resolved.usingDemo) {
-        const { lanes, clips } = sceneOrderToTimelineClips(resolved.project);
+        const { lanes, clips } = visualTracksToTimelineClips(resolved.project);
         useEditorStore.setState({
           project: resolved.project,
           timelineLanes: lanes,

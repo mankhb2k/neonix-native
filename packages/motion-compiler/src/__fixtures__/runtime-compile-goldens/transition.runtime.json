@@ -1,0 +1,177 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 3,
+  "runtimeVersion": 1,
+  "metadata": {
+    "id": "transition",
+    "name": "Transition",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Transition"
+    },
+    "description": "Two scenes with a fade transition between them"
+  },
+  "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "runtimeHash": "7a011b6a622858e1c3c8097fb06eafef",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro",
+      "outro": "scenes:outro"
+    }
+  },
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main-track",
+        "role": "primary",
+        "order": 0,
+        "clips": [
+          {
+            "id": "clip-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 3,
+            "transitionOut": {
+              "type": "fade",
+              "duration": 0.5,
+              "color": "#000000",
+              "easing": "easeInOut"
+            }
+          },
+          {
+            "id": "clip-outro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "outro"
+            },
+            "start": 3,
+            "duration": 2
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "duration": 3,
+      "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "intro-title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "First Scene"
+            },
+            "fontSize": 64,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
+          }
+        }
+      ],
+      "tracks": []
+    },
+    {
+      "id": "outro",
+      "duration": 2,
+      "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "outro"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "outro-title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Second Scene"
+            },
+            "fontSize": 64,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
+          }
+        }
+      ],
+      "tracks": []
+    }
+  ]
+}

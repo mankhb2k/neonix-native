@@ -13,10 +13,10 @@ import {
 } from "@motionvideo/editor-core";
 import type { LibraryPayload } from "../../library/model/library-payload";
 import { snapMoveStartToEdges } from "@motionvideo/editor-interactions";
-import { isLayerModeLaneId } from "../layer-mode/build-layer-mode-view";
 import {
   resolveLayerInsertGapAtClientY,
   zIndexForLayerInsertGap,
+  zIndexForLayerInsertGapInGroup,
 } from "../layer-mode/layer-row-reorder";
 import { hitTimelineDropZone } from "./drop-geometry";
 import {
@@ -60,6 +60,12 @@ export type LibraryDropPreview = {
   label: string;
   /** CapCut vertical snap guide time (clip edge alignment). */
   snapGuideTime?: number | null;
+  /** Layer mode: parent group target for add-scene-node. */
+  layerParentId?: string | null;
+  /** Layer mode: target parent's scene-local effective start. */
+  layerParentSceneStart?: number;
+  /** Layer mode: target parent's effective duration. */
+  layerParentDuration?: number;
 };
 
 let wasInsertVisual = false;
@@ -228,6 +234,40 @@ function targetToTrack(
   return "overlay";
 }
 
+function resolveLayerDropContext(
+  host: TimelineDropHost,
+  insertBeforeIndex: number,
+): {
+  parentId: string | null;
+  parentSceneStart: number;
+  parentDuration: number;
+  insertOrder: number;
+} {
+  const layerMode = host.layerMode;
+  const nodes = layerMode?.nodes ?? [];
+  const before = nodes[insertBeforeIndex];
+  const previous = nodes[insertBeforeIndex - 1];
+  const parentId = before?.parentId ?? previous?.parentId ?? null;
+  const siblings = nodes.filter((node) => node.parentId === parentId);
+  const siblingInsertIndex = nodes
+    .slice(0, Math.max(0, insertBeforeIndex))
+    .filter((node) => node.parentId === parentId).length;
+  const parent = parentId
+    ? nodes.find((node) => node.id === parentId)
+    : undefined;
+
+  return {
+    parentId,
+    parentSceneStart: parent?.sceneLocalStart ?? 0,
+    parentDuration:
+      parent?.sceneLocalDuration ?? layerMode?.containerDuration ?? 0.001,
+    insertOrder: zIndexForLayerInsertGapInGroup(
+      siblings.map((node) => node.zIndex),
+      siblingInsertIndex,
+    ),
+  };
+}
+
 /**
  * Layer mode: ghost + drop only at above/below/between gaps — never on a row body.
  */
@@ -257,10 +297,8 @@ function resolveLayerModeDropPreview(
       )
     : null;
 
-  const layerLanes = host.lanes.filter((l) => isLayerModeLaneId(l.id));
-  const orderedZ = layerLanes.map((l) => l.order);
   const insertBeforeIndex = gap?.insertBeforeIndex ?? 0;
-  const insertOrder = zIndexForLayerInsertGap(orderedZ, insertBeforeIndex);
+  const layerContext = resolveLayerDropContext(host, insertBeforeIndex);
   const contentTop =
     gap?.contentTop ??
     (layout
@@ -276,7 +314,7 @@ function resolveLayerModeDropPreview(
     track: "overlay",
     laneId: null,
     isInsert: true,
-    insertOrder,
+    insertOrder: layerContext.insertOrder,
     indicatorTop: contentTop - host.scrollEl.scrollTop,
     overBaseBody: false,
     ghostWidthPx: ghostWidthFor(payload),
@@ -284,6 +322,9 @@ function resolveLayerModeDropPreview(
     contentTop,
     label: payloadLabel(payload),
     snapGuideTime: snapped.snapGuideTime,
+    layerParentId: layerContext.parentId,
+    layerParentSceneStart: layerContext.parentSceneStart,
+    layerParentDuration: layerContext.parentDuration,
   };
 }
 
@@ -530,6 +571,10 @@ export function resolveLibraryPlacement(
           layerSceneId: host.layerMode.sceneId,
           layerContainerStart: host.layerMode.containerStartTime,
           layerContainerDuration: host.layerMode.containerDuration,
+          layerParentId: preview.layerParentId ?? null,
+          layerParentSceneStart: preview.layerParentSceneStart ?? 0,
+          layerParentDuration:
+            preview.layerParentDuration ?? host.layerMode.containerDuration,
         }
       : {};
 

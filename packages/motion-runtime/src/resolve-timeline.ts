@@ -1,8 +1,17 @@
-import type { MotionProject } from "@motionvideo/motion-protocol";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type TimelineProjectLike = {
-  timeline: { sceneOrder: readonly string[] };
+  timeline: {
+    /** V3 visual tracks — the sole source of timeline ordering. */
+    visualTracks: ReadonlyArray<{
+      role: string;
+      clips: ReadonlyArray<{
+        source: { kind: string; sceneId?: string; componentId?: string };
+        start: number;
+        duration: number;
+      }>;
+    }>;
+  };
   scenes: readonly {
     id: string;
     duration: number;
@@ -29,31 +38,35 @@ export type TimelineSceneSegment = {
 
 /**
  * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
+ *
+ * Phase 7: resolves exclusively from the primary visualTracks track (V3 model).
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
 ): TimelineSceneSegment[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
-  const order =
-    runtime.timeline.sceneOrder.length > 0
-      ? runtime.timeline.sceneOrder
-      : runtime.scenes.map((scene) => scene.id);
 
-  const segments: TimelineSceneSegment[] = [];
-  let cursor = 0;
-  for (const sceneId of order) {
-    const scene = byId.get(sceneId);
-    if (!scene) continue;
-    const duration = Math.max(0, scene.duration ?? 0);
-    segments.push({
-      sceneId,
-      name: scene.name,
-      start: cursor,
-      duration,
-    });
-    cursor += duration;
+  // Phase 7: visualTracks primary track is the sole source
+  const primaryTrack = runtime.timeline.visualTracks.find(
+    (t) => t.role === "primary",
+  );
+  if (!primaryTrack || primaryTrack.clips.length === 0) {
+    return [];
   }
-  return segments;
+  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
+  return sortedClips.map((clip) => {
+    const sourceId =
+      clip.source.kind === "scene"
+        ? clip.source.sceneId
+        : clip.source.componentId;
+    const scene = sourceId ? byId.get(sourceId) : undefined;
+    return {
+      sceneId: sourceId ?? "",
+      name: scene?.name,
+      start: clip.start,
+      duration: clip.duration,
+    };
+  });
 }
 
 export function timelineTotalDuration(runtime: TimelineProjectLike): number {
@@ -109,4 +122,4 @@ export function resolveTimelineAtTime(
 }
 
 /** @deprecated Prefer TimelineProjectLike — kept for call-site clarity. */
-export type TimelineRuntime = NormalizedMotionProjectV2 | MotionProject;
+export type TimelineRuntime = MotionRuntimeProject;

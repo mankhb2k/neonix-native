@@ -1,5 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import type { OverlaySceneItem } from "@motionvideo/editor-core";
 import {
   ensureAudioClipsFromTracks,
@@ -57,7 +57,8 @@ export function saveProject(
   project: MotionProject,
   options: SaveProjectOptions | OverlaySceneItem[] = {},
 ): void {
-  const parsed = parseMotionProject(project);
+  // Version-aware: legacy v2 projects are migrated to v3 before persisting.
+  const parsed = parseProjectInput(project);
   const adapter = getProjectStorageAdapter();
   const previous = loadStored(parsed.metadata.id);
   const opts = Array.isArray(options) ? { overlayScenes: options } : options;

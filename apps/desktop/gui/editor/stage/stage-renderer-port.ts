@@ -15,7 +15,7 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
@@ -26,7 +26,11 @@ import {
   stageSizeForAspect,
   type PreviewParityNode,
 } from "../preview/preview-evaluate";
-import type { NormalizedMotionProjectV2 , MotionProject, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+  MotionProject,
+  MotionScene,
+} from "@motionvideo/motion-protocol";
 
 export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {
@@ -40,11 +44,19 @@ function nodeDomKey(clipId: string, nodeId: string): string {
   return `${clipId}\0${nodeId}`;
 }
 
+/** Derive legacy aspect label from v3 composition dimensions. */
+function compositionAspectLabel(
+  project: MotionProject,
+): "16:9" | "9:16" | "1:1" {
+  const ratio = project.composition.width / project.composition.height;
+  if (Math.abs(ratio - 9 / 16) < 0.01) return "9:16";
+  if (Math.abs(ratio - 1) < 0.01) return "1:1";
+  return "16:9";
+}
+
 function isRenderableNode(node: PreviewParityNode): boolean {
   return (
-    node.type !== "group" &&
-    node.type !== "bone" &&
-    node.type !== "camera"
+    node.type !== "group" && node.type !== "bone" && node.type !== "camera"
   );
 }
 
@@ -64,7 +76,10 @@ function nodeLabel(
   return node.id;
 }
 
-function applyStaticNodeChrome(el: HTMLDivElement, node: PreviewParityNode): void {
+function applyStaticNodeChrome(
+  el: HTMLDivElement,
+  node: PreviewParityNode,
+): void {
   el.dataset.testid = `runtime-node-${node.id}`;
   el.dataset.nodeType = node.type;
   el.className = "preview-layer-node";
@@ -105,7 +120,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   let lastFrame = -1;
 
   /** Invalidated only by setDocument. */
-  let compiled: NormalizedMotionProjectV2 | null = null;
+  let compiled: MotionRuntimeProject | null = null;
   let scenesById: Map<string, MotionScene> = new Map();
   /** Per-scene nodeId → authored node; avoids scene.nodes.find in paintFrame. */
   let sceneNodeMaps: Map<string, SceneNodeMap> = new Map();
@@ -139,9 +154,9 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   const paintFrame = (frameIndex: number) => {
     if (!project || !visualIndex) return;
     lastFrame = frameIndex;
-    const fps = Math.max(1, Math.round(project.metadata.fps ?? 30));
+    const fps = Math.max(1, Math.round(project.composition.fps));
     const previewTime = frameIndex / fps;
-    const stage = stageSizeForAspect(project.metadata.aspectRatio);
+    const stage = stageSizeForAspect(compositionAspectLabel(project));
     applyCanvasChrome(stage);
 
     if (!compiled) {
@@ -213,7 +228,8 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        compiled = compileMotionProject(project);
+        const result = compileMotionProjectV3(project);
+        compiled = result.ok ? result.project : null;
       } catch {
         compiled = null;
       }

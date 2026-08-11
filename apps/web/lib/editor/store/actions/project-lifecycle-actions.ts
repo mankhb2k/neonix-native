@@ -10,7 +10,7 @@ import {
   migrateLanesAndClips,
   normalizeLaneOrders,
 } from "@motionvideo/editor-core";
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 import type {
   EditorStoreActions,
   EditorStoreGet,
@@ -30,7 +30,7 @@ export function createProjectLifecycleActions(
       storedClips = [],
       storedLanes = [],
     ) => {
-      const project = parseMotionProject(input);
+      const project = parseProjectInput(input);
       const { lanes: migratedLanes, clips: migratedClips } =
         migrateLanesAndClips(
           project,

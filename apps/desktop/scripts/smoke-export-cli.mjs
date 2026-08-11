@@ -73,13 +73,7 @@ if (!fs.existsSync(electronBin)) {
 const resolveElectron = () => {
   const candidates = [
     path.join(desktopRoot, "node_modules", "electron", "cli.js"),
-    path.join(
-      desktopRoot,
-      "..",
-      "..",
-      "node_modules",
-      ".pnpm",
-    ),
+    path.join(desktopRoot, "..", "..", "node_modules", ".pnpm"),
   ];
   // Prefer electron executable via require('electron')
   try {
@@ -164,7 +158,9 @@ try {
 }
 
 if (!probeJson.canvasOk) {
-  fail(`canvas-fail: Cannot find native binding (probe=${JSON.stringify(probeJson)})`);
+  fail(
+    `canvas-fail: Cannot find native binding (probe=${JSON.stringify(probeJson)})`,
+  );
 }
 if (!probeJson.ffmpegExists) {
   fail(`ffmpeg-exists: false (probe=${JSON.stringify(probeJson)})`);
@@ -173,23 +169,45 @@ ok("canvas + ffmpeg under ELECTRON_RUN_AS_NODE");
 
 const minimalProject = {
   format: "motion-project",
-  formatVersion: 2,
+  formatVersion: 3,
   metadata: {
     id: "smoke_export_cli",
     name: "Smoke Export",
-    aspectRatio: "16:9",
-    fps: 24,
     locale: "vi-VN",
-    brand: {
-      name: "Smoke",
-      primaryColor: "#111111",
-      fontFamily: "Arial",
-    },
   },
-  dependencies: { components: [] },
+  composition: {
+    width: 1920,
+    height: 1080,
+    fps: 24,
+    background: "#111111",
+    colorSpace: "srgb",
+    audioSampleRate: 48000,
+  },
+  capabilities: {},
+  dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
   assets: [],
   variables: [],
-  timeline: { sceneOrder: ["scene_smoke"], audioTracks: [] },
+  tokens: {},
+  components: [],
+  timeline: {
+    visualTracks: [
+      {
+        id: "main-track",
+        role: "main",
+        order: 0,
+        clips: [
+          {
+            id: "clip_smoke",
+            source: { kind: "scene", sceneId: "scene_smoke" },
+            start: 0,
+            duration: 0.2,
+          },
+        ],
+      },
+    ],
+    audioTracks: [],
+    captionTracks: [],
+  },
   scenes: [
     {
       id: "scene_smoke",
@@ -216,19 +234,17 @@ const minimalProject = {
             flipY: false,
           },
           payload: {
-            text: "Smoke",
+            content: { kind: "plain", text: "Smoke" },
             fontSize: 24,
-            fontWeight: 600,
-            align: "left",
+            color: "#ffffff",
+            alignment: "left",
           },
-          style: { fill: "#ffffff" },
         },
       ],
       clips: [],
     },
   ],
   bindings: [],
-  extensions: { constraints: [], events: [] },
 };
 
 const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "mv-export-smoke-"));

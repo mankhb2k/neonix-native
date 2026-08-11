@@ -6,13 +6,13 @@ import {
   sampleAudioVolumeLinear,
   type AudioRenderPlan,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 import { RemotionFramePainter } from "./RemotionFramePainter";
 
 export type MotiClipVideoProps = {
   manifest: RenderManifest;
-  runtime: NormalizedMotionProjectV2;
+  runtime: MotionRuntimeProject;
 };
 
 /**

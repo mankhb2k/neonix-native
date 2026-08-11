@@ -20,6 +20,20 @@ import {
   type DesktopProjectEnvelope,
 } from "./envelope";
 
+/** Phase 7: V2 is no longer accepted. Reject with clear error. */
+function parseEnvelopeProject(
+  project: DesktopProjectEnvelope["project"],
+): MotionProject {
+  if (project.formatVersion === 2) {
+    throw new ProjectFileParseError(
+      "UNSUPPORTED_VERSION",
+      "V2 motion projects are no longer supported. " +
+        "Please migrate your project to V3.",
+    );
+  }
+  return parseMotionProject(project);
+}
+
 export function validateDesktopDocumentJson(documentJson: string): {
   envelope: DesktopProjectEnvelope;
   project: MotionProject;
@@ -39,7 +53,7 @@ export function validateDesktopDocumentJson(documentJson: string): {
 
   let project: MotionProject;
   try {
-    project = parseMotionProject(envelope.project);
+    project = parseEnvelopeProject(envelope.project);
   } catch (error) {
     throw new ProjectFileParseError(
       "CORRUPT_FILE",

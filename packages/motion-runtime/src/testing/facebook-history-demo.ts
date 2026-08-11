@@ -1,9 +1,9 @@
 import {
-  parseMotionProject,
-  type MotionClip,
-  type MotionNode,
-  type MotionProject,
-  type MotionScene,
+  parseMotionProjectV3,
+  type MotionClipV3,
+  type MotionProjectV3,
+  type NodeV3,
+  type SceneDefinitionV3,
 } from "@motionvideo/motion-protocol";
 
 export const FB_HISTORY_SCENE_IDS = {
@@ -53,7 +53,7 @@ function xform(input: Xform) {
   };
 }
 
-function bg(id: string, fill: string): MotionNode {
+function bg(id: string, fill: string): NodeV3 {
   return {
     id,
     type: "shape",
@@ -79,7 +79,7 @@ function rect(
   t: Xform,
   fill: string,
   opts?: { parentId?: string | null; zIndex?: number; cornerRadius?: number },
-): MotionNode {
+): NodeV3 {
   return {
     id,
     type: "shape",
@@ -104,12 +104,11 @@ function textNode(
   payload: {
     text: string;
     fontSize: number;
-    fontWeight?: number;
     align?: "left" | "center" | "right";
   },
   fill: string,
   opts?: { parentId?: string | null; zIndex?: number },
-): MotionNode {
+): NodeV3 {
   return {
     id,
     type: "text",
@@ -120,10 +119,9 @@ function textNode(
     payload: {
       content: { kind: "plain", text: payload.text },
       fontSize: payload.fontSize,
-      fontWeight: payload.fontWeight ?? 600,
-      align: payload.align ?? "center",
+      color: fill,
+      alignment: payload.align ?? "center",
     },
-    style: { fill },
   };
 }
 
@@ -133,7 +131,7 @@ function fadeInClip(
   at: number,
   duration: number,
   fromY?: number,
-): MotionClip {
+): MotionClipV3 {
   const tracks: Array<{
     targetId: string;
     property: string;
@@ -172,9 +170,9 @@ function scene(
   id: string,
   name: string,
   duration: number,
-  nodes: MotionNode[],
-  clips: MotionClip[],
-): MotionScene {
+  nodes: NodeV3[],
+  clips: MotionClipV3[],
+): SceneDefinitionV3 {
   return { id, name, duration, nodes, clips };
 }
 
@@ -202,7 +200,6 @@ function buildHook(): MotionScene {
         {
           text: "Facebook: 20 năm một mạng xã hội",
           fontSize: 64,
-          fontWeight: 700,
           align: "center",
         },
         WHITE,
@@ -215,10 +212,9 @@ function buildHook(): MotionScene {
         {
           text: "Phân tích lịch sử để hiểu tương lai",
           fontSize: 28,
-          fontWeight: 500,
           align: "center",
         },
-        "rgba(255,255,255,0.85)",
+        "#ffffff",
         { zIndex: 2 },
       ),
     ],
@@ -272,7 +268,7 @@ function buildHarvard(): MotionScene {
         yearId,
         "Year",
         { x: 480, y: 540, width: 600, height: 200, opacity: 0 },
-        { text: "2004", fontSize: 160, fontWeight: 800, align: "center" },
+        { text: "2004", fontSize: 160, align: "center" },
         BLUE,
         { zIndex: 2 },
       ),
@@ -290,7 +286,6 @@ function buildHarvard(): MotionScene {
         {
           text: "TheFacebook · Harvard",
           fontSize: 22,
-          fontWeight: 600,
           align: "left",
         },
         BLUE,
@@ -303,7 +298,6 @@ function buildHarvard(): MotionScene {
         {
           text: "Từ ký túc xá đến mạng xã hội toàn cầu — khởi đầu bằng kết nối sinh viên.",
           fontSize: 28,
-          fontWeight: 500,
           align: "left",
         },
         INK,
@@ -335,7 +329,7 @@ function buildNewsfeed(): MotionScene {
         yearId,
         "Year",
         { x: 280, y: 200, width: 280, height: 80, opacity: 0 },
-        { text: "2006", fontSize: 64, fontWeight: 800, align: "left" },
+        { text: "2006", fontSize: 64, align: "left" },
         BLUE,
         { zIndex: 2 },
       ),
@@ -346,7 +340,6 @@ function buildNewsfeed(): MotionScene {
         {
           text: "News Feed — dòng thời gian chung",
           fontSize: 36,
-          fontWeight: 700,
           align: "left",
         },
         INK,
@@ -380,7 +373,6 @@ function buildNewsfeed(): MotionScene {
         {
           text: "Bạn bè cập nhật trạng thái…",
           fontSize: 22,
-          fontWeight: 500,
           align: "left",
         },
         MUTED,
@@ -393,7 +385,6 @@ function buildNewsfeed(): MotionScene {
         {
           text: "Ảnh, liên kết, và tương tác realtime",
           fontSize: 22,
-          fontWeight: 500,
           align: "left",
         },
         MUTED,
@@ -406,7 +397,6 @@ function buildNewsfeed(): MotionScene {
         {
           text: "Thuật toán bắt đầu định hình attention",
           fontSize: 22,
-          fontWeight: 500,
           align: "left",
         },
         MUTED,
@@ -442,7 +432,7 @@ function buildIpo(): MotionScene {
         yearId,
         "Year",
         { x: 960, y: 280, width: 400, height: 100, opacity: 0 },
-        { text: "2012", fontSize: 96, fontWeight: 800, align: "center" },
+        { text: "2012", fontSize: 96, align: "center" },
         BLUE,
         { zIndex: 2 },
       ),
@@ -453,7 +443,6 @@ function buildIpo(): MotionScene {
         {
           text: "IPO & kỷ nguyên mobile",
           fontSize: 44,
-          fontWeight: 700,
           align: "center",
         },
         INK,
@@ -473,7 +462,6 @@ function buildIpo(): MotionScene {
         {
           text: "1 tỷ+\nngười dùng",
           fontSize: 36,
-          fontWeight: 700,
           align: "center",
         },
         INK,
@@ -486,7 +474,6 @@ function buildIpo(): MotionScene {
         {
           text: "Mobile-first\ntrở thành chuẩn",
           fontSize: 36,
-          fontWeight: 700,
           align: "center",
         },
         INK,
@@ -545,7 +532,7 @@ function buildMeta(): MotionScene {
         yearId,
         "Year",
         { x: 960, y: 280, width: 400, height: 80, opacity: 0 },
-        { text: "2021", fontSize: 72, fontWeight: 800, align: "center" },
+        { text: "2021", fontSize: 72, align: "center" },
         WHITE,
         { zIndex: 2 },
       ),
@@ -553,15 +540,15 @@ function buildMeta(): MotionScene {
         oldId,
         "Old name",
         { x: 700, y: 480, width: 400, height: 64, opacity: 0 },
-        { text: "Facebook", fontSize: 40, fontWeight: 600, align: "center" },
-        "rgba(255,255,255,0.7)",
+        { text: "Facebook", fontSize: 40, align: "center" },
+        "#ffffff",
         { zIndex: 2 },
       ),
       textNode(
         newId,
         "New name",
         { x: 1220, y: 480, width: 400, height: 64, opacity: 0 },
-        { text: "Meta", fontSize: 56, fontWeight: 800, align: "center" },
+        { text: "Meta", fontSize: 56, align: "center" },
         WHITE,
         { zIndex: 2 },
       ),
@@ -572,10 +559,9 @@ function buildMeta(): MotionScene {
         {
           text: "Rebrand — từ một app đến hệ sinh thái",
           fontSize: 26,
-          fontWeight: 500,
           align: "center",
         },
-        "rgba(255,255,255,0.85)",
+        "#ffffff",
         { zIndex: 2 },
       ),
       // Dark accent plate at end of beat (static; fill change via second shape fade)
@@ -633,7 +619,6 @@ function buildOutro(): MotionScene {
         {
           text: "Hiểu quá khứ để đọc tương lai",
           fontSize: 52,
-          fontWeight: 700,
           align: "center",
         },
         WHITE,
@@ -646,10 +631,9 @@ function buildOutro(): MotionScene {
         {
           text: "Kể lại lịch sử sản phẩm bằng motion — MotiClip",
           fontSize: 26,
-          fontWeight: 500,
           align: "center",
         },
-        "rgba(255,255,255,0.8)",
+        "#ffffff",
         { zIndex: 2 },
       ),
       textNode(
@@ -659,7 +643,6 @@ function buildOutro(): MotionScene {
         {
           text: "MotiClip Demo",
           fontSize: 18,
-          fontWeight: 600,
           align: "center",
         },
         BLUE,
@@ -675,7 +658,8 @@ function buildOutro(): MotionScene {
 }
 
 /** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
-export function createFacebookHistoryDemoProject(): MotionProject {
+/** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
+export function createFacebookHistoryDemoProject(): MotionProjectV3 {
   const scenes = [
     buildHook(),
     buildHarvard(),
@@ -685,30 +669,56 @@ export function createFacebookHistoryDemoProject(): MotionProject {
     buildOutro(),
   ];
 
-  return parseMotionProject({
+  // Sequential main-track placement (durations: 4+5+5+5+4+4 = 27s).
+  const starts = scenes.map((scene, index) =>
+    scenes.slice(0, index).reduce((sum, s) => sum + s.duration, 0),
+  );
+
+  return parseMotionProjectV3({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "proj_facebook_history_demo",
       name: "Facebook History — Demo",
-      aspectRatio: "16:9",
-      fps: 30,
       locale: "vi-VN",
-      brand: {
-        name: "MotiClip",
-        primaryColor: BLUE,
-        fontFamily: "Be Vietnam Pro",
-      },
     },
-    dependencies: { components: [] },
-    assets: [],
+    composition: {
+      width: 1920,
+      height: 1080,
+      fps: 30,
+      background: BLUE_DARK,
+      colorSpace: "srgb",
+      audioSampleRate: 48000,
+    },
+    capabilities: {},
+    dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+    tokens: {
+      colors: { brand: BLUE, dark: BLUE_DARK, ink: INK, muted: MUTED },
+      fonts: { display: "Be Vietnam Pro" },
+    },
     variables: [],
-    timeline: {
-      sceneOrder: scenes.map((s) => s.id),
-      audioTracks: [],
-    },
+    assets: [],
+    components: [],
     scenes,
+    timeline: {
+      visualTracks: [
+        {
+          id: "track.main",
+          role: "main",
+          order: 0,
+          clips: scenes.map((scene, index) => ({
+            id: `clip.${scene.id}`,
+            source: { kind: "scene", sceneId: scene.id },
+            start: starts[index]!,
+            duration: scene.duration,
+            opacity: 1,
+            loop: false,
+          })),
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
     bindings: [],
-    extensions: { constraints: [], events: [] },
   });
 }

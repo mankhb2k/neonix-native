@@ -24,8 +24,8 @@
 
 // ── Layer versions ────────────────────────────────────────────────────
 
-/** Schema format version (authoring and runtime IR) */
-export const SCHEMA_FORMAT_VERSION = 2 as const;
+/** Schema format version (authoring and runtime IR — bumped Phase 6) */
+export const SCHEMA_FORMAT_VERSION = 3 as const;
 
 /** Project manifest format version */
 export const PROJECT_FORMAT_VERSION = 2 as const;
@@ -211,7 +211,6 @@ export function rollbackChecklist(): string[] {
   return [
     "1. Verify version constants match between runtime and schema",
     "2. Run full test suite: pnpm test",
-    "3. Validate acceptance export parity: pnpm validate-acceptance-export",
     "4. Check golden frame hashes: pnpm validate-paint-parity",
     "5. Verify worker protocol compatibility",
     "6. Check render manifest formatVersion",

@@ -1,0 +1,225 @@
+{
+  "format": "motion-runtime",
+  "formatVersion": 3,
+  "runtimeVersion": 1,
+  "metadata": {
+    "id": "clips-and-tracks",
+    "name": "Clips And Tracks",
+    "aspectRatio": "16:9",
+    "fps": 30,
+    "locale": "vi-VN",
+    "brand": {
+      "name": "Clips And Tracks"
+    },
+    "description": "Scene with property tracks and a preset clip"
+  },
+  "assets": [],
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "runtimeHash": "1f3831c60bdceabc517f7112431c1dd5",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
+  "sourceRef": {
+    "scenes": {
+      "intro": "scenes:intro"
+    }
+  },
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main-track",
+        "role": "primary",
+        "order": 0,
+        "clips": [
+          {
+            "id": "clip-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 5
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "duration": 5,
+      "space": "flat-2d",
+      "sourceRef": {
+        "projectPath": [
+          "scenes",
+          "intro"
+        ]
+      },
+      "nodes": [
+        {
+          "id": "title",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Animated Title"
+            },
+            "fontSize": 64,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
+          }
+        },
+        {
+          "id": "subtitle",
+          "type": "text",
+          "parentId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 960,
+            "y": 700,
+            "width": 600,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritPosition": true,
+          "inheritRotation": true,
+          "inheritScale": true,
+          "inheritOpacity": true,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Property track clip"
+            },
+            "fontSize": 32,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#000000"
+          }
+        }
+      ],
+      "tracks": [
+        {
+          "targetId": "title",
+          "property": "transform.opacity",
+          "valueKind": "number",
+          "keys": [
+            {
+              "t": 0,
+              "v": 0
+            },
+            {
+              "t": 1,
+              "v": 1,
+              "easing": "easeOut"
+            },
+            {
+              "t": 1.5,
+              "v": 0
+            },
+            {
+              "t": 2.5,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "title",
+          "property": "transform.scaleX",
+          "keys": [
+            {
+              "t": 1.5,
+              "v": 0.8
+            },
+            {
+              "t": 2.5,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "title",
+          "property": "transform.scaleY",
+          "keys": [
+            {
+              "t": 1.5,
+              "v": 0.8
+            },
+            {
+              "t": 2.5,
+              "v": 1,
+              "easing": "spring"
+            }
+          ]
+        },
+        {
+          "targetId": "subtitle",
+          "property": "transform.x",
+          "valueKind": "number",
+          "preBehavior": {
+            "type": "clamp"
+          },
+          "postBehavior": {
+            "type": "clamp"
+          },
+          "keys": [
+            {
+              "t": 1,
+              "v": 1200
+            },
+            {
+              "t": 2.5,
+              "v": 960,
+              "easing": "easeInOut"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

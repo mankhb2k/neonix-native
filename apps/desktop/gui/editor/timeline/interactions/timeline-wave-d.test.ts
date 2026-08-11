@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { canUndo, selectionClips, selectionNone } from "@motionvideo/editor-core";
+import {
+  canUndo,
+  selectionClips,
+  selectionNone,
+} from "@motionvideo/editor-core";
 import { buildBlankDesktopProject } from "../../../../shared/project-file/envelope";
 import {
   createInitialTimelineSession,
@@ -25,7 +29,11 @@ function documentWithClip(): string {
   const withScene = JSON.parse(blank.documentJson) as {
     project: {
       scenes: unknown[];
-      timeline: { sceneOrder: string[] };
+      timeline: {
+        visualTracks: unknown[];
+        audioTracks: unknown[];
+        captionTracks: unknown[];
+      };
     };
     timelineClips: unknown[];
     timelineLanes: unknown[];
@@ -38,7 +46,21 @@ function documentWithClip(): string {
       clips: [],
     },
   ];
-  withScene.project.timeline.sceneOrder = ["scene_1"];
+  withScene.project.timeline.visualTracks = [
+    {
+      id: "main-track",
+      role: "main",
+      order: 0,
+      clips: [
+        {
+          id: "clip_1",
+          source: { kind: "scene", sceneId: "scene_1" },
+          start: 0,
+          duration: 4,
+        },
+      ],
+    },
+  ];
   withScene.timelineLanes = [
     {
       id: "lane.main",

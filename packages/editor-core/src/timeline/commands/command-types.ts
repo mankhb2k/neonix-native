@@ -25,6 +25,16 @@ export type PlacementTarget = {
   layerSceneId?: string;
   layerContainerStart?: number;
   layerContainerDuration?: number;
+  /**
+   * V3 group layers: target parent group node id for the new child node.
+   * `null` = root layer (default). When set, the new node is created as a
+   * child of the group and its timing is parent-relative.
+   */
+  layerParentId?: string | null;
+  /** Layer mode: target parent's scene-local effective start. */
+  layerParentSceneStart?: number;
+  /** Layer mode: target parent's effective duration. */
+  layerParentDuration?: number;
 };
 
 export type ClipMovePatch = {
@@ -56,6 +66,8 @@ export type TimelineCommand =
       timing?: { start: number; duration: number };
       /** Higher = above. Defaults to max existing + 1. */
       zIndex?: number;
+      /** V3 group layers: parent group node id (null = root, default). */
+      parentId?: string | null;
     }
   | { type: "add-audio-clip"; item: AudioLibraryItem; target: PlacementTarget }
   | { type: "move-clip"; clipId: string; patch: ClipMovePatch }

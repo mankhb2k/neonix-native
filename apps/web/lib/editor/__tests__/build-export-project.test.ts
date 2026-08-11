@@ -92,11 +92,12 @@ describe("buildExportProject", () => {
             role: "bgm",
             assetId: "asset.audio.a",
             start: 0,
+            duration: 4,
             volume: 1,
           },
         ],
       },
-    });
+    }) as typeof withAsset;
 
     const baked = buildExportProject({
       project: withAsset,
@@ -104,12 +105,15 @@ describe("buildExportProject", () => {
       timelineLanes: gapLanes,
     });
 
-    expect(baked.timeline.sceneOrder.length).toBeGreaterThanOrEqual(3);
+    const primaryTrack = baked.timeline.visualTracks?.find(
+      (t) => t.role === "main",
+    );
+    expect(primaryTrack?.clips.length).toBeGreaterThanOrEqual(3);
     // Tổng duration bake ≈ content end (5s) với gap pad.
-    const total = baked.timeline.sceneOrder.reduce((sum, id) => {
-      const scene = baked.scenes.find((s) => s.id === id);
-      return sum + (scene?.duration ?? 0);
-    }, 0);
+    const total =
+      primaryTrack?.clips.reduce((sum, clip) => {
+        return sum + clip.duration;
+      }, 0) ?? 0;
     expect(total).toBeCloseTo(5, 1);
 
     // Overlay bake: segment có overlay phải có thêm node từ overlay scene.
@@ -187,6 +191,7 @@ describe("export temporal parity (local-time bake)", () => {
           id: `${id}.node`,
           type: "text" as const,
           parentId: null,
+          zIndex: 0,
           transform: {
             x: 0,
             y: 0,
@@ -203,12 +208,11 @@ describe("export temporal parity (local-time bake)", () => {
             flipY: false,
           },
           payload: {
-            text: id,
+            content: { kind: "plain" as const, text: id },
             fontSize: 20,
-            fontWeight: 400,
-            align: "left" as const,
+            color: "#000000",
+            alignment: "left" as const,
           },
-          style: { fill: "#000000" },
         },
       ],
       clips: [
@@ -241,30 +245,56 @@ describe("export temporal parity (local-time bake)", () => {
     const overlayScene = sceneWithAbsoluteAnim("scene.overlay", 2);
     const project = parseMotionProject({
       format: "motion-project",
-      formatVersion: 2,
+      formatVersion: 3,
       metadata: {
         id: "parity.boundary",
         name: "Parity",
-        aspectRatio: "16:9",
-        fps: 30,
         locale: "vi-VN",
-        brand: {
-          name: "Parity",
-          primaryColor: "#111111",
-          fontFamily: "Be Vietnam Pro",
-        },
       },
-      dependencies: { components: [] },
+      composition: {
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        background: "#111111",
+        colorSpace: "srgb",
+      },
+      capabilities: {},
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+      tokens: {
+        colors: { brand: "#111111" },
+        fonts: { display: "Be Vietnam Pro" },
+      },
       assets: [],
       variables: [],
+      components: [],
       timeline: {
-        sceneOrder: ["scene.base", "scene.overlay"],
+        visualTracks: [
+          {
+            id: "primary",
+            role: "main",
+            order: 0,
+            clips: [
+              {
+                id: "vclip-base",
+                source: { kind: "scene", sceneId: "scene.base" },
+                start: 0,
+                duration: 6,
+              },
+              {
+                id: "vclip-overlay",
+                source: { kind: "scene", sceneId: "scene.overlay" },
+                start: 6,
+                duration: 2,
+              },
+            ],
+          },
+        ],
         audioTracks: [],
+        captionTracks: [],
       },
       scenes: [baseScene, overlayScene],
       bindings: [],
-      extensions: { constraints: [], events: [] },
-    });
+    }) as typeof project;
 
     const lanes: TimelineLane[] = [
       {
@@ -327,14 +357,20 @@ describe("export temporal parity (local-time bake)", () => {
       const bakedLocal = resolveBakedLocalTime(baked, globalTime);
       expect(bakedLocal).not.toBeNull();
 
-      // Segment starts at floor boundary under globalTime; localStart = t0 - clip.start
+      // Segment start from visualTracks primary clips
       let cursor = 0;
       let segmentStart = 0;
-      for (const sceneId of baked.timeline.sceneOrder) {
-        const sc = baked.scenes.find((s) => s.id === sceneId)!;
-        const end = cursor + sc.duration;
-        if (sceneId === bakedLocal!.sceneId) {
-          segmentStart = cursor;
+      const primaryTrack = baked.timeline.visualTracks?.find(
+        (t) => t.role === "main",
+      );
+      for (const clip of primaryTrack?.clips ?? []) {
+        const end = clip.start + clip.duration;
+        const sourceId =
+          clip.source.kind === "scene"
+            ? clip.source.sceneId
+            : (clip.source.componentId ?? "");
+        if (sourceId === bakedLocal!.sceneId) {
+          segmentStart = clip.start;
           break;
         }
         cursor = end;
@@ -347,8 +383,8 @@ describe("export temporal parity (local-time bake)", () => {
       );
 
       const bakedScene = baked.scenes.find((s) => s.id === bakedLocal!.sceneId);
-      const anim = bakedScene?.clips?.find((c) =>
-        String(c.id).includes("anim") || c.targetId?.includes("base"),
+      const anim = bakedScene?.clips?.find(
+        (c) => String(c.id).includes("anim") || c.targetId?.includes("base"),
       );
       // Prefer base anim (not remapped overlay)
       const baseAnim = bakedScene?.clips?.find(
@@ -437,6 +473,7 @@ describe("export temporal parity (local-time bake)", () => {
             role: "bgm",
             assetId: "asset.audio.a",
             start: 0,
+            duration: 8,
             trimStart: 1.25,
             volume: 0.8,
             fadeIn: 0.1,

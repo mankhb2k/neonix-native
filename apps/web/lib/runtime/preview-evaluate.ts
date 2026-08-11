@@ -4,7 +4,7 @@ import {
   type EvaluatedNode,
   type Matrix2D,
 } from "@motionvideo/motion-runtime";
-import type { NormalizedMotionProjectV2 } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type PreviewParityNode = {
   id: string;
@@ -39,7 +39,7 @@ export function matrixToCss(matrix: Matrix2D): string {
 }
 
 export function previewParitySnapshot(
-  runtime: NormalizedMotionProjectV2,
+  runtime: MotionRuntimeProject,
   sceneId: string | undefined,
   time: number,
 ): PreviewParitySnapshot {

@@ -1,96 +1,164 @@
 # MotionVideo
 
-MotionVideo là editor và render pipeline cho TVC motion graphic 2D tiếng Việt. Hệ thống tạo project có cấu trúc từ brief/template, cho phép chỉnh nội dung, brand, scene, node và timing trước khi xuất MP4.
+> **MotiClip** — AI-first motion graphics studio for Vietnamese TVC.
 
-Phạm vi đích gồm limited/cut-out character animation từ SVG rig được chuẩn bị trong Figma và map lại trong app; không nhằm trở thành công cụ vẽ frame-by-frame.
+MotionVideo là studio tạo motion graphic 2D, kết hợp giữa AI generation và editor
+trực quan. Hệ thống nhận brief từ người dùng hoặc AI agent, sinh project có cấu
+trúc, cho phép chỉnh sửa nội dung, brand, scene, node và timing, rồi xuất MP4 qua
+render pipeline thống nhất — PixiJS cho preview tương tác, Remotion Lambda cho
+export cloud.
 
-## Kiến trúc
+**Phạm vi:** limited/cut-out character animation từ SVG rig (chuẩn bị trong Figma),
+text animation, brand templates, và social-media video. Không nhằm trở thành công
+cụ vẽ frame-by-frame hay 3D animation.
 
-```text
-Brief / Template
-       ↓
-Authoring IR (.mt/.mvc)
-Node graph + Clips + Variables + Components + Bindings
-       ↓ compile
-Normalized Runtime IR
-literal Nodes + literal Tracks
-       ↓
-Raster frames → FFmpeg → MP4
+---
+
+## Core Architecture
+
+```mermaid
+flowchart LR
+  subgraph Surface["Authoring Surface"]
+    AI["AI Agent<br/>(Claude, GPT, Cursor)"]
+    Editor["Editor UI<br/>(Web / Desktop)"]
+    MCP["MCP Tools<br/>(validate, patch, render)"]
+    Skills["Skill Templates<br/>(brand-intro, social-ad...)"]
+  end
+
+  subgraph Core["Core Pipeline"]
+    Protocol["motion-protocol<br/>MotionProjectV3 JSON"]
+    Compiler["motion-compiler<br/>V3 → MotionRuntimeProject"]
+    Runtime["motion-runtime<br/>evaluateFrame()"]
+    Paint["PaintCommandBuffer<br/>renderer-neutral"]
+  end
+
+  subgraph Output["Output"]
+    Pixi["PixiJS Preview<br/>(interactive canvas)"]
+    Remotion["Remotion Lambda<br/>(MP4/GIF export)"]
+  end
+
+  AI --> Protocol
+  Editor --> Protocol
+  MCP --> Protocol
+  Skills --> Protocol
+  Protocol --> Compiler
+  Compiler --> Runtime
+  Runtime --> Paint
+  Paint --> Pixi
+  Paint --> Remotion
 ```
 
-Chỉ có một model project trong application code: `MotionProject`. Parser chỉ nhận canonical format hiện tại; dữ liệu không đúng contract bị từ chối, không có migrator hay compatibility alias.
+**Nguyên tắc cốt lõi**:
 
-Các nguyên tắc chính:
+- **Một format duy nhất** — `MotionProjectV3` (`.mt`) là canonical authoring contract. Tất cả
+  surface (AI, editor, MCP, Skills) đọc/ghi cùng một format. Không có V2 fallback.
+- **Compiler tách biệt** — Từ authoring JSON sang `MotionRuntimeProject` (literal, flat).
+  Variables, components, presets, bindings, layout được resolve hoàn toàn ở compile time.
+- **Runtime dùng chung** — `motion-runtime` là nơi duy nhất evaluate frame. Pixi và Remotion
+  không tự tính easing, timing, transform hay layout.
+- **Editor UI state nằm ngoài project JSON** — Scroll, selection, undo stack, panel layout
+  là local state; không ảnh hưởng project hash hay render output.
+- **AI-first** — AI agent tạo project qua `ai-planner` (brief → CommandBatch → MotionProjectV3)
+  hoặc qua Skills (parameterized templates). MCP tools cung cấp automation surface cho validate,
+  patch, compile, preview.
 
-- Component Instance là một Node trong `scene.nodes[]`; không tồn tại spatial graph thứ hai.
-- Preset, variable reference, binding và repeater được compiler giải quyết trước runtime.
-- Renderer chỉ đọc Node và Track literal trong Normalized Runtime IR.
-- AI User và Web chỉ sửa Project Variable, text Node và public props của Component.
-- Preview và export phải tiến tới dùng chung property vocabulary, transform convention và track evaluator.
+---
 
-Contract: [Motion Format](docs/motion-format-v2.md). Catalog: [Primitive objects](docs/primitives-object.md). Tiến độ: [roadmap-status](docs/roadmap-status.md). Kiến trúc: [refactor](docs/refactor.md). Freeze policy: [P0 schema freeze](docs/p0-schema-freeze-checklist.md). Browser preview remaining: [browser-preview roadmap](docs/browser-preview-atomic-roadmap.md).
+## Package Map
 
-## Monorepo
+### Core Pipeline
 
-| Package                     | Trách nhiệm                                                      |
-| --------------------------- | ---------------------------------------------------------------- |
-| `apps/web`                  | Next.js workspace/editor, import/export và local project storage |
-| `apps/render-worker`        | Compiler, literal-track renderer, FFmpeg và upload adapter       |
-| `packages/motion-protocol`  | Zod contract, reference validator và Runtime IR                  |
-| `packages/template-library` | Seed project, block/preset registry và retrieval                 |
-| `packages/ai-planner`       | Chọn template và tạo project đã validate                         |
-| `packages/motion-grammar`   | Grammar Hook → Offer → CTA                                       |
-| `packages/asset-registry`   | Asset/font policy                                                |
-| `packages/shared`           | Kiểu dùng chung ngoài motion domain                              |
+| Package           | Vai trò                                                                   |
+| ----------------- | ------------------------------------------------------------------------- |
+| `motion-protocol` | Zod schema, parse/validate, reference check, capability registry, hashing |
+| `motion-compiler` | Authoring V3 → Runtime IR (resolve, expand, layout, emit)                 |
+| `motion-runtime`  | Timeline resolve, evaluateFrame, PaintCommandBuffer, audio plan           |
 
-## Chạy local
+### Renderers
 
-Yêu cầu Node ≥ 20 và pnpm ≥ 9.
+| Package             | Input              | Output           | Use Case                    |
+| ------------------- | ------------------ | ---------------- | --------------------------- |
+| `pixi-renderer`     | PaintCommandBuffer | WebGL draw calls | Editor preview, MCP preview |
+| `remotion-renderer` | PaintCommandBuffer | MP4, GIF, still  | Cloud export                |
+
+### Editor (dùng chung Web & Desktop)
+
+| Package               | Vai trò                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `editor-core`         | Commands, selection, history, document ops, timeline layout |
+| `editor-interactions` | Gesture state machines, transform math, timeline math       |
+| `editor-react`        | DOM measurement, pointer capture, reusable React hooks      |
+| `motion-workspace`    | Multi-file workspace linking (.mt + scenes + components)    |
+
+### AI & Automation
+
+| Package           | Vai trò                                                        |
+| ----------------- | -------------------------------------------------------------- |
+| `ai-planner`      | Brief → CreativePlan → typed CommandBatch → project generation |
+| `playback-engine` | Headless frame server cho MCP preview/render                   |
+
+### Infrastructure
+
+| Package            | Vai trò                                                         |
+| ------------------ | --------------------------------------------------------------- |
+| `asset-registry`   | Asset contract, hash, MIME, SVG safety, font/license metadata   |
+| `render-contracts` | Render manifest, job types, webhook payloads (provider-neutral) |
+
+### Apps
+
+| App                  | Tech Stack               | Vai trò                                            |
+| -------------------- | ------------------------ | -------------------------------------------------- |
+| `apps/web`           | Next.js + PixiJS         | Editor web, AI chat, project storage, export API   |
+| `apps/desktop`       | Electron + Vite + PixiJS | Desktop editor (dùng chung toàn bộ core packages)  |
+| `apps/render-worker` | Node.js + FFmpeg         | Headless render worker (local dev, golden testing) |
+| `apps/remotion-site` | Remotion + React         | Deployable Remotion bundle lên Lambda              |
+
+---
+
+## Bắt đầu
 
 ```bash
+# Cài đặt
 pnpm install
-pnpm dev
+
+# Chạy test toàn bộ core packages
+pnpm --filter @motionvideo/motion-protocol test
+pnpm --filter @motionvideo/motion-compiler test
+pnpm --filter @motionvideo/motion-runtime test
+
+# Validate kiến trúc (không được phép có V2 patterns)
+pnpm validate:v3-source-of-truth
+
+# Web editor dev
+pnpm --filter @motionvideo/web dev
+
+# Desktop editor dev
+pnpm --filter @motionvideo/desktop dev
 ```
 
-AI User workspace mới dùng chung server Next.js nhưng tách route khỏi editor hiện tại.
+---
 
-- Landing: `http://localhost:3000`
-- App: `http://localhost:3000/app`
-- AI User: `http://localhost:3000/appai`
-- Block Lab: `http://localhost:3000/app/lab/blocks`
-- Render worker: `pnpm dev:worker`
+## Tài liệu
 
-Block Lab là cách xem nhanh preview của motion blocks. Các JSON trong `docs/fixtures/v2` là regression data để khóa contract/compiler và không phải dữ liệu người dùng. Riêng fixture hierarchy SVG có thể render thành PNG cục bộ bằng `pnpm validate:primitives`.
+| Tài liệu                                                             | Nội dung                                            |
+| -------------------------------------------------------------------- | --------------------------------------------------- |
+| [Motion Format V3](docs/motion-format-v3.md)                         | Canonical authoring format specification            |
+| [AI-First Editor Architecture](docs/ai-first-editor-architecture.md) | Kiến trúc AI agent, MCP, Skills, editor             |
+| [Web Architecture](web-architechture.md)                             | Kiến trúc Web, Pixi preview, Remotion Lambda export |
+| [JSON Project Design](json-project-design.md)                        | Thiết kế chi tiết schema `.mt`                      |
+| [V3 Refactor Plan](docs/motion-project-v3-refactor-plan.md)          | Lộ trình chuyển đổi từ V2 sang V3                   |
 
-## Kiểm tra
+---
 
-```bash
-pnpm typecheck
-pnpm validate:v2-fixtures
-pnpm validate:primitives
-pnpm e2e:render
-pnpm e2e:web
-```
+## License
 
-- `validate:v2-fixtures` parse Component, Project và AI Patch, kiểm tra reference lỗi và compiler expansion.
-- `validate:primitives` kiểm tra world transform/Bone/SVG/effects và tạo PNG goldens tại `tmp/primitive-previews`.
-- `e2e:render` compile project, raster frame và encode một MP4 thật.
-- `e2e:web` chạy Playwright trên `http://127.0.0.1:3000` (AI User: `/appai`). Trên Windows nên mở sẵn `pnpm dev` rồi chạy `pnpm e2e:web` để reuse server; Playwright cũng tự start Next nếu cổng trống.
-- `test:preview-parity` chạy E2E Runtime IR harness (`/appai/runtime-harness`) so transform tại t=0/1/1.5 với worker.
+Xem [LICENSE](./LICENSE) và [`clipkit/`](./clipkit/) cho các điều khoản liên quan.
 
-Trạng thái từng phase, commit tương ứng và các gap còn lại: [`docs/roadmap-status.md`](docs/roadmap-status.md).
+---
 
-## Trạng thái render
+## Quy tắc phát triển
 
-Giữ pipeline hiện tại: Authoring compiler → Runtime IR → raster workers → FFmpeg. Đây là ranh giới đúng để preview/export cùng dựa trên dữ liệu literal và để renderer không phụ thuộc template hay schema authoring.
-
-World transform/parenting, shared evaluator và SVG/image asset resolver đã có trong worker. Phần cần mở rộng tiếp theo là đưa cùng Runtime IR/evaluator vào browser preview, rồi triển khai shape/mask và audio mix.
-
-## Quy tắc đóng góp
-
-- Không thêm parser tương thích cho format đã bỏ; dữ liệu sai version phải báo lỗi rõ ràng.
-- Không cho renderer đọc preset, variable, binding, repeater hoặc Component package.
-- Mọi thay đổi contract phải cập nhật schema, docs và fixtures cùng lúc.
-- Chạy typecheck, fixture validation và render smoke test trước khi commit.
-
-Private project; chưa công bố license.
+- **Không thêm fallback cho format cũ** — dữ liệu sai `formatVersion` phải báo lỗi rõ ràng.
+- **Renderer không tự ý suy diễn** — không đọc preset, variable, binding, repeater hay component definition.
+- **Mọi thay đổi schema** phải cập nhật docs, fixtures, và gate script (`validate:v3-source-of-truth`) cùng lúc.
+- **Codegen** — JSON Schema (`schema/v3.json`) được generate tự động từ Zod schema. Không sửa bằng tay.

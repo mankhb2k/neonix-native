@@ -13,6 +13,7 @@ export type LayerTreeNode = {
   type: string;
   depth: number;
   zIndex: number;
+  declarationIndex: number;
   visible: boolean;
   parentId: string | null;
   children: LayerTreeNode[];
@@ -40,7 +41,7 @@ function nodeVisible(node: MotionNode): boolean {
 
 function sortSiblings(a: LayerTreeNode, b: LayerTreeNode): number {
   if (b.zIndex !== a.zIndex) return b.zIndex - a.zIndex;
-  return a.id.localeCompare(b.id);
+  return a.declarationIndex - b.declarationIndex;
 }
 
 /**
@@ -55,6 +56,7 @@ export function buildLayerTree(
   if (nodes.length === 0) return [];
 
   const idSet = new Set(nodes.map((n) => n.id));
+  const declarationIndex = new Map(nodes.map((n, index) => [n.id, index]));
   const byParent = new Map<string | null, MotionNode[]>();
 
   for (const node of nodes) {
@@ -95,6 +97,7 @@ export function buildLayerTree(
       type: node.type,
       depth,
       zIndex: node.zIndex ?? 0,
+      declarationIndex: declarationIndex.get(node.id) ?? 0,
       visible: nodeVisible(node),
       parentId: parentKeyFor(node),
       children,
