@@ -30,6 +30,11 @@ export * from "./diagnostics";
 export * from "./cancellation";
 export * from "./version-policy";
 export {
+  hierarchyRenderOrder,
+  hierarchyRenderOrderReverse,
+  type OrderableNode,
+} from "./composition/render-order";
+export {
   buildAudioExportManifest,
   type AudioExportManifest,
   type AudioExportClip,

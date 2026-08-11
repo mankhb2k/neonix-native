@@ -2,6 +2,10 @@ import { MOTION_PROTOCOL_LIMITS } from "@motionvideo/motion-protocol";
 import type { EvaluatedNode, RuntimeScene, RuntimeNode } from "./evaluator";
 import type { Bounds2D } from "./spatial";
 import { calculateMotionBlurTimestamps, type MotionBlurSettings } from "./motion-blur";
+import {
+  hierarchyRenderOrder,
+  type OrderableNode,
+} from "./composition/render-order";
 
 export type IsolationMode = "pass-through" | "isolate";
 
@@ -63,7 +67,7 @@ export function buildRenderPlan(
   const diagnostics: RenderPlanDiagnostic[] = [];
   let totalAllocatedPixels = 0;
 
-  const sorted = evaluatedNodes.slice().sort((a, b) => (a.node.zIndex ?? 0) - (b.node.zIndex ?? 0));
+  const sorted = hierarchyRenderOrder(evaluatedNodes as OrderableNode[]) as EvaluatedNode[];
 
   const passes: RenderPass[] = [];
 

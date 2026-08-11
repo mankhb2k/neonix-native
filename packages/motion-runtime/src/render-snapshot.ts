@@ -11,6 +11,10 @@ import { cameraViewMatrix } from "./camera-view";
 import type { PathContour } from "./geometry";
 import { buildRenderPlan } from "./render-plan";
 import {
+  hierarchyRenderOrder,
+  type OrderableNode,
+} from "./composition/render-order";
+import {
   containsPoint,
   invertMatrix,
   transformBounds,
@@ -505,22 +509,7 @@ export function buildRenderSnapshot(input: {
     input.width,
     input.height,
   );
-  const ordered = [...evaluated].sort((a, b) => {
-    const zA = a.node.zIndex ?? 0;
-    const zB = b.node.zIndex ?? 0;
-    if (zA !== zB) return zA - zB;
-    // Phase 11: depth sort for perspective-3d
-    if (
-      input.scene.space === "perspective-3d" &&
-      a.worldMatrix4 &&
-      b.worldMatrix4
-    ) {
-      const depthA = depthFromMat4(a.worldMatrix4, 0, 0);
-      const depthB = depthFromMat4(b.worldMatrix4, 0, 0);
-      if (Math.abs(depthA - depthB) > 1e-6) return depthA - depthB;
-    }
-    return a.node.id.localeCompare(b.node.id);
-  });
+  const ordered = hierarchyRenderOrder(evaluated as OrderableNode[]) as EvaluatedNode[];
 
   const items: RenderSnapshotItem[] = [];
   let renderOrder = 0;

@@ -13,6 +13,7 @@ import {
   pathMorphContours,
   planOffscreenSurface,
   trimPathContours,
+  hierarchyRenderOrder,
   type EvaluatedNode,
   type RuntimeEffect,
   type RuntimeScene,
@@ -513,9 +514,8 @@ export async function drawSceneFrame(
 
   const source = sourceSize(metadata.aspectRatio);
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));
-  const evaluated = evaluateScene(scene, localTime)
-    .map((item, index) => ({ item, index }))
-    .sort((left, right) => ((left.item.node.zIndex ?? 0) - (right.item.node.zIndex ?? 0)) || left.index - right.index);
+  const evaluated = hierarchyRenderOrder(evaluateScene(scene, localTime))
+    .map((item, index) => ({ item, index }));
   const activeCamera = scene.activeCameraId
     ? scene.nodes.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraId && node.type === "camera")
     : undefined;

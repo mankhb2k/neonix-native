@@ -1,6 +1,9 @@
 import { evaluateScene, type EvaluatedNode, type RuntimeScene } from "./evaluator";
 import { applyMatrix } from "./matrix";
 import { containsPoint, invertMatrix, unionBounds, type Bounds2D, type Point2D } from "./spatial";
+import {
+  hierarchyRenderOrderReverse,
+} from "./composition/render-order";
 
 const DRAWABLE_NODE_TYPES = new Set(["text", "shape", "path", "image", "svg", "video"]);
 
@@ -22,20 +25,18 @@ export function hitTestScene(scene: RuntimeScene, time: number, point: Point2D, 
   const byId = new Map(evaluated.map((item) => [item.node.id, item]));
   const visibleMaskSources = new Set(scene.nodes.filter((node) => node.mask?.sourceVisibility === "content-and-mask").map((node) => node.mask!.sourceNodeId));
   const hiddenMaskSources = new Set(scene.nodes.filter((node) => node.mask?.sourceVisibility === "mask-only").map((node) => node.mask!.sourceNodeId));
-  return evaluated
-    .map((item, index) => ({ item, index }))
-    .filter(({ item }) => {
-      if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) return false;
-      if (!hitTestNode(item, point, includeContainers)) return false;
-      if (!item.node.mask) return true;
-      const source = byId.get(item.node.mask.sourceNodeId);
-      if (!source) return false;
-      const inside = containsPoint(source.worldBounds, point);
-      if (item.node.mask.mode === "inverse-alpha" || item.node.mask.mode === "inverse-luma") return !inside;
-      return inside;
-    })
-    .sort((left, right) => ((right.item.node.zIndex ?? 0) - (left.item.node.zIndex ?? 0)) || right.index - left.index)
-    .map(({ item }) => item);
+  // Sort all nodes by hierarchy (top-first) so parent groups anchor children properly
+  const ordered = hierarchyRenderOrderReverse(evaluated);
+  return ordered.filter((item) => {
+    if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) return false;
+    if (!hitTestNode(item, point, includeContainers)) return false;
+    if (!item.node.mask) return true;
+    const source = byId.get(item.node.mask.sourceNodeId);
+    if (!source) return false;
+    const inside = containsPoint(source.worldBounds, point);
+    if (item.node.mask.mode === "inverse-alpha" || item.node.mask.mode === "inverse-luma") return !inside;
+    return inside;
+  });
 }
 
 export function subtreeBounds(evaluated: EvaluatedNode[], rootId: string, drawableOnly = true): Bounds2D | undefined {

@@ -57,7 +57,7 @@ export function resolveEffectiveTiming(
 
     const start = node.timing?.start ?? 0;
     const duration =
-      node.timing?.duration ?? (parentEffectiveEnd - parentEffectiveStart);
+      node.timing?.duration ?? parentEffectiveEnd - parentEffectiveStart;
 
     const effectiveStart = parentEffectiveStart + start;
     const rawEnd = effectiveStart + duration;
