@@ -163,15 +163,11 @@ export {
 
 // ── Shared Infrastructure (explicit re-exports from V3-owned modules) ──
 //
-// Phase 2: schemas that V3 now owns are exported from v3/ paths.
-// Legacy re-exports remain for animation, nodes, project, runtime, and
-// prepared-runtime (pending Phases 3–5).
+// All schemas are V3-owned and exported from v3/ paths.
 //
 // V2 AUTHORING TYPES INTENTIONALLY EXCLUDED:
 //   MotionProjectV2, MotionComponentV2, parseMotionProjectV2,
-//   parseMotionComponentV2, serializeMotionProjectV2,
-//   (removed V2 types — no longer in public API)
-//   LipSyncSchema, LipSyncCueSchema
+//   parseMotionComponentV2, serializeMotionProjectV2.
 
 // Common / Primitives — owned by V3 (Phase 2)
 export {
@@ -274,22 +270,22 @@ export {
 // Nodes — structural: MotionBlur owned by V3 (Phase 5)
 export { MotionBlurSettingsSchema } from "./v3/nodes/structural";
 
-// Nodes — V3 structural (Phase 7 neutral names)
+// Nodes — V3 authoring node union (Phase 1: canonical neutral names)
 export {
-  GroupNodeSchema,
-  BoneNodeSchema,
-  TextNodeSchema,
-  ShapeNodeSchema,
-  PathNodeSchema,
-  ImageNodeSchema,
-  SvgNodeSchema,
-  VideoNodeSchema,
-  CameraNodeSchema,
-  SolidNodeSchema,
-  AdjustmentNodeSchema,
-  NodeSchema,
-  type MotionNode,
-} from "./runtime/nodes";
+  GroupNodeV3Schema as GroupNodeSchema,
+  BoneNodeV3Schema as BoneNodeSchema,
+  TextNodeV3Schema as TextNodeSchema,
+  ShapeNodeV3Schema as ShapeNodeSchema,
+  PathNodeV3Schema as PathNodeSchema,
+  ImageNodeV3Schema as ImageNodeSchema,
+  SvgNodeV3Schema as SvgNodeSchema,
+  VideoNodeV3Schema as VideoNodeSchema,
+  CameraNodeV3Schema as CameraNodeSchema,
+  SolidNodeV3Schema as SolidNodeSchema,
+  AdjustmentNodeV3Schema as AdjustmentNodeSchema,
+  NodeV3Schema as NodeSchema,
+  type NodeV3 as MotionNode,
+} from "./v3/nodes";
 
 // Animation — V3 canonical (Phase 7 neutral names)
 export {
@@ -308,16 +304,16 @@ export {
 
 export { type MotionClipV3 } from "./v3/animation/clips";
 
-/** @deprecated Use `MotionClipV3` instead — excludes legacy component-action source kind. */
+/** @deprecated Use `MotionClipV3` instead — V3 canonical clip type. */
 export type { MotionClipV3 as MotionClip };
 
 // Project scene type — V3 canonical
 export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";
 
-// Design tokens — V3 canonical (extends compat with radii, motion)
+// Design tokens — V3 canonical
 export { DesignTokensSchema, type DesignTokens } from "./v3/variables";
 
-// Runtime IR schemas/types (also available via ./runtime, re-exported for compat)
+// Runtime IR schemas/types (also available via ./runtime)
 export {
   RuntimeCompositionMetadataSchema,
   RuntimeClipSourceSchema,
