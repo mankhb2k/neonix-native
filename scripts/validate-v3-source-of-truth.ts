@@ -114,7 +114,8 @@ const FORBIDDEN = [
   },
   {
     pattern: /\bV2-specific\b/i,
-    label: "'V2-specific' language (use 'runtime' or 'authoring' as appropriate)",
+    label:
+      "'V2-specific' language (use 'runtime' or 'authoring' as appropriate)",
   },
   {
     pattern: /\bcomponent-action\b/i,

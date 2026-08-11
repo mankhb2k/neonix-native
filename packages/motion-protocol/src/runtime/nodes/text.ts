@@ -1,45 +1,93 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { FiniteNumberSchema, IdSchema, LocaleIdentifierSchema } from "../common";
+import {
+  FiniteNumberSchema,
+  IdSchema,
+  LocaleIdentifierSchema,
+} from "../common";
 import { NodeBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
 
-const TextAnimatorSchema = z.object({
-  id: IdSchema,
-  unit: z.enum(["grapheme", "word", "line"]),
-  locale: LocaleIdentifierSchema.optional(),
-  selector: z.object({ start: FiniteNumberSchema.min(0).max(1), end: FiniteNumberSchema.min(0).max(1) }).strict(),
-  startTime: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
-  duration: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
-  stagger: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
-  easing: z.enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"]).default("easeOut"),
-  properties: z.object({
-    offsetX: FiniteNumberSchema.optional(),
-    offsetY: FiniteNumberSchema.optional(),
-    rotation: FiniteNumberSchema.optional(),
-    scale: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.transformScale).optional(),
-    opacity: FiniteNumberSchema.min(0).max(1).optional(),
-    fill: z.string().min(1).optional(),
-  }).strict(),
-}).strict().superRefine((animator, context) => {
-  if (animator.selector.start > animator.selector.end) context.addIssue({ code: z.ZodIssueCode.custom, path: ["selector", "end"], message: "Text Animator selector end must be >= start" });
-  if (Object.keys(animator.properties).length === 0) context.addIssue({ code: z.ZodIssueCode.custom, path: ["properties"], message: "Text Animator requires at least one property" });
-});
+const TextAnimatorSchema = z
+  .object({
+    id: IdSchema,
+    unit: z.enum(["grapheme", "word", "line"]),
+    locale: LocaleIdentifierSchema.optional(),
+    selector: z
+      .object({
+        start: FiniteNumberSchema.min(0).max(1),
+        end: FiniteNumberSchema.min(0).max(1),
+      })
+      .strict(),
+    startTime: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
+    duration: FiniteNumberSchema.positive().max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
+    stagger: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
+    easing: z
+      .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
+      .default("easeOut"),
+    properties: z
+      .object({
+        offsetX: FiniteNumberSchema.optional(),
+        offsetY: FiniteNumberSchema.optional(),
+        rotation: FiniteNumberSchema.optional(),
+        scale: FiniteNumberSchema.nonnegative()
+          .max(MOTION_PROTOCOL_LIMITS.transformScale)
+          .optional(),
+        opacity: FiniteNumberSchema.min(0).max(1).optional(),
+        fill: z.string().min(1).optional(),
+      })
+      .strict(),
+  })
+  .strict()
+  .superRefine((animator, context) => {
+    if (animator.selector.start > animator.selector.end)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["selector", "end"],
+        message: "Text Animator selector end must be >= start",
+      });
+    if (Object.keys(animator.properties).length === 0)
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["properties"],
+        message: "Text Animator requires at least one property",
+      });
+  });
 
-export function segmentTextUnits(text: string, unit: "grapheme" | "word" | "line", locale = "vi"): string[] {
+export function segmentTextUnits(
+  text: string,
+  unit: "grapheme" | "word" | "line",
+  locale = "vi",
+): string[] {
   if (unit === "line") return text.split(/\r?\n/);
-  const segments = [...new Intl.Segmenter(locale, { granularity: unit }).segment(text)];
+  const segments = [
+    ...new Intl.Segmenter(locale, { granularity: unit }).segment(text),
+  ];
   return unit === "word"
-    ? segments.map((segment) => segment.segment).filter((segment) => segment.trim().length > 0)
+    ? segments
+        .map((segment) => segment.segment)
+        .filter((segment) => segment.trim().length > 0)
     : segments.map((segment) => segment.segment);
 }
 
 const RunHighlightSchema = z
   .object({
     fill: z.string().min(1),
-    paddingX: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding).optional(),
-    paddingY: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding).optional(),
-    radius: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding).optional(),
+    paddingX: FiniteNumberSchema.nonnegative()
+      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
+      .optional(),
+    paddingY: FiniteNumberSchema.nonnegative()
+      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
+      .optional(),
+    radius: FiniteNumberSchema.nonnegative()
+      .max(MOTION_PROTOCOL_LIMITS.richTextHighlightPadding)
+      .optional(),
   })
   .strict();
 
@@ -49,7 +97,9 @@ const RichTextRunStyleSchema = z
     fontAssetId: IdSchema.optional(),
     fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     fontStyle: z.enum(["normal", "italic"]).optional(),
-    fontScale: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.richTextFontScale).optional(),
+    fontScale: FiniteNumberSchema.positive()
+      .max(MOTION_PROTOCOL_LIMITS.richTextFontScale)
+      .optional(),
     letterSpacing: FiniteNumberSchema.optional(),
     highlight: RunHighlightSchema.optional(),
   })
@@ -70,7 +120,10 @@ export const TextContentPlainSchema = z
 export const TextContentRunsSchema = z
   .object({
     kind: z.literal("runs"),
-    runs: z.array(RichTextRunSchema).min(1).max(MOTION_PROTOCOL_LIMITS.richTextRuns),
+    runs: z
+      .array(RichTextRunSchema)
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.richTextRuns),
   })
   .strict();
 
@@ -127,10 +180,9 @@ export function getTextPayloadPlain(payload: {
 }
 
 /** Write plain string into content (keeps runs only when already plain). */
-export function setTextPayloadPlain<T extends { content?: TextContent; text?: string }>(
-  payload: T,
-  text: string,
-): T & { content: TextContent } {
+export function setTextPayloadPlain<
+  T extends { content?: TextContent; text?: string },
+>(payload: T, text: string): T & { content: TextContent } {
   const next = { ...payload, content: { kind: "plain" as const, text } };
   delete (next as { text?: string }).text;
   return next;
@@ -159,19 +211,27 @@ const TextPayloadFieldsSchema = z
   .object({
     content: TextContentSchema,
     fontAssetId: IdSchema.optional(),
-    fontSize: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    fontSize: FiniteNumberSchema.positive().max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    ),
     fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     align: z.enum(["left", "center", "right"]).optional(),
     wrap: z.enum(["none", "word", "character"]).optional(),
-    lineHeight: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension).optional(),
+    lineHeight: FiniteNumberSchema.positive()
+      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .optional(),
     letterSpacing: FiniteNumberSchema.optional(),
     maxLines: FiniteNumberSchema.int().positive().optional(),
     overflow: z.enum(["visible", "clip", "ellipsis"]).optional(),
     counterProgress: FiniteNumberSchema.min(0).max(1).optional(),
     fitText: z
       .object({
-        minFontSize: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
-        maxFontSize: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+        minFontSize: FiniteNumberSchema.positive().max(
+          MOTION_PROTOCOL_LIMITS.nodeDimension,
+        ),
+        maxFontSize: FiniteNumberSchema.positive().max(
+          MOTION_PROTOCOL_LIMITS.nodeDimension,
+        ),
       })
       .strict()
       .optional(),

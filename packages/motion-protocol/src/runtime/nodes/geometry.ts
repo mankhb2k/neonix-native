@@ -41,7 +41,10 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("polygon"),
-      points: z.array(PointSchema).min(3).max(MOTION_PROTOCOL_LIMITS.polygonPoints),
+      points: z
+        .array(PointSchema)
+        .min(3)
+        .max(MOTION_PROTOCOL_LIMITS.polygonPoints),
     })
     .strict(),
 ]);

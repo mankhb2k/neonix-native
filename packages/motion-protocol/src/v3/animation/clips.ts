@@ -26,7 +26,9 @@ export const ClipScheduleSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("scene-end"),
       /** 0 = clip ends at scene end; negative = pad before end. */
-      offset: FiniteNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+      offset: FiniteNumberSchema.max(
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+      ),
     })
     .strict(),
   z
