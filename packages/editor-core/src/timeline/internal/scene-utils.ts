@@ -78,7 +78,7 @@ export function stageSizeForAspect(aspectRatio: string): CompositionSize {
   }
 }
 
-/** Composition size from a v2|v3 project (v3 reads `composition`, v2 falls back to `metadata.aspectRatio`). */
+/** Composition size from a MotionProject (reads `composition` with metadata.aspectRatio fallback). */
 export function stageSizeForProject(
   project: Pick<MotionProject, "metadata" | "composition">,
 ): CompositionSize {
