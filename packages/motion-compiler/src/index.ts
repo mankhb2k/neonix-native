@@ -505,8 +505,6 @@ export function compileSceneToRuntime(input: {
   motionBlur?: unknown;
   drivers?: unknown[];
   activeCameraId?: string;
-  /** @deprecated Transitions are clip-level in V3 (transitionIn / transitionOut on visual clips). */
-  transition?: unknown;
   sourceRef?: RuntimeSourceRef;
 }): MotionRuntimeProject["scenes"][number] {
   const variables = input.variables;
@@ -531,7 +529,6 @@ export function compileSceneToRuntime(input: {
       ? { drivers: clone(input.drivers) }
       : {}),
     ...(input.activeCameraId ? { activeCameraId: input.activeCameraId } : {}),
-    ...(input.transition ? { transition: input.transition } : {}),
     sourceRef,
     nodes: textExpanded.nodes,
     tracks: [
