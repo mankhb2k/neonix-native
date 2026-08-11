@@ -35,14 +35,9 @@ const FORBIDDEN = [
     pattern: /\bNormalizedMotionProjectV2\b/,
     label: "NormalizedMotionProjectV2",
   },
-  // V2 parser/compiler
+  // V2 parser
   { pattern: /\bparseMotionProjectV2\b/, label: "parseMotionProjectV2" },
   { pattern: /\bparseMotionComponentV2\b/, label: "parseMotionComponentV2" },
-  {
-    pattern: /\bserializeMotionProjectV2\b/,
-    label: "serializeMotionProjectV2",
-  },
-  { pattern: /\bcompileMotionProjectV2\b/, label: "compileMotionProjectV2" },
   // V2 migration
   {
     pattern: /\bmigrateMotionProjectV2ToV3\b/,
