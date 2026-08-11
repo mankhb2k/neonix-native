@@ -2,7 +2,7 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { FiniteNumberSchema } from "./common";
 
-export const TransformV2Schema = z
+export const TransformSchema = z
   .object({
     x: FiniteNumberSchema,
     y: FiniteNumberSchema,
@@ -62,4 +62,4 @@ export const TransformV2Schema = z
   })
   .strict();
 
-export type MotionTransform = z.infer<typeof TransformV2Schema>;
+export type MotionTransform = z.infer<typeof TransformSchema>;

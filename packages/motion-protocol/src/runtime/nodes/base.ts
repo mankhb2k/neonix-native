@@ -1,20 +1,20 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, SemanticSchema } from "../common";
-import { EffectV2Schema } from "../effects";
+import { EffectSchema } from "../effects";
 import { RepeaterSchema } from "../layout";
 import { MotionModifierSchema } from "../modifiers";
-import { TransformV2Schema } from "../transform";
+import { TransformSchema } from "../transform";
 
 /** Optional scene-local in/out for Layer Mode timeline strips. */
-export const NodeTimingV2Schema = z
+export const NodeTimingSchema = z
   .object({
     start: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
     duration: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
   })
   .strict();
 
-export type NodeTimingV2 = z.infer<typeof NodeTimingV2Schema>;
+export type NodeTimingV2 = z.infer<typeof NodeTimingSchema>;
 
 export const NodeBaseSchema = z.object({
   id: IdSchema,
@@ -22,13 +22,13 @@ export const NodeBaseSchema = z.object({
   name: z.string().min(1).optional(),
   parentId: IdSchema.nullable(),
   zIndex: FiniteNumberSchema.int().optional(),
-  transform: TransformV2Schema,
+  transform: TransformSchema,
   /** Scene-local timing (Layer Mode). Absent → visible for full scene/container duration. */
-  timing: NodeTimingV2Schema.optional(),
+  timing: NodeTimingSchema.optional(),
   semantic: SemanticSchema.optional(),
   repeat: RepeaterSchema.optional(),
   modifiers: z.array(MotionModifierSchema).max(MOTION_PROTOCOL_LIMITS.modifiersPerNode).optional(),
-  effects: z.array(EffectV2Schema).max(MOTION_PROTOCOL_LIMITS.effectsPerNode).optional(),
+  effects: z.array(EffectSchema).max(MOTION_PROTOCOL_LIMITS.effectsPerNode).optional(),
   blendMode: z.enum(["normal", "multiply", "screen", "add", "darken", "lighten", "overlay"]).optional(),
   inheritPosition: z.boolean().optional(),
   inheritRotation: z.boolean().optional(),

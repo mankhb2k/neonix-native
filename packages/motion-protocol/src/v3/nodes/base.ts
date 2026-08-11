@@ -7,14 +7,14 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { EffectV2Schema } from "../effects";
+import { EffectSchema } from "../effects";
 import { MotionModifierSchema } from "../modifiers";
-import { NodeTimingV2Schema } from "./timing";
+import { NodeTimingSchema } from "./timing";
 import { PaintStyleSchema } from "./paint";
-import { TransformV2Schema } from "../transform";
+import { TransformSchema } from "../transform";
 import { IdSchema, SemanticSchema } from "../common";
 
-export const TransformV3Schema = TransformV2Schema;
+export const TransformV3Schema = TransformSchema;
 export type TransformV3 = z.infer<typeof TransformV3Schema>;
 
 export const InheritFlagsSchema = z
@@ -41,10 +41,10 @@ export const NodeBaseV3Schema = z.object({
   parentId: IdSchema.nullable(),
   zIndex: z.number().int().optional(),
   transform: TransformV3Schema,
-  timing: NodeTimingV2Schema.optional(),
+  timing: NodeTimingSchema.optional(),
   semantic: SemanticSchema.optional(),
   effects: z
-    .array(EffectV2Schema)
+    .array(EffectSchema)
     .max(MOTION_PROTOCOL_LIMITS.effectsPerNode)
     .optional(),
   blendMode: z

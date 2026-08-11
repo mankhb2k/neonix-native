@@ -4,7 +4,7 @@ import { FiniteNumberSchema, IdSchema, SemverSchema } from "../common";
 import { JsonValueSchema } from "../values";
 import { NodeBaseSchema } from "./base";
 
-export const GroupNodeV2Schema = NodeBaseSchema.extend({
+export const GroupNodeSchema = NodeBaseSchema.extend({
   type: z.literal("group"),
   payload: z
     .object({
@@ -19,7 +19,7 @@ export const GroupNodeV2Schema = NodeBaseSchema.extend({
     .optional(),
 }).strict();
 
-export const BoneNodeV2Schema = NodeBaseSchema.extend({
+export const BoneNodeSchema = NodeBaseSchema.extend({
   type: z.literal("bone"),
   payload: z
     .object({
@@ -35,7 +35,7 @@ export const BoneNodeV2Schema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const CameraNodeV2Schema = NodeBaseSchema.extend({
+export const CameraNodeSchema = NodeBaseSchema.extend({
   type: z.literal("camera"),
   payload: z
     .object({
@@ -68,7 +68,7 @@ export const CameraNodeV2Schema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const ComponentNodeV2Schema = NodeBaseSchema.extend({
+export const ComponentNodeSchema = NodeBaseSchema.extend({
   type: z.literal("component"),
   payload: z
     .object({
@@ -79,7 +79,7 @@ export const ComponentNodeV2Schema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const SolidNodeV2Schema = NodeBaseSchema.extend({
+export const SolidNodeSchema = NodeBaseSchema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
@@ -90,7 +90,7 @@ export const SolidNodeV2Schema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const AdjustmentNodeV2Schema = NodeBaseSchema.extend({
+export const AdjustmentNodeSchema = NodeBaseSchema.extend({
   type: z.literal("adjustment"),
   payload: z
     .object({

@@ -7,14 +7,14 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { PublicParamV2Schema, VariableV2Schema } from "./variables";
+import { PublicParamSchema, VariableSchema } from "./variables";
 import { JsonValueSchema } from "./values";
 import { IdSchema, SemverSchema } from "./common";
 import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";
 import { MotionClipV3Schema } from "./animation/clips";
 
-export const PublicParamV3Schema = PublicParamV2Schema;
+export const PublicParamV3Schema = PublicParamSchema;
 
 export const ComponentActionV3Schema = z
   .object({
@@ -35,7 +35,7 @@ export const EmbeddedComponentV3Schema = z
       .max(MOTION_PROTOCOL_LIMITS.publicParamsPerComponent)
       .default([]),
     variables: z
-      .array(VariableV2Schema)
+      .array(VariableSchema)
       .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
       .default([]),
     nodes: z.array(NodeV3Schema).max(MOTION_PROTOCOL_LIMITS.nodesPerComponent),

@@ -16,7 +16,7 @@ function pixelFormatHasAlpha(pixelFormat: string): boolean {
   return /(?:rgba|bgra|argb|abgr|yuva|graya)/i.test(pixelFormat);
 }
 
-export const ImageAssetV2Schema = AssetBaseSchema.extend({
+export const ImageAssetSchema = AssetBaseSchema.extend({
   assetType: z.literal("image"),
   mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
   width: AssetDimensionSchema,
@@ -25,7 +25,7 @@ export const ImageAssetV2Schema = AssetBaseSchema.extend({
   hasAlpha: z.boolean(),
 }).strict();
 
-export const SvgAssetV2Schema = AssetBaseSchema.extend({
+export const SvgAssetSchema = AssetBaseSchema.extend({
   assetType: z.literal("svg"),
   mimeType: z.literal("image/svg+xml"),
   width: AssetDimensionSchema,
@@ -34,7 +34,7 @@ export const SvgAssetV2Schema = AssetBaseSchema.extend({
   sanitized: z.literal(true),
 }).strict();
 
-export const VideoAssetV2Schema = AssetBaseSchema.extend({
+export const VideoAssetSchema = AssetBaseSchema.extend({
   assetType: z.literal("video"),
   mimeType: z.enum(["video/mp4", "video/webm"]),
   width: AssetDimensionSchema,
@@ -90,7 +90,7 @@ export const AudioAnalysisSchema = z
   })
   .strict();
 
-export const AudioAssetV2Schema = AssetBaseSchema.extend({
+export const AudioAssetSchema = AssetBaseSchema.extend({
   assetType: z.literal("audio"),
   mimeType: z.enum(["audio/mpeg", "audio/wav", "audio/aac", "audio/ogg"]),
   duration: FiniteNumberSchema.positive().max(
@@ -106,7 +106,7 @@ export const AudioAssetV2Schema = AssetBaseSchema.extend({
   analysis: AudioAnalysisSchema.optional(),
 }).strict();
 
-export const FontAssetV2Schema = AssetBaseSchema.extend({
+export const FontAssetSchema = AssetBaseSchema.extend({
   assetType: z.literal("font"),
   mimeType: z.enum(["font/ttf", "font/otf", "font/woff", "font/woff2"]),
   family: z.string().min(1),
@@ -115,13 +115,13 @@ export const FontAssetV2Schema = AssetBaseSchema.extend({
   localeCoverage: z.array(IdSchema).min(1).max(MOTION_PROTOCOL_LIMITS.localeCoverage),
 }).strict();
 
-export const AssetV2Schema = z
+export const AssetSchema = z
   .discriminatedUnion("assetType", [
-    ImageAssetV2Schema,
-    SvgAssetV2Schema,
-    VideoAssetV2Schema,
-    AudioAssetV2Schema,
-    FontAssetV2Schema,
+    ImageAssetSchema,
+    SvgAssetSchema,
+    VideoAssetSchema,
+    AudioAssetSchema,
+    FontAssetSchema,
   ])
   .superRefine((asset, context) => {
     if (
@@ -175,9 +175,3 @@ export const AssetV2Schema = z
 
 // ── Phase 7 neutral aliases ─────────────────────────────────────────
 
-export const ImageAssetSchema = ImageAssetV2Schema;
-export const SvgAssetSchema = SvgAssetV2Schema;
-export const VideoAssetSchema = VideoAssetV2Schema;
-export const AudioAssetSchema = AudioAssetV2Schema;
-export const FontAssetSchema = FontAssetV2Schema;
-export const AssetSchema = AssetV2Schema;

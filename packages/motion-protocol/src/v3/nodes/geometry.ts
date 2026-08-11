@@ -12,7 +12,7 @@ import { NodeBaseV3Schema } from "./base";
 
 // ── Shared point / path primitives ────────────────────────────────────
 
-export const PointV2Schema = z
+export const PointSchema = z
   .object({
     x: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.nodeDimension).max(
       MOTION_PROTOCOL_LIMITS.nodeDimension,
@@ -23,47 +23,47 @@ export const PointV2Schema = z
   })
   .strict();
 
-export type MotionPoint = z.infer<typeof PointV2Schema>;
+export type MotionPoint = z.infer<typeof PointSchema>;
 
-export const PathSegmentV2Schema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("line"), to: PointV2Schema }).strict(),
+export const PathSegmentSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("line"), to: PointSchema }).strict(),
   z
     .object({
       kind: z.literal("cubic"),
-      control1: PointV2Schema,
-      control2: PointV2Schema,
-      to: PointV2Schema,
+      control1: PointSchema,
+      control2: PointSchema,
+      to: PointSchema,
     })
     .strict(),
 ]);
 
-export type MotionPathSegment = z.infer<typeof PathSegmentV2Schema>;
+export type MotionPathSegment = z.infer<typeof PathSegmentSchema>;
 
-export const PathContourV2Schema = z
+export const PathContourSchema = z
   .object({
     id: IdSchema,
-    start: PointV2Schema,
+    start: PointSchema,
     segments: z
-      .array(PathSegmentV2Schema)
+      .array(PathSegmentSchema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.pathSegmentsPerContour),
     closed: z.boolean(),
   })
   .strict();
 
-export type MotionPathContour = z.infer<typeof PathContourV2Schema>;
+export type MotionPathContour = z.infer<typeof PathContourSchema>;
 
-export const PathMorphTargetV2Schema = z
+export const PathMorphTargetSchema = z
   .object({
     id: IdSchema,
     contours: z
-      .array(PathContourV2Schema)
+      .array(PathContourSchema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.pathContours),
   })
   .strict();
 
-export type MotionPathMorphTarget = z.infer<typeof PathMorphTargetV2Schema>;
+export type MotionPathMorphTarget = z.infer<typeof PathMorphTargetSchema>;
 
 // ── V3 geometry nodes ─────────────────────────────────────────────────
 
@@ -82,7 +82,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("polygon"),
-      points: z.array(PointV2Schema).min(3).max(MOTION_PROTOCOL_LIMITS.polygonPoints),
+      points: z.array(PointSchema).min(3).max(MOTION_PROTOCOL_LIMITS.polygonPoints),
     })
     .strict(),
 ]);
@@ -98,11 +98,11 @@ export const PathNodeV3Schema = NodeBaseV3Schema.extend({
   payload: z
     .object({
       contours: z
-        .array(PathContourV2Schema)
+        .array(PathContourSchema)
         .min(1)
         .max(MOTION_PROTOCOL_LIMITS.pathContours),
       morphTargets: z
-        .array(PathMorphTargetV2Schema)
+        .array(PathMorphTargetSchema)
         .max(MOTION_PROTOCOL_LIMITS.pathMorphTargets)
         .optional(),
     })
@@ -114,7 +114,3 @@ export type { ShapeNodeV3, PathNodeV3 } from "./geometry-types";
 
 // ── Phase 7 neutral aliases (geometry primitives) ───────────────────
 
-export const PointSchema = PointV2Schema;
-export const PathSegmentSchema = PathSegmentV2Schema;
-export const PathContourSchema = PathContourV2Schema;
-export const PathMorphTargetSchema = PathMorphTargetV2Schema;

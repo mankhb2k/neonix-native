@@ -1,6 +1,6 @@
 /**
  * Legacy clips — shared schemas re-exported from v3; V2-specific
- * ClipSourceSchema (with component-action) and ClipV2Schema kept here.
+ * ClipSourceSchema (with component-action) and ClipSchema kept here.
  *
  * @deprecated Use `@motionvideo/motion-protocol/v3` for shared schemas.
  */
@@ -41,8 +41,8 @@ export const ClipSourceSchema = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 
-// V2-specific: ClipV2Schema uses ClipSourceSchema (with component-action)
-export const ClipV2Schema = z
+// V2-specific: ClipSchema uses ClipSourceSchema (with component-action)
+export const ClipSchema = z
   .object({
     id: IdSchema,
     targetId: IdSchema.optional(),
@@ -55,4 +55,4 @@ export const ClipV2Schema = z
   })
   .strict();
 
-export type MotionClip = z.infer<typeof ClipV2Schema>;
+export type MotionClip = z.infer<typeof ClipSchema>;

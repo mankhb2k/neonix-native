@@ -9,7 +9,7 @@ const EffectIdSchema = IdSchema;
  * animation addresses use `effects.<id>.<field>` and are validated against
  * the concrete effect instance in the reference pass below.
  */
-export const EffectV2Schema = z.discriminatedUnion("type", [
+export const EffectSchema = z.discriminatedUnion("type", [
   z.object({
     id: EffectIdSchema,
     type: z.literal("blur"),
@@ -41,4 +41,4 @@ export const EffectV2Schema = z.discriminatedUnion("type", [
   }).strict(),
 ]);
 
-export type MotionEffect = z.infer<typeof EffectV2Schema>;
+export type MotionEffect = z.infer<typeof EffectSchema>;

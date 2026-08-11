@@ -4,7 +4,7 @@ import { FiniteNumberSchema, IdSchema } from "../common";
 import { NodeBaseSchema } from "./base";
 import { CropSchema, FitSchema, PaintStyleSchema } from "./paint";
 
-export const ImageNodeV2Schema = NodeBaseSchema.extend({
+export const ImageNodeSchema = NodeBaseSchema.extend({
   type: z.literal("image"),
   payload: z.object({
     assetId: IdSchema,
@@ -13,7 +13,7 @@ export const ImageNodeV2Schema = NodeBaseSchema.extend({
   }).strict(),
 }).strict();
 
-export const SvgNodeV2Schema = NodeBaseSchema.extend({
+export const SvgNodeSchema = NodeBaseSchema.extend({
   type: z.literal("svg"),
   payload: z.object({
     assetId: IdSchema,
@@ -23,7 +23,7 @@ export const SvgNodeV2Schema = NodeBaseSchema.extend({
   style: PaintStyleSchema.optional(),
 }).strict();
 
-export const VideoNodeV2Schema = NodeBaseSchema.extend({
+export const VideoNodeSchema = NodeBaseSchema.extend({
   type: z.literal("video"),
   payload: z.object({
     assetId: IdSchema,

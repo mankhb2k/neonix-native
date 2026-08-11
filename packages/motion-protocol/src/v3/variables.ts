@@ -149,7 +149,7 @@ const ObjectFieldSchema = z.object({
   type: z.enum(["string", "color", "number", "boolean", "asset"]),
 });
 
-export const VariableV2Schema = z.discriminatedUnion("type", [
+export const VariableSchema = z.discriminatedUnion("type", [
   ScalarVariableSchema.extend({
     type: z.literal("string"),
     value: z.string(),
@@ -190,7 +190,7 @@ export const VariableV2Schema = z.discriminatedUnion("type", [
   }).strict(),
 ]);
 
-export type VariableV2 = z.infer<typeof VariableV2Schema>;
+export type MotionVariable = z.infer<typeof VariableSchema>;
 
 export const ContextBindingSourceSchema = z
   .object({ kind: z.literal("context"), path: PropertyPathSchema })
@@ -220,7 +220,7 @@ export const ProjectBindingSchema = z
   })
   .strict();
 
-export const PublicParamV2Schema = z
+export const PublicParamSchema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
@@ -261,9 +261,7 @@ export const PublicParamV2Schema = z
   })
   .strict();
 
-/** @deprecated Use `VariableSchema` instead. */
-export const PublicParamSchema = PublicParamV2Schema;
-
 // ── Phase 7 neutral aliases ─────────────────────────────────────────
 
-export const VariableSchema = VariableV2Schema;
+/** @deprecated Use `VariableSchema` instead. */
+export const VariableV2Schema = VariableSchema;

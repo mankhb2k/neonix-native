@@ -30,7 +30,6 @@ export {
 export {
   NodeTimingSchema,
   type NodeTiming,
-  NodeTimingV2Schema,
   type NodeTimingV2,
 } from "./timing";
 export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
@@ -64,10 +63,10 @@ export {
 export {
   ShapeNodeV3Schema,
   PathNodeV3Schema,
-  PointV2Schema,
-  PathSegmentV2Schema,
-  PathContourV2Schema,
-  PathMorphTargetV2Schema,
+  PointSchema,
+  PathSegmentSchema,
+  PathContourSchema,
+  PathMorphTargetSchema,
   type MotionPoint,
   type MotionPathSegment,
   type MotionPathContour,

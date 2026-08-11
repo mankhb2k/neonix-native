@@ -207,12 +207,8 @@ export {
 } from "./v3/values";
 
 // Effects / Transform — V3 canonical (Phase 7 neutral names)
-export { EffectSchema, EffectV2Schema, type MotionEffect } from "./v3/effects";
-export {
-  TransformSchema,
-  TransformV2Schema,
-  type MotionTransform,
-} from "./v3/transform";
+export { EffectSchema, type MotionEffect } from "./v3/effects";
+export { TransformSchema, type MotionTransform } from "./v3/transform";
 
 // Assets — V3 canonical (Phase 7 neutral names)
 export {
@@ -223,13 +219,6 @@ export {
   AudioAnalysisSchema,
   FontAssetSchema,
   AssetSchema,
-  // @deprecated V2 aliases — use neutral names above
-  ImageAssetV2Schema,
-  SvgAssetV2Schema,
-  VideoAssetV2Schema,
-  AudioAssetV2Schema,
-  FontAssetV2Schema,
-  AssetV2Schema,
 } from "./runtime/assets";
 
 // Captions — owned by V3 (Phase 2)
@@ -242,11 +231,9 @@ export {
 // Variables / Bindings — V3 canonical (Phase 7 neutral names)
 export {
   VariableSchema,
-  VariableV2Schema,
   ComponentBindingSchema,
   ProjectBindingSchema,
   PublicParamSchema,
-  PublicParamV2Schema,
 } from "./v3/variables";
 
 // Layout — owned by V3 (Phase 2)
@@ -268,19 +255,12 @@ export {
   type MotionPathContour,
   PathMorphTargetSchema,
   type MotionPathMorphTarget,
-  // @deprecated V2 aliases
-  PointV2Schema,
-  PathSegmentV2Schema,
-  PathContourV2Schema,
-  PathMorphTargetV2Schema,
 } from "./v3/nodes/geometry";
 
 // Nodes — timing, paint, text (Phase 7 neutral names)
 export {
   NodeTimingSchema,
   type NodeTiming,
-  NodeTimingV2Schema,
-  type NodeTimingV2,
   PaintStyleSchema,
   type MotionPaintStyle,
   segmentTextUnits,
@@ -313,20 +293,6 @@ export {
   SolidNodeSchema,
   AdjustmentNodeSchema,
   NodeSchema,
-  // @deprecated V2 aliases — use neutral names above
-  GroupNodeV2Schema,
-  BoneNodeV2Schema,
-  TextNodeV2Schema,
-  ShapeNodeV2Schema,
-  PathNodeV2Schema,
-  ImageNodeV2Schema,
-  SvgNodeV2Schema,
-  VideoNodeV2Schema,
-  CameraNodeV2Schema,
-  ComponentNodeV2Schema,
-  SolidNodeV2Schema,
-  AdjustmentNodeV2Schema,
-  NodeV2Schema,
   type MotionNode,
 } from "./runtime/nodes";
 
@@ -338,17 +304,14 @@ export {
   KeyframeEasingCubicSchema,
   KeyframeEasingSpringSchema,
   KeyframeEasingSchema,
-  KeyframeEasingV2Schema,
   ExtrapolationBehaviorSchema,
   ProceduralDriverSchema,
   type ProceduralDriver,
-  type ProceduralDriverV2,
   SceneMarkerSchema,
   TrackTimeSchema,
 } from "./v3/animation";
 
-// @deprecated V2-specific clip types (component-action, not in V3)
-export { ClipV2Schema, type MotionClip } from "./runtime/animation/clips";
+export { type MotionClip } from "./runtime/animation/clips";
 
 // Project scene type — V3 canonical
 export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";

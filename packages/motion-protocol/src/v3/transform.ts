@@ -2,7 +2,7 @@
  * V3 transform schema — canonical source of truth.
  *
  * Phase 2: copied from legacy/transform.ts → V3 now owns this definition.
- * The canonical name is `TransformSchema` (was `TransformV2Schema`).
+ * The canonical name is `TransformSchema` (was `TransformSchema`).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -50,4 +50,3 @@ export type MotionTransform = z.infer<typeof TransformSchema>;
 
 // Backward-compat alias — use `TransformSchema` / `MotionTransform`.
 /** @deprecated Use `TransformSchema` instead. */
-export const TransformV2Schema = TransformSchema;

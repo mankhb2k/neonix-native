@@ -22,6 +22,5 @@ export const NodeTimingSchema = z
 export type NodeTiming = z.infer<typeof NodeTimingSchema>;
 
 /** @deprecated Use `NodeTimingSchema` instead. */
-export const NodeTimingV2Schema = NodeTimingSchema;
 /** @deprecated Use `NodeTiming` instead. */
 export type NodeTimingV2 = NodeTiming;

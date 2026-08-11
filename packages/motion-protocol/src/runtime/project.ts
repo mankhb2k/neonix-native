@@ -16,7 +16,7 @@ import {
 import { ProceduralDriverSchema } from "../v3/animation/drivers";
 import { ExtrapolationBehaviorSchema } from "../v3/animation/tracks";
 import { KeyframeEasingSchema } from "../v3/animation/easing";
-import { AssetV2Schema } from "./assets";
+import { AssetSchema } from "./assets";
 import {
   AspectRatioSchema,
   FiniteNumberSchema,
@@ -31,18 +31,18 @@ import {
  */
 const RUNTIME_IR_FORMAT_VERSION = 2 as const;
 import {
-  AdjustmentNodeV2Schema,
-  BoneNodeV2Schema,
-  CameraNodeV2Schema,
-  GroupNodeV2Schema,
-  ImageNodeV2Schema,
+  AdjustmentNodeSchema,
+  BoneNodeSchema,
+  CameraNodeSchema,
+  GroupNodeSchema,
+  ImageNodeSchema,
   MotionBlurSettingsSchema,
-  PathNodeV2Schema,
-  ShapeNodeV2Schema,
-  SolidNodeV2Schema,
-  SvgNodeV2Schema,
-  TextNodeV2Schema,
-  VideoNodeV2Schema,
+  PathNodeSchema,
+  ShapeNodeSchema,
+  SolidNodeSchema,
+  SvgNodeSchema,
+  TextNodeSchema,
+  VideoNodeSchema,
 } from "./nodes";
 
 // ── Runtime IR schemas (inlined from compat/project) ─────────────────
@@ -79,7 +79,7 @@ const BrandV2Schema = z
   })
   .strict();
 
-export const ProjectMetadataV2Schema = z
+export const ProjectMetadataSchema = z
   .object({
     id: IdSchema,
     name: z.string().min(1),
@@ -193,17 +193,17 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
 export const MOTION_RUNTIME_VERSION = 1 as const;
 
 const RuntimeNodeSchema = z.discriminatedUnion("type", [
-  GroupNodeV2Schema.omit({ repeat: true }),
-  BoneNodeV2Schema.omit({ repeat: true }),
-  TextNodeV2Schema.omit({ repeat: true, textAnimator: true }),
-  ShapeNodeV2Schema.omit({ repeat: true }),
-  PathNodeV2Schema.omit({ repeat: true }),
-  ImageNodeV2Schema.omit({ repeat: true }),
-  SvgNodeV2Schema.omit({ repeat: true }),
-  VideoNodeV2Schema.omit({ repeat: true }),
-  CameraNodeV2Schema.omit({ repeat: true }),
-  SolidNodeV2Schema.omit({ repeat: true }),
-  AdjustmentNodeV2Schema.omit({ repeat: true }),
+  GroupNodeSchema.omit({ repeat: true }),
+  BoneNodeSchema.omit({ repeat: true }),
+  TextNodeSchema.omit({ repeat: true, textAnimator: true }),
+  ShapeNodeSchema.omit({ repeat: true }),
+  PathNodeSchema.omit({ repeat: true }),
+  ImageNodeSchema.omit({ repeat: true }),
+  SvgNodeSchema.omit({ repeat: true }),
+  VideoNodeSchema.omit({ repeat: true }),
+  CameraNodeSchema.omit({ repeat: true }),
+  SolidNodeSchema.omit({ repeat: true }),
+  AdjustmentNodeSchema.omit({ repeat: true }),
 ]);
 
 const RuntimeTrackSchema = z
@@ -348,8 +348,8 @@ const MotionRuntimeProjectBaseSchema = z
     format: z.literal("motion-runtime"),
     formatVersion: z.literal(RUNTIME_IR_FORMAT_VERSION),
     runtimeVersion: z.literal(MOTION_RUNTIME_VERSION).optional(),
-    metadata: ProjectMetadataV2Schema,
-    assets: z.array(AssetV2Schema).max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact),
+    metadata: ProjectMetadataSchema,
+    assets: z.array(AssetSchema).max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact),
     composition: RuntimeCompositionMetadataSchema.optional(),
     runtimeHash: z.string().min(1).max(128).optional(),
     compilerVersion: z.string().min(1).max(128).optional(),
@@ -852,7 +852,7 @@ export type MotionRuntimeTrack =
 // These will be removed once all consumers migrate.
 
 /** @deprecated Use `MotionRuntimeProjectSchema` instead. */
-export const NormalizedMotionProjectV2Schema = MotionRuntimeProjectSchema;
+export const NormalizedMotionProjectSchema = MotionRuntimeProjectSchema;
 
 /** @deprecated Use `MotionRuntimeProject` instead. */
 export type NormalizedMotionProjectV2 = MotionRuntimeProject;

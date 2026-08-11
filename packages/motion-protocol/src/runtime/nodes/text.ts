@@ -183,7 +183,7 @@ export const TextPayloadSchema = z.preprocess(
   TextPayloadFieldsSchema,
 );
 
-export const TextNodeV2Schema = NodeBaseSchema.extend({
+export const TextNodeSchema = NodeBaseSchema.extend({
   type: z.literal("text"),
   textAnimator: TextAnimatorSchema.optional(),
   payload: TextPayloadSchema,

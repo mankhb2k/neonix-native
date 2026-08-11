@@ -2,7 +2,7 @@
  * V3 effects schema — canonical source of truth.
  *
  * Phase 2: copied from legacy/effects.ts → V3 now owns this definition.
- * The canonical name is `EffectSchema` (was `EffectV2Schema`).
+ * The canonical name is `EffectSchema` (was `EffectSchema`).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -63,4 +63,3 @@ export const EffectSchema = z.discriminatedUnion("type", [
 export type MotionEffect = z.infer<typeof EffectSchema>;
 
 /** @deprecated Use `EffectSchema` instead. */
-export const EffectV2Schema = EffectSchema;
