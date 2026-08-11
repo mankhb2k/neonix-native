@@ -30,7 +30,9 @@ export const EffectSchema = z.discriminatedUnion("type", [
       offsetY: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.effectOffset).max(
         MOTION_PROTOCOL_LIMITS.effectOffset,
       ),
-      blur: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.effectRadius),
+      blur: FiniteNumberSchema.nonnegative().max(
+        MOTION_PROTOCOL_LIMITS.effectRadius,
+      ),
       color: z.string().min(1),
       opacity: FiniteNumberSchema.min(0).max(1).default(1),
     })

@@ -12,7 +12,7 @@ type SceneClip = Extract<TimelineClip, { kind: "scene" }>;
  * the current editor lanes/clips back into the project timeline so autosave
  * always produces a schema-valid project.
  *
- * Phase 8: V3 only — writes visualTracks directly, no sceneOrder fallback.
+ * Phase 8: V3 only — writes visualTracks directly.
  */
 export function rebuildMainProject(
   project: MotionProjectV3,
@@ -48,7 +48,7 @@ function computeOrderedSceneIds(
         clip.kind === "scene" && clip.laneId === mainId,
     )
     .sort((a, b) => a.startTime - b.startTime || a.id.localeCompare(b.id));
-  const sceneOrder = main
+  const orderedMainSceneIds = main
     .map((clip) => clip.sceneId)
     .filter((sceneId) => byId.has(sceneId));
 
@@ -60,8 +60,8 @@ function computeOrderedSceneIds(
       .filter((sceneId) => byId.has(sceneId)),
   );
   return [
-    ...sceneOrder,
-    ...[...referenced].filter((id) => !sceneOrder.includes(id)),
+    ...orderedMainSceneIds,
+    ...[...referenced].filter((id) => !orderedMainSceneIds.includes(id)),
   ];
 }
 

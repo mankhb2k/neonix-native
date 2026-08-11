@@ -16,7 +16,9 @@ export const TransformSchema = z
       .max(MOTION_PROTOCOL_LIMITS.zPositionRange)
       .optional(),
     depth: FiniteNumberSchema.optional(),
-    width: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    width: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    ),
     height: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.nodeDimension,
     ),
@@ -47,5 +49,3 @@ export const TransformSchema = z
   .strict();
 
 export type MotionTransform = z.infer<typeof TransformSchema>;
-
-

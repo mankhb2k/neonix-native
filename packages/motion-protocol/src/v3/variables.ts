@@ -85,7 +85,9 @@ export const ProjectVariableV3Schema = z.discriminatedUnion("type", [
     itemSchema: z
       .object({ type: z.literal("object"), fields: z.record(ListFieldSchema) })
       .strict(),
-    value: z.array(z.record(JsonValueSchema)).max(MOTION_PROTOCOL_LIMITS.listItems),
+    value: z
+      .array(z.record(JsonValueSchema))
+      .max(MOTION_PROTOCOL_LIMITS.listItems),
   }).strict(),
 ]);
 
@@ -186,7 +188,9 @@ export const VariableSchema = z.discriminatedUnion("type", [
         fields: z.record(ObjectFieldSchema),
       })
       .strict(),
-    value: z.array(z.record(JsonValueSchema)).max(MOTION_PROTOCOL_LIMITS.listItems),
+    value: z
+      .array(z.record(JsonValueSchema))
+      .max(MOTION_PROTOCOL_LIMITS.listItems),
   }).strict(),
 ]);
 

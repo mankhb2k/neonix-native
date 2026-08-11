@@ -623,4 +623,3 @@ export {
   type RecipeBakeInput,
   type BakedRecipe,
 } from "./recipe-registry";
-

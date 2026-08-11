@@ -332,7 +332,7 @@ export function buildPhase0LargeFixture(
 
   const project = parseProjectInput({
     format: "motion-project",
-    formatVersion: 2,
+    formatVersion: 3,
     metadata: {
       id: "vite-phase0.large",
       name: `Phase0 Large ${clipCount}`,

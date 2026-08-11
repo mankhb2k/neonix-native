@@ -112,7 +112,10 @@ export const FontAssetSchema = AssetBaseSchema.extend({
   family: z.string().min(1),
   weight: FiniteNumberSchema.int().min(1).max(1000),
   style: z.enum(["normal", "italic"]),
-  localeCoverage: z.array(IdSchema).min(1).max(MOTION_PROTOCOL_LIMITS.localeCoverage),
+  localeCoverage: z
+    .array(IdSchema)
+    .min(1)
+    .max(MOTION_PROTOCOL_LIMITS.localeCoverage),
 }).strict();
 
 export const AssetSchema = z
@@ -172,6 +175,3 @@ export const AssetSchema = z
       });
     }
   });
-
-
-

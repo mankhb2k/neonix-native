@@ -305,10 +305,14 @@ export function fixtureMainPlusAudioOverlap() {
   return { project, clips, lanes, overlayScenes: [] as OverlaySceneItem[] };
 }
 
-/** Legacy lưu bằng overlay sidecar + sceneOrder, chưa có clips/lanes. */
+/**
+ * @migrationOnly — Tests legacy overlay-scene deserialization from the
+ * pre-visualTracks era. Clips/Lanes are empty; scene placement is derived
+ * from the envelope's overlayScenes sidecar via layerIndex.
+ */
 export function fixtureLegacyTrackLayerIndex() {
-  // Legacy: scene vẫn nằm trong project (schema yêu cầu schedule);
-  // placement overlay lấy từ sidecar layerIndex, không từ sceneOrder.
+  // Scene placement is resolved from overlayScenes sidecar,
+  // not from visualTracks or the old V2 sceneOrder field.
   const project = baseProject("fixture.legacy-track", "Legacy Track", [
     scene("scene.main", "Main", 3),
     scene("scene.ov", "Overlay", 2),

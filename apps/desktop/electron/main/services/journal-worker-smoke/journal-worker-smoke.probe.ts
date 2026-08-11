@@ -90,7 +90,7 @@ export async function runJournalWorkerSmokeProbe(): Promise<number> {
     workerExists: Boolean(workerPath && fs.existsSync(workerPath)),
     bytes,
     via: result.ok ? result.via : null,
-    fallbackFrom: result.ok ? result.fallbackFrom ?? null : null,
+    fallbackFrom: result.ok ? (result.fallbackFrom ?? null) : null,
     error: result.ok ? null : result.error,
     kind: result.ok ? null : result.kind,
     smokeTokenPresent: true,

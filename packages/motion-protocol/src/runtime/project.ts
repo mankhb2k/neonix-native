@@ -83,7 +83,9 @@ export const ProjectMetadataSchema = z
     id: IdSchema,
     name: z.string().min(1),
     aspectRatio: AspectRatioSchema,
-    fps: FiniteNumberSchema.int().positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
+    fps: FiniteNumberSchema.int()
+      .positive()
+      .max(MOTION_PROTOCOL_LIMITS.frameRate),
     locale: z.literal("vi-VN"),
     industry: z.string().optional(),
     brand: BrandSchema,
@@ -251,7 +253,9 @@ export const RuntimeCompositionMetadataSchema = z
     height: FiniteNumberSchema.int()
       .positive()
       .max(MOTION_PROTOCOL_LIMITS.assetDimension),
-    fps: FiniteNumberSchema.int().positive().max(MOTION_PROTOCOL_LIMITS.frameRate),
+    fps: FiniteNumberSchema.int()
+      .positive()
+      .max(MOTION_PROTOCOL_LIMITS.frameRate),
     background: z.string().min(1).max(64).optional(),
     colorSpace: z.enum(["srgb", "display-p3"]).default("srgb"),
     audioSampleRate: FiniteNumberSchema.int()
@@ -313,7 +317,9 @@ export const RuntimeVisualTrackSchema = z
     role: z.enum(["primary", "overlay", "background"]),
     order: FiniteNumberSchema.int().nonnegative().optional(),
     muted: z.boolean().optional(),
-    clips: z.array(RuntimeVisualClipSchema).max(MOTION_PROTOCOL_LIMITS.clipsPerScene),
+    clips: z
+      .array(RuntimeVisualClipSchema)
+      .max(MOTION_PROTOCOL_LIMITS.clipsPerScene),
   })
   .strict();
 export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
@@ -392,7 +398,8 @@ const MotionRuntimeProjectBaseSchema = z
             tracks: z
               .array(RuntimeTrackSchema)
               .max(
-                MOTION_PROTOCOL_LIMITS.clipsPerScene * MOTION_PROTOCOL_LIMITS.tracksPerClip,
+                MOTION_PROTOCOL_LIMITS.clipsPerScene *
+                  MOTION_PROTOCOL_LIMITS.tracksPerClip,
               ),
           })
           .strict(),
@@ -847,8 +854,6 @@ export type MotionRuntimeTrack =
 
 /** @deprecated Use `MotionRuntimeProjectSchema` instead. */
 export const NormalizedMotionProjectSchema = MotionRuntimeProjectSchema;
-
-
 
 /** @deprecated Use `MotionRuntimeIR` instead. */
 export type MotionRuntimeIR = MotionRuntimeProject;

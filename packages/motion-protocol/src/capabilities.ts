@@ -636,7 +636,8 @@ export function motionEffectPropertyCapability(
           -MOTION_PROTOCOL_LIMITS.effectOffset,
           MOTION_PROTOCOL_LIMITS.effectOffset,
         );
-      if (field === "blur") return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
+      if (field === "blur")
+        return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
       if (field === "opacity") return number(0, 1);
       if (field === "color")
         return {
@@ -648,7 +649,8 @@ export function motionEffectPropertyCapability(
         };
       return undefined;
     case "glow":
-      if (field === "radius") return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
+      if (field === "radius")
+        return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
       if (field === "intensity")
         return number(0, MOTION_PROTOCOL_LIMITS.effectIntensity);
       if (field === "opacity") return number(0, 1);

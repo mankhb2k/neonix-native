@@ -20,7 +20,9 @@ export const ComponentActionV3Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
-    clips: z.array(MotionClipV3Schema).max(MOTION_PROTOCOL_LIMITS.clipsPerAction),
+    clips: z
+      .array(MotionClipV3Schema)
+      .max(MOTION_PROTOCOL_LIMITS.clipsPerAction),
     params: z.record(JsonValueSchema).optional(),
   })
   .strict();

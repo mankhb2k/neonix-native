@@ -71,6 +71,3 @@ export const NodeSchema = z.discriminatedUnion("type", [
 ]);
 
 export type MotionNode = z.infer<typeof NodeSchema>;
-
-
-

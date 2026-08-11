@@ -314,7 +314,7 @@ export {
 export { type MotionClipV3 } from "./v3/animation/clips";
 
 /** @deprecated Use `MotionClipV3` instead — excludes legacy component-action source kind. */
-export type { MotionClipV3 as MotionClip }; 
+export type { MotionClipV3 as MotionClip };
 
 // Project scene type — V3 canonical
 export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";

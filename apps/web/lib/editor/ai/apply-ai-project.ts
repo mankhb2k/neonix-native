@@ -1,6 +1,6 @@
 /**
  * Apply AI proposal into editor store — one undoable transaction.
- * Merges elementMeta on refine; materializes timeline from sceneOrder.
+ * Merges elementMeta on refine; materializes timeline from visualTracks.
  */
 
 import { resolveFitAnchorSeconds } from "@motionvideo/editor-core";
