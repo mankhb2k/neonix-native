@@ -357,11 +357,15 @@ const MotionRuntimeProjectBaseSchema = z
     sourceRef: RuntimeSourceRefMapSchema.optional(),
     timeline: z
       .object({
-        sceneOrder: z.array(IdSchema).max(MOTION_V2_LIMITS.scenesPerProject),
+        /** @deprecated sceneOrder is derived from visualTracks; kept optional for backward compat. */
+        sceneOrder: z
+          .array(IdSchema)
+          .max(MOTION_V2_LIMITS.scenesPerProject)
+          .optional(),
         visualTracks: z
           .array(RuntimeVisualTrackSchema)
-          .max(MOTION_V2_LIMITS.audioTracksPerProject)
-          .optional(),
+          .min(1)
+          .max(MOTION_V2_LIMITS.audioTracksPerProject),
         audioTracks: z
           .array(AudioTrackSchema)
           .max(MOTION_V2_LIMITS.audioTracksPerProject),
@@ -385,6 +389,7 @@ const MotionRuntimeProjectBaseSchema = z
             motionBlur: MotionBlurSettingsSchema.optional(),
             drivers: z.array(ProceduralDriverSchema).max(512).optional(),
             activeCameraId: IdSchema.optional(),
+            /** @deprecated Transitions are clip-level in V3 (transitionIn / transitionOut on visual clips). */
             transition: SceneTransitionSchema.optional(),
             sourceRef: RuntimeSourceRefSchema.optional(),
             nodes: z

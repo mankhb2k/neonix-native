@@ -1105,6 +1105,7 @@ export function _compileScenePipeline(input: {
   motionBlur?: unknown;
   drivers?: unknown[];
   activeCameraId?: string;
+  /** @deprecated Transitions are clip-level in V3 (transitionIn / transitionOut on visual clips). */
   transition?: unknown;
   sourceRef?: RuntimeSourceRef;
 }): MotionRuntimeProject["scenes"][number] {

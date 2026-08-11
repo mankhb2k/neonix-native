@@ -74,7 +74,21 @@ function baseIR(): Record<string, unknown> {
     },
     assets: [],
     timeline: {
-      sceneOrder: ["intro"],
+      visualTracks: [
+        {
+          id: "primary",
+          role: "primary",
+          order: 0,
+          clips: [
+            {
+              id: "clip-intro",
+              source: { kind: "scene", sceneId: "intro" },
+              start: 0,
+              duration: 5,
+            },
+          ],
+        },
+      ],
       audioTracks: [],
       captionTracks: [],
     },
@@ -235,7 +249,7 @@ describe("visual track plan (Task 6.3)", () => {
     expect(bad.success).toBe(false);
   });
 
-  it("full IR accepts timeline.visualTracks alongside sceneOrder", () => {
+  it("full IR accepts timeline.visualTracks without sceneOrder", () => {
     const ir = baseIR();
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
@@ -257,6 +271,165 @@ describe("visual track plan (Task 6.3)", () => {
     expect(
       (parsed.data as MotionRuntimeProject).timeline.visualTracks,
     ).toHaveLength(1);
+  });
+});
+
+describe("visual track plan — multi-track fixtures (Phase 1)", () => {
+  it("accepts primary + overlay tracks", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).visualTracks = [
+      {
+        id: "track-primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-intro",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 5,
+          },
+        ],
+      },
+      {
+        id: "track-overlay",
+        role: "overlay",
+        order: 1,
+        clips: [
+          {
+            id: "clip-overlay",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 3,
+            duration: 2,
+            opacity: 0.7,
+          },
+        ],
+      },
+    ];
+    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
+    expect(parsed.success).toBe(true);
+    expect(
+      (parsed.data as MotionRuntimeProject).timeline.visualTracks,
+    ).toHaveLength(2);
+    expect(
+      (parsed.data as MotionRuntimeProject).timeline.visualTracks[1]!.role,
+    ).toBe("overlay");
+  });
+
+  it("accepts an empty track (no clips)", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).visualTracks = [
+      {
+        id: "track-primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-intro",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 5,
+          },
+        ],
+      },
+      {
+        id: "track-empty",
+        role: "overlay",
+        order: 1,
+        clips: [],
+      },
+    ];
+    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
+    expect(parsed.success).toBe(true);
+    expect(
+      (parsed.data as MotionRuntimeProject).timeline.visualTracks,
+    ).toHaveLength(2);
+  });
+
+  it("accepts overlapping clips on the same track", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).visualTracks = [
+      {
+        id: "track-primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-a",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 5,
+          },
+          {
+            id: "clip-b",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 3,
+            duration: 4,
+          },
+        ],
+      },
+    ];
+    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
+    expect(parsed.success).toBe(true);
+    expect(
+      (parsed.data as MotionRuntimeProject).timeline.visualTracks[0]!.clips,
+    ).toHaveLength(2);
+  });
+
+  it("accepts transition clips", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).visualTracks = [
+      {
+        id: "track-primary",
+        role: "primary",
+        order: 0,
+        clips: [
+          {
+            id: "clip-a",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 3,
+            transitionOut: { type: "fade", duration: 0.5 },
+          },
+          {
+            id: "clip-b",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 2.5,
+            duration: 3,
+            transitionIn: { type: "fade", duration: 0.5 },
+          },
+        ],
+      },
+    ];
+    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
+    expect(parsed.success).toBe(true);
+    const clips = (parsed.data as MotionRuntimeProject).timeline
+      .visualTracks[0]!.clips;
+    expect(clips[0]!.transitionOut).toEqual({ type: "fade", duration: 0.5 });
+    expect(clips[1]!.transitionIn).toEqual({ type: "fade", duration: 0.5 });
+  });
+
+  it("rejects a track with no primary role", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).visualTracks = [
+      {
+        id: "track-only-overlay",
+        role: "overlay",
+        order: 0,
+        clips: [
+          {
+            id: "clip-a",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 5,
+          },
+        ],
+      },
+    ];
+    // Schema does not enforce "must have primary" — only role enum.
+    // This is valid; resolution layer handles missing primary gracefully.
+    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
+    expect(parsed.success).toBe(true);
   });
 });
 

@@ -1,18 +1,16 @@
 /**
- * Phase 5 — Compiler V3 entry point.
+ * Phase 6 — Compiler V3 entry point.
  *
  * `compileMotionProjectV3()` compiles a `MotionProjectV3` authoring project
- * into the runtime IR (`MotionRuntimeProject`). The v2 runtime shape
- * is the only serialized runtime contract today (the vNext runtime IR is
- * introduced in Phase 6), so the v3 authoring model is down-migrated onto
- * the proven v2 compile pipeline:
+ * directly into the runtime IR (`MotionRuntimeProject`) — no intermediate
+ * V2 project shape is built:
  *
  *   composition            → runtime metadata (aspectRatio derived from
  *                            dimensions, fps, background as brand color)
- *   timeline.visualTracks  → sceneOrder (one scene instance per visual
+ *   timeline.visualTracks  → visual plan (one scene instance per visual
  *                            clip, in track order; overlay tracks append)
- *   scene clips            → runtime tracks (v2 clip pipeline)
- *   variables / bindings   → resolved by the v2 pipeline
+ *   scene clips            → runtime tracks (compiled directly)
+ *   variables / bindings   → resolved inline before scene compilation
  *   component-source clips → synthesized scenes from the embedded
  *                            component definition
  *   caption tracks         → copied through
@@ -29,10 +27,12 @@ import { createHash } from "node:crypto";
 import {
   canonicalJson,
   computeRuntimeHash,
+  computeProjectHash,
   MotionRuntimeProjectSchema,
   MOTION_RUNTIME_VERSION,
   buildCapabilityFingerprint,
-  type MotionProject,
+  preflightProjectCapabilities,
+  CAPABILITY_MANIFEST_VERSION_V3,
   type MotionRuntimeProject,
   V3,
 } from "@motionvideo/motion-protocol";
@@ -70,7 +70,7 @@ export type CompileV3Options = {
  * Compiler version for v3 compilation. Separate from the legacy
  * `COMPILER_VERSION` so cache keys never collide across pipelines.
  */
-export const COMPILER_VERSION_V3 = "3.0.0-phase5";
+export const COMPILER_VERSION_V3 = "3.0.0-phase11";
 
 // ── Small helpers ─────────────────────────────────────────────────────
 
@@ -133,168 +133,9 @@ export function detectScheduleCycles(
   return [...new Set(cycles)];
 }
 
-// ── V3 → internal shape down-migration ────────────────────────────────
+// ── Runtime shape preparation ─────────────────────────────────────────
 
-function downMigrateMetadata(project: V3.MotionProjectV3): JsonRecord {
-  const composition = project.composition;
-  const brand: JsonRecord = { name: project.metadata.name ?? "Default" };
-  if (composition.background !== "#ffffff") {
-    brand.primaryColor = composition.background;
-  }
-  const metadata: JsonRecord = {
-    id: project.metadata.id,
-    name: project.metadata.name,
-    aspectRatio: deriveAspectRatio(composition.width, composition.height),
-    fps: composition.fps,
-    // v2 metadata pins locale to "vi-VN"; v3 locale is preserved in the
-    // project and re-enters the runtime IR in Phase 6.
-    locale: "vi-VN",
-    brand,
-  };
-  if (project.metadata.industry) metadata.industry = project.metadata.industry;
-  if (project.metadata.description)
-    metadata.description = project.metadata.description;
-  if (project.metadata.createdAt)
-    metadata.createdAt = project.metadata.createdAt;
-  if (project.metadata.updatedAt)
-    metadata.updatedAt = project.metadata.updatedAt;
-  if (composition.safeArea) {
-    // v2 safe area requires a `platform` discriminator; v3 is platform
-    // agnostic — default to "generic".
-    metadata.safeArea = { platform: "generic", ...composition.safeArea };
-  }
-  return metadata;
-}
-
-function downMigrateAsset(asset: V3.AssetV3): JsonRecord {
-  switch (asset.assetType) {
-    case "image": {
-      const pixelFormat = asset.pixelFormat ?? "rgba";
-      return {
-        id: asset.id,
-        uri: asset.uri,
-        integrity: asset.integrity,
-        assetType: "image",
-        mimeType: asset.mimeType,
-        width: asset.width,
-        height: asset.height,
-        pixelFormat,
-        hasAlpha: asset.hasAlpha ?? pixelFormatHasAlpha(pixelFormat),
-      };
-    }
-    case "svg":
-      return {
-        id: asset.id,
-        uri: asset.uri,
-        integrity: asset.integrity,
-        assetType: "svg",
-        mimeType: asset.mimeType,
-        width: asset.width,
-        height: asset.height,
-        viewBox: asset.viewBox ?? `0 0 ${asset.width} ${asset.height}`,
-        sanitized: true,
-      };
-    case "video": {
-      const hasAudio = Boolean(
-        asset.audioCodec || asset.audioSampleRate || asset.audioChannels,
-      );
-      return {
-        id: asset.id,
-        uri: asset.uri,
-        integrity: asset.integrity,
-        assetType: "video",
-        mimeType: asset.mimeType,
-        width: asset.width,
-        height: asset.height,
-        duration: asset.duration,
-        fps: asset.fps,
-        videoCodec: asset.codec ?? "h264",
-        pixelFormat: asset.pixelFormat ?? "yuv420p",
-        hasAudio,
-        ...(hasAudio
-          ? {
-              audioCodec: asset.audioCodec ?? "aac",
-              sampleRate: asset.audioSampleRate ?? 48000,
-              channels: asset.audioChannels ?? 2,
-            }
-          : {}),
-      };
-    }
-    case "audio":
-      return {
-        id: asset.id,
-        uri: asset.uri,
-        integrity: asset.integrity,
-        assetType: "audio",
-        mimeType: asset.mimeType,
-        duration: asset.duration,
-        codec: asset.codec ?? "mp3",
-        sampleRate: asset.sampleRate,
-        channels: asset.channels,
-      };
-    case "font":
-      return {
-        id: asset.id,
-        uri: asset.uri,
-        integrity: asset.integrity,
-        assetType: "font",
-        mimeType: asset.mimeType,
-        family: asset.family,
-        weight: asset.weight,
-        style: asset.style,
-        localeCoverage: asset.localeCoverage ?? ["vi"],
-      };
-  }
-}
-
-function downMigrateVariable(variable: V3.ProjectVariableV3): JsonRecord {
-  const base: JsonRecord = { id: variable.id, name: variable.name };
-  switch (variable.type) {
-    case "string":
-      return { ...base, type: "string", value: variable.value };
-    case "color":
-      return { ...base, type: "color", value: variable.value };
-    case "number":
-      return {
-        ...base,
-        type: "number",
-        value: variable.value,
-        ...(variable.min !== undefined ? { min: variable.min } : {}),
-        ...(variable.max !== undefined ? { max: variable.max } : {}),
-      };
-    case "boolean":
-      return { ...base, type: "boolean", value: variable.value };
-    case "asset":
-      return {
-        ...base,
-        type: "asset",
-        assetKind: variable.assetKind,
-        value: variable.value,
-      };
-    case "enum":
-      return {
-        ...base,
-        type: "enum",
-        value: variable.value,
-        options: variable.options,
-      };
-    case "list": {
-      // v2 list fields only carry `type`; strip v3-only metadata.
-      const fields: JsonRecord = {};
-      for (const [key, field] of Object.entries(variable.itemSchema.fields)) {
-        fields[key] = { type: field.type };
-      }
-      return {
-        ...base,
-        type: "list",
-        itemSchema: { type: "object", fields },
-        value: clone(variable.value),
-      };
-    }
-  }
-}
-
-function downMigrateNode(node: V3.NodeV3): JsonRecord {
+function prepareRuntimeNode(node: V3.NodeV3): JsonRecord {
   const flags: {
     position?: boolean;
     rotation?: boolean;
@@ -445,16 +286,16 @@ function downMigrateNode(node: V3.NodeV3): JsonRecord {
 
 type V3SceneClip = NonNullable<V3.SceneDefinitionV3["clips"]>[number];
 
-function downMigrateClip(clip: V3SceneClip): JsonRecord {
+function prepareRuntimeClip(clip: V3SceneClip): JsonRecord {
   return clone(clip);
 }
 
-function downMigrateScene(scene: V3.SceneDefinitionV3): JsonRecord {
+function prepareRuntimeScene(scene: V3.SceneDefinitionV3): JsonRecord {
   const result: JsonRecord = {
     id: scene.id,
     duration: scene.duration,
-    nodes: scene.nodes.map((node) => downMigrateNode(node)),
-    clips: (scene.clips ?? []).map((clip) => downMigrateClip(clip)),
+    nodes: scene.nodes.map((node) => prepareRuntimeNode(node)),
+    clips: (scene.clips ?? []).map((clip) => prepareRuntimeClip(clip)),
   };
   if (scene.name) result.name = scene.name;
   if (scene.semantic) result.semantic = scene.semantic;
@@ -467,7 +308,7 @@ function downMigrateScene(scene: V3.SceneDefinitionV3): JsonRecord {
   return result;
 }
 
-function downMigrateAudioTrack(track: V3.AudioTrackV3): JsonRecord {
+function prepareRuntimeAudioTrack(track: V3.AudioTrackV3): JsonRecord {
   return {
     id: track.id,
     role: track.role,
@@ -481,23 +322,170 @@ function downMigrateAudioTrack(track: V3.AudioTrackV3): JsonRecord {
   };
 }
 
+function prepareRuntimeAsset(asset: V3.AssetV3): JsonRecord {
+  switch (asset.assetType) {
+    case "image": {
+      const pixelFormat = asset.pixelFormat ?? "rgba";
+      return {
+        id: asset.id,
+        uri: asset.uri,
+        integrity: asset.integrity,
+        assetType: "image",
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+        pixelFormat,
+        hasAlpha: asset.hasAlpha ?? pixelFormatHasAlpha(pixelFormat),
+      };
+    }
+    case "svg":
+      return {
+        id: asset.id,
+        uri: asset.uri,
+        integrity: asset.integrity,
+        assetType: "svg",
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+        viewBox: asset.viewBox ?? `0 0 ${asset.width} ${asset.height}`,
+        sanitized: true,
+      };
+    case "video": {
+      const hasAudio = Boolean(
+        asset.audioCodec || asset.audioSampleRate || asset.audioChannels,
+      );
+      return {
+        id: asset.id,
+        uri: asset.uri,
+        integrity: asset.integrity,
+        assetType: "video",
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+        duration: asset.duration,
+        fps: asset.fps,
+        videoCodec: asset.codec ?? "h264",
+        pixelFormat: asset.pixelFormat ?? "yuv420p",
+        hasAudio,
+        ...(hasAudio
+          ? {
+              audioCodec: asset.audioCodec ?? "aac",
+              sampleRate: asset.audioSampleRate ?? 48000,
+              channels: asset.audioChannels ?? 2,
+            }
+          : {}),
+      };
+    }
+    case "audio":
+      return {
+        id: asset.id,
+        uri: asset.uri,
+        integrity: asset.integrity,
+        assetType: "audio",
+        mimeType: asset.mimeType,
+        duration: asset.duration,
+        codec: asset.codec ?? "mp3",
+        sampleRate: asset.sampleRate,
+        channels: asset.channels,
+      };
+    case "font":
+      return {
+        id: asset.id,
+        uri: asset.uri,
+        integrity: asset.integrity,
+        assetType: "font",
+        mimeType: asset.mimeType,
+        family: asset.family,
+        weight: asset.weight,
+        style: asset.style,
+        localeCoverage: asset.localeCoverage ?? ["vi"],
+      };
+  }
+}
+
+function prepareRuntimeVariable(variable: V3.ProjectVariableV3): JsonRecord {
+  const base: JsonRecord = { id: variable.id, name: variable.name };
+  switch (variable.type) {
+    case "string":
+      return { ...base, type: "string", value: variable.value };
+    case "color":
+      return { ...base, type: "color", value: variable.value };
+    case "number":
+      return {
+        ...base,
+        type: "number",
+        value: variable.value,
+        ...(variable.min !== undefined ? { min: variable.min } : {}),
+        ...(variable.max !== undefined ? { max: variable.max } : {}),
+      };
+    case "boolean":
+      return { ...base, type: "boolean", value: variable.value };
+    case "asset":
+      return {
+        ...base,
+        type: "asset",
+        assetKind: variable.assetKind,
+        value: variable.value,
+      };
+    case "enum":
+      return {
+        ...base,
+        type: "enum",
+        value: variable.value,
+        options: variable.options,
+      };
+    case "list": {
+      const fields: JsonRecord = {};
+      for (const [key, field] of Object.entries(variable.itemSchema.fields)) {
+        fields[key] = { type: field.type };
+      }
+      return {
+        ...base,
+        type: "list",
+        itemSchema: { type: "object", fields },
+        value: clone(variable.value),
+      };
+    }
+  }
+}
+
 // ── Visual plan ───────────────────────────────────────────────────────
 
 type VisualPlanEntry = {
   clipId: string;
   sceneId: string;
+  /** V3 clip fields propagated to runtime. */
+  trimStart?: number;
+  playbackRate?: number;
+  loop: boolean;
+  opacity: number;
+  transitionIn?: V3.TransitionV3;
+  transitionOut?: V3.TransitionV3;
+};
+
+type VisualPlanTrack = {
+  trackId: string;
+  /** V3 "main" → runtime "primary", "overlay" → "overlay". */
+  role: "primary" | "overlay";
+  order: number;
+  muted?: boolean;
+  entries: VisualPlanEntry[];
 };
 
 /**
- * Flatten `timeline.visualTracks` into an ordered list of runtime scene
- * instances. A scene used by multiple clips is cloned (id suffixed with
- * the clip id); component-source clips synthesize a scene from the
- * embedded component definition.
+ * Convert `timeline.visualTracks` into a track-preserving visual plan.
+ *
+ * Each V3 track becomes one runtime track.  Clip ordering within a track
+ * is preserved; track ordering is controlled by `track.order`.
+ *
+ * A scene used by multiple clips is cloned (id suffixed with the clip id);
+ * component-source clips synthesize a scene from the embedded component
+ * definition.
  */
 function buildVisualPlan(
   project: V3.MotionProjectV3,
   collector: DiagnosticCollector,
-): { entries: VisualPlanEntry[]; sceneOverrides: Map<string, JsonRecord> } {
+): { tracks: VisualPlanTrack[]; sceneOverrides: Map<string, JsonRecord> } {
   const scenes = new Map(
     project.scenes.map((scene) => [scene.id, scene] as const),
   );
@@ -505,28 +493,44 @@ function buildVisualPlan(
     project.components.map((component) => [component.id, component] as const),
   );
   const sceneUsage = new Map<string, number>();
-  const entries: VisualPlanEntry[] = [];
   const sceneOverrides = new Map<string, JsonRecord>();
+  const tracks: VisualPlanTrack[] = [];
 
-  const tracks = [...project.timeline.visualTracks].sort(
+  const v3Tracks = [...project.timeline.visualTracks].sort(
     (a, b) => a.order - b.order,
   );
-  const hasVisualClips = tracks.some((track) => track.clips.length > 0);
+  const hasVisualClips = v3Tracks.some((track) => track.clips.length > 0);
   if (!hasVisualClips) {
     // No visual clips → compile every authored scene in declaration order
-    // so nothing silently disappears from the runtime IR.
+    // on a single primary track so nothing silently disappears.
+    const entries: VisualPlanEntry[] = [];
     for (const scene of project.scenes) {
-      const entry: VisualPlanEntry = { clipId: scene.id, sceneId: scene.id };
+      const entry: VisualPlanEntry = {
+        clipId: scene.id,
+        sceneId: scene.id,
+        loop: false,
+        opacity: 1,
+      };
       sceneOverrides.set(scene.id, {
-        ...downMigrateScene(scene),
+        ...prepareRuntimeScene(scene),
         sourceRef: { projectPath: ["scenes", scene.id] },
       });
       entries.push(entry);
     }
-    return { entries, sceneOverrides };
+    tracks.push({
+      trackId: "primary",
+      role: "primary",
+      order: 0,
+      muted: false,
+      entries,
+    });
+    return { tracks, sceneOverrides };
   }
-  for (const track of tracks) {
-    for (const clip of track.clips) {
+  for (const v3Track of v3Tracks) {
+    const trackEntries: VisualPlanEntry[] = [];
+    // V3 "main" role maps to runtime "primary"
+    const runtimeRole = v3Track.role === "main" ? "primary" : v3Track.role;
+    for (const clip of v3Track.clips) {
       if (clip.source.kind === "scene") {
         const source = scenes.get(clip.source.sceneId);
         if (!source) {
@@ -534,7 +538,7 @@ function buildVisualPlan(
             "CMP_CLIP_TARGET_MISSING",
             `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
             {
-              path: ["timeline", "visualTracks", track.id, "clips", clip.id],
+              path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
               details: { clipId: clip.id, sceneId: clip.source.sceneId },
             },
           );
@@ -547,7 +551,7 @@ function buildVisualPlan(
           Math.abs(source.duration - clip.duration) > 1e-9 ||
           clip.trimStart !== undefined;
         const sceneId = reuse ? `${source.id}@${clip.id}` : source.id;
-        const scene = downMigrateScene(source);
+        const scene = prepareRuntimeScene(source);
         if (reuse) {
           scene.id = sceneId;
           scene.duration = clip.duration;
@@ -559,7 +563,16 @@ function buildVisualPlan(
             }
           : { projectPath: ["scenes", source.id] };
         sceneOverrides.set(sceneId, scene);
-        entries.push({ clipId: clip.id, sceneId });
+        trackEntries.push({
+          clipId: clip.id,
+          sceneId,
+          trimStart: clip.trimStart,
+          playbackRate: clip.playbackRate,
+          loop: clip.loop,
+          opacity: clip.opacity,
+          transitionIn: clip.transitionIn,
+          transitionOut: clip.transitionOut,
+        });
         continue;
       }
       // Component-source clip → synthesize a scene from the component.
@@ -569,7 +582,7 @@ function buildVisualPlan(
           "CMP_UNRESOLVED_COMPONENT",
           `Visual clip "${clip.id}" references unknown component "${clip.source.componentId}"`,
           {
-            path: ["timeline", "visualTracks", track.id, "clips", clip.id],
+            path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
             details: { clipId: clip.id, componentId: clip.source.componentId },
           },
         );
@@ -579,7 +592,7 @@ function buildVisualPlan(
         id: clip.id,
         name: component.id,
         duration: clip.duration,
-        nodes: component.nodes.map((node) => downMigrateNode(node)),
+        nodes: component.nodes.map((node) => prepareRuntimeNode(node)),
         clips: [],
         sourceRef: {
           projectPath: ["components", component.id],
@@ -587,10 +600,28 @@ function buildVisualPlan(
         },
       };
       sceneOverrides.set(clip.id, scene);
-      entries.push({ clipId: clip.id, sceneId: clip.id });
+      trackEntries.push({
+        clipId: clip.id,
+        sceneId: clip.id,
+        trimStart: clip.trimStart,
+        playbackRate: clip.playbackRate,
+        loop: clip.loop,
+        opacity: clip.opacity,
+        transitionIn: clip.transitionIn,
+        transitionOut: clip.transitionOut,
+      });
+    }
+    if (trackEntries.length > 0) {
+      tracks.push({
+        trackId: v3Track.id,
+        role: runtimeRole as "primary" | "overlay",
+        order: v3Track.order,
+        muted: v3Track.muted,
+        entries: trackEntries,
+      });
     }
   }
-  return { entries, sceneOverrides };
+  return { tracks, sceneOverrides };
 }
 
 // ── Semantic validation (CMP_* diagnostics) ───────────────────────────
@@ -829,145 +860,15 @@ function validateV3Semantics(
   }
 }
 
-// ── Down-migrate to v2 project shape ──────────────────────────────────
-
-function downMigrateProject(
-  project: V3.MotionProjectV3,
-  collector: DiagnosticCollector,
-): MotionProject {
-  const { entries, sceneOverrides } = buildVisualPlan(project, collector);
-
-  const scenes: JsonRecord[] = [];
-  const sceneIdSet = new Set<string>();
-  for (const entry of entries) {
-    const scene = sceneOverrides.get(entry.sceneId);
-    if (!scene || sceneIdSet.has(entry.sceneId)) continue;
-    sceneIdSet.add(entry.sceneId);
-    scenes.push(scene);
-  }
-
-  // Remap bindings: component-target bindings resolve to the synthesized
-  // scene id (the clip that instantiates the component).
-  const clipIdForComponent = new Map<string, string>();
-  for (const track of project.timeline.visualTracks) {
-    for (const clip of track.clips) {
-      if (clip.source.kind === "component") {
-        clipIdForComponent.set(clip.source.componentId, clip.id);
-      }
-    }
-  }
-
-  const bindings: JsonRecord[] = [];
-  for (const binding of project.bindings) {
-    if (binding.target.kind === "scene") {
-      // v2 text normalization deletes `payload.text` when `content` is
-      // present, so text bindings target `payload.content.text` instead.
-      const property =
-        binding.target.property === "payload.text"
-          ? "payload.content.text"
-          : binding.target.property;
-      bindings.push({
-        id: binding.id,
-        source: { kind: "variable", variableId: binding.source.variableId },
-        target: {
-          sceneId: binding.target.sceneId,
-          nodeId: binding.target.nodeId,
-          property,
-        },
-      });
-      continue;
-    }
-    const sceneId = clipIdForComponent.get(binding.target.componentId);
-    if (!sceneId) {
-      collector.warn(
-        "CMP_UNRESOLVED_COMPONENT",
-        `Binding "${binding.id}" targets component "${binding.target.componentId}" but no visual clip instantiates it`,
-        {
-          path: ["bindings", binding.id],
-          details: {
-            bindingId: binding.id,
-            componentId: binding.target.componentId,
-          },
-        },
-      );
-      continue;
-    }
-    bindings.push({
-      id: binding.id,
-      source: { kind: "variable", variableId: binding.source.variableId },
-      target: {
-        sceneId,
-        nodeId: binding.target.nodeId,
-        property: binding.target.property,
-      },
-    });
-  }
-
-  const timeline: JsonRecord = {
-    sceneOrder: entries.map((entry) => entry.sceneId),
-    audioTracks: project.timeline.audioTracks.map((track) =>
-      downMigrateAudioTrack(track),
-    ),
-    captionTracks: clone(project.timeline.captionTracks),
-  };
-
-  const extensions: JsonRecord = { constraints: [], events: [] };
-  const v2Extensions = project.extensions;
-  if (v2Extensions && typeof v2Extensions === "object") {
-    const constraints = (v2Extensions as JsonRecord)[
-      "com.moticlip.constraints"
-    ];
-    const events = (v2Extensions as JsonRecord)["com.moticlip.events"];
-    if (Array.isArray(constraints)) extensions.constraints = constraints;
-    if (Array.isArray(events)) extensions.events = events;
-  }
-
-  return {
-    format: "motion-project",
-    formatVersion: 2,
-    metadata: downMigrateMetadata(project),
-    dependencies: {
-      components: project.dependencies.components.map((dep) => ({
-        componentId: dep.componentId,
-        version: dep.version,
-        source: dep.source ?? "embedded",
-        integrity: dep.integrity,
-      })),
-    },
-    // Phase 6 — carry v3 composition settings through to the runtime IR
-    // (colorSpace / audioSampleRate / background fidelity).
-    composition: {
-      width: project.composition.width,
-      height: project.composition.height,
-      fps: project.composition.fps,
-      background: project.composition.background,
-      colorSpace: project.composition.colorSpace,
-      audioSampleRate: project.composition.audioSampleRate,
-      ...(project.composition.safeArea
-        ? {
-            safeArea: {
-              platform: "generic",
-              ...project.composition.safeArea,
-            },
-          }
-        : {}),
-    },
-    assets: project.assets.map((asset) => downMigrateAsset(asset)),
-    variables: project.variables.map((variable) =>
-      downMigrateVariable(variable),
-    ),
-    timeline,
-    scenes,
-    bindings,
-    extensions,
-  } as unknown as MotionProject;
-}
-
-// ── Public entry ──────────────────────────────────────────────────────
+// ── Compile directly from V3 visual tracks ────────────────────────────
 
 /**
  * Compile a `MotionProjectV3` into the runtime IR with structured
  * diagnostics.
+ *
+ * Compiles scenes directly from `timeline.visualTracks` — no intermediate
+ * V2-shaped project is built. Scene ordering is driven by visual track clip
+ * order; component clips synthesize runtime scenes from embedded definitions.
  *
  * Returns `{ ok: true, project }` on success or `{ ok: false, diagnostics }`
  * when the project fails semantic validation (CMP_* codes) or the runtime
@@ -992,14 +893,40 @@ export function compileMotionProjectV3(
   }
   const normalized = parsed.data;
 
+  // ── Capability preflight (Phase 11) ──────────────────────────────
+  const capabilityCheck = preflightProjectCapabilities(normalized);
+  for (const capId of capabilityCheck.undeclared) {
+    collector.warn(
+      "CAP_UNDECLARED_CAPABILITY",
+      `Project uses capability "${capId}" but it is not declared in capabilities.required`,
+      {
+        path: ["capabilities", "required"],
+        details: { capabilityId: capId },
+      },
+    );
+  }
+  for (const capId of capabilityCheck.experimentalInUse) {
+    collector.error(
+      "CAP_EXPERIMENTAL_IN_USE",
+      `Project uses experimental capability "${capId}". Opt in via capabilities.experimental or a feature flag.`,
+      {
+        path: ["capabilities", "experimental"],
+        details: { capabilityId: capId },
+      },
+    );
+  }
+  if (collector.hasErrors) {
+    return compileFailure([...collector.diagnostics]);
+  }
+
   // Semantic validation → CMP_* diagnostics.
   validateV3Semantics(normalized, collector);
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
   }
 
-  // Build internal project shape from the V3 project.
-  const v2Shape = downMigrateProject(normalized, collector);
+  // Build the visual plan from timeline.visualTracks.
+  const { tracks, sceneOverrides } = buildVisualPlan(normalized, collector);
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
   }
@@ -1008,47 +935,138 @@ export function compileMotionProjectV3(
     (diagnostic) => diagnostic.severity !== "error",
   );
 
-  // ── Compile each scene directly (Phase 4: direct compile pipeline) ──
-
   try {
+    // ── Build runtime shapes directly from V3 project ──
+
+    const comp = normalized.composition;
+    const brand: JsonRecord = { name: normalized.metadata.name ?? "Default" };
+    if (comp.background !== "#ffffff") {
+      brand.primaryColor = comp.background;
+    }
+    const metadata: JsonRecord = {
+      id: normalized.metadata.id,
+      name: normalized.metadata.name,
+      aspectRatio: deriveAspectRatio(comp.width, comp.height),
+      fps: comp.fps,
+      locale: "vi-VN",
+      brand,
+    };
+    if (normalized.metadata.industry)
+      metadata.industry = normalized.metadata.industry;
+    if (normalized.metadata.description)
+      metadata.description = normalized.metadata.description;
+    if (normalized.metadata.createdAt)
+      metadata.createdAt = normalized.metadata.createdAt;
+    if (normalized.metadata.updatedAt)
+      metadata.updatedAt = normalized.metadata.updatedAt;
+    if (comp.safeArea) {
+      metadata.safeArea = { platform: "generic", ...comp.safeArea };
+    }
+
+    const composition: JsonRecord = {
+      width: comp.width,
+      height: comp.height,
+      fps: comp.fps,
+      background: comp.background,
+      colorSpace: comp.colorSpace,
+      audioSampleRate: comp.audioSampleRate,
+      ...(comp.safeArea
+        ? { safeArea: { platform: "generic", ...comp.safeArea } }
+        : {}),
+    };
+
+    const runtimeAssets = normalized.assets.map(prepareRuntimeAsset);
+    const runtimeVariables = normalized.variables.map(prepareRuntimeVariable);
+
+    // Project variables for binding injection
     const projectVariables = new Map<string, unknown>(
-      v2Shape.variables.map(
-        (v: { id: string; value: unknown }) => [v.id, clone(v.value)] as const,
-      ),
-    );
-    const sceneOrder: string[] = (v2Shape.timeline as { sceneOrder: string[] })
-      .sceneOrder;
-    const sceneById = new Map(
-      v2Shape.scenes.map((s: Record<string, unknown>) => [s.id as string, s]),
+      normalized.variables.map((v) => [v.id, clone(v.value)] as const),
     );
 
-    const compiledScenes = sceneOrder.map((id) => {
-      const scene = sceneById.get(id);
+    // Remap bindings: component-target bindings → synthesized scene ids
+    const clipIdForComponent = new Map<string, string>();
+    for (const track of normalized.timeline.visualTracks) {
+      for (const clip of track.clips) {
+        if (clip.source.kind === "component") {
+          clipIdForComponent.set(clip.source.componentId, clip.id);
+        }
+      }
+    }
+
+    const runtimeBindings: Array<{
+      id: string;
+      source: { variableId: string };
+      target: { sceneId: string; nodeId: string; property: string };
+    }> = [];
+    for (const binding of normalized.bindings) {
+      if (binding.target.kind === "scene") {
+        const property =
+          binding.target.property === "payload.text"
+            ? "payload.content.text"
+            : binding.target.property;
+        runtimeBindings.push({
+          id: binding.id,
+          source: { variableId: binding.source.variableId },
+          target: {
+            sceneId: binding.target.sceneId,
+            nodeId: binding.target.nodeId,
+            property,
+          },
+        });
+        continue;
+      }
+      const sceneId = clipIdForComponent.get(binding.target.componentId);
+      if (!sceneId) {
+        collector.warn(
+          "CMP_UNRESOLVED_COMPONENT",
+          `Binding "${binding.id}" targets component "${binding.target.componentId}" but no visual clip instantiates it`,
+          {
+            path: ["bindings", binding.id],
+            details: {
+              bindingId: binding.id,
+              componentId: binding.target.componentId,
+            },
+          },
+        );
+        continue;
+      }
+      runtimeBindings.push({
+        id: binding.id,
+        source: { variableId: binding.source.variableId },
+        target: {
+          sceneId,
+          nodeId: binding.target.nodeId,
+          property: binding.target.property,
+        },
+      });
+    }
+
+    // Compile each scene from the visual plan (flat across all tracks).
+    const allEntries = tracks.flatMap((t) => t.entries);
+    const compiledScenes = allEntries.map((entry) => {
+      const scene = sceneOverrides.get(entry.sceneId);
       if (!scene) {
         collector.error(
           "CMP_CLIP_TARGET_MISSING",
-          `Scene "${id}" referenced in sceneOrder but not found in scenes array`,
-          { path: ["timeline", "sceneOrder"], details: { sceneId: id } },
+          `Scene "${entry.sceneId}" in visual plan but missing from overrides`,
+          {
+            path: ["timeline", "visualTracks"],
+            details: { sceneId: entry.sceneId },
+          },
         );
-        throw new Error(`Missing scene: ${id}`);
+        throw new Error(`Missing scene: ${entry.sceneId}`);
       }
       const variables = new Map(projectVariables);
 
-      // Apply project bindings for this scene (Phase 4: bindings are in
-      // the down-migrated project shape, injected before pipeline).
-      const sceneBindings = (
-        v2Shape.bindings as Array<{
-          target: { sceneId: string; nodeId: string; property: string };
-          source: { variableId: string };
-        }>
-      ).filter((b) => b.target.sceneId === id);
+      const sceneBindings = runtimeBindings.filter(
+        (b) => b.target.sceneId === entry.sceneId,
+      );
       for (const binding of sceneBindings) {
         const nodes = (scene.nodes ?? []) as Array<Record<string, unknown>>;
         const target = nodes.find(
           (n: Record<string, unknown>) => n.id === binding.target.nodeId,
         );
         if (target && variables.has(binding.source.variableId)) {
-          // Mimic setPath: walk dotted path, set last segment.
           const parts = binding.target.property.split(".");
           let cursor: Record<string, unknown> = target;
           for (let i = 0; i < parts.length - 1; i++) {
@@ -1078,7 +1096,6 @@ export function compileMotionProjectV3(
         motionBlur: scene.motionBlur,
         drivers: scene.drivers as unknown[] | undefined,
         activeCameraId: scene.activeCameraId as string | undefined,
-        transition: scene.transition,
         sourceRef: scene.sourceRef as
           | NonNullable<
               Parameters<typeof _compileScenePipeline>[0]["sourceRef"]
@@ -1087,34 +1104,44 @@ export function compileMotionProjectV3(
       });
     });
 
-    // ── Build visualTracks (V3 runtime model) from the compiled scene plan ─
-    let clipCursor = 0;
-    const visualClips = sceneOrder.map((id, idx) => {
-      const scene = sceneById.get(id)!;
-      const start = clipCursor;
-      const duration = scene.duration as number;
-      clipCursor += duration;
+    // Build visualTracks runtime model — one runtime track per V3 track.
+    const visualTracks = tracks.map((planTrack) => {
+      let clipCursor = 0;
+      const clips = planTrack.entries.map((entry) => {
+        const scene = sceneOverrides.get(entry.sceneId)!;
+        const start = clipCursor;
+        const duration = scene.duration as number;
+        clipCursor += duration;
+        const clip: Record<string, unknown> = {
+          id: entry.clipId,
+          source: { kind: "scene" as const, sceneId: entry.sceneId },
+          start,
+          duration,
+        };
+        if (entry.trimStart !== undefined) clip.trimStart = entry.trimStart;
+        if (entry.playbackRate !== undefined)
+          clip.playbackRate = entry.playbackRate;
+        if (entry.loop !== false) clip.loop = entry.loop;
+        if (entry.opacity !== 1) clip.opacity = entry.opacity;
+        if (entry.transitionIn) clip.transitionIn = entry.transitionIn;
+        if (entry.transitionOut) clip.transitionOut = entry.transitionOut;
+        return clip;
+      });
       return {
-        id: `vclip-${idx}-${id}`,
-        source: { kind: "scene" as const, sceneId: id },
-        start,
-        duration,
-        transitionOut: scene.transition ?? undefined,
+        id: planTrack.trackId,
+        role: planTrack.role as "primary" | "overlay",
+        order: planTrack.order,
+        ...(planTrack.muted !== undefined && planTrack.muted !== false
+          ? { muted: planTrack.muted }
+          : {}),
+        clips,
       };
     });
-
-    const visualTracks = [
-      {
-        id: "primary",
-        role: "primary" as const,
-        order: 0,
-        clips: visualClips,
-      },
-    ];
 
     const sourceRefIndex: Record<string, string> = {};
     for (const scene of compiledScenes) {
       const srcRef = scene.sourceRef;
+      if (!srcRef) continue;
       sourceRefIndex[scene.id] = srcRef.sourceModule
         ? `${srcRef.projectPath.join(":")}#${srcRef.sourceModule}`
         : srcRef.projectPath.join(":");
@@ -1124,13 +1151,18 @@ export function compileMotionProjectV3(
       format: "motion-runtime" as const,
       formatVersion: 2 as const,
       runtimeVersion: MOTION_RUNTIME_VERSION,
-      metadata: v2Shape.metadata,
-      assets: v2Shape.assets,
-      composition: v2Shape.composition,
+      metadata,
+      assets: runtimeAssets,
+      composition,
       compilerVersion: COMPILER_VERSION_V3,
-      capabilityFingerprint: buildCapabilityFingerprint(),
+      capabilityFingerprint: buildCapabilityFingerprint(
+        CAPABILITY_MANIFEST_VERSION_V3,
+      ),
       timeline: {
-        ...v2Shape.timeline,
+        audioTracks: normalized.timeline.audioTracks.map(
+          prepareRuntimeAudioTrack,
+        ),
+        captionTracks: clone(normalized.timeline.captionTracks),
         visualTracks,
       },
       sourceRef: { scenes: sourceRefIndex },
@@ -1144,7 +1176,6 @@ export function compileMotionProjectV3(
 
     return compileSuccess(validated, warnings);
   } catch (err: unknown) {
-    // Convert errors to structured diagnostics (same pattern as the legacy compiler).
     if (err && typeof err === "object" && "issues" in err) {
       const zodErr = err as {
         issues: Array<{
@@ -1184,6 +1215,9 @@ export function compileMotionProjectV3(
  *
  * Key = projectHash | compilerVersion | protocolVersion | capabilities |
  *       componentDependencyHashes.
+ *
+ * Phase 12: Uses computeProjectHash (strips provenance/extensions/timestamps)
+ * and MOTION_PROJECT_V3_FORMAT_VERSION instead of hardcoded "3".
  */
 export function buildCompileCacheKeyV3(
   project: V3.MotionProjectV3,
@@ -1192,10 +1226,9 @@ export function buildCompileCacheKeyV3(
   const parsed = V3.MotionProjectV3Schema.safeParse(project);
   const normalized = parsed.success ? parsed.data : project;
 
-  const projectHash = createHash("sha256")
-    .update(canonicalJson(normalized))
-    .digest("hex")
-    .slice(0, 16);
+  const projectHash = computeProjectHash(
+    normalized as unknown as Record<string, unknown>,
+  ).slice(0, 16);
 
   const capabilitiesHash = createHash("sha256")
     .update(
@@ -1221,7 +1254,7 @@ export function buildCompileCacheKeyV3(
   return [
     `proj:${projectHash}`,
     `compiler:${COMPILER_VERSION_V3}`,
-    `protocol:3`,
+    `protocol:${V3.MOTION_PROJECT_V3_FORMAT_VERSION}`,
     `caps:${capabilitiesHash}`,
     `deps:${componentHash}`,
     `profile:${profile}`,
