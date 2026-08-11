@@ -39,13 +39,13 @@ Brief / Template
 Authoring IR (.mt/.mvc)
 Node graph + Clips + Variables + Components + Bindings
        ↓ compile
-Normalized Runtime IR
+MotionRuntimeProject (compiler output)
 literal Nodes + literal Tracks
        ↓
 Raster frames → FFmpeg → MP4
 ```
 
-Chỉ có một model project trong application code: `MotionProject`. Parser chỉ nhận canonical format hiện tại; dữ liệu không đúng contract bị từ chối, không có migrator hay compatibility alias.
+Chỉ có một model project trong application code: `MotionProject`. Parser chỉ nhận canonical format hiện tại; dữ liệu không đúng contract bị từ chối, không có migrator hay compatibility alias. Runtime IR là `MotionRuntimeProject` — do compiler sinh ra, không phải authoring format.
 
 Các nguyên tắc chính:
 
