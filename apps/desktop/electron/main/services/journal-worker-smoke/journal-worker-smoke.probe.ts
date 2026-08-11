@@ -18,7 +18,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const envelope = JSON.parse(base) as {
     project: {
       scenes: Array<Record<string, unknown>>;
-      timeline: { sceneOrder: string[]; audioTracks: unknown[] };
+      timeline: { audioTracks: unknown[] };
     };
   };
   const id = "scene_smoke_pad";
@@ -47,7 +47,6 @@ function inflateToBytes(base: string, targetBytes: number): string {
   envelope.project.scenes = [
     { id, name: "Smoke", duration: 1, nodes: [node], clips: [] },
   ];
-  envelope.project.timeline.sceneOrder = [id];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {

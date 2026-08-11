@@ -1238,7 +1238,10 @@ export function compileMotionProject(
       buildRuntimeComposition(project.metadata),
     compilerVersion: COMPILER_VERSION,
     capabilityFingerprint: buildCapabilityFingerprint(),
-    timeline: project.timeline,
+    timeline: (() => {
+      const { sceneOrder: _, ...rest } = project.timeline as Record<string, unknown> & { sceneOrder?: unknown };
+      return rest;
+    })(),
     sourceRef: { scenes: sourceRefIndex },
     scenes,
   };

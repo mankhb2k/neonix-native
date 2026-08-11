@@ -41,7 +41,7 @@
 
 | Package                            | What web uses                                                                                                                                                                                                                                            |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@motionvideo/editor-core`         | `computeViewportLayout`, `buildLaneRows`, `sortLanesOverlayBaseAudio`, `computeRulerTickWindow`, `resolveLaneTrackKind`, `sceneOrderToTimelineClips`, `selectedClipIdsFrom`, `selectionClips`, `sliderValueToZoomScale`, `executeTimelineCommand`, types |
+| `@motionvideo/editor-core`         | `computeViewportLayout`, `buildLaneRows`, `sortLanesOverlayBaseAudio`, `computeRulerTickWindow`, `resolveLaneTrackKind`, `visualTracksToTimelineClips`, `selectedClipIdsFrom`, `selectionClips`, `sliderValueToZoomScale`, `executeTimelineCommand`, types |
 | `@motionvideo/editor-interactions` | `computePlayheadFollowScroll`, `ensurePlayheadScrubScroll`, `computeAutoScrollNearEdge`, `resolvePlayheadScrubMax`, `timelineTimeToContentLeft`, `resolveClipTrimUpdate`, `resolveClipMoveDrag`, constants                                               |
 | `@motionvideo/editor-react`        | `useTimelineViewportMetrics`, `useVisibleTimeline`, `useTimelineSeek`, `useTimelineMarquee`, `useTimelineHotkeys`, `useClipMove`, `useClipTrim`, `usePointerSessionHost`, `buildLaneHeightPrefix`                                                        |
 

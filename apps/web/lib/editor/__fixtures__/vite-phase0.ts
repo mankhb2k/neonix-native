@@ -25,7 +25,7 @@ import type { MotionProject } from "@motionvideo/motion-protocol";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 
 export const PHASE0_SAVED_AT = "2026-07-31T00:00:00.000Z";
-/** Schema caps `scenes` / `sceneOrder` at 100 — committed large fixture stays parseable. */
+/** Schema caps `scenes` at 100 — committed large fixture stays parseable. */
 export const PHASE0_LARGE_CLIP_COUNT = 100;
 /**
  * In-memory stress sizes (bypass parseMotionProject) — see `large-timeline.ts`.
@@ -192,7 +192,6 @@ export function buildPhase0MediumFixture(): StoredEnvelope {
       },
     ],
     timeline: {
-      sceneOrder: base.project.timeline.sceneOrder,
       audioTracks: [
         {
           id: "audio.a",
@@ -346,7 +345,6 @@ export function buildPhase0LargeFixture(
     assets,
     variables: [],
     timeline: {
-      sceneOrder: scenes.map((s) => s.id),
       audioTracks,
     },
     scenes,

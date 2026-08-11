@@ -268,7 +268,6 @@ describe("computeRuntimeHash", () => {
     },
     assets: [],
     timeline: {
-      sceneOrder: [],
       visualTracks: [],
       audioTracks: [],
       captionTracks: [],

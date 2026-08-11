@@ -221,7 +221,7 @@ export function InteractionOverlay({
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
       if (resolved.usingDemo) {
-        const { lanes, clips } = sceneOrderToTimelineClips(resolved.project);
+        const { lanes, clips } = visualTracksToTimelineClips(resolved.project);
         useEditorStore.setState({
           project: resolved.project,
           timelineLanes: lanes,

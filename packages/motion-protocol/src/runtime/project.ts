@@ -357,11 +357,6 @@ const MotionRuntimeProjectBaseSchema = z
     sourceRef: RuntimeSourceRefMapSchema.optional(),
     timeline: z
       .object({
-        /** @deprecated sceneOrder is derived from visualTracks; kept optional for backward compat. */
-        sceneOrder: z
-          .array(IdSchema)
-          .max(MOTION_PROTOCOL_LIMITS.scenesPerProject)
-          .optional(),
         visualTracks: z
           .array(RuntimeVisualTrackSchema)
           .min(1)
