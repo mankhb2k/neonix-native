@@ -14,7 +14,8 @@ import {
 export interface RenderManifestDigest {
   /** Format identifier. */
   format: "moticlip-render-manifest";
-  formatVersion: 2;
+  /** Manifest protocol version (NOT a MotionProject formatVersion). */
+  manifestVersion: 2;
   /** Project metadata id. */
   projectId: string;
   /** Versions of tools used. */
@@ -52,7 +53,7 @@ export function buildRenderManifestDigest(
 
   return {
     format: "moticlip-render-manifest",
-    formatVersion: 2,
+    manifestVersion: 2,
     projectId: compiled.metadata.id,
     versions: {
       runtime: MOTION_RUNTIME_VERSION,

@@ -25,7 +25,7 @@ describe("render-contracts", () => {
   it("parses full render manifest (§6.1 + Phase 10)", () => {
     const manifest = parseRenderManifest({
       format: "moticlip-render-manifest",
-      formatVersion: 2,
+      manifestVersion: 2,
       projectId: "p1",
       projectRevision: 0,
       versions: {
@@ -72,7 +72,7 @@ describe("render-contracts", () => {
     expect(manifest.composition.fps).toBe(30);
     expect(manifest.assets).toHaveLength(1);
     expect(manifest.versions.remotion).toBe("4.0.506");
-    expect(manifest.formatVersion).toBe(2);
+    expect(manifest.manifestVersion).toBe(2);
     expect(manifest.contentHash).toHaveLength(64);
     expect(manifest.determinism.hashAlgorithm).toBe("sha256");
   });

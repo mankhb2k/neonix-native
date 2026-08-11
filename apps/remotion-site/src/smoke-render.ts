@@ -43,7 +43,7 @@ async function main() {
 
   const manifest = parseRenderManifest({
     format: "moticlip-render-manifest",
-    formatVersion: 1,
+    manifestVersion: 1,
     projectId: project.metadata.id,
     projectRevision: 0,
     versions: {
