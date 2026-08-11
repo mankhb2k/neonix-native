@@ -1,14 +1,9 @@
 /**
- * Public API surface — V3 authoring + runtime IR.
+ * Public API surface — V3 is the only authoring protocol.
  *
- * Phase 1 (Legacy Removal): `export * from "./legacy"` has been replaced
- * with explicit re-exports. Only shared infrastructure types (nodes,
- * animation, primitives) are re-exported. V2 authoring types
- * (MotionProjectV2, MotionComponentV2, parseMotionProjectV2, …) are
- * no longer available from the public root.
- *
- * Consumers that still need V2 authoring types during the transition
- * should import from `@motionvideo/motion-protocol/src/legacy/*` directly.
+ * V2 authoring types (MotionProjectV2, MotionComponentV2,
+ * parseMotionProjectV2, …) and the `src/legacy/` directory have been
+ * permanently removed. All exports are canonical V3.
  */
 
 // ── Capabilities / Registry / AI matrix ───────────────────────────────

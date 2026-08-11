@@ -39,7 +39,4 @@ export {
 } from "./clips";
 
 // Drivers
-export {
-  ProceduralDriverSchema,
-  type ProceduralDriver,
-} from "./drivers";
+export { ProceduralDriverSchema, type ProceduralDriver } from "./drivers";
