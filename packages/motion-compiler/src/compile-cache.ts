@@ -18,7 +18,7 @@ import type { ComponentInput } from "./types";
 /**
  * Physical compiler version — bump when compilation logic changes
  * in a way that could produce different output from same input.
- * This is NOT the schema formatVersion (which is v2); it's a
+ * This is NOT the schema formatVersion; it's a
  * compiler-specific version for cache invalidation.
  */
 export const COMPILER_VERSION = "2.0.0-phase6";

@@ -43,7 +43,7 @@ import {
   VideoNodeSchema,
 } from "./nodes";
 
-// ── Runtime IR schemas (inlined from compat/project) ─────────────────
+// ── Runtime IR schemas ────────────────────────────────────────────────
 
 import { CaptionTrackSchema } from "../v3/captions";
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
