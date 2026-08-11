@@ -1,5 +1,4 @@
 import type { TimelineClip, TimelineLane } from "../timeline-clips";
-import type { MotionProjectV2 } from "@motionvideo/motion-protocol/src/compat/project";
 import type {
   MotionProjectV3,
   VisualClipV3,
@@ -7,46 +6,35 @@ import type {
 } from "@motionvideo/motion-protocol";
 
 type SceneClip = Extract<TimelineClip, { kind: "scene" }>;
-type ProjectInput = MotionProjectV2 | MotionProjectV3;
 
 /**
- * Keep every scene referenced by a visual clip in `project.scenes`, and mirror
+ * Keep every scene referenced by a visual clip in project.scenes, and mirror
  * the current editor lanes/clips back into the project timeline so autosave
  * always produces a schema-valid project.
  *
- * v2 input → v2 output (`timeline.sceneOrder`), v3 input → v3 output
- * (`timeline.visualTracks` with main/overlay tracks).
+ * Phase 8: V3 only — writes visualTracks directly, no sceneOrder fallback.
  */
-export function rebuildMainProject<P extends ProjectInput>(
-  project: P,
+export function rebuildMainProject(
+  project: MotionProjectV3,
   clips: TimelineClip[],
   lanes: TimelineLane[],
-): P {
+): MotionProjectV3 {
   const byId = new Map(project.scenes.map((scene) => [scene.id, scene]));
   const orderedIds = computeOrderedSceneIds(project, clips, lanes);
   const scenes = orderedIds.map((sceneId) => byId.get(sceneId)!);
 
-  if (project.formatVersion === 3) {
-    return rebuildV3Timeline(
-      project as MotionProjectV3,
-      scenes as MotionProjectV3["scenes"],
-      orderedIds,
-      clips,
-      lanes,
-    ) as P;
-  }
-
-  return {
-    ...project,
-    scenes: scenes as MotionProjectV2["scenes"],
-    // Schema requires every scene in `scenes` to appear in sceneOrder.
-    timeline: { ...project.timeline, sceneOrder: orderedIds },
-  } as P;
+  return rebuildV3Timeline(
+    project,
+    scenes as MotionProjectV3["scenes"],
+    orderedIds,
+    clips,
+    lanes,
+  );
 }
 
 /** Main-lane scene ids first, then any other referenced scene ids. */
 function computeOrderedSceneIds(
-  project: ProjectInput,
+  project: MotionProjectV3,
   clips: TimelineClip[],
   lanes: TimelineLane[],
 ): string[] {
@@ -89,9 +77,9 @@ function toV3Clip(clip: SceneClip): VisualClipV3 {
 }
 
 /**
- * v3 branch: mirror base-lane clips into the main track and overlay-lane clips
+ * Mirror base-lane clips into the main track and overlay-lane clips
  * into a single overlay track. Falls back to sequential clips over every
- * referenced scene when the base lane is empty (v2 `sceneOrder` semantics).
+ * referenced scene when the base lane is empty.
  */
 function rebuildV3Timeline(
   project: MotionProjectV3,
@@ -154,8 +142,7 @@ function rebuildV3Timeline(
     }
   } else {
     // Base lane empty: keep every referenced scene in the main track with
-    // sequential starts (mirrors legacy `sceneOrder`; no overlay track so a
-    // scene is not rendered twice).
+    // sequential starts (no overlay track so a scene is not rendered twice).
     const fallback = orderedIds
       .map((sceneId) => byId.get(sceneId))
       .filter((scene): scene is NonNullable<typeof scene> => Boolean(scene));

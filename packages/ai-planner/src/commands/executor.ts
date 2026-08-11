@@ -218,7 +218,7 @@ function applyOne(
         };
         const insertAt = command.insertAt ?? next.scenes.length;
         next.scenes.splice(Math.min(insertAt, next.scenes.length), 0, scene);
-        // Phase 9: v3 visualTracks replace v2 sceneOrder.
+        // Insert a visual clip into the main track for this scene.
         const tl = next.timeline as Record<string, unknown>;
         const visualTracks =
           (tl.visualTracks as Array<Record<string, unknown>>) ?? [];
@@ -315,8 +315,8 @@ function applyOne(
         }
         const ids = new Set(project.scenes.map((scene) => scene.id));
         if (
-          command.sceneOrder.length !== ids.size ||
-          command.sceneOrder.some((id) => !ids.has(id))
+          command.sceneIds.length !== ids.size ||
+          command.sceneIds.some((id) => !ids.has(id))
         ) {
           return {
             project,
@@ -326,8 +326,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "invalid_scene_order",
-                  "timeline.sceneOrder",
-                  "sceneOrder must list each project scene exactly once",
+                  "timeline.visualTracks",
+                  "sceneIds must list each project scene exactly once",
                   {
                     repairHint:
                       "Pass the full permutation of existing scene ids",
@@ -338,8 +338,7 @@ function applyOne(
           };
         }
         const next = cloneProject(project);
-        // Phase 9: v3 visualTracks replace v2 sceneOrder.
-        next.scenes = command.sceneOrder.map(
+        next.scenes = command.sceneIds.map(
           (id) => next.scenes.find((scene) => scene.id === id)!,
         );
         const tl = next.timeline as Record<string, unknown>;
@@ -350,7 +349,7 @@ function applyOne(
           | undefined;
         if (mainTrack) {
           let cursor = 0;
-          mainTrack.clips = command.sceneOrder.map((sceneId) => {
+          mainTrack.clips = command.sceneIds.map((sceneId) => {
             const scene = next.scenes.find((s) => s.id === sceneId);
             const clip = {
               id: `clip-${sceneId}`,
@@ -367,7 +366,7 @@ function applyOne(
             return clip;
           });
         }
-        changedIds.push(...command.sceneOrder);
+        changedIds.push(...command.sceneIds);
         return {
           project: parseMotionProject(
             next as Parameters<typeof parseMotionProject>[0],
@@ -1793,7 +1792,7 @@ function applyOne(
             },
           };
         }
-        // Visual clip transitions replace legacy scene.transition.
+        // Apply transition directly on the visual clip.
         const tl = next.timeline as Record<string, unknown>;
         const visualTracks =
           (tl.visualTracks as Array<Record<string, unknown>>) ?? [];

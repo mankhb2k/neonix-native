@@ -149,7 +149,7 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("reorderScenes"),
-      sceneOrder: z.array(Id).min(1).max(100),
+      sceneIds: z.array(Id).min(1).max(100),
     })
     .strict(),
   z

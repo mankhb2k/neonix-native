@@ -172,8 +172,7 @@ function migrateLegacyClipInputs(
   const overlayIds = new Set(overlays.map((item) => item.id));
   const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
 
-  // v3 timeline (Phase 3 cutover): derive main/overlay/audio clips from
-  // `visualTracks` + `audioTracks` instead of the legacy `sceneOrder`.
+  // Phase 8: derive main/overlay/audio clips from visualTracks + audioTracks.
   const timeline = project.timeline;
   if ("visualTracks" in timeline && Array.isArray(timeline.visualTracks)) {
     const sceneName = (sceneId: string): string =>
@@ -255,42 +254,9 @@ function migrateLegacyClipInputs(
     return [...main, ...overlayClips, ...audio];
   }
 
-  // Legacy v2 path: cumulative `sceneOrder`.
-  let startTime = 0;
-  const sceneOrder = (
-    project.timeline as unknown as { sceneOrder: readonly string[] }
-  ).sceneOrder;
-  const main = sceneOrder.flatMap((sceneId) => {
-    if (overlayIds.has(sceneId)) return [];
-    const scene = scenesById.get(sceneId);
-    if (!scene) return [];
-    const clip: LegacyClipInput = {
-      id: scene.id,
-      kind: "scene",
-      sceneId: scene.id,
-      laneId: "",
-      startTime,
-      duration: scene.duration,
-      name: scene.name ?? scene.semantic?.role ?? scene.id,
-      track: "main",
-    };
-    startTime += scene.duration;
-    return [clip];
-  });
-  const overlay = overlays.map(
-    (item): LegacyClipInput => ({
-      id: item.id,
-      kind: "scene",
-      sceneId: item.id,
-      laneId: "",
-      startTime: item.startTime,
-      duration: item.duration,
-      name: item.name,
-      track: "overlay",
-      layerIndex: item.layerIndex ?? 0,
-    }),
-  );
-  return [...main, ...overlay];
+  // Phase 8: no legacy sceneOrder fallback — projects without visualTracks
+  // return an empty array.
+  return [];
 }
 
 /** Converts the original scene sequence and overlay sidecar into unified clips (pre-lane). */

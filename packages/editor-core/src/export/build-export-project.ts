@@ -2,7 +2,7 @@
  * Bake editor timeline → MotionProject V3 tuần tự hợp lệ cho export/compiler.
  * Overlay compose ngoài schema — flatten theo interval với local-time slice.
  *
- * Phase 7: Outputs V3 visualTracks instead of V2 sceneOrder.
+ * Phase 8: Outputs V3 visualTracks directly.
  */
 
 import {

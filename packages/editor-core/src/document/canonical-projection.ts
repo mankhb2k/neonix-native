@@ -10,7 +10,7 @@
 
 import type { MotionProject } from "@motionvideo/motion-protocol";
 import { computeProjectHashShort } from "@motionvideo/motion-protocol";
-import { sceneOrderToTimelineClips } from "../timeline/selectors/scene-order-clips";
+import { visualTracksToTimelineClips } from "../timeline/selectors/scene-order-clips";
 import { normalizeLaneOrders } from "../timeline/timeline-clips";
 import type { TimelineDocument } from "./document";
 import type {
@@ -49,7 +49,7 @@ export function documentFingerprint(doc: TimelineDocument): string {
  * Derive a complete TimelineDocument from a MotionProject.
  *
  * This is the canonical one-way projection:
- *   project.sceneOrder → lanes + clips
+ *   project.timeline.visualTracks → lanes + clips
  *
  * Audio clips are derived from project.timeline.audioTracks.
  *
@@ -60,7 +60,7 @@ export function projectToTimelineDocument(
   project: MotionProject,
   previousRevision?: number,
 ): TimelineDocument {
-  const { lanes, clips } = sceneOrderToTimelineClips(project);
+  const { lanes, clips } = visualTracksToTimelineClips(project);
   const normalizedLanes = normalizeLaneOrders(lanes);
 
   const revision = (previousRevision ?? INITIAL_REVISION - 1) + 1;
