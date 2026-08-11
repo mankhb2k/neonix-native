@@ -62,6 +62,8 @@ VisualClipV3 {
 
 Khác biệt chính:
 
+> **V2 đã bị loại bỏ hoàn toàn.** Bảng dưới đây chỉ để tham khảo lịch sử, không phải hướng dẫn migration.
+
 | V2 (đã bỏ)                      | V3 (canonical)                            |
 | ------------------------------- | ----------------------------------------- |
 | `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV3[]`  |
@@ -242,17 +244,13 @@ Output: `packages/motion-protocol/schema/v3.json`
 
 Schema này chỉ chứa `visualTracks`, không chứa `sceneOrder`.
 
-## Migration từ V2
+## Rejected V2 Input
 
-V2 projects (`formatVersion: 2`) **không còn được hỗ trợ**. Để migrate dữ liệu cũ:
+V2 projects (`formatVersion: 2`) **không còn được hỗ trợ**. Parser chính thức (`parseMotionProject`) sẽ từ chối V2 data:
 
-1. Export V2 project JSON
-2. Chạy migration script (nếu có trong `scripts/`)
-3. Import V3 project JSON
+> "V2 motion projects are no longer supported."
 
-Parser chính thức (`parseMotionProject`) sẽ từ chối V2 data với thông báo lỗi:
-
-> "V2 motion projects are no longer supported. Please migrate your project to V3 format."
+Các field bị reject: `timeline.sceneOrder`, `scene.transition`, `formatVersion: 2`.
 
 ## Rendering Pipeline (Provider-Neutral)
 

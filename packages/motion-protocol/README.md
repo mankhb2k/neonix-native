@@ -450,3 +450,17 @@ Skills là instruction template được validate bởi protocol. Mỗi skill c�
 pnpm --filter @motionvideo/motion-protocol test
 pnpm --filter @motionvideo/motion-protocol typecheck
 ```
+
+---
+
+## 📜 Source of Truth Contract
+
+```text
+Authoring source of truth:   MotionProjectV3     (formatVersion: 3)
+Editing source of truth:     MotionProjectV3Patch  (patch format)
+Runtime source of truth:     MotionRuntimeProject  (compiler output, not authored)
+Timeline source of truth:    visualTracks          (not sceneOrder)
+Transition source of truth:  VisualClip.transitionOut  (not scene.transition)
+```
+
+Mọi consumer (editor, AI planner, compiler, MCP server, render providers) đều sử dụng cùng một contract này. Không có đường dẫn V2 ẩn nào còn tồn tại.
