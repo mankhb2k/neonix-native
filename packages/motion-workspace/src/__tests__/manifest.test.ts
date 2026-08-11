@@ -22,14 +22,14 @@ const minimalManifest: MotionWorkspaceManifest = {
     fps: 30,
     background: "#0b1220",
   },
-  sceneOrder: ["intro"],
+  sceneModules: ["intro"],
 };
 
 describe("MotionWorkspace manifest", () => {
   it("parses a minimal manifest", () => {
     const parsed = MotionWorkspaceManifestSchema.parse(minimalManifest);
     expect(parsed.formatVersion).toBe(1);
-    expect(parsed.sceneOrder).toEqual(["intro"]);
+    expect(parsed.sceneModules).toEqual(["intro"]);
   });
 
   it("rejects missing required fields", () => {
@@ -38,11 +38,11 @@ describe("MotionWorkspace manifest", () => {
     ).toThrow();
   });
 
-  it("rejects empty sceneOrder", () => {
+  it("rejects empty sceneModules", () => {
     expect(() =>
       MotionWorkspaceManifestSchema.parse({
         ...minimalManifest,
-        sceneOrder: [],
+        sceneModules: [],
       }),
     ).toThrow();
   });
@@ -185,7 +185,7 @@ describe("linkMotionWorkspace", () => {
   it("supports multi-scene workspace", async () => {
     const reader = new MemoryWorkspaceReader({
       ...minimalManifest,
-      sceneOrder: ["intro", "body", "outro"],
+      sceneModules: ["intro", "body", "outro"],
     });
     for (const name of ["intro", "body", "outro"]) {
       reader.addModule({

@@ -65,18 +65,18 @@ const FORBIDDEN = [
     label: "MOTION_V2_LIMITS (use MOTION_PROTOCOL_LIMITS)",
   },
   // Phase 1 (final-source-of-truth): removed deprecated aliases
-  { pattern: /MotionRuntimeIR/, label: "MotionRuntimeIR (removed alias)" },
-  { pattern: /NodeTimingV2/, label: "NodeTimingV2 (removed alias)" },
+  { pattern: /\bMotionRuntimeIR\b/, label: "MotionRuntimeIR (removed alias)" },
+  { pattern: /\bNodeTimingV2\b/, label: "NodeTimingV2 (removed alias)" },
   {
-    pattern: /ProceduralDriverV2/,
+    pattern: /\bProceduralDriverV2\b/,
     label: "ProceduralDriverV2 (removed alias)",
   },
   {
-    pattern: /RuntimeDiagnosticV2/,
+    pattern: /\bRuntimeDiagnosticV2\b/,
     label: "RuntimeDiagnosticV2 (removed alias)",
   },
   {
-    pattern: /NormalizedMotionProjectSchema/,
+    pattern: /\bNormalizedMotionProjectSchema\b/,
     label: "NormalizedMotionProjectSchema (removed alias)",
   },
   // Phase 2 (final-source-of-truth): no legacy import paths

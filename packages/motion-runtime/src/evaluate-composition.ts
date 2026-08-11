@@ -58,7 +58,8 @@ function scenesForComposition(
     return {
       sceneId: sourceId,
       duration: clip.duration,
-      transitionOut: clip.transitionOut as CompositionSceneInput["transitionOut"],
+      transitionOut:
+        clip.transitionOut as CompositionSceneInput["transitionOut"],
     };
   });
 }

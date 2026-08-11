@@ -69,7 +69,7 @@ function normalizeNode(raw: Record<string, unknown>): Record<string, unknown> {
  *
  * Strategy:
  *  1. Parse the manifest
- *  2. Load all scene modules in sceneOrder
+ *  2. Load all scene modules in manifest order
  *  3. Load components, variables, tokens
  *  4. Merge into a single project skeleton
  *  5. Validate cross-references
@@ -134,7 +134,7 @@ export async function linkMotionWorkspace(
   const visualTrackClips: Record<string, unknown>[] = [];
   let timeCursor = 0;
 
-  for (const sceneName of manifest.sceneOrder) {
+  for (const sceneName of manifest.sceneModules) {
     try {
       const mod = await reader.readModule(sceneName, "scene");
       const sceneJson = JSON.parse(mod.content) as Record<string, unknown>;
