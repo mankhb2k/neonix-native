@@ -6,18 +6,9 @@
  *
  * Usage: tsx scripts/validate-v3-source-of-truth.ts
  *
- * Allowed in:
- *   - scripts/validate-v3-source-of-truth.ts (this file)
- *   - packages/motion-protocol/src/runtime/ (runtime IR format, not V2 authoring)
- *   - packages/motion-protocol/src/index.ts (comment block documents excluded V2 types)
- *   - packages/motion-compiler/src/index.ts (legacy V2 compiler path, internal only)
- *   - packages/motion-compiler/src/compile-v3.ts (runtime IR formatVersion:2)
- *   - packages/motion-runtime/src/composition/ (runtime IR field scene.transition)
- *   - READMEs / docs documenting the migration
- *   - Test files exercising isolation or negative assertions
- *
- * Phase 7 (compat-removal): compat/ deleted, gate tightened.
- *   Added hard directory existence check for compat/.
+ * Phase 6: gate tightened. Removed compile-v3.ts ALLOWLIST (now scene.transition-free).
+ *   Added hard checks for removed aliases (MotionRuntimeIR, NodeTimingV2, etc.)
+ *   and legacy/ directory existence.
  */
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
@@ -73,6 +64,23 @@ const FORBIDDEN = [
     pattern: /MOTION_V2_LIMITS/,
     label: "MOTION_V2_LIMITS (use MOTION_PROTOCOL_LIMITS)",
   },
+  // Phase 1 (final-source-of-truth): removed deprecated aliases
+  { pattern: /MotionRuntimeIR/, label: "MotionRuntimeIR (removed alias)" },
+  { pattern: /NodeTimingV2/, label: "NodeTimingV2 (removed alias)" },
+  {
+    pattern: /ProceduralDriverV2/,
+    label: "ProceduralDriverV2 (removed alias)",
+  },
+  {
+    pattern: /RuntimeDiagnosticV2/,
+    label: "RuntimeDiagnosticV2 (removed alias)",
+  },
+  {
+    pattern: /NormalizedMotionProjectSchema/,
+    label: "NormalizedMotionProjectSchema (removed alias)",
+  },
+  // Phase 2 (final-source-of-truth): no legacy import paths
+  { pattern: /src[\/]legacy/, label: "src/legacy path reference" },
 ];
 
 // ── Allowlist (tightened Phase 13) ───────────────────────────────────
@@ -97,8 +105,7 @@ const ALLOWLIST = [
   // V3 validation modules: scene.transition in diagnostic/error messages
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]skills\.ts$/,
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]mcp\.ts$/,
-  // Compiler: V3 pipeline passes scene.transition=undefined to _compileScenePipeline
-  /packages[\\/]motion-compiler[\\/]src[\\/]compile-v3\.ts$/,
+  // Compiler: V3 test asserting NO scene.transition on compiled scenes (negative test)
   /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
   // Runtime IR goldens (Phase 6)
   /runtime-compile-goldens[\\/].*\.runtime\.json$/,
@@ -218,6 +225,19 @@ function main(): void {
       line: 0,
       pattern: "compat-directory",
       text: "compat/ folder still exists — must be deleted",
+    });
+  }
+
+  // ── Hard gate: legacy/ folder must not exist ─────────────────────
+
+  if (
+    existsSync(resolve(ROOT, "packages", "motion-protocol", "src", "legacy"))
+  ) {
+    allViolations.push({
+      file: "packages/motion-protocol/src/legacy/",
+      line: 0,
+      pattern: "legacy-directory",
+      text: "legacy/ folder still exists — must be deleted",
     });
   }
 
