@@ -1,8 +1,10 @@
 # `@motionvideo/motion-protocol`
 
-Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion Format V3 — the only authoring protocol. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**. Compat và V2 authoring types đã bị xóa khỏi source tree.
+**Standard Zod Validation Schema** và **TypeScript Type System** cho Motion Format V3 — the **only authoring protocol**. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**.
 
-> **V3 is the only authoring protocol.** Compat was removed; old V2 fixtures are archived outside product paths. All public APIs use V3-neutral names (`EffectSchema`, not `EffectV2Schema`).
+> **V3 is the only authoring protocol.** `formatVersion` must be `3`. Compat layer and V2 authoring types have been permanently removed from the source tree. All public APIs use neutral canonical names (`EffectSchema`, `BrandSchema`, `NodeTimingSchema` — no `V2` suffix).
+
+> **For AI agents / MCP / Skills:** Generate `MotionProjectV3`. Use `visualTracks` (not `sceneOrder`). Transitions live on `VisualClip.transitionOut`. Runtime IR is produced by `@motionvideo/motion-compiler` — you only author the project JSON.
 
 ---
 
@@ -17,7 +19,7 @@ Standard **Zod Validation Schema** và **TypeScript Type System** cho Motion For
 3. **An toàn dữ liệu nghiêm ngặt (Strict Validation & Bounds)**:
    - Sử dụng Zod `discriminatedUnion` và `.strict()` nhằm reject thuộc tính lạ hoặc dữ liệu rác.
    - Cấm giá trị numeric không hữu hạn (`NaN`, `Infinity`).
-   - Kiểm soát giới hạn cứng qua `MOTION_V2_LIMITS` (internal, [`src/capabilities.ts`](./src/capabilities.ts)) — áp dụng cho cả V3 authoring lẫn runtime IR.
+   - Kiểm soát giới hạn cứng qua `MOTION_PROTOCOL_LIMITS` (internal, [`src/capabilities.ts`](./src/capabilities.ts)) — áp dụng cho cả V3 authoring lẫn runtime IR.
 
 4. **Normalize tại biên parse**: Payload cũ (ví dụ `payload.text`) được chuẩn hóa khi gọi `parseMotionProject`. Serializer chỉ ghi shape mới (`payload.content`). File cũ vẫn đọc được, file ghi ra luôn đồng nhất.
 
@@ -37,7 +39,7 @@ Package gồm các module chính trong [`src/`](./src):
   - `captions.ts`, `source-ref.ts`, `project.ts`, `component.ts`, `runtime.ts`
   - `parse.ts` — parse + normalize + serialize
   - `patch.ts`, `references/` — kiểm tra tham chiếu sau Zod
-- [`capabilities.ts`](./src/capabilities.ts): `MOTION_V2_LIMITS` (internal) và bảng đăng ký khả năng thuộc tính (`motionPropertyCapability`) cho AI/UI.
+- [`capabilities.ts`](./src/capabilities.ts): `MOTION_PROTOCOL_LIMITS` (internal) và bảng đăng ký khả năng thuộc tính (`motionPropertyCapability`) cho AI/UI.
 - [`ai-schema-capability.ts`](./src/ai-schema-capability.ts): Ma trận E2E cho AI schema expansion (phiên bản `ai-schema.1`).
 - [`scene-registry.ts`](./src/scene-registry.ts): Registry template scene theo role (`hook`, `solution`, `cta`, …).
 
@@ -64,7 +66,7 @@ JSON Input  ──► normalizeLegacyMotionInput()
 | ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
 | `MotionProjectV3Schema` / `MotionProject`       | `3`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
 | `MotionComponentV3Schema` / `MotionComponentV3` | `3`     | Linh kiện tái sử dụng (`.mvc`): `publicParams`, `bindings`, `nodes`, `clips`, `cutoutRigs`, `actions`.         |
-| `MotionRuntimeProjectSchema`                    | `2`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
+| `MotionRuntimeProjectSchema`                    | `3`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
 | `MotionPatchSchema`                             | `1`     | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance).                                  |
 | `SceneComponentRegistrySchema`                  | `1`     | Catalog linh kiện scene cho AI/Editor template picker.                                                         |
 
@@ -105,7 +107,7 @@ Trước đây text chỉ có `payload.text` (chuỗi thuần). Hiện tại sha
 ```ts
 content:
   | { kind: "plain"; text: string }
-  | { kind: "runs"; runs: RichTextRun[] }   // tối đa MOTION_V2_LIMITS.richTextRuns
+  | { kind: "runs"; runs: RichTextRun[] }   // tối đa MOTION_PROTOCOL_LIMITS.richTextRuns
 ```
 
 Mỗi `RichTextRun` có `id` duy nhất trong node, `text`, và `style` tùy chọn (fill, fontAssetId, fontWeight, italic, fontScale, letterSpacing, highlight).
@@ -255,7 +257,7 @@ Khi preview cần map vùng paint về authoring:
 
 ### 9. Capability Registry & Limits (`capabilities.ts`)
 
-- **`MOTION_V2_LIMITS`**: Giới hạn kích thước/số lượng (ví dụ max 2 000 nodes/scene, 10 000 keys/track, 64 rich-text runs, 4 096 caption tokens/track, 10 000 beats/asset, …).
+- **`MOTION_PROTOCOL_LIMITS`**: Giới hạn kích thước/số lượng (ví dụ max 2 000 nodes/scene, 10 000 keys/track, 64 rich-text runs, 4 096 caption tokens/track, 10 000 beats/asset, …).
 - **`motionPropertyCapability`**: Tra cứu từng property:
   - `valueKind`: `number`, `color`, `angle`, `vec2`, `boolean`, `string`, `asset`, `path`, `gradient`, `json`
   - `animatable` / `bindable` / `public`
@@ -394,6 +396,30 @@ const textCapabilities = publicMotionPropertyCapabilities("text");
 const cap = motionPropertyCapability("text", "transform.x");
 console.log("Animatable:", cap?.animatable); // true
 ```
+
+---
+
+## 🤖 Skills & Agent Surface (V3-only)
+
+Skills là instruction template được validate bởi protocol. Mỗi skill có `MotionSkillManifest` + output `MotionProjectV3`.
+
+**5 built-in skills** trong [`src/v3/skills.ts`](./src/v3/skills.ts):
+
+| Skill ID              | Loại        | Mô tả                                      |
+| --------------------- | ----------- | ------------------------------------------ |
+| `motion/brand-intro`  | template    | Brand intro với logo + text reveal         |
+| `motion/hook`         | template    | Hook ngắn (3-5s) grab attention            |
+| `motion/solution`     | template    | Solution step với problem → solution flow  |
+| `motion/cta`          | template    | Call-to-action cuối video                  |
+| `motion/outro`        | template    | Outro với branding + social links          |
+
+**Skill validation:** `validateMotionSkillOutput(manifest, output)` — reject nếu output chứa V2 fields (`sceneOrder`, `scene.transition`, `formatVersion: 2`).
+
+**Authoring rules cho AI agents:**
+- Luôn dùng `MotionProjectV3` (formatVersion: 3)
+- Timeline dùng `visualTracks`, không dùng `sceneOrder`
+- Transitions nằm trên `VisualClip.transitionOut`, không trên `Scene`
+- Runtime IR do compiler sinh — agent chỉ cần tạo project JSON hợp lệ
 
 ---
 

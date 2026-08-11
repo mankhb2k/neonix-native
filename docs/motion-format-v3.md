@@ -253,3 +253,38 @@ V2 projects (`formatVersion: 2`) **không còn được hỗ trợ**. Để migr
 Parser chính thức (`parseMotionProject`) sẽ từ chối V2 data với thông báo lỗi:
 
 > "V2 motion projects are no longer supported. Please migrate your project to V3 format."
+
+## Rendering Pipeline (Provider-Neutral)
+
+MotionProjectV3 không phụ thuộc vào renderer cụ thể. Pipeline chuẩn:
+
+```text
+MotionProjectV3 (authoring JSON)
+       │
+       ▼  @motionvideo/motion-compiler
+MotionRuntimeProject  (formatVersion 3, flat, literal-only)
+       │
+       ▼  @motionvideo/motion-runtime
+PaintCommandBuffer  (evaluated per-frame paint commands)
+       │
+       ├──► @motionvideo/pixi-renderer      → preview in-browser (WebGL/Canvas)
+       ├──► @motionvideo/remotion-renderer   → export MP4/GIF (server-side)
+       └──► future: canvas/headless provider  → thumbnail, headless CI
+```
+
+### Provider Expectations
+
+| Provider          | Package                          | Input            | Output              | Use Case              |
+| ----------------- | -------------------------------- | ---------------- | ------------------- | --------------------- |
+| Pixi Preview      | `@motionvideo/pixi-renderer`     | PaintCommandBuffer | WebGL draw calls | Editor preview, MCP   |
+| Remotion Export   | `@motionvideo/remotion-renderer` | PaintCommandBuffer | MP4, GIF, still    | Export, CI            |
+| Future: Canvas    | (planned)                        | PaintCommandBuffer | 2D canvas draw      | Thumbnail generation  |
+| Future: Headless  | (planned)                        | PaintCommandBuffer | pixel buffer        | CI snapshot testing   |
+
+### MCP Preview/Export Provider
+
+MCP server sử dụng `@motionvideo/playback-engine` để preview và export:
+- **Preview mode**: Pixi renderer chạy trong browser context
+- **Export mode**: Remotion renderer chạy server-side với composition parameters
+
+Cả hai đều nhận `MotionRuntimeProject` đã compile — không chạy compiler trong renderer.
