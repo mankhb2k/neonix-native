@@ -25,7 +25,7 @@ import {
 } from "@motionvideo/editor-core";
 import type { HistoryEntry } from "@motionvideo/editor-core";
 import { createFacebookHistoryDemoProject } from "@motionvideo/motion-runtime/testing";
-import { sceneOrderToTimelineClips } from "@motionvideo/editor-core";
+import { visualTracksToTimelineClips } from "@motionvideo/editor-core";
 import { clipsContentEndSeconds } from "@motionvideo/editor-core";
 import { usePlaybackClock } from "@/lib/editor/playback/playback-clock-store";
 import {
@@ -251,7 +251,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
 
       if (project.scenes.length === 0) {
         project = createFacebookHistoryDemoProject();
-        const { lanes, clips } = sceneOrderToTimelineClips(project);
+        const { lanes, clips } = visualTracksToTimelineClips(project);
         set({
           project,
           timelineLanes: lanes,

@@ -35,37 +35,16 @@ function overlapFromTransition(
 
 /**
  * Extract ordered clips from the primary visual track.
- * Falls back to building clips from sceneOrder when visualTracks is absent
- * (legacy runtime IR during format cutover).
+ * Phase 7: visualTracks is the sole source — no sceneOrder fallback.
  */
 function primaryClips(compiled: CompiledProject): VisualClipLike[] {
-  const track = compiled.timeline.visualTracks?.find(
+  const track = compiled.timeline.visualTracks.find(
     (t) => t.role === "primary",
   );
-  if (track && track.clips.length > 0) {
-    return [...track.clips].sort((a, b) => a.start - b.start);
+  if (!track || track.clips.length === 0) {
+    return [];
   }
-
-  // Legacy fallback: build clips from sceneOrder + scene.transition
-  const order =
-    compiled.timeline.sceneOrder.length > 0
-      ? compiled.timeline.sceneOrder
-      : compiled.scenes.map((s) => s.id);
-  const byId = new Map(compiled.scenes.map((s) => [s.id, s]));
-  const clips: VisualClipLike[] = [];
-  let cursor = 0;
-  for (const id of order) {
-    const scene = byId.get(id);
-    if (!scene) continue;
-    clips.push({
-      start: cursor,
-      duration: scene.duration,
-      source: { kind: "scene", sceneId: id },
-      transitionOut: scene.transition as VisualClipLike["transitionOut"],
-    });
-    cursor += scene.duration;
-  }
-  return clips;
+  return [...track.clips].sort((a, b) => a.start - b.start);
 }
 
 function resolveSceneIndex(

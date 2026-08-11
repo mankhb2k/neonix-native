@@ -6,7 +6,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileMotionProject } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
 import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { drawSceneFrame } from "./runtime/draw";
 
@@ -51,7 +51,18 @@ async function main(): Promise<void> {
   const project = parseMotionProject(
     JSON.parse(await readFile(resolve(mtPath), "utf8")),
   );
-  const runtime = compileMotionProject(project);
+  const result = compileMotionProjectV3(project);
+  if (!result.ok) {
+    console.log(
+      JSON.stringify({
+        ok: false,
+        error: result.diagnostics.map((d) => d.message).join("; "),
+      }),
+    );
+    process.exitCode = 1;
+    return;
+  }
+  const runtime = result.project;
   const scene = runtime.scenes[0];
   if (!scene) {
     console.log(JSON.stringify({ ok: false, error: "No scenes" }));

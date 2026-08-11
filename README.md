@@ -55,7 +55,7 @@ Các nguyên tắc chính:
 - AI User và Web chỉ sửa Project Variable, text Node và public props của Component.
 - Preview và export phải tiến tới dùng chung property vocabulary, transform convention và track evaluator.
 
-Contract: **[Motion Format V3](docs/motion-format-v3.md)** (canonical). V2 format: [đã loại bỏ](docs/motion-format-v2.md) (archive). Catalog: [Primitive objects](docs/primitives-object.md). Tiến độ: [roadmap-status](docs/roadmap-status.md). Kiến trúc: [refactor](docs/refactor.md). Freeze policy: [P0 schema freeze](docs/p0-schema-freeze-checklist.md). V3 completion: [plan](docs/v3-source-of-truth-completion-plan.md). Browser preview: [roadmap](docs/browser-preview-atomic-roadmap.md).
+Contract: **[Motion Format V3](docs/motion-format-v3.md)** (canonical). V2 format: [đã loại bỏ](docs/motion-format-v2.md) (archive). Catalog: [Primitive objects](docs/primitives-object.md). Tiến độ: [roadmap-status](docs/roadmap-status.md). Kiến trúc: [refactor](docs/refactor.md). Freeze policy: [P0 schema freeze](docs/p0-schema-freeze-checklist.md). V3 completion: [plan](docs/v3-source-of-truth-completion-plan.md). Browser preview: [roadmap](docs/browser-preview-atomic-roadmap.md). AI-first architecture: **[ai-first-editor-architecture](docs/ai-first-editor-architecture.md)**.
 
 ## Monorepo
 

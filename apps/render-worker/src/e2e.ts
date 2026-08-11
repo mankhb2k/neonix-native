@@ -4,7 +4,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { serializeMotionProject } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
-import { compileMotionProject } from "./compiler";
+import { compileProject } from "./compiler";
 import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { createSmokeMotionProject } from "./fixtures/smoke-project";
@@ -47,7 +47,7 @@ async function main() {
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
   console.log(`[e2e] wrote ${mtPath}`);
 
-  const compiled = compileMotionProject(project);
+  const compiled = compileProject(project);
   console.log(
     `[e2e] compiled ${compiled.scenes.length} scenes · ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s`,
   );

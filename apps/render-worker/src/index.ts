@@ -1,10 +1,7 @@
-import {
-  parseMotionProject,
-  type MotionProject,
-} from "@motionvideo/motion-protocol";
+import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import type { RenderJobStatus } from "@motionvideo/render-contracts";
-import { compileMotionProject } from "./compiler";
+import { compileProject } from "./compiler";
 import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
@@ -27,7 +24,7 @@ export async function processJob(rawProject: unknown): Promise<{
     };
   }
 
-  const compiled = compileMotionProject(project);
+  const compiled = compileProject(project);
   const framesOrScene = await renderCompiledProject(compiled);
   const files = await encodeOutputs(
     framesOrScene,

@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
-import { compileMotionProject } from "./compiler";
+import { compileProject } from "./compiler";
 import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs, resolveFfmpegPath } from "./ffmpeg";
 import { createSmokeMotionProject } from "./fixtures/smoke-project";
@@ -39,7 +39,7 @@ async function main() {
     );
   }
 
-  const compiled = compileMotionProject(project);
+  const compiled = compileProject(project);
   console.log(
     `[bench] project: ${compiled.scenes.length} scenes, ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s total, aspect ${compiled.metadata.aspectRatio}`,
   );
@@ -77,7 +77,10 @@ async function main() {
   const probeOut = await probe(mp4);
   const videoMatch = probeOut.match(/Video:\s*([^\n]+)/);
 
-  const videoDurationSec = compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0);
+  const videoDurationSec = compiled.scenes.reduce(
+    (sum, scene) => sum + scene.duration,
+    0,
+  );
   const realtimeFactor = totalMs / 1000 / videoDurationSec;
 
   console.log("");
@@ -85,7 +88,9 @@ async function main() {
   console.log(
     `Độ phân giải: ${rendered.width}x${rendered.height} @ ${fps}fps · ${rendered.frameCount} frame`,
   );
-  console.log(`Video: ${videoDurationSec}s | File: ${(info.size / 1024).toFixed(1)} KB`);
+  console.log(
+    `Video: ${videoDurationSec}s | File: ${(info.size / 1024).toFixed(1)} KB`,
+  );
   console.log(`Codec: ${videoMatch?.[1]?.trim() ?? "?"}`);
   console.log("---");
   console.log(`Render (raster frame):  ${(renderMs / 1000).toFixed(2)}s`);
@@ -98,7 +103,9 @@ async function main() {
 
   // Rough cloud CPU-time cost model — 1 vCPU ~ $0.03–0.05/hour on common providers (2026 rates)
   const vcpuHourRates = [0.03, 0.05];
-  console.log("Ước tính chi phí CPU-time / video (rất thô, dùng để so sánh bậc độ lớn):");
+  console.log(
+    "Ước tính chi phí CPU-time / video (rất thô, dùng để so sánh bậc độ lớn):",
+  );
   for (const rate of vcpuHourRates) {
     const costPerRender = (totalMs / 1000 / 3600) * rate;
     console.log(

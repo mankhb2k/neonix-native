@@ -7,7 +7,7 @@ import {
 } from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import { validateProjectAssetIntegrity } from "./runtime/asset-integrity";
-import { compileMotionProject } from "./compiler";
+import { compileProject } from "./compiler";
 import { compositionAspectRatio } from "./aspect";
 import { encodeOutputs } from "./ffmpeg";
 import { renderCompiledProject } from "./runtime";
@@ -92,7 +92,7 @@ async function main() {
   await writeFile(mtPath, serializeMotionProject(project), "utf8");
 
   const components = [];
-  const compiled = compileMotionProject(project, { components });
+  const compiled = compileProject(project);
 
   emitProgress("rendering", 0.1);
   const rendered = await renderCompiledProject(compiled, {
