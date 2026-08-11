@@ -49,6 +49,8 @@ const FORBIDDEN = [
   // V2 fixture paths
   { pattern: /__fixtures__\/v2/, label: "__fixtures__/v2" },
   { pattern: /__fixtures__\\v2/, label: "__fixtures__\\v2 (Windows)" },
+  { pattern: /docs\/fixtures\/v2/, label: "docs/fixtures/v2" },
+  { pattern: /docs\\fixtures\\v2/, label: "docs\\fixtures\\v2 (Windows)" },
   // Phase 13: removed migration code
   { pattern: /\bdownMigrate\b/, label: "downMigrate" },
   // Phase 13: compat imports outside the compat directory itself

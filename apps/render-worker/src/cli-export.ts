@@ -44,7 +44,7 @@ async function readInput(): Promise<unknown> {
  *
  * Env (optional, backward compatible):
  * - MOTIONVIDEO_EXPORT_OUT_DIR — work dir (default repo tmp/)
- * - MOTIONVIDEO_EXPORT_ASSET_BASE — assetBaseDir (default docs/fixtures/v2)
+ * - MOTIONVIDEO_EXPORT_ASSET_BASE — assetBaseDir (default docs/fixtures/assets)
  * - MOTIONVIDEO_EXPORT_MP4_PATH — copy final MP4 here after encode
  * - MOTIONVIDEO_EXPORT_FPS — render fps (default 24)
  * - MOTIONVIDEO_EXPORT_SCALE — scale vs FHD (default 0.5; 2 = 4K for 16:9/9:16)
