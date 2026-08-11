@@ -25,6 +25,9 @@ export type DiagnosticCode =
   | "CMP_COMPONENT_INTEGRITY_MISMATCH"
   | "CMP_BINDING_TYPE_MISMATCH"
   | "CMP_CLIP_TARGET_MISSING"
+  // Capability preflight (Phase 11)
+  | "CAP_UNDECLARED_CAPABILITY"
+  | "CAP_EXPERIMENTAL_IN_USE"
   // Schema / reference
   | "UNKNOWN_VARIABLE"
   | "UNKNOWN_CLIP_TARGET"
@@ -49,7 +52,9 @@ export type DiagnosticCode =
   | "TEXT_OVERFLOW"
   | "LAYOUT_CONSTRAINT_FAILED"
   // Runtime schema validation
-  | "RUNTIME_VALIDATION_ERROR";
+  | "RUNTIME_VALIDATION_ERROR"
+  // Compiler internal
+  | "COMPILE_ERROR";
 
 export type CompileDiagnostic = {
   /** Diagnostic code for programmatic handling */

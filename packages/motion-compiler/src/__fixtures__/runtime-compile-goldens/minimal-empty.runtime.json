@@ -21,14 +21,13 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a0a08ccbfd1faabbc1d8ac9fd2c4f2d8",
-  "compilerVersion": "3.0.0-phase5",
-  "capabilityFingerprint": "9b160197f31b7b54",
+  "runtimeHash": "bbd3f5f0fcdb4952cc6578627386df6f",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
     "scenes": {}
   },
   "timeline": {
-    "sceneOrder": [],
     "visualTracks": [
       {
         "id": "primary",

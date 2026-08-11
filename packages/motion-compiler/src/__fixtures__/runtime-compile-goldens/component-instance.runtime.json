@@ -22,26 +22,23 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "71da8c292e17acfdc0b5c5908308f89c",
-  "compilerVersion": "3.0.0-phase5",
-  "capabilityFingerprint": "9b160197f31b7b54",
+  "runtimeHash": "e3076d0a821e6c80096b8cc294f030a9",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
     "scenes": {
       "clip-logo-reveal": "components:logo-reveal#logo-reveal@1.0.0"
     }
   },
   "timeline": {
-    "sceneOrder": [
-      "clip-logo-reveal"
-    ],
     "visualTracks": [
       {
-        "id": "primary",
+        "id": "component-track",
         "role": "primary",
         "order": 0,
         "clips": [
           {
-            "id": "vclip-0-clip-logo-reveal",
+            "id": "clip-logo-reveal",
             "source": {
               "kind": "scene",
               "sceneId": "clip-logo-reveal"

@@ -73,26 +73,23 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "988214620230c6b879be662e93d8cbbf",
-  "compilerVersion": "3.0.0-phase5",
-  "capabilityFingerprint": "9b160197f31b7b54",
+  "runtimeHash": "b8dae06069779f6b63df21c0ed808b41",
+  "compilerVersion": "3.0.0-phase11",
+  "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
     "scenes": {
       "intro": "scenes:intro"
     }
   },
   "timeline": {
-    "sceneOrder": [
-      "intro"
-    ],
     "visualTracks": [
       {
-        "id": "primary",
+        "id": "main-track",
         "role": "primary",
         "order": 0,
         "clips": [
           {
-            "id": "vclip-0-intro",
+            "id": "clip-intro",
             "source": {
               "kind": "scene",
               "sceneId": "intro"
