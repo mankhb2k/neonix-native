@@ -34,7 +34,7 @@ export type CompositionTransition =
 export type CompositionSceneInput = {
   sceneId: string;
   duration: number;
-  transition?: CompositionTransition;
+  transitionOut?: CompositionTransition;
 };
 
 export type CompositionLayerPlan = {
@@ -87,7 +87,7 @@ type Segment = {
   sceneId: string;
   contentStart: number;
   contentDuration: number;
-  transition?: CompositionTransition;
+  transitionOut?: CompositionTransition;
 };
 
 function buildSegments(scenes: CompositionSceneInput[]): {
@@ -100,10 +100,10 @@ function buildSegments(scenes: CompositionSceneInput[]): {
     const scene = scenes[i]!;
     if (i > 0) {
       const prev = scenes[i - 1]!;
-      const prevTransition = prev.transition;
+      const prevOut = prev.transitionOut;
       const overlap =
-        prevTransition && prevTransition.type !== "cut"
-          ? Math.max(0, prevTransition.duration)
+        prevOut && prevOut.type !== "cut"
+          ? Math.max(0, prevOut.duration)
           : 0;
       if (overlap > 0) cursor = Math.max(0, cursor - overlap);
     }
@@ -111,7 +111,7 @@ function buildSegments(scenes: CompositionSceneInput[]): {
       sceneId: scene.sceneId,
       contentStart: cursor,
       contentDuration: scene.duration,
-      transition: scene.transition,
+      transitionOut: scene.transitionOut,
     });
     cursor += scene.duration;
   }
@@ -137,7 +137,7 @@ export function evaluateCompositionLayers(
     const localTime = t - seg.contentStart;
     const inContent = localTime >= -1e-9 && localTime < seg.contentDuration + 1e-9;
 
-    const outgoing = seg.transition;
+    const outgoing = seg.transitionOut;
     const overlap =
       outgoing && outgoing.type !== "cut" ? Math.max(0, outgoing.duration) : 0;
     const transitionStart = seg.contentStart + seg.contentDuration - overlap;
@@ -145,11 +145,12 @@ export function evaluateCompositionLayers(
       overlap > 0 && t >= transitionStart && t < transitionStart + overlap && next != null;
     const inIncomingTransition =
       i > 0 &&
-      segments[i - 1]!.transition &&
-      segments[i - 1]!.transition!.type !== "cut" &&
+      segments[i - 1]!.transitionOut &&
+      segments[i - 1]!.transitionOut!.type !== "cut" &&
       (() => {
         const prev = segments[i - 1]!;
-        const prevOverlap = Math.max(0, (prev.transition as { duration: number }).duration);
+        const prevOut = prev.transitionOut!;
+        const prevOverlap = Math.max(0, prevOut.duration);
         const start = prev.contentStart + prev.contentDuration - prevOverlap;
         return t >= start && t < start + prevOverlap;
       })();
@@ -174,7 +175,7 @@ export function evaluateCompositionLayers(
       applyOutgoing(base, outgoing, u, width, height);
     } else if (inIncomingTransition) {
       const prev = segments[i - 1]!;
-      const tr = prev.transition!;
+      const tr = prev.transitionOut!;
       const prevOverlap = Math.max(0, (tr as { duration: number }).duration);
       const start = prev.contentStart + prev.contentDuration - prevOverlap;
       const u = ease((t - start) / Math.max(1e-6, prevOverlap), "easing" in tr ? tr.easing : undefined);

@@ -6,8 +6,8 @@ import {
 
 describe("composition layer evaluator", () => {
   const scenes = [
-    { sceneId: "a", duration: 2, transition: { type: "crossfade" as const, duration: 0.5 } },
-    { sceneId: "b", duration: 2, transition: { type: "cut" as const } },
+    { sceneId: "a", duration: 2, transitionOut: { type: "crossfade" as const, duration: 0.5 } },
+    { sceneId: "b", duration: 2, transitionOut: { type: "cut" as const } },
   ];
 
   it("keeps single layer outside transitions", () => {
@@ -29,7 +29,7 @@ describe("composition layer evaluator", () => {
 
   it("fade is not the same as crossfade (fade uses overlay)", () => {
     const fadeScenes = [
-      { sceneId: "a", duration: 2, transition: { type: "fade" as const, duration: 0.5, color: "#000" } },
+      { sceneId: "a", duration: 2, transitionOut: { type: "fade" as const, duration: 0.5, color: "#000" } },
       { sceneId: "b", duration: 2 },
     ];
     const plan = evaluateCompositionLayers(fadeScenes, 1.75, 1080, 1920);

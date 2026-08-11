@@ -109,9 +109,7 @@ const ALLOWLIST = [
   /packages[\\/]motion-compiler[\\/]src[\\/]__tests__[\\/]compile-v3\.test\.ts$/,
   // Runtime IR goldens (Phase 6)
   /runtime-compile-goldens[\\/].*\.runtime\.json$/,
-  // Motion-runtime: scene.transition is runtime IR field, not V2 authoring
-  /packages[\\/]motion-runtime[\\/]src[\\/]composition[\\/]evaluate-composition-layers\.ts$/,
-  /packages[\\/]motion-runtime[\\/]src[\\/]composition[\\/]transition-fixtures\.ts$/,
+  // Motion-runtime tests
   /packages[\\/]motion-runtime[\\/]src[\\/]__tests__[\\/]/,
   // Motion-runtime README
   /packages[\\/]motion-runtime[\\/]README\.md$/,

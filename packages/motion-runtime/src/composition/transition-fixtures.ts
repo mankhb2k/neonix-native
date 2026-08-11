@@ -16,11 +16,11 @@ import type {
 // ── Fixture scene setup ───────────────────────────────────────────────
 
 function makeTwoScenes(
-  transition: CompositionTransition,
+  transitionOut: CompositionTransition,
 ): CompositionSceneInput[] {
   return [
-    { sceneId: "scene-a", duration: 3, transition },
-    { sceneId: "scene-b", duration: 3, transition: undefined },
+    { sceneId: "scene-a", duration: 3, transitionOut },
+    { sceneId: "scene-b", duration: 3, transitionOut: undefined },
   ];
 }
 
@@ -229,12 +229,12 @@ function computeFixtureLayers(
   for (let i = 0; i < scenes.length; i++) {
     const scene = scenes[i]!;
     const next = scenes[i + 1];
-    const transition = scene.transition;
+    const transitionOut = scene.transitionOut;
     const overlap =
-      transition?.type === "cut"
+      transitionOut?.type === "cut"
         ? 0
-        : transition && "duration" in transition
-          ? transition.duration
+        : transitionOut && "duration" in transitionOut
+          ? transitionOut.duration
           : 0;
 
     const contentStart = cursor;
@@ -265,8 +265,8 @@ function computeFixtureLayers(
         inContent &&
         next &&
         overlap > 0 &&
-        transition &&
-        transition.type !== "cut"
+        transitionOut &&
+        transitionOut.type !== "cut"
       ) {
         t = (globalTime - (contentEnd - overlap)) / overlap;
         t = Math.min(1, Math.max(0, t));
@@ -274,8 +274,8 @@ function computeFixtureLayers(
         inTransition &&
         next &&
         overlap > 0 &&
-        transition &&
-        transition.type !== "cut"
+        transitionOut &&
+        transitionOut.type !== "cut"
       ) {
         t = 1;
       }
@@ -293,7 +293,7 @@ function computeFixtureLayers(
         };
 
         if (t > 0) {
-          applyTransitionOut(base, transition!, t);
+          applyTransitionOut(base, transitionOut!, t);
         }
 
         layers.push(base);
@@ -304,7 +304,7 @@ function computeFixtureLayers(
             overlap,
             t,
             i + 1,
-            transition!,
+            transitionOut!,
           );
           if (bLayer) layers.push(bLayer);
         }
