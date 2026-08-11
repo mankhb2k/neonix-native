@@ -2,8 +2,7 @@
  * V3 scene-local motion clips.
  *
  * Same scheduling vocabulary (`absolute` | `scene-end` | `after` |
- * `with`) with preset / property-track sources. Component-action sources
- * are dropped: components are timeline-level visual clips in v3.
+ * `with`) with preset / property-track sources.
  */
 
 import { z } from "zod";
@@ -73,7 +72,7 @@ export const PlaybackSchema = z
     }
   });
 
-// ── V3 clip source (no component-action) ──────────────────────────────
+// ── V3 clip source ────────────────────────────────────────────────────
 
 export const ClipSourceV3Schema = z.discriminatedUnion("kind", [
   z

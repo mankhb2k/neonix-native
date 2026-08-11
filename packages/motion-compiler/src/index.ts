@@ -319,8 +319,6 @@ function compileClips(
         ),
       );
     }
-    if (clip.source.kind === "component-action")
-      throw new Error(`Unexpanded Component Action clip: ${clip.id}`);
     if (!clip.targetId)
       throw new Error(`Preset clip ${clip.id} requires targetId`);
     const node = nodeById.get(clip.targetId);

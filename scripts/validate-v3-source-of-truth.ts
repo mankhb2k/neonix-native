@@ -99,6 +99,27 @@ const FORBIDDEN = [
     pattern: /down-migration\b/,
     label: "down-migration (use 'runtime preparation' or 'compilation')",
   },
+  // Phase 6 (final-source-of-truth): removed legacy comment patterns
+  {
+    pattern: /legacy re-exports/i,
+    label: "'legacy re-exports' language (use neutral phrasing)",
+  },
+  {
+    pattern: /re-exported for compat/i,
+    label: "'re-exported for compat' language (use neutral phrasing)",
+  },
+  {
+    pattern: /V2 backward-compat schemas/i,
+    label: "'V2 backward-compat schemas' language (use neutral phrasing)",
+  },
+  {
+    pattern: /\bV2-specific\b/i,
+    label: "'V2-specific' language (use 'runtime' or 'authoring' as appropriate)",
+  },
+  {
+    pattern: /\bcomponent-action\b/i,
+    label: "'component-action' (removed V2 concept)",
+  },
 ];
 
 // ── Allowlist (tightened Phase 13) ───────────────────────────────────
@@ -111,8 +132,6 @@ const ALLOWLIST = [
   /docs[\\/]remove-compat-completely-plan\.md$/,
   // This script
   /scripts[\\/]validate-v3-source-of-truth\.ts$/,
-  // Protocol root barrel — comment block documents excluded V2 types
-  /packages[\\/]motion-protocol[\\/]src[\\/]index\.ts$/,
   // Protocol tests: intentional negative tests + regression guards
   /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]schema-files\.test\.ts$/,
   /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]root-api-v2-regression\.test\.ts$/,

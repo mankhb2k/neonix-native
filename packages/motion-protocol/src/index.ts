@@ -1,9 +1,8 @@
 /**
  * Public API surface — V3 is the only authoring protocol.
  *
- * V2 authoring types (MotionProjectV2, MotionComponentV2,
- * parseMotionProjectV2, …) and the `src/legacy/` directory have been
- * permanently removed. All exports are canonical V3.
+ * Legacy authoring types (formatVersion 1 / 2) and their companion
+ * directories have been permanently removed. All exports are canonical V3.
  */
 
 // ── Capabilities / Registry / AI matrix ───────────────────────────────
@@ -42,8 +41,8 @@ export function parseMotionProject(input: unknown): MotionProject {
     (input as Record<string, unknown>).formatVersion === 2
   ) {
     throw new Error(
-      "V2 motion projects are no longer supported. " +
-        "Please migrate your project to V3 format.",
+      "Format version 2 motion projects are no longer supported. " +
+        "Please migrate your project to format version 3.",
     );
   }
   return parseMotionProjectV3(input);
@@ -165,9 +164,9 @@ export {
 //
 // All schemas are V3-owned and exported from v3/ paths.
 //
-// V2 AUTHORING TYPES INTENTIONALLY EXCLUDED:
-//   MotionProjectV2, MotionComponentV2, parseMotionProjectV2,
-//   parseMotionComponentV2, serializeMotionProjectV2.
+// LEGACY AUTHORING TYPES INTENTIONALLY EXCLUDED:
+//   Format version 1/2 project, component, and parser types. These were
+//   permanently removed — use the V3 authoring API instead.
 
 // Common / Primitives — owned by V3 (Phase 2)
 export {
@@ -304,7 +303,7 @@ export {
 
 export { type MotionClipV3 } from "./v3/animation/clips";
 
-/** @deprecated Use `MotionClipV3` instead — V3 canonical clip type. */
+/** Canonical clip type — re-exported from the V3 animation module. */
 export type { MotionClipV3 as MotionClip };
 
 // Project scene type — V3 canonical
