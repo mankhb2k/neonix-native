@@ -30,6 +30,12 @@ export type LayerModeRow = {
   nodeType: string;
   zIndex: number;
   laneId: string;
+  /** Phase 7: parent group node id (null = root layer). */
+  parentId: string | null;
+  /** Phase 7: true when this node has children (group with descendants). */
+  hasChildren: boolean;
+  /** Phase 7: nesting depth in the hierarchy (0 = root). */
+  depth: number;
 };
 
 export type LayerModeStrip = {
@@ -42,6 +48,10 @@ export type LayerModeStrip = {
   duration: number;
   /** Scene-local timing used for property commits. */
   localTiming: NodeTimingLocal;
+  /** Phase 7: parent group node id (null = root layer). */
+  parentId: string | null;
+  /** Phase 7: parent-local start offset (seconds, 0 at parent's effective start). */
+  parentRelativeStart: number;
 };
 
 export type LayerModeView = {
@@ -170,12 +180,42 @@ export function buildLayerModeView(
     };
   }
 
+  // Phase 7: Build hierarchy metadata for group nesting display.
+  const nodeList = scene.nodes ?? [];
+  const byId = new Map(nodeList.map((n) => [n.id, n]));
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const n of nodeList) {
+    const pid = n.parentId ?? null;
+    const list = childrenByParent.get(pid);
+    if (list) list.push(n.id);
+    else childrenByParent.set(pid, [n.id]);
+  }
+
+  /** Walk parent chain to compute nesting depth (0 = root). */
+  function computeDepth(node: MotionNode): number {
+    let depth = 0;
+    let current: MotionNode | undefined = node;
+    while (current?.parentId) {
+      depth += 1;
+      current = byId.get(current.parentId);
+    }
+    return depth;
+  }
+
   for (let i = 0; i < nodes.length; i += 1) {
     const node = nodes[i]!;
     const laneId = layerLaneIdForNode(node.id);
     const zIndex = node.zIndex ?? nodes.length - i;
     const name = nodeDisplayName(node);
     const localTiming = resolveNodeLocalTiming(node, container.duration);
+    const nodeParentId = node.parentId ?? null;
+    const nodeHasChildren = (childrenByParent.get(node.id)?.length ?? 0) > 0;
+    const nodeDepth = computeDepth(node);
+
+    // Phase 7: parentRelativeStart — child's timing.start is already
+    // parent-relative by V3 contract; we record it for UI display.
+    const parentRelativeStart = node.timing?.start ?? 0;
+
     const strip: LayerModeStrip = {
       nodeId: node.id,
       laneId,
@@ -184,6 +224,8 @@ export function buildLayerModeView(
       startTime: container.startTime + localTiming.start,
       duration: localTiming.duration,
       localTiming,
+      parentId: nodeParentId,
+      parentRelativeStart,
     };
     const lane: TimelineLane = {
       id: laneId,
@@ -203,6 +245,9 @@ export function buildLayerModeView(
       nodeType: node.type,
       zIndex,
       laneId,
+      parentId: nodeParentId,
+      hasChildren: nodeHasChildren,
+      depth: nodeDepth,
     });
     strips.push(strip);
     lanes.push(lane);
@@ -256,4 +301,68 @@ export function listSceneInnerLayers(
       duration: timing.duration,
     };
   });
+}
+
+// ── Phase 7: Parent-relative display helpers ──────────────────────────
+
+/**
+ * Resolve a node's effective parent-local timing window for timeline display.
+ *
+ * V3 contract: child timing is parent-relative. This function walks the
+ * parent chain to determine, for a given child node, what time range the
+ * child occupies relative to its **direct parent's** effective window.
+ *
+ * Returns `null` for root nodes (no parent).
+ */
+export function resolveParentRelativeTimingWindow(
+  node: MotionNode,
+  allNodes: readonly MotionNode[],
+  containerDuration: number,
+): { parentId: string; parentStartTime: number; parentEndTime: number } | null {
+  if (!node.parentId) return null;
+  const allById = new Map(allNodes.map((n) => [n.id, n]));
+  const parent = allById.get(node.parentId);
+  if (!parent) return null;
+
+  const parentTiming = resolveNodeLocalTiming(parent, containerDuration);
+  const parentStart = parentTiming.start;
+  const parentEnd = parentStart + parentTiming.duration;
+
+  return {
+    parentId: parent.id,
+    parentStartTime: parentStart,
+    parentEndTime: parentEnd,
+  };
+}
+
+/**
+ * Compute the global timeline position of a child node by walking its
+ * parent chain. Pure computation — no side effects.
+ *
+ * Returns `{ globalStart, globalEnd }` or null for root nodes.
+ */
+export function resolveNodeGlobalTiming(
+  node: MotionNode,
+  allNodes: readonly MotionNode[],
+  containerStartTime: number,
+  containerDuration: number,
+): { globalStart: number; globalEnd: number } | null {
+  // For root nodes, return container-relative timing.
+  const timing = resolveNodeLocalTiming(node, containerDuration);
+  let offset = timing.start;
+  let current: MotionNode | undefined = node;
+  const allById = new Map(allNodes.map((n) => [n.id, n]));
+
+  while (current?.parentId) {
+    const parent = allById.get(current.parentId);
+    if (!parent) break;
+    const parentTiming = resolveNodeLocalTiming(parent, containerDuration);
+    offset += parentTiming.start;
+    current = parent;
+  }
+
+  return {
+    globalStart: containerStartTime + offset,
+    globalEnd: containerStartTime + offset + timing.duration,
+  };
 }

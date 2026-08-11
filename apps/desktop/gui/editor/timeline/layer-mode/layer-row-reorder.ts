@@ -152,3 +152,51 @@ export function resolveLayerLaneAtClientY(
   }
   return best.laneId;
 }
+
+// ── Phase 7: Sibling-local reorder ────────────────────────────────────
+
+export type SiblingGroupReorderInput = {
+  /** Ordered node ids (top→bottom, zIndex desc). */
+  orderedNodeIds: readonly string[];
+  /** Map from nodeId → parentId (null for roots). */
+  parentIdByNodeId: Map<string, string | null>;
+};
+
+/**
+ * Validate that a reorder move is sibling-local (V3 zIndex rule).
+ *
+ * Returns `true` if the moving node and the target position belong to
+ * the same parent group. Cross-parent moves return `false`.
+ *
+ * Target position is given as `insertBeforeIndex` in the flat ordered list.
+ * The position is considered "inside the sibling group" when:
+ *   insertBeforeIndex falls within [firstSiblingIndex, lastSiblingIndex+1]
+ *   (inclusive of the gap after the last sibling).
+ */
+export function isSiblingLocalMove(
+  input: SiblingGroupReorderInput,
+  movingId: string,
+  insertBeforeIndex: number,
+): boolean {
+  const { orderedNodeIds, parentIdByNodeId } = input;
+  const movingParent = parentIdByNodeId.get(movingId);
+  if (movingParent === undefined) return false;
+
+  // Find all nodes with the same parentId
+  const siblingIndices: number[] = [];
+  for (let i = 0; i < orderedNodeIds.length; i += 1) {
+    const pid = parentIdByNodeId.get(orderedNodeIds[i]!);
+    if (pid === movingParent) {
+      siblingIndices.push(i);
+    }
+  }
+
+  if (siblingIndices.length === 0) return false;
+
+  // A move is valid when the insertBeforeIndex falls within the sibling
+  // range [firstSibling, lastSibling+1] — i.e., you can insert before the
+  // first sibling, between siblings, or after the last sibling.
+  const firstSibling = siblingIndices[0]!;
+  const lastSibling = siblingIndices[siblingIndices.length - 1]!;
+  return insertBeforeIndex >= firstSibling && insertBeforeIndex <= lastSibling + 1;
+}
