@@ -86,6 +86,19 @@ const FORBIDDEN = [
   },
   // Phase 2 (final-source-of-truth): no legacy import paths
   { pattern: /src[\/]legacy/, label: "src/legacy path reference" },
+  // Phase 4 (native-source-of-truth): production mental-model leaks
+  {
+    pattern: /Authoring IR v2/,
+    label: "Authoring IR v2 (use V3-native language)",
+  },
+  {
+    pattern: /\bV2-shaped\b/,
+    label: "V2-shaped (use 'runtime-ready' or 'normalized')",
+  },
+  {
+    pattern: /down-migration\b/,
+    label: "down-migration (use 'runtime preparation' or 'compilation')",
+  },
 ];
 
 // ── Allowlist (tightened Phase 13) ───────────────────────────────────

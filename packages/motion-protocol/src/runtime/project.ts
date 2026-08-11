@@ -25,7 +25,7 @@ import {
 
 /**
  * Runtime IR format version — bumped to 3 (Phase 6)
- * to match the V3 authoring format. No V2-shaped runtime IR remains.
+ * to match the V3 authoring format.
  */
 const RUNTIME_IR_FORMAT_VERSION = 3 as const;
 import {
