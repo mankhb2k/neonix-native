@@ -8,22 +8,16 @@
  *
  * Allowed in:
  *   - scripts/validate-v3-source-of-truth.ts (this file)
- *   - packages/motion-protocol/src/compat/ (internal compat layer, not exported)
  *   - packages/motion-protocol/src/runtime/ (runtime IR format, not V2 authoring)
  *   - packages/motion-protocol/src/index.ts (comment block documents excluded V2 types)
  *   - packages/motion-compiler/src/index.ts (legacy V2 compiler path, internal only)
  *   - packages/motion-compiler/src/compile-v3.ts (runtime IR formatVersion:2)
  *   - packages/motion-runtime/src/composition/ (runtime IR field scene.transition)
- *   - Acceptance/validation scripts still using compat fixtures
  *   - READMEs / docs documenting the migration
- *   - Test files exercising compat isolation or negative assertions
+ *   - Test files exercising isolation or negative assertions
  *
- * Phase 9: added V2Schema forbidden pattern; removed dead allowlist entries
- *   (render-worker compiler bridge, duplicate entries).
- * Phase 8: removed ./compat/* from public package.json exports.
- * Phase 13: tightened — removed allowlist entries for files cleaned up in
- * Phases 6-12 (editor-core, ai-planner, runtime timeline, render-worker). Added
- * downMigrate and compat-path forbidden patterns.
+ * Phase 7 (compat-removal): compat/ deleted, gate tightened.
+ *   Added hard directory existence check for compat/.
  */
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
@@ -88,21 +82,17 @@ const ALLOWLIST = [
   /docs[\\/]remove-v2-keep-v3-source-of-truth-plan\.md$/,
   /docs[\\/]motion-project-v3-refactor-plan\.md$/,
   /docs[\\/]v3-source-of-truth-completion-plan\.md$/,
+  /docs[\\/]remove-compat-completely-plan\.md$/,
   // This script
   /scripts[\\/]validate-v3-source-of-truth\.ts$/,
-  // V2 compatibility layer — parse, component, patch, project, references (Phase 8: no longer exported)
-  /packages[\\/]motion-protocol[\\/]src[\\/]compat[\\/]/,
   // Protocol root barrel — comment block documents excluded V2 types
   /packages[\\/]motion-protocol[\\/]src[\\/]index\.ts$/,
   // Runtime re-exports — runtime IR format, not V2 authoring
   /packages[\\/]motion-protocol[\\/]src[\\/]runtime[\\/]/,
   // V3 canonical definitions — defines V2-prefixed primitives for backward compat
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]/,
-  // Protocol test verifying ./compat is removed from exports (Phase 8 gate)
+  // Protocol test verifying ./compat is removed from exports (Phase 7-8 gate)
   /packages[\\/]motion-protocol[\\/]src[\\/]__tests__[\\/]schema-files\.test\.ts$/,
-  // Protocol test importing compat for isolation
-  /packages[\\/]motion-protocol[\\/]src[\\/]capabilities\.test\.ts$/,
-  /packages[\\/]motion-protocol[\\/]src[\\/]ai-schema-capability\.test\.ts$/,
   // V3 schema tests — negative tests verifying scene.transition is absent from V3 scenes
   /packages[\\/]motion-protocol[\\/]src[\\/]v3[\\/]__tests__[\\/]schema\.test\.ts$/,
   // Compiler: legacy v2 path (index.ts) + sceneOrder in test assertions
@@ -131,9 +121,6 @@ const ALLOWLIST = [
   /apps[\\/]desktop[\\/]electron[\\/]main[\\/]services[\\/]export[\\/]export\.service\.ts$/,
   // Web vite-phase0 fixtures — generated golden data
   /apps[\\/]web[\\/]lib[\\/]editor[\\/]__fixtures__[\\/]vite-phase0\.ts$/,
-  // Acceptance and validation scripts — work with compat fixtures
-  /scripts[\\/]score-acceptance-pack\.ts$/,
-  /scripts[\\/]validate-runtime-primitives\.ts$/,
 ];
 
 // ── Scan directories ──────────────────────────────────────────────────
@@ -223,6 +210,17 @@ function main(): void {
     for (const file of walkDir(root)) {
       allViolations.push(...scanFile(file));
     }
+  }
+
+  // ── Hard gate: compat/ folder must not exist ──────────────────────
+
+  if (existsSync(resolve(ROOT, "packages", "motion-protocol", "src", "compat"))) {
+    allViolations.push({
+      file: "packages/motion-protocol/src/compat/",
+      line: 0,
+      pattern: "compat-directory",
+      text: "compat/ folder still exists — must be deleted",
+    });
   }
 
   if (allViolations.length === 0) {

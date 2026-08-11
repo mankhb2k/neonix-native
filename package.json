@@ -33,7 +33,6 @@
     "bench:motion-runtime": "pnpm --filter @motionvideo/render-worker benchmark",
     "bench:motion-runtime:4k": "pnpm --filter @motionvideo/render-worker exec tsx src/benchmark.ts --scale=2",
     "score:designer-corrections": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-designer-corrections.ts",
-    "score:acceptance-pack": "pnpm --filter @motionvideo/render-worker exec tsx ../../scripts/score-acceptance-pack.ts",
     "storybook": "pnpm --filter @motionvideo/web storybook",
     "storybook:desktop": "pnpm --filter @motionvideo/desktop storybook"
   },

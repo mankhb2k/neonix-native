@@ -221,9 +221,7 @@ export function validateMotionSkillOutput(
           severity: "error",
         });
       }
-      const scenes = raw.scenes as
-        | Array<Record<string, unknown>>
-        | undefined;
+      const scenes = raw.scenes as Array<Record<string, unknown>> | undefined;
       if (scenes) {
         for (let i = 0; i < scenes.length; i++) {
           const scene = scenes[i]!;

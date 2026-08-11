@@ -38,9 +38,9 @@ describe("motion-protocol R2–R5 contract", () => {
   });
 
   it("accepts transform.depth", () => {
-    expect(
-      TransformSchema.parse({ ...baseTransform, depth: 1.5 }).depth,
-    ).toBe(1.5);
+    expect(TransformSchema.parse({ ...baseTransform, depth: 1.5 }).depth).toBe(
+      1.5,
+    );
   });
 
   it("accepts cycle pingpong mode and rejects unknown modes", () => {

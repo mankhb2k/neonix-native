@@ -31,14 +31,14 @@ import {
 } from "@motionvideo/motion-runtime";
 ```
 
-| Module | Chức năng |
-|---|---|
-| `evaluator` | Property tracks, hierarchy, constraints, modifiers |
-| `matrix` / `spatial` | World matrix, bounds |
-| `hit-test` | Hit-test theo draw order / mask |
-| `clock` | Frame ↔ time deterministic |
-| `geometry` | Path sample, trim, bend, morph |
-| `secondary-motion` | Bone chain follow-through (rotation) |
+| Module               | Chức năng                                          |
+| -------------------- | -------------------------------------------------- |
+| `evaluator`          | Property tracks, hierarchy, constraints, modifiers |
+| `matrix` / `spatial` | World matrix, bounds                               |
+| `hit-test`           | Hit-test theo draw order / mask                    |
+| `clock`              | Frame ↔ time deterministic                         |
+| `geometry`           | Path sample, trim, bend, morph                     |
+| `secondary-motion`   | Bone chain follow-through (rotation)               |
 
 ## Docs
 

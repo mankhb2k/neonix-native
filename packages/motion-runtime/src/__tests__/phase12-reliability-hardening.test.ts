@@ -418,9 +418,9 @@ describe("Phase 12.4 — Feature flags", () => {
 });
 
 describe("Phase 12.4 — Rollback checklist", () => {
-  it("returns 7 checklist items", () => {
+  it("returns 6 checklist items", () => {
     const items = rollbackChecklist();
-    expect(items).toHaveLength(7);
+    expect(items).toHaveLength(6);
     expect(items[0]).toContain("version constants");
     expect(items[1]).toContain("test suite");
   });

@@ -1,8 +1,8 @@
 ﻿/**
  * V3 Runtime Primitives — replaced by vitest smoke test.
  *
- * Phase 3 (compat-removal): previously depended on parseMotionProjectV2,
- * compileMotionProject, and docs/fixtures/v2/ (all removed).
+ * Phase 3 (compat-removal): previously depended on V2 parsers,
+ * compiler bridge, and docs/fixtures/v2/ (all removed).
  * The actual validation now lives at:
  *   packages/motion-runtime/src/__tests__/v3-primitives-smoke.test.ts
  *
