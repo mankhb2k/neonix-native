@@ -11,28 +11,28 @@
 
 ### 🔴 High
 
-| #   | Status | File          | Issue                                                                                                                                                            |
-| --- | ------ | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H1  | ✅ Fixed | `timeline.ts` | `visualTracks.max()` dùng `MOTION_PROTOCOL_LIMITS.audioTracksPerProject` (2048) → thêm constant `visualTracksPerProject: 128` trong `capabilities.ts`. |
-| H2  | ✅ Fixed | `project.ts`  | `MotionProjectV3Schema` thêm `.superRefine()` — lightweight duplicate ID checks (scenes, variables, assets, bindings, components, visualTracks). Không tạo circular dep với references module. |
-| H3  | ✅ Fixed | `index.ts` + `timeline.ts` | `CaptionTrackV3` type được export từ `timeline.ts` và re-export ở top-level `index.ts`. |
+| #   | Status   | File                       | Issue                                                                                                                                                                                          |
+| --- | -------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H1  | ✅ Fixed | `timeline.ts`              | `visualTracks.max()` dùng `MOTION_PROTOCOL_LIMITS.audioTracksPerProject` (2048) → thêm constant `visualTracksPerProject: 128` trong `capabilities.ts`.                                         |
+| H2  | ✅ Fixed | `project.ts`               | `MotionProjectV3Schema` thêm `.superRefine()` — lightweight duplicate ID checks (scenes, variables, assets, bindings, components, visualTracks). Không tạo circular dep với references module. |
+| H3  | ✅ Fixed | `index.ts` + `timeline.ts` | `CaptionTrackV3` type được export từ `timeline.ts` và re-export ở top-level `index.ts`.                                                                                                        |
 
 ### 🟡 Medium
 
-| #   | Status | File          | Issue                                                                                                  |
-| --- | ------ | ------------- | ------------------------------------------------------------------------------------------------------ |
-| M1  | ✅ Fixed | `index.ts`    | Thêm V1 format version check (trước V2 check) với error message hữu ích. |
-| M2  | 📝 Skip | `parse.ts`    | Legacy `normalizeMotionProjectV3` issues — low priority, chỉ dùng cho migration path cũ. |
-| M3  | ✅ Pre-existing | `index.ts`    | `LayoutConstraintSchema` đã được export từ top-level (kiểm tra lại — đã có sẵn, không phải bug). |
-| M4  | ✅ Fixed | `index.ts`    | Export `AssetV3Schema` + `AssetV3` type ở top-level bên cạnh runtime `AssetSchema`. |
-| M5  | ✅ Fixed | `timeline.ts` | `AudioTrackV3Schema` thêm `.superRefine()`: check `trimEnd <= duration` và `fadeIn + fadeOut <= duration`. |
+| #   | Status          | File          | Issue                                                                                                      |
+| --- | --------------- | ------------- | ---------------------------------------------------------------------------------------------------------- |
+| M1  | ✅ Fixed        | `index.ts`    | Thêm V1 format version check (trước V2 check) với error message hữu ích.                                   |
+| M2  | 📝 Skip         | `parse.ts`    | Legacy `normalizeMotionProjectV3` issues — low priority, chỉ dùng cho migration path cũ.                   |
+| M3  | ✅ Pre-existing | `index.ts`    | `LayoutConstraintSchema` đã được export từ top-level (kiểm tra lại — đã có sẵn, không phải bug).           |
+| M4  | ✅ Fixed        | `index.ts`    | Export `AssetV3Schema` + `AssetV3` type ở top-level bên cạnh runtime `AssetSchema`.                        |
+| M5  | ✅ Fixed        | `timeline.ts` | `AudioTrackV3Schema` thêm `.superRefine()`: check `trimEnd <= duration` và `fadeIn + fadeOut <= duration`. |
 
 ### ℹ️ Info (Skip — low priority)
 
-| #   | File          | Issue                                                                                   |
-| --- | ------------- | --------------------------------------------------------------------------------------- |
+| #   | File          | Issue                                                                                 |
+| --- | ------------- | ------------------------------------------------------------------------------------- |
 | I1  | `v3/index.ts` | 19 `export *` từ sub-modules — risk naming collision nếu 2 module export cùng symbol. |
-| I2  | `v3/index.ts` | `CaptionTrackV3Schema` re-exported từ 2 path — harmless, TypeScript deduplicates. |
+| I2  | `v3/index.ts` | `CaptionTrackV3Schema` re-exported từ 2 path — harmless, TypeScript deduplicates.     |
 
 ### ✅ Verified
 
@@ -50,16 +50,16 @@
 
 | #   | File            | Issue                                                                                                                                                                                                        |
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| H4  | `scenes.ts:26`  | `SceneDefinitionV3Schema.nodes` KHÔNG có `.min(1)` — scene không node được accept. Components đã có `.min(1)` từ P1 fix trước, scenes chưa.                                                                  |
+| H4  | `scenes.ts:26`  | `SceneDefinitionV3Schema.nodes` KHÔNG có `.min(1)` — scene không node được accept. ✅ **FIXED** — nodes: z.array(NodeV3Schema).min(1).max(...) |
 | H5  | `components.ts` | `EmbeddedComponentV3Schema.slots` cho phép `count > 1` nhưng không có schema-level validation nào đảm bảo slot content array match `count`. Nếu `count: 3` mà consumer chỉ truyền 2 items → silent mismatch. |
 
 ### 🟡 Medium
 
 | #   | File               | Issue                                                                                                                                                                                                                                |
 | --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| M6  | `timeline.ts`      | `VisualClipV3Schema` có `playbackRate` và `loop` nhưng không validate `playbackRate > 0` (có thể set 0 → clip invisible). Runtime `PlaybackSchema` có check này nhưng V3 clip thì không.                                             |
+| M6  | `timeline.ts`      | `VisualClipV3Schema` có `playbackRate` và `loop` nhưng không validate `playbackRate > 0`. ✅ **FIXED** — playbackRate: .superRefine() kiểm tra > 0 |
 | M7  | `nodes/base.ts:24` | **CRITICAL cho runtime** — `NodeBaseSchema` trong runtime KHÔNG có `.strict()`. Tất cả 11 node type âm thầm accept extra properties ở base level. May mắn là V3 authoring `NodeBaseV3Schema` đã có `.strict()` gián tiếp qua extend. |
-| M8  | `common.ts`        | `SemverSchema` regex không reject empty pre-release tag như `1.0.0-`. Pattern `/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/` cho phép `1.0.0-` vì `+` match 0 lần. Nên là `(?:-[0-9A-Za-z.-]+)*`.                                           |
+| M8  | `common.ts`        | `SemverSchema` regex cho phép `1.0.0-`. ✅ **FIXED** — pattern: `(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?` (requires at least one char after dash). Cả v3/common.ts và runtime/common.ts. |
 | M9  | `variables.ts`     | `DesignTokensSchema` export nhưng `DesignTokens` type chỉ trong `v3/index.ts`, không có ở top-level `index.ts` cùng các type khác.                                                                                                   |
 | M10 | `transform.ts`     | `TransformSchema.width/height` dùng `.nonnegative()` → cho phép `0`. Node width=0 hoặc height=0 là vô hình → nên là `.positive()` hoặc thêm `.superRefine()` warning.                                                                |
 

@@ -271,6 +271,15 @@ export const VisualClipV3Schema = z
         });
       }
     }
+    // playbackRate must be > 0 (runtime PlaybackSchema already enforces this;
+    // catch it at authoring time too for early feedback).
+    if (val.playbackRate !== undefined && !(val.playbackRate > 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "playbackRate must be > 0",
+        path: ["playbackRate"],
+      });
+    }
   });
 
 export const VisualTrackV3Schema = z
@@ -319,10 +328,7 @@ export const AudioTrackV3Schema = z
   .strict()
   .superRefine((track, ctx) => {
     // trimEnd must not exceed duration
-    if (
-      track.trimEnd !== undefined &&
-      track.trimEnd > track.duration
-    ) {
+    if (track.trimEnd !== undefined && track.trimEnd > track.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `trimEnd (${track.trimEnd}) must be ≤ duration (${track.duration})`,

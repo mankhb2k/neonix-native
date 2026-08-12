@@ -9,8 +9,8 @@
   "composition": { "width": 1920, "height": 1080, "fps": 30 },
   "dependencies": { "compiler": { "range": ">=1.0.0" }, "components": [] },
   "scenes": [
-    { "id": "s1", "name": "A", "duration": 5, "nodes": [], "clips": [] },
-    { "id": "s1", "name": "B", "duration": 3, "nodes": [], "clips": [] }
+    { "id": "s1", "name": "A", "duration": 5, "nodes": [{ "id": "n1", "type": "text", "parentId": null, "transform": { "x": 0, "y": 0, "width": 100, "height": 50, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "content": { "kind": "plain", "text": "hello" }, "fontSize": 24 } }], "clips": [] },
+    { "id": "s1", "name": "B", "duration": 3, "nodes": [{ "id": "n1", "type": "text", "parentId": null, "transform": { "x": 0, "y": 0, "width": 100, "height": 50, "rotation": 0, "scaleX": 1, "scaleY": 1, "anchorX": 0.5, "anchorY": 0.5, "opacity": 1, "visible": true, "flipX": false, "flipY": false }, "payload": { "content": { "kind": "plain", "text": "world" }, "fontSize": 24 } }], "clips": [] }
   ],
   "timeline": {
     "visualTracks": [

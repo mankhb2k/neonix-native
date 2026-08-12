@@ -5,6 +5,15 @@ import {
 } from "../patch";
 import type { MotionProjectV3 } from "../index";
 
+/** A minimal text node for use in test scenes (scenes require nodes.min(1)). */
+function minNode() {
+  return {
+    id: "n1", type: "text", parentId: null,
+    transform: { x: 0, y: 0, width: 100, height: 50, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, opacity: 1, visible: true, flipX: false, flipY: false },
+    payload: { content: { kind: "plain" as const, text: "x" }, fontSize: 24 },
+  } as const;
+}
+
 function minimalProject(): MotionProjectV3 {
   return {
     format: "motion-project",
@@ -58,7 +67,7 @@ describe("V3 patch contract", () => {
           scene: {
             id: "intro",
             duration: 3,
-            nodes: [],
+            nodes: [minNode()],
             clips: [],
           },
         },
@@ -143,7 +152,7 @@ describe("V3 patch contract", () => {
           scene: {
             id: "intro",
             duration: 3,
-            nodes: [],
+            nodes: [minNode()],
             clips: [],
           },
         },
@@ -156,7 +165,7 @@ describe("V3 patch contract", () => {
 
   it("rejects duplicate scene add", () => {
     const project = minimalProject();
-    const scene = { id: "intro", duration: 3, nodes: [], clips: [] };
+    const scene = { id: "intro", duration: 3, nodes: [minNode()], clips: [] };
     const patch = {
       format: "motion-project-patch" as const,
       formatVersion: 1 as const,
@@ -179,7 +188,7 @@ describe("V3 patch contract", () => {
       operations: [
         {
           op: "addScene",
-          scene: { id: "intro", duration: 3, nodes: [], clips: [] },
+          scene: { id: "intro", duration: 3, nodes: [minNode()], clips: [] },
         },
       ],
     });
@@ -206,8 +215,8 @@ describe("V3 patch contract", () => {
     project = {
       ...project,
       scenes: [
-        { id: "intro", duration: 3, nodes: [], clips: [] },
-        { id: "outro", duration: 2, nodes: [], clips: [] },
+        { id: "intro", duration: 3, nodes: [minNode()], clips: [] },
+        { id: "outro", duration: 2, nodes: [minNode()], clips: [] },
       ],
       timeline: {
         ...project.timeline,
@@ -260,7 +269,7 @@ describe("V3 patch contract", () => {
     let project = minimalProject();
     project = {
       ...project,
-      scenes: [{ id: "intro", duration: 3, nodes: [], clips: [] }],
+      scenes: [{ id: "intro", duration: 3, nodes: [minNode()], clips: [] }],
       timeline: {
         ...project.timeline,
         visualTracks: [
@@ -304,7 +313,7 @@ describe("V3 patch contract", () => {
     let project = minimalProject();
     project = {
       ...project,
-      scenes: [{ id: "intro", duration: 5, nodes: [], clips: [] }],
+      scenes: [{ id: "intro", duration: 5, nodes: [minNode()], clips: [] }],
       timeline: {
         ...project.timeline,
         visualTracks: [
@@ -352,7 +361,7 @@ describe("V3 patch contract", () => {
     let project = minimalProject();
     project = {
       ...project,
-      scenes: [{ id: "intro", duration: 3, nodes: [], clips: [] }],
+      scenes: [{ id: "intro", duration: 3, nodes: [minNode()], clips: [] }],
       timeline: {
         ...project.timeline,
         visualTracks: [
@@ -424,9 +433,9 @@ describe("V3 patch contract", () => {
     project = {
       ...project,
       scenes: [
-        { id: "a", duration: 2, nodes: [], clips: [] },
-        { id: "b", duration: 3, nodes: [], clips: [] },
-        { id: "c", duration: 1, nodes: [], clips: [] },
+        { id: "a", duration: 2, nodes: [minNode()], clips: [] },
+        { id: "b", duration: 3, nodes: [minNode()], clips: [] },
+        { id: "c", duration: 1, nodes: [minNode()], clips: [] },
       ],
       timeline: {
         ...project.timeline,

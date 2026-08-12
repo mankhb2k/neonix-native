@@ -29,7 +29,7 @@ export const SceneDefinitionV3Schema = z
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
-    nodes: z.array(NodeV3Schema).max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
+    nodes: z.array(NodeV3Schema).min(1).max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
     clips: z
       .array(MotionClipV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.clipsPerScene)
