@@ -38,6 +38,17 @@ export function parseMotionProject(input: unknown): MotionProject {
     input !== null &&
     typeof input === "object" &&
     !Array.isArray(input) &&
+    (input as Record<string, unknown>).formatVersion === 1
+  ) {
+    throw new Error(
+      "Format version 1 motion projects are no longer supported. " +
+        "Please migrate your project to format version 3.",
+    );
+  }
+  if (
+    input !== null &&
+    typeof input === "object" &&
+    !Array.isArray(input) &&
     (input as Record<string, unknown>).formatVersion === 2
   ) {
     throw new Error(
@@ -63,6 +74,7 @@ export type {
   VisualClipV3,
   VisualTrackV3,
   AudioTrackV3,
+  CaptionTrackV3,
 } from "./v3";
 
 // ── Canonical hash utilities ──────────────────────────────────────────
@@ -210,6 +222,8 @@ export {
   FontAssetSchema,
   AssetSchema,
 } from "./runtime/assets";
+// V3 authoring asset schemas (compile-time)
+export { AssetV3Schema, type AssetV3 } from "./v3/assets";
 
 // Captions — owned by V3 (Phase 2)
 export {

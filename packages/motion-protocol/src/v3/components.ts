@@ -104,7 +104,10 @@ export const EmbeddedComponentV3Schema = z
       .array(VariableSchema)
       .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
       .default([]),
-    nodes: z.array(NodeV3Schema).min(1).max(MOTION_PROTOCOL_LIMITS.nodesPerComponent),
+    nodes: z
+      .array(NodeV3Schema)
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.nodesPerComponent),
     bindings: z
       .array(ProjectBindingV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)

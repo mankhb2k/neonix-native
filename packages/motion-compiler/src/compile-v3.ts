@@ -445,7 +445,11 @@ type VisualPlanTrack = {
 function buildVisualPlan(
   project: V3.MotionProjectV3,
   collector: DiagnosticCollector,
-): { tracks: VisualPlanTrack[]; sceneOverrides: Map<string, JsonRecord>; componentSceneIds: Map<string, string[]> } {
+): {
+  tracks: VisualPlanTrack[];
+  sceneOverrides: Map<string, JsonRecord>;
+  componentSceneIds: Map<string, string[]>;
+} {
   const scenes = new Map(
     project.scenes.map((scene) => [scene.id, scene] as const),
   );
@@ -1090,7 +1094,10 @@ export function compileMotionProjectV3(
   }
 
   // Build the visual plan from timeline.visualTracks.
-  const { tracks, sceneOverrides, componentSceneIds } = buildVisualPlan(normalized, collector);
+  const { tracks, sceneOverrides, componentSceneIds } = buildVisualPlan(
+    normalized,
+    collector,
+  );
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
   }

@@ -636,7 +636,9 @@ describe("v3 schema — negative fixtures", () => {
 describe("v3 reference validation — parseMotionProjectV3", () => {
   it("rejects duplicate scene ids", () => {
     const input = loadFixture("invalid-duplicate-ids.project.json");
-    expect(() => parseMotionProjectV3(input)).toThrow(MotionV3ReferenceError);
+    // Duplicate ids are caught at schema level (.superRefine) before
+    // reference validation — both ZodError and MotionV3ReferenceError are valid.
+    expect(() => parseMotionProjectV3(input)).toThrow();
     try {
       parseMotionProjectV3(input);
     } catch (err) {

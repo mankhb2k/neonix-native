@@ -57,6 +57,90 @@ export const MotionProjectV3Schema = z
     provenance: ProjectProvenanceSchema.optional(),
     extensions: NamespacedExtensionsSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((project, ctx) => {
+    // ── Duplicate id checks (structural integrity) ──
+    // Full cross-reference validation (scene refs, asset types, etc.) is
+    // handled by `validateMotionProjectV3References()` in `parse.ts`.
+    // These lightweight checks catch the most common mistakes at parse time.
+    const seen = new Set<string>();
+
+    // Scene ids
+    for (const scene of project.scenes) {
+      if (seen.has(scene.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate scene id: "${scene.id}"`,
+          path: ["scenes"],
+        });
+      }
+      seen.add(scene.id);
+    }
+    seen.clear();
+
+    // Variable ids
+    for (const v of project.variables) {
+      if (seen.has(v.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate variable id: "${v.id}"`,
+          path: ["variables"],
+        });
+      }
+      seen.add(v.id);
+    }
+    seen.clear();
+
+    // Asset ids
+    for (const asset of project.assets) {
+      if (seen.has(asset.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate asset id: "${asset.id}"`,
+          path: ["assets"],
+        });
+      }
+      seen.add(asset.id);
+    }
+    seen.clear();
+
+    // Binding ids
+    for (const binding of project.bindings) {
+      if (seen.has(binding.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate binding id: "${binding.id}"`,
+          path: ["bindings"],
+        });
+      }
+      seen.add(binding.id);
+    }
+    seen.clear();
+
+    // Component ids
+    for (const component of project.components) {
+      if (seen.has(component.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate component id: "${component.id}"`,
+          path: ["components"],
+        });
+      }
+      seen.add(component.id);
+    }
+    seen.clear();
+
+    // Visual track ids
+    for (const track of project.timeline.visualTracks) {
+      if (seen.has(track.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate visual track id: "${track.id}"`,
+          path: ["timeline", "visualTracks"],
+        });
+      }
+      seen.add(track.id);
+    }
+  });
 
 export type MotionProjectV3 = z.infer<typeof MotionProjectV3Schema>;

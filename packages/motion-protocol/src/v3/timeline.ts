@@ -316,7 +316,28 @@ export const AudioTrackV3Schema = z
       .default(0),
     muted: z.boolean().default(false),
   })
-  .strict();
+  .strict()
+  .superRefine((track, ctx) => {
+    // trimEnd must not exceed duration
+    if (
+      track.trimEnd !== undefined &&
+      track.trimEnd > track.duration
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `trimEnd (${track.trimEnd}) must be ≤ duration (${track.duration})`,
+        path: ["trimEnd"],
+      });
+    }
+    // fadeIn + fadeOut must not exceed duration
+    if (track.fadeIn + track.fadeOut > track.duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `fadeIn (${track.fadeIn}) + fadeOut (${track.fadeOut}) must be ≤ duration (${track.duration})`,
+        path: ["fadeIn"],
+      });
+    }
+  });
 
 export const CaptionTrackV3Schema = CaptionTrackSchema;
 
@@ -347,7 +368,7 @@ export const ProjectTimelineV3Schema = z
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     visualTracks: z
       .array(VisualTrackV3Schema)
-      .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject),
+      .max(MOTION_PROTOCOL_LIMITS.visualTracksPerProject),
     audioTracks: z
       .array(AudioTrackV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject)
@@ -363,3 +384,4 @@ export type ProjectTimelineV3 = z.infer<typeof ProjectTimelineV3Schema>;
 export type VisualClipV3 = z.infer<typeof VisualClipV3Schema>;
 export type VisualTrackV3 = z.infer<typeof VisualTrackV3Schema>;
 export type AudioTrackV3 = z.infer<typeof AudioTrackV3Schema>;
+export type CaptionTrackV3 = z.infer<typeof CaptionTrackV3Schema>;
