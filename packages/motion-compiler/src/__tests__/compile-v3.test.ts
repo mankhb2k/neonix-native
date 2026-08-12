@@ -1160,13 +1160,22 @@ describe("Phase 6 — compiler preserves group semantics", () => {
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
-    expect((byId.get("group.character")!.payload as Record<string, unknown>).compositing).toEqual({
+    expect(
+      (byId.get("group.character")!.payload as Record<string, unknown>)
+        .compositing,
+    ).toEqual({
       mode: "pass-through",
     });
-    expect((byId.get("group.upper-body")!.payload as Record<string, unknown>).compositing).toEqual({
+    expect(
+      (byId.get("group.upper-body")!.payload as Record<string, unknown>)
+        .compositing,
+    ).toEqual({
       mode: "pass-through",
     });
-    expect((byId.get("group.head-rig")!.payload as Record<string, unknown>).compositing).toEqual({
+    expect(
+      (byId.get("group.head-rig")!.payload as Record<string, unknown>)
+        .compositing,
+    ).toEqual({
       mode: "isolate",
     });
   });
@@ -1197,5 +1206,203 @@ describe("Phase 6 — compiler preserves group semantics", () => {
     expect(compileResult.ok).toBe(true);
     const scene = compileResult.project.scenes[0]!;
     expect(scene.tracks).toEqual([]);
+  });
+});
+
+// ── Phase 5 V3 regression — compiler text & transitions ──────────────
+
+describe("compileMotionProjectV3 — V3 text node compilation", () => {
+  it("compiles a basic text node with current V3 text payload", () => {
+    const project = structuredClone(minimal);
+    project.scenes = [
+      {
+        id: "text-scene",
+        duration: 3,
+        nodes: [
+          {
+            id: "hello-text",
+            type: "text",
+            parentId: null,
+            visible: true,
+            locked: false,
+            transform: {
+              x: 540,
+              y: 960,
+              width: 400,
+              height: 100,
+              rotation: 0,
+              scaleX: 1,
+              scaleY: 1,
+              anchorX: 0.5,
+              anchorY: 0.5,
+              opacity: 1,
+              visible: true,
+              flipX: false,
+              flipY: false,
+            },
+            payload: {
+              content: { kind: "plain", text: "Hello V3" },
+              fontSize: 48,
+            },
+          },
+        ],
+        clips: [],
+      },
+    ];
+    project.timeline.visualTracks = [
+      {
+        id: "main",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-text",
+            source: { kind: "scene", sceneId: "text-scene" },
+            start: 0,
+            duration: 3,
+            opacity: 1,
+            loop: false,
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const scene = result.project.scenes.find((s) => s.id === "text-scene")!;
+    expect(scene).toBeDefined();
+    const textNode = scene.nodes.find((n) => n.id === "hello-text")!;
+    expect(textNode).toBeDefined();
+    expect(textNode.type).toBe("text");
+  });
+
+  it("compiles text node without requiring textAnimator", () => {
+    const project = structuredClone(minimal);
+    project.scenes = [
+      {
+        id: "text-scene",
+        duration: 3,
+        nodes: [
+          {
+            id: "plain-text",
+            type: "text",
+            parentId: null,
+            visible: true,
+            locked: false,
+            transform: {
+              x: 100,
+              y: 100,
+              width: 200,
+              height: 50,
+              rotation: 0,
+              scaleX: 1,
+              scaleY: 1,
+              anchorX: 0.5,
+              anchorY: 0.5,
+              opacity: 1,
+              visible: true,
+              flipX: false,
+              flipY: false,
+            },
+            payload: {
+              content: { kind: "plain", text: "No Animator" },
+              fontSize: 32,
+            },
+          },
+        ],
+        clips: [],
+      },
+    ];
+    project.timeline.visualTracks = [
+      {
+        id: "main",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-text",
+            source: { kind: "scene", sceneId: "text-scene" },
+            start: 0,
+            duration: 3,
+            opacity: 1,
+            loop: false,
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+  });
+
+  it("compiles text node without requiring payload.fitText", () => {
+    const project = structuredClone(minimal);
+    project.scenes = [
+      {
+        id: "text-scene",
+        duration: 3,
+        nodes: [
+          {
+            id: "no-fit-text",
+            type: "text",
+            parentId: null,
+            visible: true,
+            locked: false,
+            transform: {
+              x: 100,
+              y: 100,
+              width: 200,
+              height: 50,
+              rotation: 0,
+              scaleX: 1,
+              scaleY: 1,
+              anchorX: 0.5,
+              anchorY: 0.5,
+              opacity: 1,
+              visible: true,
+              flipX: false,
+              flipY: false,
+            },
+            payload: {
+              content: { kind: "plain", text: "No FitText" },
+              fontSize: 32,
+            },
+          },
+        ],
+        clips: [],
+      },
+    ];
+    project.timeline.visualTracks = [
+      {
+        id: "main",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-text",
+            source: { kind: "scene", sceneId: "text-scene" },
+            start: 0,
+            duration: 3,
+            opacity: 1,
+            loop: false,
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("compileMotionProjectV3 — V3 scene transition absence", () => {
+  it("scene-level transition remains absent in compiled runtime scene", () => {
+    const result = compileMotionProjectV3(representative);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    for (const scene of result.project.scenes) {
+      expect(scene.transition).toBeUndefined();
+    }
   });
 });

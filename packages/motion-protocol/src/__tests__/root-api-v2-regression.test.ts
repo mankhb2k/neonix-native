@@ -6,6 +6,7 @@
  * barrel will cause this test to fail.
  */
 import { describe, expect, test } from "vitest";
+import { NodeSchema, VariableSchema } from "../index";
 
 describe("root API — no V2-shaped exports", () => {
   test("no *V2Schema exports", async () => {
@@ -33,5 +34,30 @@ describe("root API — no V2-shaped exports", () => {
     ];
     const present = forbidden.filter((k) => exported.has(k));
     expect(present).toEqual([]);
+  });
+});
+
+describe("root API — schema behavior", () => {
+  test("NodeSchema rejects { type: 'component' }", () => {
+    const result = NodeSchema.safeParse({ type: "component" });
+    expect(result.success).toBe(false);
+  });
+
+  test("VariableSchema accepts a variable with semantic", () => {
+    const result = VariableSchema.safeParse({
+      id: "my-var",
+      name: "My Color",
+      type: "color",
+      semantic: { role: "accent" },
+      value: "#ff0000",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("root runtime-visible exports have no *V2 names", async () => {
+    const mod = await import("../index");
+    const exported = new Set(Object.keys(mod));
+    const v2Names = [...exported].filter((k) => k.includes("V2"));
+    expect(v2Names).toEqual([]);
   });
 });

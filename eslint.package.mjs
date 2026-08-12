@@ -28,7 +28,7 @@ export default tseslint.config(
     files: ["src/**/*.{ts,tsx}"],
     rules: {
       "array-callback-return": "error",
-      "eqeqeq": ["error", "always", { null: "ignore" }],
+      eqeqeq: ["error", "always", { null: "ignore" }],
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
@@ -49,7 +49,11 @@ export default tseslint.config(
       ],
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
       ],
     },
   },

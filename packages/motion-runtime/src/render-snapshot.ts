@@ -508,7 +508,9 @@ export function buildRenderSnapshot(input: {
     input.width,
     input.height,
   );
-  const ordered = hierarchyRenderOrder(evaluated as OrderableNode[]) as EvaluatedNode[];
+  const ordered = hierarchyRenderOrder(
+    evaluated as OrderableNode[],
+  ) as EvaluatedNode[];
 
   const items: RenderSnapshotItem[] = [];
   let renderOrder = 0;

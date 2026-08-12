@@ -24,10 +24,7 @@ import {
   type OverlayStore,
   type ImperativeOverlay,
 } from "./imperative-overlay";
-import {
-  createProfilerHud,
-  type ProfilerHud,
-} from "./profiler-hud";
+import { createProfilerHud, type ProfilerHud } from "./profiler-hud";
 
 // ── Mock canvas for Node.js (Text/TextStyle needs document) ──────────
 

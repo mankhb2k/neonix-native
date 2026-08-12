@@ -103,7 +103,7 @@ const NODE_CAPABILITY: Record<string, string> = {
   solid: "primitive.shape",
 };
 
-/** Transition kind → capability ID. */
+/** Transition type → capability ID. */
 const TRANSITION_CAPABILITY: Record<string, string> = {
   crossfade: "transition.crossfade",
   slide: "transition.slide",
@@ -124,8 +124,8 @@ export function inspectProjectCapabilities(project: {
     visualTracks?: Array<{
       clips?: Array<{
         source?: { kind: string };
-        transitionIn?: { kind?: string };
-        transitionOut?: { kind?: string };
+        transitionIn?: { type?: string };
+        transitionOut?: { type?: string };
       }>;
     }>;
     audioTracks?: Array<unknown>;
@@ -156,12 +156,12 @@ export function inspectProjectCapabilities(project: {
   // Visual tracks → transition capabilities
   for (const track of project.timeline?.visualTracks ?? []) {
     for (const clip of track.clips ?? []) {
-      if (clip.transitionIn?.kind) {
-        const cap = TRANSITION_CAPABILITY[clip.transitionIn.kind];
+      if (clip.transitionIn?.type) {
+        const cap = TRANSITION_CAPABILITY[clip.transitionIn.type];
         if (cap) caps.add(cap);
       }
-      if (clip.transitionOut?.kind) {
-        const cap = TRANSITION_CAPABILITY[clip.transitionOut.kind];
+      if (clip.transitionOut?.type) {
+        const cap = TRANSITION_CAPABILITY[clip.transitionOut.type];
         if (cap) caps.add(cap);
       }
     }
@@ -217,8 +217,8 @@ export function preflightProjectCapabilities(
       visualTracks?: Array<{
         clips?: Array<{
           source?: { kind: string };
-          transitionIn?: { kind?: string };
-          transitionOut?: { kind?: string };
+          transitionIn?: { type?: string };
+          transitionOut?: { type?: string };
         }>;
       }>;
       audioTracks?: Array<unknown>;

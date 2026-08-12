@@ -93,7 +93,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
 });
 
 /**
- * Version of the capability manifest (v2 property/effect tables).
+ * Version of the capability manifest (property/effect capability tables).
  *
  * Bump when the capability tables change in a way that could alter which
  * properties are animatable/bindable — the compiler records a hash of this

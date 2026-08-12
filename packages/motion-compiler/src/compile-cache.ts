@@ -21,7 +21,7 @@ import type { ComponentInput } from "./types";
  * This is NOT the schema formatVersion; it's a
  * compiler-specific version for cache invalidation.
  */
-export const COMPILER_VERSION = "2.0.0-phase6";
+export const COMPILER_VERSION = "3.0.0-phase12";
 
 /**
  * Compute a deterministic hash of component dependencies.

@@ -16,10 +16,7 @@
 import { z } from "zod";
 import { CapabilityIdSchema } from "./capabilities";
 import { MotionProjectV3Schema, type MotionProjectV3 } from "./project";
-import {
-  MotionProjectV3PatchSchema,
-  type MotionProjectV3Patch,
-} from "./patch";
+import { MotionProjectV3PatchSchema, type MotionProjectV3Patch } from "./patch";
 
 // ── Skill format constants ────────────────────────────────────────────
 

@@ -1,6 +1,4 @@
-import type {
-  MotionProject,
-} from "@motionvideo/motion-protocol";
+import type { MotionProject } from "@motionvideo/motion-protocol";
 import {
   DEFAULT_VISUAL_POLICY,
   type TimelineClip,

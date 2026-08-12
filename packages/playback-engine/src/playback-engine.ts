@@ -25,14 +25,8 @@ import {
   type EvaluatedCompositionFrame,
 } from "@motionvideo/motion-runtime";
 import { createPlaybackClock, type PlaybackClock } from "./playback-clock";
-import {
-  createQualityController,
-  type QualityMode,
-} from "./quality";
-import {
-  createPlaybackMetrics,
-  type PlaybackMetricsSnapshot,
-} from "./metrics";
+import { createQualityController, type QualityMode } from "./quality";
+import { createPlaybackMetrics, type PlaybackMetricsSnapshot } from "./metrics";
 
 // ── Engine types ──────────────────────────────────────────────────────
 

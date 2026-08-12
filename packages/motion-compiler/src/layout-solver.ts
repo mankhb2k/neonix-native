@@ -26,10 +26,17 @@ type LayoutItemPolicy = {
 type EdgeInsets = { top: number; right: number; bottom: number; left: number };
 
 type MutableNode = MotionNode & {
-  transform: MotionNode["transform"] & { x: number; y: number; width: number; height: number };
+  transform: MotionNode["transform"] & {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
 };
 
-function normalizePadding(padding: number | EdgeInsets | undefined): EdgeInsets {
+function normalizePadding(
+  padding: number | EdgeInsets | undefined,
+): EdgeInsets {
   if (padding == null) return { top: 0, right: 0, bottom: 0, left: 0 };
   if (typeof padding === "number") {
     return { top: padding, right: padding, bottom: padding, left: padding };
@@ -42,13 +49,15 @@ function readItemPolicy(node: MotionNode): LayoutItemPolicy {
   return mod && mod.type === "layout-item" ? (mod.policy ?? {}) : {};
 }
 
-function measureIntrinsic(node: MutableNode, measure: TextMeasurementProvider): { width: number; height: number } {
+function measureIntrinsic(
+  node: MutableNode,
+  measure: TextMeasurementProvider,
+): { width: number; height: number } {
   if (node.type === "text") {
     const size = estimateTextSize(
       {
         text: getTextPayloadPlain(node.payload),
         fontSize: node.payload.fontSize,
-        fontWeight: node.payload.fontWeight,
         letterSpacing: node.payload.letterSpacing,
         lineHeight: node.payload.lineHeight,
         wrap: node.payload.wrap,
@@ -95,7 +104,9 @@ export function applyLayoutConstraints(
   const ordered = [...byId.values()];
 
   for (const parent of ordered) {
-    const layoutMods = (parent.modifiers ?? []).filter((modifier) => modifier.type === "layout");
+    const layoutMods = (parent.modifiers ?? []).filter(
+      (modifier) => modifier.type === "layout",
+    );
     if (layoutMods.length === 0) continue;
     const children = ordered.filter((node) => node.parentId === parent.id);
     for (const modifier of layoutMods) {
@@ -105,7 +116,8 @@ export function applyLayoutConstraints(
 
   return ordered.map((node) => {
     const modifiers = (node.modifiers ?? []).filter(
-      (modifier) => modifier.type !== "layout" && modifier.type !== "layout-item",
+      (modifier) =>
+        modifier.type !== "layout" && modifier.type !== "layout-item",
     );
     if (modifiers.length === (node.modifiers?.length ?? 0)) return node;
     const next = { ...node };
@@ -129,51 +141,82 @@ function solveConstraint(
   switch (constraint.kind) {
     case "stack": {
       const gap = constraint.gap ?? 0;
-      const pad = normalizePadding(constraint.padding as number | EdgeInsets | undefined);
-      const justify = ("justify" in constraint ? constraint.justify : undefined) ?? "start";
+      const pad = normalizePadding(
+        constraint.padding as number | EdgeInsets | undefined,
+      );
+      const justify =
+        ("justify" in constraint ? constraint.justify : undefined) ?? "start";
       const align = constraint.align ?? "start";
       const innerW = Math.max(0, parent.transform.width - pad.left - pad.right);
-      const innerH = Math.max(0, parent.transform.height - pad.top - pad.bottom);
+      const innerH = Math.max(
+        0,
+        parent.transform.height - pad.top - pad.bottom,
+      );
 
       for (const child of children) {
         applyItemSizing(child, readItemPolicy(child), measure, innerW, innerH);
         if (align === "stretch") {
-          if (constraint.direction === "vertical") child.transform.width = innerW;
+          if (constraint.direction === "vertical")
+            child.transform.width = innerW;
           else child.transform.height = innerH;
         }
         const self = readItemPolicy(child).alignSelf;
         if (self === "stretch") {
-          if (constraint.direction === "vertical") child.transform.width = innerW;
+          if (constraint.direction === "vertical")
+            child.transform.width = innerW;
           else child.transform.height = innerH;
         }
       }
 
       const sizes = children.map((c) =>
-        constraint.direction === "vertical" ? c.transform.height : c.transform.width,
+        constraint.direction === "vertical"
+          ? c.transform.height
+          : c.transform.width,
       );
-      const occupied = sizes.reduce((sum, s) => sum + s, 0) + gap * Math.max(0, children.length - 1);
+      const occupied =
+        sizes.reduce((sum, s) => sum + s, 0) +
+        gap * Math.max(0, children.length - 1);
       const free = Math.max(
         0,
         (constraint.direction === "vertical" ? innerH : innerW) - occupied,
       );
       let cursor =
         constraint.direction === "vertical"
-          ? pad.top + (justify === "center" ? free / 2 : justify === "end" ? free : 0)
-          : pad.left + (justify === "center" ? free / 2 : justify === "end" ? free : 0);
+          ? pad.top +
+            (justify === "center" ? free / 2 : justify === "end" ? free : 0)
+          : pad.left +
+            (justify === "center" ? free / 2 : justify === "end" ? free : 0);
       const between =
-        justify === "space-between" && children.length > 1 ? free / (children.length - 1) : gap;
+        justify === "space-between" && children.length > 1
+          ? free / (children.length - 1)
+          : gap;
 
       for (let i = 0; i < children.length; i += 1) {
         const child = children[i]!;
         const policy = readItemPolicy(child);
-        const crossAlign = policy.alignSelf && policy.alignSelf !== "auto" ? policy.alignSelf : align;
+        const crossAlign =
+          policy.alignSelf && policy.alignSelf !== "auto"
+            ? policy.alignSelf
+            : align;
         if (constraint.direction === "vertical") {
           child.transform.y = cursor;
-          child.transform.x = alignCross(crossAlign, parent.transform.width, child.transform.width, pad.left, pad.right);
+          child.transform.x = alignCross(
+            crossAlign,
+            parent.transform.width,
+            child.transform.width,
+            pad.left,
+            pad.right,
+          );
           cursor += child.transform.height + between;
         } else {
           child.transform.x = cursor;
-          child.transform.y = alignCross(crossAlign, parent.transform.height, child.transform.height, pad.top, pad.bottom);
+          child.transform.y = alignCross(
+            crossAlign,
+            parent.transform.height,
+            child.transform.height,
+            pad.top,
+            pad.bottom,
+          );
           cursor += child.transform.width + between;
         }
       }
@@ -183,7 +226,13 @@ function solveConstraint(
       const gapX = constraint.gapX ?? 0;
       const gapY = constraint.gapY ?? 0;
       children.forEach((child, index) => {
-        applyItemSizing(child, readItemPolicy(child), measure, child.transform.width, child.transform.height);
+        applyItemSizing(
+          child,
+          readItemPolicy(child),
+          measure,
+          child.transform.width,
+          child.transform.height,
+        );
         const col = index % constraint.columns;
         const row = Math.floor(index / constraint.columns);
         child.transform.x = col * (child.transform.width + gapX);
@@ -194,38 +243,21 @@ function solveConstraint(
     case "align": {
       for (const child of children) {
         if (constraint.axis === "x" || constraint.axis === "both") {
-          child.transform.x = alignAxis(constraint.align, parent.transform.width, child.transform.width, 0);
+          child.transform.x = alignAxis(
+            constraint.align,
+            parent.transform.width,
+            child.transform.width,
+            0,
+          );
         }
         if (constraint.axis === "y" || constraint.axis === "both") {
-          child.transform.y = alignAxis(constraint.align, parent.transform.height, child.transform.height, 0);
+          child.transform.y = alignAxis(
+            constraint.align,
+            parent.transform.height,
+            child.transform.height,
+            0,
+          );
         }
-      }
-      return;
-    }
-    case "distribute": {
-      if (children.length === 1) return;
-      const axis = constraint.axis;
-      const total = axis === "x" ? parent.transform.width : parent.transform.height;
-      const sizes = children.map((child) => (axis === "x" ? child.transform.width : child.transform.height));
-      const occupied = sizes.reduce((sum, size) => sum + size, 0);
-      const gap = (total - occupied) / (children.length - 1);
-      let cursor = 0;
-      for (let index = 0; index < children.length; index += 1) {
-        const child = children[index]!;
-        if (axis === "x") child.transform.x = cursor;
-        else child.transform.y = cursor;
-        cursor += sizes[index]! + gap;
-      }
-      return;
-    }
-    case "anchor": {
-      const target = children.find((child) => child.id === constraint.targetNodeId) ?? null;
-      const baseX = (target?.transform.x ?? 0) + (constraint.offsetX ?? 0);
-      const baseY = (target?.transform.y ?? 0) + (constraint.offsetY ?? 0);
-      for (const child of children) {
-        if (target && child.id === target.id) continue;
-        child.transform.x = baseX;
-        child.transform.y = baseY;
       }
       return;
     }
@@ -240,62 +272,19 @@ function alignCross(
   padEnd: number,
 ): number {
   if (align === "center") return (parentSize - childSize) / 2;
-  if (align === "end") return Math.max(padStart, parentSize - childSize - padEnd);
+  if (align === "end")
+    return Math.max(padStart, parentSize - childSize - padEnd);
   return padStart;
 }
 
-function alignAxis(align: "start" | "center" | "end", parentSize: number, childSize: number, padding: number): number {
+function alignAxis(
+  align: "start" | "center" | "end",
+  parentSize: number,
+  childSize: number,
+  padding: number,
+): number {
   if (align === "center") return (parentSize - childSize) / 2;
-  if (align === "end") return Math.max(padding, parentSize - childSize - padding);
+  if (align === "end")
+    return Math.max(padding, parentSize - childSize - padding);
   return padding;
-}
-
-/** Fit text fontSize into box; emits diagnostic strings when overflow risk remains. */
-export function applyFitText(
-  nodes: MotionNode[],
-  measure: TextMeasurementProvider = defaultTextMeasurementProvider,
-): { nodes: MotionNode[]; diagnostics: string[] } {
-  const diagnostics: string[] = [];
-  const next = nodes.map((node) => {
-    if (node.type !== "text" || !node.payload.fitText) return node;
-    const { minFontSize, maxFontSize } = node.payload.fitText;
-    const boxWidth = Math.max(1, node.transform.width);
-    const text = getTextPayloadPlain(node.payload);
-    const atMax = estimateTextSize(
-      {
-        text,
-        fontSize: maxFontSize,
-        fontWeight: node.payload.fontWeight,
-        letterSpacing: node.payload.letterSpacing,
-        wrap: "none",
-      },
-      measure,
-    );
-    const needed =
-      text.length === 0
-        ? maxFontSize
-        : maxFontSize * (boxWidth / Math.max(1, atMax.width));
-    const fontSize = Math.round(Math.min(maxFontSize, Math.max(minFontSize, needed)) * 100) / 100;
-    const atMin = estimateTextSize(
-      {
-        text,
-        fontSize: minFontSize,
-        fontWeight: node.payload.fontWeight,
-        letterSpacing: node.payload.letterSpacing,
-        wrap: "none",
-      },
-      measure,
-    );
-    if (fontSize <= minFontSize + 1e-6 && atMin.width > boxWidth) {
-      diagnostics.push(`fit-text overflow risk on ${node.id}: text may exceed width at minFontSize`);
-    }
-    return {
-      ...node,
-      payload: {
-        ...node.payload,
-        fontSize,
-      },
-    };
-  });
-  return { nodes: next, diagnostics };
 }

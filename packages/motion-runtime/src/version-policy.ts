@@ -28,10 +28,10 @@
 export const SCHEMA_FORMAT_VERSION = 3 as const;
 
 /** Project manifest format version */
-export const PROJECT_FORMAT_VERSION = 2 as const;
+export const PROJECT_FORMAT_VERSION = 3 as const;
 
 /** Component manifest format version */
-export const COMPONENT_FORMAT_VERSION = 2 as const;
+export const COMPONENT_FORMAT_VERSION = 3 as const;
 
 /** Patch (diff) format version */
 export const PATCH_FORMAT_VERSION = 1 as const;
@@ -52,7 +52,7 @@ export const RENDER_MANIFEST_VERSION = 2 as const;
 export const DETERMINISM_VERSION = 1 as const;
 
 /** Compiler output version (cached compilation) */
-export const COMPILER_VERSION = "2.0.0-phase2" as const;
+export const COMPILER_VERSION = "3.0.0-phase11" as const;
 
 /** Diagnostic contract version */
 export const DIAGNOSTIC_VERSION = 1 as const;

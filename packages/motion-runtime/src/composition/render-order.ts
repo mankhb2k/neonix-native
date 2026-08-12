@@ -38,9 +38,7 @@ export interface OrderableNode {
  *
  * @returns A new array sorted for bottom-to-top rendering.
  */
-export function hierarchyRenderOrder<T extends OrderableNode>(
-  items: T[],
-): T[] {
+export function hierarchyRenderOrder<T extends OrderableNode>(items: T[]): T[] {
   // Preserve original index for stable tie-breaking
   const withIndex = items.map((item, index) => ({ item, index }));
 

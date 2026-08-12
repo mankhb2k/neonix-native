@@ -1,7 +1,5 @@
 /**
  * V3 caption schemas — canonical source of truth.
- *
- * Phase 2: copied from legacy/captions.ts → V3 now owns these definitions.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -54,7 +52,9 @@ const CaptionSegmentationSchema = z
 const CaptionStyleSchema = z
   .object({
     fontAssetId: IdSchema.optional(),
-    fontSize: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    fontSize: FiniteNumberSchema.positive().max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    ),
     fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     fill: z.string().min(1),
     stroke: z.string().min(1).optional(),

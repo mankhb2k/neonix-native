@@ -45,13 +45,11 @@ export default [
                 "@motionvideo/editor-react",
                 "@motionvideo/motion-workspace",
               ],
-              message:
-                "Runtime must not import editor packages.",
+              message: "Runtime must not import editor packages.",
             },
             {
               group: ["@motionvideo/web", "@motionvideo/desktop"],
-              message:
-                "Runtime must not import app packages.",
+              message: "Runtime must not import app packages.",
             },
           ],
         },

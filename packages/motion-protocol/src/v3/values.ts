@@ -1,7 +1,6 @@
 /**
  * V3 JSON value schemas — canonical source of truth.
- *
- * Phase 2: copied from legacy/values.ts → V3 now owns these definitions.
+
  */
 import { z } from "zod";
 import { FiniteNumberSchema, IdSchema } from "./common";

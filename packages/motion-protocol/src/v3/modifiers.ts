@@ -1,7 +1,6 @@
 /**
  * V3 motion modifier schemas — canonical source of truth.
- *
- * Phase 2: copied from legacy/modifiers.ts → V3 now owns these definitions.
+
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -63,9 +62,9 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     .object({
       id: IdSchema,
       type: z.literal("path-bend"),
-      amount: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.pathBendAmount).max(
-        MOTION_PROTOCOL_LIMITS.pathBendAmount,
-      ),
+      amount: FiniteNumberSchema.min(
+        -MOTION_PROTOCOL_LIMITS.pathBendAmount,
+      ).max(MOTION_PROTOCOL_LIMITS.pathBendAmount),
     })
     .strict(),
   z

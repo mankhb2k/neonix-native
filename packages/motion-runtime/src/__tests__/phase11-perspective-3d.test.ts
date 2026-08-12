@@ -32,10 +32,7 @@ import {
   matrix4ToArray,
   arrayToMatrix4,
 } from "../matrix4";
-import {
-  localTransformMatrix,
-  type Transform2D,
-} from "../matrix";
+import { localTransformMatrix, type Transform2D } from "../matrix";
 
 // ═══════════════════════════════════════════════════════════════════
 // Matrix4 basic operations

@@ -48,7 +48,7 @@ Package gồm các module chính trong [`src/`](./src):
 ## 🧩 Các Artifact Schemas Chính
 
 ```text
-JSON Input  ──► normalizeLegacyMotionInput()
+JSON Input  ──► normalizeMotionProjectInput()
                        │
                        ▼ Structural + Limit Validation (Zod)
              Typed MotionProjectV3 / MotionComponentV3 (Authoring IR)
@@ -97,10 +97,12 @@ Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node t
 **Parent relationship**: `parentId: null` → relative với scene. `parentId` → relative với parent. Chỉ `group` node được phép có children.
 
 **Timing**: Child timing là **parent-relative**:
+
 ```
 nodeGlobalStart = parentGlobalStart + node.timing.start
 nodeGlobalEnd   = min(parentGlobalEnd, nodeGlobalStart + node.timing.duration)
 ```
+
 Default: `start=0`, `duration=parent duration`. Child chỉ visible khi scene time nằm trong timing của **tất cả ancestor**.
 
 **zIndex**: Chỉ so sánh giữa **sibling** (cùng `parentId`). Child zIndex cao không vượt ra ngoài parent group.

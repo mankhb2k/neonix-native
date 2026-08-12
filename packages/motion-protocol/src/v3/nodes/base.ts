@@ -1,7 +1,7 @@
 /**
- * V3 node base + transform.
+ * V3 node base + transform — canonical source of truth.
  *
- * `TransformV3Schema` reuses v2 semantics so keyframe/property paths stay
+ * TransformV3Schema reuses transform semantics so keyframe/property paths stay
  * compatible across versions. Node-level `visible` is the authoring source
  * of truth; `locked` prevents editing, not rendering.
  */

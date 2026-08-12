@@ -21,16 +21,9 @@ import {
 import type { PaintCommandBuffer } from "./paint";
 import { cameraViewMatrix, type CameraViewParams } from "./camera-view";
 import { IDENTITY_MATRIX } from "./matrix";
-import {
-  perspectiveMatrix,
-  lookAtMatrix,
-  matrix4ToArray,
-} from "./matrix4";
+import { perspectiveMatrix, lookAtMatrix, matrix4ToArray } from "./matrix4";
 import { throwIfAborted, cancelledDiagnostic } from "./cancellation";
-import {
-  RuntimeDiagnosticCollector,
-  toRenderDiagnostic,
-} from "./diagnostics";
+import { RuntimeDiagnosticCollector, toRenderDiagnostic } from "./diagnostics";
 import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 
 function scenesForComposition(

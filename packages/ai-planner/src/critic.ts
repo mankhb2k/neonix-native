@@ -206,7 +206,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
           severity: "warning",
           path: `scenes.${scene.id}.nodes.${node.id}`,
           message: `Text may overflow width at fontSize=${fontSize}`,
-          repairHint: "Enable fitText or shorten copy",
+          repairHint: "Reduce fontSize or shorten copy",
         });
         score -= 5;
       }
@@ -267,10 +267,6 @@ export function applyCriticRepair(
       const scene = next.scenes.find((item) => item.id === match[1]);
       const node = scene?.nodes.find((item) => item.id === match[2]);
       if (node?.type === "text") {
-        node.payload.fitText = {
-          minFontSize: Math.min(16, node.payload.fontSize),
-          maxFontSize: node.payload.fontSize,
-        };
         const box = Math.max(1, node.transform.width);
         const needed =
           box / Math.max(1, getTextPayloadPlain(node.payload).length * 0.55);

@@ -1,8 +1,7 @@
 /**
  * V3 reference helpers — canonical source of truth.
  *
- * Phase 2: copied from legacy/references/helpers.ts → V3 now owns these
- * small utility functions used by v3/references validation.
+ * Small utility functions used by v3/references validation.
  */
 import type { MotionPathContour } from "../nodes/geometry-types";
 
