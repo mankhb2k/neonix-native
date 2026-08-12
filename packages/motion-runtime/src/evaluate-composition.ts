@@ -34,12 +34,10 @@ function scenesForComposition(
   if (allClips.length === 0) return [];
   const sorted = [...allClips].sort((a, b) => a.start - b.start);
   return sorted.map((clip) => {
-    const sourceId =
-      clip.source.kind === "scene"
-        ? clip.source.sceneId
-        : clip.source.componentId;
+    // Runtime clips always have source.kind === "scene" after compilation;
+    // component-source clips are synthesized into scenes by the compiler.
     return {
-      sceneId: sourceId ?? "",
+      sceneId: clip.source.sceneId ?? "",
       duration: clip.duration,
       transitionOut:
         clip.transitionOut as CompositionSceneInput["transitionOut"],

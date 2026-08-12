@@ -445,7 +445,7 @@ type VisualPlanTrack = {
 function buildVisualPlan(
   project: V3.MotionProjectV3,
   collector: DiagnosticCollector,
-): { tracks: VisualPlanTrack[]; sceneOverrides: Map<string, JsonRecord> } {
+): { tracks: VisualPlanTrack[]; sceneOverrides: Map<string, JsonRecord>; componentSceneIds: Map<string, string[]> } {
   const scenes = new Map(
     project.scenes.map((scene) => [scene.id, scene] as const),
   );
@@ -454,6 +454,7 @@ function buildVisualPlan(
   );
   const sceneUsage = new Map<string, number>();
   const componentUsageCount = new Map<string, number>();
+  const componentSceneIds = new Map<string, string[]>();
   const sceneOverrides = new Map<string, JsonRecord>();
   const tracks: VisualPlanTrack[] = [];
 
@@ -485,7 +486,7 @@ function buildVisualPlan(
       muted: false,
       entries,
     });
-    return { tracks, sceneOverrides };
+    return { tracks, sceneOverrides, componentSceneIds: new Map() };
   }
   for (const v3Track of v3Tracks) {
     const trackEntries: VisualPlanEntry[] = [];
@@ -554,6 +555,9 @@ function buildVisualPlan(
       componentUsageCount.set(component.id, componentUsage + 1);
       const componentSceneId =
         componentUsage > 0 ? `${component.id}@${clip.id}` : clip.id;
+      const existingIds = componentSceneIds.get(component.id) ?? [];
+      existingIds.push(componentSceneId);
+      componentSceneIds.set(component.id, existingIds);
       let componentNodes = component.nodes.map((node) =>
         prepareRuntimeNode(node),
       );
@@ -709,7 +713,7 @@ function buildVisualPlan(
       });
     }
   }
-  return { tracks, sceneOverrides };
+  return { tracks, sceneOverrides, componentSceneIds };
 }
 
 // ── Semantic validation (CMP_* diagnostics) ───────────────────────────
@@ -1086,7 +1090,7 @@ export function compileMotionProjectV3(
   }
 
   // Build the visual plan from timeline.visualTracks.
-  const { tracks, sceneOverrides } = buildVisualPlan(normalized, collector);
+  const { tracks, sceneOverrides, componentSceneIds } = buildVisualPlan(normalized, collector);
   if (collector.hasErrors) {
     return compileFailure([...collector.diagnostics]);
   }
@@ -1142,15 +1146,9 @@ export function compileMotionProjectV3(
       normalized.variables.map((v) => [v.id, clone(v.value)] as const),
     );
 
-    // Remap bindings: component-target bindings → synthesized scene ids
-    const clipIdForComponent = new Map<string, string>();
-    for (const track of normalized.timeline.visualTracks) {
-      for (const clip of track.clips) {
-        if (clip.source.kind === "component") {
-          clipIdForComponent.set(clip.source.componentId, clip.id);
-        }
-      }
-    }
+    // Component instances tracked during buildVisualPlan.
+    // componentSceneIds maps componentId → synthesized sceneId[] so bindings
+    // apply to all instances when the same component is used on multiple clips.
 
     const components = new Map(
       normalized.components.map((c) => [c.id, c] as const),
@@ -1178,9 +1176,9 @@ export function compileMotionProjectV3(
         });
         continue;
       }
-      // Component binding — resolve via publicTarget
-      const sceneId = clipIdForComponent.get(binding.target.componentId);
-      if (!sceneId) {
+      // Component binding — resolve via publicTarget, apply to all instances
+      const sceneIds = componentSceneIds.get(binding.target.componentId);
+      if (!sceneIds || sceneIds.length === 0) {
         collector.warn(
           "CMP_UNRESOLVED_COMPONENT",
           `Binding "${binding.id}" targets component "${binding.target.componentId}" but no visual clip instantiates it`,
@@ -1213,15 +1211,18 @@ export function compileMotionProjectV3(
         );
         continue;
       }
-      runtimeBindings.push({
-        id: binding.id,
-        source: { variableId: binding.source.variableId },
-        target: {
-          sceneId,
-          nodeId: publicTarget.nodeId,
-          property: publicTarget.property,
-        },
-      });
+      for (let i = 0; i < sceneIds.length; i++) {
+        const instSceneId = sceneIds[i]!;
+        runtimeBindings.push({
+          id: sceneIds.length > 1 ? `${binding.id}__${i}` : binding.id,
+          source: { variableId: binding.source.variableId },
+          target: {
+            sceneId: instSceneId,
+            nodeId: publicTarget.nodeId,
+            property: publicTarget.property,
+          },
+        });
+      }
     }
 
     // Fail early if binding resolution produced errors.
