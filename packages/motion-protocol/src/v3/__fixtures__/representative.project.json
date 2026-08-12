@@ -342,7 +342,7 @@
         "role": "bgm",
         "assetId": "bgm",
         "start": 0,
-        "duration": 42.5,
+        "duration": 8,
         "trimStart": 0,
         "playbackRate": 1,
         "volume": 0.8,

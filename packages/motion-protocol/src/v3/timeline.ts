@@ -122,6 +122,31 @@ export const VisualClipV3Schema = z
         path: ["playbackRate"],
       });
     }
+
+    // Transition durations must fit within the clip duration.
+    const transitionInDuration = val.transitionIn?.duration ?? 0;
+    const transitionOutDuration = val.transitionOut?.duration ?? 0;
+    if (transitionInDuration > val.duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `transitionIn.duration (${transitionInDuration}) must be ≤ clip.duration (${val.duration})`,
+        path: ["transitionIn", "duration"],
+      });
+    }
+    if (transitionOutDuration > val.duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `transitionOut.duration (${transitionOutDuration}) must be ≤ clip.duration (${val.duration})`,
+        path: ["transitionOut", "duration"],
+      });
+    }
+    if (transitionInDuration + transitionOutDuration > val.duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `transitionIn.duration (${transitionInDuration}) + transitionOut.duration (${transitionOutDuration}) must be ≤ clip.duration (${val.duration})`,
+        path: ["transitionIn"],
+      });
+    }
   });
 
 export const VisualTrackV3Schema = z
@@ -226,7 +251,65 @@ export const ProjectTimelineV3Schema = z
       .max(MOTION_PROTOCOL_LIMITS.captionTracksPerProject)
       .default([]),
   })
-  .strict();
+  .strict()
+  .superRefine((timeline, ctx) => {
+    // Timeline-boundary semantic validation: when `duration` is declared,
+    // every timeline child must fit inside it.
+    const duration = timeline.duration;
+    if (duration === undefined) return;
+
+    if (timeline.workArea && timeline.workArea.end > duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `workArea.end (${timeline.workArea.end}) must be ≤ timeline.duration (${duration})`,
+        path: ["workArea", "end"],
+      });
+    }
+
+    for (const [markerIndex, marker] of (timeline.markers ?? []).entries()) {
+      if (marker.t > duration) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `marker "${marker.id}" t (${marker.t}) must be ≤ timeline.duration (${duration})`,
+          path: ["markers", markerIndex, "t"],
+        });
+      }
+    }
+
+    for (const [trackIndex, track] of timeline.visualTracks.entries()) {
+      for (const [clipIndex, clip] of track.clips.entries()) {
+        if (clip.start + clip.duration > duration) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `clip "${clip.id}" ends at ${clip.start + clip.duration} beyond timeline.duration (${duration})`,
+            path: ["visualTracks", trackIndex, "clips", clipIndex],
+          });
+        }
+      }
+    }
+
+    for (const [audioIndex, audio] of timeline.audioTracks.entries()) {
+      if (audio.start + audio.duration > duration) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `audio track "${audio.id}" ends at ${audio.start + audio.duration} beyond timeline.duration (${duration})`,
+          path: ["audioTracks", audioIndex],
+        });
+      }
+    }
+
+    for (const [captionIndex, caption] of timeline.captionTracks.entries()) {
+      for (const [tokenIndex, token] of caption.tokens.entries()) {
+        if (token.end > duration) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `caption token "${token.id}" ends at ${token.end} beyond timeline.duration (${duration})`,
+            path: ["captionTracks", captionIndex, "tokens", tokenIndex, "end"],
+          });
+        }
+      }
+    }
+  });
 
 export type ProjectTimelineV3 = z.infer<typeof ProjectTimelineV3Schema>;
 export type VisualClipV3 = z.infer<typeof VisualClipV3Schema>;

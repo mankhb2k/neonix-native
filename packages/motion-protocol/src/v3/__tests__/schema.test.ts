@@ -237,6 +237,37 @@ describe("v3 schema — positive fixtures", () => {
     }
   });
 
+  it("accepts clip with transition durations within clip duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    const project = MotionProjectV3Schema.parse({
+      ...input,
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        visualTracks: [
+          {
+            id: "track-1",
+            role: "main",
+            order: 0,
+            clips: [
+              {
+                id: "clip-1",
+                source: { kind: "scene", sceneId: "s1" },
+                start: 0,
+                duration: 3,
+                transitionIn: { type: "fade", duration: 1 },
+                transitionOut: { type: "fade", duration: 1 },
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(project.timeline.visualTracks[0]!.clips[0]!.duration).toBe(3);
+  });
+
   it("parses component project with embedded component and component-as-node layer", () => {
     const input = loadFixture("component.project.json");
     const project = MotionProjectV3Schema.parse(input);
@@ -690,6 +721,185 @@ describe("v3 schema — negative fixtures", () => {
     });
     // Zod accepts because assetId is just a string — ref validation catches type mismatch
     expect(project.timeline.audioTracks[0]!.assetId).toBe("img");
+  });
+
+  it("rejects transitionIn duration exceeding clip duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                  transitionIn: { type: "fade", duration: 3 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects transitionIn + transitionOut exceeding clip duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                  transitionIn: { type: "fade", duration: 2 },
+                  transitionOut: { type: "crossfade", duration: 2 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects visual clip exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 4,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects audio track exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          audioTracks: [
+            {
+              id: "at1",
+              role: "bgm",
+              assetId: "audio-1",
+              start: 3,
+              duration: 4,
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects work area exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          workArea: { start: 0, end: 6 },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects marker exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          markers: [{ id: "marker-1", t: 6 }],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects caption token exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          captionTracks: [
+            {
+              id: "cap-1",
+              locale: "vi-VN",
+              tokens: [
+                { id: "tok-1", text: "hello", start: 4, end: 6 },
+              ],
+              style: { fontSize: 32, fill: "#ffffff" },
+            },
+          ],
+        },
+      }),
+    ).toThrow();
   });
 });
 
