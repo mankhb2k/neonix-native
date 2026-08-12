@@ -16,6 +16,11 @@ export {
   RuntimeVisualTrackSchema,
   RuntimeSourceRefSchema,
   RuntimeSourceRefMapSchema,
+  RuntimeSceneSchema,
+  PlatformSafeAreaSchema,
+  ProjectMetadataSchema,
+  AudioTrackSchema,
+  SceneTransitionSchema,
   MOTION_RUNTIME_VERSION,
   type MotionRuntimeProject,
   type MotionRuntimeScene,
@@ -26,6 +31,11 @@ export {
   type RuntimeVisualTrack,
   type RuntimeSourceRef,
   type RuntimeSourceRefMap,
+  type RuntimeScene,
+  type PlatformSafeArea,
+  type ProjectMetadata,
+  type AudioTrack,
+  type SceneTransition,
 } from "./project";
 
 export {

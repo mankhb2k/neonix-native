@@ -33,5 +33,14 @@ export const VideoNodeSchema = NodeBaseSchema.extend({
     loop: z.boolean().optional(),
     muted: z.boolean().optional(),
     framePolicy: z.enum(["hold", "transparent", "loop"]).optional(),
-  }).strict(),
+  }).strict()
+  .superRefine((val, ctx) => {
+    if (val.trimStart !== undefined && val.trimEnd !== undefined && val.trimStart >= val.trimEnd) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `trimStart (${val.trimStart}) must be < trimEnd (${val.trimEnd})`,
+        path: ["trimStart"],
+      });
+    }
+  }),
 }).strict();

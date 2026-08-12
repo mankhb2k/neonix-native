@@ -65,7 +65,25 @@ export const CameraNodeSchema = NodeBaseSchema.extend({
         .max(MOTION_PROTOCOL_LIMITS.parallaxFactor)
         .optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((val, ctx) => {
+      // fov is required for perspective projection
+      if (val.projection === "perspective" && val.fov === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "fov is required when projection is 'perspective'",
+          path: ["fov"],
+        });
+      }
+      // near must be < far
+      if (val.near !== undefined && val.far !== undefined && val.near >= val.far) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `near (${val.near}) must be < far (${val.far})`,
+          path: ["near"],
+        });
+      }
+    }),
 }).strict();
 
 export const ComponentNodeSchema = NodeBaseSchema.extend({

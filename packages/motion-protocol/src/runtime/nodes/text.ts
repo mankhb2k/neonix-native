@@ -236,7 +236,16 @@ const TextPayloadFieldsSchema = z
       .strict()
       .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (val.fitText && val.fitText.minFontSize >= val.fitText.maxFontSize) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `fitText.minFontSize (${val.fitText.minFontSize}) must be < maxFontSize (${val.fitText.maxFontSize})`,
+        path: ["fitText", "minFontSize"],
+      });
+    }
+  });
 
 export const TextPayloadSchema = z.preprocess(
   normalizeTextPayloadInput,

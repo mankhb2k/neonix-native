@@ -58,6 +58,7 @@ export const PlatformSafeAreaSchema = z
     left: FiniteNumberSchema.nonnegative().max(1).optional(),
   })
   .strict();
+export type PlatformSafeArea = z.infer<typeof PlatformSafeAreaSchema>;
 
 const DesignTokensSchema = z
   .object({
@@ -95,6 +96,7 @@ export const ProjectMetadataSchema = z
     updatedAt: z.string().optional(),
   })
   .strict();
+export type ProjectMetadata = z.infer<typeof ProjectMetadataSchema>;
 
 export const AudioTrackSchema = z
   .object({
@@ -117,6 +119,7 @@ export const AudioTrackSchema = z
       .default(0),
   })
   .strict();
+export type AudioTrack = z.infer<typeof AudioTrackSchema>;
 
 export const SceneTransitionSchema = z.discriminatedUnion("type", [
   z
@@ -184,6 +187,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
     })
     .strict(),
 ]);
+export type SceneTransition = z.infer<typeof SceneTransitionSchema>;
 
 /**
  * Runtime IR version — independent of the project format version.
@@ -347,6 +351,38 @@ export const RuntimeSourceRefMapSchema = z
   .strict();
 export type RuntimeSourceRefMap = z.infer<typeof RuntimeSourceRefMapSchema>;
 
+/**
+ * Runtime scene — a single scene in the compiled runtime IR.
+ *
+ * Extracted from the inline scene schema in MotionRuntimeProjectBaseSchema
+ * so renderers and tooling can validate/show individual scenes independently.
+ */
+export const RuntimeSceneSchema = z
+  .object({
+    id: IdSchema,
+    duration: FiniteNumberSchema.positive().max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
+    space: z
+      .enum(["flat-2d", "layered-2.5d", "perspective-3d"])
+      .optional(),
+    motionBlur: MotionBlurSettingsSchema.optional(),
+    drivers: z.array(ProceduralDriverSchema).max(512).optional(),
+    activeCameraId: IdSchema.optional(),
+    sourceRef: RuntimeSourceRefSchema.optional(),
+    nodes: z
+      .array(RuntimeNodeSchema)
+      .max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
+    tracks: z
+      .array(RuntimeTrackSchema)
+      .max(
+        MOTION_PROTOCOL_LIMITS.clipsPerScene *
+          MOTION_PROTOCOL_LIMITS.tracksPerClip,
+      ),
+  })
+  .strict();
+export type RuntimeScene = z.infer<typeof RuntimeSceneSchema>;
+
 const MotionRuntimeProjectBaseSchema = z
   .object({
     format: z.literal("motion-runtime"),
@@ -375,32 +411,7 @@ const MotionRuntimeProjectBaseSchema = z
       })
       .strict(),
     scenes: z
-      .array(
-        z
-          .object({
-            id: IdSchema,
-            duration: FiniteNumberSchema.positive().max(
-              MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-            ),
-            space: z
-              .enum(["flat-2d", "layered-2.5d", "perspective-3d"])
-              .optional(),
-            motionBlur: MotionBlurSettingsSchema.optional(),
-            drivers: z.array(ProceduralDriverSchema).max(512).optional(),
-            activeCameraId: IdSchema.optional(),
-            sourceRef: RuntimeSourceRefSchema.optional(),
-            nodes: z
-              .array(RuntimeNodeSchema)
-              .max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
-            tracks: z
-              .array(RuntimeTrackSchema)
-              .max(
-                MOTION_PROTOCOL_LIMITS.clipsPerScene *
-                  MOTION_PROTOCOL_LIMITS.tracksPerClip,
-              ),
-          })
-          .strict(),
-      )
+      .array(RuntimeSceneSchema)
       .max(MOTION_PROTOCOL_LIMITS.scenesPerProject),
   })
   .strict();
