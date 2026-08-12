@@ -5,13 +5,7 @@
  * §Phase 5 tasks 5.1–5.3 in core-engine-tasks.md
  */
 
-import {
-  Container,
-  RenderTexture,
-  Sprite,
-  Texture,
-  type Filter,
-} from "pixi.js";
+import { Container, RenderTexture, Sprite, type Filter } from "pixi.js";
 
 // ── Canvas detection for Node.js test environments ───────────────────
 
@@ -219,8 +213,6 @@ export function createCompositingContext(
   const maskSourceKeys = new Set<string>();
 
   pool.beginFrame();
-
-  const currentParent: Container = opts.root;
 
   function getOrCreateLayer(
     key: string,

@@ -6,7 +6,7 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { ColorHexSchema, IdSchema, PositiveNumberSchema } from "../common";
+import { ColorHexSchema, PositiveNumberSchema } from "../common";
 import { NodeBaseV3Schema } from "./base";
 
 export const GroupNodeV3Schema = NodeBaseV3Schema.extend({

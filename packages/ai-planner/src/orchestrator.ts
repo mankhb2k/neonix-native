@@ -15,12 +15,22 @@ import {
   type CommandBatchResult,
   type CommandReceipt,
 } from "./commands";
-import { applyCriticRepair, critiqueProject, type CriticReport } from "./critic";
+import {
+  applyCriticRepair,
+  critiqueProject,
+  type CriticReport,
+} from "./critic";
 import { buildContactSheetPlan, type ContactSheetPlan } from "./contact-sheet";
 import { createModelGateway, type ModelGateway } from "./gateway";
 import { CAPABILITY_MANIFEST_VERSION } from "@motionvideo/motion-runtime";
-import { isModelAllowedCommand, MODEL_BLOCKED_COMMAND_TYPES } from "./model-allowlist";
-import { probeContactSheetPng, type ProbeContactSheetResult } from "./probe-frames";
+import {
+  isModelAllowedCommand,
+  MODEL_BLOCKED_COMMAND_TYPES,
+} from "./model-allowlist";
+import {
+  probeContactSheetPng,
+  type ProbeContactSheetResult,
+} from "./probe-frames";
 
 export type OrchestratorPhase =
   | "queued"
@@ -71,19 +81,32 @@ function hashSeed(input: string): string {
   return `seed_${(hash >>> 0).toString(16)}`;
 }
 
-function reconcileSceneDurations(plan: CreativePlanV1, targetSeconds: number): CreativePlanV1 {
+function reconcileSceneDurations(
+  plan: CreativePlanV1,
+  targetSeconds: number,
+): CreativePlanV1 {
   if (plan.scenes.length === 0) return plan;
   const sum = plan.scenes.reduce((acc, scene) => acc + scene.duration, 0);
   if (Math.abs(sum - targetSeconds) < 0.05) return plan;
   const scale = targetSeconds / sum;
   const scenes = plan.scenes.map((scene, index) => {
     if (index < plan.scenes.length - 1) {
-      return { ...scene, duration: Math.max(0.5, Number((scene.duration * scale).toFixed(3))) };
+      return {
+        ...scene,
+        duration: Math.max(0.5, Number((scene.duration * scale).toFixed(3))),
+      };
     }
     const used = plan.scenes
       .slice(0, -1)
-      .reduce((acc, item, i) => acc + Math.max(0.5, Number((item.duration * scale).toFixed(3))), 0);
-    return { ...scene, duration: Math.max(0.5, Number((targetSeconds - used).toFixed(3))) };
+      .reduce(
+        (acc, item, _i) =>
+          acc + Math.max(0.5, Number((item.duration * scale).toFixed(3))),
+        0,
+      );
+    return {
+      ...scene,
+      duration: Math.max(0.5, Number((targetSeconds - used).toFixed(3))),
+    };
   });
   return parseCreativePlanV1({ ...plan, scenes });
 }
@@ -99,7 +122,9 @@ function filterModelCommands(commands: AuthoringCommand[]): {
       blocked.push(command.type);
       continue;
     }
-    if ((MODEL_BLOCKED_COMMAND_TYPES as readonly string[]).includes(command.type)) {
+    if (
+      (MODEL_BLOCKED_COMMAND_TYPES as readonly string[]).includes(command.type)
+    ) {
       blocked.push(command.type);
       continue;
     }
@@ -115,7 +140,10 @@ function filterModelCommands(commands: AuthoringCommand[]): {
 function assertNoSilentUnsupported(receipts: CommandReceipt[]): void {
   for (const receipt of receipts) {
     for (const diagnostic of receipt.diagnostics) {
-      if (diagnostic.code === "unsupported_capability" && diagnostic.severity === "error") {
+      if (
+        diagnostic.code === "unsupported_capability" &&
+        diagnostic.severity === "error"
+      ) {
         // Explicit diagnostic is OK — silent ignore would be absence of diagnostic.
         continue;
       }
@@ -162,7 +190,11 @@ function prependAssetRegistration(
   // Insert after createProject
   const createIdx = commands.findIndex((c) => c.type === "createProject");
   if (createIdx < 0) return [...regs, ...commands];
-  return [...commands.slice(0, createIdx + 1), ...regs, ...commands.slice(createIdx + 1)];
+  return [
+    ...commands.slice(0, createIdx + 1),
+    ...regs,
+    ...commands.slice(createIdx + 1),
+  ];
 }
 
 /**
@@ -182,9 +214,16 @@ export async function runZeroTemplateGeneration(input: {
   const gateway = input.gateway ?? createModelGateway({ mode });
   const maxModelRepairs = input.maxModelRepairs ?? 2;
   const brief = parseCreativeBriefV1(input.brief);
-  const seed = input.seed ?? hashSeed(`${brief.objective}|${brief.script}|${brief.aspectRatio}|${Date.now()}`);
+  const seed =
+    input.seed ??
+    hashSeed(
+      `${brief.objective}|${brief.script}|${brief.aspectRatio}|${Date.now()}`,
+    );
   const planId = `plan_${seed}`;
-  const modelName = mode === "live" || mode === "anthropic" ? "anthropic/messages" : "ai-planner/stub-from-scratch@1";
+  const modelName =
+    mode === "live" || mode === "anthropic"
+      ? "anthropic/messages"
+      : "ai-planner/stub-from-scratch@1";
   const promptVersions = {
     plan: "zero-template-plan@1",
     design: "zero-template-design@1",
@@ -207,7 +246,10 @@ export async function runZeroTemplateGeneration(input: {
       seed,
       maxOutputTokens: 4_096,
     });
-    let plan = reconcileSceneDurations(parseCreativePlanV1(planRaw.value), brief.durationSeconds);
+    const plan = reconcileSceneDurations(
+      parseCreativePlanV1(planRaw.value),
+      brief.durationSeconds,
+    );
 
     emit({ phase: "designing", progress: 35, message: "Scene design" });
     const designRaw = await gateway.generateStructured<SceneDesignPlanV1>({
@@ -226,7 +268,8 @@ export async function runZeroTemplateGeneration(input: {
     const batchRaw = await gateway.generateStructured<CommandBatch>({
       task: "command-batch",
       systemPromptVersion: promptVersions.commands,
-      schemaDescription: "CommandBatch JSON — typed commands only, no MotionProject blob",
+      schemaDescription:
+        "CommandBatch JSON — typed commands only, no MotionProject blob",
       input: {
         brief,
         plan,
@@ -242,11 +285,16 @@ export async function runZeroTemplateGeneration(input: {
     let batch = parseCommandBatch(batchRaw.value);
     const filtered = filterModelCommands(batch.commands);
     if (filtered.blocked.length > 0) {
-      throw new Error(`Model emitted blocked commands: ${filtered.blocked.join(", ")}`);
+      throw new Error(
+        `Model emitted blocked commands: ${filtered.blocked.join(", ")}`,
+      );
     }
     batch = {
       ...batch,
-      commands: prependAssetRegistration(filtered.commands, brief.suppliedAssets),
+      commands: prependAssetRegistration(
+        filtered.commands,
+        brief.suppliedAssets,
+      ),
     };
 
     let batchResult: CommandBatchResult = executeCommandBatch(batch);
@@ -260,7 +308,17 @@ export async function runZeroTemplateGeneration(input: {
         plan,
         sceneDesign,
         project: null,
-        critic: { score: 0, findings: [{ code: "batch_failed", severity: "error", path: "commands", message: "Command batch failed" }] },
+        critic: {
+          score: 0,
+          findings: [
+            {
+              code: "batch_failed",
+              severity: "error",
+              path: "commands",
+              message: "Command batch failed",
+            },
+          ],
+        },
         contactSheet: { frames: [], width: 0, height: 0 },
         receipts,
         repairs,
@@ -282,7 +340,9 @@ export async function runZeroTemplateGeneration(input: {
     // Recipe pass (deterministic polish)
     const recipeCommands: AuthoringCommand[] = [];
     for (const scene of project.scenes) {
-      const textIds = scene.nodes.filter((node) => node.type === "text").map((node) => node.id);
+      const textIds = scene.nodes
+        .filter((node) => node.type === "text")
+        .map((node) => node.id);
       if (textIds.length === 0) continue;
       if (textIds.length >= 2) {
         recipeCommands.push({
@@ -343,9 +403,19 @@ export async function runZeroTemplateGeneration(input: {
     // Model repair rounds (max 2)
     while (
       modelRepairs < maxModelRepairs &&
-      critic.findings.some((f) => f.severity === "error" || f.code === "text_overflow" || f.code === "overlap" || f.code === "empty_scene")
+      critic.findings.some(
+        (f) =>
+          f.severity === "error" ||
+          f.code === "text_overflow" ||
+          f.code === "overlap" ||
+          f.code === "empty_scene",
+      )
     ) {
-      emit({ phase: "repairing", progress: 75 + modelRepairs * 8, message: `Model repair ${modelRepairs + 1}` });
+      emit({
+        phase: "repairing",
+        progress: 75 + modelRepairs * 8,
+        message: `Model repair ${modelRepairs + 1}`,
+      });
       const targetedIds = critic.findings
         .map((f) => {
           const m = /\.nodes\.([^.]+)/.exec(f.path);
@@ -356,7 +426,8 @@ export async function runZeroTemplateGeneration(input: {
       const repairRaw = await gateway.generateStructured<CommandBatch>({
         task: "repair",
         systemPromptVersion: promptVersions.repair,
-        schemaDescription: "CommandBatch repair — targeted IDs only, no full regenerate",
+        schemaDescription:
+          "CommandBatch repair — targeted IDs only, no full regenerate",
         input: {
           baseRevision: batchResult.revision,
           findings: critic.findings,
@@ -374,10 +445,16 @@ export async function runZeroTemplateGeneration(input: {
       const repairBatch = parseCommandBatch(repairRaw.value);
       const repairFiltered = filterModelCommands(repairBatch.commands);
       if (repairFiltered.blocked.length > 0) {
-        throw new Error(`Repair emitted blocked commands: ${repairFiltered.blocked.join(", ")}`);
+        throw new Error(
+          `Repair emitted blocked commands: ${repairFiltered.blocked.join(", ")}`,
+        );
       }
       const applied = executeCommandBatch(
-        { ...repairBatch, commands: repairFiltered.commands, baseRevision: batchResult.revision },
+        {
+          ...repairBatch,
+          commands: repairFiltered.commands,
+          baseRevision: batchResult.revision,
+        },
         project,
       );
       receipts.push(...applied.receipts);
@@ -439,7 +516,11 @@ export async function runZeroTemplateGeneration(input: {
       },
     };
   } catch (error) {
-    emit({ phase: "failed", progress: 100, message: error instanceof Error ? error.message : String(error) });
+    emit({
+      phase: "failed",
+      progress: 100,
+      message: error instanceof Error ? error.message : String(error),
+    });
     return {
       ok: false,
       brief,
@@ -448,7 +529,11 @@ export async function runZeroTemplateGeneration(input: {
         formatVersion: 1,
         concept: brief.objective,
         tone: [],
-        artDirection: { palette: [], typographyMood: "sans", visualStyle: "flat" },
+        artDirection: {
+          palette: [],
+          typographyMood: "sans",
+          visualStyle: "flat",
+        },
         pacing: { energy: "medium" },
         scenes: [],
         audioDirection: { voiceover: false },
@@ -503,7 +588,11 @@ export async function runScopedRefine(input: {
 
   if (input.scope === "element" && sceneId && nodeId) {
     const lower = input.prompt.toLowerCase();
-    if (lower.includes("larger") || lower.includes("bigger") || lower.includes("lớn")) {
+    if (
+      lower.includes("larger") ||
+      lower.includes("bigger") ||
+      lower.includes("lớn")
+    ) {
       commands.push({
         type: "setNodePayload",
         sceneId,
@@ -515,7 +604,9 @@ export async function runScopedRefine(input: {
         type: "setNodePayload",
         sceneId,
         nodeId,
-        payload: { content: { kind: "plain", text: input.prompt.slice(0, 200) } },
+        payload: {
+          content: { kind: "plain", text: input.prompt.slice(0, 200) },
+        },
       });
     }
   } else {
@@ -531,7 +622,14 @@ export async function runScopedRefine(input: {
         fontSize: 40,
         fill: "#ffffff",
         semanticRole: "offer",
-        transform: { x: 540, y: 1400, width: 900, height: 100, anchorX: 0.5, anchorY: 0.5 },
+        transform: {
+          x: 540,
+          y: 1400,
+          width: 900,
+          height: 100,
+          anchorX: 0.5,
+          anchorY: 0.5,
+        },
       });
     }
   }
@@ -565,7 +663,11 @@ export async function runScopedRefine(input: {
       const parsed = parseCommandBatch(raw.value);
       const filtered = filterModelCommands(parsed.commands);
       const result = executeCommandBatch(
-        { ...parsed, commands: filtered.commands, baseRevision: input.baseRevision },
+        {
+          ...parsed,
+          commands: filtered.commands,
+          baseRevision: input.baseRevision,
+        },
         input.project,
       );
       return {

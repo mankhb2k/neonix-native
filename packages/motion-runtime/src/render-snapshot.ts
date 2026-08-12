@@ -1,5 +1,4 @@
 import { applyMatrix, multiplyMatrix, type Matrix2D } from "./matrix";
-import { IDENTITY_MATRIX4, type Matrix4, depthFromMat4 } from "./matrix4";
 import {
   evaluateScene,
   type EvaluatedNode,
@@ -509,7 +508,9 @@ export function buildRenderSnapshot(input: {
     input.width,
     input.height,
   );
-  const ordered = hierarchyRenderOrder(evaluated as OrderableNode[]) as EvaluatedNode[];
+  const ordered = hierarchyRenderOrder(
+    evaluated as OrderableNode[],
+  ) as EvaluatedNode[];
 
   const items: RenderSnapshotItem[] = [];
   let renderOrder = 0;

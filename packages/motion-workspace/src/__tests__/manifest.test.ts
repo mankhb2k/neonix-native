@@ -125,7 +125,6 @@ describe("linkMotionWorkspace", () => {
 
     const result = await linkMotionWorkspace(reader);
     if (!result.ok) {
-      // eslint-disable-next-line no-console
       console.error(
         "Link diagnostics:",
         JSON.stringify(result.diagnostics, null, 2),

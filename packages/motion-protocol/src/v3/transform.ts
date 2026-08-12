@@ -1,7 +1,5 @@
 /**
  * V3 transform schema — canonical source of truth.
- *
- * Phase 2: copied from legacy/transform.ts → V3 now owns this definition.
  * The canonical name is `TransformSchema` (was `TransformSchema`).
  */
 import { z } from "zod";

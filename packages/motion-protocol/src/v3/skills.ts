@@ -14,16 +14,9 @@
  */
 
 import { z } from "zod";
-import { IdSchema, FiniteNumberSchema } from "./common";
 import { CapabilityIdSchema } from "./capabilities";
 import { MotionProjectV3Schema, type MotionProjectV3 } from "./project";
-import {
-  MotionProjectV3PatchSchema,
-  type MotionProjectV3Patch,
-  type V3PatchResult,
-} from "./patch";
-import type { MotionProjectV3 as _MotionProjectV3 } from "./project";
-import type { MotionProjectV3Patch as _MotionProjectV3Patch } from "./patch";
+import { MotionProjectV3PatchSchema, type MotionProjectV3Patch } from "./patch";
 
 // ── Skill format constants ────────────────────────────────────────────
 

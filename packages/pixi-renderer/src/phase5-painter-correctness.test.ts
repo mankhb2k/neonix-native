@@ -11,7 +11,7 @@
  *   - Task 5.7: Unsupported diagnostic overlay
  *   - Task 5.8: Dispose lifecycle (textures, filters, offscreen)
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   buildPaintCommandBuffer,
   type RenderSnapshot,
@@ -22,7 +22,6 @@ import { createPixiFramePainter } from "./PixiFramePainter";
 import {
   createCompositingContext,
   createRenderTexturePool,
-  type CompositingContext,
 } from "./pixi-compositing";
 
 // ── Mock canvas for Node.js RenderTexture support ────────────────────
@@ -266,7 +265,7 @@ describe("Task 5.3 — mask wiring", () => {
     const root = new Container({ sortableChildren: true });
     const ctx = createCompositingContext({ root, width: 400, height: 300 });
 
-    const targetParent = ctx.pushLayer({
+    ctx.pushLayer({
       key: "target",
       offscreen: false,
       isolation: false,

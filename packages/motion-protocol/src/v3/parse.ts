@@ -1,19 +1,19 @@
 /**
  * V3 parse / serialize API.
  *
- * `parseMotionProjectV3` runs the shared legacy text-payload normalizer
- * (same one used by v2) then schema + reference validation.
+ * `parseMotionProjectV3` runs the shared text-payload normalizer
+ * then schema + reference validation.
  * `serializeMotionProjectV3` emits canonical (alphabetically sorted) keys
  * so two identical projects always serialize byte-identically.
  */
 import { MotionProjectV3Schema, type MotionProjectV3 } from "./project";
-import { normalizeLegacyMotionInput } from "./normalize-input";
+import { normalizeMotionProjectInput } from "./normalize-input";
 import { validateMotionProjectV3References } from "./references";
 import { MotionV3ReferenceError } from "./references/types";
 
 export function parseMotionProjectV3(input: unknown): MotionProjectV3 {
   const project = MotionProjectV3Schema.parse(
-    normalizeLegacyMotionInput(input),
+    normalizeMotionProjectInput(input),
   );
   const issues = validateMotionProjectV3References(project);
   if (issues.length > 0) throw new MotionV3ReferenceError(issues);

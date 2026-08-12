@@ -1,7 +1,5 @@
 /**
  * V3 layout schemas — canonical source of truth.
- *
- * Phase 2: copied from legacy/layout.ts → V3 now owns these definitions.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -72,12 +70,18 @@ export const RepeaterSchema = z
 
 export const EdgeInsetsSchema = z
   .object({
-    top: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
-    right: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    top: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    ),
+    right: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    ),
     bottom: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.nodeDimension,
     ),
-    left: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    left: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    ),
   })
   .strict();
 

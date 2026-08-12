@@ -1,16 +1,11 @@
 /**
  * V3 text content schemas & helpers — canonical source of truth.
  *
- * Phase 2: copied from legacy/nodes/text.ts → V3 now owns these definitions.
  * Node-level text type (TextNodeV3) lives in v3/nodes/text.ts.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import {
-  FiniteNumberSchema,
-  IdSchema,
-  LocaleIdentifierSchema,
-} from "../common";
+import { FiniteNumberSchema, IdSchema, ColorHexSchema } from "../common";
 
 // ── Text segmentation ─────────────────────────────────────────────────
 
@@ -76,7 +71,10 @@ export const TextContentPlainSchema = z
 export const TextContentRunsSchema = z
   .object({
     kind: z.literal("runs"),
-    runs: z.array(RichTextRunSchema).min(1).max(MOTION_PROTOCOL_LIMITS.richTextRuns),
+    runs: z
+      .array(RichTextRunSchema)
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.richTextRuns),
   })
   .strict();
 
@@ -107,15 +105,13 @@ export type TextNodePayload = {
   content: TextContent;
   fontAssetId?: string;
   fontSize: number;
-  fontWeight?: number;
-  align?: "left" | "center" | "right";
+  color?: string;
+  alignment?: "left" | "center" | "right";
   wrap?: "none" | "word" | "character";
   lineHeight?: number;
   letterSpacing?: number;
   maxLines?: number;
   overflow?: "visible" | "clip" | "ellipsis";
-  counterProgress?: number;
-  fitText?: { minFontSize: number; maxFontSize: number };
 };
 
 export function textContentPlain(content: TextContent): string {
@@ -164,27 +160,15 @@ export const TextPayloadSchema = z.preprocess(
       fontSize: FiniteNumberSchema.positive().max(
         MOTION_PROTOCOL_LIMITS.nodeDimension,
       ),
-      fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
-      align: z.enum(["left", "center", "right"]).optional(),
-      wrap: z.enum(["none", "word", "character"]).optional(),
+      color: ColorHexSchema.default("#000000"),
+      alignment: z.enum(["left", "center", "right"]).default("left"),
+      wrap: z.enum(["none", "word", "character"]).default("word"),
       lineHeight: FiniteNumberSchema.positive()
         .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
         .optional(),
       letterSpacing: FiniteNumberSchema.optional(),
       maxLines: FiniteNumberSchema.int().positive().optional(),
-      overflow: z.enum(["visible", "clip", "ellipsis"]).optional(),
-      counterProgress: FiniteNumberSchema.min(0).max(1).optional(),
-      fitText: z
-        .object({
-          minFontSize: FiniteNumberSchema.positive().max(
-            MOTION_PROTOCOL_LIMITS.nodeDimension,
-          ),
-          maxFontSize: FiniteNumberSchema.positive().max(
-            MOTION_PROTOCOL_LIMITS.nodeDimension,
-          ),
-        })
-        .strict()
-        .optional(),
+      overflow: z.enum(["visible", "clip", "ellipsis"]).default("visible"),
     })
     .strict(),
 );

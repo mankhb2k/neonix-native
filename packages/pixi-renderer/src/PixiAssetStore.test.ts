@@ -39,17 +39,14 @@ describe("PixiAssetStore", () => {
     expect(b).toBe(tex);
     expect(store.get("x.png")).toBe(tex);
     expect(
-      (
-        await (async () => {
-          const s = createPixiAssetStore({ load: async () => tex });
-          const calls = vi.fn(async () => tex);
-          const s2 = createPixiAssetStore({ load: calls });
-          await s2.load("y.png");
-          await s2.load("y.png");
-          s2.dispose();
-          return calls.mock.calls.length;
-        })()
-      ),
+      await (async () => {
+        const calls = vi.fn(async () => tex);
+        const s2 = createPixiAssetStore({ load: calls });
+        await s2.load("y.png");
+        await s2.load("y.png");
+        s2.dispose();
+        return calls.mock.calls.length;
+      })(),
     ).toBe(1);
     store.dispose();
   });

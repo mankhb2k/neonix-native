@@ -1,7 +1,6 @@
 /**
  * V3 source-ref schemas — canonical source of truth.
- *
- * Phase 2: copied from legacy/source-ref.ts → V3 now owns these definitions.
+
  */
 import { z } from "zod";
 import { IdSchema } from "./common";

@@ -169,7 +169,6 @@ function migrateLegacyClipInputs(
   project: MotionProject,
   overlays: OverlaySceneItem[],
 ): LegacyClipInput[] {
-  const overlayIds = new Set(overlays.map((item) => item.id));
   const scenesById = new Map(project.scenes.map((scene) => [scene.id, scene]));
 
   // Phase 8: derive main/overlay/audio clips from visualTracks + audioTracks.

@@ -1,5 +1,9 @@
-import { parseMotionProject, type MotionProject } from "@motionvideo/motion-protocol";
-import type { CreativeBriefV1, CreativePlanV1, SceneDesignPlanV1 } from "./contracts";
+import { type MotionProject } from "@motionvideo/motion-protocol";
+import type {
+  CreativeBriefV1,
+  CreativePlanV1,
+  SceneDesignPlanV1,
+} from "./contracts";
 import {
   parseCreativeBriefV1,
   parseCreativePlanV1,
@@ -24,9 +28,22 @@ import {
   buildSceneDesignFromPlan,
   buildBlankProjectCommands,
 } from "./from-scratch";
-export { critiqueProject, applyCriticRepair, type CriticReport, type CriticFinding } from "./critic";
-export { buildContactSheetPlan, type ContactSheetPlan, type ContactSheetFrame } from "./contact-sheet";
-export { runGenerationLoop, runGenerationLoopAsync, type GenerationLoopResult } from "./generation-loop";
+export {
+  critiqueProject,
+  applyCriticRepair,
+  type CriticReport,
+  type CriticFinding,
+} from "./critic";
+export {
+  buildContactSheetPlan,
+  type ContactSheetPlan,
+  type ContactSheetFrame,
+} from "./contact-sheet";
+export {
+  runGenerationLoop,
+  runGenerationLoopAsync,
+  type GenerationLoopResult,
+} from "./generation-loop";
 export {
   runZeroTemplateGeneration,
   runScopedRefine,
@@ -50,8 +67,15 @@ export {
   isModelAllowedCommand,
   modelCapabilityPromptBlock,
 } from "./model-allowlist";
-export { probeContactSheetPng, type ProbeContactSheetResult } from "./probe-frames";
-export { layoutRecipe, LAYOUT_RECIPES, type LayoutRecipeId } from "./commands/layout-recipes";
+export {
+  probeContactSheetPng,
+  type ProbeContactSheetResult,
+} from "./probe-frames";
+export {
+  layoutRecipe,
+  LAYOUT_RECIPES,
+  type LayoutRecipeId,
+} from "./commands/layout-recipes";
 
 /** @deprecated Use CreativeBriefV1 + planMotionProject({ brief }) instead. */
 export type PlanInput = {
@@ -132,7 +156,9 @@ export function planMotionProject(input: PlanRequest | PlanInput): PlanResult {
       .filter((item) => item.severity === "error")
       .map((item) => `${item.code}: ${item.message}`)
       .join("; ");
-    throw new Error(`From-scratch planning failed: ${errors || "unknown error"}`);
+    throw new Error(
+      `From-scratch planning failed: ${errors || "unknown error"}`,
+    );
   }
   return {
     brief: artifacts.brief,

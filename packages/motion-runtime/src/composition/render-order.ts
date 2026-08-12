@@ -17,8 +17,6 @@
  * Hierarchy sort produces: group.character → head → title  — correct.
  */
 
-import type { RuntimeNode } from "../evaluator";
-
 /** A node-like item that carries zIndex and parentId for render ordering. */
 export interface OrderableNode {
   readonly node: {
@@ -40,9 +38,7 @@ export interface OrderableNode {
  *
  * @returns A new array sorted for bottom-to-top rendering.
  */
-export function hierarchyRenderOrder<T extends OrderableNode>(
-  items: T[],
-): T[] {
+export function hierarchyRenderOrder<T extends OrderableNode>(items: T[]): T[] {
   // Preserve original index for stable tie-breaking
   const withIndex = items.map((item, index) => ({ item, index }));
 

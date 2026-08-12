@@ -129,8 +129,8 @@ describe("inspectProjectCapabilities", () => {
         visualTracks: [
           {
             clips: [
-              { transitionIn: { kind: "crossfade" } },
-              { transitionOut: { kind: "slide" } },
+              { transitionIn: { type: "crossfade" } },
+              { transitionOut: { type: "slide" } },
             ],
           },
         ],
@@ -140,15 +140,15 @@ describe("inspectProjectCapabilities", () => {
     expect(caps.has("transition.slide")).toBe(true);
   });
 
-  it("maps dissolve/wipe/fade transition kinds", () => {
+  it("maps dissolve/wipe/fade transition types", () => {
     const caps = inspectProjectCapabilities({
       timeline: {
         visualTracks: [
           {
             clips: [
-              { transitionIn: { kind: "dissolve" } },
-              { transitionOut: { kind: "wipe" } },
-              { transitionIn: { kind: "fade" } },
+              { transitionIn: { type: "dissolve" } },
+              { transitionOut: { type: "wipe" } },
+              { transitionIn: { type: "fade" } },
             ],
           },
         ],
@@ -241,7 +241,7 @@ describe("preflightProjectCapabilities", () => {
       timeline: {
         visualTracks: [
           {
-            clips: [{ transitionIn: { kind: "crossfade" } }],
+            clips: [{ transitionIn: { type: "crossfade" } }],
           },
         ],
       },

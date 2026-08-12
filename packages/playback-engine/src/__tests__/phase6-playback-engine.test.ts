@@ -364,7 +364,7 @@ describe("Task 6.2 — clock accuracy", () => {
   });
 
   it("clock currentFrame is quantized to FPS", () => {
-    let fakeNow = 0;
+    const fakeNow = 0;
     const clock = createPlaybackClock({
       fps: 30,
       duration: 10,

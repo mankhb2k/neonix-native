@@ -1,7 +1,6 @@
 /**
  * V3 paint schemas — canonical source of truth.
- *
- * Phase 2: copied from legacy/nodes/paint.ts → V3 now owns these definitions.
+
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -66,7 +65,9 @@ export const PaintStyleSchema = z
       .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
       .optional(),
     dash: z
-      .array(FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.dashLength))
+      .array(
+        FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.dashLength),
+      )
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.dashSegments)
       .optional(),

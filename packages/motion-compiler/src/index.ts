@@ -6,13 +6,12 @@ import {
   type RuntimeSourceRef,
 } from "@motionvideo/motion-protocol";
 import type { ComponentInput } from "./types";
-import { applyFitText, applyLayoutConstraints } from "./layout-solver";
+import { applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 import { compileMotionProjectV3 } from "./compile-v3";
 
 type RuntimeTrack = MotionRuntimeProject["scenes"][number]["tracks"][number];
 type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
-type SceneMarker = { id: string; t: number };
 
 export type CompileOptions = {
   components?: ComponentInput[];
@@ -20,41 +19,6 @@ export type CompileOptions = {
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function setPath(
-  target: Record<string, unknown>,
-  path: string,
-  value: unknown,
-): void {
-  const parts = path.split(".");
-  let cursor = target;
-  for (const part of parts.slice(0, -1)) {
-    const current = cursor[part];
-    if (
-      current === null ||
-      typeof current !== "object" ||
-      Array.isArray(current)
-    )
-      cursor[part] = {};
-    cursor = cursor[part] as Record<string, unknown>;
-  }
-  const last = parts.at(-1);
-  if (last) cursor[last] = clone(value);
-}
-
-function getPath(value: unknown, path: string): unknown {
-  let current = value;
-  for (const part of path.split(".")) {
-    if (
-      current === null ||
-      typeof current !== "object" ||
-      Array.isArray(current)
-    )
-      return undefined;
-    current = (current as Record<string, unknown>)[part];
-  }
-  return current;
 }
 
 function resolveValue(
@@ -96,8 +60,6 @@ function resolveValue(
     ]),
   );
 }
-
-type PlaybackDirection = MotionClip["playback"]["direction"];
 
 function playbackRate(
   clip: MotionClip,
@@ -353,140 +315,12 @@ function compileClips(
   return [...merged.values()];
 }
 
-function expandTextAnimators(nodes: MotionNode[]): {
-  nodes: RuntimeNode[];
-  tracks: RuntimeTrack[];
-} {
-  const outputNodes: RuntimeNode[] = [];
-  const outputTracks: RuntimeTrack[] = [];
-  for (const node of nodes) {
-    if (node.type !== "text" || !node.textAnimator) {
-      outputNodes.push(clone(node) as RuntimeNode);
-      continue;
-    }
-    const animator = node.textAnimator;
-    const units = segmentTextUnits(
-      getTextPayloadPlain(node.payload),
-      animator.unit,
-      animator.locale,
-    );
-    const horizontal = animator.unit !== "line";
-    const cellWidth = horizontal
-      ? node.transform.width / Math.max(1, units.length)
-      : node.transform.width;
-    const cellHeight = horizontal
-      ? node.transform.height
-      : node.transform.height / Math.max(1, units.length);
-    const left =
-      node.transform.x - node.transform.anchorX * node.transform.width;
-    const top =
-      node.transform.y - node.transform.anchorY * node.transform.height;
-    let selectedIndex = 0;
-    units.forEach((text, index) => {
-      const run = clone(node) as typeof node & {
-        textAnimator?: unknown;
-        repeat?: unknown;
-      };
-      delete run.textAnimator;
-      delete run.repeat;
-      run.id = `${node.id}::${animator.id}::${index}`;
-      run.payload = setTextPayloadPlain(run.payload, text);
-      run.transform.x = horizontal
-        ? left + cellWidth * (index + 0.5)
-        : left + cellWidth / 2;
-      run.transform.y = horizontal
-        ? top + cellHeight / 2
-        : top + cellHeight * (index + 0.5);
-      run.transform.width = cellWidth;
-      run.transform.height = cellHeight;
-      run.transform.anchorX = 0.5;
-      run.transform.anchorY = 0.5;
-      outputNodes.push(run as RuntimeNode);
-
-      const progress = units.length <= 1 ? 0 : index / (units.length - 1);
-      if (
-        progress < animator.selector.start ||
-        progress > animator.selector.end
-      )
-        return;
-      const start = canonicalTime(
-        animator.startTime + selectedIndex * animator.stagger,
-      );
-      const end = canonicalTime(start + animator.duration);
-      selectedIndex += 1;
-      const track = (
-        property: string,
-        from: RuntimeTrack["keys"][number]["v"],
-        to: RuntimeTrack["keys"][number]["v"],
-      ): void => {
-        outputTracks.push({
-          targetId: run.id,
-          property,
-          keys: [
-            { t: start, v: from },
-            { t: end, v: to, easing: animator.easing },
-          ],
-        });
-      };
-      if (animator.properties.offsetX !== undefined)
-        track(
-          "transform.x",
-          run.transform.x + animator.properties.offsetX,
-          run.transform.x,
-        );
-      if (animator.properties.offsetY !== undefined)
-        track(
-          "transform.y",
-          run.transform.y + animator.properties.offsetY,
-          run.transform.y,
-        );
-      if (animator.properties.rotation !== undefined)
-        track(
-          "transform.rotation",
-          run.transform.rotation + animator.properties.rotation,
-          run.transform.rotation,
-        );
-      if (animator.properties.scale !== undefined) {
-        track(
-          "transform.scaleX",
-          run.transform.scaleX * animator.properties.scale,
-          run.transform.scaleX,
-        );
-        track(
-          "transform.scaleY",
-          run.transform.scaleY * animator.properties.scale,
-          run.transform.scaleY,
-        );
-      }
-      if (animator.properties.opacity !== undefined)
-        track(
-          "transform.opacity",
-          run.transform.opacity * animator.properties.opacity,
-          run.transform.opacity,
-        );
-      if (animator.properties.fill !== undefined)
-        track(
-          "style.fill",
-          animator.properties.fill,
-          run.style?.fill ?? "#ffffff",
-        );
-    });
-  }
-  return { nodes: outputNodes, tracks: outputTracks };
-}
-
-/** Encode a scene sourceRef as a stable human-readable string. */
-function encodeSourceRef(ref: RuntimeSourceRef): string {
-  const base = ref.projectPath.join(":");
-  return ref.sourceModule ? `${base}#${ref.sourceModule}` : base;
-}
-
 /**
  * V3-native per-scene compilation: prepares a runtime-ready scene from
  * normalized authoring nodes, clips, and variables.
  *
- * Pipeline: resolve variables → layout constraints → fit text → expand
- * text animators → compile clips → assemble runtime scene.
+ * Pipeline: resolve variables → layout constraints → fit text → compile
+ * clips → assemble runtime scene.
  *
  * This is the canonical V3 → Runtime IR path. No V2 intermediate shape.
  *
@@ -510,8 +344,6 @@ export function compileSceneToRuntime(input: {
     (node) => resolveValue(node, variables) as unknown as MotionNode,
   );
   const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
-  const fitted = applyFitText(laidOut);
-  const textExpanded = expandTextAnimators(fitted.nodes);
   const markers = new Map<string, number>(
     (input.markers ?? []).map((m) => [m.id, m.t]),
   );
@@ -528,16 +360,9 @@ export function compileSceneToRuntime(input: {
       : {}),
     ...(input.activeCameraId ? { activeCameraId: input.activeCameraId } : {}),
     sourceRef,
-    nodes: textExpanded.nodes,
+    nodes: laidOut,
     tracks: [
-      ...compileClips(
-        textExpanded.nodes,
-        input.clips,
-        variables,
-        input.duration,
-        markers,
-      ),
-      ...textExpanded.tracks,
+      ...compileClips(laidOut, input.clips, variables, input.duration, markers),
     ],
   };
 }
@@ -591,7 +416,7 @@ export {
   type CacheEntry,
 } from "./compile-cache";
 
-export { applyFitText, applyLayoutConstraints } from "./layout-solver";
+export { applyLayoutConstraints } from "./layout-solver";
 export {
   defaultTextMeasurementProvider,
   estimateTextSize,

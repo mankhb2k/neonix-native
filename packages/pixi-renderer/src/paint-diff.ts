@@ -109,18 +109,24 @@ export function createPaintDiffEngine(): PaintDiffEngine {
       seen.add(cmd.key);
 
       // Compute this frame's fingerprint
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const matrix = (cmd as any).matrix;
       const fingerprint = computePaintItemFingerprint(cmd, {
         matrix: {
-          a: (cmd as any).matrix?.a ?? 1,
-          b: (cmd as any).matrix?.b ?? 0,
-          c: (cmd as any).matrix?.c ?? 0,
-          d: (cmd as any).matrix?.d ?? 1,
-          e: (cmd as any).matrix?.e ?? 0,
-          f: (cmd as any).matrix?.f ?? 0,
+          a: matrix?.a ?? 1,
+          b: matrix?.b ?? 0,
+          c: matrix?.c ?? 0,
+          d: matrix?.d ?? 1,
+          e: matrix?.e ?? 0,
+          f: matrix?.f ?? 0,
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         alpha: (cmd as any).alpha ?? 1,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         visible: (cmd as any).visible ?? true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         zIndex: (cmd as any).zIndex ?? 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         blendMode: (cmd as any).blendMode,
       });
 

@@ -14,7 +14,8 @@
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
     "e2e:timeline": "pnpm --filter @motionvideo/web e2e:timeline",
     "build": "pnpm -r run build",
-    "lint": "pnpm --filter @motionvideo/web lint && pnpm --filter @motionvideo/desktop lint && pnpm --filter @motionvideo/editor-core lint",
+    "lint": "pnpm --filter @motionvideo/web lint && pnpm --filter @motionvideo/desktop lint && pnpm lint:packages",
+    "lint:packages": "pnpm --filter \"./packages/*\" --if-present lint",
     "lint:web": "pnpm --filter @motionvideo/web lint",
     "lint:desktop": "pnpm --filter @motionvideo/desktop lint",
     "typecheck": "pnpm -r run typecheck",
@@ -46,7 +47,10 @@
     }
   },
   "devDependencies": {
+    "@eslint/js": "^9.22.0",
     "esbuild": "0.28.1",
-    "picomatch": "^4.0.5"
+    "eslint": "^9.22.0",
+    "picomatch": "^4.0.5",
+    "typescript-eslint": "^8.26.1"
   }
 }

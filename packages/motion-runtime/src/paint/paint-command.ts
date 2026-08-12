@@ -3,7 +3,6 @@
  */
 
 import type { Matrix2D } from "../matrix";
-import type { Matrix4 } from "../matrix4";
 import type { RuntimeEffect } from "../evaluator";
 import type { PathContour } from "../geometry";
 import type { PaintFill } from "../render-snapshot";

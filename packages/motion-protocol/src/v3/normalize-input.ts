@@ -1,15 +1,14 @@
 /**
- * V3 input normalizer — walks authoring trees and normalizes legacy
+ * V3 input normalizer — walks authoring trees and normalizes
  * text payloads before schema parse.
  *
- * This normalizer is used at the parse boundary to convert legacy
- * `{ text }` payloads to `{ content: { kind: "plain" } }` before
- * Zod validation runs.
+ * Used at the parse boundary to convert `{ text }` payloads to
+ * `{ content: { kind: "plain" } }` before Zod validation runs.
  */
 import { normalizeTextPayloadInput } from "./nodes/text-content";
 
-/** Walk authoring trees and normalize legacy text payloads before schema parse. */
-export function normalizeLegacyMotionInput(input: unknown): unknown {
+/** Walk authoring trees and normalize text payloads before schema parse. */
+export function normalizeMotionProjectInput(input: unknown): unknown {
   if (!input || typeof input !== "object" || Array.isArray(input)) return input;
   const root = { ...(input as Record<string, unknown>) };
 

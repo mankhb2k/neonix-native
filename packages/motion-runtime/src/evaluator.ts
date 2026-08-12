@@ -18,7 +18,6 @@ import {
   IDENTITY_MATRIX4,
   localTransformMatrix3D,
   multiplyMatrix4,
-  type Transform3DInput,
 } from "./matrix4";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
 import {
@@ -37,11 +36,7 @@ import {
   type KeyframeEasing,
 } from "./curve-sampler";
 import { evaluateDriverGraph } from "./procedural-driver";
-import {
-  RuntimeDiagnosticCollector,
-  RuntimeDiagnosticCode,
-  createDiagnostic,
-} from "./diagnostics";
+import { RuntimeDiagnosticCollector } from "./diagnostics";
 import {
   resolveEffectiveTiming,
   isNodeTimeActive,
@@ -939,9 +934,7 @@ export function evaluateScene(
     }
 
     // Phase 3: Node-local time for animation (0 = node effective start)
-    const animTime = nodeTiming
-      ? nodeLocalTime(nodeTiming, time)
-      : time;
+    const animTime = nodeTiming ? nodeLocalTime(nodeTiming, time) : time;
 
     if (visiting.has(node.id)) {
       collector?.error("PARENT_CYCLE", {

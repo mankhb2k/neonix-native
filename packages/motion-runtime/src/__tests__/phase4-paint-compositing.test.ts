@@ -24,7 +24,6 @@ import {
   extractPaintResource,
   extractPaintFrameProperty,
   splitPaintCommand,
-  type SplitPaintCommand,
 } from "../paint";
 
 import type { RenderSnapshot, RenderSnapshotItem } from "../render-snapshot";
@@ -511,7 +510,7 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
 
 // ── Task 4.4: Contract versioning + validator ───────────────────────
 
-import { PAINT_COMMAND_VERSION, validatePaintCommandBuffer } from "../paint";
+import { PAINT_COMMAND_VERSION } from "../paint";
 import {
   paintContractVersion,
   validatePaintBuffer,
@@ -632,8 +631,6 @@ import {
   identityAffine2DGeometry,
   flattenToAffine2D,
   isAffine2D,
-  type EvaluatedGeometry,
-  type Affine2DGeometry,
   type ProjectedQuadGeometry,
   type MeshGeometry,
 } from "../paint";

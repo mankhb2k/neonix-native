@@ -1,7 +1,5 @@
 /**
  * V3 effects schema — canonical source of truth.
- *
- * Phase 2: copied from legacy/effects.ts → V3 now owns this definition.
  * The canonical name is `EffectSchema` (was `EffectSchema`).
  */
 import { z } from "zod";

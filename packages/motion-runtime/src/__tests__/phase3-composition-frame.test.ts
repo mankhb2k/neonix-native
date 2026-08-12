@@ -10,7 +10,6 @@ import {
   COMPOSITION_FRAME_CONTRACT_VERSION,
   stableLayerKey,
   parseStableLayerKey,
-  type EvaluatedCompositionFrame,
   type EvaluatedLayer,
   type EvaluatedAudioState,
   type EvaluatedMediaState,
@@ -268,7 +267,6 @@ import {
   TRANSITION_FIXTURE_KEYS,
   generateFixtureDigests,
   fixtureGlobalTimes,
-  type FixtureFrameDigest,
 } from "../composition/transition-fixtures";
 
 describe("transition fixtures", () => {

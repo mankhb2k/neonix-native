@@ -3,13 +3,27 @@ import {
   buildCreativePlanFromBrief,
   buildSceneDesignFromPlan,
 } from "../from-scratch";
-import { parseCreativeBriefV1, type CreativeBriefV1, type CreativePlanV1, type SceneDesignPlanV1 } from "../contracts";
+import {
+  parseCreativeBriefV1,
+  type CreativeBriefV1,
+  type CreativePlanV1,
+  type SceneDesignPlanV1,
+} from "../contracts";
 import type { AuthoringCommand } from "../commands";
-import type { ModelGateway, StructuredGenerateRequest, StructuredGenerateResult } from "./types";
+import type {
+  ModelGateway,
+  StructuredGenerateRequest,
+  StructuredGenerateResult,
+} from "./types";
 
 type RepairInput = {
   projectSummary: unknown;
-  findings: Array<{ code: string; path: string; message: string; repairHint?: string }>;
+  findings: Array<{
+    code: string;
+    path: string;
+    message: string;
+    repairHint?: string;
+  }>;
   targetedIds?: string[];
 };
 
@@ -17,14 +31,19 @@ type RepairInput = {
  * Deterministic gateway — mirrors from-scratch assemblers (AI_MODE=stub).
  */
 export class StubModelGateway implements ModelGateway {
-  async generateStructured<T>(request: StructuredGenerateRequest): Promise<StructuredGenerateResult<T>> {
+  async generateStructured<T>(
+    request: StructuredGenerateRequest,
+  ): Promise<StructuredGenerateResult<T>> {
     const started = Date.now();
     let value: unknown;
 
     switch (request.task) {
       case "creative-plan": {
-        const brief = parseCreativeBriefV1((request.input as { brief: unknown }).brief);
-        const industry = (request.input as { industry?: string }).industry ?? "fnb";
+        const brief = parseCreativeBriefV1(
+          (request.input as { brief: unknown }).brief,
+        );
+        const industry =
+          (request.input as { industry?: string }).industry ?? "fnb";
         value = buildCreativePlanFromBrief(brief, industry);
         break;
       }
@@ -35,19 +54,33 @@ export class StubModelGateway implements ModelGateway {
         break;
       }
       case "command-batch": {
-        const brief = parseCreativeBriefV1((request.input as { brief: CreativeBriefV1 }).brief);
+        const brief = parseCreativeBriefV1(
+          (request.input as { brief: CreativeBriefV1 }).brief,
+        );
         const plan = (request.input as { plan: CreativePlanV1 }).plan;
-        const sceneDesign = (request.input as { sceneDesign: SceneDesignPlanV1 }).sceneDesign;
+        const sceneDesign = (
+          request.input as { sceneDesign: SceneDesignPlanV1 }
+        ).sceneDesign;
         const projectId = (request.input as { projectId: string }).projectId;
-        const allowlistedAssetIds = (request.input as { allowlistedAssetIds?: string[] }).allowlistedAssetIds ?? [];
-        const commands = buildBlankProjectCommands({ brief, plan, sceneDesign, projectId });
+        const allowlistedAssetIds =
+          (request.input as { allowlistedAssetIds?: string[] })
+            .allowlistedAssetIds ?? [];
+        const commands = buildBlankProjectCommands({
+          brief,
+          plan,
+          sceneDesign,
+          projectId,
+        });
         // Inject supplied media when brief supplies allowlisted assets (Z2/Z10 stub path).
         if (allowlistedAssetIds.length > 0 && plan.scenes[0]) {
           const sceneId = plan.scenes[0]!.id;
           const assetId = allowlistedAssetIds[0]!;
-          const assets = (brief.suppliedAssets ?? []).filter((a) => allowlistedAssetIds.includes(a.id));
+          const assets = (brief.suppliedAssets ?? []).filter((a) =>
+            allowlistedAssetIds.includes(a.id),
+          );
           const first = assets[0];
-          const isSvg = (first?.uri ?? "").endsWith(".svg") || first?.role === "logo";
+          const isSvg =
+            (first?.uri ?? "").endsWith(".svg") || first?.role === "logo";
           commands.splice(
             commands.findIndex((c) => c.type === "validateProject"),
             0,
@@ -107,10 +140,13 @@ export class StubModelGateway implements ModelGateway {
                 type: "setNodePayload",
                 sceneId: match[1]!,
                 nodeId: match[2]!,
-                payload: { fitText: { minFontSize: 18, maxFontSize: 64 } },
+                payload: { fontSize: 48 },
               });
             }
-          } else if (finding.code === "empty_scene" || finding.code === "empty_project") {
+          } else if (
+            finding.code === "empty_scene" ||
+            finding.code === "empty_project"
+          ) {
             const sceneMatch = /^scenes\.([^.]+)/.exec(finding.path);
             const sceneId = sceneMatch?.[1] ?? "scene.hook.1";
             commands.push({
@@ -122,7 +158,14 @@ export class StubModelGateway implements ModelGateway {
               fontSize: 48,
               fill: "#ffffff",
               semanticRole: "hook",
-              transform: { x: 540, y: 960, width: 900, height: 120, anchorX: 0.5, anchorY: 0.5 },
+              transform: {
+                x: 540,
+                y: 960,
+                width: 900,
+                height: 120,
+                anchorX: 0.5,
+                anchorY: 0.5,
+              },
             });
           } else if (finding.code === "overlap") {
             const match = /^scenes\.([^.]+)/.exec(finding.path);
@@ -132,7 +175,13 @@ export class StubModelGateway implements ModelGateway {
                 sceneId: match[1]!,
                 nodeId: `group.${match[1]}`,
                 modifierId: `lay.repair.${match[1]}`,
-                constraint: { kind: "stack", direction: "vertical", gap: 24, padding: 16, align: "center" },
+                constraint: {
+                  kind: "stack",
+                  direction: "vertical",
+                  gap: 24,
+                  padding: 16,
+                  align: "center",
+                },
               });
             }
           }
@@ -143,7 +192,8 @@ export class StubModelGateway implements ModelGateway {
         value = {
           format: "moticlip-command-batch",
           formatVersion: 1,
-          baseRevision: (request.input as { baseRevision?: number }).baseRevision ?? 0,
+          baseRevision:
+            (request.input as { baseRevision?: number }).baseRevision ?? 0,
           commands,
         };
         break;

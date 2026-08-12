@@ -304,7 +304,7 @@ export {
 export { type MotionClipV3 } from "./v3/animation/clips";
 
 /** Canonical clip type — re-exported from the V3 animation module. */
-export type { MotionClipV3 as MotionClip };
+export type { MotionClipV3 as MotionClip } from "./v3/animation/clips";
 
 // Project scene type — V3 canonical
 export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";

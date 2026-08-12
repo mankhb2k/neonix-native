@@ -37,7 +37,6 @@ export const GOLDEN_SAMPLE_POINTS: readonly GoldenFrameSamplePoint[] = [
 export function goldenSampleFrame(
   point: GoldenFrameSamplePoint,
   durationInFrames: number,
-  fps: number,
 ): number {
   const last = Math.max(0, durationInFrames - 1);
   switch (point) {
@@ -69,7 +68,7 @@ export function goldenSampleTime(
   durationInFrames: number,
   fps: number,
 ): number {
-  return goldenSampleFrame(point, durationInFrames, fps) / fps;
+  return goldenSampleFrame(point, durationInFrames) / fps;
 }
 
 // ── Golden frame entry ────────────────────────────────────────────────
@@ -157,6 +156,8 @@ export function compareGoldenFrames(
   durationInFrames: number,
   fps: number,
 ): GoldenComparisonReport {
+  void durationInFrames;
+  void fps;
   const results: GoldenFrameComparison[] = [];
   const mismatches: GoldenFrameComparison[] = [];
 
@@ -164,7 +165,6 @@ export function compareGoldenFrames(
     const point = samplePoints[i]!;
     const goldenEntry = golden.frames.find((f) => f.point === point);
     const current = currentFrames[i]!;
-    const frame = goldenSampleFrame(point, durationInFrames, fps);
 
     const paintMatch = goldenEntry?.paintHash === current.paintHash;
     const pixelMatch =

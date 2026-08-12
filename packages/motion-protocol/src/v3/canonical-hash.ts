@@ -77,15 +77,6 @@ export function deepSortKeys<T>(value: T): T {
 
 // ── Project Hash ───────────────────────────────────────────────────────
 
-/** Fields to strip from canonical hash that are never semantically meaningful. */
-const HASH_STRIP_PATHS = new Set([
-  "metadata.createdAt",
-  "metadata.updatedAt",
-  "metadata.generator",
-  "provenance",
-  "extensions",
-]);
-
 /**
  * Strip non-deterministic fields before hashing so the same semantic
  * project always produces the same hash regardless of timestamps,
@@ -138,7 +129,8 @@ export function computeProjectHashShort(
  * Returns first 32 hex chars (128-bit) for compact storage.
  */
 export function computeRuntimeHash(ir: Record<string, unknown>): string {
-  const { runtimeHash: _omit, ...hashInputs } = ir;
+  const hashInputs = { ...ir };
+  delete hashInputs.runtimeHash;
   return createHash("sha256")
     .update(canonicalJson(hashInputs), "utf8")
     .digest("hex")
