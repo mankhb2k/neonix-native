@@ -59,6 +59,35 @@
           "type": "color"
         }
       ],
+      "slots": [
+        {
+          "id": "icon",
+          "name": "Leading icon",
+          "accepts": ["image", "svg"],
+          "count": 1
+        }
+      ],
+      "variants": [
+        {
+          "id": "primary",
+          "name": "Primary CTA",
+          "params": { "color": "#1877f2", "label": "Click me" }
+        },
+        {
+          "id": "outline",
+          "name": "Outline CTA",
+          "params": { "color": "#ffffff", "label": "Learn more" }
+        }
+      ],
+      "publicTargets": [
+        {
+          "id": "cta-label",
+          "name": "Button label text",
+          "nodeId": "cta-label-node",
+          "property": "payload.content.text",
+          "description": "The visible text content of the CTA button"
+        }
+      ],
       "variables": [
         {
           "id": "cta-label",
@@ -214,8 +243,7 @@
       "target": {
         "kind": "component",
         "componentId": "call-to-action",
-        "nodeId": "cta-label-node",
-        "property": "payload.content.text"
+        "targetId": "cta-label"
       }
     }
   ]

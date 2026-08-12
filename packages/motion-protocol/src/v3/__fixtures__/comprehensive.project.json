@@ -251,7 +251,22 @@
           ]
         }
       ],
-      "variants": { "compact": { "height": 60 } },
+      "variants": [
+        {
+          "id": "compact",
+          "name": "Compact lower third",
+          "params": { "height": 60 }
+        }
+      ],
+      "publicTargets": [
+        {
+          "id": "lt-bg-color",
+          "name": "Background color",
+          "nodeId": "lt-bg",
+          "property": "payload.color",
+          "description": "The background color of the lower third bar"
+        }
+      ],
       "assetDependencies": ["asset-font-display"]
     }
   ],
@@ -717,12 +732,11 @@
     },
     {
       "id": "binding-component",
-      "source": { "kind": "variable", "variableId": "var-company" },
+      "source": { "kind": "variable", "variableId": "var-brand-color" },
       "target": {
         "kind": "component",
         "componentId": "lower-third",
-        "nodeId": "lt-bg",
-        "property": "payload.color"
+        "targetId": "lt-bg-color"
       }
     }
   ],

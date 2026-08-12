@@ -168,6 +168,7 @@ describe("v3 schema — positive fixtures", () => {
       (b) => b.target.kind === "component",
     )!;
     expect(componentBinding.target.componentId).toBe("lower-third");
+    expect(componentBinding.target.targetId).toBe("lt-bg-color");
 
     // provenance — all 4 sub-fields
     expect(project.provenance?.workspaceId).toBe("ws-moticlip-demo");
@@ -641,15 +642,26 @@ describe("v3 extensions — namespaced keys", () => {
 import { validateNodeGraphV3 } from "../references/node-graph";
 import type { NodeV3 } from "../nodes";
 
-function makeNode(overrides: Partial<NodeV3> & { id: string; type: string }): NodeV3 {
+function makeNode(
+  overrides: Partial<NodeV3> & { id: string; type: string },
+): NodeV3 {
   return {
     parentId: null,
     zIndex: 0,
     transform: {
-      x: 0, y: 0, width: 100, height: 100,
-      rotation: 0, scaleX: 1, scaleY: 1,
-      anchorX: 0.5, anchorY: 0.5,
-      opacity: 1, visible: true, flipX: false, flipY: false,
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      opacity: 1,
+      visible: true,
+      flipX: false,
+      flipY: false,
     },
     timing: { start: 0, duration: 1 },
     payload: {},
@@ -660,10 +672,31 @@ function makeNode(overrides: Partial<NodeV3> & { id: string; type: string }): No
 describe("validateNodeGraphV3 — group layer semantics", () => {
   it("accepts valid three-level nested groups", () => {
     const nodes: NodeV3[] = [
-      makeNode({ id: "group.character", type: "group", parentId: null, zIndex: 3 }),
-      makeNode({ id: "group.upper-body", type: "group", parentId: "group.character", zIndex: 2 }),
-      makeNode({ id: "group.head-rig", type: "group", parentId: "group.upper-body", zIndex: 3 }),
-      makeNode({ id: "head-image", type: "image", parentId: "group.head-rig", zIndex: 0, payload: { assetId: "asset.head" } }),
+      makeNode({
+        id: "group.character",
+        type: "group",
+        parentId: null,
+        zIndex: 3,
+      }),
+      makeNode({
+        id: "group.upper-body",
+        type: "group",
+        parentId: "group.character",
+        zIndex: 2,
+      }),
+      makeNode({
+        id: "group.head-rig",
+        type: "group",
+        parentId: "group.upper-body",
+        zIndex: 3,
+      }),
+      makeNode({
+        id: "head-image",
+        type: "image",
+        parentId: "group.head-rig",
+        zIndex: 0,
+        payload: { assetId: "asset.head" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
     expect(issues).toEqual([]);
@@ -672,7 +705,12 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
   it("rejects missing parent", () => {
     const nodes: NodeV3[] = [
       makeNode({ id: "group.a", type: "group", parentId: null }),
-      makeNode({ id: "child", type: "image", parentId: "nonexistent", payload: { assetId: "a" } }),
+      makeNode({
+        id: "child",
+        type: "image",
+        parentId: "nonexistent",
+        payload: { assetId: "a" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
     expect(issues.some((i) => i.message.includes("Unknown parent"))).toBe(true);
@@ -683,7 +721,9 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
       makeNode({ id: "group.a", type: "group", parentId: "group.a" }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes("cannot be its own parent"))).toBe(true);
+    expect(
+      issues.some((i) => i.message.includes("cannot be its own parent")),
+    ).toBe(true);
   });
 
   it("rejects parent cycles (A → B → A)", () => {
@@ -692,24 +732,54 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
       makeNode({ id: "b", type: "group", parentId: "a" }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes("Parent cycle detected"))).toBe(true);
+    expect(
+      issues.some((i) => i.message.includes("Parent cycle detected")),
+    ).toBe(true);
   });
 
   it("rejects children under non-group parent (image)", () => {
     const nodes: NodeV3[] = [
-      makeNode({ id: "img", type: "image", parentId: null, payload: { assetId: "a" } }),
-      makeNode({ id: "child", type: "image", parentId: "img", payload: { assetId: "b" } }),
+      makeNode({
+        id: "img",
+        type: "image",
+        parentId: null,
+        payload: { assetId: "a" },
+      }),
+      makeNode({
+        id: "child",
+        type: "image",
+        parentId: "img",
+        payload: { assetId: "b" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes('only "group" nodes may have children'))).toBe(true);
+    expect(
+      issues.some((i) =>
+        i.message.includes('only "group" nodes may have children'),
+      ),
+    ).toBe(true);
   });
 
   it("rejects children under non-group parent (text)", () => {
     const nodes: NodeV3[] = [
-      makeNode({ id: "txt", type: "text", parentId: null, payload: { content: { kind: "plain", text: "hi" }, fontSize: 24 } }),
-      makeNode({ id: "child", type: "image", parentId: "txt", payload: { assetId: "b" } }),
+      makeNode({
+        id: "txt",
+        type: "text",
+        parentId: null,
+        payload: { content: { kind: "plain", text: "hi" }, fontSize: 24 },
+      }),
+      makeNode({
+        id: "child",
+        type: "image",
+        parentId: "txt",
+        payload: { assetId: "b" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes('only "group" nodes may have children'))).toBe(true);
+    expect(
+      issues.some((i) =>
+        i.message.includes('only "group" nodes may have children'),
+      ),
+    ).toBe(true);
   });
 });

@@ -126,8 +126,8 @@ export const ProjectBindingV3Schema = z
         .object({
           kind: z.literal("component"),
           componentId: IdSchema,
-          nodeId: IdSchema,
-          property: PropertyPathSchema,
+          /** Public target id declared by the component owner. */
+          targetId: IdSchema,
         })
         .strict(),
     ]),

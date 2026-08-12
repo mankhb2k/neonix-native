@@ -123,13 +123,17 @@ export function validateMotionProjectV3References(
           path: `${path}.target.componentId`,
           message: `Unknown component: ${binding.target.componentId}`,
         });
-      } else if (
-        !component.nodes.some((node) => node.id === binding.target.nodeId)
-      ) {
-        issues.push({
-          path: `${path}.target.nodeId`,
-          message: `Unknown node: ${binding.target.nodeId}`,
-        });
+      } else {
+        // Consumer bindings must go through public targets only
+        const target = component.publicTargets.find(
+          (t) => t.id === binding.target.targetId,
+        );
+        if (!target) {
+          issues.push({
+            path: `${path}.target.targetId`,
+            message: `Component "${binding.target.componentId}" does not expose public target "${binding.target.targetId}"`,
+          });
+        }
       }
     }
   }

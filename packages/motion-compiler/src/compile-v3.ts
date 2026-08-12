@@ -638,21 +638,24 @@ function validateV3Semantics(
     const variable = project.variables.find(
       (candidate) => candidate.id === binding.source.variableId,
     )!;
-    const expected = expectedVariableTypeForProperty(binding.target.property);
-    if (expected && variable.type !== expected) {
-      collector.error(
-        "CMP_BINDING_TYPE_MISMATCH",
-        `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${binding.target.property}" which expects ${expected}`,
-        {
-          path: ["bindings", binding.id],
-          details: {
-            bindingId: binding.id,
-            variableType: variable.type,
-            property: binding.target.property,
-            expected,
+    // Component bindings resolve property through publicTargets — skip direct property check
+    if (binding.target.kind !== "component") {
+      const expected = expectedVariableTypeForProperty(binding.target.property);
+      if (expected && variable.type !== expected) {
+        collector.error(
+          "CMP_BINDING_TYPE_MISMATCH",
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${binding.target.property}" which expects ${expected}`,
+          {
+            path: ["bindings", binding.id],
+            details: {
+              bindingId: binding.id,
+              variableType: variable.type,
+              property: binding.target.property,
+              expected,
+            },
           },
-        },
-      );
+        );
+      }
     }
   }
 
@@ -953,6 +956,10 @@ export function compileMotionProjectV3(
       }
     }
 
+    const components = new Map(
+      normalized.components.map((c) => [c.id, c] as const),
+    );
+
     const runtimeBindings: Array<{
       id: string;
       source: { variableId: string };
@@ -975,6 +982,7 @@ export function compileMotionProjectV3(
         });
         continue;
       }
+      // Component binding — resolve via publicTarget
       const sceneId = clipIdForComponent.get(binding.target.componentId);
       if (!sceneId) {
         collector.warn(
@@ -990,13 +998,32 @@ export function compileMotionProjectV3(
         );
         continue;
       }
+      const component = components.get(binding.target.componentId);
+      const publicTarget = component?.publicTargets.find(
+        (pt) => pt.id === binding.target.targetId,
+      );
+      if (!publicTarget) {
+        collector.error(
+          "CMP_PRIVATE_COMPONENT_ACCESS",
+          `Binding "${binding.id}" targets component "${binding.target.componentId}" target "${binding.target.targetId}" which is not declared in publicTargets`,
+          {
+            path: ["bindings", binding.id],
+            details: {
+              bindingId: binding.id,
+              componentId: binding.target.componentId,
+              targetId: binding.target.targetId,
+            },
+          },
+        );
+        continue;
+      }
       runtimeBindings.push({
         id: binding.id,
         source: { variableId: binding.source.variableId },
         target: {
           sceneId,
-          nodeId: binding.target.nodeId,
-          property: binding.target.property,
+          nodeId: publicTarget.nodeId,
+          property: publicTarget.property,
         },
       });
     }
