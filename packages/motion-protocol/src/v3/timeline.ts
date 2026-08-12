@@ -76,6 +76,32 @@ export const TransitionV3Schema = z.discriminatedUnion("type", [
 
 export type TransitionV3 = z.infer<typeof TransitionV3Schema>;
 
+/**
+ * Component instance transform — allows consumers to position, scale, rotate,
+ * and keyframe the entire component as a group layer without touching internals.
+ *
+ * All fields are optional; missing fields default to identity values.
+ * Only meaningful when `VisualClipV3.source.kind === "component"`.
+ */
+export const ComponentInstanceTransformV3Schema = z
+  .object({
+    x: FiniteNumberSchema,
+    y: FiniteNumberSchema,
+    rotation: FiniteNumberSchema,
+    scaleX: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.transformScale),
+    scaleY: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.transformScale),
+    anchorX: FiniteNumberSchema.min(0).max(1),
+    anchorY: FiniteNumberSchema.min(0).max(1),
+    opacity: FiniteNumberSchema.min(0).max(1),
+    visible: z.boolean(),
+    flipX: z.boolean(),
+    flipY: z.boolean(),
+  })
+  .partial()
+  .strict();
+
+export type ComponentInstanceTransformV3 = z.infer<typeof ComponentInstanceTransformV3Schema>;
+
 export const VisualClipSourceV3Schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
   z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
@@ -99,6 +125,8 @@ export const VisualClipV3Schema = z
     opacity: NormalizedRatioSchema.default(1),
     transitionIn: TransitionV3Schema.optional(),
     transitionOut: TransitionV3Schema.optional(),
+    /** Transform applied to the *entire* component instance. Only meaningful for `source.kind === "component"`. */
+    instanceTransform: ComponentInstanceTransformV3Schema.optional(),
   })
   .strict();
 

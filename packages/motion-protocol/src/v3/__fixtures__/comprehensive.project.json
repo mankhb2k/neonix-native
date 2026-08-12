@@ -669,7 +669,16 @@
             "start": 1,
             "duration": 4,
             "opacity": 0.9,
-            "loop": false
+            "loop": false,
+            "instanceTransform": {
+              "x": 160,
+              "y": 800,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 0.95,
+              "visible": true
+            }
           }
         ]
       }

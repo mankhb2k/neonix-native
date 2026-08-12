@@ -158,6 +158,92 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(synthesized.nodes.map((node) => node.id)).toEqual(["logo"]);
   });
 
+  it("wraps component nodes in a group when instanceTransform is present", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "component-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-logo-reveal",
+            source: { kind: "component", componentId: "logo-reveal" },
+            start: 0,
+            duration: 4,
+            opacity: 1,
+            loop: false,
+            instanceTransform: {
+              x: 100,
+              y: 200,
+              rotation: 15,
+              scaleX: 0.5,
+              scaleY: 0.5,
+              opacity: 0.8,
+              visible: true,
+            },
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      console.log(JSON.stringify(result.diagnostics, null, 2));
+      return;
+    }
+    const synthesized = result.project.scenes.find(
+      (scene) => scene.id === "clip-logo-reveal",
+    )!;
+    expect(synthesized).toBeDefined();
+    // Should have 2 nodes: wrapper group + original "logo" node
+    expect(synthesized.nodes).toHaveLength(2);
+    const wrapperGroup = synthesized.nodes[0]!;
+    expect(wrapperGroup.id).toBe("clip-logo-reveal__instance");
+    expect(wrapperGroup.type).toBe("group");
+    expect(wrapperGroup.transform.x).toBe(100);
+    expect(wrapperGroup.transform.y).toBe(200);
+    expect(wrapperGroup.transform.rotation).toBe(15);
+    expect(wrapperGroup.transform.scaleX).toBe(0.5);
+    expect(wrapperGroup.transform.scaleY).toBe(0.5);
+    expect(wrapperGroup.transform.opacity).toBe(0.8);
+    // Original "logo" node should have its parentId set to wrapper
+    const logoNode = synthesized.nodes[1]!;
+    expect(logoNode.id).toBe("logo");
+    expect(logoNode.parentId).toBe("clip-logo-reveal__instance");
+  });
+
+  it("does not wrap component nodes when instanceTransform is absent", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "component-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-logo-reveal",
+            source: { kind: "component", componentId: "logo-reveal" },
+            start: 0,
+            duration: 4,
+            opacity: 1,
+            loop: false,
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const synthesized = result.project.scenes.find(
+      (scene) => scene.id === "clip-logo-reveal",
+    )!;
+    // No wrapper group — just the original node
+    expect(synthesized.nodes.map((node) => node.id)).toEqual(["logo"]);
+  });
+
   it("clones a scene when it is reused by multiple visual clips", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [

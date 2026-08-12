@@ -498,6 +498,69 @@ sequenceDiagram
 
 **Kết quả**: Runtime IR chỉ chứa các scene phẳng, không còn khái niệm "component". Component đã được "nướng" (baked) thành scene tại compile time.
 
+### 6.1 Instance Transform — Keyframe toàn bộ component
+
+Khi consumer muốn **di chuyển, scale, rotate, hoặc keyframe toàn bộ component instance** như một group layer, dùng `instanceTransform` trên visual clip:
+
+```jsonc
+{
+  "id": "my-btn-instance",
+  "source": { "kind": "component", "componentId": "my-button" },
+  "start": 0,
+  "duration": 5,
+  "instanceTransform": {
+    "x": 100,       // Vị trí X
+    "y": 200,       // Vị trí Y
+    "rotation": 15, // Xoay (độ)
+    "scaleX": 0.8,  // Scale ngang
+    "scaleY": 0.8,  // Scale dọc
+    "opacity": 0.9  // Độ mờ
+    // Tất cả field đều optional
+  }
+}
+```
+
+```mermaid
+flowchart LR
+    subgraph Before["Component Definition"]
+        A["node: text"]
+        B["node: solid"]
+    end
+
+    subgraph After["Synthesized Scene (có instanceTransform)"]
+        W["wrapper group\n(x:100, y:200, rotation:15)"]
+        A2["node: text\n(parentId → wrapper)"]
+        B2["node: solid\n(parentId → wrapper)"]
+    end
+
+    Before -->|"compiler wrap"| After
+    W --> A2
+    W --> B2
+```
+
+**Cơ chế hoạt động**:
+
+1. Consumer thêm `instanceTransform` vào visual clip `source.kind === "component"`
+2. Compiler tạo một **synthetic group node** làm wrapper cho toàn bộ nodes của component
+3. Group node mang transform từ `instanceTransform`, các node gốc được re-parent vào group
+4. Runtime nhận được scene với group wrapper — có thể keyframe group này như layer bình thường
+
+| Field          | Default | Mô tả                      |
+| -------------- | ------- | -------------------------- |
+| `x`            | `0`     | Vị trí ngang               |
+| `y`            | `0`     | Vị trí dọc                 |
+| `rotation`     | `0`     | Góc xoay (độ)              |
+| `scaleX`       | `1`     | Tỉ lệ ngang                |
+| `scaleY`       | `1`     | Tỉ lệ dọc                  |
+| `anchorX`      | `0.5`   | Anchor ngang (0–1)         |
+| `anchorY`      | `0.5`   | Anchor dọc (0–1)           |
+| `opacity`      | `1`     | Độ mờ (0–1)                |
+| `visible`      | `true`  | Hiển thị                    |
+| `flipX`        | `false` | Lật ngang                   |
+| `flipY`        | `false` | Lật dọc                     |
+
+> **Lưu ý**: `instanceTransform` không thay thế public contract — consumer vẫn dùng `publicParams`, `slots`, `variants`, `publicTargets` để cấu hình nội dung bên trong component. `instanceTransform` chỉ điều khiển vị trí và hiệu ứng của **toàn bộ instance** trên màn hình.
+
 ---
 
 ## 7. Best Practices
@@ -516,6 +579,7 @@ sequenceDiagram
 2. **Không cố truy cập `nodeId`/`property`** của component — sẽ bị compiler từ chối
 3. **Kiểm tra `dependencies.components`** khớp với component đang dùng
 4. **Dùng `transitionIn`/`transitionOut`** trên visual clip thay vì sửa animation nội bộ
+5. **Dùng `instanceTransform`** để định vị và keyframe toàn bộ component instance
 
 ### Cho Editor/UI Developer
 
@@ -537,3 +601,4 @@ sequenceDiagram
 | **Schema enforcement**   | `.strict()` + Zod discriminator → từ chối sai shape               |
 | **Compiler enforcement** | `CMP_PRIVATE_COMPONENT_ACCESS` → từ chối truy cập private         |
 | **Runtime**              | Component được flatten thành scene, không còn khái niệm component |
+| **instanceTransform**    | Cho phép keyframe toàn bộ component instance như group layer      |

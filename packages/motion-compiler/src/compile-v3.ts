@@ -548,11 +548,51 @@ function buildVisualPlan(
         );
         continue;
       }
+      let componentNodes = component.nodes.map((node) =>
+        prepareRuntimeNode(node),
+      );
+
+      // Apply instance transform: wrap all component nodes in a synthetic group
+      // so the entire component instance can be positioned, scaled, rotated, and
+      // keyframed as a single layer without touching internals.
+      const instanceTransform = clip.instanceTransform;
+      if (instanceTransform && Object.keys(instanceTransform).length > 0) {
+        const wrapperId = `${clip.id}__instance`;
+        // Re-parent all root nodes under the wrapper group
+        for (const node of componentNodes) {
+          if (node.parentId === null || node.parentId === undefined) {
+            (node as Record<string, unknown>).parentId = wrapperId;
+          }
+        }
+        const groupNode: JsonRecord = {
+          id: wrapperId,
+          type: "group",
+          parentId: null,
+          transform: {
+            x: (instanceTransform.x as number) ?? 0,
+            y: (instanceTransform.y as number) ?? 0,
+            width: 0,
+            height: 0,
+            rotation: (instanceTransform.rotation as number) ?? 0,
+            scaleX: (instanceTransform.scaleX as number) ?? 1,
+            scaleY: (instanceTransform.scaleY as number) ?? 1,
+            anchorX: (instanceTransform.anchorX as number) ?? 0.5,
+            anchorY: (instanceTransform.anchorY as number) ?? 0.5,
+            opacity: (instanceTransform.opacity as number) ?? 1,
+            visible: (instanceTransform.visible as boolean) ?? true,
+            flipX: (instanceTransform.flipX as boolean) ?? false,
+            flipY: (instanceTransform.flipY as boolean) ?? false,
+          },
+          payload: { compositing: { mode: "pass-through" } },
+        };
+        componentNodes = [groupNode, ...componentNodes];
+      }
+
       const scene: JsonRecord = {
         id: clip.id,
         name: component.id,
         duration: clip.duration,
-        nodes: component.nodes.map((node) => prepareRuntimeNode(node)),
+        nodes: componentNodes,
         clips: [],
         sourceRef: {
           projectPath: ["components", component.id],

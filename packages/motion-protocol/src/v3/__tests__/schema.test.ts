@@ -235,7 +235,20 @@ describe("v3 schema — positive fixtures", () => {
     const overlayTrack = project.timeline.visualTracks.find(
       (t) => t.role === "overlay",
     )!;
-    expect(overlayTrack.clips[0]!.source.kind).toBe("component");
+    const componentClip = overlayTrack.clips[0]!;
+    expect(componentClip.source.kind).toBe("component");
+    // instanceTransform is present on the component clip
+    expect(componentClip.instanceTransform).toBeTruthy();
+    expect(componentClip.instanceTransform!.x).toBe(100);
+    expect(componentClip.instanceTransform!.y).toBe(200);
+  });
+
+  it("parses component clip without instanceTransform (optional field)", () => {
+    // VisualClipV3Schema must accept clips without instanceTransform
+    const input = loadFixture("multi-scene.project.json");
+    const project = MotionProjectV3Schema.parse(input);
+    const clip = project.timeline.visualTracks[0]!.clips[0]!;
+    expect(clip.instanceTransform).toBeUndefined();
   });
 
   it("parses caption project with bilingual caption tracks", () => {

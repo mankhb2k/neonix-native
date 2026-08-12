@@ -221,6 +221,15 @@
             "source": { "kind": "component", "componentId": "call-to-action" },
             "start": 1,
             "duration": 2.5,
+            "instanceTransform": {
+              "x": 100,
+              "y": 200,
+              "rotation": 0,
+              "scaleX": 1,
+              "scaleY": 1,
+              "opacity": 1,
+              "visible": true
+            },
             "transitionIn": {
               "type": "fade",
               "duration": 0.3,

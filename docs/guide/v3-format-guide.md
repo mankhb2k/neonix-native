@@ -209,7 +209,41 @@ flowchart LR
     "direction": "left",
     "mode": "push",
   },
+  // ── Component-only: whole-instance transform ──
+  "instanceTransform": {
+    "x": 100,          // optional, default 0
+    "y": 200,          // optional, default 0
+    "rotation": 0,     // optional, default 0 (độ)
+    "scaleX": 1,       // optional, default 1
+    "scaleY": 1,       // optional, default 1
+    "anchorX": 0.5,    // optional, default 0.5
+    "anchorY": 0.5,    // optional, default 0.5
+    "opacity": 1,      // optional, default 1
+    "visible": true,   // optional, default true
+    "flipX": false,    // optional, default false
+    "flipY": false     // optional, default false
+  }
 }
+```
+
+> **`instanceTransform`** chỉ có ý nghĩa khi `source.kind === "component"`. Tất cả field đều optional — field nào thiếu sẽ dùng giá trị identity. Compiler sẽ wrap toàn bộ internal nodes của component vào một synthetic group node mang transform này, cho phép consumer keyframe toàn bộ component instance như một group layer mà không cần chạm vào internals.
+
+```mermaid
+flowchart LR
+    subgraph Pre["📦 Component Definition"]
+        n1["node: text"]
+        n2["node: solid"]
+    end
+
+    subgraph Post["▶️ Synthesized Scene (có instanceTransform)"]
+        g["group (synthetic wrapper)"]
+        n1c["node: text (parentId → wrapper)"]
+        n2c["node: solid (parentId → wrapper)"]
+    end
+
+    Pre -->|"compiler wrap"| Post
+    g --> n1c
+    g --> n2c
 ```
 
 ### 3.4 Thuật ngữ Track / Layer
@@ -798,7 +832,7 @@ Theo dõi nguồn gốc project và source mapping:
 | ------------------------ | ------------------------------------------------------------------------------------- |
 | **MotionProjectV3**      | Single source of truth, một file JSON cho toàn bộ dự án                               |
 | **visualTracks**         | Thay thế `sceneOrder`, hỗ trợ multi-track (`main` + `overlay`)                        |
-| **VisualClip**           | Clip-level transition, loop, playbackRate, opacity                                    |
+| **VisualClip**           | Clip-level transition, loop, playbackRate, opacity, instanceTransform (component)           |
 | **Node types**           | 11 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment |
 | **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local zIndex                  |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                            |
