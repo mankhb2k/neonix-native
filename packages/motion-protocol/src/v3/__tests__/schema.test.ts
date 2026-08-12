@@ -1280,6 +1280,91 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const project = parseMotionProjectV3({ ...input, scenes });
     expect(project.scenes.length).toBeGreaterThan(0);
   });
+
+  it("rejects unknown variantId on a component node", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  variantId: "nonexistent-variant",
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, scenes })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, scenes });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'does not declare variant "nonexistent-variant"',
+      );
+    }
+  });
+
+  it("rejects variant override targeting unknown public target", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        variants: [
+          {
+            id: "primary",
+            name: "Primary",
+            overrides: { "not-a-target": "hello" },
+          },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'overrides unknown public target "not-a-target"',
+      );
+    }
+  });
+
+  it("accepts variant override targeting a declared public target", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        variants: [
+          {
+            id: "primary",
+            name: "Primary",
+            overrides: { "cta-label": "Primary CTA" },
+          },
+        ],
+      }),
+    );
+    const project = parseMotionProjectV3({ ...input, components });
+    expect(project.components[0]!.variants[0]!.overrides).toEqual({
+      "cta-label": "Primary CTA",
+    });
+  });
 });
 
 // ── Isolation from v2 ──────────────────────────────────────────────────

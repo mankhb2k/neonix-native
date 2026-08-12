@@ -379,9 +379,17 @@ function expandComponentNodesV3(
       return cloned;
     });
 
-    // Apply consumer publicProps through the declared public targets.
-    const publicProps = node.payload.publicProps ?? {};
-    for (const [targetId, value] of Object.entries(publicProps)) {
+    // Apply variant overrides, then consumer publicProps, through the
+    // declared public targets. Precedence: component defaults < variant
+    // overrides < consumer publicProps.
+    const variant = node.payload.variantId
+      ? component.variants.find((v) => v.id === node.payload.variantId)
+      : undefined;
+    const overrides: Record<string, unknown> = {
+      ...(variant?.overrides ?? {}),
+      ...(node.payload.publicProps ?? {}),
+    };
+    for (const [targetId, value] of Object.entries(overrides)) {
       const publicTarget = component.publicTargets.find(
         (t) => t.id === targetId,
       );

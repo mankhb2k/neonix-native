@@ -421,6 +421,70 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(clip.transitionIn).toEqual({ type: "fade", duration: 0.5 });
   });
 
+  it("applies variant overrides through public targets", () => {
+    const project = makeComponentNodeProject();
+    const component = project.components.find(
+      (c) => c.id === "logo-reveal",
+    )!;
+    component.variants = [
+      {
+        id: "accent",
+        name: "Accent",
+        overrides: { "logo-color": "#ff0000" },
+        params: {},
+      },
+    ];
+    const scene = project.scenes.find((s) => s.id === "comp-scene")!;
+    const compNode = scene.nodes.find(
+      (n) => n.type === "component",
+    ) as V3.ComponentNodeV3;
+    compNode.payload.variantId = "accent";
+
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const logo = runtimeScene.nodes.find(
+      (n) => n.id === "comp-node__logo",
+    ) as unknown as { payload: Record<string, unknown> };
+    expect(logo.payload.color).toBe("#ff0000");
+  });
+
+  it("consumer publicProps override variant overrides", () => {
+    const project = makeComponentNodeProject({
+      publicProps: { "logo-color": "#00ff00" },
+    });
+    const component = project.components.find(
+      (c) => c.id === "logo-reveal",
+    )!;
+    component.variants = [
+      {
+        id: "accent",
+        name: "Accent",
+        overrides: { "logo-color": "#ff0000" },
+        params: {},
+      },
+    ];
+    const scene = project.scenes.find((s) => s.id === "comp-scene")!;
+    const compNode = scene.nodes.find(
+      (n) => n.type === "component",
+    ) as V3.ComponentNodeV3;
+    compNode.payload.variantId = "accent";
+
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const logo = runtimeScene.nodes.find(
+      (n) => n.id === "comp-node__logo",
+    ) as unknown as { payload: Record<string, unknown> };
+    expect(logo.payload.color).toBe("#00ff00");
+  });
+
   it("rejects a visual clip carrying the removed instanceTransform field", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [

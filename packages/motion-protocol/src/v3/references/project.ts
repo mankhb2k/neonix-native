@@ -609,6 +609,18 @@ export function validateMotionProjectV3References(
         message: `Duplicate variant id: ${dupId}`,
       });
     }
+    // Variant overrides must target declared public targets only.
+    const publicTargetIdSet = new Set(component.publicTargets.map((t) => t.id));
+    for (const variant of component.variants) {
+      for (const targetId of Object.keys(variant.overrides ?? {})) {
+        if (!publicTargetIdSet.has(targetId)) {
+          issues.push({
+            path: `components.${component.id}.variants.${variant.id}.overrides.${targetId}`,
+            message: `Variant "${variant.id}" overrides unknown public target "${targetId}"`,
+          });
+        }
+      }
+    }
     // Validate publicParams — variableId must reference a component-local
     // variable OR a project-level variable (fallback for shared params)
     const componentVariableIds = new Set(component.variables.map((v) => v.id));

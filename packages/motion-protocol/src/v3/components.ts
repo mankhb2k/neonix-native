@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { PublicParamSchema, VariableSchema } from "./variables";
-import { JsonValueSchema, ValueKindSchema } from "./values";
+import { JsonValueSchema, ResolvableValueSchema, ValueKindSchema } from "./values";
 import { IdSchema, PropertyPathSchema, SemverSchema } from "./common";
 import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";
@@ -64,11 +64,21 @@ export const ComponentPublicTargetV3Schema = z
   })
   .strict();
 
-/** Typed variant preset — owner-approved configuration that alters layout, style, or motion. */
+/**
+ * Typed variant preset — owner-approved configuration that alters layout,
+ * style, or motion via public-target overrides.
+ *
+ * `overrides` is keyed by `publicTarget` id, so a variant can only influence
+ * the component's declared public surface — never arbitrary internals.
+ * `params` is retained for backward compatibility with pre-existing fixtures.
+ */
 export const ComponentVariantV3Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1),
+    /** Public-target overrides keyed by `publicTarget` id. */
+    overrides: z.record(ResolvableValueSchema).default({}),
+    /** @deprecated Legacy free-form params; prefer `overrides`. */
     params: z.record(JsonValueSchema).default({}),
     previewHint: z.string().optional(),
   })
