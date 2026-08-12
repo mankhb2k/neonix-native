@@ -62,4 +62,4 @@ export const NodeBaseSchema = z.object({
     })
     .strict()
     .optional(),
-});
+}).strict();

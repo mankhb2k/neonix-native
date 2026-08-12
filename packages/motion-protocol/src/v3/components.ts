@@ -121,7 +121,25 @@ export const EmbeddedComponentV3Schema = z
       .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)
       .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    // --- Slot id uniqueness ---
+    const slotIds = new Set<string>();
+    for (let i = 0; i < val.slots.length; i++) {
+      const sid = val.slots[i].id;
+      if (slotIds.has(sid)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate slot id "${sid}"`,
+          path: ["slots", i, "id"],
+        });
+      }
+      slotIds.add(sid);
+    }
+
+    // NOTE: Consumer-side slot-content cardinality (count) is validated
+    // at the component-instance level once slot-content schemas land.
+  });
 
 export const ComponentDependencyV3Schema = z
   .object({

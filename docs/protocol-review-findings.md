@@ -51,17 +51,17 @@
 | #   | File            | Issue                                                                                                                                                                                                        |
 | --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | H4  | `scenes.ts:26`  | `SceneDefinitionV3Schema.nodes` KHÔNG có `.min(1)` — scene không node được accept. ✅ **FIXED** — nodes: z.array(NodeV3Schema).min(1).max(...) |
-| H5  | `components.ts` | `EmbeddedComponentV3Schema.slots` cho phép `count > 1` nhưng không có schema-level validation nào đảm bảo slot content array match `count`. Nếu `count: 3` mà consumer chỉ truyền 2 items → silent mismatch. |
+| H5  | `components.ts` | `EmbeddedComponentV3Schema.slots` cho phép `count > 1` nhưng không có schema-level validation nào đảm bảo slot content array match `count`. ✅ **FIXED** — superRefine kiểm tra duplicate slot ids + note về consumer-side slot-content cardinality. |
 
 ### 🟡 Medium
 
 | #   | File               | Issue                                                                                                                                                                                                                                |
 | --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | M6  | `timeline.ts`      | `VisualClipV3Schema` có `playbackRate` và `loop` nhưng không validate `playbackRate > 0`. ✅ **FIXED** — playbackRate: .superRefine() kiểm tra > 0 |
-| M7  | `nodes/base.ts:24` | **CRITICAL cho runtime** — `NodeBaseSchema` trong runtime KHÔNG có `.strict()`. Tất cả 11 node type âm thầm accept extra properties ở base level. May mắn là V3 authoring `NodeBaseV3Schema` đã có `.strict()` gián tiếp qua extend. |
+| M7  | `nodes/base.ts:24` | **CRITICAL cho runtime** — `NodeBaseSchema` trong runtime KHÔNG có `.strict()`. ✅ **FIXED** — đã thêm `.strict()`. |
 | M8  | `common.ts`        | `SemverSchema` regex cho phép `1.0.0-`. ✅ **FIXED** — pattern: `(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?` (requires at least one char after dash). Cả v3/common.ts và runtime/common.ts. |
 | M9  | `variables.ts`     | `DesignTokensSchema` export nhưng `DesignTokens` type chỉ trong `v3/index.ts`, không có ở top-level `index.ts` cùng các type khác.                                                                                                   |
-| M10 | `transform.ts`     | `TransformSchema.width/height` dùng `.nonnegative()` → cho phép `0`. Node width=0 hoặc height=0 là vô hình → nên là `.positive()` hoặc thêm `.superRefine()` warning.                                                                |
+| M10 | `transform.ts`     | `TransformSchema.width/height` dùng `.nonnegative()` → cho phép `0`. Node width=0 hoặc height=0 là vô hình. 🔵 **BY DESIGN** — camera, group, bone nodes legitimately use width=0/height=0. `.nonnegative()` giữ nguyên. |
 
 ### ℹ️ Info
 
