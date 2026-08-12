@@ -559,9 +559,8 @@ function buildVisualPlan(
       const instanceTransform = clip.instanceTransform;
       const instanceTracks = clip.instanceTransformTracks;
       const hasTransform =
-        (instanceTransform && Object.keys(instanceTransform).length > 0);
-      const hasTracks =
-        instanceTracks && instanceTracks.length > 0;
+        instanceTransform && Object.keys(instanceTransform).length > 0;
+      const hasTracks = instanceTracks && instanceTracks.length > 0;
       const wrapperId = `${clip.id}__instance`;
       const motionClips: JsonRecord[] = [];
 
@@ -596,6 +595,8 @@ function buildVisualPlan(
         componentNodes = [groupNode, ...componentNodes];
 
         // Generate motion clips from instanceTransformTracks
+        // Note: InstanceTransformTrackV3Schema has no targetId —
+        // the wrapper group is always the implicit target.
         if (hasTracks) {
           let trackIndex = 0;
           for (const track of instanceTracks) {
@@ -604,7 +605,11 @@ function buildVisualPlan(
               targetId: wrapperId,
               schedule: { kind: "absolute" as const, at: 0 },
               duration: clip.duration,
-              playback: { direction: "normal" as const, iterations: 1, rate: 1 },
+              playback: {
+                direction: "normal" as const,
+                iterations: 1,
+                rate: 1,
+              },
               source: {
                 kind: "tracks" as const,
                 tracks: [
@@ -877,17 +882,34 @@ function validateV3Semantics(
             "CMP_INVALID_CLIP_FIELD",
             `Visual clip "${clip.id}" has instanceTransform but source.kind is "scene" — instanceTransform is only valid for component-source clips`,
             {
-              path: ["timeline", "visualTracks", track.id, "clips", clip.id, "instanceTransform"],
+              path: [
+                "timeline",
+                "visualTracks",
+                track.id,
+                "clips",
+                clip.id,
+                "instanceTransform",
+              ],
               details: { clipId: clip.id },
             },
           );
         }
-        if (clip.instanceTransformTracks && clip.instanceTransformTracks.length > 0) {
+        if (
+          clip.instanceTransformTracks &&
+          clip.instanceTransformTracks.length > 0
+        ) {
           collector.error(
             "CMP_INVALID_CLIP_FIELD",
             `Visual clip "${clip.id}" has instanceTransformTracks but source.kind is "scene" — instanceTransformTracks is only valid for component-source clips`,
             {
-              path: ["timeline", "visualTracks", track.id, "clips", clip.id, "instanceTransformTracks"],
+              path: [
+                "timeline",
+                "visualTracks",
+                track.id,
+                "clips",
+                clip.id,
+                "instanceTransformTracks",
+              ],
               details: { clipId: clip.id },
             },
           );

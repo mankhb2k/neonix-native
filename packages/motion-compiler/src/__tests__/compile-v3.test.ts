@@ -262,9 +262,11 @@ describe("compileMotionProjectV3 — happy paths", () => {
             loop: false,
             instanceTransformTracks: [
               {
-                targetId: "clip-logo-reveal__instance",
                 property: "transform.x",
-                keys: [{ t: 0, v: 0 }, { t: 2, v: 200 }],
+                keys: [
+                  { t: 0, v: 0 },
+                  { t: 2, v: 200 },
+                ],
               },
             ],
           },

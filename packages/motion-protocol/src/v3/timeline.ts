@@ -15,7 +15,14 @@ import {
   NormalizedRatioSchema,
   PositiveNumberSchema,
 } from "./common";
-import { PropertyTrackV3Schema, SceneMarkerV3Schema } from "./animation/tracks";
+import { ResolvableValueSchema, ValueKindSchema } from "./values";
+import { KeyframeEasingSchema } from "./animation/easing";
+import {
+  ExtrapolationBehaviorSchema,
+  PropertyTrackV3Schema,
+  SceneMarkerV3Schema,
+  TrackTimeSchema,
+} from "./animation/tracks";
 
 export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
@@ -118,6 +125,62 @@ export type ComponentInstanceTransformV3 = z.infer<
   typeof ComponentInstanceTransformV3Schema
 >;
 
+// ── Instance transform track (component-instance motion) ──────────
+
+/**
+ * Allowed property paths for `instanceTransformTracks`.
+ *
+ * Only group-level transform properties are permitted because
+ * instanceTransformTracks animate the synthetic wrapper group, not
+ * individual nodes inside the component.
+ */
+export const INSTANCE_TRANSFORM_ALLOWED_PROPERTIES = [
+  "transform.x",
+  "transform.y",
+  "transform.rotation",
+  "transform.scaleX",
+  "transform.scaleY",
+  "transform.opacity",
+  "transform.anchorX",
+  "transform.anchorY",
+  "transform.visible",
+  "transform.flipX",
+  "transform.flipY",
+] as const;
+
+/**
+ * A single keyframe track that animates a component-instance wrapper group.
+ *
+ * Unlike `PropertyTrackV3Schema`, this schema:
+ * - Has **no `targetId`** — the target is always the synthetic wrapper group
+ *   created by the compiler (e.g. `"<clipId>__instance"`).
+ * - Restricts `property` to group-level transform paths only.
+ */
+export const InstanceTransformTrackV3Schema = z
+  .object({
+    property: z.enum(INSTANCE_TRANSFORM_ALLOWED_PROPERTIES),
+    valueKind: ValueKindSchema.optional(),
+    preBehavior: ExtrapolationBehaviorSchema.optional(),
+    postBehavior: ExtrapolationBehaviorSchema.optional(),
+    keys: z
+      .array(
+        z
+          .object({
+            t: TrackTimeSchema,
+            v: ResolvableValueSchema,
+            easing: KeyframeEasingSchema.optional(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+  })
+  .strict();
+
+export type InstanceTransformTrackV3 = z.infer<
+  typeof InstanceTransformTrackV3Schema
+>;
+
 export const VisualClipSourceV3Schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
   z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
@@ -147,7 +210,7 @@ export const VisualClipV3Schema = z
     instanceTransform: ComponentInstanceTransformV3Schema.optional(),
     /** Keyframe tracks that animate the component instance wrapper group over time. Only meaningful when `source.kind === "component"`. */
     instanceTransformTracks: z
-      .array(PropertyTrackV3Schema)
+      .array(InstanceTransformTrackV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.tracksPerClip)
       .optional(),
   })
@@ -158,15 +221,15 @@ export const VisualClipV3Schema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
-            "instanceTransform is only valid for component-source clips (source.kind === \"component\")",
+            'instanceTransform is only valid for component-source clips (source.kind === "component")',
           path: ["instanceTransform"],
         });
       }
-      if (val.instanceTransformTracks && val.instanceTransformTracks.length > 0) {
+      if (val.instanceTransformTracks !== undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
-            "instanceTransformTracks is only valid for component-source clips (source.kind === \"component\")",
+            'instanceTransformTracks is only valid for component-source clips (source.kind === "component")',
           path: ["instanceTransformTracks"],
         });
       }

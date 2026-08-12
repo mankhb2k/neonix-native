@@ -257,13 +257,16 @@ describe("v3 schema — positive fixtures", () => {
   });
 
   it("parses component clip with instanceTransformTracks that animate wrapper group", () => {
-    const input = loadFixture("component.project.json") as Record<string, unknown>;
-    const tracks = (input.timeline as Record<string, unknown>).visualTracks as Array<Record<string, unknown>>;
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
     const overlayTrack = tracks.find((t) => t.role === "overlay")!;
     const clips = overlayTrack.clips as Array<Record<string, unknown>>;
     clips[0]!.instanceTransformTracks = [
       {
-        targetId: "dummy",
         property: "transform.x",
         valueKind: "number",
         keys: [
@@ -419,7 +422,6 @@ describe("v3 schema — negative fixtures", () => {
                   duration: 1,
                   instanceTransformTracks: [
                     {
-                      targetId: "n1",
                       property: "transform.x",
                       keys: [{ t: 0, v: 0 }],
                     },
