@@ -29,22 +29,17 @@ import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  // Phase 7: visualTracks primary track is the sole source of scene ordering.
-  // Clip-level transitionOut carries per-scene transitions directly.
-  const primaryTrack = runtime.timeline.visualTracks.find(
-    (t) => t.role === "primary",
-  );
-  if (!primaryTrack || primaryTrack.clips.length === 0) {
-    return [];
-  }
-  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
-  return sortedClips.map((clip) => {
+  // Collect all clips from every visual track (primary + overlay), sorted by start.
+  const allClips = runtime.timeline.visualTracks.flatMap((t) => t.clips);
+  if (allClips.length === 0) return [];
+  const sorted = [...allClips].sort((a, b) => a.start - b.start);
+  return sorted.map((clip) => {
     const sourceId =
       clip.source.kind === "scene"
         ? clip.source.sceneId
         : clip.source.componentId;
     return {
-      sceneId: sourceId,
+      sceneId: sourceId ?? "",
       duration: clip.duration,
       transitionOut:
         clip.transitionOut as CompositionSceneInput["transitionOut"],

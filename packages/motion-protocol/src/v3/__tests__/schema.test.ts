@@ -315,15 +315,22 @@ describe("v3 schema — positive fixtures", () => {
         property: "transform.opacity",
         preBehavior: { type: "clamp" },
         postBehavior: { type: "clamp" },
-        keys: [{ t: 0, v: 0 }, { t: 1, v: 1 }],
+        keys: [
+          { t: 0, v: 0 },
+          { t: 1, v: 1 },
+        ],
       },
     ];
     const project = MotionProjectV3Schema.parse(input);
     const clip = project.timeline.visualTracks.find(
       (t) => t.role === "overlay",
     )!.clips[0]!;
-    expect(clip.instanceTransformTracks![0]!.preBehavior).toEqual({ type: "clamp" });
-    expect(clip.instanceTransformTracks![0]!.postBehavior).toEqual({ type: "clamp" });
+    expect(clip.instanceTransformTracks![0]!.preBehavior).toEqual({
+      type: "clamp",
+    });
+    expect(clip.instanceTransformTracks![0]!.postBehavior).toEqual({
+      type: "clamp",
+    });
   });
 
   it("rejects instanceTransformTracks with mismatched valueKind", () => {

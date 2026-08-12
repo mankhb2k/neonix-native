@@ -4,7 +4,7 @@ export type TimelineProjectLike = {
   timeline: {
     /** V3 visual tracks — the sole source of timeline ordering. */
     visualTracks: ReadonlyArray<{
-      role: string;
+      role: "primary" | "overlay" | string;
       clips: ReadonlyArray<{
         source: { kind: string; sceneId?: string; componentId?: string };
         start: number;
@@ -97,7 +97,11 @@ export function resolveTimelineAtTime(
   const segments = listTimelineSegments(runtime);
   if (segments.length === 0) return null;
 
-  const totalDuration = segments.reduce((sum, s) => sum + s.duration, 0);
+  // totalDuration: max end across all tracks (consistent with timelineTotalDuration)
+  const totalDuration = segments.reduce(
+    (max, s) => Math.max(max, s.start + s.duration),
+    0,
+  );
   const t = Number.isFinite(globalTime) ? Math.max(0, globalTime) : 0;
 
   for (let i = 0; i < segments.length; i += 1) {

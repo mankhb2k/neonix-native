@@ -118,7 +118,17 @@ export const ComponentInstanceTransformV3Schema = z
     flipY: z.boolean(),
   })
   .partial()
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (Object.keys(val).length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "instanceTransform must have at least one property — empty object is not valid",
+        path: [],
+      });
+    }
+  });
 
 export type ComponentInstanceTransformV3 = z.infer<
   typeof ComponentInstanceTransformV3Schema

@@ -453,6 +453,7 @@ function buildVisualPlan(
     project.components.map((component) => [component.id, component] as const),
   );
   const sceneUsage = new Map<string, number>();
+  const componentUsageCount = new Map<string, number>();
   const sceneOverrides = new Map<string, JsonRecord>();
   const tracks: VisualPlanTrack[] = [];
 
@@ -548,6 +549,11 @@ function buildVisualPlan(
         );
         continue;
       }
+      // Deduplicate: same component reused → suffix scene id with clip id.
+      const componentUsage = componentUsageCount.get(component.id) ?? 0;
+      componentUsageCount.set(component.id, componentUsage + 1);
+      const componentSceneId =
+        componentUsage > 0 ? `${component.id}@${clip.id}` : clip.id;
       let componentNodes = component.nodes.map((node) =>
         prepareRuntimeNode(node),
       );
@@ -617,12 +623,22 @@ function buildVisualPlan(
               "transform.flipY": "flipY",
             };
             for (const [trackProp, staticProp] of Object.entries(overlapMap)) {
-              if (animatedProps.has(trackProp) && (instanceTransform as Record<string, unknown>)[staticProp] !== undefined) {
+              if (
+                animatedProps.has(trackProp) &&
+                (instanceTransform as Record<string, unknown>)[staticProp] !==
+                  undefined
+              ) {
                 collector.warn(
                   "CMP_INSTANCE_TRANSFORM_OVERLAP",
                   `Clip "${clip.id}": instanceTransform.${staticProp} is overridden by instanceTransformTracks[].property="${trackProp}". The static value is ignored.`,
                   {
-                    path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
+                    path: [
+                      "timeline",
+                      "visualTracks",
+                      v3Track.id,
+                      "clips",
+                      clip.id,
+                    ],
                     details: { clipId: clip.id, staticProp, trackProp },
                   },
                 );
@@ -638,7 +654,8 @@ function buildVisualPlan(
             };
             if (track.valueKind) innerTrack.valueKind = track.valueKind;
             if (track.preBehavior) innerTrack.preBehavior = track.preBehavior;
-            if (track.postBehavior) innerTrack.postBehavior = track.postBehavior;
+            if (track.postBehavior)
+              innerTrack.postBehavior = track.postBehavior;
             motionClips.push({
               id: `${clip.id}__motion-${trackIndex}`,
               targetId: wrapperId,
@@ -660,7 +677,7 @@ function buildVisualPlan(
       }
 
       const scene: JsonRecord = {
-        id: clip.id,
+        id: componentSceneId,
         name: component.id,
         duration: clip.duration,
         nodes: componentNodes,
@@ -670,10 +687,10 @@ function buildVisualPlan(
           sourceModule: `${component.id}@${component.version}`,
         },
       };
-      sceneOverrides.set(clip.id, scene);
+      sceneOverrides.set(componentSceneId, scene);
       trackEntries.push({
         clipId: clip.id,
-        sceneId: clip.id,
+        sceneId: componentSceneId,
         trimStart: clip.trimStart,
         playbackRate: clip.playbackRate,
         loop: clip.loop,
@@ -698,28 +715,29 @@ function buildVisualPlan(
 // ── Semantic validation (CMP_* diagnostics) ───────────────────────────
 
 function expectedVariableTypeForProperty(property: string): string | undefined {
-  const prop = property.toLowerCase();
+  // Exact segment matching — avoid false positives from substring matches.
+  const segments = property.toLowerCase().split(".");
+  const last = segments[segments.length - 1];
+  if (!last) return undefined;
+  if (last === "text" || last === "label" || last === "name") return "string";
+  if (last.includes("color")) return "color";
   if (
-    prop.endsWith(".text") ||
-    prop.endsWith(".label") ||
-    prop.endsWith(".name")
-  )
-    return "string";
-  if (prop.includes("color")) return "color";
-  if (
-    prop.endsWith(".visible") ||
-    prop.endsWith(".enabled") ||
-    prop.endsWith(".muted") ||
-    prop.endsWith(".loop")
+    last === "visible" ||
+    last === "enabled" ||
+    last === "muted" ||
+    last === "loop"
   )
     return "boolean";
   if (
-    /(?:opacity|width|height|scale|rotation|x|y|z|fontsize|letterspacing|lineheight|rate|volume|duration|start|end|progress|radius|length|fov|zoom|near|far)$/.test(
-      prop,
+    /^(?:opacity|width|height|scalex|scaley|rotation|x|y|z|fontsize|letterspacing|lineheight|rate|volume|duration|start|end|progress|radius|length|fov|zoom|near|far)$/.test(
+      last,
+    ) ||
+    segments.some((s) =>
+      /^(?:opacity|width|height|scale|rotation|fontsize)$/.test(s),
     )
   )
     return "number";
-  if (prop.endsWith("assetid")) return "asset";
+  if (last === "assetid") return "asset";
   return undefined;
 }
 

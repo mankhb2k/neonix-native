@@ -197,9 +197,7 @@ export function validateMotionProjectV3References(
 
     // Validate publicParams — variableId must reference a component-local
     // variable OR a project-level variable (fallback for shared params)
-    const componentVariableIds = new Set(
-      component.variables.map((v) => v.id),
-    );
+    const componentVariableIds = new Set(component.variables.map((v) => v.id));
     for (const param of component.publicParams) {
       if (
         !componentVariableIds.has(param.variableId) &&
