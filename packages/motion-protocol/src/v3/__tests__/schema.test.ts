@@ -352,6 +352,98 @@ describe("v3 schema — positive fixtures", () => {
     expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
+  // ── Component instanceTransformTracks — negative edge cases ───────
+
+  function makeComponentFixtureWithTrack(
+    track: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const input = loadFixture("component.project.json") as Record<string, unknown>;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [track];
+    return input;
+  }
+
+  it("rejects instanceTransformTracks with payload property path (not wrapper-safe)", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "payload.fontSize",
+      keys: [{ t: 0, v: 24 }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects instanceTransformTracks with payload.content.text path", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "payload.content.text",
+      keys: [{ t: 0, v: "hello" }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects instanceTransformTracks with transform.z (3D only, not wrapper-safe)", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "transform.z",
+      keys: [{ t: 0, v: 0 }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects instanceTransformTracks with transform.depth path", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "transform.depth",
+      keys: [{ t: 0, v: 0 }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects instanceTransformTracks with arbitrary property path", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "arbitrary.custom.path",
+      keys: [{ t: 0, v: 0 }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects instanceTransformTracks with empty keys array", () => {
+    const input = loadFixture("component.project.json") as Record<string, unknown>;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [
+      {
+        property: "transform.x",
+        keys: [],
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("accepts all 11 wrapper-safe properties in instanceTransformTracks", () => {
+    const safeProperties = [
+      "transform.x",
+      "transform.y",
+      "transform.rotation",
+      "transform.scaleX",
+      "transform.scaleY",
+      "transform.opacity",
+      "transform.anchorX",
+      "transform.anchorY",
+      "transform.visible",
+      "transform.flipX",
+      "transform.flipY",
+    ] as const;
+    for (const prop of safeProperties) {
+      const input = makeComponentFixtureWithTrack({
+        property: prop,
+        keys: [{ t: 0, v: prop === "transform.visible" ? true : 0 }],
+      });
+      expect(() => MotionProjectV3Schema.parse(input)).not.toThrow();
+    }
+  });
+
   it("parses caption project with bilingual caption tracks", () => {
     const input = loadFixture("caption.project.json");
     const project = MotionProjectV3Schema.parse(input);

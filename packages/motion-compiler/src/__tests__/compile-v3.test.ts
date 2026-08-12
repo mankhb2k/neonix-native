@@ -294,6 +294,98 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(synthesized.tracks[0]!.property).toBe("transform.x");
   });
 
+  it("golden: wrapper-group lowering is deterministic for component with instanceTransform + tracks", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "component-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-logo-reveal",
+            source: { kind: "component", componentId: "logo-reveal" },
+            start: 0,
+            duration: 4,
+            opacity: 1,
+            loop: false,
+            instanceTransform: { x: 100, y: 0, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, opacity: 1, visible: true, flipX: false, flipY: false },
+            instanceTransformTracks: [
+              {
+                property: "transform.x",
+                valueKind: "number",
+                keys: [
+                  { t: 0, v: 100 },
+                  { t: 2, v: 300, easing: "easeOut" },
+                ],
+              },
+              {
+                property: "transform.opacity",
+                keys: [
+                  { t: 0, v: 0 },
+                  { t: 1, v: 1 },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      console.log(JSON.stringify(result.diagnostics, null, 2));
+      return;
+    }
+    const synthesized = result.project.scenes.find(
+      (scene) => scene.id === "clip-logo-reveal",
+    )!;
+
+    // ── Deterministic wrapper group ──────────────────────────────────
+    expect(synthesized.nodes).toHaveLength(2);
+    const wrapper = synthesized.nodes[0]!;
+    expect(wrapper.id).toBe("clip-logo-reveal__instance");
+    expect(wrapper.type).toBe("group");
+    expect(wrapper.parentId).toBeNull();
+
+    // Wrapper transform matches instanceTransform statically
+    expect(wrapper.transform.x).toBe(100);
+    expect(wrapper.transform.y).toBe(0);
+    expect(wrapper.transform.rotation).toBe(0);
+    expect(wrapper.transform.scaleX).toBe(1);
+    expect(wrapper.transform.scaleY).toBe(1);
+    expect(wrapper.transform.opacity).toBe(1);
+    expect(wrapper.transform.visible).toBe(true);
+
+    // Original node re-parented
+    const logo = synthesized.nodes[1]!;
+    expect(logo.parentId).toBe("clip-logo-reveal__instance");
+    expect(logo.type).toBe("solid");
+
+    // ── Deterministic motion tracks ──────────────────────────────────
+    expect(synthesized.tracks).toHaveLength(2);
+
+    // Track 1: transform.x
+    const txTrack = synthesized.tracks.find((t) => t.property === "transform.x")!;
+    expect(txTrack.targetId).toBe("clip-logo-reveal__instance");
+    expect(txTrack.keys).toHaveLength(2);
+    expect(txTrack.keys[0]!.t).toBe(0);
+    expect(txTrack.keys[0]!.v).toBe(100);
+    expect(txTrack.keys[1]!.t).toBe(2);
+    expect(txTrack.keys[1]!.v).toBe(300);
+    expect(txTrack.keys[1]!.easing).toBe("easeOut");
+
+    // Track 2: transform.opacity
+    const opacityTrack = synthesized.tracks.find((t) => t.property === "transform.opacity")!;
+    expect(opacityTrack.targetId).toBe("clip-logo-reveal__instance");
+    expect(opacityTrack.keys).toHaveLength(2);
+    expect(opacityTrack.keys[0]!.t).toBe(0);
+    expect(opacityTrack.keys[0]!.v).toBe(0);
+    expect(opacityTrack.keys[1]!.t).toBe(1);
+    expect(opacityTrack.keys[1]!.v).toBe(1);
+  });
+
   it("applies transitionIn on component clip with instanceTransform", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [

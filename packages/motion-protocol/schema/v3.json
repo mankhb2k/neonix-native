@@ -352,7 +352,7 @@
                   },
                   "version": {
                     "type": "string",
-                    "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"
+                    "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$"
                   },
                   "source": {
                     "type": "string",
@@ -386,7 +386,7 @@
                   },
                   "version": {
                     "type": "string",
-                    "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"
+                    "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$"
                   },
                   "integrity": {
                     "type": "string",
@@ -1317,7 +1317,7 @@
               },
               "version": {
                 "type": "string",
-                "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"
+                "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$"
               },
               "integrity": {
                 "type": "string",
@@ -15018,6 +15018,7 @@
                     }
                   ]
                 },
+                "minItems": 1,
                 "maxItems": 2000
               },
               "bindings": {
@@ -29272,6 +29273,7 @@
                     }
                   ]
                 },
+                "minItems": 1,
                 "maxItems": 2000
               },
               "clips": {
@@ -30887,7 +30889,7 @@
                 ],
                 "additionalProperties": false
               },
-              "maxItems": 2048
+              "maxItems": 128
             },
             "audioTracks": {
               "type": "array",
