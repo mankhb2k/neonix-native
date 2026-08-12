@@ -74,14 +74,10 @@ export function validateNodeGraphV3(
   }
 
   // ── Cycle detection ────────────────────────────────────────────────
-  if (issues.length === 0) {
-    issues.push(...detectCycles(nodes, byId, prefix));
-  }
+  issues.push(...detectCycles(nodes, byId, prefix));
 
   // ── Hierarchy depth ────────────────────────────────────────────────
-  if (issues.length === 0) {
-    issues.push(...checkHierarchyDepth(nodes, byId, prefix));
-  }
+  issues.push(...checkHierarchyDepth(nodes, byId, prefix));
 
   return issues;
 }

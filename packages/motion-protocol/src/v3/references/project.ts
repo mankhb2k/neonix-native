@@ -48,6 +48,24 @@ export function validateMotionProjectV3References(
     });
   }
 
+  // H6: audio track duplicate ids
+  const audioIds = project.timeline.audioTracks.map((t) => t.id);
+  for (const id of new Set(duplicates(audioIds))) {
+    issues.push({
+      path: "timeline.audioTracks",
+      message: `Duplicate audio track id: ${id}`,
+    });
+  }
+
+  // H7: caption track duplicate ids
+  const captionIds = project.timeline.captionTracks.map((t) => t.id);
+  for (const id of new Set(duplicates(captionIds))) {
+    issues.push({
+      path: "timeline.captionTracks",
+      message: `Duplicate caption track id: ${id}`,
+    });
+  }
+
   // ── visual clips ─────────────────────────────────────────────────────
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
@@ -191,6 +209,16 @@ export function validateMotionProjectV3References(
         issues.push({
           path: `components.${component.id}.publicTargets.${target.id}.nodeId`,
           message: `publicTarget "${target.id}" references unknown node: ${target.nodeId}`,
+        });
+      }
+    }
+
+    // M16: component root nodes must have parentId === null
+    for (const node of component.nodes) {
+      if (node.parentId !== null && !componentNodeIds.has(node.parentId)) {
+        issues.push({
+          path: `components.${component.id}.nodes.${node.id}.parentId`,
+          message: `Component root node "${node.id}" references external parent "${node.parentId}" — component nodes must not reference nodes outside the component`,
         });
       }
     }

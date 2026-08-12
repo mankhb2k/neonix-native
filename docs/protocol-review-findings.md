@@ -85,13 +85,13 @@
 
 ### 🟡 Medium
 
-| #   | File         | Issue                                                                                                                                                                                                                                         |
-| --- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| #   | File         | Issue                                                                                                                                                   |
+| --- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | M11 | `tracks.ts`  | `PropertyTrackSchema` KHÔNG có `.superRefine()` để check valueKind compatibility. ✅ **FIXED** — added `VALUE_KIND_BY_PROPERTY` map + `.superRefine()`. |
-| M12 | `drivers.ts` | `"remap"` driver không validate `inMin < inMax` hoặc `outMin < outMax`. ✅ **FIXED** — `.superRefine()` trên union level. |
-| M13 | `drivers.ts` | `"clamp"` và `"wrap"` drivers không validate `min < max`. ✅ **FIXED** — `.superRefine()` trên union level. |
-| M14 | `tracks.ts`  | `SceneMarkerSchema` không có validation marker ordering. 🔵 **DEFERRED → Layer 4** — markers là individual objects, cần project-level validation. |
-| M15 | `easing.ts`  | `KeyframeEasingCubicSchema` cho phép `y1`, `y2` không giới hạn. 🔵 **BY DESIGN** — CSS spec cho phép cubic-bezier overshoot. Đã document trong code. |
+| M12 | `drivers.ts` | `"remap"` driver không validate `inMin < inMax` hoặc `outMin < outMax`. ✅ **FIXED** — `.superRefine()` trên union level.                               |
+| M13 | `drivers.ts` | `"clamp"` và `"wrap"` drivers không validate `min < max`. ✅ **FIXED** — `.superRefine()` trên union level.                                             |
+| M14 | `tracks.ts`  | `SceneMarkerSchema` không có validation marker ordering. 🔵 **DEFERRED → Layer 4** — markers là individual objects, cần project-level validation.       |
+| M15 | `easing.ts`  | `KeyframeEasingCubicSchema` cho phép `y1`, `y2` không giới hạn. 🔵 **BY DESIGN** — CSS spec cho phép cubic-bezier overshoot. Đã document trong code.    |
 
 ### ℹ️ Info
 
@@ -117,16 +117,16 @@
 
 | #   | File               | Issue                                                                                                                                                                               |
 | --- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H6  | `project.ts` (ref) | Audio track duplicate ID check **bị thiếu**. Có check duplicate cho scenes, variables, assets, bindings, components, visualTracks — nhưng KHÔNG check duplicate `audioTracks[].id`. |
-| H7  | `project.ts` (ref) | Caption track duplicate ID check **bị thiếu**. Tương tự, `captionTracks[].id` không check duplicate.                                                                                |
+| H6  | `project.ts` (ref) | Audio track duplicate ID check **bị thiếu**. ✅ **FIXED** — added duplicate check for `audioTracks[].id`. |
+| H7  | `project.ts` (ref) | Caption track duplicate ID check **bị thiếu**. ✅ **FIXED** — added duplicate check for `captionTracks[].id`. |
 
 ### 🟡 Medium
 
 | #   | File               | Issue                                                                                                                                                                                                                             |
 | --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M16 | `project.ts` (ref) | Node-graph validation cho components gọi `validateNodeGraphV3` nhưng component node graph cần check thêm: component root nodes phải có `parentId === null` (không reference node ngoài component).                                |
-| M17 | `project.ts` (ref) | Không validate component clip trong visual tracks — chỉ check scene/component tồn tại, không check `instanceTransform`/`instanceTransformTracks` chỉ có trên component clip. Check này hiện nằm ở compiler `validateV3Semantics`. |
-| M18 | `node-graph.ts`    | Cycle detection chỉ chạy khi `issues.length === 0` (dòng ~78). Nếu có lỗi trước đó (duplicate id, self-parent, etc.) → cycle detection bị skip. Cycle vẫn là bug critical dù có các lỗi khác.                                     |
+| M16 | `project.ts` (ref) | Component node graph cần check root nodes có `parentId === null`. ✅ **FIXED** — components section validates no external parent references. |
+| M17 | `project.ts` (ref) | Không validate component clip instanceTransform. 🔵 **ALREADY DONE** — schema-level `.superRefine()` in `timeline.ts` + compiler `validateV3Semantics` both handle this. |
+| M18 | `node-graph.ts`    | Cycle detection chỉ chạy khi `issues.length === 0`. ✅ **FIXED** — removed guard, cycle detection & hierarchy depth always run. |
 
 ### ✅ Verified
 

@@ -54,7 +54,9 @@ const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
 
 /** Absolute seconds or marker-relative time resolved at compile time. */
 export const TrackTimeSchema = z.union([
-  FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+  FiniteNumberSchema.nonnegative().max(
+    MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+  ),
   z
     .object({
       markerId: IdSchema,
