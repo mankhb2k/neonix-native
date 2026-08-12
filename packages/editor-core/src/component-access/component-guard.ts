@@ -79,9 +79,7 @@ export type ConsumerWritableProperty =
  * Check whether a consumer can read a specific component property.
  * Consumers can read all public surface properties.
  */
-export function canConsumerRead(
-  property: string,
-): AccessCheckResult {
+export function canConsumerRead(property: string): AccessCheckResult {
   if ((CONSUMER_READABLE_PROPERTIES as readonly string[]).includes(property)) {
     return { allowed: true };
   }
@@ -97,9 +95,7 @@ export function canConsumerRead(
  * Consumers can only write to publicParams, slots, and variants.
  * Actions are read-only triggers, publicTargets are owner-only definitions.
  */
-export function canConsumerWrite(
-  property: string,
-): AccessCheckResult {
+export function canConsumerWrite(property: string): AccessCheckResult {
   if ((CONSUMER_WRITABLE_PROPERTIES as readonly string[]).includes(property)) {
     return { allowed: true };
   }

@@ -35,11 +35,13 @@ type LegacyComponent = {
     nodeId: string;
     property: string;
   }>;
-  variants?: LegacyVariantsRecord | Array<{
-    id: string;
-    name: string;
-    params?: Record<string, JsonValue>;
-  }>;
+  variants?:
+    | LegacyVariantsRecord
+    | Array<{
+        id: string;
+        name: string;
+        params?: Record<string, JsonValue>;
+      }>;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
@@ -137,9 +139,7 @@ function normalizeComponentBindings(
 ): void {
   if (!project.bindings || !project.components) return;
 
-  const componentById = new Map(
-    project.components.map((c) => [c.id, c]),
-  );
+  const componentById = new Map(project.components.map((c) => [c.id, c]));
 
   for (const binding of project.bindings) {
     const target = binding.target as { kind: string } & Record<string, unknown>;
@@ -210,17 +210,19 @@ function normalizeComponentBindings(
  */
 export function needsNormalization(project: LegacyProject): boolean {
   // Check for legacy record-style variants
-  if (project.components?.some(
-    (c) => c.variants && !Array.isArray(c.variants),
-  )) {
+  if (
+    project.components?.some((c) => c.variants && !Array.isArray(c.variants))
+  ) {
     return true;
   }
 
   // Check for legacy component bindings (nodeId/property without targetId)
-  if (project.bindings?.some((b) => {
-    const t = b.target as Record<string, unknown>;
-    return t.kind === "component" && !("targetId" in t);
-  })) {
+  if (
+    project.bindings?.some((b) => {
+      const t = b.target as Record<string, unknown>;
+      return t.kind === "component" && !("targetId" in t);
+    })
+  ) {
     return true;
   }
 

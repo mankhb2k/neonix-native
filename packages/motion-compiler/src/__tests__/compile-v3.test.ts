@@ -1051,9 +1051,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(
-      result.diagnostics.some(
-        (d) => d.code === "CMP_PRIVATE_COMPONENT_ACCESS",
-      ),
+      result.diagnostics.some((d) => d.code === "CMP_PRIVATE_COMPONENT_ACCESS"),
     ).toBe(true);
   });
 

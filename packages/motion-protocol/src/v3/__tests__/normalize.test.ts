@@ -2,10 +2,7 @@
  * V3 Normalizer tests — migration layer for legacy data.
  */
 import { describe, expect, it } from "vitest";
-import {
-  normalizeMotionProjectV3,
-  needsNormalization,
-} from "../normalize";
+import { normalizeMotionProjectV3, needsNormalization } from "../normalize";
 
 // ── needsNormalization ─────────────────────────────────────────────────
 
@@ -48,7 +45,12 @@ describe("needsNormalization", () => {
         bindings: [
           {
             id: "b1",
-            target: { kind: "component", componentId: "c1", nodeId: "n1", property: "p" },
+            target: {
+              kind: "component",
+              componentId: "c1",
+              nodeId: "n1",
+              property: "p",
+            },
           },
         ],
       }),
@@ -106,7 +108,9 @@ describe("normalizeMotionProjectV3 — variants", () => {
       components: [
         {
           id: "button",
-          variants: [{ id: "primary", name: "Primary", params: { color: "red" } }],
+          variants: [
+            { id: "primary", name: "Primary", params: { color: "red" } },
+          ],
         },
       ],
     });
@@ -134,7 +138,11 @@ describe("normalizeMotionProjectV3 — bindings", () => {
         {
           id: "button",
           publicTargets: [
-            { id: "label", nodeId: "text-node", property: "payload.content.text" },
+            {
+              id: "label",
+              nodeId: "text-node",
+              property: "payload.content.text",
+            },
           ],
         },
       ],
@@ -156,7 +164,9 @@ describe("normalizeMotionProjectV3 — bindings", () => {
     expect(binding.target).not.toHaveProperty("nodeId");
     expect(binding.target).not.toHaveProperty("property");
     expect((binding.target as Record<string, unknown>).targetId).toBe("label");
-    expect(issues.some((i) => i.message.includes("Migrated binding"))).toBe(true);
+    expect(issues.some((i) => i.message.includes("Migrated binding"))).toBe(
+      true,
+    );
   });
 
   it("auto-generates publicTarget when no match found", () => {
@@ -206,7 +216,11 @@ describe("normalizeMotionProjectV3 — bindings", () => {
         {
           id: "b1",
           source: { kind: "variable", variableId: "v1" },
-          target: { kind: "component", componentId: "button", targetId: "label" },
+          target: {
+            kind: "component",
+            componentId: "button",
+            targetId: "label",
+          },
         },
       ],
     });
@@ -233,7 +247,11 @@ describe("normalizeMotionProjectV3 — bindings", () => {
       ],
     });
 
-    expect(issues.some((i) => i.severity === "warn" && i.message.includes("not found"))).toBe(true);
+    expect(
+      issues.some(
+        (i) => i.severity === "warn" && i.message.includes("not found"),
+      ),
+    ).toBe(true);
   });
 
   it("ignores scene bindings", () => {

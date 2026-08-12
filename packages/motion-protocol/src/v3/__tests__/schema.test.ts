@@ -578,14 +578,18 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
       (c) => ({
         ...c,
         publicTargets: [
-          { id: "dup-id", nodeId: "cta-label", property: "payload.content.text" },
+          {
+            id: "dup-id",
+            nodeId: "cta-label",
+            property: "payload.content.text",
+          },
           { id: "dup-id", nodeId: "cta-bg", property: "payload.color" },
         ],
       }),
     );
-    expect(() =>
-      parseMotionProjectV3({ ...input, components }),
-    ).toThrow(MotionV3ReferenceError);
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
     try {
       parseMotionProjectV3({ ...input, components });
     } catch (err) {
@@ -610,9 +614,9 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         ],
       }),
     );
-    expect(() =>
-      parseMotionProjectV3({ ...input, components }),
-    ).toThrow(MotionV3ReferenceError);
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
     try {
       parseMotionProjectV3({ ...input, components });
     } catch (err) {
@@ -638,9 +642,9 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         },
       },
     ];
-    expect(() =>
-      parseMotionProjectV3({ ...input, bindings }),
-    ).toThrow(MotionV3ReferenceError);
+    expect(() => parseMotionProjectV3({ ...input, bindings })).toThrow(
+      MotionV3ReferenceError,
+    );
     try {
       parseMotionProjectV3({ ...input, bindings });
     } catch (err) {
