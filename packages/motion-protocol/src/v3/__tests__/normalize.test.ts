@@ -506,6 +506,19 @@ describe("normalizeMotionProjectV3 — component clips", () => {
     ]);
   });
 
+  it("opt-in migration removes all component clip sources", () => {
+    const input = legacyClipProject();
+    // Legacy component clip source requires normalization…
+    expect(needsNormalization(input)).toBe(true);
+
+    const { project } = normalizeMotionProjectV3(input, {
+      migrateComponentClipsToScenes: true,
+    });
+
+    // …but after opt-in migration no component clip source remains.
+    expect(needsNormalization(project)).toBe(false);
+  });
+
   it("does not mutate the input", () => {
     const input = legacyClipProject();
     const original = JSON.stringify(input);

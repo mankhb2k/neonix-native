@@ -42,7 +42,6 @@ export {
   type PreparedRuntimeProject,
   type RuntimeSceneNode,
   type RuntimeSceneTrack,
-  type RuntimeScene,
   type StaticGeometry,
   type TextLayoutInput,
   type CompositingScope,

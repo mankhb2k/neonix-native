@@ -173,7 +173,7 @@ describe("composition metadata (Task 6.2)", () => {
 });
 
 describe("visual track plan (Task 6.3)", () => {
-  it("clip source discriminates scene vs component", () => {
+  it("clip source is scene-only (rejects component + preset)", () => {
     expect(
       RuntimeClipSourceSchema.safeParse({ kind: "scene", sceneId: "intro" })
         .success,
@@ -183,7 +183,7 @@ describe("visual track plan (Task 6.3)", () => {
         kind: "component",
         componentId: "button",
       }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       RuntimeClipSourceSchema.safeParse({ kind: "preset", presetId: "x" })
         .success,
@@ -464,7 +464,7 @@ describe("source refs (Task 6.4)", () => {
   it("full IR accepts scene + project sourceRef", () => {
     const ir = baseIR();
     (ir.scenes as unknown[])[0] = {
-      ...(ir.scenes as unknown[])[0],
+      ...((ir.scenes as unknown[])[0] as Record<string, unknown>),
       sourceRef: {
         projectPath: ["components", "button"],
         sourceModule: "button@1.0.0",

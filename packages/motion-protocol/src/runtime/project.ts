@@ -279,10 +279,9 @@ export type RuntimeCompositionMetadata = z.infer<
  * scenes at compile time but the component variant is kept so tooling can
  * still identify the origin without consulting `sourceRef`.
  */
-export const RuntimeClipSourceSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
-  z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
-]);
+export const RuntimeClipSourceSchema = z
+  .object({ kind: z.literal("scene"), sceneId: IdSchema })
+  .strict();
 export type RuntimeClipSource = z.infer<typeof RuntimeClipSourceSchema>;
 
 /**

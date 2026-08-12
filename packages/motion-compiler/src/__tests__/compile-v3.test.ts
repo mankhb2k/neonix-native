@@ -74,6 +74,8 @@ function makeComponentNodeProject(
     id: nodeId,
     type: "component",
     parentId: null,
+    visible: true,
+    locked: false,
     transform: {
       x: 100,
       y: 200,
