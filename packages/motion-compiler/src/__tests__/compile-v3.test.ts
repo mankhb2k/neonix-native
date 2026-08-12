@@ -288,6 +288,10 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(synthesized.nodes[0]!.type).toBe("group");
     // Original "logo" node re-parented
     expect(synthesized.nodes[1]!.parentId).toBe("clip-logo-reveal__instance");
+    // Generated motion clips compile into runtime tracks targeting the wrapper
+    expect(synthesized.tracks).toHaveLength(1);
+    expect(synthesized.tracks[0]!.targetId).toBe("clip-logo-reveal__instance");
+    expect(synthesized.tracks[0]!.property).toBe("transform.x");
   });
 
   it("CMP_INVALID_CLIP_FIELD: scene clip with instanceTransform is rejected", () => {

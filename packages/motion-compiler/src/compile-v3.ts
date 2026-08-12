@@ -600,6 +600,14 @@ function buildVisualPlan(
         if (hasTracks) {
           let trackIndex = 0;
           for (const track of instanceTracks) {
+            const innerTrack: Record<string, unknown> = {
+              targetId: wrapperId,
+              property: track.property,
+              keys: track.keys,
+            };
+            if (track.valueKind) innerTrack.valueKind = track.valueKind;
+            if (track.preBehavior) innerTrack.preBehavior = track.preBehavior;
+            if (track.postBehavior) innerTrack.postBehavior = track.postBehavior;
             motionClips.push({
               id: `${clip.id}__motion-${trackIndex}`,
               targetId: wrapperId,
@@ -612,14 +620,7 @@ function buildVisualPlan(
               },
               source: {
                 kind: "tracks" as const,
-                tracks: [
-                  {
-                    targetId: wrapperId,
-                    property: track.property,
-                    keys: track.keys,
-                    ...(track.valueKind ? { valueKind: track.valueKind } : {}),
-                  },
-                ],
+                tracks: [innerTrack],
               },
             });
             trackIndex++;

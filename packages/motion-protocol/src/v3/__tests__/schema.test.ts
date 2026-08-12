@@ -283,6 +283,49 @@ describe("v3 schema — positive fixtures", () => {
     expect(clip.instanceTransformTracks![0]!.property).toBe("transform.x");
   });
 
+  it("rejects instanceTransformTracks with invalid property path", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [
+      {
+        property: "transform.width",
+        keys: [{ t: 0, v: 0 }],
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("parses instanceTransformTracks with preBehavior and postBehavior", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [
+      {
+        property: "transform.opacity",
+        preBehavior: { type: "clamp" },
+        postBehavior: { type: "clamp" },
+        keys: [{ t: 0, v: 0 }, { t: 1, v: 1 }],
+      },
+    ];
+    const project = MotionProjectV3Schema.parse(input);
+    const clip = project.timeline.visualTracks.find(
+      (t) => t.role === "overlay",
+    )!.clips[0]!;
+    expect(clip.instanceTransformTracks![0]!.preBehavior).toEqual({ type: "clamp" });
+    expect(clip.instanceTransformTracks![0]!.postBehavior).toEqual({ type: "clamp" });
+  });
+
   it("parses caption project with bilingual caption tracks", () => {
     const input = loadFixture("caption.project.json");
     const project = MotionProjectV3Schema.parse(input);

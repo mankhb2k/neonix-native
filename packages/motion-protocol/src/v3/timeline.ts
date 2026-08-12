@@ -19,7 +19,6 @@ import { ResolvableValueSchema, ValueKindSchema } from "./values";
 import { KeyframeEasingSchema } from "./animation/easing";
 import {
   ExtrapolationBehaviorSchema,
-  PropertyTrackV3Schema,
   SceneMarkerV3Schema,
   TrackTimeSchema,
 } from "./animation/tracks";
