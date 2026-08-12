@@ -189,8 +189,8 @@ flowchart LR
 {
   "id": "clip-cta",
   "source": {
-    "kind": "component", // "scene" | "component"
-    "componentId": "call-to-action",
+    "kind": "scene", // luôn là "scene" — timeline chỉ chứa clip scene
+    "sceneId": "cta-scene",
   },
   "start": 1, // Vị trí bắt đầu trên timeline (giây)
   "duration": 2.5, // Thời lượng (giây)
@@ -209,42 +209,10 @@ flowchart LR
     "direction": "left",
     "mode": "push",
   },
-  // ── Component-only: whole-instance transform ──
-  "instanceTransform": {
-    "x": 100, // optional, default 0
-    "y": 200, // optional, default 0
-    "rotation": 0, // optional, default 0 (độ)
-    "scaleX": 1, // optional, default 1
-    "scaleY": 1, // optional, default 1
-    "anchorX": 0.5, // optional, default 0.5
-    "anchorY": 0.5, // optional, default 0.5
-    "opacity": 1, // optional, default 1
-    "visible": true, // optional, default true
-    "flipX": false, // optional, default false
-    "flipY": false, // optional, default false
-  },
 }
 ```
 
-> **`instanceTransform`** chỉ có ý nghĩa khi `source.kind === "component"`. Tất cả field đều optional — field nào thiếu sẽ dùng giá trị identity. Compiler sẽ wrap toàn bộ internal nodes của component vào một synthetic group node mang transform này, cho phép consumer keyframe toàn bộ component instance như một group layer mà không cần chạm vào internals.
-
-```mermaid
-flowchart LR
-    subgraph Pre["📦 Component Definition"]
-        n1["node: text"]
-        n2["node: solid"]
-    end
-
-    subgraph Post["▶️ Synthesized Scene (có instanceTransform)"]
-        g["group (synthetic wrapper)"]
-        n1c["node: text (parentId → wrapper)"]
-        n2c["node: solid (parentId → wrapper)"]
-    end
-
-    Pre -->|"compiler wrap"| Post
-    g --> n1c
-    g --> n2c
-```
+> **Scene-only timeline**: `VisualClipSourceV3` chỉ cho phép `{ kind: "scene", sceneId }`. Component/object không được đặt trực tiếp lên timeline — thay vào đó, editor/app sẽ tạo một scene chứa component node rồi tham chiếu scene đó. Việc định vị/keyframe toàn bộ component nằm ở `transform` của component node (xem mục 4.2), không nằm trên clip.
 
 ### 3.4 Thuật ngữ Track / Layer
 
@@ -363,8 +331,9 @@ Node zIndex lớn  →  nằm trên (trong cùng scene)
 | `camera`     | Camera view                  | `projection`, `zoom`                                   |
 | `bone`       | Bone cho skeletal animation  | `length`, `restRotation`, `rotationLimits`             |
 | `adjustment` | Điều chỉnh màu sắc           | `brightness`, `contrast`, `saturation`                 |
+| `component`  | Instance của component       | `componentId`, `variantId?`, `publicProps?`            |
 
-> **Không có `component` node type** — component được instantiate qua visual clip trên timeline.
+> **Component node** (`type: "component"`) đại diện cho một instance của component đã nhúng. `payload.componentId` trỏ đến `project.components[]`; `transform` của node đóng vai trò wrapper transform khi compiler expand. Component **không** được instantiate qua visual clip.
 
 ### 4.3 Cấu trúc Node
 
@@ -555,20 +524,21 @@ Binding kết nối project variable với node property của scene hoặc comp
   }
 }
 
-// Component binding — qua publicTarget
+// Component binding — qua publicTarget (trỏ đến instance trong scene)
 {
   "id": "bind-cta",
   "source": { "kind": "variable", "variableId": "cta-text" },
   "target": {
-    "kind": "component",
-    "componentId": "call-to-action",
+    "kind": "componentNode",
+    "sceneId": "cta-scene",
+    "nodeId": "cta-instance",
     "targetId": "cta-label"       // ← publicTargets.id
   }
 }
 ```
 
 > **Scene binding**: dùng `nodeId` + `property` trực tiếp.
-> **Component binding**: bắt buộc dùng `targetId` (trỏ đến `component.publicTargets`).
+> **Component binding**: bắt buộc dùng `targetId` (trỏ đến `component.publicTargets`). Hai dạng: `componentNode` (trỏ đến instance cụ thể) và `component` (bind toàn cục vào mọi instance).
 
 ---
 
@@ -816,7 +786,7 @@ Theo dõi nguồn gốc project và source mapping:
 
 1. **Dùng `transitionIn`/`transitionOut` trên clip** thay vì scene-level transition
 2. **Dùng `order` để xếp track**, không dựa vào `role`
-3. **Component source clip** qua `source.kind = "component"` thay vì node type
+3. **Component node** (`type: "component"`) trong scene thay vì component source clip
 
 ### Khi dùng bindings
 
@@ -828,14 +798,14 @@ Theo dõi nguồn gốc project và source mapping:
 
 ## 16. Tóm tắt
 
-| Khái niệm                | Mô tả                                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------------- |
-| **MotionProjectV3**      | Single source of truth, một file JSON cho toàn bộ dự án                               |
-| **visualTracks**         | Thay thế `sceneOrder`, hỗ trợ multi-track (`main` + `overlay`)                        |
-| **VisualClip**           | Clip-level transition, loop, playbackRate, opacity, instanceTransform (component)     |
-| **Node types**           | 11 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment |
-| **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local zIndex                  |
-| **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                            |
-| **Bindings**             | Scene: `nodeId` + `property`. Component: `targetId`                                   |
-| **Strict validation**    | `.strict()` trên mọi object + reference validation                                    |
-| **Format discriminator** | `format: "motion-project"`, `formatVersion: 3` — từ chối V2                           |
+| Khái niệm                | Mô tả                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------ |
+| **MotionProjectV3**      | Single source of truth, một file JSON cho toàn bộ dự án                                          |
+| **visualTracks**         | Thay thế `sceneOrder`, hỗ trợ multi-track (`main` + `overlay`)                                   |
+| **VisualClip**           | Clip-level transition, loop, playbackRate, opacity, scene-only source                            |
+| **Node types**           | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
+| **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local zIndex                             |
+| **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |
+| **Bindings**             | Scene: `nodeId` + `property`. Component: `targetId`                                              |
+| **Strict validation**    | `.strict()` trên mọi object + reference validation                                               |
+| **Format discriminator** | `format: "motion-project"`, `formatVersion: 3` — từ chối V2                                      |

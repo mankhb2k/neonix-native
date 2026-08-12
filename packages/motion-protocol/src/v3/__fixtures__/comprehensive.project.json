@@ -609,6 +609,36 @@
         }
       ],
       "clips": []
+    },
+    {
+      "id": "scene-lower-third",
+      "name": "Lower Third Overlay Scene",
+      "duration": 4,
+      "nodes": [
+        {
+          "id": "node-lower-third",
+          "type": "component",
+          "parentId": null,
+          "transform": {
+            "x": 160,
+            "y": 800,
+            "width": 600,
+            "height": 80,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0,
+            "anchorY": 0,
+            "opacity": 0.95,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "lower-third"
+          }
+        }
+      ]
     }
   ],
   "timeline": {
@@ -665,20 +695,11 @@
         "clips": [
           {
             "id": "clip-component-overlay",
-            "source": { "kind": "component", "componentId": "lower-third" },
+            "source": { "kind": "scene", "sceneId": "scene-lower-third" },
             "start": 1,
             "duration": 4,
             "opacity": 0.9,
-            "loop": false,
-            "instanceTransform": {
-              "x": 160,
-              "y": 800,
-              "rotation": 0,
-              "scaleX": 1,
-              "scaleY": 1,
-              "opacity": 0.95,
-              "visible": true
-            }
+            "loop": false
           }
         ]
       }
@@ -743,8 +764,9 @@
       "id": "binding-component",
       "source": { "kind": "variable", "variableId": "var-brand-color" },
       "target": {
-        "kind": "component",
-        "componentId": "lower-third",
+        "kind": "componentNode",
+        "sceneId": "scene-lower-third",
+        "nodeId": "node-lower-third",
         "targetId": "lt-bg-color"
       }
     }

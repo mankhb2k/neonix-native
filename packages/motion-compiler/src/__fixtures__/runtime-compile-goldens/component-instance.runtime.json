@@ -11,7 +11,7 @@
     "brand": {
       "name": "Component Instance"
     },
-    "description": "Project with an embedded component used by a visual clip"
+    "description": "Project with an embedded component instantiated as a scene node"
   },
   "assets": [],
   "composition": {
@@ -22,12 +22,12 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "13d8430bcb0d1ab2a546a8884fc334c1",
+  "runtimeHash": "ae49a72918377b430142e41961224b6e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
     "scenes": {
-      "clip-logo-reveal": "components:logo-reveal#logo-reveal@1.0.0"
+      "logo-scene": "scenes:logo-scene"
     }
   },
   "timeline": {
@@ -41,7 +41,7 @@
             "id": "clip-logo-reveal",
             "source": {
               "kind": "scene",
-              "sceneId": "clip-logo-reveal"
+              "sceneId": "logo-scene"
             },
             "start": 0,
             "duration": 4
@@ -54,20 +54,45 @@
   },
   "scenes": [
     {
-      "id": "clip-logo-reveal",
+      "id": "logo-scene",
       "duration": 4,
+      "space": "flat-2d",
       "sourceRef": {
         "projectPath": [
-          "components",
-          "logo-reveal"
-        ],
-        "sourceModule": "logo-reveal@1.0.0"
+          "scenes",
+          "logo-scene"
+        ]
       },
       "nodes": [
         {
-          "id": "logo",
-          "type": "solid",
+          "id": "logo-instance__instance",
+          "type": "group",
           "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 256,
+            "height": 256,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "compositing": {
+              "mode": "pass-through"
+            }
+          }
+        },
+        {
+          "id": "logo-instance__logo",
+          "type": "solid",
+          "parentId": "logo-instance__instance",
           "zIndex": 1,
           "transform": {
             "x": 0,

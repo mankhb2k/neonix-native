@@ -61,6 +61,28 @@ type LegacyProject = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
   }>;
+  scenes?: Array<{
+    id: string;
+    nodes?: Array<Record<string, unknown>>;
+    clips?: Array<Record<string, unknown>>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }>;
+  timeline?: {
+    visualTracks?: Array<{
+      id: string;
+      clips?: Array<{
+        id: string;
+        source?: Record<string, unknown>;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [key: string]: any;
+      }>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      [key: string]: any;
+    }>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 };
@@ -84,6 +106,19 @@ export interface NormalizeOptions {
    * create a new public API surface from old nodeId/property bindings.
    */
   allowAutoPublicTargets?: boolean;
+  /**
+   * Opt-in migration for legacy component visual clips.
+   *
+   * When true, each visual clip whose `source.kind === "component"` is
+   * rewritten into a scene-only clip: a new scene is synthesized containing
+   * a single `type: "component"` node, the clip's `instanceTransform` is
+   * folded into the node transform, and `instanceTransformTracks` become
+   * scene-local motion clips targeting that node.
+   *
+   * When false (default), component visual clips are left untouched and will
+   * fail strict parsing (visual tracks are scene-only in the current model).
+   */
+  migrateComponentClipsToScenes?: boolean;
 }
 
 /**
@@ -102,6 +137,10 @@ export function normalizeMotionProjectV3(
 
   normalizeComponentVariants(normalized, issues);
   normalizeComponentBindings(normalized, issues, options);
+
+  if (options.migrateComponentClipsToScenes) {
+    migrateComponentClipsToScenes(normalized, issues);
+  }
 
   return { project: normalized, issues };
 }
@@ -228,6 +267,124 @@ function normalizeComponentBindings(
   }
 }
 
+// ── Component clip migration ──────────────────────────────────────────
+
+const COMPONENT_NODE_DEFAULT_TRANSFORM: Record<string, unknown> = {
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 0,
+  rotation: 0,
+  scaleX: 1,
+  scaleY: 1,
+  anchorX: 0.5,
+  anchorY: 0.5,
+  opacity: 1,
+  visible: true,
+  flipX: false,
+  flipY: false,
+};
+
+function migrateComponentClipsToScenes(
+  project: LegacyProject,
+  issues: NormalizeIssue[],
+): void {
+  const timeline = project.timeline;
+  if (!timeline || !Array.isArray(timeline.visualTracks)) return;
+
+  if (!Array.isArray(project.scenes)) project.scenes = [];
+
+  for (const track of timeline.visualTracks) {
+    if (!track || !Array.isArray(track.clips)) continue;
+
+    for (const clip of track.clips) {
+      const source = clip.source;
+      if (!source || source.kind !== "component") continue;
+
+      const componentId = source.componentId;
+      if (typeof componentId !== "string" || componentId.length === 0) {
+        issues.push({
+          path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
+          message: `Cannot migrate component clip "${clip.id}": missing componentId`,
+          severity: "warn",
+        });
+        continue;
+      }
+
+      // Deterministic, collision-free-enough ids derived from the component.
+      const sceneId = `${componentId}-scene`;
+      const nodeId = `${componentId}-instance`;
+      const clipDuration =
+        typeof clip.duration === "number" ? clip.duration : 1;
+
+      // Fold legacy instanceTransform into the node transform.
+      const instanceTransform = clip.instanceTransform as
+        | Record<string, unknown>
+        | undefined;
+      const transform = {
+        ...COMPONENT_NODE_DEFAULT_TRANSFORM,
+        ...(instanceTransform ?? {}),
+      };
+
+      // Convert instanceTransformTracks → scene-local motion clips.
+      const instanceTracks = clip.instanceTransformTracks as
+        | Array<Record<string, unknown>>
+        | undefined;
+      const sceneClips: Array<Record<string, unknown>> = [];
+      if (Array.isArray(instanceTracks) && instanceTracks.length > 0) {
+        sceneClips.push({
+          id: `${nodeId}__motion`,
+          targetId: nodeId,
+          schedule: { kind: "absolute", at: 0 },
+          duration: clipDuration,
+          source: {
+            kind: "tracks",
+            tracks: instanceTracks.map((t) => ({
+              targetId: nodeId,
+              property: t.property,
+              ...(t.valueKind !== undefined ? { valueKind: t.valueKind } : {}),
+              ...(t.preBehavior !== undefined
+                ? { preBehavior: t.preBehavior }
+                : {}),
+              ...(t.postBehavior !== undefined
+                ? { postBehavior: t.postBehavior }
+                : {}),
+              keys: t.keys,
+            })),
+          },
+        });
+      }
+
+      project.scenes!.push({
+        id: sceneId,
+        name: componentId,
+        duration: clipDuration,
+        nodes: [
+          {
+            id: nodeId,
+            type: "component",
+            parentId: null,
+            transform,
+            payload: { componentId },
+          },
+        ],
+        clips: sceneClips,
+      });
+
+      // Rewrite the visual clip to a scene source.
+      clip.source = { kind: "scene", sceneId };
+      delete clip.instanceTransform;
+      delete clip.instanceTransformTracks;
+
+      issues.push({
+        path: `timeline.visualTracks.${track.id}.clips.${clip.id}`,
+        message: `Migrated component visual clip "${clip.id}" to scene "${sceneId}" with component node "${nodeId}"`,
+        severity: "info",
+      });
+    }
+  }
+}
+
 /**
  * Check whether a project needs normalization.
  * Returns true if any legacy shapes are detected.
@@ -246,6 +403,15 @@ export function needsNormalization(project: LegacyProject): boolean {
       const t = b.target as Record<string, unknown>;
       return t.kind === "component" && !("targetId" in t);
     })
+  ) {
+    return true;
+  }
+
+  // Check for legacy component visual clips
+  if (
+    project.timeline?.visualTracks?.some((track) =>
+      track.clips?.some((clip) => clip.source?.kind === "component"),
+    )
   ) {
     return true;
   }

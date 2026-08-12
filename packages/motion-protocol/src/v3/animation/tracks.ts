@@ -31,8 +31,7 @@ export const SceneMarkerSchema = z
 // ── Value-kind compatibility map for property tracks ────────────────
 
 /**
- * Maps property path patterns to allowed value kinds.
- * Shared by both PropertyTrackSchema and InstanceTransformTrackV3Schema.
+ * Maps property path patterns to allowed value kinds for property tracks.
  */
 const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
   "transform.x": ["number", "angle"],

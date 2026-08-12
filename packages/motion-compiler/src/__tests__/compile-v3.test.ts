@@ -47,6 +47,83 @@ function sceneIdsFromVisualTracks(
   );
 }
 
+/**
+ * Build a project that instantiates the embedded `logo-reveal` component as
+ * a `type: "component"` scene node, sequenced by a single visual clip.
+ */
+function makeComponentNodeProject(
+  options: {
+    sceneId?: string;
+    nodeId?: string;
+    sceneDuration?: number;
+    clipDuration?: number;
+    componentId?: string;
+    transform?: Partial<V3.ComponentNodeV3["transform"]>;
+    publicProps?: Record<string, unknown>;
+    sceneClips?: V3.MotionClipV3[];
+  } = {},
+): V3.MotionProjectV3 {
+  const project = structuredClone(representative);
+  const sceneId = options.sceneId ?? "comp-scene";
+  const nodeId = options.nodeId ?? "comp-node";
+  const componentId = options.componentId ?? "logo-reveal";
+  const sceneDuration = options.sceneDuration ?? 4;
+  const clipDuration = options.clipDuration ?? sceneDuration;
+
+  const componentNode: V3.ComponentNodeV3 = {
+    id: nodeId,
+    type: "component",
+    parentId: null,
+    transform: {
+      x: 100,
+      y: 200,
+      width: 256,
+      height: 256,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      opacity: 1,
+      visible: true,
+      flipX: false,
+      flipY: false,
+      ...options.transform,
+    },
+    payload: {
+      componentId,
+      ...(options.publicProps ? { publicProps: options.publicProps } : {}),
+    },
+  };
+
+  project.scenes.push({
+    id: sceneId,
+    name: "Component Scene",
+    duration: sceneDuration,
+    nodes: [componentNode],
+    clips: options.sceneClips ?? [],
+  });
+  project.timeline.visualTracks = [
+    {
+      id: "main-track",
+      role: "main",
+      order: 0,
+      muted: false,
+      clips: [
+        {
+          id: "clip-comp",
+          source: { kind: "scene", sceneId },
+          start: 0,
+          duration: clipDuration,
+          opacity: 1,
+          loop: false,
+        },
+      ],
+    },
+  ];
+  return project;
+}
+
 // ── Happy paths ───────────────────────────────────────────────────────
 
 describe("compileMotionProjectV3 — happy paths", () => {
@@ -121,26 +198,8 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(title.transform.opacity).toBe(0.9);
   });
 
-  it("synthesizes a scene from an embedded component visual clip", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-          },
-        ],
-      },
-    ];
+  it("expands a component node into a wrapper group plus internal nodes", () => {
+    const project = makeComponentNodeProject();
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -149,58 +208,41 @@ describe("compileMotionProjectV3 — happy paths", () => {
     }
     expect(
       sceneIdsFromVisualTracks(result.project.timeline.visualTracks),
-    ).toEqual(["clip-logo-reveal"]);
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo-reveal",
-    )!;
-    expect(synthesized).toBeDefined();
-    expect(synthesized.duration).toBe(4);
-    expect(synthesized.nodes.map((node) => node.id)).toEqual(["logo"]);
+    ).toEqual(["comp-scene"]);
+    const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
+    expect(scene).toBeDefined();
+    expect(scene.duration).toBe(4);
+    // wrapper group + internal "logo" node re-parented under the wrapper.
+    expect(scene.nodes.map((node) => node.id)).toEqual([
+      "comp-node__instance",
+      "comp-node__logo",
+    ]);
+    expect(scene.nodes[0]!.type).toBe("group");
+    expect(scene.nodes[1]!.parentId).toBe("comp-node__instance");
   });
 
-  it("wraps component nodes in a group when instanceTransform is present", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-            instanceTransform: {
-              x: 100,
-              y: 200,
-              rotation: 15,
-              scaleX: 0.5,
-              scaleY: 0.5,
-              opacity: 0.8,
-              visible: true,
-            },
-          },
-        ],
+  it("component node transform becomes the wrapper group transform", () => {
+    const project = makeComponentNodeProject({
+      transform: {
+        x: 100,
+        y: 200,
+        rotation: 15,
+        scaleX: 0.5,
+        scaleY: 0.5,
+        opacity: 0.8,
       },
-    ];
+    });
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo-reveal",
-    )!;
-    expect(synthesized).toBeDefined();
-    // Should have 2 nodes: wrapper group + original "logo" node
-    expect(synthesized.nodes).toHaveLength(2);
-    const wrapperGroup = synthesized.nodes[0]!;
-    expect(wrapperGroup.id).toBe("clip-logo-reveal__instance");
+    const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
+    expect(scene).toBeDefined();
+    expect(scene.nodes).toHaveLength(2);
+    const wrapperGroup = scene.nodes[0]!;
+    expect(wrapperGroup.id).toBe("comp-node__instance");
     expect(wrapperGroup.type).toBe("group");
     expect(wrapperGroup.transform.x).toBe(100);
     expect(wrapperGroup.transform.y).toBe(200);
@@ -208,60 +250,39 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(wrapperGroup.transform.scaleX).toBe(0.5);
     expect(wrapperGroup.transform.scaleY).toBe(0.5);
     expect(wrapperGroup.transform.opacity).toBe(0.8);
-    // Original "logo" node should have its parentId set to wrapper
-    const logoNode = synthesized.nodes[1]!;
-    expect(logoNode.id).toBe("logo");
-    expect(logoNode.parentId).toBe("clip-logo-reveal__instance");
+    const logoNode = scene.nodes[1]!;
+    expect(logoNode.id).toBe("comp-node__logo");
+    expect(logoNode.parentId).toBe("comp-node__instance");
   });
 
-  it("does not wrap component nodes when instanceTransform is absent", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-          },
-        ],
-      },
-    ];
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo-reveal",
-    )!;
-    // No wrapper group — just the original node
-    expect(synthesized.nodes.map((node) => node.id)).toEqual(["logo"]);
+  it("produces deterministic internal node ids for component nodes", () => {
+    const project = makeComponentNodeProject();
+    const first = compileMotionProjectV3(project);
+    const second = compileMotionProjectV3(project);
+    expect(first.ok && second.ok).toBe(true);
+    if (!first.ok || !second.ok) return;
+    const sceneA = first.project.scenes.find((s) => s.id === "comp-scene")!;
+    const sceneB = second.project.scenes.find((s) => s.id === "comp-scene")!;
+    expect(sceneA.nodes.map((n) => n.id)).toEqual(
+      sceneB.nodes.map((n) => n.id),
+    );
+    expect(first.project.runtimeHash).toBe(second.project.runtimeHash);
   });
 
-  it("wraps component and generates motion clip when only instanceTransformTracks present", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-            instanceTransformTracks: [
+  it("scene-local motion targeting a component node compiles to wrapper motion", () => {
+    const project = makeComponentNodeProject({
+      sceneClips: [
+        {
+          id: "clip-anim",
+          targetId: "comp-node",
+          schedule: { kind: "absolute", at: 0 },
+          duration: 2,
+          playback: {},
+          source: {
+            kind: "tracks",
+            tracks: [
               {
+                targetId: "comp-node",
                 property: "transform.x",
                 keys: [
                   { t: 0, v: 0 },
@@ -270,61 +291,49 @@ describe("compileMotionProjectV3 — happy paths", () => {
               },
             ],
           },
-        ],
-      },
-    ];
+        },
+      ],
+    });
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo-reveal",
-    )!;
-    // Wrapper group created even without instanceTransform because tracks are present
-    expect(synthesized.nodes).toHaveLength(2);
-    expect(synthesized.nodes[0]!.id).toBe("clip-logo-reveal__instance");
-    expect(synthesized.nodes[0]!.type).toBe("group");
-    // Original "logo" node re-parented
-    expect(synthesized.nodes[1]!.parentId).toBe("clip-logo-reveal__instance");
-    // Generated motion clips compile into runtime tracks targeting the wrapper
-    expect(synthesized.tracks).toHaveLength(1);
-    expect(synthesized.tracks[0]!.targetId).toBe("clip-logo-reveal__instance");
-    expect(synthesized.tracks[0]!.property).toBe("transform.x");
+    const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
+    expect(scene.nodes).toHaveLength(2);
+    expect(scene.nodes[0]!.id).toBe("comp-node__instance");
+    expect(scene.nodes[0]!.type).toBe("group");
+    expect(scene.nodes[1]!.parentId).toBe("comp-node__instance");
+    // Motion targeting the component node is remapped to the wrapper group.
+    expect(scene.tracks).toHaveLength(1);
+    expect(scene.tracks[0]!.targetId).toBe("comp-node__instance");
+    expect(scene.tracks[0]!.property).toBe("transform.x");
   });
 
-  it("golden: wrapper-group lowering is deterministic for component with instanceTransform + tracks", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-            instanceTransform: {
-              x: 100,
-              y: 0,
-              rotation: 0,
-              scaleX: 1,
-              scaleY: 1,
-              anchorX: 0.5,
-              anchorY: 0.5,
-              opacity: 1,
-              visible: true,
-              flipX: false,
-              flipY: false,
-            },
-            instanceTransformTracks: [
+  it("golden: component node expansion is deterministic with transform + tracks", () => {
+    const project = makeComponentNodeProject({
+      transform: {
+        x: 100,
+        y: 0,
+        rotation: 0,
+        scaleX: 1,
+        scaleY: 1,
+        opacity: 1,
+        visible: true,
+      },
+      sceneClips: [
+        {
+          id: "clip-anim",
+          targetId: "comp-node",
+          schedule: { kind: "absolute", at: 0 },
+          duration: 4,
+          playback: {},
+          source: {
+            kind: "tracks",
+            tracks: [
               {
+                targetId: "comp-node",
                 property: "transform.x",
                 valueKind: "number",
                 keys: [
@@ -333,6 +342,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
                 ],
               },
               {
+                targetId: "comp-node",
                 property: "transform.opacity",
                 keys: [
                   { t: 0, v: 0 },
@@ -341,48 +351,37 @@ describe("compileMotionProjectV3 — happy paths", () => {
               },
             ],
           },
-        ],
-      },
-    ];
+        },
+      ],
+    });
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo-reveal",
-    )!;
+    const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
 
     // ── Deterministic wrapper group ──────────────────────────────────
-    expect(synthesized.nodes).toHaveLength(2);
-    const wrapper = synthesized.nodes[0]!;
-    expect(wrapper.id).toBe("clip-logo-reveal__instance");
+    expect(scene.nodes).toHaveLength(2);
+    const wrapper = scene.nodes[0]!;
+    expect(wrapper.id).toBe("comp-node__instance");
     expect(wrapper.type).toBe("group");
     expect(wrapper.parentId).toBeNull();
-
-    // Wrapper transform matches instanceTransform statically
     expect(wrapper.transform.x).toBe(100);
     expect(wrapper.transform.y).toBe(0);
-    expect(wrapper.transform.rotation).toBe(0);
-    expect(wrapper.transform.scaleX).toBe(1);
-    expect(wrapper.transform.scaleY).toBe(1);
     expect(wrapper.transform.opacity).toBe(1);
     expect(wrapper.transform.visible).toBe(true);
 
-    // Original node re-parented
-    const logo = synthesized.nodes[1]!;
-    expect(logo.parentId).toBe("clip-logo-reveal__instance");
+    const logo = scene.nodes[1]!;
+    expect(logo.parentId).toBe("comp-node__instance");
     expect(logo.type).toBe("solid");
 
     // ── Deterministic motion tracks ──────────────────────────────────
-    expect(synthesized.tracks).toHaveLength(2);
+    expect(scene.tracks).toHaveLength(2);
 
-    // Track 1: transform.x
-    const txTrack = synthesized.tracks.find(
-      (t) => t.property === "transform.x",
-    )!;
-    expect(txTrack.targetId).toBe("clip-logo-reveal__instance");
+    const txTrack = scene.tracks.find((t) => t.property === "transform.x")!;
+    expect(txTrack.targetId).toBe("comp-node__instance");
     expect(txTrack.keys).toHaveLength(2);
     expect(txTrack.keys[0]!.t).toBe(0);
     expect(txTrack.keys[0]!.v).toBe(100);
@@ -390,11 +389,10 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(txTrack.keys[1]!.v).toBe(300);
     expect(txTrack.keys[1]!.easing).toBe("easeOut");
 
-    // Track 2: transform.opacity
-    const opacityTrack = synthesized.tracks.find(
+    const opacityTrack = scene.tracks.find(
       (t) => t.property === "transform.opacity",
     )!;
-    expect(opacityTrack.targetId).toBe("clip-logo-reveal__instance");
+    expect(opacityTrack.targetId).toBe("comp-node__instance");
     expect(opacityTrack.keys).toHaveLength(2);
     expect(opacityTrack.keys[0]!.t).toBe(0);
     expect(opacityTrack.keys[0]!.v).toBe(0);
@@ -402,42 +400,25 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(opacityTrack.keys[1]!.v).toBe(1);
   });
 
-  it("applies transitionIn on component clip with instanceTransform", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-            instanceTransform: { x: 50 },
-            transitionIn: { type: "fade", duration: 0.5 },
-          },
-        ],
-      },
-    ];
+  it("applies transitionIn on a scene clip wrapping a component node", () => {
+    const project = makeComponentNodeProject();
+    project.timeline.visualTracks[0]!.clips[0]!.transitionIn = {
+      type: "fade",
+      duration: 0.5,
+    };
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
       console.log(JSON.stringify(result.diagnostics, null, 2));
       return;
     }
-    // Transition passed through to runtime timeline clip entry
     const vizTrack = result.project.timeline.visualTracks[0]!;
     expect(vizTrack.role).toBe("primary");
     const clip = vizTrack.clips[0] as Record<string, unknown>;
     expect(clip.transitionIn).toEqual({ type: "fade", duration: 0.5 });
   });
 
-  it("CMP_INVALID_CLIP_FIELD: scene clip with instanceTransform is rejected", () => {
+  it("rejects a visual clip carrying the removed instanceTransform field", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
       {
@@ -453,12 +434,13 @@ describe("compileMotionProjectV3 — happy paths", () => {
             duration: 3,
             opacity: 1,
             loop: false,
+            // @ts-expect-error — instanceTransform is no longer a visual clip field
             instanceTransform: { x: 100 },
           },
         ],
       },
     ];
-    // Schema-level .superRefine() catches this before CMP semantic validation
+    // Schema-level .strict() rejects the unknown key before CMP validation.
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -724,8 +706,8 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     expect(vt[1]!.clips[0]!.source.sceneId).toBe("intro@clip-b");
   });
 
-  it("component clip on overlay track works", () => {
-    const project = structuredClone(representative);
+  it("component node scene on overlay track works", () => {
+    const project = makeComponentNodeProject();
     project.timeline.visualTracks = [
       {
         id: "overlay-track",
@@ -735,7 +717,7 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
         clips: [
           {
             id: "clip-logo",
-            source: { kind: "component", componentId: "logo-reveal" },
+            source: { kind: "scene", sceneId: "comp-scene" },
             start: 0,
             duration: 4,
             opacity: 0.9,
@@ -751,10 +733,8 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     expect(vt).toHaveLength(1);
     expect(vt[0]!.role).toBe("overlay");
     expect(vt[0]!.clips[0]!.opacity).toBe(0.9);
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo",
-    )!;
-    expect(synthesized).toBeDefined();
+    const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
+    expect(scene).toBeDefined();
   });
 
   it("deterministic ordering when track orders tie", () => {
@@ -1055,39 +1035,18 @@ describe("compileMotionProjectV3 — Phase 6 runtime IR enrichment", () => {
     expect(intro.sourceRef).toEqual({ projectPath: ["scenes", "intro"] });
   });
 
-  it("points synthesized component scenes back to their component", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "component-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-logo-reveal",
-            source: { kind: "component", componentId: "logo-reveal" },
-            start: 0,
-            duration: 4,
-            opacity: 1,
-            loop: false,
-          },
-        ],
-      },
-    ];
+  it("points component-node scenes back to their authored scene", () => {
+    const project = makeComponentNodeProject();
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const synthesized = result.project.scenes.find(
-      (scene) => scene.id === "clip-logo-reveal",
-    )!;
-    expect(synthesized).toBeDefined();
-    expect(synthesized.sourceRef).toEqual({
-      projectPath: ["components", "logo-reveal"],
-      sourceModule: "logo-reveal@1.0.0",
+    const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
+    expect(scene).toBeDefined();
+    expect(scene.sourceRef).toEqual({
+      projectPath: ["scenes", "comp-scene"],
     });
-    expect(result.project.sourceRef?.scenes["clip-logo-reveal"]).toBe(
-      "components:logo-reveal#logo-reveal@1.0.0",
+    expect(result.project.sourceRef?.scenes["comp-scene"]).toBe(
+      "scenes:comp-scene",
     );
   });
 
@@ -1133,26 +1092,8 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     expect(code).toBeDefined();
   });
 
-  it("CMP_UNRESOLVED_COMPONENT: visual clip references a missing component", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "main-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-ghost-component",
-            source: { kind: "component", componentId: "ghost" },
-            start: 0,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-          },
-        ],
-      },
-    ];
+  it("CMP_UNRESOLVED_COMPONENT: component node references a missing component", () => {
+    const project = makeComponentNodeProject({ componentId: "ghost" });
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -1291,32 +1232,16 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     ).toBe(true);
   });
 
-  it("CMP_BINDING_TYPE_MISMATCH: component binding with wrong variable type", () => {
-    const project = structuredClone(representative);
-    // Add a component-source clip so the component is instantiated
-    project.timeline.visualTracks.push({
-      id: "component-track",
-      role: "overlay",
-      order: 2,
-      muted: false,
-      clips: [
-        {
-          id: "clip-logo",
-          source: { kind: "component", componentId: "logo-reveal" },
-          start: 0,
-          duration: 2,
-          opacity: 1,
-          loop: false,
-        },
-      ],
-    });
+  it("CMP_BINDING_TYPE_MISMATCH: component node binding with wrong variable type", () => {
+    const project = makeComponentNodeProject();
     // logo-visible publicTarget expects boolean, but brand-color is color → mismatch
     project.bindings.push({
       id: "binding-component-wrong-type",
       source: { kind: "variable", variableId: "brand-color" },
       target: {
-        kind: "component",
-        componentId: "logo-reveal",
+        kind: "componentNode",
+        sceneId: "comp-scene",
+        nodeId: "comp-node",
         targetId: "logo-visible",
       },
     });
@@ -1328,31 +1253,15 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     ).toBe(true);
   });
 
-  it("CMP_PRIVATE_COMPONENT_ACCESS: binding targets non-existent publicTarget", () => {
-    const project = structuredClone(representative);
-    // Add a component-source clip so the component is instantiated
-    project.timeline.visualTracks.push({
-      id: "component-track",
-      role: "overlay",
-      order: 2,
-      muted: false,
-      clips: [
-        {
-          id: "clip-logo",
-          source: { kind: "component", componentId: "logo-reveal" },
-          start: 0,
-          duration: 2,
-          opacity: 1,
-          loop: false,
-        },
-      ],
-    });
+  it("CMP_PRIVATE_COMPONENT_ACCESS: component node binding targets non-existent publicTarget", () => {
+    const project = makeComponentNodeProject();
     project.bindings.push({
       id: "binding-private-access",
       source: { kind: "variable", variableId: "brand-color" },
       target: {
-        kind: "component",
-        componentId: "logo-reveal",
+        kind: "componentNode",
+        sceneId: "comp-scene",
+        nodeId: "comp-node",
         targetId: "internal-node-not-exposed",
       },
     });

@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v3-component",
     "name": "V3 Component Example",
-    "description": "Demonstrates embedded component definition and component-source visual clips",
+    "description": "Demonstrates embedded component definition and component-as-scene-layer nodes",
     "locale": "vi-VN",
     "tags": ["example", "v3", "component"]
   },
@@ -194,6 +194,36 @@
           }
         }
       ]
+    },
+    {
+      "id": "cta-scene",
+      "name": "CTA Overlay Scene",
+      "duration": 2.5,
+      "nodes": [
+        {
+          "id": "cta-instance",
+          "type": "component",
+          "parentId": null,
+          "transform": {
+            "x": 100,
+            "y": 200,
+            "width": 600,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "call-to-action"
+          }
+        }
+      ]
     }
   ],
   "timeline": {
@@ -218,18 +248,9 @@
         "clips": [
           {
             "id": "c-cta",
-            "source": { "kind": "component", "componentId": "call-to-action" },
+            "source": { "kind": "scene", "sceneId": "cta-scene" },
             "start": 1,
             "duration": 2.5,
-            "instanceTransform": {
-              "x": 100,
-              "y": 200,
-              "rotation": 0,
-              "scaleX": 1,
-              "scaleY": 1,
-              "opacity": 1,
-              "visible": true
-            },
             "transitionIn": {
               "type": "fade",
               "duration": 0.3,
@@ -250,8 +271,9 @@
       "id": "bind-cta",
       "source": { "kind": "variable", "variableId": "cta-text" },
       "target": {
-        "kind": "component",
-        "componentId": "call-to-action",
+        "kind": "componentNode",
+        "sceneId": "cta-scene",
+        "nodeId": "cta-instance",
         "targetId": "cta-label"
       }
     }

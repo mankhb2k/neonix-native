@@ -69,6 +69,41 @@ describe("needsNormalization", () => {
       }),
     ).toBe(false);
   });
+
+  it("returns true when a visual clip uses a component source", () => {
+    expect(
+      needsNormalization({
+        timeline: {
+          visualTracks: [
+            {
+              id: "t1",
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "component", componentId: "logo-reveal" },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("returns false when visual clips are scene-only", () => {
+    expect(
+      needsNormalization({
+        timeline: {
+          visualTracks: [
+            {
+              id: "t1",
+              clips: [{ id: "c1", source: { kind: "scene", sceneId: "s1" } }],
+            },
+          ],
+        },
+      }),
+    ).toBe(false);
+  });
 });
 
 // ── Variant normalization ──────────────────────────────────────────────
@@ -317,6 +352,141 @@ describe("normalizeMotionProjectV3 — bindings", () => {
     };
     const original = JSON.stringify(input);
     normalizeMotionProjectV3(input);
+    expect(JSON.stringify(input)).toBe(original);
+  });
+});
+
+// ── Component clip migration ──────────────────────────────────────────
+
+describe("normalizeMotionProjectV3 — component clips", () => {
+  const legacyClipProject = () => ({
+    timeline: {
+      visualTracks: [
+        {
+          id: "main-track",
+          role: "main",
+          order: 0,
+          muted: false,
+          clips: [
+            {
+              id: "clip-logo",
+              source: { kind: "component", componentId: "logo-reveal" },
+              start: 0,
+              duration: 4,
+              opacity: 1,
+              loop: false,
+              instanceTransform: { x: 100, y: 200, width: 256, height: 256 },
+              instanceTransformTracks: [
+                {
+                  property: "transform.x",
+                  valueKind: "number",
+                  keys: [
+                    { t: 0, value: 0 },
+                    { t: 2, value: 300 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      audioTracks: [],
+      captionTracks: [],
+    },
+  });
+
+  it("leaves component clips untouched by default", () => {
+    const input = legacyClipProject();
+    const { project, issues } = normalizeMotionProjectV3(input);
+
+    expect(project.scenes).toBeUndefined();
+    const clip = project.timeline!.visualTracks![0]!.clips![0]!;
+    expect(clip.source).toEqual({
+      kind: "component",
+      componentId: "logo-reveal",
+    });
+    expect(issues).toHaveLength(0);
+  });
+
+  it("migrates component clips to scenes when opted in", () => {
+    const { project, issues } = normalizeMotionProjectV3(legacyClipProject(), {
+      migrateComponentClipsToScenes: true,
+    });
+
+    // Scene synthesized with a component node.
+    expect(project.scenes).toHaveLength(1);
+    const scene = project.scenes![0]!;
+    expect(scene.id).toBe("logo-reveal-scene");
+    expect(scene.duration).toBe(4);
+    expect(scene.nodes).toHaveLength(1);
+    expect(scene.nodes![0]).toMatchObject({
+      id: "logo-reveal-instance",
+      type: "component",
+      payload: { componentId: "logo-reveal" },
+    });
+    expect(scene.nodes![0]!.transform).toMatchObject({
+      x: 100,
+      y: 200,
+      width: 256,
+      height: 256,
+    });
+
+    // instanceTransformTracks → scene-local motion clips.
+    expect(scene.clips).toHaveLength(1);
+    expect(scene.clips![0]).toMatchObject({
+      id: "logo-reveal-instance__motion",
+      targetId: "logo-reveal-instance",
+      source: {
+        kind: "tracks",
+        tracks: [
+          {
+            targetId: "logo-reveal-instance",
+            property: "transform.x",
+            valueKind: "number",
+          },
+        ],
+      },
+    });
+
+    // Visual clip rewritten to scene source.
+    const clip = project.timeline!.visualTracks![0]!.clips![0]!;
+    expect(clip.source).toEqual({
+      kind: "scene",
+      sceneId: "logo-reveal-scene",
+    });
+    expect(clip).not.toHaveProperty("instanceTransform");
+    expect(clip).not.toHaveProperty("instanceTransformTracks");
+
+    expect(issues.some((i) => i.message.includes("Migrated component"))).toBe(
+      true,
+    );
+  });
+
+  it("produces deterministic scene ids for two components", () => {
+    const input = legacyClipProject();
+    input.timeline.visualTracks[0]!.clips!.push({
+      id: "clip-lower-third",
+      source: { kind: "component", componentId: "lower-third" },
+      start: 4,
+      duration: 2,
+      opacity: 1,
+      loop: false,
+    });
+
+    const { project } = normalizeMotionProjectV3(input, {
+      migrateComponentClipsToScenes: true,
+    });
+
+    expect(project.scenes!.map((s) => s.id)).toEqual([
+      "logo-reveal-scene",
+      "lower-third-scene",
+    ]);
+  });
+
+  it("does not mutate the input", () => {
+    const input = legacyClipProject();
+    const original = JSON.stringify(input);
+    normalizeMotionProjectV3(input, { migrateComponentClipsToScenes: true });
     expect(JSON.stringify(input)).toBe(original);
   });
 });

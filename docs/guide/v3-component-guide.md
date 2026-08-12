@@ -2,7 +2,7 @@
 
 ## 1. Component là gì?
 
-Component trong MotiClip V3 là một **đơn vị đồ họa đóng gói (sealed unit)**, do chủ sở hữu (owner) kiểm soát toàn bộ cấu trúc bên trong. Component được nhúng trực tiếp vào project JSON (`EmbeddedComponentV3Schema`) và được khởi tạo thông qua **visual clip** trên timeline — không phải là scene node.
+Component trong MotiClip V3 là một **đơn vị đồ họa đóng gói (sealed unit)**, do chủ sở hữu (owner) kiểm soát toàn bộ cấu trúc bên trong. Component được nhúng trực tiếp vào project JSON (`EmbeddedComponentV3Schema`) và được khởi tạo như một **scene node** (`type: "component"`) — không phải qua visual clip trực tiếp trên timeline. Timeline chỉ chứa các clip scene; muốn đưa component lên timeline, editor/app sẽ tự bọc component vào một scene rồi tham chiếu scene đó.
 
 Mô hình component tuân theo nguyên tắc **owner-owned, consumer-safe**:
 
@@ -27,7 +27,7 @@ flowchart TB
     end
 
     subgraph Consumer["👤 Consumer (người dùng project)"]
-        timeline["Timeline Visual Clip"]
+        node["Scene Node (type: component)"]
         binding["Project Binding"]
     end
 
@@ -194,8 +194,8 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
 **Cách hoạt động**:
 
 1. Owner khai báo `publicTargets` — mỗi target có `id`, `nodeId`, `property`
-2. Consumer tạo binding với `target.kind = "component"` và dùng `targetId` để trỏ đến target
-3. Compiler resolve `targetId` → `nodeId + property` và apply binding vào synthesized scene
+2. Consumer tạo binding với `target.kind = "componentNode"` (trỏ đến instance trong scene) hoặc `target.kind = "component"` (bind toàn cục vào mọi instance của component) và dùng `targetId` để trỏ đến target
+3. Compiler resolve `targetId` → `nodeId + property` và apply binding vào scene đã expand
 4. Nếu consumer cố bind vào `nodeId`/`property` không có trong `publicTargets` → compiler báo lỗi `CMP_PRIVATE_COMPONENT_ACCESS`
 
 ---
@@ -340,9 +340,32 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
 
 `integrity` trong dependencies **phải khớp** với `integrity` của component nhúng — nếu không compiler báo lỗi `CMP_COMPONENT_INTEGRITY_MISMATCH`.
 
-### Bước 3: Khởi tạo component trên timeline
+### Bước 3: Khởi tạo component trên timeline (qua scene wrapper)
+
+Timeline chỉ chứa clip scene. Để đưa component lên timeline, tạo một scene chứa component node rồi tham chiếu scene đó:
 
 ```jsonc
+"scenes": [
+  {
+    "id": "my-button-scene",
+    "name": "My Button",
+    "duration": 5,
+    "nodes": [
+      {
+        "id": "my-btn-instance",
+        "type": "component",
+        "parentId": null,
+        "transform": {
+          "x": 100, "y": 200, "width": 200, "height": 48,
+          "rotation": 0, "scaleX": 1, "scaleY": 1,
+          "anchorX": 0.5, "anchorY": 0.5,
+          "opacity": 1, "visible": true, "flipX": false, "flipY": false
+        },
+        "payload": { "componentId": "my-button" }
+      }
+    ]
+  }
+],
 "timeline": {
   "visualTracks": [
     {
@@ -352,7 +375,7 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
       "clips": [
         {
           "id": "my-btn-instance",
-          "source": { "kind": "component", "componentId": "my-button" },
+          "source": { "kind": "scene", "sceneId": "my-button-scene" },
           "start": 0,
           "duration": 5,
           "transitionIn": { "type": "fade", "duration": 0.3 }
@@ -377,8 +400,9 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
     "id": "bind-hero-cta",
     "source": { "kind": "variable", "variableId": "hero-cta" },
     "target": {
-      "kind": "component",
-      "componentId": "my-button",
+      "kind": "componentNode",
+      "sceneId": "my-button-scene",
+      "nodeId": "my-btn-instance",
       "targetId": "btn-text-content"  // ← publicTargets.id
     }
   }
@@ -391,11 +415,11 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
 
 ### 5.1 Nguyên tắc cốt lõi
 
-| Chủ thể      | Được phép                                                       | Không được phép                                    |
-| ------------ | --------------------------------------------------------------- | -------------------------------------------------- |
-| **Owner**    | Sửa nodes, bindings, actions, variables, cấu trúc nội bộ        | —                                                  |
-| **Consumer** | Dùng `publicParams`, `slots`, `variants`, `publicTargets`       | Truy cập trực tiếp `nodeId.property` của component |
-| **Compiler** | Synthesize scene từ component, remap bindings qua publicTargets | Cho phép binding bypass publicTargets              |
+| Chủ thể      | Được phép                                                                    | Không được phép                                    |
+| ------------ | ---------------------------------------------------------------------------- | -------------------------------------------------- |
+| **Owner**    | Sửa nodes, bindings, actions, variables, cấu trúc nội bộ                     | —                                                  |
+| **Consumer** | Dùng `publicParams`, `slots`, `variants`, `publicTargets`                    | Truy cập trực tiếp `nodeId.property` của component |
+| **Compiler** | Expand component node thành scene subgraph, remap bindings qua publicTargets | Cho phép binding bypass publicTargets              |
 
 ### 5.2 Các tầng validation
 
@@ -403,8 +427,10 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
 ┌──────────────────────────────────────────────┐
 │ 1. Schema (.strict())                        │
 │    - Từ chối unknown fields                  │
-│    - Chỉ chấp nhận binding component dạng    │
-│      { componentId, targetId }               │
+│    - Chấp nhận binding component dạng        │
+│      { componentId, targetId } (toàn cục)    │
+│      hoặc { sceneId, nodeId, targetId }      │
+│      (componentNode)                         │
 │    - Không chấp nhận { nodeId, property }    │
 │      cho component target                    │
 ├──────────────────────────────────────────────┤
@@ -480,7 +506,7 @@ Variants là các **cấu hình được owner phê duyệt trước**, cho phé
 
 ## 6. Compile-time: Component → Runtime
 
-Khi compiler gặp một visual clip có `source.kind = "component"`:
+Khi compiler gặp một scene node có `type = "component"`:
 
 ```mermaid
 sequenceDiagram
@@ -488,34 +514,32 @@ sequenceDiagram
     participant C as Compiler
     participant R as Runtime IR
 
-    P->>C: clip.source = { kind: "component", componentId: "my-button" }
-    C->>P: Lookup components["my-button"]
-    C->>C: Synthesize scene { id = clip.id, nodes = component.nodes }
+    P->>C: scene.nodes[] có node { type: "component", payload.componentId }
+    C->>P: Lookup components[payload.componentId]
+    C->>C: Expand thành wrapper group + internal nodes (sealed)
     C->>C: Resolve bindings: targetId → publicTargets → nodeId + property
-    C->>C: Inject variable values vào synthesized scene
+    C->>C: Inject variable values vào expanded scene
     C->>R: Runtime scene (nodes đã được flatten)
 ```
 
 **Kết quả**: Runtime IR chỉ chứa các scene phẳng, không còn khái niệm "component". Component đã được "nướng" (baked) thành scene tại compile time.
 
-### 6.1 Instance Transform — Keyframe toàn bộ component
+### 6.1 Transform component node — định vị & keyframe toàn bộ component
 
-Khi consumer muốn **di chuyển, scale, rotate, hoặc keyframe toàn bộ component instance** như một group layer, dùng `instanceTransform` trên visual clip:
+Component node hoạt động như một **group layer**. Transform của component node trở thành transform của wrapper group khi compiler expand:
 
 ```jsonc
 {
   "id": "my-btn-instance",
-  "source": { "kind": "component", "componentId": "my-button" },
-  "start": 0,
-  "duration": 5,
-  "instanceTransform": {
-    "x": 100, // Vị trí X
-    "y": 200, // Vị trí Y
-    "rotation": 15, // Xoay (độ)
-    "scaleX": 0.8, // Scale ngang
-    "scaleY": 0.8, // Scale dọc
-    "opacity": 0.9, // Độ mờ
-    // Tất cả field đều optional
+  "type": "component",
+  "payload": { "componentId": "my-button" },
+  "transform": {
+    "x": 100,
+    "y": 200,
+    "rotation": 15,
+    "scaleX": 0.8,
+    "scaleY": 0.8,
+    "opacity": 0.9,
   },
 }
 ```
@@ -527,39 +551,27 @@ flowchart LR
         B["node: solid"]
     end
 
-    subgraph After["Synthesized Scene (có instanceTransform)"]
+    subgraph After["Expanded Scene"]
         W["wrapper group\n(x:100, y:200, rotation:15)"]
         A2["node: text\n(parentId → wrapper)"]
         B2["node: solid\n(parentId → wrapper)"]
     end
 
-    Before -->|"compiler wrap"| After
+    Before -->|"compiler expand"| After
     W --> A2
     W --> B2
 ```
 
 **Cơ chế hoạt động**:
 
-1. Consumer thêm `instanceTransform` vào visual clip `source.kind === "component"`
-2. Compiler tạo một **synthetic group node** làm wrapper cho toàn bộ nodes của component
-3. Group node mang transform từ `instanceTransform`, các node gốc được re-parent vào group
-4. Runtime nhận được scene với group wrapper — có thể keyframe group này như layer bình thường
+1. Consumer đặt `type: "component"` node trong scene và đặt `transform` cho node đó
+2. Compiler tạo một **synthetic group node** (id `<nodeId>__instance`) làm wrapper cho toàn bộ nodes của component
+3. Group node mang transform từ component node, các node gốc được re-parent vào group với id deterministic `<nodeId>__<internalNodeId>`
+4. Scene-local motion clip nhắm vào component node được remap sang wrapper group — có thể keyframe như layer bình thường
 
-| Field      | Default | Mô tả              |
-| ---------- | ------- | ------------------ |
-| `x`        | `0`     | Vị trí ngang       |
-| `y`        | `0`     | Vị trí dọc         |
-| `rotation` | `0`     | Góc xoay (độ)      |
-| `scaleX`   | `1`     | Tỉ lệ ngang        |
-| `scaleY`   | `1`     | Tỉ lệ dọc          |
-| `anchorX`  | `0.5`   | Anchor ngang (0–1) |
-| `anchorY`  | `0.5`   | Anchor dọc (0–1)   |
-| `opacity`  | `1`     | Độ mờ (0–1)        |
-| `visible`  | `true`  | Hiển thị           |
-| `flipX`    | `false` | Lật ngang          |
-| `flipY`    | `false` | Lật dọc            |
+Transform của component node dùng chung các field transform của mọi scene node: `x`, `y`, `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY`, `opacity`, `visible`, `flipX`, `flipY`.
 
-> **Lưu ý**: `instanceTransform` không thay thế public contract — consumer vẫn dùng `publicParams`, `slots`, `variants`, `publicTargets` để cấu hình nội dung bên trong component. `instanceTransform` chỉ điều khiển vị trí và hiệu ứng của **toàn bộ instance** trên màn hình.
+> **Lưu ý**: `transform` không thay thế public contract — consumer vẫn dùng `publicParams`, `slots`, `variants`, `publicTargets` để cấu hình nội dung bên trong component. `transform` chỉ điều khiển vị trí và hiệu ứng của **toàn bộ instance** trên màn hình.
 
 ---
 
@@ -579,7 +591,7 @@ flowchart LR
 2. **Không cố truy cập `nodeId`/`property`** của component — sẽ bị compiler từ chối
 3. **Kiểm tra `dependencies.components`** khớp với component đang dùng
 4. **Dùng `transitionIn`/`transitionOut`** trên visual clip thay vì sửa animation nội bộ
-5. **Dùng `instanceTransform`** để định vị và keyframe toàn bộ component instance
+5. **Dùng `transform` của component node** (hoặc scene-local motion) để định vị và keyframe toàn bộ component instance
 
 ### Cho Editor/UI Developer
 
@@ -592,13 +604,13 @@ flowchart LR
 
 ## 8. Tóm tắt
 
-| Khái niệm                | Mô tả                                                             |
-| ------------------------ | ----------------------------------------------------------------- |
-| **Component**            | Đơn vị đồ họa đóng gói, nhúng trong project JSON                  |
-| **Public Contract**      | `publicParams` + `slots` + `variants` + `publicTargets`           |
-| **Private Internals**    | `nodes` + `bindings` + `actions` + `variables` — chỉ owner sửa    |
-| **targetId**             | Cầu nối duy nhất để consumer bind vào component                   |
-| **Schema enforcement**   | `.strict()` + Zod discriminator → từ chối sai shape               |
-| **Compiler enforcement** | `CMP_PRIVATE_COMPONENT_ACCESS` → từ chối truy cập private         |
-| **Runtime**              | Component được flatten thành scene, không còn khái niệm component |
-| **instanceTransform**    | Cho phép keyframe toàn bộ component instance như group layer      |
+| Khái niệm                    | Mô tả                                                             |
+| ---------------------------- | ----------------------------------------------------------------- |
+| **Component**                | Đơn vị đồ họa đóng gói, nhúng trong project JSON                  |
+| **Public Contract**          | `publicParams` + `slots` + `variants` + `publicTargets`           |
+| **Private Internals**        | `nodes` + `bindings` + `actions` + `variables` — chỉ owner sửa    |
+| **targetId**                 | Cầu nối duy nhất để consumer bind vào component                   |
+| **Schema enforcement**       | `.strict()` + Zod discriminator → từ chối sai shape               |
+| **Compiler enforcement**     | `CMP_PRIVATE_COMPONENT_ACCESS` → từ chối truy cập private         |
+| **Runtime**                  | Component được flatten thành scene, không còn khái niệm component |
+| **Component node transform** | Cho phép keyframe toàn bộ component instance như group layer      |

@@ -296,6 +296,7 @@ export {
   CameraNodeV3Schema as CameraNodeSchema,
   SolidNodeV3Schema as SolidNodeSchema,
   AdjustmentNodeV3Schema as AdjustmentNodeSchema,
+  ComponentNodeV3Schema as ComponentNodeSchema,
   NodeV3Schema as NodeSchema,
   type NodeV3 as MotionNode,
 } from "./v3/nodes";

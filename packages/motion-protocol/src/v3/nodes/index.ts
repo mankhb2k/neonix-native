@@ -1,8 +1,10 @@
 /**
  * V3 node union.
  *
- * Note: `component` node type is intentionally REMOVED from v3 — component
- * instances become visual-clip sources on the timeline (see `timeline.ts`).
+ * `component` node type represents a sealed component instance as a scene
+ * layer/object (see `component.ts`). Its transform behaves like a group layer;
+ * scene-local motion clips target the component node to animate the whole
+ * instance without touching internals.
  */
 import { z } from "zod";
 import { TextNodeV3Schema } from "./text";
@@ -13,6 +15,7 @@ import {
   SvgNodeV3Schema,
   VideoNodeV3Schema,
 } from "./media";
+import { ComponentNodeV3Schema } from "./component";
 import {
   AdjustmentNodeV3Schema,
   BoneNodeV3Schema,
@@ -56,6 +59,7 @@ export {
   SolidNodeV3Schema,
   AdjustmentNodeV3Schema,
 } from "./structural";
+export { ComponentNodeV3Schema, type ComponentNodeV3 } from "./component";
 export {
   ShapeNodeV3Schema,
   PathNodeV3Schema,
@@ -81,6 +85,7 @@ export const NodeV3Schema = z.discriminatedUnion("type", [
   CameraNodeV3Schema,
   SolidNodeV3Schema,
   AdjustmentNodeV3Schema,
+  ComponentNodeV3Schema,
 ]);
 
 export type NodeV3 = z.infer<typeof NodeV3Schema>;

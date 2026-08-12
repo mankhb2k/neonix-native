@@ -114,8 +114,8 @@ describe("v3 schema — positive fixtures", () => {
     expect(comp.variants).toBeTruthy();
     expect(comp.assetDependencies).toContain("asset-font-display");
 
-    // scenes — group, text, shape, image, bone, camera, path, adjustment, video, svg
-    expect(project.scenes).toHaveLength(3);
+    // scenes — group, text, shape, image, bone, camera, path, adjustment, video, svg, component
+    expect(project.scenes).toHaveLength(4);
     const allNodes = project.scenes.flatMap((s) => s.nodes);
     const nodeTypes = allNodes.map((n) => n.type);
     expect(nodeTypes).toEqual(
@@ -130,6 +130,7 @@ describe("v3 schema — positive fixtures", () => {
         "adjustment",
         "video",
         "svg",
+        "component",
       ]),
     );
 
@@ -146,11 +147,15 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.timeline.workArea).toEqual({ start: 0, end: 18 });
     expect(project.timeline.markers).toHaveLength(1);
 
-    // timeline: visualTracks with main+overlay, component clip source
+    // timeline: visualTracks with main+overlay, scene-only clip sources
     expect(project.timeline.visualTracks).toHaveLength(2);
     const overlayTrack = project.timeline.visualTracks[1]!;
     expect(overlayTrack.role).toBe("overlay");
-    expect(overlayTrack.clips[0]!.source.kind).toBe("component");
+    expect(overlayTrack.clips[0]!.source.kind).toBe("scene");
+    expect(overlayTrack.clips[0]!.source).toEqual({
+      kind: "scene",
+      sceneId: "scene-lower-third",
+    });
 
     // timeline: audioTrack with all fields
     expect(project.timeline.audioTracks).toHaveLength(1);
@@ -162,16 +167,17 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.timeline.captionTracks).toHaveLength(1);
     expect(project.timeline.captionTracks[0]!.audioTrackId).toBe("track-bgm");
 
-    // bindings — scene + component targets
+    // bindings — scene + componentNode targets
     expect(project.bindings).toHaveLength(3);
     const componentBinding = project.bindings.find(
-      (b) => b.target.kind === "component",
+      (b) => b.target.kind === "componentNode",
     )!;
-    expect(componentBinding.target.kind).toBe("component");
-    if (componentBinding.target.kind !== "component") {
-      throw new Error("Expected component binding");
+    expect(componentBinding.target.kind).toBe("componentNode");
+    if (componentBinding.target.kind !== "componentNode") {
+      throw new Error("Expected componentNode binding");
     }
-    expect(componentBinding.target.componentId).toBe("lower-third");
+    expect(componentBinding.target.sceneId).toBe("scene-lower-third");
+    expect(componentBinding.target.nodeId).toBe("node-lower-third");
     expect(componentBinding.target.targetId).toBe("lt-bg-color");
 
     // provenance — all 4 sub-fields
@@ -231,283 +237,181 @@ describe("v3 schema — positive fixtures", () => {
     }
   });
 
-  it("parses component project with embedded component and component-source clip", () => {
+  it("parses component project with embedded component and component-as-node layer", () => {
     const input = loadFixture("component.project.json");
     const project = MotionProjectV3Schema.parse(input);
     expect(project.components).toHaveLength(1);
     expect(project.components[0]!.publicParams).toHaveLength(2);
-    const overlayTrack = project.timeline.visualTracks.find(
-      (t) => t.role === "overlay",
+
+    const ctaScene = project.scenes.find((scene) => scene.id === "cta-scene")!;
+    const componentNode = ctaScene.nodes.find(
+      (node) => node.type === "component",
     )!;
-    const componentClip = overlayTrack.clips[0]!;
-    expect(componentClip.source.kind).toBe("component");
-    // instanceTransform is present on the component clip
-    expect(componentClip.instanceTransform).toBeTruthy();
-    expect(componentClip.instanceTransform!.x).toBe(100);
-    expect(componentClip.instanceTransform!.y).toBe(200);
-  });
-
-  it("parses component clip with instanceTransformTracks (animated keyframes)", () => {
-    const input = loadFixture("component.project.json");
-    const project = MotionProjectV3Schema.parse(input);
-    const overlayTrack = project.timeline.visualTracks.find(
-      (t) => t.role === "overlay",
-    )!;
-    // component.project.json already has instanceTransform, now test it parses correctly
-    const componentClip = overlayTrack.clips[0]!;
-    expect(componentClip.instanceTransform).toBeTruthy();
-    // instanceTransformTracks not in fixture — verify optional
-    expect(componentClip.instanceTransformTracks).toBeUndefined();
-  });
-
-  it("parses component clip with instanceTransformTracks that animate wrapper group", () => {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [
-      {
-        property: "transform.x",
-        valueKind: "number",
-        keys: [
-          { t: 0, v: 0 },
-          { t: 1, v: 100, easing: "easeOut" },
-        ],
-      },
-    ];
-    const project = MotionProjectV3Schema.parse(input);
-    const clip = project.timeline.visualTracks.find(
-      (t) => t.role === "overlay",
-    )!.clips[0]!;
-    expect(clip.instanceTransformTracks).toHaveLength(1);
-    expect(clip.instanceTransformTracks![0]!.property).toBe("transform.x");
-  });
-
-  it("rejects instanceTransformTracks with invalid property path", () => {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [
-      {
-        property: "transform.width",
-        keys: [{ t: 0, v: 0 }],
-      },
-    ];
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("parses instanceTransformTracks with preBehavior and postBehavior", () => {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [
-      {
-        property: "transform.opacity",
-        preBehavior: { type: "clamp" },
-        postBehavior: { type: "clamp" },
-        keys: [
-          { t: 0, v: 0 },
-          { t: 1, v: 1 },
-        ],
-      },
-    ];
-    const project = MotionProjectV3Schema.parse(input);
-    const clip = project.timeline.visualTracks.find(
-      (t) => t.role === "overlay",
-    )!.clips[0]!;
-    expect(clip.instanceTransformTracks![0]!.preBehavior).toEqual({
-      type: "clamp",
-    });
-    expect(clip.instanceTransformTracks![0]!.postBehavior).toEqual({
-      type: "clamp",
-    });
-  });
-
-  it("rejects instanceTransformTracks with mismatched valueKind", () => {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [
-      {
-        property: "transform.x",
-        valueKind: "color",
-        keys: [{ t: 0, v: 0 }],
-      },
-    ];
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects instanceTransformTracks with literal value that does not match property type", () => {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [
-      {
-        property: "transform.x",
-        valueKind: "number",
-        keys: [{ t: 0, v: "bad" }],
-      },
-    ];
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  // ── Component instanceTransformTracks — negative edge cases ───────
-
-  function makeComponentFixtureWithTrack(
-    track: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [track];
-    return input;
-  }
-
-  it("rejects instanceTransformTracks with payload property path (not wrapper-safe)", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "payload.fontSize",
-      keys: [{ t: 0, v: 24 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects instanceTransformTracks with payload.content.text path", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "payload.content.text",
-      keys: [{ t: 0, v: "hello" }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects instanceTransformTracks with transform.z (3D only, not wrapper-safe)", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "transform.z",
-      keys: [{ t: 0, v: 0 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects instanceTransformTracks with transform.depth path", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "transform.depth",
-      keys: [{ t: 0, v: 0 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects instanceTransformTracks with arbitrary property path", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "arbitrary.custom.path",
-      keys: [{ t: 0, v: 0 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects instanceTransformTracks with empty keys array", () => {
-    const input = loadFixture("component.project.json") as Record<
-      string,
-      unknown
-    >;
-    const tracks = (input.timeline as Record<string, unknown>)
-      .visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
-    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
-    clips[0]!.instanceTransformTracks = [
-      {
-        property: "transform.x",
-        keys: [],
-      },
-    ];
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects transform.x with angle valueKind", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "transform.x",
-      valueKind: "angle",
-      keys: [{ t: 0, v: 45 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects boolean wrapper properties with numeric values", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "transform.visible",
-      valueKind: "boolean",
-      keys: [{ t: 0, v: 1 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("rejects opacity values outside 0..1", () => {
-    const input = makeComponentFixtureWithTrack({
-      property: "transform.opacity",
-      valueKind: "number",
-      keys: [{ t: 0, v: 2 }],
-    });
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
-  });
-
-  it("accepts all 11 wrapper-safe properties in instanceTransformTracks", () => {
-    const safeProperties = [
-      "transform.x",
-      "transform.y",
-      "transform.rotation",
-      "transform.scaleX",
-      "transform.scaleY",
-      "transform.opacity",
-      "transform.anchorX",
-      "transform.anchorY",
-      "transform.visible",
-      "transform.flipX",
-      "transform.flipY",
-    ] as const;
-    for (const prop of safeProperties) {
-      const input = makeComponentFixtureWithTrack({
-        property: prop,
-        keys: [
-          {
-            t: 0,
-            v:
-              prop === "transform.visible" ||
-              prop === "transform.flipX" ||
-              prop === "transform.flipY"
-                ? true
-                : 0,
-          },
-        ],
-      });
-      expect(() => MotionProjectV3Schema.parse(input)).not.toThrow();
+    expect(componentNode).toBeDefined();
+    if (componentNode.type === "component") {
+      expect(componentNode.payload.componentId).toBe("call-to-action");
     }
+
+    // Visual clips are scene-only now.
+    const overlayTrack = project.timeline.visualTracks.find(
+      (t) => t.role === "overlay",
+    )!;
+    expect(overlayTrack.clips[0]!.source.kind).toBe("scene");
+    expect(overlayTrack.clips[0]!.source).toEqual({
+      kind: "scene",
+      sceneId: "cta-scene",
+    });
+  });
+
+  it("parses scene-local motion clip targeting a component node", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            {
+              targetId: "cta-instance",
+              property: "transform.x",
+              valueKind: "number",
+              keys: [
+                { t: 0, v: 0 },
+                { t: 1, v: 100, easing: "easeOut" },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    const project = MotionProjectV3Schema.parse(input);
+    const parsedScene = project.scenes.find((s) => s.id === "cta-scene")!;
+    expect(parsedScene.clips).toHaveLength(1);
+    expect(parsedScene.clips[0]!.targetId).toBe("cta-instance");
+    expect(parsedScene.clips[0]!.source.kind).toBe("tracks");
+  });
+
+  it("rejects component node without payload.componentId", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    const nodes = ctaScene.nodes as Array<Record<string, unknown>>;
+    const node = nodes.find((n) => n.type === "component")!;
+    delete (node.payload as Record<string, unknown>).componentId;
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects visual clip with component source (scene-only timeline)", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const timeline = input.timeline as Record<string, unknown>;
+    const tracks = timeline.visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.source = { kind: "component", componentId: "call-to-action" };
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("accepts scene-local motion on a component node with normal transform paths", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            {
+              targetId: "cta-instance",
+              property: "transform.width",
+              valueKind: "number",
+              keys: [{ t: 0, v: 600 }],
+            },
+          ],
+        },
+      },
+    ];
+    const project = MotionProjectV3Schema.parse(input);
+    const parsedScene = project.scenes.find((s) => s.id === "cta-scene")!;
+    expect(parsedScene.clips[0]!.source.kind).toBe("tracks");
+    expect(parsedScene.clips[0]!.targetId).toBe("cta-instance");
+  });
+
+  it("rejects scene-local motion clip on component node with empty keys", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            { targetId: "cta-instance", property: "transform.x", keys: [] },
+          ],
+        },
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects scene-local motion clip on component node with mismatched valueKind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            {
+              targetId: "cta-instance",
+              property: "transform.x",
+              valueKind: "color",
+              keys: [{ t: 0, v: 0 }],
+            },
+          ],
+        },
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
   it("parses caption project with bilingual caption tracks", () => {
@@ -595,7 +499,7 @@ describe("v3 schema — negative fixtures", () => {
     ).toThrow();
   });
 
-  it("rejects instanceTransform on scene-source clip", () => {
+  it("rejects instanceTransform on a visual clip (removed field)", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
@@ -626,7 +530,7 @@ describe("v3 schema — negative fixtures", () => {
     ).toThrow();
   });
 
-  it("rejects instanceTransformTracks on scene-source clip", () => {
+  it("rejects instanceTransformTracks on a visual clip (removed field)", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown

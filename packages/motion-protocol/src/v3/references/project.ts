@@ -115,6 +115,7 @@ const NODE_PUBLIC_PAYLOAD_PROPERTIES: Record<NodeV3["type"], Set<string>> = {
     "payload.contrast",
     "payload.saturation",
   ]),
+  component: new Set([]),
 };
 
 function isPublicTargetPropertyValid(node: NodeV3, property: string): boolean {
@@ -127,6 +128,52 @@ function isPublicTargetPropertyValid(node: NodeV3, property: string): boolean {
     return true;
   }
   return NODE_PUBLIC_PAYLOAD_PROPERTIES[node.type].has(property);
+}
+
+/**
+ * Validate component nodes within a scene (or component) node list.
+ *
+ * Each `type: "component"` node must reference an existing component, its
+ * `variantId` (when present) must be declared by that component, and its
+ * `publicProps` keys must be declared `publicTargets`.
+ */
+function validateComponentNodeReferences(
+  nodes: NodeV3[],
+  componentById: Map<string, import("../components").EmbeddedComponentV3>,
+  pathPrefix: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  for (const node of nodes) {
+    if (node.type !== "component") continue;
+    const path = `${pathPrefix}.${node.id}`;
+    const component = componentById.get(node.payload.componentId);
+    if (!component) {
+      issues.push({
+        path: `${path}.payload.componentId`,
+        message: `Component node "${node.id}" references unknown component: ${node.payload.componentId}`,
+      });
+      continue;
+    }
+    if (
+      node.payload.variantId !== undefined &&
+      !component.variants.some((v) => v.id === node.payload.variantId)
+    ) {
+      issues.push({
+        path: `${path}.payload.variantId`,
+        message: `Component "${component.id}" does not declare variant "${node.payload.variantId}"`,
+      });
+    }
+    const publicTargetIds = new Set(component.publicTargets.map((t) => t.id));
+    for (const targetId of Object.keys(node.payload.publicProps ?? {})) {
+      if (!publicTargetIds.has(targetId)) {
+        issues.push({
+          path: `${path}.payload.publicProps.${targetId}`,
+          message: `Component "${component.id}" does not expose public target "${targetId}"`,
+        });
+      }
+    }
+  }
+  return issues;
 }
 
 export function validateMotionProjectV3References(
@@ -192,17 +239,10 @@ export function validateMotionProjectV3References(
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
       const path = `timeline.visualTracks.${track.id}.clips.${clip.id}.source`;
-      if (clip.source.kind === "scene") {
-        if (!sceneById.has(clip.source.sceneId)) {
-          issues.push({
-            path,
-            message: `Unknown scene: ${clip.source.sceneId}`,
-          });
-        }
-      } else if (!componentById.has(clip.source.componentId)) {
+      if (!sceneById.has(clip.source.sceneId)) {
         issues.push({
           path,
-          message: `Unknown component: ${clip.source.componentId}`,
+          message: `Unknown scene: ${clip.source.sceneId}`,
         });
       }
     }
@@ -257,6 +297,40 @@ export function validateMotionProjectV3References(
           message: `Unknown node: ${bindingTarget.nodeId}`,
         });
       }
+    } else if (bindingTarget.kind === "componentNode") {
+      const scene = sceneById.get(bindingTarget.sceneId);
+      const node = scene?.nodes.find((n) => n.id === bindingTarget.nodeId);
+      if (!scene) {
+        issues.push({
+          path: `${path}.target.sceneId`,
+          message: `Unknown scene: ${bindingTarget.sceneId}`,
+        });
+      } else if (!node) {
+        issues.push({
+          path: `${path}.target.nodeId`,
+          message: `Unknown node: ${bindingTarget.nodeId}`,
+        });
+      } else if (node.type !== "component") {
+        issues.push({
+          path: `${path}.target.nodeId`,
+          message: `Node "${bindingTarget.nodeId}" is not a component node (type "${node.type}")`,
+        });
+      } else {
+        const component = componentById.get(node.payload.componentId);
+        if (!component) {
+          issues.push({
+            path: `${path}.target.nodeId`,
+            message: `Component node "${bindingTarget.nodeId}" references unknown component "${node.payload.componentId}"`,
+          });
+        } else if (
+          !component.publicTargets.some((t) => t.id === bindingTarget.targetId)
+        ) {
+          issues.push({
+            path: `${path}.target.targetId`,
+            message: `Component "${node.payload.componentId}" does not expose public target "${bindingTarget.targetId}"`,
+          });
+        }
+      }
     } else {
       const component = componentById.get(bindingTarget.componentId);
       if (!component) {
@@ -291,6 +365,13 @@ export function validateMotionProjectV3References(
         `scenes.${scene.id}.nodes`,
       ),
     );
+    issues.push(
+      ...validateComponentNodeReferences(
+        scene.nodes,
+        componentById,
+        `scenes.${scene.id}.nodes`,
+      ),
+    );
     const nodeIds = new Set(scene.nodes.map((node) => node.id));
     for (const clip of scene.clips) {
       if (clip.targetId && !nodeIds.has(clip.targetId)) {
@@ -314,6 +395,13 @@ export function validateMotionProjectV3References(
       ...validateNodeAssetsV3(
         component.nodes,
         project.assets,
+        `components.${component.id}.nodes`,
+      ),
+    );
+    issues.push(
+      ...validateComponentNodeReferences(
+        component.nodes,
+        componentById,
         `components.${component.id}.nodes`,
       ),
     );
