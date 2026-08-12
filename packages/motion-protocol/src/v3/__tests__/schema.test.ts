@@ -1136,6 +1136,150 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
       );
     }
   });
+
+  // ── Component ownership contract: publicProps value typing ──────────
+
+  it("rejects publicProp with unknown target id", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: { "not-a-target": "hello" },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, scenes })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, scenes });
+    } catch (err) {
+      expect(String(err)).toContain('does not expose public target "not-a-target"');
+    }
+  });
+
+  it("rejects publicProp with incompatible value kind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    // Add a numeric public target, then feed it a string value.
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+          { id: "cta-opacity", nodeId: "cta-bg", property: "transform.opacity" },
+        ],
+      }),
+    );
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: { "cta-opacity": "not-a-number" },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components, scenes })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components, scenes });
+    } catch (err) {
+      expect(String(err)).toContain("incompatible with expected value kind");
+    }
+  });
+
+  it("rejects publicProp variable reference with incompatible type", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+          { id: "cta-opacity", nodeId: "cta-bg", property: "transform.opacity" },
+        ],
+      }),
+    );
+    // cta-text is a string variable, but cta-opacity expects a number.
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: {
+                    "cta-opacity": {
+                      ref: { kind: "variable", id: "cta-text" },
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components, scenes })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components, scenes });
+    } catch (err) {
+      expect(String(err)).toContain("expected value kind \"number\"");
+    }
+  });
+
+  it("accepts publicProp with matching value kind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: { "cta-label": "Buy now" },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    const project = parseMotionProjectV3({ ...input, scenes });
+    expect(project.scenes.length).toBeGreaterThan(0);
+  });
 });
 
 // ── Isolation from v2 ──────────────────────────────────────────────────

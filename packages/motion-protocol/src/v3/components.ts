@@ -11,7 +11,7 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { PublicParamSchema, VariableSchema } from "./variables";
-import { JsonValueSchema } from "./values";
+import { JsonValueSchema, ValueKindSchema } from "./values";
 import { IdSchema, PropertyPathSchema, SemverSchema } from "./common";
 import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";
@@ -54,6 +54,12 @@ export const ComponentPublicTargetV3Schema = z
     name: z.string().min(1).optional(),
     nodeId: IdSchema,
     property: PropertyPathSchema,
+    /**
+     * Expected value kind for consumer-supplied `publicProps` values.
+     * When omitted, the kind is inferred from `property` during reference
+     * validation (transform.* → number/boolean, payload.color → color, etc.).
+     */
+    valueKind: ValueKindSchema.optional(),
     description: z.string().optional(),
   })
   .strict();

@@ -127,7 +127,7 @@
         {
           "id": "cta-label-node",
           "type": "text",
-          "parentId": "cta-bg",
+          "parentId": null,
           "transform": {
             "x": 0,
             "y": 0,

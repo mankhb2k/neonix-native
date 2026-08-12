@@ -3,6 +3,8 @@
  */
 import type { MotionProjectV3 } from "../project";
 import type { NodeV3 } from "../nodes";
+import { isVariableReference } from "../values";
+import type { ProjectVariableV3 } from "../variables";
 import { duplicates } from "./helpers";
 import { validateNodeGraphV3 } from "./node-graph";
 import { validateNodeAssetsV3 } from "./node-assets";
@@ -131,6 +133,119 @@ function isPublicTargetPropertyValid(node: NodeV3, property: string): boolean {
 }
 
 /**
+ * Infer the expected value kind for a public-target property path.
+ * Returns `undefined` when no confident inference is possible.
+ */
+function inferPublicTargetValueKind(property: string): string | undefined {
+  const segments = property.toLowerCase().split(".");
+  const last = segments[segments.length - 1];
+  if (!last) return undefined;
+
+  if (last === "visible" || last === "flipx" || last === "flipy") {
+    return "boolean";
+  }
+  if (
+    last === "enabled" ||
+    last === "muted" ||
+    last === "loop" ||
+    last === "locked"
+  ) {
+    return "boolean";
+  }
+  if (
+    last.includes("color") ||
+    last === "fill" ||
+    last === "stroke" ||
+    last === "tint" ||
+    last === "background"
+  ) {
+    return "color";
+  }
+  if (last === "text" || last === "label" || last === "name") {
+    return "string";
+  }
+  if (last === "assetid" || last === "fontassetid") {
+    return "asset";
+  }
+  if (
+    /^(?:opacity|width|height|scalex|scaley|rotation|x|y|z|depth|fontsize|letterspacing|lineheight|rate|volume|duration|start|end|progress|radius|length|fov|zoom|near|far|anchorx|anchory|anchorz|rotationx|rotationy|rotationz|trimstart|trimend|cornerradius|strokewidth|fillopacity|strokeopacity|maxlines)$/.test(
+      last,
+    )
+  ) {
+    return "number";
+  }
+  return undefined;
+}
+
+/** Check whether a literal JSON value matches an expected value kind. */
+function literalMatchesValueKind(value: unknown, kind: string): boolean {
+  switch (kind) {
+    case "number":
+    case "angle":
+      return typeof value === "number";
+    case "boolean":
+      return typeof value === "boolean";
+    case "string":
+    case "color":
+    case "asset":
+      return typeof value === "string";
+    case "vec2":
+      return (
+        Array.isArray(value) &&
+        value.length === 2 &&
+        value.every((v) => typeof v === "number")
+      );
+    case "path":
+    case "gradient":
+      return typeof value === "object" && value !== null && !Array.isArray(value);
+    default:
+      return true;
+  }
+}
+
+/** Check whether a variable type is compatible with an expected value kind. */
+function variableTypeMatchesValueKind(
+  variableType: string,
+  kind: string,
+): boolean {
+  switch (kind) {
+    case "number":
+    case "angle":
+      return variableType === "number";
+    case "boolean":
+      return variableType === "boolean";
+    case "string":
+      return variableType === "string" || variableType === "enum";
+    case "color":
+      return variableType === "color";
+    case "asset":
+      return variableType === "asset";
+    case "vec2":
+    case "path":
+    case "gradient":
+      return variableType === "list";
+    default:
+      return true;
+  }
+}
+
+/** Extract the variable id from a top-level `{ ref: { kind: "variable", id } }` shape. */
+function extractVariableReferenceId(value: unknown): string | undefined {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const ref = (value as Record<string, unknown>).ref;
+  if (ref === null || typeof ref !== "object" || Array.isArray(ref)) {
+    return undefined;
+  }
+  const record = ref as Record<string, unknown>;
+  if (record.kind === "variable" && typeof record.id === "string") {
+    return record.id;
+  }
+  return undefined;
+}
+
+/**
  * Validate component nodes within a scene (or component) node list.
  *
  * Each `type: "component"` node must reference an existing component, its
@@ -140,6 +255,7 @@ function isPublicTargetPropertyValid(node: NodeV3, property: string): boolean {
 function validateComponentNodeReferences(
   nodes: NodeV3[],
   componentById: Map<string, import("../components").EmbeddedComponentV3>,
+  variableById: Map<string, ProjectVariableV3>,
   pathPrefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
@@ -163,12 +279,37 @@ function validateComponentNodeReferences(
         message: `Component "${component.id}" does not declare variant "${node.payload.variantId}"`,
       });
     }
-    const publicTargetIds = new Set(component.publicTargets.map((t) => t.id));
-    for (const targetId of Object.keys(node.payload.publicProps ?? {})) {
-      if (!publicTargetIds.has(targetId)) {
+    const publicTargetById = new Map(
+      component.publicTargets.map((t) => [t.id, t] as const),
+    );
+    for (const [targetId, value] of Object.entries(
+      node.payload.publicProps ?? {},
+    )) {
+      const target = publicTargetById.get(targetId);
+      if (!target) {
         issues.push({
           path: `${path}.payload.publicProps.${targetId}`,
           message: `Component "${component.id}" does not expose public target "${targetId}"`,
+        });
+        continue;
+      }
+      const kind = target.valueKind ?? inferPublicTargetValueKind(target.property);
+      if (!kind) continue;
+      if (isVariableReference(value)) {
+        const refId = extractVariableReferenceId(value);
+        if (refId) {
+          const variable = variableById.get(refId);
+          if (variable && !variableTypeMatchesValueKind(variable.type, kind)) {
+            issues.push({
+              path: `${path}.payload.publicProps.${targetId}`,
+              message: `publicProps "${targetId}" references variable "${refId}" of type "${variable.type}", expected value kind "${kind}"`,
+            });
+          }
+        }
+      } else if (!literalMatchesValueKind(value, kind)) {
+        issues.push({
+          path: `${path}.payload.publicProps.${targetId}`,
+          message: `publicProps "${targetId}" value is incompatible with expected value kind "${kind}"`,
         });
       }
     }
@@ -185,6 +326,16 @@ export function validateMotionProjectV3References(
     project.components.map((component) => [component.id, component]),
   );
   const variableIds = new Set(project.variables.map((variable) => variable.id));
+  const variableById = new Map(
+    project.variables.map((variable) => [variable.id, variable] as const),
+  );
+  for (const component of project.components) {
+    for (const variable of component.variables) {
+      if (!variableById.has(variable.id)) {
+        variableById.set(variable.id, variable);
+      }
+    }
+  }
   const assetById = new Map(project.assets.map((asset) => [asset.id, asset]));
   const audioTrackById = new Map(
     project.timeline.audioTracks.map((track) => [track.id, track]),
@@ -369,6 +520,7 @@ export function validateMotionProjectV3References(
       ...validateComponentNodeReferences(
         scene.nodes,
         componentById,
+        variableById,
         `scenes.${scene.id}.nodes`,
       ),
     );
@@ -402,6 +554,7 @@ export function validateMotionProjectV3References(
       ...validateComponentNodeReferences(
         component.nodes,
         componentById,
+        variableById,
         `components.${component.id}.nodes`,
       ),
     );
