@@ -39,22 +39,27 @@ export type TimelineSceneSegment = {
 /**
  * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
  *
- * Phase 7: resolves exclusively from the primary visualTracks track (V3 model).
+ * Includes clips from ALL visual tracks (primary + overlay), so overlay
+ * placements contribute to total duration and scene resolution.
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
 ): TimelineSceneSegment[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
-
-  // Phase 7: visualTracks primary track is the sole source
-  const primaryTrack = runtime.timeline.visualTracks.find(
-    (t) => t.role === "primary",
-  );
-  if (!primaryTrack || primaryTrack.clips.length === 0) {
-    return [];
+  const allClips: Array<{
+    source: { kind: string; sceneId?: string; componentId?: string };
+    start: number;
+    duration: number;
+    trackRole: string;
+  }> = [];
+  for (const track of runtime.timeline.visualTracks) {
+    for (const clip of track.clips) {
+      allClips.push({ ...clip, trackRole: track.role });
+    }
   }
-  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
-  return sortedClips.map((clip) => {
+  if (allClips.length === 0) return [];
+  const sorted = [...allClips].sort((a, b) => a.start - b.start);
+  return sorted.map((clip) => {
     const sourceId =
       clip.source.kind === "scene"
         ? clip.source.sceneId
@@ -70,14 +75,19 @@ export function listTimelineSegments(
 }
 
 export function timelineTotalDuration(runtime: TimelineProjectLike): number {
-  return listTimelineSegments(runtime).reduce(
-    (sum, segment) => sum + segment.duration,
+  const allClips = runtime.timeline.visualTracks.flatMap((t) => t.clips);
+  if (allClips.length === 0) return 0;
+  return allClips.reduce(
+    (max, clip) => Math.max(max, clip.start + clip.duration),
     0,
   );
 }
 
 /**
  * Map global playhead time → active scene + local time (hard cut).
+ *
+ * When multiple clips overlap at the same time (e.g. overlay), the primary
+ * track clip takes precedence. Falls back to overlay if no primary match.
  * Clamps to the last frame of the last scene when past the end.
  */
 export function resolveTimelineAtTime(

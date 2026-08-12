@@ -326,6 +326,25 @@ describe("v3 schema — positive fixtures", () => {
     expect(clip.instanceTransformTracks![0]!.postBehavior).toEqual({ type: "clamp" });
   });
 
+  it("rejects instanceTransformTracks with mismatched valueKind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [
+      {
+        property: "transform.x",
+        valueKind: "color",
+        keys: [{ t: 0, v: 0 }],
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
   it("parses caption project with bilingual caption tracks", () => {
     const input = loadFixture("caption.project.json");
     const project = MotionProjectV3Schema.parse(input);

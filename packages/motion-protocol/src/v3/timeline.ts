@@ -154,7 +154,24 @@ export const INSTANCE_TRANSFORM_ALLOWED_PROPERTIES = [
  * - Has **no `targetId`** — the target is always the synthetic wrapper group
  *   created by the compiler (e.g. `"<clipId>__instance"`).
  * - Restricts `property` to group-level transform paths only.
+ * - Guards `valueKind` so it matches the property type (e.g. transform.x
+ *   requires "number", not "color").
  */
+
+const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
+  "transform.x": ["number", "angle"],
+  "transform.y": ["number", "angle"],
+  "transform.rotation": ["number", "angle"],
+  "transform.scaleX": ["number"],
+  "transform.scaleY": ["number"],
+  "transform.opacity": ["number"],
+  "transform.anchorX": ["number"],
+  "transform.anchorY": ["number"],
+  "transform.visible": ["boolean"],
+  "transform.flipX": ["boolean"],
+  "transform.flipY": ["boolean"],
+};
+
 export const InstanceTransformTrackV3Schema = z
   .object({
     property: z.enum(INSTANCE_TRANSFORM_ALLOWED_PROPERTIES),
@@ -174,7 +191,18 @@ export const InstanceTransformTrackV3Schema = z
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (!val.valueKind) return;
+    const allowed = VALUE_KIND_BY_PROPERTY[val.property];
+    if (allowed && !allowed.includes(val.valueKind)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `valueKind "${val.valueKind}" is incompatible with property "${val.property}". Allowed: ${allowed.join(", ")}`,
+        path: ["valueKind"],
+      });
+    }
+  });
 
 export type InstanceTransformTrackV3 = z.infer<
   typeof InstanceTransformTrackV3Schema

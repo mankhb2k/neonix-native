@@ -194,6 +194,23 @@ export function validateMotionProjectV3References(
         });
       }
     }
+
+    // Validate publicParams — variableId must reference a component-local
+    // variable OR a project-level variable (fallback for shared params)
+    const componentVariableIds = new Set(
+      component.variables.map((v) => v.id),
+    );
+    for (const param of component.publicParams) {
+      if (
+        !componentVariableIds.has(param.variableId) &&
+        !variableIds.has(param.variableId)
+      ) {
+        issues.push({
+          path: `components.${component.id}.publicParams.${param.id}.variableId`,
+          message: `publicParam "${param.id}" references unknown variable: ${param.variableId}`,
+        });
+      }
+    }
   }
 
   return issues;

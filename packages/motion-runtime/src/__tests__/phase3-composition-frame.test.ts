@@ -356,7 +356,7 @@ import {
 } from "../resolve-timeline";
 
 describe("Phase 5 — multi-track timeline resolution", () => {
-  it("listTimelineSegments from primary track only", () => {
+  it("listTimelineSegments includes all tracks (primary + overlay)", () => {
     const rt = emptyRuntime();
     rt.timeline.visualTracks = [
       {
@@ -387,12 +387,16 @@ describe("Phase 5 — multi-track timeline resolution", () => {
       },
     ];
     const segments = listTimelineSegments(rt);
-    expect(segments).toHaveLength(1);
+    // Both primary and overlay clips are included (sorted by start)
+    expect(segments).toHaveLength(2);
     expect(segments[0]!.sceneId).toBe("s1");
     expect(segments[0]!.duration).toBe(2);
+    // Overlay clip appears at its start offset
+    expect(segments[1]!.start).toBe(1);
+    expect(segments[1]!.duration).toBe(1);
   });
 
-  it("listTimelineSegments returns empty for no primary track", () => {
+  it("listTimelineSegments includes overlay clips even without primary track", () => {
     const rt = emptyRuntime();
     rt.timeline.visualTracks = [
       {
@@ -410,7 +414,10 @@ describe("Phase 5 — multi-track timeline resolution", () => {
       },
     ];
     const segments = listTimelineSegments(rt);
-    expect(segments).toHaveLength(0);
+    // Overlay clips are included even without a primary track
+    expect(segments).toHaveLength(1);
+    expect(segments[0]!.sceneId).toBe("s1");
+    expect(segments[0]!.duration).toBe(3);
   });
 
   it("listTimelineSegments with 2 primary clips → ordered by start", () => {
@@ -451,7 +458,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     expect(segments[1]!.start).toBe(2);
   });
 
-  it("totalDuration sums primary track clips", () => {
+  it("timelineTotalDuration uses max end across all tracks", () => {
     const rt = emptyRuntime();
     rt.scenes.push({
       id: "s2",

@@ -598,6 +598,37 @@ function buildVisualPlan(
         // Note: InstanceTransformTrackV3Schema has no targetId —
         // the wrapper group is always the implicit target.
         if (hasTracks) {
+          // Detect overlap between static transform and animated properties
+          if (hasTransform) {
+            const animatedProps = new Set(
+              instanceTracks.map((t: Record<string, unknown>) => t.property),
+            );
+            const overlapMap: Record<string, string> = {
+              "transform.x": "x",
+              "transform.y": "y",
+              "transform.rotation": "rotation",
+              "transform.scaleX": "scaleX",
+              "transform.scaleY": "scaleY",
+              "transform.opacity": "opacity",
+              "transform.anchorX": "anchorX",
+              "transform.anchorY": "anchorY",
+              "transform.visible": "visible",
+              "transform.flipX": "flipX",
+              "transform.flipY": "flipY",
+            };
+            for (const [trackProp, staticProp] of Object.entries(overlapMap)) {
+              if (animatedProps.has(trackProp) && (instanceTransform as Record<string, unknown>)[staticProp] !== undefined) {
+                collector.warn(
+                  "CMP_INSTANCE_TRANSFORM_OVERLAP",
+                  `Clip "${clip.id}": instanceTransform.${staticProp} is overridden by instanceTransformTracks[].property="${trackProp}". The static value is ignored.`,
+                  {
+                    path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
+                    details: { clipId: clip.id, staticProp, trackProp },
+                  },
+                );
+              }
+            }
+          }
           let trackIndex = 0;
           for (const track of instanceTracks) {
             const innerTrack: Record<string, unknown> = {

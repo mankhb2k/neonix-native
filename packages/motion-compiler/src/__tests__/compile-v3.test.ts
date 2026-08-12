@@ -294,6 +294,41 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(synthesized.tracks[0]!.property).toBe("transform.x");
   });
 
+  it("applies transitionIn on component clip with instanceTransform", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "component-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-logo-reveal",
+            source: { kind: "component", componentId: "logo-reveal" },
+            start: 0,
+            duration: 4,
+            opacity: 1,
+            loop: false,
+            instanceTransform: { x: 50 },
+            transitionIn: { type: "fade", duration: 0.5 },
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      console.log(JSON.stringify(result.diagnostics, null, 2));
+      return;
+    }
+    // Transition passed through to runtime timeline clip entry
+    const vizTrack = result.project.timeline.visualTracks[0]!;
+    expect(vizTrack.role).toBe("primary");
+    const clip = vizTrack.clips[0] as Record<string, unknown>;
+    expect(clip.transitionIn).toEqual({ type: "fade", duration: 0.5 });
+  });
+
   it("CMP_INVALID_CLIP_FIELD: scene clip with instanceTransform is rejected", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
