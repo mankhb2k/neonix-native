@@ -1053,3 +1053,292 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
     ).toBe(true);
   });
 });
+
+// ── G2: ProceduralDriver schema-level range validation ────────────────
+
+import { ProceduralDriverSchema } from "../animation/drivers";
+
+describe("ProceduralDriverSchema — range validation", () => {
+  it("rejects remap driver with inMin >= inMax", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "remap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      inMin: 10,
+      inMax: 5,
+      outMin: 0,
+      outMax: 100,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) =>
+        i.message.includes("inMin") && i.message.includes("inMax"),
+      )).toBe(true);
+    }
+  });
+
+  it("rejects remap driver with outMin >= outMax", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "remap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      inMin: 0,
+      inMax: 100,
+      outMin: 50,
+      outMax: 50,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) =>
+        i.message.includes("outMin") && i.message.includes("outMax"),
+      )).toBe(true);
+    }
+  });
+
+  it("accepts remap driver with valid ranges", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "remap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      inMin: 0,
+      inMax: 100,
+      outMin: 0,
+      outMax: 1,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe("remap");
+    }
+  });
+
+  it("rejects clamp driver with min >= max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "clamp",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 10,
+      max: 10,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) =>
+        i.message.includes("min") && i.message.includes("max"),
+      )).toBe(true);
+    }
+  });
+
+  it("accepts clamp driver with min < max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "clamp",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 0,
+      max: 1,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects wrap driver with min >= max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "wrap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 100,
+      max: 0,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) =>
+        i.message.includes("min") && i.message.includes("max"),
+      )).toBe(true);
+    }
+  });
+
+  it("accepts wrap driver with min < max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "wrap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 0,
+      max: 360,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts noise driver (no range fields)", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "noise",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      frequency: 2,
+      amplitude: 10,
+      seed: 42,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ── G1: AudioTrackV3 schema-level edge cases ─────────────────────────
+
+describe("AudioTrackV3 schema — edge case validation", () => {
+  function makeValidProject(audioOverrides: Record<string, unknown>) {
+    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    return MotionProjectV3Schema.safeParse({
+      ...input,
+      assets: [
+        { id: "audio1", uri: "bgm.mp3", assetType: "audio", mimeType: "audio/mpeg", duration: 30, codec: "mp3", sampleRate: 44100, channels: 2 },
+      ],
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        audioTracks: [{
+          id: "at1", role: "bgm", assetId: "audio1", start: 0, duration: 5,
+          ...audioOverrides,
+        }],
+      },
+    });
+  }
+
+  it("rejects audio track with trimEnd > duration", () => {
+    const result = makeValidProject({ trimEnd: 10 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) =>
+        i.message.includes("trimEnd") && i.message.includes("duration"),
+      )).toBe(true);
+    }
+  });
+
+  it("rejects fadeIn + fadeOut exceeding duration", () => {
+    const result = makeValidProject({ fadeIn: 3, fadeOut: 3, duration: 5 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) =>
+        i.message.includes("fadeIn") && i.message.includes("fadeOut"),
+      )).toBe(true);
+    }
+  });
+
+  it("accepts audio track with all optional fields", () => {
+    const result = makeValidProject({
+      trimStart: 1,
+      volume: 0.5,
+      loop: true,
+      fadeIn: 2,
+      fadeOut: 1,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const at = result.data.timeline.audioTracks[0];
+      expect(at.volume).toBe(0.5);
+      expect(at.fadeIn).toBe(2);
+      expect(at.fadeOut).toBe(1);
+      expect(at.loop).toBe(true);
+    }
+  });
+
+  it("rejects audio track with negative volume", () => {
+    const result = makeValidProject({ volume: -0.1 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects audio track with volume > 1", () => {
+    const result = makeValidProject({ volume: 1.1 });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── G4: Reference validation — audio + caption track duplicate IDs ────
+
+describe("v3 reference validation — audio & caption duplicate IDs", () => {
+  function makeProjectWithAudioTracks(trackOverrides: Array<Record<string, unknown>>) {
+    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    return {
+      ...input,
+      assets: [
+        { id: "bgm", uri: "bgm.mp3", assetType: "audio", mimeType: "audio/mpeg", duration: 30, codec: "mp3", sampleRate: 44100, channels: 2 },
+      ],
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        audioTracks: trackOverrides,
+      },
+    };
+  }
+
+  it("rejects duplicate audio track ids", () => {
+    const project = makeProjectWithAudioTracks([
+      { id: "dup-at", role: "bgm", assetId: "bgm", start: 0, duration: 5 },
+      { id: "dup-at", role: "sfx", assetId: "bgm", start: 5, duration: 3 },
+    ]);
+    expect(() => parseMotionProjectV3(project)).toThrow();
+    try {
+      parseMotionProjectV3(project);
+    } catch (err) {
+      expect(String(err)).toContain("Duplicate audio track id: dup-at");
+    }
+  });
+
+  it("rejects duplicate caption track ids", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const project = {
+      ...input,
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        captionTracks: [
+          { id: "dup-ct", locale: "vi-VN", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }] },
+          { id: "dup-ct", locale: "en-US", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }] },
+        ],
+      },
+    };
+    expect(() => parseMotionProjectV3(project)).toThrow();
+    try {
+      parseMotionProjectV3(project);
+    } catch (err) {
+      expect(String(err)).toContain("Duplicate caption track id: dup-ct");
+    }
+  });
+
+  it("accepts unique audio track ids", () => {
+    const project = makeProjectWithAudioTracks([
+      { id: "at1", role: "bgm", assetId: "bgm", start: 0, duration: 5 },
+      { id: "at2", role: "sfx", assetId: "bgm", start: 5, duration: 3 },
+    ]);
+    expect(() => parseMotionProjectV3(project)).not.toThrow();
+  });
+
+  it("accepts unique caption track ids", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const project = {
+      ...input,
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        captionTracks: [
+          { id: "ct1", locale: "vi-VN", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }] },
+          { id: "ct2", locale: "en-US", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }] },
+        ],
+      },
+    };
+    expect(() => parseMotionProjectV3(project)).not.toThrow();
+  });
+});

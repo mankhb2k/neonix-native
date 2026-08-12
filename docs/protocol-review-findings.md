@@ -191,11 +191,11 @@
 
 | #   | Issue                                                                                                             |
 | --- | ----------------------------------------------------------------------------------------------------------------- |
-| G1  | Không có test cho `AudioTrackV3Schema` validation (trimEnd, fadeIn+fadeOut)                                       |
-| G2  | Không có test cho `ProceduralDriverSchema` (remap/clamp/wrap min<max)                                             |
-| G3  | Runtime tests chỉ test `project.ts` — không test `assets.ts`, `nodes/`, `modifiers.ts`, `effects.ts`, `layout.ts` |
-| G4  | Không có test cho reference validation của audio tracks + caption tracks duplicate ID                             |
-| G5  | Không có integration test: parse → reference validate → compile flow end-to-end                                   |
+| G1  | Không có test cho `AudioTrackV3Schema` validation. ✅ **FIXED** — added 5 tests: trimEnd>duration, fadeIn+fadeOut, all fields, volume bounds. |
+| G2  | Không có test cho `ProceduralDriverSchema`. ✅ **FIXED** — added 9 tests: remap inMin<inMax, outMin<outMax, clamp min<max, wrap min<max, noise positive. |
+| G3  | Runtime tests chỉ test `project.ts`. 🔵 **DEFERRED** — significant effort (~30+ tests), non-blocking for protocol correctness. |
+| G4  | Không có test cho audio+caption track duplicate IDs. ✅ **FIXED** — added 4 tests: audio dup, caption dup, audio unique, caption unique. |
+| G5  | Integration test parse→ref validate→compile. 🔵 **DEFERRED** — needs compiler env setup, can be done separately. |
 
 ---
 
