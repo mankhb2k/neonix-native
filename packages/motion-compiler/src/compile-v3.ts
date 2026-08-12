@@ -602,6 +602,8 @@ function prepareRuntimeAsset(asset: V3.AssetV3): JsonRecord {
 type VisualPlanEntry = {
   clipId: string;
   sceneId: string;
+  /** Authoring clip start carried into runtime (timeline time). */
+  start: number;
   /** V3 clip fields propagated to runtime. */
   trimStart?: number;
   playbackRate?: number;
@@ -657,13 +659,16 @@ function buildVisualPlan(
     // No visual clips → compile every authored scene in declaration order
     // on a single primary track so nothing silently disappears.
     const entries: VisualPlanEntry[] = [];
+    let cursor = 0;
     for (const scene of project.scenes) {
       const entry: VisualPlanEntry = {
         clipId: scene.id,
         sceneId: scene.id,
+        start: cursor,
         loop: false,
         opacity: 1,
       };
+      cursor += scene.duration;
       sceneOverrides.set(scene.id, {
         ...prepareRuntimeScene(scene, components, componentInstances, scene.id),
         sourceRef: { projectPath: ["scenes", scene.id] },
@@ -722,6 +727,7 @@ function buildVisualPlan(
       trackEntries.push({
         clipId: clip.id,
         sceneId,
+        start: clip.start,
         trimStart: clip.trimStart,
         playbackRate: clip.playbackRate,
         loop: clip.loop,
@@ -1383,16 +1389,13 @@ export function compileMotionProjectV3(
 
     // Build visualTracks runtime model — one runtime track per V3 track.
     const visualTracks = tracks.map((planTrack) => {
-      let clipCursor = 0;
       const clips = planTrack.entries.map((entry) => {
         const scene = sceneOverrides.get(entry.sceneId)!;
-        const start = clipCursor;
         const duration = scene.duration as number;
-        clipCursor += duration;
         const clip: Record<string, unknown> = {
           id: entry.clipId,
           source: { kind: "scene" as const, sceneId: entry.sceneId },
-          start,
+          start: entry.start,
           duration,
         };
         if (entry.trimStart !== undefined) clip.trimStart = entry.trimStart;

@@ -658,8 +658,78 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     expect(vt).toHaveLength(2);
     expect(vt[1]!.role).toBe("overlay");
     expect(vt[1]!.clips[0]!.opacity).toBe(0.7);
-    expect(vt[1]!.clips[0]!.start).toBe(0);
+    expect(vt[1]!.clips[0]!.start).toBe(2);
     expect(vt[1]!.clips[0]!.duration).toBe(3);
+  });
+
+  it("preserves a gap between clips on the same track", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "main-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-intro",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 3,
+            opacity: 1,
+            loop: false,
+          },
+          {
+            id: "clip-outro",
+            source: { kind: "scene", sceneId: "outro" },
+            start: 5,
+            duration: 3,
+            opacity: 1,
+            loop: false,
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const clips = result.project.timeline.visualTracks[0]!.clips;
+    expect(clips.map((c) => c.start)).toEqual([0, 5]);
+  });
+
+  it("preserves overlapping starts on an overlay track", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "overlay-track",
+        role: "overlay",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-a",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 1,
+            duration: 2,
+            opacity: 1,
+            loop: false,
+          },
+          {
+            id: "clip-b",
+            source: { kind: "scene", sceneId: "outro" },
+            start: 1.5,
+            duration: 2,
+            opacity: 1,
+            loop: false,
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const clips = result.project.timeline.visualTracks[0]!.clips;
+    expect(clips.map((c) => c.start)).toEqual([1, 1.5]);
   });
 
   it("repeated scene on different tracks gets independent clip entries", () => {
@@ -900,8 +970,8 @@ describe("compileMotionProjectV3 — Phase 4 clip transitions", () => {
       type: "crossfade",
       duration: 0.5,
     });
-    // Clip starts are computed per-track
-    expect(clips[1]!.start).toBe(3);
+    // Clip starts preserve the authored timeline start.
+    expect(clips[1]!.start).toBe(2.5);
   });
 
   it("overlay clip with fade in transition", () => {
