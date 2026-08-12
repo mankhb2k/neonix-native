@@ -20,7 +20,7 @@ export const VariableReferenceSchema = z.object({
     .object({ scale: FiniteNumberSchema.optional(), offset: FiniteNumberSchema.optional() })
     .strict()
     .optional(),
-});
+}).strict();
 
 export const ResolvableValueSchema = z.union([JsonValueSchema, VariableReferenceSchema]);
 

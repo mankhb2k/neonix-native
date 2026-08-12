@@ -222,7 +222,23 @@ export function validateMotionProjectV3References(
         });
       }
     }
+    // Validate publicParam duplicate ids
+    const paramIds = component.publicParams.map((p) => p.id);
+    for (const dupId of new Set(duplicates(paramIds))) {
+      issues.push({
+        path: `components.${component.id}.publicParams`,
+        message: `Duplicate publicParam id: ${dupId}`,
+      });
+    }
 
+    // Validate variant duplicate ids
+    const variantIds = component.variants.map((v) => v.id);
+    for (const dupId of new Set(duplicates(variantIds))) {
+      issues.push({
+        path: `components.${component.id}.variants`,
+        message: `Duplicate variant id: ${dupId}`,
+      });
+    }
     // Validate publicParams — variableId must reference a component-local
     // variable OR a project-level variable (fallback for shared params)
     const componentVariableIds = new Set(component.variables.map((v) => v.id));

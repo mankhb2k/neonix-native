@@ -1074,9 +1074,11 @@ describe("ProceduralDriverSchema — range validation", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) =>
-        i.message.includes("inMin") && i.message.includes("inMax"),
-      )).toBe(true);
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("inMin") && i.message.includes("inMax"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1095,9 +1097,11 @@ describe("ProceduralDriverSchema — range validation", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) =>
-        i.message.includes("outMin") && i.message.includes("outMax"),
-      )).toBe(true);
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("outMin") && i.message.includes("outMax"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1133,9 +1137,11 @@ describe("ProceduralDriverSchema — range validation", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) =>
-        i.message.includes("min") && i.message.includes("max"),
-      )).toBe(true);
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("min") && i.message.includes("max"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1166,9 +1172,11 @@ describe("ProceduralDriverSchema — range validation", () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) =>
-        i.message.includes("min") && i.message.includes("max"),
-      )).toBe(true);
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("min") && i.message.includes("max"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1204,18 +1212,36 @@ describe("ProceduralDriverSchema — range validation", () => {
 
 describe("AudioTrackV3 schema — edge case validation", () => {
   function makeValidProject(audioOverrides: Record<string, unknown>) {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     return MotionProjectV3Schema.safeParse({
       ...input,
       assets: [
-        { id: "audio1", uri: "bgm.mp3", assetType: "audio", mimeType: "audio/mpeg", duration: 30, codec: "mp3", sampleRate: 44100, channels: 2 },
+        {
+          id: "audio1",
+          uri: "bgm.mp3",
+          assetType: "audio",
+          mimeType: "audio/mpeg",
+          duration: 30,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
       ],
       timeline: {
         ...(input.timeline as Record<string, unknown>),
-        audioTracks: [{
-          id: "at1", role: "bgm", assetId: "audio1", start: 0, duration: 5,
-          ...audioOverrides,
-        }],
+        audioTracks: [
+          {
+            id: "at1",
+            role: "bgm",
+            assetId: "audio1",
+            start: 0,
+            duration: 5,
+            ...audioOverrides,
+          },
+        ],
       },
     });
   }
@@ -1224,9 +1250,12 @@ describe("AudioTrackV3 schema — edge case validation", () => {
     const result = makeValidProject({ trimEnd: 10 });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) =>
-        i.message.includes("trimEnd") && i.message.includes("duration"),
-      )).toBe(true);
+      expect(
+        result.error.issues.some(
+          (i) =>
+            i.message.includes("trimEnd") && i.message.includes("duration"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1234,9 +1263,11 @@ describe("AudioTrackV3 schema — edge case validation", () => {
     const result = makeValidProject({ fadeIn: 3, fadeOut: 3, duration: 5 });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((i) =>
-        i.message.includes("fadeIn") && i.message.includes("fadeOut"),
-      )).toBe(true);
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("fadeIn") && i.message.includes("fadeOut"),
+        ),
+      ).toBe(true);
     }
   });
 
@@ -1272,12 +1303,26 @@ describe("AudioTrackV3 schema — edge case validation", () => {
 // ── G4: Reference validation — audio + caption track duplicate IDs ────
 
 describe("v3 reference validation — audio & caption duplicate IDs", () => {
-  function makeProjectWithAudioTracks(trackOverrides: Array<Record<string, unknown>>) {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+  function makeProjectWithAudioTracks(
+    trackOverrides: Array<Record<string, unknown>>,
+  ) {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     return {
       ...input,
       assets: [
-        { id: "bgm", uri: "bgm.mp3", assetType: "audio", mimeType: "audio/mpeg", duration: 30, codec: "mp3", sampleRate: 44100, channels: 2 },
+        {
+          id: "bgm",
+          uri: "bgm.mp3",
+          assetType: "audio",
+          mimeType: "audio/mpeg",
+          duration: 30,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
       ],
       timeline: {
         ...(input.timeline as Record<string, unknown>),
@@ -1300,14 +1345,27 @@ describe("v3 reference validation — audio & caption duplicate IDs", () => {
   });
 
   it("rejects duplicate caption track ids", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     const project = {
       ...input,
       timeline: {
         ...(input.timeline as Record<string, unknown>),
         captionTracks: [
-          { id: "dup-ct", locale: "vi-VN", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }] },
-          { id: "dup-ct", locale: "en-US", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }] },
+          {
+            id: "dup-ct",
+            locale: "vi-VN",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }],
+          },
+          {
+            id: "dup-ct",
+            locale: "en-US",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }],
+          },
         ],
       },
     };
@@ -1328,14 +1386,27 @@ describe("v3 reference validation — audio & caption duplicate IDs", () => {
   });
 
   it("accepts unique caption track ids", () => {
-    const input = loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
     const project = {
       ...input,
       timeline: {
         ...(input.timeline as Record<string, unknown>),
         captionTracks: [
-          { id: "ct1", locale: "vi-VN", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }] },
-          { id: "ct2", locale: "en-US", style: { fontSize: 24, fill: "#fff" }, tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }] },
+          {
+            id: "ct1",
+            locale: "vi-VN",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }],
+          },
+          {
+            id: "ct2",
+            locale: "en-US",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }],
+          },
         ],
       },
     };

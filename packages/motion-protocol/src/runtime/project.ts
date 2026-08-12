@@ -363,16 +363,12 @@ export const RuntimeSceneSchema = z
     duration: FiniteNumberSchema.positive().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
-    space: z
-      .enum(["flat-2d", "layered-2.5d", "perspective-3d"])
-      .optional(),
+    space: z.enum(["flat-2d", "layered-2.5d", "perspective-3d"]).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
     activeCameraId: IdSchema.optional(),
     sourceRef: RuntimeSourceRefSchema.optional(),
-    nodes: z
-      .array(RuntimeNodeSchema)
-      .max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
+    nodes: z.array(RuntimeNodeSchema).max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
     tracks: z
       .array(RuntimeTrackSchema)
       .max(

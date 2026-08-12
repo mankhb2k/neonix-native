@@ -115,18 +115,18 @@
 
 ### 🔴 High
 
-| #   | File               | Issue                                                                                                                                                                               |
-| --- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| H6  | `project.ts` (ref) | Audio track duplicate ID check **bị thiếu**. ✅ **FIXED** — added duplicate check for `audioTracks[].id`. |
+| #   | File               | Issue                                                                                                         |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| H6  | `project.ts` (ref) | Audio track duplicate ID check **bị thiếu**. ✅ **FIXED** — added duplicate check for `audioTracks[].id`.     |
 | H7  | `project.ts` (ref) | Caption track duplicate ID check **bị thiếu**. ✅ **FIXED** — added duplicate check for `captionTracks[].id`. |
 
 ### 🟡 Medium
 
-| #   | File               | Issue                                                                                                                                                                                                                             |
-| --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M16 | `project.ts` (ref) | Component node graph cần check root nodes có `parentId === null`. ✅ **FIXED** — components section validates no external parent references. |
+| #   | File               | Issue                                                                                                                                                                    |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M16 | `project.ts` (ref) | Component node graph cần check root nodes có `parentId === null`. ✅ **FIXED** — components section validates no external parent references.                             |
 | M17 | `project.ts` (ref) | Không validate component clip instanceTransform. 🔵 **ALREADY DONE** — schema-level `.superRefine()` in `timeline.ts` + compiler `validateV3Semantics` both handle this. |
-| M18 | `node-graph.ts`    | Cycle detection chỉ chạy khi `issues.length === 0`. ✅ **FIXED** — removed guard, cycle detection & hierarchy depth always run. |
+| M18 | `node-graph.ts`    | Cycle detection chỉ chạy khi `issues.length === 0`. ✅ **FIXED** — removed guard, cycle detection & hierarchy depth always run.                                          |
 
 ### ✅ Verified
 
@@ -143,36 +143,36 @@
 
 ### 🔴 Critical
 
-| #   | File                       | Issue                                                                                                                                                                                                                |
-| --- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| C1  | `runtime/nodes/base.ts:24` | `NodeBaseSchema` KHÔNG `.strict()`. ✅ **FIXED (Layer 2)** — `.strict()` added. |
+| #   | File                       | Issue                                                                                                                                                      |
+| --- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | `runtime/nodes/base.ts:24` | `NodeBaseSchema` KHÔNG `.strict()`. ✅ **FIXED (Layer 2)** — `.strict()` added.                                                                            |
 | C2  | `runtime/common.ts`        | Full schema duplication từ `v3/common.ts`. 🔵 **DEFERRED** — architectural: needs codegen or shared base. Low risk for now (both kept in sync via review). |
 
 ### 🔴 High
 
-| #   | File                 | Issue                                                                                                                                                              |
-| --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #   | File                 | Issue                                                                                                                                                                          |
+| --- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | H8  | `runtime/index.ts`   | **Thiếu export**: `PlatformSafeAreaSchema`, `ProjectMetadataSchema`, `AudioTrackSchema`, `SceneTransitionSchema` và types tương ứng. ✅ **FIXED** — all missing exports added. |
-| H9  | `runtime/project.ts` | Không có standalone `RuntimeSceneSchema`. ✅ **FIXED** — extracted from inline definition, exported. |
+| H9  | `runtime/project.ts` | Không có standalone `RuntimeSceneSchema`. ✅ **FIXED** — extracted from inline definition, exported.                                                                           |
 
 ### 🟡 Medium
 
-| #   | File                          | Issue                                                                                                                            |
-| --- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| M19 | `runtime/project.ts`          | Không validate `visualTracks` có ít nhất 1 `primary` track. 🔵 **DEFERRED** — semantic constraint, not schema-level; compiler enforces this. |
-| M20 | `runtime/nodes/structural.ts` | `CameraNodeSchema` không `superRefine`. ✅ **FIXED** — fov required for perspective, near<far check. |
-| M21 | `runtime/nodes/text.ts`       | `fitText` không validate `minFontSize < maxFontSize`. ✅ **FIXED** — `.superRefine()` check. |
-| M22 | `runtime/nodes/media.ts`      | `VideoNodeSchema` không validate `trimStart < trimEnd`. ✅ **FIXED** — `.superRefine()` check. |
-| M23 | `runtime/assets.ts`           | `SvgAssetSchema.sanitized: z.literal(true)` — reject mọi unsanitized SVG. 🔵 **BY DESIGN** — security: only sanitized SVGs accepted at runtime. |
+| #   | File                          | Issue                                                                                                                                                       |
+| --- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M19 | `runtime/project.ts`          | Không validate `visualTracks` có ít nhất 1 `primary` track. 🔵 **DEFERRED** — semantic constraint, not schema-level; compiler enforces this.                |
+| M20 | `runtime/nodes/structural.ts` | `CameraNodeSchema` không `superRefine`. ✅ **FIXED** — fov required for perspective, near<far check.                                                        |
+| M21 | `runtime/nodes/text.ts`       | `fitText` không validate `minFontSize < maxFontSize`. ✅ **FIXED** — `.superRefine()` check.                                                                |
+| M22 | `runtime/nodes/media.ts`      | `VideoNodeSchema` không validate `trimStart < trimEnd`. ✅ **FIXED** — `.superRefine()` check.                                                              |
+| M23 | `runtime/assets.ts`           | `SvgAssetSchema.sanitized: z.literal(true)` — reject mọi unsanitized SVG. 🔵 **BY DESIGN** — security: only sanitized SVGs accepted at runtime.             |
 | M24 | `runtime/values.ts`           | `JsonValueSchema` lazy recursive không có depth limit. 🔵 **DEFERRED** — would need custom Zod refinement; low risk (JS call stack limits depth naturally). |
 
 ### ℹ️ Info
 
-| #   | File                 | Issue                                                                                                                   |
-| --- | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| #   | File                 | Issue                                                                                                                                                                                                                 |
+| --- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | I8  | `runtime/project.ts` | `MOTION_RUNTIME_VERSION = 1` vs `RUNTIME_IR_FORMAT_VERSION = 3` — 2 constant khác tên, khác giá trị cho cùng 1 concept. 🔵 **BY DESIGN** — runtimeVersion tracks IR shape, formatVersion tracks serialization format. |
-| I9  | `runtime/project.ts` | `runtimeVersion` optional, không có `z.literal()` enforcement. 🔵 **BY DESIGN** — optional for backward compatibility. |
-| I10 | `runtime/helpers.ts` | `valueAtPath` export nhưng không dùng ở đâu. 🔵 **DEFERRED** — dead code, can remove in future cleanup. |
+| I9  | `runtime/project.ts` | `runtimeVersion` optional, không có `z.literal()` enforcement. 🔵 **BY DESIGN** — optional for backward compatibility.                                                                                                |
+| I10 | `runtime/helpers.ts` | `valueAtPath` export nhưng không dùng ở đâu. 🔵 **DEFERRED** — dead code, can remove in future cleanup.                                                                                                               |
 
 ---
 
@@ -189,13 +189,13 @@
 
 ### 🟡 Gaps
 
-| #   | Issue                                                                                                             |
-| --- | ----------------------------------------------------------------------------------------------------------------- |
-| G1  | Không có test cho `AudioTrackV3Schema` validation. ✅ **FIXED** — added 5 tests: trimEnd>duration, fadeIn+fadeOut, all fields, volume bounds. |
+| #   | Issue                                                                                                                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1  | Không có test cho `AudioTrackV3Schema` validation. ✅ **FIXED** — added 5 tests: trimEnd>duration, fadeIn+fadeOut, all fields, volume bounds.            |
 | G2  | Không có test cho `ProceduralDriverSchema`. ✅ **FIXED** — added 9 tests: remap inMin<inMax, outMin<outMax, clamp min<max, wrap min<max, noise positive. |
-| G3  | Runtime tests chỉ test `project.ts`. 🔵 **DEFERRED** — significant effort (~30+ tests), non-blocking for protocol correctness. |
-| G4  | Không có test cho audio+caption track duplicate IDs. ✅ **FIXED** — added 4 tests: audio dup, caption dup, audio unique, caption unique. |
-| G5  | Integration test parse→ref validate→compile. 🔵 **DEFERRED** — needs compiler env setup, can be done separately. |
+| G3  | Runtime tests chỉ test `project.ts`. 🔵 **DEFERRED** — significant effort (~30+ tests), non-blocking for protocol correctness.                           |
+| G4  | Không có test cho audio+caption track duplicate IDs. ✅ **FIXED** — added 4 tests: audio dup, caption dup, audio unique, caption unique.                 |
+| G5  | Integration test parse→ref validate→compile. 🔵 **DEFERRED** — needs compiler env setup, can be done separately.                                         |
 
 ---
 

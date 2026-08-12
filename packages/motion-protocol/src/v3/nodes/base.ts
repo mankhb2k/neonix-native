@@ -66,6 +66,6 @@ export const NodeBaseV3Schema = z.object({
     .array(MotionModifierSchema)
     .max(MOTION_PROTOCOL_LIMITS.modifiersPerNode)
     .optional(),
-});
+}).strict();
 
 export { PaintStyleSchema };

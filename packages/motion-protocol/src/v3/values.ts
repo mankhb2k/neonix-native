@@ -27,7 +27,7 @@ export const VariableReferenceSchema = z.object({
     })
     .strict()
     .optional(),
-});
+}).strict();
 
 export const ResolvableValueSchema = z.union([
   JsonValueSchema,
