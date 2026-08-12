@@ -552,12 +552,20 @@ function buildVisualPlan(
         prepareRuntimeNode(node),
       );
 
-      // Apply instance transform: wrap all component nodes in a synthetic group
-      // so the entire component instance can be positioned, scaled, rotated, and
-      // keyframed as a single layer without touching internals.
+      // ── Instance transform & motion ─────────────────────────────
+      // When instanceTransform or instanceTransformTracks exist, wrap all
+      // component nodes in a synthetic group so the entire component instance
+      // can be positioned, scaled, rotated, and keyframed as a single layer.
       const instanceTransform = clip.instanceTransform;
-      if (instanceTransform && Object.keys(instanceTransform).length > 0) {
-        const wrapperId = `${clip.id}__instance`;
+      const instanceTracks = clip.instanceTransformTracks;
+      const hasTransform =
+        (instanceTransform && Object.keys(instanceTransform).length > 0);
+      const hasTracks =
+        instanceTracks && instanceTracks.length > 0;
+      const wrapperId = `${clip.id}__instance`;
+      const motionClips: JsonRecord[] = [];
+
+      if (hasTransform || hasTracks) {
         // Re-parent all root nodes under the wrapper group
         for (const node of componentNodes) {
           if (node.parentId === null || node.parentId === undefined) {
@@ -569,23 +577,49 @@ function buildVisualPlan(
           type: "group",
           parentId: null,
           transform: {
-            x: (instanceTransform.x as number) ?? 0,
-            y: (instanceTransform.y as number) ?? 0,
+            x: (instanceTransform?.x as number) ?? 0,
+            y: (instanceTransform?.y as number) ?? 0,
             width: 0,
             height: 0,
-            rotation: (instanceTransform.rotation as number) ?? 0,
-            scaleX: (instanceTransform.scaleX as number) ?? 1,
-            scaleY: (instanceTransform.scaleY as number) ?? 1,
-            anchorX: (instanceTransform.anchorX as number) ?? 0.5,
-            anchorY: (instanceTransform.anchorY as number) ?? 0.5,
-            opacity: (instanceTransform.opacity as number) ?? 1,
-            visible: (instanceTransform.visible as boolean) ?? true,
-            flipX: (instanceTransform.flipX as boolean) ?? false,
-            flipY: (instanceTransform.flipY as boolean) ?? false,
+            rotation: (instanceTransform?.rotation as number) ?? 0,
+            scaleX: (instanceTransform?.scaleX as number) ?? 1,
+            scaleY: (instanceTransform?.scaleY as number) ?? 1,
+            anchorX: (instanceTransform?.anchorX as number) ?? 0.5,
+            anchorY: (instanceTransform?.anchorY as number) ?? 0.5,
+            opacity: (instanceTransform?.opacity as number) ?? 1,
+            visible: (instanceTransform?.visible as boolean) ?? true,
+            flipX: (instanceTransform?.flipX as boolean) ?? false,
+            flipY: (instanceTransform?.flipY as boolean) ?? false,
           },
           payload: { compositing: { mode: "pass-through" } },
         };
         componentNodes = [groupNode, ...componentNodes];
+
+        // Generate motion clips from instanceTransformTracks
+        if (hasTracks) {
+          let trackIndex = 0;
+          for (const track of instanceTracks) {
+            motionClips.push({
+              id: `${clip.id}__motion-${trackIndex}`,
+              targetId: wrapperId,
+              schedule: { kind: "absolute" as const, at: 0 },
+              duration: clip.duration,
+              playback: { direction: "normal" as const, iterations: 1, rate: 1 },
+              source: {
+                kind: "tracks" as const,
+                tracks: [
+                  {
+                    targetId: wrapperId,
+                    property: track.property,
+                    keys: track.keys,
+                    ...(track.valueKind ? { valueKind: track.valueKind } : {}),
+                  },
+                ],
+              },
+            });
+            trackIndex++;
+          }
+        }
       }
 
       const scene: JsonRecord = {
@@ -593,7 +627,7 @@ function buildVisualPlan(
         name: component.id,
         duration: clip.duration,
         nodes: componentNodes,
-        clips: [],
+        clips: motionClips,
         sourceRef: {
           projectPath: ["components", component.id],
           sourceModule: `${component.id}@${component.version}`,
@@ -835,6 +869,29 @@ function validateV3Semantics(
             details: { clipId: clip.id, componentId: clip.source.componentId },
           },
         );
+      }
+      // instanceTransform / instanceTransformTracks only valid for component clips
+      if (clip.source.kind === "scene") {
+        if (clip.instanceTransform) {
+          collector.error(
+            "CMP_INVALID_CLIP_FIELD",
+            `Visual clip "${clip.id}" has instanceTransform but source.kind is "scene" — instanceTransform is only valid for component-source clips`,
+            {
+              path: ["timeline", "visualTracks", track.id, "clips", clip.id, "instanceTransform"],
+              details: { clipId: clip.id },
+            },
+          );
+        }
+        if (clip.instanceTransformTracks && clip.instanceTransformTracks.length > 0) {
+          collector.error(
+            "CMP_INVALID_CLIP_FIELD",
+            `Visual clip "${clip.id}" has instanceTransformTracks but source.kind is "scene" — instanceTransformTracks is only valid for component-source clips`,
+            {
+              path: ["timeline", "visualTracks", track.id, "clips", clip.id, "instanceTransformTracks"],
+              details: { clipId: clip.id },
+            },
+          );
+        }
       }
     }
   }

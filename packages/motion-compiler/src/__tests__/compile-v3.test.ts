@@ -244,6 +244,80 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(synthesized.nodes.map((node) => node.id)).toEqual(["logo"]);
   });
 
+  it("wraps component and generates motion clip when only instanceTransformTracks present", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "component-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-logo-reveal",
+            source: { kind: "component", componentId: "logo-reveal" },
+            start: 0,
+            duration: 4,
+            opacity: 1,
+            loop: false,
+            instanceTransformTracks: [
+              {
+                targetId: "clip-logo-reveal__instance",
+                property: "transform.x",
+                keys: [{ t: 0, v: 0 }, { t: 2, v: 200 }],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      console.log(JSON.stringify(result.diagnostics, null, 2));
+      return;
+    }
+    const synthesized = result.project.scenes.find(
+      (scene) => scene.id === "clip-logo-reveal",
+    )!;
+    // Wrapper group created even without instanceTransform because tracks are present
+    expect(synthesized.nodes).toHaveLength(2);
+    expect(synthesized.nodes[0]!.id).toBe("clip-logo-reveal__instance");
+    expect(synthesized.nodes[0]!.type).toBe("group");
+    // Original "logo" node re-parented
+    expect(synthesized.nodes[1]!.parentId).toBe("clip-logo-reveal__instance");
+  });
+
+  it("CMP_INVALID_CLIP_FIELD: scene clip with instanceTransform is rejected", () => {
+    const project = structuredClone(representative);
+    project.timeline.visualTracks = [
+      {
+        id: "main-track",
+        role: "main",
+        order: 0,
+        muted: false,
+        clips: [
+          {
+            id: "clip-intro",
+            source: { kind: "scene", sceneId: "intro" },
+            start: 0,
+            duration: 3,
+            opacity: 1,
+            loop: false,
+            instanceTransform: { x: 100 },
+          },
+        ],
+      },
+    ];
+    // Schema-level .superRefine() catches this before CMP semantic validation
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(
+      result.diagnostics.some((d) => d.code === "RUNTIME_VALIDATION_ERROR"),
+    ).toBe(true);
+  });
+
   it("clones a scene when it is reused by multiple visual clips", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [

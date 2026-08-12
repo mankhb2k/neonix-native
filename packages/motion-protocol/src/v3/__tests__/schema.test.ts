@@ -243,12 +243,41 @@ describe("v3 schema — positive fixtures", () => {
     expect(componentClip.instanceTransform!.y).toBe(200);
   });
 
-  it("parses component clip without instanceTransform (optional field)", () => {
-    // VisualClipV3Schema must accept clips without instanceTransform
-    const input = loadFixture("multi-scene.project.json");
+  it("parses component clip with instanceTransformTracks (animated keyframes)", () => {
+    const input = loadFixture("component.project.json");
     const project = MotionProjectV3Schema.parse(input);
-    const clip = project.timeline.visualTracks[0]!.clips[0]!;
-    expect(clip.instanceTransform).toBeUndefined();
+    const overlayTrack = project.timeline.visualTracks.find(
+      (t) => t.role === "overlay",
+    )!;
+    // component.project.json already has instanceTransform, now test it parses correctly
+    const componentClip = overlayTrack.clips[0]!;
+    expect(componentClip.instanceTransform).toBeTruthy();
+    // instanceTransformTracks not in fixture — verify optional
+    expect(componentClip.instanceTransformTracks).toBeUndefined();
+  });
+
+  it("parses component clip with instanceTransformTracks that animate wrapper group", () => {
+    const input = loadFixture("component.project.json") as Record<string, unknown>;
+    const tracks = (input.timeline as Record<string, unknown>).visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [
+      {
+        targetId: "dummy",
+        property: "transform.x",
+        valueKind: "number",
+        keys: [
+          { t: 0, v: 0 },
+          { t: 1, v: 100, easing: "easeOut" },
+        ],
+      },
+    ];
+    const project = MotionProjectV3Schema.parse(input);
+    const clip = project.timeline.visualTracks.find(
+      (t) => t.role === "overlay",
+    )!.clips[0]!;
+    expect(clip.instanceTransformTracks).toHaveLength(1);
+    expect(clip.instanceTransformTracks![0]!.property).toBe("transform.x");
   });
 
   it("parses caption project with bilingual caption tracks", () => {
@@ -327,6 +356,74 @@ describe("v3 schema — negative fixtures", () => {
                   source: { kind: "scene", sceneId: "s1" },
                   start: 0,
                   duration: 1,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects instanceTransform on scene-source clip", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 1,
+                  instanceTransform: { x: 100 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects instanceTransformTracks on scene-source clip", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 1,
+                  instanceTransformTracks: [
+                    {
+                      targetId: "n1",
+                      property: "transform.x",
+                      keys: [{ t: 0, v: 0 }],
+                    },
+                  ],
                 },
               ],
             },

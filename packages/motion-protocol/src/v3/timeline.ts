@@ -15,7 +15,7 @@ import {
   NormalizedRatioSchema,
   PositiveNumberSchema,
 } from "./common";
-import { SceneMarkerV3Schema } from "./animation/tracks";
+import { PropertyTrackV3Schema, SceneMarkerV3Schema } from "./animation/tracks";
 
 export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
@@ -143,10 +143,35 @@ export const VisualClipV3Schema = z
     opacity: NormalizedRatioSchema.default(1),
     transitionIn: TransitionV3Schema.optional(),
     transitionOut: TransitionV3Schema.optional(),
-    /** Transform applied to the *entire* component instance. Only meaningful for `source.kind === "component"`. */
+    /** Static placement transform for the entire component instance. Only meaningful when `source.kind === "component"`. */
     instanceTransform: ComponentInstanceTransformV3Schema.optional(),
+    /** Keyframe tracks that animate the component instance wrapper group over time. Only meaningful when `source.kind === "component"`. */
+    instanceTransformTracks: z
+      .array(PropertyTrackV3Schema)
+      .max(MOTION_PROTOCOL_LIMITS.tracksPerClip)
+      .optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (val.source.kind !== "component") {
+      if (val.instanceTransform) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "instanceTransform is only valid for component-source clips (source.kind === \"component\")",
+          path: ["instanceTransform"],
+        });
+      }
+      if (val.instanceTransformTracks && val.instanceTransformTracks.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            "instanceTransformTracks is only valid for component-source clips (source.kind === \"component\")",
+          path: ["instanceTransformTracks"],
+        });
+      }
+    }
+  });
 
 export const VisualTrackV3Schema = z
   .object({
