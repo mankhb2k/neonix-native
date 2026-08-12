@@ -48,19 +48,19 @@
 
 ### 🔴 High
 
-| #   | File            | Issue                                                                                                                                                                                                        |
-| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| H4  | `scenes.ts:26`  | `SceneDefinitionV3Schema.nodes` KHÔNG có `.min(1)` — scene không node được accept. ✅ **FIXED** — nodes: z.array(NodeV3Schema).min(1).max(...) |
+| #   | File            | Issue                                                                                                                                                                                                                                                |
+| --- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| H4  | `scenes.ts:26`  | `SceneDefinitionV3Schema.nodes` KHÔNG có `.min(1)` — scene không node được accept. ✅ **FIXED** — nodes: z.array(NodeV3Schema).min(1).max(...)                                                                                                       |
 | H5  | `components.ts` | `EmbeddedComponentV3Schema.slots` cho phép `count > 1` nhưng không có schema-level validation nào đảm bảo slot content array match `count`. ✅ **FIXED** — superRefine kiểm tra duplicate slot ids + note về consumer-side slot-content cardinality. |
 
 ### 🟡 Medium
 
-| #   | File               | Issue                                                                                                                                                                                                                                |
-| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| M6  | `timeline.ts`      | `VisualClipV3Schema` có `playbackRate` và `loop` nhưng không validate `playbackRate > 0`. ✅ **FIXED** — playbackRate: .superRefine() kiểm tra > 0 |
-| M7  | `nodes/base.ts:24` | **CRITICAL cho runtime** — `NodeBaseSchema` trong runtime KHÔNG có `.strict()`. ✅ **FIXED** — đã thêm `.strict()`. |
-| M8  | `common.ts`        | `SemverSchema` regex cho phép `1.0.0-`. ✅ **FIXED** — pattern: `(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?` (requires at least one char after dash). Cả v3/common.ts và runtime/common.ts. |
-| M9  | `variables.ts`     | `DesignTokensSchema` export nhưng `DesignTokens` type chỉ trong `v3/index.ts`, không có ở top-level `index.ts` cùng các type khác.                                                                                                   |
+| #   | File               | Issue                                                                                                                                                                                                                    |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| M6  | `timeline.ts`      | `VisualClipV3Schema` có `playbackRate` và `loop` nhưng không validate `playbackRate > 0`. ✅ **FIXED** — playbackRate: .superRefine() kiểm tra > 0                                                                       |
+| M7  | `nodes/base.ts:24` | **CRITICAL cho runtime** — `NodeBaseSchema` trong runtime KHÔNG có `.strict()`. ✅ **FIXED** — đã thêm `.strict()`.                                                                                                      |
+| M8  | `common.ts`        | `SemverSchema` regex cho phép `1.0.0-`. ✅ **FIXED** — pattern: `(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?` (requires at least one char after dash). Cả v3/common.ts và runtime/common.ts.                                         |
+| M9  | `variables.ts`     | `DesignTokensSchema` export nhưng `DesignTokens` type chỉ trong `v3/index.ts`, không có ở top-level `index.ts` cùng các type khác.                                                                                       |
 | M10 | `transform.ts`     | `TransformSchema.width/height` dùng `.nonnegative()` → cho phép `0`. Node width=0 hoặc height=0 là vô hình. 🔵 **BY DESIGN** — camera, group, bone nodes legitimately use width=0/height=0. `.nonnegative()` giữ nguyên. |
 
 ### ℹ️ Info
@@ -87,11 +87,11 @@
 
 | #   | File         | Issue                                                                                                                                                                                                                                         |
 | --- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M11 | `tracks.ts`  | `PropertyTrackSchema` KHÔNG có `.superRefine()` để check valueKind compatibility với property path (khác với `InstanceTransformTrackV3Schema` đã có). Nếu `valueKind: "color"` mà `property: "transform.x"` → không bị reject ở schema level. |
-| M12 | `drivers.ts` | `ProceduralDriverSchema` → `"remap"` driver không validate `inMin < inMax` hoặc `outMin < outMax`. Có thể set `inMin: 10, inMax: 0` → silent bug.                                                                                             |
-| M13 | `drivers.ts` | `"clamp"` và `"wrap"` drivers không validate `min < max`.                                                                                                                                                                                     |
-| M14 | `tracks.ts`  | `SceneMarkerSchema` không có validation marker ordering — 2 marker có cùng `t` hoặc marker không sort theo thời gian không bị reject.                                                                                                         |
-| M15 | `easing.ts`  | `KeyframeEasingCubicSchema` cho phép `y1`, `y2` không giới hạn → cubic-bezier có thể overshoot ngoài [0,1] range. CSS spec cho phép nhưng nên document rõ.                                                                                    |
+| M11 | `tracks.ts`  | `PropertyTrackSchema` KHÔNG có `.superRefine()` để check valueKind compatibility. ✅ **FIXED** — added `VALUE_KIND_BY_PROPERTY` map + `.superRefine()`. |
+| M12 | `drivers.ts` | `"remap"` driver không validate `inMin < inMax` hoặc `outMin < outMax`. ✅ **FIXED** — `.superRefine()` trên union level. |
+| M13 | `drivers.ts` | `"clamp"` và `"wrap"` drivers không validate `min < max`. ✅ **FIXED** — `.superRefine()` trên union level. |
+| M14 | `tracks.ts`  | `SceneMarkerSchema` không có validation marker ordering. 🔵 **DEFERRED → Layer 4** — markers là individual objects, cần project-level validation. |
+| M15 | `easing.ts`  | `KeyframeEasingCubicSchema` cho phép `y1`, `y2` không giới hạn. 🔵 **BY DESIGN** — CSS spec cho phép cubic-bezier overshoot. Đã document trong code. |
 
 ### ℹ️ Info
 

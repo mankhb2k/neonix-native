@@ -8,8 +8,24 @@ import type { MotionProjectV3 } from "../index";
 /** A minimal text node for use in test scenes (scenes require nodes.min(1)). */
 function minNode() {
   return {
-    id: "n1", type: "text", parentId: null,
-    transform: { x: 0, y: 0, width: 100, height: 50, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, opacity: 1, visible: true, flipX: false, flipY: false },
+    id: "n1",
+    type: "text",
+    parentId: null,
+    transform: {
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 50,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      opacity: 1,
+      visible: true,
+      flipX: false,
+      flipY: false,
+    },
     payload: { content: { kind: "plain" as const, text: "x" }, fontSize: 24 },
   } as const;
 }

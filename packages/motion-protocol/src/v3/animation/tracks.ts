@@ -28,6 +28,30 @@ export const SceneMarkerSchema = z
   })
   .strict();
 
+// ── Value-kind compatibility map for property tracks ────────────────
+
+/**
+ * Maps property path patterns to allowed value kinds.
+ * Shared by both PropertyTrackSchema and InstanceTransformTrackV3Schema.
+ */
+const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
+  "transform.x": ["number", "angle"],
+  "transform.y": ["number", "angle"],
+  "transform.rotation": ["number", "angle"],
+  "transform.rotationX": ["number", "angle"],
+  "transform.rotationY": ["number", "angle"],
+  "transform.rotationZ": ["number", "angle"],
+  "transform.scaleX": ["number"],
+  "transform.scaleY": ["number"],
+  "transform.opacity": ["number"],
+  "transform.anchorX": ["number"],
+  "transform.anchorY": ["number"],
+  "transform.anchorZ": ["number"],
+  "transform.visible": ["boolean"],
+  "transform.flipX": ["boolean"],
+  "transform.flipY": ["boolean"],
+};
+
 /** Absolute seconds or marker-relative time resolved at compile time. */
 export const TrackTimeSchema = z.union([
   FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
@@ -59,7 +83,18 @@ export const PropertyTrackSchema = z
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (!val.valueKind) return;
+    const allowed = VALUE_KIND_BY_PROPERTY[val.property];
+    if (allowed && !allowed.includes(val.valueKind)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `valueKind "${val.valueKind}" is incompatible with property "${val.property}". Allowed: ${allowed.join(", ")}`,
+        path: ["valueKind"],
+      });
+    }
+  });
 
 // ── V3 aliases ────────────────────────────────────────────────────────
 

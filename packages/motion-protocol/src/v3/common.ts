@@ -18,7 +18,10 @@ export const IdSchema = z.string().min(1).max(MOTION_PROTOCOL_LIMITS.idLength);
 export const PropertyPathSchema = z.string().min(1);
 export const SemverSchema = z
   .string()
-  .regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$/, "Expected semantic version");
+  .regex(
+    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z][0-9A-Za-z.-]*)?$/,
+    "Expected semantic version",
+  );
 export const FiniteNumberSchema = z.number().finite();
 export const LocaleIdentifierSchema = z
   .string()
@@ -35,7 +38,10 @@ export const SemanticSchema = z
   .object({
     role: IdSchema,
     key: IdSchema.optional(),
-    tags: z.array(IdSchema).max(MOTION_PROTOCOL_LIMITS.semanticTags).default([]),
+    tags: z
+      .array(IdSchema)
+      .max(MOTION_PROTOCOL_LIMITS.semanticTags)
+      .default([]),
   })
   .strict();
 

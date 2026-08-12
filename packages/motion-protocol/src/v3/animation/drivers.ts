@@ -130,6 +130,35 @@ export const ProceduralDriverSchema = z.discriminatedUnion("type", [
       offset: FiniteNumberSchema.default(0),
     })
     .strict(),
-]);
+])
+  .superRefine((val, ctx) => {
+    // M12: remap driver — inMin < inMax, outMin < outMax
+    if (val.type === "remap") {
+      if (val.inMin >= val.inMax) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `inMin (${val.inMin}) must be < inMax (${val.inMax})`,
+          path: ["inMin"],
+        });
+      }
+      if (val.outMin >= val.outMax) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `outMin (${val.outMin}) must be < outMax (${val.outMax})`,
+          path: ["outMin"],
+        });
+      }
+    }
+    // M13: clamp & wrap drivers — min < max
+    if (val.type === "clamp" || val.type === "wrap") {
+      if (val.min >= val.max) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `min (${val.min}) must be < max (${val.max})`,
+          path: ["min"],
+        });
+      }
+    }
+  });
 
 export type ProceduralDriver = z.infer<typeof ProceduralDriverSchema>;
