@@ -692,10 +692,7 @@ export function inspectTimeline(
       id: clip.id,
       source: {
         kind: clip.source.kind,
-        refId:
-          clip.source.kind === "scene"
-            ? clip.source.sceneId
-            : clip.source.componentId,
+        refId: clip.source.sceneId,
       },
       start: clip.start,
       duration: clip.duration,

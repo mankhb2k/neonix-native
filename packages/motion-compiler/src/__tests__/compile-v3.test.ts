@@ -59,7 +59,7 @@ function makeComponentNodeProject(
     clipDuration?: number;
     componentId?: string;
     transform?: Partial<V3.ComponentNodeV3["transform"]>;
-    publicProps?: Record<string, unknown>;
+    publicProps?: V3.ComponentNodeV3["payload"]["publicProps"];
     sceneClips?: V3.MotionClipV3[];
   } = {},
 ): V3.MotionProjectV3 {
@@ -92,7 +92,7 @@ function makeComponentNodeProject(
     },
     payload: {
       componentId,
-      ...(options.publicProps ? { publicProps: options.publicProps } : {}),
+      publicProps: options.publicProps ?? {},
     },
   };
 
@@ -100,6 +100,7 @@ function makeComponentNodeProject(
     id: sceneId,
     name: "Component Scene",
     duration: sceneDuration,
+    space: "flat-2d",
     nodes: [componentNode],
     clips: options.sceneClips ?? [],
   });
@@ -277,7 +278,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
           targetId: "comp-node",
           schedule: { kind: "absolute", at: 0 },
           duration: 2,
-          playback: {},
+          playback: { direction: "normal", iterations: 1, rate: 1 },
           source: {
             kind: "tracks",
             tracks: [
@@ -328,7 +329,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
           targetId: "comp-node",
           schedule: { kind: "absolute", at: 0 },
           duration: 4,
-          playback: {},
+          playback: { direction: "normal", iterations: 1, rate: 1 },
           source: {
             kind: "tracks",
             tracks: [

@@ -803,39 +803,40 @@ function validateV3Semantics(
     )!;
     // Resolve the property path a binding targets, then type-check the
     // bound variable against it.
-    if (binding.target.kind === "component") {
+    const target = binding.target;
+    if (target.kind === "component") {
       const component = project.components.find(
-        (c) => c.id === binding.target.componentId,
+        (c) => c.id === target.componentId,
       );
       if (!component) continue; // already handled by reference validation
       const publicTarget = component.publicTargets.find(
-        (pt) => pt.id === binding.target.targetId,
+        (pt) => pt.id === target.targetId,
       );
       if (!publicTarget) continue; // already handled by reference validation
       const expected = expectedVariableTypeForProperty(publicTarget.property);
       if (expected && variable.type !== expected) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component "${binding.target.componentId}" publicTarget "${binding.target.targetId}" (property "${publicTarget.property}") which expects ${expected}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component "${target.componentId}" publicTarget "${target.targetId}" (property "${publicTarget.property}") which expects ${expected}`,
           {
             path: ["bindings", binding.id],
             details: {
               bindingId: binding.id,
               variableType: variable.type,
-              componentId: binding.target.componentId,
-              targetId: binding.target.targetId,
+              componentId: target.componentId,
+              targetId: target.targetId,
               property: publicTarget.property,
               expected,
             },
           },
         );
       }
-    } else if (binding.target.kind === "componentNode") {
+    } else if (target.kind === "componentNode") {
       const scene = project.scenes.find(
-        (candidate) => candidate.id === binding.target.sceneId,
+        (candidate) => candidate.id === target.sceneId,
       );
       const node = scene?.nodes.find(
-        (candidate) => candidate.id === binding.target.nodeId,
+        (candidate) => candidate.id === target.nodeId,
       );
       const component =
         node?.type === "component"
@@ -844,21 +845,21 @@ function validateV3Semantics(
             )
           : undefined;
       const publicTarget = component?.publicTargets.find(
-        (pt) => pt.id === binding.target.targetId,
+        (pt) => pt.id === target.targetId,
       );
       if (!publicTarget) continue; // already handled by reference validation
       const expected = expectedVariableTypeForProperty(publicTarget.property);
       if (expected && variable.type !== expected) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component node "${binding.target.nodeId}" publicTarget "${binding.target.targetId}" (property "${publicTarget.property}") which expects ${expected}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component node "${target.nodeId}" publicTarget "${target.targetId}" (property "${publicTarget.property}") which expects ${expected}`,
           {
             path: ["bindings", binding.id],
             details: {
               bindingId: binding.id,
               variableType: variable.type,
               componentId: component?.id,
-              targetId: binding.target.targetId,
+              targetId: target.targetId,
               property: publicTarget.property,
               expected,
             },
@@ -866,17 +867,17 @@ function validateV3Semantics(
         );
       }
     } else {
-      const expected = expectedVariableTypeForProperty(binding.target.property);
+      const expected = expectedVariableTypeForProperty(target.property);
       if (expected && variable.type !== expected) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${binding.target.property}" which expects ${expected}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to "${target.property}" which expects ${expected}`,
           {
             path: ["bindings", binding.id],
             details: {
               bindingId: binding.id,
               variableType: variable.type,
-              property: binding.target.property,
+              property: target.property,
               expected,
             },
           },
@@ -1206,45 +1207,46 @@ export function compileMotionProjectV3(
       target: { sceneId: string; nodeId: string; property: string };
     }> = [];
     for (const binding of normalized.bindings) {
-      if (binding.target.kind === "scene") {
+      const target = binding.target;
+      if (target.kind === "scene") {
         runtimeBindings.push({
           id: binding.id,
           source: { variableId: binding.source.variableId },
           target: {
-            sceneId: binding.target.sceneId,
-            nodeId: binding.target.nodeId,
-            property: toRuntimeProperty(binding.target.property),
+            sceneId: target.sceneId,
+            nodeId: target.nodeId,
+            property: toRuntimeProperty(target.property),
           },
         });
         continue;
       }
-      if (binding.target.kind === "componentNode") {
-        const instance = componentInstances.get(binding.target.nodeId);
+      if (target.kind === "componentNode") {
+        const instance = componentInstances.get(target.nodeId);
         if (!instance) {
           collector.warn(
             "CMP_UNRESOLVED_COMPONENT",
-            `Binding "${binding.id}" targets component node "${binding.target.nodeId}" but no component instance exists at that node`,
+            `Binding "${binding.id}" targets component node "${target.nodeId}" but no component instance exists at that node`,
             {
               path: ["bindings", binding.id],
-              details: { bindingId: binding.id, nodeId: binding.target.nodeId },
+              details: { bindingId: binding.id, nodeId: target.nodeId },
             },
           );
           continue;
         }
         const component = components.get(instance.componentId);
         const publicTarget = component?.publicTargets.find(
-          (pt) => pt.id === binding.target.targetId,
+          (pt) => pt.id === target.targetId,
         );
         if (!publicTarget) {
           collector.error(
             "CMP_PRIVATE_COMPONENT_ACCESS",
-            `Binding "${binding.id}" targets component node "${binding.target.nodeId}" target "${binding.target.targetId}" which is not declared in publicTargets`,
+            `Binding "${binding.id}" targets component node "${target.nodeId}" target "${target.targetId}" which is not declared in publicTargets`,
             {
               path: ["bindings", binding.id],
               details: {
                 bindingId: binding.id,
                 componentId: instance.componentId,
-                targetId: binding.target.targetId,
+                targetId: target.targetId,
               },
             },
           );
@@ -1263,36 +1265,36 @@ export function compileMotionProjectV3(
       }
       // Global component binding — apply to every instance of the component.
       const instances = [...componentInstances.values()].filter(
-        (instance) => instance.componentId === binding.target.componentId,
+        (instance) => instance.componentId === target.componentId,
       );
       if (instances.length === 0) {
         collector.warn(
           "CMP_UNRESOLVED_COMPONENT",
-          `Binding "${binding.id}" targets component "${binding.target.componentId}" but no component node instantiates it`,
+          `Binding "${binding.id}" targets component "${target.componentId}" but no component node instantiates it`,
           {
             path: ["bindings", binding.id],
             details: {
               bindingId: binding.id,
-              componentId: binding.target.componentId,
+              componentId: target.componentId,
             },
           },
         );
         continue;
       }
-      const component = components.get(binding.target.componentId);
+      const component = components.get(target.componentId);
       const publicTarget = component?.publicTargets.find(
-        (pt) => pt.id === binding.target.targetId,
+        (pt) => pt.id === target.targetId,
       );
       if (!publicTarget) {
         collector.error(
           "CMP_PRIVATE_COMPONENT_ACCESS",
-          `Binding "${binding.id}" targets component "${binding.target.componentId}" target "${binding.target.targetId}" which is not declared in publicTargets`,
+          `Binding "${binding.id}" targets component "${target.componentId}" target "${target.targetId}" which is not declared in publicTargets`,
           {
             path: ["bindings", binding.id],
             details: {
               bindingId: binding.id,
-              componentId: binding.target.componentId,
-              targetId: binding.target.targetId,
+              componentId: target.componentId,
+              targetId: target.targetId,
             },
           },
         );

@@ -359,7 +359,30 @@ describe("normalizeMotionProjectV3 — bindings", () => {
 // ── Component clip migration ──────────────────────────────────────────
 
 describe("normalizeMotionProjectV3 — component clips", () => {
-  const legacyClipProject = () => ({
+  type LegacyClip = {
+    id: string;
+    source: { kind: string; componentId: string };
+    start: number;
+    duration: number;
+    opacity: number;
+    loop: boolean;
+    instanceTransform?: Record<string, unknown>;
+    instanceTransformTracks?: Array<Record<string, unknown>>;
+  };
+
+  const legacyClipProject = (): {
+    timeline: {
+      visualTracks: Array<{
+        id: string;
+        role: string;
+        order: number;
+        muted: boolean;
+        clips: LegacyClip[];
+      }>;
+      audioTracks: unknown[];
+      captionTracks: unknown[];
+    };
+  } => ({
     timeline: {
       visualTracks: [
         {
