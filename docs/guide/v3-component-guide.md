@@ -509,14 +509,14 @@ Khi consumer muốn **di chuyển, scale, rotate, hoặc keyframe toàn bộ com
   "start": 0,
   "duration": 5,
   "instanceTransform": {
-    "x": 100,       // Vị trí X
-    "y": 200,       // Vị trí Y
+    "x": 100, // Vị trí X
+    "y": 200, // Vị trí Y
     "rotation": 15, // Xoay (độ)
-    "scaleX": 0.8,  // Scale ngang
-    "scaleY": 0.8,  // Scale dọc
-    "opacity": 0.9  // Độ mờ
+    "scaleX": 0.8, // Scale ngang
+    "scaleY": 0.8, // Scale dọc
+    "opacity": 0.9, // Độ mờ
     // Tất cả field đều optional
-  }
+  },
 }
 ```
 
@@ -545,19 +545,19 @@ flowchart LR
 3. Group node mang transform từ `instanceTransform`, các node gốc được re-parent vào group
 4. Runtime nhận được scene với group wrapper — có thể keyframe group này như layer bình thường
 
-| Field          | Default | Mô tả                      |
-| -------------- | ------- | -------------------------- |
-| `x`            | `0`     | Vị trí ngang               |
-| `y`            | `0`     | Vị trí dọc                 |
-| `rotation`     | `0`     | Góc xoay (độ)              |
-| `scaleX`       | `1`     | Tỉ lệ ngang                |
-| `scaleY`       | `1`     | Tỉ lệ dọc                  |
-| `anchorX`      | `0.5`   | Anchor ngang (0–1)         |
-| `anchorY`      | `0.5`   | Anchor dọc (0–1)           |
-| `opacity`      | `1`     | Độ mờ (0–1)                |
-| `visible`      | `true`  | Hiển thị                    |
-| `flipX`        | `false` | Lật ngang                   |
-| `flipY`        | `false` | Lật dọc                     |
+| Field      | Default | Mô tả              |
+| ---------- | ------- | ------------------ |
+| `x`        | `0`     | Vị trí ngang       |
+| `y`        | `0`     | Vị trí dọc         |
+| `rotation` | `0`     | Góc xoay (độ)      |
+| `scaleX`   | `1`     | Tỉ lệ ngang        |
+| `scaleY`   | `1`     | Tỉ lệ dọc          |
+| `anchorX`  | `0.5`   | Anchor ngang (0–1) |
+| `anchorY`  | `0.5`   | Anchor dọc (0–1)   |
+| `opacity`  | `1`     | Độ mờ (0–1)        |
+| `visible`  | `true`  | Hiển thị           |
+| `flipX`    | `false` | Lật ngang          |
+| `flipY`    | `false` | Lật dọc            |
 
 > **Lưu ý**: `instanceTransform` không thay thế public contract — consumer vẫn dùng `publicParams`, `slots`, `variants`, `publicTargets` để cấu hình nội dung bên trong component. `instanceTransform` chỉ điều khiển vị trí và hiệu ứng của **toàn bộ instance** trên màn hình.
 

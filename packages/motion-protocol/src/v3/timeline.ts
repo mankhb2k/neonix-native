@@ -24,7 +24,9 @@ export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("fade"),
-      duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+      duration: PositiveNumberSchema.max(
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+      ),
       color: z.string().min(1).optional(),
       easing: z
         .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
@@ -34,7 +36,9 @@ export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("crossfade"),
-      duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+      duration: PositiveNumberSchema.max(
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+      ),
       easing: z
         .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
         .optional(),
@@ -43,7 +47,9 @@ export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("slide"),
-      duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+      duration: PositiveNumberSchema.max(
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+      ),
       direction: z.enum(["left", "right", "up", "down"]),
       mode: z.enum(["push", "cover"]).default("push"),
       easing: z
@@ -54,7 +60,9 @@ export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("wipe"),
-      duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+      duration: PositiveNumberSchema.max(
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+      ),
       direction: z.enum(["left", "right", "up", "down"]),
       softness: NormalizedRatioSchema.optional(),
       easing: z
@@ -65,7 +73,9 @@ export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("zoom"),
-      duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+      duration: PositiveNumberSchema.max(
+        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+      ),
       direction: z.enum(["in", "out"]),
       easing: z
         .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
@@ -88,8 +98,12 @@ export const ComponentInstanceTransformV3Schema = z
     x: FiniteNumberSchema,
     y: FiniteNumberSchema,
     rotation: FiniteNumberSchema,
-    scaleX: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.transformScale),
-    scaleY: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.transformScale),
+    scaleX: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.transformScale,
+    ),
+    scaleY: FiniteNumberSchema.nonnegative().max(
+      MOTION_PROTOCOL_LIMITS.transformScale,
+    ),
     anchorX: FiniteNumberSchema.min(0).max(1),
     anchorY: FiniteNumberSchema.min(0).max(1),
     opacity: FiniteNumberSchema.min(0).max(1),
@@ -100,7 +114,9 @@ export const ComponentInstanceTransformV3Schema = z
   .partial()
   .strict();
 
-export type ComponentInstanceTransformV3 = z.infer<typeof ComponentInstanceTransformV3Schema>;
+export type ComponentInstanceTransformV3 = z.infer<
+  typeof ComponentInstanceTransformV3Schema
+>;
 
 export const VisualClipSourceV3Schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
@@ -114,7 +130,9 @@ export const VisualClipV3Schema = z
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
-    duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+    duration: PositiveNumberSchema.max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
     trimStart: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .optional(),
@@ -151,7 +169,9 @@ export const AudioTrackV3Schema = z
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
-    duration: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
+    duration: PositiveNumberSchema.max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
     trimStart: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
