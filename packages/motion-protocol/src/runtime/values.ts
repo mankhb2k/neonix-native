@@ -14,15 +14,23 @@ export const JsonValueSchema: z.ZodType<
   ]),
 );
 
-export const VariableReferenceSchema = z.object({
-  ref: z.object({ kind: z.literal("variable"), id: IdSchema }),
-  map: z
-    .object({ scale: FiniteNumberSchema.optional(), offset: FiniteNumberSchema.optional() })
-    .strict()
-    .optional(),
-}).strict();
+export const VariableReferenceSchema = z
+  .object({
+    ref: z.object({ kind: z.literal("variable"), id: IdSchema }),
+    map: z
+      .object({
+        scale: FiniteNumberSchema.optional(),
+        offset: FiniteNumberSchema.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
-export const ResolvableValueSchema = z.union([JsonValueSchema, VariableReferenceSchema]);
+export const ResolvableValueSchema = z.union([
+  JsonValueSchema,
+  VariableReferenceSchema,
+]);
 
 export function isVariableReference(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(isVariableReference);
@@ -33,12 +41,29 @@ export function isVariableReference(value: unknown): boolean {
     typeof record.ref === "object" &&
     (record.ref as Record<string, unknown>).kind === "variable" &&
     typeof (record.ref as Record<string, unknown>).id === "string"
-  ) return true;
+  )
+    return true;
   return Object.values(record).some(isVariableReference);
 }
 
-export const LiteralValueSchema = JsonValueSchema.superRefine((value, context) => {
-  if (isVariableReference(value)) context.addIssue({ code: z.ZodIssueCode.custom, message: "Runtime values must be literal" });
-});
+export const LiteralValueSchema = JsonValueSchema.superRefine(
+  (value, context) => {
+    if (isVariableReference(value))
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Runtime values must be literal",
+      });
+  },
+);
 
-export const ValueKindSchema = z.enum(["number", "angle", "vec2", "color", "boolean", "string", "asset", "path", "gradient"]);
+export const ValueKindSchema = z.enum([
+  "number",
+  "angle",
+  "vec2",
+  "color",
+  "boolean",
+  "string",
+  "asset",
+  "path",
+  "gradient",
+]);
