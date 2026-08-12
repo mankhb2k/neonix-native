@@ -310,7 +310,19 @@ describe("compileMotionProjectV3 — happy paths", () => {
             duration: 4,
             opacity: 1,
             loop: false,
-            instanceTransform: { x: 100, y: 0, rotation: 0, scaleX: 1, scaleY: 1, anchorX: 0.5, anchorY: 0.5, opacity: 1, visible: true, flipX: false, flipY: false },
+            instanceTransform: {
+              x: 100,
+              y: 0,
+              rotation: 0,
+              scaleX: 1,
+              scaleY: 1,
+              anchorX: 0.5,
+              anchorY: 0.5,
+              opacity: 1,
+              visible: true,
+              flipX: false,
+              flipY: false,
+            },
             instanceTransformTracks: [
               {
                 property: "transform.x",
@@ -367,7 +379,9 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(synthesized.tracks).toHaveLength(2);
 
     // Track 1: transform.x
-    const txTrack = synthesized.tracks.find((t) => t.property === "transform.x")!;
+    const txTrack = synthesized.tracks.find(
+      (t) => t.property === "transform.x",
+    )!;
     expect(txTrack.targetId).toBe("clip-logo-reveal__instance");
     expect(txTrack.keys).toHaveLength(2);
     expect(txTrack.keys[0]!.t).toBe(0);
@@ -377,7 +391,9 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(txTrack.keys[1]!.easing).toBe("easeOut");
 
     // Track 2: transform.opacity
-    const opacityTrack = synthesized.tracks.find((t) => t.property === "transform.opacity")!;
+    const opacityTrack = synthesized.tracks.find(
+      (t) => t.property === "transform.opacity",
+    )!;
     expect(opacityTrack.targetId).toBe("clip-logo-reveal__instance");
     expect(opacityTrack.keys).toHaveLength(2);
     expect(opacityTrack.keys[0]!.t).toBe(0);

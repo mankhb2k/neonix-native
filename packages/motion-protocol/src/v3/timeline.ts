@@ -15,7 +15,7 @@ import {
   NormalizedRatioSchema,
   PositiveNumberSchema,
 } from "./common";
-import { ResolvableValueSchema, ValueKindSchema } from "./values";
+import { VariableReferenceSchema } from "./values";
 import { KeyframeEasingSchema } from "./animation/easing";
 import {
   ExtrapolationBehaviorSchema,
@@ -168,51 +168,109 @@ export const INSTANCE_TRANSFORM_ALLOWED_PROPERTIES = [
  *   requires "number", not "color").
  */
 
-const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
-  "transform.x": ["number", "angle"],
-  "transform.y": ["number", "angle"],
-  "transform.rotation": ["number", "angle"],
-  "transform.scaleX": ["number"],
-  "transform.scaleY": ["number"],
-  "transform.opacity": ["number"],
-  "transform.anchorX": ["number"],
-  "transform.anchorY": ["number"],
-  "transform.visible": ["boolean"],
-  "transform.flipX": ["boolean"],
-  "transform.flipY": ["boolean"],
-};
+const NumberInstanceValueSchema = z.union([
+  FiniteNumberSchema,
+  VariableReferenceSchema,
+]);
+const RatioInstanceValueSchema = z.union([
+  FiniteNumberSchema.min(0).max(1),
+  VariableReferenceSchema,
+]);
+const ScaleInstanceValueSchema = z.union([
+  FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.transformScale),
+  VariableReferenceSchema,
+]);
+const BooleanInstanceValueSchema = z.union([
+  z.boolean(),
+  VariableReferenceSchema,
+]);
 
-export const InstanceTransformTrackV3Schema = z
-  .object({
-    property: z.enum(INSTANCE_TRANSFORM_ALLOWED_PROPERTIES),
-    valueKind: ValueKindSchema.optional(),
-    preBehavior: ExtrapolationBehaviorSchema.optional(),
-    postBehavior: ExtrapolationBehaviorSchema.optional(),
-    keys: z
-      .array(
-        z
-          .object({
-            t: TrackTimeSchema,
-            v: ResolvableValueSchema,
-            easing: KeyframeEasingSchema.optional(),
-          })
-          .strict(),
-      )
-      .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
-  })
-  .strict()
-  .superRefine((val, ctx) => {
-    if (!val.valueKind) return;
-    const allowed = VALUE_KIND_BY_PROPERTY[val.property];
-    if (allowed && !allowed.includes(val.valueKind)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `valueKind "${val.valueKind}" is incompatible with property "${val.property}". Allowed: ${allowed.join(", ")}`,
-        path: ["valueKind"],
-      });
-    }
-  });
+function createInstanceTransformTrackSchema<
+  TProperty extends (typeof INSTANCE_TRANSFORM_ALLOWED_PROPERTIES)[number],
+>(
+  property: TProperty,
+  valueKind: z.ZodTypeAny,
+  valueSchema: z.ZodTypeAny,
+) {
+  return z
+    .object({
+      property: z.literal(property),
+      valueKind: valueKind.optional(),
+      preBehavior: ExtrapolationBehaviorSchema.optional(),
+      postBehavior: ExtrapolationBehaviorSchema.optional(),
+      keys: z
+        .array(
+          z
+            .object({
+              t: TrackTimeSchema,
+              v: valueSchema,
+              easing: KeyframeEasingSchema.optional(),
+            })
+            .strict(),
+        )
+        .min(1)
+        .max(MOTION_PROTOCOL_LIMITS.keysPerTrack),
+    })
+    .strict();
+}
+
+export const InstanceTransformTrackV3Schema = z.discriminatedUnion("property", [
+  createInstanceTransformTrackSchema(
+    "transform.x",
+    z.literal("number"),
+    NumberInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.y",
+    z.literal("number"),
+    NumberInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.rotation",
+    z.enum(["number", "angle"]),
+    NumberInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.scaleX",
+    z.literal("number"),
+    ScaleInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.scaleY",
+    z.literal("number"),
+    ScaleInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.opacity",
+    z.literal("number"),
+    RatioInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.anchorX",
+    z.literal("number"),
+    RatioInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.anchorY",
+    z.literal("number"),
+    RatioInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.visible",
+    z.literal("boolean"),
+    BooleanInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.flipX",
+    z.literal("boolean"),
+    BooleanInstanceValueSchema,
+  ),
+  createInstanceTransformTrackSchema(
+    "transform.flipY",
+    z.literal("boolean"),
+    BooleanInstanceValueSchema,
+  ),
+]);
 
 export type InstanceTransformTrackV3 = z.infer<
   typeof InstanceTransformTrackV3Schema

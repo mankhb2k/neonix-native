@@ -2,10 +2,132 @@
  * V3 project-wide reference validation.
  */
 import type { MotionProjectV3 } from "../project";
+import type { NodeV3 } from "../nodes";
 import { duplicates } from "./helpers";
 import { validateNodeGraphV3 } from "./node-graph";
 import { validateNodeAssetsV3 } from "./node-assets";
 import type { ReferenceIssue } from "./types";
+
+const TRANSFORM_PUBLIC_PROPERTIES = new Set([
+  "transform.x",
+  "transform.y",
+  "transform.z",
+  "transform.depth",
+  "transform.width",
+  "transform.height",
+  "transform.rotation",
+  "transform.rotationX",
+  "transform.rotationY",
+  "transform.rotationZ",
+  "transform.scaleX",
+  "transform.scaleY",
+  "transform.anchorX",
+  "transform.anchorY",
+  "transform.anchorZ",
+  "transform.opacity",
+  "transform.visible",
+  "transform.flipX",
+  "transform.flipY",
+]);
+
+const BASE_PUBLIC_PROPERTIES = new Set(["visible", "locked", "name", "zIndex"]);
+
+const PAINT_STYLE_PUBLIC_PROPERTIES = new Set([
+  "style.fill",
+  "style.fillOpacity",
+  "style.stroke",
+  "style.strokeWidth",
+  "style.strokeOpacity",
+  "style.lineCap",
+  "style.lineJoin",
+  "style.miterLimit",
+  "style.dash",
+  "style.dashOffset",
+]);
+
+const NODE_PUBLIC_PAYLOAD_PROPERTIES: Record<NodeV3["type"], Set<string>> = {
+  group: new Set(["payload.compositing.mode"]),
+  bone: new Set([
+    "payload.length",
+    "payload.restRotation",
+    "payload.rotationLimits.min",
+    "payload.rotationLimits.max",
+  ]),
+  text: new Set([
+    "payload.content",
+    "payload.content.text",
+    "payload.fontAssetId",
+    "payload.fontSize",
+    "payload.color",
+    "payload.alignment",
+    "payload.wrap",
+    "payload.lineHeight",
+    "payload.letterSpacing",
+    "payload.maxLines",
+    "payload.overflow",
+  ]),
+  shape: new Set(["payload.shape", "payload.cornerRadius", "payload.points"]),
+  path: new Set(["payload.contours", "payload.morphTargets"]),
+  image: new Set([
+    "payload.assetId",
+    "payload.fit",
+    "payload.crop",
+    "payload.crop.x",
+    "payload.crop.y",
+    "payload.crop.width",
+    "payload.crop.height",
+  ]),
+  svg: new Set([
+    "payload.assetId",
+    "payload.fit",
+    "payload.crop",
+    "payload.crop.x",
+    "payload.crop.y",
+    "payload.crop.width",
+    "payload.crop.height",
+  ]),
+  video: new Set([
+    "payload.assetId",
+    "payload.fit",
+    "payload.crop",
+    "payload.crop.x",
+    "payload.crop.y",
+    "payload.crop.width",
+    "payload.crop.height",
+    "payload.trimStart",
+    "payload.trimEnd",
+    "payload.loop",
+    "payload.muted",
+    "payload.framePolicy",
+  ]),
+  camera: new Set([
+    "payload.projection",
+    "payload.zoom",
+    "payload.parallaxStrength",
+    "payload.focalLength",
+    "payload.fieldOfView",
+    "payload.near",
+    "payload.far",
+  ]),
+  solid: new Set(["payload.width", "payload.height", "payload.color"]),
+  adjustment: new Set([
+    "payload.brightness",
+    "payload.contrast",
+    "payload.saturation",
+  ]),
+};
+
+function isPublicTargetPropertyValid(node: NodeV3, property: string): boolean {
+  if (BASE_PUBLIC_PROPERTIES.has(property)) return true;
+  if (TRANSFORM_PUBLIC_PROPERTIES.has(property)) return true;
+  if (
+    (node.type === "shape" || node.type === "path") &&
+    PAINT_STYLE_PUBLIC_PROPERTIES.has(property)
+  ) {
+    return true;
+  }
+  return NODE_PUBLIC_PAYLOAD_PROPERTIES[node.type].has(property);
+}
 
 export function validateMotionProjectV3References(
   project: MotionProjectV3,
@@ -113,43 +235,44 @@ export function validateMotionProjectV3References(
   // ── bindings ─────────────────────────────────────────────────────────
   for (const binding of project.bindings) {
     const path = `bindings.${binding.id}`;
+    const bindingTarget = binding.target;
     if (!variableIds.has(binding.source.variableId)) {
       issues.push({
         path: `${path}.source.variableId`,
         message: `Unknown variable: ${binding.source.variableId}`,
       });
     }
-    if (binding.target.kind === "scene") {
-      const scene = sceneById.get(binding.target.sceneId);
+    if (bindingTarget.kind === "scene") {
+      const scene = sceneById.get(bindingTarget.sceneId);
       if (!scene) {
         issues.push({
           path: `${path}.target.sceneId`,
-          message: `Unknown scene: ${binding.target.sceneId}`,
+          message: `Unknown scene: ${bindingTarget.sceneId}`,
         });
       } else if (
-        !scene.nodes.some((node) => node.id === binding.target.nodeId)
+        !scene.nodes.some((node) => node.id === bindingTarget.nodeId)
       ) {
         issues.push({
           path: `${path}.target.nodeId`,
-          message: `Unknown node: ${binding.target.nodeId}`,
+          message: `Unknown node: ${bindingTarget.nodeId}`,
         });
       }
     } else {
-      const component = componentById.get(binding.target.componentId);
+      const component = componentById.get(bindingTarget.componentId);
       if (!component) {
         issues.push({
           path: `${path}.target.componentId`,
-          message: `Unknown component: ${binding.target.componentId}`,
+          message: `Unknown component: ${bindingTarget.componentId}`,
         });
       } else {
         // Consumer bindings must go through public targets only
-        const target = component.publicTargets.find(
-          (t) => t.id === binding.target.targetId,
+        const publicTarget = component.publicTargets.find(
+          (t) => t.id === bindingTarget.targetId,
         );
-        if (!target) {
+        if (!publicTarget) {
           issues.push({
             path: `${path}.target.targetId`,
-            message: `Component "${binding.target.componentId}" does not expose public target "${binding.target.targetId}"`,
+            message: `Component "${bindingTarget.componentId}" does not expose public target "${bindingTarget.targetId}"`,
           });
         }
       }
@@ -205,10 +328,16 @@ export function validateMotionProjectV3References(
     }
     const componentNodeIds = new Set(component.nodes.map((n) => n.id));
     for (const target of component.publicTargets) {
-      if (!componentNodeIds.has(target.nodeId)) {
+      const node = component.nodes.find((n) => n.id === target.nodeId);
+      if (!node) {
         issues.push({
           path: `components.${component.id}.publicTargets.${target.id}.nodeId`,
           message: `publicTarget "${target.id}" references unknown node: ${target.nodeId}`,
+        });
+      } else if (!isPublicTargetPropertyValid(node, target.property)) {
+        issues.push({
+          path: `components.${component.id}.publicTargets.${target.id}.property`,
+          message: `publicTarget "${target.id}" exposes unsupported property "${target.property}" for ${node.type} node "${node.id}"`,
         });
       }
     }

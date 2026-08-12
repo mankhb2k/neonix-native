@@ -14,9 +14,15 @@
  * All mutations are defensive — the input object is not modified.
  */
 
-import type { JsonValue } from "../values";
-
 // ── Types for legacy shapes ────────────────────────────────────────────
+
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 type LegacyComponentBinding = {
   kind: "component";
@@ -34,6 +40,7 @@ type LegacyComponent = {
     id: string;
     nodeId: string;
     property: string;
+    name?: string;
   }>;
   variants?:
     | LegacyVariantsRecord
@@ -71,6 +78,14 @@ export interface NormalizeResult {
   issues: NormalizeIssue[];
 }
 
+export interface NormalizeOptions {
+  /**
+   * Legacy compatibility escape hatch. When false, normalization will not
+   * create a new public API surface from old nodeId/property bindings.
+   */
+  allowAutoPublicTargets?: boolean;
+}
+
 /**
  * Normalize a potentially-legacy v3 project shape into the canonical
  * format expected by `MotionProjectV3Schema.parse()`.
@@ -79,13 +94,14 @@ export interface NormalizeResult {
  */
 export function normalizeMotionProjectV3(
   project: LegacyProject,
+  options: NormalizeOptions = {},
 ): NormalizeResult {
   const issues: NormalizeIssue[] = [];
   // Deep-clone via JSON round-trip to avoid mutating the input.
   const normalized: LegacyProject = JSON.parse(JSON.stringify(project));
 
   normalizeComponentVariants(normalized, issues);
-  normalizeComponentBindings(normalized, issues);
+  normalizeComponentBindings(normalized, issues, options);
 
   return { project: normalized, issues };
 }
@@ -136,6 +152,7 @@ function normalizeComponentVariants(
 function normalizeComponentBindings(
   project: LegacyProject,
   issues: NormalizeIssue[],
+  options: NormalizeOptions,
 ): void {
   if (!project.bindings || !project.components) return;
 
@@ -178,8 +195,9 @@ function normalizeComponentBindings(
         message: `Migrated binding "${binding.id}" from nodeId/property to targetId "${match.id}"`,
         severity: "info",
       });
-    } else {
-      // Auto-generate a publicTarget entry
+    } else if (options.allowAutoPublicTargets) {
+      // Compatibility mode only: explicit opt-in is required because this
+      // expands the component owner's public surface.
       const generatedId = `auto-${legacy.nodeId}-${legacy.property.replace(/\./g, "-")}`;
       if (!component.publicTargets) {
         component.publicTargets = [];
@@ -198,6 +216,12 @@ function normalizeComponentBindings(
       issues.push({
         path: `bindings.${binding.id}`,
         message: `Migrated binding "${binding.id}": auto-generated publicTarget "${generatedId}" for nodeId="${legacy.nodeId}" property="${legacy.property}"`,
+        severity: "warn",
+      });
+    } else {
+      issues.push({
+        path: `bindings.${binding.id}`,
+        message: `Cannot migrate binding "${binding.id}": component "${legacy.componentId}" does not expose nodeId="${legacy.nodeId}" property="${legacy.property}" as a publicTarget`,
         severity: "warn",
       });
     }

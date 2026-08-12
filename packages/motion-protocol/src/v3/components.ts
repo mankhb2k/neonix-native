@@ -174,6 +174,7 @@ export const ProjectDependenciesV3Schema = z
 
 export type EmbeddedComponentV3 = z.infer<typeof EmbeddedComponentV3Schema>;
 export type ComponentDependencyV3 = z.infer<typeof ComponentDependencyV3Schema>;
+export type ProjectDependenciesV3 = z.infer<typeof ProjectDependenciesV3Schema>;
 export type SlotContentKind = z.infer<typeof SlotContentKindSchema>;
 export type ComponentPublicTargetV3 = z.infer<
   typeof ComponentPublicTargetV3Schema

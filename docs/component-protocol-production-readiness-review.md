@@ -183,14 +183,14 @@ Why:
 
 The production gate is **cleared** for the component wrapper-motion contract. All 6 of 7 checklist items are implemented:
 
-| # | Item | Evidence |
-|---|------|----------|
-| 1 | `instanceTransformTracks` restricted to wrapper-safe props | `INSTANCE_TRANSFORM_ALLOWED_PROPERTIES` (11 paths) in `timeline.ts`, enforced via `z.enum()` at schema level |
-| 2 | Scene clips with instance fields rejected | Compiler diagnostic `CMP_INVALID_CLIP_FIELD` with dedicated negative tests |
-| 3 | Invalid track properties fail validation | 6 negative tests covering: payload path, content.text, transform.z, transform.depth, arbitrary path, empty keys array |
-| 4 | Wrapper lowering tested positive + negative | Golden test in `compile-v3.test.ts` verifies node count, IDs, parent re-parenting, track generation |
-| 5 | Schema artifact regenerated | `schema/v3.json` committed with `z.enum()` restriction of 11 properties |
-| 6 | Compiler output deterministic | Golden test confirms deterministic wrapper-group creation, transform passthrough, and motion clip generation |
-| 7 | Docs pending | Docs update is a follow-up task; not a code-contract blocker |
+| #   | Item                                                       | Evidence                                                                                                              |
+| --- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | `instanceTransformTracks` restricted to wrapper-safe props | `INSTANCE_TRANSFORM_ALLOWED_PROPERTIES` (11 paths) in `timeline.ts`, enforced via `z.enum()` at schema level          |
+| 2   | Scene clips with instance fields rejected                  | Compiler diagnostic `CMP_INVALID_CLIP_FIELD` with dedicated negative tests                                            |
+| 3   | Invalid track properties fail validation                   | 6 negative tests covering: payload path, content.text, transform.z, transform.depth, arbitrary path, empty keys array |
+| 4   | Wrapper lowering tested positive + negative                | Golden test in `compile-v3.test.ts` verifies node count, IDs, parent re-parenting, track generation                   |
+| 5   | Schema artifact regenerated                                | `schema/v3.json` committed with `z.enum()` restriction of 11 properties                                               |
+| 6   | Compiler output deterministic                              | Golden test confirms deterministic wrapper-group creation, transform passthrough, and motion clip generation          |
+| 7   | Docs pending                                               | Docs update is a follow-up task; not a code-contract blocker                                                          |
 
 The wrapper-motion contract is now explicit, tested, and locked at both schema and compiler layers. The MP4 export pipeline can depend on a stable surface for whole-component animation.

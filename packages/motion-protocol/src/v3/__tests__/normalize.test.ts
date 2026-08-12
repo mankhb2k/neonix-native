@@ -88,14 +88,16 @@ describe("normalizeMotionProjectV3 — variants", () => {
     });
 
     const comp = project.components![0]!;
-    expect(Array.isArray(comp.variants)).toBe(true);
-    expect(comp.variants).toHaveLength(2);
-    expect(comp.variants[0]).toMatchObject({
+    const variants = comp.variants;
+    expect(Array.isArray(variants)).toBe(true);
+    if (!Array.isArray(variants)) throw new Error("Expected variants array");
+    expect(variants).toHaveLength(2);
+    expect(variants[0]).toMatchObject({
       id: "primary",
       name: "primary",
       params: { color: "#ff6b35", size: "lg" },
     });
-    expect(comp.variants[1]).toMatchObject({
+    expect(variants[1]).toMatchObject({
       id: "outline",
       name: "outline",
       params: { color: "#ff6b35", border: true },
@@ -169,7 +171,7 @@ describe("normalizeMotionProjectV3 — bindings", () => {
     );
   });
 
-  it("auto-generates publicTarget when no match found", () => {
+  it("does not auto-generate publicTarget when no match found by default", () => {
     const { project, issues } = normalizeMotionProjectV3({
       components: [
         {
@@ -190,6 +192,40 @@ describe("normalizeMotionProjectV3 — bindings", () => {
         },
       ],
     });
+
+    const comp = project.components![0]!;
+    expect(comp.publicTargets).toHaveLength(0);
+
+    const binding = project.bindings![0]!;
+    expect(binding.target).toHaveProperty("nodeId");
+    expect(binding.target).toHaveProperty("property");
+    expect(issues.some((i) => i.severity === "warn")).toBe(true);
+  });
+
+  it("auto-generates publicTarget when compatibility option is enabled", () => {
+    const { project, issues } = normalizeMotionProjectV3(
+      {
+        components: [
+          {
+            id: "button",
+            publicTargets: [],
+          },
+        ],
+        bindings: [
+          {
+            id: "b1",
+            source: { kind: "variable", variableId: "v1" },
+            target: {
+              kind: "component",
+              componentId: "button",
+              nodeId: "bg-node",
+              property: "payload.color",
+            },
+          },
+        ],
+      },
+      { allowAutoPublicTargets: true },
+    );
 
     const comp = project.components![0]!;
     expect(comp.publicTargets).toHaveLength(1);

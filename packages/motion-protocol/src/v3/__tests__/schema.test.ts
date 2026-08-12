@@ -167,6 +167,10 @@ describe("v3 schema — positive fixtures", () => {
     const componentBinding = project.bindings.find(
       (b) => b.target.kind === "component",
     )!;
+    expect(componentBinding.target.kind).toBe("component");
+    if (componentBinding.target.kind !== "component") {
+      throw new Error("Expected component binding");
+    }
     expect(componentBinding.target.componentId).toBe("lower-third");
     expect(componentBinding.target.targetId).toBe("lt-bg-color");
 
@@ -352,12 +356,34 @@ describe("v3 schema — positive fixtures", () => {
     expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
+  it("rejects instanceTransformTracks with literal value that does not match property type", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const tracks = (input.timeline as Record<string, unknown>)
+      .visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.instanceTransformTracks = [
+      {
+        property: "transform.x",
+        valueKind: "number",
+        keys: [{ t: 0, v: "bad" }],
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
   // ── Component instanceTransformTracks — negative edge cases ───────
 
   function makeComponentFixtureWithTrack(
     track: Record<string, unknown>,
   ): Record<string, unknown> {
-    const input = loadFixture("component.project.json") as Record<string, unknown>;
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
     const tracks = (input.timeline as Record<string, unknown>)
       .visualTracks as Array<Record<string, unknown>>;
     const overlayTrack = tracks.find((t) => t.role === "overlay")!;
@@ -407,7 +433,10 @@ describe("v3 schema — positive fixtures", () => {
   });
 
   it("rejects instanceTransformTracks with empty keys array", () => {
-    const input = loadFixture("component.project.json") as Record<string, unknown>;
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
     const tracks = (input.timeline as Record<string, unknown>)
       .visualTracks as Array<Record<string, unknown>>;
     const overlayTrack = tracks.find((t) => t.role === "overlay")!;
@@ -418,6 +447,33 @@ describe("v3 schema — positive fixtures", () => {
         keys: [],
       },
     ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects transform.x with angle valueKind", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "transform.x",
+      valueKind: "angle",
+      keys: [{ t: 0, v: 45 }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects boolean wrapper properties with numeric values", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "transform.visible",
+      valueKind: "boolean",
+      keys: [{ t: 0, v: 1 }],
+    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects opacity values outside 0..1", () => {
+    const input = makeComponentFixtureWithTrack({
+      property: "transform.opacity",
+      valueKind: "number",
+      keys: [{ t: 0, v: 2 }],
+    });
     expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
@@ -438,7 +494,17 @@ describe("v3 schema — positive fixtures", () => {
     for (const prop of safeProperties) {
       const input = makeComponentFixtureWithTrack({
         property: prop,
-        keys: [{ t: 0, v: prop === "transform.visible" ? true : 0 }],
+        keys: [
+          {
+            t: 0,
+            v:
+              prop === "transform.visible" ||
+              prop === "transform.flipX" ||
+              prop === "transform.flipY"
+                ? true
+                : 0,
+          },
+        ],
       });
       expect(() => MotionProjectV3Schema.parse(input)).not.toThrow();
     }
@@ -901,6 +967,34 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     }
   });
 
+  it("rejects publicTarget with unsupported property for node type", () => {
+    const input = loadFixture("representative.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "bad-property",
+            nodeId: "logo",
+            property: "payload.content.text",
+          },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain("exposes unsupported property");
+    }
+  });
+
   it("rejects component binding with unknown targetId", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
@@ -1128,7 +1222,14 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
         id: "txt",
         type: "text",
         parentId: null,
-        payload: { content: { kind: "plain", text: "hi" }, fontSize: 24 },
+        payload: {
+          content: { kind: "plain", text: "hi" },
+          fontSize: 24,
+          color: "#000000",
+          alignment: "left",
+          wrap: "word",
+          overflow: "visible",
+        },
       }),
       makeNode({
         id: "child",
