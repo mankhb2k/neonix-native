@@ -95,6 +95,20 @@
       "version": "1.0.0",
       "integrity": "sha256:logo-reveal-1.0.0",
       "publicParams": [],
+      "publicTargets": [
+        {
+          "id": "logo-visible",
+          "name": "Logo Visible",
+          "nodeId": "logo",
+          "property": "transform.visible"
+        },
+        {
+          "id": "logo-color",
+          "name": "Logo Color",
+          "nodeId": "logo",
+          "property": "payload.color"
+        }
+      ],
       "variables": [],
       "nodes": [
         {

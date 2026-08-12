@@ -176,6 +176,24 @@ export function validateMotionProjectV3References(
         `components.${component.id}.nodes`,
       ),
     );
+
+    // Validate publicTargets
+    const targetIds = component.publicTargets.map((t) => t.id);
+    for (const dupId of new Set(duplicates(targetIds))) {
+      issues.push({
+        path: `components.${component.id}.publicTargets`,
+        message: `Duplicate publicTarget id: ${dupId}`,
+      });
+    }
+    const componentNodeIds = new Set(component.nodes.map((n) => n.id));
+    for (const target of component.publicTargets) {
+      if (!componentNodeIds.has(target.nodeId)) {
+        issues.push({
+          path: `components.${component.id}.publicTargets.${target.id}.nodeId`,
+          message: `publicTarget "${target.id}" references unknown node: ${target.nodeId}`,
+        });
+      }
+    }
   }
 
   return issues;

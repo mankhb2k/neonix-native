@@ -566,6 +566,89 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const project = parseMotionProjectV3(input);
     expect(project.metadata.id).toBe("v3-comprehensive");
   });
+
+  // ── Component ownership contract: publicTargets ───────────────────
+
+  it("rejects duplicate publicTarget ids within a component", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          { id: "dup-id", nodeId: "cta-label", property: "payload.content.text" },
+          { id: "dup-id", nodeId: "cta-bg", property: "payload.color" },
+        ],
+      }),
+    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain("Duplicate publicTarget id: dup-id");
+    }
+  });
+
+  it("rejects publicTarget with unknown nodeId", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          {
+            id: "bad-target",
+            nodeId: "nonexistent-node",
+            property: "payload.content.text",
+          },
+        ],
+      }),
+    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'publicTarget "bad-target" references unknown node',
+      );
+    }
+  });
+
+  it("rejects component binding with unknown targetId", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const bindings = [
+      {
+        id: "bad-binding",
+        source: { kind: "variable", variableId: "cta-text" },
+        target: {
+          kind: "component",
+          componentId: "call-to-action",
+          targetId: "nonexistent-target",
+        },
+      },
+    ];
+    expect(() =>
+      parseMotionProjectV3({ ...input, bindings }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, bindings });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'does not expose public target "nonexistent-target"',
+      );
+    }
+  });
 });
 
 // ── Isolation from v2 ──────────────────────────────────────────────────

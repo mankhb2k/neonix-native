@@ -638,8 +638,35 @@ function validateV3Semantics(
     const variable = project.variables.find(
       (candidate) => candidate.id === binding.source.variableId,
     )!;
-    // Component bindings resolve property through publicTargets — skip direct property check
-    if (binding.target.kind !== "component") {
+    // Component bindings — resolve property through publicTargets, then type-check
+    if (binding.target.kind === "component") {
+      const component = project.components.find(
+        (c) => c.id === binding.target.componentId,
+      );
+      if (!component) continue; // already handled by reference validation
+      const publicTarget = component.publicTargets.find(
+        (pt) => pt.id === binding.target.targetId,
+      );
+      if (!publicTarget) continue; // already handled by reference validation
+      const expected = expectedVariableTypeForProperty(publicTarget.property);
+      if (expected && variable.type !== expected) {
+        collector.error(
+          "CMP_BINDING_TYPE_MISMATCH",
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component "${binding.target.componentId}" publicTarget "${binding.target.targetId}" (property "${publicTarget.property}") which expects ${expected}`,
+          {
+            path: ["bindings", binding.id],
+            details: {
+              bindingId: binding.id,
+              variableType: variable.type,
+              componentId: binding.target.componentId,
+              targetId: binding.target.targetId,
+              property: publicTarget.property,
+              expected,
+            },
+          },
+        );
+      }
+    } else {
       const expected = expectedVariableTypeForProperty(binding.target.property);
       if (expected && variable.type !== expected) {
         collector.error(
@@ -1026,6 +1053,11 @@ export function compileMotionProjectV3(
           property: publicTarget.property,
         },
       });
+    }
+
+    // Fail early if binding resolution produced errors.
+    if (collector.hasErrors) {
+      return compileFailure([...collector.diagnostics]);
     }
 
     // Compile each scene from the visual plan (flat across all tracks).

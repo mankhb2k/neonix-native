@@ -982,6 +982,81 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     ).toBe(true);
   });
 
+  it("CMP_BINDING_TYPE_MISMATCH: component binding with wrong variable type", () => {
+    const project = structuredClone(representative);
+    // Add a component-source clip so the component is instantiated
+    project.timeline.visualTracks.push({
+      id: "component-track",
+      role: "overlay",
+      order: 2,
+      muted: false,
+      clips: [
+        {
+          id: "clip-logo",
+          source: { kind: "component", componentId: "logo-reveal" },
+          start: 0,
+          duration: 2,
+          opacity: 1,
+          loop: false,
+        },
+      ],
+    });
+    // logo-visible publicTarget expects boolean, but brand-color is color → mismatch
+    project.bindings.push({
+      id: "binding-component-wrong-type",
+      source: { kind: "variable", variableId: "brand-color" },
+      target: {
+        kind: "component",
+        componentId: "logo-reveal",
+        targetId: "logo-visible",
+      },
+    });
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(
+      result.diagnostics.some((d) => d.code === "CMP_BINDING_TYPE_MISMATCH"),
+    ).toBe(true);
+  });
+
+  it("CMP_PRIVATE_COMPONENT_ACCESS: binding targets non-existent publicTarget", () => {
+    const project = structuredClone(representative);
+    // Add a component-source clip so the component is instantiated
+    project.timeline.visualTracks.push({
+      id: "component-track",
+      role: "overlay",
+      order: 2,
+      muted: false,
+      clips: [
+        {
+          id: "clip-logo",
+          source: { kind: "component", componentId: "logo-reveal" },
+          start: 0,
+          duration: 2,
+          opacity: 1,
+          loop: false,
+        },
+      ],
+    });
+    project.bindings.push({
+      id: "binding-private-access",
+      source: { kind: "variable", variableId: "brand-color" },
+      target: {
+        kind: "component",
+        componentId: "logo-reveal",
+        targetId: "internal-node-not-exposed",
+      },
+    });
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(
+      result.diagnostics.some(
+        (d) => d.code === "CMP_PRIVATE_COMPONENT_ACCESS",
+      ),
+    ).toBe(true);
+  });
+
   it("CMP_CLIP_TARGET_MISSING: scene clip targets an unknown node", () => {
     const project = structuredClone(representative);
     project.scenes[0]!.clips.push({
