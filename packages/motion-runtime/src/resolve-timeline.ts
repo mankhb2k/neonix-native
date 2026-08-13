@@ -39,18 +39,34 @@ export type TimelineSceneSegment = {
   trackRole: string;
 };
 
-const ROLE_PRIORITY: Record<string, number> = {
+/**
+ * Z-order khi composite (draw dưới → trên). Không dùng cho playhead resolve.
+ */
+const COMPOSITE_ORDER: Record<string, number> = {
   background: 0,
   primary: 1,
   overlay: 2,
 };
 
 /**
+ * Ưu tiên khi resolve playhead / preview helper:
+ * primary > overlay > background.
+ */
+const RESOLVE_PRECEDENCE: Record<string, number> = {
+  primary: 3,
+  overlay: 2,
+  background: 1,
+};
+
+function resolvePrecedence(role: string): number {
+  return RESOLVE_PRECEDENCE[role] ?? 0;
+}
+
+/**
  * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
  *
- * Includes clips from ALL visual tracks (primary + overlay). Sorted by start,
- * then by role priority (primary before overlay at the same start) so
- * `resolveTimelineAtTime` can prefer primary.
+ * Includes clips from ALL visual tracks. Sorted by start, then composite order
+ * (background → primary → overlay) for stable listing.
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
@@ -70,10 +86,8 @@ export function listTimelineSegments(
   if (allClips.length === 0) return [];
   const sorted = [...allClips].sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start;
-    const pa = ROLE_PRIORITY[a.trackRole] ?? 1;
-    const pb = ROLE_PRIORITY[b.trackRole] ?? 1;
-    // Lower role priority number draws under; for resolve precedence we want
-    // primary before overlay → sort primary first (lower number first).
+    const pa = COMPOSITE_ORDER[a.trackRole] ?? 1;
+    const pb = COMPOSITE_ORDER[b.trackRole] ?? 1;
     return pa - pb;
   });
   return sorted.map((clip) => {
@@ -109,10 +123,10 @@ export function timelineTotalDuration(runtime: TimelineProjectLike): number {
 /**
  * Map global playhead time → active scene + local time (hard cut).
  *
- * When multiple clips overlap at the same time (e.g. overlay), the primary
- * track clip takes precedence. Falls back to overlay if no primary match.
- * Empty tail (`t` past last visual content but `< timeline.duration`) and
- * past-end times return `null` — never clamp to the last scene.
+ * When multiple clips overlap, resolve precedence is
+ * **primary > overlay > background** (preview/helper). Empty tail
+ * (`t` past last visual content but `< timeline.duration`) and past-end
+ * times return `null` — never clamp to the last scene.
  */
 export function resolveTimelineAtTime(
   runtime: TimelineProjectLike,
@@ -126,7 +140,6 @@ export function resolveTimelineAtTime(
 
   if (totalDuration > 0 && t >= totalDuration) return null;
 
-  // Prefer primary (and lower role priority) when multiple clips cover `t`.
   let best: { segment: TimelineSceneSegment; index: number } | null = null;
   for (let i = 0; i < segments.length; i += 1) {
     const segment = segments[i]!;
@@ -136,10 +149,9 @@ export function resolveTimelineAtTime(
       best = { segment, index: i };
       continue;
     }
-    const bestPri = ROLE_PRIORITY[best.segment.trackRole] ?? 1;
-    const curPri = ROLE_PRIORITY[segment.trackRole] ?? 1;
-    // Primary (1) beats overlay (2). Keep the first match within same role.
-    if (curPri < bestPri) {
+    const bestPri = resolvePrecedence(best.segment.trackRole);
+    const curPri = resolvePrecedence(segment.trackRole);
+    if (curPri > bestPri) {
       best = { segment, index: i };
     }
   }

@@ -7,7 +7,7 @@
  */
 import type { MotionProjectV3 } from "../project";
 import { deriveTimelineDurationV3 } from "./duration";
-import { snapTimelineToFrameGrid } from "./frame-grid";
+import { snapSecondsToFrameGrid, snapTimelineToFrameGrid } from "./frame-grid";
 
 export interface CanonicalizeTimelineDurationIssue {
   path: string;
@@ -25,8 +25,8 @@ export interface CanonicalizeTimelineDurationResult {
  *
  * Thứ tự:
  * 1. Snap timing đã authoring lên `composition.fps`.
- * 2. Derive `timeline.duration` còn thiếu từ điểm kết thúc nội dung đã snap.
- * 3. Snap duration (kể cả vừa derive) lên cùng lưới.
+ * 2. `duration = max(declared đã snap | 0, derive(content đã snap))` rồi snap.
+ *    Đảm bảo sau snap không còn clip end > timeline.duration.
  *
  * Không mutate object đầu vào.
  */
@@ -39,7 +39,6 @@ export function canonicalizeTimelineDurationV3(
   const fps = Math.max(1, cloned.composition.fps);
 
   const beforeSnap = JSON.stringify(cloned.timeline);
-  // Snap nội dung trước để duration derive tính từ đầu/cuối đã on-grid.
   const hadDuration = cloned.timeline.duration !== undefined;
   cloned.timeline = snapTimelineToFrameGrid(cloned.timeline, fps);
   if (JSON.stringify(cloned.timeline) !== beforeSnap) {
@@ -50,18 +49,27 @@ export function canonicalizeTimelineDurationV3(
     });
   }
 
-  if (!hadDuration || cloned.timeline.duration === undefined) {
-    const derived = deriveTimelineDurationV3(cloned.timeline);
-    const snappedDerived = snapTimelineToFrameGrid(
-      { duration: derived },
-      fps,
-    ).duration!;
-    cloned.timeline.duration = snappedDerived;
+  const derived = deriveTimelineDurationV3(cloned.timeline);
+  const declared = cloned.timeline.duration;
+  const raised = Math.max(declared ?? 0, derived);
+  const snappedDuration = snapSecondsToFrameGrid(raised, fps);
+
+  if (!hadDuration || declared === undefined) {
+    cloned.timeline.duration = snappedDuration;
     issues.push({
       path: "timeline.duration",
-      message: `Derived timeline.duration = ${snappedDerived} from timeline content`,
+      message: `Derived timeline.duration = ${snappedDuration} from timeline content`,
       severity: "info",
     });
+  } else if (snappedDuration > declared + 1e-12) {
+    cloned.timeline.duration = snappedDuration;
+    issues.push({
+      path: "timeline.duration",
+      message: `Raised timeline.duration from ${declared} to ${snappedDuration} after frame-grid snap so content fits`,
+      severity: "info",
+    });
+  } else {
+    cloned.timeline.duration = snapSecondsToFrameGrid(declared, fps);
   }
 
   return { project: cloned, issues };

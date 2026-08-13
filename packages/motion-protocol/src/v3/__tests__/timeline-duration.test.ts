@@ -323,4 +323,37 @@ describe("frame-grid snap", () => {
       CanonicalMotionProjectV3Schema.safeParse(result.project).success,
     ).toBe(true);
   });
+
+  it("raises declared duration when snap makes content end past it", () => {
+    // fps=1: start 0.6→1, duration 1.6→2 → end 3; declared 2.4→2
+    // After snap, max(declared=2, derived=3) → duration 3.
+    const p = MotionProjectV3Schema.parse({
+      format: "motion-project",
+      formatVersion: 3,
+      metadata: { id: "p", name: "P", locale: "vi-VN" },
+      composition: { width: 1920, height: 1080, fps: 1 },
+      dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
+      timeline: {
+        duration: 2.4,
+        visualTracks: [
+          {
+            id: "main",
+            role: "main",
+            order: 0,
+            clips: [visualClip("clip-1", 0.6, 1.6)],
+          },
+        ],
+      },
+      bindings: [],
+    });
+    const result = canonicalize(p);
+    const clip = result.project.timeline.visualTracks[0]!.clips[0]!;
+    expect(clip.start + clip.duration).toBeLessThanOrEqual(
+      result.project.timeline.duration! + 1e-9,
+    );
+    expect(result.project.timeline.duration).toBe(3);
+    expect(
+      result.issues.some((i) => i.message.includes("Raised timeline.duration")),
+    ).toBe(true);
+  });
 });

@@ -72,14 +72,21 @@ function scenesForComposition(
   return indexed.map(({ clip, trackId, order }) => {
     // Runtime clips always have source.kind === "scene" after compilation;
     // component-source clips are synthesized into scenes by the compiler.
+    const sceneId = clip.source.sceneId ?? "";
+    const scene = sceneId
+      ? runtime.scenes.find((candidate) => candidate.id === sceneId)
+      : undefined;
     return {
-      sceneId: clip.source.sceneId ?? "",
+      sceneId,
       start: clip.start,
       duration: clip.duration,
       trimStart: clip.trimStart,
       playbackRate: clip.playbackRate,
       loop: clip.loop,
-      sourceDuration: clip.duration,
+      // Source media length is the authored scene duration — not the clip
+      // composition window — so trimStart can walk into the scene beyond
+      // clip.duration without being clamped early.
+      sourceDuration: scene?.duration ?? clip.duration,
       transitionIn: clip.transitionIn as CompositionSceneInput["transitionIn"],
       transitionOut:
         clip.transitionOut as CompositionSceneInput["transitionOut"],

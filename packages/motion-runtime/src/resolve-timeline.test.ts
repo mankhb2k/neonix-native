@@ -150,4 +150,21 @@ describe("timelineTotalDuration", () => {
     };
     expect(resolveTimelineAtTime(rt, 1.5)?.sceneId).toBe("main");
   });
+
+  it("prefers primary over background when clips overlap", () => {
+    const rt: TimelineProjectLike = {
+      timeline: {
+        duration: 5,
+        visualTracks: [
+          { role: "background", clips: [clip("bg", 0, 5)] },
+          { role: "primary", clips: [clip("main", 0, 5)] },
+        ],
+      },
+      scenes: [
+        { id: "bg", duration: 5 },
+        { id: "main", duration: 5 },
+      ],
+    };
+    expect(resolveTimelineAtTime(rt, 2)?.sceneId).toBe("main");
+  });
 });

@@ -103,4 +103,25 @@ describe("composition layer evaluator", () => {
     expect(plan.layers).toHaveLength(1);
     expect(plan.layers[0]!.localTime).toBeCloseTo(3);
   });
+
+  it("uses sourceDuration so trimStart can walk past clip.duration", () => {
+    const plan = evaluateCompositionLayers(
+      [
+        {
+          sceneId: "a",
+          start: 0,
+          duration: 4,
+          trimStart: 3,
+          playbackRate: 1,
+          sourceDuration: 10,
+        },
+      ],
+      3.9,
+      1080,
+      1920,
+      30,
+    );
+    expect(plan.layers).toHaveLength(1);
+    expect(plan.layers[0]!.localTime).toBeCloseTo(6.9);
+  });
 });

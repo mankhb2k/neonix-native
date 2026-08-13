@@ -28,6 +28,8 @@ type VisualClipLike = {
   trimStart?: number;
   playbackRate?: number;
   loop?: boolean;
+  /** Authored scene duration (source media length), not clip window. */
+  sourceDuration?: number;
   transitionIn?: { type: string; duration?: number } | null;
   transitionOut?: { type: string; duration?: number } | null;
 };
@@ -102,10 +104,24 @@ function resolveSceneIndex(
   return sourceId ? compiled.scenes.findIndex((s) => s.id === sourceId) : -1;
 }
 
+function resolveSourceDuration(
+  compiled: CompiledProject,
+  clip: VisualClipLike,
+): number {
+  if (clip.sourceDuration !== undefined && clip.sourceDuration > 0) {
+    return clip.sourceDuration;
+  }
+  const sourceId = clip.source.sceneId;
+  if (!sourceId) return clip.duration;
+  const scene = compiled.scenes.find((s) => s.id === sourceId);
+  return scene?.duration ?? clip.duration;
+}
+
 function clipLocalTime(
   clip: VisualClipLike,
   compositionLocalTime: number,
   fps: number,
+  sourceDurationSeconds: number,
 ): number {
   return resolveMediaTiming({
     mediaTimeSeconds: compositionLocalTime,
@@ -113,7 +129,7 @@ function clipLocalTime(
     trimStartSeconds: clip.trimStart ?? 0,
     playbackRate: clip.playbackRate ?? 1,
     loop: clip.loop ?? false,
-    sourceDurationSeconds: clip.duration,
+    sourceDurationSeconds,
   }).mediaTimeSeconds;
 }
 
@@ -166,10 +182,16 @@ export function projectFrameLayers(
     if (outgoing > 0 && compositionLocalTime >= clip.duration - outgoing) {
       opacity *= (clip.duration - compositionLocalTime) / outgoing;
     }
+    const sourceDuration = resolveSourceDuration(compiled, clip);
     return [
       {
         sceneIndex,
-        localTime: clipLocalTime(clip, compositionLocalTime, safeFps),
+        localTime: clipLocalTime(
+          clip,
+          compositionLocalTime,
+          safeFps,
+          sourceDuration,
+        ),
         opacity,
       },
     ];

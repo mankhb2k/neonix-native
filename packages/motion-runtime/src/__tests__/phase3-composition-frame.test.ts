@@ -501,6 +501,8 @@ describe("Phase 5 — multi-track timeline resolution", () => {
       nodes: [],
       tracks: [],
     });
+    // Content ends at 5s — duration must match SoT semantics.
+    rt.timeline.duration = 5;
     rt.timeline.visualTracks = [
       {
         id: "primary",
@@ -534,8 +536,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     expect(cross!.localTime).toBe(1);
 
     const pastEnd = resolveTimelineAtTime(rt, 10);
-    expect(pastEnd).not.toBeNull();
-    expect(pastEnd!.sceneId).toBe("s2");
+    expect(pastEnd).toBeNull();
   });
 
   it("resolveTimelineAtTime returns null for empty timeline", () => {

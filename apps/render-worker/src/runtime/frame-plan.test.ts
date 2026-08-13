@@ -170,6 +170,23 @@ describe("projectFrameLayers", () => {
     // compositionLocal=1 → media = 1*2 + 1 = 3
     expect(projectFrameLayers(c, 1, 30)[0]!.localTime).toBeCloseTo(3);
   });
+
+  it("uses scene duration as sourceDuration so trimStart can exceed clip window", () => {
+    const c = compiled({
+      duration: 4,
+      tracks: [
+        track("primary", [
+          clip("a", "s1", 0, 4, { trimStart: 3, playbackRate: 1 }),
+        ]),
+      ],
+      // Scene is longer than the clip composition window.
+      scenes: [scene("s1", 10)],
+    });
+    // compositionLocal=0 → media = 0*1 + 3 = 3 (not clamped to ~4)
+    // compositionLocal=3.9 → media ≈ 6.9
+    expect(projectFrameLayers(c, 0, 30)[0]!.localTime).toBeCloseTo(3);
+    expect(projectFrameLayers(c, 3.9, 30)[0]!.localTime).toBeCloseTo(6.9);
+  });
 });
 
 describe("buildFramePlan", () => {
