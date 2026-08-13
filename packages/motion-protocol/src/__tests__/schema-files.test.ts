@@ -1,14 +1,16 @@
 /**
- * Phase 4 — committed JSON Schema sanity tests.
+ * Committed JSON Schema gates.
  *
- * Full freshness is enforced by CI (regenerate + `git diff --exit-code`);
- * these tests keep the committed artifacts honest at the structural level.
+ * Freshness is a **required** protocol gate: every `pnpm test` regenerates
+ * `schema/v3.json` from Zod in-memory and fails if the committed file drifts.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { serializeMotionProjectV3JsonSchema } from "../../scripts/v3-json-schema";
 
 const SCHEMA_DIR = join(__dirname, "..", "..", "schema");
+const V3_SCHEMA_PATH = join(SCHEMA_DIR, "v3.json");
 
 function loadSchema(name: string): {
   $ref: string;
@@ -19,7 +21,16 @@ function loadSchema(name: string): {
 
 describe("committed JSON schemas", () => {
   it("schema/v3.json exists", () => {
-    expect(existsSync(join(SCHEMA_DIR, "v3.json"))).toBe(true);
+    expect(existsSync(V3_SCHEMA_PATH)).toBe(true);
+  });
+
+  it("schema/v3.json matches Zod source (required artifact sync gate)", () => {
+    const committed = readFileSync(V3_SCHEMA_PATH, "utf8");
+    const generated = serializeMotionProjectV3JsonSchema();
+    expect(
+      committed,
+      "schema/v3.json is stale. Run: pnpm --filter @motionvideo/motion-protocol generate:schema",
+    ).toBe(generated);
   });
 
   it("v3 schema is draft-07 compatible and has all root fields", () => {
@@ -71,6 +82,12 @@ describe("committed JSON schemas", () => {
             required?: string[];
           };
         };
+        audioTracks?: {
+          items?: {
+            properties?: Record<string, unknown>;
+            required?: string[];
+          };
+        };
       };
     };
     const track = timeline.properties?.visualTracks?.items;
@@ -96,12 +113,7 @@ describe("committed JSON schemas", () => {
       : [source?.properties?.kind?.const];
     expect(kinds).toEqual(["scene"]);
 
-    const audioTrack = timeline.properties?.audioTracks as {
-      items?: {
-        properties?: Record<string, unknown>;
-        required?: string[];
-      };
-    };
+    const audioTrack = timeline.properties?.audioTracks;
     expect(audioTrack?.items?.required ?? []).toContain("order");
     const audioOrder = audioTrack?.items?.properties?.order as {
       exclusiveMaximum?: boolean;
@@ -164,6 +176,9 @@ describe("Phase 7 — public API V3 naming", () => {
     for (const name of requiredNeutralValues) {
       expect(runtimeExports, `Missing neutral export: ${name}`).toContain(name);
     }
+
+    expect(runtimeExports).not.toContain("normalizeMotionProjectV3");
+    expect(runtimeExports).not.toContain("needsNormalization");
   });
 
   it("type-only neutral names are importable", () => {

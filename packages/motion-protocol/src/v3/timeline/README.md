@@ -108,7 +108,7 @@ Compiler / runtime / render **không** được tái dựng `start` bằng curso
 
 Component **không** là visual-clip source. Đặt component như **scene node** (`type: "component"`) bên trong scene, rồi clip timeline tham chiếu scene đó. Compiler expand component node → wrapper group.
 
-`kind: "node"` / `kind: "component"` trên timeline = không hợp lệ. Canonical parse **reject** — không có migration rewrite.
+`kind: "node"` / `kind: "component"` trên timeline = không hợp lệ. Canonical parse **reject** — không rewrite.
 
 UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **đó không phải field JSON**.
 

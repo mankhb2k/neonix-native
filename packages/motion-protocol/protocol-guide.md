@@ -46,8 +46,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `metadata.ts`        | `ProjectMetadataV3Schema` — id/name/description/locale (BCP-47)/tags/timestamps.                                                                                                                                         |
 | `mcp.ts`             | MCP Tool Contract — typed operation schemas cho 8 operation MCP-facing, server-agnostic.                                                                                                                                 |
 | `normalize-input.ts` | Input normalizer — walk authoring tree, normalize text payload `{ text }` → `{ content: { kind: "plain" } }` trước khi Zod parse.                                                                                        |
-| `normalize.ts`       | Opt-in migration for legacy **bindings/variants** only — không nằm trên production parse. Không rewrite timeline `source.kind: "component"` (canonical reject). |
-| `parse.ts`           | Canonical production parse — `parseMotionProjectV3` (text-payload normalize → schema + reference validation). Strict V3; no component clip migration. `serializeMotionProjectV3` emit key alphabet để byte-identical. |
+| `parse.ts`           | Canonical production parse — `parseMotionProjectV3` (text-payload normalize → schema + reference validation). Strict V3 only. `serializeMotionProjectV3` emit key alphabet để byte-identical. |
 | `patch.ts`           | Native Patch Contract — safe editor surface cho AI/MCP (`applyMotionProjectV3Patch`, `MotionProjectV3PatchSchema`), idempotent, luôn re-validate bằng `MotionProjectV3Schema`.                                           |
 | `project.ts`         | **Root schema** (`MotionProjectV3Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id.                                                                             |
 | `provenance.ts`      | Provenance — debug/trace metadata, exclude khỏi render hash.                                                                                                                                                             |
@@ -141,7 +140,7 @@ src/index.ts  ──►  re-export capabilities + v3 + runtime
      ├── v3/                      (Authoring Protocol — duy nhất)
      │     ├── project.ts         (root schema, leaf module)
      │     ├── types.ts           (aggregate types viết tay)
-     │     ├── parse.ts / normalize.ts / normalize-input.ts / patch.ts / mcp.ts / skills.ts
+     │     ├── parse.ts / normalize-input.ts / patch.ts / mcp.ts / skills.ts
      │     ├── nodes/ animation/ references/  (schema theo domain)
      │
      └── runtime/                 (Runtime IR — renderer-ready)

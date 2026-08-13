@@ -811,35 +811,6 @@ sequenceDiagram
 | References | Invalid binding target   | `Unknown node: ghost-node`              |
 | References | Private component access | `targetId không có trong publicTargets` |
 
-### 12.1 Di trú legacy component clip (opt-in)
-
-Trong model V3, timeline **chỉ** chấp nhận visual clip `{ kind: "scene", sceneId }`. Các project legacy (V2 hoặc bản nháp V3 cũ) có thể chứa clip `{ kind: "component", componentId }` — `parseMotionProjectV3()` **từ chối** shape này một cách nghiêm ngặt.
-
-Để nâng cấp một project legacy lên shape scene-only, app phải gọi normalizer với cờ opt-in:
-
-```ts
-import { normalizeMotionProjectV3 } from "@motionvideo/motion-protocol";
-
-const { project, issues } = normalizeMotionProjectV3(legacyProject, {
-  migrateComponentClipsToScenes: true,
-});
-// project giờ đây là scene-only và có thể parse/compile bình thường.
-```
-
-Khi cờ được bật, mỗi clip `{ kind: "component" }` được viết lại thành:
-
-1. Một **scene mới** được tổng hợp, id sinh từ track + clip: `component-scene__${track.id}__${clip.id}` (cộng hậu tố `__2`, `__3`, … nếu trùng với scene đã tồn tại).
-2. Một **component node** bên trong scene đó, id `component-instance__${clip.id}`.
-3. `instanceTransform` được gấp vào `transform` của component node.
-4. `instanceTransformTracks` trở thành **scene-local motion clip** nhắm vào component node.
-5. Clip gốc trên timeline được viết lại thành `{ kind: "scene", sceneId }`.
-
-> **Chính sách**:
->
-> - `parseMotionProjectV3()` **luôn strict và không tự di trú**.
-> - Import app **có thể** cung cấp migration, nhưng file V3 canonical sau khi lưu **phải** là scene-only.
-> - Di trú là **opt-in rõ ràng** và có thể kiểm toán qua `NormalizeIssue[]` trả về.
-
 ---
 
 ## 13. Extensions & Provenance

@@ -25,7 +25,6 @@ export * from "./extensions";
 export * from "./provenance";
 export * from "./references";
 export * from "./parse";
-export * from "./normalize";
 export * from "./nodes";
 export * from "./animation";
 export * from "./canonical-hash";

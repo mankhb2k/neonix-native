@@ -65,8 +65,9 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 6) `src/v3/parse.ts` — Parse path thực tế
 
-- `parseMotionProjectV3` có gọi đủ 3 bước không: normalize → schema parse → reference validation.
+- `parseMotionProjectV3` có gọi đủ: text-payload normalize → schema parse → reference validation.
 - Lỗi semantic có bị ném sớm (`MotionV3ReferenceError`) hay để trôi tới compiler.
+- Không có legacy project normalizer trên parse path.
 
 ### 7) `src/v3/__tests__/schema.test.ts` — Kiểm chứng bằng test
 
@@ -85,9 +86,8 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | **Public API**       | Component owner chỉ expose đúng `publicParams`, `slots`, `variants`, `publicTargets`? |
 | **Instance Motion**  | Component có move/scale/keyframe như group layer mà không chạm internals không?       |
 | **Determinism**      | Cùng input có cho output/serialization ổn định không?                                 |
-| **Artifact Sync**    | `src` schema và `schema/v3.json` có đồng bộ không?                                    |
+| **Artifact Sync**    | `pnpm test` có fail khi `schema/v3.json` lệch Zod không? (required gate)              |
 | **Negative Tests**   | Mọi thứ không được phép đều có test fail rõ ràng?                                     |
-| **Migration Safety** | Normalizer có vô tình public hóa internal không?                                      |
 | **Production Fit**   | Lỗi có bị bắt sớm ở parse/validation, không để tới compiler/render MP4 mới nổ?        |
 
 ---
@@ -122,16 +122,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu JSON Schema được dùng ngoài app (tooling bên thứ ba), nó có đủ gần với Zod source of truth không?
 
-> **Mong đợi:** `schema/v3.json` phải được regenerate từ source schema, phản ánh đúng mọi ràng buộc (kể cả component node và scene-only visual clip).
-
-### 4.6 Migration safety
-
-> Nếu dữ liệu legacy đi qua normalizer, nó có mở rộng public API ngoài ý owner không?
-
-- **Mong đợi:** Không. Normalizer chỉ chuyển đổi shape cũ → mới, không thêm public target hay mở khóa internal.
-
----
-
+> **Mong đợi:** `schema/v3.json` phải được regenerate từ Zod (`pnpm generate:schema`). Test suite **bắt buộc** so khớp byte-for-byte với output mới; lệch = fail. Không còn legacy project normalizer trên authoring path.
 ## 5. Tóm tắt luồng review
 
 ```text

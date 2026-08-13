@@ -489,9 +489,8 @@ Editing source of truth:     MotionProjectV3Patch  (patch format)
 Runtime source of truth:     MotionRuntimeProject  (compiler output, not authored)
 Timeline source of truth:    visualTracks          (not sceneOrder)
 Visual effect source:        scene/component/layer animation (not transitionIn/Out)
-Canonical parse:             MotionProjectV3Schema  (rejects component clip source)
-Legacy normalize (bindings/variants only): normalizeMotionProjectV3
-  — no timeline component-source migration
+Canonical parse:             MotionProjectV3Schema  (strict V3; rejects component clip source)
+JSON Schema artifact:        schema/v3.json          (must match Zod; regenerate via generate:schema)
 ```
 
 Mọi consumer (editor, AI planner, compiler, MCP server, render providers) đều sử dụng cùng một contract này. Không có đường dẫn V2 ẩn nào còn tồn tại.

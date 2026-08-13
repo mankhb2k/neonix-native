@@ -577,37 +577,7 @@ Transform của component node dùng chung các field transform của mọi scen
 
 ---
 
-## 7. Legacy Component Clip Migration
-
-Timeline V3 **không** chấp nhận component trực tiếp trên visual clip — component chỉ được khởi tạo qua scene node `type: "component"` (xem Bước 3). Project legacy có thể còn chứa clip `{ kind: "component", componentId }`; shape này sẽ bị `parseMotionProjectV3()` từ chối.
-
-Để nâng cấp project legacy sang scene-only, app gọi normalizer với cờ opt-in:
-
-```ts
-import { normalizeMotionProjectV3 } from "@motionvideo/motion-protocol";
-
-const { project, issues } = normalizeMotionProjectV3(legacyProject, {
-  migrateComponentClipsToScenes: true,
-});
-```
-
-Với mỗi clip `{ kind: "component" }`, normalizer tạo một scene wrapper chứa một component node rồi viết lại clip thành `{ kind: "scene", sceneId }`:
-
-| Legacy field               | Canonical V3 shape                                           |
-| -------------------------- | ------------------------------------------------------------ |
-| `source.kind: "component"` | `source: { kind: "scene", sceneId }` (scene wrapper)         |
-| `source.componentId`       | component node `payload.componentId` bên trong scene wrapper |
-| `instanceTransform`        | component node `transform`                                   |
-| `instanceTransformTracks`  | scene-local motion clips nhắm vào component node             |
-
-- Scene id được sinh từ track + clip (`component-scene__${track.id}__${clip.id}`), với hậu tố deterministic khi trùng id scene đã tồn tại.
-- Component node id được sinh từ clip (`component-instance__${clip.id}`), đảm bảo hai clip dùng cùng component vẫn tạo hai scene/node riêng biệt.
-
-> **Chính sách**: `parseMotionProjectV3()` luôn strict và không tự di trú. Import app có thể cung cấp migration, nhưng file V3 canonical sau khi lưu phải là scene-only.
-
----
-
-## 8. Best Practices
+## 7. Best Practices
 
 ### Cho Owner (người tạo component)
 
@@ -634,7 +604,7 @@ Với mỗi clip `{ kind: "component" }`, normalizer tạo một scene wrapper c
 
 ---
 
-## 9. Tóm tắt
+## 8. Tóm tắt
 
 | Khái niệm                    | Mô tả                                                             |
 | ---------------------------- | ----------------------------------------------------------------- |
