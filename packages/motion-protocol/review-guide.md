@@ -113,7 +113,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu tôi bind tới component, tôi có bắt buộc dùng `propId` không?
 
-- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `layerId` + property. Dạng `componentLayer` trỏ một root/project instance cụ thể; dạng `component` bind mọi root/project instance. Nested instance chỉ nhận value nếu parent `childProp`.
+- **Mong đợi:** Có. Bind tới component bắt buộc `target.type: "componentLayer"` với `layerId` + `propId` — không lách internal property. Nested instance chỉ nhận value qua parent `childProp`. Không còn bulk `target.type: "component"`.
 
 ### 4.4 Public target type-check
 

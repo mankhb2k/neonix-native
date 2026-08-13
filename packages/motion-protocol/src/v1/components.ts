@@ -150,7 +150,7 @@ export const ComponentDefinitionV1Schema = z
     // ── Public consumer surface ─────────────────────────────────
     props: z
       .array(ComponentPropV1Schema)
-      .max(MOTION_PROTOCOL_LIMITS.publicParamsPerComponent)
+      .max(MOTION_PROTOCOL_LIMITS.propsPerComponent)
       .default([]),
     variants: z.array(ComponentVariantV1Schema).max(128).default([]),
 

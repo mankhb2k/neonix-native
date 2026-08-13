@@ -345,7 +345,7 @@ Binding kết nối project variable với layer property hoặc public componen
   }
 }
 
-// Component-layer binding — propId trên một root/project component instance
+// Component-layer binding — một project-tree instance cụ thể
 {
   "id": "bind-cta",
   "source": { "kind": "variable", "variableId": "cta-text" },
@@ -355,22 +355,10 @@ Binding kết nối project variable với layer property hoặc public componen
     "propId": "label"       // ← component.props[].id
   }
 }
-
-// Component binding — mọi root/project instance của componentId
-// (nested instances chỉ nhận value qua parent childProp)
-{
-  "id": "bind-brand",
-  "source": { "kind": "variable", "variableId": "cta-text" },
-  "target": {
-    "type": "component",
-    "componentId": "cta-button",
-    "propId": "label"
-  }
-}
 ```
 
 > **Layer binding** (`type: "layer"`): `layerId` + `property` trực tiếp.
-> **Component bindings**: bắt buộc dùng `propId` (trỏ đến `component.props`). `componentLayer` = một instance cụ thể trên root layer stack; `component` = mọi root/project instance. Nested chỉ qua `childProp`. Chi tiết: [v1-component-guide.md](v1-component-guide.md).
+> **ComponentLayer binding** (`type: "componentLayer"`): `layerId` + `propId` trên một instance. Nested trong definition chỉ qua `childProp`. Không còn bulk `target.type: "component"`. Chi tiết: [v1-component-guide.md](v1-component-guide.md).
 
 ---
 

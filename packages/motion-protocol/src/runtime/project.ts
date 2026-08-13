@@ -154,7 +154,7 @@ export const AudioTrackSchema = z
     clips: z
       .array(AudioClipSchema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.clipsPerScene),
+      .max(MOTION_PROTOCOL_LIMITS.motionClipsPerProject),
   })
   .strict();
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
@@ -368,7 +368,7 @@ export const RuntimeVisualTrackSchema = z
     muted: z.boolean().optional(),
     clips: z
       .array(RuntimeVisualClipSchema)
-      .max(MOTION_PROTOCOL_LIMITS.clipsPerScene),
+      .max(MOTION_PROTOCOL_LIMITS.motionClipsPerProject),
   })
   .strict();
 export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
@@ -418,7 +418,7 @@ export const RuntimeLayerGraphSchema = z
     tracks: z
       .array(RuntimeTrackSchema)
       .max(
-        MOTION_PROTOCOL_LIMITS.clipsPerScene *
+        MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
           MOTION_PROTOCOL_LIMITS.tracksPerClip,
       )
       .default([]),
@@ -452,7 +452,7 @@ const MotionRuntimeProjectBaseSchema = z
     tracks: z
       .array(RuntimeTrackSchema)
       .max(
-        MOTION_PROTOCOL_LIMITS.clipsPerScene *
+        MOTION_PROTOCOL_LIMITS.motionClipsPerProject *
           MOTION_PROTOCOL_LIMITS.tracksPerClip,
       )
       .default([]),

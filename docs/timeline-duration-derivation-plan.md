@@ -366,7 +366,7 @@ Tasks:
 - runtime visual clips fit within duration.
 - runtime audio tracks fit within duration.
 - runtime caption tokens fit within duration.
-- runtime visual track count uses `visualTracksPerProject`, not `audioTracksPerProject`.
+- runtime layer / track counts use `layersPerProject` and `motionClipsPerProject` (no visual/audio track arrays).
 
 ## Edge Cases
 
