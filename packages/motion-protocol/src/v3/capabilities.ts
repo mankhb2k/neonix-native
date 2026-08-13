@@ -8,7 +8,7 @@
  *
  * Phase 11: extended with text.rich, video.trim, video.loop,
  * component.embedding, ai.patching, asset.external, caption.track,
- * transition.*, and audio.export IDs.
+ * and audio.export IDs. Timeline transitions are not capability primitives.
  */
 import { z } from "zod";
 
@@ -48,11 +48,6 @@ const KNOWN_CAPABILITY_IDS = [
   // Audio
   "audio.render-plan",
   "audio.export",
-  // Transitions
-  "transition.crossfade",
-  "transition.slide",
-  "transition.dissolve",
-  "transition.wipe",
   // Composition features
   "component.embedding",
   // Integration
@@ -103,19 +98,13 @@ const NODE_CAPABILITY: Record<string, string> = {
   solid: "primitive.shape",
 };
 
-/** Transition type → capability ID. */
-const TRANSITION_CAPABILITY: Record<string, string> = {
-  crossfade: "transition.crossfade",
-  slide: "transition.slide",
-  dissolve: "transition.dissolve",
-  wipe: "transition.wipe",
-  fade: "transition.dissolve",
-};
-
 /**
  * Inspect a V3 project and return the set of capabilities it actually
  * uses. This is derived from the project structure — node types, visual
  * clips, audio tracks, component references, etc.
+ *
+ * Timeline transitions are not protocol primitives (AE layer stack); do not
+ * emit transition.* capabilities from visual clips.
  */
 export function inspectProjectCapabilities(project: {
   scenes?: Array<{ nodes?: Array<{ type: string }> }>;
@@ -124,11 +113,9 @@ export function inspectProjectCapabilities(project: {
     visualTracks?: Array<{
       clips?: Array<{
         source?: { kind: string };
-        transitionIn?: { type?: string };
-        transitionOut?: { type?: string };
       }>;
     }>;
-    audioTracks?: Array<unknown>;
+    audioTracks?: Array<{ clips?: unknown[] } | unknown>;
     captionTracks?: Array<unknown>;
   };
 }): Set<string> {
@@ -153,21 +140,14 @@ export function inspectProjectCapabilities(project: {
     }
   }
 
-  // Visual tracks → transition capabilities
-  for (const track of project.timeline?.visualTracks ?? []) {
-    for (const clip of track.clips ?? []) {
-      if (clip.transitionIn?.type) {
-        const cap = TRANSITION_CAPABILITY[clip.transitionIn.type];
-        if (cap) caps.add(cap);
-      }
-      if (clip.transitionOut?.type) {
-        const cap = TRANSITION_CAPABILITY[clip.transitionOut.type];
-        if (cap) caps.add(cap);
-      }
+  // Component nodes in scenes also imply embedding.
+  for (const scene of project.scenes ?? []) {
+    if (scene.nodes?.some((node) => node.type === "component")) {
+      caps.add("component.embedding");
     }
   }
 
-  // Audio tracks
+  // Audio tracks (volume/fade envelopes included in render-plan)
   if ((project.timeline?.audioTracks ?? []).length > 0) {
     caps.add("audio.render-plan");
   }
@@ -217,8 +197,6 @@ export function preflightProjectCapabilities(
       visualTracks?: Array<{
         clips?: Array<{
           source?: { kind: string };
-          transitionIn?: { type?: string };
-          transitionOut?: { type?: string };
         }>;
       }>;
       audioTracks?: Array<unknown>;

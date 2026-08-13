@@ -18,16 +18,18 @@ export const JsonValueSchema: z.ZodType<
   ]),
 );
 
-export const VariableReferenceSchema = z.object({
-  ref: z.object({ kind: z.literal("variable"), id: IdSchema }),
-  map: z
-    .object({
-      scale: FiniteNumberSchema.optional(),
-      offset: FiniteNumberSchema.optional(),
-    })
-    .strict()
-    .optional(),
-});
+export const VariableReferenceSchema = z
+  .object({
+    ref: z.object({ kind: z.literal("variable"), id: IdSchema }),
+    map: z
+      .object({
+        scale: FiniteNumberSchema.optional(),
+        offset: FiniteNumberSchema.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
 
 export const ResolvableValueSchema = z.union([
   JsonValueSchema,

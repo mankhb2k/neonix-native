@@ -14,6 +14,10 @@ import {
 } from "../index";
 import { parseMotionProjectV3 } from "../parse";
 import { MotionV3ReferenceError } from "../references/types";
+import {
+  collectTimelineIntegrityIssues,
+  type ProjectTimelineV3,
+} from "../timeline";
 
 const FIXTURES_DIR = join(__dirname, "..", "__fixtures__");
 
@@ -114,8 +118,8 @@ describe("v3 schema — positive fixtures", () => {
     expect(comp.variants).toBeTruthy();
     expect(comp.assetDependencies).toContain("asset-font-display");
 
-    // scenes — group, text, shape, image, bone, camera, path, adjustment, video, svg
-    expect(project.scenes).toHaveLength(3);
+    // scenes — group, text, shape, image, bone, camera, path, adjustment, video, svg, component
+    expect(project.scenes).toHaveLength(4);
     const allNodes = project.scenes.flatMap((s) => s.nodes);
     const nodeTypes = allNodes.map((n) => n.type);
     expect(nodeTypes).toEqual(
@@ -130,6 +134,7 @@ describe("v3 schema — positive fixtures", () => {
         "adjustment",
         "video",
         "svg",
+        "component",
       ]),
     );
 
@@ -146,28 +151,38 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.timeline.workArea).toEqual({ start: 0, end: 18 });
     expect(project.timeline.markers).toHaveLength(1);
 
-    // timeline: visualTracks with main+overlay, component clip source
+    // timeline: visualTracks with unique orders, scene clip sources
     expect(project.timeline.visualTracks).toHaveLength(2);
     const overlayTrack = project.timeline.visualTracks[1]!;
-    expect(overlayTrack.role).toBe("overlay");
-    expect(overlayTrack.clips[0]!.source.kind).toBe("component");
+    expect(overlayTrack.order).toBe(1);
+    expect(overlayTrack.clips[0]!.source.kind).toBe("scene");
+    expect(overlayTrack.clips[0]!.source).toEqual({
+      kind: "scene",
+      sceneId: "scene-lower-third",
+    });
 
-    // timeline: audioTrack with all fields
+    // timeline: audioTrack with clips[] envelope fields
     expect(project.timeline.audioTracks).toHaveLength(1);
     const audioTrack = project.timeline.audioTracks[0]!;
-    expect(audioTrack.volume).toBe(0.7);
-    expect(audioTrack.fadeIn).toBe(1);
+    expect(audioTrack.clips[0]!.volume).toBe(0.7);
+    expect(audioTrack.clips[0]!.fadeIn).toBe(1);
 
     // timeline: captionTracks with audioTrackId ref
     expect(project.timeline.captionTracks).toHaveLength(1);
     expect(project.timeline.captionTracks[0]!.audioTrackId).toBe("track-bgm");
 
-    // bindings — scene + component targets
+    // bindings — scene + componentNode targets
     expect(project.bindings).toHaveLength(3);
     const componentBinding = project.bindings.find(
-      (b) => b.target.kind === "component",
+      (b) => b.target.kind === "componentNode",
     )!;
-    expect(componentBinding.target.componentId).toBe("lower-third");
+    expect(componentBinding.target.kind).toBe("componentNode");
+    if (componentBinding.target.kind !== "componentNode") {
+      throw new Error("Expected componentNode binding");
+    }
+    expect(componentBinding.target.sceneId).toBe("scene-lower-third");
+    expect(componentBinding.target.nodeId).toBe("node-lower-third");
+    expect(componentBinding.target.targetId).toBe("lt-bg-color");
 
     // provenance — all 4 sub-fields
     expect(project.provenance?.workspaceId).toBe("ws-moticlip-demo");
@@ -182,14 +197,15 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.extensions["com.moticlip.ai-hints"]).toBeTruthy();
   });
 
-  it("keeps scene transition out of v3 scenes (timeline carries it)", () => {
+  it("keeps scene transition out of v3 scenes (no clip transitions either)", () => {
     const input = loadFixture("representative.project.json");
     const project = MotionProjectV3Schema.parse(input);
     for (const scene of project.scenes) {
       expect(scene).not.toHaveProperty("transition");
     }
     const introClip = project.timeline.visualTracks[0]!.clips[0]!;
-    expect(introClip.transitionOut?.type).toBe("fade");
+    expect(introClip).not.toHaveProperty("transitionIn");
+    expect(introClip).not.toHaveProperty("transitionOut");
   });
 
   it("validates activeCameraId references a camera node", () => {
@@ -207,34 +223,234 @@ describe("v3 schema — positive fixtures", () => {
     const project = MotionProjectV3Schema.parse(input);
     expect(project.scenes).toHaveLength(3);
     expect(project.timeline.visualTracks).toHaveLength(2);
-    expect(project.timeline.visualTracks[0]!.role).toBe("main");
-    expect(project.timeline.visualTracks[1]!.role).toBe("overlay");
+    expect(project.timeline.visualTracks[0]!.order).toBe(0);
+    expect(project.timeline.visualTracks[1]!.order).toBe(1);
     expect(project.timeline.visualTracks[0]!.clips).toHaveLength(3);
   });
 
-  it("parses transition project with clip-level transitionIn/transitionOut", () => {
+  it("parses transition project as sequential clips without transitions", () => {
     const input = loadFixture("transition.project.json");
     const project = MotionProjectV3Schema.parse(input);
     const clips = project.timeline.visualTracks[0]!.clips;
-    expect(clips[0]!.transitionIn?.type).toBe("fade");
-    expect(clips[0]!.transitionOut?.type).toBe("slide");
-    expect(clips[1]!.transitionIn?.type).toBe("crossfade");
-    expect(clips[2]!.transitionIn?.type).toBe("wipe");
-    // Verifies V3 scenes do NOT have scene.transition
+    expect(clips).toHaveLength(3);
+    expect(clips[0]!.start).toBe(0);
+    expect(clips[1]!.start).toBe(3);
+    expect(clips[2]!.start).toBe(6);
+    for (const clip of clips) {
+      expect(clip).not.toHaveProperty("transitionIn");
+      expect(clip).not.toHaveProperty("transitionOut");
+    }
     for (const scene of project.scenes) {
       expect(scene).not.toHaveProperty("transition");
     }
   });
 
-  it("parses component project with embedded component and component-source clip", () => {
+  it("rejects transitionIn/transitionOut on visual clips", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                  transitionIn: { type: "fade", duration: 1 },
+                  transitionOut: { type: "fade", duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("parses component project with embedded component and component-as-node layer", () => {
     const input = loadFixture("component.project.json");
     const project = MotionProjectV3Schema.parse(input);
     expect(project.components).toHaveLength(1);
     expect(project.components[0]!.publicParams).toHaveLength(2);
-    const overlayTrack = project.timeline.visualTracks.find(
-      (t) => t.role === "overlay",
+
+    const ctaScene = project.scenes.find((scene) => scene.id === "cta-scene")!;
+    const componentNode = ctaScene.nodes.find(
+      (node) => node.type === "component",
     )!;
-    expect(overlayTrack.clips[0]!.source.kind).toBe("component");
+    expect(componentNode).toBeDefined();
+    if (componentNode.type === "component") {
+      expect(componentNode.payload.componentId).toBe("call-to-action");
+    }
+
+    const overlayTrack = project.timeline.visualTracks.find(
+      (t) => t.id === "overlay-cta",
+    )!;
+    expect(overlayTrack.order).toBe(1);
+    expect(overlayTrack.clips[0]!.source.kind).toBe("scene");
+    expect(overlayTrack.clips[0]!.source).toEqual({
+      kind: "scene",
+      sceneId: "cta-scene",
+    });
+  });
+
+  it("parses scene-local motion clip targeting a component node", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            {
+              targetId: "cta-instance",
+              property: "transform.x",
+              valueKind: "number",
+              keys: [
+                { t: 0, v: 0 },
+                { t: 1, v: 100, easing: "easeOut" },
+              ],
+            },
+          ],
+        },
+      },
+    ];
+    const project = MotionProjectV3Schema.parse(input);
+    const parsedScene = project.scenes.find((s) => s.id === "cta-scene")!;
+    expect(parsedScene.clips).toHaveLength(1);
+    expect(parsedScene.clips[0]!.targetId).toBe("cta-instance");
+    expect(parsedScene.clips[0]!.source.kind).toBe("tracks");
+  });
+
+  it("rejects component node without payload.componentId", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    const nodes = ctaScene.nodes as Array<Record<string, unknown>>;
+    const node = nodes.find((n) => n.type === "component")!;
+    delete (node.payload as Record<string, unknown>).componentId;
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects visual clip with component source (scene-only timeline)", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const timeline = input.timeline as Record<string, unknown>;
+    const tracks = timeline.visualTracks as Array<Record<string, unknown>>;
+    const overlayTrack = tracks.find((t) => t.id === "overlay-cta")!;
+    const clips = overlayTrack.clips as Array<Record<string, unknown>>;
+    clips[0]!.source = { kind: "component", componentId: "call-to-action" };
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("accepts scene-local motion on a component node with normal transform paths", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            {
+              targetId: "cta-instance",
+              property: "transform.width",
+              valueKind: "number",
+              keys: [{ t: 0, v: 600 }],
+            },
+          ],
+        },
+      },
+    ];
+    const project = MotionProjectV3Schema.parse(input);
+    const parsedScene = project.scenes.find((s) => s.id === "cta-scene")!;
+    expect(parsedScene.clips[0]!.source.kind).toBe("tracks");
+    expect(parsedScene.clips[0]!.targetId).toBe("cta-instance");
+  });
+
+  it("rejects scene-local motion clip on component node with empty keys", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            { targetId: "cta-instance", property: "transform.x", keys: [] },
+          ],
+        },
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+  });
+
+  it("rejects scene-local motion clip on component node with mismatched valueKind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = input.scenes as Array<Record<string, unknown>>;
+    const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
+    ctaScene.clips = [
+      {
+        id: "clip-anim",
+        targetId: "cta-instance",
+        schedule: { kind: "absolute", at: 0 },
+        duration: 1,
+        playback: {},
+        source: {
+          kind: "tracks",
+          tracks: [
+            {
+              targetId: "cta-instance",
+              property: "transform.x",
+              valueKind: "color",
+              keys: [{ t: 0, v: 0 }],
+            },
+          ],
+        },
+      },
+    ];
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
   it("parses caption project with bilingual caption tracks", () => {
@@ -250,9 +466,14 @@ describe("v3 schema — positive fixtures", () => {
     const input = loadFixture("audio.project.json");
     const project = MotionProjectV3Schema.parse(input);
     expect(project.timeline.audioTracks).toHaveLength(4);
-    const roles = project.timeline.audioTracks.map((t) => t.role);
-    expect(roles).toEqual(["bgm", "voiceover", "sfx", "sfx"]);
-    expect(project.timeline.audioTracks[0]!.volume).toBe(0.3);
+    expect(project.timeline.audioTracks.map((t) => t.id)).toEqual([
+      "bgm",
+      "vo",
+      "sfx-1",
+      "sfx-2",
+    ]);
+    expect(project.timeline.audioTracks[0]!.clips[0]!.volume).toBe(0.3);
+    expect(project.timeline.audioTracks[0]!.clips[0]!.fadeIn).toBe(1);
   });
 });
 
@@ -292,7 +513,7 @@ describe("v3 schema — negative fixtures", () => {
     ).toThrow();
   });
 
-  it("rejects invalid enum value in visual track role", () => {
+  it("rejects role field on visual track", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
@@ -305,7 +526,7 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "bogus",
+              role: "main",
               order: 0,
               clips: [
                 {
@@ -313,6 +534,71 @@ describe("v3 schema — negative fixtures", () => {
                   source: { kind: "scene", sceneId: "s1" },
                   start: 0,
                   duration: 1,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects instanceTransform on a visual clip (removed field)", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 1,
+                  instanceTransform: { x: 100 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects instanceTransformTracks on a visual clip (removed field)", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 1,
+                  instanceTransformTracks: [
+                    {
+                      property: "transform.x",
+                      keys: [{ t: 0, v: 0 }],
+                    },
+                  ],
                 },
               ],
             },
@@ -364,7 +650,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -394,7 +679,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -436,16 +720,882 @@ describe("v3 schema — negative fixtures", () => {
         audioTracks: [
           {
             id: "at1",
-            role: "bgm",
-            assetId: "img",
-            start: 0,
-            duration: 5,
+            order: -1,
+            clips: [
+              {
+                id: "at1-clip",
+                assetId: "img",
+                start: 0,
+                duration: 5,
+              },
+            ],
           },
         ],
       },
     });
     // Zod accepts because assetId is just a string — ref validation catches type mismatch
-    expect(project.timeline.audioTracks[0]!.assetId).toBe("img");
+    expect(project.timeline.audioTracks[0]!.clips[0]!.assetId).toBe("img");
+  });
+
+  it("rejects transitionIn field on visual clips", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                  transitionIn: { type: "fade", duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects transitionOut field on visual clips", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                  transitionOut: { type: "crossfade", duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects visual clip exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 4,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects audio track exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          audioTracks: [
+            {
+              id: "at1",
+              order: -1,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 3,
+                  duration: 4,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects work area exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          workArea: { start: 0, end: 6 },
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects marker exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          markers: [{ id: "marker-1", t: 6 }],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects caption token exceeding timeline duration", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          duration: 5,
+          captionTracks: [
+            {
+              id: "cap-1",
+              locale: "vi-VN",
+              tokens: [{ id: "tok-1", text: "hello", start: 4, end: 6 }],
+              style: { fontSize: 32, fill: "#ffffff" },
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+});
+
+// ── Timeline & scene integrity — Phase 6 ──────────────────────────────
+
+describe("v3 timeline integrity — Phase 6", () => {
+  const base = () =>
+    loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+
+  it("rejects duplicate visual clip ids within a track", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects duplicate visual clip ids across different tracks", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+            {
+              id: "track-2",
+              order: 1,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects duplicate visual track order", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+            {
+              id: "track-2",
+              order: 0,
+              clips: [
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(/Duplicate track order/);
+  });
+
+  it("rejects duplicate order shared by visual and audio tracks", () => {
+    const issues = collectTimelineIntegrityIssues({
+      visualTracks: [
+        {
+          id: "track-1",
+          order: 0,
+          muted: false,
+          clips: [
+            {
+              id: "c1",
+              source: { kind: "scene", sceneId: "s1" },
+              start: 0,
+              duration: 2,
+              loop: false,
+              opacity: 1,
+            },
+          ],
+        },
+      ],
+      audioTracks: [
+        {
+          id: "at1",
+          order: 0, // invalid sign; integrity still flags cross-collection collision
+          muted: false,
+          clips: [
+            {
+              id: "at1-clip",
+              assetId: "audio-1",
+              start: 0,
+              duration: 2,
+              trimStart: 0,
+              playbackRate: 1,
+              volume: 1,
+              loop: false,
+              fadeIn: 0,
+              fadeOut: 0,
+              muted: false,
+            },
+          ],
+        },
+      ],
+      captionTracks: [],
+    } as ProjectTimelineV3);
+    expect(
+      issues.some((i) => /Duplicate track order 0/.test(i.message)),
+    ).toBe(true);
+  });
+
+  it("rejects duplicate audio track order", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 10,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "at1",
+              order: -1,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+            {
+              id: "at2",
+              order: -1,
+              clips: [
+                {
+                  id: "at2-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 1,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(/Duplicate track order/);
+  });
+
+  it("rejects audio track order >= 0", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 10,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "at1",
+              order: 0,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects audio track missing order", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 10,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "at1",
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("accepts sparse non-contiguous visual and audio orders", () => {
+    const input = base();
+    const project = MotionProjectV3Schema.parse({
+      ...input,
+      assets: [
+        {
+          id: "audio-1",
+          uri: "a.mp3",
+          assetType: "audio",
+          mimeType: "audio/mpeg",
+          duration: 10,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
+      ],
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        visualTracks: [
+          {
+            id: "track-base",
+            order: 0,
+            clips: [
+              {
+                id: "c1",
+                source: { kind: "scene", sceneId: "s1" },
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+          {
+            id: "track-fx",
+            order: 20,
+            clips: [
+              {
+                id: "c2",
+                source: { kind: "scene", sceneId: "s1" },
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+        ],
+        audioTracks: [
+          {
+            id: "bgm",
+            order: -20,
+            clips: [
+              {
+                id: "bgm-clip",
+                assetId: "audio-1",
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+          {
+            id: "sfx",
+            order: -10,
+            clips: [
+              {
+                id: "sfx-clip",
+                assetId: "audio-1",
+                start: 0,
+                duration: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(project.timeline.visualTracks.map((t) => t.order)).toEqual([0, 20]);
+    expect(project.timeline.audioTracks.map((t) => t.order)).toEqual([-20, -10]);
+  });
+
+  it("rejects same-lane visual clip overlap", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects overlay clip overlap on the same lane", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(/same-lane clips cannot overlap/);
+  });
+
+  it("accepts concurrent scenes on different track orders", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+              ],
+            },
+            {
+              id: "overlay_1",
+              order: 1,
+              clips: [
+                {
+                  id: "c1_copy",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects same-lane overlap even when transition fields are present", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                  transitionOut: { type: "crossfade", duration: 1 },
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                  transitionIn: { type: "crossfade", duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("accepts overlapping audio clips on the same track", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 30,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "mix",
+              order: -1,
+              clips: [
+                {
+                  id: "a1",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "a2",
+                  assetId: "audio-1",
+                  start: 1,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts back-to-back main-track clips (no overlap)", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 3,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects visual clip trim exceeding source scene duration", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      parseMotionProjectV3({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "intro" },
+                  start: 0,
+                  duration: 3,
+                  trimStart: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(MotionV3ReferenceError);
+  });
+
+  it("rejects scene-local absolute clip beyond scene duration", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (scene) =>
+        scene.id === "intro"
+          ? {
+              ...scene,
+              clips: [
+                {
+                  id: "mc1",
+                  targetId: "headline",
+                  schedule: { kind: "absolute", at: 2 },
+                  duration: 2,
+                  source: { kind: "preset", presetId: "p1" },
+                },
+              ],
+            }
+          : scene,
+    );
+    expect(() => MotionProjectV3Schema.parse({ ...input, scenes })).toThrow();
+  });
+
+  it("rejects scene-local scene-end clip that starts before 0", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (scene) =>
+        scene.id === "intro"
+          ? {
+              ...scene,
+              clips: [
+                {
+                  id: "mc1",
+                  targetId: "headline",
+                  schedule: { kind: "scene-end", offset: 0 },
+                  duration: 4,
+                  source: { kind: "preset", presetId: "p1" },
+                },
+              ],
+            }
+          : scene,
+    );
+    expect(() => MotionProjectV3Schema.parse({ ...input, scenes })).toThrow();
+  });
+
+  it("accepts scene-local clip within scene duration", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (scene) =>
+        scene.id === "intro"
+          ? {
+              ...scene,
+              clips: [
+                {
+                  id: "mc1",
+                  targetId: "headline",
+                  schedule: { kind: "absolute", at: 1 },
+                  duration: 2,
+                  source: { kind: "preset", presetId: "p1" },
+                },
+              ],
+            }
+          : scene,
+    );
+    expect(() =>
+      MotionProjectV3Schema.parse({ ...input, scenes }),
+    ).not.toThrow();
   });
 });
 
@@ -454,7 +1604,9 @@ describe("v3 schema — negative fixtures", () => {
 describe("v3 reference validation — parseMotionProjectV3", () => {
   it("rejects duplicate scene ids", () => {
     const input = loadFixture("invalid-duplicate-ids.project.json");
-    expect(() => parseMotionProjectV3(input)).toThrow(MotionV3ReferenceError);
+    // Duplicate ids are caught at schema level (.superRefine) before
+    // reference validation — both ZodError and MotionV3ReferenceError are valid.
+    expect(() => parseMotionProjectV3(input)).toThrow();
     try {
       parseMotionProjectV3(input);
     } catch (err) {
@@ -549,10 +1701,15 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           audioTracks: [
             {
               id: "at1",
-              role: "bgm" as const,
-              assetId: "img",
-              start: 0,
-              duration: 5,
+              order: -1,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "img",
+                  start: 0,
+                  duration: 5,
+                },
+              ],
             },
           ],
         },
@@ -564,6 +1721,360 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const input = loadFixture("comprehensive.project.json");
     const project = parseMotionProjectV3(input);
     expect(project.metadata.id).toBe("v3-comprehensive");
+  });
+
+  // ── Component ownership contract: publicTargets ───────────────────
+
+  it("rejects duplicate publicTarget ids within a component", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          {
+            id: "dup-id",
+            nodeId: "cta-label",
+            property: "payload.content.text",
+          },
+          { id: "dup-id", nodeId: "cta-bg", property: "payload.color" },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain("Duplicate publicTarget id: dup-id");
+    }
+  });
+
+  it("rejects publicTarget with unknown nodeId", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          {
+            id: "bad-target",
+            nodeId: "nonexistent-node",
+            property: "payload.content.text",
+          },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'publicTarget "bad-target" references unknown node',
+      );
+    }
+  });
+
+  it("rejects publicTarget with unsupported property for node type", () => {
+    const input = loadFixture("representative.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "bad-property",
+            nodeId: "logo",
+            property: "payload.content.text",
+          },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain("exposes unsupported property");
+    }
+  });
+
+  it("rejects component binding with unknown targetId", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const bindings = [
+      {
+        id: "bad-binding",
+        source: { kind: "variable", variableId: "cta-text" },
+        target: {
+          kind: "component",
+          componentId: "call-to-action",
+          targetId: "nonexistent-target",
+        },
+      },
+    ];
+    expect(() => parseMotionProjectV3({ ...input, bindings })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, bindings });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'does not expose public target "nonexistent-target"',
+      );
+    }
+  });
+
+  // ── Component ownership contract: publicProps value typing ──────────
+
+  it("rejects publicProp with unknown target id", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: { "not-a-target": "hello" },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, scenes })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, scenes });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'does not expose public target "not-a-target"',
+      );
+    }
+  });
+
+  it("rejects publicProp with incompatible value kind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    // Add a numeric public target, then feed it a string value.
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "cta-opacity",
+            nodeId: "cta-bg",
+            property: "transform.opacity",
+          },
+        ],
+      }),
+    );
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: { "cta-opacity": "not-a-number" },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components, scenes }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, components, scenes });
+    } catch (err) {
+      expect(String(err)).toContain("incompatible with expected value kind");
+    }
+  });
+
+  it("rejects publicProp variable reference with incompatible type", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicTargets: [
+          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "cta-opacity",
+            nodeId: "cta-bg",
+            property: "transform.opacity",
+          },
+        ],
+      }),
+    );
+    // cta-text is a string variable, but cta-opacity expects a number.
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: {
+                    "cta-opacity": {
+                      ref: { kind: "variable", id: "cta-text" },
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components, scenes }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, components, scenes });
+    } catch (err) {
+      expect(String(err)).toContain('expected value kind "number"');
+    }
+  });
+
+  it("accepts publicProp with matching value kind", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  publicProps: { "cta-label": "Buy now" },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    const project = parseMotionProjectV3({ ...input, scenes });
+    expect(project.scenes.length).toBeGreaterThan(0);
+  });
+
+  it("rejects unknown variantId on a component node", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  variantId: "nonexistent-variant",
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, scenes })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, scenes });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'does not declare variant "nonexistent-variant"',
+      );
+    }
+  });
+
+  it("rejects variant override targeting unknown public target", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        variants: [
+          {
+            id: "primary",
+            name: "Primary",
+            overrides: { "not-a-target": "hello" },
+          },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'overrides unknown public target "not-a-target"',
+      );
+    }
+  });
+
+  it("accepts variant override targeting a declared public target", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        variants: [
+          {
+            id: "primary",
+            name: "Primary",
+            overrides: { "cta-label": "Primary CTA" },
+          },
+        ],
+      }),
+    );
+    const project = parseMotionProjectV3({ ...input, components });
+    expect(project.components[0]!.variants[0]!.overrides).toEqual({
+      "cta-label": "Primary CTA",
+    });
   });
 });
 
@@ -641,15 +2152,26 @@ describe("v3 extensions — namespaced keys", () => {
 import { validateNodeGraphV3 } from "../references/node-graph";
 import type { NodeV3 } from "../nodes";
 
-function makeNode(overrides: Partial<NodeV3> & { id: string; type: string }): NodeV3 {
+function makeNode(
+  overrides: Partial<NodeV3> & { id: string; type: string },
+): NodeV3 {
   return {
     parentId: null,
     zIndex: 0,
     transform: {
-      x: 0, y: 0, width: 100, height: 100,
-      rotation: 0, scaleX: 1, scaleY: 1,
-      anchorX: 0.5, anchorY: 0.5,
-      opacity: 1, visible: true, flipX: false, flipY: false,
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      anchorX: 0.5,
+      anchorY: 0.5,
+      opacity: 1,
+      visible: true,
+      flipX: false,
+      flipY: false,
     },
     timing: { start: 0, duration: 1 },
     payload: {},
@@ -660,10 +2182,77 @@ function makeNode(overrides: Partial<NodeV3> & { id: string; type: string }): No
 describe("validateNodeGraphV3 — group layer semantics", () => {
   it("accepts valid three-level nested groups", () => {
     const nodes: NodeV3[] = [
-      makeNode({ id: "group.character", type: "group", parentId: null, zIndex: 3 }),
-      makeNode({ id: "group.upper-body", type: "group", parentId: "group.character", zIndex: 2 }),
-      makeNode({ id: "group.head-rig", type: "group", parentId: "group.upper-body", zIndex: 3 }),
-      makeNode({ id: "head-image", type: "image", parentId: "group.head-rig", zIndex: 0, payload: { assetId: "asset.head" } }),
+      makeNode({
+        id: "group.character",
+        type: "group",
+        parentId: null,
+        zIndex: 3,
+      }),
+      makeNode({
+        id: "group.upper-body",
+        type: "group",
+        parentId: "group.character",
+        zIndex: 2,
+      }),
+      makeNode({
+        id: "group.head-rig",
+        type: "group",
+        parentId: "group.upper-body",
+        zIndex: 3,
+      }),
+      makeNode({
+        id: "head-image",
+        type: "image",
+        parentId: "group.head-rig",
+        zIndex: 0,
+        payload: { assetId: "asset.head" },
+      }),
+    ];
+    const issues = validateNodeGraphV3(nodes, "scene.test");
+    expect(issues).toEqual([]);
+  });
+
+  it("rejects duplicate zIndex among siblings with the same parentId", () => {
+    const nodes: NodeV3[] = [
+      makeNode({
+        id: "text_1",
+        type: "text",
+        parentId: null,
+        zIndex: 10,
+        timing: { start: 0, duration: 3 },
+      }),
+      makeNode({
+        id: "text_2",
+        type: "text",
+        parentId: null,
+        zIndex: 10,
+        timing: { start: 0, duration: 3 },
+      }),
+    ];
+    const issues = validateNodeGraphV3(nodes, "scene.test");
+    expect(issues.some((i) => i.message.includes("Duplicate zIndex"))).toBe(
+      true,
+    );
+  });
+
+  it("accepts the same zIndex under different parents", () => {
+    const nodes: NodeV3[] = [
+      makeNode({ id: "group.a", type: "group", parentId: null, zIndex: 0 }),
+      makeNode({ id: "group.b", type: "group", parentId: null, zIndex: 1 }),
+      makeNode({
+        id: "child.a",
+        type: "image",
+        parentId: "group.a",
+        zIndex: 5,
+        payload: { assetId: "a" },
+      }),
+      makeNode({
+        id: "child.b",
+        type: "image",
+        parentId: "group.b",
+        zIndex: 5,
+        payload: { assetId: "b" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
     expect(issues).toEqual([]);
@@ -672,7 +2261,12 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
   it("rejects missing parent", () => {
     const nodes: NodeV3[] = [
       makeNode({ id: "group.a", type: "group", parentId: null }),
-      makeNode({ id: "child", type: "image", parentId: "nonexistent", payload: { assetId: "a" } }),
+      makeNode({
+        id: "child",
+        type: "image",
+        parentId: "nonexistent",
+        payload: { assetId: "a" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
     expect(issues.some((i) => i.message.includes("Unknown parent"))).toBe(true);
@@ -683,7 +2277,9 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
       makeNode({ id: "group.a", type: "group", parentId: "group.a" }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes("cannot be its own parent"))).toBe(true);
+    expect(
+      issues.some((i) => i.message.includes("cannot be its own parent")),
+    ).toBe(true);
   });
 
   it("rejects parent cycles (A → B → A)", () => {
@@ -692,24 +2288,442 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
       makeNode({ id: "b", type: "group", parentId: "a" }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes("Parent cycle detected"))).toBe(true);
+    expect(
+      issues.some((i) => i.message.includes("Parent cycle detected")),
+    ).toBe(true);
   });
 
   it("rejects children under non-group parent (image)", () => {
     const nodes: NodeV3[] = [
-      makeNode({ id: "img", type: "image", parentId: null, payload: { assetId: "a" } }),
-      makeNode({ id: "child", type: "image", parentId: "img", payload: { assetId: "b" } }),
+      makeNode({
+        id: "img",
+        type: "image",
+        parentId: null,
+        payload: { assetId: "a" },
+      }),
+      makeNode({
+        id: "child",
+        type: "image",
+        parentId: "img",
+        payload: { assetId: "b" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes('only "group" nodes may have children'))).toBe(true);
+    expect(
+      issues.some((i) =>
+        i.message.includes('only "group" nodes may have children'),
+      ),
+    ).toBe(true);
   });
 
   it("rejects children under non-group parent (text)", () => {
     const nodes: NodeV3[] = [
-      makeNode({ id: "txt", type: "text", parentId: null, payload: { content: { kind: "plain", text: "hi" }, fontSize: 24 } }),
-      makeNode({ id: "child", type: "image", parentId: "txt", payload: { assetId: "b" } }),
+      makeNode({
+        id: "txt",
+        type: "text",
+        parentId: null,
+        payload: {
+          content: { kind: "plain", text: "hi" },
+          fontSize: 24,
+          color: "#000000",
+          alignment: "left",
+          wrap: "word",
+          overflow: "visible",
+        },
+      }),
+      makeNode({
+        id: "child",
+        type: "image",
+        parentId: "txt",
+        payload: { assetId: "b" },
+      }),
     ];
     const issues = validateNodeGraphV3(nodes, "scene.test");
-    expect(issues.some((i) => i.message.includes('only "group" nodes may have children'))).toBe(true);
+    expect(
+      issues.some((i) =>
+        i.message.includes('only "group" nodes may have children'),
+      ),
+    ).toBe(true);
+  });
+});
+
+// ── G2: ProceduralDriver schema-level range validation ────────────────
+
+import { ProceduralDriverSchema } from "../animation/drivers";
+
+describe("ProceduralDriverSchema — range validation", () => {
+  it("rejects remap driver with inMin >= inMax", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "remap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      inMin: 10,
+      inMax: 5,
+      outMin: 0,
+      outMax: 100,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("inMin") && i.message.includes("inMax"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("rejects remap driver with outMin >= outMax", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "remap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      inMin: 0,
+      inMax: 100,
+      outMin: 50,
+      outMax: 50,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("outMin") && i.message.includes("outMax"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("accepts remap driver with valid ranges", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "remap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      inMin: 0,
+      inMax: 100,
+      outMin: 0,
+      outMax: 1,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.type).toBe("remap");
+    }
+  });
+
+  it("rejects clamp driver with min >= max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "clamp",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 10,
+      max: 10,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("min") && i.message.includes("max"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("accepts clamp driver with min < max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "clamp",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 0,
+      max: 1,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects wrap driver with min >= max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "wrap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 100,
+      max: 0,
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("min") && i.message.includes("max"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("accepts wrap driver with min < max", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "wrap",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      sourceNodeId: "n2",
+      sourceProperty: "transform.y",
+      min: 0,
+      max: 360,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts noise driver (no range fields)", () => {
+    const result = ProceduralDriverSchema.safeParse({
+      id: "d1",
+      type: "noise",
+      targetNodeId: "n1",
+      targetProperty: "transform.x",
+      frequency: 2,
+      amplitude: 10,
+      seed: 42,
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+// ── G1: AudioTrackV3 schema-level edge cases ─────────────────────────
+
+describe("AudioTrackV3 schema — edge case validation", () => {
+  function makeValidProject(clipOverrides: Record<string, unknown>) {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    return MotionProjectV3Schema.safeParse({
+      ...input,
+      assets: [
+        {
+          id: "audio1",
+          uri: "bgm.mp3",
+          assetType: "audio",
+          mimeType: "audio/mpeg",
+          duration: 30,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
+      ],
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        audioTracks: [
+          {
+            id: "at1",
+            order: -1,
+            clips: [
+              {
+                id: "at1-clip",
+                assetId: "audio1",
+                start: 0,
+                duration: 5,
+                ...clipOverrides,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  }
+
+  it("rejects audio clip with trimEnd > duration", () => {
+    const result = makeValidProject({ trimEnd: 10 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) =>
+            i.message.includes("trimEnd") && i.message.includes("duration"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("rejects fadeIn + fadeOut exceeding duration", () => {
+    const result = makeValidProject({ fadeIn: 3, fadeOut: 3, duration: 5 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(
+        result.error.issues.some(
+          (i) => i.message.includes("fadeIn") && i.message.includes("fadeOut"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("accepts audio clip with all optional fields", () => {
+    const result = makeValidProject({
+      trimStart: 1,
+      volume: 0.5,
+      loop: true,
+      fadeIn: 2,
+      fadeOut: 1,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const clip = result.data.timeline.audioTracks[0]!.clips[0]!;
+      expect(clip.volume).toBe(0.5);
+      expect(clip.fadeIn).toBe(2);
+      expect(clip.fadeOut).toBe(1);
+      expect(clip.loop).toBe(true);
+    }
+  });
+
+  it("rejects audio clip with negative volume", () => {
+    const result = makeValidProject({ volume: -0.1 });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects audio clip with volume > 1", () => {
+    const result = makeValidProject({ volume: 1.1 });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── G4: Reference validation — audio + caption track duplicate IDs ────
+
+describe("v3 reference validation — audio & caption duplicate IDs", () => {
+  function makeProjectWithAudioTracks(
+    trackOverrides: Array<Record<string, unknown>>,
+  ) {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    return {
+      ...input,
+      assets: [
+        {
+          id: "bgm",
+          uri: "bgm.mp3",
+          assetType: "audio",
+          mimeType: "audio/mpeg",
+          duration: 30,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
+      ],
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        audioTracks: trackOverrides,
+      },
+    };
+  }
+
+  it("rejects duplicate audio track ids", () => {
+    const project = makeProjectWithAudioTracks([
+      {
+        id: "dup-at",
+        order: -1,
+        clips: [{ id: "c1", assetId: "bgm", start: 0, duration: 5 }],
+      },
+      {
+        id: "dup-at",
+        order: -2,
+        clips: [{ id: "c2", assetId: "bgm", start: 5, duration: 3 }],
+      },
+    ]);
+    expect(() => parseMotionProjectV3(project)).toThrow();
+    try {
+      parseMotionProjectV3(project);
+    } catch (err) {
+      expect(String(err)).toContain("Duplicate audio track id: dup-at");
+    }
+  });
+
+  it("rejects duplicate caption track ids", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    const project = {
+      ...input,
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        captionTracks: [
+          {
+            id: "dup-ct",
+            locale: "vi-VN",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }],
+          },
+          {
+            id: "dup-ct",
+            locale: "en-US",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }],
+          },
+        ],
+      },
+    };
+    expect(() => parseMotionProjectV3(project)).toThrow();
+    try {
+      parseMotionProjectV3(project);
+    } catch (err) {
+      expect(String(err)).toContain("Duplicate caption track id: dup-ct");
+    }
+  });
+
+  it("accepts unique audio track ids", () => {
+    const project = makeProjectWithAudioTracks([
+      {
+        id: "at1",
+        order: -1,
+        clips: [{ id: "c1", assetId: "bgm", start: 0, duration: 5 }],
+      },
+      {
+        id: "at2",
+        order: -2,
+        clips: [{ id: "c2", assetId: "bgm", start: 5, duration: 3 }],
+      },
+    ]);
+    expect(() => parseMotionProjectV3(project)).not.toThrow();
+  });
+
+  it("accepts unique caption track ids", () => {
+    const input = loadFixture("minimal-empty.project.json") as Record<
+      string,
+      unknown
+    >;
+    const project = {
+      ...input,
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        captionTracks: [
+          {
+            id: "ct1",
+            locale: "vi-VN",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t1", text: "hi", start: 0, end: 1 }],
+          },
+          {
+            id: "ct2",
+            locale: "en-US",
+            style: { fontSize: 24, fill: "#fff" },
+            tokens: [{ id: "t2", text: "hi", start: 0, end: 1 }],
+          },
+        ],
+      },
+    };
+    expect(() => parseMotionProjectV3(project)).not.toThrow();
   });
 });

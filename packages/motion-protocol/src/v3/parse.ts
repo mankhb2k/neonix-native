@@ -1,10 +1,11 @@
 /**
  * V3 parse / serialize API.
  *
- * `parseMotionProjectV3` runs the shared text-payload normalizer
- * then schema + reference validation.
- * `serializeMotionProjectV3` emits canonical (alphabetically sorted) keys
- * so two identical projects always serialize byte-identically.
+ * `parseMotionProjectV3` is the **canonical** production entry: text-payload
+ * normalizer, then schema + reference validation. Strict V3 only — no
+ * timeline component-source migration. `serializeMotionProjectV3` emits
+ * canonical (alphabetically sorted) keys so two identical projects always
+ * serialize byte-identically.
  */
 import { MotionProjectV3Schema, type MotionProjectV3 } from "./project";
 import { normalizeMotionProjectInput } from "./normalize-input";

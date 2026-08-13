@@ -39,7 +39,9 @@ export const CameraNodeSchema = NodeBaseSchema.extend({
   type: z.literal("camera"),
   payload: z
     .object({
-      zoom: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.transformScale),
+      zoom: FiniteNumberSchema.positive().max(
+        MOTION_PROTOCOL_LIMITS.transformScale,
+      ),
       projection: z.enum(["orthographic", "perspective"]).optional(),
       /** Field of view in degrees (1–179). Required for perspective projection. */
       fov: FiniteNumberSchema.min(1).max(179).optional(),
@@ -65,7 +67,29 @@ export const CameraNodeSchema = NodeBaseSchema.extend({
         .max(MOTION_PROTOCOL_LIMITS.parallaxFactor)
         .optional(),
     })
-    .strict(),
+    .strict()
+    .superRefine((val, ctx) => {
+      // fov is required for perspective projection
+      if (val.projection === "perspective" && val.fov === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "fov is required when projection is 'perspective'",
+          path: ["fov"],
+        });
+      }
+      // near must be < far
+      if (
+        val.near !== undefined &&
+        val.far !== undefined &&
+        val.near >= val.far
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `near (${val.near}) must be < far (${val.far})`,
+          path: ["near"],
+        });
+      }
+    }),
 }).strict();
 
 export const ComponentNodeSchema = NodeBaseSchema.extend({
@@ -83,8 +107,12 @@ export const SolidNodeSchema = NodeBaseSchema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
-      width: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
-      height: FiniteNumberSchema.positive().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+      width: FiniteNumberSchema.positive().max(
+        MOTION_PROTOCOL_LIMITS.nodeDimension,
+      ),
+      height: FiniteNumberSchema.positive().max(
+        MOTION_PROTOCOL_LIMITS.nodeDimension,
+      ),
       color: z.string().min(1),
     })
     .strict(),

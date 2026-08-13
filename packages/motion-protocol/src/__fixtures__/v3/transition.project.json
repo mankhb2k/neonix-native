@@ -4,7 +4,7 @@
   "metadata": {
     "id": "transition",
     "name": "Transition",
-    "description": "Two scenes with a fade transition between them",
+    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)",
     "locale": "vi-VN"
   },
   "composition": {
@@ -132,7 +132,6 @@
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "main",
         "order": 0,
         "muted": false,
         "clips": [
@@ -145,13 +144,7 @@
             "start": 0,
             "duration": 3,
             "loop": false,
-            "opacity": 1,
-            "transitionOut": {
-              "type": "fade",
-              "duration": 0.5,
-              "color": "#000000",
-              "easing": "easeInOut"
-            }
+            "opacity": 1
           },
           {
             "id": "clip-outro",

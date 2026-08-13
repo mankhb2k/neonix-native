@@ -217,25 +217,29 @@ export interface MCPInspectTimelineResult extends MCPBaseResult {
   totalClipCount: number;
   tracks: Array<{
     id: string;
-    role: string;
+    order: number;
     clipCount: number;
     clips: Array<{
       id: string;
       source: { kind: string; refId: string };
       start: number;
       duration: number;
-      transitionIn?: string;
-      transitionOut?: string;
       opacity: number;
     }>;
   }>;
   audioTracks: Array<{
     id: string;
-    role: string;
-    assetId: string;
-    start: number;
-    duration: number;
-    volume: number;
+    order?: number;
+    clipCount: number;
+    clips: Array<{
+      id: string;
+      assetId: string;
+      start: number;
+      duration: number;
+      volume: number;
+      fadeIn: number;
+      fadeOut: number;
+    }>;
   }>;
   captionTracks: Array<{
     id: string;
@@ -686,32 +690,33 @@ export function inspectTimeline(
 
   const tracks = visualTracks.map((track) => ({
     id: track.id,
-    role: track.role,
+    order: track.order,
     clipCount: track.clips.length,
     clips: track.clips.map((clip) => ({
       id: clip.id,
       source: {
         kind: clip.source.kind,
-        refId:
-          clip.source.kind === "scene"
-            ? clip.source.sceneId
-            : clip.source.componentId,
+        refId: clip.source.sceneId,
       },
       start: clip.start,
       duration: clip.duration,
-      transitionIn: clip.transitionIn?.type,
-      transitionOut: clip.transitionOut?.type,
       opacity: clip.opacity,
     })),
   }));
 
   const audioTracks = project.timeline.audioTracks.map((track) => ({
     id: track.id,
-    role: track.role,
-    assetId: track.assetId,
-    start: track.start,
-    duration: track.duration,
-    volume: track.volume,
+    order: track.order,
+    clipCount: track.clips.length,
+    clips: track.clips.map((clip) => ({
+      id: clip.id,
+      assetId: clip.assetId,
+      start: clip.start,
+      duration: clip.duration,
+      volume: clip.volume,
+      fadeIn: clip.fadeIn,
+      fadeOut: clip.fadeOut,
+    })),
   }));
 
   const captionTracks = project.timeline.captionTracks.map((track) => {
@@ -812,21 +817,21 @@ function explainSingle(diag: {
     };
   }
 
-  // Scene transition / V2 leak
-  if (diag.message.includes("scene.transition")) {
+  // Scene transition / V2 leak — transitions are not V3 timeline primitives
+  if (diag.message.includes("scene.transition") || diag.message.includes("transition")) {
     return {
-      explanation: `A scene contains a 'transition' field, which is a V2 concept. In V3, transitions are defined on individual VisualClips via 'transitionOut', not on scenes. Each clip can have its own transition independent of the scene definition.`,
+      explanation: `Transition is not a V3 timeline primitive. Visual timing is an AE-style layer stack: active scene clips sorted by track.order. Express motion/effects as scene or component node animation (opacity, transform, blend, mask), not transitionIn/Out fields.`,
       suggestedAction:
-        "Remove 'transition' from the scene and add 'transitionOut' to the timeline VisualClip that references this scene.",
+        "Remove transition fields. Place the effect as a component/layer inside a scene on a visual track with the desired order.",
     };
   }
 
   // formatVersion 2 / V2 leak
   if (diag.message.includes("formatVersion")) {
     return {
-      explanation: `The project uses formatVersion 2, which is the old V2 authoring format. V3 uses formatVersion 3 with a different structure: visualTracks instead of sceneOrder, clip-level transitions, and richer asset/capability models.`,
+      explanation: `The project uses formatVersion 2, which is the old V2 authoring format. V3 uses formatVersion 3 with visualTracks (scene-only clips, unique order stacking) instead of sceneOrder, and no clip/scene transition primitives.`,
       suggestedAction:
-        "Change formatVersion to 3 and restructure the project to use V3 conventions (visualTracks, no scene.transition, capability manifests).",
+        "Change formatVersion to 3 and restructure to V3 conventions (visualTracks with scene sources, no scene.transition, capability manifests).",
     };
   }
 

@@ -34,7 +34,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "8ebf48ddf32808f1aa23fac0cf07c745",
+  "runtimeHash": "c13bb38951dcccdae388b40ac171e2c0",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -43,10 +43,10 @@
     }
   },
   "timeline": {
+    "duration": 10,
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "primary",
         "order": 0,
         "clips": [
           {

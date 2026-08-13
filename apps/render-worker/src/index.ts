@@ -1,4 +1,7 @@
-import { parseMotionProject } from "@motionvideo/motion-protocol";
+import {
+  parseMotionProject,
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
 import { validateMotionProjectPresets } from "@motionvideo/motion-compiler";
 import type { RenderJobStatus } from "@motionvideo/render-contracts";
 import { compileProject } from "./compiler";
@@ -25,6 +28,18 @@ export async function processJob(rawProject: unknown): Promise<{
   }
 
   const compiled = compileProject(project);
+
+  // Blank-video guard: a canonical project always carries an explicit
+  // timeline.duration, but an empty draft derives `0`. MP4 export cannot
+  // produce a zero-length file unless blank videos are intentionally
+  // supported by the product.
+  if ((compiled.timeline.duration ?? 0) <= 0) {
+    return {
+      status: "failed",
+      error: "Cannot export: timeline has no content (derived duration is 0).",
+    };
+  }
+
   const framesOrScene = await renderCompiledProject(compiled);
   const files = await encodeOutputs(
     framesOrScene,

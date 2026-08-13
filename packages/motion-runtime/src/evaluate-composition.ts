@@ -29,25 +29,50 @@ import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  // Phase 7: visualTracks primary track is the sole source of scene ordering.
-  // Clip-level transitionOut carries per-scene transitions directly.
-  const primaryTrack = runtime.timeline.visualTracks.find(
-    (t) => t.role === "primary",
-  );
-  if (!primaryTrack || primaryTrack.clips.length === 0) {
-    return [];
-  }
-  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
-  return sortedClips.map((clip) => {
-    const sourceId =
-      clip.source.kind === "scene"
-        ? clip.source.sceneId
-        : clip.source.componentId;
+  // Collect all clips from every visual track, sorted bottom-to-top by
+  // track.order (AE layer stack). Clip `start` is ABSOLUTE global timeline time.
+  type Indexed = {
+    clip: MotionRuntimeProject["timeline"]["visualTracks"][number]["clips"][number];
+    trackIndex: number;
+    clipIndex: number;
+    order: number;
+    trackId: string;
+  };
+  const indexed: Indexed[] = [];
+  runtime.timeline.visualTracks.forEach((track, trackIndex) => {
+    track.clips.forEach((clip, clipIndex) => {
+      indexed.push({
+        clip,
+        trackIndex,
+        clipIndex,
+        order: track.order,
+        trackId: track.id,
+      });
+    });
+  });
+  indexed.sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    if (a.trackIndex !== b.trackIndex) return a.trackIndex - b.trackIndex;
+    if (a.clip.start !== b.clip.start) return a.clip.start - b.clip.start;
+    return a.clipIndex - b.clipIndex;
+  });
+  return indexed.map(({ clip, trackId, order }) => {
+    const sceneId =
+      clip.source.kind === "scene" ? (clip.source.sceneId ?? "") : "";
+    const scene = sceneId
+      ? runtime.scenes.find((candidate) => candidate.id === sceneId)
+      : undefined;
     return {
-      sceneId: sourceId,
+      sceneId,
+      start: clip.start,
       duration: clip.duration,
-      transitionOut:
-        clip.transitionOut as CompositionSceneInput["transitionOut"],
+      trimStart: clip.trimStart,
+      playbackRate: clip.playbackRate,
+      loop: clip.loop,
+      sourceDuration: scene?.duration ?? clip.duration,
+      opacity: clip.opacity,
+      trackId,
+      trackOrder: order,
     };
   });
 }
@@ -63,6 +88,7 @@ export function planCompositionFrame(
     globalTime,
     width,
     height,
+    runtime.metadata.fps,
   );
 }
 
@@ -200,11 +226,10 @@ export function evaluateCompositionFrameV3(
   );
 
   // ── Layer plan ──────────────────────────────────────────────────
-  const totalDuration = compositionTotalDuration(
-    scenesForComposition(runtime),
-    width,
-    height,
-  );
+  // Boundary check uses the canonical runtime duration (explicit
+  // timeline.duration, falling back to max visual end) so manual tail frames
+  // are not truncated.
+  const totalDuration = timelineTotalDuration(runtime);
   if (globalTime < 0 || globalTime >= totalDuration) return null;
 
   const layerPlan = evaluateCompositionLayers(
@@ -212,6 +237,7 @@ export function evaluateCompositionFrameV3(
     globalTime,
     width,
     height,
+    runtime.metadata.fps,
   );
 
   if (layerPlan.layers.length === 0) return null;
@@ -266,7 +292,7 @@ export function evaluateCompositionFrameV3(
   // ── Compute perspective projection early (needed for 3D frame evaluation) ─
   const primaryScene =
     layers.length > 0
-      ? sceneCache.get(layers[layers.length - 1]!.sceneId)
+      ? (sceneCache.get(layers[layers.length - 1]!.sceneId) ?? null)
       : null;
   const perspectiveProjection = resolvePerspectiveProjection(
     primaryScene,
@@ -561,26 +587,33 @@ function buildAudioState(
       .map((a) => [a.id, (a as { duration?: number }).duration ?? 0]),
   );
 
-  const tracks = (runtime.timeline.audioTracks ?? []).map((track) => {
-    const start = track.start ?? 0;
-    const trimStart = track.trimStart ?? 0;
-    const assetDuration = assetDurationById.get(track.assetId) ?? 0;
-    const localTime = Math.max(0, globalTime - start + trimStart);
-    const volume = Math.min(1, Math.max(0, track.volume ?? 1));
-    const fadeInEnd = track.fadeIn ?? 0;
-    const fadeOutStart = assetDuration - (track.fadeOut ?? 0);
-    const fadeActive =
-      ((track.fadeIn ?? 0) > 0 && localTime < fadeInEnd) ||
-      ((track.fadeOut ?? 0) > 0 && localTime > fadeOutStart);
+  const tracks = (runtime.timeline.audioTracks ?? []).flatMap((track) => {
+    const trackMuted = track.muted ?? false;
+    return track.clips.map((clip) => {
+      const start = clip.start ?? 0;
+      const trimStart = clip.trimStart ?? 0;
+      const assetDuration = assetDurationById.get(clip.assetId) ?? 0;
+      const localTime = Math.max(0, globalTime - start + trimStart);
+      const volume = Math.min(1, Math.max(0, clip.volume ?? 1));
+      const fadeInEnd = clip.fadeIn ?? 0;
+      const fadeOutStart = clip.duration - (clip.fadeOut ?? 0);
+      const clipLocal = globalTime - start;
+      const fadeActive =
+        clipLocal >= 0 &&
+        clipLocal < clip.duration &&
+        (((clip.fadeIn ?? 0) > 0 && clipLocal < fadeInEnd) ||
+          ((clip.fadeOut ?? 0) > 0 && clipLocal > fadeOutStart));
 
-    return {
-      trackId: track.id,
-      assetId: track.assetId,
-      mediaTime: localTime,
-      volume,
-      muted: false,
-      fadeActive,
-    };
+      return {
+        trackId: `${track.id}:${clip.id}`,
+        assetId: clip.assetId,
+        mediaTime: localTime,
+        volume: trackMuted || clip.muted ? 0 : volume,
+        muted: trackMuted || (clip.muted ?? false),
+        fadeActive,
+        assetDuration,
+      };
+    });
   });
 
   return { tracks };
@@ -648,9 +681,16 @@ export function compositionDurationInFrames(
 
   const total = compositionTotalDuration(scenesForComposition(runtime));
   const fallback = timelineTotalDuration(runtime);
+  const derivedDuration = total > 0 ? total : fallback > 0 ? fallback : 1;
+  // An explicit timeline.duration is the authoritative final MP4 length. It
+  // may exceed the derived content end (intentional empty tail) but never be
+  // shorter (enforced by the compiler / canonical schema).
+  const declaredDuration = runtime.timeline.duration;
   const duration = Math.max(
     1 / safeFps,
-    total > 0 ? total : fallback > 0 ? fallback : 1,
+    declaredDuration !== undefined && declaredDuration > 0
+      ? declaredDuration
+      : derivedDuration,
   );
   return Math.max(
     1,
@@ -664,5 +704,4 @@ export {
   type CompositionFramePlan,
   type CompositionLayerPlan,
   type CompositionSceneInput,
-  type CompositionTransition,
 } from "./composition/evaluate-composition-layers";

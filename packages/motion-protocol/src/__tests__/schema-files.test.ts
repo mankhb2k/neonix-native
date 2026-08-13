@@ -59,6 +59,57 @@ describe("committed JSON schemas", () => {
     expect(timelineProps).toContain("visualTracks");
     expect(timelineProps).not.toContain("sceneOrder");
   });
+
+  it("v3 schema visual clips are scene-only (no role, no transition, no component source)", () => {
+    const schema = loadSchema("v3.json");
+    const timeline = schema.definitions.MotionProjectV3.properties!
+      .timeline as {
+      properties?: {
+        visualTracks?: {
+          items?: {
+            properties?: Record<string, unknown>;
+            required?: string[];
+          };
+        };
+      };
+    };
+    const track = timeline.properties?.visualTracks?.items;
+    const trackProps = Object.keys(track?.properties ?? {});
+    expect(trackProps).not.toContain("role");
+    expect(track?.required ?? []).not.toContain("role");
+
+    const clips = track?.properties?.clips as {
+      items?: {
+        properties?: Record<string, unknown>;
+      };
+    };
+    const clipProps = Object.keys(clips?.items?.properties ?? {});
+    expect(clipProps).not.toContain("transitionIn");
+    expect(clipProps).not.toContain("transitionOut");
+
+    const source = clips?.items?.properties?.source as {
+      anyOf?: Array<{ properties?: { kind?: { const?: string } } }>;
+      properties?: { kind?: { const?: string } };
+    };
+    const kinds = source?.anyOf
+      ? source.anyOf.map((entry) => entry.properties?.kind?.const)
+      : [source?.properties?.kind?.const];
+    expect(kinds).toEqual(["scene"]);
+
+    const audioTrack = timeline.properties?.audioTracks as {
+      items?: {
+        properties?: Record<string, unknown>;
+        required?: string[];
+      };
+    };
+    expect(audioTrack?.items?.required ?? []).toContain("order");
+    const audioOrder = audioTrack?.items?.properties?.order as {
+      exclusiveMaximum?: boolean;
+      maximum?: number;
+    };
+    expect(audioOrder?.exclusiveMaximum).toBe(true);
+    expect(audioOrder?.maximum).toBe(0);
+  });
 });
 
 // ── Phase 7 — V3 naming gate ────────────────────────────────────────

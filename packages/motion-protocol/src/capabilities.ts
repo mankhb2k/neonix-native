@@ -26,6 +26,8 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   bindingsPerArtifact: 4_096,
   dependenciesPerProject: 512,
   audioTracksPerProject: 2_048,
+  /** Max visual tracks on the project timeline. */
+  visualTracksPerProject: 128,
   extensionEntries: 2_048,
   patchOperations: 2_048,
   offscreenDimension: 8_192,

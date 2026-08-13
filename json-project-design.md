@@ -554,36 +554,32 @@ type ProjectTimeline = {
 
 type VisualTrack = {
   id: Id;
-  role: "main" | "overlay";
-  order: number;
+  order: number; // unique stack order; low under, high on top
   muted?: boolean;
   clips: VisualClip[];
 };
 
 type VisualClip = {
   id: Id;
-  source:
-    | { kind: "scene"; sceneId: Id }
-    | { kind: "component"; componentId: Id; props?: Params };
+  source: { kind: "scene"; sceneId: Id }; // scene-only; components are scene nodes
   start: number;
   duration: number;
   trimStart?: number;
   playbackRate?: number;
   loop?: boolean;
   opacity?: number;
-  transitionIn?: Transition;
-  transitionOut?: Transition;
 };
 ```
 
 Timeline invariants:
 
 - Clip va track IDs unique trong scope quy dinh.
+- Track `order` sparse: visual `>= 0`, audio `< 0`, unique across timeline; not contiguous.
+- Same-lane visual clips khong overlap thoi gian.
 - `start >= 0`, `duration > 0`, `playbackRate > 0`.
 - Scene local range khong vuot intrinsic duration, tru loop.
-- Transition duration khong vuot overlap/lifetime cua hai clips.
-- Main track overlap chi hop le voi transition/explicit overlap policy.
-- Overlay order deterministic.
+- Khong co transitionIn/Out / crossfade / boundary primitive.
+- Visual effect = scene/component node/layer animation; timeline chi render active scene clips theo order.
 - Project duration derive tu max clip/audio/caption end neu khong explicit.
 
 ## 17. Audio tracks
@@ -593,22 +589,28 @@ V3 mo rong audio track v2:
 ```ts
 type AudioTrack = {
   id: Id;
-  role: "bgm" | "voiceover" | "sfx";
+  order: number; // required; must be < 0; unique across visual+audio
+  muted?: boolean;
+  clips: AudioClip[];
+};
+
+type AudioClip = {
+  id: Id;
   assetId: Id;
   start: number;
   duration: number;
-  trimStart: number;
+  trimStart?: number;
   trimEnd?: number;
-  playbackRate: number;
-  volume: number;
-  loop: boolean;
-  fadeIn: number;
-  fadeOut: number;
+  playbackRate?: number;
+  volume?: number;
+  loop?: boolean;
+  fadeIn?: number; // default 0 — DSP envelope on this clip only
+  fadeOut?: number; // default 0
   muted?: boolean;
 };
 ```
 
-`duration`, `trimEnd` va `playbackRate` bat buoc de preview/export cung resolve lifetime. Khong mac dinh audio keo dai toi composition end neu asset metadata da co.
+Audio fade la DSP primitive co chu dich (`fadeIn`/`fadeOut` tren chinh clip). Khong suy luan crossfade giua hai audio clips. Same-track overlap duoc phep (mix).
 
 ## 18. Bindings
 
@@ -680,17 +682,21 @@ Rules:
 - Unknown optional extension co the preserve round-trip nhung khong tu y render.
 - Khong cho source code, function hoac dynamic import.
 
-## 21. Editor state khong thuoc project
+## 21. Editor / UI session khong thuoc `MotionProjectV3`
 
-Nhung field sau nam trong `editor/workspace.mt`, khong nam trong canonical project:
+Nhung field sau chi thuoc **UI session** (`editor/workspace.mt` / app store), **khong** nam trong `MotionProjectV3` hay canonical project:
 
 ```text
-currentTime, playing, selectedNodeIds, selectedClipIds,
-timelineZoom, timelineScroll, collapsedLanes, activePanel,
-inspectorTab, stageScale, stagePan, stageView, undoHistory
+playhead / currentTime, playing,
+selectedNodeIds, selectedClipIds,
+timelineZoom, timelineScroll,
+collapsedLanes, activePanel, inspectorTab,
+stageScale, stagePan, stageView, undoHistory
 ```
 
-Xoa editor state khong duoc lam thay doi video output hay project/runtime hash.
+Contract timing dung `time` / `timelineTime` (giay tren truc project) — khong dung wording "playhead" khi mo ta schema, compile, hay resolve.
+
+Xoa UI session khong duoc lam thay doi video output hay project/runtime hash.
 
 ## 22. Minimal valid v2 project
 
@@ -1172,7 +1178,7 @@ timeline.sceneOrder
   -> timeline.visualTracks[main].clips
 
 scene.transition
-  -> corresponding visual clip transitionOut
+  -> scene/component/layer animation (khong emit transitionOut)
 
 timeline.audioTracks
   -> add duration/playbackRate from asset metadata/defaults

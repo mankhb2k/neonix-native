@@ -1,52 +1,45 @@
 import { describe, expect, it } from "vitest";
-import {
-  evaluateCompositionLayers,
-  compositionTotalDuration,
-} from "./evaluate-composition-layers";
+import { evaluateCompositionLayers } from "./evaluate-composition-layers";
 
-describe("composition layer evaluator", () => {
-  const scenes = [
-    {
-      sceneId: "a",
-      duration: 2,
-      transitionOut: { type: "crossfade" as const, duration: 0.5 },
-    },
-    { sceneId: "b", duration: 2, transitionOut: { type: "cut" as const } },
-  ];
+describe("evaluateCompositionLayers", () => {
+  it("returns empty layers in a gap", () => {
+    const plan = evaluateCompositionLayers(
+      [
+        { sceneId: "a", start: 0, duration: 2 },
+        { sceneId: "b", start: 3, duration: 2 },
+      ],
+      2.5,
+      1080,
+      1920,
+    );
+    expect(plan.layers).toEqual([]);
+  });
 
-  it("keeps single layer outside transitions", () => {
-    const plan = evaluateCompositionLayers(scenes, 0.5, 1080, 1920);
-    expect(plan.layers).toHaveLength(1);
-    expect(plan.layers[0]!.sceneId).toBe("a");
+  it("renders active layers sorted by input order (track stack)", () => {
+    const plan = evaluateCompositionLayers(
+      [
+        { sceneId: "base", start: 0, duration: 5, opacity: 1, trackOrder: 0 },
+        { sceneId: "fx", start: 1, duration: 2, opacity: 0.5, trackOrder: 1 },
+      ],
+      1.5,
+      1080,
+      1920,
+    );
+    expect(plan.layers).toHaveLength(2);
+    expect(plan.layers[0]!.sceneId).toBe("base");
     expect(plan.layers[0]!.opacity).toBe(1);
+    expect(plan.layers[1]!.sceneId).toBe("fx");
+    expect(plan.layers[1]!.opacity).toBe(0.5);
   });
 
-  it("crossfade differs from hard cut during overlap", () => {
-    const plan = evaluateCompositionLayers(scenes, 1.75, 1080, 1920);
-    expect(plan.layers.length).toBeGreaterThanOrEqual(1);
-    const outgoing = plan.layers.find((l) => l.sceneId === "a");
-    const incoming = plan.layers.find((l) => l.sceneId === "b");
-    expect(outgoing?.opacity ?? 1).toBeLessThan(1);
-    expect(incoming).toBeTruthy();
-    expect((incoming?.opacity ?? 0) > 0).toBe(true);
-  });
-
-  it("fade is not the same as crossfade (fade uses overlay)", () => {
-    const fadeScenes = [
-      {
-        sceneId: "a",
-        duration: 2,
-        transitionOut: { type: "fade" as const, duration: 0.5, color: "#000" },
-      },
-      { sceneId: "b", duration: 2 },
-    ];
-    const plan = evaluateCompositionLayers(fadeScenes, 1.75, 1080, 1920);
-    const outgoing = plan.layers.find((l) => l.sceneId === "a");
-    expect(outgoing?.fadeOverlay).toBeGreaterThan(0);
-    expect(outgoing?.fadeColor).toBe("#000");
-  });
-
-  it("computes total duration with overlap", () => {
-    expect(compositionTotalDuration(scenes)).toBe(3.5);
+  it("maps localTime from composition window", () => {
+    const plan = evaluateCompositionLayers(
+      [{ sceneId: "a", start: 2, duration: 3 }],
+      3,
+      1080,
+      1920,
+    );
+    expect(plan.layers).toHaveLength(1);
+    expect(plan.layers[0]!.localTime).toBeCloseTo(1);
   });
 });

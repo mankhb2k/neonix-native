@@ -4,7 +4,7 @@
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
-    "description": "Project with an embedded component used by a visual clip",
+    "description": "Project with an embedded component instantiated as a scene node",
     "locale": "vi-VN"
   },
   "composition": {
@@ -81,20 +81,50 @@
       "actions": []
     }
   ],
-  "scenes": [],
+  "scenes": [
+    {
+      "id": "logo-scene",
+      "name": "Logo Scene",
+      "duration": 4,
+      "nodes": [
+        {
+          "id": "logo-instance",
+          "type": "component",
+          "parentId": null,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 256,
+            "height": 256,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "logo-reveal"
+          }
+        }
+      ]
+    }
+  ],
   "timeline": {
     "visualTracks": [
       {
         "id": "component-track",
-        "role": "main",
         "order": 0,
         "muted": false,
         "clips": [
           {
             "id": "clip-logo-reveal",
             "source": {
-              "kind": "component",
-              "componentId": "logo-reveal"
+              "kind": "scene",
+              "sceneId": "logo-scene"
             },
             "start": 0,
             "duration": 4,

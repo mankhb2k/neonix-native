@@ -4,7 +4,12 @@
  * The root schema lives in ./project (leaf module, no barrel cycle)
  * so mcp, patch, parse, and skills can import it without circular deps.
  */
-export { MotionProjectV3Schema, type MotionProjectV3 } from "./project";
+export {
+  MotionProjectV3Schema,
+  CanonicalMotionProjectV3Schema,
+  type MotionProjectV3,
+  type CanonicalMotionProjectV3,
+} from "./project";
 
 export * from "./common";
 export * from "./metadata";
@@ -20,6 +25,7 @@ export * from "./extensions";
 export * from "./provenance";
 export * from "./references";
 export * from "./parse";
+export * from "./normalize";
 export * from "./nodes";
 export * from "./animation";
 export * from "./canonical-hash";

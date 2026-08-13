@@ -2,9 +2,11 @@ import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 export type TimelineProjectLike = {
   timeline: {
-    /** V3 visual tracks — the sole source of timeline ordering. */
+    /** Explicit final MP4 length (compiler canonicalization). */
+    duration?: number;
+    /** V3 visual tracks — stacking by `order` (unique). */
     visualTracks: ReadonlyArray<{
-      role: string;
+      order: number;
       clips: ReadonlyArray<{
         source: { kind: string; sceneId?: string; componentId?: string };
         start: number;
@@ -34,51 +36,64 @@ export type TimelineSceneSegment = {
   name?: string;
   start: number;
   duration: number;
+  /** Visual track stacking order (higher draws on top / wins resolve). */
+  trackOrder: number;
 };
 
 /**
- * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
+ * Ordered scene segments on the global timeline.
  *
- * Phase 7: resolves exclusively from the primary visualTracks track (V3 model).
+ * Includes clips from ALL visual tracks. Sorted by start, then track order.
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
 ): TimelineSceneSegment[] {
   const byId = new Map(runtime.scenes.map((scene) => [scene.id, scene]));
-
-  // Phase 7: visualTracks primary track is the sole source
-  const primaryTrack = runtime.timeline.visualTracks.find(
-    (t) => t.role === "primary",
-  );
-  if (!primaryTrack || primaryTrack.clips.length === 0) {
-    return [];
+  const allClips: Array<{
+    source: { kind: string; sceneId?: string; componentId?: string };
+    start: number;
+    duration: number;
+    trackOrder: number;
+  }> = [];
+  for (const track of runtime.timeline.visualTracks) {
+    for (const clip of track.clips) {
+      allClips.push({ ...clip, trackOrder: track.order });
+    }
   }
-  const sortedClips = [...primaryTrack.clips].sort((a, b) => a.start - b.start);
-  return sortedClips.map((clip) => {
-    const sourceId =
-      clip.source.kind === "scene"
-        ? clip.source.sceneId
-        : clip.source.componentId;
+  if (allClips.length === 0) return [];
+  const sorted = [...allClips].sort((a, b) => {
+    if (a.start !== b.start) return a.start - b.start;
+    return a.trackOrder - b.trackOrder;
+  });
+  return sorted.map((clip) => {
+    const sourceId = clip.source.sceneId ?? "";
     const scene = sourceId ? byId.get(sourceId) : undefined;
     return {
-      sceneId: sourceId ?? "",
+      sceneId: sourceId,
       name: scene?.name,
       start: clip.start,
       duration: clip.duration,
+      trackOrder: clip.trackOrder,
     };
   });
 }
 
 export function timelineTotalDuration(runtime: TimelineProjectLike): number {
-  return listTimelineSegments(runtime).reduce(
-    (sum, segment) => sum + segment.duration,
+  const declared = runtime.timeline.duration;
+  if (declared !== undefined && declared > 0) return declared;
+  const allClips = runtime.timeline.visualTracks.flatMap((t) => t.clips);
+  if (allClips.length === 0) return 0;
+  return allClips.reduce(
+    (max, clip) => Math.max(max, clip.start + clip.duration),
     0,
   );
 }
 
 /**
- * Map global playhead time → active scene + local time (hard cut).
- * Clamps to the last frame of the last scene when past the end.
+ * Map global playhead time → active scene + local time.
+ *
+ * When multiple clips overlap, the **highest track.order** wins (topmost
+ * layer). Empty tail and past-end return `null`.
  */
 export function resolveTimelineAtTime(
   runtime: TimelineProjectLike,
@@ -87,37 +102,39 @@ export function resolveTimelineAtTime(
   const segments = listTimelineSegments(runtime);
   if (segments.length === 0) return null;
 
-  const totalDuration = segments.reduce((sum, s) => sum + s.duration, 0);
+  const totalDuration = timelineTotalDuration(runtime);
   const t = Number.isFinite(globalTime) ? Math.max(0, globalTime) : 0;
 
+  if (totalDuration > 0 && t >= totalDuration) return null;
+
+  let best: { segment: TimelineSceneSegment; index: number } | null = null;
   for (let i = 0; i < segments.length; i += 1) {
     const segment = segments[i]!;
     const end = segment.start + segment.duration;
-    const isLast = i === segments.length - 1;
-    if (t < end || (isLast && t >= segment.start)) {
-      const localTime = Math.min(
-        Math.max(0, t - segment.start),
-        Math.max(0, segment.duration - 1e-6),
-      );
-      return {
-        sceneId: segment.sceneId,
-        localTime,
-        sceneStart: segment.start,
-        sceneDuration: segment.duration,
-        totalDuration,
-        sceneIndex: i,
-      };
+    if (t < segment.start || t >= end) continue;
+    if (!best) {
+      best = { segment, index: i };
+      continue;
+    }
+    if (segment.trackOrder > best.segment.trackOrder) {
+      best = { segment, index: i };
     }
   }
 
-  const last = segments[segments.length - 1]!;
+  if (!best) return null;
+
+  const { segment, index } = best;
+  const localTime = Math.min(
+    Math.max(0, t - segment.start),
+    Math.max(0, segment.duration - 1e-6),
+  );
   return {
-    sceneId: last.sceneId,
-    localTime: Math.max(0, last.duration - 1e-6),
-    sceneStart: last.start,
-    sceneDuration: last.duration,
+    sceneId: segment.sceneId,
+    localTime,
+    sceneStart: segment.start,
+    sceneDuration: segment.duration,
     totalDuration,
-    sceneIndex: segments.length - 1,
+    sceneIndex: index,
   };
 }
 

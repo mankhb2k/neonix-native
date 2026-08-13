@@ -31,7 +31,7 @@ function minimalProject(): MotionProjectV3 {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
+    capabilities: { required: [] },
     dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     tokens: {},
     variables: [],
@@ -295,15 +295,14 @@ describe("V3 MCP contract", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
       scenes: [
-        { id: "intro", duration: 3, nodes: [], clips: [] },
-        { id: "outro", duration: 2, nodes: [], clips: [] },
+        { id: "intro", duration: 3, space: "flat-2d", nodes: [], clips: [] },
+        { id: "outro", duration: 2, space: "flat-2d", nodes: [], clips: [] },
       ],
       timeline: {
         ...minimalProject().timeline,
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -314,7 +313,6 @@ describe("V3 MCP contract", () => {
                 duration: 3,
                 loop: false,
                 opacity: 1,
-                transitionOut: { type: "fade", duration: 0.5 },
               },
               {
                 id: "c2",
@@ -330,28 +328,41 @@ describe("V3 MCP contract", () => {
         audioTracks: [
           {
             id: "bgm",
-            role: "bgm",
-            assetId: "music-1",
-            start: 0,
-            duration: 5,
-            volume: 0.8,
-            trimStart: 0,
-            playbackRate: 1,
-            fadeIn: 0,
-            fadeOut: 0,
-            loop: true,
-            muted: false,
+            order: -1,
+            clips: [
+              {
+                id: "bgm-clip",
+                assetId: "music-1",
+                start: 0,
+                duration: 5,
+                volume: 0.8,
+                trimStart: 0,
+                playbackRate: 1,
+                fadeIn: 0,
+                fadeOut: 0,
+                loop: true,
+                muted: false,
+              },
+            ],
           },
         ],
         captionTracks: [
           {
             id: "cap-en",
             locale: "en-US",
+            enabled: true,
             tokens: [
               { id: "t1", text: "Hello", start: 0, end: 2 },
               { id: "t2", text: "World", start: 2, end: 5 },
             ],
-            style: { fontSize: 36, fill: "#ffffff", position: "bottom" },
+            segmentation: { maxLines: 2 },
+            style: {
+              fontSize: 36,
+              fill: "#ffffff",
+              position: "bottom",
+              safeArea: "generic",
+            },
+            animation: { presetId: "none" },
           },
         ],
       },
@@ -360,9 +371,9 @@ describe("V3 MCP contract", () => {
     expect(result.trackCount).toBe(1);
     expect(result.totalClipCount).toBe(2);
     expect(result.totalDuration).toBe(5);
-    expect(result.tracks[0]!.clips[0]!.transitionOut).toBe("fade");
+    expect(result.tracks[0]!.order).toBe(0);
     expect(result.audioTracks).toHaveLength(1);
-    expect(result.audioTracks[0]!.role).toBe("bgm");
+    expect(result.audioTracks[0]!.clips[0]!.assetId).toBe("music-1");
     expect(result.captionTracks).toHaveLength(1);
     expect(result.captionTracks[0]!.tokenCount).toBe(2);
     expect(result.captionTracks[0]!.firstToken).toBe("Hello");
@@ -372,13 +383,14 @@ describe("V3 MCP contract", () => {
   it("inspects a specific track by id", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
-      scenes: [{ id: "a", duration: 2, nodes: [], clips: [] }],
+      scenes: [
+        { id: "a", duration: 2, space: "flat-2d", nodes: [], clips: [] },
+      ],
       timeline: {
         ...minimalProject().timeline,
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -394,7 +406,6 @@ describe("V3 MCP contract", () => {
           },
           {
             id: "overlay",
-            role: "overlay",
             order: 1,
             muted: false,
             clips: [
@@ -414,13 +425,15 @@ describe("V3 MCP contract", () => {
     const result = inspectTimeline(project, "overlay");
     expect(result.trackCount).toBe(1);
     expect(result.tracks[0]!.id).toBe("overlay");
-    expect(result.tracks[0]!.role).toBe("overlay");
+    expect(result.tracks[0]!.order).toBe(1);
   });
 
   // ── explainDiagnostics ────────────────────────────────────────────
 
   it("explains unknown scene diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "operations[0].target.sceneId",
@@ -435,6 +448,8 @@ describe("V3 MCP contract", () => {
 
   it("explains sceneOrder V2 leak diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "output.project.timeline",
@@ -450,22 +465,26 @@ describe("V3 MCP contract", () => {
 
   it("explains scene.transition V2 leak diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "output.project.scenes.0.transition",
           message:
-            "Skill output contains V2 field 'scene.transition' — transitions belong on timeline VisualClip.transitionOut",
+            "Skill output contains V2 field 'scene.transition' — transitions are not V3 primitives; express effects as scene/component/layer animation",
           severity: "error",
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain("scene");
-    expect(result.explanations[0]!.explanation).toContain("transition");
-    expect(result.explanations[0]!.explanation).toContain("transitionOut");
+    expect(result.explanations[0]!.explanation).toContain("not a V3 timeline primitive");
+    expect(result.explanations[0]!.suggestedAction).toContain("Remove transition");
+    expect(result.explanations[0]!.suggestedAction).not.toContain("transitionOut");
   });
 
   it("explains formatVersion: 2 V2 leak diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "output.project.formatVersion",
@@ -481,6 +500,8 @@ describe("V3 MCP contract", () => {
 
   it("explains post-patch validation failures", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "(composition.fps)",
@@ -496,6 +517,8 @@ describe("V3 MCP contract", () => {
 
   it("explains multiple diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         { path: "x", message: "Required", severity: "error" },
         { path: "y", message: "Unknown scene: foo", severity: "warning" },
@@ -506,12 +529,14 @@ describe("V3 MCP contract", () => {
 
   it("honors suggestFixes flag", () => {
     const withFixes = explainDiagnostics({
+      locale: "en",
       diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: true,
     });
     expect(withFixes.explanations[0]!.suggestedAction).toBeDefined();
 
     const withoutFixes = explainDiagnostics({
+      locale: "en",
       diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: false,
     });

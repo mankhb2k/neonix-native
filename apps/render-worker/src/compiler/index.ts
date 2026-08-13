@@ -4,9 +4,11 @@ import {
   isCompiledPreset,
   type CompileV3Options,
   type CompiledPresetId,
-  type MotionRuntimeProject,
 } from "@motionvideo/motion-compiler";
-import type { MotionProjectV3 } from "@motionvideo/motion-protocol";
+import type {
+  MotionProjectV3,
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol";
 
 /**
  * Phase 10: V3-only compiler bridge. All projects are V3 format.

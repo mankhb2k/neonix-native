@@ -75,7 +75,7 @@ validates `format: "motion-project"`, `formatVersion: 3`.
 | Design tokens                   | `project.tokens`                             | Raw CSS / theme files |
 | Editor UI state                 | App-specific store (Zustand / session-store) | ✅ NOT in project     |
 | Undo/redo history               | Editor command history                       | ✅ NOT in project     |
-| Selection, zoom, panels         | Editor UI state                              | ✅ NOT in project     |
+| playhead / currentTime, selection, zoom, scroll, panels | UI session only — never in `MotionProjectV3` | ✅ NOT in project     |
 | AI generation metadata          | `provenance` (optional)                      | AI model state        |
 | Custom extensions               | `extensions` (namespaced)                    | —                     |
 

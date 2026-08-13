@@ -1,10 +1,8 @@
 /**
  * V3 scene definitions.
  *
- * Key difference from v2: scenes do NOT carry a `transition` — transitions
- * live on timeline visual clips (`transitionOut`). Scenes also no longer
- * hold a `clips` array at the scene level in the timeline sense; scene-local
- * motion clips remain available as `clips`.
+ * Scenes do NOT carry timeline transition fields. Visual effects are
+ * scene/component node animation. Scene-local motion clips remain as `clips`.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -29,7 +27,10 @@ export const SceneDefinitionV3Schema = z
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
-    nodes: z.array(NodeV3Schema).max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
+    nodes: z
+      .array(NodeV3Schema)
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
     clips: z
       .array(MotionClipV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.clipsPerScene)
@@ -38,6 +39,34 @@ export const SceneDefinitionV3Schema = z
   })
   .strict()
   .superRefine((scene, context) => {
+    // Scene-local motion clip bounds — validate schedules that can be
+    // resolved statically. `after`/`with` chains are resolved (and cycle-
+    // checked) by the compiler, not here.
+    for (const [clipIndex, clip] of scene.clips.entries()) {
+      const schedule = clip.schedule;
+      if (schedule.kind === "absolute") {
+        const end = schedule.at + clip.duration;
+        if (end > scene.duration) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["clips", clipIndex, "schedule"],
+            message: `clip "${clip.id}" ends at ${end} beyond scene.duration (${scene.duration})`,
+          });
+        }
+      } else if (schedule.kind === "scene-end" && schedule.offset <= 0) {
+        // offset 0 = clip ends at scene end; negative = pad before end.
+        // start = scene.duration + offset - duration must be ≥ 0.
+        const start = scene.duration + schedule.offset - clip.duration;
+        if (start < 0) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["clips", clipIndex, "schedule"],
+            message: `clip "${clip.id}" (duration ${clip.duration}) would start before 0 with scene-end offset ${schedule.offset} and scene.duration ${scene.duration}`,
+          });
+        }
+      }
+    }
+
     if (scene.activeCameraId === undefined) return;
     const camera = scene.nodes.find((node) => node.id === scene.activeCameraId);
     if (!camera) {

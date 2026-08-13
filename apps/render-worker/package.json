@@ -11,6 +11,7 @@
     "export": "tsx src/cli-export.ts",
     "contact-sheet": "tsx src/cli-contact-sheet.ts",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "lint": "echo \"no lint yet\""
   },
   "dependencies": {
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^22.13.10",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.10"
   }
 }

@@ -51,7 +51,6 @@ describe("rich text content", () => {
         visualTracks: [
           {
             id: "primary",
-            role: "main" as const,
             order: 0,
             clips: [
               {

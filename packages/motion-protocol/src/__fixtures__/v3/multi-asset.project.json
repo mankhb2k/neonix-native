@@ -228,7 +228,7 @@
           "id": "video-bg",
           "type": "video",
           "parentId": null,
-          "zIndex": 0,
+          "zIndex": 4,
           "transform": {
             "x": 1620,
             "y": 540,
@@ -267,7 +267,6 @@
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "main",
         "order": 0,
         "muted": false,
         "clips": [
@@ -288,17 +287,22 @@
     "audioTracks": [
       {
         "id": "track-bgm",
-        "role": "bgm",
-        "assetId": "bgm",
-        "start": 0,
-        "duration": 42.5,
-        "trimStart": 0,
-        "playbackRate": 1,
-        "volume": 0.8,
-        "loop": false,
-        "fadeIn": 0.5,
-        "fadeOut": 1,
-        "muted": false
+        "clips": [
+          {
+            "id": "track-bgm-clip",
+            "assetId": "bgm",
+            "start": 0,
+            "duration": 42.5,
+            "trimStart": 0,
+            "playbackRate": 1,
+            "volume": 0.8,
+            "loop": false,
+            "fadeIn": 0.5,
+            "fadeOut": 1,
+            "muted": false
+          }
+        ],
+        "order": -1
       }
     ],
     "captionTracks": []

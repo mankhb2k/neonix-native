@@ -6,7 +6,11 @@
     "name": "V3 Multi-Scene Example",
     "description": "Demonstrates multiple scenes arranged on visualTracks with overlay",
     "locale": "vi-VN",
-    "tags": ["example", "v3", "multi-scene"]
+    "tags": [
+      "example",
+      "v3",
+      "multi-scene"
+    ]
   },
   "composition": {
     "width": 1080,
@@ -17,14 +21,22 @@
     "audioSampleRate": 48000
   },
   "capabilities": {
-    "required": ["primitive.text", "primitive.image"]
+    "required": [
+      "primitive.text",
+      "primitive.image"
+    ]
   },
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": []
   },
   "tokens": {
-    "colors": { "primary": "#1877f2", "text": "#111111" }
+    "colors": {
+      "primary": "#1877f2",
+      "text": "#111111"
+    }
   },
   "variables": [
     {
@@ -74,7 +86,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Welcome" },
+            "content": {
+              "kind": "plain",
+              "text": "Welcome"
+            },
             "fontSize": 64,
             "color": "#111111",
             "alignment": "center"
@@ -107,7 +122,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "This is body content" },
+            "content": {
+              "kind": "plain",
+              "text": "This is body content"
+            },
             "fontSize": 48,
             "color": "#333333",
             "alignment": "center"
@@ -140,7 +158,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Thank you!" },
+            "content": {
+              "kind": "plain",
+              "text": "Thank you!"
+            },
             "fontSize": 56,
             "color": "#1877f2",
             "alignment": "center"
@@ -153,24 +174,32 @@
     "visualTracks": [
       {
         "id": "main",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "c-intro",
-            "source": { "kind": "scene", "sceneId": "intro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
             "start": 0,
             "duration": 3
           },
           {
             "id": "c-body",
-            "source": { "kind": "scene", "sceneId": "body" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "body"
+            },
             "start": 3,
             "duration": 5
           },
           {
             "id": "c-outro",
-            "source": { "kind": "scene", "sceneId": "outro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "outro"
+            },
             "start": 8,
             "duration": 2
           }
@@ -178,12 +207,14 @@
       },
       {
         "id": "overlay-logo",
-        "role": "overlay",
         "order": 1,
         "clips": [
           {
             "id": "c-logo",
-            "source": { "kind": "scene", "sceneId": "intro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
             "start": 0,
             "duration": 10,
             "opacity": 0.3
@@ -195,7 +226,10 @@
   "bindings": [
     {
       "id": "bind-headline",
-      "source": { "kind": "variable", "variableId": "headline-text" },
+      "source": {
+        "kind": "variable",
+        "variableId": "headline-text"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "intro",

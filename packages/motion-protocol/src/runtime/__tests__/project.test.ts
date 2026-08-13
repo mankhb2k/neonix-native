@@ -74,10 +74,10 @@ function baseIR(): Record<string, unknown> {
     },
     assets: [],
     timeline: {
+      duration: 5,
       visualTracks: [
         {
           id: "primary",
-          role: "primary",
           order: 0,
           clips: [
             {
@@ -173,7 +173,7 @@ describe("composition metadata (Task 6.2)", () => {
 });
 
 describe("visual track plan (Task 6.3)", () => {
-  it("clip source discriminates scene vs component", () => {
+  it("clip source accepts scene only and rejects component/preset", () => {
     expect(
       RuntimeClipSourceSchema.safeParse({ kind: "scene", sceneId: "intro" })
         .success,
@@ -183,7 +183,7 @@ describe("visual track plan (Task 6.3)", () => {
         kind: "component",
         componentId: "button",
       }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       RuntimeClipSourceSchema.safeParse({ kind: "preset", presetId: "x" })
         .success,
@@ -200,10 +200,20 @@ describe("visual track plan (Task 6.3)", () => {
       playbackRate: 1,
       loop: false,
       opacity: 0.9,
-      transitionIn: { type: "fade", duration: 0.3 },
-      transitionOut: { type: "fade", duration: 0.3 },
     });
     expect(parsed.success).toBe(true);
+  });
+
+  it("rejects transition fields on visual clips", () => {
+    expect(
+      RuntimeVisualClipSchema.safeParse({
+        id: "clip-intro",
+        source: { kind: "scene", sceneId: "intro" },
+        start: 0,
+        duration: 5,
+        transitionIn: { type: "fade", duration: 0.3 },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects negative start or non-positive duration", () => {
@@ -225,10 +235,9 @@ describe("visual track plan (Task 6.3)", () => {
     ).toBe(false);
   });
 
-  it("visual track wraps clips and validates role", () => {
+  it("visual track wraps clips and requires unique order (no role)", () => {
     const ok = RuntimeVisualTrackSchema.safeParse({
       id: "track-primary",
-      role: "primary",
       order: 0,
       muted: false,
       clips: [
@@ -244,6 +253,7 @@ describe("visual track plan (Task 6.3)", () => {
     const bad = RuntimeVisualTrackSchema.safeParse({
       id: "track-bad",
       role: "main",
+      order: 0,
       clips: [],
     });
     expect(bad.success).toBe(false);
@@ -254,7 +264,6 @@ describe("visual track plan (Task 6.3)", () => {
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
-        role: "primary",
         order: 0,
         clips: [
           {
@@ -280,7 +289,6 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
-        role: "primary",
         order: 0,
         clips: [
           {
@@ -293,7 +301,6 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
       },
       {
         id: "track-overlay",
-        role: "overlay",
         order: 1,
         clips: [
           {
@@ -312,8 +319,8 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
       (parsed.data as MotionRuntimeProject).timeline.visualTracks,
     ).toHaveLength(2);
     expect(
-      (parsed.data as MotionRuntimeProject).timeline.visualTracks[1]!.role,
-    ).toBe("overlay");
+      (parsed.data as MotionRuntimeProject).timeline.visualTracks[1]!.order,
+    ).toBe(1);
   });
 
   it("accepts an empty track (no clips)", () => {
@@ -321,7 +328,6 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
-        role: "primary",
         order: 0,
         clips: [
           {
@@ -334,7 +340,6 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
       },
       {
         id: "track-empty",
-        role: "overlay",
         order: 1,
         clips: [],
       },
@@ -348,10 +353,10 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
 
   it("accepts overlapping clips on the same track", () => {
     const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 7;
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
-        role: "primary",
         order: 0,
         clips: [
           {
@@ -376,60 +381,53 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
     ).toHaveLength(2);
   });
 
-  it("accepts transition clips", () => {
+  it("rejects transition fields on timeline clips", () => {
     const ir = baseIR();
-    (ir.timeline as Record<string, unknown>).visualTracks = [
-      {
-        id: "track-primary",
-        role: "primary",
-        order: 0,
-        clips: [
-          {
-            id: "clip-a",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 0,
-            duration: 3,
-            transitionOut: { type: "fade", duration: 0.5 },
-          },
-          {
-            id: "clip-b",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 2.5,
-            duration: 3,
-            transitionIn: { type: "fade", duration: 0.5 },
-          },
-        ],
-      },
-    ];
-    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
-    expect(parsed.success).toBe(true);
-    const clips = (parsed.data as MotionRuntimeProject).timeline
-      .visualTracks[0]!.clips;
-    expect(clips[0]!.transitionOut).toEqual({ type: "fade", duration: 0.5 });
-    expect(clips[1]!.transitionIn).toEqual({ type: "fade", duration: 0.5 });
+    ir.timeline = {
+      ...(ir.timeline as object),
+      visualTracks: [
+        {
+          id: "primary",
+          order: 0,
+          clips: [
+            {
+              id: "c1",
+              source: { kind: "scene", sceneId: "intro" },
+              start: 0,
+              duration: 3,
+              transitionOut: { type: "fade", duration: 0.5 },
+            },
+            {
+              id: "c2",
+              source: { kind: "scene", sceneId: "intro" },
+              start: 3,
+              duration: 2,
+              transitionIn: { type: "fade", duration: 0.5 },
+            },
+          ],
+        },
+      ],
+    };
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
 
-  it("rejects a track with no primary role", () => {
+  it("accepts tracks without legacy role field", () => {
     const ir = baseIR();
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
-        id: "track-only-overlay",
-        role: "overlay",
+        id: "overlay-only",
         order: 0,
         clips: [
           {
-            id: "clip-a",
+            id: "c1",
             source: { kind: "scene", sceneId: "intro" },
             start: 0,
-            duration: 5,
+            duration: 2,
           },
         ],
       },
     ];
-    // Schema does not enforce "must have primary" — only role enum.
-    // This is valid; resolution layer handles missing primary gracefully.
-    const parsed = MotionRuntimeProjectSchema.safeParse(ir);
-    expect(parsed.success).toBe(true);
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
 });
 
@@ -464,7 +462,7 @@ describe("source refs (Task 6.4)", () => {
   it("full IR accepts scene + project sourceRef", () => {
     const ir = baseIR();
     (ir.scenes as unknown[])[0] = {
-      ...(ir.scenes as unknown[])[0],
+      ...((ir.scenes as unknown[])[0] as Record<string, unknown>),
       sourceRef: {
         projectPath: ["components", "button"],
         sourceModule: "button@1.0.0",
@@ -507,7 +505,6 @@ describe("serializability (Task 6.6)", () => {
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
-        role: "primary",
         order: 0,
         clips: [
           {
@@ -546,5 +543,76 @@ describe("serializability (Task 6.6)", () => {
     ir.composition = { width: 1080, height: 1920, fps: 30 };
     const parsed = MotionRuntimeProjectSchema.parse(ir);
     expect(MotionRuntimeProjectSchema.safeParse(parsed).success).toBe(true);
+  });
+});
+
+describe("timeline.duration (Phase 5)", () => {
+  it("accepts an explicit timeline duration", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 10;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
+  });
+
+  it("rejects missing timeline.duration", () => {
+    const ir = baseIR();
+    delete (ir.timeline as Record<string, unknown>).duration;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("accepts duration 0 (empty draft)", () => {
+    const ir = baseIR();
+    const timeline = ir.timeline as Record<string, unknown>;
+    timeline.duration = 0;
+    timeline.visualTracks = [
+      { id: "primary", order: 0, clips: [] },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
+  });
+
+  it("rejects a visual clip that ends beyond duration", () => {
+    const ir = baseIR();
+    // baseIR's clip is start 0 + duration 5 → ends at 5.
+    (ir.timeline as Record<string, unknown>).duration = 3;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("rejects a caption token that ends beyond duration", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 1;
+    (ir.timeline as Record<string, unknown>).captionTracks = [
+      {
+        id: "caption-1",
+        locale: "vi-VN",
+        tokens: [{ id: "tok-1", text: "hi", start: 0, end: 5 }],
+        style: { fontSize: 48, fill: "#ffffff" },
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("rejects an audio track that ends beyond duration", () => {
+    const ir = baseIR();
+    const timeline = ir.timeline as Record<string, unknown>;
+    timeline.duration = 1;
+    timeline.visualTracks = [
+      { id: "primary", order: 0, clips: [] },
+    ];
+    timeline.audioTracks = [
+      { id: "audio-1", order: -1, clips: [{ id: "audio-1-clip", assetId: "a", start: 0, duration: 2 }] },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("accepts an audio track exactly ending at duration", () => {
+    const ir = baseIR();
+    const timeline = ir.timeline as Record<string, unknown>;
+    timeline.duration = 2;
+    timeline.visualTracks = [
+      { id: "primary", order: 0, clips: [] },
+    ];
+    timeline.audioTracks = [
+      { id: "audio-1", order: -1, clips: [{ id: "audio-1-clip", assetId: "a", start: 0, duration: 2 }] },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
 });

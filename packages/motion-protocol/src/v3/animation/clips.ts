@@ -110,7 +110,16 @@ export const MotionClipV3Schema = z
     playback: PlaybackSchema.default({}),
     source: ClipSourceV3Schema,
   })
-  .strict();
+  .strict()
+  .superRefine((val, ctx) => {
+    if (val.source.kind === "preset" && !val.targetId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "targetId is required when source.kind is 'preset'",
+        path: ["targetId"],
+      });
+    }
+  });
 
 // ── V3 aliases ────────────────────────────────────────────────────────
 

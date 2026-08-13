@@ -4,7 +4,7 @@
 
 > **V3 is the only authoring protocol.** `formatVersion` must be `3`. Compat layer and V2 authoring types have been permanently removed from the source tree. All public APIs use neutral canonical names (`EffectSchema`, `BrandSchema`, `NodeTimingSchema` — no `V2` suffix).
 
-> **For AI agents / MCP / Skills:** Generate `MotionProjectV3`. Use `visualTracks` (not `sceneOrder`). Transitions live on `VisualClip.transitionOut`. Runtime IR is produced by `@motionvideo/motion-compiler` — you only author the project JSON.
+> **For AI agents / MCP / Skills:** Generate `MotionProjectV3`. Use `visualTracks` (not `sceneOrder`). Visual clip source is scene-only — no `transitionIn`/`transitionOut`, no `role`, no `source.kind: "component"`. Effects = scene/component/layer animation. Runtime IR is produced by `@motionvideo/motion-compiler` — you only author the project JSON.
 
 ---
 
@@ -215,18 +215,18 @@ Beat phải sorted và nằm trong `duration` asset; số lượng bị giới h
 
 **Thuật ngữ thống nhất**:
 
-- `timeline track/lane` là lane của scene trong `timeline.visualTracks`, có `role: main | overlay`.
+- `timeline track/lane` là lane của scene trong `timeline.visualTracks` (không có field `role`).
 - `timeline layer` là node layer bên trong một scene, được sắp bởi `node.zIndex`.
-- `visualTracks[].order` quyết định track/lane nào vẽ trước, nào vẽ sau.
+- `visualTracks[].order` **unique** — quyết định track nào vẽ trước, nào vẽ sau.
 - `node.zIndex` chỉ quyết định thứ tự node bên trong scene, không dùng để so sánh track/lane.
 
-- **`timeline.visualTracks`**: Danh sách các track visual (`primary`, `overlay`, `background`) với `VisualClip[]` — mỗi clip có `source` (`scene` hoặc `component`), `start`, `duration`, và `transitionOut`.
+- **`timeline.visualTracks`**: Danh sách track visual với `VisualClip[]` — mỗi clip có `source: { kind: "scene", sceneId }`, `start`, `duration`. Component là scene node (`type: "component"`), không phải clip source.
 - **Quy tắc chồng lớp**:
   - `visualTracks[].order` quyết định track nào vẽ trước/vẽ sau.
   - `order` nhỏ hơn nằm dưới, `order` lớn hơn nằm trên.
-  - `role` chỉ là ý nghĩa sematic của track/lane, không thay thế `order`.
-  - `node.zIndex` chỉ dùng để sắp xếp node bên trong scene, không dùng để quyết định overlay/base giữa các track/lane.
-- **`audioTracks`**: BGM / voiceover / SFX với `start`, `trimStart`, `volume`, `loop`, `fadeIn` / `fadeOut`.
+  - Cùng lane không overlap thời gian. Không transition bridge.
+  - `node.zIndex` chỉ dùng để sắp xếp node bên trong scene.
+- **`audioTracks`**: BGM / voiceover / SFX với clips; `fadeIn` / `fadeOut` là DSP envelope trên clip, không suy luận crossfade.
 - **`captionTracks`**: Caption là **timeline content** (giây project global), không gắn tùy ý vào một text node.
 
 Một `CaptionTrack` gồm:
@@ -238,20 +238,11 @@ Một `CaptionTrack` gồm:
 
 Compiler chia token → cues deterministic; runtime biết token nào active theo frame; click preview map về `SourceRef` (`caption-token` / `caption-cue`). Speech-to-text **không** thuộc package này — chỉ nhận `CaptionToken[]` đã có.
 
-#### Visual Clip Transitions (V3)
+#### Không có Visual Clip Transitions
 
-Transition nằm trên `VisualClip.transitionOut`, không còn trên `Scene`:
+Timeline **không** có `transitionIn` / `transitionOut`. `scene.transition` cũng không tồn tại. Muốn fade/slide/wipe/flash: animate layer hoặc component trong scene, rồi clip timeline trỏ scene đó.
 
-| type        | Ý nghĩa ngắn gọn                             |
-| ----------- | -------------------------------------------- |
-| `cut`       | Cắt cứng (mặc định)                          |
-| `fade`      | Fade qua màu nền (`color?`) — khác crossfade |
-| `crossfade` | Hai clip chồng alpha                         |
-| `slide`     | Đẩy / phủ theo hướng (`push` \| `cover`)     |
-| `wipe`      | Reveal kiểu mask (`softness?`)               |
-| `zoom`      | Zoom composition `in` \| `out`               |
-
-> **Lưu ý:** V3 authoring chỉ dùng `VisualClip.transitionOut`. `scene.transition` không còn tồn tại trong schema V3.
+Audio `fadeIn` / `fadeOut` là DSP primitive trên audio clip — không phải visual transition.
 
 Evaluator composition dùng chung ở motion-runtime (một layer plan cho preview và export).
 
@@ -456,7 +447,7 @@ Skills là instruction template được validate bởi protocol. Mỗi skill c�
 
 - Luôn dùng `MotionProjectV3` (formatVersion: 3)
 - Timeline dùng `visualTracks`, không dùng `sceneOrder`
-- Transitions nằm trên `VisualClip.transitionOut`, không trên `Scene`
+- Visual clip source chỉ `kind: "scene"`; effect = scene/component/layer animation — không `transitionOut`
 - Runtime IR do compiler sinh — agent chỉ cần tạo project JSON hợp lệ
 
 ---
@@ -497,7 +488,10 @@ Authoring source of truth:   MotionProjectV3     (formatVersion: 3)
 Editing source of truth:     MotionProjectV3Patch  (patch format)
 Runtime source of truth:     MotionRuntimeProject  (compiler output, not authored)
 Timeline source of truth:    visualTracks          (not sceneOrder)
-Transition source of truth:  VisualClip.transitionOut  (not scene.transition)
+Visual effect source:        scene/component/layer animation (not transitionIn/Out)
+Canonical parse:             MotionProjectV3Schema  (rejects component clip source)
+Legacy normalize (bindings/variants only): normalizeMotionProjectV3
+  — no timeline component-source migration
 ```
 
 Mọi consumer (editor, AI planner, compiler, MCP server, render providers) đều sử dụng cùng một contract này. Không có đường dẫn V2 ẩn nào còn tồn tại.

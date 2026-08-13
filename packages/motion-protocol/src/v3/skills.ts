@@ -222,7 +222,7 @@ export function validateMotionSkillOutput(
             diagnostics.push({
               path: `output.project.scenes.${i}.transition`,
               message:
-                "Skill output contains V2 field 'scene.transition' — transitions belong on timeline VisualClip.transitionOut",
+                "Skill output contains V2 field 'scene.transition' — transitions are not V3 primitives; express effects as scene/component/layer animation",
               severity: "error",
             });
           }
@@ -304,6 +304,7 @@ export const BRAND_INTRO_SKILL: MotionSkillManifest = {
     "Creates a 5-second brand introduction with animated logo reveal and headline text",
   version: "1.0.0",
   author: { name: "MotiClip" },
+  instructionFormat: "text/markdown",
   requiredCapabilities: [
     "primitive.text",
     "primitive.image",
@@ -335,6 +336,7 @@ export const SOCIAL_AD_SKILL: MotionSkillManifest = {
     "Patches a project for social media ad formats with safe-area-aware layout",
   version: "1.0.0",
   author: { name: "MotiClip" },
+  instructionFormat: "text/markdown",
   requiredCapabilities: [
     "primitive.text",
     "primitive.image",
@@ -370,6 +372,7 @@ export const SUBTITLE_STYLING_SKILL: MotionSkillManifest = {
     "Styles existing caption tracks with brand fonts, colors, and positioning",
   version: "1.0.0",
   author: { name: "MotiClip" },
+  instructionFormat: "text/markdown",
   requiredCapabilities: ["primitive.text"],
   inputSchema: {
     type: "object",
@@ -401,6 +404,7 @@ export const PRODUCT_DEMO_SKILL: MotionSkillManifest = {
     "Creates a product demonstration with feature highlights and call-to-action",
   version: "1.0.0",
   author: { name: "MotiClip" },
+  instructionFormat: "text/markdown",
   requiredCapabilities: [
     "primitive.text",
     "primitive.image",
@@ -442,6 +446,7 @@ export const CORPORATE_TEMPLATE_SKILL: MotionSkillManifest = {
     "Creates a professional corporate video template with consistent branding",
   version: "1.0.0",
   author: { name: "MotiClip" },
+  instructionFormat: "text/markdown",
   requiredCapabilities: [
     "primitive.text",
     "primitive.shape",

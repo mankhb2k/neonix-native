@@ -34,38 +34,40 @@ export const NodeMaskV3Schema = z
   })
   .strict();
 
-export const NodeBaseV3Schema = z.object({
-  id: IdSchema,
-  type: IdSchema,
-  name: z.string().min(1).optional(),
-  parentId: IdSchema.nullable(),
-  zIndex: z.number().int().optional(),
-  transform: TransformV3Schema,
-  timing: NodeTimingSchema.optional(),
-  semantic: SemanticSchema.optional(),
-  effects: z
-    .array(EffectSchema)
-    .max(MOTION_PROTOCOL_LIMITS.effectsPerNode)
-    .optional(),
-  blendMode: z
-    .enum([
-      "normal",
-      "multiply",
-      "screen",
-      "add",
-      "darken",
-      "lighten",
-      "overlay",
-    ])
-    .optional(),
-  mask: NodeMaskV3Schema.optional(),
-  inheritFlags: InheritFlagsSchema.optional(),
-  visible: z.boolean().default(true),
-  locked: z.boolean().default(false),
-  modifiers: z
-    .array(MotionModifierSchema)
-    .max(MOTION_PROTOCOL_LIMITS.modifiersPerNode)
-    .optional(),
-});
+export const NodeBaseV3Schema = z
+  .object({
+    id: IdSchema,
+    type: IdSchema,
+    name: z.string().min(1).optional(),
+    parentId: IdSchema.nullable(),
+    zIndex: z.number().int().optional(),
+    transform: TransformV3Schema,
+    timing: NodeTimingSchema.optional(),
+    semantic: SemanticSchema.optional(),
+    effects: z
+      .array(EffectSchema)
+      .max(MOTION_PROTOCOL_LIMITS.effectsPerNode)
+      .optional(),
+    blendMode: z
+      .enum([
+        "normal",
+        "multiply",
+        "screen",
+        "add",
+        "darken",
+        "lighten",
+        "overlay",
+      ])
+      .optional(),
+    mask: NodeMaskV3Schema.optional(),
+    inheritFlags: InheritFlagsSchema.optional(),
+    visible: z.boolean().default(true),
+    locked: z.boolean().default(false),
+    modifiers: z
+      .array(MotionModifierSchema)
+      .max(MOTION_PROTOCOL_LIMITS.modifiersPerNode)
+      .optional(),
+  })
+  .strict();
 
 export { PaintStyleSchema };

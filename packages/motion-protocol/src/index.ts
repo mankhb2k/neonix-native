@@ -24,8 +24,16 @@ export * as V3 from "./v3";
 import {
   parseMotionProjectV3,
   MotionProjectV3Schema,
+  CanonicalMotionProjectV3Schema,
   serializeMotionProjectV3,
+  deriveTimelineDurationV3,
+  hasTimelineContentV3,
+  getVisualTimelineEndV3,
+  getAudioTimelineEndV3,
+  getCaptionTimelineEndV3,
+  canonicalizeTimelineDurationV3,
   type MotionProjectV3,
+  type CanonicalMotionProjectV3,
 } from "./v3";
 
 export type MotionProject = MotionProjectV3;
@@ -34,6 +42,17 @@ export const MOTION_FORMAT_VERSION = 3 as const;
 
 /** Parse a motion project JSON payload. Only formatVersion 3 is accepted. */
 export function parseMotionProject(input: unknown): MotionProject {
+  if (
+    input !== null &&
+    typeof input === "object" &&
+    !Array.isArray(input) &&
+    (input as Record<string, unknown>).formatVersion === 1
+  ) {
+    throw new Error(
+      "Format version 1 motion projects are no longer supported. " +
+        "Please migrate your project to format version 3.",
+    );
+  }
   if (
     input !== null &&
     typeof input === "object" &&
@@ -56,13 +75,24 @@ export function serializeMotionProject(project: MotionProject): string {
 export {
   parseMotionProjectV3,
   MotionProjectV3Schema,
+  CanonicalMotionProjectV3Schema,
   serializeMotionProjectV3,
+  deriveTimelineDurationV3,
+  hasTimelineContentV3,
+  getVisualTimelineEndV3,
+  getAudioTimelineEndV3,
+  getCaptionTimelineEndV3,
+  canonicalizeTimelineDurationV3,
 };
 export type {
   MotionProjectV3,
+  CanonicalMotionProjectV3,
   VisualClipV3,
   VisualTrackV3,
   AudioTrackV3,
+  CaptionTrackV3,
+  CanonicalizeTimelineDurationIssue,
+  CanonicalizeTimelineDurationResult,
 } from "./v3";
 
 // ── Canonical hash utilities ──────────────────────────────────────────
@@ -210,6 +240,8 @@ export {
   FontAssetSchema,
   AssetSchema,
 } from "./runtime/assets";
+// V3 authoring asset schemas (compile-time)
+export { AssetV3Schema, type AssetV3 } from "./v3/assets";
 
 // Captions — owned by V3 (Phase 2)
 export {
@@ -282,6 +314,7 @@ export {
   CameraNodeV3Schema as CameraNodeSchema,
   SolidNodeV3Schema as SolidNodeSchema,
   AdjustmentNodeV3Schema as AdjustmentNodeSchema,
+  ComponentNodeV3Schema as ComponentNodeSchema,
   NodeV3Schema as NodeSchema,
   type NodeV3 as MotionNode,
 } from "./v3/nodes";

@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "ee4ac222d7f6e42bb880cd1cc85694d4",
+  "runtimeHash": "87e0000742ad56122677a5d24a9e55d8",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -82,10 +82,10 @@
     }
   },
   "timeline": {
+    "duration": 42.5,
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "primary",
         "order": 0,
         "clips": [
           {
@@ -103,14 +103,23 @@
     "audioTracks": [
       {
         "id": "track-bgm",
-        "role": "bgm",
-        "assetId": "bgm",
-        "start": 0,
-        "trimStart": 0,
-        "volume": 0.8,
-        "loop": false,
-        "fadeIn": 0.5,
-        "fadeOut": 1
+        "order": -1,
+        "muted": false,
+        "clips": [
+          {
+            "id": "track-bgm-clip",
+            "assetId": "bgm",
+            "start": 0,
+            "duration": 42.5,
+            "trimStart": 0,
+            "playbackRate": 1,
+            "volume": 0.8,
+            "loop": false,
+            "fadeIn": 0.5,
+            "fadeOut": 1,
+            "muted": false
+          }
+        ]
       }
     ],
     "captionTracks": []
@@ -257,7 +266,7 @@
           "id": "video-bg",
           "type": "video",
           "parentId": null,
-          "zIndex": 0,
+          "zIndex": 4,
           "transform": {
             "x": 1620,
             "y": 540,

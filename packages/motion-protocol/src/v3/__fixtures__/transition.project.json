@@ -4,9 +4,13 @@
   "metadata": {
     "id": "v3-transition",
     "name": "V3 Transition Example",
-    "description": "Demonstrates clip-level transitions (transitionIn/transitionOut) on visual clips",
+    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)",
     "locale": "vi-VN",
-    "tags": ["example", "v3", "transition"]
+    "tags": [
+      "example",
+      "v3",
+      "transition"
+    ]
   },
   "composition": {
     "width": 1080,
@@ -17,11 +21,19 @@
     "audioSampleRate": 48000
   },
   "capabilities": {
-    "required": ["primitive.text", "primitive.solid"],
-    "optional": ["transition.fade", "transition.slide", "transition.zoom"]
+    "required": [
+      "primitive.text",
+      "primitive.solid"
+    ],
+    "optional": [
+      "anim.transform",
+      "anim.opacity"
+    ]
   },
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": []
   },
   "tokens": {},
@@ -53,7 +65,11 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "width": 1080, "height": 1920, "color": "#ff6b35" }
+          "payload": {
+            "width": 1080,
+            "height": 1920,
+            "color": "#ff6b35"
+          }
         },
         {
           "id": "text-a",
@@ -75,7 +91,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Scene A" },
+            "content": {
+              "kind": "plain",
+              "text": "Scene A"
+            },
             "fontSize": 72,
             "color": "#ffffff",
             "alignment": "center"
@@ -107,7 +126,11 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "width": 1080, "height": 1920, "color": "#004e89" }
+          "payload": {
+            "width": 1080,
+            "height": 1920,
+            "color": "#004e89"
+          }
         },
         {
           "id": "text-b",
@@ -129,7 +152,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Scene B" },
+            "content": {
+              "kind": "plain",
+              "text": "Scene B"
+            },
             "fontSize": 72,
             "color": "#ffffff",
             "alignment": "center"
@@ -161,7 +187,11 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "width": 1080, "height": 1920, "color": "#2ecc71" }
+          "payload": {
+            "width": 1080,
+            "height": 1920,
+            "color": "#2ecc71"
+          }
         },
         {
           "id": "text-c",
@@ -183,7 +213,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Scene C" },
+            "content": {
+              "kind": "plain",
+              "text": "Scene C"
+            },
             "fontSize": 72,
             "color": "#ffffff",
             "alignment": "center"
@@ -196,56 +229,34 @@
     "visualTracks": [
       {
         "id": "main",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "clip-a",
-            "source": { "kind": "scene", "sceneId": "scene-a" },
-            "start": 0,
-            "duration": 3,
-            "transitionIn": {
-              "type": "fade",
-              "duration": 0.5,
-              "easing": "easeOut"
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-a"
             },
-            "transitionOut": {
-              "type": "slide",
-              "duration": 0.3,
-              "direction": "left"
-            }
+            "start": 0,
+            "duration": 3
           },
           {
             "id": "clip-b",
-            "source": { "kind": "scene", "sceneId": "scene-b" },
-            "start": 2.7,
-            "duration": 3,
-            "transitionIn": {
-              "type": "crossfade",
-              "duration": 0.3,
-              "easing": "easeInOut"
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-b"
             },
-            "transitionOut": {
-              "type": "zoom",
-              "duration": 0.4,
-              "direction": "out"
-            }
+            "start": 3,
+            "duration": 3
           },
           {
             "id": "clip-c",
-            "source": { "kind": "scene", "sceneId": "scene-c" },
-            "start": 5.4,
-            "duration": 3,
-            "transitionIn": {
-              "type": "wipe",
-              "duration": 0.5,
-              "direction": "left"
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-c"
             },
-            "transitionOut": {
-              "type": "fade",
-              "duration": 0.3,
-              "easing": "easeIn"
-            }
+            "start": 6,
+            "duration": 3
           }
         ]
       }
