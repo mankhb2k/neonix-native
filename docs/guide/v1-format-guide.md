@@ -331,7 +331,7 @@ Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính audio layer đó**, k
 
 ### 7.2 Project Bindings
 
-Binding kết nối project variable với layer property hoặc public component prop. Discriminator là `target.type` (`"layer"` | `"component"` | `"componentLayer"`) — không dùng `kind`, không có `sceneId`.
+Binding kết nối project variable với layer property hoặc public component prop. Discriminator là `target.type` (`"layer"` | `"componentLayer"`) — không dùng `kind`, không có bulk `component`.
 
 ```jsonc
 // Layer binding — layerId + property trên project layer graph
@@ -643,7 +643,7 @@ Theo dõi nguồn gốc project và source mapping:
 ### Khi dùng bindings
 
 1. **Layer binding** (`target.type: "layer"`): `layerId` + `property` trực tiếp
-2. **Component binding** (`"component"` / `"componentLayer"`): `propId` (tham chiếu `component.props`); nested chỉ qua `childProp`
+2. **Component binding** (`"componentLayer"`): `layerId` + `propId`; nested chỉ qua `childProp`
 3. **Kiểm tra type khớp**: string → text, number → opacity, color → fill...
 
 ---
@@ -659,7 +659,7 @@ Theo dõi nguồn gốc project và source mapping:
 | **Group layer**          | Wrapper với `children[]`; child timing local                                                     |
 | **Audio layer**          | Root-only leaf `type: "audio"`                                                                   |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |
-| **Bindings**             | `target.type`: `layer` / `component` / `componentLayer` — không `kind`, không `sceneId`          |
+| **Bindings**             | `target.type`: `layer` / `componentLayer` — props drilling only                                  |
 | **Strict validation**    | `.strict()` trên mọi object + reference validation                                               |
 | **Format discriminator** | `format: "motion-project"`, `formatVersion: 1` — từ chối V2                                      |
 | **Duplicate**            | Editor command only — JSON không có op duplicate                                                 |

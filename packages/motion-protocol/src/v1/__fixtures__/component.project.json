@@ -74,16 +74,14 @@
           "id": "primary",
           "name": "Primary CTA",
           "props": {
-            "color": "#1877f2",
-            "label": "Click me"
+            "color": "#1877f2"
           }
         },
         {
           "id": "outline",
           "name": "Outline CTA",
           "props": {
-            "color": "#ffffff",
-            "label": "Learn more"
+            "color": "#ffffff"
           }
         }
       ],

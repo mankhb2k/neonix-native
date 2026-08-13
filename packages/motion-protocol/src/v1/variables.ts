@@ -123,14 +123,6 @@ export const ProjectBindingV1Schema = z
         .strict(),
       z
         .object({
-          type: z.literal("component"),
-          componentId: IdSchema,
-          /** Public prop id declared by the component owner. */
-          propId: IdSchema,
-        })
-        .strict(),
-      z
-        .object({
           type: z.literal("componentLayer"),
           layerId: IdSchema,
           /** Public prop id declared by the referenced component owner. */
@@ -152,60 +144,3 @@ export type ProjectBindingV1 = z.infer<typeof ProjectBindingV1Schema>;
 export const VariableSchema = ProjectVariableV1Schema;
 
 export type MotionVariable = z.infer<typeof VariableSchema>;
-
-export const ContextBindingSourceSchema = z
-  .object({ kind: z.literal("context"), path: PropertyPathSchema })
-  .strict();
-
-/** Owner-only: bind a component-local variable/context into an internal layer. */
-export const ComponentBindingSchema = z
-  .object({
-    id: IdSchema,
-    source: z.union([VariableBindingSourceSchema, ContextBindingSourceSchema]),
-    target: z
-      .object({ layerId: IdSchema, property: PropertyPathSchema })
-      .strict(),
-  })
-  .strict();
-
-/** @deprecated Prefer `ComponentPropV1Schema`. Legacy public-param surface. */
-export const PublicParamSchema = z
-  .object({
-    id: IdSchema,
-    name: z.string().min(1).optional(),
-    type: z.enum([
-      "string",
-      "color",
-      "number",
-      "boolean",
-      "asset",
-      "enum",
-      "list",
-    ]),
-    label: z.string().min(1).optional(),
-    variableId: IdSchema,
-    semantic: SemanticSchema.optional(),
-    min: FiniteNumberSchema.optional(),
-    max: FiniteNumberSchema.optional(),
-    step: FiniteNumberSchema.positive().optional(),
-    previewHint: z.string().optional(),
-    options: z
-      .array(z.string())
-      .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.enumOptions)
-      .optional(),
-    group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
-    control: z
-      .enum([
-        "text",
-        "textarea",
-        "color-picker",
-        "slider",
-        "toggle",
-        "asset-picker",
-        "enum",
-      ])
-      .optional(),
-    capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
-  })
-  .strict();

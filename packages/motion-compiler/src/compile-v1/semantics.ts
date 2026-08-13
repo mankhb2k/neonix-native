@@ -118,31 +118,7 @@ export function validateV1Semantics(
     // Resolve the property path a binding targets, then type-check the
     // bound variable against it.
     const target = binding.target;
-    if (target.type === "component") {
-      const component = project.components.find(
-        (c) => c.id === target.componentId,
-      );
-      if (!component) continue;
-      const prop = component.props.find((p) => p.id === target.propId);
-      if (!prop) continue;
-      const expected = expectedVariableTypesForPropKind(prop.kind);
-      if (expected.length > 0 && !expected.includes(variable.type)) {
-        collector.error(
-          "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component "${target.componentId}" prop "${target.propId}" which expects ${expected.join(" or ")}`,
-          {
-            path: ["bindings", binding.id],
-            details: {
-              bindingId: binding.id,
-              variableType: variable.type,
-              componentId: target.componentId,
-              propId: target.propId,
-              expected,
-            },
-          },
-        );
-      }
-    } else if (target.type === "componentLayer") {
+    if (target.type === "componentLayer") {
       const node = V1.flattenLayerTree(project.layers).find(
         (candidate) => candidate.id === target.layerId,
       );

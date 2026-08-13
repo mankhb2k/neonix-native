@@ -1,7 +1,6 @@
 export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   idLength: 128,
-  scenesPerProject: 100,
-  layersPerScene: 2_000,
+  layersPerProject: 2_000,
   layersPerComponent: 2_000,
   clipsPerScene: 2_000,
   clipsPerComponent: 2_000,
@@ -45,7 +44,6 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   cutoutRigsPerComponent: 16,
   variantSlotsPerRig: 128,
   variantsPerSlot: 128,
-  lipSyncCuesPerAction: 512,
   effectsPerLayer: 16,
   effectRadius: 512,
   effectOffset: 32_768,

@@ -159,9 +159,6 @@
       "itemSchema": {
         "type": "object",
         "fields": {
-          "label": {
-            "type": "string"
-          },
           "value": {
             "type": "number"
           }
@@ -169,11 +166,9 @@
       },
       "value": [
         {
-          "label": "Users",
           "value": 1.2
         },
         {
-          "label": "Revenue",
           "value": 4.5
         }
       ]
@@ -323,9 +318,6 @@
             "property": "payload.height"
           }
         }
-      ],
-      "assetDependencies": [
-        "asset-font-display"
       ]
     }
   ],

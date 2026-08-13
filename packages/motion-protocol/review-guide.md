@@ -16,7 +16,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 2   | `src/v1/timeline/schema.ts`       | **Timeline metadata**. Chỉ `duration?` / `workArea?` / `markers?`. Không `visualTracks` / `audioTracks` / `captionTracks`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v1/components.ts`            | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
-| 4   | `src/v1/variables.ts`             | **Binding model** — phân biệt layer / componentLayer / component binding (`target.type`); consumer có được chạm internal không. |
+| 4   | `src/v1/variables.ts`             | **Binding model** — `target.type`: `layer` | `componentLayer`; consumer không chạm internals. |
 | 5   | `src/v1/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v1/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
 | 7   | `src/v1/__tests__/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
@@ -52,13 +52,13 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Consumer chỉ được dùng public API: `props`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
 - Asset props bắt buộc `assetKind`. Animate `payload.props.*` qua animation track bên ngoài → reject; prop animation phải nằm trong prop value keyframes.
-- Project-level binding không được target arbitrary component internals. `target.type: "component"` áp dụng mọi **project-tree** component instance cùng `componentId` (kể cả trong `group`); nested trong component definition chỉ qua `childProp`.
+- Project-level binding chỉ qua `target.type: "componentLayer"` (`layerId` + `propId`) trên project-tree instance; nested trong component definition chỉ qua `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model
 
-- Phân biệt **layer binding** (bind tới layer trên project layer graph) vs **componentLayer binding** (một project-tree component instance) vs **component binding** (mọi project-tree instance của `componentId`; nested nhận value qua `childProp`).
-- Consumer có bị bắt buộc dùng `propId` thay vì `layerId` / property nội bộ trực tiếp không.
-- Canonical schema: `ProjectBindingV1Schema` (`target.type`: `layer` | `component` | `componentLayer`).
+- Phân biệt **layer binding** vs **componentLayer binding**. Không còn bulk `target.type: "component"`.
+- Consumer bắt buộc dùng `propId` — không lách `layerId` + property nội bộ component.
+- Canonical: `ProjectBindingV1Schema` (`target.type`: `layer` | `componentLayer`). Source of truth prop = `ComponentPropV1Schema` + `propBindings` (đã gỡ `PublicParamSchema` / `ComponentBindingSchema`).
 
 ### 5) `src/v1/references/project.ts` — Semantic validation
 

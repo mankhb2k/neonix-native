@@ -183,7 +183,7 @@ function makeMotionProjectV1ObjectSchema(): z.ZodType<MotionProjectV1> {
         .default([]),
       layers: z
         .array(LayerV1Schema)
-        .max(MOTION_PROTOCOL_LIMITS.layersPerScene)
+        .max(MOTION_PROTOCOL_LIMITS.layersPerProject)
         .default([]),
       timeline: ProjectTimelineV1Schema,
       bindings: z

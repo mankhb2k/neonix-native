@@ -1,5 +1,5 @@
-/**
- * MotionRuntimeProject — canonical runtime IR schemas and types.
+﻿/**
+ * MotionRuntimeProject â€” canonical runtime IR schemas and types.
  *
  * Authoring and runtime share one layer graph: `layers` + animation `tracks`.
  * There is no serialized `scenes` array or visual/audio clip tracks.
@@ -24,7 +24,7 @@ import {
 } from "../v1/common";
 
 /**
- * Runtime IR format version — 1, matching V1 authoring.
+ * Runtime IR format version â€” 1, matching V1 authoring.
  */
 const RUNTIME_IR_FORMAT_VERSION = 1 as const;
 import {
@@ -43,7 +43,7 @@ import {
   VideoLayerSchema,
 } from "./layers";
 
-// ── Runtime IR schemas ────────────────────────────────────────────────
+// â”€â”€ Runtime IR schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
 import { LiteralValueSchema, ValueKindSchema } from "../v1/values";
@@ -131,14 +131,14 @@ export const AudioClipSchema = z
     if (clip.trimEnd !== undefined && clip.trimEnd > clip.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `trimEnd (${clip.trimEnd}) must be ≤ duration (${clip.duration})`,
+        message: `trimEnd (${clip.trimEnd}) must be â‰¤ duration (${clip.duration})`,
         path: ["trimEnd"],
       });
     }
     if (clip.fadeIn + clip.fadeOut > clip.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `fadeIn (${clip.fadeIn}) + fadeOut (${clip.fadeOut}) must be ≤ duration (${clip.duration})`,
+        message: `fadeIn (${clip.fadeIn}) + fadeOut (${clip.fadeOut}) must be â‰¤ duration (${clip.duration})`,
         path: ["fadeIn"],
       });
     }
@@ -159,7 +159,7 @@ export const AudioTrackSchema = z
   .strict();
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
 
-/** @deprecated Timeline transitions removed — kept only if legacy IR still references types. */
+/** @deprecated Timeline transitions removed â€” kept only if legacy IR still references types. */
 export const SceneTransitionSchema = z.discriminatedUnion("type", [
   z
     .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
@@ -229,7 +229,7 @@ export const SceneTransitionSchema = z.discriminatedUnion("type", [
 export type SceneTransition = z.infer<typeof SceneTransitionSchema>;
 
 /**
- * Runtime IR version — independent of the project format version.
+ * Runtime IR version â€” independent of the project format version.
  * Incremented when the runtime shape changes (new fields, new node types).
  * Renderers check this to reject incompatible IR.
  */
@@ -288,11 +288,11 @@ const RuntimeTrackSchema = z
   })
   .strict();
 
-// ── Runtime IR VNext ──────────────────────────────────────────────────
+// â”€â”€ Runtime IR VNext â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // The runtime IR (`MotionRuntimeProject`) is the compiler's serializable
 // output. Includes composition-level metadata, an optional visual track
-// plan, source refs for error mapping, and runtime hash inputs — all
+// plan, source refs for error mapping, and runtime hash inputs â€” all
 // OPTIONAL so older IR still parses (backward-compatible schema growth).
 
 /**
@@ -327,7 +327,7 @@ export type RuntimeCompositionMetadata = z.infer<
 >;
 
 /**
- * Source of a runtime visual clip — removed from IR; kept only for type export
+ * Source of a runtime visual clip â€” removed from IR; kept only for type export
  * during renderer migration. Runtime no longer serializes visual clips.
  */
 export const RuntimeClipSourceSchema = z
@@ -374,7 +374,7 @@ export const RuntimeVisualTrackSchema = z
 export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
 
 /**
- * Per-scene source ref — maps a runtime scene back to its authoring origin
+ * Per-scene source ref â€” maps a runtime scene back to its authoring origin
  * (scene id, component id, or timeline clip). Used for debug + error
  * mapping only; deliberately excluded from render hashing.
  */
@@ -387,7 +387,7 @@ export const RuntimeSourceRefSchema = z
 export type RuntimeSourceRef = z.infer<typeof RuntimeSourceRefSchema>;
 
 /**
- * Project-level source ref index: runtime sceneId → authoring origin
+ * Project-level source ref index: runtime sceneId â†’ authoring origin
  * description (e.g. `"scenes:intro"`, `"components:button@1.0.0"`).
  */
 export const RuntimeSourceRefMapSchema = z
@@ -414,7 +414,7 @@ export const RuntimeLayerGraphSchema = z
     sourceRef: RuntimeSourceRefSchema.optional(),
     layers: z
       .array(RuntimeVisualLayerSchema)
-      .max(MOTION_PROTOCOL_LIMITS.layersPerScene),
+      .max(MOTION_PROTOCOL_LIMITS.layersPerProject),
     tracks: z
       .array(RuntimeTrackSchema)
       .max(
@@ -425,7 +425,7 @@ export const RuntimeLayerGraphSchema = z
   })
   .strict();
 export type RuntimeLayerGraph = z.infer<typeof RuntimeLayerGraphSchema>;
-/** @deprecated Use RuntimeLayerGraph — no serialized scenes. */
+/** @deprecated Use RuntimeLayerGraph â€” no serialized scenes. */
 export const RuntimeSceneSchema = RuntimeLayerGraphSchema;
 export type RuntimeScene = RuntimeLayerGraph;
 
@@ -447,7 +447,7 @@ const MotionRuntimeProjectBaseSchema = z
     activeCameraLayerId: IdSchema.optional(),
     layers: z
       .array(RuntimeLayerSchema)
-      .max(MOTION_PROTOCOL_LIMITS.layersPerScene)
+      .max(MOTION_PROTOCOL_LIMITS.layersPerProject)
       .default([]),
     tracks: z
       .array(RuntimeTrackSchema)

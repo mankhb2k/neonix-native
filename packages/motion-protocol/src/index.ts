@@ -218,7 +218,6 @@ export {
 // Variables / Bindings — V1 canonical (Phase 7 neutral names)
 export {
   VariableSchema,
-  ComponentBindingSchema,
   ProjectBindingV1Schema,
   type ProjectBindingV1,
 } from "./v1/variables";

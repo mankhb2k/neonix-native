@@ -693,7 +693,8 @@ export function validateMotionProjectV1References(
           message: `Unknown layer: ${bindingTarget.layerId}`,
         });
       }
-    } else if (bindingTarget.type === "componentLayer") {
+    } else {
+      // componentLayer
       const node = layerById.get(bindingTarget.layerId);
       if (!node) {
         issues.push({
@@ -720,19 +721,6 @@ export function validateMotionProjectV1References(
             message: `Component "${node.payload.componentId}" does not declare prop "${bindingTarget.propId}"`,
           });
         }
-      }
-    } else {
-      const component = componentById.get(bindingTarget.componentId);
-      if (!component) {
-        issues.push({
-          path: `${path}.target.componentId`,
-          message: `Unknown component: ${bindingTarget.componentId}`,
-        });
-      } else if (!component.props.some((p) => p.id === bindingTarget.propId)) {
-        issues.push({
-          path: `${path}.target.propId`,
-          message: `Component "${bindingTarget.componentId}" does not declare prop "${bindingTarget.propId}"`,
-        });
       }
     }
   }

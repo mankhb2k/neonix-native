@@ -1184,10 +1184,6 @@
                       "type": "string",
                       "minLength": 1
                     },
-                    "label": {
-                      "type": "string",
-                      "minLength": 1
-                    },
                     "kind": {
                       "type": "string",
                       "enum": [
@@ -1230,9 +1226,6 @@
                       "exclusiveMinimum": true,
                       "minimum": 0
                     },
-                    "previewHint": {
-                      "type": "string"
-                    },
                     "options": {
                       "type": "array",
                       "items": {
@@ -1240,36 +1233,6 @@
                       },
                       "minItems": 1,
                       "maxItems": 256
-                    },
-                    "group": {
-                      "type": "string",
-                      "enum": [
-                        "content",
-                        "style",
-                        "motion",
-                        "layout",
-                        "audio"
-                      ]
-                    },
-                    "control": {
-                      "type": "string",
-                      "enum": [
-                        "text",
-                        "textarea",
-                        "color-picker",
-                        "slider",
-                        "toggle",
-                        "asset-picker",
-                        "choice"
-                      ]
-                    },
-                    "capability": {
-                      "type": "string",
-                      "enum": [
-                        "basic",
-                        "advanced",
-                        "designer-only"
-                      ]
                     }
                   },
                   "required": [
@@ -1300,9 +1263,6 @@
                         "$ref": "#/definitions/ComponentPropValue"
                       },
                       "default": {}
-                    },
-                    "previewHint": {
-                      "type": "string"
                     }
                   },
                   "required": [
@@ -3868,13 +3828,6 @@
                 },
                 "minItems": 1,
                 "maxItems": 2000
-              },
-              "assetDependencies": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                },
-                "maxItems": 1024
               }
             },
             "required": [
@@ -3995,27 +3948,6 @@
                       "type",
                       "layerId",
                       "property"
-                    ],
-                    "additionalProperties": false
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "const": "component"
-                      },
-                      "componentId": {
-                        "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                      },
-                      "propId": {
-                        "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                      }
-                    },
-                    "required": [
-                      "type",
-                      "componentId",
-                      "propId"
                     ],
                     "additionalProperties": false
                   },

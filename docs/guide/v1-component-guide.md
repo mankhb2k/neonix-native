@@ -334,9 +334,9 @@ Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child defini
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Project-tree layer, **project-tree** component instance (`componentLayer`), hoặc mọi **project-tree** instance của một `componentId` (`component`) |
+| `project.bindings` | Project | Project-tree layer (`layer`) hoặc **một** component instance (`componentLayer` = `layerId` + `propId`) |
 
-Global `target.type: "component"` **chỉ** áp dụng instance nằm trực tiếp trên project layer tree (root / group children trên project). Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
+Global bulk `target.type: "component"` **đã gỡ**. Nested Button trong Card không nhận project binding — parent phải `childProp`.
 
 Hai `propBindings` cùng `layerProperty` (`layerId` + `property`) → **reject**. Hai `childProp` cùng (`childLayerId` + `propId`) → **reject**.
 
@@ -362,9 +362,9 @@ Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 2. `variant.props`
 3. `payload.props`
 4. parent forwarded prop (`childProp`)
-5. project binding (`target.type: "component"` trên project-tree instances, hoặc `"componentLayer"`)
+5. project binding (`target.type: "componentLayer"`)
 
-Nested instance không nhận global `target.type: "component"`. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
+Nested instance không nhận project binding. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
 
 ```mermaid
 flowchart TD
@@ -440,24 +440,16 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 | Một màu = ba prop riêng | Một `brandColor` + ba bindings |
 | Bind thẳng internals từ project | Bind `propId` (project-tree instance) — compiler resolve prop rồi apply |
 | Skip-level vào layer của nested child | `childProp` từng tầng |
-| Global binding cho nested Button trong Card | Project-tree only; parent forward via `childProp` |
-| `component.bindings` / `internalBindings` | `propBindings` |
-| `layerProperty.layerId` | `layerId` |
-| `kind: "string"` / `"enum"` | `text` / `choice` |
-| Asset không có `assetKind` | Bắt buộc `assetKind` |
-| Variable ref không tồn tại | Reject |
-| Choice / asset lệch options / type | Reject (static, keyframes, variable) |
-| Keyframes trùng `t` / không sorted / vượt `layer.timing.duration` | Reject |
-| Hai propBindings cùng `layerProperty` | Một dây nối tới một property |
-| `slots` trên component | Đã gỡ; `.strict()` reject |
+| Global bulk binding mọi instance cùng `componentId` | `componentLayer` từng instance; nested qua `childProp` |
 | `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc layer tracks |
-| `target.kind` trên project binding | `target.type` |
+| `target.kind` / `target.type: "component"` | `target.type: "layer"` \| `"componentLayer"` |
+| `PublicParamSchema` / `ComponentBindingSchema` | `ComponentPropV1Schema` + `propBindings` |
 
 ---
 
 ## 10. Tóm tắt một câu
 
-> **Một prop có thể điều khiển nhiều layer; có thể forward xuống nhiều child; có thể là keyframes. User chỉ chỉnh props. Owner thiết kế propBindings. Compiler fan-out props thành internal values / tracks. Không có `actions`.**
+> **Một prop có thể điều khiển nhiều layer; có thể forward xuống nhiều child; có thể là keyframes. User chỉ chỉnh props. Owner thiết kế propBindings. Project binding chỉ `layer` | `componentLayer`. Không có `actions`.**
 
 ---
 

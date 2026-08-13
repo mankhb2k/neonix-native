@@ -61,7 +61,6 @@ export const ComponentPropV1Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1).optional(),
-    label: z.string().min(1).optional(),
     kind: ComponentPropKindSchema,
     default: JsonValueSchema,
     /** When omitted, inferred: choice/asset → false; others → true. */
@@ -72,26 +71,12 @@ export const ComponentPropV1Schema = z
     min: FiniteNumberSchema.optional(),
     max: FiniteNumberSchema.optional(),
     step: FiniteNumberSchema.positive().optional(),
-    previewHint: z.string().optional(),
     /** Required when kind === "choice". */
     options: z
       .array(z.string())
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.enumOptions)
       .optional(),
-    group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
-    control: z
-      .enum([
-        "text",
-        "textarea",
-        "color-picker",
-        "slider",
-        "toggle",
-        "asset-picker",
-        "choice",
-      ])
-      .optional(),
-    capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
   })
   .strict()
   .superRefine((prop, ctx) => {
@@ -153,7 +138,6 @@ export const ComponentVariantV1Schema = z
     id: IdSchema,
     name: z.string().min(1),
     props: z.record(ComponentPropValueSchema).default({}),
-    previewHint: z.string().optional(),
   })
   .strict();
 
@@ -185,10 +169,6 @@ export const ComponentDefinitionV1Schema = z
       .array(LayerV1Schema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.layersPerComponent),
-    assetDependencies: z
-      .array(IdSchema)
-      .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)
-      .optional(),
   })
   .strict()
   .superRefine((val, ctx) => {

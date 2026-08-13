@@ -214,9 +214,9 @@ export function compileMotionProjectV1(
     );
 
     // Component instances tracked during buildLayerPlan: componentLayerId →
-    // { componentId, runtimeGraphId }. Used to validate component bindings.
-    // Component/componentLayer bindings are prop sources applied during
-    // expand — they do not write onto expanded internals here.
+    // { componentId, runtimeGraphId }. Used to validate componentLayer bindings.
+    // componentLayer bindings are prop sources applied during expand — they do
+    // not write onto expanded internals here.
     const components = new Map(
       normalized.components.map((c) => [c.id, c] as const),
     );
@@ -279,52 +279,7 @@ export function compileMotionProjectV1(
         }
         continue;
       }
-      // Global component binding — project-tree instances only.
-      // Nested instances are not registered in componentInstances; they
-      // receive values only via parent childProp forwards.
-      const instances = [...componentInstances.values()].filter(
-        (instance) => instance.componentId === target.componentId,
-      );
-      if (instances.length === 0) {
-        collector.warn(
-          "CMP_UNRESOLVED_COMPONENT",
-          `Binding "${binding.id}" targets component "${target.componentId}" but no component layer instantiates it`,
-          {
-            path: ["bindings", binding.id],
-            details: {
-              bindingId: binding.id,
-              componentId: target.componentId,
-            },
-          },
-        );
-        continue;
-      }
-      const component = components.get(target.componentId);
-      const instanceLeaves = instances.map((instance) =>
-        component
-          ? resolvePropTargets(
-              components,
-              component,
-              target.propId,
-              instance.componentLayerId,
-            )
-          : [],
-      );
-      if (instanceLeaves.every((leaves) => leaves.length === 0)) {
-        collector.error(
-          "CMP_PRIVATE_COMPONENT_ACCESS",
-          `Binding "${binding.id}" targets component "${target.componentId}" prop "${target.propId}" which has no layerProperty binding`,
-          {
-            path: ["bindings", binding.id],
-            details: {
-              bindingId: binding.id,
-              componentId: target.componentId,
-              propId: target.propId,
-            },
-          },
-        );
-        continue;
-      }
+      // Only layer | componentLayer are valid binding targets.
       continue;
     }
 

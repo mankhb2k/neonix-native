@@ -53,7 +53,6 @@ See [docs/guide/v1-timeline-guide.md](../../docs/guide/v1-timeline-guide.md).
 target.type:
   layer          → project-tree layer property
   componentLayer → one project-tree component instance (layerId + propId)
-  component      → all project-tree instances of componentId (propId)
 nested-in-definition → childProp only
 ```
 

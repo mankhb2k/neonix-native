@@ -178,23 +178,24 @@ describe("V1 component / binding / keyframe references", () => {
     });
   });
 
-  it("accepts project binding target.type component for a declared component prop", () => {
-    const project = parseMotionProjectV1(
-      baseProject({
-        bindings: [
-          {
-            id: "bind-def",
-            source: { kind: "variable", variableId: "cta-label" },
-            target: {
-              type: "component",
-              componentId: "parent-card",
-              propId: "title",
+  it("rejects project binding target.type component (componentLayer only)", () => {
+    expect(() =>
+      parseMotionProjectV1(
+        baseProject({
+          bindings: [
+            {
+              id: "bind-def",
+              source: { kind: "variable", variableId: "cta-label" },
+              target: {
+                type: "component",
+                componentId: "parent-card",
+                propId: "title",
+              },
             },
-          },
-        ],
-      }),
-    );
-    expect(project.bindings[0]?.target.type).toBe("component");
+          ],
+        }),
+      ),
+    ).toThrow();
   });
 
   it("rejects prop keyframes whose t exceeds instance layer.timing.duration", () => {

@@ -117,11 +117,6 @@ function collectBindingValuesForInstance(
     const target = binding.target;
     let propId: string | undefined;
     if (
-      target.type === "component" &&
-      target.componentId === instance.payload.componentId
-    ) {
-      propId = target.propId;
-    } else if (
       target.type === "componentLayer" &&
       target.layerId === instance.id
     ) {
