@@ -15,7 +15,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 1   | `src/v3/project.ts`               | **Root schema** của V3. Hiểu `MotionProjectV3Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
 | 2   | `src/v3/timeline.ts`              | **Scene-only timeline**. Xem `visualTracks`, `VisualClipV3` — clip source chỉ cho phép `{ kind: "scene", sceneId }`.            |
 | 2b  | `src/v3/layers/component.ts`       | **Component node** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
-| 3   | `src/v3/components.ts`            | **Sealed component contract** — `props`, `slots`, `variants`, `propBindings`, internals.                                |
+| 3   | `src/v3/components.ts`            | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v3/variables.ts`             | **Binding model** — phân biệt scene binding vs component binding; consumer có được chạm internal không.                         |
 | 5   | `src/v3/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v3/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
@@ -49,7 +49,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 ### 3) `src/v3/components.ts` — Sealed component
 
 - Owner sở hữu toàn bộ internals (layers, internalBindings, actions).
-- Consumer chỉ được dùng public API: `props`, `slots`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
+- Consumer chỉ được dùng public API: `props`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
 - Asset props bắt buộc `assetKind`. Conflict: payload keyframes + scene `payload.props.*` cùng prop → reject.
 - Project-level binding không được target arbitrary component internals. Global `kind: "component"` chỉ scene-level instances.
@@ -85,7 +85,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | **Shape**            | Dữ liệu có đúng object/field/type/range không?                                        |
 | **Semantic**         | id, reference, property path có thật và đúng node type không?                         |
 | **Ownership**        | Consumer có bị chặn khỏi internal component không?                                    |
-| **Public API**       | Component owner chỉ expose đúng `props`, `slots`, `variants`? |
+| **Public API**       | Component owner chỉ expose đúng `props`, `variants`? |
 | **Instance Motion**  | Component có move/scale/keyframe như group layer mà không chạm internals không?       |
 | **Determinism**      | Cùng input có cho output/serialization ổn định không?                                 |
 | **Artifact Sync**    | `pnpm test` có fail khi `schema/v3.json` lệch Zod không? (required gate)              |

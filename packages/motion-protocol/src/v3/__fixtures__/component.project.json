@@ -69,17 +69,6 @@
           "default": "#1877f2"
         }
       ],
-      "slots": [
-        {
-          "id": "icon",
-          "name": "Leading icon",
-          "accepts": [
-            "image",
-            "svg"
-          ],
-          "count": 1
-        }
-      ],
       "variants": [
         {
           "id": "primary",

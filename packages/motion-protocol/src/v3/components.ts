@@ -1,7 +1,7 @@
 /**
  * V3 components & dependencies.
  *
- * A component is a sealed design template with public props, variants, and slots.
+ * A component is a sealed design template with public props and variants.
  * Consumers (scene instances, project bindings) may override only public props.
  * Owner wiring from props to internals uses `propBindings` — not a consumer API.
  *
@@ -148,30 +148,6 @@ export const ComponentPropBindingV3Schema = z
   })
   .strict();
 
-/** Content kinds a slot can accept. */
-export const SlotContentKindSchema = z.enum([
-  "text",
-  "image",
-  "svg",
-  "video",
-  "color",
-  "number",
-  "boolean",
-  "asset",
-]);
-
-/** Structured content insertion without exposing internals. */
-export const ComponentSlotV3Schema = z
-  .object({
-    id: IdSchema,
-    name: z.string().min(1),
-    accepts: z.array(SlotContentKindSchema).min(1).max(8),
-    count: z.number().int().min(1).max(16).default(1),
-    fallback: JsonValueSchema.optional(),
-    previewHint: z.string().optional(),
-  })
-  .strict();
-
 /** Typed variant preset — overrides public props only. */
 export const ComponentVariantV3Schema = z
   .object({
@@ -204,7 +180,6 @@ export const ComponentDefinitionV3Schema = z
       .array(ComponentPropV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.publicParamsPerComponent)
       .default([]),
-    slots: z.array(ComponentSlotV3Schema).max(64).default([]),
     variants: z.array(ComponentVariantV3Schema).max(128).default([]),
 
     // ── Owner-only wiring (not consumer API) ─────────────────────
@@ -237,19 +212,6 @@ export const ComponentDefinitionV3Schema = z
   })
   .strict()
   .superRefine((val, ctx) => {
-    const slotIds = new Set<string>();
-    for (let i = 0; i < val.slots.length; i++) {
-      const sid = val.slots[i]!.id;
-      if (slotIds.has(sid)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate slot id "${sid}"`,
-          path: ["slots", i, "id"],
-        });
-      }
-      slotIds.add(sid);
-    }
-
     const propIds = new Set<string>();
     for (let i = 0; i < val.props.length; i++) {
       const prop = val.props[i]!;
@@ -309,7 +271,5 @@ export type ComponentPropBindingTargetV3 = z.infer<
 >;
 export type ComponentDependencyV3 = z.infer<typeof ComponentDependencyV3Schema>;
 export type ProjectDependenciesV3 = z.infer<typeof ProjectDependenciesV3Schema>;
-export type SlotContentKind = z.infer<typeof SlotContentKindSchema>;
 export type ComponentVariantV3 = z.infer<typeof ComponentVariantV3Schema>;
-export type ComponentSlotV3 = z.infer<typeof ComponentSlotV3Schema>;
 export type ComponentInternalBindingV3 = z.infer<typeof ComponentBindingSchema>;

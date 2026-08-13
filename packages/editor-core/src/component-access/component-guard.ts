@@ -6,8 +6,8 @@
  * - **Owner mode**: can edit ALL component internals (layers, bindings, actions,
  *   public surface). Used when the user is authoring/editing a component
  *   definition.
- * - **Consumer mode**: can ONLY interact with the public surface (publicParams,
- *   slots, variants, publicTargets, actions). Internal layers are sealed.
+ * - **Consumer mode**: can ONLY interact with the public surface (props,
+ *   variants, actions). Internal layers are sealed.
  *
  * These guards are designed to be called by the property panel, node tree,
  * and command executors BEFORE any mutation. They return structured results
@@ -54,7 +54,6 @@ export type AccessCheckResult =
 /** Properties on the public surface that a consumer is allowed to read. */
 export const CONSUMER_READABLE_PROPERTIES = [
   "publicParams",
-  "slots",
   "variants",
   "actions",
   "publicTargets",
@@ -66,7 +65,6 @@ export type ConsumerReadableProperty =
 /** Properties on the public surface that a consumer is allowed to write. */
 export const CONSUMER_WRITABLE_PROPERTIES = [
   "publicParams",
-  "slots",
   "variants",
 ] as const;
 
@@ -92,7 +90,7 @@ export function canConsumerRead(property: string): AccessCheckResult {
 
 /**
  * Check whether a consumer can write to a specific component property.
- * Consumers can only write to publicParams, slots, and variants.
+ * Consumers can only write to publicParams and variants.
  * Actions are read-only triggers, publicTargets are owner-only definitions.
  */
 export function canConsumerWrite(property: string): AccessCheckResult {
@@ -190,34 +188,6 @@ export function canSelectVariant(
     reason: `Variant "${variantId}" is not defined in component "${component.id}"`,
     suggestion: `Available variants: ${component.variants.map((v) => v.id).join(", ") || "none"}`,
   };
-}
-
-/**
- * Check whether a slot fill is valid for a component.
- * Only slots declared by the owner can be filled, and content must match
- * the accepted kinds.
- */
-export function canFillSlot(
-  component: V3.EmbeddedComponentV3,
-  slotId: string,
-  contentKind: string,
-): AccessCheckResult {
-  const slot = component.slots.find((s) => s.id === slotId);
-  if (!slot) {
-    return {
-      allowed: false,
-      reason: `Slot "${slotId}" is not defined in component "${component.id}"`,
-      suggestion: `Available slots: ${component.slots.map((s) => s.id).join(", ") || "none"}`,
-    };
-  }
-  if (!slot.accepts.includes(contentKind as V3.SlotContentKind)) {
-    return {
-      allowed: false,
-      reason: `Slot "${slotId}" does not accept "${contentKind}"`,
-      suggestion: `Accepted kinds: ${slot.accepts.join(", ")}`,
-    };
-  }
-  return { allowed: true };
 }
 
 /**

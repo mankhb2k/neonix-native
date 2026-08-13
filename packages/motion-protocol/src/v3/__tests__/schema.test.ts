@@ -1742,6 +1742,143 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     expect(() => MotionProjectV3Schema.parse({ ...input, components })).toThrow();
   });
 
+  it("rejects leftover slots field on a component definition", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({ ...c, slots: [] }),
+    );
+    expect(() =>
+      MotionProjectV3Schema.parse({ ...input, components }),
+    ).toThrow();
+  });
+
+  it("rejects two propBindings targeting the same layerProperty", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          { id: "fill", kind: "color", default: "#000000" },
+        ],
+        propBindings: [
+          {
+            propId: "color",
+            target: {
+              kind: "layerProperty",
+              layerId: "cta-bg",
+              property: "payload.color",
+            },
+          },
+          {
+            propId: "fill",
+            target: {
+              kind: "layerProperty",
+              layerId: "cta-bg",
+              property: "payload.color",
+            },
+          },
+        ],
+      }),
+    );
+    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
+      MotionV3ReferenceError,
+    );
+    try {
+      parseMotionProjectV3({ ...input, components });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'Duplicate layerProperty target "cta-bg" "payload.color"',
+      );
+    }
+  });
+
+  it("rejects two propBindings targeting the same childProp", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const cta = (input.components as Array<Record<string, unknown>>)[0]!;
+    const bg = (cta.layers as Array<Record<string, unknown>>).find(
+      (n) => n.id === "cta-bg",
+    )!;
+    const child = {
+      id: "swatch",
+      version: "1.0.0",
+      integrity: "sha256:swatch",
+      props: [{ id: "fill", kind: "color", default: "#111111" }],
+      propBindings: [
+        {
+          propId: "fill",
+          target: {
+            kind: "layerProperty",
+            layerId: "fill-layer",
+            property: "payload.color",
+          },
+        },
+      ],
+      layers: [{ ...structuredClone(bg), id: "fill-layer" }],
+    };
+    const parent = {
+      ...cta,
+      props: [
+        ...((cta.props as Array<Record<string, unknown>>) ?? []),
+        { id: "accent", kind: "color", default: "#222222" },
+      ],
+      propBindings: [
+        {
+          propId: "color",
+          target: {
+            kind: "childProp",
+            childLayerId: "swatch-1",
+            propId: "fill",
+          },
+        },
+        {
+          propId: "accent",
+          target: {
+            kind: "childProp",
+            childLayerId: "swatch-1",
+            propId: "fill",
+          },
+        },
+      ],
+      layers: [
+        ...((cta.layers as Array<Record<string, unknown>>) ?? []),
+        {
+          id: "swatch-1",
+          type: "component",
+          parentLayerId: null,
+          zIndex: 2,
+          transform: structuredClone(bg.transform),
+          payload: { componentId: "swatch" },
+        },
+      ],
+    };
+    expect(() =>
+      parseMotionProjectV3({
+        ...input,
+        components: [parent, child],
+      }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({
+        ...input,
+        components: [parent, child],
+      });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'Duplicate childProp target "swatch-1" "fill"',
+      );
+    }
+  });
+
   it("rejects propBinding with unknown layerId", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
@@ -2146,6 +2283,205 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
       parseMotionProjectV3({ ...input, components, scenes });
     } catch (err) {
       expect(String(err)).toContain("is not animatable");
+    }
+  });
+
+  it("accepts keyframes on choice when animatable is explicitly true", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "style",
+            kind: "choice",
+            options: ["solid", "outline"],
+            default: "solid",
+            animatable: true,
+          },
+        ],
+      }),
+    );
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  props: {
+                    style: {
+                      kind: "keyframes",
+                      keys: [
+                        { t: 0, value: "solid" },
+                        { t: 1, value: "outline" },
+                      ],
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    const project = parseMotionProjectV3({ ...input, components, scenes });
+    expect(project.scenes.length).toBeGreaterThan(0);
+  });
+
+  it("accepts step keyframes on asset when animatable is explicitly true", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "avatar",
+            kind: "asset",
+            assetKind: "image",
+            default: "logo-png",
+            animatable: true,
+          },
+        ],
+      }),
+    );
+    const assets = [
+      {
+        id: "logo-png",
+        uri: "./logo.png",
+        integrity: "sha256:logo",
+        assetType: "image",
+        mimeType: "image/png",
+        width: 512,
+        height: 512,
+      },
+      {
+        id: "logo-alt",
+        uri: "./logo-alt.png",
+        integrity: "sha256:logo-alt",
+        assetType: "image",
+        mimeType: "image/png",
+        width: 512,
+        height: 512,
+      },
+    ];
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  props: {
+                    avatar: {
+                      kind: "keyframes",
+                      interpolation: "step",
+                      keys: [
+                        { t: 0, value: "logo-png" },
+                        { t: 1, value: "logo-alt" },
+                      ],
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    const project = parseMotionProjectV3({
+      ...input,
+      components,
+      assets,
+      scenes,
+    });
+    expect(project.scenes.length).toBeGreaterThan(0);
+  });
+
+  it("rejects non-step interpolation on an animatable asset prop", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "avatar",
+            kind: "asset",
+            assetKind: "image",
+            default: "logo-png",
+            animatable: true,
+          },
+        ],
+      }),
+    );
+    const assets = [
+      {
+        id: "logo-png",
+        uri: "./logo.png",
+        integrity: "sha256:logo",
+        assetType: "image",
+        mimeType: "image/png",
+        width: 512,
+        height: 512,
+      },
+      {
+        id: "logo-alt",
+        uri: "./logo-alt.png",
+        integrity: "sha256:logo-alt",
+        assetType: "image",
+        mimeType: "image/png",
+        width: 512,
+        height: 512,
+      },
+    ];
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  props: {
+                    avatar: {
+                      kind: "keyframes",
+                      interpolation: "linear",
+                      keys: [
+                        { t: 0, value: "logo-png" },
+                        { t: 1, value: "logo-alt" },
+                      ],
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components, assets, scenes }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, components, assets, scenes });
+    } catch (err) {
+      expect(String(err)).toContain(
+        'keyframes interpolation "linear" is invalid for kind "asset"',
+      );
     }
   });
 

@@ -30,11 +30,11 @@ Timeline **không biết** component. Scene đặt instance. Definition mô tả
 
 ## Câu chốt contract
 
-> A **component** is a sealed design template with public **props**, **variants**, and **slots**.  
+> A **component** is a sealed design template with public **props** and **variants**.  
 > A **component layer** is an **instance** placed in a scene.  
 > **Props** are public signals. A prop value can be **static**, **variable-bound**, or **keyframed**.  
 > **PropBindings** wire each signal into one or many internal layers (or child props).  
-> Only **animatable** props may receive keyframes.  
+> Only **animatable** props may receive keyframes (`choice` / `asset` default off; set `animatable: true` to opt in; asset stays step-only).  
 > Nested components may forward prop values (including keyframes) only to **direct child props**.  
 > Asset props must declare `assetKind`; asset keyframes are **step-only**.
 
@@ -209,8 +209,8 @@ type PropKind = "text" | "number" | "boolean" | "color" | "choice" | "asset";
 | `number` | opacity, progress, size | `true` | linear / easing |
 | `boolean` | showIcon, visible | `true` | step |
 | `color` | brandColor, fill | `true` | color |
-| `choice` | style, layout, mode | `false` | step |
-| `asset` | image, video, font… | `false` | step |
+| `choice` | style, layout, mode | `false` (`animatable: true` được) | step |
+| `asset` | image, video, font… | `false` (`animatable: true` được) | step |
 
 Không dùng `string` / `enum` / `list` trên public API (`text` thay string, `choice` thay enum).
 
@@ -285,10 +285,11 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 - `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ scene.duration`**
 - `number` / `color`: interpolate được
 - `text` / `boolean` / `choice` / `asset`: chỉ **step**
-- `animatable: false` + keyframes → **reject**
+- `animatable: false` (hoặc omitted trên choice/asset) + keyframes → **reject**
+- `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
 - Asset / choice / variable: mỗi key (và variable ref) phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
-- **Conflict:** cùng prop vừa có payload keyframes vừa có scene track `payload.props.<propId>` → **reject**
+- Scene track `payload.props.<propId>` là **prop source** (thắng payload static/keyframes). Compiler resolve props xong rồi mới fan-out — không remap track xuống internals.
 
 Prop animation ≠ wrapper transform. Scene clips animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
 
@@ -299,7 +300,7 @@ Prop animation ≠ wrapper transform. Scene clips animate **wrapper** của inst
 | Target | Shape | Ý nghĩa |
 | --- | --- | --- |
 | `layerProperty` | `{ kind: "layerProperty", layerId, property }` | Nối tín hiệu → property của layer nội bộ |
-| `childProp` | `{ kind: "childProp", childId, propId }` | Forward tín hiệu → prop của **child component trực tiếp** |
+| `childProp` | `{ kind: "childProp", childLayerId, propId }` | Forward tín hiệu → prop của **child component trực tiếp** |
 
 ### Forward xuống child
 
@@ -338,28 +339,43 @@ Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child defini
 
 Global `target.kind: "component"` **chỉ** áp dụng instance nằm trực tiếp trên scene. Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
 
+Hai `propBindings` cùng `layerProperty` (`layerId` + `property`) → **reject**. Hai `childProp` cùng (`childLayerId` + `propId`) → **reject**.
+
 ---
 
 ## 6. Resolve order
 
-1. `prop.default`  
-2. `variant.props`  
-3. `instance.payload.props`  
-4. Project / data binding (`propId`)  
-5. Scene prop animation (`payload.props.*`) — không conflict với keyframes ở bước 3  
-6. Forward mọi `childProp`  
-7. Apply mọi `layerProperty` (static → set; keyframes → emit track **cho từng** binding)
+Luồng **một chiều**. Không write ngược. Không child override parent. Binding **không** ghi xuống internals.
+
+```text
+root source
+  -> parent prop
+  -> child prop
+  -> grandchild prop
+  -> internal layerProperty
+```
+
+Mọi nguồn đều là **prop source**. Binding chỉ drive public prop. Compiler merge cascade xong rồi mới apply `layerProperty` / emit tracks.
+
+Priority **mỗi prop trên mỗi instance** (sau thắng trước):
+
+1. `prop.default`
+2. `variant.props`
+3. `payload.props`
+4. parent forwarded prop (`childProp`)
+5. project binding (`kind: component` scene-level, hoặc `kind: componentLayer`)
+6. scene prop track (clip target instance, `property: payload.props.<propId>`)
+
+Nested instance không nhận global `kind: component`. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
 
 ```mermaid
 flowchart TD
-  d["default"]
-  v["variant"]
-  i["instance props"]
-  b["project binding"]
-  s["scene prop tracks"]
-  f["childProp forward"]
-  a["layerProperty fan-out"]
-  d --> v --> i --> b --> s --> f --> a
+  collect[Collect scene-level instances]
+  sources[Resolve prop sources per instance]
+  merge[Merge cascade into resolvedProps]
+  forward[Forward childProp to nested instances]
+  apply[Apply layerProperty + emit keyframe clips]
+  collect --> sources --> merge --> forward --> apply
 ```
 
 ---
@@ -396,7 +412,6 @@ flowchart TD
   ],
   "layers": [/* circle, title, border, … */],
   "internalBindings": [],
-  "slots": [],
   "variants": [],
   "actions": []
 }
@@ -427,7 +442,7 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải 
 | --- | --- |
 | User sửa `layers` / `propBindings` | User chỉ set `payload.props` |
 | Một màu = ba prop riêng | Một `brandColor` + ba bindings |
-| Bind thẳng internals từ project | Bind `propId` (scene-level instance) |
+| Bind thẳng internals từ project | Bind `propId` (scene-level instance) — compiler resolve prop rồi apply |
 | Skip-level vào layer của nested child | `childProp` từng tầng |
 | Global binding cho nested Button trong Card | Scene-level only; parent forward |
 | `component.bindings` (project schema) | `internalBindings` |
@@ -437,7 +452,8 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải 
 | Variable ref không tồn tại | Reject |
 | Choice / asset lệch options / type | Reject (static, keyframes, variable) |
 | Keyframes trùng `t` / không sorted / vượt scene | Reject |
-| Keyframes + scene track cùng prop | Một kênh thôi |
+| Hai propBindings cùng `layerProperty` | Một dây nối tới một property |
+| `slots` trên component | Đã gỡ; `.strict()` reject |
 
 ---
 

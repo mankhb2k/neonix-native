@@ -937,6 +937,8 @@ export function validateMotionProjectV3References(
     }
 
     // Validate propBindings
+    const layerPropertySeen = new Map<string, string>();
+    const childPropSeen = new Map<string, string>();
     for (const binding of component.propBindings) {
       const prop = propById.get(binding.propId);
       if (!prop) {
@@ -948,6 +950,15 @@ export function validateMotionProjectV3References(
       }
       const target = binding.target;
       if (target.kind === "layerProperty") {
+        const layerPropertyKey = `${target.layerId}\0${target.property}`;
+        if (layerPropertySeen.has(layerPropertyKey)) {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `Duplicate layerProperty target "${target.layerId}" "${target.property}"`,
+          });
+        } else {
+          layerPropertySeen.set(layerPropertyKey, binding.propId);
+        }
         const node = component.layers.find((n) => n.id === target.layerId);
         if (!node) {
           issues.push({
@@ -961,6 +972,15 @@ export function validateMotionProjectV3References(
           });
         }
       } else {
+        const childPropKey = `${target.childLayerId}\0${target.propId}`;
+        if (childPropSeen.has(childPropKey)) {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `Duplicate childProp target "${target.childLayerId}" "${target.propId}"`,
+          });
+        } else {
+          childPropSeen.set(childPropKey, binding.propId);
+        }
         const childNode = component.layers.find((n) => n.id === target.childLayerId);
         if (!childNode) {
           issues.push({

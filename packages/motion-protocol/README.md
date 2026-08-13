@@ -65,7 +65,7 @@ JSON Input  ──► normalizeMotionProjectInput()
 | Schema / Type                                   | Version | Mô tả                                                                                                          |
 | ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
 | `MotionProjectV3Schema` / `MotionProject`       | `3`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
-| `ComponentDefinitionV3` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `layers`, `variants`, `slots`, `actions`.         |
+| `ComponentDefinitionV3` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `layers`, `variants`, `actions`.         |
 | `MotionRuntimeProjectSchema`                    | `3`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
 | `MotionPatchSchema`                             | `1`     | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance).                                  |
 | `SceneComponentRegistrySchema`                  | `1`     | Catalog linh kiện scene cho AI/Editor template picker.                                                         |

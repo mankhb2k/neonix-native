@@ -641,7 +641,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
       version: "1.0.0",
       integrity: "sha256:inner-swatch",
       props: [{ id: "fill", kind: "color", default: "#000000" }],
-      slots: [],
       variants: [],
       propBindings: [
         {
@@ -702,7 +701,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
       version: "1.0.0",
       integrity: "sha256:card",
       props: [],
-      slots: [],
       variants: [],
       propBindings: [],
       variables: [],
@@ -755,6 +753,116 @@ describe("compileMotionProjectV3 — happy paths", () => {
     ) as unknown as { payload: Record<string, unknown> };
     expect(sceneLevel.payload.color).toBe("#ff00aa");
     expect(nested.payload.color).toBe("#1877f2");
+  });
+
+  it("parent childProp forward wins over child payload.props", () => {
+    const project = makeComponentLayerProject({
+      props: { "logo-color": "#00ff88" },
+    });
+    const logo = project.components.find((c) => c.id === "logo-reveal")!;
+    const solid = structuredClone(logo.layers.find((n) => n.id === "logo")!);
+    solid.id = "fill";
+    project.components.push({
+      id: "inner-swatch",
+      version: "1.0.0",
+      integrity: "sha256:inner-swatch",
+      props: [{ id: "fill", kind: "color", default: "#000000" }],
+      variants: [],
+      propBindings: [
+        {
+          propId: "fill",
+          target: {
+            kind: "layerProperty",
+            layerId: "fill",
+            property: "payload.color",
+          },
+        },
+      ],
+      variables: [],
+      layers: [solid],
+      internalBindings: [],
+      actions: [],
+    });
+    logo.propBindings.push({
+      propId: "logo-color",
+      target: {
+        kind: "childProp",
+        childLayerId: "inner",
+        propId: "fill",
+      },
+    });
+    logo.layers.push({
+      id: "inner",
+      type: "component",
+      parentLayerId: null,
+      zIndex: 1,
+      visible: true,
+      locked: false,
+      transform: structuredClone(solid.transform),
+      payload: {
+        componentId: "inner-swatch",
+        props: { fill: "#111111" },
+      },
+    });
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const nested = runtimeScene.layers.find(
+      (n) => n.id === "comp-node__inner__fill",
+    ) as unknown as { payload: Record<string, unknown> };
+    expect(nested.payload.color).toBe("#00ff88");
+  });
+
+  it("scene payload.props track wins over payload static", () => {
+    const project = makeComponentLayerProject({
+      props: { "logo-color": "#ff0000" },
+      sceneClips: [
+        {
+          id: "clip-prop-color",
+          layerId: "comp-node",
+          schedule: { kind: "absolute", at: 0 },
+          duration: 2,
+          playback: { direction: "normal", iterations: 1, rate: 1 },
+          source: {
+            kind: "tracks",
+            tracks: [
+              {
+                layerId: "comp-node",
+                property: "payload.props.logo-color",
+                valueKind: "color",
+                keys: [
+                  { t: 0, v: "#111111" },
+                  { t: 1, v: "#eeeeee" },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    addLogoColorFanOut(project);
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    for (const id of ["comp-node__logo", "comp-node__ring"]) {
+      const node = runtimeScene.layers.find((n) => n.id === id) as unknown as {
+        payload: Record<string, unknown>;
+      };
+      expect(node.payload.color).toBe("#111111");
+    }
+    const colorTracks = runtimeScene.tracks.filter(
+      (t) => t.property === "payload.color" || t.property === "color",
+    );
+    expect(colorTracks.map((t) => t.layerId).sort()).toEqual([
+      "comp-node__logo",
+      "comp-node__ring",
+    ]);
   });
 
   it("rejects a visual clip carrying the removed instanceTransform field", () => {
