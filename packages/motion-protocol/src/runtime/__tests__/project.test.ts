@@ -173,7 +173,7 @@ describe("composition metadata (Task 6.2)", () => {
 });
 
 describe("visual track plan (Task 6.3)", () => {
-  it("clip source accepts scene|component and rejects preset", () => {
+  it("clip source accepts scene only and rejects component/preset", () => {
     expect(
       RuntimeClipSourceSchema.safeParse({ kind: "scene", sceneId: "intro" })
         .success,
@@ -183,7 +183,7 @@ describe("visual track plan (Task 6.3)", () => {
         kind: "component",
         componentId: "button",
       }).success,
-    ).toBe(true);
+    ).toBe(false);
     expect(
       RuntimeClipSourceSchema.safeParse({ kind: "preset", presetId: "x" })
         .success,

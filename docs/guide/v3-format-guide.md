@@ -168,7 +168,6 @@ flowchart TB
 {
   "id": "clip.a",
   "source": { "kind": "scene", "sceneId": "scene.a" },
-  // hoặc: { "kind": "component", "componentId": "flash-wipe" }
   "start": 1,
   "duration": 2,
   "trimStart": 0,
@@ -178,11 +177,15 @@ flowchart TB
 }
 ```
 
-> **Không** `transitionIn` / `transitionOut`. Hiệu ứng chuyển cảnh = visual layer/component trên track khác.
+> **Scene-only**: `VisualClipSourceV3` chỉ `{ kind: "scene", sceneId }`. Component là scene node (`type: "component"`), không phải clip source.
+
+> **Không** `transitionIn` / `transitionOut`. Hiệu ứng = layer/component animation trong scene trên track `order` phù hợp.
 
 > **`clip.start` absolute**: không rebuild bằng cursor. Gap là gap thật.
 
-Render tại `t`: active clips → sort `order` → vẽ thấp→cao.
+> **Audio fade** (`fadeIn`/`fadeOut` trên audio clip) là DSP primitive có chủ đích — chỉ envelope chính clip, không suy luận crossfade giữa clips.
+
+Render tại `t`: active scene clips → sort `order` → vẽ thấp→cao.
 
 ### 3.4 Thuật ngữ Track / Layer
 
@@ -246,7 +249,7 @@ Node zIndex lớn  →  nằm trên (trong cùng scene)
 | V2 (đã bỏ)                      | V3 (canonical)                            |
 | ------------------------------- | ----------------------------------------- |
 | `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV3[]`  |
-| `scene.transition`              | `visualClip.transitionIn / transitionOut` |
+| `scene.transition`              | Không còn — effect = scene/component layer animation |
 | Một lane duy nhất               | Nhiều track (`main` + `overlay`)          |
 | Scene-level transition          | Clip-level transition                     |
 | Không có loop/playbackRate      | Có `loop`, `playbackRate`, `opacity`      |
@@ -949,11 +952,12 @@ Theo dõi nguồn gốc project và source mapping:
 
 ### Khi dùng timeline
 
-1. **Dùng `transitionIn`/`transitionOut` trên clip** thay vì scene-level transition
-2. **Dùng `order` để xếp track**, không dựa vào `role`
-3. **Component node** (`type: "component"`) trong scene thay vì component source clip
-4. **Scene trùng thời gian** → khác lane/`order`; cùng lane chỉ overlap khi main + transition hợp lệ
+1. **Không dùng transition primitives** — effect = scene/component node animation
+2. **Dùng `order` unique** để xếp stacking (UI label main/overlay không nằm trong JSON)
+3. **Component node** (`type: "component"`) trong scene; visual clip chỉ `source.kind: "scene"`
+4. **Scene trùng thời gian** → khác track `order`; cùng lane không overlap
 5. **Duplicate clip/layer** chỉ qua editor command — JSON chỉ lưu kết quả
+6. **Audio fade** (`fadeIn`/`fadeOut`) là DSP trên clip — không suy luận crossfade
 
 ### Khi dùng bindings
 

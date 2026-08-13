@@ -222,7 +222,7 @@ export function validateMotionSkillOutput(
             diagnostics.push({
               path: `output.project.scenes.${i}.transition`,
               message:
-                "Skill output contains V2 field 'scene.transition' — transitions belong on timeline VisualClip.transitionOut",
+                "Skill output contains V2 field 'scene.transition' — transitions are not V3 primitives; express effects as scene/component/layer animation",
               severity: "error",
             });
           }

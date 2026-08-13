@@ -696,10 +696,7 @@ export function inspectTimeline(
       id: clip.id,
       source: {
         kind: clip.source.kind,
-        refId:
-          clip.source.kind === "scene"
-            ? clip.source.sceneId
-            : clip.source.componentId,
+        refId: clip.source.sceneId,
       },
       start: clip.start,
       duration: clip.duration,
@@ -820,21 +817,21 @@ function explainSingle(diag: {
     };
   }
 
-  // Scene transition / V2 leak
-  if (diag.message.includes("scene.transition")) {
+  // Scene transition / V2 leak — transitions are not V3 timeline primitives
+  if (diag.message.includes("scene.transition") || diag.message.includes("transition")) {
     return {
-      explanation: `A scene contains a 'transition' field, which is a V2 concept. In V3, transitions are defined on individual VisualClips via 'transitionOut', not on scenes. Each clip can have its own transition independent of the scene definition.`,
+      explanation: `Transition is not a V3 timeline primitive. Visual timing is an AE-style layer stack: active scene clips sorted by track.order. Express motion/effects as scene or component node animation (opacity, transform, blend, mask), not transitionIn/Out fields.`,
       suggestedAction:
-        "Remove 'transition' from the scene and add 'transitionOut' to the timeline VisualClip that references this scene.",
+        "Remove transition fields. Place the effect as a component/layer inside a scene on a visual track with the desired order.",
     };
   }
 
   // formatVersion 2 / V2 leak
   if (diag.message.includes("formatVersion")) {
     return {
-      explanation: `The project uses formatVersion 2, which is the old V2 authoring format. V3 uses formatVersion 3 with a different structure: visualTracks instead of sceneOrder, clip-level transitions, and richer asset/capability models.`,
+      explanation: `The project uses formatVersion 2, which is the old V2 authoring format. V3 uses formatVersion 3 with visualTracks (scene-only clips, unique order stacking) instead of sceneOrder, and no clip/scene transition primitives.`,
       suggestedAction:
-        "Change formatVersion to 3 and restructure the project to use V3 conventions (visualTracks, no scene.transition, capability manifests).",
+        "Change formatVersion to 3 and restructure to V3 conventions (visualTracks with scene sources, no scene.transition, capability manifests).",
     };
   }
 

@@ -108,9 +108,9 @@ export interface NormalizeOptions {
   allowAutoPublicTargets?: boolean;
   /**
    * Opt-in legacy migration: wrap component visual clips into synthesized
-   * scenes. Component sources are first-class in V3; use this only when
-   * converting old projects that also carry `instanceTransform` /
-   * `instanceTransformTracks` on the clip.
+   * scenes. Canonical V3 is scene-only on the timeline; use this when
+   * importing old JSON that still has `source.kind === "component"` (and
+   * optional `instanceTransform` / `instanceTransformTracks`).
    */
   migrateComponentClipsToScenes?: boolean;
 }
@@ -413,16 +413,11 @@ export function needsNormalization(project: LegacyProject): boolean {
     return true;
   }
 
-  // Legacy component clips that still carry instanceTransform fields need
-  // optional migrateComponentClipsToScenes. Plain component sources are valid.
+  // Legacy / invalid component visual clips need migrateComponentClipsToScenes
+  // before strict parse (timeline is scene-only).
   if (
     project.timeline?.visualTracks?.some((track) =>
-      track.clips?.some(
-        (clip) =>
-          clip.source?.kind === "component" &&
-          (clip.instanceTransform !== undefined ||
-            clip.instanceTransformTracks !== undefined),
-      ),
+      track.clips?.some((clip) => clip.source?.kind === "component"),
     )
   ) {
     return true;

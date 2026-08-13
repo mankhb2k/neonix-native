@@ -35,7 +35,6 @@ flowchart TB
     end
 
     scenes -.->|"source.scene"| VT
-    components -.->|"source.component"| VT
     assets -.->|"clip.assetId"| AT
     Project --> Timeline
     Timeline --> duration
@@ -105,12 +104,11 @@ Compiler / runtime / render **không** được tái dựng `start` bằng curso
 
 ### 3.2 Visual clip source
 
-`VisualClipSourceV3` = `scene | component`.
+`VisualClipSourceV3` chỉ cho phép `{ kind: "scene", sceneId }`.
 
-- `{ kind: "scene", sceneId }` — scene trong project.
-- `{ kind: "component", componentId }` — component nhúng; compiler synthesize scene wrapper khi emit runtime IR.
+Component **không** là visual-clip source. Đặt component như **scene node** (`type: "component"`) bên trong scene, rồi clip timeline tham chiếu scene đó. Compiler expand component node → wrapper group.
 
-`kind: "node"` = follow-up (chưa ship).
+`kind: "node"` / `kind: "component"` trên timeline = không hợp lệ.
 
 UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **đó không phải field JSON**.
 
@@ -196,7 +194,6 @@ Timeline **không** có transition primitive. `TransitionV3Schema` đã gỡ kh�
 {
   "id": "clip-intro",
   "source": { "kind": "scene", "sceneId": "intro" },
-  // hoặc { "kind": "component", "componentId": "logo-reveal" }
   "start": 0, // absolute global time
   "duration": 5,
   "trimStart": 0.5,
@@ -208,7 +205,7 @@ Timeline **không** có transition primitive. `TransitionV3Schema` đã gỡ kh�
 
 Thiết kế:
 
-- `.strict()` — từ chối field lạ (`role`, `transitionIn`, …).
+- `.strict()` — từ chối field lạ (`role`, `transitionIn`, `source.kind: "component"`, …).
 - `superRefine` bắt `playbackRate > 0`.
 - Timing media (`trimStart` / `playbackRate` / `loop`) **không** đổi cửa sổ active; chỉ đổi local time khi evaluate.
 
@@ -216,13 +213,12 @@ Thiết kế:
 
 ```jsonc
 {
-  "id": "main",
-  "role": "main", // "main" | "overlay"
-  "order": 0,
+  "id": "track.base",
+  "order": 0, // unique stacking order
   "muted": false,
   "clips": [
     /* tối thiểu 1 clip */
-  ],
+  ]
 }
 ```
 
@@ -233,26 +229,33 @@ Track rỗng không hợp lệ ở schema track (`clips.min(1)`). Timeline có t
 ```jsonc
 {
   "id": "aud.bgm",
-  "role": "bgm", // bgm | voiceover | sfx
-  "assetId": "asset.bgm",
-  "start": 1,
-  "duration": 3, // SoT cửa sổ phát — không kéo theo asset dài hơn
-  "trimStart": 0.5,
-  "trimEnd": 20, // optional, ≤ duration (source window)
-  "playbackRate": 1,
-  "volume": 0.8,
-  "loop": false,
-  "fadeIn": 0.5,
-  "fadeOut": 1,
+  "order": 0, // optional
   "muted": false,
+  "clips": [
+    {
+      "id": "clip.bgm",
+      "assetId": "asset.bgm",
+      "start": 1,
+      "duration": 3,
+      "trimStart": 0.5,
+      "volume": 0.8,
+      "fadeIn": 0.5,
+      "fadeOut": 1,
+      "loop": false,
+      "muted": false,
+      "playbackRate": 1
+    }
+  ]
 }
 ```
 
+Audio `fadeIn`/`fadeOut` là DSP trên chính clip (`fadeIn + fadeOut ≤ duration`). Không suy luận crossfade giữa clips.
+
 Thiết kế:
 
-- `duration` trên track là **source of truth** cho độ dài phát trong composition.
-- Asset length chỉ phục vụ trim/loop — `buildAudioRenderPlan` không được kéo clip dài hơn `track.duration`.
-- `muted` → envelope volume 0 (vẫn giữ timing).
+- Clip `duration` là **source of truth** cho cửa sổ phát trong composition.
+- Asset length chỉ phục vụ trim/loop — `buildAudioRenderPlan` không kéo dài hơn clip.duration.
+- Track/clip `muted` → envelope volume 0 (vẫn giữ timing).
 - `fadeIn + fadeOut ≤ duration`; `trimEnd ≤ duration`.
 
 ### 4.5 `ProjectTimelineV3Schema` vs canonical
@@ -397,7 +400,6 @@ Sau canonicalize, `duration` đã on-grid →
     "visualTracks": [
       {
         "id": "main",
-        "role": "main",
         "order": 0,
         "clips": [
           {
@@ -437,14 +439,14 @@ Sau canonicalize → `timeline.duration = 8` (đã on-grid @ 30fps).
       "id": "track.fx",
       "order": 1,
       "clips": [
-        { "id": "fx", "source": { "kind": "component", "componentId": "flash" }, "start": 0, "duration": 3 }
+        { "id": "fx", "source": { "kind": "scene", "sceneId": "fx-scene" }, "start": 0, "duration": 3 }
       ]
     }
   ]
 }
 ```
 
-Cùng track + overlap thời gian → **reject** integrity.
+Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` chứa component/layer animation — không phải timeline transition.
 
 ### Empty tail
 
@@ -484,7 +486,7 @@ Playhead `t = 9` → không có layer / `resolveTimelineAtTime` = `null`.
 | Tài liệu / file                                      | Nội dung                          |
 | ---------------------------------------------------- | --------------------------------- |
 | [v3-format-guide.md](../../../../docs/guide/v3-format-guide.md) §3 | Timeline model trong format guide |
-| [v3-component-guide.md](../../../../docs/guide/v3-component-guide.md) | Component node + timeline component source |
+| [v3-component-guide.md](../../../../docs/guide/v3-component-guide.md) | Component as scene node (not timeline source) |
 | `schema.ts`                                          | Zod schemas                       |
 | `duration.ts` / `canonicalize.ts`                    | Derive + snap                     |
 | `validation.ts` / `frame-grid.ts`                    | Integrity + frame-grid            |

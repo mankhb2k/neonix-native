@@ -26,9 +26,8 @@
       "primitive.solid"
     ],
     "optional": [
-      "transition.fade",
-      "transition.slide",
-      "transition.zoom"
+      "anim.transform",
+      "anim.opacity"
     ]
   },
   "dependencies": {

@@ -2,7 +2,8 @@
  * Timeline project V3 — AE visual layer stack + audio DSP fades.
  *
  * Visual: tracks are time-exclusive lanes; `order` (unique) is stacking only.
- * No role, no transitionIn/Out. Clip source is scene | component.
+ * No role, no transitionIn/Out. Clip source is scene-only; components live as
+ * scene nodes (`type: "component"`), not as visual-clip sources.
  *
  * Audio: tracks hold clips[]; fadeIn/fadeOut are per-clip playback envelopes
  * (not transitions between clips). Same-track overlap is allowed (mix).
@@ -20,7 +21,6 @@ import { SceneMarkerV3Schema } from "../animation/tracks";
 
 export const VisualClipSourceV3Schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
-  z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
 ]);
 
 export const VisualClipV3Schema = z

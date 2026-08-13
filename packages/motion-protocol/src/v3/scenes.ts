@@ -1,10 +1,8 @@
 /**
  * V3 scene definitions.
  *
- * Key difference from v2: scenes do NOT carry a `transition` — transitions
- * live on timeline visual clips (`transitionOut`). Scenes also no longer
- * hold a `clips` array at the scene level in the timeline sense; scene-local
- * motion clips remain available as `clips`.
+ * Scenes do NOT carry timeline transition fields. Visual effects are
+ * scene/component node animation. Scene-local motion clips remain as `clips`.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";

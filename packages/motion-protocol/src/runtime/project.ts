@@ -312,12 +312,11 @@ export type RuntimeCompositionMetadata = z.infer<
 >;
 
 /**
- * Source of a runtime visual clip — scene or component (AE layer stack).
+ * Source of a runtime visual clip — scene only (components are scene nodes).
  */
-export const RuntimeClipSourceSchema = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
-  z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
-]);
+export const RuntimeClipSourceSchema = z
+  .object({ kind: z.literal("scene"), sceneId: IdSchema })
+  .strict();
 export type RuntimeClipSource = z.infer<typeof RuntimeClipSourceSchema>;
 
 /**

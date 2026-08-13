@@ -348,7 +348,7 @@ describe("v3 schema — positive fixtures", () => {
     expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
-  it("accepts visual clip with component source", () => {
+  it("rejects visual clip with component source (scene-only timeline)", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -358,14 +358,7 @@ describe("v3 schema — positive fixtures", () => {
     const overlayTrack = tracks.find((t) => t.id === "overlay-cta")!;
     const clips = overlayTrack.clips as Array<Record<string, unknown>>;
     clips[0]!.source = { kind: "component", componentId: "call-to-action" };
-    const project = MotionProjectV3Schema.parse(input);
-    expect(
-      project.timeline.visualTracks.find((t) => t.id === "overlay-cta")!
-        .clips[0]!.source,
-    ).toEqual({
-      kind: "component",
-      componentId: "call-to-action",
-    });
+    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
   it("accepts scene-local motion on a component node with normal transform paths", () => {

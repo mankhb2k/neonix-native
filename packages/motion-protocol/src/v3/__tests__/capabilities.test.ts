@@ -123,15 +123,13 @@ describe("inspectProjectCapabilities", () => {
     expect(caps.has("caption.track")).toBe(true);
   });
 
-  it("does not emit transition capabilities from visual clips", () => {
+  it("does not emit transition capabilities; embedding from scene component nodes", () => {
     const caps = inspectProjectCapabilities({
+      scenes: [{ nodes: [{ type: "component" }] }],
       timeline: {
         visualTracks: [
           {
-            clips: [
-              { source: { kind: "scene" } },
-              { source: { kind: "component" } },
-            ],
+            clips: [{ source: { kind: "scene" } }],
           },
         ],
       },

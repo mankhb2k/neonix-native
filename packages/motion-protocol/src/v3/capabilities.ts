@@ -8,7 +8,7 @@
  *
  * Phase 11: extended with text.rich, video.trim, video.loop,
  * component.embedding, ai.patching, asset.external, caption.track,
- * transition.*, and audio.export IDs.
+ * and audio.export IDs. Timeline transitions are not capability primitives.
  */
 import { z } from "zod";
 
@@ -48,11 +48,6 @@ const KNOWN_CAPABILITY_IDS = [
   // Audio
   "audio.render-plan",
   "audio.export",
-  // Transitions
-  "transition.crossfade",
-  "transition.slide",
-  "transition.dissolve",
-  "transition.wipe",
   // Composition features
   "component.embedding",
   // Integration
@@ -145,16 +140,14 @@ export function inspectProjectCapabilities(project: {
     }
   }
 
-  // Component sources on the timeline also imply embedding.
-  for (const track of project.timeline?.visualTracks ?? []) {
-    for (const clip of track.clips ?? []) {
-      if (clip.source?.kind === "component") {
-        caps.add("component.embedding");
-      }
+  // Component nodes in scenes also imply embedding.
+  for (const scene of project.scenes ?? []) {
+    if (scene.nodes?.some((node) => node.type === "component")) {
+      caps.add("component.embedding");
     }
   }
 
-  // Audio tracks
+  // Audio tracks (volume/fade envelopes included in render-plan)
   if ((project.timeline?.audioTracks ?? []).length > 0) {
     caps.add("audio.render-plan");
   }
@@ -204,8 +197,6 @@ export function preflightProjectCapabilities(
       visualTracks?: Array<{
         clips?: Array<{
           source?: { kind: string };
-          transitionIn?: { type?: string };
-          transitionOut?: { type?: string };
         }>;
       }>;
       audioTracks?: Array<unknown>;

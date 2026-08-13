@@ -312,7 +312,7 @@ describe("V3 MCP contract", () => {
                 start: 0,
                 duration: 3,
                 loop: false,
-                opacity: 1,
+                opacity: 1,
               },
               {
                 id: "c2",
@@ -470,14 +470,14 @@ describe("V3 MCP contract", () => {
         {
           path: "output.project.scenes.0.transition",
           message:
-            "Skill output contains V2 field 'scene.transition' — transitions belong on timeline VisualClip.transitionOut",
+            "Skill output contains V2 field 'scene.transition' — transitions are not V3 primitives; express effects as scene/component/layer animation",
           severity: "error",
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain("scene");
-    expect(result.explanations[0]!.explanation).toContain("transition");
-    expect(result.explanations[0]!.explanation).toContain("transitionOut");
+    expect(result.explanations[0]!.explanation).toContain("not a V3 timeline primitive");
+    expect(result.explanations[0]!.suggestedAction).toContain("Remove transition");
+    expect(result.explanations[0]!.suggestedAction).not.toContain("transitionOut");
   });
 
   it("explains formatVersion: 2 V2 leak diagnostics", () => {

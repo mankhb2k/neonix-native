@@ -2,12 +2,9 @@
 
 ## 1. Component là gì?
 
-Component trong MotiClip V3 là một **đơn vị đồ họa đóng gói (sealed unit)**, do chủ sở hữu (owner) kiểm soát toàn bộ cấu trúc bên trong. Component được nhúng trong project JSON (`EmbeddedComponentV3Schema`) và có thể:
+Component trong MotiClip V3 là một **đơn vị đồ họa đóng gói (sealed unit)**, do chủ sở hữu (owner) kiểm soát toàn bộ cấu trúc bên trong. Component được nhúng trong project JSON (`EmbeddedComponentV3Schema`) và khởi tạo như **scene node** (`type: "component"`) — có transform / timing / zIndex / effects / blend / mask như group. Timeline visual clip **chỉ** tham chiếu scene (`source.kind: "scene"`); muốn đưa component lên timeline, đặt nó trong một scene rồi clip trỏ scene đó.
 
-1. Đặt như **scene node** (`type: "component"`) bên trong một scene, hoặc
-2. Đặt trực tiếp lên timeline qua visual clip `source: { kind: "component", componentId }` (AE layer stack). Compiler synthesize scene wrapper khi emit runtime IR.
-
-“Hiệu ứng chuyển cảnh” (flash, wipe, title) cũng chỉ là component/layer trên timeline — **không** phải `transitionIn`/`transitionOut` primitive.
+“Hiệu ứng chuyển cảnh” (flash, wipe, title) cũng chỉ là component/layer animation trong scene — **không** phải `transitionIn`/`transitionOut` primitive.
 
 Mô hình component tuân theo nguyên tắc **owner-owned, consumer-safe**:
 
@@ -627,7 +624,7 @@ Với mỗi clip `{ kind: "component" }`, normalizer tạo một scene wrapper c
 1. **Chỉ dùng `publicParams`, `slots`, `variants`, `publicTargets`**
 2. **Không cố truy cập `nodeId`/`property`** của component — sẽ bị compiler từ chối
 3. **Kiểm tra `dependencies.components`** khớp với component đang dùng
-4. **Dùng `transitionIn`/`transitionOut`** trên visual clip thay vì sửa animation nội bộ
+4. **Animate qua scene-local motion / node transform** — không dùng timeline transition primitives
 5. **Dùng `transform` của component node** (hoặc scene-local motion) để định vị và keyframe toàn bộ component instance
 
 ### Cho Editor/UI Developer

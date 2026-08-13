@@ -639,8 +639,8 @@ type VisualPlanTrack = {
  * Convert `timeline.visualTracks` into a track-preserving visual plan.
  *
  * Each V3 track becomes one runtime track. Track stacking is `order` only.
- * Component sources are compiled into a synthesized scene wrapping the
- * component instance (runtime IR remains scene-based for composition).
+ * Visual clips are scene-only; component instances live as scene nodes and
+ * expand into sealed wrapper-group subgraphs during scene preparation.
  */
 function buildVisualPlan(
   project: V3.MotionProjectV3,
@@ -678,84 +678,23 @@ function buildVisualPlan(
   for (const v3Track of v3Tracks) {
     const trackEntries: VisualPlanEntry[] = [];
     for (const clip of v3Track.clips) {
-      let sourceScene: V3.SceneDefinitionV3 | undefined;
-      let sourceRefPath: string[];
-
-      if (clip.source.kind === "scene") {
-        sourceScene = scenes.get(clip.source.sceneId);
-        if (!sourceScene) {
-          collector.error(
-            "CMP_CLIP_TARGET_MISSING",
-            `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
-            {
-              path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
-              details: { clipId: clip.id, sceneId: clip.source.sceneId },
-            },
-          );
-          continue;
-        }
-        sourceRefPath = ["scenes", sourceScene.id];
-      } else {
-        const component = components.get(clip.source.componentId);
-        if (!component) {
-          collector.error(
-            "CMP_CLIP_TARGET_MISSING",
-            `Visual clip "${clip.id}" references unknown component "${clip.source.componentId}"`,
-            {
-              path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
-              details: {
-                clipId: clip.id,
-                componentId: clip.source.componentId,
-              },
-            },
-          );
-          continue;
-        }
-        // Synthesize a one-node scene so composition stays scene-based.
-        const synthId = `component-scene__${v3Track.id}__${clip.id}`;
-        const nodeId = `component-instance__${clip.id}`;
-        sourceScene = {
-          id: synthId,
-          name: component.id,
-          duration: clip.duration,
-          space: "flat-2d",
-          nodes: [
-            {
-              id: nodeId,
-              type: "component",
-              parentId: null,
-              transform: {
-                x: 0,
-                y: 0,
-                z: 0,
-                scaleX: 1,
-                scaleY: 1,
-                scaleZ: 1,
-                rotation: 0,
-                rotationX: 0,
-                rotationY: 0,
-                rotationZ: 0,
-                skewX: 0,
-                skewY: 0,
-                anchorX: 0.5,
-                anchorY: 0.5,
-                opacity: 1,
-                visible: true,
-                flipX: false,
-                flipY: false,
-              },
-              payload: { componentId: component.id },
-            },
-          ],
-          clips: [],
-        } as V3.SceneDefinitionV3;
-        sourceRefPath = ["components", component.id];
+      const sourceScene = scenes.get(clip.source.sceneId);
+      if (!sourceScene) {
+        collector.error(
+          "CMP_CLIP_TARGET_MISSING",
+          `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
+          {
+            path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
+            details: { clipId: clip.id, sceneId: clip.source.sceneId },
+          },
+        );
+        continue;
       }
+      const sourceRefPath = ["scenes", sourceScene.id];
 
       const usage = sceneUsage.get(sourceScene.id) ?? 0;
       sceneUsage.set(sourceScene.id, usage + 1);
       const reuse =
-        clip.source.kind === "component" ||
         usage > 0 ||
         Math.abs(sourceScene.duration - clip.duration) > 1e-9 ||
         clip.trimStart !== undefined;
@@ -1059,27 +998,13 @@ function validateV3Semantics(
   const sceneIds = new Set(project.scenes.map((scene) => scene.id));
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
-      if (clip.source.kind === "scene") {
-        if (!sceneIds.has(clip.source.sceneId)) {
-          collector.error(
-            "CMP_CLIP_TARGET_MISSING",
-            `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
-            {
-              path: ["timeline", "visualTracks", track.id, "clips", clip.id],
-              details: { clipId: clip.id, sceneId: clip.source.sceneId },
-            },
-          );
-        }
-      } else if (!componentById.has(clip.source.componentId)) {
+      if (!sceneIds.has(clip.source.sceneId)) {
         collector.error(
           "CMP_CLIP_TARGET_MISSING",
-          `Visual clip "${clip.id}" references unknown component "${clip.source.componentId}"`,
+          `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
           {
             path: ["timeline", "visualTracks", track.id, "clips", clip.id],
-            details: {
-              clipId: clip.id,
-              componentId: clip.source.componentId,
-            },
+            details: { clipId: clip.id, sceneId: clip.source.sceneId },
           },
         );
       }

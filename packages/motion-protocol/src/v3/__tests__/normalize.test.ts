@@ -70,7 +70,7 @@ describe("needsNormalization", () => {
     ).toBe(false);
   });
 
-  it("returns false when a visual clip uses a plain component source", () => {
+  it("returns true when a visual clip uses a component source (needs migration)", () => {
     expect(
       needsNormalization({
         timeline: {
@@ -87,7 +87,7 @@ describe("needsNormalization", () => {
           ],
         },
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("returns false when visual clips are scene-only", () => {
