@@ -1528,6 +1528,78 @@
                       "type": "string",
                       "minLength": 1
                     },
+                    "overrides": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "anyOf": [
+                          {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": {}
+                              }
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "ref": {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "variable"
+                                  },
+                                  "id": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 128
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "id"
+                                ],
+                                "additionalProperties": false
+                              },
+                              "map": {
+                                "type": "object",
+                                "properties": {
+                                  "scale": {
+                                    "type": "number"
+                                  },
+                                  "offset": {
+                                    "type": "number"
+                                  }
+                                },
+                                "additionalProperties": false
+                              }
+                            },
+                            "required": [
+                              "ref"
+                            ],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "default": {}
+                    },
                     "params": {
                       "type": "object",
                       "additionalProperties": {
@@ -1591,6 +1663,20 @@
                     "property": {
                       "type": "string",
                       "minLength": 1
+                    },
+                    "valueKind": {
+                      "type": "string",
+                      "enum": [
+                        "number",
+                        "angle",
+                        "vec2",
+                        "color",
+                        "boolean",
+                        "string",
+                        "asset",
+                        "path",
+                        "gradient"
+                      ]
                     },
                     "description": {
                       "type": "string"
@@ -32186,7 +32272,6 @@
           "properties": {
             "duration": {
               "type": "number",
-              "exclusiveMinimum": true,
               "minimum": 0,
               "maximum": 86400
             },
@@ -32244,13 +32329,6 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 128
-                  },
-                  "role": {
-                    "type": "string",
-                    "enum": [
-                      "main",
-                      "overlay"
-                    ]
                   },
                   "order": {
                     "type": "integer",
@@ -32324,448 +32402,6 @@
                           "minimum": 0,
                           "maximum": 1,
                           "default": 1
-                        },
-                        "transitionIn": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "cut"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "const": 0
-                                }
-                              },
-                              "required": [
-                                "type"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "fade"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "color": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "crossfade"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "slide"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "direction": {
-                                  "type": "string",
-                                  "enum": [
-                                    "left",
-                                    "right",
-                                    "up",
-                                    "down"
-                                  ]
-                                },
-                                "mode": {
-                                  "type": "string",
-                                  "enum": [
-                                    "push",
-                                    "cover"
-                                  ],
-                                  "default": "push"
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration",
-                                "direction"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "wipe"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "direction": {
-                                  "type": "string",
-                                  "enum": [
-                                    "left",
-                                    "right",
-                                    "up",
-                                    "down"
-                                  ]
-                                },
-                                "softness": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "maximum": 1
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration",
-                                "direction"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "zoom"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "direction": {
-                                  "type": "string",
-                                  "enum": [
-                                    "in",
-                                    "out"
-                                  ]
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration",
-                                "direction"
-                              ],
-                              "additionalProperties": false
-                            }
-                          ]
-                        },
-                        "transitionOut": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "cut"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "const": 0
-                                }
-                              },
-                              "required": [
-                                "type"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "fade"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "color": {
-                                  "type": "string",
-                                  "minLength": 1
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "crossfade"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "slide"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "direction": {
-                                  "type": "string",
-                                  "enum": [
-                                    "left",
-                                    "right",
-                                    "up",
-                                    "down"
-                                  ]
-                                },
-                                "mode": {
-                                  "type": "string",
-                                  "enum": [
-                                    "push",
-                                    "cover"
-                                  ],
-                                  "default": "push"
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration",
-                                "direction"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "wipe"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "direction": {
-                                  "type": "string",
-                                  "enum": [
-                                    "left",
-                                    "right",
-                                    "up",
-                                    "down"
-                                  ]
-                                },
-                                "softness": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "maximum": 1
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration",
-                                "direction"
-                              ],
-                              "additionalProperties": false
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "type": {
-                                  "type": "string",
-                                  "const": "zoom"
-                                },
-                                "duration": {
-                                  "type": "number",
-                                  "exclusiveMinimum": true,
-                                  "minimum": 0,
-                                  "maximum": 86400
-                                },
-                                "direction": {
-                                  "type": "string",
-                                  "enum": [
-                                    "in",
-                                    "out"
-                                  ]
-                                },
-                                "easing": {
-                                  "type": "string",
-                                  "enum": [
-                                    "linear",
-                                    "step",
-                                    "easeIn",
-                                    "easeOut",
-                                    "easeInOut",
-                                    "spring"
-                                  ]
-                                }
-                              },
-                              "required": [
-                                "type",
-                                "duration",
-                                "direction"
-                              ],
-                              "additionalProperties": false
-                            }
-                          ]
                         }
                       },
                       "required": [
@@ -32782,7 +32418,6 @@
                 },
                 "required": [
                   "id",
-                  "role",
                   "order",
                   "clips"
                 ],
@@ -32800,82 +32435,103 @@
                     "minLength": 1,
                     "maxLength": 128
                   },
-                  "role": {
-                    "type": "string",
-                    "enum": [
-                      "bgm",
-                      "voiceover",
-                      "sfx"
-                    ]
-                  },
-                  "assetId": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "start": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 86400
-                  },
-                  "duration": {
-                    "type": "number",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
-                    "maximum": 86400
-                  },
-                  "trimStart": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 86400,
-                    "default": 0
-                  },
-                  "trimEnd": {
-                    "type": "number",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
-                    "maximum": 86400
-                  },
-                  "playbackRate": {
-                    "type": "number",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
-                    "maximum": 1000,
-                    "default": 1
-                  },
-                  "volume": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "default": 1
-                  },
-                  "loop": {
-                    "type": "boolean",
-                    "default": false
-                  },
-                  "fadeIn": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 86400,
-                    "default": 0
-                  },
-                  "fadeOut": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 86400,
-                    "default": 0
+                  "order": {
+                    "type": "integer",
+                    "exclusiveMaximum": true,
+                    "maximum": 0
                   },
                   "muted": {
                     "type": "boolean",
                     "default": false
+                  },
+                  "clips": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "assetId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "start": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 86400
+                        },
+                        "duration": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "minimum": 0,
+                          "maximum": 86400
+                        },
+                        "trimStart": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 86400,
+                          "default": 0
+                        },
+                        "trimEnd": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "minimum": 0,
+                          "maximum": 86400
+                        },
+                        "playbackRate": {
+                          "type": "number",
+                          "exclusiveMinimum": true,
+                          "minimum": 0,
+                          "maximum": 1000,
+                          "default": 1
+                        },
+                        "volume": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "default": 1
+                        },
+                        "loop": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "fadeIn": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 86400,
+                          "default": 0
+                        },
+                        "fadeOut": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 86400,
+                          "default": 0
+                        },
+                        "muted": {
+                          "type": "boolean",
+                          "default": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "assetId",
+                        "start",
+                        "duration"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1,
+                    "maxItems": 100
                   }
                 },
                 "required": [
                   "id",
-                  "role",
-                  "assetId",
-                  "start",
-                  "duration"
+                  "order",
+                  "clips"
                 ],
                 "additionalProperties": false
               },

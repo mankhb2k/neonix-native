@@ -14,6 +14,10 @@ import {
 } from "../index";
 import { parseMotionProjectV3 } from "../parse";
 import { MotionV3ReferenceError } from "../references/types";
+import {
+  collectTimelineIntegrityIssues,
+  type ProjectTimelineV3,
+} from "../timeline";
 
 const FIXTURES_DIR = join(__dirname, "..", "__fixtures__");
 
@@ -716,6 +720,7 @@ describe("v3 schema — negative fixtures", () => {
         audioTracks: [
           {
             id: "at1",
+            order: -1,
             clips: [
               {
                 id: "at1-clip",
@@ -836,6 +841,7 @@ describe("v3 schema — negative fixtures", () => {
           audioTracks: [
             {
               id: "at1",
+              order: -1,
               clips: [
                 {
                   id: "at1-clip",
@@ -1021,7 +1027,256 @@ describe("v3 timeline integrity — Phase 6", () => {
           ],
         },
       }),
-    ).toThrow(/Duplicate visual track order/);
+    ).toThrow(/Duplicate track order/);
+  });
+
+  it("rejects duplicate order shared by visual and audio tracks", () => {
+    const issues = collectTimelineIntegrityIssues({
+      visualTracks: [
+        {
+          id: "track-1",
+          order: 0,
+          muted: false,
+          clips: [
+            {
+              id: "c1",
+              source: { kind: "scene", sceneId: "s1" },
+              start: 0,
+              duration: 2,
+              loop: false,
+              opacity: 1,
+            },
+          ],
+        },
+      ],
+      audioTracks: [
+        {
+          id: "at1",
+          order: 0, // invalid sign; integrity still flags cross-collection collision
+          muted: false,
+          clips: [
+            {
+              id: "at1-clip",
+              assetId: "audio-1",
+              start: 0,
+              duration: 2,
+              trimStart: 0,
+              playbackRate: 1,
+              volume: 1,
+              loop: false,
+              fadeIn: 0,
+              fadeOut: 0,
+              muted: false,
+            },
+          ],
+        },
+      ],
+      captionTracks: [],
+    } as ProjectTimelineV3);
+    expect(
+      issues.some((i) => /Duplicate track order 0/.test(i.message)),
+    ).toBe(true);
+  });
+
+  it("rejects duplicate audio track order", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 10,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "at1",
+              order: -1,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+            {
+              id: "at2",
+              order: -1,
+              clips: [
+                {
+                  id: "at2-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 1,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(/Duplicate track order/);
+  });
+
+  it("rejects audio track order >= 0", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 10,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "at1",
+              order: 0,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects audio track missing order", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 10,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          audioTracks: [
+            {
+              id: "at1",
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("accepts sparse non-contiguous visual and audio orders", () => {
+    const input = base();
+    const project = MotionProjectV3Schema.parse({
+      ...input,
+      assets: [
+        {
+          id: "audio-1",
+          uri: "a.mp3",
+          assetType: "audio",
+          mimeType: "audio/mpeg",
+          duration: 10,
+          codec: "mp3",
+          sampleRate: 44100,
+          channels: 2,
+        },
+      ],
+      timeline: {
+        ...(input.timeline as Record<string, unknown>),
+        visualTracks: [
+          {
+            id: "track-base",
+            order: 0,
+            clips: [
+              {
+                id: "c1",
+                source: { kind: "scene", sceneId: "s1" },
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+          {
+            id: "track-fx",
+            order: 20,
+            clips: [
+              {
+                id: "c2",
+                source: { kind: "scene", sceneId: "s1" },
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+        ],
+        audioTracks: [
+          {
+            id: "bgm",
+            order: -20,
+            clips: [
+              {
+                id: "bgm-clip",
+                assetId: "audio-1",
+                start: 0,
+                duration: 2,
+              },
+            ],
+          },
+          {
+            id: "sfx",
+            order: -10,
+            clips: [
+              {
+                id: "sfx-clip",
+                assetId: "audio-1",
+                start: 0,
+                duration: 1,
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(project.timeline.visualTracks.map((t) => t.order)).toEqual([0, 20]);
+    expect(project.timeline.audioTracks.map((t) => t.order)).toEqual([-20, -10]);
   });
 
   it("rejects same-lane visual clip overlap", () => {
@@ -1182,6 +1437,7 @@ describe("v3 timeline integrity — Phase 6", () => {
           audioTracks: [
             {
               id: "mix",
+              order: -1,
               clips: [
                 {
                   id: "a1",
@@ -1445,6 +1701,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           audioTracks: [
             {
               id: "at1",
+              order: -1,
               clips: [
                 {
                   id: "at1-clip",
@@ -2271,6 +2528,7 @@ describe("AudioTrackV3 schema — edge case validation", () => {
         audioTracks: [
           {
             id: "at1",
+            order: -1,
             clips: [
               {
                 id: "at1-clip",
@@ -2375,10 +2633,12 @@ describe("v3 reference validation — audio & caption duplicate IDs", () => {
     const project = makeProjectWithAudioTracks([
       {
         id: "dup-at",
+        order: -1,
         clips: [{ id: "c1", assetId: "bgm", start: 0, duration: 5 }],
       },
       {
         id: "dup-at",
+        order: -2,
         clips: [{ id: "c2", assetId: "bgm", start: 5, duration: 3 }],
       },
     ]);
@@ -2427,10 +2687,12 @@ describe("v3 reference validation — audio & caption duplicate IDs", () => {
     const project = makeProjectWithAudioTracks([
       {
         id: "at1",
+        order: -1,
         clips: [{ id: "c1", assetId: "bgm", start: 0, duration: 5 }],
       },
       {
         id: "at2",
+        order: -2,
         clips: [{ id: "c2", assetId: "bgm", start: 5, duration: 3 }],
       },
     ]);

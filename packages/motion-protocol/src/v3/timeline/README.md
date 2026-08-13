@@ -13,8 +13,8 @@ Timeline V3 mô tả **khi nào** nội dung xuất hiện trên trục thời g
 | Khái niệm              | Vai trò                                                                 |
 | ---------------------- | ----------------------------------------------------------------------- |
 | `timeline.duration`    | Độ dài MP4 cuối cùng (giây) — clock / source of truth                   |
-| `visualTracks`         | Lane hình ảnh (AE layer stack); `order` unique = stacking               |
-| `audioTracks`          | Lane âm thanh với `clips[]` + fadeIn/fadeOut (DSP)                      |
+| `visualTracks`         | Lane hình ảnh (AE layer stack); `order >= 0` sparse, unique toàn timeline |
+| `audioTracks`          | Lane âm thanh với `clips[]` + fadeIn/fadeOut; `order < 0` sparse, unique  |
 | `captionTracks`        | Lane phụ đề                                                             |
 | `workArea` / `markers` | Optional project helpers (vùng làm việc / mốc); vẫn phải nằm trong `duration` |
 
@@ -108,16 +108,27 @@ Compiler / runtime / render **không** được tái dựng `start` bằng curso
 
 Component **không** là visual-clip source. Đặt component như **scene node** (`type: "component"`) bên trong scene, rồi clip timeline tham chiếu scene đó. Compiler expand component node → wrapper group.
 
-`kind: "node"` / `kind: "component"` trên timeline = không hợp lệ.
+`kind: "node"` / `kind: "component"` trên timeline = không hợp lệ. Canonical parse **reject** — không có migration rewrite.
 
 UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **đó không phải field JSON**.
+
+### 3.2b Track order (sparse)
+
+Track `order` is a **sparse integer ordering key**.
+
+- Audio tracks must use **negative** order values (`order < 0`).
+- Visual tracks must use **zero or positive** order values (`order >= 0`).
+- All track order values in one project must be **unique** (visual + audio share one namespace).
+- Order values **do not need to be contiguous**. Valid: `-20, -10, 0, 10, 20`.
+- Lower order is earlier/lower in the global timeline ordering.
+- **Nuance:** “lower order renders under” applies to **visual** only. For audio, lower order is deterministic listing/mix ordering — not a render stack.
 
 ### 3.3 Visual track = AE layer stack
 
 | Field | Rule |
 | --- | --- |
 | `id` | Unique track id |
-| `order` | **Unique** stacking order; thấp render dưới, cao trên |
+| `order` | Sparse `>= 0`; unique across all timeline tracks; thấp render dưới, cao trên |
 | `muted` | Optional |
 | `clips` | Occupancy theo thời gian |
 
@@ -142,7 +153,7 @@ Audio giữ DSP playback primitives trên **clip**:
 ```ts
 audioTracks: Array<{
   id: string;
-  order?: number; // optional listing; không bắt unique như visual
+  order: number; // required; must be < 0; unique across timeline
   muted?: boolean;
   clips: Array<{
     id: string;
@@ -174,7 +185,7 @@ Với visual clip:
   `effectiveLocalTime = trimStart + (globalTime - start) * playbackRate`  
   (có rule `loop` qua `resolveMediaTiming`).
 
-Transition opacity ramp theo **composition window**; đánh giá node/scene theo **media local time**.
+Opacity / transform của layer đánh giá theo **media local time** bên trong scene. Timeline không ramp transition giữa clips.
 
 ### 3.5 Empty timeline
 
@@ -214,7 +225,7 @@ Thiết kế:
 ```jsonc
 {
   "id": "track.base",
-  "order": 0, // unique stacking order
+  "order": 0, // sparse >= 0; unique across timeline
   "muted": false,
   "clips": [
     /* tối thiểu 1 clip */
@@ -229,7 +240,7 @@ Track rỗng không hợp lệ ở schema track (`clips.min(1)`). Timeline có t
 ```jsonc
 {
   "id": "aud.bgm",
-  "order": 0, // optional
+  "order": -1, // required; sparse < 0; unique across timeline
   "muted": false,
   "clips": [
     {
@@ -308,7 +319,7 @@ Không có nội dung → `0`. Giá trị được `roundTimelineValue` (làm tr
 `collectTimelineIntegrityIssues(timeline)`:
 
 1. **Duplicate visual clip id** / **duplicate audio clip id**.
-2. **Unique visual `order`** — reject trùng order giữa tracks.
+2. **Unique track `order`** across visual + audio — reject trùng order.
 3. **Visual lane exclusive** trên mọi track — overlap cùng track → reject (không transition bridge).
 4. Audio overlap trong cùng track **được phép** (mix).
 
@@ -364,14 +375,14 @@ flowchart TD
 
 ### 6.1 Compile visual
 
-- Có visual clip → map từng clip (`start`, `trimStart`, `playbackRate`, `loop`, transitions) sang runtime.
+- Có visual clip → map từng clip (`start`, `trimStart`, `playbackRate`, `loop`) sang runtime theo `order`.
 - Không có visual clip → **error**, không synthesize từ scenes.
 
 ### 6.2 Resolve timeline time
 
 `resolveTimelineAtTime(runtime, timelineTime)` — contract dùng **`timelineTime` / `t`** (giây trên trục project), không dùng từ “playhead”.
 
-- Prefer **primary** khi primary và overlay chồng nhau.
+- Active clips tại `timelineTime` xếp theo **`order` tăng dần** (thấp vẽ dưới, cao vẽ trên). Không ưu tiên `primary` / overlay.
 - `timelineTime` trong empty tail hoặc `timelineTime ≥ duration` → `null` (không clamp scene cuối).
 
 > **UI session ≠ project:** `playhead` / `currentTime` / `selection` / `zoom` / `scroll` chỉ thuộc editor UI session — **không** được nằm trong `MotionProjectV3`.

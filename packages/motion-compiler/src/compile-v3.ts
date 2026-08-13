@@ -8,11 +8,11 @@
  *   composition            → runtime metadata (aspectRatio derived from
  *                            dimensions, fps, background as brand color)
  *   timeline.visualTracks  → visual plan (one scene instance per visual
- *                            clip, in track order; overlay tracks append)
+ *                            clip, sorted by unique track `order`)
  *   scene clips            → runtime tracks (compiled directly)
  *   variables / bindings   → resolved inline before scene compilation
- *   component-source clips → synthesized scenes from the embedded
- *                            component definition
+ *   component nodes        → sealed wrapper-group expansion in the scene
+ *                            graph (not a timeline clip source)
  *   caption tracks         → copied through
  *
  * Semantic problems are reported with the `CMP_*` diagnostic family so
@@ -514,7 +514,7 @@ function prepareRuntimeScene(
 function prepareRuntimeAudioTrack(track: V3.AudioTrackV3): JsonRecord {
   return {
     id: track.id,
-    ...(track.order !== undefined ? { order: track.order } : {}),
+    order: track.order,
     ...(track.muted ? { muted: track.muted } : {}),
     clips: track.clips.map((clip) => ({
       id: clip.id,

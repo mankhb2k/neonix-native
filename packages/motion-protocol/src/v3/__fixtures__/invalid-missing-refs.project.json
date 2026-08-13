@@ -115,7 +115,8 @@
             "start": 0,
             "duration": 5
           }
-        ]
+        ],
+        "order": -1
       }
     ],
     "captionTracks": []

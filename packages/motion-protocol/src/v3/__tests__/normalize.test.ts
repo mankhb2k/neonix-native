@@ -1,10 +1,10 @@
-/**
- * V3 Normalizer tests — migration layer for legacy data.
+﻿/**
+ * V3 Normalizer tests â€” migration layer for legacy data.
  */
 import { describe, expect, it } from "vitest";
 import { normalizeMotionProjectV3, needsNormalization } from "../normalize";
 
-// ── needsNormalization ─────────────────────────────────────────────────
+// â”€â”€ needsNormalization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe("needsNormalization", () => {
   it("returns false for a clean project", () => {
@@ -70,7 +70,22 @@ describe("needsNormalization", () => {
     ).toBe(false);
   });
 
-  it("returns true when a visual clip uses a component source (needs migration)", () => {
+  it("returns false when visual clips are scene-only (component clip source is not a migration candidate)", () => {
+    expect(
+      needsNormalization({
+        timeline: {
+          visualTracks: [
+            {
+              id: "t1",
+              clips: [{ id: "c1", source: { kind: "scene", sceneId: "s1" } }],
+            },
+          ],
+        },
+      }),
+    ).toBe(false);
+  });
+
+  it("does not treat timeline component clip source as needing normalization", () => {
     expect(
       needsNormalization({
         timeline: {
@@ -87,28 +102,13 @@ describe("needsNormalization", () => {
           ],
         },
       }),
-    ).toBe(true);
-  });
-
-  it("returns false when visual clips are scene-only", () => {
-    expect(
-      needsNormalization({
-        timeline: {
-          visualTracks: [
-            {
-              id: "t1",
-              clips: [{ id: "c1", source: { kind: "scene", sceneId: "s1" } }],
-            },
-          ],
-        },
-      }),
     ).toBe(false);
   });
 });
 
-// ── Variant normalization ──────────────────────────────────────────────
+// â”€â”€ Variant normalization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("normalizeMotionProjectV3 — variants", () => {
+describe("normalizeMotionProjectV3 â€” variants", () => {
   it("converts record-style variants to array", () => {
     const { project, issues } = normalizeMotionProjectV3({
       components: [
@@ -166,9 +166,9 @@ describe("normalizeMotionProjectV3 — variants", () => {
   });
 });
 
-// ── Binding normalization ──────────────────────────────────────────────
+// â”€â”€ Binding normalization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe("normalizeMotionProjectV3 — bindings", () => {
+describe("normalizeMotionProjectV3 â€” bindings", () => {
   it("converts legacy nodeId/property binding to targetId (matched publicTarget)", () => {
     const { project, issues } = normalizeMotionProjectV3({
       components: [
@@ -356,220 +356,3 @@ describe("normalizeMotionProjectV3 — bindings", () => {
   });
 });
 
-// ── Component clip migration ──────────────────────────────────────────
-
-describe("normalizeMotionProjectV3 — component clips", () => {
-  type LegacyClip = {
-    id: string;
-    source: { kind: string; componentId: string };
-    start: number;
-    duration: number;
-    opacity: number;
-    loop: boolean;
-    instanceTransform?: Record<string, unknown>;
-    instanceTransformTracks?: Array<Record<string, unknown>>;
-  };
-
-  const legacyClipProject = (): {
-    timeline: {
-      visualTracks: Array<{
-        id: string;
-        order: number;
-        muted: boolean;
-        clips: LegacyClip[];
-      }>;
-      audioTracks: unknown[];
-      captionTracks: unknown[];
-    };
-    scenes?: Array<{
-      id: string;
-      nodes: Array<Record<string, unknown>>;
-      clips: Array<Record<string, unknown>>;
-    }>;
-  } => ({
-    timeline: {
-      visualTracks: [
-        {
-          id: "main-track",
-          order: 0,
-          muted: false,
-          clips: [
-            {
-              id: "clip-logo",
-              source: { kind: "component", componentId: "logo-reveal" },
-              start: 0,
-              duration: 4,
-              opacity: 1,
-              loop: false,
-              instanceTransform: { x: 100, y: 200, width: 256, height: 256 },
-              instanceTransformTracks: [
-                {
-                  property: "transform.x",
-                  valueKind: "number",
-                  keys: [
-                    { t: 0, value: 0 },
-                    { t: 2, value: 300 },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-      audioTracks: [],
-      captionTracks: [],
-    },
-  });
-
-  it("leaves component clips untouched by default", () => {
-    const input = legacyClipProject();
-    const { project, issues } = normalizeMotionProjectV3(input);
-
-    expect(project.scenes).toBeUndefined();
-    const clip = project.timeline!.visualTracks![0]!.clips![0]!;
-    expect(clip.source).toEqual({
-      kind: "component",
-      componentId: "logo-reveal",
-    });
-    expect(issues).toHaveLength(0);
-  });
-
-  it("migrates component clips to scenes when opted in", () => {
-    const { project, issues } = normalizeMotionProjectV3(legacyClipProject(), {
-      migrateComponentClipsToScenes: true,
-    });
-
-    // Scene synthesized with a component node.
-    expect(project.scenes).toHaveLength(1);
-    const scene = project.scenes![0]!;
-    expect(scene.id).toBe("component-scene__main-track__clip-logo");
-    expect(scene.duration).toBe(4);
-    expect(scene.nodes).toHaveLength(1);
-    expect(scene.nodes![0]).toMatchObject({
-      id: "component-instance__clip-logo",
-      type: "component",
-      payload: { componentId: "logo-reveal" },
-    });
-    expect(scene.nodes![0]!.transform).toMatchObject({
-      x: 100,
-      y: 200,
-      width: 256,
-      height: 256,
-    });
-
-    // instanceTransformTracks → scene-local motion clips.
-    expect(scene.clips).toHaveLength(1);
-    expect(scene.clips![0]).toMatchObject({
-      id: "component-instance__clip-logo__motion",
-      targetId: "component-instance__clip-logo",
-      source: {
-        kind: "tracks",
-        tracks: [
-          {
-            targetId: "component-instance__clip-logo",
-            property: "transform.x",
-            valueKind: "number",
-          },
-        ],
-      },
-    });
-
-    // Visual clip rewritten to scene source.
-    const clip = project.timeline!.visualTracks![0]!.clips![0]!;
-    expect(clip.source).toEqual({
-      kind: "scene",
-      sceneId: "component-scene__main-track__clip-logo",
-    });
-    expect(clip).not.toHaveProperty("instanceTransform");
-    expect(clip).not.toHaveProperty("instanceTransformTracks");
-
-    expect(issues.some((i) => i.message.includes("Migrated component"))).toBe(
-      true,
-    );
-  });
-
-  it("produces deterministic scene ids for two components", () => {
-    const input = legacyClipProject();
-    input.timeline.visualTracks[0]!.clips!.push({
-      id: "clip-lower-third",
-      source: { kind: "component", componentId: "lower-third" },
-      start: 4,
-      duration: 2,
-      opacity: 1,
-      loop: false,
-    });
-
-    const { project } = normalizeMotionProjectV3(input, {
-      migrateComponentClipsToScenes: true,
-    });
-
-    expect(project.scenes!.map((s) => s.id)).toEqual([
-      "component-scene__main-track__clip-logo",
-      "component-scene__main-track__clip-lower-third",
-    ]);
-  });
-
-  it("migrates two clips using the same component into distinct scenes", () => {
-    const input = legacyClipProject();
-    input.timeline.visualTracks[0]!.clips!.push({
-      id: "clip-logo-again",
-      source: { kind: "component", componentId: "logo-reveal" },
-      start: 4,
-      duration: 2,
-      opacity: 1,
-      loop: false,
-    });
-
-    const { project } = normalizeMotionProjectV3(input, {
-      migrateComponentClipsToScenes: true,
-    });
-
-    const sceneIds = project.scenes!.map((s) => s.id);
-    expect(sceneIds).toEqual([
-      "component-scene__main-track__clip-logo",
-      "component-scene__main-track__clip-logo-again",
-    ]);
-    const nodeIds = project.scenes!.map((s) => s.nodes![0]!.id);
-    expect(nodeIds).toEqual([
-      "component-instance__clip-logo",
-      "component-instance__clip-logo-again",
-    ]);
-  });
-
-  it("appends a deterministic suffix on pre-existing scene id collision", () => {
-    const input = legacyClipProject();
-    // Pre-existing scene uses the same id the migration would synthesize.
-    input.scenes = [
-      { id: "component-scene__main-track__clip-logo", nodes: [], clips: [] },
-    ];
-
-    const { project } = normalizeMotionProjectV3(input, {
-      migrateComponentClipsToScenes: true,
-    });
-
-    expect(project.scenes!.map((s) => s.id)).toEqual([
-      "component-scene__main-track__clip-logo",
-      "component-scene__main-track__clip-logo__2",
-    ]);
-  });
-
-  it("opt-in migration removes all component clip sources", () => {
-    const input = legacyClipProject();
-    // Legacy component clip source requires normalization…
-    expect(needsNormalization(input)).toBe(true);
-
-    const { project } = normalizeMotionProjectV3(input, {
-      migrateComponentClipsToScenes: true,
-    });
-
-    // …but after opt-in migration no component clip source remains.
-    expect(needsNormalization(project)).toBe(false);
-  });
-
-  it("does not mutate the input", () => {
-    const input = legacyClipProject();
-    const original = JSON.stringify(input);
-    normalizeMotionProjectV3(input, { migrateComponentClipsToScenes: true });
-    expect(JSON.stringify(input)).toBe(original);
-  });
-});

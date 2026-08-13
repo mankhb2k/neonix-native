@@ -598,7 +598,7 @@ describe("timeline.duration (Phase 5)", () => {
       { id: "primary", order: 0, clips: [] },
     ];
     timeline.audioTracks = [
-      { id: "audio-1", clips: [{ id: "audio-1-clip", assetId: "a", start: 0, duration: 2 }] },
+      { id: "audio-1", order: -1, clips: [{ id: "audio-1-clip", assetId: "a", start: 0, duration: 2 }] },
     ];
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
   });
@@ -611,7 +611,7 @@ describe("timeline.duration (Phase 5)", () => {
       { id: "primary", order: 0, clips: [] },
     ];
     timeline.audioTracks = [
-      { id: "audio-1", clips: [{ id: "audio-1-clip", assetId: "a", start: 0, duration: 2 }] },
+      { id: "audio-1", order: -1, clips: [{ id: "audio-1-clip", assetId: "a", start: 0, duration: 2 }] },
     ];
     expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });

@@ -2,7 +2,7 @@
  * Validate tính toàn vẹn timeline V3.
  *
  * - Trùng visual clip id / audio clip id.
- * - Visual `order` unique giữa các track.
+ * - Track `order` unique trên toàn timeline (visual + audio).
  * - Visual lane exclusive: cùng track không overlap thời gian (không exception).
  * - Audio: overlap trong cùng track được phép (mix); không suy luận crossfade.
  */
@@ -16,6 +16,8 @@ export interface TimelineIntegrityIssue {
 
 const EPSILON = 1e-9;
 
+type TrackOrderOwner = { kind: "visual" | "audio"; id: string };
+
 /**
  * Thu thập lỗi cấu trúc của timeline.
  */
@@ -24,17 +26,28 @@ export function collectTimelineIntegrityIssues(
 ): TimelineIntegrityIssue[] {
   const issues: TimelineIntegrityIssue[] = [];
 
-  // Unique visual track order.
-  const seenOrders = new Map<number, string>();
+  // Unique order across visual + audio tracks (sparse keys; not contiguous).
+  const seenOrders = new Map<number, TrackOrderOwner>();
   for (const track of timeline.visualTracks) {
     const existing = seenOrders.get(track.order);
     if (existing !== undefined) {
       issues.push({
         path: ["visualTracks", track.id, "order"],
-        message: `Duplicate visual track order ${track.order}: tracks "${existing}" and "${track.id}"`,
+        message: `Duplicate track order ${track.order}: ${existing.kind} track "${existing.id}" and visual track "${track.id}"`,
       });
     } else {
-      seenOrders.set(track.order, track.id);
+      seenOrders.set(track.order, { kind: "visual", id: track.id });
+    }
+  }
+  for (const track of timeline.audioTracks) {
+    const existing = seenOrders.get(track.order);
+    if (existing !== undefined) {
+      issues.push({
+        path: ["audioTracks", track.id, "order"],
+        message: `Duplicate track order ${track.order}: ${existing.kind} track "${existing.id}" and audio track "${track.id}"`,
+      });
+    } else {
+      seenOrders.set(track.order, { kind: "audio", id: track.id });
     }
   }
 

@@ -653,6 +653,7 @@ describe("V3 patch contract", () => {
           op: "addAudioTrack",
           audioTrack: {
             id: "bgm-1",
+            order: -1,
             clips: [
               {
                 id: "bgm-1-clip",

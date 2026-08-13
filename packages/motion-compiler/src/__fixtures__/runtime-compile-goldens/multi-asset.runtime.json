@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "66fef40123ca3489f165fb4ec8dd0d0e",
+  "runtimeHash": "87e0000742ad56122677a5d24a9e55d8",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -103,6 +103,7 @@
     "audioTracks": [
       {
         "id": "track-bgm",
+        "order": -1,
         "muted": false,
         "clips": [
           {

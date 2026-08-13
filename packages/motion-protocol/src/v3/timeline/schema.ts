@@ -1,9 +1,13 @@
 /**
  * Timeline project V3 — AE visual layer stack + audio DSP fades.
  *
- * Visual: tracks are time-exclusive lanes; `order` (unique) is stacking only.
- * No role, no transitionIn/Out. Clip source is scene-only; components live as
- * scene nodes (`type: "component"`), not as visual-clip sources.
+ * Track `order` is a sparse integer ordering key (not contiguous).
+ * - Visual tracks: order >= 0 (render stack; lower draws under)
+ * - Audio tracks: order < 0 (listing/mix ordering only; not a visual stack)
+ * - All track order values in one project must be unique across visual+audio
+ *
+ * Visual: time-exclusive lanes; no role, no transitionIn/Out. Clip source is
+ * scene-only; components live as scene nodes (`type: "component"`).
  *
  * Audio: tracks hold clips[]; fadeIn/fadeOut are per-clip playback envelopes
  * (not transitions between clips). Same-track overlap is allowed (mix).
@@ -56,6 +60,7 @@ export const VisualClipV3Schema = z
 export const VisualTrackV3Schema = z
   .object({
     id: IdSchema,
+    /** Sparse ordering key; must be >= 0. Unique across all timeline tracks. */
     order: z.number().int().nonnegative(),
     muted: z.boolean().default(false),
     clips: z
@@ -115,7 +120,8 @@ export const AudioClipV3Schema = z
 export const AudioTrackV3Schema = z
   .object({
     id: IdSchema,
-    order: z.number().int().nonnegative().optional(),
+    /** Sparse ordering key; must be < 0. Unique across all timeline tracks. */
+    order: z.number().int().negative(),
     muted: z.boolean().default(false),
     clips: z
       .array(AudioClipV3Schema)

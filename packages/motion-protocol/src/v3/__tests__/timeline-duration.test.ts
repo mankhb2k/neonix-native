@@ -31,6 +31,7 @@ function visualClip(id: string, start: number, duration: number) {
 function audioTrack(id: string, start: number, duration: number) {
   return {
     id,
+    order: -1,
     clips: [{ id: `${id}-clip`, assetId: "asset-audio", start, duration }],
   };
 }

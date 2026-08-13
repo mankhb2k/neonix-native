@@ -574,7 +574,8 @@ type VisualClip = {
 Timeline invariants:
 
 - Clip va track IDs unique trong scope quy dinh.
-- Visual `order` unique; same-lane clips khong overlap thoi gian.
+- Track `order` sparse: visual `>= 0`, audio `< 0`, unique across timeline; not contiguous.
+- Same-lane visual clips khong overlap thoi gian.
 - `start >= 0`, `duration > 0`, `playbackRate > 0`.
 - Scene local range khong vuot intrinsic duration, tru loop.
 - Khong co transitionIn/Out / crossfade / boundary primitive.
@@ -588,7 +589,7 @@ V3 mo rong audio track v2:
 ```ts
 type AudioTrack = {
   id: Id;
-  order?: number; // optional listing; not unique like visual
+  order: number; // required; must be < 0; unique across visual+audio
   muted?: boolean;
   clips: AudioClip[];
 };
@@ -1177,7 +1178,7 @@ timeline.sceneOrder
   -> timeline.visualTracks[main].clips
 
 scene.transition
-  -> corresponding visual clip transitionOut
+  -> scene/component/layer animation (khong emit transitionOut)
 
 timeline.audioTracks
   -> add duration/playbackRate from asset metadata/defaults

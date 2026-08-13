@@ -408,7 +408,8 @@
             "fadeOut": 1,
             "muted": false
           }
-        ]
+        ],
+        "order": -1
       }
     ],
     "captionTracks": [

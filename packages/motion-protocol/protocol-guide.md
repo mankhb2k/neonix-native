@@ -46,15 +46,15 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `metadata.ts`        | `ProjectMetadataV3Schema` — id/name/description/locale (BCP-47)/tags/timestamps.                                                                                                                                         |
 | `mcp.ts`             | MCP Tool Contract — typed operation schemas cho 8 operation MCP-facing, server-agnostic.                                                                                                                                 |
 | `normalize-input.ts` | Input normalizer — walk authoring tree, normalize text payload `{ text }` → `{ content: { kind: "plain" } }` trước khi Zod parse.                                                                                        |
-| `normalize.ts`       | Project normalizer (migration) — chuyển dữ liệu v3 cũ (binding `nodeId`+`property` → `targetId`, `variants` record → array) trước `parseMotionProjectV3`. Defensive, không mutate input.                                 |
-| `parse.ts`           | Parse/serialize API — `parseMotionProjectV3` (normalize → schema + reference validation) và `serializeMotionProjectV3` (emit key theo thứ tự alphabet để byte-identical).                                                |
+| `normalize.ts`       | Opt-in migration for legacy **bindings/variants** only — không nằm trên production parse. Không rewrite timeline `source.kind: "component"` (canonical reject). |
+| `parse.ts`           | Canonical production parse — `parseMotionProjectV3` (text-payload normalize → schema + reference validation). Strict V3; no component clip migration. `serializeMotionProjectV3` emit key alphabet để byte-identical. |
 | `patch.ts`           | Native Patch Contract — safe editor surface cho AI/MCP (`applyMotionProjectV3Patch`, `MotionProjectV3PatchSchema`), idempotent, luôn re-validate bằng `MotionProjectV3Schema`.                                           |
 | `project.ts`         | **Root schema** (`MotionProjectV3Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id.                                                                             |
 | `provenance.ts`      | Provenance — debug/trace metadata, exclude khỏi render hash.                                                                                                                                                             |
-| `scenes.ts`          | `SceneDefinitionV3Schema` — scene definition (nodes + scene-local clips). Scene không còn mang `transition` (chuyển sang `transitionOut` trên visual clip).                                                              |
+| `scenes.ts`          | `SceneDefinitionV3Schema` — scene definition (nodes + scene-local clips). Scene không mang `transition`.                                                                                                                 |
 | `skills.ts`          | Skill Template Contract — named template mô tả capability/input/output/instruction cho AI/MCP tạo hoặc patch project.                                                                                                    |
 | `source-ref.ts`      | Source-ref schemas — `SourceRefKindSchema` (text-run/caption-token/caption-cue/node/clip).                                                                                                                               |
-| `timeline.ts`        | Project timeline — `visualTracks` (thay `sceneOrder`), clip có in/out transitions, playback rate, loop, opacity; `instanceTransform`/`instanceTransformTracks` cho component instance (wrapper-safe).                    |
+| `timeline.ts`        | Project timeline — `visualTracks` scene-only clips, unique `order`, same-lane exclusive; **không** role / transitionIn/Out. Component = scene node, không clip source.                                                   |
 | `types.ts`           | V3 public protocol types — nơi đặt **aggregate root type** (`MotionProjectV3` viết tay) để tránh TS serialize type khổng lồ trong schema module.                                                                         |
 | `variables.ts`       | Variables, design tokens & project bindings — `ProjectVariableV3Schema`, `DesignTokensSchema`, `ProjectBindingV3Schema`, `PublicParamSchema`.                                                                            |
 
@@ -62,7 +62,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 | File                  | Nhiệm vụ                                                                                                                                            |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`            | Node union — `NodeV3Schema` discriminated union theo `type`. `component` node type đã bị loại bỏ (component instance là clip source trên timeline). |
+| `index.ts`            | Node union — `NodeV3Schema` discriminated union theo `type`, gồm `component` (sealed instance, group-like transform/timing/zIndex). Timeline không nhận component làm clip source. |
 | `base.ts`             | `NodeBaseV3Schema` + transform — nền tảng chung cho mọi node (id/type/parentId/transform/timing/effects/modifiers).                                 |
 | `geometry.ts`         | Geometry nodes — `ShapeNodeV3Schema` + `PathNodeV3Schema` (point/path primitives).                                                                  |
 | `geometry-types.ts`   | Type `z.infer` cho shape/path, tách riêng tránh circular import.                                                                                    |

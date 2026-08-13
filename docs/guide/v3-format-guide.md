@@ -156,7 +156,7 @@ flowchart TB
 ```jsonc
 {
   "id": "track.base",
-  "order": 0, // unique; thấp = dưới
+  "order": 0, // sparse >= 0; unique across timeline; thấp = dưới
   "muted": false,
   "clips": [ /* VisualClipV3[] */ ]
 }
@@ -178,6 +178,8 @@ flowchart TB
 ```
 
 > **Scene-only**: `VisualClipSourceV3` chỉ `{ kind: "scene", sceneId }`. Component là scene node (`type: "component"`), không phải clip source.
+>
+> Canonical parse (`MotionProjectV3Schema` / `parseMotionProjectV3`) **reject** `source.kind: "component"`. Không có auto-migrate. Component chỉ qua scene node (`type: "component"`).
 
 > **Không** `transitionIn` / `transitionOut`. Hiệu ứng = layer/component animation trong scene trên track `order` phù hợp.
 
@@ -189,11 +191,12 @@ Render tại `t`: active scene clips → sort `order` → vẽ thấp→cao.
 
 ### 3.4 Thuật ngữ Track / Layer
 
-| Thuật ngữ      | Ý nghĩa                               | Cơ chế xếp chồng            |
-| -------------- | ------------------------------------- | --------------------------- |
-| **Track**      | Lane trong `timeline.visualTracks`    | `VisualTrackV3.order`       |
-| **Layer**      | Node bên trong một scene              | `NodeV3.zIndex`             |
-| **Track role** | `main` hoặc `overlay` — ý nghĩa mô tả | Không tạo ưu tiên tuyệt đối |
+| Thuật ngữ | Ý nghĩa                            | Cơ chế xếp chồng      |
+| --------- | ---------------------------------- | --------------------- |
+| **Track** | Lane trong `timeline.visualTracks` | `VisualTrackV3.order` |
+| **Layer** | Node bên trong một scene           | `NodeV3.zIndex`       |
+
+UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **không** phải field JSON.
 
 ### 3.5 Quy tắc xếp chồng
 
@@ -205,14 +208,15 @@ Node zIndex nhỏ  →  nằm dưới (trong cùng scene)
 Node zIndex lớn  →  nằm trên (trong cùng scene)
 ```
 
+Stacking **chỉ** theo `order`. Không có ưu tiên `primary` / `overlay`.
+
 ```jsonc
-// Ví dụ: overlay track nằm trên main track
+// Ví dụ: track order cao nằm trên track order thấp
 {
   "timeline": {
     "visualTracks": [
       {
-        "id": "main-track",
-        "role": "main",
+        "id": "track-base",
         "order": 0, // ← vẽ trước, nằm dưới
         "clips": [
           {
@@ -224,8 +228,7 @@ Node zIndex lớn  →  nằm trên (trong cùng scene)
         ],
       },
       {
-        "id": "overlay-track",
-        "role": "overlay",
+        "id": "track-logo",
         "order": 1, // ← vẽ sau, nằm trên
         "clips": [
           {
@@ -246,13 +249,13 @@ Node zIndex lớn  →  nằm trên (trong cùng scene)
 
 > **V2 đã bị loại bỏ hoàn toàn.** Bảng dưới đây chỉ để tham khảo lịch sử.
 
-| V2 (đã bỏ)                      | V3 (canonical)                            |
-| ------------------------------- | ----------------------------------------- |
-| `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV3[]`  |
+| V2 (đã bỏ)                      | V3 (canonical)                                       |
+| ------------------------------- | ---------------------------------------------------- |
+| `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV3[]`             |
 | `scene.transition`              | Không còn — effect = scene/component layer animation |
-| Một lane duy nhất               | Nhiều track (`main` + `overlay`)          |
-| Scene-level transition          | Clip-level transition                     |
-| Không có loop/playbackRate      | Có `loop`, `playbackRate`, `opacity`      |
+| Một lane duy nhất               | Nhiều track; `order` unique = stacking               |
+| Scene/clip-level transition     | Không có — animation trong scene/component           |
+| Không có loop/playbackRate      | Có `loop`, `playbackRate`, `opacity`                 |
 
 ### 3.7 `timeline.duration` — Độ dài MP4 cuối cùng
 
@@ -279,8 +282,7 @@ derivedDuration = max(
   "timeline": {
     "visualTracks": [
       {
-        "id": "main",
-        "role": "main",
+        "id": "track-base",
         "order": 0,
         "clips": [
           { "id": "c1", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 5 },
@@ -320,51 +322,46 @@ derivedDuration = max(
 
 | Quy tắc | Chính sách |
 | --- | --- |
-| **Lane exclusive** | Một visual track = một lane. Trong **cùng lane**, clips **không** chồng thời gian. |
-| **Main + transition** | Exception duy nhất trên `role: "main"`: được overlap nếu có transition non-cut bridge và `overlap ≤` duration transition. |
-| **Trùng thời gian giữa scenes** | Được phép **chỉ khi** clips nằm trên **track/`order` khác** (ví dụ main + overlay). Không được copy hai clip cùng `start`/`duration` vào cùng một lane. |
+| **Lane exclusive** | Một visual track = một lane. Trong **cùng lane**, clips **không** chồng thời gian. Không exception. |
+| **Trùng thời gian giữa scenes** | Được phép **chỉ khi** clips nằm trên **track/`order` khác**. Không được copy hai clip cùng `start`/`duration` vào cùng một lane. |
 | **Duplicate clip id** | `clip.id` phải **unique trên toàn bộ timeline**. |
 | **Reuse `sceneId`** | Nhiều clip được tham chiếu cùng `source.sceneId` miễn `clip.id` khác. |
-| **Duplicate track order** | Được phép — compiler sort ổn định theo `order`. |
-| **Gaps** | Hợp lệ. Trong gap chỉ background; audio/caption vẫn có thể tồn tại. |
+| **Track `order`** | Sparse integer. Visual `>= 0`, audio `< 0`, unique across timeline. Not contiguous. |
+| **Gaps** | Hợp lệ. Trong gap không có visual clip active; audio/caption vẫn có thể tồn tại. |
 | **Duplicate = editor command** | JSON **không** có op/field `duplicate`. UI tạo object mới → id mới → timing/lane hợp lệ → lưu state sạch. |
 
 ```jsonc
-// Ví dụ: crossfade overlap hợp lệ trên main track (clip B bắt đầu trước khi A kết thúc)
+// Reject: cùng lane chồng thời gian — không có transition bridge
 {
   "visualTracks": [
     {
-      "id": "main",
-      "role": "main",
+      "id": "track-base",
       "order": 0,
       "clips": [
         {
           "id": "a",
           "source": { "kind": "scene", "sceneId": "intro" },
           "start": 0,
-          "duration": 3,
-          "transitionOut": { "type": "crossfade", "duration": 1 },
+          "duration": 3
         },
         {
           "id": "b",
           "source": { "kind": "scene", "sceneId": "body" },
           "start": 2,
-          "duration": 3,
-          "transitionIn": { "type": "crossfade", "duration": 1 },
-        },
-      ],
-    },
-  ],
+          "duration": 3
+        }
+      ]
+    }
+  ]
 }
 ```
 
 ```jsonc
-// Ví dụ: hai scene cùng timing — bắt buộc khác lane/order
+// Hợp lệ: hai scene cùng timing — khác lane / order
 {
   "visualTracks": [
     {
-      "id": "main",
-      "role": "main",
+      "id": "track-base",
       "order": 0,
       "clips": [
         {
@@ -376,8 +373,7 @@ derivedDuration = max(
       ]
     },
     {
-      "id": "overlay_1",
-      "role": "overlay",
+      "id": "track-logo",
       "order": 1,
       "clips": [
         {
@@ -558,40 +554,13 @@ Layer copy (editor): giữ `timing`, cấp `id` mới + `zIndex` mới trong sib
 
 ---
 
-## 6. Transitions
+## 6. Không có timeline transition
 
-Transition là thuộc tính của **clip**, không phải của scene:
+Timeline **không** có `transitionIn` / `transitionOut` / crossfade / wipe primitive. Muốn fade, slide, wipe, flash: animate layer hoặc component **bên trong scene** (opacity, transform, mask), rồi đặt scene đó trên track `order` phù hợp.
 
-```jsonc
-{
-  "id": "clip-intro",
-  "source": { "kind": "scene", "sceneId": "intro" },
-  "start": 0,
-  "duration": 3,
-  "transitionIn": {
-    "type": "fade",
-    "duration": 0.5,
-    "easing": "easeOut",
-  },
-  "transitionOut": {
-    "type": "slide",
-    "duration": 0.3,
-    "direction": "left",
-    "mode": "push",
-  },
-}
-```
+Cut giữa hai clip trên cùng lane = clip A kết thúc, clip B bắt đầu (`B.start >= A.start + A.duration`). Chồng thời gian trên cùng lane = **reject**.
 
-### Các loại transition
-
-| Type        | Duration | Tham số thêm                                   |
-| ----------- | -------- | ---------------------------------------------- |
-| `cut`       | 0        | —                                              |
-| `fade`      | ✅       | `color`, `easing`                              |
-| `crossfade` | ✅       | `easing`                                       |
-| `slide`     | ✅       | `direction`, `mode` (`push`/`cover`), `easing` |
-| `wipe`      | ✅       | `direction`, `softness`, `easing`              |
-| `zoom`      | ✅       | `direction` (`in`/`out`), `easing`             |
+Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính clip đó**, không suy luận transition giữa clips.
 
 ---
 
@@ -925,8 +894,8 @@ Theo dõi nguồn gốc project và source mapping:
 #### `DuplicateVisualClip`
 
 1. Tạo clip mới với `id` mới (được reuse `source.sceneId`).
-2. Nếu **giữ cùng `start`/`duration`**: đặt clip lên **track khác** (`order` khác) — thường overlay. Không ghi hai clip chồng thời gian vào cùng lane.
-3. Nếu **cùng lane**: đặt `start` sau `prev.start + prev.duration` (không overlap), trừ khi user chủ động tạo crossfade trên main với transition hợp lệ.
+2. Nếu **giữ cùng `start`/`duration`**: đặt clip lên **track khác** (`order` khác). Không ghi hai clip chồng thời gian vào cùng lane.
+3. Nếu **cùng lane**: đặt `start` sau `prev.start + prev.duration` (không overlap).
 4. Output phải pass `MotionProjectV3Schema` + timeline integrity + references.
 
 #### `DuplicateNode` (layer trong scene)
@@ -951,7 +920,7 @@ Theo dõi nguồn gốc project và source mapping:
 ### Khi dùng timeline
 
 1. **Không dùng transition primitives** — effect = scene/component node animation
-2. **Dùng `order` unique** để xếp stacking (UI label main/overlay không nằm trong JSON)
+2. **Dùng sparse `order` unique** (visual `>= 0`, audio `< 0`) — không cần contiguous
 3. **Component node** (`type: "component"`) trong scene; visual clip chỉ `source.kind: "scene"`
 4. **Scene trùng thời gian** → khác track `order`; cùng lane không overlap
 5. **Duplicate clip/layer** chỉ qua editor command — JSON chỉ lưu kết quả
@@ -970,8 +939,8 @@ Theo dõi nguồn gốc project và source mapping:
 | Khái niệm                | Mô tả                                                                                            |
 | ------------------------ | ------------------------------------------------------------------------------------------------ |
 | **MotionProjectV3**      | Single source of truth, một file JSON cho toàn bộ dự án                                          |
-| **visualTracks**         | Thay thế `sceneOrder`, hỗ trợ multi-track (`main` + `overlay`); lane exclusive theo thời gian    |
-| **VisualClip**           | Clip-level transition, loop, playbackRate, opacity, scene-only source                            |
+| **visualTracks**         | Thay thế `sceneOrder`; multi-track `order` unique; lane exclusive theo thời gian     |
+| **VisualClip**           | Scene-only source; loop, playbackRate, opacity; **không** transition primitive       |
 | **Node types**           | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
 | **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local unique zIndex                      |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |

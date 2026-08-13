@@ -149,7 +149,8 @@ export type AudioClip = z.infer<typeof AudioClipSchema>;
 export const AudioTrackSchema = z
   .object({
     id: IdSchema,
-    order: FiniteNumberSchema.int().nonnegative().optional(),
+    /** Sparse ordering key; must be < 0. Unique across all timeline tracks. */
+    order: FiniteNumberSchema.int().negative(),
     muted: z.boolean().default(false),
     clips: z
       .array(AudioClipSchema)

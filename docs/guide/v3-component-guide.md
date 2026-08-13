@@ -371,16 +371,14 @@ Timeline chỉ chứa clip scene. Để đưa component lên timeline, tạo m�
 "timeline": {
   "visualTracks": [
     {
-      "id": "overlay",
-      "role": "overlay",
+      "id": "track-logo",
       "order": 1,
       "clips": [
         {
           "id": "my-btn-instance",
           "source": { "kind": "scene", "sceneId": "my-button-scene" },
           "start": 0,
-          "duration": 5,
-          "transitionIn": { "type": "fade", "duration": 0.3 }
+          "duration": 5
         }
       ]
     }
@@ -388,7 +386,7 @@ Timeline chỉ chứa clip scene. Để đưa component lên timeline, tạo m�
 }
 ```
 
-> Lưu ý: `clip.start` là thời điểm **tuyệt đối** trên global timeline (giây), không phải offset tương đối. Chính sách overlap (`main` không chồng lấn trừ khi có transition, `overlay` được chồng lấn tự do) và `timeline.duration` (độ dài MP4 cuối cùng) được mô tả chi tiết trong `v3-format-guide.md` §3.7–§3.8.
+> Lưu ý: `clip.start` là thời điểm **tuyệt đối** trên global timeline (giây), không phải offset tương đối. Cùng lane không overlap; scene trùng thời gian phải khác `order`. Chi tiết: `v3-format-guide.md` §3.7–§3.8.
 
 ### Bước 4: Bind project variable vào component (qua publicTargets)
 

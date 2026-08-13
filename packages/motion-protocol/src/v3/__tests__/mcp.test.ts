@@ -328,6 +328,7 @@ describe("V3 MCP contract", () => {
         audioTracks: [
           {
             id: "bgm",
+            order: -1,
             clips: [
               {
                 id: "bgm-clip",
