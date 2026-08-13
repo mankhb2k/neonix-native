@@ -20,22 +20,29 @@ export function normalizeMotionProjectInput(input: unknown): unknown {
       if (next.type === "text" && next.payload != null) {
         next.payload = normalizeTextPayloadInput(next.payload);
       }
+      if (Array.isArray(next.children)) {
+        next.children = normalizeLayers(next.children);
+      }
       return next;
     });
   };
 
-  if (Array.isArray(root.scenes)) {
-    root.scenes = root.scenes.map((scene) => {
-      if (!scene || typeof scene !== "object" || Array.isArray(scene))
-        return scene;
-      const nextScene = { ...(scene as Record<string, unknown>) };
-      nextScene.layers = normalizeLayers(nextScene.layers);
-      return nextScene;
-    });
-  }
-
   if (Array.isArray(root.layers)) {
     root.layers = normalizeLayers(root.layers);
+  }
+  if (Array.isArray(root.components)) {
+    root.components = root.components.map((component) => {
+      if (
+        !component ||
+        typeof component !== "object" ||
+        Array.isArray(component)
+      ) {
+        return component;
+      }
+      const next = { ...(component as Record<string, unknown>) };
+      next.layers = normalizeLayers(next.layers);
+      return next;
+    });
   }
 
   return root;

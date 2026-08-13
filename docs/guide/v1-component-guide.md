@@ -7,7 +7,7 @@
 | **Prop** | Một **tín hiệu public** — nút chỉnh mà user/AI được đụng |
 | **PropBindings** | Các **dây nối** tín hiệu đó vào bên trong component |
 | **Prop value** | Giá trị gắn lên tín hiệu (màu tĩnh, biến, hoặc keyframes) |
-| **Instance** | Bản dùng component trong scene — chỉ set `payload.props` |
+| **Instance** | Bản dùng component trên `project.layers` — chỉ set `payload.props` |
 
 ```text
 User chỉnh props
@@ -24,14 +24,14 @@ User chỉnh props
 - **Owner / designer AI** thiết kế `propBindings`.
 - **Compiler** biến props thành giá trị / motion tracks trên layer nội bộ.
 
-Timeline **không biết** component. Scene đặt instance. Definition mô tả bên trong.
+Timeline **không biết** component. Root/group đặt instance. Definition mô tả bên trong.
 
 ---
 
 ## Câu chốt contract
 
 > A **component** is a sealed design template with public **props** and **variants**.  
-> A **component layer** is an **instance** placed in a scene.  
+> A **component layer** is an **instance** placed on the project layer tree (`type: "component"`, leaf).  
 > **Props** are public signals. A prop value can be **static**, **variable-bound**, or **keyframed**.  
 > **PropBindings** wire each signal into one or many internal layers (or child props).  
 > Only **animatable** props may receive keyframes (`choice` / `asset` default off; set `animatable: true` to opt in; asset stays step-only).  
@@ -289,7 +289,7 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 - `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
 - Asset / choice / variable: mỗi key (và variable ref) phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
-- Scene track `payload.props.<propId>` là **prop source** (thắng payload static/keyframes). Compiler resolve props xong rồi mới fan-out — không remap track xuống internals.
+- Scene track không được animate `payload.props.<propId>`. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`; scene chỉ là wrapper để timeline clip scene.
 
 Prop animation ≠ wrapper transform. Scene clips animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
 
@@ -330,12 +330,11 @@ Không skip-level: A không bind thẳng layer nội bộ của C.
 
 Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child definition cho đến khi gặp `layerProperty`.
 
-### Project binding vs internalBindings
+### Project binding
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Scene node, **scene-level** component instance (`componentLayer`), hoặc mọi **scene-level** instance của một `componentId` |
-| `component.internalBindings` | Definition | Variable/context **nội bộ** → layer nội bộ. Không có `sceneId`. |
+| `project.bindings` | Project | Scene layer, **scene-level** component instance (`componentLayer`), hoặc mọi **scene-level** instance của một `componentId` |
 
 Global `target.kind: "component"` **chỉ** áp dụng instance nằm trực tiếp trên scene. Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
 
@@ -364,7 +363,6 @@ Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 3. `payload.props`
 4. parent forwarded prop (`childProp`)
 5. project binding (`kind: component` scene-level, hoặc `kind: componentLayer`)
-6. scene prop track (clip target instance, `property: payload.props.<propId>`)
 
 Nested instance không nhận global `kind: component`. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
 
@@ -411,7 +409,6 @@ flowchart TD
     }
   ],
   "layers": [/* circle, title, border, … */],
-  "internalBindings": [],
   "variants": [],
   "actions": []
 }
@@ -432,7 +429,7 @@ flowchart TD
 
 ## 8. Timeline reminder
 
-Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải clip source.
+Visual clip chỉ `source.kind: "scene"`. Component = scene layer, không phải clip source.
 
 ---
 
@@ -445,7 +442,7 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải 
 | Bind thẳng internals từ project | Bind `propId` (scene-level instance) — compiler resolve prop rồi apply |
 | Skip-level vào layer của nested child | `childProp` từng tầng |
 | Global binding cho nested Button trong Card | Scene-level only; parent forward |
-| `component.bindings` (project schema) | `internalBindings` |
+| `component.bindings` / `internalBindings` | `propBindings` |
 | `layerProperty.layerId` | `layerId` |
 | `kind: "string"` / `"enum"` | `text` / `choice` |
 | Asset không có `assetKind` | Bắt buộc `assetKind` |

@@ -4,7 +4,7 @@
  * Variable kinds mirror v2 but the `list` kind carries an explicit item
  * schema so AI/editor tooling can validate list payloads structurally.
  * Design tokens extend v2 `DesignTokensSchema` with `radii` and `motion`.
- * Bindings may target either a scene layer or a component instance layer.
+ * Bindings may target a project layer or a component instance layer.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -113,18 +113,17 @@ export const ProjectBindingV1Schema = z
   .object({
     id: IdSchema,
     source: VariableBindingSourceSchema,
-    target: z.discriminatedUnion("kind", [
+    target: z.discriminatedUnion("type", [
       z
         .object({
-          kind: z.literal("scene"),
-          sceneId: IdSchema,
+          type: z.literal("layer"),
           layerId: IdSchema,
           property: PropertyPathSchema,
         })
         .strict(),
       z
         .object({
-          kind: z.literal("component"),
+          type: z.literal("component"),
           componentId: IdSchema,
           /** Public prop id declared by the component owner. */
           propId: IdSchema,
@@ -132,8 +131,7 @@ export const ProjectBindingV1Schema = z
         .strict(),
       z
         .object({
-          kind: z.literal("componentLayer"),
-          sceneId: IdSchema,
+          type: z.literal("componentLayer"),
           layerId: IdSchema,
           /** Public prop id declared by the referenced component owner. */
           propId: IdSchema,
@@ -176,7 +174,7 @@ export const ProjectBindingSchema = z
     source: VariableBindingSourceSchema,
     target: z
       .object({
-        sceneId: IdSchema,
+        type: z.literal("layer"),
         layerId: IdSchema,
         property: PropertyPathSchema,
       })

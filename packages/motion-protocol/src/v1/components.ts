@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { ComponentBindingSchema, VariableSchema } from "./variables";
+import { VariableSchema } from "./variables";
 import { JsonValueSchema } from "./values";
 import {
   IdSchema,
@@ -197,10 +197,6 @@ export const ComponentDefinitionV1Schema = z
       .array(LayerV1Schema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.layersPerComponent),
-    internalBindings: z
-      .array(ComponentBindingSchema)
-      .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
-      .default([]),
     actions: z
       .array(ComponentActionV1Schema)
       .max(MOTION_PROTOCOL_LIMITS.actionsPerComponent)
@@ -272,4 +268,3 @@ export type ComponentPropBindingTargetV1 = z.infer<
 export type ComponentDependencyV1 = z.infer<typeof ComponentDependencyV1Schema>;
 export type ProjectDependenciesV1 = z.infer<typeof ProjectDependenciesV1Schema>;
 export type ComponentVariantV1 = z.infer<typeof ComponentVariantV1Schema>;
-export type ComponentInternalBindingV1 = z.infer<typeof ComponentBindingSchema>;

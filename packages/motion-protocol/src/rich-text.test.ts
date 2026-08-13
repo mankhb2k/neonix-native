@@ -47,70 +47,49 @@ describe("rich text content", () => {
       dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
       assets: [],
       variables: [],
-      timeline: {
-        visualTracks: [
-          {
-            id: "primary",
-            order: 0,
-            clips: [
-              {
-                id: "vclip-s1",
-                source: { kind: "scene" as const, sceneId: "s1" },
-                start: 0,
-                duration: 2,
-              },
-            ],
-          },
-        ],
-        audioTracks: [],
-      },
-      scenes: [
+      timeline: { duration: 2 },
+      layers: [
         {
-          id: "s1",
-          duration: 2,
-          layers: [
-            {
-              id: "t1",
-              type: "text",
-              parentLayerId: null,
-              transform: {
-                x: 100,
-                y: 100,
-                width: 400,
-                height: 80,
-                rotation: 0,
-                scaleX: 1,
-                scaleY: 1,
-                anchorX: 0,
-                anchorY: 0,
-                opacity: 1,
-                visible: true,
-                flipX: false,
-                flipY: false,
-              },
-              payload: {
-                content: {
-                  kind: "runs",
-                  runs: [
-                    {
-                      id: "r1",
-                      text: "Hello ",
-                      style: { fill: "#ffffff", fontWeight: 700 },
-                    },
-                    { id: "r2", text: "World", style: { fill: "#00ff00" } },
-                  ],
+          id: "t1",
+          type: "text",
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 2 },
+          transform: {
+            x: 100,
+            y: 100,
+            width: 400,
+            height: 80,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0,
+            anchorY: 0,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
+          },
+          payload: {
+            content: {
+              kind: "runs",
+              runs: [
+                {
+                  id: "r1",
+                  text: "Hello ",
+                  style: { fill: "#ffffff", fontWeight: 700 },
                 },
-                fontSize: 48,
-              },
+                { id: "r2", text: "World", style: { fill: "#00ff00" } },
+              ],
             },
-          ],
-          clips: [],
+            fontSize: 48,
+          },
         },
       ],
       bindings: [],
       extensions: {},
     });
-    const node = project.scenes[0]!.layers[0]!;
+    const node = project.layers[0]!;
     expect(node.type).toBe("text");
     if (node.type === "text") {
       expect(getTextPayloadPlain(node.payload)).toBe("Hello World");

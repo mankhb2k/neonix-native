@@ -34,29 +34,29 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "1e6207af5a8481963b4968dae81c39a5",
+  "runtimeHash": "2754ae02042785d823a4065db8b00ca8",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
-      "character-demo": "scenes:character-demo"
+      "root": "scenes:root"
     }
   },
   "timeline": {
-    "duration": 10,
+    "duration": 9,
     "visualTracks": [
       {
-        "id": "main-track",
+        "id": "visual",
         "order": 0,
         "clips": [
           {
-            "id": "clip-character-demo",
+            "id": "root-clip",
             "source": {
               "kind": "scene",
-              "sceneId": "character-demo"
+              "sceneId": "root"
             },
             "start": 0,
-            "duration": 10
+            "duration": 9
           }
         ]
       }
@@ -66,13 +66,12 @@
   },
   "scenes": [
     {
-      "id": "character-demo",
-      "duration": 10,
-      "space": "flat-2d",
+      "id": "root",
+      "duration": 9,
       "sourceRef": {
         "projectPath": [
           "scenes",
-          "character-demo"
+          "root"
         ]
       },
       "layers": [

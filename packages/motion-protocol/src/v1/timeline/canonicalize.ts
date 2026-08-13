@@ -1,13 +1,16 @@
 /**
  * Canonical hóa duration timeline V1 + snap frame-grid.
  *
- * Điền `timeline.duration` còn thiếu từ điểm kết thúc nội dung cuối, rồi snap
- * mọi field timing lên `composition.fps` để IR canonical không còn giá trị
- * lệch lưới (ví dụ `1.001` ở `1fps`).
+ * Điền `timeline.duration` còn thiếu từ điểm kết thúc root layer, rồi snap
+ * mọi field timing lên `composition.fps`.
  */
 import type { MotionProjectV1 } from "../project";
 import { deriveTimelineDurationV1 } from "./duration";
-import { snapSecondsToFrameGrid, snapTimelineToFrameGrid } from "./frame-grid";
+import {
+  snapSecondsToFrameGrid,
+  snapLayerTreeToFrameGrid,
+  snapTimelineToFrameGrid,
+} from "./frame-grid";
 
 export interface CanonicalizeTimelineDurationIssue {
   path: string;
@@ -24,24 +27,29 @@ export interface CanonicalizeTimelineDurationResult {
  * Trả về project luôn có `timeline.duration` và timing nằm trên frame-grid.
  *
  * Thứ tự:
- * 1. Snap timing đã authoring lên `composition.fps`.
- * 2. `duration = max(declared đã snap | 0, derive(content đã snap))` rồi snap.
- *    Đảm bảo sau snap không còn clip end > timeline.duration.
+ * 1. Snap layer + timeline timing đã authoring lên `composition.fps`.
+ * 2. `duration = max(declared đã snap | 0, derive(root layers đã snap))` rồi snap.
  *
  * Không mutate object đầu vào.
  */
 export function canonicalizeTimelineDurationV1(
   project: MotionProjectV1,
 ): CanonicalizeTimelineDurationResult {
-  // Deep clone để không đụng object của caller.
   const cloned: MotionProjectV1 = JSON.parse(JSON.stringify(project));
   const issues: CanonicalizeTimelineDurationIssue[] = [];
   const fps = Math.max(1, cloned.composition.fps);
 
-  const beforeSnap = JSON.stringify(cloned.timeline);
+  const beforeSnap = JSON.stringify({
+    timeline: cloned.timeline,
+    layers: cloned.layers,
+  });
   const hadDuration = cloned.timeline.duration !== undefined;
+  cloned.layers = snapLayerTreeToFrameGrid(cloned.layers, fps);
   cloned.timeline = snapTimelineToFrameGrid(cloned.timeline, fps);
-  if (JSON.stringify(cloned.timeline) !== beforeSnap) {
+  if (
+    JSON.stringify({ timeline: cloned.timeline, layers: cloned.layers }) !==
+    beforeSnap
+  ) {
     issues.push({
       path: "timeline",
       message: `Snapped timeline timing fields onto ${fps}fps frame grid`,
@@ -49,7 +57,7 @@ export function canonicalizeTimelineDurationV1(
     });
   }
 
-  const derived = deriveTimelineDurationV1(cloned.timeline);
+  const derived = deriveTimelineDurationV1(cloned.layers);
   const declared = cloned.timeline.duration;
   const raised = Math.max(declared ?? 0, derived);
   const snappedDuration = snapSecondsToFrameGrid(raised, fps);
@@ -58,7 +66,7 @@ export function canonicalizeTimelineDurationV1(
     cloned.timeline.duration = snappedDuration;
     issues.push({
       path: "timeline.duration",
-      message: `Derived timeline.duration = ${snappedDuration} from timeline content`,
+      message: `Derived timeline.duration = ${snappedDuration} from root layer timing`,
       severity: "info",
     });
   } else if (snappedDuration > declared + 1e-12) {

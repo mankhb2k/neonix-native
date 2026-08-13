@@ -8,7 +8,7 @@
     "locale": "vi-VN",
     "tags": [
       "example",
-      "v3",
+      "v1",
       "audio"
     ]
   },
@@ -71,168 +71,138 @@
     }
   ],
   "components": [],
-  "scenes": [
+  "timeline": {},
+  "bindings": [],
+  "layers": [
     {
-      "id": "scene-1",
-      "name": "Opening",
-      "duration": 5,
-      "layers": [
-        {
-          "id": "opening-text",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 800,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Opening Scene"
-            },
-            "fontSize": 56,
-            "color": "#ffffff",
-            "alignment": "center"
-          }
-        }
-      ]
+      "id": "opening-text",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Opening Scene"
+        },
+        "fontSize": 56,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
     },
     {
-      "id": "scene-2",
-      "name": "Main Content",
-      "duration": 5,
-      "layers": [
-        {
-          "id": "content-text",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 700,
-            "height": 200,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Main Content with Voiceover"
-            },
-            "fontSize": 48,
-            "color": "#ffffff",
-            "alignment": "center"
-          }
-        }
-      ]
+      "id": "content-text",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 700,
+        "height": 200,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Main Content with Voiceover"
+        },
+        "fontSize": 48,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    },
+    {
+      "id": "bgm-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -1,
+      "timing": {
+        "start": 0,
+        "duration": 10
+      },
+      "payload": {
+        "assetId": "bgm-track",
+        "volume": 0.3,
+        "loop": false,
+        "fadeIn": 1,
+        "fadeOut": 1
+      }
+    },
+    {
+      "id": "vo-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -2,
+      "timing": {
+        "start": 0.5,
+        "duration": 9
+      },
+      "payload": {
+        "assetId": "voiceover",
+        "volume": 1,
+        "loop": false
+      }
+    },
+    {
+      "id": "sfx-1-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -3,
+      "timing": {
+        "start": 4.8,
+        "duration": 1
+      },
+      "payload": {
+        "assetId": "sfx-whoosh",
+        "volume": 0.8,
+        "loop": false
+      }
+    },
+    {
+      "id": "sfx-2-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -4,
+      "timing": {
+        "start": 9.8,
+        "duration": 1
+      },
+      "payload": {
+        "assetId": "sfx-whoosh",
+        "volume": 0.8,
+        "loop": false
+      }
     }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "main",
-        "order": 0,
-        "clips": [
-          {
-            "id": "c-scene1",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-1"
-            },
-            "start": 0,
-            "duration": 5
-          },
-          {
-            "id": "c-scene2",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-2"
-            },
-            "start": 5,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [
-      {
-        "id": "bgm",
-        "clips": [
-          {
-            "id": "bgm-clip",
-            "assetId": "bgm-track",
-            "start": 0,
-            "duration": 10,
-            "volume": 0.3,
-            "loop": false,
-            "fadeIn": 1,
-            "fadeOut": 1
-          }
-        ],
-        "order": -1
-      },
-      {
-        "id": "vo",
-        "clips": [
-          {
-            "id": "vo-clip",
-            "assetId": "voiceover",
-            "start": 0.5,
-            "duration": 9,
-            "volume": 1,
-            "loop": false
-          }
-        ],
-        "order": -2
-      },
-      {
-        "id": "sfx-1",
-        "clips": [
-          {
-            "id": "sfx-1-clip",
-            "assetId": "sfx-whoosh",
-            "start": 4.8,
-            "duration": 1,
-            "volume": 0.8,
-            "loop": false
-          }
-        ],
-        "order": -3
-      },
-      {
-        "id": "sfx-2",
-        "clips": [
-          {
-            "id": "sfx-2-clip",
-            "assetId": "sfx-whoosh",
-            "start": 9.8,
-            "duration": 1,
-            "volume": 0.8,
-            "loop": false
-          }
-        ],
-        "order": -4
-      }
-    ],
-    "captionTracks": []
-  },
-  "bindings": []
+  ]
 }

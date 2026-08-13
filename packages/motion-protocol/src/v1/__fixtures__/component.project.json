@@ -8,7 +8,7 @@
     "locale": "vi-VN",
     "tags": [
       "example",
-      "v3",
+      "v1",
       "component"
     ]
   },
@@ -177,7 +177,6 @@
           }
         }
       ],
-      "internalBindings": [],
       "actions": [
         {
           "id": "cta-tap",
@@ -187,108 +186,7 @@
       ]
     }
   ],
-  "scenes": [
-    {
-      "id": "landing",
-      "name": "Landing Page",
-      "duration": 5,
-      "layers": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": -200,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Welcome to MotiClip"
-            },
-            "fontSize": 56,
-            "color": "#111111",
-            "alignment": "center"
-          }
-        }
-      ]
-    },
-    {
-      "id": "cta-scene",
-      "name": "CTA Overlay Scene",
-      "duration": 2.5,
-      "layers": [
-        {
-          "id": "cta-instance",
-          "type": "component",
-          "parentLayerId": null,
-          "transform": {
-            "x": 100,
-            "y": 200,
-            "width": 600,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "componentId": "call-to-action"
-          }
-        }
-      ]
-    }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "main",
-        "order": 0,
-        "clips": [
-          {
-            "id": "c-landing",
-            "source": {
-              "kind": "scene",
-              "sceneId": "landing"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      },
-      {
-        "id": "overlay-cta",
-        "order": 1,
-        "clips": [
-          {
-            "id": "c-cta",
-            "source": {
-              "kind": "scene",
-              "sceneId": "cta-scene"
-            },
-            "start": 1,
-            "duration": 2.5
-          }
-        ]
-      }
-    ]
-  },
+  "timeline": {},
   "bindings": [
     {
       "id": "bind-cta",
@@ -297,10 +195,73 @@
         "variableId": "cta-text"
       },
       "target": {
-        "kind": "componentLayer",
-        "sceneId": "cta-scene",
+        "type": "componentLayer",
         "layerId": "cta-instance",
         "propId": "label"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": -200,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Welcome to MotiClip"
+        },
+        "fontSize": 56,
+        "color": "#111111",
+        "alignment": "center"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    },
+    {
+      "id": "cta-instance",
+      "type": "component",
+      "parentLayerId": null,
+      "transform": {
+        "x": 100,
+        "y": 200,
+        "width": 600,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "componentId": "call-to-action"
+      },
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 2.5
       }
     }
   ]

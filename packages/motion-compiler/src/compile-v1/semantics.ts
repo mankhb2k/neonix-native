@@ -41,21 +41,21 @@ export function detectScheduleCycles(
   return [...new Set(cycles)];
 }
 
-function expectedVariableTypeForPropKind(kind: string): string | undefined {
+function expectedVariableTypesForPropKind(kind: string): string[] {
   switch (kind) {
     case "text":
     case "choice":
-      return "string";
+      return ["string", "enum"];
     case "color":
-      return "color";
+      return ["color"];
     case "number":
-      return "number";
+      return ["number"];
     case "boolean":
-      return "boolean";
+      return ["boolean"];
     case "asset":
-      return "asset";
+      return ["asset"];
     default:
-      return undefined;
+      return [];
   }
 }
 
@@ -118,18 +118,18 @@ export function validateV1Semantics(
     // Resolve the property path a binding targets, then type-check the
     // bound variable against it.
     const target = binding.target;
-    if (target.kind === "component") {
+    if (target.type === "component") {
       const component = project.components.find(
         (c) => c.id === target.componentId,
       );
       if (!component) continue;
       const prop = component.props.find((p) => p.id === target.propId);
       if (!prop) continue;
-      const expected = expectedVariableTypeForPropKind(prop.kind);
-      if (expected && variable.type !== expected) {
+      const expected = expectedVariableTypesForPropKind(prop.kind);
+      if (expected.length > 0 && !expected.includes(variable.type)) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component "${target.componentId}" prop "${target.propId}" which expects ${expected}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component "${target.componentId}" prop "${target.propId}" which expects ${expected.join(" or ")}`,
           {
             path: ["bindings", binding.id],
             details: {
@@ -142,11 +142,8 @@ export function validateV1Semantics(
           },
         );
       }
-    } else if (target.kind === "componentLayer") {
-      const scene = project.scenes.find(
-        (candidate) => candidate.id === target.sceneId,
-      );
-      const node = scene?.layers.find(
+    } else if (target.type === "componentLayer") {
+      const node = V1.flattenLayerTree(project.layers).find(
         (candidate) => candidate.id === target.layerId,
       );
       const component =
@@ -157,11 +154,11 @@ export function validateV1Semantics(
           : undefined;
       const prop = component?.props.find((p) => p.id === target.propId);
       if (!prop) continue;
-      const expected = expectedVariableTypeForPropKind(prop.kind);
-      if (expected && variable.type !== expected) {
+      const expected = expectedVariableTypesForPropKind(prop.kind);
+      if (expected.length > 0 && !expected.includes(variable.type)) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component layer "${target.layerId}" prop "${target.propId}" which expects ${expected}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component layer "${target.layerId}" prop "${target.propId}" which expects ${expected.join(" or ")}`,
           {
             path: ["bindings", binding.id],
             details: {
@@ -194,154 +191,73 @@ export function validateV1Semantics(
     }
   }
 
-  // ── Scenes: clip targets, presets, asset refs, schedule cycles ──
-  for (const scene of project.scenes) {
-    const layerIds = new Set(scene.layers.map((node) => node.id));
-    const assetRefs: Array<{ layerId: string; assetId: string }> = [];
-    for (const node of scene.layers) {
-      const payload = node.payload as JsonRecord;
-      if (
-        (node.type === "image" ||
-          node.type === "svg" ||
-          node.type === "video") &&
-        typeof payload.assetId === "string"
-      ) {
-        assetRefs.push({ layerId: node.id, assetId: payload.assetId });
-      }
-      if (node.type === "text" && node.payload.fontAssetId) {
-        assetRefs.push({ layerId: node.id, assetId: node.payload.fontAssetId });
-      }
-      if (node.type === "component") {
-        const component = componentById.get(node.payload.componentId);
-        if (!component) {
-          collector.error(
-            "CMP_UNRESOLVED_COMPONENT",
-            `Scene "${scene.id}" node "${node.id}" references unknown component "${node.payload.componentId}"`,
-            {
-              path: ["scenes", scene.id, "layers", node.id],
-              details: {
-                sceneId: scene.id,
-                layerId: node.id,
-                componentId: node.payload.componentId,
-              },
-            },
-          );
-        } else if (
-          node.payload.variantId &&
-          !component.variants.some((v) => v.id === node.payload.variantId)
-        ) {
-          collector.error(
-            "CMP_UNRESOLVED_COMPONENT_VARIANT",
-            `Scene "${scene.id}" node "${node.id}" references unknown variant "${node.payload.variantId}" on component "${component.id}"`,
-            {
-              path: ["scenes", scene.id, "layers", node.id],
-              details: {
-                sceneId: scene.id,
-                layerId: node.id,
-                componentId: component.id,
-                variantId: node.payload.variantId,
-              },
-            },
-          );
-        }
-      }
+  const layers = V1.flattenLayerTree(project.layers);
+  const assetRefs: Array<{ layerId: string; assetId: string }> = [];
+  for (const node of layers) {
+    const payload =
+      node.type === "audio" || "payload" in node
+        ? ((node as { payload?: Record<string, unknown> }).payload ?? {})
+        : {};
+    if (
+      (node.type === "image" ||
+        node.type === "svg" ||
+        node.type === "video") &&
+      typeof payload.assetId === "string"
+    ) {
+      assetRefs.push({ layerId: node.id, assetId: payload.assetId });
     }
-    for (const ref of assetRefs) {
-      if (!assetIds.has(ref.assetId)) {
+    if (node.type === "text" && node.payload.fontAssetId) {
+      assetRefs.push({ layerId: node.id, assetId: node.payload.fontAssetId });
+    }
+    if (node.type === "audio") {
+      assetRefs.push({ layerId: node.id, assetId: node.payload.assetId });
+    }
+    if (node.type === "component") {
+      const component = componentById.get(node.payload.componentId);
+      if (!component) {
         collector.error(
-          "CMP_UNRESOLVED_ASSET",
-          `Scene "${scene.id}" node "${ref.layerId}" references unknown asset "${ref.assetId}"`,
+          "CMP_UNRESOLVED_COMPONENT",
+          `Layer "${node.id}" references unknown component "${node.payload.componentId}"`,
           {
-            path: ["scenes", scene.id, "layers", ref.layerId],
+            path: ["layers", node.id],
             details: {
-              sceneId: scene.id,
-              layerId: ref.layerId,
-              assetId: ref.assetId,
+              layerId: node.id,
+              componentId: node.payload.componentId,
             },
           },
         );
-      }
-    }
-    for (const clip of scene.clips ?? []) {
-      if (clip.layerId && !layerIds.has(clip.layerId)) {
-        collector.error(
-          "CMP_CLIP_TARGET_MISSING",
-          `Scene "${scene.id}" clip "${clip.id}" references unknown node "${clip.layerId}"`,
-          {
-            path: ["scenes", scene.id, "clips", clip.id],
-            details: {
-              sceneId: scene.id,
-              clipId: clip.id,
-              layerId: clip.layerId,
-            },
-          },
-        );
-      }
-      if (
-        clip.source.kind === "preset" &&
-        !isCompiledPreset(clip.source.presetId)
+      } else if (
+        node.payload.variantId &&
+        !component.variants.some((v) => v.id === node.payload.variantId)
       ) {
         collector.error(
-          "CMP_UNRESOLVED_PRESET",
-          `Scene "${scene.id}" clip "${clip.id}" references unknown preset "${clip.source.presetId}"`,
+          "CMP_UNRESOLVED_COMPONENT_VARIANT",
+          `Layer "${node.id}" references unknown variant "${node.payload.variantId}" on component "${component.id}"`,
           {
-            path: ["scenes", scene.id, "clips", clip.id],
+            path: ["layers", node.id],
             details: {
-              sceneId: scene.id,
-              clipId: clip.id,
-              presetId: clip.source.presetId,
+              layerId: node.id,
+              componentId: component.id,
+              variantId: node.payload.variantId,
             },
           },
         );
       }
     }
-    const cycles = detectScheduleCycles(scene.clips ?? []);
-    for (const clipId of cycles) {
+  }
+  for (const ref of assetRefs) {
+    if (!assetIds.has(ref.assetId)) {
       collector.error(
-        "CMP_CYCLE_DETECTED",
-        `Scene "${scene.id}" clip schedule contains a cycle involving "${clipId}"`,
+        "CMP_UNRESOLVED_ASSET",
+        `Layer "${ref.layerId}" references unknown asset "${ref.assetId}"`,
         {
-          path: ["scenes", scene.id, "clips", clipId],
-          details: { sceneId: scene.id, clipId },
+          path: ["layers", ref.layerId],
+          details: {
+            layerId: ref.layerId,
+            assetId: ref.assetId,
+          },
         },
       );
-    }
-  }
-
-  // ── Visual tracks ──
-  const sceneIds = new Set(project.scenes.map((scene) => scene.id));
-  for (const track of project.timeline.visualTracks) {
-    for (const clip of track.clips) {
-      if (!sceneIds.has(clip.source.sceneId)) {
-        collector.error(
-          "CMP_CLIP_TARGET_MISSING",
-          `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
-          {
-            path: ["timeline", "visualTracks", track.id, "clips", clip.id],
-            details: { clipId: clip.id, sceneId: clip.source.sceneId },
-          },
-        );
-      }
-    }
-  }
-
-  // ── Audio clips: asset refs ──
-  for (const track of project.timeline.audioTracks) {
-    for (const clip of track.clips) {
-      if (!assetIds.has(clip.assetId)) {
-        collector.error(
-          "CMP_UNRESOLVED_ASSET",
-          `Audio clip "${clip.id}" on track "${track.id}" references unknown asset "${clip.assetId}"`,
-          {
-            path: ["timeline", "audioTracks", track.id, "clips", clip.id],
-            details: {
-              trackId: track.id,
-              clipId: clip.id,
-              assetId: clip.assetId,
-            },
-          },
-        );
-      }
     }
   }
 

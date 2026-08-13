@@ -22,39 +22,29 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "215c58527fe4745e0cba43fc0cc0c43b",
+  "runtimeHash": "fd72fb2bfa3ae53c598d956e2cf169f3",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
-      "intro": "scenes:intro",
-      "outro": "scenes:outro"
+      "root": "scenes:root"
     }
   },
   "timeline": {
-    "duration": 5,
+    "duration": 3,
     "visualTracks": [
       {
-        "id": "main-track",
+        "id": "visual",
         "order": 0,
         "clips": [
           {
-            "id": "clip-intro",
+            "id": "root-clip",
             "source": {
               "kind": "scene",
-              "sceneId": "intro"
+              "sceneId": "root"
             },
             "start": 0,
             "duration": 3
-          },
-          {
-            "id": "clip-outro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "outro"
-            },
-            "start": 3,
-            "duration": 2
           }
         ]
       }
@@ -64,13 +54,12 @@
   },
   "scenes": [
     {
-      "id": "intro",
+      "id": "root",
       "duration": 3,
-      "space": "flat-2d",
       "sourceRef": {
         "projectPath": [
           "scenes",
-          "intro"
+          "root"
         ]
       },
       "layers": [
@@ -94,6 +83,10 @@
             "flipX": false,
             "flipY": false
           },
+          "timing": {
+            "start": 0,
+            "duration": 3
+          },
           "inheritPosition": true,
           "inheritRotation": true,
           "inheritScale": true,
@@ -111,26 +104,12 @@
           "style": {
             "fill": "#000000"
           }
-        }
-      ],
-      "tracks": []
-    },
-    {
-      "id": "outro",
-      "duration": 2,
-      "space": "flat-2d",
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "outro"
-        ]
-      },
-      "layers": [
+        },
         {
           "id": "outro-title",
           "type": "text",
           "parentLayerId": null,
-          "zIndex": 1,
+          "zIndex": 2,
           "transform": {
             "x": 960,
             "y": 540,
@@ -145,6 +124,10 @@
             "visible": true,
             "flipX": false,
             "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 2
           },
           "inheritPosition": true,
           "inheritRotation": true,

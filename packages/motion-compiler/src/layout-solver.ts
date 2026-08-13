@@ -6,8 +6,14 @@ import {
   defaultTextMeasurementProvider,
 } from "./text-layout";
 
+type VisualLayer = Exclude<MotionLayer, { type: "audio" }>;
+
+function isVisualLayer(layer: MotionLayer): layer is VisualLayer {
+  return layer.type !== "audio";
+}
+
 type LayoutConstraint = Extract<
-  NonNullable<MotionLayer["modifiers"]>[number],
+  NonNullable<VisualLayer["modifiers"]>[number],
   { type: "layout" }
 >["constraint"];
 
@@ -25,8 +31,8 @@ type LayoutItemPolicy = {
 
 type EdgeInsets = { top: number; right: number; bottom: number; left: number };
 
-type MutableNode = MotionLayer & {
-  transform: MotionLayer["transform"] & {
+type MutableNode = VisualLayer & {
+  transform: VisualLayer["transform"] & {
     x: number;
     y: number;
     width: number;
@@ -44,7 +50,7 @@ function normalizePadding(
   return padding;
 }
 
-function readItemPolicy(node: MotionLayer): LayoutItemPolicy {
+function readItemPolicy(node: VisualLayer): LayoutItemPolicy {
   const mod = (node.modifiers ?? []).find((m) => m.type === "layout-item");
   return mod && mod.type === "layout-item" ? (mod.policy ?? {}) : {};
 }
@@ -100,7 +106,9 @@ export function applyLayoutConstraints(
   layers: MotionLayer[],
   measure: TextMeasurementProvider = defaultTextMeasurementProvider,
 ): MotionLayer[] {
-  const byId = new Map(layers.map((node) => [node.id, cloneNode(node)]));
+  const byId = new Map(
+    layers.filter(isVisualLayer).map((node) => [node.id, cloneNode(node)]),
+  );
   const ordered = [...byId.values()];
 
   for (const parent of ordered) {
@@ -114,7 +122,7 @@ export function applyLayoutConstraints(
     }
   }
 
-  return ordered.map((node) => {
+  const visual = ordered.map((node) => {
     const modifiers = (node.modifiers ?? []).filter(
       (modifier) =>
         modifier.type !== "layout" && modifier.type !== "layout-item",
@@ -125,9 +133,13 @@ export function applyLayoutConstraints(
     else next.modifiers = modifiers;
     return next;
   });
+  return layers.map((layer) => {
+    if (layer.type === "audio") return layer;
+    return visual.find((node) => node.id === layer.id) ?? layer;
+  });
 }
 
-function cloneNode(node: MotionLayer): MutableNode {
+function cloneNode(node: VisualLayer): MutableNode {
   return JSON.parse(JSON.stringify(node)) as MutableNode;
 }
 

@@ -8,7 +8,7 @@
     "locale": "vi-VN",
     "tags": [
       "example",
-      "v3",
+      "v1",
       "caption"
     ]
   },
@@ -36,21 +36,78 @@
   "variables": [],
   "assets": [],
   "components": [],
-  "scenes": [
+  "timeline": {},
+  "bindings": [],
+  "layers": [
     {
-      "id": "main-scene",
-      "name": "Main Scene",
-      "duration": 8,
-      "layers": [
+      "id": "bg",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "width": 1080,
+        "height": 1920,
+        "color": "#1a1a2e"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 8
+      }
+    },
+    {
+      "id": "caption-vi",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 7.5
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "children": [
         {
-          "id": "bg",
-          "type": "solid",
-          "parentLayerId": null,
+          "id": "t0",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 0,
+          "timing": {
+            "start": 0,
+            "duration": 1.5
+          },
           "transform": {
             "x": 0,
             "y": 0,
-            "width": 1080,
-            "height": 1920,
+            "width": 100,
+            "height": 100,
             "rotation": 0,
             "scaleX": 1,
             "scaleY": 1,
@@ -62,111 +119,288 @@
             "flipY": false
           },
           "payload": {
-            "width": 1080,
-            "height": 1920,
-            "color": "#1a1a2e"
+            "text": "Chào mừng bạn",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t1",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 1,
+          "timing": {
+            "start": 1.5,
+            "duration": 1
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "đến với",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t2",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 2,
+          "timing": {
+            "start": 2.5,
+            "duration": 1.5
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "MotiClip V1",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t3",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 3,
+          "timing": {
+            "start": 4.5,
+            "duration": 1.5
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Hệ thống tạo video",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t4",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 4,
+          "timing": {
+            "start": 6,
+            "duration": 1.5
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "tự động",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "caption-en",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "timing": {
+        "start": 0,
+        "duration": 7.5
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "children": [
+        {
+          "id": "t0-en",
+          "type": "text",
+          "parentLayerId": "caption-en",
+          "zIndex": 0,
+          "timing": {
+            "start": 0,
+            "duration": 1.5
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Welcome to",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t1-en",
+          "type": "text",
+          "parentLayerId": "caption-en",
+          "zIndex": 1,
+          "timing": {
+            "start": 1.5,
+            "duration": 1
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "MotiClip V1",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t2-en",
+          "type": "text",
+          "parentLayerId": "caption-en",
+          "zIndex": 2,
+          "timing": {
+            "start": 4.5,
+            "duration": 1.5
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "Automated video",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        },
+        {
+          "id": "t3-en",
+          "type": "text",
+          "parentLayerId": "caption-en",
+          "zIndex": 3,
+          "timing": {
+            "start": 6,
+            "duration": 1.5
+          },
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "text": "creation system",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
           }
         }
       ]
     }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "main",
-        "order": 0,
-        "clips": [
-          {
-            "id": "c-main",
-            "source": {
-              "kind": "scene",
-              "sceneId": "main-scene"
-            },
-            "start": 0,
-            "duration": 8
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": [
-      {
-        "id": "caption-vi",
-        "locale": "vi-VN",
-        "tokens": [
-          {
-            "id": "t0",
-            "text": "Chào mừng bạn",
-            "start": 0,
-            "end": 1.5
-          },
-          {
-            "id": "t1",
-            "text": "đến với",
-            "start": 1.5,
-            "end": 2.5
-          },
-          {
-            "id": "t2",
-            "text": "MotiClip V1",
-            "start": 2.5,
-            "end": 4
-          },
-          {
-            "id": "t3",
-            "text": "Hệ thống tạo video",
-            "start": 4.5,
-            "end": 6
-          },
-          {
-            "id": "t4",
-            "text": "tự động",
-            "start": 6,
-            "end": 7.5
-          }
-        ],
-        "style": {
-          "fontSize": 36,
-          "fill": "#ffffff",
-          "position": "bottom"
-        }
-      },
-      {
-        "id": "caption-en",
-        "locale": "en-US",
-        "tokens": [
-          {
-            "id": "t0-en",
-            "text": "Welcome to",
-            "start": 0,
-            "end": 1.5
-          },
-          {
-            "id": "t1-en",
-            "text": "MotiClip V1",
-            "start": 1.5,
-            "end": 2.5
-          },
-          {
-            "id": "t2-en",
-            "text": "Automated video",
-            "start": 4.5,
-            "end": 6
-          },
-          {
-            "id": "t3-en",
-            "text": "creation system",
-            "start": 6,
-            "end": 7.5
-          }
-        ],
-        "style": {
-          "fontSize": 36,
-          "fill": "#ffffff",
-          "position": "bottom"
-        }
-      }
-    ]
-  },
-  "bindings": []
+  ]
 }

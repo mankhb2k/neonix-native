@@ -1,20 +1,24 @@
 /**
  * V1 layer-graph validation: duplicate ids, parent refs, mask sources,
- * self-parent, cycles, depth, group-only children, and unique zIndex
- * per parent (sibling stack order must be deterministic).
+ * self-parent, cycles, depth, group-only children, nested parentLayerId
+ * match, and unique zIndex per parent (sibling stack order must be
+ * deterministic).
  */
 import type { LayerV1 } from "../layers";
+import { flattenLayerTree } from "../layers";
 import { duplicates } from "./helpers";
 import type { ReferenceIssue } from "./types";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 
 export function validateLayerGraphV1(
-  layers: LayerV1[],
+  roots: LayerV1[],
   prefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
+  issues.push(...validateNestedTree(roots, null, prefix));
 
-  // ── Duplicate ids ──────────────────────────────────────────────────
+  const layers = flattenLayerTree(roots);
+
   const ids = layers.map((node) => node.id);
   for (const id of new Set(duplicates(ids))) {
     issues.push({ path: prefix, message: `Duplicate layer id: ${id}` });
@@ -23,7 +27,6 @@ export function validateLayerGraphV1(
   const byId = new Map(layers.map((node) => [node.id, node]));
 
   for (const node of layers) {
-    // ── Self-parent ──────────────────────────────────────────────────
     if (node.parentLayerId === node.id) {
       issues.push({
         path: `${prefix}.${node.id}.parentLayerId`,
@@ -31,7 +34,6 @@ export function validateLayerGraphV1(
       });
     }
 
-    // ── Unknown parent ───────────────────────────────────────────────
     if (node.parentLayerId !== null && !byId.has(node.parentLayerId)) {
       issues.push({
         path: `${prefix}.${node.id}.parentLayerId`,
@@ -39,7 +41,6 @@ export function validateLayerGraphV1(
       });
     }
 
-    // ── Non-group parent ─────────────────────────────────────────────
     if (node.parentLayerId !== null && node.parentLayerId !== node.id) {
       const parent = byId.get(node.parentLayerId);
       if (parent && parent.type !== "group") {
@@ -50,8 +51,7 @@ export function validateLayerGraphV1(
       }
     }
 
-    // ── Mask source ──────────────────────────────────────────────────
-    if (node.mask) {
+    if (node.type !== "audio" && "mask" in node && node.mask) {
       const source = byId.get(node.mask.sourceLayerId);
       if (!source) {
         issues.push({
@@ -61,7 +61,6 @@ export function validateLayerGraphV1(
       }
     }
 
-    // ── Bone rotation limits ─────────────────────────────────────────
     if (
       node.type === "bone" &&
       node.payload.rotationLimits &&
@@ -74,15 +73,33 @@ export function validateLayerGraphV1(
     }
   }
 
-  // ── Unique zIndex among siblings (same parentLayerId) ─────────────────
   issues.push(...checkUniqueZIndexPerParent(layers, prefix));
-
-  // ── Cycle detection ────────────────────────────────────────────────
   issues.push(...detectCycles(layers, byId, prefix));
-
-  // ── Hierarchy depth ────────────────────────────────────────────────
   issues.push(...checkHierarchyDepth(layers, byId, prefix));
 
+  return issues;
+}
+
+function validateNestedTree(
+  nodes: LayerV1[],
+  parentId: string | null,
+  prefix: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  for (const node of nodes) {
+    if (node.parentLayerId !== parentId) {
+      issues.push({
+        path: `${prefix}.${node.id}.parentLayerId`,
+        message:
+          parentId === null
+            ? `Root layer ${node.id} must have parentLayerId: null`
+            : `Layer ${node.id} parentLayerId must be "${parentId}"`,
+      });
+    }
+    if (node.type === "group") {
+      issues.push(...validateNestedTree(node.children, node.id, prefix));
+    }
+  }
   return issues;
 }
 
@@ -108,8 +125,6 @@ function checkUniqueZIndexPerParent(
   for (const siblings of byParent.values()) {
     const seen = new Map<number, string>();
     for (const node of siblings) {
-      // Optional zIndex defaults to 0 for stack-order uniqueness (matches
-      // common authoring omission → explicit sibling order required).
       const z = node.zIndex ?? 0;
       const prev = seen.get(z);
       if (prev !== undefined) {
@@ -125,8 +140,6 @@ function checkUniqueZIndexPerParent(
 
   return issues;
 }
-
-// ── Cycle detection (DFS with coloring) ──────────────────────────────
 
 function detectCycles(
   layers: LayerV1[],
@@ -173,8 +186,6 @@ function detectCycles(
   return [];
 }
 
-// ── Hierarchy depth check ────────────────────────────────────────────
-
 function checkHierarchyDepth(
   layers: LayerV1[],
   byId: Map<string, LayerV1>,
@@ -185,7 +196,7 @@ function checkHierarchyDepth(
 
   function depth(id: string, visited: Set<string>): number {
     if (depthCache.has(id)) return depthCache.get(id)!;
-    if (visited.has(id)) return 0; // should not happen after cycle check
+    if (visited.has(id)) return 0;
     visited.add(id);
 
     const node = byId.get(id);

@@ -43,7 +43,7 @@ export function resolvePropTargets(
       });
       continue;
     }
-    const childNode = component.layers.find(
+    const childNode = V1.flattenLayerTree(component.layers).find(
       (node) => node.id === target.childLayerId,
     );
     if (!childNode || childNode.type !== "component") continue;
@@ -83,7 +83,6 @@ function resolveComponentPropValues(
   payload: V1.ComponentLayerV1["payload"],
   extras?: {
     bindingValues?: Record<string, unknown>;
-    trackValues?: Record<string, unknown>;
   },
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
@@ -100,9 +99,6 @@ function resolveComponentPropValues(
   if (extras?.bindingValues) {
     Object.assign(resolved, extras.bindingValues);
   }
-  if (extras?.trackValues) {
-    Object.assign(resolved, extras.trackValues);
-  }
   return resolved;
 }
 
@@ -110,7 +106,6 @@ type ScenePropSources = {
   authoringSceneId: string;
   bindings: V1.MotionProjectV1["bindings"];
   variables: Map<string, unknown>;
-  trackValuesByInstance: Map<string, Record<string, unknown>>;
 };
 
 function collectBindingValuesForInstance(
@@ -124,13 +119,12 @@ function collectBindingValuesForInstance(
     const target = binding.target;
     let propId: string | undefined;
     if (
-      target.kind === "component" &&
+      target.type === "component" &&
       target.componentId === instance.payload.componentId
     ) {
       propId = target.propId;
     } else if (
-      target.kind === "componentLayer" &&
-      target.sceneId === authoringSceneId &&
+      target.type === "componentLayer" &&
       target.layerId === instance.id
     ) {
       propId = target.propId;
@@ -139,41 +133,6 @@ function collectBindingValuesForInstance(
     out[propId] = variables.get(binding.source.variableId);
   }
   return out;
-}
-
-function collectScenePropTrackSources(
-  scene: V1.SceneDefinitionV1,
-): Map<string, Record<string, unknown>> {
-  const byInstance = new Map<string, Record<string, unknown>>();
-  for (const clip of scene.clips ?? []) {
-    if (clip.source.kind !== "tracks") continue;
-    for (const track of clip.source.tracks) {
-      if (typeof track.property !== "string") continue;
-      const match = /^payload\.props\.(.+)$/.exec(track.property);
-      if (!match) continue;
-      const instanceId =
-        typeof track.layerId === "string"
-          ? track.layerId
-          : typeof clip.layerId === "string"
-            ? clip.layerId
-            : undefined;
-      if (!instanceId) continue;
-      const keys: Array<{ t: number; value: unknown; easing?: unknown }> = [];
-      for (const key of track.keys) {
-        if (typeof key.t !== "number") continue;
-        keys.push({
-          t: key.t,
-          value: key.v,
-          ...(key.easing !== undefined ? { easing: key.easing } : {}),
-        });
-      }
-      if (keys.length === 0) continue;
-      const props = byInstance.get(instanceId) ?? {};
-      props[match[1]!] = { kind: "keyframes", keys };
-      byInstance.set(instanceId, props);
-    }
-  }
-  return byInstance;
 }
 
 function applyComponentPropForwards(
@@ -226,7 +185,9 @@ function buildPropKeyframeClip(
         ? "color"
         : propKind === "boolean"
           ? "boolean"
-          : "string";
+          : propKind === "asset"
+            ? "asset"
+            : "string";
   return {
     id: `${instanceId}__prop__${propId}__${layer.layerId}`,
     layerId: targetId,
@@ -287,7 +248,6 @@ function expandOneComponentInstance(
           propSources.authoringSceneId,
           instanceNode,
         ),
-        trackValues: propSources.trackValuesByInstance.get(instanceId),
       }
     : undefined;
   const resolvedProps = resolveComponentPropValues(
@@ -298,7 +258,9 @@ function expandOneComponentInstance(
   const wrapperId = `${instanceId}__instance`;
   const processedInternals = applyComponentPropForwards(
     component,
-    component.layers,
+    V1.flattenLayerTree(component.layers).map((node) =>
+      node.type === "group" ? ({ ...node, children: [] } as V1.GroupLayerV1) : node,
+    ),
     resolvedProps,
   );
 
@@ -399,33 +361,12 @@ function expandOneComponentInstance(
 }
 
 /**
- * Drop scene tracks that animate `payload.props.<propId>` — those become
- * prop sources and fan out at apply time, not leaf remaps.
- */
-function stripPayloadPropTracks(clip: V1SceneClip): JsonRecord | null {
-  const cloned = clone(clip) as JsonRecord;
-  const source = cloned.source as
-    | { kind: string; tracks?: Array<Record<string, unknown>> }
-    | undefined;
-  if (!source || source.kind !== "tracks" || !Array.isArray(source.tracks)) {
-    return cloned;
-  }
-  const kept = source.tracks.filter((track) => {
-    if (typeof track.property !== "string") return true;
-    return !/^payload\.props\.(.+)$/.test(track.property);
-  });
-  if (kept.length === 0) return null;
-  source.tracks = kept;
-  return cloned;
-}
-
-/**
  * Expand `type: "component"` scene layers into a wrapper group plus the
  * component's internal layers, with deterministic ids:
  *   - wrapper:          `<componentLayerId>__instance`
  *   - internal node n:  `<componentLayerId>__<n.id>`
  * Prop sources merge (default → variant → payload → parent forward →
- * project binding → scene prop track), then apply via owner propBindings.
+ * project binding), then apply via owner propBindings.
  */
 function expandComponentLayersV1(
   layers: V1.LayerV1[],
@@ -491,39 +432,35 @@ function remapSceneClipTargets(
 }
 
 export function prepareRuntimeScene(
-  scene: V1.SceneDefinitionV1,
+  scene: {
+    id: string;
+    duration: number;
+    layers: V1.LayerV1[];
+    name?: string;
+  },
   components: Map<string, V1.ComponentDefinitionV1>,
   componentInstances: Map<string, ComponentInstanceRef>,
   runtimeSceneId: string,
-  propSourcesBase: Omit<ScenePropSources, "trackValuesByInstance">,
+  propSourcesBase: ScenePropSources,
 ): JsonRecord {
-  const propSources: ScenePropSources = {
-    ...propSourcesBase,
-    trackValuesByInstance: collectScenePropTrackSources(scene),
-  };
   const {
     layers: expandedLayers,
     wrapperByLayerId,
     propClips,
   } = expandComponentLayersV1(
-    scene.layers,
+    scene.layers.filter((layer) => layer.type !== "audio"),
     components,
     runtimeSceneId,
     componentInstances,
-    propSources,
+    propSourcesBase,
   );
-  const remappedClips = (scene.clips ?? [])
-    .map((clip) => stripPayloadPropTracks(clip))
-    .filter((clip): clip is JsonRecord => clip !== null)
-    .map((clip) =>
-      remapSceneClipTargets(clip as V1SceneClip, wrapperByLayerId),
-    );
   const result: JsonRecord = {
     id: runtimeSceneId,
     duration: scene.duration,
-    layers: expandedLayers.map((node) => {
+    layers: expandedLayers
+      .filter((node) => node.type !== "audio")
+      .map((node) => {
       const prepared = prepareRuntimeLayer(node);
-      // Remap mask sources that reference a component layer to its wrapper.
       const mask = (prepared as { mask?: { sourceLayerId?: string } }).mask;
       if (
         mask &&
@@ -534,32 +471,8 @@ export function prepareRuntimeScene(
       }
       return prepared;
     }),
-    clips: [...remappedClips, ...propClips],
+    clips: propClips,
   };
   if (scene.name) result.name = scene.name;
-  if (scene.semantic) result.semantic = scene.semantic;
-  if (scene.space) result.space = scene.space;
-  if (scene.markers) result.markers = clone(scene.markers);
-  if (scene.motionBlur) result.motionBlur = clone(scene.motionBlur);
-  if (scene.drivers && scene.drivers.length > 0) {
-    result.drivers = scene.drivers.map((driver) => {
-      const cloned = clone(driver) as JsonRecord;
-      if (
-        typeof cloned.targetLayerId === "string" &&
-        wrapperByLayerId.has(cloned.targetLayerId)
-      ) {
-        cloned.targetLayerId = wrapperByLayerId.get(cloned.targetLayerId)!;
-      }
-      if (
-        typeof cloned.sourceLayerId === "string" &&
-        wrapperByLayerId.has(cloned.sourceLayerId)
-      ) {
-        cloned.sourceLayerId = wrapperByLayerId.get(cloned.sourceLayerId)!;
-      }
-      return cloned;
-    });
-  }
-  if (scene.activeCameraLayerId)
-    result.activeCameraLayerId = scene.activeCameraLayerId;
   return result;
 }

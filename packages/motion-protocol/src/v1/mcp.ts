@@ -200,8 +200,8 @@ export interface MCPListCapabilitiesResult extends MCPBaseResult {
 export const MCPInspectTimelineInputSchema = z
   .object({
     project: MotionProjectV1Schema,
-    /** If provided, filter to specific track id. */
-    trackId: z.string().optional(),
+    /** If provided, filter to a specific root layer id. */
+    layerId: z.string().optional(),
     /** If true, include full clip and scene detail. */
     verbose: z.boolean().default(false),
   })
@@ -213,40 +213,13 @@ export type MCPInspectTimelineInput = z.infer<
 
 export interface MCPInspectTimelineResult extends MCPBaseResult {
   totalDuration: number;
-  trackCount: number;
-  totalClipCount: number;
-  tracks: Array<{
+  rootLayerCount: number;
+  layers: Array<{
     id: string;
-    order: number;
-    clipCount: number;
-    clips: Array<{
-      id: string;
-      source: { kind: string; refId: string };
-      start: number;
-      duration: number;
-      opacity: number;
-    }>;
-  }>;
-  audioTracks: Array<{
-    id: string;
-    order?: number;
-    clipCount: number;
-    clips: Array<{
-      id: string;
-      assetId: string;
-      start: number;
-      duration: number;
-      volume: number;
-      fadeIn: number;
-      fadeOut: number;
-    }>;
-  }>;
-  captionTracks: Array<{
-    id: string;
-    locale: string;
-    tokenCount: number;
-    firstToken?: string;
-    lastToken?: string;
+    type: string;
+    zIndex: number | undefined;
+    start?: number;
+    duration?: number;
   }>;
 }
 
@@ -682,68 +655,30 @@ export function listCapabilities(
  */
 export function inspectTimeline(
   project: MotionProjectV1,
-  trackId?: string,
+  layerId?: string,
 ): MCPInspectTimelineResult {
-  const visualTracks = trackId
-    ? project.timeline.visualTracks.filter((t) => t.id === trackId)
-    : project.timeline.visualTracks;
+  const roots = layerId
+    ? project.layers.filter((layer) => layer.id === layerId)
+    : project.layers;
 
-  const tracks = visualTracks.map((track) => ({
-    id: track.id,
-    order: track.order,
-    clipCount: track.clips.length,
-    clips: track.clips.map((clip) => ({
-      id: clip.id,
-      source: {
-        kind: clip.source.kind,
-        refId: clip.source.sceneId,
-      },
-      start: clip.start,
-      duration: clip.duration,
-      opacity: clip.opacity,
-    })),
+  const layers = roots.map((layer) => ({
+    id: layer.id,
+    type: layer.type,
+    zIndex: layer.zIndex,
+    start: layer.timing?.start,
+    duration: layer.timing?.duration,
   }));
 
-  const audioTracks = project.timeline.audioTracks.map((track) => ({
-    id: track.id,
-    order: track.order,
-    clipCount: track.clips.length,
-    clips: track.clips.map((clip) => ({
-      id: clip.id,
-      assetId: clip.assetId,
-      start: clip.start,
-      duration: clip.duration,
-      volume: clip.volume,
-      fadeIn: clip.fadeIn,
-      fadeOut: clip.fadeOut,
-    })),
-  }));
-
-  const captionTracks = project.timeline.captionTracks.map((track) => {
-    const tokens = track.tokens;
-    return {
-      id: track.id,
-      locale: track.locale,
-      tokenCount: tokens.length,
-      firstToken: tokens[0]?.text,
-      lastToken: tokens[tokens.length - 1]?.text,
-    };
-  });
-
-  const allClips = tracks.flatMap((t) => t.clips);
-  const totalDuration = allClips.reduce(
-    (max, clip) => Math.max(max, clip.start + clip.duration),
-    0,
-  );
+  const totalDuration = layers.reduce((max, layer) => {
+    if (layer.start === undefined || layer.duration === undefined) return max;
+    return Math.max(max, layer.start + layer.duration);
+  }, 0);
 
   return {
     warnings: [],
     totalDuration,
-    trackCount: tracks.length,
-    totalClipCount: allClips.length,
-    tracks,
-    audioTracks,
-    captionTracks,
+    rootLayerCount: layers.length,
+    layers,
   };
 }
 
@@ -783,11 +718,11 @@ function explainSingle(diag: {
   suggestedPatch?: Record<string, unknown>;
 } {
   // Unknown scene reference
-  if (diag.message.includes("Unknown scene")) {
+  if (diag.message.includes("Unknown layer")) {
     return {
-      explanation: `A visual clip or binding references a scene that doesn't exist in the project. This usually happens when a scene was removed but references to it weren't cleaned up.`,
+      explanation: `A binding or patch references a layer that doesn't exist in project.layers.`,
       suggestedAction:
-        "Remove clips or bindings referencing this scene, or add the missing scene definition.",
+        "Remove the binding or add the missing layer to project.layers.",
     };
   }
 
@@ -811,9 +746,9 @@ function explainSingle(diag: {
   // Scene order / V2 leak
   if (diag.message.includes("sceneOrder")) {
     return {
-      explanation: `The project contains 'sceneOrder', which is a V2 field. V1 uses 'visualTracks' with clips that reference scenes directly. This field should not appear in any V1 output.`,
+      explanation: `The project contains 'sceneOrder', which is not a V1 field. V1 uses project.layers with unique root zIndex as timeline lanes.`,
       suggestedAction:
-        "Remove the 'sceneOrder' field and ensure all scene ordering is expressed via 'timeline.visualTracks' clips.",
+        "Remove the 'sceneOrder' field and express ordering via root layer zIndex.",
     };
   }
 
@@ -822,16 +757,16 @@ function explainSingle(diag: {
     return {
       explanation: `Transition is not a V1 timeline primitive. Visual timing is an AE-style layer stack: active scene clips sorted by track.order. Express motion/effects as scene or component layer animation (opacity, transform, blend, mask), not transitionIn/Out fields.`,
       suggestedAction:
-        "Remove transition fields. Place the effect as a component/layer inside a scene on a visual track with the desired order.",
+        "Remove transition fields. Express motion as layer transform/timing on project.layers.",
     };
   }
 
   // formatVersion must be 3
   if (diag.message.includes("formatVersion") || diag.path.includes("formatVersion")) {
     return {
-      explanation: `Authoring only accepts formatVersion 1 (V1 visualTracks, scene-only clips, no scene/clip transition primitives).`,
+      explanation: `Authoring only accepts formatVersion 1 (project.layers, no scenes or timeline tracks).`,
       suggestedAction:
-        "Set formatVersion to 1 and use V1 conventions (visualTracks with scene sources, no scene.transition).",
+        "Set formatVersion to 1 and use V1 conventions (root layers with type and zIndex).",
     };
   }
 

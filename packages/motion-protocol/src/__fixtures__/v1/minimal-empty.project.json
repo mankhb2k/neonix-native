@@ -27,12 +27,8 @@
   "variables": [],
   "assets": [],
   "components": [],
-  "scenes": [],
-  "timeline": {
-    "visualTracks": [],
-    "audioTracks": [],
-    "captionTracks": []
-  },
+  "timeline": {},
   "bindings": [],
-  "extensions": {}
+  "extensions": {},
+  "layers": []
 }

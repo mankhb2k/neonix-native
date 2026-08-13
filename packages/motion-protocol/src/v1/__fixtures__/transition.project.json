@@ -8,7 +8,7 @@
     "locale": "vi-VN",
     "tags": [
       "example",
-      "v3",
+      "v1",
       "transition"
     ]
   },
@@ -40,229 +40,200 @@
   "variables": [],
   "assets": [],
   "components": [],
-  "scenes": [
+  "timeline": {},
+  "bindings": [],
+  "layers": [
     {
-      "id": "scene-a",
-      "name": "Scene A",
-      "duration": 3,
-      "layers": [
-        {
-          "id": "bg-a",
-          "type": "solid",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 1080,
-            "height": 1920,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "width": 1080,
-            "height": 1920,
-            "color": "#ff6b35"
-          }
-        },
-        {
-          "id": "text-a",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Scene A"
-            },
-            "fontSize": 72,
-            "color": "#ffffff",
-            "alignment": "center"
-          }
-        }
-      ]
-    },
-    {
-      "id": "scene-b",
-      "name": "Scene B",
-      "duration": 3,
-      "layers": [
-        {
-          "id": "bg-b",
-          "type": "solid",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 1080,
-            "height": 1920,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "width": 1080,
-            "height": 1920,
-            "color": "#004e89"
-          }
-        },
-        {
-          "id": "text-b",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Scene B"
-            },
-            "fontSize": 72,
-            "color": "#ffffff",
-            "alignment": "center"
-          }
-        }
-      ]
-    },
-    {
-      "id": "scene-c",
-      "name": "Scene C",
-      "duration": 3,
-      "layers": [
-        {
-          "id": "bg-c",
-          "type": "solid",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 1080,
-            "height": 1920,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "width": 1080,
-            "height": 1920,
-            "color": "#2ecc71"
-          }
-        },
-        {
-          "id": "text-c",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Scene C"
-            },
-            "fontSize": 72,
-            "color": "#ffffff",
-            "alignment": "center"
-          }
-        }
-      ]
-    }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "main",
-        "order": 0,
-        "clips": [
-          {
-            "id": "clip-a",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-a"
-            },
-            "start": 0,
-            "duration": 3
-          },
-          {
-            "id": "clip-b",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-b"
-            },
-            "start": 3,
-            "duration": 3
-          },
-          {
-            "id": "clip-c",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-c"
-            },
-            "start": 6,
-            "duration": 3
-          }
-        ]
+      "id": "bg-a",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "width": 1080,
+        "height": 1920,
+        "color": "#ff6b35"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 3
       }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "bindings": []
+    },
+    {
+      "id": "text-a",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Scene A"
+        },
+        "fontSize": 72,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
+    },
+    {
+      "id": "bg-b",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "width": 1080,
+        "height": 1920,
+        "color": "#004e89"
+      },
+      "zIndex": 2,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
+    },
+    {
+      "id": "text-b",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Scene B"
+        },
+        "fontSize": 72,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 3,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
+    },
+    {
+      "id": "bg-c",
+      "type": "solid",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 1080,
+        "height": 1920,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "width": 1080,
+        "height": 1920,
+        "color": "#2ecc71"
+      },
+      "zIndex": 4,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
+    },
+    {
+      "id": "text-c",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Scene C"
+        },
+        "fontSize": 72,
+        "color": "#ffffff",
+        "alignment": "center"
+      },
+      "zIndex": 5,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
+    }
+  ]
 }

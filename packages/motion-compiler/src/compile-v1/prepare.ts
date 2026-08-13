@@ -7,6 +7,16 @@ import {
 } from "./helpers";
 
 export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
+  if (node.type === "audio") {
+    return {
+      id: node.id,
+      type: node.type,
+      parentLayerId: node.parentLayerId,
+      zIndex: node.zIndex,
+      timing: clone(node.timing),
+      payload: clone(node.payload),
+    };
+  }
   const flags: {
     position?: boolean;
     rotation?: boolean;
@@ -172,25 +182,29 @@ export function prepareRuntimeClip(clip: V1SceneClip): JsonRecord {
   return clone(clip);
 }
 
-export function prepareRuntimeAudioTrack(track: V1.AudioTrackV1): JsonRecord {
+export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
   return {
-    id: track.id,
-    order: track.order,
-    ...(track.muted ? { muted: track.muted } : {}),
-    clips: track.clips.map((clip) => ({
-      id: clip.id,
-      assetId: clip.assetId,
-      start: clip.start,
-      duration: clip.duration,
-      trimStart: clip.trimStart,
-      ...(clip.trimEnd !== undefined ? { trimEnd: clip.trimEnd } : {}),
-      playbackRate: clip.playbackRate,
-      volume: clip.volume,
-      loop: clip.loop,
-      fadeIn: clip.fadeIn,
-      fadeOut: clip.fadeOut,
-      muted: clip.muted,
-    })),
+    id: layer.id,
+    order: layer.zIndex,
+    ...(layer.visible === false ? { muted: true } : {}),
+    clips: [
+      {
+        id: `${layer.id}-clip`,
+        assetId: layer.payload.assetId,
+        start: layer.timing.start,
+        duration: layer.timing.duration,
+        trimStart: layer.payload.trimStart,
+        ...(layer.payload.trimEnd !== undefined
+          ? { trimEnd: layer.payload.trimEnd }
+          : {}),
+        playbackRate: layer.payload.playbackRate,
+        volume: layer.payload.volume,
+        loop: layer.payload.loop,
+        fadeIn: layer.payload.fadeIn,
+        fadeOut: layer.payload.fadeOut,
+        muted: layer.payload.muted,
+      },
+    ],
   };
 }
 

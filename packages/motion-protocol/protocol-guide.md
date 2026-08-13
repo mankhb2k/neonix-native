@@ -40,7 +40,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `canonical-hash.ts`  | Canonical hash — single source of truth cho deterministic hashing (`projectHash`/`runtimeHash`). Exclude timestamp/provenance/extensions/editor-state để đảm bảo reproducibility.                                        |
 | `capabilities.ts`    | Capability requirements của project — `required`/`optional`/`experimental` với ID dạng dotted manifest (`primitive.group`, `effect.blur`, …).                                                                            |
 | `captions.ts`        | Caption schemas — `CaptionTokenSchema`, caption track/cue.                                                                                                                                                               |
-| `components.ts`      | Components & dependencies — sealed owner-owned component (`ComponentDefinitionV1Schema`), `props`/`variants`/`propBindings`/`internalBindings`, `ProjectDependenciesV1Schema`.                                                |
+| `components.ts`      | Components & dependencies — sealed owner-owned component (`ComponentDefinitionV1Schema`), `props`/`variants`/`propBindings`, `ProjectDependenciesV1Schema`.                                                |
 | `composition.ts`     | Composition settings — width/height/fps/background/colorSpace, thay thế `metadata.aspectRatio` + `fps` của v2.                                                                                                           |
 | `extensions.ts`      | `NamespacedExtensionsSchema` — extension theo dotted namespace, value `unknown`, không vào render hash.                                                                                                                  |
 | `metadata.ts`        | `ProjectMetadataV1Schema` — id/name/description/locale (BCP-47)/tags/timestamps.                                                                                                                                         |
@@ -48,12 +48,11 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `normalize-input.ts` | Input normalizer — walk authoring tree, normalize text payload `{ text }` → `{ content: { kind: "plain" } }` trước khi Zod parse.                                                                                        |
 | `parse.ts`           | Canonical production parse — `parseMotionProjectV1` (text-payload normalize → schema + reference validation). Strict V1 only. `serializeMotionProjectV1` emit key alphabet để byte-identical. |
 | `patch.ts`           | Native Patch Contract — safe editor surface cho AI/MCP (`applyMotionProjectV1Patch`, `MotionProjectV1PatchSchema`), idempotent, luôn re-validate bằng `MotionProjectV1Schema`.                                           |
-| `project.ts`         | **Root schema** (`MotionProjectV1Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id.                                                                             |
+| `project.ts`         | **Root schema** (`MotionProjectV1Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id, root zIndex/timing, audio root-only. |
 | `provenance.ts`      | Provenance — debug/trace metadata, exclude khỏi render hash.                                                                                                                                                             |
-| `scenes.ts`          | `SceneDefinitionV1Schema` — scene definition (layers + scene-local clips). Scene không mang `transition`.                                                                                                                 |
 | `skills.ts`          | Skill Template Contract — named template mô tả capability/input/output/instruction cho AI/MCP tạo hoặc patch project.                                                                                                    |
 | `source-ref.ts`      | Source-ref schemas — `SourceRefKindSchema` (text-run/caption-token/caption-cue/node/clip).                                                                                                                               |
-| `timeline.ts`        | Project timeline — `visualTracks` scene-only clips, unique `order`, same-lane exclusive; **không** role / transitionIn/Out. Component = scene layer, không clip source.                                                   |
+| `timeline.ts`        | Project timeline — metadata only (`duration` / `workArea` / `markers`). Visual/audio/caption content lives on `project.layers`. |
 | `types.ts`           | V1 public protocol types — nơi đặt **aggregate root type** (`MotionProjectV1` viết tay) để tránh TS serialize type khổng lồ trong schema module.                                                                         |
 | `variables.ts`       | Variables, design tokens & project bindings — `ProjectVariableV1Schema`, `DesignTokensSchema`, `ProjectBindingV1Schema`, `PublicParamSchema`.                                                                            |
 
@@ -61,13 +60,15 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 | File                  | Nhiệm vụ                                                                                                                                            |
 | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`            | Layer union — `LayerV1Schema` discriminated union theo `type`, gồm `component` (sealed instance, group-like transform/timing/zIndex). Timeline không nhận component làm clip source. |
+| `index.ts`            | Layer union — `LayerV1Schema` discriminated union theo `type`, gồm `audio` (root-only) và `component` (sealed instance leaf). Chỉ `group` có `children`. |
 | `base.ts`             | `LayerBaseV1Schema` + transform — nền tảng chung cho mọi layer (id/type/parentLayerId/transform/timing/effects/modifiers).                                 |
 | `geometry.ts`         | Geometry layers — `ShapeLayerV1Schema` + `PathLayerV1Schema` (point/path primitives).                                                                  |
 | `geometry-types.ts`   | Type `z.infer` cho shape/path, tách riêng tránh circular import.                                                                                    |
 | `media.ts`            | Media + camera layers — `ImageLayerV1Schema`, `VideoLayerV1Schema`, `SvgLayerV1Schema`, `CameraLayerV1Schema` (payload `{ assetId, fit }`).              |
 | `paint.ts`            | Paint schemas — `FitSchema`, `CropSchema`, `PaintStyleSchema` (fill/stroke/gradient).                                                               |
-| `structural.ts`       | Structural layers — `GroupLayerV1Schema`, `BoneLayerV1Schema`, `SolidLayerV1Schema`, `AdjustmentLayerV1Schema`.                                          |
+| `structural.ts`       | Structural layers — `GroupLayerV1Schema` (base; children attached in `index.ts`), `BoneLayerV1Schema`, `SolidLayerV1Schema`, `AdjustmentLayerV1Schema`. |
+| `audio.ts`            | `AudioLayerV1Schema` — root-only leaf, negative zIndex, payload playback fields. |
+| `flatten.ts`          | `flattenLayerTree` — walk nested `group.children`. |
 | `structural-types.ts` | Type `z.infer` cho structural layers, tách riêng tránh circular import.                                                                              |
 | `text.ts`             | `TextLayerV1Schema` — text layer, content dùng rich text (plain/runs).                                                                                |
 | `text-content.ts`     | Text content schemas & helpers — `TextPayloadSchema`, `segmentTextUnits`, rich text runs.                                                           |

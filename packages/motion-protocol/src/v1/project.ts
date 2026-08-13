@@ -19,13 +19,145 @@ import {
 } from "./variables";
 import { AssetV1Schema } from "./assets";
 import { ComponentDefinitionV1Schema } from "./components";
-import { SceneDefinitionV1Schema } from "./scenes";
+import { flattenLayerTree, LayerV1Schema, type LayerV1 } from "./layers";
+import { collectAudioLayerTimingIssues } from "./layers/audio";
 import { ProjectTimelineV1Schema } from "./timeline/schema";
-import { collectTimelineIntegrityIssues } from "./timeline/validation";
 import { collectFrameGridIssues } from "./timeline/frame-grid";
 import type { MotionProjectV1 } from "./types";
 import { NamespacedExtensionsSchema } from "./extensions";
 import { ProjectProvenanceSchema } from "./provenance";
+
+function addDuplicateIdIssues(
+  ids: string[],
+  path: (string | number)[],
+  label: string,
+  ctx: z.RefinementCtx,
+): void {
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (seen.has(id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Duplicate ${label} id: "${id}"`,
+        path,
+      });
+    }
+    seen.add(id);
+  }
+}
+
+function collectRootLayerSchemaIssues(
+  layers: LayerV1[],
+  duration: number | undefined,
+  ctx: z.RefinementCtx,
+): void {
+  const seenRootZ = new Map<number, string>();
+
+  const walk = (
+    nodes: LayerV1[],
+    parentId: string | null,
+    path: (string | number)[],
+  ): void => {
+    for (const [index, layer] of nodes.entries()) {
+      const layerPath = [...path, index];
+      if (parentId === null) {
+        if (layer.parentLayerId !== null) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Root layer "${layer.id}" must have parentLayerId: null`,
+            path: [...layerPath, "parentLayerId"],
+          });
+        }
+        if (layer.zIndex === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Root layer "${layer.id}" requires zIndex`,
+            path: [...layerPath, "zIndex"],
+          });
+        } else {
+          const prev = seenRootZ.get(layer.zIndex);
+          if (prev !== undefined) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Duplicate root zIndex ${layer.zIndex} (also used by "${prev}")`,
+              path: [...layerPath, "zIndex"],
+            });
+          } else {
+            seenRootZ.set(layer.zIndex, layer.id);
+          }
+        }
+        if (!layer.timing) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Root layer "${layer.id}" requires timing`,
+            path: [...layerPath, "timing"],
+          });
+        } else if (
+          duration !== undefined &&
+          layer.timing.start + layer.timing.duration > duration + 1e-9
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Root layer "${layer.id}" ends at ${layer.timing.start + layer.timing.duration} beyond timeline.duration (${duration})`,
+            path: [...layerPath, "timing"],
+          });
+        }
+        if (layer.type === "audio") {
+          if (layer.zIndex !== undefined && layer.zIndex >= 0) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `Audio layer "${layer.id}" must have zIndex < 0`,
+              path: [...layerPath, "zIndex"],
+            });
+          }
+          for (const issue of collectAudioLayerTimingIssues(layer)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: issue.message,
+              path: [...layerPath, ...issue.path],
+            });
+          }
+        } else if (layer.zIndex !== undefined && layer.zIndex < 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Visual root layer "${layer.id}" must have zIndex >= 0`,
+            path: [...layerPath, "zIndex"],
+          });
+        }
+      } else if (layer.parentLayerId !== parentId) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Layer "${layer.id}" parentLayerId must be "${parentId}"`,
+          path: [...layerPath, "parentLayerId"],
+        });
+      }
+
+      if (layer.type === "audio" && parentId !== null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Audio layer "${layer.id}" must be a project root`,
+          path: [...layerPath, "parentLayerId"],
+        });
+      }
+
+      if (layer.type === "group") {
+        walk(layer.children, layer.id, [...layerPath, "children"]);
+      } else if (
+        "children" in layer &&
+        Array.isArray((layer as { children?: unknown }).children) &&
+        ((layer as { children: unknown[] }).children?.length ?? 0) > 0
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Layer "${layer.id}" of type "${layer.type}" cannot have children`,
+          path: [...layerPath, "children"],
+        });
+      }
+    }
+  };
+
+  walk(layers, null, ["layers"]);
+}
 
 function makeMotionProjectV1ObjectSchema(): z.ZodType<MotionProjectV1> {
   return z
@@ -49,9 +181,9 @@ function makeMotionProjectV1ObjectSchema(): z.ZodType<MotionProjectV1> {
         .array(ComponentDefinitionV1Schema)
         .max(MOTION_PROTOCOL_LIMITS.dependenciesPerProject)
         .default([]),
-      scenes: z
-        .array(SceneDefinitionV1Schema)
-        .max(MOTION_PROTOCOL_LIMITS.scenesPerProject)
+      layers: z
+        .array(LayerV1Schema)
+        .max(MOTION_PROTOCOL_LIMITS.layersPerScene)
         .default([]),
       timeline: ProjectTimelineV1Schema,
       bindings: z
@@ -68,98 +200,42 @@ export type { MotionProjectV1 } from "./types";
 
 export const MotionProjectV1Schema =
   makeMotionProjectV1ObjectSchema().superRefine((project, ctx) => {
-    // ── Duplicate id checks (structural integrity) ──
-    // Full cross-reference validation (scene refs, asset types, etc.) is
-    // handled by `validateMotionProjectV1References()` in `parse.ts`.
-    // These lightweight checks catch the most common mistakes at parse time.
-    const seen = new Set<string>();
+    addDuplicateIdIssues(
+      flattenLayerTree(project.layers).map((layer) => layer.id),
+      ["layers"],
+      "layer",
+      ctx,
+    );
+    addDuplicateIdIssues(
+      project.variables.map((item) => item.id),
+      ["variables"],
+      "variable",
+      ctx,
+    );
+    addDuplicateIdIssues(
+      project.assets.map((item) => item.id),
+      ["assets"],
+      "asset",
+      ctx,
+    );
+    addDuplicateIdIssues(
+      project.bindings.map((item) => item.id),
+      ["bindings"],
+      "binding",
+      ctx,
+    );
+    addDuplicateIdIssues(
+      project.components.map((item) => item.id),
+      ["components"],
+      "component",
+      ctx,
+    );
 
-    // Scene ids
-    for (const scene of project.scenes) {
-      if (seen.has(scene.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate scene id: "${scene.id}"`,
-          path: ["scenes"],
-        });
-      }
-      seen.add(scene.id);
-    }
-    seen.clear();
-
-    // Variable ids
-    for (const v of project.variables) {
-      if (seen.has(v.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate variable id: "${v.id}"`,
-          path: ["variables"],
-        });
-      }
-      seen.add(v.id);
-    }
-    seen.clear();
-
-    // Asset ids
-    for (const asset of project.assets) {
-      if (seen.has(asset.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate asset id: "${asset.id}"`,
-          path: ["assets"],
-        });
-      }
-      seen.add(asset.id);
-    }
-    seen.clear();
-
-    // Binding ids
-    for (const binding of project.bindings) {
-      if (seen.has(binding.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate binding id: "${binding.id}"`,
-          path: ["bindings"],
-        });
-      }
-      seen.add(binding.id);
-    }
-    seen.clear();
-
-    // Component ids
-    for (const component of project.components) {
-      if (seen.has(component.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate component id: "${component.id}"`,
-          path: ["components"],
-        });
-      }
-      seen.add(component.id);
-    }
-    seen.clear();
-
-    // Visual track ids
-    for (const track of project.timeline.visualTracks) {
-      if (seen.has(track.id)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Duplicate visual track id: "${track.id}"`,
-          path: ["timeline", "visualTracks"],
-        });
-      }
-      seen.add(track.id);
-    }
-
-    // Timeline integrity (duplicate clip ids, duplicate track order,
-    // visual lane overlap) — delegated to the shared validation helper.
-    for (const issue of collectTimelineIntegrityIssues(project.timeline)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: issue.message,
-        path: ["timeline", ...issue.path],
-      });
-    }
+    collectRootLayerSchemaIssues(
+      project.layers,
+      project.timeline.duration,
+      ctx,
+    );
   });
 
 /**
@@ -180,10 +256,15 @@ export const CanonicalMotionProjectV1Schema = MotionProjectV1Schema.superRefine(
     }
 
     const fps = Math.max(1, project.composition.fps);
-    for (const issue of collectFrameGridIssues(project.timeline, fps)) {
+    for (const issue of collectFrameGridIssues(
+      project.timeline,
+      fps,
+      project.layers,
+    )) {
+      const path = issue.path[0] === "layers" ? issue.path : ["timeline", ...issue.path];
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["timeline", ...issue.path],
+        path,
         message: issue.message,
       });
     }

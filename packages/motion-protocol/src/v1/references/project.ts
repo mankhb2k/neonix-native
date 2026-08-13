@@ -1,8 +1,9 @@
-/**
+﻿/**
  * V1 project-wide reference validation.
  */
 import type { MotionProjectV1 } from "../project";
 import type { LayerV1 } from "../layers";
+import { flattenLayerTree } from "../layers";
 import { isVariableReference } from "../values";
 import type { ProjectVariableV1 } from "../variables";
 import {
@@ -124,6 +125,17 @@ const LAYER_PUBLIC_PAYLOAD_PROPERTIES: Record<LayerV1["type"], Set<string>> = {
     "payload.saturation",
   ]),
   component: new Set([]),
+  audio: new Set([
+    "payload.assetId",
+    "payload.trimStart",
+    "payload.trimEnd",
+    "payload.playbackRate",
+    "payload.volume",
+    "payload.loop",
+    "payload.fadeIn",
+    "payload.fadeOut",
+    "payload.muted",
+  ]),
 };
 
 function isPropBindingPropertyValid(layer: LayerV1, property: string): boolean {
@@ -529,7 +541,9 @@ function detectComponentCycles(
     visiting.add(componentId);
     const component = componentById.get(componentId);
     if (component) {
-      for (const child of collectDirectChildComponentIds(component.layers)) {
+      for (const child of collectDirectChildComponentIds(
+        flattenLayerTree(component.layers),
+      )) {
         dfs(child.componentId, [...stack, componentId]);
       }
     }
@@ -620,44 +634,19 @@ function validateComponentLayerReferences(
   return issues;
 }
 
-function collectScenePropTrackConflicts(
-  project: MotionProjectV1,
+function collectScenePropTrackIssues(
+  _project: MotionProjectV1,
 ): ReferenceIssue[] {
-  const issues: ReferenceIssue[] = [];
-  for (const scene of project.scenes) {
-    for (const node of scene.layers) {
-      if (node.type !== "component") continue;
-      const keyframedProps = new Set<string>();
-      for (const [propId, value] of Object.entries(node.payload.props ?? {})) {
-        if (isPropKeyframesValue(value)) keyframedProps.add(propId);
-      }
-      if (keyframedProps.size === 0) continue;
-      for (const clip of scene.clips ?? []) {
-        if (clip.layerId !== node.id) continue;
-        const source = clip.source;
-        if (!source || source.kind !== "tracks") continue;
-        for (const track of source.tracks ?? []) {
-          const match = /^payload\.props\.(.+)$/.exec(track.property);
-          if (!match) continue;
-          const propId = match[1]!;
-          if (keyframedProps.has(propId)) {
-            issues.push({
-              path: `scenes.${scene.id}.clips.${clip.id}`,
-              message: `Conflict: component layer "${node.id}" prop "${propId}" has both payload keyframes and scene track animation`,
-            });
-          }
-        }
-      }
-    }
-  }
-  return issues;
+  void _project;
+  return [];
 }
 
 export function validateMotionProjectV1References(
   project: MotionProjectV1,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
-  const sceneById = new Map(project.scenes.map((scene) => [scene.id, scene]));
+  const projectLayers = flattenLayerTree(project.layers);
+  const layerById = new Map(projectLayers.map((layer) => [layer.id, layer]));
   const componentById = new Map(
     project.components.map((component) => [component.id, component]),
   );
@@ -673,13 +662,11 @@ export function validateMotionProjectV1References(
     }
   }
   const assetById = new Map(project.assets.map((asset) => [asset.id, asset]));
-  const audioTrackById = new Map(
-    project.timeline.audioTracks.map((track) => [track.id, track]),
-  );
 
-  // ── duplicates ───────────────────────────────────────────────────────
-  for (const id of new Set(duplicates(project.scenes.map((s) => s.id)))) {
-    issues.push({ path: "scenes", message: `Duplicate scene id: ${id}` });
+  for (const id of new Set(
+    duplicates(projectLayers.map((layer) => layer.id)),
+  )) {
+    issues.push({ path: "layers", message: `Duplicate layer id: ${id}` });
   }
   for (const id of new Set(duplicates(project.variables.map((v) => v.id)))) {
     issues.push({ path: "variables", message: `Duplicate variable id: ${id}` });
@@ -696,87 +683,7 @@ export function validateMotionProjectV1References(
       message: `Duplicate component id: ${id}`,
     });
   }
-  const trackIds = project.timeline.visualTracks.map((track) => track.id);
-  for (const id of new Set(duplicates(trackIds))) {
-    issues.push({
-      path: "timeline.visualTracks",
-      message: `Duplicate visual track id: ${id}`,
-    });
-  }
 
-  // H6: audio track duplicate ids
-  const audioIds = project.timeline.audioTracks.map((t) => t.id);
-  for (const id of new Set(duplicates(audioIds))) {
-    issues.push({
-      path: "timeline.audioTracks",
-      message: `Duplicate audio track id: ${id}`,
-    });
-  }
-
-  // H7: caption track duplicate ids
-  const captionIds = project.timeline.captionTracks.map((t) => t.id);
-  for (const id of new Set(duplicates(captionIds))) {
-    issues.push({
-      path: "timeline.captionTracks",
-      message: `Duplicate caption track id: ${id}`,
-    });
-  }
-
-  // ── visual clips ─────────────────────────────────────────────────────
-  for (const track of project.timeline.visualTracks) {
-    for (const clip of track.clips) {
-      const path = `timeline.visualTracks.${track.id}.clips.${clip.id}.source`;
-      const scene = sceneById.get(clip.source.sceneId);
-      if (!scene) {
-        issues.push({
-          path,
-          message: `Unknown scene: ${clip.source.sceneId}`,
-        });
-        continue;
-      }
-
-      // When the clip does not loop, its source window must fit inside the
-      // referenced scene: trimStart + duration * playbackRate ≤ scene.duration.
-      if (!clip.loop) {
-        const rate = clip.playbackRate ?? 1;
-        const consumed = (clip.trimStart ?? 0) + clip.duration * rate;
-        if (consumed > scene.duration + 1e-9) {
-          issues.push({
-            path: `timeline.visualTracks.${track.id}.clips.${clip.id}.trimStart`,
-            message: `Visual clip "${clip.id}" consumes ${consumed}s of source scene "${scene.id}" (duration ${scene.duration}s) without looping`,
-          });
-        }
-      }
-    }
-  }
-
-  // ── audio clips ─────────────────────────────────────────────────────
-  for (const audio of project.timeline.audioTracks) {
-    for (const clip of audio.clips) {
-      const asset = assetById.get(clip.assetId);
-      const path = `timeline.audioTracks.${audio.id}.clips.${clip.id}.assetId`;
-      if (!asset) {
-        issues.push({ path, message: `Unknown asset: ${clip.assetId}` });
-      } else if (asset.assetType !== "audio") {
-        issues.push({
-          path,
-          message: `Asset ${clip.assetId} has type ${asset.assetType}, expected audio`,
-        });
-      }
-    }
-  }
-
-  // ── caption tracks ───────────────────────────────────────────────────
-  for (const caption of project.timeline.captionTracks) {
-    if (caption.audioTrackId && !audioTrackById.has(caption.audioTrackId)) {
-      issues.push({
-        path: `timeline.captionTracks.${caption.id}.audioTrackId`,
-        message: `Unknown audio track: ${caption.audioTrackId}`,
-      });
-    }
-  }
-
-  // ── bindings ─────────────────────────────────────────────────────────
   for (const binding of project.bindings) {
     const path = `bindings.${binding.id}`;
     const bindingTarget = binding.target;
@@ -786,30 +693,16 @@ export function validateMotionProjectV1References(
         message: `Unknown variable: ${binding.source.variableId}`,
       });
     }
-    if (bindingTarget.kind === "scene") {
-      const scene = sceneById.get(bindingTarget.sceneId);
-      if (!scene) {
-        issues.push({
-          path: `${path}.target.sceneId`,
-          message: `Unknown scene: ${bindingTarget.sceneId}`,
-        });
-      } else if (
-        !scene.layers.some((node) => node.id === bindingTarget.layerId)
-      ) {
+    if (bindingTarget.type === "layer") {
+      if (!layerById.has(bindingTarget.layerId)) {
         issues.push({
           path: `${path}.target.layerId`,
           message: `Unknown layer: ${bindingTarget.layerId}`,
         });
       }
-    } else if (bindingTarget.kind === "componentLayer") {
-      const scene = sceneById.get(bindingTarget.sceneId);
-      const node = scene?.layers.find((n) => n.id === bindingTarget.layerId);
-      if (!scene) {
-        issues.push({
-          path: `${path}.target.sceneId`,
-          message: `Unknown scene: ${bindingTarget.sceneId}`,
-        });
-      } else if (!node) {
+    } else if (bindingTarget.type === "componentLayer") {
+      const node = layerById.get(bindingTarget.layerId);
+      if (!node) {
         issues.push({
           path: `${path}.target.layerId`,
           message: `Unknown layer: ${bindingTarget.layerId}`,
@@ -853,41 +746,23 @@ export function validateMotionProjectV1References(
 
   issues.push(...detectComponentCycles(componentById));
 
-  // ── scenes ───────────────────────────────────────────────────────────
-  for (const scene of project.scenes) {
-    issues.push(
-      ...validateLayerGraphV1(scene.layers, `scenes.${scene.id}.layers`),
-    );
-    issues.push(
-      ...validateLayerAssetsV1(
-        scene.layers,
-        project.assets,
-        `scenes.${scene.id}.layers`,
-      ),
-    );
-    issues.push(
-      ...validateComponentLayerReferences(
-        scene.layers,
-        componentById,
-        variableById,
-        assetById,
-        `scenes.${scene.id}.layers`,
-        scene.duration,
-      ),
-    );
-    const layerIds = new Set(scene.layers.map((node) => node.id));
-    for (const clip of scene.clips) {
-      if (clip.layerId && !layerIds.has(clip.layerId)) {
-        issues.push({
-          path: `scenes.${scene.id}.clips.${clip.id}.layerId`,
-          message: `Unknown layer: ${clip.layerId}`,
-        });
-      }
-    }
-  }
+  issues.push(...validateLayerGraphV1(project.layers, "layers"));
+  issues.push(
+    ...validateLayerAssetsV1(projectLayers, project.assets, "layers"),
+  );
+  issues.push(
+    ...validateComponentLayerReferences(
+      projectLayers,
+      componentById,
+      variableById,
+      assetById,
+      "layers",
+      project.timeline.duration,
+    ),
+  );
 
-  // ── components ───────────────────────────────────────────────────────
   for (const component of project.components) {
+    const componentLayers = flattenLayerTree(component.layers);
     issues.push(
       ...validateLayerGraphV1(
         component.layers,
@@ -896,14 +771,14 @@ export function validateMotionProjectV1References(
     );
     issues.push(
       ...validateLayerAssetsV1(
-        component.layers,
+        componentLayers,
         project.assets,
         `components.${component.id}.layers`,
       ),
     );
     issues.push(
       ...validateComponentLayerReferences(
-        component.layers,
+        componentLayers,
         componentById,
         variableById,
         assetById,
@@ -912,9 +787,8 @@ export function validateMotionProjectV1References(
     );
 
     const propById = new Map(component.props.map((p) => [p.id, p] as const));
-    const componentLayerIds = new Set(component.layers.map((n) => n.id));
+    const componentLayerIds = new Set(componentLayers.map((n) => n.id));
 
-    // Validate prop duplicate ids
     const propIds = component.props.map((p) => p.id);
     for (const dupId of new Set(duplicates(propIds))) {
       issues.push({
@@ -923,7 +797,6 @@ export function validateMotionProjectV1References(
       });
     }
 
-    // Validate prop default values match kind (+ asset when present)
     for (const prop of component.props) {
       issues.push(
         ...validatePropValue(
@@ -936,7 +809,6 @@ export function validateMotionProjectV1References(
       );
     }
 
-    // Validate propBindings
     const layerPropertySeen = new Map<string, string>();
     const childPropSeen = new Map<string, string>();
     for (const binding of component.propBindings) {
@@ -959,7 +831,7 @@ export function validateMotionProjectV1References(
         } else {
           layerPropertySeen.set(layerPropertyKey, binding.propId);
         }
-        const node = component.layers.find((n) => n.id === target.layerId);
+        const node = componentLayers.find((n) => n.id === target.layerId);
         if (!node) {
           issues.push({
             path: `components.${component.id}.propBindings`,
@@ -981,7 +853,9 @@ export function validateMotionProjectV1References(
         } else {
           childPropSeen.set(childPropKey, binding.propId);
         }
-        const childNode = component.layers.find((n) => n.id === target.childLayerId);
+        const childNode = componentLayers.find(
+          (n) => n.id === target.childLayerId,
+        );
         if (!childNode) {
           issues.push({
             path: `components.${component.id}.propBindings`,
@@ -1009,7 +883,7 @@ export function validateMotionProjectV1References(
             } else if (!propKindsCompatible(prop.kind, childProp.kind)) {
               issues.push({
                 path: `components.${component.id}.propBindings`,
-                message: `propBinding kind mismatch: parent prop "${prop.id}" (${prop.kind}) → child prop "${childProp.id}" (${childProp.kind})`,
+                message: `propBinding kind mismatch: parent prop "${prop.id}" (${prop.kind}) â†’ child prop "${childProp.id}" (${childProp.kind})`,
               });
             }
           }
@@ -1017,34 +891,17 @@ export function validateMotionProjectV1References(
       }
     }
 
-    for (const binding of component.internalBindings) {
-      const bindPath = `components.${component.id}.internalBindings.${binding.id}`;
-      if (binding.source.kind === "variable") {
-        if (!variableById.has(binding.source.variableId)) {
-          issues.push({
-            path: `${bindPath}.source.variableId`,
-            message: `Unknown variable: ${binding.source.variableId}`,
-          });
-        }
-      }
-      if (!componentLayerIds.has(binding.target.layerId)) {
-        issues.push({
-          path: `${bindPath}.target.layerId`,
-          message: `internalBinding "${binding.id}" references unknown layer "${binding.target.layerId}"`,
-        });
-      }
-    }
-
-    // M16: component layers must reference parents within the same definition
-    for (const node of component.layers) {
-      if (node.parentLayerId !== null && !componentLayerIds.has(node.parentLayerId)) {
+    for (const node of componentLayers) {
+      if (
+        node.parentLayerId !== null &&
+        !componentLayerIds.has(node.parentLayerId)
+      ) {
         issues.push({
           path: `components.${component.id}.layers.${node.id}.parentLayerId`,
-          message: `Component root layer "${node.id}" references external parent "${node.parentLayerId}" — component layers must not reference layers outside the component`,
+          message: `Component root layer "${node.id}" references external parent "${node.parentLayerId}" â€” component layers must not reference layers outside the component`,
         });
       }
     }
-    // Validate variant duplicate ids
     const variantIds = component.variants.map((v) => v.id);
     for (const dupId of new Set(duplicates(variantIds))) {
       issues.push({
@@ -1077,7 +934,7 @@ export function validateMotionProjectV1References(
     }
   }
 
-  issues.push(...collectScenePropTrackConflicts(project));
+  issues.push(...collectScenePropTrackIssues(project));
 
   return issues;
 }

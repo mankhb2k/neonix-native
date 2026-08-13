@@ -10,7 +10,7 @@
 
 ## 1. MotionProjectV1 là gì?
 
-`MotionProjectV1` là **định dạng authoring duy nhất** của MotiClip, đại diện cho toàn bộ một dự án motion graphics. Mọi thứ — scenes, components, assets, variables, timeline, bindings — đều nằm trong một file JSON duy nhất, có cấu trúc chặt chẽ và được validate nghiêm ngặt qua Zod schema.
+`MotionProjectV1` là **định dạng authoring duy nhất** của MotiClip, đại diện cho toàn bộ một dự án motion graphics. Mọi thứ — layers, components, assets, variables, timeline metadata, bindings — đều nằm trong một file JSON duy nhất, có cấu trúc chặt chẽ và được validate nghiêm ngặt qua Zod schema.
 
 ```mermaid
 flowchart TB
@@ -23,7 +23,7 @@ flowchart TB
         vars["variables"]
         assets["assets"]
         components["components"]
-        scenes["scenes"]
+        layers["layers"]
         timeline["timeline"]
         bindings["bindings"]
         prov["provenance"]
@@ -64,7 +64,7 @@ flowchart TB
 ```jsonc
 {
   "format": "motion-project", // Format discriminator
-  "formatVersion": 1, // Bắt buộc = 3
+  "formatVersion": 1, // Bắt buộc = 1
 
   // ═══ Identity & Render Surface ═══
   "metadata": {
@@ -97,12 +97,12 @@ flowchart TB
   ], // embedded sealed components
 
   // ═══ Content ═══
-  "scenes": [
+  "layers": [
     /* ... */
-  ], // scene definitions (layers, clips, drivers)
+  ], // root layers = timeline lanes; group.children = nested tree
   "timeline": {
     /* ... */
-  }, // visualTracks, audioTracks, captionTracks
+  }, // duration?, workArea?, markers? — no tracks
   "bindings": [
     /* ... */
   ], // variable → layer.property bindings
@@ -122,7 +122,7 @@ flowchart TB
 | Field           | Schema                                | Required          | Description                        |
 | --------------- | ------------------------------------- | ----------------- | ---------------------------------- |
 | `format`        | `z.literal("motion-project")`         | ✅                | Format discriminator               |
-| `formatVersion` | `z.literal(3)`                        | ✅                | Phiên bản format                   |
+| `formatVersion` | `z.literal(1)`                        | ✅                | Phiên bản format                   |
 | `metadata`      | `ProjectMetadataV1Schema`             | ✅                | Identity, locale, tags             |
 | `composition`   | `CompositionSettingsSchema`           | ✅                | Render surface                     |
 | `capabilities`  | `ProjectCapabilityRequirementsSchema` | ❌ (default `{}`) | Preflight capability check         |
@@ -131,303 +131,34 @@ flowchart TB
 | `variables`     | `ProjectVariableV1Schema[]`           | ❌ (default `[]`) | Typed project variables            |
 | `assets`        | `AssetV1Schema[]`                     | ❌ (default `[]`) | Asset declarations                 |
 | `components`    | `ComponentDefinitionV1Schema[]`         | ❌ (default `[]`) | Component definitions                |
-| `scenes`        | `SceneDefinitionV1Schema[]`           | ❌ (default `[]`) | Scene definitions                  |
-| `timeline`      | `ProjectTimelineV1Schema`             | ✅                | Track layout                       |
+| `layers`        | `LayerV1Schema[]`                     | ❌ (default `[]`) | Root layers (lanes)                |
+| `timeline`      | `ProjectTimelineV1Schema`             | ✅                | Duration / workArea / markers      |
 | `bindings`      | `ProjectBindingV1Schema[]`            | ❌ (default `[]`) | Variable bindings                  |
 | `provenance`    | `ProjectProvenanceSchema`             | ❌                | Origin tracking                    |
 | `extensions`    | `NamespacedExtensionsSchema`          | ✅                | Namespaced custom data             |
 
 ---
 
-## 3. Timeline Model: AE visual stack + audio DSP
+## 3. Timeline Model: root layers are lanes
 
-### 3.1 Hai mô hình
+Authoring has **no** `scenes` / `visualTracks` / `audioTracks` / `captionTracks`. Extra keys are `.strict()` rejected. Details: [v1-timeline-guide.md](v1-timeline-guide.md).
 
 | | Visual | Audio |
 | --- | --- | --- |
-| Metaphor | After Effects layer stack | Mixer / clip playback |
-| Transition giữa clips | **Không** | **Không** suy luận crossfade |
-| Fade | Trong content/animation | `fadeIn` / `fadeOut` trên clip |
-| Same-track overlap | **Cấm** | **Cho phép** (mix) |
-| Role labels | UI only (`main`/`overlay`) | UI only (`bgm`/…) |
+| Authoring | Root layer `type !== "audio"`, `zIndex >= 0` | Root layer `type: "audio"`, `zIndex < 0` |
+| Nesting | `group.children[]`; child timing is local | Root-only leaf |
+| Caption | `group` + `text` children (UI lane, not a type) | — |
+| Runtime IR | One synthetic scene `id: "root"` + one visual clip | `audioTracks` from audio layers; `captionTracks: []` |
 
-### 3.2 VisualTrack
-
-```jsonc
-{
-  "id": "track.base",
-  "order": 0, // sparse >= 0; unique across timeline; thấp = dưới
-  "muted": false,
-  "clips": [ /* VisualClipV1[] */ ]
-}
-```
-
-### 3.3 VisualClip
-
-```jsonc
-{
-  "id": "clip.a",
-  "source": { "kind": "scene", "sceneId": "scene.a" },
-  "start": 1,
-  "duration": 2,
-  "trimStart": 0,
-  "playbackRate": 1,
-  "loop": false,
-  "opacity": 1
-}
-```
-
-> **Scene-only**: `VisualClipSourceV1` chỉ `{ kind: "scene", sceneId }`. Component là scene layer (`type: "component"`), không phải clip source.
->
-> Canonical parse (`MotionProjectV1Schema` / `parseMotionProjectV1`) **reject** `source.kind: "component"`. Không có auto-migrate. Component chỉ qua scene layer (`type: "component"`).
-
-> **Không** `transitionIn` / `transitionOut`. Hiệu ứng = layer/component animation trong scene trên track `order` phù hợp.
-
-> **`clip.start` absolute**: không rebuild bằng cursor. Gap là gap thật.
-
-> **Audio fade** (`fadeIn`/`fadeOut` trên audio clip) là DSP primitive có chủ đích — chỉ envelope chính clip, không suy luận crossfade giữa clips.
-
-Render tại `t`: active scene clips → sort `order` → vẽ thấp→cao.
-
-### 3.4 Thuật ngữ Track / Layer
-
-| Thuật ngữ | Ý nghĩa                            | Cơ chế xếp chồng      |
-| --------- | ---------------------------------- | --------------------- |
-| **Track** | Lane trong `timeline.visualTracks` | `VisualTrackV1.order` |
-| **Layer** | Node bên trong một scene           | `LayerV1.zIndex`       |
-
-UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **không** phải field JSON.
-
-### 3.5 Quy tắc xếp chồng
-
-```
-Track order nhỏ  →  vẽ trước, nằm dưới
-Track order lớn  →  vẽ sau, nằm trên
-
-Node zIndex nhỏ  →  nằm dưới (trong cùng scene)
-Node zIndex lớn  →  nằm trên (trong cùng scene)
-```
-
-Stacking **chỉ** theo `order`. Không có ưu tiên `primary` / `overlay`.
-
-```jsonc
-// Ví dụ: track order cao nằm trên track order thấp
-{
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "visual-0",
-        "order": 0, // ← vẽ trước, nằm dưới
-        "clips": [
-          {
-            "id": "clip-base",
-            "source": { "kind": "scene", "sceneId": "base" },
-            "start": 0,
-            "duration": 5,
-          },
-        ],
-      },
-      {
-        "id": "visual-10",
-        "order": 10, // ← vẽ sau, nằm trên (sparse; không cần contiguous)
-        "clips": [
-          {
-            "id": "clip-logo",
-            "source": { "kind": "scene", "sceneId": "logo" },
-            "start": 2,
-            "duration": 3,
-            "opacity": 0.8,
-          },
-        ],
-      },
-    ],
-  },
-}
-```
-
-### 3.6 So sánh với V2 (đã bỏ)
-
-> **V2 đã bị loại bỏ hoàn toàn.** Bảng dưới đây chỉ để tham khảo lịch sử.
-
-| V2 (đã bỏ)                      | V1 (canonical)                                       |
-| ------------------------------- | ---------------------------------------------------- |
-| `timeline.sceneOrder: string[]` | `timeline.visualTracks: VisualTrackV1[]`             |
-| `scene.transition`              | Không còn — effect = scene/component layer animation |
-| Một lane duy nhất               | Nhiều track; `order` unique = stacking               |
-| Scene/clip-level transition     | Không có — animation trong scene/component           |
-| Không có loop/playbackRate      | Có `loop`, `playbackRate`, `opacity`                 |
-
-### 3.7 `timeline.duration` — Độ dài MP4 cuối cùng
-
-`timeline.duration` là **độ dài (giây) của MP4 cuối cùng**. Trường này **tùy chọn** ở mức authoring — khi thiếu, compiler/canonicalizer sẽ tự suy ra từ thời điểm kết thúc nội dung cuối cùng trên timeline:
-
-```
-derivedDuration = max(
-  ...visualTracks.flatMap(t => t.clips.map(c => c.start + c.duration)),
-  ...audioTracks.map(t => t.start + t.duration),
-  ...captionTracks.flatMap(t => t.tokens.map(tok => tok.end)),
-)
-```
-
-| Trường hợp                     | Kết quả                                                             |
-| ------------------------------ | ------------------------------------------------------------------- |
-| Thiếu `duration`               | Điền bằng `derivedDuration`                                         |
-| `duration` > `derivedDuration` | Hợp lệ — phần thừa cuối là _empty tail_ (nền trống/im lặng)         |
-| `duration` < `derivedDuration` | Lỗi validation — content vượt quá độ dài khai báo                   |
-| Timeline rỗng                  | `derivedDuration = 0` — export bị chặn (trừ khi hỗ trợ video trắng) |
-
-```jsonc
-// Authoring input — duration omitted, derived from content (8s)
-{
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "visual-0",
-        "order": 0,
-        "clips": [
-          { "id": "c1", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 5 },
-          { "id": "c2", "source": { "kind": "scene", "sceneId": "outro" }, "start": 5, "duration": 3 }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  }
-}
-
-// Canonical output — explicit duration
-{
-  "timeline": {
-    "duration": 8,
-    "visualTracks": [ /* ... */ ],
-    "audioTracks": [],
-    "captionTracks": []
-  }
-}
-```
-
-```jsonc
-// Manual empty tail — content ends at 8s, MP4 length is 10s
-{
-  "timeline": {
-    "duration": 10,
-    "visualTracks": [
-      /* ... kết thúc tại 8s ... */
-    ],
-  },
-}
-```
-
-### 3.8 Chính sách overlap & gap
-
-| Quy tắc | Chính sách |
-| --- | --- |
-| **Lane exclusive** | Một visual track = một lane. Trong **cùng lane**, clips **không** chồng thời gian. Không exception. |
-| **Trùng thời gian giữa scenes** | Được phép **chỉ khi** clips nằm trên **track/`order` khác**. Không được copy hai clip cùng `start`/`duration` vào cùng một lane. |
-| **Duplicate clip id** | `clip.id` phải **unique trên toàn bộ timeline**. |
-| **Reuse `sceneId`** | Nhiều clip được tham chiếu cùng `source.sceneId` miễn `clip.id` khác. |
-| **Track `order`** | Sparse integer. Visual `>= 0`, audio `< 0`, unique across timeline. Not contiguous. |
-| **Gaps** | Hợp lệ. Trong gap không có visual clip active; audio/caption vẫn có thể tồn tại. |
-| **Duplicate = editor command** | JSON **không** có op/field `duplicate`. UI tạo object mới → id mới → timing/lane hợp lệ → lưu state sạch. |
-
-```jsonc
-// Reject: cùng lane chồng thời gian — visual lane exclusive
-{
-  "visualTracks": [
-    {
-      "id": "visual-0",
-      "order": 0,
-      "clips": [
-        {
-          "id": "a",
-          "source": { "kind": "scene", "sceneId": "intro" },
-          "start": 0,
-          "duration": 3
-        },
-        {
-          "id": "b",
-          "source": { "kind": "scene", "sceneId": "body" },
-          "start": 2,
-          "duration": 3
-        }
-      ]
-    }
-  ]
-}
-```
-
-```jsonc
-// Hợp lệ: hai scene cùng timing — khác lane / order
-{
-  "visualTracks": [
-    {
-      "id": "visual-0",
-      "order": 0,
-      "clips": [
-        {
-          "id": "clip_a",
-          "source": { "kind": "scene", "sceneId": "intro" },
-          "start": 0,
-          "duration": 3
-        }
-      ]
-    },
-    {
-      "id": "visual-10",
-      "order": 10,
-      "clips": [
-        {
-          "id": "clip_a_copy",
-          "source": { "kind": "scene", "sceneId": "intro" },
-          "start": 0,
-          "duration": 3
-        }
-      ]
-    }
-  ]
-}
-```
-
-> **Source layout**: Timeline schema/utilities nằm trong
-> `packages/motion-protocol/src/v1/timeline/` (`schema.ts`, `duration.ts`,
-> `canonicalize.ts`, `validation.ts`, `index.ts`). Import qua `./timeline`
-> (hoặc `@moticlip/motion-protocol` public exports). Chi tiết:
-> [v1-timeline-guide.md](v1-timeline-guide.md).
+`timeline` is clock metadata only: `duration?`, `workArea?`, `markers?`. Derive duration from root `timing.start + duration`.
 
 ---
 
-## 4. Scenes & Nodes
+## 4. Layers
 
-### 4.1 Scene Definition
+`project.layers[]` = **root layers only**. Nested tree lives in `group.children[]`. Child `parentLayerId` must match parent; do not also list children at root.
 
-```jsonc
-{
-  "id": "intro",
-  "name": "Intro Scene", // optional
-  "duration": 5, // Thời lượng (giây)
-  "semantic": { "role": "intro" }, // optional
-  "space": "layered-2.5d", // optional: "flat-2d" | "layered-2.5d"
-  "layers": [
-    /* LayerV1[] */
-  ], // layers
-  "clips": [
-    /* MotionClipV1[] */
-  ], // Animation clips trong scene
-  "markers": [
-    /* SceneMarkerV1[] */
-  ], // optional
-  "drivers": [
-    /* Driver[] */
-  ], // optional: procedural drivers
-  "motionBlur": {
-    // optional
-    "enabled": true,
-    "shutterAngle": 180,
-    "sampleCount": 8,
-  },
-  "activeCameraLayerId": "cam", // optional
-}
-```
+
 
 ### 4.2 Các loại layer
 
@@ -445,8 +176,9 @@ derivedDuration = max(
 | `bone`       | Bone cho skeletal animation  | `length`, `restRotation`, `rotationLimits`             |
 | `adjustment` | Điều chỉnh màu sắc           | `brightness`, `contrast`, `saturation`                 |
 | `component`  | Instance của component       | `componentId`, `variantId?`, `props?`            |
+| `audio`      | Root-only audio leaf         | `assetId`, trim/fade/volume/loop                 |
 
-> **Component layer** (`type: "component"`) đại diện cho một instance của component đã nhúng. `payload.componentId` trỏ đến `project.components[]`; `transform` của layer đóng vai trò wrapper transform khi compiler expand. Component **không** được instantiate qua visual clip.
+> **Component layer** (`type: "component"`) is a sealed instance leaf on the project tree. `payload.componentId` points at `project.components[]`. Component is **not** a timeline clip source.
 
 ### 4.3 Cấu trúc layer
 
@@ -778,7 +510,7 @@ Project tối thiểu hợp lệ:
 }
 ```
 
-> Các field `capabilities`, `tokens`, `variables`, `assets`, `components`, `scenes`, `bindings` đều có default — không cần khai báo nếu không dùng.
+> Các field `capabilities`, `tokens`, `variables`, `assets`, `components`, `layers`, `bindings` đều có default — không cần khai báo nếu không dùng.
 
 ---
 
@@ -803,10 +535,10 @@ sequenceDiagram
 
 | Tầng       | Loại lỗi                 | Ví dụ                                   |
 | ---------- | ------------------------ | --------------------------------------- |
-| Schema     | `formatVersion != 3`     | Từ chối V2 data                         |
+| Schema     | `formatVersion != 1`     | Từ chối V2 data                         |
 | Schema     | Unknown field            | `.strict()` từ chối                     |
 | Schema     | Sai type                 | Zod validation error                    |
-| References | Missing scene            | `Unknown scene: intro`                  |
+| References | Missing layer            | `Unknown layer: title`                  |
 | References | Missing component        | `Unknown component: cta`                |
 | References | Duplicate ID             | `Duplicate scene id: intro`             |
 | References | Invalid binding target   | `Unknown layer: ghost-layer`              |
@@ -911,12 +643,13 @@ Theo dõi nguồn gốc project và source mapping:
 | Khái niệm                | Mô tả                                                                                            |
 | ------------------------ | ------------------------------------------------------------------------------------------------ |
 | **MotionProjectV1**      | Single source of truth, một file JSON cho toàn bộ dự án                                          |
-| **visualTracks**         | Thay thế `sceneOrder`; multi-track `order` unique; lane exclusive theo thời gian     |
-| **VisualClip**           | Scene-only source; loop, playbackRate, opacity; **không** timeline effect primitive  |
-| **Layer types**          | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
-| **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local unique zIndex                      |
+| **Root layers**          | Timeline lanes; `zIndex` unique (`>= 0` visual, `< 0` audio)                                     |
+| **timeline**             | Metadata only: `duration?` / `workArea?` / `markers?` — no tracks                                 |
+| **Layer types**          | group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component, audio   |
+| **Group layer**          | Wrapper với `children[]`; child timing local                                                     |
+| **Audio layer**          | Root-only leaf `type: "audio"`                                                                   |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |
-| **Bindings**             | Scene: `layerId` + `property`. Component: `propId` (global `kind: "component"` = scene-level instances only) |
+| **Bindings**             | `target.type`: `layer` / `component` / `componentLayer` — không `kind`, không `sceneId`          |
 | **Strict validation**    | `.strict()` trên mọi object + reference validation                                               |
 | **Format discriminator** | `format: "motion-project"`, `formatVersion: 1` — từ chối V2                                      |
 | **Duplicate**            | Editor command only — JSON không có op duplicate                                                 |

@@ -7,13 +7,12 @@
  *
  *   composition            → runtime metadata (aspectRatio derived from
  *                            dimensions, fps, background as brand color)
- *   timeline.visualTracks  → visual plan (one scene instance per visual
- *                            clip, sorted by unique track `order`)
- *   scene clips            → runtime tracks (compiled directly)
+ *   project.layers         → one synthetic runtime scene `root`
+ *   root audio layers      → runtime audioTracks
+ *   captionTracks          → always []
  *   variables / bindings   → resolved inline before scene compilation
  *   component layers        → sealed wrapper-group expansion in the scene
- *                            graph (not a timeline clip source)
- *   caption tracks         → copied through
+ *                            graph
  *
  * Semantic problems are reported with the `CMP_*` diagnostic family so
  * callers can surface structured errors instead of string exceptions.
@@ -45,9 +44,9 @@ import {
 } from "../compile-result";
 import { compileSceneToRuntime } from "../compile-scene";
 import { clone, deriveAspectRatio, toRuntimeProperty } from "./helpers";
-import { prepareRuntimeAsset, prepareRuntimeAudioTrack } from "./prepare";
+import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
-import { buildVisualPlan } from "./visual-plan";
+import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
 
 export { detectScheduleCycles } from "./semantics";
@@ -81,9 +80,8 @@ export const COMPILER_VERSION_V1 = "3.0.0-phase11";
  * Compile a `MotionProjectV1` into the runtime IR with structured
  * diagnostics.
  *
- * Compiles scenes directly from `timeline.visualTracks` — no intermediate
- * project shape is built. Scene ordering is driven by visual track clip
- * order; component clips synthesize runtime scenes from embedded definitions.
+ * Compiles `project.layers` into one synthetic runtime scene `root`.
+ * Root audio layers become runtime `audioTracks`. Caption tracks are empty.
  *
  * Returns `{ ok: true, project }` on success or `{ ok: false, diagnostics }`
  * when the project fails semantic validation (CMP_* codes) or the runtime
@@ -154,7 +152,7 @@ export function compileMotionProjectV1(
   }
 
   // Build the visual plan from timeline.visualTracks.
-  const { tracks, sceneOverrides, componentInstances } = buildVisualPlan(
+  const { scene, componentInstances, audioLayers } = buildLayerPlan(
     normalized,
     collector,
   );
@@ -230,19 +228,19 @@ export function compileMotionProjectV1(
     }> = [];
     for (const binding of normalized.bindings) {
       const target = binding.target;
-      if (target.kind === "scene") {
+      if (target.type === "layer") {
         runtimeBindings.push({
           id: binding.id,
           source: { variableId: binding.source.variableId },
           target: {
-            sceneId: target.sceneId,
+            sceneId: "root",
             layerId: target.layerId,
             property: toRuntimeProperty(target.property),
           },
         });
         continue;
       }
-      if (target.kind === "componentLayer") {
+      if (target.type === "componentLayer") {
         const instance = componentInstances.get(target.layerId);
         if (!instance) {
           collector.warn(
@@ -335,104 +333,60 @@ export function compileMotionProjectV1(
       return compileFailure([...collector.diagnostics]);
     }
 
-    // Compile each scene from the visual plan (flat across all tracks).
-    const allEntries = tracks.flatMap((t) => t.entries);
-    const compiledScenes = allEntries.map((entry) => {
-      const scene = sceneOverrides.get(entry.sceneId);
-      if (!scene) {
-        collector.error(
-          "CMP_CLIP_TARGET_MISSING",
-          `Scene "${entry.sceneId}" in visual plan but missing from overrides`,
-          {
-            path: ["timeline", "visualTracks"],
-            details: { sceneId: entry.sceneId },
-          },
-        );
-        throw new Error(`Missing scene: ${entry.sceneId}`);
-      }
-      const variables = new Map(projectVariables);
-
-      const sceneBindings = runtimeBindings.filter(
-        (b) => b.target.sceneId === entry.sceneId,
+    for (const binding of runtimeBindings) {
+      const layers = (scene.layers ?? []) as Array<Record<string, unknown>>;
+      const target = layers.find(
+        (n: Record<string, unknown>) => n.id === binding.target.layerId,
       );
-      // kind: scene only — writes authoring scene layers (text/shape), never
-      // component internals. Component props were resolved before expand.
-      for (const binding of sceneBindings) {
-        const layers = (scene.layers ?? []) as Array<Record<string, unknown>>;
-        const target = layers.find(
-          (n: Record<string, unknown>) => n.id === binding.target.layerId,
-        );
-        if (target && variables.has(binding.source.variableId)) {
-          const parts = binding.target.property.split(".");
-          let cursor: Record<string, unknown> = target;
-          for (let i = 0; i < parts.length - 1; i++) {
-            const part = parts[i]!;
-            if (!cursor[part] || typeof cursor[part] !== "object") {
-              cursor[part] = {};
-            }
-            cursor = cursor[part] as Record<string, unknown>;
+      if (target && projectVariables.has(binding.source.variableId)) {
+        const parts = binding.target.property.split(".");
+        let cursor: Record<string, unknown> = target;
+        for (let i = 0; i < parts.length - 1; i++) {
+          const part = parts[i]!;
+          if (!cursor[part] || typeof cursor[part] !== "object") {
+            cursor[part] = {};
           }
-          const last = parts[parts.length - 1]!;
-          cursor[last] = variables.get(binding.source.variableId);
+          cursor = cursor[part] as Record<string, unknown>;
         }
+        const last = parts[parts.length - 1]!;
+        cursor[last] = projectVariables.get(binding.source.variableId);
       }
+    }
 
-      return compileSceneToRuntime({
-        id: scene.id as string,
-        duration: scene.duration as number,
-        layers: (scene.layers ?? []) as Parameters<
-          typeof compileSceneToRuntime
-        >[0]["layers"],
-        clips: (scene.clips ?? []) as Parameters<
-          typeof compileSceneToRuntime
-        >[0]["clips"],
-        variables,
-        markers: scene.markers as Array<{ id: string; t: number }> | undefined,
-        space: scene.space as
-          | Parameters<typeof compileSceneToRuntime>[0]["space"]
-          | undefined,
-        motionBlur: scene.motionBlur as
-          | Parameters<typeof compileSceneToRuntime>[0]["motionBlur"]
-          | undefined,
-        drivers: scene.drivers as
-          | Parameters<typeof compileSceneToRuntime>[0]["drivers"]
-          | undefined,
-        activeCameraLayerId: scene.activeCameraLayerId as string | undefined,
-        sourceRef: scene.sourceRef as
-          | NonNullable<
-              Parameters<typeof compileSceneToRuntime>[0]["sourceRef"]
-            >
-          | undefined,
-      });
-    });
-
-    // Build visualTracks runtime model — one runtime track per V1 track.
-    const visualTracks = tracks.map((planTrack) => {
-      const clips = planTrack.entries.map((entry) => {
-        const scene = sceneOverrides.get(entry.sceneId)!;
-        const duration = scene.duration as number;
-        const clip: Record<string, unknown> = {
-          id: entry.clipId,
-          source: { kind: "scene" as const, sceneId: entry.sceneId },
-          start: entry.start,
-          duration,
-        };
-        if (entry.trimStart !== undefined) clip.trimStart = entry.trimStart;
-        if (entry.playbackRate !== undefined)
-          clip.playbackRate = entry.playbackRate;
-        if (entry.loop !== false) clip.loop = entry.loop;
-        if (entry.opacity !== 1) clip.opacity = entry.opacity;
-        return clip;
-      });
-      return {
-        id: planTrack.trackId,
-        order: planTrack.order,
-        ...(planTrack.muted !== undefined && planTrack.muted !== false
-          ? { muted: planTrack.muted }
-          : {}),
-        clips,
-      };
-    });
+    const duration = normalized.timeline.duration ?? 0;
+    const compiledScenes =
+      duration > 0
+        ? [
+            compileSceneToRuntime({
+              id: scene.id as string,
+              duration: scene.duration as number,
+              layers: (scene.layers ?? []) as Parameters<
+                typeof compileSceneToRuntime
+              >[0]["layers"],
+              clips: (scene.clips ?? []) as Parameters<
+                typeof compileSceneToRuntime
+              >[0]["clips"],
+              variables: projectVariables,
+            }),
+          ]
+        : [];
+    const visualTracks = [
+      {
+        id: "visual",
+        order: 0,
+        clips:
+          duration > 0
+            ? [
+                {
+                  id: "root-clip",
+                  source: { kind: "scene" as const, sceneId: "root" },
+                  start: 0,
+                  duration,
+                },
+              ]
+            : [],
+      },
+    ];
 
     const sourceRefIndex: Record<string, string> = {};
     for (const scene of compiledScenes) {
@@ -456,10 +410,11 @@ export function compileMotionProjectV1(
       ),
       timeline: {
         duration: normalized.timeline.duration,
-        audioTracks: normalized.timeline.audioTracks.map(
-          prepareRuntimeAudioTrack,
-        ),
-        captionTracks: clone(normalized.timeline.captionTracks),
+        audioTracks: audioLayers
+          .slice()
+          .sort((a, b) => a.zIndex - b.zIndex)
+          .map(prepareRuntimeAudioLayer),
+        captionTracks: [],
         visualTracks,
       },
       sourceRef: { scenes: sourceRefIndex },

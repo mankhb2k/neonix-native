@@ -17,99 +17,7 @@
     },
     "components": []
   },
-  "scenes": [
-    {
-      "id": "s1",
-      "name": "A",
-      "duration": 5,
-      "layers": [
-        {
-          "id": "n1",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 50,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "hello"
-            },
-            "fontSize": 24
-          }
-        }
-      ],
-      "clips": []
-    },
-    {
-      "id": "s1",
-      "name": "B",
-      "duration": 3,
-      "layers": [
-        {
-          "id": "n1",
-          "type": "text",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 50,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "world"
-            },
-            "fontSize": 24
-          }
-        }
-      ],
-      "clips": []
-    }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "t1",
-        "order": 0,
-        "clips": [
-          {
-            "id": "c1",
-            "source": {
-              "kind": "scene",
-              "sceneId": "s1"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
+  "timeline": {},
   "variables": [
     {
       "id": "v1",
@@ -150,10 +58,75 @@
         "variableId": "v1"
       },
       "target": {
-        "kind": "scene",
-        "sceneId": "s1",
+        "type": "layer",
         "layerId": "n1",
         "property": "transform.opacity"
+      }
+    }
+  ],
+  "layers": [
+    {
+      "id": "n1",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 50,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "hello"
+        },
+        "fontSize": 24
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    },
+    {
+      "id": "n1",
+      "type": "text",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 50,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "world"
+        },
+        "fontSize": 24
+      },
+      "zIndex": 1,
+      "timing": {
+        "start": 0,
+        "duration": 3
       }
     }
   ]

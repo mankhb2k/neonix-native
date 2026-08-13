@@ -12,9 +12,9 @@ import type {
   ProjectDependenciesV1,
 } from "./components";
 import type { NamespacedExtensions } from "./extensions";
+import type { LayerV1 } from "./layers";
 import type { ProjectMetadataV1 } from "./metadata";
 import type { ProjectProvenance } from "./provenance";
-import type { SceneDefinitionV1 } from "./scenes";
 import type { ProjectTimelineV1 } from "./timeline/schema";
 import type {
   DesignTokens,
@@ -33,7 +33,7 @@ export type MotionProjectV1 = {
   variables: ProjectVariableV1[];
   assets: AssetV1[];
   components: ComponentDefinitionV1[];
-  scenes: SceneDefinitionV1[];
+  layers: LayerV1[];
   timeline: ProjectTimelineV1;
   bindings: ProjectBindingV1[];
   provenance?: ProjectProvenance;

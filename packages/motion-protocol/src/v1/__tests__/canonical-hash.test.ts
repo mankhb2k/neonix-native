@@ -118,12 +118,10 @@ describe("computeProjectHash", () => {
     },
     capabilities: { required: ["primitive.text"] },
     timeline: {
-      visualTracks: [],
-      audioTracks: [],
-      captionTracks: [],
+      duration: 8,
     },
     components: [],
-    scenes: [],
+    layers: [],
     variables: [],
     assets: [],
     bindings: [],
@@ -192,16 +190,19 @@ describe("computeProjectHash", () => {
     expect(computeProjectHash(p1)).not.toBe(computeProjectHash(p2));
   });
 
-  it("scene change affects hash", () => {
+  it("layer change affects hash", () => {
     const p1 = baseProject;
     const p2 = {
       ...baseProject,
-      scenes: [
+      layers: [
         {
-          id: "scene-1",
-          duration: 5,
-          layers: [{ id: "n1", type: "text", transform: {}, payload: {} }],
-          clips: [],
+          id: "title",
+          type: "text",
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 5 },
+          transform: {},
+          payload: {},
         },
       ],
     };
@@ -241,9 +242,9 @@ describe("computeProjectHashShort", () => {
       composition: { width: 1920, height: 1080, fps: 30, background: "#000" },
       dependencies: { compiler: { range: ">=1" }, components: [] },
       capabilities: { required: [] },
-      timeline: { visualTracks: [], audioTracks: [], captionTracks: [] },
+      timeline: { duration: 8 },
       components: [],
-      scenes: [],
+      layers: [],
       variables: [],
       assets: [],
       bindings: [],

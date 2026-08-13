@@ -1,6 +1,9 @@
 /**
- * Frame-grid — snap và validate thời gian timeline về lưới `n / fps`.
+ * Frame-grid — snap và validate thời gian timeline + layer tree về lưới `n / fps`.
  */
+import type { LayerV1 } from "../layers";
+import type { AudioLayerV1 } from "../layers/audio";
+import type { ProjectTimelineV1 } from "./schema";
 
 const FRAME_GRID_EPSILON = 1e-9;
 
@@ -44,9 +47,58 @@ function checkOnGrid(
   });
 }
 
-function snapOptional(value: number | undefined, fps: number): number | undefined {
+function snapOptional(
+  value: number | undefined,
+  fps: number,
+): number | undefined {
   if (value === undefined) return undefined;
   return snapSecondsToFrameGrid(value, fps);
+}
+
+function snapLayerNode(layer: LayerV1, fps: number): LayerV1 {
+  const timing = layer.timing
+    ? {
+        ...layer.timing,
+        start: snapSecondsToFrameGrid(layer.timing.start, fps),
+        duration: snapSecondsToFrameGrid(layer.timing.duration, fps),
+      }
+    : layer.timing;
+
+  if (layer.type === "audio") {
+    const payload: AudioLayerV1["payload"] = {
+      ...layer.payload,
+      trimStart: snapSecondsToFrameGrid(layer.payload.trimStart, fps),
+      trimEnd: snapOptional(layer.payload.trimEnd, fps),
+      fadeIn: snapSecondsToFrameGrid(layer.payload.fadeIn, fps),
+      fadeOut: snapSecondsToFrameGrid(layer.payload.fadeOut, fps),
+    };
+    return {
+      ...layer,
+      timing: {
+        start: snapSecondsToFrameGrid(layer.timing.start, fps),
+        duration: snapSecondsToFrameGrid(layer.timing.duration, fps),
+      },
+      payload,
+    };
+  }
+
+  if (layer.type === "group") {
+    return {
+      ...layer,
+      timing,
+      children: (layer.children ?? []).map((child) => snapLayerNode(child, fps)),
+    };
+  }
+
+  return { ...layer, timing };
+}
+
+export function snapLayerTreeToFrameGrid(
+  layers: LayerV1[],
+  fps: number,
+): LayerV1[] {
+  const safeFps = Math.max(1, fps);
+  return layers.map((layer) => snapLayerNode(layer, safeFps));
 }
 
 /**
@@ -59,9 +111,6 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
   const safeFps = Math.max(1, fps);
   const next = { ...timeline } as T & {
     duration?: number;
-    visualTracks?: Array<Record<string, unknown>>;
-    audioTracks?: Array<Record<string, unknown>>;
-    captionTracks?: Array<Record<string, unknown>>;
     workArea?: { start: number; end: number };
     markers?: Array<Record<string, unknown>>;
   };
@@ -87,162 +136,84 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
     }));
   }
 
-  if (Array.isArray(next.visualTracks)) {
-    next.visualTracks = next.visualTracks.map((track) => {
-      const clips = Array.isArray(track.clips)
-        ? (track.clips as Array<Record<string, unknown>>).map((clip) => ({
-            ...clip,
-            start:
-              typeof clip.start === "number"
-                ? snapSecondsToFrameGrid(clip.start, safeFps)
-                : clip.start,
-            duration:
-              typeof clip.duration === "number"
-                ? snapSecondsToFrameGrid(clip.duration, safeFps)
-                : clip.duration,
-            trimStart: snapOptional(
-              clip.trimStart as number | undefined,
-              safeFps,
-            ),
-          }))
-        : track.clips;
-      return { ...track, clips };
-    });
-  }
-
-  if (Array.isArray(next.audioTracks)) {
-    next.audioTracks = next.audioTracks.map((track) => {
-      const clips = Array.isArray(track.clips)
-        ? (track.clips as Array<Record<string, unknown>>).map((clip) => ({
-            ...clip,
-            start:
-              typeof clip.start === "number"
-                ? snapSecondsToFrameGrid(clip.start, safeFps)
-                : clip.start,
-            duration:
-              typeof clip.duration === "number"
-                ? snapSecondsToFrameGrid(clip.duration, safeFps)
-                : clip.duration,
-            trimStart: snapOptional(
-              clip.trimStart as number | undefined,
-              safeFps,
-            ),
-            trimEnd: snapOptional(clip.trimEnd as number | undefined, safeFps),
-            fadeIn: snapOptional(clip.fadeIn as number | undefined, safeFps),
-            fadeOut: snapOptional(clip.fadeOut as number | undefined, safeFps),
-          }))
-        : track.clips;
-      return { ...track, clips };
-    });
-  }
-
-  if (Array.isArray(next.captionTracks)) {
-    next.captionTracks = next.captionTracks.map((track) => {
-      const tokens = Array.isArray(track.tokens)
-        ? (track.tokens as Array<Record<string, unknown>>).map((token) => ({
-            ...token,
-            start:
-              typeof token.start === "number"
-                ? snapSecondsToFrameGrid(token.start, safeFps)
-                : token.start,
-            end:
-              typeof token.end === "number"
-                ? snapSecondsToFrameGrid(token.end, safeFps)
-                : token.end,
-          }))
-        : track.tokens;
-      return { ...track, tokens };
-    });
-  }
-
   return next;
 }
 
+function collectLayerFrameGridIssues(
+  layers: readonly LayerV1[],
+  fps: number,
+  prefix: (string | number)[],
+  issues: FrameGridIssue[],
+): void {
+  for (const layer of layers) {
+    const base = [...prefix, layer.id] as (string | number)[];
+    if (layer.timing) {
+      checkOnGrid(layer.timing.start, fps, [...base, "timing", "start"], issues);
+      checkOnGrid(
+        layer.timing.duration,
+        fps,
+        [...base, "timing", "duration"],
+        issues,
+      );
+    }
+    if (layer.type === "audio") {
+      checkOnGrid(
+        layer.payload.trimStart,
+        fps,
+        [...base, "payload", "trimStart"],
+        issues,
+      );
+      checkOnGrid(
+        layer.payload.trimEnd,
+        fps,
+        [...base, "payload", "trimEnd"],
+        issues,
+      );
+      checkOnGrid(
+        layer.payload.fadeIn,
+        fps,
+        [...base, "payload", "fadeIn"],
+        issues,
+      );
+      checkOnGrid(
+        layer.payload.fadeOut,
+        fps,
+        [...base, "payload", "fadeOut"],
+        issues,
+      );
+    }
+    if (layer.type === "group") {
+      collectLayerFrameGridIssues(layer.children, fps, base.concat("children"), issues);
+    }
+  }
+}
+
 /**
- * Thu thập lỗi timing lệch frame-grid cho timeline ở `fps` cho trước.
+ * Thu thập lỗi timing lệch frame-grid cho timeline + layer tree.
  */
 export function collectFrameGridIssues(
-  timeline: {
-    duration?: number;
-    workArea?: { start: number; end: number };
-    markers?: ReadonlyArray<{ id: string; t: number }>;
-    visualTracks: ReadonlyArray<{
-      id: string;
-      clips: ReadonlyArray<{
-        id: string;
-        start: number;
-        duration: number;
-        trimStart?: number;
-      }>;
-    }>;
-    audioTracks: ReadonlyArray<{
-      id: string;
-      clips: ReadonlyArray<{
-        id: string;
-        start: number;
-        duration: number;
-        trimStart?: number;
-        trimEnd?: number;
-        fadeIn?: number;
-        fadeOut?: number;
-      }>;
-    }>;
-    captionTracks: ReadonlyArray<{
-      id: string;
-      tokens: ReadonlyArray<{ id: string; start: number; end: number }>;
-    }>;
-  },
+  timeline: ProjectTimelineV1,
   fps: number,
+  layers: readonly LayerV1[] = [],
 ): FrameGridIssue[] {
   const safeFps = Math.max(1, fps);
   const issues: FrameGridIssue[] = [];
 
   checkOnGrid(timeline.duration, safeFps, ["duration"], issues);
   if (timeline.workArea) {
-    checkOnGrid(timeline.workArea.start, safeFps, ["workArea", "start"], issues);
+    checkOnGrid(
+      timeline.workArea.start,
+      safeFps,
+      ["workArea", "start"],
+      issues,
+    );
     checkOnGrid(timeline.workArea.end, safeFps, ["workArea", "end"], issues);
   }
   for (const marker of timeline.markers ?? []) {
     checkOnGrid(marker.t, safeFps, ["markers", marker.id, "t"], issues);
   }
 
-  for (const track of timeline.visualTracks) {
-    for (const clip of track.clips) {
-      const base = ["visualTracks", track.id, "clips", clip.id] as (
-        | string
-        | number
-      )[];
-      checkOnGrid(clip.start, safeFps, [...base, "start"], issues);
-      checkOnGrid(clip.duration, safeFps, [...base, "duration"], issues);
-      checkOnGrid(clip.trimStart, safeFps, [...base, "trimStart"], issues);
-    }
-  }
-
-  for (const track of timeline.audioTracks) {
-    for (const clip of track.clips) {
-      const base = ["audioTracks", track.id, "clips", clip.id] as (
-        | string
-        | number
-      )[];
-      checkOnGrid(clip.start, safeFps, [...base, "start"], issues);
-      checkOnGrid(clip.duration, safeFps, [...base, "duration"], issues);
-      checkOnGrid(clip.trimStart, safeFps, [...base, "trimStart"], issues);
-      checkOnGrid(clip.trimEnd, safeFps, [...base, "trimEnd"], issues);
-      checkOnGrid(clip.fadeIn, safeFps, [...base, "fadeIn"], issues);
-      checkOnGrid(clip.fadeOut, safeFps, [...base, "fadeOut"], issues);
-    }
-  }
-
-  for (const track of timeline.captionTracks) {
-    for (const token of track.tokens) {
-      const base = ["captionTracks", track.id, "tokens", token.id] as (
-        | string
-        | number
-      )[];
-      checkOnGrid(token.start, safeFps, [...base, "start"], issues);
-      checkOnGrid(token.end, safeFps, [...base, "end"], issues);
-    }
-  }
+  collectLayerFrameGridIssues(layers, safeFps, ["layers"], issues);
 
   return issues;
 }

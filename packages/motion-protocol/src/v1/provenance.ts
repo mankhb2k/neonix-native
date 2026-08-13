@@ -9,7 +9,7 @@ import { IdSchema } from "./common";
 
 export const SourceMapSchema = z
   .object({
-    scenes: z.record(IdSchema, z.string().min(1)).optional(),
+    layers: z.record(IdSchema, z.string().min(1)).optional(),
     components: z.record(IdSchema, z.string().min(1)).optional(),
     variables: z.record(IdSchema, z.string().min(1)).optional(),
     assets: z.record(IdSchema, z.string().min(1)).optional(),

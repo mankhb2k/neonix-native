@@ -2,7 +2,7 @@
  * V1 Native Patch Contract — safe editor surface for AI agents and MCP tools.
  *
  * Design principles:
- *  1. Every operation maps to a V1-first path (`timeline.visualTracks`).
+ *  1. Every operation maps to a V1-first path (`project.layers`).
  *  2. Diagnostics are structured (path + message + severity), never raw throws.
  *  3. Patch output is always re-validated with `MotionProjectV1Schema`.
  *  4. Idempotent by design — applying the same patch twice yields the same
@@ -15,21 +15,12 @@ import { MotionProjectV1Schema } from "./project";
 import { IdSchema, FiniteNumberSchema } from "./common";
 import { CompositionSettingsSchema } from "./composition";
 import { DesignTokensSchema } from "./variables";
-import { SceneDefinitionV1Schema } from "./scenes";
-import {
-  VisualClipV1Schema,
-  AudioTrackV1Schema,
-  type VisualClipV1,
-} from "./timeline/schema";
+import { LayerV1Schema, flattenLayerTree, type LayerV1 } from "./layers";
 import { AssetV1Schema } from "./assets";
 import { ProjectVariableV1Schema } from "./variables";
 import { ProjectBindingV1Schema } from "./variables";
 
-// ── Patch format constants ────────────────────────────────────────────
-
 export const MOTION_PROJECT_V1_PATCH_FORMAT_VERSION = 1 as const;
-
-// ── Diagnostics ───────────────────────────────────────────────────────
 
 export interface V1PatchDiagnostic {
   path: string;
@@ -38,9 +29,7 @@ export interface V1PatchDiagnostic {
 }
 
 export interface V1PatchResult {
-  /** Cloned + patched project, or null if the project was unrecoverable. */
   project: MotionProjectV1 | null;
-  /** Diagnostics produced during apply. Empty = clean apply. */
   diagnostics: V1PatchDiagnostic[];
 }
 
@@ -52,9 +41,6 @@ function diagnostic(
   return { path, message, severity };
 }
 
-// ── Operation schemas ─────────────────────────────────────────────────
-
-/** Set composition properties. Omitted fields keep their current values. */
 export const V1PatchSetCompositionSchema = z
   .object({
     op: z.literal("setComposition"),
@@ -62,7 +48,6 @@ export const V1PatchSetCompositionSchema = z
   })
   .strict();
 
-/** Set design token categories (colors, fonts, spacing, radii, motion). */
 export const V1PatchSetTokensSchema = z
   .object({
     op: z.literal("setTokens"),
@@ -70,80 +55,38 @@ export const V1PatchSetTokensSchema = z
   })
   .strict();
 
-/** Add a scene definition to the project. */
-export const V1PatchAddSceneSchema = z
+export const V1PatchAddLayerSchema = z
   .object({
-    op: z.literal("addScene"),
-    scene: SceneDefinitionV1Schema,
+    op: z.literal("addLayer"),
+    layer: LayerV1Schema,
     insertAt: z.number().int().nonnegative().optional(),
   })
   .strict();
 
-/** Update scene-level fields (duration, name). */
-export const V1PatchUpdateSceneSchema = z
+export const V1PatchUpdateLayerSchema = z
   .object({
-    op: z.literal("updateScene"),
-    sceneId: IdSchema,
-    changes: z
-      .object({
-        duration: FiniteNumberSchema.positive().optional(),
-        name: z.string().min(1).optional(),
-      })
-      .strict(),
+    op: z.literal("updateLayer"),
+    layerId: IdSchema,
+    layer: LayerV1Schema,
   })
   .strict();
 
-/** Remove a scene and all references to it from visual tracks. */
-export const V1PatchRemoveSceneSchema = z
+export const V1PatchRemoveLayerSchema = z
   .object({
-    op: z.literal("removeScene"),
-    sceneId: IdSchema,
+    op: z.literal("removeLayer"),
+    layerId: IdSchema,
   })
   .strict();
 
-/** Add a visual clip to a track. */
-export const V1PatchAddVisualClipSchema = z
+export const V1PatchTrimLayerSchema = z
   .object({
-    op: z.literal("addVisualClip"),
-    trackId: IdSchema,
-    clip: VisualClipV1Schema,
-    insertAt: z.number().int().nonnegative().optional(),
-  })
-  .strict();
-
-/** Trim a visual clip (adjust trimStart and/or duration). */
-export const V1PatchTrimVisualClipSchema = z
-  .object({
-    op: z.literal("trimVisualClip"),
-    trackId: IdSchema,
-    clipId: IdSchema,
-    trimStart: FiniteNumberSchema.nonnegative().optional(),
+    op: z.literal("trimLayer"),
+    layerId: IdSchema,
+    start: FiniteNumberSchema.nonnegative().optional(),
     duration: FiniteNumberSchema.positive().optional(),
   })
   .strict();
 
-/** Move a visual clip from one track to another. */
-export const V1PatchMoveVisualClipSchema = z
-  .object({
-    op: z.literal("moveVisualClip"),
-    clipId: IdSchema,
-    fromTrackId: IdSchema,
-    toTrackId: IdSchema,
-    insertAt: z.number().int().nonnegative().optional(),
-    start: FiniteNumberSchema.nonnegative().optional(),
-  })
-  .strict();
-
-/** Reorder clips on a visual track by providing the new ordered list of clip ids. */
-export const V1PatchReorderVisualTrackSchema = z
-  .object({
-    op: z.literal("reorderVisualTrack"),
-    trackId: IdSchema,
-    orderedClipIds: z.array(IdSchema).min(1),
-  })
-  .strict();
-
-/** Add or update a project asset. */
 export const V1PatchAssetSchema = z
   .object({
     op: z.enum(["addAsset", "updateAsset"]),
@@ -151,7 +94,6 @@ export const V1PatchAssetSchema = z
   })
   .strict();
 
-/** Add or update a project variable. */
 export const V1PatchVariableSchema = z
   .object({
     op: z.enum(["addVariable", "updateVariable"]),
@@ -159,7 +101,6 @@ export const V1PatchVariableSchema = z
   })
   .strict();
 
-/** Add or update a project binding. */
 export const V1PatchBindingSchema = z
   .object({
     op: z.enum(["addBinding", "updateBinding"]),
@@ -167,31 +108,6 @@ export const V1PatchBindingSchema = z
   })
   .strict();
 
-/** Add or update an audio track on the timeline. */
-export const V1PatchAudioTrackSchema = z
-  .object({
-    op: z.enum(["addAudioTrack", "updateAudioTrack"]),
-    audioTrack: AudioTrackV1Schema,
-  })
-  .strict();
-
-/** Add or update a caption token on a caption track. */
-export const V1PatchCaptionCueSchema = z
-  .object({
-    op: z.enum(["addCaptionCue", "updateCaptionCue"]),
-    trackId: IdSchema,
-    token: z
-      .object({
-        id: IdSchema,
-        text: z.string().min(1),
-        start: FiniteNumberSchema.nonnegative(),
-        end: FiniteNumberSchema.positive(),
-      })
-      .strict(),
-  })
-  .strict();
-
-/** Set a value at an arbitrary path (for AI repair patches — use sparingly). */
 export const V1PatchSetValueSchema = z
   .object({
     op: z.literal("setValue"),
@@ -200,29 +116,20 @@ export const V1PatchSetValueSchema = z
   })
   .strict();
 
-// ── Union operation schema ────────────────────────────────────────────
-
 export const V1PatchOpSchema = z.discriminatedUnion("op", [
   V1PatchSetCompositionSchema,
   V1PatchSetTokensSchema,
-  V1PatchAddSceneSchema,
-  V1PatchUpdateSceneSchema,
-  V1PatchRemoveSceneSchema,
-  V1PatchAddVisualClipSchema,
-  V1PatchTrimVisualClipSchema,
-  V1PatchMoveVisualClipSchema,
-  V1PatchReorderVisualTrackSchema,
+  V1PatchAddLayerSchema,
+  V1PatchUpdateLayerSchema,
+  V1PatchRemoveLayerSchema,
+  V1PatchTrimLayerSchema,
   V1PatchAssetSchema,
   V1PatchVariableSchema,
   V1PatchBindingSchema,
-  V1PatchAudioTrackSchema,
-  V1PatchCaptionCueSchema,
   V1PatchSetValueSchema,
 ]);
 
 export type V1PatchOp = z.infer<typeof V1PatchOpSchema>;
-
-// ── Root patch schema ─────────────────────────────────────────────────
 
 export const MotionProjectV1PatchSchema = z
   .object({
@@ -235,18 +142,89 @@ export const MotionProjectV1PatchSchema = z
 
 export type MotionProjectV1Patch = z.infer<typeof MotionProjectV1PatchSchema>;
 
-// ── Apply ─────────────────────────────────────────────────────────────
-
 function clone(project: MotionProjectV1): MotionProjectV1 {
   return JSON.parse(JSON.stringify(project)) as MotionProjectV1;
 }
 
-/**
- * Apply a V1 patch to a motion project.
- *
- * Returns a **new** project (no mutation) and structured diagnostics.
- * The output is always re-validated with `MotionProjectV1Schema`.
- */
+function layerIds(layers: LayerV1[]): Set<string> {
+  return new Set(flattenLayerTree(layers).map((layer) => layer.id));
+}
+
+function insertIntoGroup(
+  nodes: LayerV1[],
+  parentId: string,
+  child: LayerV1,
+  insertAt?: number,
+): LayerV1[] | null {
+  return nodes.map((node) => {
+    if (node.id === parentId) {
+      if (node.type !== "group") return node;
+      const children = [...node.children];
+      children.splice(insertAt ?? children.length, 0, child);
+      return { ...node, children };
+    }
+    if (node.type === "group") {
+      return {
+        ...node,
+        children: insertIntoGroup(node.children, parentId, child, insertAt) ?? node.children,
+      };
+    }
+    return node;
+  });
+}
+
+function replaceLayer(
+  nodes: LayerV1[],
+  layerId: string,
+  nextLayer: LayerV1,
+): LayerV1[] {
+  return nodes.map((node) => {
+    if (node.id === layerId) return nextLayer;
+    if (node.type === "group") {
+      return { ...node, children: replaceLayer(node.children, layerId, nextLayer) };
+    }
+    return node;
+  });
+}
+
+function removeLayer(nodes: LayerV1[], layerId: string): LayerV1[] {
+  return nodes
+    .filter((node) => node.id !== layerId)
+    .map((node) =>
+      node.type === "group"
+        ? { ...node, children: removeLayer(node.children, layerId) }
+        : node,
+    );
+}
+
+function trimLayer(
+  nodes: LayerV1[],
+  layerId: string,
+  start?: number,
+  duration?: number,
+): LayerV1[] {
+  return nodes.map((node) => {
+    if (node.id === layerId) {
+      const timing = node.timing
+        ? {
+            start: start ?? node.timing.start,
+            duration: duration ?? node.timing.duration,
+          }
+        : start !== undefined && duration !== undefined
+          ? { start, duration }
+          : node.timing;
+      return { ...node, timing } as LayerV1;
+    }
+    if (node.type === "group") {
+      return {
+        ...node,
+        children: trimLayer(node.children, layerId, start, duration),
+      };
+    }
+    return node;
+  });
+}
+
 export function applyMotionProjectV1Patch(
   project: MotionProjectV1,
   patchInput: unknown,
@@ -288,241 +266,95 @@ export function applyMotionProjectV1Patch(
         break;
       }
 
-      case "addScene": {
-        if (next.scenes.some((s) => s.id === op.scene.id)) {
+      case "addLayer": {
+        if (layerIds(next.layers).has(op.layer.id)) {
           diagnostics.push(
             diagnostic(
-              `${opPrefix}.scene.id`,
-              `Scene already exists: ${op.scene.id}`,
+              `${opPrefix}.layer.id`,
+              `Layer already exists: ${op.layer.id}`,
             ),
           );
           break;
         }
-        const newScenes = [...next.scenes];
-        newScenes.splice(op.insertAt ?? newScenes.length, 0, op.scene);
-        next = { ...next, scenes: newScenes };
-        break;
-      }
-
-      case "updateScene": {
-        const idx = next.scenes.findIndex((s) => s.id === op.sceneId);
-        if (idx === -1) {
+        if (op.layer.parentLayerId === null) {
+          const layers = [...next.layers];
+          layers.splice(op.insertAt ?? layers.length, 0, op.layer);
+          next = { ...next, layers };
+          break;
+        }
+        const parent = flattenLayerTree(next.layers).find(
+          (layer) => layer.id === op.layer.parentLayerId,
+        );
+        if (!parent || parent.type !== "group") {
           diagnostics.push(
-            diagnostic(`${opPrefix}.sceneId`, `Unknown scene: ${op.sceneId}`),
+            diagnostic(
+              `${opPrefix}.layer.parentLayerId`,
+              `Unknown group parent: ${op.layer.parentLayerId}`,
+            ),
           );
           break;
         }
-        const updatedScenes = [...next.scenes];
-        updatedScenes[idx] = {
-          ...updatedScenes[idx]!,
-          ...op.changes,
+        next = {
+          ...next,
+          layers: insertIntoGroup(
+            next.layers,
+            op.layer.parentLayerId,
+            op.layer,
+            op.insertAt,
+          )!,
         };
-        next = { ...next, scenes: updatedScenes };
         break;
       }
 
-      case "removeScene": {
-        const rmIdx = next.scenes.findIndex((s) => s.id === op.sceneId);
-        if (rmIdx === -1) {
+      case "updateLayer": {
+        if (!layerIds(next.layers).has(op.layerId)) {
+          diagnostics.push(
+            diagnostic(`${opPrefix}.layerId`, `Unknown layer: ${op.layerId}`),
+          );
+          break;
+        }
+        next = {
+          ...next,
+          layers: replaceLayer(next.layers, op.layerId, op.layer),
+        };
+        break;
+      }
+
+      case "removeLayer": {
+        if (!layerIds(next.layers).has(op.layerId)) {
           diagnostics.push(
             diagnostic(
-              `${opPrefix}.sceneId`,
-              `Unknown scene: ${op.sceneId}`,
+              `${opPrefix}.layerId`,
+              `Unknown layer: ${op.layerId}`,
               "warning",
             ),
           );
           break;
         }
-        // Remove the scene definition…
-        const scenes = next.scenes.filter((s) => s.id !== op.sceneId);
-        // …and any clips that reference it from visual tracks
-        const visualTracks = next.timeline.visualTracks.map((track) => ({
-          ...track,
-          clips: track.clips.filter(
-            (clip) =>
-              !(
-                clip.source.kind === "scene" &&
-                clip.source.sceneId === op.sceneId
-              ),
-          ),
-        }));
-        // …and any bindings targeting this scene
-        const bindings = next.bindings.filter(
-          (b) =>
-            !(b.target.kind === "scene" && b.target.sceneId === op.sceneId),
-        );
         next = {
           ...next,
-          scenes,
-          timeline: { ...next.timeline, visualTracks },
-          bindings,
+          layers: removeLayer(next.layers, op.layerId),
+          bindings: next.bindings.filter((binding) => {
+            const target = binding.target;
+            if (target.type === "layer" || target.type === "componentLayer") {
+              return target.layerId !== op.layerId;
+            }
+            return true;
+          }),
         };
         break;
       }
 
-      case "addVisualClip": {
-        const trackIdx = next.timeline.visualTracks.findIndex(
-          (t) => t.id === op.trackId,
-        );
-        if (trackIdx === -1) {
+      case "trimLayer": {
+        if (!layerIds(next.layers).has(op.layerId)) {
           diagnostics.push(
-            diagnostic(
-              `${opPrefix}.trackId`,
-              `Unknown visual track: ${op.trackId}`,
-            ),
+            diagnostic(`${opPrefix}.layerId`, `Unknown layer: ${op.layerId}`),
           );
           break;
         }
-        const track = next.timeline.visualTracks[trackIdx]!;
-        if (track.clips.some((c) => c.id === op.clip.id)) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.clip.id`,
-              `Clip already exists on track: ${op.clip.id}`,
-            ),
-          );
-          break;
-        }
-        const newClips = [...track.clips];
-        newClips.splice(op.insertAt ?? newClips.length, 0, op.clip);
-        const newTracks = [...next.timeline.visualTracks];
-        newTracks[trackIdx] = { ...track, clips: newClips };
         next = {
           ...next,
-          timeline: { ...next.timeline, visualTracks: newTracks },
-        };
-        break;
-      }
-
-      case "trimVisualClip": {
-        const trimTrackIdx = next.timeline.visualTracks.findIndex(
-          (t) => t.id === op.trackId,
-        );
-        if (trimTrackIdx === -1) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.trackId`,
-              `Unknown visual track: ${op.trackId}`,
-            ),
-          );
-          break;
-        }
-        const trimTrack = next.timeline.visualTracks[trimTrackIdx]!;
-        const clipIdx = trimTrack.clips.findIndex((c) => c.id === op.clipId);
-        if (clipIdx === -1) {
-          diagnostics.push(
-            diagnostic(`${opPrefix}.clipId`, `Clip not found: ${op.clipId}`),
-          );
-          break;
-        }
-        const updatedClip = { ...trimTrack.clips[clipIdx]! };
-        if (op.trimStart !== undefined) updatedClip.trimStart = op.trimStart;
-        if (op.duration !== undefined) updatedClip.duration = op.duration;
-        const trimClips = [...trimTrack.clips];
-        trimClips[clipIdx] = updatedClip;
-        const trimTracks = [...next.timeline.visualTracks];
-        trimTracks[trimTrackIdx] = { ...trimTrack, clips: trimClips };
-        next = {
-          ...next,
-          timeline: { ...next.timeline, visualTracks: trimTracks },
-        };
-        break;
-      }
-
-      case "moveVisualClip": {
-        const fromIdx = next.timeline.visualTracks.findIndex(
-          (t) => t.id === op.fromTrackId,
-        );
-        if (fromIdx === -1) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.fromTrackId`,
-              `Unknown source track: ${op.fromTrackId}`,
-            ),
-          );
-          break;
-        }
-        const toIdx = next.timeline.visualTracks.findIndex(
-          (t) => t.id === op.toTrackId,
-        );
-        if (toIdx === -1) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.toTrackId`,
-              `Unknown target track: ${op.toTrackId}`,
-            ),
-          );
-          break;
-        }
-        const fromTrack = next.timeline.visualTracks[fromIdx]!;
-        const clip = fromTrack.clips.find((c) => c.id === op.clipId);
-        if (!clip) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.clipId`,
-              `Clip not found on source track: ${op.clipId}`,
-            ),
-          );
-          break;
-        }
-        const movedClip: VisualClipV1 = {
-          ...clip,
-          ...(op.start !== undefined ? { start: op.start } : {}),
-        };
-        const moveTracks = [...next.timeline.visualTracks];
-        // Remove from source
-        moveTracks[fromIdx] = {
-          ...fromTrack,
-          clips: fromTrack.clips.filter((c) => c.id !== op.clipId),
-        };
-        // Insert into target
-        const targetTrack = moveTracks[toIdx]!;
-        const targetClips = [...targetTrack.clips];
-        targetClips.splice(op.insertAt ?? targetClips.length, 0, movedClip);
-        moveTracks[toIdx] = { ...targetTrack, clips: targetClips };
-        // Remove any tracks that became empty (min(1) clip constraint)
-        const pruned = moveTracks.filter((t) => t.clips.length > 0);
-        next = {
-          ...next,
-          timeline: { ...next.timeline, visualTracks: pruned },
-        };
-        break;
-      }
-
-      case "reorderVisualTrack": {
-        const reorderIdx = next.timeline.visualTracks.findIndex(
-          (t) => t.id === op.trackId,
-        );
-        if (reorderIdx === -1) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.trackId`,
-              `Unknown visual track: ${op.trackId}`,
-            ),
-          );
-          break;
-        }
-        const reorderTrack = next.timeline.visualTracks[reorderIdx]!;
-        const clipById = new Map(reorderTrack.clips.map((c) => [c.id, c]));
-        const missing = op.orderedClipIds.filter((id) => !clipById.has(id));
-        if (missing.length > 0) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.orderedClipIds`,
-              `Unknown clip ids: ${missing.join(", ")}`,
-            ),
-          );
-          break;
-        }
-        const reordered = op.orderedClipIds.map((id) => clipById.get(id)!);
-        const reorderTracks = [...next.timeline.visualTracks];
-        reorderTracks[reorderIdx] = {
-          ...reorderTrack,
-          clips: reordered,
-        };
-        next = {
-          ...next,
-          timeline: { ...next.timeline, visualTracks: reorderTracks },
+          layers: trimLayer(next.layers, op.layerId, op.start, op.duration),
         };
         break;
       }
@@ -626,103 +458,6 @@ export function applyMotionProjectV1Patch(
         break;
       }
 
-      case "addAudioTrack":
-      case "updateAudioTrack": {
-        const audioIdx = next.timeline.audioTracks.findIndex(
-          (t) => t.id === op.audioTrack.id,
-        );
-        if (audioIdx >= 0) {
-          if (op.op === "addAudioTrack") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.audioTrack.id`,
-                `Audio track already exists: ${op.audioTrack.id}`,
-              ),
-            );
-            break;
-          }
-          const updAudio = [...next.timeline.audioTracks];
-          updAudio[audioIdx] = op.audioTrack;
-          next = {
-            ...next,
-            timeline: {
-              ...next.timeline,
-              audioTracks: updAudio,
-            },
-          };
-        } else {
-          if (op.op === "updateAudioTrack") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.audioTrack.id`,
-                `Audio track not found: ${op.audioTrack.id}`,
-              ),
-            );
-            break;
-          }
-          next = {
-            ...next,
-            timeline: {
-              ...next.timeline,
-              audioTracks: [...next.timeline.audioTracks, op.audioTrack],
-            },
-          };
-        }
-        break;
-      }
-
-      case "addCaptionCue":
-      case "updateCaptionCue": {
-        const capIdx = next.timeline.captionTracks.findIndex(
-          (t) => t.id === op.trackId,
-        );
-        if (capIdx === -1) {
-          diagnostics.push(
-            diagnostic(
-              `${opPrefix}.trackId`,
-              `Unknown caption track: ${op.trackId}`,
-            ),
-          );
-          break;
-        }
-        const capTrack = next.timeline.captionTracks[capIdx]!;
-        const tokenIdx = capTrack.tokens.findIndex((t) => t.id === op.token.id);
-        const updCaps = [...next.timeline.captionTracks];
-        if (tokenIdx >= 0) {
-          if (op.op === "addCaptionCue") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.token.id`,
-                `Caption token already exists: ${op.token.id}`,
-              ),
-            );
-            break;
-          }
-          const updTokens = [...capTrack.tokens];
-          updTokens[tokenIdx] = op.token;
-          updCaps[capIdx] = { ...capTrack, tokens: updTokens };
-        } else {
-          if (op.op === "updateCaptionCue") {
-            diagnostics.push(
-              diagnostic(
-                `${opPrefix}.token.id`,
-                `Caption token not found: ${op.token.id}`,
-              ),
-            );
-            break;
-          }
-          updCaps[capIdx] = {
-            ...capTrack,
-            tokens: [...capTrack.tokens, op.token],
-          };
-        }
-        next = {
-          ...next,
-          timeline: { ...next.timeline, captionTracks: updCaps },
-        };
-        break;
-      }
-
       case "setValue": {
         try {
           setValueAtPath(
@@ -743,7 +478,6 @@ export function applyMotionProjectV1Patch(
     }
   }
 
-  // Final re-validation
   const validation = MotionProjectV1Schema.safeParse(next);
   if (!validation.success) {
     diagnostics.push(
@@ -758,8 +492,6 @@ export function applyMotionProjectV1Patch(
 
   return { project: validation.data as MotionProjectV1, diagnostics };
 }
-
-// ── Internal helpers ──────────────────────────────────────────────────
 
 function setValueAtPath(
   obj: Record<string, unknown>,

@@ -147,7 +147,7 @@ describe("committed JSON schemas", () => {
         "formatVersion",
         "metadata",
         "provenance",
-        "scenes",
+        "layers",
         "timeline",
         "tokens",
         "variables",
@@ -155,67 +155,27 @@ describe("committed JSON schemas", () => {
     );
   });
 
-  it("v1 schema encodes visualTracks (timeline no longer sceneOrder)", () => {
+  it("v1 schema encodes timeline metadata only (no tracks)", () => {
     const schema = loadSchema("v1.json");
     const timeline = schema.definitions.MotionProjectV1.properties!
       .timeline as unknown as {
       properties?: Record<string, unknown>;
     };
     const timelineProps = Object.keys(timeline.properties ?? {});
-    expect(timelineProps).toContain("visualTracks");
+    expect(timelineProps).toEqual(
+      expect.arrayContaining(["duration", "workArea", "markers"]),
+    );
     expect(timelineProps).not.toContain("sceneOrder");
+    expect(timelineProps).not.toContain("visualTracks");
+    expect(timelineProps).not.toContain("audioTracks");
+    expect(timelineProps).not.toContain("captionTracks");
   });
 
-  it("v1 schema visual clips are scene-only (no role, no transition, no component source)", () => {
+  it("v1 schema root is layers, not scenes", () => {
     const schema = loadSchema("v1.json");
-    const timeline = schema.definitions.MotionProjectV1.properties!
-      .timeline as {
-      properties?: {
-        visualTracks?: {
-          items?: {
-            properties?: Record<string, unknown>;
-            required?: string[];
-          };
-        };
-        audioTracks?: {
-          items?: {
-            properties?: Record<string, unknown>;
-            required?: string[];
-          };
-        };
-      };
-    };
-    const track = timeline.properties?.visualTracks?.items;
-    const trackProps = Object.keys(track?.properties ?? {});
-    expect(trackProps).not.toContain("role");
-    expect(track?.required ?? []).not.toContain("role");
-
-    const clips = track?.properties?.clips as {
-      items?: {
-        properties?: Record<string, unknown>;
-      };
-    };
-    const clipProps = Object.keys(clips?.items?.properties ?? {});
-    expect(clipProps).not.toContain("transitionIn");
-    expect(clipProps).not.toContain("transitionOut");
-
-    const source = clips?.items?.properties?.source as {
-      anyOf?: Array<{ properties?: { kind?: { const?: string } } }>;
-      properties?: { kind?: { const?: string } };
-    };
-    const kinds = source?.anyOf
-      ? source.anyOf.map((entry) => entry.properties?.kind?.const)
-      : [source?.properties?.kind?.const];
-    expect(kinds).toEqual(["scene"]);
-
-    const audioTrack = timeline.properties?.audioTracks;
-    expect(audioTrack?.items?.required ?? []).toContain("order");
-    const audioOrder = audioTrack?.items?.properties?.order as {
-      exclusiveMaximum?: boolean;
-      maximum?: number;
-    };
-    expect(audioOrder?.exclusiveMaximum).toBe(true);
-    expect(audioOrder?.maximum).toBe(0);
+    const props = schema.definitions.MotionProjectV1.properties!;
+    expect(props.layers).toBeDefined();
+    expect(props.scenes).toBeUndefined();
   });
 
   it("does not warn recursive-any while generating schema/v1.json", () => {
@@ -290,20 +250,20 @@ describe("committed JSON schemas", () => {
       "component layer payload.props.additionalProperties",
     );
 
-    const sceneLayers = getByPointer(
+    const projectLayers = getByPointer(
       schema,
-      "#/definitions/MotionProjectV1/properties/scenes/items/properties/layers/items",
+      "#/definitions/MotionProjectV1/properties/layers/items",
     );
-    const sceneComponentLayer = findComponentLayerSchema(schema, sceneLayers);
+    const projectComponentLayer = findComponentLayerSchema(schema, projectLayers);
     assertClosed(
-      getPath(schema, sceneComponentLayer, [
+      getPath(schema, projectComponentLayer, [
         "properties",
         "payload",
         "properties",
         "props",
         "additionalProperties",
       ]),
-      "scenes.items.layers component payload.props.additionalProperties",
+      "layers.items component payload.props.additionalProperties",
     );
   });
 });

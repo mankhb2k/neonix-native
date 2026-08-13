@@ -9,7 +9,7 @@
     "industry": "technology",
     "tags": [
       "demo",
-      "v3",
+      "v1",
       "comprehensive"
     ],
     "createdAt": "2026-08-10T00:00:00Z",
@@ -297,7 +297,6 @@
           }
         }
       ],
-      "internalBindings": [],
       "actions": [
         {
           "id": "action-fade-in",
@@ -368,70 +367,116 @@
       ]
     }
   ],
-  "scenes": [
+  "timeline": {
+    "duration": 18,
+    "workArea": {
+      "start": 0,
+      "end": 18
+    },
+    "markers": [
+      {
+        "id": "marker-project-start",
+        "t": 0
+      }
+    ]
+  },
+  "bindings": [
     {
-      "id": "scene-intro",
-      "name": "Intro",
-      "duration": 5,
-      "semantic": {
-        "role": "intro"
+      "id": "binding-company-name",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-company"
       },
-      "space": "layered-2.5d",
-      "markers": [
-        {
-          "id": "marker-start",
-          "t": 0
-        },
-        {
-          "id": "marker-mid",
-          "t": 2.5
-        }
-      ],
-      "motionBlur": {
-        "enabled": true,
-        "shutterAngle": 180,
-        "sampleCount": 8
+      "target": {
+        "type": "layer",
+        "layerId": "node-title",
+        "property": "payload.content.text"
+      }
+    },
+    {
+      "id": "binding-opacity",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-title-opacity"
       },
-      "drivers": [
-        {
-          "id": "driver-noise",
-          "type": "noise",
-          "targetLayerId": "node-title",
-          "targetProperty": "transform.x",
-          "seed": 42,
-          "amplitude": 10,
-          "frequency": 2
+      "target": {
+        "type": "layer",
+        "layerId": "node-title",
+        "property": "transform.opacity"
+      }
+    },
+    {
+      "id": "binding-component",
+      "source": {
+        "kind": "variable",
+        "variableId": "var-brand-color"
+      },
+      "target": {
+        "type": "componentLayer",
+        "layerId": "node-lower-third",
+        "propId": "bgColor"
+      }
+    }
+  ],
+  "provenance": {
+    "workspaceId": "ws-moticlip-demo",
+    "sourceHash": "abc123def456",
+    "bundleProfile": "embedded-components",
+    "sourceMap": {
+      "components": {
+        "lower-third": "src/components/lower-third.json"
+      },
+      "variables": {
+        "var-company": "src/variables.json"
+      },
+      "assets": {
+        "asset-logo": "assets/logo.png"
+      },
+      "layers": {
+        "scene-intro": "src/scenes/intro.json"
+      }
+    }
+  },
+  "extensions": {
+    "com.moticlip.constraints": [
+      {
+        "maxDuration": 30
+      }
+    ],
+    "com.moticlip.ai-hints": {
+      "tone": "professional",
+      "pace": "fast"
+    }
+  },
+  "layers": [
+    {
+      "id": "node-group",
+      "type": "group",
+      "name": "Title Group",
+      "parentLayerId": null,
+      "zIndex": 0,
+      "transform": {
+        "x": 960,
+        "y": 300,
+        "width": 0,
+        "height": 0,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "compositing": {
+          "mode": "isolate"
         }
-      ],
-      "layers": [
-        {
-          "id": "node-group",
-          "type": "group",
-          "name": "Title Group",
-          "parentLayerId": null,
-          "zIndex": 0,
-          "transform": {
-            "x": 960,
-            "y": 300,
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "compositing": {
-              "mode": "isolate"
-            }
-          },
-          "blendMode": "normal"
-        },
+      },
+      "blendMode": "normal",
+      "children": [
         {
           "id": "node-title",
           "type": "text",
@@ -497,36 +542,6 @@
           }
         },
         {
-          "id": "node-logo",
-          "type": "image",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 600,
-            "width": 128,
-            "height": 128,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "assetId": "asset-logo",
-            "fit": "contain"
-          },
-          "mask": {
-            "sourceLayerId": "node-shape",
-            "mode": "alpha",
-            "sourceVisibility": "mask-only"
-          }
-        },
-        {
           "id": "node-bone",
           "type": "bone",
           "parentLayerId": "node-group",
@@ -554,225 +569,317 @@
               "max": 45
             }
           }
-        },
-        {
-          "id": "node-cam",
-          "type": "camera",
-          "parentLayerId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "projection": "orthographic",
-            "zoom": 1,
-            "parallaxStrength": 0.5
-          }
         }
       ],
-      "clips": [
-        {
-          "id": "clip-title-fade",
-          "layerId": "node-title",
-          "schedule": {
-            "kind": "absolute",
-            "at": 0
-          },
-          "duration": 1,
-          "playback": {},
-          "source": {
-            "kind": "tracks",
-            "tracks": [
-              {
-                "layerId": "node-title",
-                "property": "transform.opacity",
-                "keys": [
-                  {
-                    "t": 0,
-                    "v": 0,
-                    "easing": "easeOut"
-                  },
-                  {
-                    "t": 1,
-                    "v": 1
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "id": "clip-preset-bounce",
-          "layerId": "node-logo",
-          "schedule": {
-            "kind": "absolute",
-            "at": 0.5
-          },
-          "duration": 0.6,
-          "playback": {
-            "iterations": 2
-          },
-          "source": {
-            "kind": "preset",
-            "presetId": "bounce-in",
-            "params": {
-              "intensity": 0.8
-            }
-          }
-        }
-      ],
-      "activeCameraLayerId": "node-cam"
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
     },
     {
-      "id": "scene-outro",
-      "name": "Outro",
-      "duration": 3,
-      "space": "flat-2d",
-      "layers": [
-        {
-          "id": "node-path",
-          "type": "path",
-          "parentLayerId": null,
-          "zIndex": 0,
-          "transform": {
-            "x": 100,
-            "y": 200,
-            "width": 300,
-            "height": 200,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0,
-            "anchorY": 0,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "contours": [
+      "id": "node-logo",
+      "type": "image",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "x": 960,
+        "y": 600,
+        "width": 128,
+        "height": 128,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "assetId": "asset-logo",
+        "fit": "contain"
+      },
+      "mask": {
+        "sourceLayerId": "node-shape",
+        "mode": "alpha",
+        "sourceVisibility": "mask-only"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    },
+    {
+      "id": "node-cam",
+      "type": "camera",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "projection": "orthographic",
+        "zoom": 1,
+        "parallaxStrength": 0.5
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    },
+    {
+      "id": "node-path",
+      "type": "path",
+      "parentLayerId": null,
+      "zIndex": 3,
+      "transform": {
+        "x": 100,
+        "y": 200,
+        "width": 300,
+        "height": 200,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "contours": [
+          {
+            "id": "contour-1",
+            "start": {
+              "x": 0,
+              "y": 0
+            },
+            "closed": false,
+            "segments": [
               {
-                "id": "contour-1",
-                "start": {
-                  "x": 0,
+                "kind": "line",
+                "to": {
+                  "x": 100,
+                  "y": 50
+                }
+              },
+              {
+                "kind": "cubic",
+                "to": {
+                  "x": 200,
+                  "y": 50
+                },
+                "control1": {
+                  "x": 130,
                   "y": 0
                 },
-                "closed": false,
-                "segments": [
-                  {
-                    "kind": "line",
-                    "to": {
-                      "x": 100,
-                      "y": 50
-                    }
-                  },
-                  {
-                    "kind": "cubic",
-                    "to": {
-                      "x": 200,
-                      "y": 50
-                    },
-                    "control1": {
-                      "x": 130,
-                      "y": 0
-                    },
-                    "control2": {
-                      "x": 170,
-                      "y": 100
-                    }
-                  }
-                ]
+                "control2": {
+                  "x": 170,
+                  "y": 100
+                }
               }
             ]
-          },
-          "style": {
-            "stroke": "#ff6b35",
-            "strokeWidth": 3
           }
-        },
-        {
-          "id": "node-adjustment",
-          "type": "adjustment",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 1920,
-            "height": 1080,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0,
-            "anchorY": 0,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "brightness": 0.1,
-            "contrast": 1.1
-          }
-        }
-      ],
-      "clips": []
+        ]
+      },
+      "style": {
+        "stroke": "#ff6b35",
+        "strokeWidth": 3
+      },
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
     },
     {
-      "id": "scene-video",
-      "name": "Video Scene",
-      "duration": 10,
-      "space": "flat-2d",
-      "layers": [
+      "id": "node-adjustment",
+      "type": "adjustment",
+      "parentLayerId": null,
+      "zIndex": 4,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "brightness": 0.1,
+        "contrast": 1.1
+      },
+      "timing": {
+        "start": 0,
+        "duration": 3
+      }
+    },
+    {
+      "id": "node-video-bg",
+      "type": "video",
+      "parentLayerId": null,
+      "zIndex": 5,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 1920,
+        "height": 1080,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "assetId": "asset-intro-video",
+        "fit": "cover",
+        "muted": true,
+        "loop": true
+      },
+      "timing": {
+        "start": 0,
+        "duration": 10
+      }
+    },
+    {
+      "id": "node-svg-icon",
+      "type": "svg",
+      "parentLayerId": null,
+      "zIndex": 6,
+      "transform": {
+        "x": 960,
+        "y": 540,
+        "width": 64,
+        "height": 64,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "assetId": "asset-icon"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 10
+      }
+    },
+    {
+      "id": "node-lower-third",
+      "type": "component",
+      "parentLayerId": null,
+      "transform": {
+        "x": 160,
+        "y": 800,
+        "width": 600,
+        "height": 80,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0,
+        "opacity": 0.95,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "componentId": "lower-third"
+      },
+      "zIndex": 7,
+      "timing": {
+        "start": 0,
+        "duration": 4
+      }
+    },
+    {
+      "id": "track-bgm-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -1,
+      "timing": {
+        "start": 0,
+        "duration": 18
+      },
+      "payload": {
+        "assetId": "asset-bgm",
+        "trimStart": 0,
+        "playbackRate": 1,
+        "volume": 0.7,
+        "loop": false,
+        "fadeIn": 1,
+        "fadeOut": 2,
+        "muted": false
+      }
+    },
+    {
+      "id": "caption-vi",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 8,
+      "timing": {
+        "start": 0,
+        "duration": 3
+      },
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "children": [
         {
-          "id": "node-video-bg",
-          "type": "video",
-          "parentLayerId": null,
+          "id": "tok-1",
+          "type": "text",
+          "parentLayerId": "caption-vi",
           "zIndex": 0,
+          "timing": {
+            "start": 0,
+            "duration": 1.5
+          },
           "transform": {
             "x": 0,
             "y": 0,
-            "width": 1920,
-            "height": 1080,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0,
-            "anchorY": 0,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "assetId": "asset-intro-video",
-            "fit": "cover",
-            "muted": true,
-            "loop": true
-          }
-        },
-        {
-          "id": "node-svg-icon",
-          "type": "svg",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 64,
-            "height": 64,
+            "width": 100,
+            "height": 100,
             "rotation": 0,
             "scaleX": 1,
             "scaleY": 1,
@@ -784,236 +891,44 @@
             "flipY": false
           },
           "payload": {
-            "assetId": "asset-icon"
+            "text": "Xin chào",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
           }
-        }
-      ],
-      "clips": []
-    },
-    {
-      "id": "scene-lower-third",
-      "name": "Lower Third Overlay Scene",
-      "duration": 4,
-      "layers": [
+        },
         {
-          "id": "node-lower-third",
-          "type": "component",
-          "parentLayerId": null,
+          "id": "tok-2",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 1,
+          "timing": {
+            "start": 1.6,
+            "duration": 1.4
+          },
           "transform": {
-            "x": 160,
-            "y": 800,
-            "width": 600,
-            "height": 80,
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
             "rotation": 0,
             "scaleX": 1,
             "scaleY": 1,
-            "anchorX": 0,
-            "anchorY": 0,
-            "opacity": 0.95,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
             "visible": true,
             "flipX": false,
             "flipY": false
           },
           "payload": {
-            "componentId": "lower-third"
+            "text": "MotiClip V1",
+            "fontSize": 48,
+            "color": "#ffffff",
+            "alignment": "center"
           }
         }
       ]
     }
-  ],
-  "timeline": {
-    "duration": 18,
-    "workArea": {
-      "start": 0,
-      "end": 18
-    },
-    "markers": [
-      {
-        "id": "marker-project-start",
-        "t": 0
-      }
-    ],
-    "visualTracks": [
-      {
-        "id": "track-main",
-        "order": 0,
-        "clips": [
-          {
-            "id": "clip-intro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-intro"
-            },
-            "start": 0,
-            "duration": 5,
-            "opacity": 1,
-            "loop": false
-          },
-          {
-            "id": "clip-video",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-video"
-            },
-            "start": 5,
-            "duration": 10,
-            "opacity": 1,
-            "loop": false,
-            "playbackRate": 1
-          },
-          {
-            "id": "clip-outro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-outro"
-            },
-            "start": 15,
-            "duration": 3,
-            "opacity": 0.95,
-            "loop": false
-          }
-        ]
-      },
-      {
-        "id": "track-overlay",
-        "order": 1,
-        "muted": false,
-        "clips": [
-          {
-            "id": "clip-component-overlay",
-            "source": {
-              "kind": "scene",
-              "sceneId": "scene-lower-third"
-            },
-            "start": 1,
-            "duration": 4,
-            "opacity": 0.9,
-            "loop": false
-          }
-        ]
-      }
-    ],
-    "audioTracks": [
-      {
-        "id": "track-bgm",
-        "clips": [
-          {
-            "id": "track-bgm-clip",
-            "assetId": "asset-bgm",
-            "start": 0,
-            "duration": 18,
-            "trimStart": 0,
-            "playbackRate": 1,
-            "volume": 0.7,
-            "loop": false,
-            "fadeIn": 1,
-            "fadeOut": 2,
-            "muted": false
-          }
-        ],
-        "order": -1
-      }
-    ],
-    "captionTracks": [
-      {
-        "id": "caption-vi",
-        "locale": "vi-VN",
-        "tokens": [
-          {
-            "id": "tok-1",
-            "text": "Xin chào",
-            "start": 0,
-            "end": 1.5
-          },
-          {
-            "id": "tok-2",
-            "text": "MotiClip V1",
-            "start": 1.6,
-            "end": 3
-          }
-        ],
-        "style": {
-          "fontSize": 48,
-          "fill": "#ffffff",
-          "safeArea": "tiktok",
-          "position": "bottom"
-        },
-        "animation": {
-          "presetId": "word-pop"
-        },
-        "audioTrackId": "track-bgm"
-      }
-    ]
-  },
-  "bindings": [
-    {
-      "id": "binding-company-name",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-company"
-      },
-      "target": {
-        "kind": "scene",
-        "sceneId": "scene-intro",
-        "layerId": "node-title",
-        "property": "payload.content.text"
-      }
-    },
-    {
-      "id": "binding-opacity",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-title-opacity"
-      },
-      "target": {
-        "kind": "scene",
-        "sceneId": "scene-intro",
-        "layerId": "node-title",
-        "property": "transform.opacity"
-      }
-    },
-    {
-      "id": "binding-component",
-      "source": {
-        "kind": "variable",
-        "variableId": "var-brand-color"
-      },
-      "target": {
-        "kind": "componentLayer",
-        "sceneId": "scene-lower-third",
-        "layerId": "node-lower-third",
-        "propId": "bgColor"
-      }
-    }
-  ],
-  "provenance": {
-    "workspaceId": "ws-moticlip-demo",
-    "sourceHash": "abc123def456",
-    "bundleProfile": "embedded-components",
-    "sourceMap": {
-      "scenes": {
-        "scene-intro": "src/scenes/intro.json"
-      },
-      "components": {
-        "lower-third": "src/components/lower-third.json"
-      },
-      "variables": {
-        "var-company": "src/variables.json"
-      },
-      "assets": {
-        "asset-logo": "assets/logo.png"
-      }
-    }
-  },
-  "extensions": {
-    "com.moticlip.constraints": [
-      {
-        "maxDuration": 30
-      }
-    ],
-    "com.moticlip.ai-hints": {
-      "tone": "professional",
-      "pace": "fast"
-    }
-  }
+  ]
 }

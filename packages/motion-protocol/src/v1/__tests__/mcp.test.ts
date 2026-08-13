@@ -37,12 +37,8 @@ function minimalProject(): MotionProjectV1 {
     variables: [],
     assets: [],
     components: [],
-    scenes: [],
-    timeline: {
-      visualTracks: [],
-      audioTracks: [],
-      captionTracks: [],
-    },
+    layers: [],
+    timeline: { duration: 8 },
     bindings: [],
     extensions: {},
   };
@@ -150,10 +146,10 @@ describe("V1 MCP contract", () => {
     const project = minimalProject();
     const input = MCPInspectTimelineInputSchema.parse({
       project,
-      trackId: "main",
+      layerId: "main",
       verbose: true,
     });
-    expect(input.trackId).toBe("main");
+    expect(input.layerId).toBe("main");
     expect(input.verbose).toBe(true);
   });
 
@@ -286,159 +282,122 @@ describe("V1 MCP contract", () => {
   it("inspects an empty project", () => {
     const project = minimalProject();
     const result = inspectTimeline(project);
-    expect(result.trackCount).toBe(0);
-    expect(result.totalClipCount).toBe(0);
+    expect(result.rootLayerCount).toBe(0);
+    expect(result.layers).toEqual([]);
     expect(result.totalDuration).toBe(0);
   });
 
-  it("inspects a project with visual tracks", () => {
-    const project: MotionProjectV1 = {
+  it("inspects root layers", () => {
+    const project = {
       ...minimalProject(),
-      scenes: [
-        { id: "intro", duration: 3, space: "flat-2d", layers: [], clips: [] },
-        { id: "outro", duration: 2, space: "flat-2d", layers: [], clips: [] },
+      layers: [
+        {
+          id: "main",
+          type: "group",
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 3 },
+          transform: {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0.5,
+            anchorY: 0.5,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
+          },
+          children: [],
+        },
+        {
+          id: "music",
+          type: "audio",
+          parentLayerId: null,
+          zIndex: -1,
+          timing: { start: 0, duration: 5 },
+          payload: { assetId: "music-1" },
+        },
       ],
-      timeline: {
-        ...minimalProject().timeline,
-        visualTracks: [
-          {
-            id: "main",
-            order: 0,
-            muted: false,
-            clips: [
-              {
-                id: "c1",
-                source: { kind: "scene", sceneId: "intro" },
-                start: 0,
-                duration: 3,
-                loop: false,
-                opacity: 1,
-              },
-              {
-                id: "c2",
-                source: { kind: "scene", sceneId: "outro" },
-                start: 3,
-                duration: 2,
-                loop: false,
-                opacity: 1,
-              },
-            ],
-          },
-        ],
-        audioTracks: [
-          {
-            id: "bgm",
-            order: -1,
-            muted: false,
-            clips: [
-              {
-                id: "bgm-clip",
-                assetId: "music-1",
-                start: 0,
-                duration: 5,
-                volume: 0.8,
-                trimStart: 0,
-                playbackRate: 1,
-                fadeIn: 0,
-                fadeOut: 0,
-                loop: true,
-                muted: false,
-              },
-            ],
-          },
-        ],
-        captionTracks: [
-          {
-            id: "cap-en",
-            locale: "en-US",
-            enabled: true,
-            tokens: [
-              { id: "t1", text: "Hello", start: 0, end: 2 },
-              { id: "t2", text: "World", start: 2, end: 5 },
-            ],
-            segmentation: { maxLines: 2 },
-            style: {
-              fontSize: 36,
-              fill: "#ffffff",
-              position: "bottom",
-              safeArea: "generic",
-            },
-            animation: { presetId: "none" },
-          },
-        ],
-      },
-    };
+    } as unknown as MotionProjectV1;
     const result = inspectTimeline(project);
-    expect(result.trackCount).toBe(1);
-    expect(result.totalClipCount).toBe(2);
+    expect(result.rootLayerCount).toBe(2);
     expect(result.totalDuration).toBe(5);
-    expect(result.tracks[0]!.order).toBe(0);
-    expect(result.audioTracks).toHaveLength(1);
-    expect(result.audioTracks[0]!.clips[0]!.assetId).toBe("music-1");
-    expect(result.captionTracks).toHaveLength(1);
-    expect(result.captionTracks[0]!.tokenCount).toBe(2);
-    expect(result.captionTracks[0]!.firstToken).toBe("Hello");
-    expect(result.captionTracks[0]!.lastToken).toBe("World");
+    expect(result.layers.map((layer) => layer.id)).toEqual(["main", "music"]);
   });
 
-  it("inspects a specific track by id", () => {
-    const project: MotionProjectV1 = {
+  it("inspects a specific root layer by id", () => {
+    const project = {
       ...minimalProject(),
-      scenes: [
-        { id: "a", duration: 2, space: "flat-2d", layers: [], clips: [] },
+      layers: [
+        {
+          id: "main",
+          type: "group",
+          parentLayerId: null,
+          zIndex: 0,
+          timing: { start: 0, duration: 2 },
+          transform: {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0.5,
+            anchorY: 0.5,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
+          },
+          children: [],
+        },
+        {
+          id: "overlay",
+          type: "group",
+          parentLayerId: null,
+          zIndex: 1,
+          timing: { start: 0, duration: 1 },
+          transform: {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            anchorX: 0.5,
+            anchorY: 0.5,
+            opacity: 1,
+            visible: true,
+            flipX: false,
+            flipY: false,
+          },
+          children: [],
+        },
       ],
-      timeline: {
-        ...minimalProject().timeline,
-        visualTracks: [
-          {
-            id: "main",
-            order: 0,
-            muted: false,
-            clips: [
-              {
-                id: "c1",
-                source: { kind: "scene", sceneId: "a" },
-                start: 0,
-                duration: 2,
-                loop: false,
-                opacity: 1,
-              },
-            ],
-          },
-          {
-            id: "overlay",
-            order: 1,
-            muted: false,
-            clips: [
-              {
-                id: "c2",
-                source: { kind: "scene", sceneId: "a" },
-                start: 0,
-                duration: 1,
-                loop: false,
-                opacity: 0.5,
-              },
-            ],
-          },
-        ],
-      },
-    };
+    } as unknown as MotionProjectV1;
     const result = inspectTimeline(project, "overlay");
-    expect(result.trackCount).toBe(1);
-    expect(result.tracks[0]!.id).toBe("overlay");
-    expect(result.tracks[0]!.order).toBe(1);
+    expect(result.rootLayerCount).toBe(1);
+    expect(result.layers[0]!.id).toBe("overlay");
+    expect(result.layers[0]!.zIndex).toBe(1);
   });
 
   // ── explainDiagnostics ────────────────────────────────────────────
 
-  it("explains unknown scene diagnostics", () => {
+  it("explains unknown layer diagnostics", () => {
     const result = explainDiagnostics({
       locale: "en",
       suggestFixes: true,
       diagnostics: [
         {
-          path: "operations[0].target.sceneId",
-          message: "Unknown scene: xyz",
+          path: "operations[0].target.layerId",
+          message: "Unknown layer: xyz",
           severity: "error",
         },
       ],
@@ -447,7 +406,7 @@ describe("V1 MCP contract", () => {
     expect(result.explanations[0]!.explanation).toContain("doesn't exist");
   });
 
-  it("explains sceneOrder V2 leak diagnostics", () => {
+  it("explains sceneOrder leak diagnostics", () => {
     const result = explainDiagnostics({
       locale: "en",
       suggestFixes: true,
@@ -455,13 +414,13 @@ describe("V1 MCP contract", () => {
         {
           path: "output.project.timeline",
           message:
-            "Skill output contains V2 field 'sceneOrder' — use visualTracks instead",
+            "Skill output contains field 'sceneOrder' — use project.layers with root zIndex",
           severity: "error",
         },
       ],
     });
     expect(result.explanations[0]!.explanation).toContain("sceneOrder");
-    expect(result.explanations[0]!.explanation).toContain("visualTracks");
+    expect(result.explanations[0]!.explanation).toContain("project.layers");
   });
 
   it("explains scene.transition V2 leak diagnostics", () => {
@@ -477,9 +436,12 @@ describe("V1 MCP contract", () => {
         },
       ],
     });
-    expect(result.explanations[0]!.explanation).toContain("not a V1 timeline primitive");
-    expect(result.explanations[0]!.suggestedAction).toContain("Remove transition");
-    expect(result.explanations[0]!.suggestedAction).not.toContain("transitionOut");
+    expect(result.explanations[0]!.explanation).toContain(
+      "not a V1 timeline primitive",
+    );
+    expect(result.explanations[0]!.suggestedAction).toContain(
+      "Remove transition",
+    );
   });
 
   it("explains formatVersion diagnostics", () => {
@@ -496,7 +458,7 @@ describe("V1 MCP contract", () => {
       ],
     });
     expect(result.explanations[0]!.explanation).toContain("formatVersion");
-    expect(result.explanations[0]!.explanation).toContain("V1");
+    expect(result.explanations[0]!.explanation).toContain("project.layers");
   });
 
   it("explains post-patch validation failures", () => {

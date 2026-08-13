@@ -1,10 +1,11 @@
 /**
  * V1 layer union.
  *
- * `component` layer type represents a sealed component instance as a scene
- * layer (see `component.ts`). Its transform behaves like a group layer;
- * scene-local motion clips target the component layer to animate the whole
- * instance without touching internals.
+ * Discriminator is always `type` (never `kind`):
+ * group | text | audio | component | visual primitives.
+ *
+ * `group` nests `children[]`. `component` is a sealed instance leaf.
+ * `audio` is a root-only leaf (negative zIndex).
  */
 import { z } from "zod";
 import { TextLayerV1Schema } from "./text";
@@ -19,9 +20,11 @@ import { ComponentLayerV1Schema } from "./component";
 import {
   AdjustmentLayerV1Schema,
   BoneLayerV1Schema,
-  GroupLayerV1Schema,
+  GroupLayerV1Schema as GroupLayerV1BaseSchema,
   SolidLayerV1Schema,
 } from "./structural";
+import { AudioLayerV1Schema } from "./audio";
+import type { AudioLayerV1 } from "./audio";
 
 export {
   LayerBaseV1Schema,
@@ -34,7 +37,6 @@ export { LayerTimingSchema, type LayerTiming } from "./timing";
 export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";
 export {
-  // Shared text content schemas and helpers
   segmentTextUnits,
   TextContentSchema,
   RichTextRunSchema,
@@ -60,6 +62,8 @@ export {
   AdjustmentLayerV1Schema,
 } from "./structural";
 export { ComponentLayerV1Schema, type ComponentLayerV1 } from "./component";
+export { AudioLayerV1Schema, type AudioLayerV1 } from "./audio";
+export { flattenLayerTree, isProjectRootLayer, getRootLayers } from "./flatten";
 export {
   ShapeLayerV1Schema,
   PathLayerV1Schema,
@@ -73,19 +77,41 @@ export {
   type MotionPathMorphTarget,
 } from "./geometry";
 
-export const LayerV1Schema = z.discriminatedUnion("type", [
-  GroupLayerV1Schema,
-  BoneLayerV1Schema,
-  TextLayerV1Schema,
-  ShapeLayerV1Schema,
-  PathLayerV1Schema,
-  ImageLayerV1Schema,
-  SvgLayerV1Schema,
-  VideoLayerV1Schema,
-  CameraLayerV1Schema,
-  SolidLayerV1Schema,
-  AdjustmentLayerV1Schema,
-  ComponentLayerV1Schema,
-]);
+type GroupLayerV1Base = z.infer<typeof GroupLayerV1BaseSchema>;
 
-export type LayerV1 = z.infer<typeof LayerV1Schema>;
+export type GroupLayerV1 = GroupLayerV1Base & { children: LayerV1[] };
+
+export type LayerV1 =
+  | GroupLayerV1
+  | z.infer<typeof BoneLayerV1Schema>
+  | z.infer<typeof TextLayerV1Schema>
+  | z.infer<typeof ShapeLayerV1Schema>
+  | z.infer<typeof PathLayerV1Schema>
+  | z.infer<typeof ImageLayerV1Schema>
+  | z.infer<typeof SvgLayerV1Schema>
+  | z.infer<typeof VideoLayerV1Schema>
+  | z.infer<typeof CameraLayerV1Schema>
+  | z.infer<typeof SolidLayerV1Schema>
+  | z.infer<typeof AdjustmentLayerV1Schema>
+  | z.infer<typeof ComponentLayerV1Schema>
+  | AudioLayerV1;
+
+export const LayerV1Schema: z.ZodType<LayerV1> = z.lazy(() =>
+  z.discriminatedUnion("type", [
+    GroupLayerV1BaseSchema.extend({
+      children: z.array(LayerV1Schema).default([]),
+    }),
+    BoneLayerV1Schema,
+    TextLayerV1Schema,
+    ShapeLayerV1Schema,
+    PathLayerV1Schema,
+    ImageLayerV1Schema,
+    SvgLayerV1Schema,
+    VideoLayerV1Schema,
+    CameraLayerV1Schema,
+    SolidLayerV1Schema,
+    AdjustmentLayerV1Schema,
+    ComponentLayerV1Schema,
+    AudioLayerV1Schema,
+  ]),
+) as z.ZodType<LayerV1>;

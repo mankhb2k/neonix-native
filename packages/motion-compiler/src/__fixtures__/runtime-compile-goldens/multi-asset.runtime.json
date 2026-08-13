@@ -73,41 +73,41 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "e0d9effae65f3e48cc5a9aa5914b66bb",
+  "runtimeHash": "30b0355c8ac8e8e767461b65da56fcbd",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
-      "intro": "scenes:intro"
+      "root": "scenes:root"
     }
   },
   "timeline": {
     "duration": 42.5,
     "visualTracks": [
       {
-        "id": "main-track",
+        "id": "visual",
         "order": 0,
         "clips": [
           {
-            "id": "clip-intro",
+            "id": "root-clip",
             "source": {
               "kind": "scene",
-              "sceneId": "intro"
+              "sceneId": "root"
             },
             "start": 0,
-            "duration": 5
+            "duration": 42.5
           }
         ]
       }
     ],
     "audioTracks": [
       {
-        "id": "track-bgm",
+        "id": "track-bgm-clip",
         "order": -1,
         "muted": false,
         "clips": [
           {
-            "id": "track-bgm-clip",
+            "id": "track-bgm-clip-clip",
             "assetId": "bgm",
             "start": 0,
             "duration": 42.5,
@@ -126,14 +126,12 @@
   },
   "scenes": [
     {
-      "id": "intro",
-      "duration": 5,
-      "space": "flat-2d",
-      "activeCameraLayerId": "main-camera",
+      "id": "root",
+      "duration": 42.5,
       "sourceRef": {
         "projectPath": [
           "scenes",
-          "intro"
+          "root"
         ]
       },
       "layers": [
@@ -141,6 +139,7 @@
           "id": "main-camera",
           "type": "camera",
           "parentLayerId": null,
+          "zIndex": 0,
           "transform": {
             "x": 960,
             "y": 540,
@@ -155,6 +154,10 @@
             "visible": true,
             "flipX": false,
             "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           },
           "inheritPosition": true,
           "inheritRotation": true,
@@ -185,6 +188,10 @@
             "visible": true,
             "flipX": false,
             "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           },
           "inheritPosition": true,
           "inheritRotation": true,
@@ -224,6 +231,10 @@
             "flipX": false,
             "flipY": false
           },
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
           "inheritPosition": true,
           "inheritRotation": true,
           "inheritScale": true,
@@ -253,6 +264,10 @@
             "flipX": false,
             "flipY": false
           },
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
           "inheritPosition": true,
           "inheritRotation": true,
           "inheritScale": true,
@@ -281,6 +296,10 @@
             "visible": true,
             "flipX": false,
             "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           },
           "inheritPosition": true,
           "inheritRotation": true,

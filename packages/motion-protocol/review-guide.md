@@ -1,6 +1,6 @@
 # Review Guide — V1 Component Protocol
 
-> **Mục đích:** Hướng dẫn review codebase V1 protocol một cách có hệ thống — tập trung vào **component contract** và **component-as-scene-layer** (component layer + scene-local motion).
+> **Mục đích:** Hướng dẫn review codebase V1 protocol một cách có hệ thống — tập trung vào **component contract** và **component-as-layer** (component layer trên `project.layers`).
 >
 > **Nguyên tắc cốt lõi:** Bắt đầu từ **schema entrypoint**, sau đó đi xuống theo **luồng dữ liệu thật** (input JSON → schema parse → reference validation → compiler). Không review rải rác theo chữ cái.
 
@@ -13,7 +13,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | #   | File                              | Tại sao đọc file này                                                                                                            |
 | --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `src/v1/project.ts`               | **Root schema** của V1. Hiểu `MotionProjectV1Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
-| 2   | `src/v1/timeline.ts`              | **Scene-only timeline**. Xem `visualTracks`, `VisualClipV1` — clip source chỉ cho phép `{ kind: "scene", sceneId }`.            |
+| 2   | `src/v1/timeline/schema.ts`       | **Timeline metadata**. Chỉ `duration?` / `workArea?` / `markers?`. Không `visualTracks` / `audioTracks` / `captionTracks`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v1/components.ts`            | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v1/variables.ts`             | **Binding model** — phân biệt scene binding vs component binding; consumer có được chạm internal không.                         |
@@ -21,7 +21,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 6   | `src/v1/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
 | 7   | `src/v1/__tests__/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
 
-> **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi nhảy sang `timeline.ts` (scene-only) và `layers/component.ts` vì phần component motion nằm ở đó.
+> **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi `timeline/schema.ts` và `layers/index.ts` (nested tree + audio).
 
 ---
 
@@ -29,15 +29,15 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 1) `src/v1/project.ts` — Root schema
 
-- Xem `MotionProjectV1Schema` gom những phần con nào: `metadata`, `composition`, `dependencies`, `tokens`, `variables`, `assets`, `components`, `scenes`, `timeline`, `bindings`, `provenance`, `extensions`.
+- Xem `MotionProjectV1Schema` gom những phần con nào: `metadata`, `composition`, `dependencies`, `tokens`, `variables`, `assets`, `components`, `layers`, `timeline`, `bindings`, `provenance`, `extensions`.
 - Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số scene / layer / clip / track / key tối đa.
 - Kiểm tra `.strict()` và `.superRefine()` — duplicate id có bị chặn ngay ở parse không.
 
-### 2) `src/v1/timeline.ts` — Scene-only timeline
+### 2) `src/v1/timeline/schema.ts` — Timeline metadata
 
-- `visualTracks` thay thế `sceneOrder` như thế nào.
-- `VisualClipV1` chỉ chấp nhận `source.kind === "scene"` — không có component source.
-- Clip không sở hữu `instanceTransform`/`instanceTransformTracks` nữa; định vị/keyframe component nằm ở component layer.
+- `timeline` chỉ giữ clock: `duration?`, `workArea?`, `markers?`.
+- Nội dung phát nằm trên `project.layers`. Root layer = lane; `zIndex` unique.
+- Discriminator layer luôn là `type` (không `kind`). Binding target cũng `type`.
 
 ### 2b) `src/v1/layers/component.ts` — Component layer (instance)
 
@@ -48,10 +48,10 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 3) `src/v1/components.ts` — Sealed component
 
-- Owner sở hữu toàn bộ internals (layers, internalBindings, actions).
+- Owner sở hữu toàn bộ internals (layers, actions). Public props là luồng drive duy nhất từ ngoài vào trong.
 - Consumer chỉ được dùng public API: `props`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
-- Asset props bắt buộc `assetKind`. Conflict: payload keyframes + scene `payload.props.*` cùng prop → reject.
+- Asset props bắt buộc `assetKind`. Scene track `payload.props.*` → reject; prop animation phải nằm trong prop value keyframes.
 - Project-level binding không được target arbitrary component internals. Global `kind: "component"` chỉ scene-level instances.
 
 ### 4) `src/v1/variables.ts` — Binding model
@@ -132,7 +132,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 project.ts (root schema + limits)
         │
         ▼
-timeline.ts (scene-only visual clips)   ← trọng tâm
+timeline/schema.ts (duration / workArea / markers)   ← trọng tâm
         │
         ▼
 layers/component.ts (component layer) ──► components.ts (sealed contract)

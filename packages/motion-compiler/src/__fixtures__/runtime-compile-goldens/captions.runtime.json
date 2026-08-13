@@ -22,26 +22,26 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "b4eef06f03bc6da406dbfd5536793286",
+  "runtimeHash": "d33bfdc3f92adf9c605dbc21ec5c5dec",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
-      "intro": "scenes:intro"
+      "root": "scenes:root"
     }
   },
   "timeline": {
     "duration": 5,
     "visualTracks": [
       {
-        "id": "main-track",
+        "id": "visual",
         "order": 0,
         "clips": [
           {
-            "id": "clip-intro",
+            "id": "root-clip",
             "source": {
               "kind": "scene",
-              "sceneId": "intro"
+              "sceneId": "root"
             },
             "start": 0,
             "duration": 5
@@ -50,50 +50,16 @@
       }
     ],
     "audioTracks": [],
-    "captionTracks": [
-      {
-        "id": "caption-vi",
-        "name": "Vietnamese captions",
-        "locale": "vi-VN",
-        "enabled": true,
-        "tokens": [
-          {
-            "id": "token-1",
-            "text": "Xin chào",
-            "start": 0,
-            "end": 1.2
-          },
-          {
-            "id": "token-2",
-            "text": "MotiClip",
-            "start": 1.3,
-            "end": 2.5
-          }
-        ],
-        "segmentation": {
-          "maxLines": 2
-        },
-        "style": {
-          "fontSize": 48,
-          "fill": "#ffffff",
-          "safeArea": "tiktok",
-          "position": "bottom"
-        },
-        "animation": {
-          "presetId": "word-pop"
-        }
-      }
-    ]
+    "captionTracks": []
   },
   "scenes": [
     {
-      "id": "intro",
+      "id": "root",
       "duration": 5,
-      "space": "flat-2d",
       "sourceRef": {
         "projectPath": [
           "scenes",
-          "intro"
+          "root"
         ]
       },
       "layers": [
@@ -117,6 +83,10 @@
             "flipX": false,
             "flipY": false
           },
+          "timing": {
+            "start": 0,
+            "duration": 5
+          },
           "inheritPosition": true,
           "inheritRotation": true,
           "inheritScale": true,
@@ -133,6 +103,108 @@
           },
           "style": {
             "fill": "#000000"
+          }
+        },
+        {
+          "id": "caption-vi",
+          "type": "group",
+          "parentLayerId": null,
+          "zIndex": 2,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 2.5
+          },
+          "payload": {}
+        },
+        {
+          "id": "token-1",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 1.2
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Xin chào"
+            },
+            "fontSize": 48,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#ffffff"
+          }
+        },
+        {
+          "id": "token-2",
+          "type": "text",
+          "parentLayerId": "caption-vi",
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 100,
+            "height": 100,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "timing": {
+            "start": 1.3,
+            "duration": 1.2
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "MotiClip"
+            },
+            "fontSize": 48,
+            "align": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          },
+          "style": {
+            "fill": "#ffffff"
           }
         }
       ],

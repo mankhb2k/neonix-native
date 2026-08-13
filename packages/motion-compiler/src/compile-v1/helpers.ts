@@ -2,7 +2,7 @@ import { V1 } from "@motionvideo/motion-protocol";
 
 export type JsonRecord = Record<string, unknown>;
 
-export type V1SceneClip = NonNullable<V1.SceneDefinitionV1["clips"]>[number];
+export type V1SceneClip = V1.MotionClipV1;
 
 export function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;

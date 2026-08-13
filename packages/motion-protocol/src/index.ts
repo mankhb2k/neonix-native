@@ -27,9 +27,7 @@ import {
   serializeMotionProjectV1,
   deriveTimelineDurationV1,
   hasTimelineContentV1,
-  getVisualTimelineEndV1,
-  getAudioTimelineEndV1,
-  getCaptionTimelineEndV1,
+  getRootLayerTimelineEndV1,
   canonicalizeTimelineDurationV1,
   type MotionProjectV1,
   type CanonicalMotionProjectV1,
@@ -56,18 +54,12 @@ export {
   serializeMotionProjectV1,
   deriveTimelineDurationV1,
   hasTimelineContentV1,
-  getVisualTimelineEndV1,
-  getAudioTimelineEndV1,
-  getCaptionTimelineEndV1,
+  getRootLayerTimelineEndV1,
   canonicalizeTimelineDurationV1,
 };
 export type {
   MotionProjectV1,
   CanonicalMotionProjectV1,
-  VisualClipV1,
-  VisualTrackV1,
-  AudioTrackV1,
-  CaptionTrackV1,
   CanonicalizeTimelineDurationIssue,
   CanonicalizeTimelineDurationResult,
 } from "./v1";
@@ -311,9 +303,6 @@ export { type MotionClipV1 } from "./v1/animation/clips";
 
 /** Canonical clip type — re-exported from the V1 animation module. */
 export type { MotionClipV1 as MotionClip } from "./v1/animation/clips";
-
-// Project scene type — V1 canonical
-export type { SceneDefinitionV1 as MotionScene } from "./v1/scenes";
 
 // Design tokens — V1 canonical
 export { DesignTokensSchema, type DesignTokens } from "./v1/variables";

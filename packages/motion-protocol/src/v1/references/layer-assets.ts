@@ -13,6 +13,20 @@ export function validateLayerAssetsV1(
   const issues: ReferenceIssue[] = [];
   const byId = new Map(assets.map((asset) => [asset.id, asset]));
   for (const node of layers) {
+    if (node.type === "audio") {
+      const assetId = node.payload.assetId;
+      const asset = byId.get(assetId);
+      const path = `${prefix}.${node.id}.payload.assetId`;
+      if (!asset) {
+        issues.push({ path, message: `Unknown asset: ${assetId}` });
+      } else if (asset.assetType !== "audio") {
+        issues.push({
+          path,
+          message: `Asset ${assetId} has type ${asset.assetType}, expected audio`,
+        });
+      }
+      continue;
+    }
     if (node.type === "image" || node.type === "svg" || node.type === "video") {
       const assetId = node.payload.assetId;
       const asset = byId.get(assetId);

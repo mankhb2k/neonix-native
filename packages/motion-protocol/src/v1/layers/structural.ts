@@ -1,8 +1,8 @@
 /**
  * V1 structural layers — group, bone, solid, adjustment.
  *
- * `component` is intentionally absent from v1 (components live at the
- * timeline level as visual-clip sources, not as scene layers).
+ * Group is the only wrapper that may nest `children`. Nested JSON is the
+ * authoring source of truth; `parentLayerId` on each child must match.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -72,7 +72,6 @@ export const MotionBlurSettingsSchema = z
   .strict();
 
 export type {
-  GroupLayerV1,
   BoneLayerV1,
   SolidLayerV1,
   AdjustmentLayerV1,

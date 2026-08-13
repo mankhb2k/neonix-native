@@ -22,26 +22,26 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "fafdb3bebb3a9e268c7481ac484c9319",
+  "runtimeHash": "025b5e48e3b0b5e76422f7412b648f7e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
-      "intro": "scenes:intro"
+      "root": "scenes:root"
     }
   },
   "timeline": {
     "duration": 5,
     "visualTracks": [
       {
-        "id": "main-track",
+        "id": "visual",
         "order": 0,
         "clips": [
           {
-            "id": "clip-intro",
+            "id": "root-clip",
             "source": {
               "kind": "scene",
-              "sceneId": "intro"
+              "sceneId": "root"
             },
             "start": 0,
             "duration": 5
@@ -54,13 +54,12 @@
   },
   "scenes": [
     {
-      "id": "intro",
+      "id": "root",
       "duration": 5,
-      "space": "flat-2d",
       "sourceRef": {
         "projectPath": [
           "scenes",
-          "intro"
+          "root"
         ]
       },
       "layers": [
@@ -83,6 +82,10 @@
             "visible": true,
             "flipX": false,
             "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 5
           },
           "inheritPosition": true,
           "inheritRotation": true,

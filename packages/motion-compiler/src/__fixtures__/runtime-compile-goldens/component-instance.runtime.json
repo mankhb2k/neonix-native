@@ -22,26 +22,26 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "c6bb53ccafa120bf53a31940440d1156",
+  "runtimeHash": "dc67c1da2093d7745e5e8f3d91c9f05d",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
-      "logo-scene": "scenes:logo-scene"
+      "root": "scenes:root"
     }
   },
   "timeline": {
     "duration": 4,
     "visualTracks": [
       {
-        "id": "component-track",
+        "id": "visual",
         "order": 0,
         "clips": [
           {
-            "id": "clip-logo-reveal",
+            "id": "root-clip",
             "source": {
               "kind": "scene",
-              "sceneId": "logo-scene"
+              "sceneId": "root"
             },
             "start": 0,
             "duration": 4
@@ -54,13 +54,12 @@
   },
   "scenes": [
     {
-      "id": "logo-scene",
+      "id": "root",
       "duration": 4,
-      "space": "flat-2d",
       "sourceRef": {
         "projectPath": [
           "scenes",
-          "logo-scene"
+          "root"
         ]
       },
       "layers": [
@@ -68,6 +67,7 @@
           "id": "logo-instance__instance",
           "type": "group",
           "parentLayerId": null,
+          "zIndex": 0,
           "transform": {
             "x": 0,
             "y": 0,
@@ -82,6 +82,10 @@
             "visible": true,
             "flipX": false,
             "flipY": false
+          },
+          "timing": {
+            "start": 0,
+            "duration": 4
           },
           "payload": {
             "compositing": {

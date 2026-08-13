@@ -59,121 +59,7 @@
   ],
   "assets": [],
   "components": [],
-  "scenes": [
-    {
-      "id": "intro",
-      "name": "Introduction",
-      "duration": 5,
-      "space": "flat-2d",
-      "layers": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 400,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritFlags": {
-            "position": true,
-            "rotation": true,
-            "scale": true,
-            "opacity": true
-          },
-          "visible": true,
-          "locked": false,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Founder:"
-            },
-            "fontSize": 64,
-            "color": "#000000",
-            "alignment": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          }
-        },
-        {
-          "id": "subtitle",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 960,
-            "y": 600,
-            "width": 800,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritFlags": {
-            "position": true,
-            "rotation": true,
-            "scale": true,
-            "opacity": true
-          },
-          "visible": true,
-          "locked": false,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Mark Zuckerberg"
-            },
-            "fontSize": 48,
-            "color": "#000000",
-            "alignment": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          }
-        }
-      ],
-      "clips": []
-    }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "main-track",
-        "order": 0,
-        "muted": false,
-        "clips": [
-          {
-            "id": "clip-intro",
-            "source": {
-              "kind": "scene",
-              "sceneId": "intro"
-            },
-            "start": 0,
-            "duration": 5,
-            "loop": false,
-            "opacity": 1
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
+  "timeline": {},
   "bindings": [
     {
       "id": "binding-founder-name",
@@ -182,8 +68,7 @@
         "variableId": "founder-name"
       },
       "target": {
-        "kind": "scene",
-        "sceneId": "intro",
+        "type": "layer",
         "layerId": "subtitle",
         "property": "payload.text"
       }
@@ -195,12 +80,101 @@
         "variableId": "title-opacity"
       },
       "target": {
-        "kind": "scene",
-        "sceneId": "intro",
+        "type": "layer",
         "layerId": "title",
         "property": "transform.opacity"
       }
     }
   ],
-  "extensions": {}
+  "extensions": {},
+  "layers": [
+    {
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "x": 960,
+        "y": 400,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "inheritFlags": {
+        "position": true,
+        "rotation": true,
+        "scale": true,
+        "opacity": true
+      },
+      "visible": true,
+      "locked": false,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Founder:"
+        },
+        "fontSize": 64,
+        "color": "#000000",
+        "alignment": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "x": 960,
+        "y": 600,
+        "width": 800,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "inheritFlags": {
+        "position": true,
+        "rotation": true,
+        "scale": true,
+        "opacity": true
+      },
+      "visible": true,
+      "locked": false,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Mark Zuckerberg"
+        },
+        "fontSize": 48,
+        "color": "#000000",
+        "alignment": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      }
+    }
+  ]
 }

@@ -407,6 +407,7 @@
                       "primitive.svg",
                       "primitive.video",
                       "primitive.path",
+                      "primitive.audio",
                       "text.rich",
                       "video.trim",
                       "video.loop",
@@ -421,8 +422,7 @@
                       "audio.export",
                       "component.embedding",
                       "ai.patching",
-                      "asset.external",
-                      "caption.track"
+                      "asset.external"
                     ]
                   },
                   {
@@ -2320,6 +2320,13 @@
                             }
                           },
                           "additionalProperties": false
+                        },
+                        "children": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items"
+                          },
+                          "default": []
                         }
                       },
                       "required": [
@@ -3757,84 +3764,110 @@
                         "payload"
                       ],
                       "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
+                        },
+                        "type": {
+                          "type": "string",
+                          "const": "audio"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "parentLayerId": {
+                          "type": "null"
+                        },
+                        "zIndex": {
+                          "type": "integer",
+                          "exclusiveMaximum": true,
+                          "maximum": 0
+                        },
+                        "timing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
+                        },
+                        "visible": {
+                          "type": "boolean",
+                          "default": true
+                        },
+                        "locked": {
+                          "type": "boolean",
+                          "default": false
+                        },
+                        "payload": {
+                          "type": "object",
+                          "properties": {
+                            "assetId": {
+                              "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
+                            },
+                            "trimStart": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 86400,
+                              "default": 0
+                            },
+                            "trimEnd": {
+                              "type": "number",
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 86400
+                            },
+                            "playbackRate": {
+                              "type": "number",
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 1000,
+                              "default": 1
+                            },
+                            "volume": {
+                              "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top",
+                              "default": 1
+                            },
+                            "loop": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "fadeIn": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 86400,
+                              "default": 0
+                            },
+                            "fadeOut": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 86400,
+                              "default": 0
+                            },
+                            "muted": {
+                              "type": "boolean",
+                              "default": false
+                            }
+                          },
+                          "required": [
+                            "assetId"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "parentLayerId",
+                        "zIndex",
+                        "timing",
+                        "payload"
+                      ],
+                      "additionalProperties": false
                     }
                   ]
                 },
                 "minItems": 1,
                 "maxItems": 2000
-              },
-              "internalBindings": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                    },
-                    "source": {
-                      "anyOf": [
-                        {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string",
-                              "const": "variable"
-                            },
-                            "variableId": {
-                              "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                            }
-                          },
-                          "required": [
-                            "kind",
-                            "variableId"
-                          ],
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string",
-                              "const": "context"
-                            },
-                            "path": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                            }
-                          },
-                          "required": [
-                            "kind",
-                            "path"
-                          ],
-                          "additionalProperties": false
-                        }
-                      ]
-                    },
-                    "target": {
-                      "type": "object",
-                      "properties": {
-                        "layerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "property": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        }
-                      },
-                      "required": [
-                        "layerId",
-                        "property"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "source",
-                    "target"
-                  ],
-                  "additionalProperties": false
-                },
-                "maxItems": 4096,
-                "default": []
               },
               "actions": {
                 "type": "array",
@@ -4201,540 +4234,12 @@
           "maxItems": 512,
           "default": []
         },
-        "scenes": {
+        "layers": {
           "type": "array",
           "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-              },
-              "name": {
-                "type": "string",
-                "minLength": 1
-              },
-              "duration": {
-                "type": "number",
-                "exclusiveMinimum": true,
-                "minimum": 0,
-                "maximum": 86400
-              },
-              "semantic": {
-                "$ref": "#/definitions/MotionProjectV1/properties/variables/items/anyOf/0/properties/semantic"
-              },
-              "space": {
-                "type": "string",
-                "enum": [
-                  "flat-2d",
-                  "layered-2.5d"
-                ],
-                "default": "flat-2d"
-              },
-              "markers": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                    },
-                    "t": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 86400
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "t"
-                  ],
-                  "additionalProperties": false
-                },
-                "maxItems": 256
-              },
-              "motionBlur": {
-                "type": "object",
-                "properties": {
-                  "enabled": {
-                    "type": "boolean"
-                  },
-                  "shutterAngle": {
-                    "type": "number",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
-                    "maximum": 360
-                  },
-                  "sampleCount": {
-                    "type": "integer",
-                    "exclusiveMinimum": true,
-                    "minimum": 0,
-                    "maximum": 32
-                  }
-                },
-                "required": [
-                  "enabled"
-                ],
-                "additionalProperties": false
-              },
-              "drivers": {
-                "type": "array",
-                "items": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "oscillator"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "frequency": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 60
-                        },
-                        "amplitude": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "phase": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1",
-                          "default": 0
-                        },
-                        "waveform": {
-                          "type": "string",
-                          "enum": [
-                            "sine",
-                            "triangle",
-                            "square",
-                            "sawtooth"
-                          ],
-                          "default": "sine"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "frequency",
-                        "amplitude"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "noise"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "frequency": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 60
-                        },
-                        "amplitude": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "seed": {
-                          "type": "integer",
-                          "minimum": 0
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "frequency",
-                        "amplitude",
-                        "seed"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "link"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "multiplier": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1",
-                          "default": 1
-                        },
-                        "offset": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1",
-                          "default": 0
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "remap"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "inMin": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "inMax": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "outMin": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "outMax": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty",
-                        "inMin",
-                        "inMax",
-                        "outMin",
-                        "outMax"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "clamp"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "min": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "max": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty",
-                        "min",
-                        "max"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "wrap"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "min": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        },
-                        "max": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty",
-                        "min",
-                        "max"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "quantize"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "step": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty",
-                        "step"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "delay-follow"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "delay": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty",
-                        "delay"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "spring-follow"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "sourceLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "sourceProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "stiffness": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 10000
-                        },
-                        "damping": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1000
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty",
-                        "sourceLayerId",
-                        "sourceProperty",
-                        "stiffness",
-                        "damping"
-                      ],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "type": {
-                          "type": "string",
-                          "const": "time-remap"
-                        },
-                        "targetLayerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "targetProperty": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/propBindings/items/properties/target/anyOf/0/properties/property"
-                        },
-                        "scale": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 16,
-                          "default": 1
-                        },
-                        "offset": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1",
-                          "default": 0
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "type",
-                        "targetLayerId",
-                        "targetProperty"
-                      ],
-                      "additionalProperties": false
-                    }
-                  ]
-                },
-                "maxItems": 512
-              },
-              "layers": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items"
-                },
-                "minItems": 1,
-                "maxItems": 2000
-              },
-              "clips": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/actions/items/properties/clips/items"
-                },
-                "maxItems": 2000,
-                "default": []
-              },
-              "activeCameraLayerId": {
-                "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-              }
-            },
-            "required": [
-              "id",
-              "duration",
-              "layers"
-            ],
-            "additionalProperties": false
+            "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items"
           },
-          "maxItems": 100,
+          "maxItems": 2000,
           "default": []
         },
         "timeline": {
@@ -4769,478 +4274,26 @@
             "markers": {
               "type": "array",
               "items": {
-                "$ref": "#/definitions/MotionProjectV1/properties/scenes/items/properties/markers/items"
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
+                  },
+                  "t": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 86400
+                  }
+                },
+                "required": [
+                  "id",
+                  "t"
+                ],
+                "additionalProperties": false
               },
               "maxItems": 256
-            },
-            "visualTracks": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                  },
-                  "order": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "muted": {
-                    "type": "boolean",
-                    "default": false
-                  },
-                  "clips": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "source": {
-                          "anyOf": [
-                            {
-                              "type": "object",
-                              "properties": {
-                                "kind": {
-                                  "type": "string",
-                                  "const": "scene"
-                                },
-                                "sceneId": {
-                                  "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                                }
-                              },
-                              "required": [
-                                "kind",
-                                "sceneId"
-                              ],
-                              "additionalProperties": false
-                            }
-                          ]
-                        },
-                        "start": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "duration": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "trimStart": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "playbackRate": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 1000
-                        },
-                        "loop": {
-                          "type": "boolean",
-                          "default": false
-                        },
-                        "opacity": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top",
-                          "default": 1
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "source",
-                        "start",
-                        "duration"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "minItems": 1,
-                    "maxItems": 100
-                  }
-                },
-                "required": [
-                  "id",
-                  "order",
-                  "clips"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 128
-            },
-            "audioTracks": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                  },
-                  "order": {
-                    "type": "integer",
-                    "exclusiveMaximum": true,
-                    "maximum": 0
-                  },
-                  "muted": {
-                    "type": "boolean",
-                    "default": false
-                  },
-                  "clips": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "assetId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "start": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "duration": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "trimStart": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400,
-                          "default": 0
-                        },
-                        "trimEnd": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "playbackRate": {
-                          "type": "number",
-                          "exclusiveMinimum": true,
-                          "minimum": 0,
-                          "maximum": 1000,
-                          "default": 1
-                        },
-                        "volume": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top",
-                          "default": 1
-                        },
-                        "loop": {
-                          "type": "boolean",
-                          "default": false
-                        },
-                        "fadeIn": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400,
-                          "default": 0
-                        },
-                        "fadeOut": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400,
-                          "default": 0
-                        },
-                        "muted": {
-                          "type": "boolean",
-                          "default": false
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "assetId",
-                        "start",
-                        "duration"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "minItems": 1,
-                    "maxItems": 100
-                  }
-                },
-                "required": [
-                  "id",
-                  "order",
-                  "clips"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 2048,
-              "default": []
-            },
-            "captionTracks": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "audioTrackId": {
-                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                  },
-                  "locale": {
-                    "$ref": "#/definitions/MotionProjectV1/properties/metadata/properties/locale"
-                  },
-                  "enabled": {
-                    "type": "boolean",
-                    "default": true
-                  },
-                  "tokens": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "text": {
-                          "type": "string",
-                          "minLength": 1
-                        },
-                        "start": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "end": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 86400
-                        },
-                        "speakerId": {
-                          "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                        },
-                        "confidence": {
-                          "type": "number",
-                          "minimum": 0,
-                          "maximum": 1
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "text",
-                        "start",
-                        "end"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "maxItems": 4096
-                  },
-                  "segmentation": {
-                    "type": "object",
-                    "properties": {
-                      "maxLines": {
-                        "type": "integer",
-                        "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "maximum": 8,
-                        "default": 2
-                      },
-                      "maxWordsPerCue": {
-                        "type": "integer",
-                        "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "maximum": 64
-                      },
-                      "maxCharactersPerLine": {
-                        "type": "integer",
-                        "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "maximum": 256
-                      },
-                      "minCueDuration": {
-                        "type": "number",
-                        "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "maximum": 86400
-                      },
-                      "maxCueDuration": {
-                        "type": "number",
-                        "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "maximum": 86400
-                      },
-                      "gapThreshold": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 86400
-                      }
-                    },
-                    "additionalProperties": false,
-                    "default": {
-                      "maxLines": 2
-                    }
-                  },
-                  "style": {
-                    "type": "object",
-                    "properties": {
-                      "fontAssetId": {
-                        "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                      },
-                      "fontSize": {
-                        "type": "number",
-                        "exclusiveMinimum": true,
-                        "minimum": 0,
-                        "maximum": 32768
-                      },
-                      "fontWeight": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 1000
-                      },
-                      "fill": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "stroke": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "strokeWidth": {
-                        "type": "number",
-                        "minimum": 0,
-                        "maximum": 32768
-                      },
-                      "safeArea": {
-                        "type": "string",
-                        "enum": [
-                          "tiktok",
-                          "reels",
-                          "youtube",
-                          "generic"
-                        ],
-                        "default": "generic"
-                      },
-                      "position": {
-                        "type": "string",
-                        "enum": [
-                          "top",
-                          "center",
-                          "bottom"
-                        ],
-                        "default": "bottom"
-                      },
-                      "inactiveWord": {
-                        "type": "object",
-                        "properties": {
-                          "fill": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "fontWeight": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 1000
-                          }
-                        },
-                        "additionalProperties": false
-                      },
-                      "activeWord": {
-                        "type": "object",
-                        "properties": {
-                          "fill": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "fontWeight": {
-                            "type": "integer",
-                            "minimum": 1,
-                            "maximum": 1000
-                          }
-                        },
-                        "additionalProperties": false
-                      },
-                      "box": {
-                        "type": "object",
-                        "properties": {
-                          "fill": {
-                            "type": "string",
-                            "minLength": 1
-                          },
-                          "paddingX": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 32768
-                          },
-                          "paddingY": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 32768
-                          },
-                          "radius": {
-                            "type": "number",
-                            "minimum": 0,
-                            "maximum": 32768
-                          }
-                        },
-                        "required": [
-                          "fill",
-                          "paddingX",
-                          "paddingY"
-                        ],
-                        "additionalProperties": false
-                      }
-                    },
-                    "required": [
-                      "fontSize",
-                      "fill"
-                    ],
-                    "additionalProperties": false
-                  },
-                  "animation": {
-                    "type": "object",
-                    "properties": {
-                      "presetId": {
-                        "type": "string",
-                        "enum": [
-                          "none",
-                          "word-pop",
-                          "karaoke",
-                          "active-highlight",
-                          "bounce"
-                        ],
-                        "default": "none"
-                      },
-                      "params": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "$ref": "#/definitions/JsonValue/anyOf/1"
-                        }
-                      }
-                    },
-                    "additionalProperties": false,
-                    "default": {
-                      "presetId": "none"
-                    }
-                  }
-                },
-                "required": [
-                  "id",
-                  "locale",
-                  "tokens",
-                  "style"
-                ],
-                "additionalProperties": false
-              },
-              "maxItems": 32,
-              "default": []
             }
           },
-          "required": [
-            "visualTracks"
-          ],
           "additionalProperties": false
         },
         "bindings": {
@@ -5252,19 +4305,30 @@
                 "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
               },
               "source": {
-                "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/internalBindings/items/properties/source/anyOf/0"
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "variable"
+                  },
+                  "variableId": {
+                    "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "variableId"
+                ],
+                "additionalProperties": false
               },
               "target": {
                 "anyOf": [
                   {
                     "type": "object",
                     "properties": {
-                      "kind": {
+                      "type": {
                         "type": "string",
-                        "const": "scene"
-                      },
-                      "sceneId": {
-                        "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
+                        "const": "layer"
                       },
                       "layerId": {
                         "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
@@ -5274,8 +4338,7 @@
                       }
                     },
                     "required": [
-                      "kind",
-                      "sceneId",
+                      "type",
                       "layerId",
                       "property"
                     ],
@@ -5284,7 +4347,7 @@
                   {
                     "type": "object",
                     "properties": {
-                      "kind": {
+                      "type": {
                         "type": "string",
                         "const": "component"
                       },
@@ -5296,7 +4359,7 @@
                       }
                     },
                     "required": [
-                      "kind",
+                      "type",
                       "componentId",
                       "propId"
                     ],
@@ -5305,12 +4368,9 @@
                   {
                     "type": "object",
                     "properties": {
-                      "kind": {
+                      "type": {
                         "type": "string",
                         "const": "componentLayer"
-                      },
-                      "sceneId": {
-                        "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
                       },
                       "layerId": {
                         "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
@@ -5320,8 +4380,7 @@
                       }
                     },
                     "required": [
-                      "kind",
-                      "sceneId",
+                      "type",
                       "layerId",
                       "propId"
                     ],
@@ -5360,7 +4419,7 @@
             "sourceMap": {
               "type": "object",
               "properties": {
-                "scenes": {
+                "layers": {
                   "type": "object",
                   "additionalProperties": {
                     "type": "string",

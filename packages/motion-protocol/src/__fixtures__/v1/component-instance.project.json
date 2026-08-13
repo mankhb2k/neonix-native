@@ -77,66 +77,40 @@
           }
         }
       ],
-      "internalBindings": [],
       "actions": []
     }
   ],
-  "scenes": [
-    {
-      "id": "logo-scene",
-      "name": "Logo Scene",
-      "duration": 4,
-      "layers": [
-        {
-          "id": "logo-instance",
-          "type": "component",
-          "parentLayerId": null,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 256,
-            "height": 256,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "payload": {
-            "componentId": "logo-reveal"
-          }
-        }
-      ]
-    }
-  ],
-  "timeline": {
-    "visualTracks": [
-      {
-        "id": "component-track",
-        "order": 0,
-        "muted": false,
-        "clips": [
-          {
-            "id": "clip-logo-reveal",
-            "source": {
-              "kind": "scene",
-              "sceneId": "logo-scene"
-            },
-            "start": 0,
-            "duration": 4,
-            "opacity": 1,
-            "loop": false
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
+  "timeline": {},
   "bindings": [],
-  "extensions": {}
+  "extensions": {},
+  "layers": [
+    {
+      "id": "logo-instance",
+      "type": "component",
+      "parentLayerId": null,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "payload": {
+        "componentId": "logo-reveal"
+      },
+      "zIndex": 0,
+      "timing": {
+        "start": 0,
+        "duration": 4
+      }
+    }
+  ]
 }

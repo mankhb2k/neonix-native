@@ -13,18 +13,16 @@
   },
   "capabilities": {},
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": []
   },
   "tokens": {},
   "variables": [],
   "assets": [],
   "components": [],
-  "scenes": [],
-  "timeline": {
-    "visualTracks": [],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "bindings": []
+  "timeline": {},
+  "bindings": [],
+  "layers": []
 }
