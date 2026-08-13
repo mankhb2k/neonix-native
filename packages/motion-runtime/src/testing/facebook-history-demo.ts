@@ -703,8 +703,7 @@ export function createFacebookHistoryDemoProject(): MotionProjectV3 {
     timeline: {
       visualTracks: [
         {
-          id: "track.main",
-          role: "main",
+          id: "track.main",
           order: 0,
           clips: scenes.map((scene, index) => ({
             id: `clip.${scene.id}`,

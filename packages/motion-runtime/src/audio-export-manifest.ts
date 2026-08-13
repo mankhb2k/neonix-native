@@ -111,7 +111,7 @@ function clipToExportClip(
   const compressed = compressVolumeKeyframes(volumeKeyframes);
 
   return {
-    clipId: clip.trackId,
+    clipId: clip.clipId,
     assetDurationSeconds: clip.assetDurationSeconds,
     trimStartSeconds: clip.trimStartSeconds,
     trimEndSeconds: clip.trimEndSeconds,

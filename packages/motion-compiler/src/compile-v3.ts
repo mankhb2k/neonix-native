@@ -514,18 +514,22 @@ function prepareRuntimeScene(
 function prepareRuntimeAudioTrack(track: V3.AudioTrackV3): JsonRecord {
   return {
     id: track.id,
-    role: track.role,
-    assetId: track.assetId,
-    start: track.start,
-    duration: track.duration,
-    trimStart: track.trimStart,
-    ...(track.trimEnd !== undefined ? { trimEnd: track.trimEnd } : {}),
-    playbackRate: track.playbackRate,
-    volume: track.volume,
-    loop: track.loop,
-    fadeIn: track.fadeIn,
-    fadeOut: track.fadeOut,
-    muted: track.muted,
+    ...(track.order !== undefined ? { order: track.order } : {}),
+    ...(track.muted ? { muted: track.muted } : {}),
+    clips: track.clips.map((clip) => ({
+      id: clip.id,
+      assetId: clip.assetId,
+      start: clip.start,
+      duration: clip.duration,
+      trimStart: clip.trimStart,
+      ...(clip.trimEnd !== undefined ? { trimEnd: clip.trimEnd } : {}),
+      playbackRate: clip.playbackRate,
+      volume: clip.volume,
+      loop: clip.loop,
+      fadeIn: clip.fadeIn,
+      fadeOut: clip.fadeOut,
+      muted: clip.muted,
+    })),
   };
 }
 
@@ -622,14 +626,10 @@ type VisualPlanEntry = {
   playbackRate?: number;
   loop: boolean;
   opacity: number;
-  transitionIn?: V3.TransitionV3;
-  transitionOut?: V3.TransitionV3;
 };
 
 type VisualPlanTrack = {
   trackId: string;
-  /** V3 "main" → runtime "primary", "overlay" → "overlay". */
-  role: "primary" | "overlay";
   order: number;
   muted?: boolean;
   entries: VisualPlanEntry[];
@@ -638,12 +638,9 @@ type VisualPlanTrack = {
 /**
  * Convert `timeline.visualTracks` into a track-preserving visual plan.
  *
- * Each V3 track becomes one runtime track.  Clip ordering within a track
- * is preserved; track ordering is controlled by `track.order`.
- *
- * A scene used by multiple clips is cloned (id suffixed with the clip id).
- * Component instances are `type: "component"` scene nodes, expanded into
- * sealed wrapper-group subgraphs during scene preparation.
+ * Each V3 track becomes one runtime track. Track stacking is `order` only.
+ * Component sources are compiled into a synthesized scene wrapping the
+ * component instance (runtime IR remains scene-based for composition).
  */
 function buildVisualPlan(
   project: V3.MotionProjectV3,
@@ -669,7 +666,6 @@ function buildVisualPlan(
   );
   const hasVisualClips = v3Tracks.some((track) => track.clips.length > 0);
   if (!hasVisualClips) {
-    // Timeline is the source of truth — never synthesize clips from scenes.
     collector.error(
       "CMP_TIMELINE_VISUAL_EMPTY",
       "Timeline has no visual clips; add at least one visual clip or remove scenes that should not render",
@@ -681,30 +677,91 @@ function buildVisualPlan(
   }
   for (const v3Track of v3Tracks) {
     const trackEntries: VisualPlanEntry[] = [];
-    // V3 "main" role maps to runtime "primary"
-    const runtimeRole = v3Track.role === "main" ? "primary" : v3Track.role;
     for (const clip of v3Track.clips) {
-      const source = scenes.get(clip.source.sceneId);
-      if (!source) {
-        collector.error(
-          "CMP_CLIP_TARGET_MISSING",
-          `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
-          {
-            path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
-            details: { clipId: clip.id, sceneId: clip.source.sceneId },
-          },
-        );
-        continue;
+      let sourceScene: V3.SceneDefinitionV3 | undefined;
+      let sourceRefPath: string[];
+
+      if (clip.source.kind === "scene") {
+        sourceScene = scenes.get(clip.source.sceneId);
+        if (!sourceScene) {
+          collector.error(
+            "CMP_CLIP_TARGET_MISSING",
+            `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
+            {
+              path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
+              details: { clipId: clip.id, sceneId: clip.source.sceneId },
+            },
+          );
+          continue;
+        }
+        sourceRefPath = ["scenes", sourceScene.id];
+      } else {
+        const component = components.get(clip.source.componentId);
+        if (!component) {
+          collector.error(
+            "CMP_CLIP_TARGET_MISSING",
+            `Visual clip "${clip.id}" references unknown component "${clip.source.componentId}"`,
+            {
+              path: ["timeline", "visualTracks", v3Track.id, "clips", clip.id],
+              details: {
+                clipId: clip.id,
+                componentId: clip.source.componentId,
+              },
+            },
+          );
+          continue;
+        }
+        // Synthesize a one-node scene so composition stays scene-based.
+        const synthId = `component-scene__${v3Track.id}__${clip.id}`;
+        const nodeId = `component-instance__${clip.id}`;
+        sourceScene = {
+          id: synthId,
+          name: component.id,
+          duration: clip.duration,
+          space: "flat-2d",
+          nodes: [
+            {
+              id: nodeId,
+              type: "component",
+              parentId: null,
+              transform: {
+                x: 0,
+                y: 0,
+                z: 0,
+                scaleX: 1,
+                scaleY: 1,
+                scaleZ: 1,
+                rotation: 0,
+                rotationX: 0,
+                rotationY: 0,
+                rotationZ: 0,
+                skewX: 0,
+                skewY: 0,
+                anchorX: 0.5,
+                anchorY: 0.5,
+                opacity: 1,
+                visible: true,
+                flipX: false,
+                flipY: false,
+              },
+              payload: { componentId: component.id },
+            },
+          ],
+          clips: [],
+        } as V3.SceneDefinitionV3;
+        sourceRefPath = ["components", component.id];
       }
-      const usage = sceneUsage.get(source.id) ?? 0;
-      sceneUsage.set(source.id, usage + 1);
+
+      const usage = sceneUsage.get(sourceScene.id) ?? 0;
+      sceneUsage.set(sourceScene.id, usage + 1);
       const reuse =
+        clip.source.kind === "component" ||
         usage > 0 ||
-        Math.abs(source.duration - clip.duration) > 1e-9 ||
+        Math.abs(sourceScene.duration - clip.duration) > 1e-9 ||
         clip.trimStart !== undefined;
-      const sceneId = reuse ? `${source.id}@${clip.id}` : source.id;
+      const sceneId = reuse ? `${sourceScene.id}@${clip.id}` : sourceScene.id;
       const scene = prepareRuntimeScene(
-        source,
+        sourceScene,
         components,
         componentInstances,
         sceneId,
@@ -714,10 +771,10 @@ function buildVisualPlan(
       }
       scene.sourceRef = reuse
         ? {
-            projectPath: ["scenes", source.id],
+            projectPath: sourceRefPath,
             sourceModule: clip.id,
           }
-        : { projectPath: ["scenes", source.id] };
+        : { projectPath: sourceRefPath };
       sceneOverrides.set(sceneId, scene);
       trackEntries.push({
         clipId: clip.id,
@@ -727,14 +784,11 @@ function buildVisualPlan(
         playbackRate: clip.playbackRate,
         loop: clip.loop,
         opacity: clip.opacity,
-        transitionIn: clip.transitionIn,
-        transitionOut: clip.transitionOut,
       });
     }
     if (trackEntries.length > 0) {
       tracks.push({
         trackId: v3Track.id,
-        role: runtimeRole as "primary" | "overlay",
         order: v3Track.order,
         muted: v3Track.muted,
         entries: trackEntries,
@@ -1005,30 +1059,50 @@ function validateV3Semantics(
   const sceneIds = new Set(project.scenes.map((scene) => scene.id));
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
-      if (!sceneIds.has(clip.source.sceneId)) {
+      if (clip.source.kind === "scene") {
+        if (!sceneIds.has(clip.source.sceneId)) {
+          collector.error(
+            "CMP_CLIP_TARGET_MISSING",
+            `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
+            {
+              path: ["timeline", "visualTracks", track.id, "clips", clip.id],
+              details: { clipId: clip.id, sceneId: clip.source.sceneId },
+            },
+          );
+        }
+      } else if (!componentById.has(clip.source.componentId)) {
         collector.error(
           "CMP_CLIP_TARGET_MISSING",
-          `Visual clip "${clip.id}" references unknown scene "${clip.source.sceneId}"`,
+          `Visual clip "${clip.id}" references unknown component "${clip.source.componentId}"`,
           {
             path: ["timeline", "visualTracks", track.id, "clips", clip.id],
-            details: { clipId: clip.id, sceneId: clip.source.sceneId },
+            details: {
+              clipId: clip.id,
+              componentId: clip.source.componentId,
+            },
           },
         );
       }
     }
   }
 
-  // ── Audio tracks: asset refs ──
+  // ── Audio clips: asset refs ──
   for (const track of project.timeline.audioTracks) {
-    if (!assetIds.has(track.assetId)) {
-      collector.error(
-        "CMP_UNRESOLVED_ASSET",
-        `Audio track "${track.id}" references unknown asset "${track.assetId}"`,
-        {
-          path: ["timeline", "audioTracks", track.id],
-          details: { trackId: track.id, assetId: track.assetId },
-        },
-      );
+    for (const clip of track.clips) {
+      if (!assetIds.has(clip.assetId)) {
+        collector.error(
+          "CMP_UNRESOLVED_ASSET",
+          `Audio clip "${clip.id}" on track "${track.id}" references unknown asset "${clip.assetId}"`,
+          {
+            path: ["timeline", "audioTracks", track.id, "clips", clip.id],
+            details: {
+              trackId: track.id,
+              clipId: clip.id,
+              assetId: clip.assetId,
+            },
+          },
+        );
+      }
     }
   }
 
@@ -1416,13 +1490,10 @@ export function compileMotionProjectV3(
           clip.playbackRate = entry.playbackRate;
         if (entry.loop !== false) clip.loop = entry.loop;
         if (entry.opacity !== 1) clip.opacity = entry.opacity;
-        if (entry.transitionIn) clip.transitionIn = entry.transitionIn;
-        if (entry.transitionOut) clip.transitionOut = entry.transitionOut;
         return clip;
       });
       return {
         id: planTrack.trackId,
-        role: planTrack.role as "primary" | "overlay",
         order: planTrack.order,
         ...(planTrack.muted !== undefined && planTrack.muted !== false
           ? { muted: planTrack.muted }

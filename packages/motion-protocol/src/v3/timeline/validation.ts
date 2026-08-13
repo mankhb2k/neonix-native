@@ -1,10 +1,10 @@
 /**
  * Validate tính toàn vẹn timeline V3.
  *
- * Helper thuần (không gắn Zod) để bắt lỗi cấu trúc: trùng clip id, overlap
- * main-track, v.v. Schema project `superRefine` gọi
- * `collectTimelineIntegrityIssues` rồi chuyển từng issue thành Zod issue để
- * từ chối input authoring sớm.
+ * - Trùng visual clip id / audio clip id.
+ * - Visual `order` unique giữa các track.
+ * - Visual lane exclusive: cùng track không overlap thời gian (không exception).
+ * - Audio: overlap trong cùng track được phép (mix); không suy luận crossfade.
  */
 import type { ProjectTimelineV3 } from "./schema";
 
@@ -16,46 +16,44 @@ export interface TimelineIntegrityIssue {
 
 const EPSILON = 1e-9;
 
-function transitionBridgeDuration(
-  transition: { type: string; duration?: number } | undefined,
-): number {
-  if (!transition || transition.type === "cut") return 0;
-  return Math.max(0, transition.duration ?? 0);
-}
-
 /**
- * Thu thập lỗi cấu trúc của timeline:
- *
- * - Trùng visual clip id (unique trên cả timeline, không chỉ trong một track).
- * - Overlap main-track: clip `main` không được chồng nhau trừ khi có transition
- *   khác `cut` cầu nối **và** độ dài overlap ≤ duration transition cầu nối.
- *   Overlay được phép chồng tự do.
- *
- * Trùng `order` giữa các track được CHO PHÉP cố ý — compiler sort ổn định theo
- * `order`, tie-break theo thứ tự mảng gốc.
+ * Thu thập lỗi cấu trúc của timeline.
  */
 export function collectTimelineIntegrityIssues(
   timeline: ProjectTimelineV3,
 ): TimelineIntegrityIssue[] {
   const issues: TimelineIntegrityIssue[] = [];
 
+  // Unique visual track order.
+  const seenOrders = new Map<number, string>();
+  for (const track of timeline.visualTracks) {
+    const existing = seenOrders.get(track.order);
+    if (existing !== undefined) {
+      issues.push({
+        path: ["visualTracks", track.id, "order"],
+        message: `Duplicate visual track order ${track.order}: tracks "${existing}" and "${track.id}"`,
+      });
+    } else {
+      seenOrders.set(track.order, track.id);
+    }
+  }
+
   // Trùng visual clip id.
-  const seenClipIds = new Set<string>();
+  const seenVisualClipIds = new Set<string>();
   for (const track of timeline.visualTracks) {
     for (const clip of track.clips) {
-      if (seenClipIds.has(clip.id)) {
+      if (seenVisualClipIds.has(clip.id)) {
         issues.push({
           path: ["visualTracks", track.id, "clips", clip.id],
           message: `Duplicate visual clip id: "${clip.id}"`,
         });
       }
-      seenClipIds.add(clip.id);
+      seenVisualClipIds.add(clip.id);
     }
   }
 
-  // Chính sách overlap main-track.
+  // Lane exclusive trên mọi visual track (không transition bridge).
   for (const track of timeline.visualTracks) {
-    if (track.role !== "main") continue;
     const sorted = [...track.clips].sort((a, b) => a.start - b.start);
     for (let i = 1; i < sorted.length; i++) {
       const prev = sorted[i - 1]!;
@@ -63,27 +61,24 @@ export function collectTimelineIntegrityIssues(
       const prevEnd = prev.start + prev.duration;
       if (cur.start >= prevEnd - EPSILON) continue;
 
-      const overlap = prevEnd - cur.start;
-      const outDur = transitionBridgeDuration(prev.transitionOut);
-      const inDur = transitionBridgeDuration(cur.transitionIn);
-      // Crossfade / dual bridge: một phía cover overlap là đủ → lấy max
-      // duration của hai transition khác cut.
-      const bridgeDuration = Math.max(outDur, inDur);
+      issues.push({
+        path: ["visualTracks", track.id, "clips", cur.id],
+        message: `Track "${track.id}" clip "${cur.id}" overlaps "${prev.id}" — same-lane clips cannot overlap; place concurrent scenes on a different track order`,
+      });
+    }
+  }
 
-      if (bridgeDuration <= EPSILON) {
+  // Unique audio clip ids across timeline.
+  const seenAudioClipIds = new Set<string>();
+  for (const track of timeline.audioTracks) {
+    for (const clip of track.clips) {
+      if (seenAudioClipIds.has(clip.id)) {
         issues.push({
-          path: ["visualTracks", track.id, "clips", cur.id],
-          message: `Main-track clip "${cur.id}" overlaps "${prev.id}" without a transition`,
-        });
-        continue;
-      }
-
-      if (overlap > bridgeDuration + EPSILON) {
-        issues.push({
-          path: ["visualTracks", track.id, "clips", cur.id],
-          message: `Main-track clip "${cur.id}" overlaps "${prev.id}" by ${overlap}s which exceeds transition duration ${bridgeDuration}s`,
+          path: ["audioTracks", track.id, "clips", clip.id],
+          message: `Duplicate audio clip id: "${clip.id}"`,
         });
       }
+      seenAudioClipIds.add(clip.id);
     }
   }
 

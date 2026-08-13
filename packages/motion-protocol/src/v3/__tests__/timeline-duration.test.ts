@@ -29,7 +29,10 @@ function visualClip(id: string, start: number, duration: number) {
 }
 
 function audioTrack(id: string, start: number, duration: number) {
-  return { id, role: "bgm" as const, assetId: "asset-audio", start, duration };
+  return {
+    id,
+    clips: [{ id: `${id}-clip`, assetId: "asset-audio", start, duration }],
+  };
 }
 
 function captionToken(id: string, start: number, end: number) {
@@ -64,7 +67,6 @@ describe("deriveTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 6, 4)],
         },
@@ -100,7 +102,6 @@ describe("deriveTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 0, 8)],
         },
@@ -123,7 +124,6 @@ describe("deriveTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 0, 3), visualClip("clip-2", 5, 2)],
         },
@@ -138,13 +138,11 @@ describe("deriveTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-main", 0, 4)],
         },
         {
           id: "overlay",
-          role: "overlay",
           order: 1,
           clips: [visualClip("clip-overlay", 2, 6)],
         },
@@ -161,7 +159,6 @@ describe("timeline schema duration validation", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 0, 10)],
         },
@@ -176,7 +173,6 @@ describe("timeline schema duration validation", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 0, 10)],
         },
@@ -210,7 +206,6 @@ describe("canonicalizeTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 6, 4)],
         },
@@ -228,7 +223,6 @@ describe("canonicalizeTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 0, 10)],
         },
@@ -244,7 +238,6 @@ describe("canonicalizeTimelineDurationV3", () => {
       visualTracks: [
         {
           id: "main",
-          role: "main",
           order: 0,
           clips: [visualClip("clip-1", 0, 3)],
         },
@@ -308,7 +301,6 @@ describe("frame-grid snap", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             clips: [visualClip("clip-1", 0, 1.001)],
           },
@@ -338,7 +330,6 @@ describe("frame-grid snap", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             clips: [visualClip("clip-1", 0.6, 1.6)],
           },

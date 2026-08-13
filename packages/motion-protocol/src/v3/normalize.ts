@@ -107,16 +107,10 @@ export interface NormalizeOptions {
    */
   allowAutoPublicTargets?: boolean;
   /**
-   * Opt-in migration for legacy component visual clips.
-   *
-   * When true, each visual clip whose `source.kind === "component"` is
-   * rewritten into a scene-only clip: a new scene is synthesized containing
-   * a single `type: "component"` node, the clip's `instanceTransform` is
-   * folded into the node transform, and `instanceTransformTracks` become
-   * scene-local motion clips targeting that node.
-   *
-   * When false (default), component visual clips are left untouched and will
-   * fail strict parsing (visual tracks are scene-only in the current model).
+   * Opt-in legacy migration: wrap component visual clips into synthesized
+   * scenes. Component sources are first-class in V3; use this only when
+   * converting old projects that also carry `instanceTransform` /
+   * `instanceTransformTracks` on the clip.
    */
   migrateComponentClipsToScenes?: boolean;
 }
@@ -419,10 +413,16 @@ export function needsNormalization(project: LegacyProject): boolean {
     return true;
   }
 
-  // Check for legacy component visual clips
+  // Legacy component clips that still carry instanceTransform fields need
+  // optional migrateComponentClipsToScenes. Plain component sources are valid.
   if (
     project.timeline?.visualTracks?.some((track) =>
-      track.clips?.some((clip) => clip.source?.kind === "component"),
+      track.clips?.some(
+        (clip) =>
+          clip.source?.kind === "component" &&
+          (clip.instanceTransform !== undefined ||
+            clip.instanceTransformTracks !== undefined),
+      ),
     )
   ) {
     return true;

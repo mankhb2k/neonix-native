@@ -1,10 +1,11 @@
 /**
- * Timeline project V3.
+ * Timeline project V3 — AE visual layer stack + audio DSP fades.
  *
- * Thay đổi lớn so với v2: `sceneOrder: string[]` được thay bằng
- * `visualTracks: VisualTrackV3[]` với clip chỉ nguồn scene, mang transition
- * in/out, playback rate, loop và opacity riêng. Component instance là node
- * scene (`type: "component"`), không phải nguồn visual-clip.
+ * Visual: tracks are time-exclusive lanes; `order` (unique) is stacking only.
+ * No role, no transitionIn/Out. Clip source is scene | component.
+ *
+ * Audio: tracks hold clips[]; fadeIn/fadeOut are per-clip playback envelopes
+ * (not transitions between clips). Same-track overlap is allowed (mix).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -17,77 +18,9 @@ import {
 } from "../common";
 import { SceneMarkerV3Schema } from "../animation/tracks";
 
-export const TransitionV3Schema = z.discriminatedUnion("type", [
-  z
-    .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
-    .strict(),
-  z
-    .object({
-      type: z.literal("fade"),
-      duration: PositiveNumberSchema.max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      color: z.string().min(1).optional(),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("crossfade"),
-      duration: PositiveNumberSchema.max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("slide"),
-      duration: PositiveNumberSchema.max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      direction: z.enum(["left", "right", "up", "down"]),
-      mode: z.enum(["push", "cover"]).default("push"),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("wipe"),
-      duration: PositiveNumberSchema.max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      direction: z.enum(["left", "right", "up", "down"]),
-      softness: NormalizedRatioSchema.optional(),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("zoom"),
-      duration: PositiveNumberSchema.max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      direction: z.enum(["in", "out"]),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-]);
-
-export type TransitionV3 = z.infer<typeof TransitionV3Schema>;
-
 export const VisualClipSourceV3Schema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
+  z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
 ]);
 
 export const VisualClipV3Schema = z
@@ -108,13 +41,9 @@ export const VisualClipV3Schema = z
     ).optional(),
     loop: z.boolean().default(false),
     opacity: NormalizedRatioSchema.default(1),
-    transitionIn: TransitionV3Schema.optional(),
-    transitionOut: TransitionV3Schema.optional(),
   })
   .strict()
   .superRefine((val, ctx) => {
-    // playbackRate phải > 0 (runtime PlaybackSchema cũng enforce;
-    // bắt sớm ở authoring để feedback nhanh).
     if (val.playbackRate !== undefined && !(val.playbackRate > 0)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -122,37 +51,11 @@ export const VisualClipV3Schema = z
         path: ["playbackRate"],
       });
     }
-
-    // Duration transition phải nằm trong duration clip.
-    const transitionInDuration = val.transitionIn?.duration ?? 0;
-    const transitionOutDuration = val.transitionOut?.duration ?? 0;
-    if (transitionInDuration > val.duration) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `transitionIn.duration (${transitionInDuration}) must be ≤ clip.duration (${val.duration})`,
-        path: ["transitionIn", "duration"],
-      });
-    }
-    if (transitionOutDuration > val.duration) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `transitionOut.duration (${transitionOutDuration}) must be ≤ clip.duration (${val.duration})`,
-        path: ["transitionOut", "duration"],
-      });
-    }
-    if (transitionInDuration + transitionOutDuration > val.duration) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `transitionIn.duration (${transitionInDuration}) + transitionOut.duration (${transitionOutDuration}) must be ≤ clip.duration (${val.duration})`,
-        path: ["transitionIn"],
-      });
-    }
   });
 
 export const VisualTrackV3Schema = z
   .object({
     id: IdSchema,
-    role: z.enum(["main", "overlay"]),
     order: z.number().int().nonnegative(),
     muted: z.boolean().default(false),
     clips: z
@@ -162,10 +65,9 @@ export const VisualTrackV3Schema = z
   })
   .strict();
 
-export const AudioTrackV3Schema = z
+export const AudioClipV3Schema = z
   .object({
     id: IdSchema,
-    role: z.enum(["bgm", "voiceover", "sfx"]),
     assetId: IdSchema,
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
@@ -193,24 +95,34 @@ export const AudioTrackV3Schema = z
     muted: z.boolean().default(false),
   })
   .strict()
-  .superRefine((track, ctx) => {
-    // trimEnd không được vượt duration
-    if (track.trimEnd !== undefined && track.trimEnd > track.duration) {
+  .superRefine((clip, ctx) => {
+    if (clip.trimEnd !== undefined && clip.trimEnd > clip.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `trimEnd (${track.trimEnd}) must be ≤ duration (${track.duration})`,
+        message: `trimEnd (${clip.trimEnd}) must be ≤ duration (${clip.duration})`,
         path: ["trimEnd"],
       });
     }
-    // fadeIn + fadeOut không được vượt duration
-    if (track.fadeIn + track.fadeOut > track.duration) {
+    if (clip.fadeIn + clip.fadeOut > clip.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `fadeIn (${track.fadeIn}) + fadeOut (${track.fadeOut}) must be ≤ duration (${track.duration})`,
+        message: `fadeIn (${clip.fadeIn}) + fadeOut (${clip.fadeOut}) must be ≤ duration (${clip.duration})`,
         path: ["fadeIn"],
       });
     }
   });
+
+export const AudioTrackV3Schema = z
+  .object({
+    id: IdSchema,
+    order: z.number().int().nonnegative().optional(),
+    muted: z.boolean().default(false),
+    clips: z
+      .array(AudioClipV3Schema)
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.scenesPerProject),
+  })
+  .strict();
 
 export const CaptionTrackV3Schema = CaptionTrackSchema;
 
@@ -253,8 +165,6 @@ export const ProjectTimelineV3Schema = z
   })
   .strict()
   .superRefine((timeline, ctx) => {
-    // Validate biên timeline: khi đã khai báo `duration`, mọi phần tử con
-    // phải nằm trong khoảng đó.
     const duration = timeline.duration;
     if (duration === undefined) return;
 
@@ -289,12 +199,14 @@ export const ProjectTimelineV3Schema = z
     }
 
     for (const [audioIndex, audio] of timeline.audioTracks.entries()) {
-      if (audio.start + audio.duration > duration) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `audio track "${audio.id}" ends at ${audio.start + audio.duration} beyond timeline.duration (${duration})`,
-          path: ["audioTracks", audioIndex],
-        });
+      for (const [clipIndex, clip] of audio.clips.entries()) {
+        if (clip.start + clip.duration > duration) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `audio clip "${clip.id}" ends at ${clip.start + clip.duration} beyond timeline.duration (${duration})`,
+            path: ["audioTracks", audioIndex, "clips", clipIndex],
+          });
+        }
       }
     }
 
@@ -312,16 +224,15 @@ export const ProjectTimelineV3Schema = z
   });
 
 export type ProjectTimelineV3 = z.infer<typeof ProjectTimelineV3Schema>;
+export type VisualClipSourceV3 = z.infer<typeof VisualClipSourceV3Schema>;
 export type VisualClipV3 = z.infer<typeof VisualClipV3Schema>;
 export type VisualTrackV3 = z.infer<typeof VisualTrackV3Schema>;
+export type AudioClipV3 = z.infer<typeof AudioClipV3Schema>;
 export type AudioTrackV3 = z.infer<typeof AudioTrackV3Schema>;
 export type CaptionTrackV3 = z.infer<typeof CaptionTrackV3Schema>;
 
 /**
  * Schema timeline canonical — bắt buộc có `duration`.
- *
- * Authoring có thể bỏ `duration`; biên export/save phải dùng schema này để
- * độ dài MP4 cuối luôn tường minh.
  */
 export const CanonicalProjectTimelineV3Schema =
   ProjectTimelineV3Schema.superRefine((timeline, ctx) => {

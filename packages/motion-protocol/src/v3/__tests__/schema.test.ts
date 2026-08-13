@@ -147,21 +147,21 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.timeline.workArea).toEqual({ start: 0, end: 18 });
     expect(project.timeline.markers).toHaveLength(1);
 
-    // timeline: visualTracks with main+overlay, scene-only clip sources
+    // timeline: visualTracks with unique orders, scene clip sources
     expect(project.timeline.visualTracks).toHaveLength(2);
     const overlayTrack = project.timeline.visualTracks[1]!;
-    expect(overlayTrack.role).toBe("overlay");
+    expect(overlayTrack.order).toBe(1);
     expect(overlayTrack.clips[0]!.source.kind).toBe("scene");
     expect(overlayTrack.clips[0]!.source).toEqual({
       kind: "scene",
       sceneId: "scene-lower-third",
     });
 
-    // timeline: audioTrack with all fields
+    // timeline: audioTrack with clips[] envelope fields
     expect(project.timeline.audioTracks).toHaveLength(1);
     const audioTrack = project.timeline.audioTracks[0]!;
-    expect(audioTrack.volume).toBe(0.7);
-    expect(audioTrack.fadeIn).toBe(1);
+    expect(audioTrack.clips[0]!.volume).toBe(0.7);
+    expect(audioTrack.clips[0]!.fadeIn).toBe(1);
 
     // timeline: captionTracks with audioTrackId ref
     expect(project.timeline.captionTracks).toHaveLength(1);
@@ -193,14 +193,15 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.extensions["com.moticlip.ai-hints"]).toBeTruthy();
   });
 
-  it("keeps scene transition out of v3 scenes (timeline carries it)", () => {
+  it("keeps scene transition out of v3 scenes (no clip transitions either)", () => {
     const input = loadFixture("representative.project.json");
     const project = MotionProjectV3Schema.parse(input);
     for (const scene of project.scenes) {
       expect(scene).not.toHaveProperty("transition");
     }
     const introClip = project.timeline.visualTracks[0]!.clips[0]!;
-    expect(introClip.transitionOut?.type).toBe("fade");
+    expect(introClip).not.toHaveProperty("transitionIn");
+    expect(introClip).not.toHaveProperty("transitionOut");
   });
 
   it("validates activeCameraId references a camera node", () => {
@@ -218,54 +219,57 @@ describe("v3 schema — positive fixtures", () => {
     const project = MotionProjectV3Schema.parse(input);
     expect(project.scenes).toHaveLength(3);
     expect(project.timeline.visualTracks).toHaveLength(2);
-    expect(project.timeline.visualTracks[0]!.role).toBe("main");
-    expect(project.timeline.visualTracks[1]!.role).toBe("overlay");
+    expect(project.timeline.visualTracks[0]!.order).toBe(0);
+    expect(project.timeline.visualTracks[1]!.order).toBe(1);
     expect(project.timeline.visualTracks[0]!.clips).toHaveLength(3);
   });
 
-  it("parses transition project with clip-level transitionIn/transitionOut", () => {
+  it("parses transition project as sequential clips without transitions", () => {
     const input = loadFixture("transition.project.json");
     const project = MotionProjectV3Schema.parse(input);
     const clips = project.timeline.visualTracks[0]!.clips;
-    expect(clips[0]!.transitionIn?.type).toBe("fade");
-    expect(clips[0]!.transitionOut?.type).toBe("slide");
-    expect(clips[1]!.transitionIn?.type).toBe("crossfade");
-    expect(clips[2]!.transitionIn?.type).toBe("wipe");
-    // Verifies V3 scenes do NOT have scene.transition
+    expect(clips).toHaveLength(3);
+    expect(clips[0]!.start).toBe(0);
+    expect(clips[1]!.start).toBe(3);
+    expect(clips[2]!.start).toBe(6);
+    for (const clip of clips) {
+      expect(clip).not.toHaveProperty("transitionIn");
+      expect(clip).not.toHaveProperty("transitionOut");
+    }
     for (const scene of project.scenes) {
       expect(scene).not.toHaveProperty("transition");
     }
   });
 
-  it("accepts clip with transition durations within clip duration", () => {
+  it("rejects transitionIn/transitionOut on visual clips", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
     >;
-    const project = MotionProjectV3Schema.parse({
-      ...input,
-      timeline: {
-        ...(input.timeline as Record<string, unknown>),
-        visualTracks: [
-          {
-            id: "track-1",
-            role: "main",
-            order: 0,
-            clips: [
-              {
-                id: "clip-1",
-                source: { kind: "scene", sceneId: "s1" },
-                start: 0,
-                duration: 3,
-                transitionIn: { type: "fade", duration: 1 },
-                transitionOut: { type: "fade", duration: 1 },
-              },
-            ],
-          },
-        ],
-      },
-    });
-    expect(project.timeline.visualTracks[0]!.clips[0]!.duration).toBe(3);
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              order: 0,
+              clips: [
+                {
+                  id: "clip-1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                  transitionIn: { type: "fade", duration: 1 },
+                  transitionOut: { type: "fade", duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
   });
 
   it("parses component project with embedded component and component-as-node layer", () => {
@@ -283,10 +287,10 @@ describe("v3 schema — positive fixtures", () => {
       expect(componentNode.payload.componentId).toBe("call-to-action");
     }
 
-    // Visual clips are scene-only now.
     const overlayTrack = project.timeline.visualTracks.find(
-      (t) => t.role === "overlay",
+      (t) => t.id === "overlay-cta",
     )!;
+    expect(overlayTrack.order).toBe(1);
     expect(overlayTrack.clips[0]!.source.kind).toBe("scene");
     expect(overlayTrack.clips[0]!.source).toEqual({
       kind: "scene",
@@ -344,17 +348,24 @@ describe("v3 schema — positive fixtures", () => {
     expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
 
-  it("rejects visual clip with component source (scene-only timeline)", () => {
+  it("accepts visual clip with component source", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
     >;
     const timeline = input.timeline as Record<string, unknown>;
     const tracks = timeline.visualTracks as Array<Record<string, unknown>>;
-    const overlayTrack = tracks.find((t) => t.role === "overlay")!;
+    const overlayTrack = tracks.find((t) => t.id === "overlay-cta")!;
     const clips = overlayTrack.clips as Array<Record<string, unknown>>;
     clips[0]!.source = { kind: "component", componentId: "call-to-action" };
-    expect(() => MotionProjectV3Schema.parse(input)).toThrow();
+    const project = MotionProjectV3Schema.parse(input);
+    expect(
+      project.timeline.visualTracks.find((t) => t.id === "overlay-cta")!
+        .clips[0]!.source,
+    ).toEqual({
+      kind: "component",
+      componentId: "call-to-action",
+    });
   });
 
   it("accepts scene-local motion on a component node with normal transform paths", () => {
@@ -458,9 +469,14 @@ describe("v3 schema — positive fixtures", () => {
     const input = loadFixture("audio.project.json");
     const project = MotionProjectV3Schema.parse(input);
     expect(project.timeline.audioTracks).toHaveLength(4);
-    const roles = project.timeline.audioTracks.map((t) => t.role);
-    expect(roles).toEqual(["bgm", "voiceover", "sfx", "sfx"]);
-    expect(project.timeline.audioTracks[0]!.volume).toBe(0.3);
+    expect(project.timeline.audioTracks.map((t) => t.id)).toEqual([
+      "bgm",
+      "vo",
+      "sfx-1",
+      "sfx-2",
+    ]);
+    expect(project.timeline.audioTracks[0]!.clips[0]!.volume).toBe(0.3);
+    expect(project.timeline.audioTracks[0]!.clips[0]!.fadeIn).toBe(1);
   });
 });
 
@@ -500,7 +516,7 @@ describe("v3 schema — negative fixtures", () => {
     ).toThrow();
   });
 
-  it("rejects invalid enum value in visual track role", () => {
+  it("rejects role field on visual track", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
@@ -513,7 +529,7 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "bogus",
+              role: "main",
               order: 0,
               clips: [
                 {
@@ -543,7 +559,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -574,7 +589,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -639,7 +653,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -669,7 +682,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -711,19 +723,23 @@ describe("v3 schema — negative fixtures", () => {
         audioTracks: [
           {
             id: "at1",
-            role: "bgm",
-            assetId: "img",
-            start: 0,
-            duration: 5,
+            clips: [
+              {
+                id: "at1-clip",
+                assetId: "img",
+                start: 0,
+                duration: 5,
+              },
+            ],
           },
         ],
       },
     });
     // Zod accepts because assetId is just a string — ref validation catches type mismatch
-    expect(project.timeline.audioTracks[0]!.assetId).toBe("img");
+    expect(project.timeline.audioTracks[0]!.clips[0]!.assetId).toBe("img");
   });
 
-  it("rejects transitionIn duration exceeding clip duration", () => {
+  it("rejects transitionIn field on visual clips", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
@@ -736,7 +752,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -744,7 +759,7 @@ describe("v3 schema — negative fixtures", () => {
                   source: { kind: "scene", sceneId: "s1" },
                   start: 0,
                   duration: 2,
-                  transitionIn: { type: "fade", duration: 3 },
+                  transitionIn: { type: "fade", duration: 1 },
                 },
               ],
             },
@@ -754,7 +769,7 @@ describe("v3 schema — negative fixtures", () => {
     ).toThrow();
   });
 
-  it("rejects transitionIn + transitionOut exceeding clip duration", () => {
+  it("rejects transitionOut field on visual clips", () => {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
@@ -767,7 +782,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -775,8 +789,7 @@ describe("v3 schema — negative fixtures", () => {
                   source: { kind: "scene", sceneId: "s1" },
                   start: 0,
                   duration: 3,
-                  transitionIn: { type: "fade", duration: 2 },
-                  transitionOut: { type: "crossfade", duration: 2 },
+                  transitionOut: { type: "crossfade", duration: 1 },
                 },
               ],
             },
@@ -800,7 +813,6 @@ describe("v3 schema — negative fixtures", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -831,10 +843,14 @@ describe("v3 schema — negative fixtures", () => {
           audioTracks: [
             {
               id: "at1",
-              role: "bgm",
-              assetId: "audio-1",
-              start: 3,
-              duration: 4,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "audio-1",
+                  start: 3,
+                  duration: 4,
+                },
+              ],
             },
           ],
         },
@@ -917,7 +933,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -950,7 +965,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -963,7 +977,6 @@ describe("v3 timeline integrity — Phase 6", () => {
             },
             {
               id: "track-2",
-              role: "overlay",
               order: 1,
               clips: [
                 {
@@ -980,7 +993,7 @@ describe("v3 timeline integrity — Phase 6", () => {
     ).toThrow();
   });
 
-  it("accepts duplicate visual track order (stable tie-breaker)", () => {
+  it("rejects duplicate visual track order", () => {
     const input = base();
     expect(() =>
       MotionProjectV3Schema.parse({
@@ -990,7 +1003,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -1003,7 +1015,6 @@ describe("v3 timeline integrity — Phase 6", () => {
             },
             {
               id: "track-2",
-              role: "overlay",
               order: 0,
               clips: [
                 {
@@ -1017,10 +1028,10 @@ describe("v3 timeline integrity — Phase 6", () => {
           ],
         },
       }),
-    ).not.toThrow();
+    ).toThrow(/Duplicate visual track order/);
   });
 
-  it("rejects main-track clip overlap without a transition", () => {
+  it("rejects same-lane visual clip overlap", () => {
     const input = base();
     expect(() =>
       MotionProjectV3Schema.parse({
@@ -1030,7 +1041,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -1053,7 +1063,7 @@ describe("v3 timeline integrity — Phase 6", () => {
     ).toThrow();
   });
 
-  it("accepts overlay clip overlap", () => {
+  it("rejects overlay clip overlap on the same lane", () => {
     const input = base();
     expect(() =>
       MotionProjectV3Schema.parse({
@@ -1063,7 +1073,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "overlay",
               order: 0,
               clips: [
                 {
@@ -1083,10 +1092,48 @@ describe("v3 timeline integrity — Phase 6", () => {
           ],
         },
       }),
+    ).toThrow(/same-lane clips cannot overlap/);
+  });
+
+  it("accepts concurrent scenes on different track orders", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+              ],
+            },
+            {
+              id: "overlay_1",
+              order: 1,
+              clips: [
+                {
+                  id: "c1_copy",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
     ).not.toThrow();
   });
 
-  it("accepts main-track overlap bridged by a crossfade transition", () => {
+  it("rejects same-lane overlap even when transition fields are present", () => {
     const input = base();
     expect(() =>
       MotionProjectV3Schema.parse({
@@ -1096,7 +1143,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -1118,42 +1164,50 @@ describe("v3 timeline integrity — Phase 6", () => {
           ],
         },
       }),
-    ).not.toThrow();
+    ).toThrow();
   });
 
-  it("rejects main-track overlap longer than the bridging transition", () => {
+  it("accepts overlapping audio clips on the same track", () => {
     const input = base();
     expect(() =>
       MotionProjectV3Schema.parse({
         ...input,
+        assets: [
+          {
+            id: "audio-1",
+            uri: "a.mp3",
+            assetType: "audio",
+            mimeType: "audio/mpeg",
+            duration: 30,
+            codec: "mp3",
+            sampleRate: 44100,
+            channels: 2,
+          },
+        ],
         timeline: {
           ...(input.timeline as Record<string, unknown>),
-          visualTracks: [
+          audioTracks: [
             {
-              id: "track-1",
-              role: "main",
-              order: 0,
+              id: "mix",
               clips: [
                 {
-                  id: "c1",
-                  source: { kind: "scene", sceneId: "s1" },
+                  id: "a1",
+                  assetId: "audio-1",
                   start: 0,
-                  duration: 4,
-                  transitionOut: { type: "crossfade", duration: 0.5 },
+                  duration: 3,
                 },
                 {
-                  id: "c2",
-                  source: { kind: "scene", sceneId: "s1" },
-                  start: 2,
+                  id: "a2",
+                  assetId: "audio-1",
+                  start: 1,
                   duration: 3,
-                  transitionIn: { type: "crossfade", duration: 0.5 },
                 },
               ],
             },
           ],
         },
       }),
-    ).toThrow(/exceeds transition duration/);
+    ).not.toThrow();
   });
 
   it("accepts back-to-back main-track clips (no overlap)", () => {
@@ -1166,7 +1220,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -1202,7 +1255,6 @@ describe("v3 timeline integrity — Phase 6", () => {
           visualTracks: [
             {
               id: "track-1",
-              role: "main",
               order: 0,
               clips: [
                 {
@@ -1400,10 +1452,14 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           audioTracks: [
             {
               id: "at1",
-              role: "bgm" as const,
-              assetId: "img",
-              start: 0,
-              duration: 5,
+              clips: [
+                {
+                  id: "at1-clip",
+                  assetId: "img",
+                  start: 0,
+                  duration: 5,
+                },
+              ],
             },
           ],
         },
@@ -1906,6 +1962,52 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
     expect(issues).toEqual([]);
   });
 
+  it("rejects duplicate zIndex among siblings with the same parentId", () => {
+    const nodes: NodeV3[] = [
+      makeNode({
+        id: "text_1",
+        type: "text",
+        parentId: null,
+        zIndex: 10,
+        timing: { start: 0, duration: 3 },
+      }),
+      makeNode({
+        id: "text_2",
+        type: "text",
+        parentId: null,
+        zIndex: 10,
+        timing: { start: 0, duration: 3 },
+      }),
+    ];
+    const issues = validateNodeGraphV3(nodes, "scene.test");
+    expect(issues.some((i) => i.message.includes("Duplicate zIndex"))).toBe(
+      true,
+    );
+  });
+
+  it("accepts the same zIndex under different parents", () => {
+    const nodes: NodeV3[] = [
+      makeNode({ id: "group.a", type: "group", parentId: null, zIndex: 0 }),
+      makeNode({ id: "group.b", type: "group", parentId: null, zIndex: 1 }),
+      makeNode({
+        id: "child.a",
+        type: "image",
+        parentId: "group.a",
+        zIndex: 5,
+        payload: { assetId: "a" },
+      }),
+      makeNode({
+        id: "child.b",
+        type: "image",
+        parentId: "group.b",
+        zIndex: 5,
+        payload: { assetId: "b" },
+      }),
+    ];
+    const issues = validateNodeGraphV3(nodes, "scene.test");
+    expect(issues).toEqual([]);
+  });
+
   it("rejects missing parent", () => {
     const nodes: NodeV3[] = [
       makeNode({ id: "group.a", type: "group", parentId: null }),
@@ -2152,7 +2254,7 @@ describe("ProceduralDriverSchema — range validation", () => {
 // ── G1: AudioTrackV3 schema-level edge cases ─────────────────────────
 
 describe("AudioTrackV3 schema — edge case validation", () => {
-  function makeValidProject(audioOverrides: Record<string, unknown>) {
+  function makeValidProject(clipOverrides: Record<string, unknown>) {
     const input = loadFixture("minimal-empty.project.json") as Record<
       string,
       unknown
@@ -2176,18 +2278,22 @@ describe("AudioTrackV3 schema — edge case validation", () => {
         audioTracks: [
           {
             id: "at1",
-            role: "bgm",
-            assetId: "audio1",
-            start: 0,
-            duration: 5,
-            ...audioOverrides,
+            clips: [
+              {
+                id: "at1-clip",
+                assetId: "audio1",
+                start: 0,
+                duration: 5,
+                ...clipOverrides,
+              },
+            ],
           },
         ],
       },
     });
   }
 
-  it("rejects audio track with trimEnd > duration", () => {
+  it("rejects audio clip with trimEnd > duration", () => {
     const result = makeValidProject({ trimEnd: 10 });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -2212,7 +2318,7 @@ describe("AudioTrackV3 schema — edge case validation", () => {
     }
   });
 
-  it("accepts audio track with all optional fields", () => {
+  it("accepts audio clip with all optional fields", () => {
     const result = makeValidProject({
       trimStart: 1,
       volume: 0.5,
@@ -2222,20 +2328,20 @@ describe("AudioTrackV3 schema — edge case validation", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      const at = result.data.timeline.audioTracks[0];
-      expect(at.volume).toBe(0.5);
-      expect(at.fadeIn).toBe(2);
-      expect(at.fadeOut).toBe(1);
-      expect(at.loop).toBe(true);
+      const clip = result.data.timeline.audioTracks[0]!.clips[0]!;
+      expect(clip.volume).toBe(0.5);
+      expect(clip.fadeIn).toBe(2);
+      expect(clip.fadeOut).toBe(1);
+      expect(clip.loop).toBe(true);
     }
   });
 
-  it("rejects audio track with negative volume", () => {
+  it("rejects audio clip with negative volume", () => {
     const result = makeValidProject({ volume: -0.1 });
     expect(result.success).toBe(false);
   });
 
-  it("rejects audio track with volume > 1", () => {
+  it("rejects audio clip with volume > 1", () => {
     const result = makeValidProject({ volume: 1.1 });
     expect(result.success).toBe(false);
   });
@@ -2274,8 +2380,14 @@ describe("v3 reference validation — audio & caption duplicate IDs", () => {
 
   it("rejects duplicate audio track ids", () => {
     const project = makeProjectWithAudioTracks([
-      { id: "dup-at", role: "bgm", assetId: "bgm", start: 0, duration: 5 },
-      { id: "dup-at", role: "sfx", assetId: "bgm", start: 5, duration: 3 },
+      {
+        id: "dup-at",
+        clips: [{ id: "c1", assetId: "bgm", start: 0, duration: 5 }],
+      },
+      {
+        id: "dup-at",
+        clips: [{ id: "c2", assetId: "bgm", start: 5, duration: 3 }],
+      },
     ]);
     expect(() => parseMotionProjectV3(project)).toThrow();
     try {
@@ -2320,8 +2432,14 @@ describe("v3 reference validation — audio & caption duplicate IDs", () => {
 
   it("accepts unique audio track ids", () => {
     const project = makeProjectWithAudioTracks([
-      { id: "at1", role: "bgm", assetId: "bgm", start: 0, duration: 5 },
-      { id: "at2", role: "sfx", assetId: "bgm", start: 5, duration: 3 },
+      {
+        id: "at1",
+        clips: [{ id: "c1", assetId: "bgm", start: 0, duration: 5 }],
+      },
+      {
+        id: "at2",
+        clips: [{ id: "c2", assetId: "bgm", start: 5, duration: 3 }],
+      },
     ]);
     expect(() => parseMotionProjectV3(project)).not.toThrow();
   });

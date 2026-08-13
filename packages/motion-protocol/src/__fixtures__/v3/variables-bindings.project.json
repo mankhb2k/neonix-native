@@ -154,7 +154,6 @@
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "main",
         "order": 0,
         "muted": false,
         "clips": [

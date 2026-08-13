@@ -260,7 +260,6 @@ describe("V3 patch contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -320,7 +319,6 @@ describe("V3 patch contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [],
@@ -372,7 +370,6 @@ describe("V3 patch contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -428,7 +425,6 @@ describe("V3 patch contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -444,7 +440,6 @@ describe("V3 patch contract", () => {
           },
           {
             id: "overlay",
-            role: "overlay",
             order: 1,
             muted: false,
             clips: [
@@ -471,7 +466,8 @@ describe("V3 patch contract", () => {
           clipId: "clip-intro",
           fromTrackId: "main",
           toTrackId: "overlay",
-          start: 0,
+          // Same-lane clips cannot overlap — place after existing overlay clip.
+          start: 5,
         },
       ],
     });
@@ -483,6 +479,7 @@ describe("V3 patch contract", () => {
     expect(result.project!.timeline.visualTracks[0]!.clips[0]!.id).toBe(
       "clip-overlay-bg",
     );
+    expect(result.project!.timeline.visualTracks[0]!.clips[1]!.start).toBe(5);
     expect(result.project!.timeline.visualTracks[0]!.clips[1]!.source).toEqual({
       kind: "scene",
       sceneId: "intro",
@@ -521,7 +518,6 @@ describe("V3 patch contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -657,24 +653,28 @@ describe("V3 patch contract", () => {
           op: "addAudioTrack",
           audioTrack: {
             id: "bgm-1",
-            role: "bgm",
-            assetId: "asset-music",
-            start: 0,
-            duration: 10,
-            volume: 0.8,
-            loop: true,
-            fadeIn: 0,
-            fadeOut: 0,
-            trimStart: 0,
-            playbackRate: 1,
-            muted: false,
+            clips: [
+              {
+                id: "bgm-1-clip",
+                assetId: "asset-music",
+                start: 0,
+                duration: 10,
+                volume: 0.8,
+                loop: true,
+                fadeIn: 0,
+                fadeOut: 0,
+                trimStart: 0,
+                playbackRate: 1,
+                muted: false,
+              },
+            ],
           },
         },
       ],
     });
     expect(result.diagnostics).toHaveLength(0);
     expect(result.project!.timeline.audioTracks).toHaveLength(1);
-    expect(result.project!.timeline.audioTracks[0]!.role).toBe("bgm");
+    expect(result.project!.timeline.audioTracks[0]!.clips[0]!.assetId).toBe("asset-music");
   });
 
   // ── Apply: caption cues ─────────────────────────────────────────────

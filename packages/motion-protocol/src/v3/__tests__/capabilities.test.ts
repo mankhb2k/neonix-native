@@ -123,41 +123,21 @@ describe("inspectProjectCapabilities", () => {
     expect(caps.has("caption.track")).toBe(true);
   });
 
-  it("detects transition capabilities from visual clips", () => {
+  it("does not emit transition capabilities from visual clips", () => {
     const caps = inspectProjectCapabilities({
       timeline: {
         visualTracks: [
           {
             clips: [
-              { transitionIn: { type: "crossfade" } },
-              { transitionOut: { type: "slide" } },
+              { source: { kind: "scene" } },
+              { source: { kind: "component" } },
             ],
           },
         ],
       },
     });
-    expect(caps.has("transition.crossfade")).toBe(true);
-    expect(caps.has("transition.slide")).toBe(true);
-  });
-
-  it("maps dissolve/wipe/fade transition types", () => {
-    const caps = inspectProjectCapabilities({
-      timeline: {
-        visualTracks: [
-          {
-            clips: [
-              { transitionIn: { type: "dissolve" } },
-              { transitionOut: { type: "wipe" } },
-              { transitionIn: { type: "fade" } },
-            ],
-          },
-        ],
-      },
-    });
-    expect(caps.has("transition.dissolve")).toBe(true);
-    expect(caps.has("transition.wipe")).toBe(true);
-    // "fade" maps to "transition.dissolve"
-    expect(caps.has("transition.dissolve")).toBe(true);
+    expect([...caps].some((c) => c.startsWith("transition."))).toBe(false);
+    expect(caps.has("component.embedding")).toBe(true);
   });
 });
 
@@ -235,13 +215,13 @@ describe("preflightProjectCapabilities", () => {
     expect(result.used).toEqual(["primitive.image", "primitive.text"]);
   });
 
-  it("detects transitions used but not declared", () => {
+  it("does not treat removed transition fields as used capabilities", () => {
     const result = preflightProjectCapabilities({
       scenes: [{ nodes: [{ type: "group" }] }],
       timeline: {
         visualTracks: [
           {
-            clips: [{ transitionIn: { type: "crossfade" } }],
+            clips: [{ source: { kind: "scene" } }],
           },
         ],
       },
@@ -249,8 +229,10 @@ describe("preflightProjectCapabilities", () => {
         required: ["primitive.group"],
       },
     });
-    expect(result.ok).toBe(false);
-    expect(result.undeclared).toContain("transition.crossfade");
+    expect(result.ok).toBe(true);
+    expect(result.undeclared.some((c) => c.startsWith("transition."))).toBe(
+      false,
+    );
   });
 });
 

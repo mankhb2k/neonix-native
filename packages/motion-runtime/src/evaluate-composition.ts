@@ -26,24 +26,15 @@ import { throwIfAborted, cancelledDiagnostic } from "./cancellation";
 import { RuntimeDiagnosticCollector, toRenderDiagnostic } from "./diagnostics";
 import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 
-const ROLE_PRIORITY: Record<string, number> = {
-  background: 0,
-  primary: 1,
-  overlay: 2,
-};
-
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  // Collect all clips from every visual track (background + primary +
-  // overlay), sorted bottom-to-top for compositing: role priority, then
-  // track order, then clip start, then original clip index. Clip `start` is
-  // ABSOLUTE global timeline time — never reconstructed from a cursor.
+  // Collect all clips from every visual track, sorted bottom-to-top by
+  // track.order (AE layer stack). Clip `start` is ABSOLUTE global timeline time.
   type Indexed = {
     clip: MotionRuntimeProject["timeline"]["visualTracks"][number]["clips"][number];
     trackIndex: number;
     clipIndex: number;
-    role: string;
     order: number;
     trackId: string;
   };
@@ -54,25 +45,20 @@ function scenesForComposition(
         clip,
         trackIndex,
         clipIndex,
-        role: track.role,
-        order: track.order ?? 0,
+        order: track.order,
         trackId: track.id,
       });
     });
   });
   indexed.sort((a, b) => {
-    const pa = ROLE_PRIORITY[a.role] ?? 1;
-    const pb = ROLE_PRIORITY[b.role] ?? 1;
-    if (pa !== pb) return pa - pb;
     if (a.order !== b.order) return a.order - b.order;
     if (a.trackIndex !== b.trackIndex) return a.trackIndex - b.trackIndex;
     if (a.clip.start !== b.clip.start) return a.clip.start - b.clip.start;
     return a.clipIndex - b.clipIndex;
   });
   return indexed.map(({ clip, trackId, order }) => {
-    // Runtime clips always have source.kind === "scene" after compilation;
-    // component-source clips are synthesized into scenes by the compiler.
-    const sceneId = clip.source.sceneId ?? "";
+    const sceneId =
+      clip.source.kind === "scene" ? (clip.source.sceneId ?? "") : "";
     const scene = sceneId
       ? runtime.scenes.find((candidate) => candidate.id === sceneId)
       : undefined;
@@ -83,13 +69,8 @@ function scenesForComposition(
       trimStart: clip.trimStart,
       playbackRate: clip.playbackRate,
       loop: clip.loop,
-      // Source media length is the authored scene duration — not the clip
-      // composition window — so trimStart can walk into the scene beyond
-      // clip.duration without being clamped early.
       sourceDuration: scene?.duration ?? clip.duration,
-      transitionIn: clip.transitionIn as CompositionSceneInput["transitionIn"],
-      transitionOut:
-        clip.transitionOut as CompositionSceneInput["transitionOut"],
+      opacity: clip.opacity,
       trackId,
       trackOrder: order,
     };
@@ -606,26 +587,33 @@ function buildAudioState(
       .map((a) => [a.id, (a as { duration?: number }).duration ?? 0]),
   );
 
-  const tracks = (runtime.timeline.audioTracks ?? []).map((track) => {
-    const start = track.start ?? 0;
-    const trimStart = track.trimStart ?? 0;
-    const assetDuration = assetDurationById.get(track.assetId) ?? 0;
-    const localTime = Math.max(0, globalTime - start + trimStart);
-    const volume = Math.min(1, Math.max(0, track.volume ?? 1));
-    const fadeInEnd = track.fadeIn ?? 0;
-    const fadeOutStart = assetDuration - (track.fadeOut ?? 0);
-    const fadeActive =
-      ((track.fadeIn ?? 0) > 0 && localTime < fadeInEnd) ||
-      ((track.fadeOut ?? 0) > 0 && localTime > fadeOutStart);
+  const tracks = (runtime.timeline.audioTracks ?? []).flatMap((track) => {
+    const trackMuted = track.muted ?? false;
+    return track.clips.map((clip) => {
+      const start = clip.start ?? 0;
+      const trimStart = clip.trimStart ?? 0;
+      const assetDuration = assetDurationById.get(clip.assetId) ?? 0;
+      const localTime = Math.max(0, globalTime - start + trimStart);
+      const volume = Math.min(1, Math.max(0, clip.volume ?? 1));
+      const fadeInEnd = clip.fadeIn ?? 0;
+      const fadeOutStart = clip.duration - (clip.fadeOut ?? 0);
+      const clipLocal = globalTime - start;
+      const fadeActive =
+        clipLocal >= 0 &&
+        clipLocal < clip.duration &&
+        (((clip.fadeIn ?? 0) > 0 && clipLocal < fadeInEnd) ||
+          ((clip.fadeOut ?? 0) > 0 && clipLocal > fadeOutStart));
 
-    return {
-      trackId: track.id,
-      assetId: track.assetId,
-      mediaTime: localTime,
-      volume,
-      muted: false,
-      fadeActive,
-    };
+      return {
+        trackId: `${track.id}:${clip.id}`,
+        assetId: clip.assetId,
+        mediaTime: localTime,
+        volume: trackMuted || clip.muted ? 0 : volume,
+        muted: trackMuted || (clip.muted ?? false),
+        fadeActive,
+        assetDuration,
+      };
+    });
   });
 
   return { tracks };
@@ -716,5 +704,4 @@ export {
   type CompositionFramePlan,
   type CompositionLayerPlan,
   type CompositionSceneInput,
-  type CompositionTransition,
 } from "./composition/evaluate-composition-layers";

@@ -6,8 +6,17 @@
     "name": "Invalid Duplicate IDs",
     "locale": "vi-VN"
   },
-  "composition": { "width": 1920, "height": 1080, "fps": 30 },
-  "dependencies": { "compiler": { "range": ">=1.0.0" }, "components": [] },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
   "scenes": [
     {
       "id": "s1",
@@ -34,7 +43,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "hello" },
+            "content": {
+              "kind": "plain",
+              "text": "hello"
+            },
             "fontSize": 24
           }
         }
@@ -66,7 +78,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "world" },
+            "content": {
+              "kind": "plain",
+              "text": "world"
+            },
             "fontSize": 24
           }
         }
@@ -78,12 +93,14 @@
     "visualTracks": [
       {
         "id": "t1",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "c1",
-            "source": { "kind": "scene", "sceneId": "s1" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "s1"
+            },
             "start": 0,
             "duration": 5
           }
@@ -94,8 +111,18 @@
     "captionTracks": []
   },
   "variables": [
-    { "id": "v1", "name": "Dup var 1", "type": "string", "value": "a" },
-    { "id": "v1", "name": "Dup var 2", "type": "string", "value": "b" }
+    {
+      "id": "v1",
+      "name": "Dup var 1",
+      "type": "string",
+      "value": "a"
+    },
+    {
+      "id": "v1",
+      "name": "Dup var 2",
+      "type": "string",
+      "value": "b"
+    }
   ],
   "assets": [
     {
@@ -118,7 +145,10 @@
   "bindings": [
     {
       "id": "b1",
-      "source": { "kind": "variable", "variableId": "v1" },
+      "source": {
+        "kind": "variable",
+        "variableId": "v1"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "s1",

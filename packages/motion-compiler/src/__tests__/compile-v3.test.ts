@@ -109,7 +109,6 @@ function makeComponentNodeProject(
   project.timeline.visualTracks = [
     {
       id: "main-track",
-      role: "main",
       order: 0,
       muted: false,
       clips: [
@@ -158,11 +157,12 @@ describe("compileMotionProjectV3 — happy paths", () => {
     // composition 1080×1920 → 9:16.
     expect(result.project.metadata.aspectRatio).toBe("9:16");
 
-    // audio track down-migrated (duration/playbackRate/muted stripped).
+    // audio track preserves clips[] (assetId/volume live on clips).
     const audio = result.project.timeline.audioTracks;
     expect(audio).toHaveLength(1);
-    expect(audio[0]!.assetId).toBe("bgm");
-    expect(audio[0]!.volume).toBe(0.8);
+    expect(audio[0]!.clips).toHaveLength(1);
+    expect(audio[0]!.clips[0]!.assetId).toBe("bgm");
+    expect(audio[0]!.clips[0]!.volume).toBe(0.8);
 
     // captions copied through.
     expect(result.project.timeline.captionTracks).toHaveLength(1);
@@ -398,24 +398,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(opacityTrack.keys[1]!.v).toBe(1);
   });
 
-  it("applies transitionIn on a scene clip wrapping a component node", () => {
-    const project = makeComponentNodeProject();
-    project.timeline.visualTracks[0]!.clips[0]!.transitionIn = {
-      type: "fade",
-      duration: 0.5,
-    };
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) {
-      console.log(JSON.stringify(result.diagnostics, null, 2));
-      return;
-    }
-    const vizTrack = result.project.timeline.visualTracks[0]!;
-    expect(vizTrack.role).toBe("primary");
-    const clip = vizTrack.clips[0] as Record<string, unknown>;
-    expect(clip.transitionIn).toEqual({ type: "fade", duration: 0.5 });
-  });
-
   it("applies variant overrides through public targets", () => {
     const project = makeComponentNodeProject();
     const component = project.components.find((c) => c.id === "logo-reveal")!;
@@ -481,7 +463,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
     project.timeline.visualTracks = [
       {
         id: "main-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -513,7 +494,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
     project.timeline.visualTracks = [
       {
         id: "main-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -522,8 +502,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
             id: "clip-intro-a",
             start: 0,
             duration: 3,
-            transitionOut: undefined,
-            transitionIn: undefined,
           },
           {
             ...baseClip,
@@ -531,8 +509,6 @@ describe("compileMotionProjectV3 — happy paths", () => {
             // Back-to-back reuse of the same scene — no overlap.
             start: 3,
             duration: 3,
-            transitionOut: undefined,
-            transitionIn: undefined,
           },
         ],
       },
@@ -560,12 +536,11 @@ describe("compileMotionProjectV3 — happy paths", () => {
 // ── Phase 2 — track-preserving compiler output ─────────────────────────
 
 describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
-  it("preserves two visual tracks with distinct roles and ids", () => {
+  it("preserves two visual tracks with distinct ids and orders", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
       {
         id: "main-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -581,7 +556,6 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
       },
       {
         id: "overlay-track",
-        role: "overlay",
         order: 1,
         muted: false,
         clips: [
@@ -602,9 +576,11 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     const vt = result.project.timeline.visualTracks;
     expect(vt).toHaveLength(2);
     expect(vt[0]!.id).toBe("main-track");
-    expect(vt[0]!.role).toBe("primary"); // "main" → "primary"
+    expect(vt[0]!.order).toBe(0);
+    expect(vt[0]!).not.toHaveProperty("role");
     expect(vt[1]!.id).toBe("overlay-track");
-    expect(vt[1]!.role).toBe("overlay");
+    expect(vt[1]!.order).toBe(1);
+    expect(vt[1]!).not.toHaveProperty("role");
   });
 
   it("preserves clip opacity, loop, trimStart, playbackRate", () => {
@@ -612,7 +588,6 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     project.timeline.visualTracks = [
       {
         id: "main-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -639,53 +614,11 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     expect(clip.playbackRate).toBe(2);
   });
 
-  it("preserves transitionIn and transitionOut on clips", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "main-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-intro",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 0,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-            transitionIn: { type: "fade" as const, duration: 0.5 },
-          },
-          {
-            id: "clip-outro",
-            source: { kind: "scene", sceneId: "outro" },
-            start: 3,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-            transitionOut: { type: "crossfade" as const, duration: 0.4 },
-          },
-        ],
-      },
-    ];
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const clips = result.project.timeline.visualTracks[0]!.clips;
-    expect(clips[0]!.transitionIn).toEqual({ type: "fade", duration: 0.5 });
-    expect(clips[1]!.transitionOut).toEqual({
-      type: "crossfade",
-      duration: 0.4,
-    });
-  });
-
   it("overlay clip appears over base clip on different track", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
       {
         id: "base-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -701,7 +634,6 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
       },
       {
         id: "overlay-track",
-        role: "overlay",
         order: 1,
         muted: false,
         clips: [
@@ -721,7 +653,8 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     if (!result.ok) return;
     const vt = result.project.timeline.visualTracks;
     expect(vt).toHaveLength(2);
-    expect(vt[1]!.role).toBe("overlay");
+    expect(vt[1]!.order).toBe(1);
+    expect(vt[1]!).not.toHaveProperty("role");
     expect(vt[1]!.clips[0]!.opacity).toBe(0.7);
     expect(vt[1]!.clips[0]!.start).toBe(2);
     expect(vt[1]!.clips[0]!.duration).toBe(3);
@@ -732,7 +665,6 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     project.timeline.visualTracks = [
       {
         id: "main-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -762,12 +694,11 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     expect(clips.map((c) => c.start)).toEqual([0, 5]);
   });
 
-  it("preserves overlapping starts on an overlay track", () => {
+  it("preserves concurrent starts on different track orders", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
       {
-        id: "overlay-track",
-        role: "overlay",
+        id: "track-a",
         order: 0,
         muted: false,
         clips: [
@@ -779,6 +710,13 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
             opacity: 1,
             loop: false,
           },
+        ],
+      },
+      {
+        id: "track-b",
+        order: 1,
+        muted: false,
+        clips: [
           {
             id: "clip-b",
             source: { kind: "scene", sceneId: "outro" },
@@ -793,8 +731,8 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const clips = result.project.timeline.visualTracks[0]!.clips;
-    expect(clips.map((c) => c.start)).toEqual([1, 1.5]);
+    expect(result.project.timeline.visualTracks[0]!.clips[0]!.start).toBe(1);
+    expect(result.project.timeline.visualTracks[1]!.clips[0]!.start).toBe(1.5);
   });
 
   it("repeated scene on different tracks gets independent clip entries", () => {
@@ -803,7 +741,6 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     project.timeline.visualTracks = [
       {
         id: "track-a",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -819,7 +756,6 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
       },
       {
         id: "track-b",
-        role: "overlay",
         order: 1,
         muted: false,
         clips: [
@@ -844,13 +780,12 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     expect(vt[1]!.clips[0]!.source.sceneId).toBe("intro@clip-b");
   });
 
-  it("component node scene on overlay track works", () => {
+  it("component node scene on higher-order track works", () => {
     const project = makeComponentNodeProject();
     project.timeline.visualTracks = [
       {
         id: "overlay-track",
-        role: "overlay",
-        order: 0,
+        order: 1,
         muted: false,
         clips: [
           {
@@ -869,18 +804,18 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
     if (!result.ok) return;
     const vt = result.project.timeline.visualTracks;
     expect(vt).toHaveLength(1);
-    expect(vt[0]!.role).toBe("overlay");
+    expect(vt[0]!.order).toBe(1);
+    expect(vt[0]!).not.toHaveProperty("role");
     expect(vt[0]!.clips[0]!.opacity).toBe(0.9);
     const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
     expect(scene).toBeDefined();
   });
 
-  it("deterministic ordering when track orders tie", () => {
+  it("rejects duplicate visual track orders", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
       {
         id: "track-a",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -896,8 +831,7 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
       },
       {
         id: "track-b",
-        role: "overlay",
-        order: 0, // same order as track-a
+        order: 0, // duplicate order — invalid under V3 timeline integrity
         muted: false,
         clips: [
           {
@@ -911,187 +845,19 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
         ],
       },
     ];
-    const first = compileMotionProjectV3(project);
-    const second = compileMotionProjectV3(project);
-    expect(first.ok && second.ok).toBe(true);
-    if (!first.ok || !second.ok) return;
-    // Same input → same output (stable sort)
-    expect(first.project.timeline.visualTracks[0]!.id).toBe(
-      second.project.timeline.visualTracks[0]!.id,
-    );
-    expect(first.project.runtimeHash).toBe(second.project.runtimeHash);
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(false);
   });
 });
 
-// ── Phase 4 — clip-level transitions ──────────────────────────────────
+// ── Phase 4 — clip-level transitions removed ──────────────────────────
 
-describe("compileMotionProjectV3 — Phase 4 clip transitions", () => {
-  it("fade in on a clip", () => {
+describe("compileMotionProjectV3 — Phase 4 clip transitions absent", () => {
+  it("runtime visual clips omit transitionIn and transitionOut", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [
       {
         id: "main-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-intro",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 0,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-            transitionIn: {
-              type: "fade" as const,
-              duration: 0.5,
-              easing: "easeInOut" as const,
-            },
-          },
-        ],
-      },
-    ];
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const c = result.project.timeline.visualTracks[0]!.clips[0]!;
-    expect(c.transitionIn).toEqual({
-      type: "fade",
-      duration: 0.5,
-      easing: "easeInOut",
-    });
-    expect(c.transitionOut).toBeUndefined();
-  });
-
-  it("fade out on a clip", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "main-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-intro",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 0,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-            transitionOut: { type: "fade" as const, duration: 0.8 },
-          },
-        ],
-      },
-    ];
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const c = result.project.timeline.visualTracks[0]!.clips[0]!;
-    expect(c.transitionIn).toBeUndefined();
-    expect(c.transitionOut).toEqual({ type: "fade", duration: 0.8 });
-  });
-
-  it("crossfade between adjacent clips", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "main-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-intro",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 0,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-            transitionOut: { type: "crossfade" as const, duration: 0.5 },
-          },
-          {
-            id: "clip-outro",
-            source: { kind: "scene", sceneId: "outro" },
-            start: 2.5,
-            duration: 3,
-            opacity: 1,
-            loop: false,
-            transitionIn: { type: "crossfade" as const, duration: 0.5 },
-          },
-        ],
-      },
-    ];
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const clips = result.project.timeline.visualTracks[0]!.clips;
-    expect(clips).toHaveLength(2);
-    expect(clips[0]!.transitionOut).toEqual({
-      type: "crossfade",
-      duration: 0.5,
-    });
-    expect(clips[1]!.transitionIn).toEqual({
-      type: "crossfade",
-      duration: 0.5,
-    });
-    // Clip starts preserve the authored timeline start.
-    expect(clips[1]!.start).toBe(2.5);
-  });
-
-  it("overlay clip with fade in transition", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "base-track",
-        role: "main",
-        order: 0,
-        muted: false,
-        clips: [
-          {
-            id: "clip-intro",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 0,
-            duration: 5,
-            opacity: 1,
-            loop: false,
-          },
-        ],
-      },
-      {
-        id: "overlay-track",
-        role: "overlay",
-        order: 1,
-        muted: false,
-        clips: [
-          {
-            id: "clip-overlay",
-            source: { kind: "scene", sceneId: "intro" },
-            start: 2,
-            duration: 3,
-            opacity: 0.7,
-            loop: false,
-            transitionIn: { type: "fade" as const, duration: 0.4 },
-            transitionOut: { type: "fade" as const, duration: 0.4 },
-          },
-        ],
-      },
-    ];
-    const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const overlay = result.project.timeline.visualTracks[1]!.clips[0]!;
-    expect(overlay.transitionIn).toEqual({ type: "fade", duration: 0.4 });
-    expect(overlay.transitionOut).toEqual({ type: "fade", duration: 0.4 });
-    expect(overlay.opacity).toBe(0.7);
-  });
-
-  it("clip without any transition", () => {
-    const project = structuredClone(representative);
-    project.timeline.visualTracks = [
-      {
-        id: "main-track",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -1110,8 +876,8 @@ describe("compileMotionProjectV3 — Phase 4 clip transitions", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const c = result.project.timeline.visualTracks[0]!.clips[0]!;
-    expect(c.transitionIn).toBeUndefined();
-    expect(c.transitionOut).toBeUndefined();
+    expect(c).not.toHaveProperty("transitionIn");
+    expect(c).not.toHaveProperty("transitionOut");
     // No scene.transition on compiled scenes
     const compiledScene = result.project.scenes[0]!;
     expect(
@@ -1683,7 +1449,6 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
     project.timeline.visualTracks = [
       {
         id: "main",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -1753,7 +1518,6 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
     project.timeline.visualTracks = [
       {
         id: "main",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -1817,7 +1581,6 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
     project.timeline.visualTracks = [
       {
         id: "main",
-        role: "main",
         order: 0,
         muted: false,
         clips: [
@@ -1871,7 +1634,9 @@ describe("compileMotionProjectV3 — timeline duration derivation", () => {
     project.timeline.visualTracks[0]!.clips = [
       { ...project.timeline.visualTracks[0]!.clips[0]!, start: 0, duration: 5 },
     ];
-    project.timeline.audioTracks[0]!.duration = 10;
+    project.timeline.audioTracks[0]!.clips[0]!.duration = 10;
+    project.timeline.audioTracks[0]!.clips[0]!.fadeIn = 0;
+    project.timeline.audioTracks[0]!.clips[0]!.fadeOut = 0;
     project.timeline.captionTracks = [];
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
@@ -1885,7 +1650,9 @@ describe("compileMotionProjectV3 — timeline duration derivation", () => {
     project.timeline.visualTracks[0]!.clips = [
       { ...project.timeline.visualTracks[0]!.clips[0]!, start: 0, duration: 5 },
     ];
-    project.timeline.audioTracks[0]!.duration = 5;
+    project.timeline.audioTracks[0]!.clips[0]!.duration = 5;
+    project.timeline.audioTracks[0]!.clips[0]!.fadeIn = 0;
+    project.timeline.audioTracks[0]!.clips[0]!.fadeOut = 0;
     const captionTrack = structuredClone(project.timeline.captionTracks[0]!);
     captionTrack.tokens = [{ id: "tok-1", text: "x", start: 0, end: 12 }];
     project.timeline.captionTracks = [captionTrack];

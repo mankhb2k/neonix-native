@@ -169,8 +169,7 @@ function emptyRuntime(): MotionRuntimeProject {
       duration: 2,
       visualTracks: [
         {
-          id: "primary",
-          role: "primary",
+          id: "primary",
           order: 0,
           clips: [
             {
@@ -261,93 +260,6 @@ describe("evaluateCompositionFrameV3", () => {
   });
 });
 
-// ── Task 3.5: Transition frame fixtures ───────────────────────────────
-
-import {
-  TRANSITION_FIXTURES,
-  TRANSITION_FIXTURE_KEYS,
-  generateFixtureDigests,
-  fixtureGlobalTimes,
-} from "../composition/transition-fixtures";
-
-describe("transition fixtures", () => {
-  it("all 6 transition types are defined", () => {
-    expect(TRANSITION_FIXTURES).toHaveLength(6);
-    const names = TRANSITION_FIXTURES.map((f) => f.name);
-    expect(names).toContain("cut");
-    expect(names).toContain("fade");
-    expect(names).toContain("crossfade");
-    expect(names).toContain("slide-left");
-    expect(names).toContain("wipe-right");
-    expect(names).toContain("zoom-in");
-  });
-
-  it("all 5 fixture keys exist", () => {
-    expect(TRANSITION_FIXTURE_KEYS).toEqual([
-      "before",
-      "start",
-      "middle",
-      "end",
-      "after",
-    ]);
-  });
-
-  it("fixtureGlobalTimes returns increasing times", () => {
-    const times = fixtureGlobalTimes(0.5);
-    expect(times.before).toBeLessThan(times.start);
-    expect(times.start).toBeLessThan(times.middle);
-    expect(times.middle).toBeLessThan(times.end);
-    expect(times.end).toBeLessThan(times.after);
-  });
-
-  it("generateFixtureDigests produces 30 digests (6×5)", () => {
-    const digests = generateFixtureDigests();
-    expect(digests).toHaveLength(30);
-
-    // Verify structure
-    const first = digests[0]!;
-    expect(first).toHaveProperty("fixture");
-    expect(first).toHaveProperty("key");
-    expect(first).toHaveProperty("globalTime");
-    expect(first).toHaveProperty("layers");
-    expect(first.layers.length).toBeGreaterThan(0);
-  });
-
-  it("cut has 1 layer before and 1 after (no overlap)", () => {
-    const digests = generateFixtureDigests();
-    const cutBefore = digests.find(
-      (d) => d.fixture === "cut" && d.key === "before",
-    );
-    expect(cutBefore?.layers).toHaveLength(1);
-
-    const cutAfter = digests.find(
-      (d) => d.fixture === "cut" && d.key === "after",
-    );
-    // After cut, scene-b is playing
-    expect(cutAfter?.layers.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it("crossfade has 2 layers during middle", () => {
-    const digests = generateFixtureDigests();
-    const xfMiddle = digests.find(
-      (d) => d.fixture === "crossfade" && d.key === "middle",
-    );
-    expect(xfMiddle?.layers).toHaveLength(2);
-  });
-
-  it("digests are deterministic for same duration", () => {
-    const d1 = generateFixtureDigests(0.5);
-    const d2 = generateFixtureDigests(0.5);
-    expect(d1).toEqual(d2);
-  });
-
-  it("digests differ for different durations", () => {
-    const d1 = generateFixtureDigests(0.3);
-    const d2 = generateFixtureDigests(0.5);
-    expect(d1).not.toEqual(d2);
-  });
-});
-
 // ── Phase 5 — multi-track runtime evaluation ──────────────────────────
 
 import {
@@ -361,8 +273,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     const rt = emptyRuntime();
     rt.timeline.visualTracks = [
       {
-        id: "primary",
-        role: "primary",
+        id: "primary",
         order: 0,
         clips: [
           {
@@ -374,8 +285,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
         ],
       },
       {
-        id: "overlay-track",
-        role: "overlay",
+        id: "overlay-track",
         order: 1,
         clips: [
           {
@@ -401,8 +311,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     const rt = emptyRuntime();
     rt.timeline.visualTracks = [
       {
-        id: "overlay-only",
-        role: "overlay",
+        id: "overlay-only",
         order: 0,
         clips: [
           {
@@ -431,8 +340,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     });
     rt.timeline.visualTracks = [
       {
-        id: "primary",
-        role: "primary",
+        id: "primary",
         order: 0,
         clips: [
           {
@@ -471,8 +379,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     delete (rt.timeline as { duration?: number }).duration;
     rt.timeline.visualTracks = [
       {
-        id: "primary",
-        role: "primary",
+        id: "primary",
         order: 0,
         clips: [
           {
@@ -505,8 +412,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     rt.timeline.duration = 5;
     rt.timeline.visualTracks = [
       {
-        id: "primary",
-        role: "primary",
+        id: "primary",
         order: 0,
         clips: [
           {
@@ -549,8 +455,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     const rt = emptyRuntime();
     rt.timeline.visualTracks = [
       {
-        id: "primary",
-        role: "primary",
+        id: "primary",
         order: 0,
         clips: [
           {
@@ -562,8 +467,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
         ],
       },
       {
-        id: "overlay-track",
-        role: "overlay",
+        id: "overlay-track",
         order: 1,
         clips: [
           {

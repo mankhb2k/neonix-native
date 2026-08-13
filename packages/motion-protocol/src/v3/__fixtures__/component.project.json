@@ -6,7 +6,11 @@
     "name": "V3 Component Example",
     "description": "Demonstrates embedded component definition and component-as-scene-layer nodes",
     "locale": "vi-VN",
-    "tags": ["example", "v3", "component"]
+    "tags": [
+      "example",
+      "v3",
+      "component"
+    ]
   },
   "composition": {
     "width": 1080,
@@ -17,10 +21,16 @@
     "audioSampleRate": 48000
   },
   "capabilities": {
-    "required": ["primitive.text", "primitive.solid", "component.embedding"]
+    "required": [
+      "primitive.text",
+      "primitive.solid",
+      "component.embedding"
+    ]
   },
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": [
       {
         "componentId": "call-to-action",
@@ -63,7 +73,10 @@
         {
           "id": "icon",
           "name": "Leading icon",
-          "accepts": ["image", "svg"],
+          "accepts": [
+            "image",
+            "svg"
+          ],
           "count": 1
         }
       ],
@@ -71,12 +84,18 @@
         {
           "id": "primary",
           "name": "Primary CTA",
-          "params": { "color": "#1877f2", "label": "Click me" }
+          "params": {
+            "color": "#1877f2",
+            "label": "Click me"
+          }
         },
         {
           "id": "outline",
           "name": "Outline CTA",
-          "params": { "color": "#ffffff", "label": "Learn more" }
+          "params": {
+            "color": "#ffffff",
+            "label": "Learn more"
+          }
         }
       ],
       "publicTargets": [
@@ -107,6 +126,7 @@
           "id": "cta-bg",
           "type": "solid",
           "parentId": null,
+          "zIndex": 0,
           "transform": {
             "x": 0,
             "y": 0,
@@ -122,12 +142,17 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "width": 600, "height": 120, "color": "#1877f2" }
+          "payload": {
+            "width": 600,
+            "height": 120,
+            "color": "#1877f2"
+          }
         },
         {
           "id": "cta-label-node",
           "type": "text",
           "parentId": null,
+          "zIndex": 1,
           "transform": {
             "x": 0,
             "y": 0,
@@ -144,7 +169,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Click me" },
+            "content": {
+              "kind": "plain",
+              "text": "Click me"
+            },
             "fontSize": 40,
             "color": "#ffffff",
             "alignment": "center"
@@ -187,7 +215,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Welcome to MotiClip" },
+            "content": {
+              "kind": "plain",
+              "text": "Welcome to MotiClip"
+            },
             "fontSize": 56,
             "color": "#111111",
             "alignment": "center"
@@ -230,12 +261,14 @@
     "visualTracks": [
       {
         "id": "main",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "c-landing",
-            "source": { "kind": "scene", "sceneId": "landing" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "landing"
+            },
             "start": 0,
             "duration": 5
           }
@@ -243,24 +276,16 @@
       },
       {
         "id": "overlay-cta",
-        "role": "overlay",
         "order": 1,
         "clips": [
           {
             "id": "c-cta",
-            "source": { "kind": "scene", "sceneId": "cta-scene" },
-            "start": 1,
-            "duration": 2.5,
-            "transitionIn": {
-              "type": "fade",
-              "duration": 0.3,
-              "easing": "easeOut"
+            "source": {
+              "kind": "scene",
+              "sceneId": "cta-scene"
             },
-            "transitionOut": {
-              "type": "fade",
-              "duration": 0.3,
-              "easing": "easeIn"
-            }
+            "start": 1,
+            "duration": 2.5
           }
         ]
       }
@@ -269,7 +294,10 @@
   "bindings": [
     {
       "id": "bind-cta",
-      "source": { "kind": "variable", "variableId": "cta-text" },
+      "source": {
+        "kind": "variable",
+        "variableId": "cta-text"
+      },
       "target": {
         "kind": "componentNode",
         "sceneId": "cta-scene",

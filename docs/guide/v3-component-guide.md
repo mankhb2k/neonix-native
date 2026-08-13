@@ -2,7 +2,12 @@
 
 ## 1. Component là gì?
 
-Component trong MotiClip V3 là một **đơn vị đồ họa đóng gói (sealed unit)**, do chủ sở hữu (owner) kiểm soát toàn bộ cấu trúc bên trong. Component được nhúng trực tiếp vào project JSON (`EmbeddedComponentV3Schema`) và được khởi tạo như một **scene node** (`type: "component"`) — không phải qua visual clip trực tiếp trên timeline. Timeline chỉ chứa các clip scene; muốn đưa component lên timeline, editor/app sẽ tự bọc component vào một scene rồi tham chiếu scene đó.
+Component trong MotiClip V3 là một **đơn vị đồ họa đóng gói (sealed unit)**, do chủ sở hữu (owner) kiểm soát toàn bộ cấu trúc bên trong. Component được nhúng trong project JSON (`EmbeddedComponentV3Schema`) và có thể:
+
+1. Đặt như **scene node** (`type: "component"`) bên trong một scene, hoặc
+2. Đặt trực tiếp lên timeline qua visual clip `source: { kind: "component", componentId }` (AE layer stack). Compiler synthesize scene wrapper khi emit runtime IR.
+
+“Hiệu ứng chuyển cảnh” (flash, wipe, title) cũng chỉ là component/layer trên timeline — **không** phải `transitionIn`/`transitionOut` primitive.
 
 Mô hình component tuân theo nguyên tắc **owner-owned, consumer-safe**:
 

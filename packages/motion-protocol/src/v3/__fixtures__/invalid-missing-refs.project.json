@@ -6,8 +6,17 @@
     "name": "Invalid Missing Refs",
     "locale": "vi-VN"
   },
-  "composition": { "width": 1920, "height": 1080, "fps": 30 },
-  "dependencies": { "compiler": { "range": ">=1.0.0" }, "components": [] },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
   "scenes": [
     {
       "id": "scene-a",
@@ -33,7 +42,9 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "assetId": "asset-nonexistent" }
+          "payload": {
+            "assetId": "asset-nonexistent"
+          }
         },
         {
           "id": "node-text",
@@ -55,7 +66,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Hello" },
+            "content": {
+              "kind": "plain",
+              "text": "Hello"
+            },
             "fontSize": 32,
             "fontAssetId": "font-missing"
           }
@@ -68,18 +82,23 @@
     "visualTracks": [
       {
         "id": "track-1",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "clip-missing-scene",
-            "source": { "kind": "scene", "sceneId": "scene-nonexistent" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-nonexistent"
+            },
             "start": 0,
             "duration": 5
           },
           {
             "id": "clip-valid",
-            "source": { "kind": "scene", "sceneId": "scene-a" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-a"
+            },
             "start": 5,
             "duration": 3
           }
@@ -89,10 +108,14 @@
     "audioTracks": [
       {
         "id": "audio-1",
-        "role": "bgm",
-        "assetId": "asset-missing-audio",
-        "start": 0,
-        "duration": 5
+        "clips": [
+          {
+            "id": "audio-1-clip",
+            "assetId": "asset-missing-audio",
+            "start": 0,
+            "duration": 5
+          }
+        ]
       }
     ],
     "captionTracks": []
@@ -100,7 +123,10 @@
   "bindings": [
     {
       "id": "binding-missing-var",
-      "source": { "kind": "variable", "variableId": "var-nonexistent" },
+      "source": {
+        "kind": "variable",
+        "variableId": "var-nonexistent"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "scene-a",

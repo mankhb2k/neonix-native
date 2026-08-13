@@ -165,8 +165,7 @@ export function createDemoMotionProject(): MotionProjectV3 {
     timeline: {
       visualTracks: [
         {
-          id: "track.main",
-          role: "main",
+          id: "track.main",
           order: 0,
           clips: [
             {

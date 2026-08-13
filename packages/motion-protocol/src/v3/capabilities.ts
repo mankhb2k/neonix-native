@@ -103,19 +103,13 @@ const NODE_CAPABILITY: Record<string, string> = {
   solid: "primitive.shape",
 };
 
-/** Transition type → capability ID. */
-const TRANSITION_CAPABILITY: Record<string, string> = {
-  crossfade: "transition.crossfade",
-  slide: "transition.slide",
-  dissolve: "transition.dissolve",
-  wipe: "transition.wipe",
-  fade: "transition.dissolve",
-};
-
 /**
  * Inspect a V3 project and return the set of capabilities it actually
  * uses. This is derived from the project structure — node types, visual
  * clips, audio tracks, component references, etc.
+ *
+ * Timeline transitions are not protocol primitives (AE layer stack); do not
+ * emit transition.* capabilities from visual clips.
  */
 export function inspectProjectCapabilities(project: {
   scenes?: Array<{ nodes?: Array<{ type: string }> }>;
@@ -124,11 +118,9 @@ export function inspectProjectCapabilities(project: {
     visualTracks?: Array<{
       clips?: Array<{
         source?: { kind: string };
-        transitionIn?: { type?: string };
-        transitionOut?: { type?: string };
       }>;
     }>;
-    audioTracks?: Array<unknown>;
+    audioTracks?: Array<{ clips?: unknown[] } | unknown>;
     captionTracks?: Array<unknown>;
   };
 }): Set<string> {
@@ -153,16 +145,11 @@ export function inspectProjectCapabilities(project: {
     }
   }
 
-  // Visual tracks → transition capabilities
+  // Component sources on the timeline also imply embedding.
   for (const track of project.timeline?.visualTracks ?? []) {
     for (const clip of track.clips ?? []) {
-      if (clip.transitionIn?.type) {
-        const cap = TRANSITION_CAPABILITY[clip.transitionIn.type];
-        if (cap) caps.add(cap);
-      }
-      if (clip.transitionOut?.type) {
-        const cap = TRANSITION_CAPABILITY[clip.transitionOut.type];
-        if (cap) caps.add(cap);
+      if (clip.source?.kind === "component") {
+        caps.add("component.embedding");
       }
     }
   }

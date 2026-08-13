@@ -1,27 +1,19 @@
 /**
  * Frame-grid — snap và validate thời gian timeline về lưới `n / fps`.
- *
- * Policy (làm tròn half-up):
- *   frames = Math.round(seconds * fps)
- *   canonicalSeconds = frames / fps
- *   onGrid khi |seconds * fps - round(seconds * fps)| <= epsilon
  */
 
 const FRAME_GRID_EPSILON = 1e-9;
 
-/** Đổi giây → chỉ số frame nguyên (half-up). */
 export function secondsToFrameIndex(seconds: number, fps: number): number {
   const safeFps = Math.max(1, fps);
   return Math.round(seconds * safeFps);
 }
 
-/** Snap giây lên frame-grid theo `fps`. */
 export function snapSecondsToFrameGrid(seconds: number, fps: number): number {
   const safeFps = Math.max(1, fps);
   return secondsToFrameIndex(seconds, safeFps) / safeFps;
 }
 
-/** `true` khi `seconds` đã nằm đúng trên frame-grid. */
 export function isOnFrameGrid(seconds: number, fps: number): boolean {
   const safeFps = Math.max(1, fps);
   const scaled = seconds * safeFps;
@@ -57,26 +49,8 @@ function snapOptional(value: number | undefined, fps: number): number | undefine
   return snapSecondsToFrameGrid(value, fps);
 }
 
-type TransitionLike = { type: string; duration?: number } & Record<
-  string,
-  unknown
->;
-
-function snapTransition(
-  transition: TransitionLike | undefined,
-  fps: number,
-): TransitionLike | undefined {
-  if (!transition) return transition;
-  if (transition.duration === undefined) return transition;
-  return {
-    ...transition,
-    duration: snapSecondsToFrameGrid(transition.duration, fps),
-  };
-}
-
 /**
  * Snap mọi field timing của timeline lên frame-grid của composition.
- * Trả về object timeline mới (clone nông container, clip mới).
  */
 export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
   timeline: T,
@@ -130,14 +104,6 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
               clip.trimStart as number | undefined,
               safeFps,
             ),
-            transitionIn: snapTransition(
-              clip.transitionIn as TransitionLike | undefined,
-              safeFps,
-            ),
-            transitionOut: snapTransition(
-              clip.transitionOut as TransitionLike | undefined,
-              safeFps,
-            ),
           }))
         : track.clips;
       return { ...track, clips };
@@ -145,21 +111,29 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
   }
 
   if (Array.isArray(next.audioTracks)) {
-    next.audioTracks = next.audioTracks.map((track) => ({
-      ...track,
-      start:
-        typeof track.start === "number"
-          ? snapSecondsToFrameGrid(track.start, safeFps)
-          : track.start,
-      duration:
-        typeof track.duration === "number"
-          ? snapSecondsToFrameGrid(track.duration, safeFps)
-          : track.duration,
-      trimStart: snapOptional(track.trimStart as number | undefined, safeFps),
-      trimEnd: snapOptional(track.trimEnd as number | undefined, safeFps),
-      fadeIn: snapOptional(track.fadeIn as number | undefined, safeFps),
-      fadeOut: snapOptional(track.fadeOut as number | undefined, safeFps),
-    }));
+    next.audioTracks = next.audioTracks.map((track) => {
+      const clips = Array.isArray(track.clips)
+        ? (track.clips as Array<Record<string, unknown>>).map((clip) => ({
+            ...clip,
+            start:
+              typeof clip.start === "number"
+                ? snapSecondsToFrameGrid(clip.start, safeFps)
+                : clip.start,
+            duration:
+              typeof clip.duration === "number"
+                ? snapSecondsToFrameGrid(clip.duration, safeFps)
+                : clip.duration,
+            trimStart: snapOptional(
+              clip.trimStart as number | undefined,
+              safeFps,
+            ),
+            trimEnd: snapOptional(clip.trimEnd as number | undefined, safeFps),
+            fadeIn: snapOptional(clip.fadeIn as number | undefined, safeFps),
+            fadeOut: snapOptional(clip.fadeOut as number | undefined, safeFps),
+          }))
+        : track.clips;
+      return { ...track, clips };
+    });
   }
 
   if (Array.isArray(next.captionTracks)) {
@@ -186,7 +160,6 @@ export function snapTimelineToFrameGrid<T extends Record<string, unknown>>(
 
 /**
  * Thu thập lỗi timing lệch frame-grid cho timeline ở `fps` cho trước.
- * Dùng bởi canonical project schema sau bước snap.
  */
 export function collectFrameGridIssues(
   timeline: {
@@ -200,18 +173,19 @@ export function collectFrameGridIssues(
         start: number;
         duration: number;
         trimStart?: number;
-        transitionIn?: { type: string; duration?: number };
-        transitionOut?: { type: string; duration?: number };
       }>;
     }>;
     audioTracks: ReadonlyArray<{
       id: string;
-      start: number;
-      duration: number;
-      trimStart?: number;
-      trimEnd?: number;
-      fadeIn?: number;
-      fadeOut?: number;
+      clips: ReadonlyArray<{
+        id: string;
+        start: number;
+        duration: number;
+        trimStart?: number;
+        trimEnd?: number;
+        fadeIn?: number;
+        fadeOut?: number;
+      }>;
     }>;
     captionTracks: ReadonlyArray<{
       id: string;
@@ -241,29 +215,22 @@ export function collectFrameGridIssues(
       checkOnGrid(clip.start, safeFps, [...base, "start"], issues);
       checkOnGrid(clip.duration, safeFps, [...base, "duration"], issues);
       checkOnGrid(clip.trimStart, safeFps, [...base, "trimStart"], issues);
-      checkOnGrid(
-        clip.transitionIn?.duration,
-        safeFps,
-        [...base, "transitionIn", "duration"],
-        issues,
-      );
-      checkOnGrid(
-        clip.transitionOut?.duration,
-        safeFps,
-        [...base, "transitionOut", "duration"],
-        issues,
-      );
     }
   }
 
   for (const track of timeline.audioTracks) {
-    const base = ["audioTracks", track.id] as (string | number)[];
-    checkOnGrid(track.start, safeFps, [...base, "start"], issues);
-    checkOnGrid(track.duration, safeFps, [...base, "duration"], issues);
-    checkOnGrid(track.trimStart, safeFps, [...base, "trimStart"], issues);
-    checkOnGrid(track.trimEnd, safeFps, [...base, "trimEnd"], issues);
-    checkOnGrid(track.fadeIn, safeFps, [...base, "fadeIn"], issues);
-    checkOnGrid(track.fadeOut, safeFps, [...base, "fadeOut"], issues);
+    for (const clip of track.clips) {
+      const base = ["audioTracks", track.id, "clips", clip.id] as (
+        | string
+        | number
+      )[];
+      checkOnGrid(clip.start, safeFps, [...base, "start"], issues);
+      checkOnGrid(clip.duration, safeFps, [...base, "duration"], issues);
+      checkOnGrid(clip.trimStart, safeFps, [...base, "trimStart"], issues);
+      checkOnGrid(clip.trimEnd, safeFps, [...base, "trimEnd"], issues);
+      checkOnGrid(clip.fadeIn, safeFps, [...base, "fadeIn"], issues);
+      checkOnGrid(clip.fadeOut, safeFps, [...base, "fadeOut"], issues);
+    }
   }
 
   for (const track of timeline.captionTracks) {

@@ -4,9 +4,9 @@ export type TimelineProjectLike = {
   timeline: {
     /** Explicit final MP4 length (compiler canonicalization). */
     duration?: number;
-    /** V3 visual tracks — the sole source of timeline ordering. */
+    /** V3 visual tracks — stacking by `order` (unique). */
     visualTracks: ReadonlyArray<{
-      role: "primary" | "overlay" | string;
+      order: number;
       clips: ReadonlyArray<{
         source: { kind: string; sceneId?: string; componentId?: string };
         start: number;
@@ -36,37 +36,14 @@ export type TimelineSceneSegment = {
   name?: string;
   start: number;
   duration: number;
-  trackRole: string;
+  /** Visual track stacking order (higher draws on top / wins resolve). */
+  trackOrder: number;
 };
 
 /**
- * Z-order khi composite (draw dưới → trên). Không dùng cho playhead resolve.
- */
-const COMPOSITE_ORDER: Record<string, number> = {
-  background: 0,
-  primary: 1,
-  overlay: 2,
-};
-
-/**
- * Ưu tiên khi resolve playhead / preview helper:
- * primary > overlay > background.
- */
-const RESOLVE_PRECEDENCE: Record<string, number> = {
-  primary: 3,
-  overlay: 2,
-  background: 1,
-};
-
-function resolvePrecedence(role: string): number {
-  return RESOLVE_PRECEDENCE[role] ?? 0;
-}
-
-/**
- * Ordered scene segments on the global timeline (hard cuts, no transition overlap).
+ * Ordered scene segments on the global timeline.
  *
- * Includes clips from ALL visual tracks. Sorted by start, then composite order
- * (background → primary → overlay) for stable listing.
+ * Includes clips from ALL visual tracks. Sorted by start, then track order.
  */
 export function listTimelineSegments(
   runtime: TimelineProjectLike,
@@ -76,23 +53,19 @@ export function listTimelineSegments(
     source: { kind: string; sceneId?: string; componentId?: string };
     start: number;
     duration: number;
-    trackRole: string;
+    trackOrder: number;
   }> = [];
   for (const track of runtime.timeline.visualTracks) {
     for (const clip of track.clips) {
-      allClips.push({ ...clip, trackRole: track.role });
+      allClips.push({ ...clip, trackOrder: track.order });
     }
   }
   if (allClips.length === 0) return [];
   const sorted = [...allClips].sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start;
-    const pa = COMPOSITE_ORDER[a.trackRole] ?? 1;
-    const pb = COMPOSITE_ORDER[b.trackRole] ?? 1;
-    return pa - pb;
+    return a.trackOrder - b.trackOrder;
   });
   return sorted.map((clip) => {
-    // Runtime clips are scene-only after compilation (components are
-    // synthesized into scenes by the compiler).
     const sourceId = clip.source.sceneId ?? "";
     const scene = sourceId ? byId.get(sourceId) : undefined;
     return {
@@ -100,16 +73,12 @@ export function listTimelineSegments(
       name: scene?.name,
       start: clip.start,
       duration: clip.duration,
-      trackRole: clip.trackRole,
+      trackOrder: clip.trackOrder,
     };
   });
 }
 
 export function timelineTotalDuration(runtime: TimelineProjectLike): number {
-  // An explicit timeline.duration is the authoritative final MP4 length. It
-  // may exceed the derived visual end (intentional empty tail) but never be
-  // shorter (enforced by the compiler / canonical schema). Fall back to the
-  // max visual clip end only for legacy runtime that predates duration.
   const declared = runtime.timeline.duration;
   if (declared !== undefined && declared > 0) return declared;
   const allClips = runtime.timeline.visualTracks.flatMap((t) => t.clips);
@@ -121,12 +90,10 @@ export function timelineTotalDuration(runtime: TimelineProjectLike): number {
 }
 
 /**
- * Map global playhead time → active scene + local time (hard cut).
+ * Map global playhead time → active scene + local time.
  *
- * When multiple clips overlap, resolve precedence is
- * **primary > overlay > background** (preview/helper). Empty tail
- * (`t` past last visual content but `< timeline.duration`) and past-end
- * times return `null` — never clamp to the last scene.
+ * When multiple clips overlap, the **highest track.order** wins (topmost
+ * layer). Empty tail and past-end return `null`.
  */
 export function resolveTimelineAtTime(
   runtime: TimelineProjectLike,
@@ -149,9 +116,7 @@ export function resolveTimelineAtTime(
       best = { segment, index: i };
       continue;
     }
-    const bestPri = resolvePrecedence(best.segment.trackRole);
-    const curPri = resolvePrecedence(segment.trackRole);
-    if (curPri > bestPri) {
+    if (segment.trackOrder > best.segment.trackOrder) {
       best = { segment, index: i };
     }
   }

@@ -7,7 +7,11 @@
     "description": "Covers every top-level and nested v3 field for Phase 2 gate",
     "locale": "vi-VN",
     "industry": "technology",
-    "tags": ["demo", "v3", "comprehensive"],
+    "tags": [
+      "demo",
+      "v3",
+      "comprehensive"
+    ],
     "createdAt": "2026-08-10T00:00:00Z",
     "updatedAt": "2026-08-10T12:00:00Z"
   },
@@ -19,8 +23,17 @@
     "colorSpace": "srgb",
     "pixelAspectRatio": 1,
     "audioSampleRate": 48000,
-    "safeArea": { "top": 0.05, "right": 0.05, "bottom": 0.1, "left": 0.05 },
-    "motionBlur": { "samples": 16, "shutterAngle": 180, "shutterPhase": 0 }
+    "safeArea": {
+      "top": 0.05,
+      "right": 0.05,
+      "bottom": 0.1,
+      "left": 0.05
+    },
+    "motionBlur": {
+      "samples": 16,
+      "shutterAngle": 180,
+      "shutterPhase": 0
+    }
   },
   "capabilities": {
     "required": [
@@ -36,11 +49,18 @@
       "style.gradient",
       "camera.orthographic"
     ],
-    "optional": ["effect.blur", "effect.shadow"],
-    "experimental": ["projection.perspective-3d"]
+    "optional": [
+      "effect.blur",
+      "effect.shadow"
+    ],
+    "experimental": [
+      "projection.perspective-3d"
+    ]
   },
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": [
       {
         "componentId": "lower-third",
@@ -58,18 +78,40 @@
     ]
   },
   "tokens": {
-    "colors": { "brand": "#ff6b35", "accent": "#004e89", "bg": "#1a1a2e" },
-    "fonts": { "display": "font-be-vietnam", "body": "font-inter" },
-    "spacing": { "xs": 4, "sm": 8, "md": 16, "lg": 32 },
-    "radii": { "sm": 0.125, "md": 0.25, "lg": 0.5 },
-    "motion": { "fast": 0.15, "normal": 0.3, "slow": 0.6 }
+    "colors": {
+      "brand": "#ff6b35",
+      "accent": "#004e89",
+      "bg": "#1a1a2e"
+    },
+    "fonts": {
+      "display": "font-be-vietnam",
+      "body": "font-inter"
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 32
+    },
+    "radii": {
+      "sm": 0.125,
+      "md": 0.25,
+      "lg": 0.5
+    },
+    "motion": {
+      "fast": 0.15,
+      "normal": 0.3,
+      "slow": 0.6
+    }
   },
   "variables": [
     {
       "id": "var-company",
       "name": "Company name",
       "type": "string",
-      "semantic": { "role": "company-name" },
+      "semantic": {
+        "role": "company-name"
+      },
       "value": "MotiClip"
     },
     {
@@ -104,7 +146,11 @@
       "name": "Theme",
       "type": "enum",
       "value": "dark",
-      "options": ["light", "dark", "auto"]
+      "options": [
+        "light",
+        "dark",
+        "auto"
+      ]
     },
     {
       "id": "var-data-rows",
@@ -113,13 +159,23 @@
       "itemSchema": {
         "type": "object",
         "fields": {
-          "label": { "type": "string" },
-          "value": { "type": "number" }
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number"
+          }
         }
       },
       "value": [
-        { "label": "Users", "value": 1.2 },
-        { "label": "Revenue", "value": 4.5 }
+        {
+          "label": "Users",
+          "value": 1.2
+        },
+        {
+          "label": "Revenue",
+          "value": 4.5
+        }
       ]
     }
   ],
@@ -182,7 +238,10 @@
       "family": "Be Vietnam Pro",
       "weight": 700,
       "style": "normal",
-      "localeCoverage": ["vi", "en"]
+      "localeCoverage": [
+        "vi",
+        "en"
+      ]
     }
   ],
   "components": [
@@ -219,7 +278,11 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "width": 600, "height": 80, "color": "#000000" }
+          "payload": {
+            "width": 600,
+            "height": 80,
+            "color": "#000000"
+          }
         }
       ],
       "bindings": [],
@@ -231,7 +294,10 @@
             {
               "id": "clip-fade",
               "targetId": "lt-bg",
-              "schedule": { "kind": "absolute", "at": 0 },
+              "schedule": {
+                "kind": "absolute",
+                "at": 0
+              },
               "duration": 0.3,
               "playback": {},
               "source": {
@@ -241,8 +307,15 @@
                     "targetId": "lt-bg",
                     "property": "transform.opacity",
                     "keys": [
-                      { "t": 0, "v": 0, "easing": "easeOut" },
-                      { "t": 0.3, "v": 0.9 }
+                      {
+                        "t": 0,
+                        "v": 0,
+                        "easing": "easeOut"
+                      },
+                      {
+                        "t": 0.3,
+                        "v": 0.9
+                      }
                     ]
                   }
                 ]
@@ -255,7 +328,9 @@
         {
           "id": "compact",
           "name": "Compact lower third",
-          "params": { "height": 60 }
+          "params": {
+            "height": 60
+          }
         }
       ],
       "publicTargets": [
@@ -267,7 +342,9 @@
           "description": "The background color of the lower third bar"
         }
       ],
-      "assetDependencies": ["asset-font-display"]
+      "assetDependencies": [
+        "asset-font-display"
+      ]
     }
   ],
   "scenes": [
@@ -275,13 +352,25 @@
       "id": "scene-intro",
       "name": "Intro",
       "duration": 5,
-      "semantic": { "role": "intro" },
+      "semantic": {
+        "role": "intro"
+      },
       "space": "layered-2.5d",
       "markers": [
-        { "id": "marker-start", "t": 0 },
-        { "id": "marker-mid", "t": 2.5 }
+        {
+          "id": "marker-start",
+          "t": 0
+        },
+        {
+          "id": "marker-mid",
+          "t": 2.5
+        }
       ],
-      "motionBlur": { "enabled": true, "shutterAngle": 180, "sampleCount": 8 },
+      "motionBlur": {
+        "enabled": true,
+        "shutterAngle": 180,
+        "sampleCount": 8
+      },
       "drivers": [
         {
           "id": "driver-noise",
@@ -315,13 +404,18 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "compositing": { "mode": "isolate" } },
+          "payload": {
+            "compositing": {
+              "mode": "isolate"
+            }
+          },
           "blendMode": "normal"
         },
         {
           "id": "node-title",
           "type": "text",
           "parentId": "node-group",
+          "zIndex": 0,
           "transform": {
             "x": 0,
             "y": 0,
@@ -338,7 +432,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Hello MotiClip V3" },
+            "content": {
+              "kind": "plain",
+              "text": "Hello MotiClip V3"
+            },
             "fontAssetId": "asset-font-display",
             "fontSize": 64,
             "color": "#ffffff",
@@ -354,6 +451,7 @@
           "id": "node-shape",
           "type": "shape",
           "parentId": "node-group",
+          "zIndex": 1,
           "transform": {
             "x": 0,
             "y": 80,
@@ -369,13 +467,19 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "shape": "rectangle", "cornerRadius": 2 },
-          "style": { "fill": "#ff6b35" }
+          "payload": {
+            "shape": "rectangle",
+            "cornerRadius": 2
+          },
+          "style": {
+            "fill": "#ff6b35"
+          }
         },
         {
           "id": "node-logo",
           "type": "image",
           "parentId": null,
+          "zIndex": 1,
           "transform": {
             "x": 960,
             "y": 600,
@@ -391,7 +495,10 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "assetId": "asset-logo", "fit": "contain" },
+          "payload": {
+            "assetId": "asset-logo",
+            "fit": "contain"
+          },
           "mask": {
             "sourceNodeId": "node-shape",
             "mode": "alpha",
@@ -402,6 +509,7 @@
           "id": "node-bone",
           "type": "bone",
           "parentId": "node-group",
+          "zIndex": 2,
           "transform": {
             "x": 0,
             "y": 0,
@@ -420,13 +528,17 @@
           "payload": {
             "length": 100,
             "restRotation": 0,
-            "rotationLimits": { "min": -45, "max": 45 }
+            "rotationLimits": {
+              "min": -45,
+              "max": 45
+            }
           }
         },
         {
           "id": "node-cam",
           "type": "camera",
           "parentId": null,
+          "zIndex": 2,
           "transform": {
             "x": 0,
             "y": 0,
@@ -453,7 +565,10 @@
         {
           "id": "clip-title-fade",
           "targetId": "node-title",
-          "schedule": { "kind": "absolute", "at": 0 },
+          "schedule": {
+            "kind": "absolute",
+            "at": 0
+          },
           "duration": 1,
           "playback": {},
           "source": {
@@ -463,8 +578,15 @@
                 "targetId": "node-title",
                 "property": "transform.opacity",
                 "keys": [
-                  { "t": 0, "v": 0, "easing": "easeOut" },
-                  { "t": 1, "v": 1 }
+                  {
+                    "t": 0,
+                    "v": 0,
+                    "easing": "easeOut"
+                  },
+                  {
+                    "t": 1,
+                    "v": 1
+                  }
                 ]
               }
             ]
@@ -473,13 +595,20 @@
         {
           "id": "clip-preset-bounce",
           "targetId": "node-logo",
-          "schedule": { "kind": "absolute", "at": 0.5 },
+          "schedule": {
+            "kind": "absolute",
+            "at": 0.5
+          },
           "duration": 0.6,
-          "playback": { "iterations": 2 },
+          "playback": {
+            "iterations": 2
+          },
           "source": {
             "kind": "preset",
             "presetId": "bounce-in",
-            "params": { "intensity": 0.8 }
+            "params": {
+              "intensity": 0.8
+            }
           }
         }
       ],
@@ -495,6 +624,7 @@
           "id": "node-path",
           "type": "path",
           "parentId": null,
+          "zIndex": 0,
           "transform": {
             "x": 100,
             "y": 200,
@@ -514,26 +644,48 @@
             "contours": [
               {
                 "id": "contour-1",
-                "start": { "x": 0, "y": 0 },
+                "start": {
+                  "x": 0,
+                  "y": 0
+                },
                 "closed": false,
                 "segments": [
-                  { "kind": "line", "to": { "x": 100, "y": 50 } },
+                  {
+                    "kind": "line",
+                    "to": {
+                      "x": 100,
+                      "y": 50
+                    }
+                  },
                   {
                     "kind": "cubic",
-                    "to": { "x": 200, "y": 50 },
-                    "control1": { "x": 130, "y": 0 },
-                    "control2": { "x": 170, "y": 100 }
+                    "to": {
+                      "x": 200,
+                      "y": 50
+                    },
+                    "control1": {
+                      "x": 130,
+                      "y": 0
+                    },
+                    "control2": {
+                      "x": 170,
+                      "y": 100
+                    }
                   }
                 ]
               }
             ]
           },
-          "style": { "stroke": "#ff6b35", "strokeWidth": 3 }
+          "style": {
+            "stroke": "#ff6b35",
+            "strokeWidth": 3
+          }
         },
         {
           "id": "node-adjustment",
           "type": "adjustment",
           "parentId": null,
+          "zIndex": 1,
           "transform": {
             "x": 0,
             "y": 0,
@@ -549,7 +701,10 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "brightness": 0.1, "contrast": 1.1 }
+          "payload": {
+            "brightness": 0.1,
+            "contrast": 1.1
+          }
         }
       ],
       "clips": []
@@ -564,6 +719,7 @@
           "id": "node-video-bg",
           "type": "video",
           "parentId": null,
+          "zIndex": 0,
           "transform": {
             "x": 0,
             "y": 0,
@@ -590,6 +746,7 @@
           "id": "node-svg-icon",
           "type": "svg",
           "parentId": null,
+          "zIndex": 1,
           "transform": {
             "x": 960,
             "y": 540,
@@ -605,7 +762,9 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "assetId": "asset-icon" }
+          "payload": {
+            "assetId": "asset-icon"
+          }
         }
       ],
       "clips": []
@@ -643,30 +802,38 @@
   ],
   "timeline": {
     "duration": 18,
-    "workArea": { "start": 0, "end": 18 },
-    "markers": [{ "id": "marker-project-start", "t": 0 }],
+    "workArea": {
+      "start": 0,
+      "end": 18
+    },
+    "markers": [
+      {
+        "id": "marker-project-start",
+        "t": 0
+      }
+    ],
     "visualTracks": [
       {
         "id": "track-main",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "clip-intro",
-            "source": { "kind": "scene", "sceneId": "scene-intro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-intro"
+            },
             "start": 0,
             "duration": 5,
             "opacity": 1,
-            "loop": false,
-            "transitionOut": {
-              "type": "crossfade",
-              "duration": 0.5,
-              "easing": "easeInOut"
-            }
+            "loop": false
           },
           {
             "id": "clip-video",
-            "source": { "kind": "scene", "sceneId": "scene-video" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-video"
+            },
             "start": 5,
             "duration": 10,
             "opacity": 1,
@@ -675,27 +842,28 @@
           },
           {
             "id": "clip-outro",
-            "source": { "kind": "scene", "sceneId": "scene-outro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-outro"
+            },
             "start": 15,
             "duration": 3,
             "opacity": 0.95,
-            "loop": false,
-            "transitionIn": {
-              "type": "fade",
-              "duration": 0.3
-            }
+            "loop": false
           }
         ]
       },
       {
         "id": "track-overlay",
-        "role": "overlay",
         "order": 1,
         "muted": false,
         "clips": [
           {
             "id": "clip-component-overlay",
-            "source": { "kind": "scene", "sceneId": "scene-lower-third" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-lower-third"
+            },
             "start": 1,
             "duration": 4,
             "opacity": 0.9,
@@ -707,17 +875,21 @@
     "audioTracks": [
       {
         "id": "track-bgm",
-        "role": "bgm",
-        "assetId": "asset-bgm",
-        "start": 0,
-        "duration": 18,
-        "trimStart": 0,
-        "playbackRate": 1,
-        "volume": 0.7,
-        "loop": false,
-        "fadeIn": 1,
-        "fadeOut": 2,
-        "muted": false
+        "clips": [
+          {
+            "id": "track-bgm-clip",
+            "assetId": "asset-bgm",
+            "start": 0,
+            "duration": 18,
+            "trimStart": 0,
+            "playbackRate": 1,
+            "volume": 0.7,
+            "loop": false,
+            "fadeIn": 1,
+            "fadeOut": 2,
+            "muted": false
+          }
+        ]
       }
     ],
     "captionTracks": [
@@ -725,8 +897,18 @@
         "id": "caption-vi",
         "locale": "vi-VN",
         "tokens": [
-          { "id": "tok-1", "text": "Xin chào", "start": 0, "end": 1.5 },
-          { "id": "tok-2", "text": "MotiClip V3", "start": 1.6, "end": 3 }
+          {
+            "id": "tok-1",
+            "text": "Xin chào",
+            "start": 0,
+            "end": 1.5
+          },
+          {
+            "id": "tok-2",
+            "text": "MotiClip V3",
+            "start": 1.6,
+            "end": 3
+          }
         ],
         "style": {
           "fontSize": 48,
@@ -734,7 +916,9 @@
           "safeArea": "tiktok",
           "position": "bottom"
         },
-        "animation": { "presetId": "word-pop" },
+        "animation": {
+          "presetId": "word-pop"
+        },
         "audioTrackId": "track-bgm"
       }
     ]
@@ -742,7 +926,10 @@
   "bindings": [
     {
       "id": "binding-company-name",
-      "source": { "kind": "variable", "variableId": "var-company" },
+      "source": {
+        "kind": "variable",
+        "variableId": "var-company"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "scene-intro",
@@ -752,7 +939,10 @@
     },
     {
       "id": "binding-opacity",
-      "source": { "kind": "variable", "variableId": "var-title-opacity" },
+      "source": {
+        "kind": "variable",
+        "variableId": "var-title-opacity"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "scene-intro",
@@ -762,7 +952,10 @@
     },
     {
       "id": "binding-component",
-      "source": { "kind": "variable", "variableId": "var-brand-color" },
+      "source": {
+        "kind": "variable",
+        "variableId": "var-brand-color"
+      },
       "target": {
         "kind": "componentNode",
         "sceneId": "scene-lower-third",
@@ -776,14 +969,29 @@
     "sourceHash": "abc123def456",
     "bundleProfile": "embedded-components",
     "sourceMap": {
-      "scenes": { "scene-intro": "src/scenes/intro.json" },
-      "components": { "lower-third": "src/components/lower-third.json" },
-      "variables": { "var-company": "src/variables.json" },
-      "assets": { "asset-logo": "assets/logo.png" }
+      "scenes": {
+        "scene-intro": "src/scenes/intro.json"
+      },
+      "components": {
+        "lower-third": "src/components/lower-third.json"
+      },
+      "variables": {
+        "var-company": "src/variables.json"
+      },
+      "assets": {
+        "asset-logo": "assets/logo.png"
+      }
     }
   },
   "extensions": {
-    "com.moticlip.constraints": [{ "maxDuration": 30 }],
-    "com.moticlip.ai-hints": { "tone": "professional", "pace": "fast" }
+    "com.moticlip.constraints": [
+      {
+        "maxDuration": 30
+      }
+    ],
+    "com.moticlip.ai-hints": {
+      "tone": "professional",
+      "pace": "fast"
+    }
   }
 }

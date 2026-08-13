@@ -1,7 +1,8 @@
 /**
  * AudioRenderPlan — shared audio timing for Pixi Web Audio and Remotion adapters.
  *
- * §Phase 7 Tasks 7.1, 7.3 in core-engine-tasks.md
+ * Per-clip fadeIn/fadeOut are DSP envelopes on that clip only — never inferred
+ * crossfades between neighboring clips.
  */
 
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
@@ -15,8 +16,9 @@ export type AudioVolumeKeyframe = {
 export type AudioChannelPolicy = "stereo" | "mono" | "left-only" | "right-only";
 
 export type AudioRenderClip = {
-  /** Runtime audio track id (stable clip identity). */
+  /** Runtime audio track id + clip id (stable identity). */
   trackId: string;
+  clipId: string;
   assetId: string;
   uri: string;
   fromFrame: number;
@@ -28,7 +30,6 @@ export type AudioRenderClip = {
   assetDurationSeconds: number;
   playbackRate: number;
   volumeEnvelope: AudioVolumeKeyframe[];
-  role: "bgm" | "voiceover" | "sfx";
   loop: boolean;
   muted: boolean;
   /** Optional loop window (start/end in source seconds). */
@@ -49,10 +50,10 @@ export type BuildAudioRenderPlanInput = {
   /** Composition duration (frames); used only for fade clamp context. */
   durationInFrames: number;
   /**
-   * Optional override rate per track id (tests / debug). Defaults to the
-   * track's own `playbackRate`.
+   * Optional override rate per clip id (tests / debug). Defaults to the
+   * clip's own `playbackRate`.
    */
-  playbackRateByTrackId?: Record<string, number>;
+  playbackRateByClipId?: Record<string, number>;
 };
 
 /** Resolved asset metadata from the runtime asset registry. */
@@ -124,10 +125,8 @@ function buildVolumeEnvelope(input: {
 
 /**
  * Build a deterministic {@link AudioRenderPlan} from Runtime IR audio tracks.
- * Does not decode media — only timing / gain / trim / rate for adapters.
- *
- * Timeline track fields are the source of truth: `start`, `duration`,
- * `playbackRate`, and `muted`. Asset length only informs trim/loop windows.
+ * Overlapping clips (same or different tracks) each get their own envelope
+ * and are mixed by the adapter.
  */
 export function buildAudioRenderPlan(
   input: BuildAudioRenderPlanInput,
@@ -136,56 +135,56 @@ export function buildAudioRenderPlan(
   const clips: AudioRenderClip[] = [];
 
   for (const track of input.runtime.timeline.audioTracks) {
-    const asset = resolveAsset(input.runtime, track.assetId);
-    if (!asset) continue;
+    const trackMuted = track.muted ?? false;
+    for (const clip of track.clips) {
+      const asset = resolveAsset(input.runtime, clip.assetId);
+      if (!asset) continue;
 
-    const playbackRate = Math.max(
-      0.01,
-      input.playbackRateByTrackId?.[track.id] ?? track.playbackRate ?? 1,
-    );
-    const fromFrame = Math.max(0, Math.round(track.start * fps));
-    // Track duration is the composition window SoT — do not stretch to asset.
-    const durationInFrames = Math.max(0, Math.round(track.duration * fps));
-    if (durationInFrames <= 0) continue;
+      const playbackRate = Math.max(
+        0.01,
+        input.playbackRateByClipId?.[clip.id] ?? clip.playbackRate ?? 1,
+      );
+      const fromFrame = Math.max(0, Math.round(clip.start * fps));
+      const durationInFrames = Math.max(0, Math.round(clip.duration * fps));
+      if (durationInFrames <= 0) continue;
 
-    const muted = track.muted ?? false;
-    const volume = muted ? 0 : (track.volume ?? 1);
+      const muted = trackMuted || (clip.muted ?? false);
+      const volume = muted ? 0 : (clip.volume ?? 1);
 
-    // Resolve channel policy from track or default to stereo
-    const channelPolicy: AudioChannelPolicy =
-      (track as { channelPolicy?: AudioChannelPolicy }).channelPolicy ??
-      "stereo";
+      const channelPolicy: AudioChannelPolicy =
+        (clip as { channelPolicy?: AudioChannelPolicy }).channelPolicy ??
+        "stereo";
 
-    // Resolve loop window from track (if loop is enabled)
-    const loopWindowStart = (track as { loopWindowStart?: number })
-      .loopWindowStart;
-    const loopWindowEnd = (track as { loopWindowEnd?: number }).loopWindowEnd;
+      const loopWindowStart = (clip as { loopWindowStart?: number })
+        .loopWindowStart;
+      const loopWindowEnd = (clip as { loopWindowEnd?: number }).loopWindowEnd;
 
-    clips.push({
-      trackId: track.id,
-      assetId: track.assetId,
-      uri: asset.uri,
-      fromFrame,
-      durationInFrames,
-      trimStartSeconds: track.trimStart ?? 0,
-      trimEndSeconds: track.trimEnd ?? asset.duration,
-      assetDurationSeconds: asset.duration,
-      playbackRate,
-      volumeEnvelope: buildVolumeEnvelope({
-        startFrame: fromFrame,
+      clips.push({
+        trackId: track.id,
+        clipId: clip.id,
+        assetId: clip.assetId,
+        uri: asset.uri,
+        fromFrame,
         durationInFrames,
-        volume,
-        fadeInSeconds: muted ? 0 : (track.fadeIn ?? 0),
-        fadeOutSeconds: muted ? 0 : (track.fadeOut ?? 0),
-        fps,
-      }),
-      role: track.role,
-      loop: track.loop ?? false,
-      muted,
-      loopWindowStartSeconds: loopWindowStart,
-      loopWindowEndSeconds: loopWindowEnd,
-      channelPolicy,
-    });
+        trimStartSeconds: clip.trimStart ?? 0,
+        trimEndSeconds: clip.trimEnd ?? asset.duration,
+        assetDurationSeconds: asset.duration,
+        playbackRate,
+        volumeEnvelope: buildVolumeEnvelope({
+          startFrame: fromFrame,
+          durationInFrames,
+          volume,
+          fadeInSeconds: muted ? 0 : (clip.fadeIn ?? 0),
+          fadeOutSeconds: muted ? 0 : (clip.fadeOut ?? 0),
+          fps,
+        }),
+        loop: clip.loop ?? false,
+        muted,
+        loopWindowStartSeconds: loopWindowStart,
+        loopWindowEndSeconds: loopWindowEnd,
+        channelPolicy,
+      });
+    }
   }
 
   return { fps, clips };
@@ -203,41 +202,4 @@ export function sampleAudioVolumeAtFrame(
     value = key.value;
   }
   return value;
-}
-
-/**
- * Sample volume envelope at a composition frame with linear interpolation
- * between adjacent keyframes.
- *
- * §Phase 7 Task 7.3: Continuous fade, not step/hold.
- */
-export function sampleAudioVolumeLinear(
-  envelope: AudioVolumeKeyframe[],
-  frame: number,
-): number {
-  if (envelope.length === 0) return 0;
-  if (envelope.length === 1) return envelope[0]!.value;
-
-  // Find the segment [i, i+1] that contains `frame`
-  for (let i = 0; i < envelope.length - 1; i++) {
-    const a = envelope[i]!;
-    const b = envelope[i + 1]!;
-
-    if (frame < a.frame) continue;
-    if (frame >= b.frame) continue;
-
-    // Linear interpolation between a and b
-    const span = b.frame - a.frame;
-    if (span <= 0) return b.value;
-    const t = (frame - a.frame) / span;
-    return a.value + (b.value - a.value) * t;
-  }
-
-  // After last keyframe: clamp to last value
-  if (frame >= envelope[envelope.length - 1]!.frame) {
-    return envelope[envelope.length - 1]!.value;
-  }
-
-  // Before first keyframe: clamp to first value
-  return envelope[0]!.value;
 }

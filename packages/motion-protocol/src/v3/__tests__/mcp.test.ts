@@ -303,7 +303,6 @@ describe("V3 MCP contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -313,8 +312,7 @@ describe("V3 MCP contract", () => {
                 start: 0,
                 duration: 3,
                 loop: false,
-                opacity: 1,
-                transitionOut: { type: "fade", duration: 0.5 },
+                opacity: 1,
               },
               {
                 id: "c2",
@@ -330,17 +328,21 @@ describe("V3 MCP contract", () => {
         audioTracks: [
           {
             id: "bgm",
-            role: "bgm",
-            assetId: "music-1",
-            start: 0,
-            duration: 5,
-            volume: 0.8,
-            trimStart: 0,
-            playbackRate: 1,
-            fadeIn: 0,
-            fadeOut: 0,
-            loop: true,
-            muted: false,
+            clips: [
+              {
+                id: "bgm-clip",
+                assetId: "music-1",
+                start: 0,
+                duration: 5,
+                volume: 0.8,
+                trimStart: 0,
+                playbackRate: 1,
+                fadeIn: 0,
+                fadeOut: 0,
+                loop: true,
+                muted: false,
+              },
+            ],
           },
         ],
         captionTracks: [
@@ -368,9 +370,9 @@ describe("V3 MCP contract", () => {
     expect(result.trackCount).toBe(1);
     expect(result.totalClipCount).toBe(2);
     expect(result.totalDuration).toBe(5);
-    expect(result.tracks[0]!.clips[0]!.transitionOut).toBe("fade");
+    expect(result.tracks[0]!.order).toBe(0);
     expect(result.audioTracks).toHaveLength(1);
-    expect(result.audioTracks[0]!.role).toBe("bgm");
+    expect(result.audioTracks[0]!.clips[0]!.assetId).toBe("music-1");
     expect(result.captionTracks).toHaveLength(1);
     expect(result.captionTracks[0]!.tokenCount).toBe(2);
     expect(result.captionTracks[0]!.firstToken).toBe("Hello");
@@ -388,7 +390,6 @@ describe("V3 MCP contract", () => {
         visualTracks: [
           {
             id: "main",
-            role: "main",
             order: 0,
             muted: false,
             clips: [
@@ -404,7 +405,6 @@ describe("V3 MCP contract", () => {
           },
           {
             id: "overlay",
-            role: "overlay",
             order: 1,
             muted: false,
             clips: [
@@ -424,7 +424,7 @@ describe("V3 MCP contract", () => {
     const result = inspectTimeline(project, "overlay");
     expect(result.trackCount).toBe(1);
     expect(result.tracks[0]!.id).toBe("overlay");
-    expect(result.tracks[0]!.role).toBe("overlay");
+    expect(result.tracks[0]!.order).toBe(1);
   });
 
   // ── explainDiagnostics ────────────────────────────────────────────

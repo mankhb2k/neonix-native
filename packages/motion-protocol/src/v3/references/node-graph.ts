@@ -1,6 +1,7 @@
 /**
  * V3 node-graph validation: duplicate ids, parent refs, mask sources,
- * self-parent, cycles, depth, and group-only children.
+ * self-parent, cycles, depth, group-only children, and unique zIndex
+ * per parent (sibling stack order must be deterministic).
  */
 import type { NodeV3 } from "../nodes";
 import { duplicates } from "./helpers";
@@ -73,11 +74,54 @@ export function validateNodeGraphV3(
     }
   }
 
+  // ── Unique zIndex among siblings (same parentId) ─────────────────
+  issues.push(...checkUniqueZIndexPerParent(nodes, prefix));
+
   // ── Cycle detection ────────────────────────────────────────────────
   issues.push(...detectCycles(nodes, byId, prefix));
 
   // ── Hierarchy depth ────────────────────────────────────────────────
   issues.push(...checkHierarchyDepth(nodes, byId, prefix));
+
+  return issues;
+}
+
+/**
+ * Render order among siblings must be deterministic: within the same
+ * `parentId` (including root `null`), `zIndex` values must be unique.
+ * Nodes under different parents may share the same zIndex.
+ */
+function checkUniqueZIndexPerParent(
+  nodes: NodeV3[],
+  prefix: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  const byParent = new Map<string, NodeV3[]>();
+
+  for (const node of nodes) {
+    const key = node.parentId ?? "$root";
+    const list = byParent.get(key);
+    if (list) list.push(node);
+    else byParent.set(key, [node]);
+  }
+
+  for (const siblings of byParent.values()) {
+    const seen = new Map<number, string>();
+    for (const node of siblings) {
+      // Optional zIndex defaults to 0 for stack-order uniqueness (matches
+      // common authoring omission → explicit sibling order required).
+      const z = node.zIndex ?? 0;
+      const prev = seen.get(z);
+      if (prev !== undefined) {
+        issues.push({
+          path: `${prefix}.${node.id}.zIndex`,
+          message: `Duplicate zIndex ${z} among siblings of parent ${node.parentId ?? "null"} (also used by "${prev}")`,
+        });
+      } else {
+        seen.set(z, node.id);
+      }
+    }
+  }
 
   return issues;
 }

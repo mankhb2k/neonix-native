@@ -98,10 +98,9 @@ export const ProjectMetadataSchema = z
   .strict();
 export type ProjectMetadata = z.infer<typeof ProjectMetadataSchema>;
 
-export const AudioTrackSchema = z
+export const AudioClipSchema = z
   .object({
     id: IdSchema,
-    role: z.enum(["bgm", "voiceover", "sfx"]),
     assetId: IdSchema,
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
@@ -128,9 +127,39 @@ export const AudioTrackSchema = z
       .default(0),
     muted: z.boolean().default(false),
   })
+  .strict()
+  .superRefine((clip, ctx) => {
+    if (clip.trimEnd !== undefined && clip.trimEnd > clip.duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `trimEnd (${clip.trimEnd}) must be ≤ duration (${clip.duration})`,
+        path: ["trimEnd"],
+      });
+    }
+    if (clip.fadeIn + clip.fadeOut > clip.duration) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `fadeIn (${clip.fadeIn}) + fadeOut (${clip.fadeOut}) must be ≤ duration (${clip.duration})`,
+        path: ["fadeIn"],
+      });
+    }
+  });
+export type AudioClip = z.infer<typeof AudioClipSchema>;
+
+export const AudioTrackSchema = z
+  .object({
+    id: IdSchema,
+    order: FiniteNumberSchema.int().nonnegative().optional(),
+    muted: z.boolean().default(false),
+    clips: z
+      .array(AudioClipSchema)
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.clipsPerScene),
+  })
   .strict();
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
 
+/** @deprecated Timeline transitions removed — kept only if legacy IR still references types. */
 export const SceneTransitionSchema = z.discriminatedUnion("type", [
   z
     .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
@@ -283,20 +312,16 @@ export type RuntimeCompositionMetadata = z.infer<
 >;
 
 /**
- * Source of a runtime visual clip.
- *
- * Scenes are the runtime unit; components are resolved into synthesized
- * scenes at compile time but the component variant is kept so tooling can
- * still identify the origin without consulting `sourceRef`.
+ * Source of a runtime visual clip — scene or component (AE layer stack).
  */
-export const RuntimeClipSourceSchema = z
-  .object({ kind: z.literal("scene"), sceneId: IdSchema })
-  .strict();
+export const RuntimeClipSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("scene"), sceneId: IdSchema }).strict(),
+  z.object({ kind: z.literal("component"), componentId: IdSchema }).strict(),
+]);
 export type RuntimeClipSource = z.infer<typeof RuntimeClipSourceSchema>;
 
 /**
- * A runtime visual clip: an instantiation of a runtime scene on a visual
- * track, with timeline placement and optional playback trimming.
+ * A runtime visual clip: occupancy on a visual track + source to render.
  */
 export const RuntimeVisualClipSchema = z
   .object({
@@ -314,20 +339,17 @@ export const RuntimeVisualClipSchema = z
     playbackRate: FiniteNumberSchema.positive().max(16).optional(),
     loop: z.boolean().optional(),
     opacity: FiniteNumberSchema.min(0).max(1).optional(),
-    transitionIn: SceneTransitionSchema.optional(),
-    transitionOut: SceneTransitionSchema.optional(),
   })
   .strict();
 export type RuntimeVisualClip = z.infer<typeof RuntimeVisualClipSchema>;
 
 /**
- * A runtime visual track: an ordered list of visual clips.
+ * A runtime visual track: time-exclusive lane; `order` is stacking order.
  */
 export const RuntimeVisualTrackSchema = z
   .object({
     id: IdSchema,
-    role: z.enum(["primary", "overlay", "background"]),
-    order: FiniteNumberSchema.int().nonnegative().optional(),
+    order: FiniteNumberSchema.int().nonnegative(),
     muted: z.boolean().optional(),
     clips: z
       .array(RuntimeVisualClipSchema)
@@ -461,12 +483,19 @@ export const MotionRuntimeProjectSchema =
         audioIndex += 1
       ) {
         const audio = runtime.timeline.audioTracks[audioIndex]!;
-        if (audio.start + audio.duration > timelineDuration) {
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["timeline", "audioTracks", audioIndex],
-            message: `Runtime audio track "${audio.id}" ends at ${audio.start + audio.duration} beyond timeline.duration (${timelineDuration})`,
-          });
+        for (
+          let clipIndex = 0;
+          clipIndex < audio.clips.length;
+          clipIndex += 1
+        ) {
+          const clip = audio.clips[clipIndex]!;
+          if (clip.start + clip.duration > timelineDuration) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["timeline", "audioTracks", audioIndex, "clips", clipIndex],
+              message: `Runtime audio clip "${clip.id}" ends at ${clip.start + clip.duration} beyond timeline.duration (${timelineDuration})`,
+            });
+          }
         }
       }
       for (

@@ -70,7 +70,7 @@ describe("needsNormalization", () => {
     ).toBe(false);
   });
 
-  it("returns true when a visual clip uses a component source", () => {
+  it("returns false when a visual clip uses a plain component source", () => {
     expect(
       needsNormalization({
         timeline: {
@@ -87,7 +87,7 @@ describe("needsNormalization", () => {
           ],
         },
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it("returns false when visual clips are scene-only", () => {
@@ -374,7 +374,6 @@ describe("normalizeMotionProjectV3 — component clips", () => {
     timeline: {
       visualTracks: Array<{
         id: string;
-        role: string;
         order: number;
         muted: boolean;
         clips: LegacyClip[];
@@ -392,7 +391,6 @@ describe("normalizeMotionProjectV3 — component clips", () => {
       visualTracks: [
         {
           id: "main-track",
-          role: "main",
           order: 0,
           muted: false,
           clips: [

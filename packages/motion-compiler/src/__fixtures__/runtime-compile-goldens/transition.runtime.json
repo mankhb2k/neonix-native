@@ -11,7 +11,7 @@
     "brand": {
       "name": "Transition"
     },
-    "description": "Two scenes with a fade transition between them"
+    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)"
   },
   "assets": [],
   "composition": {
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "661b4f16c84e4d2a4b23ae3e8a38a934",
+  "runtimeHash": "1e85557a477327dd11cd46b60d3abdb0",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -36,7 +36,6 @@
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "primary",
         "order": 0,
         "clips": [
           {
@@ -46,13 +45,7 @@
               "sceneId": "intro"
             },
             "start": 0,
-            "duration": 3,
-            "transitionOut": {
-              "type": "fade",
-              "duration": 0.5,
-              "color": "#000000",
-              "easing": "easeInOut"
-            }
+            "duration": 3
           },
           {
             "id": "clip-outro",

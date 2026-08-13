@@ -6,7 +6,10 @@
     "name": "V3 Representative",
     "description": "Covers scene, visual track, audio, captions, tokens, variables",
     "locale": "vi-VN",
-    "tags": ["demo", "v3"]
+    "tags": [
+      "demo",
+      "v3"
+    ]
   },
   "composition": {
     "width": 1080,
@@ -15,15 +18,32 @@
     "background": "#ffffff",
     "colorSpace": "srgb",
     "audioSampleRate": 48000,
-    "safeArea": { "top": 0.1, "right": 0.05, "bottom": 0.15, "left": 0.05 },
-    "motionBlur": { "samples": 8, "shutterAngle": 180, "shutterPhase": 0 }
+    "safeArea": {
+      "top": 0.1,
+      "right": 0.05,
+      "bottom": 0.15,
+      "left": 0.05
+    },
+    "motionBlur": {
+      "samples": 8,
+      "shutterAngle": 180,
+      "shutterPhase": 0
+    }
   },
   "capabilities": {
-    "required": ["primitive.group", "primitive.text", "primitive.image"],
-    "optional": ["effect.blur"]
+    "required": [
+      "primitive.group",
+      "primitive.text",
+      "primitive.image"
+    ],
+    "optional": [
+      "effect.blur"
+    ]
   },
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": [
       {
         "componentId": "logo-reveal",
@@ -33,9 +53,16 @@
     ]
   },
   "tokens": {
-    "colors": { "brand": "#1877f2", "accent": "#ff5722" },
-    "fonts": { "display": "font-inter" },
-    "spacing": { "unit": 8 }
+    "colors": {
+      "brand": "#1877f2",
+      "accent": "#ff5722"
+    },
+    "fonts": {
+      "display": "font-inter"
+    },
+    "spacing": {
+      "unit": 8
+    }
   },
   "variables": [
     {
@@ -130,7 +157,11 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "width": 256, "height": 256, "color": "#1877f2" }
+          "payload": {
+            "width": 256,
+            "height": 256,
+            "color": "#1877f2"
+          }
         }
       ],
       "bindings": [],
@@ -164,7 +195,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Hello MotiClip" },
+            "content": {
+              "kind": "plain",
+              "text": "Hello MotiClip"
+            },
             "fontSize": 64,
             "color": "#111111",
             "alignment": "center"
@@ -190,7 +224,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Powered by V3" },
+            "content": {
+              "kind": "plain",
+              "text": "Powered by V3"
+            },
             "fontSize": 40,
             "color": "#555555",
             "alignment": "center"
@@ -215,7 +252,10 @@
             "flipX": false,
             "flipY": false
           },
-          "payload": { "assetId": "logo-png", "fit": "contain" }
+          "payload": {
+            "assetId": "logo-png",
+            "fit": "contain"
+          }
         },
         {
           "id": "cam",
@@ -246,7 +286,10 @@
         {
           "id": "title-fade-in",
           "targetId": "title",
-          "schedule": { "kind": "absolute", "at": 0 },
+          "schedule": {
+            "kind": "absolute",
+            "at": 0
+          },
           "duration": 1,
           "playback": {},
           "source": {
@@ -256,8 +299,15 @@
                 "targetId": "title",
                 "property": "transform.opacity",
                 "keys": [
-                  { "t": 0, "v": 0, "easing": "easeOut" },
-                  { "t": 1, "v": 1 }
+                  {
+                    "t": 0,
+                    "v": 0,
+                    "easing": "easeOut"
+                  },
+                  {
+                    "t": 1,
+                    "v": 1
+                  }
                 ]
               }
             ]
@@ -292,7 +342,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Thanks for watching" },
+            "content": {
+              "kind": "plain",
+              "text": "Thanks for watching"
+            },
             "fontSize": 48,
             "color": "#111111",
             "alignment": "center"
@@ -304,30 +357,32 @@
   ],
   "timeline": {
     "duration": 8,
-    "workArea": { "start": 0, "end": 8 },
+    "workArea": {
+      "start": 0,
+      "end": 8
+    },
     "visualTracks": [
       {
         "id": "main-track",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "clip-intro",
-            "source": { "kind": "scene", "sceneId": "intro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
             "start": 0,
             "duration": 5,
             "opacity": 1,
-            "loop": false,
-            "transitionOut": {
-              "type": "fade",
-              "duration": 0.5,
-              "color": "#000000",
-              "easing": "easeInOut"
-            }
+            "loop": false
           },
           {
             "id": "clip-outro",
-            "source": { "kind": "scene", "sceneId": "outro" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "outro"
+            },
             "start": 5,
             "duration": 3,
             "opacity": 1,
@@ -339,17 +394,21 @@
     "audioTracks": [
       {
         "id": "track-bgm",
-        "role": "bgm",
-        "assetId": "bgm",
-        "start": 0,
-        "duration": 8,
-        "trimStart": 0,
-        "playbackRate": 1,
-        "volume": 0.8,
-        "loop": false,
-        "fadeIn": 0.5,
-        "fadeOut": 1,
-        "muted": false
+        "clips": [
+          {
+            "id": "track-bgm-clip",
+            "assetId": "bgm",
+            "start": 0,
+            "duration": 8,
+            "trimStart": 0,
+            "playbackRate": 1,
+            "volume": 0.8,
+            "loop": false,
+            "fadeIn": 0.5,
+            "fadeOut": 1,
+            "muted": false
+          }
+        ]
       }
     ],
     "captionTracks": [
@@ -376,14 +435,19 @@
           "safeArea": "tiktok",
           "position": "bottom"
         },
-        "animation": { "presetId": "word-pop" }
+        "animation": {
+          "presetId": "word-pop"
+        }
       }
     ]
   },
   "bindings": [
     {
       "id": "binding-founder-name",
-      "source": { "kind": "variable", "variableId": "founder-name" },
+      "source": {
+        "kind": "variable",
+        "variableId": "founder-name"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "intro",
@@ -393,7 +457,10 @@
     },
     {
       "id": "binding-title-opacity",
-      "source": { "kind": "variable", "variableId": "title-opacity" },
+      "source": {
+        "kind": "variable",
+        "variableId": "title-opacity"
+      },
       "target": {
         "kind": "scene",
         "sceneId": "intro",

@@ -217,25 +217,29 @@ export interface MCPInspectTimelineResult extends MCPBaseResult {
   totalClipCount: number;
   tracks: Array<{
     id: string;
-    role: string;
+    order: number;
     clipCount: number;
     clips: Array<{
       id: string;
       source: { kind: string; refId: string };
       start: number;
       duration: number;
-      transitionIn?: string;
-      transitionOut?: string;
       opacity: number;
     }>;
   }>;
   audioTracks: Array<{
     id: string;
-    role: string;
-    assetId: string;
-    start: number;
-    duration: number;
-    volume: number;
+    order?: number;
+    clipCount: number;
+    clips: Array<{
+      id: string;
+      assetId: string;
+      start: number;
+      duration: number;
+      volume: number;
+      fadeIn: number;
+      fadeOut: number;
+    }>;
   }>;
   captionTracks: Array<{
     id: string;
@@ -686,29 +690,36 @@ export function inspectTimeline(
 
   const tracks = visualTracks.map((track) => ({
     id: track.id,
-    role: track.role,
+    order: track.order,
     clipCount: track.clips.length,
     clips: track.clips.map((clip) => ({
       id: clip.id,
       source: {
         kind: clip.source.kind,
-        refId: clip.source.sceneId,
+        refId:
+          clip.source.kind === "scene"
+            ? clip.source.sceneId
+            : clip.source.componentId,
       },
       start: clip.start,
       duration: clip.duration,
-      transitionIn: clip.transitionIn?.type,
-      transitionOut: clip.transitionOut?.type,
       opacity: clip.opacity,
     })),
   }));
 
   const audioTracks = project.timeline.audioTracks.map((track) => ({
     id: track.id,
-    role: track.role,
-    assetId: track.assetId,
-    start: track.start,
-    duration: track.duration,
-    volume: track.volume,
+    order: track.order,
+    clipCount: track.clips.length,
+    clips: track.clips.map((clip) => ({
+      id: clip.id,
+      assetId: clip.assetId,
+      start: clip.start,
+      duration: clip.duration,
+      volume: clip.volume,
+      fadeIn: clip.fadeIn,
+      fadeOut: clip.fadeOut,
+    })),
   }));
 
   const captionTracks = project.timeline.captionTracks.map((track) => {

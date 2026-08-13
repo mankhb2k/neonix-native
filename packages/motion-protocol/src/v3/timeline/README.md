@@ -13,8 +13,8 @@ Timeline V3 mô tả **khi nào** nội dung xuất hiện trên trục thời g
 | Khái niệm              | Vai trò                                                                 |
 | ---------------------- | ----------------------------------------------------------------------- |
 | `timeline.duration`    | Độ dài MP4 cuối cùng (giây) — clock / source of truth                   |
-| `visualTracks`         | Lane hình ảnh (`main` / `overlay`), chứa clip scene                     |
-| `audioTracks`          | Lane âm thanh (`bgm` / `voiceover` / `sfx`)                             |
+| `visualTracks`         | Lane hình ảnh (AE layer stack); `order` unique = stacking               |
+| `audioTracks`          | Lane âm thanh với `clips[]` + fadeIn/fadeOut (DSP)                      |
 | `captionTracks`        | Lane phụ đề                                                             |
 | `workArea` / `markers` | Vùng làm việc và mốc thời gian (editor), vẫn phải nằm trong `duration` |
 
@@ -22,6 +22,7 @@ Timeline V3 mô tả **khi nào** nội dung xuất hiện trên trục thời g
 flowchart TB
     subgraph Project["MotionProjectV3"]
         scenes["scenes[] — nội dung đồ họa"]
+        components["components[] — sealed units"]
         assets["assets[] — media"]
         timeline["timeline — đồng hồ phát"]
     end
@@ -29,12 +30,13 @@ flowchart TB
     subgraph Timeline["ProjectTimelineV3"]
         duration["duration — độ dài MP4"]
         VT["visualTracks"]
-        AT["audioTracks"]
+        AT["audioTracks[].clips"]
         CT["captionTracks"]
     end
 
-    scenes -.->|"clip.source.sceneId"| VT
-    assets -.->|"track.assetId"| AT
+    scenes -.->|"source.scene"| VT
+    components -.->|"source.component"| VT
+    assets -.->|"clip.assetId"| AT
     Project --> Timeline
     Timeline --> duration
     Timeline --> VT
@@ -101,20 +103,69 @@ Mỗi project có đúng một `timeline`:
 
 Compiler / runtime / render **không** được tái dựng `start` bằng cursor. Gap giữa clip là hợp lệ; empty tail (`duration` > content end) cũng hợp lệ.
 
-### 3.2 Scene-only visual clips
+### 3.2 Visual clip source
 
-`VisualClipSourceV3` chỉ cho phép `{ kind: "scene", sceneId }`.
+`VisualClipSourceV3` = `scene | component`.
 
-Component **không** đặt trực tiếp lên timeline. Editor bọc component vào một scene, rồi clip tham chiếu scene đó (xem [v3-component-guide.md](../../../../docs/guide/v3-component-guide.md)).
+- `{ kind: "scene", sceneId }` — scene trong project.
+- `{ kind: "component", componentId }` — component nhúng; compiler synthesize scene wrapper khi emit runtime IR.
 
-### 3.3 Track role
+`kind: "node"` = follow-up (chưa ship).
 
-| Role (authoring) | Role (runtime sau compile) | Ý nghĩa                                      |
-| ---------------- | -------------------------- | -------------------------------------------- |
-| `main`           | `primary`                  | Lane chính; overlap bị siết bởi transition   |
-| `overlay`        | `overlay`                  | Lane phủ; được chồng tự do                   |
+UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **đó không phải field JSON**.
 
-`order` quyết định thứ tự sắp xếp track. Trùng `order` được phép — compiler dùng stable sort (giữ thứ tự mảng gốc khi tie).
+### 3.3 Visual track = AE layer stack
+
+| Field | Rule |
+| --- | --- |
+| `id` | Unique track id |
+| `order` | **Unique** stacking order; thấp render dưới, cao trên |
+| `muted` | Optional |
+| `clips` | Occupancy theo thời gian |
+
+**Lane exclusive (visual):** trong cùng track, clips **không** overlap. Gap là gap thật. Khác track được trùng thời gian.
+
+**Không** có `role`, `transitionIn` / `transitionOut`, boundary, hay suy luận effect từ khoảng cách giữa clips.
+
+Tại thời điểm `t`:
+
+```
+active = clips where start <= t < start + duration
+sort by track.order ascending
+render low → high
+```
+
+Nếu không có layer nào active → empty (background/transparent theo export setting).
+
+### 3.3b Audio ≠ visual
+
+Audio giữ DSP playback primitives trên **clip**:
+
+```ts
+audioTracks: Array<{
+  id: string;
+  order?: number; // optional listing; không bắt unique như visual
+  muted?: boolean;
+  clips: Array<{
+    id: string;
+    assetId: string;
+    start: number;
+    duration: number;
+    volume?: number;   // default 1
+    fadeIn?: number;   // default 0 — 0→volume ở đầu clip
+    fadeOut?: number;  // default 0 — volume→0 ở cuối clip
+    // trimStart, playbackRate, loop, muted…
+  }>;
+}>;
+```
+
+- `fadeIn + fadeOut ≤ duration`.
+- Same-track audio **được overlap** (mix). Không suy luận crossfade giữa hai clip.
+- Muốn “crossfade”: overlap thời gian + `fadeOut` / `fadeIn` trên từng clip (thường hai lane).
+
+### 3.3c Duplicate = editor command
+
+JSON **không** mô tả operation duplicate. Editor tạo clip/node mới (`id` mới), chọn lane/zIndex hợp lệ, rồi ghi state sạch. Chi tiết command: [v3-format-guide.md §14.1](../../../../docs/guide/v3-format-guide.md).
 
 ### 3.4 Composition window vs media local time
 
@@ -135,20 +186,9 @@ Không có visual clip → **compile fail** (`CMP_TIMELINE_VISUAL_EMPTY`). Khôn
 
 ## 4. Thiết kế từng schema
 
-### 4.1 `TransitionV3Schema`
+### 4.1 Không còn TransitionV3 trên timeline
 
-Discriminated union theo `type`:
-
-| `type`       | Field chính                         | Ghi chú                          |
-| ------------ | ----------------------------------- | -------------------------------- |
-| `cut`        | `duration` optional = `0`           | Không bridge overlap             |
-| `fade`       | `duration`, `color?`, `easing?`     | Fade to color                    |
-| `crossfade`  | `duration`, `easing?`               | Thường dùng bridge main overlap  |
-| `slide`      | `duration`, `direction`, `mode`     | `push` / `cover`                 |
-| `wipe`       | `duration`, `direction`, `softness?`|                                  |
-| `zoom`       | `duration`, `direction` (`in`/`out`)|                                  |
-
-**Rule clip**: `transitionIn.duration + transitionOut.duration ≤ clip.duration`.
+Timeline **không** có transition primitive. `TransitionV3Schema` đã gỡ khỏi authoring clip. Hiệu ứng = layer/component trên stack.
 
 ### 4.2 `VisualClipV3Schema`
 
@@ -156,21 +196,20 @@ Discriminated union theo `type`:
 {
   "id": "clip-intro",
   "source": { "kind": "scene", "sceneId": "intro" },
+  // hoặc { "kind": "component", "componentId": "logo-reveal" }
   "start": 0, // absolute global time
-  "duration": 5, // cửa sổ phát trên timeline
-  "trimStart": 0.5, // optional — offset vào scene/media
-  "playbackRate": 1, // optional, phải > 0
+  "duration": 5,
+  "trimStart": 0.5,
+  "playbackRate": 1,
   "loop": false,
-  "opacity": 1,
-  "transitionIn": { "type": "fade", "duration": 0.3 },
-  "transitionOut": { "type": "crossfade", "duration": 0.5 },
+  "opacity": 1
 }
 ```
 
 Thiết kế:
 
-- `.strict()` — từ chối field lạ (ví dụ `instanceTransform` cũ).
-- `superRefine` bắt `playbackRate > 0` và ràng buộc transition vs `duration`.
+- `.strict()` — từ chối field lạ (`role`, `transitionIn`, …).
+- `superRefine` bắt `playbackRate > 0`.
 - Timing media (`trimStart` / `playbackRate` / `loop`) **không** đổi cửa sổ active; chỉ đổi local time khi evaluate.
 
 ### 4.3 `VisualTrackV3Schema`
@@ -237,7 +276,7 @@ timeline/
   schema.ts         — Zod schemas + types
   duration.ts       — derive duration từ content ends
   canonicalize.ts   — điền duration + snap frame-grid
-  validation.ts     — integrity (trùng id, main overlap)
+  validation.ts     — integrity (unique order, lane exclusive, clip ids)
   frame-grid.ts     — snap / isOnGrid / collectFrameGridIssues
   README.md         — tài liệu này
 ```
@@ -265,13 +304,10 @@ Không có nội dung → `0`. Giá trị được `roundTimelineValue` (làm tr
 
 `collectTimelineIntegrityIssues(timeline)`:
 
-1. **Duplicate clip id** trên toàn timeline.
-2. **Main-track overlap**:
-   - `overlap = (prev.start + prev.duration) - cur.start`
-   - Cần transition non-cut bridge (`transitionOut` / `transitionIn`)
-   - **và** `overlap ≤ max(outDur, inDur)`
-
-Overlay được chồng tự do. Trùng `order` được phép.
+1. **Duplicate visual clip id** / **duplicate audio clip id**.
+2. **Unique visual `order`** — reject trùng order giữa tracks.
+3. **Visual lane exclusive** trên mọi track — overlap cùng track → reject (không transition bridge).
+4. Audio overlap trong cùng track **được phép** (mix).
 
 ### 5.3 Frame-grid — `frame-grid.ts`
 
@@ -385,30 +421,30 @@ Sau canonicalize, `duration` đã on-grid →
 
 Sau canonicalize → `timeline.duration = 8` (đã on-grid @ 30fps).
 
-### Crossfade overlap hợp lệ trên main
+### Concurrent scenes = khác `order`
 
 ```jsonc
 {
-  "clips": [
+  "visualTracks": [
     {
-      "id": "a",
-      "source": { "kind": "scene", "sceneId": "intro" },
-      "start": 0,
-      "duration": 3,
-      "transitionOut": { "type": "crossfade", "duration": 1 },
+      "id": "track.base",
+      "order": 0,
+      "clips": [
+        { "id": "a", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 3 }
+      ]
     },
     {
-      "id": "b",
-      "source": { "kind": "scene", "sceneId": "body" },
-      "start": 2, // overlap = 1s ≤ transition 1s
-      "duration": 3,
-      "transitionIn": { "type": "crossfade", "duration": 1 },
-    },
-  ],
+      "id": "track.fx",
+      "order": 1,
+      "clips": [
+        { "id": "fx", "source": { "kind": "component", "componentId": "flash" }, "start": 0, "duration": 3 }
+      ]
+    }
+  ]
 }
 ```
 
-Overlap `2s` với transition chỉ `0.5s` → **reject** integrity.
+Cùng track + overlap thời gian → **reject** integrity.
 
 ### Empty tail
 
@@ -431,11 +467,15 @@ Playhead `t = 9` → không có layer / `resolveTimelineAtTime` = `null`.
 
 1. Timing mới có nằm trên frame-grid sau canonicalize không?
 2. `start` có absolute không — có đang rebuild bằng cursor không?
-3. Main overlap có transition và `overlap ≤ bridge duration` không?
-4. Audio có tôn trọng `track.duration` không?
-5. Visual local time có đi qua trim/rate/loop không?
-6. Empty visual clips có fail rõ ràng (không silent fallback) không?
-7. Empty tail có trả “không scene” thay vì clamp scene cuối không?
+3. Cùng visual lane có overlap không? (phải reject — tách track `order`)
+4. Scene trùng timing đã nằm khác `order` chưa? Visual `order` unique chưa?
+5. Audio tôn trọng clip duration + fadeIn/fadeOut ≤ duration chưa?
+6. Visual local time có đi qua trim/rate/loop không?
+7. Empty visual clips có fail rõ ràng (không silent fallback) không?
+8. Empty tail có trả “không scene” thay vì clamp scene cuối không?
+9. Sibling nodes có `zIndex` unique trong cùng `parentId` không?
+8. Empty tail có trả “không scene” thay vì clamp scene cuối không?
+9. Sibling nodes có `zIndex` unique trong cùng `parentId` không?
 
 ---
 
@@ -444,7 +484,7 @@ Playhead `t = 9` → không có layer / `resolveTimelineAtTime` = `null`.
 | Tài liệu / file                                      | Nội dung                          |
 | ---------------------------------------------------- | --------------------------------- |
 | [v3-format-guide.md](../../../../docs/guide/v3-format-guide.md) §3 | Timeline model trong format guide |
-| [v3-component-guide.md](../../../../docs/guide/v3-component-guide.md) | Component vs timeline scene-only  |
+| [v3-component-guide.md](../../../../docs/guide/v3-component-guide.md) | Component node + timeline component source |
 | `schema.ts`                                          | Zod schemas                       |
 | `duration.ts` / `canonicalize.ts`                    | Derive + snap                     |
 | `validation.ts` / `frame-grid.ts`                    | Integrity + frame-grid            |

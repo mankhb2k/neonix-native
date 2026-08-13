@@ -6,7 +6,11 @@
     "name": "V3 Audio Example",
     "description": "Demonstrates audio tracks (BGM + voiceover) on the timeline",
     "locale": "vi-VN",
-    "tags": ["example", "v3", "audio"]
+    "tags": [
+      "example",
+      "v3",
+      "audio"
+    ]
   },
   "composition": {
     "width": 1080,
@@ -17,10 +21,16 @@
     "audioSampleRate": 48000
   },
   "capabilities": {
-    "required": ["primitive.text", "primitive.image", "audio.playback"]
+    "required": [
+      "primitive.text",
+      "primitive.image",
+      "audio.playback"
+    ]
   },
   "dependencies": {
-    "compiler": { "range": ">=1.0.0" },
+    "compiler": {
+      "range": ">=1.0.0"
+    },
     "components": []
   },
   "tokens": {},
@@ -87,7 +97,10 @@
             "flipY": false
           },
           "payload": {
-            "content": { "kind": "plain", "text": "Opening Scene" },
+            "content": {
+              "kind": "plain",
+              "text": "Opening Scene"
+            },
             "fontSize": 56,
             "color": "#ffffff",
             "alignment": "center"
@@ -136,22 +149,25 @@
     "visualTracks": [
       {
         "id": "main",
-        "role": "main",
         "order": 0,
         "clips": [
           {
             "id": "c-scene1",
-            "source": { "kind": "scene", "sceneId": "scene-1" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-1"
+            },
             "start": 0,
-            "duration": 5,
-            "transitionIn": { "type": "fade", "duration": 0.5 }
+            "duration": 5
           },
           {
             "id": "c-scene2",
-            "source": { "kind": "scene", "sceneId": "scene-2" },
+            "source": {
+              "kind": "scene",
+              "sceneId": "scene-2"
+            },
             "start": 5,
-            "duration": 5,
-            "transitionOut": { "type": "fade", "duration": 0.5 }
+            "duration": 5
           }
         ]
       }
@@ -159,41 +175,57 @@
     "audioTracks": [
       {
         "id": "bgm",
-        "role": "bgm",
-        "assetId": "bgm-track",
-        "start": 0,
-        "duration": 10,
-        "volume": 0.3,
-        "loop": false,
-        "fadeIn": 1,
-        "fadeOut": 1
+        "clips": [
+          {
+            "id": "bgm-clip",
+            "assetId": "bgm-track",
+            "start": 0,
+            "duration": 10,
+            "volume": 0.3,
+            "loop": false,
+            "fadeIn": 1,
+            "fadeOut": 1
+          }
+        ]
       },
       {
         "id": "vo",
-        "role": "voiceover",
-        "assetId": "voiceover",
-        "start": 0.5,
-        "duration": 9,
-        "volume": 1,
-        "loop": false
+        "clips": [
+          {
+            "id": "vo-clip",
+            "assetId": "voiceover",
+            "start": 0.5,
+            "duration": 9,
+            "volume": 1,
+            "loop": false
+          }
+        ]
       },
       {
         "id": "sfx-1",
-        "role": "sfx",
-        "assetId": "sfx-whoosh",
-        "start": 4.8,
-        "duration": 1,
-        "volume": 0.8,
-        "loop": false
+        "clips": [
+          {
+            "id": "sfx-1-clip",
+            "assetId": "sfx-whoosh",
+            "start": 4.8,
+            "duration": 1,
+            "volume": 0.8,
+            "loop": false
+          }
+        ]
       },
       {
         "id": "sfx-2",
-        "role": "sfx",
-        "assetId": "sfx-whoosh",
-        "start": 9.8,
-        "duration": 1,
-        "volume": 0.8,
-        "loop": false
+        "clips": [
+          {
+            "id": "sfx-2-clip",
+            "assetId": "sfx-whoosh",
+            "start": 9.8,
+            "duration": 1,
+            "volume": 0.8,
+            "loop": false
+          }
+        ]
       }
     ],
     "captionTracks": []

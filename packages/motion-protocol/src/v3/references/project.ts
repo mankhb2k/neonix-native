@@ -393,41 +393,53 @@ export function validateMotionProjectV3References(
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
       const path = `timeline.visualTracks.${track.id}.clips.${clip.id}.source`;
-      const scene = sceneById.get(clip.source.sceneId);
-      if (!scene) {
-        issues.push({
-          path,
-          message: `Unknown scene: ${clip.source.sceneId}`,
-        });
-        continue;
-      }
-
-      // When the clip does not loop, its source window must fit inside the
-      // referenced scene: trimStart + duration * playbackRate ≤ scene.duration.
-      if (!clip.loop) {
-        const rate = clip.playbackRate ?? 1;
-        const consumed = (clip.trimStart ?? 0) + clip.duration * rate;
-        if (consumed > scene.duration + 1e-9) {
+      if (clip.source.kind === "scene") {
+        const scene = sceneById.get(clip.source.sceneId);
+        if (!scene) {
           issues.push({
-            path: `timeline.visualTracks.${track.id}.clips.${clip.id}.trimStart`,
-            message: `Visual clip "${clip.id}" consumes ${consumed}s of source scene "${scene.id}" (duration ${scene.duration}s) without looping`,
+            path,
+            message: `Unknown scene: ${clip.source.sceneId}`,
+          });
+          continue;
+        }
+
+        // When the clip does not loop, its source window must fit inside the
+        // referenced scene: trimStart + duration * playbackRate ≤ scene.duration.
+        if (!clip.loop) {
+          const rate = clip.playbackRate ?? 1;
+          const consumed = (clip.trimStart ?? 0) + clip.duration * rate;
+          if (consumed > scene.duration + 1e-9) {
+            issues.push({
+              path: `timeline.visualTracks.${track.id}.clips.${clip.id}.trimStart`,
+              message: `Visual clip "${clip.id}" consumes ${consumed}s of source scene "${scene.id}" (duration ${scene.duration}s) without looping`,
+            });
+          }
+        }
+      } else if (clip.source.kind === "component") {
+        const component = componentById.get(clip.source.componentId);
+        if (!component) {
+          issues.push({
+            path,
+            message: `Unknown component: ${clip.source.componentId}`,
           });
         }
       }
     }
   }
 
-  // ── audio tracks ─────────────────────────────────────────────────────
+  // ── audio clips ─────────────────────────────────────────────────────
   for (const audio of project.timeline.audioTracks) {
-    const asset = assetById.get(audio.assetId);
-    const path = `timeline.audioTracks.${audio.id}.assetId`;
-    if (!asset) {
-      issues.push({ path, message: `Unknown asset: ${audio.assetId}` });
-    } else if (asset.assetType !== "audio") {
-      issues.push({
-        path,
-        message: `Asset ${audio.assetId} has type ${asset.assetType}, expected audio`,
-      });
+    for (const clip of audio.clips) {
+      const asset = assetById.get(clip.assetId);
+      const path = `timeline.audioTracks.${audio.id}.clips.${clip.id}.assetId`;
+      if (!asset) {
+        issues.push({ path, message: `Unknown asset: ${clip.assetId}` });
+      } else if (asset.assetType !== "audio") {
+        issues.push({
+          path,
+          message: `Asset ${clip.assetId} has type ${asset.assetType}, expected audio`,
+        });
+      }
     }
   }
 
