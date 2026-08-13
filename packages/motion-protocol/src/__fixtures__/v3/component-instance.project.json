@@ -77,7 +77,7 @@
           }
         }
       ],
-      "bindings": [],
+      "internalBindings": [],
       "actions": []
     }
   ],

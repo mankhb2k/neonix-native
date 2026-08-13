@@ -69,7 +69,7 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
       "propId": "brandColor",
       "target": {
         "kind": "layerProperty",
-        "nodeId": "circle",
+        "layerId": "circle",
         "property": "payload.color"
       }
     },
@@ -77,7 +77,7 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
       "propId": "brandColor",
       "target": {
         "kind": "layerProperty",
-        "nodeId": "title",
+        "layerId": "title",
         "property": "payload.color"
       }
     },
@@ -85,7 +85,7 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
       "propId": "brandColor",
       "target": {
         "kind": "layerProperty",
-        "nodeId": "border",
+        "layerId": "border",
         "property": "style.stroke"
       }
     }
@@ -93,7 +93,9 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
 }
 ```
 
-> `nodeId` = id của **layer nội bộ** trong `component.nodes` (circle, title, border…).
+> `layerId` = id của **layer nội bộ** trong `component.nodes` (circle, title, border…).
+
+Compiler `resolvePropTargets(propId)` tìm **mọi** dây nối, không dừng ở binding đầu tiên.
 
 ### 1.3 User chỉ set props trên instance
 
@@ -279,10 +281,13 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 
 ### Keyframe rules
 
+- `t` là **local time của scene** chứa component instance
+- `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ scene.duration`**
 - `number` / `color`: interpolate được
 - `text` / `boolean` / `choice` / `asset`: chỉ **step**
 - `animatable: false` + keyframes → **reject**
-- Asset keyframe values phải khớp `assetKind`
+- Asset / choice / variable: mỗi key (và variable ref) phải khớp `assetKind` / `options`
+- Unknown `ref.variable` → **reject**
 - **Conflict:** cùng prop vừa có payload keyframes vừa có scene track `payload.props.<propId>` → **reject**
 
 Prop animation ≠ wrapper transform. Scene clips animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
@@ -293,7 +298,7 @@ Prop animation ≠ wrapper transform. Scene clips animate **wrapper** của inst
 
 | Target | Shape | Ý nghĩa |
 | --- | --- | --- |
-| `layerProperty` | `{ kind: "layerProperty", nodeId, property }` | Nối tín hiệu → property của layer nội bộ |
+| `layerProperty` | `{ kind: "layerProperty", layerId, property }` | Nối tín hiệu → property của layer nội bộ |
 | `childProp` | `{ kind: "childProp", childId, propId }` | Forward tín hiệu → prop của **child component trực tiếp** |
 
 ### Forward xuống child
@@ -321,6 +326,17 @@ A.brandColor keyframes
 ```
 
 Không skip-level: A không bind thẳng layer nội bộ của C.
+
+Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child definition cho đến khi gặp `layerProperty`.
+
+### Project binding vs internalBindings
+
+| Field | Ở đâu | Phạm vi |
+| --- | --- | --- |
+| `project.bindings` | Project | Scene node, **scene-level** component instance (`componentNode`), hoặc mọi **scene-level** instance của một `componentId` |
+| `component.internalBindings` | Definition | Variable/context **nội bộ** → layer nội bộ. Không có `sceneId`. |
+
+Global `target.kind: "component"` **chỉ** áp dụng instance nằm trực tiếp trên scene. Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
 
 ---
 
@@ -367,18 +383,19 @@ flowchart TD
   "propBindings": [
     {
       "propId": "brandColor",
-      "target": { "kind": "layerProperty", "nodeId": "circle", "property": "payload.color" }
+      "target": { "kind": "layerProperty", "layerId": "circle", "property": "payload.color" }
     },
     {
       "propId": "brandColor",
-      "target": { "kind": "layerProperty", "nodeId": "title", "property": "payload.color" }
+      "target": { "kind": "layerProperty", "layerId": "title", "property": "payload.color" }
     },
     {
       "propId": "brandColor",
-      "target": { "kind": "layerProperty", "nodeId": "border", "property": "style.stroke" }
+      "target": { "kind": "layerProperty", "layerId": "border", "property": "style.stroke" }
     }
   ],
   "nodes": [/* circle, title, border, … */],
+  "internalBindings": [],
   "slots": [],
   "variants": [],
   "actions": []
@@ -410,10 +427,16 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải 
 | --- | --- |
 | User sửa `nodes` / `propBindings` | User chỉ set `payload.props` |
 | Một màu = ba prop riêng | Một `brandColor` + ba bindings |
-| Bind thẳng internals từ project | Bind `propId` |
+| Bind thẳng internals từ project | Bind `propId` (scene-level instance) |
 | Skip-level vào layer của nested child | `childProp` từng tầng |
+| Global binding cho nested Button trong Card | Scene-level only; parent forward |
+| `component.bindings` (project schema) | `internalBindings` |
+| `layerProperty.nodeId` | `layerId` |
 | `kind: "string"` / `"enum"` | `text` / `choice` |
 | Asset không có `assetKind` | Bắt buộc `assetKind` |
+| Variable ref không tồn tại | Reject |
+| Choice / asset lệch options / type | Reject (static, keyframes, variable) |
+| Keyframes trùng `t` / không sorted / vượt scene | Reject |
 | Keyframes + scene track cùng prop | Một kênh thôi |
 
 ---

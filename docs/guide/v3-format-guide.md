@@ -916,7 +916,7 @@ Theo dõi nguồn gốc project và source mapping:
 | **Node types**           | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
 | **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local unique zIndex                      |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |
-| **Bindings**             | Scene: `nodeId` + `property`. Component: `propId`                                              |
+| **Bindings**             | Scene: `nodeId` + `property`. Component: `propId` (global `kind: "component"` = scene-level instances only) |
 | **Strict validation**    | `.strict()` trên mọi object + reference validation                                               |
 | **Format discriminator** | `format: "motion-project"`, `formatVersion: 3` — từ chối V2                                      |
 | **Duplicate**            | Editor command only — JSON không có op duplicate                                                 |

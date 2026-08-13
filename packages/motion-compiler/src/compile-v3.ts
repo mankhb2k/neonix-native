@@ -353,19 +353,53 @@ function expectedVariableTypeForPropKind(
   }
 }
 
-function findLayerPropertyBinding(
+type ResolvedLayerTarget = {
+  instancePrefix: string;
+  layerId: string;
+  property: string;
+};
+
+function resolvePropTargets(
+  components: Map<string, V3.ComponentDefinitionV3>,
   component: V3.ComponentDefinitionV3,
   propId: string,
-): Extract<
-  V3.ComponentPropBindingV3["target"],
-  { kind: "layerProperty" }
-> | undefined {
+  instancePrefix: string,
+  stack: Set<string> = new Set(),
+): ResolvedLayerTarget[] {
+  const cycleKey = `${component.id}::${propId}`;
+  if (stack.has(cycleKey)) return [];
+  const nextStack = new Set(stack);
+  nextStack.add(cycleKey);
+
+  const out: ResolvedLayerTarget[] = [];
   for (const binding of component.propBindings) {
-    if (binding.propId === propId && binding.target.kind === "layerProperty") {
-      return binding.target;
+    if (binding.propId !== propId) continue;
+    const target = binding.target;
+    if (target.kind === "layerProperty") {
+      out.push({
+        instancePrefix,
+        layerId: target.layerId,
+        property: target.property,
+      });
+      continue;
     }
+    const childNode = component.nodes.find(
+      (node) => node.id === target.childId,
+    );
+    if (!childNode || childNode.type !== "component") continue;
+    const childDef = components.get(childNode.payload.componentId);
+    if (!childDef) continue;
+    out.push(
+      ...resolvePropTargets(
+        components,
+        childDef,
+        target.propId,
+        `${instancePrefix}__${childNode.id}`,
+        nextStack,
+      ),
+    );
   }
-  return undefined;
+  return out;
 }
 
 function isKeyframesPropValue(
@@ -444,7 +478,7 @@ function buildPropKeyframeClip(
   },
   propKind: string,
 ): JsonRecord {
-  const targetId = `${instanceId}__${layer.nodeId}`;
+  const targetId = `${instanceId}__${layer.layerId}`;
   const valueKind =
     propKind === "number"
       ? "number"
@@ -454,7 +488,7 @@ function buildPropKeyframeClip(
           ? "boolean"
           : "string";
   return {
-    id: `${instanceId}__prop__${propId}`,
+    id: `${instanceId}__prop__${propId}__${layer.layerId}`,
     targetId,
     schedule: { kind: "absolute", at: 0 },
     duration: Math.max(
@@ -533,7 +567,7 @@ function expandOneComponentInstance(
         nestedParentId,
         components,
         null,
-        null,
+        null, // nested instances are not scene-level; skip global bindings
       );
       const nestedWrapper = nested.nodes.find((n) => n.id === nested.wrapperId);
       if (nestedWrapper && nestedWrapper.type === "group") {
@@ -553,7 +587,7 @@ function expandOneComponentInstance(
     for (const binding of component.propBindings) {
       if (
         binding.target.kind !== "layerProperty" ||
-        binding.target.nodeId !== internal.id ||
+        binding.target.layerId !== internal.id ||
         !(binding.propId in resolvedProps)
       ) {
         continue;
@@ -639,21 +673,44 @@ function remapPayloadPropTracks(
   const component = components.get(componentNode.payload.componentId);
   if (!component) return cloned;
 
+  const remappedTracks: Array<Record<string, unknown>> = [];
   for (const track of source.tracks) {
-    if (typeof track.property !== "string") continue;
+    if (typeof track.property !== "string") {
+      remappedTracks.push(track);
+      continue;
+    }
     const match = /^payload\.props\.(.+)$/.exec(track.property);
-    if (!match) continue;
+    if (!match) {
+      remappedTracks.push(track);
+      continue;
+    }
     const propId = match[1]!;
-    // Skip if instance already has inline keyframes for this prop.
     const inline = componentNode.payload.props?.[propId];
     if (isKeyframesPropValue(inline)) continue;
-    const layer = findLayerPropertyBinding(component, propId);
-    if (!layer) continue;
-    track.targetId = `${componentNode.id}__${layer.nodeId}`;
-    track.property = layer.property;
-    if (typeof cloned.targetId === "string") {
-      cloned.targetId = track.targetId;
+    const leaves = resolvePropTargets(
+      components,
+      component,
+      propId,
+      componentNode.id,
+    );
+    if (leaves.length === 0) {
+      remappedTracks.push(track);
+      continue;
     }
+    for (const leaf of leaves) {
+      remappedTracks.push({
+        ...clone(track),
+        targetId: `${leaf.instancePrefix}__${leaf.layerId}`,
+        property: leaf.property,
+      });
+    }
+  }
+  source.tracks = remappedTracks;
+  if (
+    remappedTracks.length === 1 &&
+    typeof remappedTracks[0]?.targetId === "string"
+  ) {
+    cloned.targetId = remappedTracks[0].targetId;
   }
   return cloned;
 }
@@ -1517,10 +1574,15 @@ export function compileMotionProjectV3(
           continue;
         }
         const component = components.get(instance.componentId);
-        const nodeBinding = component
-          ? findLayerPropertyBinding(component, target.propId)
-          : undefined;
-        if (!nodeBinding) {
+        const leaves = component
+          ? resolvePropTargets(
+              components,
+              component,
+              target.propId,
+              instance.componentNodeId,
+            )
+          : [];
+        if (leaves.length === 0) {
           collector.error(
             "CMP_PRIVATE_COMPONENT_ACCESS",
             `Binding "${binding.id}" targets component node "${target.nodeId}" prop "${target.propId}" which has no layerProperty binding`,
@@ -1535,18 +1597,22 @@ export function compileMotionProjectV3(
           );
           continue;
         }
-        runtimeBindings.push({
-          id: binding.id,
-          source: { variableId: binding.source.variableId },
-          target: {
-            sceneId: instance.runtimeSceneId,
-            nodeId: `${instance.componentNodeId}__${nodeBinding.nodeId}`,
-            property: toRuntimeProperty(nodeBinding.property),
-          },
+        leaves.forEach((leaf, index) => {
+          runtimeBindings.push({
+            id: leaves.length > 1 ? `${binding.id}__${index}` : binding.id,
+            source: { variableId: binding.source.variableId },
+            target: {
+              sceneId: instance.runtimeSceneId,
+              nodeId: `${leaf.instancePrefix}__${leaf.layerId}`,
+              property: toRuntimeProperty(leaf.property),
+            },
+          });
         });
         continue;
       }
-      // Global component binding — apply to every instance of the component.
+      // Global component binding — scene-level instances only.
+      // Nested instances are not registered in componentInstances; they
+      // receive values only via parent childProp forwards.
       const instances = [...componentInstances.values()].filter(
         (instance) => instance.componentId === target.componentId,
       );
@@ -1565,10 +1631,18 @@ export function compileMotionProjectV3(
         continue;
       }
       const component = components.get(target.componentId);
-      const nodeBinding = component
-        ? findLayerPropertyBinding(component, target.propId)
-        : undefined;
-      if (!nodeBinding) {
+      const instanceLeaves = instances.map((instance) => ({
+        instance,
+        leaves: component
+          ? resolvePropTargets(
+              components,
+              component,
+              target.propId,
+              instance.componentNodeId,
+            )
+          : [],
+      }));
+      if (instanceLeaves.every((entry) => entry.leaves.length === 0)) {
         collector.error(
           "CMP_PRIVATE_COMPONENT_ACCESS",
           `Binding "${binding.id}" targets component "${target.componentId}" prop "${target.propId}" which has no layerProperty binding`,
@@ -1583,14 +1657,17 @@ export function compileMotionProjectV3(
         );
         continue;
       }
-      instances.forEach((instance, index) => {
+      const flat = instanceLeaves.flatMap(({ instance, leaves }) =>
+        leaves.map((leaf) => ({ instance, leaf })),
+      );
+      flat.forEach((entry, index) => {
         runtimeBindings.push({
-          id: instances.length > 1 ? `${binding.id}__${index}` : binding.id,
+          id: flat.length > 1 ? `${binding.id}__${index}` : binding.id,
           source: { variableId: binding.source.variableId },
           target: {
-            sceneId: instance.runtimeSceneId,
-            nodeId: `${instance.componentNodeId}__${nodeBinding.nodeId}`,
-            property: toRuntimeProperty(nodeBinding.property),
+            sceneId: entry.instance.runtimeSceneId,
+            nodeId: `${entry.leaf.instancePrefix}__${entry.leaf.layerId}`,
+            property: toRuntimeProperty(entry.leaf.property),
           },
         });
       });

@@ -11,7 +11,7 @@ const GENERATE_OPTIONS = {
   name: "MotionProjectV3",
   target: "draft7" as const,
   $refStrategy: "none" as const,
-};
+} as unknown as Parameters<typeof zodToJsonSchema>[1];
 
 /** Build the Draft-07 JSON Schema document for MotionProjectV3. */
 export function buildMotionProjectV3JsonSchema(): unknown {

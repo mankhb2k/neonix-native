@@ -329,6 +329,7 @@ describe("V3 MCP contract", () => {
           {
             id: "bgm",
             order: -1,
+            muted: false,
             clips: [
               {
                 id: "bgm-clip",

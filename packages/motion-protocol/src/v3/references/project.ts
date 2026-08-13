@@ -304,12 +304,104 @@ function allowedKeyframeInterpolations(propKind: string): Set<string> {
 
 type AssetLike = { id: string; assetType: string };
 
+function validateAssetIdForProp(
+  assetId: string,
+  prop: ComponentPropV3,
+  assetById: Map<string, AssetLike> | undefined,
+  path: string,
+): ReferenceIssue[] {
+  if (!assetById) return [];
+  const asset = assetById.get(assetId);
+  if (!asset) {
+    return [
+      {
+        path,
+        message: `props "${prop.id}" references unknown asset "${assetId}"`,
+      },
+    ];
+  }
+  if (
+    prop.assetKind &&
+    !assetTypeMatchesAssetKind(asset.assetType, prop.assetKind)
+  ) {
+    return [
+      {
+        path,
+        message: `props "${prop.id}" asset "${assetId}" has type "${asset.assetType}", expected assetKind "${prop.assetKind}"`,
+      },
+    ];
+  }
+  return [];
+}
+
+function validateVariableAgainstProp(
+  variable: ProjectVariableV3,
+  prop: ComponentPropV3,
+  assetById: Map<string, AssetLike> | undefined,
+  path: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  if (!variableTypeMatchesPropKind(variable.type, prop.kind)) {
+    issues.push({
+      path,
+      message: `props "${prop.id}" references variable "${variable.id}" of type "${variable.type}", expected kind "${prop.kind}"`,
+    });
+    return issues;
+  }
+
+  if (prop.kind === "choice" && prop.options) {
+    if (variable.type === "enum") {
+      const extra = variable.options.filter(
+        (option) => !prop.options!.includes(option),
+      );
+      if (extra.length > 0) {
+        issues.push({
+          path,
+          message: `props "${prop.id}" enum variable "${variable.id}" has options not in prop options: ${extra.join(", ")}`,
+        });
+      }
+      if (!prop.options.includes(variable.value)) {
+        issues.push({
+          path,
+          message: `props "${prop.id}" enum variable "${variable.id}" value "${variable.value}" is not in options`,
+        });
+      }
+    } else if (
+      variable.type === "string" &&
+      !prop.options.includes(variable.value)
+    ) {
+      issues.push({
+        path,
+        message: `props "${prop.id}" string variable "${variable.id}" value "${variable.value}" is not in options`,
+      });
+    }
+  }
+
+  if (prop.kind === "asset" && variable.type === "asset") {
+    if (
+      prop.assetKind &&
+      !assetTypeMatchesAssetKind(variable.assetKind, prop.assetKind)
+    ) {
+      issues.push({
+        path,
+        message: `props "${prop.id}" asset variable "${variable.id}" has assetKind "${variable.assetKind}", expected "${prop.assetKind}"`,
+      });
+    }
+    issues.push(
+      ...validateAssetIdForProp(variable.value, prop, assetById, path),
+    );
+  }
+
+  return issues;
+}
+
 function validatePropValue(
   value: unknown,
   prop: ComponentPropV3,
   variableById: Map<string, ProjectVariableV3>,
   assetById: Map<string, AssetLike> | undefined,
   path: string,
+  sceneDuration?: number,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
 
@@ -330,8 +422,29 @@ function validatePropValue(
         message: `Prop "${prop.id}" keyframes interpolation "${interpolation}" is invalid for kind "${prop.kind}"`,
       });
     }
+    let prevT: number | undefined;
     for (let i = 0; i < value.keys.length; i++) {
       const key = value.keys[i]!;
+      if (prevT !== undefined) {
+        if (key.t === prevT) {
+          issues.push({
+            path: `${path}.keys.${i}.t`,
+            message: `Prop "${prop.id}" keyframes must not duplicate t=${key.t}`,
+          });
+        } else if (key.t < prevT) {
+          issues.push({
+            path: `${path}.keys.${i}.t`,
+            message: `Prop "${prop.id}" keyframes must be sorted by increasing t`,
+          });
+        }
+      }
+      prevT = key.t;
+      if (sceneDuration !== undefined && key.t > sceneDuration) {
+        issues.push({
+          path: `${path}.keys.${i}.t`,
+          message: `Prop "${prop.id}" keyframe t=${key.t} exceeds scene duration ${sceneDuration}`,
+        });
+      }
       issues.push(
         ...validatePropValue(
           key.value,
@@ -349,12 +462,16 @@ function validatePropValue(
     const refId = extractVariableReferenceId(value);
     if (!refId) return issues;
     const variable = variableById.get(refId);
-    if (variable && !variableTypeMatchesPropKind(variable.type, prop.kind)) {
+    if (!variable) {
       issues.push({
         path,
-        message: `props "${prop.id}" references variable "${refId}" of type "${variable.type}", expected kind "${prop.kind}"`,
+        message: `props "${prop.id}" references unknown variable "${refId}"`,
       });
+      return issues;
     }
+    issues.push(
+      ...validateVariableAgainstProp(variable, prop, assetById, path),
+    );
     return issues;
   }
 
@@ -375,22 +492,8 @@ function validatePropValue(
     }
   }
 
-  if (prop.kind === "asset" && typeof value === "string" && assetById) {
-    const asset = assetById.get(value);
-    if (!asset) {
-      issues.push({
-        path,
-        message: `props "${prop.id}" references unknown asset "${value}"`,
-      });
-    } else if (
-      prop.assetKind &&
-      !assetTypeMatchesAssetKind(asset.assetType, prop.assetKind)
-    ) {
-      issues.push({
-        path,
-        message: `props "${prop.id}" asset "${value}" has type "${asset.assetType}", expected assetKind "${prop.assetKind}"`,
-      });
-    }
+  if (prop.kind === "asset" && typeof value === "string") {
+    issues.push(...validateAssetIdForProp(value, prop, assetById, path));
   }
 
   return issues;
@@ -469,6 +572,7 @@ function validateComponentNodeReferences(
   variableById: Map<string, ProjectVariableV3>,
   assetById: Map<string, AssetLike>,
   pathPrefix: string,
+  sceneDuration?: number,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   for (const node of nodes) {
@@ -508,6 +612,7 @@ function validateComponentNodeReferences(
           variableById,
           assetById,
           `${path}.payload.props.${propId}`,
+          sceneDuration,
         ),
       );
     }
@@ -767,6 +872,7 @@ export function validateMotionProjectV3References(
         variableById,
         assetById,
         `scenes.${scene.id}.nodes`,
+        scene.duration,
       ),
     );
     const nodeIds = new Set(scene.nodes.map((node) => node.id));
@@ -842,11 +948,11 @@ export function validateMotionProjectV3References(
       }
       const target = binding.target;
       if (target.kind === "layerProperty") {
-        const node = component.nodes.find((n) => n.id === target.nodeId);
+        const node = component.nodes.find((n) => n.id === target.layerId);
         if (!node) {
           issues.push({
             path: `components.${component.id}.propBindings`,
-            message: `propBinding for "${binding.propId}" references unknown node "${target.nodeId}"`,
+            message: `propBinding for "${binding.propId}" references unknown layer "${target.layerId}"`,
           });
         } else if (!isPublicTargetPropertyValid(node, target.property)) {
           issues.push({
@@ -888,6 +994,24 @@ export function validateMotionProjectV3References(
             }
           }
         }
+      }
+    }
+
+    for (const binding of component.internalBindings) {
+      const bindPath = `components.${component.id}.internalBindings.${binding.id}`;
+      if (binding.source.kind === "variable") {
+        if (!variableById.has(binding.source.variableId)) {
+          issues.push({
+            path: `${bindPath}.source.variableId`,
+            message: `Unknown variable: ${binding.source.variableId}`,
+          });
+        }
+      }
+      if (!componentNodeIds.has(binding.target.layerId)) {
+        issues.push({
+          path: `${bindPath}.target.layerId`,
+          message: `internalBinding "${binding.id}" references unknown layer "${binding.target.layerId}"`,
+        });
       }
     }
 

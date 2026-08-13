@@ -48,21 +48,21 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 3) `src/v3/components.ts` — Sealed component
 
-- Owner sở hữu toàn bộ internals (nodes, bindings, actions).
-- Consumer chỉ được dùng public API: `props`, `slots`, `variants`. Wiring owner = `propBindings` (`layerProperty` / `childProp`).
-- Prop values: static | variable | keyframes (chỉ khi `animatable`).
+- Owner sở hữu toàn bộ internals (nodes, internalBindings, actions).
+- Consumer chỉ được dùng public API: `props`, `slots`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
+- Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
 - Asset props bắt buộc `assetKind`. Conflict: payload keyframes + scene `payload.props.*` cùng prop → reject.
-- Project-level binding không được target arbitrary component internals.
+- Project-level binding không được target arbitrary component internals. Global `kind: "component"` chỉ scene-level instances.
 
 ### 4) `src/v3/variables.ts` — Binding model
 
-- Phân biệt **scene binding** (bind tới node trong scene) vs **componentNode binding** (bind tới instance trong scene) vs **component binding** (bind toàn cục vào mọi instance).
+- Phân biệt **scene binding** (bind tới node trong scene) vs **componentNode binding** (bind tới instance scene-level) vs **component binding** (mọi **scene-level** instance của `componentId`; nested nhận value qua `childProp`).
 - Consumer có bị bắt buộc dùng `propId` thay vì `nodeId` trực tiếp không.
 
 ### 5) `src/v3/references/project.ts` — Semantic validation
 
 - Sau khi Zod parse xong, reference validation chạy gì: id tồn tại, asset type đúng, property path đúng node type.
-- `propBindings` có trỏ tới node thật (`layerProperty`) / child component trực tiếp (`childProp`) không.
+- `propBindings` có trỏ tới layer thật (`layerProperty.layerId`) / child component trực tiếp (`childProp`) không.
 - Binding có đi qua public API không, hay lách vào internal.
 
 ### 6) `src/v3/parse.ts` — Parse path thực tế
@@ -112,7 +112,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu tôi bind tới component, tôi có bắt buộc dùng `propId` không?
 
-- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `nodeId`. Dạng `componentNode` trỏ instance cụ thể; dạng `component` bind mọi instance.
+- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `layerId`. Dạng `componentNode` trỏ instance scene-level cụ thể; dạng `component` bind mọi instance **scene-level**. Nested instance chỉ nhận value nếu parent `childProp`.
 
 ### 4.4 Public target type-check
 

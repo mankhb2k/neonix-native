@@ -159,12 +159,13 @@ export const ContextBindingSourceSchema = z
   .object({ kind: z.literal("context"), path: PropertyPathSchema })
   .strict();
 
+/** Owner-only: bind a component-local variable/context into an internal layer. */
 export const ComponentBindingSchema = z
   .object({
     id: IdSchema,
     source: z.union([VariableBindingSourceSchema, ContextBindingSourceSchema]),
     target: z
-      .object({ nodeId: IdSchema, property: PropertyPathSchema })
+      .object({ layerId: IdSchema, property: PropertyPathSchema })
       .strict(),
   })
   .strict();

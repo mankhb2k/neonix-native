@@ -297,7 +297,7 @@
           }
         }
       ],
-      "bindings": [],
+      "internalBindings": [],
       "actions": [
         {
           "id": "action-fade-in",
@@ -350,7 +350,7 @@
           "propId": "bgColor",
           "target": {
             "kind": "layerProperty",
-            "nodeId": "lt-bg",
+            "layerId": "lt-bg",
             "property": "payload.color"
           }
         },
@@ -358,7 +358,7 @@
           "propId": "height",
           "target": {
             "kind": "layerProperty",
-            "nodeId": "lt-bg",
+            "layerId": "lt-bg",
             "property": "payload.height"
           }
         }

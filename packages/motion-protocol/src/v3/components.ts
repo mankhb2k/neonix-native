@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { VariableSchema } from "./variables";
+import { ComponentBindingSchema, VariableSchema } from "./variables";
 import { JsonValueSchema } from "./values";
 import {
   IdSchema,
@@ -19,7 +19,6 @@ import {
   FiniteNumberSchema,
   SemanticSchema,
 } from "./common";
-import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";
 import { MotionClipV3Schema } from "./animation/clips";
 import { ComponentPropValueSchema } from "./prop-values";
@@ -128,7 +127,7 @@ export const ComponentPropBindingTargetV3Schema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("layerProperty"),
-      nodeId: IdSchema,
+      layerId: IdSchema,
       property: PropertyPathSchema,
     })
     .strict(),
@@ -223,8 +222,8 @@ export const ComponentDefinitionV3Schema = z
       .array(NodeV3Schema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.nodesPerComponent),
-    bindings: z
-      .array(ProjectBindingV3Schema)
+    internalBindings: z
+      .array(ComponentBindingSchema)
       .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
       .default([]),
     actions: z
@@ -313,3 +312,4 @@ export type ProjectDependenciesV3 = z.infer<typeof ProjectDependenciesV3Schema>;
 export type SlotContentKind = z.infer<typeof SlotContentKindSchema>;
 export type ComponentVariantV3 = z.infer<typeof ComponentVariantV3Schema>;
 export type ComponentSlotV3 = z.infer<typeof ComponentSlotV3Schema>;
+export type ComponentInternalBindingV3 = z.infer<typeof ComponentBindingSchema>;

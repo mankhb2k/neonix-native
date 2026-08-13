@@ -103,7 +103,7 @@
           "propId": "label",
           "target": {
             "kind": "layerProperty",
-            "nodeId": "cta-label-node",
+            "layerId": "cta-label-node",
             "property": "payload.content.text"
           }
         },
@@ -111,7 +111,7 @@
           "propId": "color",
           "target": {
             "kind": "layerProperty",
-            "nodeId": "cta-bg",
+            "layerId": "cta-bg",
             "property": "payload.color"
           }
         }
@@ -188,7 +188,7 @@
           }
         }
       ],
-      "bindings": [],
+      "internalBindings": [],
       "actions": [
         {
           "id": "cta-tap",

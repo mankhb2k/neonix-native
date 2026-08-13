@@ -1810,7 +1810,7 @@
                               "type": "string",
                               "const": "layerProperty"
                             },
-                            "nodeId": {
+                            "layerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -1822,7 +1822,7 @@
                           },
                           "required": [
                             "kind",
-                            "nodeId",
+                            "layerId",
                             "property"
                           ],
                           "additionalProperties": false
@@ -16554,7 +16554,7 @@
                 "minItems": 1,
                 "maxItems": 2000
               },
-              "bindings": {
+              "internalBindings": {
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -16565,113 +16565,64 @@
                       "maxLength": 128
                     },
                     "source": {
-                      "type": "object",
-                      "properties": {
-                        "kind": {
-                          "type": "string",
-                          "const": "variable"
-                        },
-                        "variableId": {
-                          "type": "string",
-                          "minLength": 1,
-                          "maxLength": 128
-                        }
-                      },
-                      "required": [
-                        "kind",
-                        "variableId"
-                      ],
-                      "additionalProperties": false
-                    },
-                    "target": {
                       "anyOf": [
                         {
                           "type": "object",
                           "properties": {
                             "kind": {
                               "type": "string",
-                              "const": "scene"
+                              "const": "variable"
                             },
-                            "sceneId": {
+                            "variableId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
-                            },
-                            "nodeId": {
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "variableId"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
                               "type": "string",
-                              "minLength": 1,
-                              "maxLength": 128
+                              "const": "context"
                             },
-                            "property": {
+                            "path": {
                               "type": "string",
                               "minLength": 1
                             }
                           },
                           "required": [
                             "kind",
-                            "sceneId",
-                            "nodeId",
-                            "property"
-                          ],
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string",
-                              "const": "component"
-                            },
-                            "componentId": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 128
-                            },
-                            "propId": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 128
-                            }
-                          },
-                          "required": [
-                            "kind",
-                            "componentId",
-                            "propId"
-                          ],
-                          "additionalProperties": false
-                        },
-                        {
-                          "type": "object",
-                          "properties": {
-                            "kind": {
-                              "type": "string",
-                              "const": "componentNode"
-                            },
-                            "sceneId": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 128
-                            },
-                            "nodeId": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 128
-                            },
-                            "propId": {
-                              "type": "string",
-                              "minLength": 1,
-                              "maxLength": 128
-                            }
-                          },
-                          "required": [
-                            "kind",
-                            "sceneId",
-                            "nodeId",
-                            "propId"
+                            "path"
                           ],
                           "additionalProperties": false
                         }
                       ]
+                    },
+                    "target": {
+                      "type": "object",
+                      "properties": {
+                        "layerId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 128
+                        },
+                        "property": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      },
+                      "required": [
+                        "layerId",
+                        "property"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [

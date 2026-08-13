@@ -491,6 +491,272 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(colorTrack).toBeDefined();
   });
 
+  function addLogoColorFanOut(project: V3.MotionProjectV3): void {
+    const component = project.components.find((c) => c.id === "logo-reveal")!;
+    const logo = component.nodes.find((n) => n.id === "logo")!;
+    const ring = structuredClone(logo);
+    ring.id = "ring";
+    ring.zIndex = 1;
+    component.nodes.push(ring);
+    component.propBindings.push({
+      propId: "logo-color",
+      target: {
+        kind: "layerProperty",
+        layerId: "ring",
+        property: "payload.color",
+      },
+    });
+  }
+
+  it("fans out a static prop to every layerProperty binding", () => {
+    const project = makeComponentNodeProject({
+      props: { "logo-color": "#00ff88" },
+    });
+    addLogoColorFanOut(project);
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const colors = ["comp-node__logo", "comp-node__ring"].map((id) => {
+      const node = runtimeScene.nodes.find((n) => n.id === id) as unknown as {
+        payload: Record<string, unknown>;
+      };
+      return node.payload.color;
+    });
+    expect(colors).toEqual(["#00ff88", "#00ff88"]);
+  });
+
+  it("fans out project bindings to every resolved layer", () => {
+    const project = makeComponentNodeProject();
+    addLogoColorFanOut(project);
+    const colorVar = project.variables.find((v) => v.id === "brand-color")!;
+    colorVar.value = "#ff00aa";
+    project.bindings.push({
+      id: "bind-logo-color",
+      source: { kind: "variable", variableId: "brand-color" },
+      target: {
+        kind: "componentNode",
+        sceneId: "comp-scene",
+        nodeId: "comp-node",
+        propId: "logo-color",
+      },
+    });
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    for (const id of ["comp-node__logo", "comp-node__ring"]) {
+      const node = runtimeScene.nodes.find((n) => n.id === id) as unknown as {
+        payload: Record<string, unknown>;
+      };
+      expect(node.payload.color).toBe("#ff00aa");
+    }
+  });
+
+  it("fans out scene payload.props tracks to every resolved layer", () => {
+    const project = makeComponentNodeProject({
+      sceneClips: [
+        {
+          id: "clip-prop-color",
+          targetId: "comp-node",
+          schedule: { kind: "absolute", at: 0 },
+          duration: 2,
+          playback: { direction: "normal", iterations: 1, rate: 1 },
+          source: {
+            kind: "tracks",
+            tracks: [
+              {
+                targetId: "comp-node",
+                property: "payload.props.logo-color",
+                valueKind: "color",
+                keys: [
+                  { t: 0, v: "#111111" },
+                  { t: 1, v: "#eeeeee" },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    });
+    addLogoColorFanOut(project);
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const colorTracks = runtimeScene.tracks.filter(
+      (t) => t.property === "payload.color" || t.property === "color",
+    );
+    const targetIds = colorTracks.map((t) => t.targetId).sort();
+    expect(targetIds).toEqual(["comp-node__logo", "comp-node__ring"]);
+  });
+
+  it("emits unique keyframe clips when one prop fans out to many layers", () => {
+    const project = makeComponentNodeProject({
+      props: {
+        "logo-color": {
+          kind: "keyframes",
+          keys: [
+            { t: 0, value: "#ff0000" },
+            { t: 1, value: "#00ff00" },
+          ],
+        },
+      },
+    });
+    addLogoColorFanOut(project);
+    const colorProp = project.components
+      .find((c) => c.id === "logo-reveal")!
+      .props.find((p) => p.id === "logo-color");
+    if (colorProp) colorProp.animatable = true;
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const colorTracks = runtimeScene.tracks.filter(
+      (t) =>
+        (t.property === "payload.color" || t.property === "color") &&
+        (t.targetId === "comp-node__logo" || t.targetId === "comp-node__ring"),
+    );
+    expect(colorTracks).toHaveLength(2);
+    expect(new Set(colorTracks.map((t) => t.targetId)).size).toBe(2);
+  });
+
+  it("forwards props recursively through childProp to nested layers", () => {
+    const project = makeComponentNodeProject({
+      props: { "logo-color": "#00ff88" },
+    });
+    const logo = project.components.find((c) => c.id === "logo-reveal")!;
+    const solid = structuredClone(logo.nodes.find((n) => n.id === "logo")!);
+    solid.id = "fill";
+    project.components.push({
+      id: "inner-swatch",
+      version: "1.0.0",
+      integrity: "sha256:inner-swatch",
+      props: [{ id: "fill", kind: "color", default: "#000000" }],
+      slots: [],
+      variants: [],
+      propBindings: [
+        {
+          propId: "fill",
+          target: {
+            kind: "layerProperty",
+            layerId: "fill",
+            property: "payload.color",
+          },
+        },
+      ],
+      variables: [],
+      nodes: [solid],
+      internalBindings: [],
+      actions: [],
+    });
+    logo.propBindings.push({
+      propId: "logo-color",
+      target: {
+        kind: "childProp",
+        childId: "inner",
+        propId: "fill",
+      },
+    });
+    logo.nodes.push({
+      id: "inner",
+      type: "component",
+      parentId: null,
+      zIndex: 1,
+      visible: true,
+      locked: false,
+      transform: structuredClone(solid.transform),
+      payload: { componentId: "inner-swatch", props: {} },
+    });
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      console.log(JSON.stringify(result.diagnostics, null, 2));
+      return;
+    }
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const nested = runtimeScene.nodes.find(
+      (n) => n.id === "comp-node__inner__fill",
+    ) as unknown as { payload: Record<string, unknown> };
+    expect(nested.payload.color).toBe("#00ff88");
+  });
+
+  it("applies global component bindings only to scene-level instances", () => {
+    const project = makeComponentNodeProject({
+      nodeId: "scene-logo",
+    });
+    const logo = project.components.find((c) => c.id === "logo-reveal")!;
+    const solid = structuredClone(logo.nodes.find((n) => n.id === "logo")!);
+    project.components.push({
+      id: "card",
+      version: "1.0.0",
+      integrity: "sha256:card",
+      props: [],
+      slots: [],
+      variants: [],
+      propBindings: [],
+      variables: [],
+      nodes: [
+        {
+          id: "nested-logo",
+          type: "component",
+          parentId: null,
+          visible: true,
+          locked: false,
+          transform: structuredClone(solid.transform),
+          payload: { componentId: "logo-reveal", props: {} },
+        },
+      ],
+      internalBindings: [],
+      actions: [],
+    });
+    const scene = project.scenes.find((s) => s.id === "comp-scene")!;
+    scene.nodes.push({
+      id: "card-1",
+      type: "component",
+      parentId: null,
+      visible: true,
+      locked: false,
+      transform: structuredClone(solid.transform),
+      payload: { componentId: "card", props: {} },
+    });
+    const colorVar = project.variables.find((v) => v.id === "brand-color")!;
+    colorVar.value = "#ff00aa";
+    project.bindings.push({
+      id: "bind-all-logos",
+      source: { kind: "variable", variableId: "brand-color" },
+      target: {
+        kind: "component",
+        componentId: "logo-reveal",
+        propId: "logo-color",
+      },
+    });
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const sceneLevel = runtimeScene.nodes.find(
+      (n) => n.id === "scene-logo__logo",
+    ) as unknown as { payload: Record<string, unknown> };
+    const nested = runtimeScene.nodes.find(
+      (n) => n.id === "card-1__nested-logo__logo",
+    ) as unknown as { payload: Record<string, unknown> };
+    expect(sceneLevel.payload.color).toBe("#ff00aa");
+    expect(nested.payload.color).toBe("#1877f2");
+  });
+
   it("rejects a visual clip carrying the removed instanceTransform field", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [

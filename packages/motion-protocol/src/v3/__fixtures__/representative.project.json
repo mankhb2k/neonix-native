@@ -140,7 +140,7 @@
           "propId": "logo-visible",
           "target": {
             "kind": "layerProperty",
-            "nodeId": "logo",
+            "layerId": "logo",
             "property": "transform.visible"
           }
         },
@@ -148,7 +148,7 @@
           "propId": "logo-color",
           "target": {
             "kind": "layerProperty",
-            "nodeId": "logo",
+            "layerId": "logo",
             "property": "payload.color"
           }
         }
@@ -181,7 +181,7 @@
           }
         }
       ],
-      "bindings": [],
+      "internalBindings": [],
       "actions": []
     }
   ],
