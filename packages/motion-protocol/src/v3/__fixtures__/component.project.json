@@ -55,18 +55,18 @@
       "id": "call-to-action",
       "version": "1.0.0",
       "integrity": "sha256:cta-1.0.0",
-      "publicParams": [
+      "props": [
         {
           "id": "label",
           "name": "Button label",
-          "variableId": "cta-label",
-          "type": "string"
+          "kind": "text",
+          "default": "Click me"
         },
         {
           "id": "color",
           "name": "Button color",
-          "variableId": "cta-color",
-          "type": "color"
+          "kind": "color",
+          "default": "#1877f2"
         }
       ],
       "slots": [
@@ -84,7 +84,7 @@
         {
           "id": "primary",
           "name": "Primary CTA",
-          "params": {
+          "props": {
             "color": "#1877f2",
             "label": "Click me"
           }
@@ -92,19 +92,28 @@
         {
           "id": "outline",
           "name": "Outline CTA",
-          "params": {
+          "props": {
             "color": "#ffffff",
             "label": "Learn more"
           }
         }
       ],
-      "publicTargets": [
+      "propBindings": [
         {
-          "id": "cta-label",
-          "name": "Button label text",
-          "nodeId": "cta-label-node",
-          "property": "payload.content.text",
-          "description": "The visible text content of the CTA button"
+          "propId": "label",
+          "target": {
+            "kind": "layerProperty",
+            "nodeId": "cta-label-node",
+            "property": "payload.content.text"
+          }
+        },
+        {
+          "propId": "color",
+          "target": {
+            "kind": "layerProperty",
+            "nodeId": "cta-bg",
+            "property": "payload.color"
+          }
         }
       ],
       "variables": [
@@ -302,7 +311,7 @@
         "kind": "componentNode",
         "sceneId": "cta-scene",
         "nodeId": "cta-instance",
-        "targetId": "cta-label"
+        "propId": "label"
       }
     }
   ]

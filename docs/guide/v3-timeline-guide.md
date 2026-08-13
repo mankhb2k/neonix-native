@@ -49,7 +49,7 @@ flowchart TB
 | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Compiler tự xếp scene theo declaration order khi thiếu visual clip | Hard error `CMP_TIMELINE_VISUAL_EMPTY` — không silent fallback             |
 | Duration MP4 suy từ clip cuối, bỏ empty tail                      | `timeline.duration` tường minh (canonical)                                |
-| `start` bị rebuild bằng cursor → mất gap/overlay                  | `clip.start` / `audio.start` là **absolute global time**                  |
+| `start` bị rebuild bằng cursor → mất gap thật | `clip.start` / audio clip `start` là **absolute global time** |
 | Schema đúng nhưng render sai (audio kéo theo asset)               | Audio/visual timing theo track/clip; asset chỉ phục vụ trim/loop          |
 | Float lệch frame (`1.001` @ `1fps`) → MP4 lệch 1 frame            | Frame-grid: snap + validate theo `composition.fps`                        |
 
@@ -83,7 +83,7 @@ Mỗi project có đúng một `timeline`:
 }
 ```
 
-> **Source layout**: Schema/utilities nằm trong thư mục này (`schema.ts`, `duration.ts`, `canonicalize.ts`, `validation.ts`, `frame-grid.ts`, `index.ts`). Import qua `./timeline` hoặc public export của `@motionvideo/motion-protocol`.
+> **Source layout**: Schema/utilities nằm tại `packages/motion-protocol/src/v3/timeline/` (`schema.ts`, `duration.ts`, `canonicalize.ts`, `validation.ts`, `frame-grid.ts`, `index.ts`). Import qua `./timeline` hoặc public export của `@motionvideo/motion-protocol`.
 
 ---
 
@@ -174,7 +174,7 @@ audioTracks: Array<{
 
 ### 3.3c Duplicate = editor command
 
-JSON **không** mô tả operation duplicate. Editor tạo clip/node mới (`id` mới), chọn lane/zIndex hợp lệ, rồi ghi state sạch. Chi tiết command: [v3-format-guide.md §14.1](../../../../docs/guide/v3-format-guide.md).
+JSON **không** mô tả operation duplicate. Editor tạo clip/node mới (`id` mới), chọn lane/zIndex hợp lệ, rồi ghi state sạch. Chi tiết command: [v3-format-guide.md §14.1](v3-format-guide.md).
 
 ### 3.4 Composition window vs media local time
 
@@ -185,7 +185,7 @@ Với visual clip:
   `effectiveLocalTime = trimStart + (globalTime - start) * playbackRate`  
   (có rule `loop` qua `resolveMediaTiming`).
 
-Opacity / transform của layer đánh giá theo **media local time** bên trong scene. Timeline không ramp transition giữa clips.
+Opacity / transform của layer đánh giá theo **media local time** bên trong scene. Timeline không ramp effect giữa clips.
 
 ### 3.5 Empty timeline
 
@@ -195,9 +195,9 @@ Không có visual clip → **compile fail** (`CMP_TIMELINE_VISUAL_EMPTY`). Khôn
 
 ## 4. Thiết kế từng schema
 
-### 4.1 Không còn TransitionV3 trên timeline
+### 4.1 Không còn effect primitive trên timeline
 
-Timeline **không** có transition primitive. `TransitionV3Schema` đã gỡ khỏi authoring clip. Hiệu ứng = layer/component trên stack.
+Timeline **không** có `transitionIn` / `transitionOut` / crossfade. Hiệu ứng = layer/component animation trong scene.
 
 ### 4.2 `VisualClipV3Schema`
 
@@ -224,7 +224,7 @@ Thiết kế:
 
 ```jsonc
 {
-  "id": "track.base",
+  "id": "visual-0",
   "order": 0, // sparse >= 0; unique across timeline
   "muted": false,
   "clips": [
@@ -239,7 +239,7 @@ Track rỗng không hợp lệ ở schema track (`clips.min(1)`). Timeline có t
 
 ```jsonc
 {
-  "id": "aud.bgm",
+  "id": "audio--1",
   "order": -1, // required; sparse < 0; unique across timeline
   "muted": false,
   "clips": [
@@ -285,15 +285,16 @@ Ngoài ra, `CanonicalMotionProjectV3Schema` (ở `project.ts`) còn reject timin
 ## 5. Các module logic trong thư mục
 
 ```
-timeline/
+packages/motion-protocol/src/v3/timeline/
   index.ts          — barrel export
   schema.ts         — Zod schemas + types
   duration.ts       — derive duration từ content ends
   canonicalize.ts   — điền duration + snap frame-grid
   validation.ts     — integrity (unique order, lane exclusive, clip ids)
   frame-grid.ts     — snap / isOnGrid / collectFrameGridIssues
-  README.md         — tài liệu này
 ```
+
+Tài liệu timeline: `docs/guide/v3-timeline-guide.md` (file này).
 
 ### 5.1 Derive duration — `duration.ts`
 
@@ -320,7 +321,7 @@ Không có nội dung → `0`. Giá trị được `roundTimelineValue` (làm tr
 
 1. **Duplicate visual clip id** / **duplicate audio clip id**.
 2. **Unique track `order`** across visual + audio — reject trùng order.
-3. **Visual lane exclusive** trên mọi track — overlap cùng track → reject (không transition bridge).
+3. **Visual lane exclusive** trên mọi track — overlap cùng track → reject.
 4. Audio overlap trong cùng track **được phép** (mix).
 
 ### 5.3 Frame-grid — `frame-grid.ts`
@@ -333,7 +334,7 @@ canonicalSeconds = frames / fps
 onGrid ⇔ |seconds * fps - round(seconds * fps)| ≤ 1e-9
 ```
 
-Áp dụng cho: `duration`, clip `start`/`duration`/`trimStart`, transition durations, audio timing, caption `start`/`end`, workArea, markers.
+Áp dụng cho: `duration`, clip `start`/`duration`/`trimStart`, audio timing, caption `start`/`end`, workArea, markers.
 
 Ví dụ: `fps = 1`, `1.001` → snap thành `1`; canonical schema reject nếu vẫn còn `1.001`.
 
@@ -382,7 +383,7 @@ flowchart TD
 
 `resolveTimelineAtTime(runtime, timelineTime)` — contract dùng **`timelineTime` / `t`** (giây trên trục project), không dùng từ “playhead”.
 
-- Active clips tại `timelineTime` xếp theo **`order` tăng dần** (thấp vẽ dưới, cao vẽ trên). Không ưu tiên `primary` / overlay.
+- Active clips tại `timelineTime` xếp theo **`order` tăng dần** (thấp vẽ dưới, cao vẽ trên). Không ưu tiên label UI main/overlay.
 - `timelineTime` trong empty tail hoặc `timelineTime ≥ duration` → `null` (không clamp scene cuối).
 
 > **UI session ≠ project:** `playhead` / `currentTime` / `selection` / `zoom` / `scroll` chỉ thuộc editor UI session — **không** được nằm trong `MotionProjectV3`.
@@ -412,22 +413,12 @@ Sau canonicalize, `duration` đã on-grid →
   "timeline": {
     "visualTracks": [
       {
-        "id": "main",
+        "id": "visual-0",
         "order": 0,
         "clips": [
-          {
-            "id": "c1",
-            "source": { "kind": "scene", "sceneId": "intro" },
-            "start": 0,
-            "duration": 5,
-          },
-          {
-            "id": "c2",
-            "source": { "kind": "scene", "sceneId": "outro" },
-            "start": 5,
-            "duration": 3,
-          },
-        ],
+          { "id": "c1", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 5 },
+          { "id": "c2", "source": { "kind": "scene", "sceneId": "outro" }, "start": 5, "duration": 3 }
+        ]
       },
     ],
   },
@@ -442,15 +433,15 @@ Sau canonicalize → `timeline.duration = 8` (đã on-grid @ 30fps).
 {
   "visualTracks": [
     {
-      "id": "track.base",
+      "id": "visual-0",
       "order": 0,
       "clips": [
         { "id": "a", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 3 }
       ]
     },
     {
-      "id": "track.fx",
-      "order": 1,
+      "id": "visual-10",
+      "order": 10,
       "clips": [
         { "id": "fx", "source": { "kind": "scene", "sceneId": "fx-scene" }, "start": 0, "duration": 3 }
       ]
@@ -459,7 +450,7 @@ Sau canonicalize → `timeline.duration = 8` (đã on-grid @ 30fps).
 }
 ```
 
-Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` chứa component/layer animation — không phải timeline transition.
+Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` chứa component/layer animation — không phải timeline effect primitive.
 
 ### Empty tail
 
@@ -489,8 +480,6 @@ Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` ch�
 7. Empty visual clips có fail rõ ràng (không silent fallback) không?
 8. Empty tail có trả “không scene” thay vì clamp scene cuối không?
 9. Sibling nodes có `zIndex` unique trong cùng `parentId` không?
-8. Empty tail có trả “không scene” thay vì clamp scene cuối không?
-9. Sibling nodes có `zIndex` unique trong cùng `parentId` không?
 
 ---
 
@@ -498,8 +487,8 @@ Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` ch�
 
 | Tài liệu / file                                      | Nội dung                          |
 | ---------------------------------------------------- | --------------------------------- |
-| [v3-format-guide.md](../../../../docs/guide/v3-format-guide.md) §3 | Timeline model trong format guide |
-| [v3-component-guide.md](../../../../docs/guide/v3-component-guide.md) | Component as scene node (not timeline source) |
-| `schema.ts`                                          | Zod schemas                       |
+| [v3-format-guide.md](v3-format-guide.md) §3 | Timeline model trong format guide |
+| [v3-component-guide.md](v3-component-guide.md) | Component definition / instance / props |
+| `packages/motion-protocol/src/v3/timeline/schema.ts` | Zod schemas                       |
 | `duration.ts` / `canonicalize.ts`                    | Derive + snap                     |
 | `validation.ts` / `frame-grid.ts`                    | Integrity + frame-grid            |

@@ -182,7 +182,7 @@ describe("v3 schema — positive fixtures", () => {
     }
     expect(componentBinding.target.sceneId).toBe("scene-lower-third");
     expect(componentBinding.target.nodeId).toBe("node-lower-third");
-    expect(componentBinding.target.targetId).toBe("lt-bg-color");
+    expect(componentBinding.target.propId).toBe("bgColor");
 
     // provenance — all 4 sub-fields
     expect(project.provenance?.workspaceId).toBe("ws-moticlip-demo");
@@ -280,7 +280,7 @@ describe("v3 schema — positive fixtures", () => {
     const input = loadFixture("component.project.json");
     const project = MotionProjectV3Schema.parse(input);
     expect(project.components).toHaveLength(1);
-    expect(project.components[0]!.publicParams).toHaveLength(2);
+    expect(project.components[0]!.props).toHaveLength(2);
 
     const ctaScene = project.scenes.find((scene) => scene.id === "cta-scene")!;
     const componentNode = ctaScene.nodes.find(
@@ -1723,9 +1723,9 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     expect(project.metadata.id).toBe("v3-comprehensive");
   });
 
-  // ── Component ownership contract: publicTargets ───────────────────
+  // ── Component ownership contract: props & propBindings ───────────────
 
-  it("rejects duplicate publicTarget ids within a component", () => {
+  it("rejects duplicate prop ids within a component", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -1733,27 +1733,16 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const components = (input.components as Array<Record<string, unknown>>).map(
       (c) => ({
         ...c,
-        publicTargets: [
-          {
-            id: "dup-id",
-            nodeId: "cta-label",
-            property: "payload.content.text",
-          },
-          { id: "dup-id", nodeId: "cta-bg", property: "payload.color" },
+        props: [
+          { id: "dup-id", kind: "text", default: "a" },
+          { id: "dup-id", kind: "color", default: "#000000" },
         ],
       }),
     );
-    expect(() => parseMotionProjectV3({ ...input, components })).toThrow(
-      MotionV3ReferenceError,
-    );
-    try {
-      parseMotionProjectV3({ ...input, components });
-    } catch (err) {
-      expect(String(err)).toContain("Duplicate publicTarget id: dup-id");
-    }
+    expect(() => MotionProjectV3Schema.parse({ ...input, components })).toThrow();
   });
 
-  it("rejects publicTarget with unknown nodeId", () => {
+  it("rejects propBinding with unknown nodeId", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -1761,11 +1750,14 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const components = (input.components as Array<Record<string, unknown>>).map(
       (c) => ({
         ...c,
-        publicTargets: [
+        propBindings: [
           {
-            id: "bad-target",
-            nodeId: "nonexistent-node",
-            property: "payload.content.text",
+            propId: "label",
+            target: {
+              kind: "layerProperty",
+              nodeId: "nonexistent-node",
+              property: "payload.content.text",
+            },
           },
         ],
       }),
@@ -1776,13 +1768,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, components });
     } catch (err) {
-      expect(String(err)).toContain(
-        'publicTarget "bad-target" references unknown node',
-      );
+      expect(String(err)).toContain('references unknown node "nonexistent-node"');
     }
   });
 
-  it("rejects publicTarget with unsupported property for node type", () => {
+  it("rejects propBinding with unsupported property for node type", () => {
     const input = loadFixture("representative.project.json") as Record<
       string,
       unknown
@@ -1790,12 +1780,15 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const components = (input.components as Array<Record<string, unknown>>).map(
       (c) => ({
         ...c,
-        publicTargets: [
-          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
+        propBindings: [
+          ...((c.propBindings as Array<Record<string, unknown>>) ?? []),
           {
-            id: "bad-property",
-            nodeId: "logo",
-            property: "payload.content.text",
+            propId: "logo-color",
+            target: {
+              kind: "layerProperty",
+              nodeId: "logo",
+              property: "payload.content.text",
+            },
           },
         ],
       }),
@@ -1806,11 +1799,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, components });
     } catch (err) {
-      expect(String(err)).toContain("exposes unsupported property");
+      expect(String(err)).toContain("targets unsupported property");
     }
   });
 
-  it("rejects component binding with unknown targetId", () => {
+  it("rejects component binding with unknown propId", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -1822,7 +1815,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         target: {
           kind: "component",
           componentId: "call-to-action",
-          targetId: "nonexistent-target",
+          propId: "nonexistent-prop",
         },
       },
     ];
@@ -1832,15 +1825,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, bindings });
     } catch (err) {
-      expect(String(err)).toContain(
-        'does not expose public target "nonexistent-target"',
-      );
+      expect(String(err)).toContain('does not declare prop "nonexistent-prop"');
     }
   });
 
-  // ── Component ownership contract: publicProps value typing ──────────
-
-  it("rejects publicProp with unknown target id", () => {
+  it("rejects instance props with unknown prop id", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -1854,7 +1843,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
                 ...n,
                 payload: {
                   ...(n.payload as Record<string, unknown>),
-                  publicProps: { "not-a-target": "hello" },
+                  props: { "not-a-prop": "hello" },
                 },
               }
             : n,
@@ -1867,28 +1856,21 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, scenes });
     } catch (err) {
-      expect(String(err)).toContain(
-        'does not expose public target "not-a-target"',
-      );
+      expect(String(err)).toContain('does not declare prop "not-a-prop"');
     }
   });
 
-  it("rejects publicProp with incompatible value kind", () => {
+  it("rejects instance props with incompatible value kind", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
     >;
-    // Add a numeric public target, then feed it a string value.
     const components = (input.components as Array<Record<string, unknown>>).map(
       (c) => ({
         ...c,
-        publicTargets: [
-          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
-          {
-            id: "cta-opacity",
-            nodeId: "cta-bg",
-            property: "transform.opacity",
-          },
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          { id: "opacity", kind: "number", default: 1 },
         ],
       }),
     );
@@ -1901,7 +1883,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
                 ...n,
                 payload: {
                   ...(n.payload as Record<string, unknown>),
-                  publicProps: { "cta-opacity": "not-a-number" },
+                  props: { opacity: "not-a-number" },
                 },
               }
             : n,
@@ -1914,11 +1896,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, components, scenes });
     } catch (err) {
-      expect(String(err)).toContain("incompatible with expected value kind");
+      expect(String(err)).toContain('expected kind "number"');
     }
   });
 
-  it("rejects publicProp variable reference with incompatible type", () => {
+  it("rejects instance prop variable reference with incompatible type", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -1926,17 +1908,12 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const components = (input.components as Array<Record<string, unknown>>).map(
       (c) => ({
         ...c,
-        publicTargets: [
-          ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
-          {
-            id: "cta-opacity",
-            nodeId: "cta-bg",
-            property: "transform.opacity",
-          },
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          { id: "opacity", kind: "number", default: 1 },
         ],
       }),
     );
-    // cta-text is a string variable, but cta-opacity expects a number.
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
@@ -1946,8 +1923,8 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
                 ...n,
                 payload: {
                   ...(n.payload as Record<string, unknown>),
-                  publicProps: {
-                    "cta-opacity": {
+                  props: {
+                    opacity: {
                       ref: { kind: "variable", id: "cta-text" },
                     },
                   },
@@ -1963,11 +1940,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, components, scenes });
     } catch (err) {
-      expect(String(err)).toContain('expected value kind "number"');
+      expect(String(err)).toContain('expected kind "number"');
     }
   });
 
-  it("accepts publicProp with matching value kind", () => {
+  it("accepts instance props with matching value kind", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -1981,7 +1958,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
                 ...n,
                 payload: {
                   ...(n.payload as Record<string, unknown>),
-                  publicProps: { "cta-label": "Buy now" },
+                  props: { label: "Buy now" },
                 },
               }
             : n,
@@ -1990,6 +1967,20 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     );
     const project = parseMotionProjectV3({ ...input, scenes });
     expect(project.scenes.length).toBeGreaterThan(0);
+  });
+
+  it("rejects legacy publicParams field on component definition", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        publicParams: [{ id: "legacy", type: "string", variableId: "x" }],
+      }),
+    );
+    expect(() => MotionProjectV3Schema.parse({ ...input, components })).toThrow();
   });
 
   it("rejects unknown variantId on a component node", () => {
@@ -2025,7 +2016,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     }
   });
 
-  it("rejects variant override targeting unknown public target", () => {
+  it("rejects variant props targeting unknown prop id", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -2037,7 +2028,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           {
             id: "primary",
             name: "Primary",
-            overrides: { "not-a-target": "hello" },
+            props: { "not-a-prop": "hello" },
           },
         ],
       }),
@@ -2048,13 +2039,131 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, components });
     } catch (err) {
-      expect(String(err)).toContain(
-        'overrides unknown public target "not-a-target"',
-      );
+      expect(String(err)).toContain('sets unknown prop "not-a-prop"');
     }
   });
 
-  it("accepts variant override targeting a declared public target", () => {
+  it("accepts keyframed number prop values", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          { id: "progress", kind: "number", default: 0, animatable: true },
+        ],
+        propBindings: [
+          ...((c.propBindings as Array<Record<string, unknown>>) ?? []),
+          {
+            propId: "progress",
+            target: {
+              kind: "layerProperty",
+              nodeId: "cta-bg",
+              property: "transform.opacity",
+            },
+          },
+        ],
+      }),
+    );
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  props: {
+                    progress: {
+                      kind: "keyframes",
+                      keys: [
+                        { t: 0, value: 0 },
+                        { t: 1, value: 1, easing: "easeOut" },
+                      ],
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    const project = parseMotionProjectV3({ ...input, components, scenes });
+    expect(project.scenes.length).toBeGreaterThan(0);
+  });
+
+  it("rejects keyframes on non-animatable prop", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [
+          ...((c.props as Array<Record<string, unknown>>) ?? []),
+          {
+            id: "style",
+            kind: "choice",
+            options: ["solid", "outline"],
+            default: "solid",
+          },
+        ],
+      }),
+    );
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (s) => ({
+        ...s,
+        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+          n.type === "component"
+            ? {
+                ...n,
+                payload: {
+                  ...(n.payload as Record<string, unknown>),
+                  props: {
+                    style: {
+                      kind: "keyframes",
+                      keys: [
+                        { t: 0, value: "solid" },
+                        { t: 1, value: "outline" },
+                      ],
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+      }),
+    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components, scenes }),
+    ).toThrow(MotionV3ReferenceError);
+    try {
+      parseMotionProjectV3({ ...input, components, scenes });
+    } catch (err) {
+      expect(String(err)).toContain("is not animatable");
+    }
+  });
+
+  it("rejects legacy prop kind string", () => {
+    const input = loadFixture("component.project.json") as Record<
+      string,
+      unknown
+    >;
+    const components = (input.components as Array<Record<string, unknown>>).map(
+      (c) => ({
+        ...c,
+        props: [{ id: "label", kind: "string", default: "x" }],
+      }),
+    );
+    expect(() => MotionProjectV3Schema.parse({ ...input, components })).toThrow();
+  });
+
+  it("accepts variant props targeting a declared prop", () => {
     const input = loadFixture("component.project.json") as Record<
       string,
       unknown
@@ -2066,14 +2175,14 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           {
             id: "primary",
             name: "Primary",
-            overrides: { "cta-label": "Primary CTA" },
+            props: { label: "Primary CTA" },
           },
         ],
       }),
     );
     const project = parseMotionProjectV3({ ...input, components });
-    expect(project.components[0]!.variants[0]!.overrides).toEqual({
-      "cta-label": "Primary CTA",
+    expect(project.components[0]!.variants[0]!.props).toEqual({
+      label: "Primary CTA",
     });
   });
 });

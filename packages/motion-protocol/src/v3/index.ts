@@ -19,6 +19,7 @@ export * from "./variables";
 export * from "./assets";
 export * from "./assets-types";
 export * from "./components";
+export * from "./prop-values";
 export * from "./scenes";
 export * from "./timeline";
 export * from "./extensions";

@@ -249,12 +249,24 @@
       "id": "lower-third",
       "version": "1.2.0",
       "integrity": "sha256:lower-third-1.2.0",
-      "publicParams": [
+      "props": [
         {
           "id": "title",
           "name": "Title",
-          "type": "string",
-          "variableId": "var-company"
+          "kind": "text",
+          "default": ""
+        },
+        {
+          "id": "bgColor",
+          "name": "Background color",
+          "kind": "color",
+          "default": "#000000"
+        },
+        {
+          "id": "height",
+          "name": "Bar height",
+          "kind": "number",
+          "default": 80
         }
       ],
       "variables": [],
@@ -328,18 +340,27 @@
         {
           "id": "compact",
           "name": "Compact lower third",
-          "params": {
+          "props": {
             "height": 60
           }
         }
       ],
-      "publicTargets": [
+      "propBindings": [
         {
-          "id": "lt-bg-color",
-          "name": "Background color",
-          "nodeId": "lt-bg",
-          "property": "payload.color",
-          "description": "The background color of the lower third bar"
+          "propId": "bgColor",
+          "target": {
+            "kind": "layerProperty",
+            "nodeId": "lt-bg",
+            "property": "payload.color"
+          }
+        },
+        {
+          "propId": "height",
+          "target": {
+            "kind": "layerProperty",
+            "nodeId": "lt-bg",
+            "property": "payload.height"
+          }
         }
       ],
       "assetDependencies": [
@@ -961,7 +982,7 @@
         "kind": "componentNode",
         "sceneId": "scene-lower-third",
         "nodeId": "node-lower-third",
-        "targetId": "lt-bg-color"
+        "propId": "bgColor"
       }
     }
   ],

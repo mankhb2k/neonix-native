@@ -7,7 +7,10 @@
 import type { AssetV3 } from "./assets";
 import type { ProjectCapabilityRequirements } from "./capabilities";
 import type { CompositionSettings } from "./composition";
-import type { EmbeddedComponentV3, ProjectDependenciesV3 } from "./components";
+import type {
+  ComponentDefinitionV3,
+  ProjectDependenciesV3,
+} from "./components";
 import type { NamespacedExtensions } from "./extensions";
 import type { ProjectMetadataV3 } from "./metadata";
 import type { ProjectProvenance } from "./provenance";
@@ -29,7 +32,7 @@ export type MotionProjectV3 = {
   tokens: DesignTokens;
   variables: ProjectVariableV3[];
   assets: AssetV3[];
-  components: EmbeddedComponentV3[];
+  components: ComponentDefinitionV3[];
   scenes: SceneDefinitionV3[];
   timeline: ProjectTimelineV3;
   bindings: ProjectBindingV3[];

@@ -13,7 +13,7 @@
 1. **Single Source of Truth cho Format v3**: Định nghĩa chính xác cấu trúc dữ liệu cho Project (`.mt`), Component (`.mvc`), Patch, và Normalized IR. Editor, AI planner, compiler và hai bridge render (Pixi / Remotion) đều validate cùng một schema — không có “schema riêng theo engine”.
 
 2. **Authoring IR vs. Runtime IR Pipeline**:
-   - **Authoring IR** (`MotionProjectV3`, `MotionComponentV3`): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), tham số công khai (`publicParams`), binding, component instances (`type: "component"`), repeat directives, presets, text animators, caption tracks, và layout modifiers.
+   - **Authoring IR** (`MotionProjectV3`): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), component props, binding qua `propId`, component instances (`type: "component"`), caption tracks, và layout modifiers.
    - **Runtime IR** (`MotionRuntimeProject`): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat nodes được clone, presets & text animators được biên dịch thành keyframe tracks thực tế. Ranh giới chuyển đổi nằm ở `@motionvideo/motion-compiler`.
 
 3. **An toàn dữ liệu nghiêm ngặt (Strict Validation & Bounds)**:
@@ -65,7 +65,7 @@ JSON Input  ──► normalizeMotionProjectInput()
 | Schema / Type                                   | Version | Mô tả                                                                                                          |
 | ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
 | `MotionProjectV3Schema` / `MotionProject`       | `3`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
-| `MotionComponentV3Schema` / `MotionComponentV3` | `3`     | Linh kiện tái sử dụng (`.mvc`): `publicParams`, `bindings`, `nodes`, `clips`, `cutoutRigs`, `actions`.         |
+| `ComponentDefinitionV3` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `nodes`, `variants`, `slots`, `actions`.         |
 | `MotionRuntimeProjectSchema`                    | `3`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
 | `MotionPatchSchema`                             | `1`     | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance).                                  |
 | `SceneComponentRegistrySchema`                  | `1`     | Catalog linh kiện scene cho AI/Editor template picker.                                                         |

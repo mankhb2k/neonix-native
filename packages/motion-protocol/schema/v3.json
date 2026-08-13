@@ -1311,7 +1311,7 @@
                 "type": "string",
                 "minLength": 1
               },
-              "publicParams": {
+              "props": {
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -1325,26 +1325,58 @@
                       "type": "string",
                       "minLength": 1
                     },
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "string",
-                        "color",
-                        "number",
-                        "boolean",
-                        "asset",
-                        "enum",
-                        "list"
-                      ]
-                    },
                     "label": {
                       "type": "string",
                       "minLength": 1
                     },
-                    "variableId": {
+                    "kind": {
                       "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128
+                      "enum": [
+                        "text",
+                        "number",
+                        "boolean",
+                        "color",
+                        "choice",
+                        "asset"
+                      ]
+                    },
+                    "default": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "items": {}
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      ]
+                    },
+                    "animatable": {
+                      "type": "boolean"
+                    },
+                    "assetKind": {
+                      "type": "string",
+                      "enum": [
+                        "image",
+                        "video",
+                        "audio",
+                        "svg",
+                        "font",
+                        "media"
+                      ]
                     },
                     "semantic": {
                       "type": "object",
@@ -1416,7 +1448,7 @@
                         "slider",
                         "toggle",
                         "asset-picker",
-                        "enum"
+                        "choice"
                       ]
                     },
                     "capability": {
@@ -1430,8 +1462,8 @@
                   },
                   "required": [
                     "id",
-                    "type",
-                    "variableId"
+                    "kind",
+                    "default"
                   ],
                   "additionalProperties": false
                 },
@@ -1528,33 +1560,155 @@
                       "type": "string",
                       "minLength": 1
                     },
-                    "overrides": {
+                    "props": {
                       "type": "object",
                       "additionalProperties": {
                         "anyOf": [
                           {
-                            "anyOf": [
-                              {
-                                "type": "string"
+                            "type": "object",
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "const": "keyframes"
                               },
-                              {
-                                "type": "number"
-                              },
-                              {
-                                "type": "boolean"
-                              },
-                              {
-                                "type": "null"
-                              },
-                              {
+                              "keys": {
                                 "type": "array",
-                                "items": {}
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "t": {
+                                      "type": "number",
+                                      "minimum": 0,
+                                      "maximum": 86400
+                                    },
+                                    "value": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string"
+                                        },
+                                        {
+                                          "type": "number"
+                                        },
+                                        {
+                                          "type": "boolean"
+                                        },
+                                        {
+                                          "type": "null"
+                                        },
+                                        {
+                                          "type": "array",
+                                          "items": {}
+                                        },
+                                        {
+                                          "type": "object",
+                                          "additionalProperties": {}
+                                        }
+                                      ]
+                                    },
+                                    "easing": {
+                                      "anyOf": [
+                                        {
+                                          "type": "string",
+                                          "enum": [
+                                            "linear",
+                                            "easeIn",
+                                            "easeOut",
+                                            "easeInOut",
+                                            "spring",
+                                            "step"
+                                          ]
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "const": "cubic-bezier"
+                                            },
+                                            "x1": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1
+                                            },
+                                            "y1": {
+                                              "type": "number"
+                                            },
+                                            "x2": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1
+                                            },
+                                            "y2": {
+                                              "type": "number"
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "x1",
+                                            "y1",
+                                            "x2",
+                                            "y2"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "type": "string",
+                                              "const": "spring"
+                                            },
+                                            "stiffness": {
+                                              "type": "number",
+                                              "exclusiveMinimum": true,
+                                              "minimum": 0,
+                                              "maximum": 10000
+                                            },
+                                            "damping": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 1000
+                                            },
+                                            "mass": {
+                                              "type": "number",
+                                              "exclusiveMinimum": true,
+                                              "minimum": 0,
+                                              "maximum": 100
+                                            }
+                                          },
+                                          "required": [
+                                            "type",
+                                            "stiffness",
+                                            "damping"
+                                          ],
+                                          "additionalProperties": false
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "required": [
+                                    "t",
+                                    "value"
+                                  ],
+                                  "additionalProperties": false
+                                },
+                                "minItems": 1,
+                                "maxItems": 10000
                               },
-                              {
-                                "type": "object",
-                                "additionalProperties": {}
+                              "interpolation": {
+                                "type": "string",
+                                "enum": [
+                                  "step",
+                                  "linear",
+                                  "color"
+                                ]
                               }
-                            ]
+                            },
+                            "required": [
+                              "kind",
+                              "keys"
+                            ],
+                            "additionalProperties": false
                           },
                           {
                             "type": "object",
@@ -1595,34 +1749,30 @@
                               "ref"
                             ],
                             "additionalProperties": false
-                          }
-                        ]
-                      },
-                      "default": {}
-                    },
-                    "params": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "anyOf": [
-                          {
-                            "type": "string"
                           },
                           {
-                            "type": "number"
-                          },
-                          {
-                            "type": "boolean"
-                          },
-                          {
-                            "type": "null"
-                          },
-                          {
-                            "type": "array",
-                            "items": {}
-                          },
-                          {
-                            "type": "object",
-                            "additionalProperties": {}
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              },
+                              {
+                                "type": "array",
+                                "items": {}
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": {}
+                              }
+                            ]
                           }
                         ]
                       },
@@ -1641,51 +1791,73 @@
                 "maxItems": 128,
                 "default": []
               },
-              "publicTargets": {
+              "propBindings": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "id": {
+                    "propId": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 128
                     },
-                    "name": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "nodeId": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128
-                    },
-                    "property": {
-                      "type": "string",
-                      "minLength": 1
-                    },
-                    "valueKind": {
-                      "type": "string",
-                      "enum": [
-                        "number",
-                        "angle",
-                        "vec2",
-                        "color",
-                        "boolean",
-                        "string",
-                        "asset",
-                        "path",
-                        "gradient"
+                    "target": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "layerProperty"
+                            },
+                            "nodeId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "property": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "nodeId",
+                            "property"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "const": "childProp"
+                            },
+                            "childId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            },
+                            "propId": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 128
+                            }
+                          },
+                          "required": [
+                            "kind",
+                            "childId",
+                            "propId"
+                          ],
+                          "additionalProperties": false
+                        }
                       ]
-                    },
-                    "description": {
-                      "type": "string"
                     }
                   },
                   "required": [
-                    "id",
-                    "nodeId",
-                    "property"
+                    "propId",
+                    "target"
                   ],
                   "additionalProperties": false
                 },
@@ -16143,33 +16315,155 @@
                               "minLength": 1,
                               "maxLength": 128
                             },
-                            "publicProps": {
+                            "props": {
                               "type": "object",
                               "additionalProperties": {
                                 "anyOf": [
                                   {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "const": "keyframes"
                                       },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "null"
-                                      },
-                                      {
+                                      "keys": {
                                         "type": "array",
-                                        "items": {}
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "t": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 86400
+                                            },
+                                            "value": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                },
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {}
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "additionalProperties": {}
+                                                }
+                                              ]
+                                            },
+                                            "easing": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "linear",
+                                                    "easeIn",
+                                                    "easeOut",
+                                                    "easeInOut",
+                                                    "spring",
+                                                    "step"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "const": "cubic-bezier"
+                                                    },
+                                                    "x1": {
+                                                      "type": "number",
+                                                      "minimum": 0,
+                                                      "maximum": 1
+                                                    },
+                                                    "y1": {
+                                                      "type": "number"
+                                                    },
+                                                    "x2": {
+                                                      "type": "number",
+                                                      "minimum": 0,
+                                                      "maximum": 1
+                                                    },
+                                                    "y2": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "x1",
+                                                    "y1",
+                                                    "x2",
+                                                    "y2"
+                                                  ],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "const": "spring"
+                                                    },
+                                                    "stiffness": {
+                                                      "type": "number",
+                                                      "exclusiveMinimum": true,
+                                                      "minimum": 0,
+                                                      "maximum": 10000
+                                                    },
+                                                    "damping": {
+                                                      "type": "number",
+                                                      "minimum": 0,
+                                                      "maximum": 1000
+                                                    },
+                                                    "mass": {
+                                                      "type": "number",
+                                                      "exclusiveMinimum": true,
+                                                      "minimum": 0,
+                                                      "maximum": 100
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "stiffness",
+                                                    "damping"
+                                                  ],
+                                                  "additionalProperties": false
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "t",
+                                            "value"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "minItems": 1,
+                                        "maxItems": 10000
                                       },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": {}
+                                      "interpolation": {
+                                        "type": "string",
+                                        "enum": [
+                                          "step",
+                                          "linear",
+                                          "color"
+                                        ]
                                       }
-                                    ]
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "keys"
+                                    ],
+                                    "additionalProperties": false
                                   },
                                   {
                                     "type": "object",
@@ -16210,6 +16504,30 @@
                                       "ref"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {}
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": {}
+                                      }
+                                    ]
                                   }
                                 ]
                               },
@@ -16309,7 +16627,7 @@
                               "minLength": 1,
                               "maxLength": 128
                             },
-                            "targetId": {
+                            "propId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -16318,7 +16636,7 @@
                           "required": [
                             "kind",
                             "componentId",
-                            "targetId"
+                            "propId"
                           ],
                           "additionalProperties": false
                         },
@@ -16339,7 +16657,7 @@
                               "minLength": 1,
                               "maxLength": 128
                             },
-                            "targetId": {
+                            "propId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -16349,7 +16667,7 @@
                             "kind",
                             "sceneId",
                             "nodeId",
-                            "targetId"
+                            "propId"
                           ],
                           "additionalProperties": false
                         }
@@ -31570,33 +31888,155 @@
                               "minLength": 1,
                               "maxLength": 128
                             },
-                            "publicProps": {
+                            "props": {
                               "type": "object",
                               "additionalProperties": {
                                 "anyOf": [
                                   {
-                                    "anyOf": [
-                                      {
-                                        "type": "string"
+                                    "type": "object",
+                                    "properties": {
+                                      "kind": {
+                                        "type": "string",
+                                        "const": "keyframes"
                                       },
-                                      {
-                                        "type": "number"
-                                      },
-                                      {
-                                        "type": "boolean"
-                                      },
-                                      {
-                                        "type": "null"
-                                      },
-                                      {
+                                      "keys": {
                                         "type": "array",
-                                        "items": {}
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "t": {
+                                              "type": "number",
+                                              "minimum": 0,
+                                              "maximum": 86400
+                                            },
+                                            "value": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string"
+                                                },
+                                                {
+                                                  "type": "number"
+                                                },
+                                                {
+                                                  "type": "boolean"
+                                                },
+                                                {
+                                                  "type": "null"
+                                                },
+                                                {
+                                                  "type": "array",
+                                                  "items": {}
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "additionalProperties": {}
+                                                }
+                                              ]
+                                            },
+                                            "easing": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "string",
+                                                  "enum": [
+                                                    "linear",
+                                                    "easeIn",
+                                                    "easeOut",
+                                                    "easeInOut",
+                                                    "spring",
+                                                    "step"
+                                                  ]
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "const": "cubic-bezier"
+                                                    },
+                                                    "x1": {
+                                                      "type": "number",
+                                                      "minimum": 0,
+                                                      "maximum": 1
+                                                    },
+                                                    "y1": {
+                                                      "type": "number"
+                                                    },
+                                                    "x2": {
+                                                      "type": "number",
+                                                      "minimum": 0,
+                                                      "maximum": 1
+                                                    },
+                                                    "y2": {
+                                                      "type": "number"
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "x1",
+                                                    "y1",
+                                                    "x2",
+                                                    "y2"
+                                                  ],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "const": "spring"
+                                                    },
+                                                    "stiffness": {
+                                                      "type": "number",
+                                                      "exclusiveMinimum": true,
+                                                      "minimum": 0,
+                                                      "maximum": 10000
+                                                    },
+                                                    "damping": {
+                                                      "type": "number",
+                                                      "minimum": 0,
+                                                      "maximum": 1000
+                                                    },
+                                                    "mass": {
+                                                      "type": "number",
+                                                      "exclusiveMinimum": true,
+                                                      "minimum": 0,
+                                                      "maximum": 100
+                                                    }
+                                                  },
+                                                  "required": [
+                                                    "type",
+                                                    "stiffness",
+                                                    "damping"
+                                                  ],
+                                                  "additionalProperties": false
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "required": [
+                                            "t",
+                                            "value"
+                                          ],
+                                          "additionalProperties": false
+                                        },
+                                        "minItems": 1,
+                                        "maxItems": 10000
                                       },
-                                      {
-                                        "type": "object",
-                                        "additionalProperties": {}
+                                      "interpolation": {
+                                        "type": "string",
+                                        "enum": [
+                                          "step",
+                                          "linear",
+                                          "color"
+                                        ]
                                       }
-                                    ]
+                                    },
+                                    "required": [
+                                      "kind",
+                                      "keys"
+                                    ],
+                                    "additionalProperties": false
                                   },
                                   {
                                     "type": "object",
@@ -31637,6 +32077,30 @@
                                       "ref"
                                     ],
                                     "additionalProperties": false
+                                  },
+                                  {
+                                    "anyOf": [
+                                      {
+                                        "type": "string"
+                                      },
+                                      {
+                                        "type": "number"
+                                      },
+                                      {
+                                        "type": "boolean"
+                                      },
+                                      {
+                                        "type": "null"
+                                      },
+                                      {
+                                        "type": "array",
+                                        "items": {}
+                                      },
+                                      {
+                                        "type": "object",
+                                        "additionalProperties": {}
+                                      }
+                                    ]
                                   }
                                 ]
                               },
@@ -32890,7 +33354,7 @@
                         "minLength": 1,
                         "maxLength": 128
                       },
-                      "targetId": {
+                      "propId": {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 128
@@ -32899,7 +33363,7 @@
                     "required": [
                       "kind",
                       "componentId",
-                      "targetId"
+                      "propId"
                     ],
                     "additionalProperties": false
                   },
@@ -32920,7 +33384,7 @@
                         "minLength": 1,
                         "maxLength": 128
                       },
-                      "targetId": {
+                      "propId": {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 128
@@ -32930,7 +33394,7 @@
                       "kind",
                       "sceneId",
                       "nodeId",
-                      "targetId"
+                      "propId"
                     ],
                     "additionalProperties": false
                   }

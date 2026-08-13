@@ -59,7 +59,7 @@ function makeComponentNodeProject(
     clipDuration?: number;
     componentId?: string;
     transform?: Partial<V3.ComponentNodeV3["transform"]>;
-    publicProps?: V3.ComponentNodeV3["payload"]["publicProps"];
+    props?: V3.ComponentNodeV3["payload"]["props"];
     sceneClips?: V3.MotionClipV3[];
   } = {},
 ): V3.MotionProjectV3 {
@@ -94,7 +94,7 @@ function makeComponentNodeProject(
     },
     payload: {
       componentId,
-      publicProps: options.publicProps ?? {},
+      props: options.props ?? {},
     },
   };
 
@@ -398,15 +398,14 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(opacityTrack.keys[1]!.v).toBe(1);
   });
 
-  it("applies variant overrides through public targets", () => {
+  it("applies variant props through propBindings", () => {
     const project = makeComponentNodeProject();
     const component = project.components.find((c) => c.id === "logo-reveal")!;
     component.variants = [
       {
         id: "accent",
         name: "Accent",
-        overrides: { "logo-color": "#ff0000" },
-        params: {},
+        props: { "logo-color": "#ff0000" },
       },
     ];
     const scene = project.scenes.find((s) => s.id === "comp-scene")!;
@@ -427,17 +426,16 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(logo.payload.color).toBe("#ff0000");
   });
 
-  it("consumer publicProps override variant overrides", () => {
+  it("consumer props override variant props", () => {
     const project = makeComponentNodeProject({
-      publicProps: { "logo-color": "#00ff00" },
+      props: { "logo-color": "#00ff00" },
     });
     const component = project.components.find((c) => c.id === "logo-reveal")!;
     component.variants = [
       {
         id: "accent",
         name: "Accent",
-        overrides: { "logo-color": "#ff0000" },
-        params: {},
+        props: { "logo-color": "#ff0000" },
       },
     ];
     const scene = project.scenes.find((s) => s.id === "comp-scene")!;
@@ -456,6 +454,41 @@ describe("compileMotionProjectV3 — happy paths", () => {
       (n) => n.id === "comp-node__logo",
     ) as unknown as { payload: Record<string, unknown> };
     expect(logo.payload.color).toBe("#00ff00");
+  });
+
+  it("emits motion tracks for keyframed public props", () => {
+    const project = makeComponentNodeProject({
+      props: {
+        "logo-color": {
+          kind: "keyframes",
+          keys: [
+            { t: 0, value: "#ff0000" },
+            { t: 1, value: "#00ff00" },
+          ],
+        },
+      },
+    });
+    const component = project.components.find((c) => c.id === "logo-reveal")!;
+    const colorProp = component.props.find((p) => p.id === "logo-color");
+    if (colorProp) colorProp.animatable = true;
+
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const runtimeScene = result.project.scenes.find(
+      (s) => s.id === "comp-scene",
+    )!;
+    const logo = runtimeScene.nodes.find(
+      (n) => n.id === "comp-node__logo",
+    ) as unknown as { payload: Record<string, unknown> };
+    expect(logo.payload.color).toBe("#ff0000");
+    expect(runtimeScene.tracks.length).toBeGreaterThan(0);
+    const colorTrack = runtimeScene.tracks.find(
+      (t) =>
+        t.targetId === "comp-node__logo" &&
+        (t.property === "payload.color" || t.property === "color"),
+    );
+    expect(colorTrack).toBeDefined();
   });
 
   it("rejects a visual clip carrying the removed instanceTransform field", () => {
@@ -1135,7 +1168,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
 
   it("CMP_BINDING_TYPE_MISMATCH: component node binding with wrong variable type", () => {
     const project = makeComponentNodeProject();
-    // logo-visible publicTarget expects boolean, but brand-color is color → mismatch
+    // logo-visible prop expects boolean, but brand-color is color → mismatch
     project.bindings.push({
       id: "binding-component-wrong-type",
       source: { kind: "variable", variableId: "brand-color" },
@@ -1143,7 +1176,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
         kind: "componentNode",
         sceneId: "comp-scene",
         nodeId: "comp-node",
-        targetId: "logo-visible",
+        propId: "logo-visible",
       },
     });
     const result = compileMotionProjectV3(project);
@@ -1154,7 +1187,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     ).toBe(true);
   });
 
-  it("CMP_PRIVATE_COMPONENT_ACCESS: component node binding targets non-existent publicTarget", () => {
+  it("CMP_PRIVATE_COMPONENT_ACCESS: component node binding targets prop without layerProperty binding", () => {
     const project = makeComponentNodeProject();
     project.bindings.push({
       id: "binding-private-access",
@@ -1163,7 +1196,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
         kind: "componentNode",
         sceneId: "comp-scene",
         nodeId: "comp-node",
-        targetId: "internal-node-not-exposed",
+        propId: "internal-prop-not-wired",
       },
     });
     const result = compileMotionProjectV3(project);

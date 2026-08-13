@@ -14,8 +14,8 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `src/v3/project.ts`               | **Root schema** của V3. Hiểu `MotionProjectV3Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
 | 2   | `src/v3/timeline.ts`              | **Scene-only timeline**. Xem `visualTracks`, `VisualClipV3` — clip source chỉ cho phép `{ kind: "scene", sceneId }`.            |
-| 2b  | `src/v3/nodes/component.ts`       | **Component node** (`type: "component"`) — `payload.componentId`, `variantId?`, `publicProps?`, transform đóng vai trò wrapper. |
-| 3   | `src/v3/components.ts`            | **Sealed component contract** — `publicParams`, `slots`, `variants`, `publicTargets`, internals.                                |
+| 2b  | `src/v3/nodes/component.ts`       | **Component node** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
+| 3   | `src/v3/components.ts`            | **Sealed component contract** — `props`, `slots`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v3/variables.ts`             | **Binding model** — phân biệt scene binding vs component binding; consumer có được chạm internal không.                         |
 | 5   | `src/v3/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v3/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
@@ -49,18 +49,20 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 ### 3) `src/v3/components.ts` — Sealed component
 
 - Owner sở hữu toàn bộ internals (nodes, bindings, actions).
-- Consumer chỉ được dùng public API: `publicParams`, `slots`, `variants`, `publicTargets`.
+- Consumer chỉ được dùng public API: `props`, `slots`, `variants`. Wiring owner = `propBindings` (`layerProperty` / `childProp`).
+- Prop values: static | variable | keyframes (chỉ khi `animatable`).
+- Asset props bắt buộc `assetKind`. Conflict: payload keyframes + scene `payload.props.*` cùng prop → reject.
 - Project-level binding không được target arbitrary component internals.
 
 ### 4) `src/v3/variables.ts` — Binding model
 
 - Phân biệt **scene binding** (bind tới node trong scene) vs **componentNode binding** (bind tới instance trong scene) vs **component binding** (bind toàn cục vào mọi instance).
-- Consumer có bị bắt buộc dùng `targetId` (public target) thay vì `nodeId` trực tiếp không.
+- Consumer có bị bắt buộc dùng `propId` thay vì `nodeId` trực tiếp không.
 
 ### 5) `src/v3/references/project.ts` — Semantic validation
 
 - Sau khi Zod parse xong, reference validation chạy gì: id tồn tại, asset type đúng, property path đúng node type.
-- `publicTarget` có trỏ tới node thật trong component không.
+- `propBindings` có trỏ tới node thật (`layerProperty`) / child component trực tiếp (`childProp`) không.
 - Binding có đi qua public API không, hay lách vào internal.
 
 ### 6) `src/v3/parse.ts` — Parse path thực tế
@@ -83,7 +85,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | **Shape**            | Dữ liệu có đúng object/field/type/range không?                                        |
 | **Semantic**         | id, reference, property path có thật và đúng node type không?                         |
 | **Ownership**        | Consumer có bị chặn khỏi internal component không?                                    |
-| **Public API**       | Component owner chỉ expose đúng `publicParams`, `slots`, `variants`, `publicTargets`? |
+| **Public API**       | Component owner chỉ expose đúng `props`, `slots`, `variants`? |
 | **Instance Motion**  | Component có move/scale/keyframe như group layer mà không chạm internals không?       |
 | **Determinism**      | Cùng input có cho output/serialization ổn định không?                                 |
 | **Artifact Sync**    | `pnpm test` có fail khi `schema/v3.json` lệch Zod không? (required gate)              |
@@ -98,7 +100,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu tôi là user/consumer, tôi có cách nào sửa node bên trong component mà owner không expose không?
 
-- **Mong đợi:** Không. Mọi binding/phụ kiện phải đi qua `publicTargets`. Không có lối lách qua `nodeId` + `property` trực tiếp.
+- **Mong đợi:** Không. Mọi binding phải đi qua `propId`. Không có lối lách qua `nodeId` + `property` trực tiếp vào component internals.
 
 ### 4.2 Shape / Type safety
 
@@ -108,13 +110,13 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 4.3 Binding model
 
-> Nếu tôi bind tới component, tôi có bắt buộc dùng `targetId` không?
+> Nếu tôi bind tới component, tôi có bắt buộc dùng `propId` không?
 
-- **Mong đợi:** Có. Bind tới component bắt buộc dùng `targetId` (public target), không dùng `nodeId` thô. Dạng `componentNode` trỏ đến instance cụ thể, dạng `component` bind toàn cục vào mọi instance.
+- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `nodeId`. Dạng `componentNode` trỏ instance cụ thể; dạng `component` bind mọi instance.
 
 ### 4.4 Public target type-check
 
-> Nếu `publicTarget.property` sai node type, validation có bắt không?
+> Nếu `propBinding` target property sai node type, validation có bắt không?
 
 - **Mong đợi:** Có. Reference validation kiểm tra property path có khớp với node type của target không.
 
@@ -122,7 +124,8 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu JSON Schema được dùng ngoài app (tooling bên thứ ba), nó có đủ gần với Zod source of truth không?
 
-> **Mong đợi:** `schema/v3.json` phải được regenerate từ Zod (`pnpm generate:schema`). Test suite **bắt buộc** so khớp byte-for-byte với output mới; lệch = fail. Không còn legacy project normalizer trên authoring path.
+> **Mong đợi:** `schema/v3.json` phải được regenerate từ Zod (`pnpm generate:schema`). Test suite **bắt buộc** so khớp byte-for-byte với output mới; lệch = fail. Không còn legacy project normalizer trên authoring path. Đổi protocol shape (kể cả khi vẫn `formatVersion: 3`) → regenerate + pass gate trước freeze.
+
 ## 5. Tóm tắt luồng review
 
 ```text

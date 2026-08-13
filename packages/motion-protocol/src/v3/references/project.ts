@@ -5,6 +5,12 @@ import type { MotionProjectV3 } from "../project";
 import type { NodeV3 } from "../nodes";
 import { isVariableReference } from "../values";
 import type { ProjectVariableV3 } from "../variables";
+import {
+  defaultAnimatableForPropKind,
+  defaultInterpolationForPropKind,
+  type ComponentPropV3,
+} from "../components";
+import { isPropKeyframesValue } from "../prop-values";
 import { duplicates } from "./helpers";
 import { validateNodeGraphV3 } from "./node-graph";
 import { validateNodeAssetsV3 } from "./node-assets";
@@ -231,6 +237,209 @@ function variableTypeMatchesValueKind(
   }
 }
 
+function isPropAnimatable(prop: ComponentPropV3): boolean {
+  return prop.animatable ?? defaultAnimatableForPropKind(prop.kind);
+}
+
+function assetTypeMatchesAssetKind(
+  assetType: string,
+  assetKind: string,
+): boolean {
+  if (assetKind === "media") {
+    return assetType === "image" || assetType === "video";
+  }
+  return assetType === assetKind;
+}
+
+function literalMatchesPropKind(value: unknown, propKind: string): boolean {
+  switch (propKind) {
+    case "text":
+    case "color":
+    case "asset":
+    case "choice":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number";
+    case "boolean":
+      return typeof value === "boolean";
+    default:
+      return true;
+  }
+}
+
+function variableTypeMatchesPropKind(
+  variableType: string,
+  propKind: string,
+): boolean {
+  switch (propKind) {
+    case "text":
+      return variableType === "string" || variableType === "enum";
+    case "choice":
+      return variableType === "enum" || variableType === "string";
+    case "color":
+      return variableType === "color";
+    case "number":
+      return variableType === "number";
+    case "boolean":
+      return variableType === "boolean";
+    case "asset":
+      return variableType === "asset";
+    default:
+      return true;
+  }
+}
+
+function propKindsCompatible(parentKind: string, childKind: string): boolean {
+  if (parentKind === childKind) return true;
+  if (parentKind === "choice" && childKind === "text") return true;
+  if (parentKind === "text" && childKind === "choice") return true;
+  return false;
+}
+
+function allowedKeyframeInterpolations(propKind: string): Set<string> {
+  if (propKind === "number") return new Set(["linear", "step"]);
+  if (propKind === "color") return new Set(["color", "step"]);
+  return new Set(["step"]);
+}
+
+type AssetLike = { id: string; assetType: string };
+
+function validatePropValue(
+  value: unknown,
+  prop: ComponentPropV3,
+  variableById: Map<string, ProjectVariableV3>,
+  assetById: Map<string, AssetLike> | undefined,
+  path: string,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+
+  if (isPropKeyframesValue(value)) {
+    if (!isPropAnimatable(prop)) {
+      issues.push({
+        path,
+        message: `Prop "${prop.id}" is not animatable; keyframes are not allowed`,
+      });
+      return issues;
+    }
+    const allowed = allowedKeyframeInterpolations(prop.kind);
+    const interpolation =
+      value.interpolation ?? defaultInterpolationForPropKind(prop.kind);
+    if (!allowed.has(interpolation)) {
+      issues.push({
+        path,
+        message: `Prop "${prop.id}" keyframes interpolation "${interpolation}" is invalid for kind "${prop.kind}"`,
+      });
+    }
+    for (let i = 0; i < value.keys.length; i++) {
+      const key = value.keys[i]!;
+      issues.push(
+        ...validatePropValue(
+          key.value,
+          prop,
+          variableById,
+          assetById,
+          `${path}.keys.${i}.value`,
+        ),
+      );
+    }
+    return issues;
+  }
+
+  if (isVariableReference(value)) {
+    const refId = extractVariableReferenceId(value);
+    if (!refId) return issues;
+    const variable = variableById.get(refId);
+    if (variable && !variableTypeMatchesPropKind(variable.type, prop.kind)) {
+      issues.push({
+        path,
+        message: `props "${prop.id}" references variable "${refId}" of type "${variable.type}", expected kind "${prop.kind}"`,
+      });
+    }
+    return issues;
+  }
+
+  if (!literalMatchesPropKind(value, prop.kind)) {
+    issues.push({
+      path,
+      message: `props "${prop.id}" value is incompatible with expected kind "${prop.kind}"`,
+    });
+    return issues;
+  }
+
+  if (prop.kind === "choice" && prop.options && typeof value === "string") {
+    if (!prop.options.includes(value)) {
+      issues.push({
+        path,
+        message: `props "${prop.id}" value "${value}" is not in options`,
+      });
+    }
+  }
+
+  if (prop.kind === "asset" && typeof value === "string" && assetById) {
+    const asset = assetById.get(value);
+    if (!asset) {
+      issues.push({
+        path,
+        message: `props "${prop.id}" references unknown asset "${value}"`,
+      });
+    } else if (
+      prop.assetKind &&
+      !assetTypeMatchesAssetKind(asset.assetType, prop.assetKind)
+    ) {
+      issues.push({
+        path,
+        message: `props "${prop.id}" asset "${value}" has type "${asset.assetType}", expected assetKind "${prop.assetKind}"`,
+      });
+    }
+  }
+
+  return issues;
+}
+
+function collectDirectChildComponentIds(
+  nodes: NodeV3[],
+): Array<{ nodeId: string; componentId: string }> {
+  return nodes
+    .filter(
+      (n): n is Extract<NodeV3, { type: "component" }> =>
+        n.type === "component",
+    )
+    .map((n) => ({ nodeId: n.id, componentId: n.payload.componentId }));
+}
+
+function detectComponentCycles(
+  componentById: Map<string, import("../components").ComponentDefinitionV3>,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  const visiting = new Set<string>();
+  const visited = new Set<string>();
+
+  function dfs(componentId: string, stack: string[]): void {
+    if (visited.has(componentId)) return;
+    if (visiting.has(componentId)) {
+      issues.push({
+        path: `components.${componentId}`,
+        message: `Component cycle detected: ${[...stack, componentId].join(" → ")}`,
+      });
+      return;
+    }
+    visiting.add(componentId);
+    const component = componentById.get(componentId);
+    if (component) {
+      for (const child of collectDirectChildComponentIds(component.nodes)) {
+        dfs(child.componentId, [...stack, componentId]);
+      }
+    }
+    visiting.delete(componentId);
+    visited.add(componentId);
+  }
+
+  for (const componentId of componentById.keys()) {
+    dfs(componentId, []);
+  }
+  return issues;
+}
+
 /** Extract the variable id from a top-level `{ ref: { kind: "variable", id } }` shape. */
 function extractVariableReferenceId(value: unknown): string | undefined {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -251,13 +460,14 @@ function extractVariableReferenceId(value: unknown): string | undefined {
  * Validate component nodes within a scene (or component) node list.
  *
  * Each `type: "component"` node must reference an existing component, its
- * `variantId` (when present) must be declared by that component, and its
- * `publicProps` keys must be declared `publicTargets`.
+ * `variantId` (when present) must be declared, and `payload.props` keys must
+ * match declared prop ids with compatible values.
  */
 function validateComponentNodeReferences(
   nodes: NodeV3[],
-  componentById: Map<string, import("../components").EmbeddedComponentV3>,
+  componentById: Map<string, import("../components").ComponentDefinitionV3>,
   variableById: Map<string, ProjectVariableV3>,
+  assetById: Map<string, AssetLike>,
   pathPrefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
@@ -281,39 +491,57 @@ function validateComponentNodeReferences(
         message: `Component "${component.id}" does not declare variant "${node.payload.variantId}"`,
       });
     }
-    const publicTargetById = new Map(
-      component.publicTargets.map((t) => [t.id, t] as const),
-    );
-    for (const [targetId, value] of Object.entries(
-      node.payload.publicProps ?? {},
-    )) {
-      const target = publicTargetById.get(targetId);
-      if (!target) {
+    const propById = new Map(component.props.map((p) => [p.id, p] as const));
+    for (const [propId, value] of Object.entries(node.payload.props ?? {})) {
+      const prop = propById.get(propId);
+      if (!prop) {
         issues.push({
-          path: `${path}.payload.publicProps.${targetId}`,
-          message: `Component "${component.id}" does not expose public target "${targetId}"`,
+          path: `${path}.payload.props.${propId}`,
+          message: `Component "${component.id}" does not declare prop "${propId}"`,
         });
         continue;
       }
-      const kind =
-        target.valueKind ?? inferPublicTargetValueKind(target.property);
-      if (!kind) continue;
-      if (isVariableReference(value)) {
-        const refId = extractVariableReferenceId(value);
-        if (refId) {
-          const variable = variableById.get(refId);
-          if (variable && !variableTypeMatchesValueKind(variable.type, kind)) {
+      issues.push(
+        ...validatePropValue(
+          value,
+          prop,
+          variableById,
+          assetById,
+          `${path}.payload.props.${propId}`,
+        ),
+      );
+    }
+  }
+  return issues;
+}
+
+function collectScenePropTrackConflicts(
+  project: MotionProjectV3,
+): ReferenceIssue[] {
+  const issues: ReferenceIssue[] = [];
+  for (const scene of project.scenes) {
+    for (const node of scene.nodes) {
+      if (node.type !== "component") continue;
+      const keyframedProps = new Set<string>();
+      for (const [propId, value] of Object.entries(node.payload.props ?? {})) {
+        if (isPropKeyframesValue(value)) keyframedProps.add(propId);
+      }
+      if (keyframedProps.size === 0) continue;
+      for (const clip of scene.clips ?? []) {
+        if (clip.targetId !== node.id) continue;
+        const source = clip.source;
+        if (!source || source.kind !== "tracks") continue;
+        for (const track of source.tracks ?? []) {
+          const match = /^payload\.props\.(.+)$/.exec(track.property);
+          if (!match) continue;
+          const propId = match[1]!;
+          if (keyframedProps.has(propId)) {
             issues.push({
-              path: `${path}.payload.publicProps.${targetId}`,
-              message: `publicProps "${targetId}" references variable "${refId}" of type "${variable.type}", expected value kind "${kind}"`,
+              path: `scenes.${scene.id}.clips.${clip.id}`,
+              message: `Conflict: component node "${node.id}" prop "${propId}" has both payload keyframes and scene track animation`,
             });
           }
         }
-      } else if (!literalMatchesValueKind(value, kind)) {
-        issues.push({
-          path: `${path}.payload.publicProps.${targetId}`,
-          message: `publicProps "${targetId}" value is incompatible with expected value kind "${kind}"`,
-        });
       }
     }
   }
@@ -494,11 +722,11 @@ export function validateMotionProjectV3References(
             message: `Component node "${bindingTarget.nodeId}" references unknown component "${node.payload.componentId}"`,
           });
         } else if (
-          !component.publicTargets.some((t) => t.id === bindingTarget.targetId)
+          !component.props.some((p) => p.id === bindingTarget.propId)
         ) {
           issues.push({
-            path: `${path}.target.targetId`,
-            message: `Component "${node.payload.componentId}" does not expose public target "${bindingTarget.targetId}"`,
+            path: `${path}.target.propId`,
+            message: `Component "${node.payload.componentId}" does not declare prop "${bindingTarget.propId}"`,
           });
         }
       }
@@ -509,20 +737,16 @@ export function validateMotionProjectV3References(
           path: `${path}.target.componentId`,
           message: `Unknown component: ${bindingTarget.componentId}`,
         });
-      } else {
-        // Consumer bindings must go through public targets only
-        const publicTarget = component.publicTargets.find(
-          (t) => t.id === bindingTarget.targetId,
-        );
-        if (!publicTarget) {
-          issues.push({
-            path: `${path}.target.targetId`,
-            message: `Component "${bindingTarget.componentId}" does not expose public target "${bindingTarget.targetId}"`,
-          });
-        }
+      } else if (!component.props.some((p) => p.id === bindingTarget.propId)) {
+        issues.push({
+          path: `${path}.target.propId`,
+          message: `Component "${bindingTarget.componentId}" does not declare prop "${bindingTarget.propId}"`,
+        });
       }
     }
   }
+
+  issues.push(...detectComponentCycles(componentById));
 
   // ── scenes ───────────────────────────────────────────────────────────
   for (const scene of project.scenes) {
@@ -541,6 +765,7 @@ export function validateMotionProjectV3References(
         scene.nodes,
         componentById,
         variableById,
+        assetById,
         `scenes.${scene.id}.nodes`,
       ),
     );
@@ -575,35 +800,98 @@ export function validateMotionProjectV3References(
         component.nodes,
         componentById,
         variableById,
+        assetById,
         `components.${component.id}.nodes`,
       ),
     );
 
-    // Validate publicTargets
-    const targetIds = component.publicTargets.map((t) => t.id);
-    for (const dupId of new Set(duplicates(targetIds))) {
+    const propById = new Map(component.props.map((p) => [p.id, p] as const));
+    const componentNodeIds = new Set(component.nodes.map((n) => n.id));
+
+    // Validate prop duplicate ids
+    const propIds = component.props.map((p) => p.id);
+    for (const dupId of new Set(duplicates(propIds))) {
       issues.push({
-        path: `components.${component.id}.publicTargets`,
-        message: `Duplicate publicTarget id: ${dupId}`,
+        path: `components.${component.id}.props`,
+        message: `Duplicate prop id: ${dupId}`,
       });
     }
-    const componentNodeIds = new Set(component.nodes.map((n) => n.id));
-    for (const target of component.publicTargets) {
-      const node = component.nodes.find((n) => n.id === target.nodeId);
-      if (!node) {
+
+    // Validate prop default values match kind (+ asset when present)
+    for (const prop of component.props) {
+      issues.push(
+        ...validatePropValue(
+          prop.default,
+          prop,
+          variableById,
+          assetById,
+          `components.${component.id}.props.${prop.id}.default`,
+        ),
+      );
+    }
+
+    // Validate propBindings
+    for (const binding of component.propBindings) {
+      const prop = propById.get(binding.propId);
+      if (!prop) {
         issues.push({
-          path: `components.${component.id}.publicTargets.${target.id}.nodeId`,
-          message: `publicTarget "${target.id}" references unknown node: ${target.nodeId}`,
+          path: `components.${component.id}.propBindings`,
+          message: `propBinding references unknown prop "${binding.propId}"`,
         });
-      } else if (!isPublicTargetPropertyValid(node, target.property)) {
-        issues.push({
-          path: `components.${component.id}.publicTargets.${target.id}.property`,
-          message: `publicTarget "${target.id}" exposes unsupported property "${target.property}" for ${node.type} node "${node.id}"`,
-        });
+        continue;
+      }
+      const target = binding.target;
+      if (target.kind === "layerProperty") {
+        const node = component.nodes.find((n) => n.id === target.nodeId);
+        if (!node) {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `propBinding for "${binding.propId}" references unknown node "${target.nodeId}"`,
+          });
+        } else if (!isPublicTargetPropertyValid(node, target.property)) {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `propBinding for "${binding.propId}" targets unsupported property "${target.property}" on ${node.type} node "${node.id}"`,
+          });
+        }
+      } else {
+        const childNode = component.nodes.find((n) => n.id === target.childId);
+        if (!childNode) {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `propBinding for "${binding.propId}" references unknown child "${target.childId}"`,
+          });
+        } else if (childNode.type !== "component") {
+          issues.push({
+            path: `components.${component.id}.propBindings`,
+            message: `propBinding childProp target "${target.childId}" is not a component node (type "${childNode.type}")`,
+          });
+        } else {
+          const childDef = componentById.get(childNode.payload.componentId);
+          if (!childDef) {
+            issues.push({
+              path: `components.${component.id}.propBindings`,
+              message: `propBinding child component "${childNode.payload.componentId}" is not defined in project`,
+            });
+          } else {
+            const childProp = childDef.props.find((p) => p.id === target.propId);
+            if (!childProp) {
+              issues.push({
+                path: `components.${component.id}.propBindings`,
+                message: `propBinding forwards to unknown child prop "${target.propId}" on component "${childDef.id}"`,
+              });
+            } else if (!propKindsCompatible(prop.kind, childProp.kind)) {
+              issues.push({
+                path: `components.${component.id}.propBindings`,
+                message: `propBinding kind mismatch: parent prop "${prop.id}" (${prop.kind}) → child prop "${childProp.id}" (${childProp.kind})`,
+              });
+            }
+          }
+        }
       }
     }
 
-    // M16: component root nodes must have parentId === null
+    // M16: component nodes must reference parents within the same definition
     for (const node of component.nodes) {
       if (node.parentId !== null && !componentNodeIds.has(node.parentId)) {
         issues.push({
@@ -612,15 +900,6 @@ export function validateMotionProjectV3References(
         });
       }
     }
-    // Validate publicParam duplicate ids
-    const paramIds = component.publicParams.map((p) => p.id);
-    for (const dupId of new Set(duplicates(paramIds))) {
-      issues.push({
-        path: `components.${component.id}.publicParams`,
-        message: `Duplicate publicParam id: ${dupId}`,
-      });
-    }
-
     // Validate variant duplicate ids
     const variantIds = component.variants.map((v) => v.id);
     for (const dupId of new Set(duplicates(variantIds))) {
@@ -629,33 +908,32 @@ export function validateMotionProjectV3References(
         message: `Duplicate variant id: ${dupId}`,
       });
     }
-    // Variant overrides must target declared public targets only.
-    const publicTargetIdSet = new Set(component.publicTargets.map((t) => t.id));
+    const propIdSet = new Set(component.props.map((p) => p.id));
     for (const variant of component.variants) {
-      for (const targetId of Object.keys(variant.overrides ?? {})) {
-        if (!publicTargetIdSet.has(targetId)) {
+      for (const propId of Object.keys(variant.props ?? {})) {
+        if (!propIdSet.has(propId)) {
           issues.push({
-            path: `components.${component.id}.variants.${variant.id}.overrides.${targetId}`,
-            message: `Variant "${variant.id}" overrides unknown public target "${targetId}"`,
+            path: `components.${component.id}.variants.${variant.id}.props.${propId}`,
+            message: `Variant "${variant.id}" sets unknown prop "${propId}"`,
           });
+          continue;
         }
-      }
-    }
-    // Validate publicParams — variableId must reference a component-local
-    // variable OR a project-level variable (fallback for shared params)
-    const componentVariableIds = new Set(component.variables.map((v) => v.id));
-    for (const param of component.publicParams) {
-      if (
-        !componentVariableIds.has(param.variableId) &&
-        !variableIds.has(param.variableId)
-      ) {
-        issues.push({
-          path: `components.${component.id}.publicParams.${param.id}.variableId`,
-          message: `publicParam "${param.id}" references unknown variable: ${param.variableId}`,
-        });
+        const prop = propById.get(propId)!;
+        const value = variant.props[propId];
+        issues.push(
+          ...validatePropValue(
+            value,
+            prop,
+            variableById,
+            assetById,
+            `components.${component.id}.variants.${variant.id}.props.${propId}`,
+          ),
+        );
       }
     }
   }
+
+  issues.push(...collectScenePropTrackConflicts(project));
 
   return issues;
 }

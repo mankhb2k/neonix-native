@@ -135,7 +135,7 @@ Gioi han v2:
 - `metadata.locale` chi chap nhan `vi-VN`.
 - Composition size suy ra tu ba aspect ratio co dinh.
 - Global visual timeline chi co `sceneOrder`.
-- Transition gan vao scene, nen scene kho reuse voi transition khac nhau.
+- Transition gan vao scene (V2) — V3 bo; effect = scene/component/layer animation.
 - Component dependency duoc pin nhung definition khong embed trong root.
 - Chua co project capability requirements va source map profile.
 
@@ -154,7 +154,7 @@ type MotionProjectV3 = {
   tokens: DesignTokens;
   variables: ProjectVariable[];
   assets: AssetDeclaration[];
-  components: EmbeddedComponent[];
+  components: ComponentDefinition[];
   scenes: SceneDefinition[];
   timeline: ProjectTimeline;
   bindings: ProjectBinding[];
@@ -385,16 +385,18 @@ Vi du:
 Portable v3 co the embed definitions:
 
 ```ts
-type EmbeddedComponent = {
+type ComponentDefinition = {
   id: Id;
   version: string;
   integrity: string;
-  publicParams: PublicParam[];
+  props: ComponentProp[];
+  slots?: ComponentSlot[];
+  variants?: ComponentVariant[];
+  propBindings?: ComponentPropBinding[];
   variables: ComponentVariable[];
   nodes: Node[];
   bindings: ComponentBinding[];
   actions: ComponentAction[];
-  variants?: ComponentVariant[];
   assetDependencies?: Id[];
 };
 ```
@@ -438,7 +440,7 @@ type SceneDefinition = {
 
 Quyet dinh v3:
 
-- Bo `scene.transition`; transition thuoc visual timeline clip/edge.
+- Bo `scene.transition`; khong co timeline transition primitive — effect = scene/component/layer animation.
 - Scene duration la intrinsic duration.
 - Timeline clip co the trim/rate/reuse scene.
 - Scene-local clips chi animate nodes trong scene.
@@ -875,11 +877,7 @@ Vi du ngan nay la fixture hop voi root/node/track schema hien tai:
           }
         }
       ],
-      "activeCameraId": "main-camera",
-      "transition": {
-        "type": "cut",
-        "duration": 0
-      }
+      "activeCameraId": "main-camera"
     }
   ],
   "bindings": [],
@@ -1031,10 +1029,10 @@ Validation gom nhieu lop:
    parent, dependency, mask, component va modifier cycles.
 
 5. Capabilities
-   property/node/effect/transition support end-to-end.
+   property/node/effect support end-to-end.
 
 6. Timeline
-   ranges, overlap, transitions, trim, rate va loop.
+   ranges, visual lane overlap, trim, rate va loop.
 
 7. Asset preflight
    integrity, metadata, fonts va media support.
@@ -1076,7 +1074,7 @@ Project chi hop le khi:
 - Binding source/target ton tai va value kinds tuong thich.
 - Media node va asset variable dung asset kind.
 - Font references tro toi `assetType: "font"`.
-- Visual clip range va transition hop le.
+- Visual clip range hop le; khong co timeline transition primitive.
 
 ## 29. Canonical hashing
 
@@ -1175,10 +1173,10 @@ metadata.brand
   -> tokens + optional variables/provenance
 
 timeline.sceneOrder
-  -> timeline.visualTracks[main].clips
+  -> timeline.visualTracks[].clips (scene-only source; order sparse unique)
 
 scene.transition
-  -> scene/component/layer animation (khong emit transitionOut)
+  -> scene/component/layer animation (khong emit transitionIn/Out)
 
 timeline.audioTracks
   -> add duration/playbackRate from asset metadata/defaults
@@ -1187,7 +1185,7 @@ extensions.constraints/events
   -> namespaced extension keys
 ```
 
-Migration emit warning neu asset duration thieu, transition vuot scene duration, component khong resolve, brand font khong map duoc font asset, hoac aspect preset khong du thong tin chon exact dimensions.
+Migration emit warning neu asset duration thieu, component khong resolve, brand font khong map duoc font asset, hoac aspect preset khong du thong tin chon exact dimensions. Canonical V3 parse reject timeline `source.kind: "component"` — khong auto-migrate.
 
 ## 33. Versioning policy
 

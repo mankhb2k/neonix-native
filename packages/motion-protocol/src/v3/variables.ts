@@ -126,8 +126,8 @@ export const ProjectBindingV3Schema = z
         .object({
           kind: z.literal("component"),
           componentId: IdSchema,
-          /** Public target id declared by the component owner. */
-          targetId: IdSchema,
+          /** Public prop id declared by the component owner. */
+          propId: IdSchema,
         })
         .strict(),
       z
@@ -135,8 +135,8 @@ export const ProjectBindingV3Schema = z
           kind: z.literal("componentNode"),
           sceneId: IdSchema,
           nodeId: IdSchema,
-          /** Public target id declared by the referenced component owner. */
-          targetId: IdSchema,
+          /** Public prop id declared by the referenced component owner. */
+          propId: IdSchema,
         })
         .strict(),
     ]),

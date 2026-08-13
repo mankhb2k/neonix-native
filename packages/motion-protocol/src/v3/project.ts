@@ -18,7 +18,7 @@ import {
   ProjectVariableV3Schema,
 } from "./variables";
 import { AssetV3Schema } from "./assets";
-import { EmbeddedComponentV3Schema } from "./components";
+import { ComponentDefinitionV3Schema } from "./components";
 import { SceneDefinitionV3Schema } from "./scenes";
 import { ProjectTimelineV3Schema } from "./timeline/schema";
 import { collectTimelineIntegrityIssues } from "./timeline/validation";
@@ -46,7 +46,7 @@ function makeMotionProjectV3ObjectSchema(): z.ZodType<MotionProjectV3> {
         .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)
         .default([]),
       components: z
-        .array(EmbeddedComponentV3Schema)
+        .array(ComponentDefinitionV3Schema)
         .max(MOTION_PROTOCOL_LIMITS.dependenciesPerProject)
         .default([]),
       scenes: z
@@ -152,7 +152,7 @@ export const MotionProjectV3Schema =
     }
 
     // Timeline integrity (duplicate clip ids, duplicate track order,
-    // main-track overlap) — delegated to the shared validation helper.
+    // visual lane overlap) — delegated to the shared validation helper.
     for (const issue of collectTimelineIntegrityIssues(project.timeline)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

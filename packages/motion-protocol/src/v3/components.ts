@@ -1,27 +1,153 @@
 /**
  * V3 components & dependencies.
  *
- * Components are sealed, owner-owned units:
- * - The component owner fully controls internal structure (nodes, bindings, actions).
- * - Consumers can only use the public API (publicParams, slots, typed variants, publicTargets).
- * - Project-level bindings must not target arbitrary component internals.
+ * A component is a sealed design template with public props, variants, and slots.
+ * Consumers (scene instances, project bindings) may override only public props.
+ * Owner wiring from props to internals uses `propBindings` — not a consumer API.
  *
- * Dependencies pin compiler + component + plugin versions.
+ * Prop kinds are AI/user-friendly: text | number | boolean | color | choice | asset.
+ * Prop values may be static, variable-bound, or keyframed (when animatable).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { PublicParamSchema, VariableSchema } from "./variables";
+import { VariableSchema } from "./variables";
+import { JsonValueSchema } from "./values";
 import {
-  JsonValueSchema,
-  ResolvableValueSchema,
-  ValueKindSchema,
-} from "./values";
-import { IdSchema, PropertyPathSchema, SemverSchema } from "./common";
+  IdSchema,
+  PropertyPathSchema,
+  SemverSchema,
+  FiniteNumberSchema,
+  SemanticSchema,
+} from "./common";
 import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";
 import { MotionClipV3Schema } from "./animation/clips";
+import { ComponentPropValueSchema } from "./prop-values";
 
-export const PublicParamV3Schema = PublicParamSchema;
+/** Public prop kinds — AI/user friendly (no string/enum/list). */
+export const ComponentPropKindSchema = z.enum([
+  "text",
+  "number",
+  "boolean",
+  "color",
+  "choice",
+  "asset",
+]);
+
+/** Asset slot classification for `kind: "asset"` props. */
+export const ComponentPropAssetKindSchema = z.enum([
+  "image",
+  "video",
+  "audio",
+  "svg",
+  "font",
+  "media",
+]);
+
+export function defaultAnimatableForPropKind(
+  kind: z.infer<typeof ComponentPropKindSchema>,
+): boolean {
+  return kind !== "choice" && kind !== "asset";
+}
+
+export function defaultInterpolationForPropKind(
+  kind: z.infer<typeof ComponentPropKindSchema>,
+): "step" | "linear" | "color" {
+  if (kind === "number") return "linear";
+  if (kind === "color") return "color";
+  return "step";
+}
+
+/** Public prop declared on a component definition. */
+export const ComponentPropV3Schema = z
+  .object({
+    id: IdSchema,
+    name: z.string().min(1).optional(),
+    label: z.string().min(1).optional(),
+    kind: ComponentPropKindSchema,
+    default: JsonValueSchema,
+    /** When omitted, inferred: choice/asset → false; others → true. */
+    animatable: z.boolean().optional(),
+    /** Required when kind === "asset". */
+    assetKind: ComponentPropAssetKindSchema.optional(),
+    semantic: SemanticSchema.optional(),
+    min: FiniteNumberSchema.optional(),
+    max: FiniteNumberSchema.optional(),
+    step: FiniteNumberSchema.positive().optional(),
+    previewHint: z.string().optional(),
+    /** Required when kind === "choice". */
+    options: z
+      .array(z.string())
+      .min(1)
+      .max(MOTION_PROTOCOL_LIMITS.enumOptions)
+      .optional(),
+    group: z.enum(["content", "style", "motion", "layout", "audio"]).optional(),
+    control: z
+      .enum([
+        "text",
+        "textarea",
+        "color-picker",
+        "slider",
+        "toggle",
+        "asset-picker",
+        "choice",
+      ])
+      .optional(),
+    capability: z.enum(["basic", "advanced", "designer-only"]).optional(),
+  })
+  .strict()
+  .superRefine((prop, ctx) => {
+    if (prop.kind === "asset" && prop.assetKind === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Prop "${prop.id}" with kind "asset" requires assetKind`,
+        path: ["assetKind"],
+      });
+    }
+    if (prop.kind === "choice") {
+      if (!prop.options || prop.options.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Prop "${prop.id}" with kind "choice" requires options`,
+          path: ["options"],
+        });
+      } else if (
+        typeof prop.default === "string" &&
+        !prop.options.includes(prop.default)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Prop "${prop.id}" default must be one of options`,
+          path: ["default"],
+        });
+      }
+    }
+  });
+
+export const ComponentPropBindingTargetV3Schema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("layerProperty"),
+      nodeId: IdSchema,
+      property: PropertyPathSchema,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("childProp"),
+      childId: IdSchema,
+      propId: IdSchema,
+    })
+    .strict(),
+]);
+
+/** Owner wiring: resolved prop value → internal layer property or child component prop. */
+export const ComponentPropBindingV3Schema = z
+  .object({
+    propId: IdSchema,
+    target: ComponentPropBindingTargetV3Schema,
+  })
+  .strict();
 
 /** Content kinds a slot can accept. */
 export const SlotContentKindSchema = z.enum([
@@ -47,43 +173,12 @@ export const ComponentSlotV3Schema = z
   })
   .strict();
 
-/**
- * Public binding target — the owner exposes only these node/property paths
- * for consumer bindings. Consumers reference targets by `targetId`, never
- * by raw `nodeId.property`.
- */
-export const ComponentPublicTargetV3Schema = z
-  .object({
-    id: IdSchema,
-    name: z.string().min(1).optional(),
-    nodeId: IdSchema,
-    property: PropertyPathSchema,
-    /**
-     * Expected value kind for consumer-supplied `publicProps` values.
-     * When omitted, the kind is inferred from `property` during reference
-     * validation (transform.* → number/boolean, payload.color → color, etc.).
-     */
-    valueKind: ValueKindSchema.optional(),
-    description: z.string().optional(),
-  })
-  .strict();
-
-/**
- * Typed variant preset — owner-approved configuration that alters layout,
- * style, or motion via public-target overrides.
- *
- * `overrides` is keyed by `publicTarget` id, so a variant can only influence
- * the component's declared public surface — never arbitrary internals.
- * `params` is retained for backward compatibility with pre-existing fixtures.
- */
+/** Typed variant preset — overrides public props only. */
 export const ComponentVariantV3Schema = z
   .object({
     id: IdSchema,
     name: z.string().min(1),
-    /** Public-target overrides keyed by `publicTarget` id. */
-    overrides: z.record(ResolvableValueSchema).default({}),
-    /** @deprecated Legacy free-form params; prefer `overrides`. */
-    params: z.record(JsonValueSchema).default({}),
+    props: z.record(ComponentPropValueSchema).default({}),
     previewHint: z.string().optional(),
   })
   .strict();
@@ -99,23 +194,23 @@ export const ComponentActionV3Schema = z
   })
   .strict();
 
-export const EmbeddedComponentV3Schema = z
+export const ComponentDefinitionV3Schema = z
   .object({
     id: IdSchema,
     version: SemverSchema,
     integrity: z.string().min(1),
 
     // ── Public consumer surface ─────────────────────────────────
-    publicParams: z
-      .array(PublicParamV3Schema)
+    props: z
+      .array(ComponentPropV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.publicParamsPerComponent)
       .default([]),
     slots: z.array(ComponentSlotV3Schema).max(64).default([]),
-    /** Typed, enumerable owner-approved presets. */
     variants: z.array(ComponentVariantV3Schema).max(128).default([]),
-    /** Exposed node/property paths for consumer bindings. */
-    publicTargets: z
-      .array(ComponentPublicTargetV3Schema)
+
+    // ── Owner-only wiring (not consumer API) ─────────────────────
+    propBindings: z
+      .array(ComponentPropBindingV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)
       .default([]),
 
@@ -143,10 +238,9 @@ export const EmbeddedComponentV3Schema = z
   })
   .strict()
   .superRefine((val, ctx) => {
-    // --- Slot id uniqueness ---
     const slotIds = new Set<string>();
     for (let i = 0; i < val.slots.length; i++) {
-      const sid = val.slots[i].id;
+      const sid = val.slots[i]!.id;
       if (slotIds.has(sid)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -157,8 +251,18 @@ export const EmbeddedComponentV3Schema = z
       slotIds.add(sid);
     }
 
-    // NOTE: Consumer-side slot-content cardinality (count) is validated
-    // at the component-instance level once slot-content schemas land.
+    const propIds = new Set<string>();
+    for (let i = 0; i < val.props.length; i++) {
+      const prop = val.props[i]!;
+      if (propIds.has(prop.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Duplicate prop id "${prop.id}"`,
+          path: ["props", i, "id"],
+        });
+      }
+      propIds.add(prop.id);
+    }
   });
 
 export const ComponentDependencyV3Schema = z
@@ -192,12 +296,20 @@ export const ProjectDependenciesV3Schema = z
   })
   .strict();
 
-export type EmbeddedComponentV3 = z.infer<typeof EmbeddedComponentV3Schema>;
+export type ComponentDefinitionV3 = z.infer<typeof ComponentDefinitionV3Schema>;
+export type ComponentPropV3 = z.infer<typeof ComponentPropV3Schema>;
+export type ComponentPropKind = z.infer<typeof ComponentPropKindSchema>;
+export type ComponentPropAssetKind = z.infer<
+  typeof ComponentPropAssetKindSchema
+>;
+export type ComponentPropBindingV3 = z.infer<
+  typeof ComponentPropBindingV3Schema
+>;
+export type ComponentPropBindingTargetV3 = z.infer<
+  typeof ComponentPropBindingTargetV3Schema
+>;
 export type ComponentDependencyV3 = z.infer<typeof ComponentDependencyV3Schema>;
 export type ProjectDependenciesV3 = z.infer<typeof ProjectDependenciesV3Schema>;
 export type SlotContentKind = z.infer<typeof SlotContentKindSchema>;
-export type ComponentPublicTargetV3 = z.infer<
-  typeof ComponentPublicTargetV3Schema
->;
 export type ComponentVariantV3 = z.infer<typeof ComponentVariantV3Schema>;
 export type ComponentSlotV3 = z.infer<typeof ComponentSlotV3Schema>;

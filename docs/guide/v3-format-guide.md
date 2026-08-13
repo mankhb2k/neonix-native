@@ -10,7 +10,7 @@
 
 ## 1. MotionProjectV3 là gì?
 
-`MotionProjectV3` là **định dạng authoring duy nhất** của MotiClip, đại diện cho toàn bộ một dự án motion graphics. Mọi thứ — scenes, components, assets, variables, timeline, transitions — đều nằm trong một file JSON duy nhất, có cấu trúc chặt chẽ và được validate nghiêm ngặt qua Zod schema.
+`MotionProjectV3` là **định dạng authoring duy nhất** của MotiClip, đại diện cho toàn bộ một dự án motion graphics. Mọi thứ — scenes, components, assets, variables, timeline, bindings — đều nằm trong một file JSON duy nhất, có cấu trúc chặt chẽ và được validate nghiêm ngặt qua Zod schema.
 
 ```mermaid
 flowchart TB
@@ -130,7 +130,7 @@ flowchart TB
 | `tokens`        | `DesignTokensSchema`                  | ❌ (default `{}`) | Design token values                |
 | `variables`     | `ProjectVariableV3Schema[]`           | ❌ (default `[]`) | Typed project variables            |
 | `assets`        | `AssetV3Schema[]`                     | ❌ (default `[]`) | Asset declarations                 |
-| `components`    | `EmbeddedComponentV3Schema[]`         | ❌ (default `[]`) | Embedded components                |
+| `components`    | `ComponentDefinitionV3Schema[]`         | ❌ (default `[]`) | Component definitions                |
 | `scenes`        | `SceneDefinitionV3Schema[]`           | ❌ (default `[]`) | Scene definitions                  |
 | `timeline`      | `ProjectTimelineV3Schema`             | ✅                | Track layout                       |
 | `bindings`      | `ProjectBindingV3Schema[]`            | ❌ (default `[]`) | Variable bindings                  |
@@ -216,7 +216,7 @@ Stacking **chỉ** theo `order`. Không có ưu tiên `primary` / `overlay`.
   "timeline": {
     "visualTracks": [
       {
-        "id": "track-base",
+        "id": "visual-0",
         "order": 0, // ← vẽ trước, nằm dưới
         "clips": [
           {
@@ -228,8 +228,8 @@ Stacking **chỉ** theo `order`. Không có ưu tiên `primary` / `overlay`.
         ],
       },
       {
-        "id": "track-logo",
-        "order": 1, // ← vẽ sau, nằm trên
+        "id": "visual-10",
+        "order": 10, // ← vẽ sau, nằm trên (sparse; không cần contiguous)
         "clips": [
           {
             "id": "clip-logo",
@@ -282,7 +282,7 @@ derivedDuration = max(
   "timeline": {
     "visualTracks": [
       {
-        "id": "track-base",
+        "id": "visual-0",
         "order": 0,
         "clips": [
           { "id": "c1", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 5 },
@@ -331,11 +331,11 @@ derivedDuration = max(
 | **Duplicate = editor command** | JSON **không** có op/field `duplicate`. UI tạo object mới → id mới → timing/lane hợp lệ → lưu state sạch. |
 
 ```jsonc
-// Reject: cùng lane chồng thời gian — không có transition bridge
+// Reject: cùng lane chồng thời gian — visual lane exclusive
 {
   "visualTracks": [
     {
-      "id": "track-base",
+      "id": "visual-0",
       "order": 0,
       "clips": [
         {
@@ -361,7 +361,7 @@ derivedDuration = max(
 {
   "visualTracks": [
     {
-      "id": "track-base",
+      "id": "visual-0",
       "order": 0,
       "clips": [
         {
@@ -373,8 +373,8 @@ derivedDuration = max(
       ]
     },
     {
-      "id": "track-logo",
-      "order": 1,
+      "id": "visual-10",
+      "order": 10,
       "clips": [
         {
           "id": "clip_a_copy",
@@ -388,10 +388,11 @@ derivedDuration = max(
 }
 ```
 
-> **Source layout**: Timeline schema/utilities nằm trong thư mục
+> **Source layout**: Timeline schema/utilities nằm trong
 > `packages/motion-protocol/src/v3/timeline/` (`schema.ts`, `duration.ts`,
 > `canonicalize.ts`, `validation.ts`, `index.ts`). Import qua `./timeline`
-> (hoặc `@moticlip/motion-protocol` public exports).
+> (hoặc `@moticlip/motion-protocol` public exports). Chi tiết:
+> [v3-timeline-guide.md](v3-timeline-guide.md).
 
 ---
 
@@ -443,7 +444,7 @@ derivedDuration = max(
 | `camera`     | Camera view                  | `projection`, `zoom`                                   |
 | `bone`       | Bone cho skeletal animation  | `length`, `restRotation`, `rotationLimits`             |
 | `adjustment` | Điều chỉnh màu sắc           | `brightness`, `contrast`, `saturation`                 |
-| `component`  | Instance của component       | `componentId`, `variantId?`, `publicProps?`            |
+| `component`  | Instance của component       | `componentId`, `variantId?`, `props?`            |
 
 > **Component node** (`type: "component"`) đại diện cho một instance của component đã nhúng. `payload.componentId` trỏ đến `project.components[]`; `transform` của node đóng vai trò wrapper transform khi compiler expand. Component **không** được instantiate qua visual clip.
 
@@ -554,13 +555,13 @@ Layer copy (editor): giữ `timing`, cấp `id` mới + `zIndex` mới trong sib
 
 ---
 
-## 6. Không có timeline transition
+## 6. Không có timeline effect primitive
 
-Timeline **không** có `transitionIn` / `transitionOut` / crossfade / wipe primitive. Muốn fade, slide, wipe, flash: animate layer hoặc component **bên trong scene** (opacity, transform, mask), rồi đặt scene đó trên track `order` phù hợp.
+Timeline **không** có `transitionIn` / `transitionOut` / crossfade / wipe. Muốn fade, slide, wipe, flash: animate layer hoặc component **bên trong scene** (opacity, transform, mask), rồi đặt scene đó trên track `order` phù hợp.
 
 Cut giữa hai clip trên cùng lane = clip A kết thúc, clip B bắt đầu (`B.start >= A.start + A.duration`). Chồng thời gian trên cùng lane = **reject**.
 
-Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính clip đó**, không suy luận transition giữa clips.
+Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính clip đó**, không suy luận crossfade giữa clips.
 
 ---
 
@@ -621,13 +622,13 @@ Binding kết nối project variable với node property của scene hoặc comp
     "kind": "componentNode",
     "sceneId": "cta-scene",
     "nodeId": "cta-instance",
-    "targetId": "cta-label"       // ← publicTargets.id
+    "propId": "label"       // ← component.props[].id
   }
 }
 ```
 
 > **Scene binding**: dùng `nodeId` + `property` trực tiếp.
-> **Component binding**: bắt buộc dùng `targetId` (trỏ đến `component.publicTargets`). Hai dạng: `componentNode` (trỏ đến instance cụ thể) và `component` (bind toàn cục vào mọi instance).
+> **Component binding**: bắt buộc dùng `propId` (trỏ đến `component.props`). Hai dạng: `componentNode` (instance cụ thể) và `component` (bind mọi instance). Chi tiết: [v3-component-guide.md](v3-component-guide.md).
 
 ---
 
@@ -809,7 +810,7 @@ sequenceDiagram
 | References | Missing component        | `Unknown component: cta`                |
 | References | Duplicate ID             | `Duplicate scene id: intro`             |
 | References | Invalid binding target   | `Unknown node: ghost-node`              |
-| References | Private component access | `targetId không có trong publicTargets` |
+| References | Private component access | `propId không có layerProperty binding` |
 
 ---
 
@@ -890,7 +891,7 @@ Theo dõi nguồn gốc project và source mapping:
 
 ### Khi dùng timeline
 
-1. **Không dùng transition primitives** — effect = scene/component node animation
+1. **Không dùng timeline effect primitives** — effect = scene/component node animation
 2. **Dùng sparse `order` unique** (visual `>= 0`, audio `< 0`) — không cần contiguous
 3. **Component node** (`type: "component"`) trong scene; visual clip chỉ `source.kind: "scene"`
 4. **Scene trùng thời gian** → khác track `order`; cùng lane không overlap
@@ -900,7 +901,7 @@ Theo dõi nguồn gốc project và source mapping:
 ### Khi dùng bindings
 
 1. **Scene binding**: `nodeId` + `property` trực tiếp
-2. **Component binding**: `targetId` (tham chiếu `publicTargets`)
+2. **Component binding**: `propId` (tham chiếu `component.props`)
 3. **Kiểm tra type khớp**: string → text, number → opacity, color → fill...
 
 ---
@@ -911,11 +912,11 @@ Theo dõi nguồn gốc project và source mapping:
 | ------------------------ | ------------------------------------------------------------------------------------------------ |
 | **MotionProjectV3**      | Single source of truth, một file JSON cho toàn bộ dự án                                          |
 | **visualTracks**         | Thay thế `sceneOrder`; multi-track `order` unique; lane exclusive theo thời gian     |
-| **VisualClip**           | Scene-only source; loop, playbackRate, opacity; **không** transition primitive       |
+| **VisualClip**           | Scene-only source; loop, playbackRate, opacity; **không** timeline effect primitive  |
 | **Node types**           | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
 | **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local unique zIndex                      |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |
-| **Bindings**             | Scene: `nodeId` + `property`. Component: `targetId`                                              |
+| **Bindings**             | Scene: `nodeId` + `property`. Component: `propId`                                              |
 | **Strict validation**    | `.strict()` trên mọi object + reference validation                                               |
 | **Format discriminator** | `format: "motion-project"`, `formatVersion: 3` — từ chối V2                                      |
 | **Duplicate**            | Editor command only — JSON không có op duplicate                                                 |

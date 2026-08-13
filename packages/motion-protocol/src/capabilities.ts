@@ -601,7 +601,7 @@ export function motionPropertyCapability(
   ) {
     return {
       valueKind: "json",
-      animatable: false,
+      animatable: true,
       bindable: true,
       public: true,
       runtimeSupport: "compile-time",
