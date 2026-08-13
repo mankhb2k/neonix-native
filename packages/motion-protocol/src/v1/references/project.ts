@@ -413,7 +413,7 @@ function validatePropValue(
   variableById: Map<string, ProjectVariableV1>,
   assetById: Map<string, AssetLike> | undefined,
   path: string,
-  sceneDuration?: number,
+  propDuration?: number,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
 
@@ -451,10 +451,10 @@ function validatePropValue(
         }
       }
       prevT = key.t;
-      if (sceneDuration !== undefined && key.t > sceneDuration) {
+      if (propDuration !== undefined && key.t > propDuration) {
         issues.push({
           path: `${path}.keys.${i}.t`,
-          message: `Prop "${prop.id}" keyframe t=${key.t} exceeds scene duration ${sceneDuration}`,
+          message: `Prop "${prop.id}" keyframe t=${key.t} exceeds component layer duration ${propDuration}`,
         });
       }
       issues.push(
@@ -574,11 +574,12 @@ function extractVariableReferenceId(value: unknown): string | undefined {
 }
 
 /**
- * Validate component layers within a scene (or component) node list.
+ * Validate component layers within a layer tree.
  *
  * Each `type: "component"` node must reference an existing component, its
  * `variantId` (when present) must be declared, and `payload.props` keys must
- * match declared prop ids with compatible values.
+ * match declared prop ids with compatible values. Prop keyframe `t` is local
+ * to the component instance layer when that layer declares `timing.duration`.
  */
 function validateComponentLayerReferences(
   layers: LayerV1[],
@@ -586,7 +587,6 @@ function validateComponentLayerReferences(
   variableById: Map<string, ProjectVariableV1>,
   assetById: Map<string, AssetLike>,
   pathPrefix: string,
-  sceneDuration?: number,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   for (const node of layers) {
@@ -626,19 +626,12 @@ function validateComponentLayerReferences(
           variableById,
           assetById,
           `${path}.payload.props.${propId}`,
-          sceneDuration,
+          node.timing?.duration,
         ),
       );
     }
   }
   return issues;
-}
-
-function collectScenePropTrackIssues(
-  _project: MotionProjectV1,
-): ReferenceIssue[] {
-  void _project;
-  return [];
 }
 
 export function validateMotionProjectV1References(
@@ -757,7 +750,6 @@ export function validateMotionProjectV1References(
       variableById,
       assetById,
       "layers",
-      project.timeline.duration,
     ),
   );
 
@@ -883,7 +875,7 @@ export function validateMotionProjectV1References(
             } else if (!propKindsCompatible(prop.kind, childProp.kind)) {
               issues.push({
                 path: `components.${component.id}.propBindings`,
-                message: `propBinding kind mismatch: parent prop "${prop.id}" (${prop.kind}) â†’ child prop "${childProp.id}" (${childProp.kind})`,
+                message: `propBinding kind mismatch: parent prop "${prop.id}" (${prop.kind}) → child prop "${childProp.id}" (${childProp.kind})`,
               });
             }
           }
@@ -933,8 +925,6 @@ export function validateMotionProjectV1References(
       }
     }
   }
-
-  issues.push(...collectScenePropTrackIssues(project));
 
   return issues;
 }

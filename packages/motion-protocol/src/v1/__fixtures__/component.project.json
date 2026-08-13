@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v1-component",
     "name": "V1 Component Example",
-    "description": "Demonstrates embedded component definition and component-as-scene-layer layers",
+    "description": "Demonstrates embedded component definition and root component layer instances",
     "locale": "vi-VN",
     "tags": [
       "example",
@@ -175,13 +175,6 @@
             "color": "#ffffff",
             "alignment": "center"
           }
-        }
-      ],
-      "actions": [
-        {
-          "id": "cta-tap",
-          "name": "Button tap animation",
-          "clips": []
         }
       ]
     }

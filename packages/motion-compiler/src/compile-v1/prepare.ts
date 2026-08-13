@@ -3,7 +3,7 @@ import {
   clone,
   pixelFormatHasAlpha,
   type JsonRecord,
-  type V1SceneClip,
+  type V1MotionClip,
 } from "./helpers";
 
 export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
@@ -178,7 +178,7 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
   }
 }
 
-export function prepareRuntimeClip(clip: V1SceneClip): JsonRecord {
+export function prepareRuntimeClip(clip: V1MotionClip): JsonRecord {
   return clone(clip);
 }
 

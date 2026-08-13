@@ -297,44 +297,6 @@
           }
         }
       ],
-      "actions": [
-        {
-          "id": "action-fade-in",
-          "name": "Fade in",
-          "clips": [
-            {
-              "id": "clip-fade",
-              "layerId": "lt-bg",
-              "schedule": {
-                "kind": "absolute",
-                "at": 0
-              },
-              "duration": 0.3,
-              "playback": {},
-              "source": {
-                "kind": "tracks",
-                "tracks": [
-                  {
-                    "layerId": "lt-bg",
-                    "property": "transform.opacity",
-                    "keys": [
-                      {
-                        "t": 0,
-                        "v": 0,
-                        "easing": "easeOut"
-                      },
-                      {
-                        "t": 0.3,
-                        "v": 0.9
-                      }
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       "variants": [
         {
           "id": "compact",

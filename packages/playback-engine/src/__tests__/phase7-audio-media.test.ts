@@ -105,7 +105,7 @@ function createMockAudioContext(): AudioContextLike {
     resume: vi.fn().mockResolvedValue(undefined),
     suspend: vi.fn().mockResolvedValue(undefined),
     close: vi.fn().mockResolvedValue(undefined),
-  };
+  } as unknown as AudioContextLike;
 }
 
 function makeTestAudioPlan(
@@ -115,6 +115,8 @@ function makeTestAudioPlan(
     fps: 30,
     clips: [
       {
+        trackId: "aud.bgm",
+        clipId: "clip.bgm",
         assetId: "asset.bgm",
         uri: "https://cdn.example/bgm.mp3",
         fromFrame: 0,
@@ -129,7 +131,7 @@ function makeTestAudioPlan(
           { frame: 135, value: 0.8 },
           { frame: 150, value: 0 },
         ],
-        role: "bgm" as const,
+        muted: false,
         loop: false,
         channelPolicy: "stereo" as const,
       },
@@ -362,6 +364,8 @@ describe("Task 7.2 — Web Audio scheduler", () => {
       fps: 30,
       clips: [
         {
+          trackId: "aud.bgm",
+          clipId: "clip.bgm",
           assetId: "asset.bgm",
           uri: "https://cdn.example/bgm.mp3",
           fromFrame: 0,
@@ -375,11 +379,13 @@ describe("Task 7.2 — Web Audio scheduler", () => {
             { frame: 15, value: 1 },
             { frame: 150, value: 0 },
           ],
-          role: "bgm",
+          muted: false,
           loop: false,
           channelPolicy: "stereo",
         },
         {
+          trackId: "aud.vo",
+          clipId: "clip.vo",
           assetId: "asset.vo",
           uri: "https://cdn.example/vo.mp3",
           fromFrame: 30,
@@ -392,7 +398,7 @@ describe("Task 7.2 — Web Audio scheduler", () => {
             { frame: 30, value: 1 },
             { frame: 120, value: 1 },
           ],
-          role: "voiceover",
+          muted: false,
           loop: false,
           channelPolicy: "mono",
         },
@@ -585,6 +591,8 @@ describe("Phase 7 integration", () => {
           ...makeTestAudioPlan().clips[0]!,
         },
         {
+          trackId: "aud.vo",
+          clipId: "clip.vo",
           assetId: "asset.vo",
           uri: "https://cdn.example/vo.mp3",
           fromFrame: 30,
@@ -597,7 +605,7 @@ describe("Phase 7 integration", () => {
             { frame: 30, value: 1 },
             { frame: 120, value: 1 },
           ],
-          role: "voiceover" as const,
+          muted: false,
           loop: false,
           channelPolicy: "mono" as const,
         },
@@ -606,10 +614,10 @@ describe("Phase 7 integration", () => {
 
     await scheduler.loadPlan(plan);
 
-    expect(() => scheduler.setMuted("asset.bgm:bgm", true)).not.toThrow();
-    expect(() => scheduler.setMuted("asset.vo:voiceover", true)).not.toThrow();
-    expect(() => scheduler.setMuted("asset.bgm:bgm", false)).not.toThrow();
-    expect(() => scheduler.setMuted("asset.vo:voiceover", false)).not.toThrow();
+    expect(() => scheduler.setMuted("asset.bgm:aud.bgm", true)).not.toThrow();
+    expect(() => scheduler.setMuted("asset.vo:aud.vo", true)).not.toThrow();
+    expect(() => scheduler.setMuted("asset.bgm:aud.bgm", false)).not.toThrow();
+    expect(() => scheduler.setMuted("asset.vo:aud.vo", false)).not.toThrow();
 
     scheduler.dispose();
     expect(true).toBe(true);

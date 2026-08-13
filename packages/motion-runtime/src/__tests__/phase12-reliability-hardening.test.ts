@@ -461,6 +461,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           },
           zIndex: 0,
           name: "orphan",
+          payload: { width: 100, height: 100, color: "#000000" },
         },
       ],
     };
@@ -504,6 +505,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           },
           zIndex: 0,
           name: "child",
+          payload: { width: 100, height: 100, color: "#000000" },
         },
         {
           type: "solid" as const,
@@ -526,6 +528,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           },
           zIndex: 0,
           name: "parent",
+          payload: { width: 100, height: 100, color: "#000000" },
         },
       ],
     };

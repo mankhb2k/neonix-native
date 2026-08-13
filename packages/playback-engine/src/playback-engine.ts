@@ -130,8 +130,14 @@ export function createPlaybackEngine(
     const t0 = performance.now();
     const frame = clock.currentFrame();
     const scale = quality.getResolutionScale();
-    const w = Math.round(runtime.metadata.width * scale);
-    const h = Math.round(runtime.metadata.height * scale);
+    const w = Math.round(
+      (runtime.composition?.width ??
+        (runtime.metadata.aspectRatio === "9:16" ? 1080 : 1920)) * scale,
+    );
+    const h = Math.round(
+      (runtime.composition?.height ??
+        (runtime.metadata.aspectRatio === "9:16" ? 1920 : 1080)) * scale,
+    );
 
     // Evaluate
     const result = evaluateCompositionFrameV1(runtime, frame, opts.fps, w, h);

@@ -184,12 +184,20 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
     const snapshot = makeBlurSnapshot([
       makeItem({
         key: "test:adj",
-        effects: [{ id: "a1", type: "brightness", value: 1.2 }],
+        effects: [
+          {
+            id: "a1",
+            type: "color-adjust",
+            brightness: 0.2,
+            contrast: 0,
+            saturation: 0,
+          },
+        ],
         compositing: {
           isolation: "pass-through",
           needsOffscreen: false,
           isAdjustment: true,
-          effectOrder: [{ id: "a1", type: "brightness" }],
+          effectOrder: [{ id: "a1", type: "color-adjust" }],
         },
       }),
     ]);
@@ -229,6 +237,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
             offsetY: 2,
             blur: 4,
             color: "#000",
+            opacity: 0.5,
           },
         ],
         compositing: {

@@ -54,7 +54,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `source-ref.ts`      | Source-ref schemas — `SourceRefKindSchema` (text-run/caption-token/caption-cue/node/clip).                                                                                                                               |
 | `timeline.ts`        | Project timeline — metadata only (`duration` / `workArea` / `markers`). Visual/audio/caption content lives on `project.layers`. |
 | `types.ts`           | V1 public protocol types — nơi đặt **aggregate root type** (`MotionProjectV1` viết tay) để tránh TS serialize type khổng lồ trong schema module.                                                                         |
-| `variables.ts`       | Variables, design tokens & project bindings — `ProjectVariableV1Schema`, `DesignTokensSchema`, `ProjectBindingV1Schema`, `PublicParamSchema`.                                                                            |
+| `variables.ts`       | Variables, design tokens & project bindings — `ProjectVariableV1Schema`, `DesignTokensSchema`, `ProjectBindingV1Schema`.                                                                                                  |
 
 ### 2.2 `src/v1/layers/`
 
@@ -79,7 +79,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File         | Nhiệm vụ                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------- |
 | `index.ts`   | Animation barrel — re-export easing/clips/tracks/drivers.                                           |
-| `clips.ts`   | `MotionClipV1Schema` — scene-local motion clips (scheduling `absolute`/`scene-end`/`after`/`with`). |
+| `clips.ts`   | `MotionClipV1Schema` — layer-graph motion clips (scheduling `absolute`/`timeline-end`/`after`/`with`). |
 | `drivers.ts` | `ProceduralDriverSchema` — procedural driver vocabulary (evaluated trong runtime IR).               |
 | `easing.ts`  | Keyframe easing — `KeyframeEasingNamedSchema`/`Cubic`/`Spring`/`KeyframeEasingSchema`.              |
 | `tracks.ts`  | `PropertyTrackV1Schema` — property track + extrapolation + keyframes.                               |

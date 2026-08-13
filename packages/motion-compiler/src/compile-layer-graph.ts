@@ -1,9 +1,10 @@
 /**
- * V1-native per-scene compilation: prepares a runtime-ready scene from
- * normalized authoring layers, clips, and variables.
+ * V1-native layer-graph compilation: prepares runtime layers/tracks from an
+ * in-memory layer graph (internal compile bridge) plus normalized clips and
+ * variables.
  *
  * Pipeline: resolve variables → layout constraints → fit text → compile
- * clips → assemble runtime scene.
+ * clips → assemble runtime layer graph output.
  *
  * This is the canonical V1 → Runtime IR path. No V2 intermediate shape.
  *
@@ -85,15 +86,15 @@ function playbackRate(
 function playbackDuration(
   clip: MotionClip,
   variables: Map<string, unknown>,
-  sceneDuration?: number,
+  graphDuration?: number,
 ): number {
   const rate = playbackRate(clip, variables);
   if (clip.playback.iterations === "infinite") {
-    if (sceneDuration === undefined)
+    if (graphDuration === undefined)
       throw new Error(
-        `Infinite playback requires a scene duration: ${clip.id}`,
+        `Infinite playback requires a timeline duration: ${clip.id}`,
       );
-    return Math.max(0, sceneDuration);
+    return Math.max(0, graphDuration);
   }
   return (clip.duration * clip.playback.iterations) / rate;
 }
@@ -101,7 +102,7 @@ function playbackDuration(
 function scheduleTimes(
   clips: MotionClip[],
   variables: Map<string, unknown> = new Map(),
-  sceneDuration?: number,
+  graphDuration?: number,
 ): Map<string, number> {
   const byId = new Map(clips.map((clip) => [clip.id, clip]));
   const times = new Map<string, number>();
@@ -114,8 +115,8 @@ function scheduleTimes(
     visiting.add(clip.id);
     let at: number;
     if (clip.schedule.kind === "absolute") at = clip.schedule.at;
-    else if (clip.schedule.kind === "scene-end") {
-      const duration = sceneDuration ?? 0;
+    else if (clip.schedule.kind === "timeline-end") {
+      const duration = graphDuration ?? 0;
       at = Math.max(0, duration - clip.duration + clip.schedule.offset);
     } else {
       const dependency = byId.get(clip.schedule.clipId);
@@ -125,7 +126,7 @@ function scheduleTimes(
       at =
         clip.schedule.kind === "after"
           ? dependencyStart +
-            playbackDuration(dependency, variables, sceneDuration) +
+            playbackDuration(dependency, variables, graphDuration) +
             (clip.schedule.offset ?? 0)
           : dependencyStart + (clip.schedule.offset ?? 0);
     }
@@ -186,7 +187,7 @@ function expandPlaybackTrack(
   track: RuntimeTrack,
   clip: MotionClip,
   start: number,
-  sceneDuration: number,
+  graphDuration: number,
   variables: Map<string, unknown>,
 ): RuntimeTrack {
   const rate = playbackRate(clip, variables);
@@ -200,12 +201,12 @@ function expandPlaybackTrack(
     const previous = keys.at(-1);
     if (previous && Math.abs(previous.t - key.t) <= 1e-8)
       keys[keys.length - 1] = { ...key, t: previous.t };
-    else if (key.t <= sceneDuration + 1e-9) keys.push(key);
+    else if (key.t <= graphDuration + 1e-9) keys.push(key);
   };
   for (let iteration = 0; iteration < iterations; iteration += 1) {
     const cycleStart = canonicalTime(start + iteration * cycleDuration);
-    if (cycleStart >= sceneDuration - 1e-9) break;
-    const cycleEnd = Math.min(sceneDuration, cycleStart + cycleDuration);
+    if (cycleStart >= graphDuration - 1e-9) break;
+    const cycleEnd = Math.min(graphDuration, cycleStart + cycleDuration);
     const reverse =
       clip.playback.direction === "reverse" ||
       (clip.playback.direction === "alternate" && iteration % 2 === 1);
@@ -233,7 +234,7 @@ function resolveTrackTime(
     const markerId = (time as { markerId: string; offset?: number }).markerId;
     const offset = (time as { offset?: number }).offset ?? 0;
     if (!markers.has(markerId))
-      throw new Error(`Unknown scene marker ${markerId} in clip ${clipId}`);
+      throw new Error(`Unknown timeline marker ${markerId} in clip ${clipId}`);
     return markers.get(markerId)! + offset;
   }
   throw new Error(
@@ -245,11 +246,11 @@ function compileClips(
   layers: RuntimeNode[],
   clips: MotionClip[],
   variables: Map<string, unknown>,
-  sceneDuration: number,
+  graphDuration: number,
   markers: Map<string, number> = new Map(),
 ): RuntimeTrack[] {
   const layerById = new Map(layers.map((node) => [node.id, node]));
-  const starts = scheduleTimes(clips, variables, sceneDuration);
+  const starts = scheduleTimes(clips, variables, graphDuration);
   const expanded = clips.flatMap((clip) => {
     const start = canonicalTime(starts.get(clip.id) ?? 0);
     if (clip.source.kind === "tracks") {
@@ -272,7 +273,7 @@ function compileClips(
           },
           clip,
           start,
-          sceneDuration,
+          graphDuration,
           variables,
         ),
       );
@@ -291,7 +292,7 @@ function compileClips(
         variables,
       ),
     ).map((track) =>
-      expandPlaybackTrack(track, clip, start, sceneDuration, variables),
+      expandPlaybackTrack(track, clip, start, graphDuration, variables),
     );
   });
   const merged = new Map<string, RuntimeTrack>();
@@ -311,7 +312,7 @@ function compileClips(
   return [...merged.values()];
 }
 
-export function compileSceneToRuntime(input: {
+export function compileLayerGraphToRuntime(input: {
   id: string;
   duration: number;
   layers: MotionLayer[];

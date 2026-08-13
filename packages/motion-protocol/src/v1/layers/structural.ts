@@ -61,7 +61,7 @@ export const AdjustmentLayerV1Schema = LayerBaseV1Schema.extend({
     .optional(),
 }).strict();
 
-// ── Motion blur (shared by scenes + runtime) ──────────────────────────
+// ── Motion blur (shared by composition + runtime) ─────────────────────
 
 export const MotionBlurSettingsSchema = z
   .object({

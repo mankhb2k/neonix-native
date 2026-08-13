@@ -2,9 +2,9 @@
   "format": "motion-project",
   "formatVersion": 1,
   "metadata": {
-    "id": "single-scene",
-    "name": "Single Scene",
-    "description": "One scene with a single text node",
+    "id": "single-root",
+    "name": "Single Root",
+    "description": "One root text layer",
     "locale": "vi-VN"
   },
   "composition": {

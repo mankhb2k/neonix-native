@@ -12,7 +12,7 @@ export type PresetValidationResult =
 
 /**
  * Semantic check: every Clip.source.presetId must be in the compiler allowlist.
- * Authoring V1 has no scene clips; presets live on runtime/legacy clip sources only.
+ * Authoring V1 has no timeline clip tracks; presets live on motion clip sources.
  */
 export function validateMotionProjectPresets(
   _project: MotionProject,

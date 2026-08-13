@@ -41,7 +41,7 @@ import {
   compileFailure,
   type CompileResult,
 } from "../compile-result";
-import { compileSceneToRuntime } from "../compile-scene";
+import { compileLayerGraphToRuntime } from "../compile-layer-graph";
 import { clone, deriveAspectRatio, toRuntimeProperty } from "./helpers";
 import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
@@ -56,7 +56,7 @@ export type CompileV1Options = {
   /**
    * Component compile strategy.
    * - `embedded-components` (default): component definitions are expanded
-   *   into runtime scenes at compile time.
+   *   into the runtime layer graph at compile time.
    * - `flattened-components`: reserved — flattens component assets into
    *   the runtime asset list (Phase 7).
    */
@@ -152,7 +152,7 @@ export function compileMotionProjectV1(
   }
 
   // Build the visual plan from project.layers.
-  const { scene, componentInstances, audioLayers } = buildLayerPlan(
+  const { graph, componentInstances, audioLayers } = buildLayerPlan(
     normalized,
     collector,
   );
@@ -213,8 +213,8 @@ export function compileMotionProjectV1(
       normalized.variables.map((v) => [v.id, clone(v.value)] as const),
     );
 
-    // Component instances tracked during buildVisualPlan: componentLayerId →
-    // { componentId, runtimeSceneId }. Used to validate component bindings.
+    // Component instances tracked during buildLayerPlan: componentLayerId →
+    // { componentId, runtimeGraphId }. Used to validate component bindings.
     // Component/componentLayer bindings are prop sources applied during
     // expand — they do not write onto expanded internals here.
     const components = new Map(
@@ -224,7 +224,7 @@ export function compileMotionProjectV1(
     const runtimeBindings: Array<{
       id: string;
       source: { variableId: string };
-      target: { sceneId: string; layerId: string; property: string };
+      target: { graphId: string; layerId: string; property: string };
     }> = [];
     for (const binding of normalized.bindings) {
       const target = binding.target;
@@ -233,7 +233,7 @@ export function compileMotionProjectV1(
           id: binding.id,
           source: { variableId: binding.source.variableId },
           target: {
-            sceneId: "root",
+            graphId: "root",
             layerId: target.layerId,
             property: toRuntimeProperty(target.property),
           },
@@ -279,7 +279,7 @@ export function compileMotionProjectV1(
         }
         continue;
       }
-      // Global component binding — scene-level instances only.
+      // Global component binding — project-tree instances only.
       // Nested instances are not registered in componentInstances; they
       // receive values only via parent childProp forwards.
       const instances = [...componentInstances.values()].filter(
@@ -334,7 +334,7 @@ export function compileMotionProjectV1(
     }
 
     for (const binding of runtimeBindings) {
-      const layers = (scene.layers ?? []) as Array<Record<string, unknown>>;
+      const layers = (graph.layers ?? []) as Array<Record<string, unknown>>;
       const target = layers.find(
         (n: Record<string, unknown>) => n.id === binding.target.layerId,
       );
@@ -356,14 +356,14 @@ export function compileMotionProjectV1(
     const duration = normalized.timeline.duration ?? 0;
     const compiledGraph =
       duration > 0
-        ? compileSceneToRuntime({
-            id: scene.id as string,
-            duration: scene.duration as number,
-            layers: (scene.layers ?? []) as Parameters<
-              typeof compileSceneToRuntime
+        ? compileLayerGraphToRuntime({
+            id: graph.id as string,
+            duration: graph.duration as number,
+            layers: (graph.layers ?? []) as Parameters<
+              typeof compileLayerGraphToRuntime
             >[0]["layers"],
-            clips: (scene.clips ?? []) as Parameters<
-              typeof compileSceneToRuntime
+            clips: (graph.clips ?? []) as Parameters<
+              typeof compileLayerGraphToRuntime
             >[0]["clips"],
             variables: projectVariables,
           })
@@ -439,7 +439,7 @@ export function compileMotionProjectV1(
         collector.error("UNKNOWN_VARIABLE", msg);
       } else if (msg.includes("Unknown clip target")) {
         collector.error("UNKNOWN_CLIP_TARGET", msg);
-      } else if (msg.includes("Unknown scene marker")) {
+      } else if (msg.includes("Unknown timeline marker")) {
         collector.error("UNKNOWN_MARKER", msg);
       } else {
         collector.error("COMPILE_ERROR", msg);

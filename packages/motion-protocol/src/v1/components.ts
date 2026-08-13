@@ -2,7 +2,7 @@
  * V1 components & dependencies.
  *
  * A component is a sealed design template with public props and variants.
- * Consumers (scene instances, project bindings) may override only public props.
+ * Consumers (project layer instances, project bindings) may override only public props.
  * Owner wiring from props to internals uses `propBindings` — not a consumer API.
  *
  * Prop kinds are AI/user-friendly: text | number | boolean | color | choice | asset.
@@ -20,7 +20,6 @@ import {
   SemanticSchema,
 } from "./common";
 import { LayerV1Schema } from "./layers";
-import { MotionClipV1Schema } from "./animation/clips";
 import { ComponentPropValueSchema } from "./prop-values";
 
 /** Public prop kinds — AI/user friendly (no string/enum/list). */
@@ -158,17 +157,6 @@ export const ComponentVariantV1Schema = z
   })
   .strict();
 
-export const ComponentActionV1Schema = z
-  .object({
-    id: IdSchema,
-    name: z.string().min(1).optional(),
-    clips: z
-      .array(MotionClipV1Schema)
-      .max(MOTION_PROTOCOL_LIMITS.clipsPerAction),
-    params: z.record(JsonValueSchema).optional(),
-  })
-  .strict();
-
 export const ComponentDefinitionV1Schema = z
   .object({
     id: IdSchema,
@@ -197,10 +185,6 @@ export const ComponentDefinitionV1Schema = z
       .array(LayerV1Schema)
       .min(1)
       .max(MOTION_PROTOCOL_LIMITS.layersPerComponent),
-    actions: z
-      .array(ComponentActionV1Schema)
-      .max(MOTION_PROTOCOL_LIMITS.actionsPerComponent)
-      .default([]),
     assetDependencies: z
       .array(IdSchema)
       .max(MOTION_PROTOCOL_LIMITS.assetsPerArtifact)

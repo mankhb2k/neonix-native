@@ -27,7 +27,7 @@ Authoring **không** có `scenes`, `visualTracks`, `audioTracks`, `captionTracks
 }
 ```
 
-Runtime IR **không** flatten theo cùng contract: compiler emit một scene tổng hợp `id: "root"`, một visualTrack / một clip, audio layers → `audioTracks`, `captionTracks: []`.
+Runtime IR shares the same layers-only contract: compiler emits flat `layers[]` (visual + audio) plus animation `tracks`. Evaluate may use an in-memory graph id `"root"` — there is no serialized `scenes` array or visual/audio clip tracks.
 
 ---
 

@@ -27,10 +27,10 @@ export type AudioContextLike = {
   readonly destination: AudioDestinationNode;
   readonly sampleRate: number;
   decodeAudioData(buffer: ArrayBuffer): Promise<AudioBuffer>;
-  createGain(): GainNode;
-  createBufferSource(): AudioBufferSourceNode;
-  createChannelSplitter(numberOfOutputs: number): ChannelSplitterNode;
-  createChannelMerger(numberOfInputs: number): ChannelMergerNode;
+  createGain(): GainNodeLike;
+  createBufferSource(): AudioBufferSourceNodeLike;
+  createChannelSplitter(numberOfOutputs: number): ChannelSplitterNodeLike;
+  createChannelMerger(numberOfInputs: number): ChannelMergerNodeLike;
   resume(): Promise<void>;
   suspend(): Promise<void>;
   close(): Promise<void>;
@@ -42,7 +42,7 @@ export type AudioBufferSourceNodeLike = {
   loop: boolean;
   loopStart: number;
   loopEnd: number;
-  connect(destination: AudioNode | AudioParam): void;
+  connect(destination: AudioNode | AudioParam | GainNodeLike): void;
   disconnect(): void;
   start(when?: number, offset?: number, duration?: number): void;
   stop(when?: number): void;
@@ -55,9 +55,9 @@ export type GainNodeLike = {
     value: number;
     cancelScheduledValues(startTime: number): void;
     setValueAtTime(value: number, startTime: number): void;
-    linearRampToValueAtTime(value: number, endTime: number): void;
+    linearRampToValueAtTime(value: number, startTime: number): void;
   };
-  connect(destination: AudioNode | AudioParam): void;
+  connect(destination: AudioNode | AudioParam | GainNodeLike): void;
   disconnect(): void;
 };
 
@@ -71,7 +71,7 @@ export type AudioBufferLike = {
 
 export type ChannelSplitterNodeLike = {
   connect(
-    destination: AudioNode | AudioParam,
+    destination: AudioNode | AudioParam | GainNodeLike,
     output?: number,
     input?: number,
   ): void;
@@ -80,7 +80,7 @@ export type ChannelSplitterNodeLike = {
 
 export type ChannelMergerNodeLike = {
   connect(
-    destination: AudioNode | AudioParam,
+    destination: AudioNode | AudioParam | GainNodeLike,
     output?: number,
     input?: number,
   ): void;
@@ -204,7 +204,7 @@ export function createAudioScheduler(
 
     // Build track states for all clips
     for (const clip of plan.clips) {
-      const trackKey = `${clip.assetId}:${clip.role}`;
+      const trackKey = `${clip.assetId}:${clip.trackId}`;
       if (!trackStates.has(trackKey)) {
         const gainNode = ctx.createGain();
         gainNode.connect(ctx.destination);
@@ -271,7 +271,7 @@ export function createAudioScheduler(
     compositionTimeNow: number,
     fps: number,
   ): void {
-    const trackKey = `${clip.assetId}:${clip.role}`;
+    const trackKey = `${clip.assetId}:${clip.trackId}`;
     const trackState = trackStates.get(trackKey);
     if (!trackState) return;
 

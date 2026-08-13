@@ -19,7 +19,7 @@ export const ExtrapolationBehaviorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("continue") }).strict(),
 ]);
 
-export const SceneMarkerSchema = z
+export const TimelineMarkerSchema = z
   .object({
     id: IdSchema,
     t: FiniteNumberSchema.nonnegative().max(
@@ -102,7 +102,7 @@ export const PropertyTrackSchema = z
 export const PropertyTrackV1Schema = PropertyTrackSchema;
 export const ExtrapolationBehaviorV1Schema = ExtrapolationBehaviorSchema;
 export const TrackTimeV1Schema = TrackTimeSchema;
-export const SceneMarkerV1Schema = SceneMarkerSchema;
+export const TimelineMarkerV1Schema = TimelineMarkerSchema;
 
 /** Clip-local time in seconds (must be non-negative). */
 export const TimeSecondsSchema = FiniteNumberSchema.nonnegative().max(

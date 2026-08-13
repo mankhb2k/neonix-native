@@ -1,5 +1,5 @@
 /**
- * V1 component layer — a sealed component instance represented as a scene layer.
+ * V1 component layer — a sealed component instance on the project layer tree.
  *
  * Consumers only touch the component through its public API:
  *   - `payload.variantId` selects an owner-approved variant preset.

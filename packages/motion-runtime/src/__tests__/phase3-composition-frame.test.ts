@@ -37,10 +37,14 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
       },
       interaction: {
         sceneId: "s1",
+        frame: 15,
         time: 0.5,
-        layers: [],
         width: 1920,
         height: 1080,
+        space: "flat-2d",
+        projection: { kind: "orthographic" },
+        cameraMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
+        items: [],
       },
       paint: { commands: [], diagnostics: [] },
     };

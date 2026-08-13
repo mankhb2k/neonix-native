@@ -281,17 +281,17 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 
 ### Keyframe rules
 
-- `t` là **local time của scene** chứa component instance
-- `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ scene.duration`**
+- `t` là **local time của component instance layer** — `0..layer.timing.duration`
+- `keys` phải **tăng dần**, **không trùng `t`**, và **`t ≤ layer.timing.duration`**
 - `number` / `color`: interpolate được
 - `text` / `boolean` / `choice` / `asset`: chỉ **step**
 - `animatable: false` (hoặc omitted trên choice/asset) + keyframes → **reject**
 - `choice` / `asset` có thể `animatable: true`; asset keyframe vẫn **step-only**
 - Asset / choice / variable: mỗi key (và variable ref) phải khớp `assetKind` / `options`
 - Unknown `ref.variable` → **reject**
-- Scene track không được animate `payload.props.<propId>`. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`; scene chỉ là wrapper để timeline clip scene.
+- Không animate `payload.props.<propId>` qua animation track bên ngoài. Nếu prop cần animation, đặt keyframes ngay trong `payload.props.<propId>`.
 
-Prop animation ≠ wrapper transform. Scene clips animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
+Prop animation ≠ wrapper transform. Animation trên component layer animate **wrapper** của instance; prop keyframes fan-out vào **layer nội bộ** qua `propBindings`.
 
 ---
 
@@ -334,9 +334,9 @@ Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child defini
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Scene layer, **scene-level** component instance (`componentLayer`), hoặc mọi **scene-level** instance của một `componentId` |
+| `project.bindings` | Project | Project-tree layer, **project-tree** component instance (`componentLayer`), hoặc mọi **project-tree** instance của một `componentId` (`component`) |
 
-Global `target.kind: "component"` **chỉ** áp dụng instance nằm trực tiếp trên scene. Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
+Global `target.type: "component"` **chỉ** áp dụng instance nằm trực tiếp trên project layer tree (root / group children trên project). Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
 
 Hai `propBindings` cùng `layerProperty` (`layerId` + `property`) → **reject**. Hai `childProp` cùng (`childLayerId` + `propId`) → **reject**.
 
@@ -362,17 +362,17 @@ Priority **mỗi prop trên mỗi instance** (sau thắng trước):
 2. `variant.props`
 3. `payload.props`
 4. parent forwarded prop (`childProp`)
-5. project binding (`kind: component` scene-level, hoặc `kind: componentLayer`)
+5. project binding (`target.type: "component"` trên project-tree instances, hoặc `"componentLayer"`)
 
-Nested instance không nhận global `kind: component`. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
+Nested instance không nhận global `target.type: "component"`. Parent forward (bước 4) ghi vào child `payload.props` rồi recurse.
 
 ```mermaid
 flowchart TD
-  collect[Collect scene-level instances]
+  collect[Collect project-tree instances]
   sources[Resolve prop sources per instance]
   merge[Merge cascade into resolvedProps]
   forward[Forward childProp to nested instances]
-  apply[Apply layerProperty + emit keyframe clips]
+  apply[Apply layerProperty + emit keyframe tracks]
   collect --> sources --> merge --> forward --> apply
 ```
 
@@ -409,8 +409,7 @@ flowchart TD
     }
   ],
   "layers": [/* circle, title, border, … */],
-  "variants": [],
-  "actions": []
+  "variants": []
 }
 ```
 
@@ -429,7 +428,7 @@ flowchart TD
 
 ## 8. Timeline reminder
 
-Visual clip chỉ `source.kind: "scene"`. Component = scene layer, không phải clip source.
+Component instance = `type: "component"` layer trên **project layer tree**. Không còn visual clip / `source.kind: "scene"`. Timing instance nằm ở `layer.timing`.
 
 ---
 
@@ -439,24 +438,26 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene layer, không phải
 | --- | --- |
 | User sửa `layers` / `propBindings` | User chỉ set `payload.props` |
 | Một màu = ba prop riêng | Một `brandColor` + ba bindings |
-| Bind thẳng internals từ project | Bind `propId` (scene-level instance) — compiler resolve prop rồi apply |
+| Bind thẳng internals từ project | Bind `propId` (project-tree instance) — compiler resolve prop rồi apply |
 | Skip-level vào layer của nested child | `childProp` từng tầng |
-| Global binding cho nested Button trong Card | Scene-level only; parent forward |
+| Global binding cho nested Button trong Card | Project-tree only; parent forward via `childProp` |
 | `component.bindings` / `internalBindings` | `propBindings` |
 | `layerProperty.layerId` | `layerId` |
 | `kind: "string"` / `"enum"` | `text` / `choice` |
 | Asset không có `assetKind` | Bắt buộc `assetKind` |
 | Variable ref không tồn tại | Reject |
 | Choice / asset lệch options / type | Reject (static, keyframes, variable) |
-| Keyframes trùng `t` / không sorted / vượt scene | Reject |
+| Keyframes trùng `t` / không sorted / vượt `layer.timing.duration` | Reject |
 | Hai propBindings cùng `layerProperty` | Một dây nối tới một property |
 | `slots` trên component | Đã gỡ; `.strict()` reject |
+| `actions` / named action animations | Đã gỡ; animate bằng prop keyframes hoặc layer tracks |
+| `target.kind` trên project binding | `target.type` |
 
 ---
 
 ## 10. Tóm tắt một câu
 
-> **Một prop có thể điều khiển nhiều layer; có thể forward xuống nhiều child; có thể là keyframes. User chỉ chỉnh props. Owner thiết kế propBindings. Compiler fan-out props thành internal values / tracks.**
+> **Một prop có thể điều khiển nhiều layer; có thể forward xuống nhiều child; có thể là keyframes. User chỉ chỉnh props. Owner thiết kế propBindings. Compiler fan-out props thành internal values / tracks. Không có `actions`.**
 
 ---
 

@@ -14,13 +14,13 @@ export {
 // Tracks
 export {
   ExtrapolationBehaviorSchema,
-  SceneMarkerSchema,
+  TimelineMarkerSchema,
   TrackTimeSchema,
   PropertyTrackSchema,
   PropertyTrackV1Schema,
   ExtrapolationBehaviorV1Schema,
   TrackTimeV1Schema,
-  SceneMarkerV1Schema,
+  TimelineMarkerV1Schema,
   TimeSecondsSchema,
   type PropertyTrackV1,
 } from "./tracks";

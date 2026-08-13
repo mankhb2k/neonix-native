@@ -531,6 +531,3 @@ export class RuntimeDiagnosticError extends Error {
   }
 }
 
-// ── Re-exports for convenience ────────────────────────────────────────
-
-export { type DiagnosticCodeMeta };

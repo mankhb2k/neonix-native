@@ -148,7 +148,7 @@ Authoring has **no** `scenes` / `visualTracks` / `audioTracks` / `captionTracks`
 | Authoring | Root layer `type !== "audio"`, `zIndex >= 0` | Root layer `type: "audio"`, `zIndex < 0` |
 | Nesting | `group.children[]`; child timing is local | Root-only leaf |
 | Caption | `group` + `text` children (UI lane, not a type) | — |
-| Runtime IR | One synthetic scene `id: "root"` + one visual clip | `audioTracks` from audio layers; `captionTracks: []` |
+| Runtime IR | Flat `layers[]` + in-memory graph `id: "root"` | Audio layers in the same `layers[]`; no clip tracks |
 
 `timeline` is clock metadata only: `duration?`, `workArea?`, `markers?`. Derive duration from root `timing.start + duration`.
 
@@ -239,7 +239,7 @@ Authoring has **no** `scenes` / `visualTracks` / `audioTracks` / `captionTracks`
 Một `group` layer (`type: "group"`) là **timeline layer thực sự** — không phải folder thụ động. Nó có timing, transform, z-order, animation, effects riêng và có thể chứa child layers.
 
 ```text
-Scene                                   ← implicit root
+Project root / layer graph                  ← implicit root
   group.character        parentLayerId: null  ← root layer
     group.upper-body     parentLayerId: group.character
       group.head-rig     parentLayerId: group.upper-body
@@ -262,7 +262,7 @@ nodeGlobalEnd   = min(parentGlobalEnd, nodeGlobalStart + node.timing.duration)
 `zIndex` chỉ có ý nghĩa giữa các **sibling** (cùng `parentLayerId`):
 
 ```text
-Scene
+Project root
   group.character     zIndex 1    ← root sibling
     head              zIndex 99   ← child, chỉ so với sibling cùng parent
   title               zIndex 2    ← root sibling, luôn nằm TRÊN group.character
@@ -289,11 +289,11 @@ Layer copy (editor): giữ `timing`, cấp `id` mới + `zIndex` mới trong sib
 
 ## 6. Không có timeline effect primitive
 
-Timeline **không** có `transitionIn` / `transitionOut` / crossfade / wipe. Muốn fade, slide, wipe, flash: animate layer hoặc component **bên trong scene** (opacity, transform, mask), rồi đặt scene đó trên track `order` phù hợp.
+Timeline **không** có `transitionIn` / `transitionOut` / crossfade / wipe. Muốn fade, slide, wipe, flash: animate layer hoặc component trên **layer graph** (opacity, transform, mask). Root layers là timeline lanes, ordered by `zIndex`.
 
-Cut giữa hai clip trên cùng lane = clip A kết thúc, clip B bắt đầu (`B.start >= A.start + A.duration`). Chồng thời gian trên cùng lane = **reject**.
+Timing giữa layers **được trùng**; `zIndex` quyết định stack order. Không có model “đặt scene lên track order”.
 
-Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính clip đó**, không suy luận crossfade giữa clips.
+Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính audio layer đó**, không suy luận crossfade giữa layers.
 
 ---
 
@@ -331,36 +331,46 @@ Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính clip đó**, không s
 
 ### 7.2 Project Bindings
 
-Binding kết nối project variable với layer property của scene hoặc component:
+Binding kết nối project variable với layer property hoặc public component prop. Discriminator là `target.type` (`"layer"` | `"component"` | `"componentLayer"`) — không dùng `kind`, không có `sceneId`.
 
 ```jsonc
-// Scene binding — truy cập trực tiếp layerId + property
+// Layer binding — layerId + property trên project layer graph
 {
   "id": "bind-title",
   "source": { "kind": "variable", "variableId": "company" },
   "target": {
-    "kind": "scene",
-    "sceneId": "intro",
+    "type": "layer",
     "layerId": "title",
     "property": "payload.content.text"
   }
 }
 
-// Component binding — qua propId (trỏ đến instance trong scene)
+// Component-layer binding — propId trên một root/project component instance
 {
   "id": "bind-cta",
   "source": { "kind": "variable", "variableId": "cta-text" },
   "target": {
-    "kind": "componentLayer",
-    "sceneId": "cta-scene",
+    "type": "componentLayer",
     "layerId": "cta-instance",
     "propId": "label"       // ← component.props[].id
   }
 }
+
+// Component binding — mọi root/project instance của componentId
+// (nested instances chỉ nhận value qua parent childProp)
+{
+  "id": "bind-brand",
+  "source": { "kind": "variable", "variableId": "cta-text" },
+  "target": {
+    "type": "component",
+    "componentId": "cta-button",
+    "propId": "label"
+  }
+}
 ```
 
-> **Scene binding**: dùng `layerId` + `property` trực tiếp.
-> **Component binding**: bắt buộc dùng `propId` (trỏ đến `component.props`). Hai dạng: `componentLayer` (instance cụ thể) và `component` (bind mọi instance). Chi tiết: [v1-component-guide.md](v1-component-guide.md).
+> **Layer binding** (`type: "layer"`): `layerId` + `property` trực tiếp.
+> **Component bindings**: bắt buộc dùng `propId` (trỏ đến `component.props`). `componentLayer` = một instance cụ thể trên root layer stack; `component` = mọi root/project instance. Nested chỉ qua `childProp`. Chi tiết: [v1-component-guide.md](v1-component-guide.md).
 
 ---
 
@@ -540,7 +550,7 @@ sequenceDiagram
 | Schema     | Sai type                 | Zod validation error                    |
 | References | Missing layer            | `Unknown layer: title`                  |
 | References | Missing component        | `Unknown component: cta`                |
-| References | Duplicate ID             | `Duplicate scene id: intro`             |
+| References | Duplicate ID             | `Duplicate layer id: title`             |
 | References | Invalid binding target   | `Unknown layer: ghost-layer`              |
 | References | Private component access | `propId không có layerProperty binding` |
 
@@ -572,7 +582,7 @@ Theo dõi nguồn gốc project và source mapping:
     "sourceHash": "abc123",
     "bundleProfile": "embedded-components",
     "sourceMap": {
-      "scenes": { "intro": "src/scenes/intro.json" },
+      "layers": { "intro": "src/layers/intro.json" },
       "components": { "lower-third": "src/components/lt.json" },
       "variables": { "company": "src/variables.json" },
       "assets": { "logo": "assets/logo.png" },
@@ -587,7 +597,7 @@ Theo dõi nguồn gốc project và source mapping:
 
 > **UI session KHÔNG thuộc `MotionProjectV1`.** Các field sau chỉ sống trong editor session (localStorage, IndexedDB, hoặc `editor/workspace.mt`) — **không** serialize vào project contract:
 >
-> `playhead` / `currentTime`, `selection` (`selectedLayerIds` / `selectedClipIds`), `zoom` (`timelineZoom`), `scroll` (`timelineScroll`), panel layout, undo/redo.
+> `playhead` / `currentTime`, `selection` (`selectedLayerIds`), `zoom` (`timelineZoom`), `scroll` (`timelineScroll`), panel layout, undo/redo.
 >
 > Khi nói timing trong contract / compiler / runtime, dùng **`time` / `timelineTime`** (giây trên trục project), không dùng “playhead”.
 
@@ -595,14 +605,14 @@ Theo dõi nguồn gốc project và source mapping:
 
 **Duplicate là command của editor**, không phải field/operation trong JSON. Sau khi chạy, project chỉ chứa state cuối hợp lệ (object mới, id mới, timing/lane/zIndex hợp lệ). Không thêm `duplicatedFrom` / `copyOf` vào schema chính; provenance nếu cần chỉ nằm trong `extensions` / `provenance`.
 
-#### `DuplicateVisualClip`
+#### `DuplicateRootLayer`
 
-1. Tạo clip mới với `id` mới (được reuse `source.sceneId`).
-2. Nếu **giữ cùng `start`/`duration`**: đặt clip lên **track khác** (`order` khác). Không ghi hai clip chồng thời gian vào cùng lane.
-3. Nếu **cùng lane**: đặt `start` sau `prev.start + prev.duration` (không overlap).
-4. Output phải pass `MotionProjectV1Schema` + timeline integrity + references.
+1. Tạo root layer mới với `id` mới (deep-clone subtree nếu là `group`).
+2. Nếu **giữ cùng `start`/`duration`**: cấp `zIndex` sibling mới (ví dụ `max(siblings.zIndex)+1`). Timing trùng được phép.
+3. Nếu muốn xếp tuần tự trên cùng lane: đặt `start` sau `prev.start + prev.duration`.
+4. Output phải pass `MotionProjectV1Schema` + references.
 
-#### `DuplicateNode` (layer trong scene)
+#### `DuplicateNode` (layer trong cây)
 
 1. Tạo layer mới với `id` mới.
 2. **Giữ timing** (được trùng `start`/`duration` với bản gốc).
@@ -623,17 +633,17 @@ Theo dõi nguồn gốc project và source mapping:
 
 ### Khi dùng timeline
 
-1. **Không dùng timeline effect primitives** — effect = scene/component layer animation
-2. **Dùng sparse `order` unique** (visual `>= 0`, audio `< 0`) — không cần contiguous
-3. **Component layer** (`type: "component"`) trong scene; visual clip chỉ `source.kind: "scene"`
-4. **Scene trùng thời gian** → khác track `order`; cùng lane không overlap
-5. **Duplicate clip/layer** chỉ qua editor command — JSON chỉ lưu kết quả
-6. **Audio fade** (`fadeIn`/`fadeOut`) là DSP trên clip — không suy luận crossfade
+1. **Không dùng timeline effect primitives** — effect = layer / component animation
+2. **Dùng sparse `zIndex` unique** (visual `>= 0`, audio `< 0`) — không cần contiguous
+3. **Component layer** (`type: "component"`) là root (hoặc nested trong group) instance leaf — không còn visual clip / scene source
+4. **Root layers trùng thời gian** → khác `zIndex`; timing trùng được phép
+5. **Duplicate layer** chỉ qua editor command — JSON chỉ lưu kết quả
+6. **Audio fade** (`fadeIn`/`fadeOut`) là DSP trên audio layer — không suy luận crossfade
 
 ### Khi dùng bindings
 
-1. **Scene binding**: `layerId` + `property` trực tiếp
-2. **Component binding**: `propId` (tham chiếu `component.props`)
+1. **Layer binding** (`target.type: "layer"`): `layerId` + `property` trực tiếp
+2. **Component binding** (`"component"` / `"componentLayer"`): `propId` (tham chiếu `component.props`); nested chỉ qua `childProp`
 3. **Kiểm tra type khớp**: string → text, number → opacity, color → fill...
 
 ---

@@ -295,7 +295,7 @@ describe("Phase 7 — public API V1 naming", () => {
       "FontAssetSchema",
       "AssetSchema",
       "VariableSchema",
-      "PublicParamSchema",
+      "ProjectBindingV1Schema",
       "PointSchema",
       "PathSegmentSchema",
       "PathContourSchema",

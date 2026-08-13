@@ -71,7 +71,7 @@ export type CompileDiagnostic = {
   message: string;
   /** Severity level */
   severity: DiagnosticSeverity;
-  /** Path within the project (e.g. ["scenes", 0, "clips", 2]) */
+  /** Path within the project (e.g. ["layers", 0, "timing"]) */
   path?: (string | number)[];
   /** Source reference for editor highlighting */
   sourceRef?: string;

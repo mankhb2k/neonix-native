@@ -168,20 +168,7 @@ export const ComponentBindingSchema = z
   })
   .strict();
 
-export const ProjectBindingSchema = z
-  .object({
-    id: IdSchema,
-    source: VariableBindingSourceSchema,
-    target: z
-      .object({
-        type: z.literal("layer"),
-        layerId: IdSchema,
-        property: PropertyPathSchema,
-      })
-      .strict(),
-  })
-  .strict();
-
+/** @deprecated Prefer `ComponentPropV1Schema`. Legacy public-param surface. */
 export const PublicParamSchema = z
   .object({
     id: IdSchema,

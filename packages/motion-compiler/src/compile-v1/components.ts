@@ -3,14 +3,14 @@ import {
   clone,
   setPropertyPath,
   type JsonRecord,
-  type V1SceneClip,
 } from "./helpers";
 import { prepareRuntimeLayer } from "./prepare";
 
 export type ComponentInstanceRef = {
   componentLayerId: string;
   componentId: string;
-  runtimeSceneId: string;
+  /** In-memory layer graph id (internal compile bridge). */
+  runtimeGraphId: string;
 };
 
 type ResolvedLayerTarget = {
@@ -102,8 +102,7 @@ function resolveComponentPropValues(
   return resolved;
 }
 
-type ScenePropSources = {
-  authoringSceneId: string;
+type LayerGraphPropSources = {
   bindings: V1.MotionProjectV1["bindings"];
   variables: Map<string, unknown>;
 };
@@ -111,7 +110,6 @@ type ScenePropSources = {
 function collectBindingValuesForInstance(
   bindings: V1.MotionProjectV1["bindings"],
   variables: Map<string, unknown>,
-  authoringSceneId: string,
   instance: V1.ComponentLayerV1,
 ): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -223,20 +221,20 @@ function expandOneComponentInstance(
   instanceId: string,
   parentLayerId: string | null,
   components: Map<string, V1.ComponentDefinitionV1>,
-  runtimeSceneId: string | null,
+  runtimeGraphId: string | null,
   componentInstances: Map<string, ComponentInstanceRef> | null,
-  propSources: ScenePropSources | null,
+  propSources: LayerGraphPropSources | null,
 ): ExpandComponentResult {
   const component = components.get(instanceNode.payload.componentId);
   if (!component) {
     return { layers: [instanceNode], wrapperId: instanceId, propClips: [] };
   }
 
-  if (componentInstances && runtimeSceneId) {
+  if (componentInstances && runtimeGraphId) {
     componentInstances.set(instanceId, {
       componentLayerId: instanceId,
       componentId: instanceNode.payload.componentId,
-      runtimeSceneId,
+      runtimeGraphId,
     });
   }
 
@@ -245,7 +243,6 @@ function expandOneComponentInstance(
         bindingValues: collectBindingValuesForInstance(
           propSources.bindings,
           propSources.variables,
-          propSources.authoringSceneId,
           instanceNode,
         ),
       }
@@ -279,7 +276,7 @@ function expandOneComponentInstance(
         nestedParentId,
         components,
         null,
-        null, // nested instances are not scene-level; skip global bindings
+        null, // nested instances are not graph-root-level; skip global bindings
         null,
       );
       const nestedWrapper = nested.layers.find((n) => n.id === nested.wrapperId);
@@ -361,7 +358,7 @@ function expandOneComponentInstance(
 }
 
 /**
- * Expand `type: "component"` scene layers into a wrapper group plus the
+ * Expand `type: "component"` layers into a wrapper group plus the
  * component's internal layers, with deterministic ids:
  *   - wrapper:          `<componentLayerId>__instance`
  *   - internal node n:  `<componentLayerId>__<n.id>`
@@ -371,9 +368,9 @@ function expandOneComponentInstance(
 function expandComponentLayersV1(
   layers: V1.LayerV1[],
   components: Map<string, V1.ComponentDefinitionV1>,
-  runtimeSceneId: string,
+  runtimeGraphId: string,
   componentInstances: Map<string, ComponentInstanceRef>,
-  propSources: ScenePropSources,
+  propSources: LayerGraphPropSources,
 ): {
   layers: V1.LayerV1[];
   wrapperByLayerId: Map<string, string>;
@@ -392,7 +389,7 @@ function expandComponentLayersV1(
       node.id,
       node.parentLayerId,
       components,
-      runtimeSceneId,
+      runtimeGraphId,
       componentInstances,
       propSources,
     );
@@ -403,36 +400,12 @@ function expandComponentLayersV1(
   return { layers: out, wrapperByLayerId, propClips };
 }
 
-/** Remap component-node ids to wrapper ids in a scene-local motion clip. */
-function remapSceneClipTargets(
-  clip: V1SceneClip,
-  wrapperByLayerId: Map<string, string>,
-): JsonRecord {
-  const cloned = clone(clip) as JsonRecord;
-  if (
-    typeof cloned.layerId === "string" &&
-    wrapperByLayerId.has(cloned.layerId)
-  ) {
-    cloned.layerId = wrapperByLayerId.get(cloned.layerId)!;
-  }
-  const source = cloned.source as
-    | { kind: string; tracks?: Array<Record<string, unknown>> }
-    | undefined;
-  if (source && source.kind === "tracks" && Array.isArray(source.tracks)) {
-    for (const track of source.tracks) {
-      if (
-        typeof track.layerId === "string" &&
-        wrapperByLayerId.has(track.layerId)
-      ) {
-        track.layerId = wrapperByLayerId.get(track.layerId)!;
-      }
-    }
-  }
-  return cloned;
-}
-
-export function prepareRuntimeScene(
-  scene: {
+/**
+ * Build an in-memory layer graph (internal compile bridge) from authoring
+ * layers with component expansion applied.
+ */
+export function prepareRuntimeLayerGraph(
+  graph: {
     id: string;
     duration: number;
     layers: V1.LayerV1[];
@@ -440,23 +413,23 @@ export function prepareRuntimeScene(
   },
   components: Map<string, V1.ComponentDefinitionV1>,
   componentInstances: Map<string, ComponentInstanceRef>,
-  runtimeSceneId: string,
-  propSourcesBase: ScenePropSources,
+  runtimeGraphId: string,
+  propSourcesBase: LayerGraphPropSources,
 ): JsonRecord {
   const {
     layers: expandedLayers,
     wrapperByLayerId,
     propClips,
   } = expandComponentLayersV1(
-    scene.layers.filter((layer) => layer.type !== "audio"),
+    graph.layers.filter((layer) => layer.type !== "audio"),
     components,
-    runtimeSceneId,
+    runtimeGraphId,
     componentInstances,
     propSourcesBase,
   );
   const result: JsonRecord = {
-    id: runtimeSceneId,
-    duration: scene.duration,
+    id: runtimeGraphId,
+    duration: graph.duration,
     layers: expandedLayers
       .filter((node) => node.type !== "audio")
       .map((node) => {
@@ -473,6 +446,6 @@ export function prepareRuntimeScene(
     }),
     clips: propClips,
   };
-  if (scene.name) result.name = scene.name;
+  if (graph.name) result.name = graph.name;
   return result;
 }

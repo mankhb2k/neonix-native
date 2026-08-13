@@ -2,13 +2,13 @@ import { V1 } from "@motionvideo/motion-protocol";
 import type { DiagnosticCollector } from "../compile-result";
 import { clone, type JsonRecord } from "./helpers";
 import {
-  prepareRuntimeScene,
+  prepareRuntimeLayerGraph,
   type ComponentInstanceRef,
 } from "./components";
 
 export type LayerPlan = {
   duration: number;
-  scene: JsonRecord;
+  graph: JsonRecord;
   componentInstances: Map<string, ComponentInstanceRef>;
   audioLayers: V1.AudioLayerV1[];
 };
@@ -32,8 +32,9 @@ function flattenVisualLayers(layers: V1.LayerV1[]): V1.LayerV1[] {
 }
 
 /**
- * Build a compiler layer plan: one synthetic runtime scene `root` plus
- * root audio layers. Nested `group.children` flatten to parentLayerId.
+ * Build a compiler layer plan: one in-memory layer graph (internal compile
+ * bridge) rooted at `root`, plus root audio layers.
+ * Nested `group.children` flatten to parentLayerId.
  */
 export function buildLayerPlan(
   project: V1.MotionProjectV1,
@@ -53,7 +54,7 @@ export function buildLayerPlan(
   );
   const duration = project.timeline.duration ?? 0;
 
-  const scene = prepareRuntimeScene(
+  const graph = prepareRuntimeLayerGraph(
     {
       id: "root",
       duration,
@@ -63,11 +64,10 @@ export function buildLayerPlan(
     componentInstances,
     "root",
     {
-      authoringSceneId: "root",
       bindings: project.bindings,
       variables: projectVariables,
     },
   );
 
-  return { duration, scene, componentInstances, audioLayers };
+  return { duration, graph, componentInstances, audioLayers };
 }

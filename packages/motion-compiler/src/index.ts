@@ -48,7 +48,7 @@ export {
   type CompileV1Options,
   type CompileV1Profile,
 } from "./compile-v1";
-export { compileSceneToRuntime } from "./compile-scene";
+export { compileLayerGraphToRuntime } from "./compile-layer-graph";
 export {
   DiagnosticCollector,
   CompileDiagnosticError,

@@ -219,8 +219,8 @@ export {
 export {
   VariableSchema,
   ComponentBindingSchema,
-  ProjectBindingSchema,
-  PublicParamSchema,
+  ProjectBindingV1Schema,
+  type ProjectBindingV1,
 } from "./v1/variables";
 
 // Layout — owned by V1 (Phase 2)
@@ -295,7 +295,7 @@ export {
   ExtrapolationBehaviorSchema,
   ProceduralDriverSchema,
   type ProceduralDriver,
-  SceneMarkerSchema,
+  TimelineMarkerSchema,
   TrackTimeSchema,
 } from "./v1/animation";
 

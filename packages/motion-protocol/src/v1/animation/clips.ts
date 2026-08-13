@@ -1,8 +1,8 @@
 /**
- * V1 scene-local motion clips.
+ * V1 layer-graph motion clips (compiler / schedule vocabulary).
  *
- * Same scheduling vocabulary (`absolute` | `scene-end` | `after` |
- * `with`) with preset / property-track sources.
+ * Scheduling: `absolute` | `timeline-end` | `after` | `with`
+ * with preset / property-track sources.
  */
 
 import { z } from "zod";
@@ -24,8 +24,8 @@ export const ClipScheduleSchema = z.discriminatedUnion("kind", [
     .strict(),
   z
     .object({
-      kind: z.literal("scene-end"),
-      /** 0 = clip ends at scene end; negative = pad before end. */
+      kind: z.literal("timeline-end"),
+      /** 0 = ends at timeline/graph end; negative = pad before end. */
       offset: FiniteNumberSchema.max(
         MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
       ),

@@ -25,7 +25,7 @@ export type MediaTextureHandle = {
   /** The underlying media element (HTMLVideoElement for now). */
   readonly element: HTMLVideoElement;
   /** Whether a new frame is available since last acquire. */
-  readonly frameReady: boolean;
+  frameReady: boolean;
   /** Last source frame index that was rendered. */
   lastSourceFrame: number;
 };

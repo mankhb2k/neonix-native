@@ -353,12 +353,16 @@ export function evaluateCompositionFrameV1(
       combinedInteraction ??
       layers[0]?.interaction ??
       ({
-        sceneId: "",
+        sceneId: ROOT_LAYER_GRAPH_ID,
+        frame,
         time: globalTime,
-        items: [],
         width,
         height,
-      } as RenderSnapshot),
+        space: "flat-2d",
+        projection: { kind: "orthographic" },
+        cameraMatrix: IDENTITY_MATRIX,
+        items: [],
+      }),
     paint: combinedPaint,
     audio,
     media,

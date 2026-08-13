@@ -320,9 +320,6 @@ describe("Matrix4 — depthFromMat4", () => {
       anchorZ: 0,
       flipX: false,
       flipY: false,
-      depth: 0,
-      opacity: 1,
-      visible: true,
     });
     // RotY(30) should affect depth
     const d = depthFromMat4(m, 0, 0);
@@ -376,9 +373,6 @@ describe("Phase 11 — Spatial 3D", () => {
       anchorZ: 0,
       flipX: false,
       flipY: false,
-      depth: 0,
-      opacity: 1,
-      visible: true,
     });
     // 4×4 matrix should encode translation
     expect(m[12]).toBeCloseTo(100);

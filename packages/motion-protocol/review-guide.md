@@ -16,7 +16,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 2   | `src/v1/timeline/schema.ts`       | **Timeline metadata**. Chỉ `duration?` / `workArea?` / `markers?`. Không `visualTracks` / `audioTracks` / `captionTracks`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v1/components.ts`            | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
-| 4   | `src/v1/variables.ts`             | **Binding model** — phân biệt scene binding vs component binding; consumer có được chạm internal không.                         |
+| 4   | `src/v1/variables.ts`             | **Binding model** — phân biệt layer / componentLayer / component binding (`target.type`); consumer có được chạm internal không. |
 | 5   | `src/v1/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v1/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
 | 7   | `src/v1/__tests__/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
@@ -30,7 +30,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 ### 1) `src/v1/project.ts` — Root schema
 
 - Xem `MotionProjectV1Schema` gom những phần con nào: `metadata`, `composition`, `dependencies`, `tokens`, `variables`, `assets`, `components`, `layers`, `timeline`, `bindings`, `provenance`, `extensions`.
-- Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số scene / layer / clip / track / key tối đa.
+- Kiểm tra giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`): số layer / track / key / component tối đa.
 - Kiểm tra `.strict()` và `.superRefine()` — duplicate id có bị chặn ngay ở parse không.
 
 ### 2) `src/v1/timeline/schema.ts` — Timeline metadata
@@ -43,21 +43,22 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 - `ComponentLayerV1Schema` với `type: "component"` và `payload.componentId`.
 - `transform` của layer đóng vai trò wrapper transform khi compiler expand.
-- Scene-local motion clip nhắm vào component layer → compiler remap sang wrapper group.
+- Animation trên component layer → compiler remap sang wrapper group.
 - **Wrapper-safe contract:** các property transform chuẩn của layer được phép animate; không expose internal layer của component.
 
 ### 3) `src/v1/components.ts` — Sealed component
 
-- Owner sở hữu toàn bộ internals (layers, actions). Public props là luồng drive duy nhất từ ngoài vào trong.
+- Owner sở hữu toàn bộ internals (layers). Public props là luồng drive duy nhất từ ngoài vào trong.
 - Consumer chỉ được dùng public API: `props`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
-- Asset props bắt buộc `assetKind`. Scene track `payload.props.*` → reject; prop animation phải nằm trong prop value keyframes.
-- Project-level binding không được target arbitrary component internals. Global `kind: "component"` chỉ scene-level instances.
+- Asset props bắt buộc `assetKind`. Animate `payload.props.*` qua animation track bên ngoài → reject; prop animation phải nằm trong prop value keyframes.
+- Project-level binding không được target arbitrary component internals. `target.type: "component"` áp dụng mọi **project-tree** component instance cùng `componentId` (kể cả trong `group`); nested trong component definition chỉ qua `childProp`.
 
 ### 4) `src/v1/variables.ts` — Binding model
 
-- Phân biệt **scene binding** (bind tới layer trong scene) vs **componentLayer binding** (bind tới instance scene-level) vs **component binding** (mọi **scene-level** instance của `componentId`; nested nhận value qua `childProp`).
-- Consumer có bị bắt buộc dùng `propId` thay vì `nodeId` trực tiếp không.
+- Phân biệt **layer binding** (bind tới layer trên project layer graph) vs **componentLayer binding** (một project-tree component instance) vs **component binding** (mọi project-tree instance của `componentId`; nested nhận value qua `childProp`).
+- Consumer có bị bắt buộc dùng `propId` thay vì `layerId` / property nội bộ trực tiếp không.
+- Canonical schema: `ProjectBindingV1Schema` (`target.type`: `layer` | `component` | `componentLayer`).
 
 ### 5) `src/v1/references/project.ts` — Semantic validation
 
@@ -112,7 +113,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu tôi bind tới component, tôi có bắt buộc dùng `propId` không?
 
-- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `layerId`. Dạng `componentLayer` trỏ instance scene-level cụ thể; dạng `component` bind mọi instance **scene-level**. Nested instance chỉ nhận value nếu parent `childProp`.
+- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `layerId` + property. Dạng `componentLayer` trỏ một root/project instance cụ thể; dạng `component` bind mọi root/project instance. Nested instance chỉ nhận value nếu parent `childProp`.
 
 ### 4.4 Public target type-check
 

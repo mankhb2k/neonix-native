@@ -298,4 +298,50 @@ describe("v1 schema — reject old contract", () => {
     );
     expect(result.success).toBe(false);
   });
+
+  it("rejects component actions (props-only surface)", () => {
+    const result = MotionProjectV1Schema.safeParse(
+      baseProject({
+        components: [
+          {
+            id: "btn",
+            version: "1.0.0",
+            integrity: "sha256:btn",
+            props: [],
+            variants: [],
+            propBindings: [],
+            variables: [],
+            layers: [
+              {
+                id: "label",
+                type: "text",
+                parentLayerId: null,
+                zIndex: 0,
+                transform: TRANSFORM,
+                payload: {
+                  content: { kind: "plain", text: "Hi" },
+                  fontSize: 24,
+                  color: "#111",
+                  alignment: "center",
+                },
+              },
+            ],
+            actions: [{ id: "tap", animations: [] }],
+          },
+        ],
+        layers: [
+          {
+            id: "inst",
+            type: "component",
+            parentLayerId: null,
+            zIndex: 0,
+            timing: { start: 0, duration: 1 },
+            transform: TRANSFORM,
+            payload: { componentId: "btn" },
+          },
+        ],
+      }),
+    );
+    expect(result.success).toBe(false);
+  });
 });

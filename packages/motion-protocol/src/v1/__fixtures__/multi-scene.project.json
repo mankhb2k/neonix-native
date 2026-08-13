@@ -2,14 +2,15 @@
   "format": "motion-project",
   "formatVersion": 1,
   "metadata": {
-    "id": "v1-multi-scene",
-    "name": "V1 Multi-Scene Example",
-    "description": "Demonstrates multiple scenes arranged on visualTracks with overlay",
+    "id": "v1-multi-layer",
+    "name": "V1 Multi-Layer Example",
+    "description": "Demonstrates multiple root layers on the layer stack with staggered timing and zIndex order",
     "locale": "vi-VN",
     "tags": [
       "example",
       "v1",
-      "multi-scene"
+      "root-layers",
+      "layer-stack"
     ]
   },
   "composition": {

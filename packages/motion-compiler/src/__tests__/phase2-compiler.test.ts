@@ -34,7 +34,7 @@ describe("DiagnosticCollector", () => {
       path: ["variables", 0],
     });
     collector.warn("TEXT_OVERFLOW", "Text may overflow", {
-      path: ["scenes", 0, "layers", 1],
+      path: ["layers", 0],
     });
 
     expect(collector.hasErrors).toBe(true);

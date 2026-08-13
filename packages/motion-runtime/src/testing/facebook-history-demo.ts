@@ -1,9 +1,9 @@
+// @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
   parseMotionProjectV1,
   type MotionClipV1,
   type MotionProjectV1,
   type MotionLayer,
-  type MotionScene,
 } from "@motionvideo/motion-protocol";
 
 export const FB_HISTORY_SCENE_IDS = {

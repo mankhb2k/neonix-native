@@ -97,7 +97,6 @@ export function cancelledDiagnostic(
 ): RuntimeDiagnostic {
   return createDiagnostic(code, {
     message: `Operation cancelled: ${code}`,
-    severity: "info",
     ...opts,
   });
 }

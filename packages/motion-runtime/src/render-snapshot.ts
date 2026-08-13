@@ -1,4 +1,5 @@
 import { applyMatrix, multiplyMatrix, type Matrix2D } from "./matrix";
+import type { Matrix4 } from "./matrix4";
 import {
   evaluateScene,
   type EvaluatedNode,
@@ -167,7 +168,7 @@ export type RenderSnapshot = {
   width: number;
   height: number;
   background?: string;
-  space: "flat-2d" | "layered-2.5d";
+  space: "flat-2d" | "layered-2.5d" | "perspective-3d";
   projection: {
     kind: "orthographic";
     cameraId?: string;

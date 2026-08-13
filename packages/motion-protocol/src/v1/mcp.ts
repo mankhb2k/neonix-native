@@ -202,7 +202,7 @@ export const MCPInspectTimelineInputSchema = z
     project: MotionProjectV1Schema,
     /** If provided, filter to a specific root layer id. */
     layerId: z.string().optional(),
-    /** If true, include full clip and scene detail. */
+    /** If true, include full layer timing and animation detail. */
     verbose: z.boolean().default(false),
   })
   .strict();
@@ -717,7 +717,7 @@ function explainSingle(diag: {
   suggestedAction?: string;
   suggestedPatch?: Record<string, unknown>;
 } {
-  // Unknown scene reference
+  // Unknown layer reference
   if (diag.message.includes("Unknown layer")) {
     return {
       explanation: `A binding or patch references a layer that doesn't exist in project.layers.`,
@@ -743,7 +743,7 @@ function explainSingle(diag: {
     };
   }
 
-  // Scene order / V2 leak
+  // sceneOrder / legacy leak
   if (diag.message.includes("sceneOrder")) {
     return {
       explanation: `The project contains 'sceneOrder', which is not a V1 field. V1 uses project.layers with unique root zIndex as timeline lanes.`,
@@ -752,16 +752,16 @@ function explainSingle(diag: {
     };
   }
 
-  // Scene transition / V2 leak — transitions are not V1 timeline primitives
+  // Transition / legacy leak — transitions are not V1 timeline primitives
   if (diag.message.includes("scene.transition") || diag.message.includes("transition")) {
     return {
-      explanation: `Transition is not a V1 timeline primitive. Visual timing is an AE-style layer stack: active scene clips sorted by track.order. Express motion/effects as scene or component layer animation (opacity, transform, blend, mask), not transitionIn/Out fields.`,
+      explanation: `Transition is not a V1 timeline primitive. Visual timing is a layer stack sorted by zIndex. Express motion/effects as layer or component animation (opacity, transform, blend, mask), not transitionIn/Out fields.`,
       suggestedAction:
         "Remove transition fields. Express motion as layer transform/timing on project.layers.",
     };
   }
 
-  // formatVersion must be 3
+  // formatVersion must be 1
   if (diag.message.includes("formatVersion") || diag.path.includes("formatVersion")) {
     return {
       explanation: `Authoring only accepts formatVersion 1 (project.layers, no scenes or timeline tracks).`,
