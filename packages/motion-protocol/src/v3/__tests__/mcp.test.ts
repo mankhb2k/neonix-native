@@ -380,7 +380,9 @@ describe("V3 MCP contract", () => {
   it("inspects a specific track by id", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
-      scenes: [{ id: "a", duration: 2, space: "flat-2d", nodes: [], clips: [] }],
+      scenes: [
+        { id: "a", duration: 2, space: "flat-2d", nodes: [], clips: [] },
+      ],
       timeline: {
         ...minimalProject().timeline,
         visualTracks: [

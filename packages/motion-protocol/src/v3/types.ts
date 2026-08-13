@@ -12,7 +12,7 @@ import type { NamespacedExtensions } from "./extensions";
 import type { ProjectMetadataV3 } from "./metadata";
 import type { ProjectProvenance } from "./provenance";
 import type { SceneDefinitionV3 } from "./scenes";
-import type { ProjectTimelineV3 } from "./timeline";
+import type { ProjectTimelineV3 } from "./timeline/schema";
 import type {
   DesignTokens,
   ProjectBindingV3,

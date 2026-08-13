@@ -24,8 +24,16 @@ export * as V3 from "./v3";
 import {
   parseMotionProjectV3,
   MotionProjectV3Schema,
+  CanonicalMotionProjectV3Schema,
   serializeMotionProjectV3,
+  deriveTimelineDurationV3,
+  hasTimelineContentV3,
+  getVisualTimelineEndV3,
+  getAudioTimelineEndV3,
+  getCaptionTimelineEndV3,
+  canonicalizeTimelineDurationV3,
   type MotionProjectV3,
+  type CanonicalMotionProjectV3,
 } from "./v3";
 
 export type MotionProject = MotionProjectV3;
@@ -67,14 +75,24 @@ export function serializeMotionProject(project: MotionProject): string {
 export {
   parseMotionProjectV3,
   MotionProjectV3Schema,
+  CanonicalMotionProjectV3Schema,
   serializeMotionProjectV3,
+  deriveTimelineDurationV3,
+  hasTimelineContentV3,
+  getVisualTimelineEndV3,
+  getAudioTimelineEndV3,
+  getCaptionTimelineEndV3,
+  canonicalizeTimelineDurationV3,
 };
 export type {
   MotionProjectV3,
+  CanonicalMotionProjectV3,
   VisualClipV3,
   VisualTrackV3,
   AudioTrackV3,
   CaptionTrackV3,
+  CanonicalizeTimelineDurationIssue,
+  CanonicalizeTimelineDurationResult,
 } from "./v3";
 
 // ── Canonical hash utilities ──────────────────────────────────────────

@@ -386,6 +386,8 @@ Timeline chỉ chứa clip scene. Để đưa component lên timeline, tạo m�
 }
 ```
 
+> Lưu ý: `clip.start` là thời điểm **tuyệt đối** trên global timeline (giây), không phải offset tương đối. Chính sách overlap (`main` không chồng lấn trừ khi có transition, `overlay` được chồng lấn tự do) và `timeline.duration` (độ dài MP4 cuối cùng) được mô tả chi tiết trong `v3-format-guide.md` §3.7–§3.8.
+
 ### Bước 4: Bind project variable vào component (qua publicTargets)
 
 ```jsonc
@@ -591,12 +593,12 @@ const { project, issues } = normalizeMotionProjectV3(legacyProject, {
 
 Với mỗi clip `{ kind: "component" }`, normalizer tạo một scene wrapper chứa một component node rồi viết lại clip thành `{ kind: "scene", sceneId }`:
 
-| Legacy field                  | Canonical V3 shape                                                        |
-| ----------------------------- | ------------------------------------------------------------------------- |
-| `source.kind: "component"`    | `source: { kind: "scene", sceneId }` (scene wrapper)                       |
-| `source.componentId`          | component node `payload.componentId` bên trong scene wrapper               |
-| `instanceTransform`           | component node `transform`                                                 |
-| `instanceTransformTracks`     | scene-local motion clips nhắm vào component node                           |
+| Legacy field               | Canonical V3 shape                                           |
+| -------------------------- | ------------------------------------------------------------ |
+| `source.kind: "component"` | `source: { kind: "scene", sceneId }` (scene wrapper)         |
+| `source.componentId`       | component node `payload.componentId` bên trong scene wrapper |
+| `instanceTransform`        | component node `transform`                                   |
+| `instanceTransformTracks`  | scene-local motion clips nhắm vào component node             |
 
 - Scene id được sinh từ track + clip (`component-scene__${track.id}__${clip.id}`), với hậu tố deterministic khi trùng id scene đã tồn tại.
 - Component node id được sinh từ clip (`component-instance__${clip.id}`), đảm bảo hai clip dùng cùng component vẫn tạo hai scene/node riêng biệt.

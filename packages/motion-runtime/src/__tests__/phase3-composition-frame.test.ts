@@ -166,6 +166,7 @@ function emptyRuntime(): MotionRuntimeProject {
     },
     assets: [],
     timeline: {
+      duration: 2,
       visualTracks: [
         {
           id: "primary",
@@ -458,7 +459,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     expect(segments[1]!.start).toBe(2);
   });
 
-  it("timelineTotalDuration uses max end across all tracks", () => {
+  it("timelineTotalDuration falls back to max end when duration is missing", () => {
     const rt = emptyRuntime();
     rt.scenes.push({
       id: "s2",
@@ -466,6 +467,8 @@ describe("Phase 5 — multi-track timeline resolution", () => {
       nodes: [],
       tracks: [],
     });
+    // Remove the declared duration to exercise the legacy fallback path.
+    delete (rt.timeline as { duration?: number }).duration;
     rt.timeline.visualTracks = [
       {
         id: "primary",

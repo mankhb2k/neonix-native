@@ -130,18 +130,13 @@ function makeComponentNodeProject(
 // ── Happy paths ───────────────────────────────────────────────────────
 
 describe("compileMotionProjectV3 — happy paths", () => {
-  it("compiles the minimal empty project to a valid runtime IR", () => {
+  it("rejects the minimal empty project (no visual clips)", () => {
     const result = compileMotionProjectV3(minimal);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    const parsed = MotionRuntimeProjectSchema.safeParse(result.project);
-    expect(parsed.success).toBe(true);
-    expect(result.project.scenes).toEqual([]);
-    expect(result.project.timeline.visualTracks).toHaveLength(1);
-    expect(result.project.timeline.visualTracks[0]!.clips).toEqual([]);
-    // v2 metadata derived from v3 composition (1920×1080 → 16:9).
-    expect(result.project.metadata.aspectRatio).toBe("16:9");
-    expect(result.project.metadata.fps).toBe(30);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(
+      result.diagnostics.some((d) => d.code === "CMP_TIMELINE_VISUAL_EMPTY"),
+    ).toBe(true);
   });
 
   it("compiles the representative project to a valid runtime IR", () => {
@@ -423,9 +418,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
 
   it("applies variant overrides through public targets", () => {
     const project = makeComponentNodeProject();
-    const component = project.components.find(
-      (c) => c.id === "logo-reveal",
-    )!;
+    const component = project.components.find((c) => c.id === "logo-reveal")!;
     component.variants = [
       {
         id: "accent",
@@ -456,9 +449,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const project = makeComponentNodeProject({
       publicProps: { "logo-color": "#00ff00" },
     });
-    const component = project.components.find(
-      (c) => c.id === "logo-reveal",
-    )!;
+    const component = project.components.find((c) => c.id === "logo-reveal")!;
     component.variants = [
       {
         id: "accent",
@@ -518,6 +509,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
 
   it("clones a scene when it is reused by multiple visual clips", () => {
     const project = structuredClone(representative);
+    const baseClip = project.timeline.visualTracks[0]!.clips[0]!;
     project.timeline.visualTracks = [
       {
         id: "main-track",
@@ -526,12 +518,21 @@ describe("compileMotionProjectV3 — happy paths", () => {
         muted: false,
         clips: [
           {
-            ...project.timeline.visualTracks[0]!.clips[0]!,
+            ...baseClip,
             id: "clip-intro-a",
+            start: 0,
+            duration: 3,
+            transitionOut: undefined,
+            transitionIn: undefined,
           },
           {
-            ...project.timeline.visualTracks[0]!.clips[0]!,
+            ...baseClip,
             id: "clip-intro-b",
+            // Back-to-back reuse of the same scene — no overlap.
+            start: 3,
+            duration: 3,
+            transitionOut: undefined,
+            transitionIn: undefined,
           },
         ],
       },
@@ -541,18 +542,18 @@ describe("compileMotionProjectV3 — happy paths", () => {
     if (!result.ok) return;
     expect(
       sceneIdsFromVisualTracks(result.project.timeline.visualTracks),
-    ).toEqual(["intro", "intro@clip-intro-b"]);
+    ).toEqual(["intro@clip-intro-a", "intro@clip-intro-b"]);
   });
 
-  it("falls back to declaration order when there are no visual tracks", () => {
+  it("fails when there are no visual clips (no silent scene fallback)", () => {
     const project = structuredClone(representative);
     project.timeline.visualTracks = [];
     const result = compileMotionProjectV3(project);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
     expect(
-      sceneIdsFromVisualTracks(result.project.timeline.visualTracks),
-    ).toEqual(["intro", "outro"]);
+      result.diagnostics.some((d) => d.code === "CMP_TIMELINE_VISUAL_EMPTY"),
+    ).toBe(true);
   });
 });
 
@@ -1113,7 +1114,9 @@ describe("compileMotionProjectV3 — Phase 4 clip transitions", () => {
     expect(c.transitionOut).toBeUndefined();
     // No scene.transition on compiled scenes
     const compiledScene = result.project.scenes[0]!;
-    expect((compiledScene as Record<string, unknown>).transition).toBeUndefined();
+    expect(
+      (compiledScene as Record<string, unknown>).transition,
+    ).toBeUndefined();
   });
 });
 
@@ -1121,22 +1124,17 @@ describe("compileMotionProjectV3 — Phase 4 clip transitions", () => {
 
 describe("compileMotionProjectV3 — Phase 6 runtime IR enrichment", () => {
   it("emits composition metadata, hash inputs, and source refs", () => {
-    const result = compileMotionProjectV3(minimal);
+    const result = compileMotionProjectV3(representative);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const project = result.project;
-    expect(project.composition).toEqual({
-      width: 1920,
-      height: 1080,
-      fps: 30,
-      background: "#ffffff",
-      colorSpace: "srgb",
-      audioSampleRate: 48000,
-    });
+    expect(project.composition?.width).toBe(1080);
+    expect(project.composition?.height).toBe(1920);
+    expect(project.composition?.fps).toBe(30);
     expect(project.compilerVersion).toBe("3.0.0-phase11");
     expect(project.capabilityFingerprint).toMatch(/^[0-9a-f]{16}$/);
     expect(project.runtimeHash).toMatch(/^[0-9a-f]{32}$/);
-    expect(project.sourceRef).toEqual({ scenes: {} });
+    expect(project.sourceRef?.scenes).toBeDefined();
   });
 
   it("preserves v3 composition fidelity (1080×1920, 48000 Hz, safeArea)", () => {
@@ -1847,5 +1845,74 @@ describe("compileMotionProjectV3 — V3 scene transition absence", () => {
     for (const scene of result.project.scenes) {
       expect((scene as Record<string, unknown>).transition).toBeUndefined();
     }
+  });
+});
+
+// ── Timeline duration derivation ─────────────────────────────────────
+
+describe("compileMotionProjectV3 — timeline duration derivation", () => {
+  it("fills a missing duration from visual clips", () => {
+    const project = structuredClone(representative);
+    delete (project.timeline as Record<string, unknown>).duration;
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.timeline.duration).toBe(8);
+    expect(
+      result.diagnostics.some(
+        (d) => d.code === "CMP_TIMELINE_DURATION_DERIVED",
+      ),
+    ).toBe(true);
+  });
+
+  it("derives from audio when audio ends later than visual", () => {
+    const project = structuredClone(representative);
+    delete (project.timeline as Record<string, unknown>).duration;
+    project.timeline.visualTracks[0]!.clips = [
+      { ...project.timeline.visualTracks[0]!.clips[0]!, start: 0, duration: 5 },
+    ];
+    project.timeline.audioTracks[0]!.duration = 10;
+    project.timeline.captionTracks = [];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.timeline.duration).toBe(10);
+  });
+
+  it("derives from caption when caption ends later than visual/audio", () => {
+    const project = structuredClone(representative);
+    delete (project.timeline as Record<string, unknown>).duration;
+    project.timeline.visualTracks[0]!.clips = [
+      { ...project.timeline.visualTracks[0]!.clips[0]!, start: 0, duration: 5 },
+    ];
+    project.timeline.audioTracks[0]!.duration = 5;
+    const captionTrack = structuredClone(project.timeline.captionTracks[0]!);
+    captionTrack.tokens = [{ id: "tok-1", text: "x", start: 0, end: 12 }];
+    project.timeline.captionTracks = [captionTrack];
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.timeline.duration).toBe(12);
+  });
+
+  it("preserves a declared larger duration (manual tail)", () => {
+    const project = structuredClone(representative);
+    project.timeline.duration = 12;
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.project.timeline.duration).toBe(12);
+    expect(
+      result.diagnostics.some(
+        (d) => d.code === "CMP_TIMELINE_DURATION_DERIVED",
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects a declared duration smaller than content", () => {
+    const project = structuredClone(representative);
+    project.timeline.duration = 4;
+    const result = compileMotionProjectV3(project);
+    expect(result.ok).toBe(false);
   });
 });

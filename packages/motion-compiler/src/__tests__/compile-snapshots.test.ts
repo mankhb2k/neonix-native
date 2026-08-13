@@ -22,7 +22,6 @@ const goldenDir = fileURLToPath(
 const UPDATE_GOLDENS = process.env.UPDATE_GOLDENS === "1";
 
 const FIXTURE_NAMES = [
-  "minimal-empty",
   "single-scene",
   "multi-asset",
   "clips-and-tracks",

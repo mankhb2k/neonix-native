@@ -71,6 +71,8 @@ pnpm.cmd --filter @motionvideo/motion-compiler typecheck
 
 ### P0. Fix Timeline Clip Start Semantics
 
+> **✅ DONE** — `clip.start` is now absolute global timeline time; compiler/runtime/render carry it verbatim and no longer reconstruct starts with a cursor (see `docs/guide/v3-format-guide.md` §3.3 and §3.8).
+
 Problem:
 
 Compiler currently builds runtime clip `start` using a cursor, so it ignores authoring `clip.start`. Overlay clips and non-contiguous timelines render at the wrong time.
@@ -347,6 +349,8 @@ Acceptance criteria:
 ## Track And Layer Policy
 
 ### P1. Define Main Track Overlap Policy
+
+> **✅ DONE** — Decision: `main` clips must not overlap unless a non-cut transition (`transitionOut`/`transitionIn`, e.g. `crossfade`) bridges them; `overlay` tracks may overlap freely. Duplicate clip ids (timeline-wide) are rejected. Duplicate track `order` is allowed with a stable tie-breaker (compiler sorts by `order`; ties preserve original array order). Implemented in `packages/motion-protocol/src/v3/timeline/validation.ts`.
 
 Problem:
 

@@ -74,6 +74,7 @@ function baseIR(): Record<string, unknown> {
     },
     assets: [],
     timeline: {
+      duration: 5,
       visualTracks: [
         {
           id: "primary",
@@ -348,6 +349,7 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
 
   it("accepts overlapping clips on the same track", () => {
     const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 7;
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
@@ -378,6 +380,7 @@ describe("visual track plan — multi-track fixtures (Phase 1)", () => {
 
   it("accepts transition clips", () => {
     const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 6;
     (ir.timeline as Record<string, unknown>).visualTracks = [
       {
         id: "track-primary",
@@ -546,5 +549,76 @@ describe("serializability (Task 6.6)", () => {
     ir.composition = { width: 1080, height: 1920, fps: 30 };
     const parsed = MotionRuntimeProjectSchema.parse(ir);
     expect(MotionRuntimeProjectSchema.safeParse(parsed).success).toBe(true);
+  });
+});
+
+describe("timeline.duration (Phase 5)", () => {
+  it("accepts an explicit timeline duration", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 10;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
+  });
+
+  it("rejects missing timeline.duration", () => {
+    const ir = baseIR();
+    delete (ir.timeline as Record<string, unknown>).duration;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("accepts duration 0 (empty draft)", () => {
+    const ir = baseIR();
+    const timeline = ir.timeline as Record<string, unknown>;
+    timeline.duration = 0;
+    timeline.visualTracks = [
+      { id: "primary", role: "primary", order: 0, clips: [] },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
+  });
+
+  it("rejects a visual clip that ends beyond duration", () => {
+    const ir = baseIR();
+    // baseIR's clip is start 0 + duration 5 → ends at 5.
+    (ir.timeline as Record<string, unknown>).duration = 3;
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("rejects a caption token that ends beyond duration", () => {
+    const ir = baseIR();
+    (ir.timeline as Record<string, unknown>).duration = 1;
+    (ir.timeline as Record<string, unknown>).captionTracks = [
+      {
+        id: "caption-1",
+        locale: "vi-VN",
+        tokens: [{ id: "tok-1", text: "hi", start: 0, end: 5 }],
+        style: { fontSize: 48, fill: "#ffffff" },
+      },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("rejects an audio track that ends beyond duration", () => {
+    const ir = baseIR();
+    const timeline = ir.timeline as Record<string, unknown>;
+    timeline.duration = 1;
+    timeline.visualTracks = [
+      { id: "primary", role: "primary", order: 0, clips: [] },
+    ];
+    timeline.audioTracks = [
+      { id: "audio-1", role: "bgm", assetId: "a", start: 0, duration: 2 },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(false);
+  });
+
+  it("accepts an audio track exactly ending at duration", () => {
+    const ir = baseIR();
+    const timeline = ir.timeline as Record<string, unknown>;
+    timeline.duration = 2;
+    timeline.visualTracks = [
+      { id: "primary", role: "primary", order: 0, clips: [] },
+    ];
+    timeline.audioTracks = [
+      { id: "audio-1", role: "bgm", assetId: "a", start: 0, duration: 2 },
+    ];
+    expect(MotionRuntimeProjectSchema.safeParse(ir).success).toBe(true);
   });
 });

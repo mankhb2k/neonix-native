@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "ee4ac222d7f6e42bb880cd1cc85694d4",
+  "runtimeHash": "0138849cfae6e16027e1c9614b59c352",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -82,6 +82,7 @@
     }
   },
   "timeline": {
+    "duration": 42.5,
     "visualTracks": [
       {
         "id": "main-track",
@@ -106,11 +107,14 @@
         "role": "bgm",
         "assetId": "bgm",
         "start": 0,
+        "duration": 42.5,
         "trimStart": 0,
+        "playbackRate": 1,
         "volume": 0.8,
         "loop": false,
         "fadeIn": 0.5,
-        "fadeOut": 1
+        "fadeOut": 1,
+        "muted": false
       }
     ],
     "captionTracks": []

@@ -11,7 +11,11 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import { PublicParamSchema, VariableSchema } from "./variables";
-import { JsonValueSchema, ResolvableValueSchema, ValueKindSchema } from "./values";
+import {
+  JsonValueSchema,
+  ResolvableValueSchema,
+  ValueKindSchema,
+} from "./values";
 import { IdSchema, PropertyPathSchema, SemverSchema } from "./common";
 import { ProjectBindingV3Schema } from "./variables";
 import { NodeV3Schema } from "./nodes";

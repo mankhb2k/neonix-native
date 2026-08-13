@@ -3,6 +3,8 @@
  * Used by preview and export so Pixi/Remotion never diverge on transitions.
  */
 
+import { resolveMediaTiming } from "../media-timing";
+
 export type CompositionEasing =
   | "linear"
   | "step"
@@ -43,8 +45,22 @@ export type CompositionTransition =
 
 export type CompositionSceneInput = {
   sceneId: string;
+  /** Absolute global timeline start (seconds) — the source of truth, never
+   * reconstructed from a cursor. */
+  start: number;
   duration: number;
+  /** Source trim offset applied when mapping composition → scene local time. */
+  trimStart?: number;
+  /** Playback rate applied to composition-local time (default 1). */
+  playbackRate?: number;
+  /** When true, loop within the source window while the clip is active. */
+  loop?: boolean;
+  /** Source media/scene duration used for loop wrapping (seconds). */
+  sourceDuration?: number;
+  transitionIn?: CompositionTransition;
   transitionOut?: CompositionTransition;
+  trackId?: string;
+  trackOrder?: number;
 };
 
 export type CompositionLayerPlan = {
@@ -95,86 +111,112 @@ function ease(t: number, easing: CompositionEasing = "easeInOut"): number {
 
 type Segment = {
   sceneId: string;
-  contentStart: number;
-  contentDuration: number;
+  start: number;
+  duration: number;
+  trimStart?: number;
+  playbackRate?: number;
+  loop?: boolean;
+  sourceDuration?: number;
+  transitionIn?: CompositionTransition;
   transitionOut?: CompositionTransition;
+  trackId?: string;
+  trackOrder?: number;
 };
 
 function buildSegments(scenes: CompositionSceneInput[]): {
   segments: Segment[];
   totalDuration: number;
 } {
-  const segments: Segment[] = [];
-  let cursor = 0;
-  for (let i = 0; i < scenes.length; i += 1) {
-    const scene = scenes[i]!;
-    if (i > 0) {
-      const prev = scenes[i - 1]!;
-      const prevOut = prev.transitionOut;
-      const overlap =
-        prevOut && prevOut.type !== "cut" ? Math.max(0, prevOut.duration) : 0;
-      if (overlap > 0) cursor = Math.max(0, cursor - overlap);
-    }
-    segments.push({
-      sceneId: scene.sceneId,
-      contentStart: cursor,
-      contentDuration: scene.duration,
-      transitionOut: scene.transitionOut,
-    });
-    cursor += scene.duration;
-  }
-  return { segments, totalDuration: cursor };
+  // Clip `start` is ABSOLUTE global timeline time. Preserve caller ordering
+  // (already sorted by role/track/start) and assign zIndex by position so
+  // overlays drawn later composite on top.
+  const segments: Segment[] = scenes.map((scene) => ({
+    sceneId: scene.sceneId,
+    start: scene.start,
+    duration: scene.duration,
+    trimStart: scene.trimStart,
+    playbackRate: scene.playbackRate,
+    loop: scene.loop,
+    sourceDuration: scene.sourceDuration,
+    transitionIn: scene.transitionIn,
+    transitionOut: scene.transitionOut,
+    trackId: scene.trackId,
+    trackOrder: scene.trackOrder,
+  }));
+  const totalDuration = segments.reduce(
+    (max, s) => Math.max(max, s.start + s.duration),
+    0,
+  );
+  return { segments, totalDuration };
+}
+
+/**
+ * Map composition-window time → scene/media local time.
+ * Active window stays `start..start+duration`; trim/rate/loop only affect
+ * the local clock fed into scene evaluation.
+ */
+function effectiveLocalTime(
+  seg: Segment,
+  compositionLocalTime: number,
+  fps: number,
+): number {
+  return resolveMediaTiming({
+    mediaTimeSeconds: compositionLocalTime,
+    fps,
+    trimStartSeconds: seg.trimStart ?? 0,
+    playbackRate: seg.playbackRate ?? 1,
+    loop: seg.loop ?? false,
+    sourceDurationSeconds: seg.sourceDuration ?? seg.duration,
+  }).mediaTimeSeconds;
 }
 
 /**
  * Evaluate which scene layers are visible at a global time and how they composite.
+ *
+ * A clip is active when `globalTime >= start && globalTime < start + duration`.
+ * Scene `localTime` applies trimStart / playbackRate / loop via media-timing.
+ * Transitions are ramped around the clip's own fixed boundaries (no cursor):
+ *  - `transitionIn` fades/slides/wipes in over the first `duration` seconds.
+ *  - `transitionOut` fades/slides/wipes out over the last `duration` seconds.
+ * Gaps and manual tail produce no layers.
  */
 export function evaluateCompositionLayers(
   scenes: CompositionSceneInput[],
   globalTime: number,
   width: number,
   height: number,
+  fps = 30,
 ): CompositionFramePlan {
   const { segments, totalDuration } = buildSegments(scenes);
   const t = Number.isFinite(globalTime) ? Math.max(0, globalTime) : 0;
+  const safeFps = Math.max(1, fps);
   const layers: CompositionLayerPlan[] = [];
 
   for (let i = 0; i < segments.length; i += 1) {
     const seg = segments[i]!;
-    const next = segments[i + 1];
-    const localTime = t - seg.contentStart;
+    const compositionLocalTime = t - seg.start;
     const inContent =
-      localTime >= -1e-9 && localTime < seg.contentDuration + 1e-9;
+      compositionLocalTime >= -1e-9 && compositionLocalTime < seg.duration;
 
     const outgoing = seg.transitionOut;
-    const overlap =
+    const overlapOut =
       outgoing && outgoing.type !== "cut" ? Math.max(0, outgoing.duration) : 0;
-    const transitionStart = seg.contentStart + seg.contentDuration - overlap;
-    const inOutgoingTransition =
-      overlap > 0 &&
-      t >= transitionStart &&
-      t < transitionStart + overlap &&
-      next != null;
-    const inIncomingTransition =
-      i > 0 &&
-      segments[i - 1]!.transitionOut &&
-      segments[i - 1]!.transitionOut!.type !== "cut" &&
-      (() => {
-        const prev = segments[i - 1]!;
-        const prevOut = prev.transitionOut!;
-        const prevOverlap = Math.max(0, prevOut.duration);
-        const start = prev.contentStart + prev.contentDuration - prevOverlap;
-        return t >= start && t < start + prevOverlap;
-      })();
+    const inOutgoing =
+      overlapOut > 0 &&
+      t >= seg.start + seg.duration - overlapOut &&
+      t < seg.start + seg.duration;
 
-    if (!inContent && !inOutgoingTransition && !inIncomingTransition) continue;
+    const incoming = seg.transitionIn;
+    const overlapIn =
+      incoming && incoming.type !== "cut" ? Math.max(0, incoming.duration) : 0;
+    const inIncoming =
+      overlapIn > 0 && t >= seg.start && t < seg.start + overlapIn;
+
+    if (!inContent) continue;
 
     const base: CompositionLayerPlan = {
       sceneId: seg.sceneId,
-      localTime: Math.min(
-        Math.max(0, localTime),
-        Math.max(0, seg.contentDuration - 1e-6),
-      ),
+      localTime: effectiveLocalTime(seg, compositionLocalTime, safeFps),
       opacity: 1,
       translateX: 0,
       translateY: 0,
@@ -182,42 +224,22 @@ export function evaluateCompositionLayers(
       zIndex: i,
     };
 
-    if (inOutgoingTransition && outgoing && next) {
+    if (inOutgoing && outgoing) {
       const u = ease(
-        (t - transitionStart) / Math.max(1e-6, overlap),
+        (t - (seg.start + seg.duration - overlapOut)) /
+          Math.max(1e-6, overlapOut),
         "easing" in outgoing ? outgoing.easing : undefined,
       );
       applyOutgoing(base, outgoing, u, width, height);
-    } else if (inIncomingTransition) {
-      const prev = segments[i - 1]!;
-      const tr = prev.transitionOut!;
-      const prevOverlap = Math.max(0, (tr as { duration: number }).duration);
-      const start = prev.contentStart + prev.contentDuration - prevOverlap;
+    } else if (inIncoming && incoming) {
       const u = ease(
-        (t - start) / Math.max(1e-6, prevOverlap),
-        "easing" in tr ? tr.easing : undefined,
+        (t - seg.start) / Math.max(1e-6, overlapIn),
+        "easing" in incoming ? incoming.easing : undefined,
       );
-      applyIncoming(base, tr, u, width, height);
+      applyIncoming(base, incoming, u, width, height);
     }
 
     layers.push(base);
-  }
-
-  // Hard-cut fallback: if nothing matched (e.g. empty), pick last segment.
-  if (layers.length === 0 && segments.length > 0) {
-    const last = segments[segments.length - 1]!;
-    layers.push({
-      sceneId: last.sceneId,
-      localTime: Math.min(
-        last.contentDuration,
-        Math.max(0, t - last.contentStart),
-      ),
-      opacity: 1,
-      translateX: 0,
-      translateY: 0,
-      scale: 1,
-      zIndex: 0,
-    });
   }
 
   layers.sort((a, b) => a.zIndex - b.zIndex);

@@ -41,6 +41,34 @@ export const SceneDefinitionV3Schema = z
   })
   .strict()
   .superRefine((scene, context) => {
+    // Scene-local motion clip bounds — validate schedules that can be
+    // resolved statically. `after`/`with` chains are resolved (and cycle-
+    // checked) by the compiler, not here.
+    for (const [clipIndex, clip] of scene.clips.entries()) {
+      const schedule = clip.schedule;
+      if (schedule.kind === "absolute") {
+        const end = schedule.at + clip.duration;
+        if (end > scene.duration) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["clips", clipIndex, "schedule"],
+            message: `clip "${clip.id}" ends at ${end} beyond scene.duration (${scene.duration})`,
+          });
+        }
+      } else if (schedule.kind === "scene-end" && schedule.offset <= 0) {
+        // offset 0 = clip ends at scene end; negative = pad before end.
+        // start = scene.duration + offset - duration must be ≥ 0.
+        const start = scene.duration + schedule.offset - clip.duration;
+        if (start < 0) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["clips", clipIndex, "schedule"],
+            message: `clip "${clip.id}" (duration ${clip.duration}) would start before 0 with scene-end offset ${schedule.offset} and scene.duration ${scene.duration}`,
+          });
+        }
+      }
+    }
+
     if (scene.activeCameraId === undefined) return;
     const camera = scene.nodes.find((node) => node.id === scene.activeCameraId);
     if (!camera) {

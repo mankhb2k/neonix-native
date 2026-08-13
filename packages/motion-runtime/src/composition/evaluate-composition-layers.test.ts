@@ -8,10 +8,17 @@ describe("composition layer evaluator", () => {
   const scenes = [
     {
       sceneId: "a",
+      start: 0,
       duration: 2,
       transitionOut: { type: "crossfade" as const, duration: 0.5 },
     },
-    { sceneId: "b", duration: 2, transitionOut: { type: "cut" as const } },
+    {
+      sceneId: "b",
+      start: 1.5,
+      duration: 2,
+      transitionIn: { type: "crossfade" as const, duration: 0.5 },
+      transitionOut: { type: "cut" as const },
+    },
   ];
 
   it("keeps single layer outside transitions", () => {
@@ -35,10 +42,16 @@ describe("composition layer evaluator", () => {
     const fadeScenes = [
       {
         sceneId: "a",
+        start: 0,
         duration: 2,
         transitionOut: { type: "fade" as const, duration: 0.5, color: "#000" },
       },
-      { sceneId: "b", duration: 2 },
+      {
+        sceneId: "b",
+        start: 1.5,
+        duration: 2,
+        transitionIn: { type: "fade" as const, duration: 0.5, color: "#000" },
+      },
     ];
     const plan = evaluateCompositionLayers(fadeScenes, 1.75, 1080, 1920);
     const outgoing = plan.layers.find((l) => l.sceneId === "a");
@@ -46,7 +59,48 @@ describe("composition layer evaluator", () => {
     expect(outgoing?.fadeColor).toBe("#000");
   });
 
-  it("computes total duration with overlap", () => {
+  it("computes total duration as max clip end", () => {
     expect(compositionTotalDuration(scenes)).toBe(3.5);
+  });
+
+  it("produces no layer during a gap between clips", () => {
+    const gapped = [
+      { sceneId: "a", start: 0, duration: 2 },
+      { sceneId: "b", start: 3, duration: 2 },
+    ];
+    expect(evaluateCompositionLayers(gapped, 2.5, 1080, 1920).layers).toEqual(
+      [],
+    );
+  });
+
+  it("produces no layer past the final clip end", () => {
+    const plan = evaluateCompositionLayers(
+      [{ sceneId: "a", start: 0, duration: 2 }],
+      5,
+      1080,
+      1920,
+    );
+    expect(plan.layers).toEqual([]);
+  });
+
+  it("applies trimStart and playbackRate to scene localTime", () => {
+    const plan = evaluateCompositionLayers(
+      [
+        {
+          sceneId: "a",
+          start: 0,
+          duration: 4,
+          trimStart: 1,
+          playbackRate: 2,
+        },
+      ],
+      1,
+      1080,
+      1920,
+      30,
+    );
+    // compositionLocal=1 → media = 1*2 + 1 = 3
+    expect(plan.layers).toHaveLength(1);
+    expect(plan.layers[0]!.localTime).toBeCloseTo(3);
   });
 });

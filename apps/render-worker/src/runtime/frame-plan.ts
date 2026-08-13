@@ -1,5 +1,8 @@
 import type { CompiledProject } from "../compiler";
-import { frameTimestamp } from "@motionvideo/motion-runtime";
+import {
+  frameTimestamp,
+  resolveMediaTiming,
+} from "@motionvideo/motion-runtime";
 
 export type FrameJob = {
   frameIndex: number;
@@ -15,16 +18,38 @@ export type FrameLayer = {
   opacity: number;
 };
 
-// ── Visual clip helpers (Phase 6: V3 visualTracks model) ──────────────
+// ── Visual clip helpers (V3 visualTracks model) ───────────────────────
 
 type VisualClipLike = {
   start: number;
   duration: number;
   source: { kind: string; sceneId?: string; componentId?: string };
+  opacity?: number;
+  trimStart?: number;
+  playbackRate?: number;
+  loop?: boolean;
+  transitionIn?: { type: string; duration?: number } | null;
   transitionOut?: { type: string; duration?: number } | null;
 };
 
-function overlapFromTransition(
+type VisualTrackLike = {
+  role: string;
+  order?: number;
+  clips: VisualClipLike[];
+};
+
+/**
+ * Render priority by track role. Overlay draws on top of primary, which
+ * draws on top of background.
+ */
+const ROLE_PRIORITY: Record<string, number> = {
+  background: 0,
+  primary: 1,
+  overlay: 2,
+};
+
+/** Opacity-ramp duration for a transition (fade / crossfade only). */
+function transitionOverlap(
   transition: VisualClipLike["transitionOut"],
 ): number {
   if (!transition) return 0;
@@ -33,75 +58,121 @@ function overlapFromTransition(
     : 0;
 }
 
+type OrderedClip = {
+  clip: VisualClipLike;
+  trackIndex: number;
+  clipIndex: number;
+};
+
 /**
- * Extract ordered clips from the primary visual track.
- * Phase 7: visualTracks is the sole source — no sceneOrder fallback.
+ * Flatten every visual track into a single deterministic bottom-to-top
+ * render order: role priority (background < primary < overlay), then track
+ * `order`, then track index, then clip `start`, then original clip index.
+ *
+ * Clip `start` is ABSOLUTE global timeline time — never reconstructed from a
+ * cursor — so gaps, overlays, and non-zero first clips are preserved.
  */
-function primaryClips(compiled: CompiledProject): VisualClipLike[] {
-  const track = compiled.timeline.visualTracks.find(
-    (t) => t.role === "primary",
-  );
-  if (!track || track.clips.length === 0) {
-    return [];
-  }
-  return [...track.clips].sort((a, b) => a.start - b.start);
+function orderedClips(compiled: CompiledProject): OrderedClip[] {
+  const tracks = compiled.timeline.visualTracks as VisualTrackLike[];
+  const result: OrderedClip[] = [];
+  tracks.forEach((track, trackIndex) => {
+    track.clips.forEach((clip, clipIndex) => {
+      result.push({ clip, trackIndex, clipIndex });
+    });
+  });
+  return result.sort((a, b) => {
+    const pa = ROLE_PRIORITY[tracks[a.trackIndex]!.role] ?? 1;
+    const pb = ROLE_PRIORITY[tracks[b.trackIndex]!.role] ?? 1;
+    if (pa !== pb) return pa - pb;
+    const oa = tracks[a.trackIndex]!.order ?? 0;
+    const ob = tracks[b.trackIndex]!.order ?? 0;
+    if (oa !== ob) return oa - ob;
+    if (a.trackIndex !== b.trackIndex) return a.trackIndex - b.trackIndex;
+    if (a.clip.start !== b.clip.start) return a.clip.start - b.clip.start;
+    return a.clipIndex - b.clipIndex;
+  });
 }
 
 function resolveSceneIndex(
   compiled: CompiledProject,
   clip: VisualClipLike,
 ): number {
-  const sourceId =
-    clip.source.kind === "scene"
-      ? clip.source.sceneId
-      : clip.source.componentId;
+  // Runtime clips are scene-only after compilation.
+  const sourceId = clip.source.sceneId;
   return sourceId ? compiled.scenes.findIndex((s) => s.id === sourceId) : -1;
+}
+
+function clipLocalTime(
+  clip: VisualClipLike,
+  compositionLocalTime: number,
+  fps: number,
+): number {
+  return resolveMediaTiming({
+    mediaTimeSeconds: compositionLocalTime,
+    fps,
+    trimStartSeconds: clip.trimStart ?? 0,
+    playbackRate: clip.playbackRate ?? 1,
+    loop: clip.loop ?? false,
+    sourceDurationSeconds: clip.duration,
+  }).mediaTimeSeconds;
 }
 
 // ── Public API (unchanged signatures) ─────────────────────────────────
 
-export function sceneStartTimes(compiled: CompiledProject): number[] {
-  const clips = primaryClips(compiled);
-  const starts: number[] = [];
-  let cursor = 0;
-  for (const clip of clips) {
-    starts.push(cursor);
-    cursor += clip.duration - overlapFromTransition(clip.transitionOut);
-  }
-  return starts;
-}
-
 export function projectDuration(compiled: CompiledProject): number {
-  const clips = primaryClips(compiled);
+  // An explicit timeline.duration is the authoritative final MP4 length. It
+  // may exceed the derived visual end (intentional empty tail) but never be
+  // shorter (enforced by the compiler). Fall back to the max clip end across
+  // all tracks when duration is absent (pre-duration runtime IR).
+  const declared = compiled.timeline.duration;
+  if (declared !== undefined && declared > 0) return declared;
+  const clips = orderedClips(compiled);
   if (clips.length === 0) return 0;
-  const starts = sceneStartTimes(compiled);
-  const last = clips[clips.length - 1]!;
-  return starts[starts.length - 1]! + last.duration;
+  return clips.reduce(
+    (max, { clip }) => Math.max(max, clip.start + clip.duration),
+    0,
+  );
 }
 
-/** Returns ordered scene layers at a global project timestamp. */
+/**
+ * Returns all visible scene layers at a global project timestamp, ordered
+ * bottom-to-top for compositing.
+ *
+ * A clip is active when `globalTime >= clip.start && globalTime <
+ * clip.start + clip.duration`. Scene local time applies trimStart /
+ * playbackRate / loop; transition opacity ramps stay composition-relative.
+ * Gaps and manual tail frames simply produce no layer for that clip.
+ */
 export function projectFrameLayers(
   compiled: CompiledProject,
   globalTime: number,
+  fps = 30,
 ): FrameLayer[] {
-  const clips = primaryClips(compiled);
-  const starts = sceneStartTimes(compiled);
-  return clips.flatMap((clip, clipIndex) => {
-    const localTime = globalTime - starts[clipIndex]!;
-    if (localTime < 0 || localTime >= clip.duration) return [];
+  const safeFps = Math.max(1, fps);
+  return orderedClips(compiled).flatMap(({ clip }) => {
+    const compositionLocalTime = globalTime - clip.start;
+    if (compositionLocalTime < 0 || compositionLocalTime >= clip.duration) {
+      return [];
+    }
     const sceneIndex = resolveSceneIndex(compiled, clip);
     if (sceneIndex < 0) return [];
-    let opacity = 1;
-    const outgoing = overlapFromTransition(clip.transitionOut);
-    if (outgoing > 0 && localTime >= clip.duration - outgoing) {
-      opacity *= (clip.duration - localTime) / outgoing;
+    let opacity = clip.opacity ?? 1;
+
+    const incoming = transitionOverlap(clip.transitionIn);
+    if (incoming > 0 && compositionLocalTime < incoming) {
+      opacity *= compositionLocalTime / incoming;
     }
-    const prevClip = clips[clipIndex - 1];
-    const incoming = prevClip
-      ? overlapFromTransition(prevClip.transitionOut)
-      : 0;
-    if (incoming > 0 && localTime < incoming) opacity *= localTime / incoming;
-    return [{ sceneIndex, localTime, opacity }];
+    const outgoing = transitionOverlap(clip.transitionOut);
+    if (outgoing > 0 && compositionLocalTime >= clip.duration - outgoing) {
+      opacity *= (clip.duration - compositionLocalTime) / outgoing;
+    }
+    return [
+      {
+        sceneIndex,
+        localTime: clipLocalTime(clip, compositionLocalTime, safeFps),
+        opacity,
+      },
+    ];
   });
 }
 
@@ -111,10 +182,14 @@ export function buildFramePlan(
   fps: number,
 ): FrameJob[] {
   const jobs: FrameJob[] = [];
-  const frameCount = Math.max(1, Math.round(projectDuration(compiled) * fps));
+  const safeFps = Math.max(1, fps);
+  const frameCount = Math.max(
+    1,
+    Math.round(projectDuration(compiled) * safeFps),
+  );
   for (let frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
-    const globalTime = frameTimestamp(frameIndex, fps).time;
-    const layers = projectFrameLayers(compiled, globalTime);
+    const globalTime = frameTimestamp(frameIndex, safeFps).time;
+    const layers = projectFrameLayers(compiled, globalTime, safeFps);
     const primary = layers.at(-1) ?? { sceneIndex: 0, localTime: 0 };
     jobs.push({
       frameIndex,

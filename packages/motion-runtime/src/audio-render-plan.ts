@@ -15,6 +15,8 @@ export type AudioVolumeKeyframe = {
 export type AudioChannelPolicy = "stereo" | "mono" | "left-only" | "right-only";
 
 export type AudioRenderClip = {
+  /** Runtime audio track id (stable clip identity). */
+  trackId: string;
   assetId: string;
   uri: string;
   fromFrame: number;
@@ -28,6 +30,7 @@ export type AudioRenderClip = {
   volumeEnvelope: AudioVolumeKeyframe[];
   role: "bgm" | "voiceover" | "sfx";
   loop: boolean;
+  muted: boolean;
   /** Optional loop window (start/end in source seconds). */
   loopWindowStartSeconds?: number;
   loopWindowEndSeconds?: number;
@@ -43,11 +46,11 @@ export type AudioRenderPlan = {
 export type BuildAudioRenderPlanInput = {
   runtime: MotionRuntimeProject;
   fps: number;
-  /** Composition duration used to clamp fades / loops. */
+  /** Composition duration (frames); used only for fade clamp context. */
   durationInFrames: number;
   /**
-   * Optional override rate per track id. Schema has no playbackRate yet —
-   * defaults to 1.
+   * Optional override rate per track id (tests / debug). Defaults to the
+   * track's own `playbackRate`.
    */
   playbackRateByTrackId?: Record<string, number>;
 };
@@ -122,6 +125,9 @@ function buildVolumeEnvelope(input: {
 /**
  * Build a deterministic {@link AudioRenderPlan} from Runtime IR audio tracks.
  * Does not decode media — only timing / gain / trim / rate for adapters.
+ *
+ * Timeline track fields are the source of truth: `start`, `duration`,
+ * `playbackRate`, and `muted`. Asset length only informs trim/loop windows.
  */
 export function buildAudioRenderPlan(
   input: BuildAudioRenderPlanInput,
@@ -135,19 +141,15 @@ export function buildAudioRenderPlan(
 
     const playbackRate = Math.max(
       0.01,
-      input.playbackRateByTrackId?.[track.id] ?? 1,
+      input.playbackRateByTrackId?.[track.id] ?? track.playbackRate ?? 1,
     );
     const fromFrame = Math.max(0, Math.round(track.start * fps));
-    const remainingFrames = Math.max(0, input.durationInFrames - fromFrame);
-
-    // Compute duration from resolved asset: clip duration capped by asset
-    // duration (accounting for trim) and composition remaining time.
-    const assetDurationFrames =
-      asset.duration > 0
-        ? Math.round((asset.duration / playbackRate) * fps)
-        : remainingFrames;
-    const durationInFrames = Math.min(remainingFrames, assetDurationFrames);
+    // Track duration is the composition window SoT — do not stretch to asset.
+    const durationInFrames = Math.max(0, Math.round(track.duration * fps));
     if (durationInFrames <= 0) continue;
+
+    const muted = track.muted ?? false;
+    const volume = muted ? 0 : (track.volume ?? 1);
 
     // Resolve channel policy from track or default to stereo
     const channelPolicy: AudioChannelPolicy =
@@ -160,24 +162,26 @@ export function buildAudioRenderPlan(
     const loopWindowEnd = (track as { loopWindowEnd?: number }).loopWindowEnd;
 
     clips.push({
+      trackId: track.id,
       assetId: track.assetId,
       uri: asset.uri,
       fromFrame,
       durationInFrames,
       trimStartSeconds: track.trimStart ?? 0,
-      trimEndSeconds: (track as { trimEnd?: number }).trimEnd ?? asset.duration,
+      trimEndSeconds: track.trimEnd ?? asset.duration,
       assetDurationSeconds: asset.duration,
       playbackRate,
       volumeEnvelope: buildVolumeEnvelope({
         startFrame: fromFrame,
         durationInFrames,
-        volume: track.volume ?? 1,
-        fadeInSeconds: track.fadeIn ?? 0,
-        fadeOutSeconds: track.fadeOut ?? 0,
+        volume,
+        fadeInSeconds: muted ? 0 : (track.fadeIn ?? 0),
+        fadeOutSeconds: muted ? 0 : (track.fadeOut ?? 0),
         fps,
       }),
       role: track.role,
       loop: track.loop ?? false,
+      muted,
       loopWindowStartSeconds: loopWindowStart,
       loopWindowEndSeconds: loopWindowEnd,
       channelPolicy,

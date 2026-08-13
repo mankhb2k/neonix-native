@@ -32,6 +32,7 @@ import {
   MOTION_RUNTIME_VERSION,
   buildCapabilityFingerprint,
   preflightProjectCapabilities,
+  canonicalizeTimelineDurationV3,
   CAPABILITY_MANIFEST_VERSION_V3,
   type MotionRuntimeProject,
   V3,
@@ -516,11 +517,15 @@ function prepareRuntimeAudioTrack(track: V3.AudioTrackV3): JsonRecord {
     role: track.role,
     assetId: track.assetId,
     start: track.start,
+    duration: track.duration,
     trimStart: track.trimStart,
+    ...(track.trimEnd !== undefined ? { trimEnd: track.trimEnd } : {}),
+    playbackRate: track.playbackRate,
     volume: track.volume,
     loop: track.loop,
     fadeIn: track.fadeIn,
     fadeOut: track.fadeOut,
+    muted: track.muted,
   };
 }
 
@@ -664,32 +669,14 @@ function buildVisualPlan(
   );
   const hasVisualClips = v3Tracks.some((track) => track.clips.length > 0);
   if (!hasVisualClips) {
-    // No visual clips → compile every authored scene in declaration order
-    // on a single primary track so nothing silently disappears.
-    const entries: VisualPlanEntry[] = [];
-    let cursor = 0;
-    for (const scene of project.scenes) {
-      const entry: VisualPlanEntry = {
-        clipId: scene.id,
-        sceneId: scene.id,
-        start: cursor,
-        loop: false,
-        opacity: 1,
-      };
-      cursor += scene.duration;
-      sceneOverrides.set(scene.id, {
-        ...prepareRuntimeScene(scene, components, componentInstances, scene.id),
-        sourceRef: { projectPath: ["scenes", scene.id] },
-      });
-      entries.push(entry);
-    }
-    tracks.push({
-      trackId: "primary",
-      role: "primary",
-      order: 0,
-      muted: false,
-      entries,
-    });
+    // Timeline is the source of truth — never synthesize clips from scenes.
+    collector.error(
+      "CMP_TIMELINE_VISUAL_EMPTY",
+      "Timeline has no visual clips; add at least one visual clip or remove scenes that should not render",
+      {
+        path: ["timeline", "visualTracks"],
+      },
+    );
     return { tracks, sceneOverrides, componentInstances };
   }
   for (const v3Track of v3Tracks) {
@@ -1114,7 +1101,19 @@ export function compileMotionProjectV3(
     }
     return compileFailure([...collector.diagnostics]);
   }
-  const normalized = parsed.data;
+  let normalized = parsed.data;
+
+  // ── Timeline duration derivation ─────────────────────────────────
+  // Authoring input may omit `timeline.duration`. Derive it from the last
+  // timeline content end before semantic validation and runtime emit so the
+  // emitted runtime IR always carries an explicit duration.
+  const durationCanonical = canonicalizeTimelineDurationV3(normalized);
+  for (const issue of durationCanonical.issues) {
+    collector.warn("CMP_TIMELINE_DURATION_DERIVED", issue.message, {
+      path: [issue.path],
+    });
+  }
+  normalized = durationCanonical.project;
 
   // ── Capability preflight (Phase 11) ──────────────────────────────
   const capabilityCheck = preflightProjectCapabilities(normalized);
@@ -1453,6 +1452,7 @@ export function compileMotionProjectV3(
         CAPABILITY_MANIFEST_VERSION_V3,
       ),
       timeline: {
+        duration: normalized.timeline.duration,
         audioTracks: normalized.timeline.audioTracks.map(
           prepareRuntimeAudioTrack,
         ),

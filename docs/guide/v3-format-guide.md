@@ -192,7 +192,7 @@ flowchart LR
     "kind": "scene", // luôn là "scene" — timeline chỉ chứa clip scene
     "sceneId": "cta-scene",
   },
-  "start": 1, // Vị trí bắt đầu trên timeline (giây)
+  "start": 1, // Vị trí bắt đầu TUYỆT ĐỐI trên global timeline (giây) — không phải offset tương đối
   "duration": 2.5, // Thời lượng (giây)
   "trimStart": 0.5, // optional, cắt từ đầu
   "playbackRate": 1.5, // optional, tốc độ phát
@@ -213,6 +213,8 @@ flowchart LR
 ```
 
 > **Scene-only timeline**: `VisualClipSourceV3` chỉ cho phép `{ kind: "scene", sceneId }`. Component/object không được đặt trực tiếp lên timeline — thay vào đó, editor/app sẽ tạo một scene chứa component node rồi tham chiếu scene đó. Việc định vị/keyframe toàn bộ component nằm ở `transform` của component node (xem mục 4.2), không nằm trên clip.
+
+> **`clip.start` là absolute global time**: `start` là thời điểm tuyệt đối trên trục timeline của cả project (giây, tính từ 0), **không** phải offset tương đối so với clip trước. Compiler/runtime/renderer **không** được tái dựng `start` bằng cursor — chúng phải dùng đúng giá trị `clip.start` của authoring input. Ví dụ: overlay clip ở `start: 1.5` phải giữ nguyên `1.5` sau khi compile, kể cả khi main track có gap trước đó.
 
 ### 3.4 Thuật ngữ Track / Layer
 
@@ -280,6 +282,112 @@ Node zIndex lớn  →  nằm trên (trong cùng scene)
 | Một lane duy nhất               | Nhiều track (`main` + `overlay`)          |
 | Scene-level transition          | Clip-level transition                     |
 | Không có loop/playbackRate      | Có `loop`, `playbackRate`, `opacity`      |
+
+### 3.7 `timeline.duration` — Độ dài MP4 cuối cùng
+
+`timeline.duration` là **độ dài (giây) của MP4 cuối cùng**. Trường này **tùy chọn** ở mức authoring — khi thiếu, compiler/canonicalizer sẽ tự suy ra từ thời điểm kết thúc nội dung cuối cùng trên timeline:
+
+```
+derivedDuration = max(
+  ...visualTracks.flatMap(t => t.clips.map(c => c.start + c.duration)),
+  ...audioTracks.map(t => t.start + t.duration),
+  ...captionTracks.flatMap(t => t.tokens.map(tok => tok.end)),
+)
+```
+
+| Trường hợp                     | Kết quả                                                             |
+| ------------------------------ | ------------------------------------------------------------------- |
+| Thiếu `duration`               | Điền bằng `derivedDuration`                                         |
+| `duration` > `derivedDuration` | Hợp lệ — phần thừa cuối là _empty tail_ (nền trống/im lặng)         |
+| `duration` < `derivedDuration` | Lỗi validation — content vượt quá độ dài khai báo                   |
+| Timeline rỗng                  | `derivedDuration = 0` — export bị chặn (trừ khi hỗ trợ video trắng) |
+
+```jsonc
+// Authoring input — duration omitted, derived from content (8s)
+{
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main",
+        "role": "main",
+        "order": 0,
+        "clips": [
+          { "id": "c1", "source": { "kind": "scene", "sceneId": "intro" }, "start": 0, "duration": 5 },
+          { "id": "c2", "source": { "kind": "scene", "sceneId": "outro" }, "start": 5, "duration": 3 }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  }
+}
+
+// Canonical output — explicit duration
+{
+  "timeline": {
+    "duration": 8,
+    "visualTracks": [ /* ... */ ],
+    "audioTracks": [],
+    "captionTracks": []
+  }
+}
+```
+
+```jsonc
+// Manual empty tail — content ends at 8s, MP4 length is 10s
+{
+  "timeline": {
+    "duration": 10,
+    "visualTracks": [
+      /* ... kết thúc tại 8s ... */
+    ],
+  },
+}
+```
+
+### 3.8 Chính sách overlap & gap
+
+| Quy tắc                           | Chính sách                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Main-track overlap**            | Clips trên track `role: "main"` **không** được chồng lấn — trừ khi có transition (non-cut `transitionOut`/`transitionIn`, ví dụ `crossfade`) bắc cầu giữa hai clip. |
+| **Overlay overlap**               | Track `role: "overlay"` được phép chồng lấn tự do.                                                                                                                  |
+| **Duplicate clip id**             | `clip.id` phải **unique trên toàn bộ timeline** (không chỉ trong một track).                                                                                        |
+| **Duplicate track order**         | Được phép — compiler sort track theo `order` bằng stable sort, khi trùng `order` thì giữ nguyên thứ tự khai báo trong mảng (`VisualTrackV3` array order).           |
+| **Gaps (khoảng trống giữa clip)** | Hợp lệ. Trong khoảng gap chỉ có background được render; audio/caption vẫn có thể tồn tại trong gap.                                                                 |
+
+```jsonc
+// Ví dụ: crossfade overlap hợp lệ trên main track (clip B bắt đầu trước khi A kết thúc)
+{
+  "visualTracks": [
+    {
+      "id": "main",
+      "role": "main",
+      "order": 0,
+      "clips": [
+        {
+          "id": "a",
+          "source": { "kind": "scene", "sceneId": "intro" },
+          "start": 0,
+          "duration": 3,
+          "transitionOut": { "type": "crossfade", "duration": 1 },
+        },
+        {
+          "id": "b",
+          "source": { "kind": "scene", "sceneId": "body" },
+          "start": 2,
+          "duration": 3,
+          "transitionIn": { "type": "crossfade", "duration": 1 },
+        },
+      ],
+    },
+  ],
+}
+```
+
+> **Source layout**: Timeline schema/utilities nằm trong thư mục
+> `packages/motion-protocol/src/v3/timeline/` (`schema.ts`, `duration.ts`,
+> `canonicalize.ts`, `validation.ts`, `index.ts`). Import qua `./timeline`
+> (hoặc `@moticlip/motion-protocol` public exports).
 
 ---
 
@@ -746,6 +854,7 @@ Khi cờ được bật, mỗi clip `{ kind: "component" }` được viết lạ
 5. Clip gốc trên timeline được viết lại thành `{ kind: "scene", sceneId }`.
 
 > **Chính sách**:
+>
 > - `parseMotionProjectV3()` **luôn strict và không tự di trú**.
 > - Import app **có thể** cung cấp migration, nhưng file V3 canonical sau khi lưu **phải** là scene-only.
 > - Di trú là **opt-in rõ ràng** và có thể kiểm toán qua `NormalizeIssue[]` trả về.

@@ -26,21 +26,65 @@ import { throwIfAborted, cancelledDiagnostic } from "./cancellation";
 import { RuntimeDiagnosticCollector, toRenderDiagnostic } from "./diagnostics";
 import { isFeatureEnabled, FeatureFlag } from "./version-policy";
 
+const ROLE_PRIORITY: Record<string, number> = {
+  background: 0,
+  primary: 1,
+  overlay: 2,
+};
+
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  // Collect all clips from every visual track (primary + overlay), sorted by start.
-  const allClips = runtime.timeline.visualTracks.flatMap((t) => t.clips);
-  if (allClips.length === 0) return [];
-  const sorted = [...allClips].sort((a, b) => a.start - b.start);
-  return sorted.map((clip) => {
+  // Collect all clips from every visual track (background + primary +
+  // overlay), sorted bottom-to-top for compositing: role priority, then
+  // track order, then clip start, then original clip index. Clip `start` is
+  // ABSOLUTE global timeline time — never reconstructed from a cursor.
+  type Indexed = {
+    clip: MotionRuntimeProject["timeline"]["visualTracks"][number]["clips"][number];
+    trackIndex: number;
+    clipIndex: number;
+    role: string;
+    order: number;
+    trackId: string;
+  };
+  const indexed: Indexed[] = [];
+  runtime.timeline.visualTracks.forEach((track, trackIndex) => {
+    track.clips.forEach((clip, clipIndex) => {
+      indexed.push({
+        clip,
+        trackIndex,
+        clipIndex,
+        role: track.role,
+        order: track.order ?? 0,
+        trackId: track.id,
+      });
+    });
+  });
+  indexed.sort((a, b) => {
+    const pa = ROLE_PRIORITY[a.role] ?? 1;
+    const pb = ROLE_PRIORITY[b.role] ?? 1;
+    if (pa !== pb) return pa - pb;
+    if (a.order !== b.order) return a.order - b.order;
+    if (a.trackIndex !== b.trackIndex) return a.trackIndex - b.trackIndex;
+    if (a.clip.start !== b.clip.start) return a.clip.start - b.clip.start;
+    return a.clipIndex - b.clipIndex;
+  });
+  return indexed.map(({ clip, trackId, order }) => {
     // Runtime clips always have source.kind === "scene" after compilation;
     // component-source clips are synthesized into scenes by the compiler.
     return {
       sceneId: clip.source.sceneId ?? "",
+      start: clip.start,
       duration: clip.duration,
+      trimStart: clip.trimStart,
+      playbackRate: clip.playbackRate,
+      loop: clip.loop,
+      sourceDuration: clip.duration,
+      transitionIn: clip.transitionIn as CompositionSceneInput["transitionIn"],
       transitionOut:
         clip.transitionOut as CompositionSceneInput["transitionOut"],
+      trackId,
+      trackOrder: order,
     };
   });
 }
@@ -56,6 +100,7 @@ export function planCompositionFrame(
     globalTime,
     width,
     height,
+    runtime.metadata.fps,
   );
 }
 
@@ -193,11 +238,10 @@ export function evaluateCompositionFrameV3(
   );
 
   // ── Layer plan ──────────────────────────────────────────────────
-  const totalDuration = compositionTotalDuration(
-    scenesForComposition(runtime),
-    width,
-    height,
-  );
+  // Boundary check uses the canonical runtime duration (explicit
+  // timeline.duration, falling back to max visual end) so manual tail frames
+  // are not truncated.
+  const totalDuration = timelineTotalDuration(runtime);
   if (globalTime < 0 || globalTime >= totalDuration) return null;
 
   const layerPlan = evaluateCompositionLayers(
@@ -205,6 +249,7 @@ export function evaluateCompositionFrameV3(
     globalTime,
     width,
     height,
+    runtime.metadata.fps,
   );
 
   if (layerPlan.layers.length === 0) return null;
@@ -259,7 +304,7 @@ export function evaluateCompositionFrameV3(
   // ── Compute perspective projection early (needed for 3D frame evaluation) ─
   const primaryScene =
     layers.length > 0
-      ? sceneCache.get(layers[layers.length - 1]!.sceneId)
+      ? (sceneCache.get(layers[layers.length - 1]!.sceneId) ?? null)
       : null;
   const perspectiveProjection = resolvePerspectiveProjection(
     primaryScene,
@@ -641,9 +686,16 @@ export function compositionDurationInFrames(
 
   const total = compositionTotalDuration(scenesForComposition(runtime));
   const fallback = timelineTotalDuration(runtime);
+  const derivedDuration = total > 0 ? total : fallback > 0 ? fallback : 1;
+  // An explicit timeline.duration is the authoritative final MP4 length. It
+  // may exceed the derived content end (intentional empty tail) but never be
+  // shorter (enforced by the compiler / canonical schema).
+  const declaredDuration = runtime.timeline.duration;
   const duration = Math.max(
     1 / safeFps,
-    total > 0 ? total : fallback > 0 ? fallback : 1,
+    declaredDuration !== undefined && declaredDuration > 0
+      ? declaredDuration
+      : derivedDuration,
   );
   return Math.max(
     1,

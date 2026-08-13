@@ -197,7 +197,9 @@ function literalMatchesValueKind(value: unknown, kind: string): boolean {
       );
     case "path":
     case "gradient":
-      return typeof value === "object" && value !== null && !Array.isArray(value);
+      return (
+        typeof value === "object" && value !== null && !Array.isArray(value)
+      );
     default:
       return true;
   }
@@ -293,7 +295,8 @@ function validateComponentNodeReferences(
         });
         continue;
       }
-      const kind = target.valueKind ?? inferPublicTargetValueKind(target.property);
+      const kind =
+        target.valueKind ?? inferPublicTargetValueKind(target.property);
       if (!kind) continue;
       if (isVariableReference(value)) {
         const refId = extractVariableReferenceId(value);
@@ -390,11 +393,26 @@ export function validateMotionProjectV3References(
   for (const track of project.timeline.visualTracks) {
     for (const clip of track.clips) {
       const path = `timeline.visualTracks.${track.id}.clips.${clip.id}.source`;
-      if (!sceneById.has(clip.source.sceneId)) {
+      const scene = sceneById.get(clip.source.sceneId);
+      if (!scene) {
         issues.push({
           path,
           message: `Unknown scene: ${clip.source.sceneId}`,
         });
+        continue;
+      }
+
+      // When the clip does not loop, its source window must fit inside the
+      // referenced scene: trimStart + duration * playbackRate ≤ scene.duration.
+      if (!clip.loop) {
+        const rate = clip.playbackRate ?? 1;
+        const consumed = (clip.trimStart ?? 0) + clip.duration * rate;
+        if (consumed > scene.duration + 1e-9) {
+          issues.push({
+            path: `timeline.visualTracks.${track.id}.clips.${clip.id}.trimStart`,
+            message: `Visual clip "${clip.id}" consumes ${consumed}s of source scene "${scene.id}" (duration ${scene.duration}s) without looping`,
+          });
+        }
       }
     }
   }

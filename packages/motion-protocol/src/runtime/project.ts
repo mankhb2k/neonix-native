@@ -106,9 +106,18 @@ export const AudioTrackSchema = z
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
+    duration: FiniteNumberSchema.positive().max(
+      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    ),
     trimStart: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
+    trimEnd: FiniteNumberSchema.positive()
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
+      .optional(),
+    playbackRate: FiniteNumberSchema.positive()
+      .max(MOTION_PROTOCOL_LIMITS.transformScale)
+      .default(1),
     volume: FiniteNumberSchema.min(0).max(1).default(1),
     loop: z.boolean().default(false),
     fadeIn: FiniteNumberSchema.nonnegative()
@@ -117,6 +126,7 @@ export const AudioTrackSchema = z
     fadeOut: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
       .default(0),
+    muted: z.boolean().default(false),
   })
   .strict();
 export type AudioTrack = z.infer<typeof AudioTrackSchema>;
@@ -392,10 +402,13 @@ const MotionRuntimeProjectBaseSchema = z
     sourceRef: RuntimeSourceRefMapSchema.optional(),
     timeline: z
       .object({
+        duration: FiniteNumberSchema.nonnegative().max(
+          MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+        ),
         visualTracks: z
           .array(RuntimeVisualTrackSchema)
           .min(1)
-          .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject),
+          .max(MOTION_PROTOCOL_LIMITS.visualTracksPerProject),
         audioTracks: z
           .array(AudioTrackSchema)
           .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject),
@@ -413,6 +426,78 @@ const MotionRuntimeProjectBaseSchema = z
 
 export const MotionRuntimeProjectSchema =
   MotionRuntimeProjectBaseSchema.superRefine((runtime, context) => {
+    const timelineDuration = runtime.timeline.duration;
+    {
+      for (
+        let trackIndex = 0;
+        trackIndex < runtime.timeline.visualTracks.length;
+        trackIndex += 1
+      ) {
+        const track = runtime.timeline.visualTracks[trackIndex]!;
+        for (
+          let clipIndex = 0;
+          clipIndex < track.clips.length;
+          clipIndex += 1
+        ) {
+          const clip = track.clips[clipIndex]!;
+          if (clip.start + clip.duration > timelineDuration) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: [
+                "timeline",
+                "visualTracks",
+                trackIndex,
+                "clips",
+                clipIndex,
+              ],
+              message: `Runtime clip "${clip.id}" ends at ${clip.start + clip.duration} beyond timeline.duration (${timelineDuration})`,
+            });
+          }
+        }
+      }
+      for (
+        let audioIndex = 0;
+        audioIndex < runtime.timeline.audioTracks.length;
+        audioIndex += 1
+      ) {
+        const audio = runtime.timeline.audioTracks[audioIndex]!;
+        if (audio.start + audio.duration > timelineDuration) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["timeline", "audioTracks", audioIndex],
+            message: `Runtime audio track "${audio.id}" ends at ${audio.start + audio.duration} beyond timeline.duration (${timelineDuration})`,
+          });
+        }
+      }
+      for (
+        let captionIndex = 0;
+        captionIndex < runtime.timeline.captionTracks.length;
+        captionIndex += 1
+      ) {
+        const caption = runtime.timeline.captionTracks[captionIndex]!;
+        for (
+          let tokenIndex = 0;
+          tokenIndex < caption.tokens.length;
+          tokenIndex += 1
+        ) {
+          const token = caption.tokens[tokenIndex]!;
+          if (token.end > timelineDuration) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: [
+                "timeline",
+                "captionTracks",
+                captionIndex,
+                "tokens",
+                tokenIndex,
+                "end",
+              ],
+              message: `Runtime caption token "${token.id}" ends at ${token.end} beyond timeline.duration (${timelineDuration})`,
+            });
+          }
+        }
+      }
+    }
     for (
       let sceneIndex = 0;
       sceneIndex < runtime.scenes.length;

@@ -20,7 +20,7 @@ import {
   VisualClipV3Schema,
   AudioTrackV3Schema,
   type VisualClipV3,
-} from "./timeline";
+} from "./timeline/schema";
 import { AssetV3Schema } from "./assets";
 import { ProjectVariableV3Schema } from "./variables";
 import { ProjectBindingV3Schema } from "./variables";

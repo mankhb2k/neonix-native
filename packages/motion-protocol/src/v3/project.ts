@@ -20,7 +20,9 @@ import {
 import { AssetV3Schema } from "./assets";
 import { EmbeddedComponentV3Schema } from "./components";
 import { SceneDefinitionV3Schema } from "./scenes";
-import { ProjectTimelineV3Schema } from "./timeline";
+import { ProjectTimelineV3Schema } from "./timeline/schema";
+import { collectTimelineIntegrityIssues } from "./timeline/validation";
+import { collectFrameGridIssues } from "./timeline/frame-grid";
 import type { MotionProjectV3 } from "./types";
 import { NamespacedExtensionsSchema } from "./extensions";
 import { ProjectProvenanceSchema } from "./provenance";
@@ -148,4 +150,46 @@ export const MotionProjectV3Schema =
       }
       seen.add(track.id);
     }
+
+    // Timeline integrity (duplicate clip ids, duplicate track order,
+    // main-track overlap) — delegated to the shared validation helper.
+    for (const issue of collectTimelineIntegrityIssues(project.timeline)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: issue.message,
+        path: ["timeline", ...issue.path],
+      });
+    }
   });
+
+/**
+ * Canonical motion project schema — `timeline.duration` is required.
+ *
+ * Authoring input may omit `duration`; export/save boundaries must use this
+ * schema so the final MP4 length is always explicit.
+ */
+export const CanonicalMotionProjectV3Schema = MotionProjectV3Schema.superRefine(
+  (project, ctx) => {
+    if (project.timeline.duration === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["timeline", "duration"],
+        message:
+          "Canonical motion project requires an explicit timeline.duration",
+      });
+    }
+
+    const fps = Math.max(1, project.composition.fps);
+    for (const issue of collectFrameGridIssues(project.timeline, fps)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["timeline", ...issue.path],
+        message: issue.message,
+      });
+    }
+  },
+);
+
+export type CanonicalMotionProjectV3 = MotionProjectV3 & {
+  timeline: MotionProjectV3["timeline"] & { duration: number };
+};

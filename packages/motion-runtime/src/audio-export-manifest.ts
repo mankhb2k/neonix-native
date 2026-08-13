@@ -8,6 +8,7 @@
  */
 
 import type { AudioRenderPlan, AudioRenderClip } from "./audio-render-plan";
+import { sampleAudioVolumeAtFrame } from "./audio-render-plan";
 
 export type AudioExportManifest = {
   /** Total number of audio clips. */
@@ -23,7 +24,7 @@ export type AudioExportManifest = {
 };
 
 export type AudioExportClip = {
-  /** Clip ID. */
+  /** Clip / track ID. */
   clipId: string;
   /** Asset duration (seconds). */
   assetDurationSeconds: number;
@@ -66,13 +67,14 @@ export function buildAudioExportManifest(
 ): AudioExportManifest {
   const sampleRate = options?.sampleRate ?? DEFAULT_SAMPLE_RATE;
   const codec = options?.codec ?? DEFAULT_CODEC;
+  const fps = Math.max(1, plan.fps);
 
   const clips: AudioExportClip[] = plan.clips.map((clip) =>
-    clipToExportClip(clip),
+    clipToExportClip(clip, fps),
   );
 
   const totalDurationSeconds = plan.clips.reduce((sum, clip) => {
-    const duration = clip.endTime - clip.startTime;
+    const duration = clip.durationInFrames / fps;
     return sum + Math.max(0, duration);
   }, 0);
 
@@ -85,34 +87,40 @@ export function buildAudioExportManifest(
   };
 }
 
-function clipToExportClip(clip: AudioRenderClip): AudioExportClip {
+function clipToExportClip(
+  clip: AudioRenderClip,
+  fps: number,
+): AudioExportClip {
+  const startTime = clip.fromFrame / fps;
+  const endTime = (clip.fromFrame + clip.durationInFrames) / fps;
   const volumeKeyframes: Array<{ time: number; value: number }> = [];
 
-  // Extract keyframes from the volume envelope
-  if (clip.volume) {
-    for (let t = clip.startTime; t <= clip.endTime; t += 1 / 30) {
-      const v = clip.volume.getValue(t);
-      volumeKeyframes.push({
-        time: Math.round(t * 1000) / 1000,
-        value: Math.round(v * 1000) / 1000,
-      });
-    }
+  // Sample the frame-based envelope at each composition frame in the clip.
+  for (
+    let frame = clip.fromFrame;
+    frame <= clip.fromFrame + clip.durationInFrames;
+    frame += 1
+  ) {
+    const v = sampleAudioVolumeAtFrame(clip.volumeEnvelope, frame);
+    volumeKeyframes.push({
+      time: Math.round((frame / fps) * 1000) / 1000,
+      value: Math.round(v * 1000) / 1000,
+    });
   }
 
-  // Compress volume keyframes (keep only inflection points)
   const compressed = compressVolumeKeyframes(volumeKeyframes);
 
   return {
-    clipId: clip.clipId,
+    clipId: clip.trackId,
     assetDurationSeconds: clip.assetDurationSeconds,
-    trimStartSeconds: clip.trimStartSeconds ?? 0,
-    trimEndSeconds: clip.trimEndSeconds ?? clip.assetDurationSeconds,
-    startTime: clip.startTime,
-    endTime: clip.endTime,
-    loop: clip.loop ?? false,
+    trimStartSeconds: clip.trimStartSeconds,
+    trimEndSeconds: clip.trimEndSeconds,
+    startTime,
+    endTime,
+    loop: clip.loop,
     loopWindowStartSeconds: clip.loopWindowStartSeconds,
     loopWindowEndSeconds: clip.loopWindowEndSeconds,
-    channelPolicy: clip.channelPolicy ?? "stereo",
+    channelPolicy: clip.channelPolicy,
     volumeKeyframes: compressed,
   };
 }

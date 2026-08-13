@@ -1,21 +1,21 @@
 /**
- * V3 project timeline.
+ * Timeline project V3.
  *
- * Biggest change from v2: `sceneOrder: string[]` is replaced by
- * `visualTracks: VisualTrackV3[]` with scene-only clips that carry their own
- * in/out transitions, playback rate, loop and opacity. Component instances
- * are scene nodes (`type: "component"`), not visual-clip sources.
+ * Thay đổi lớn so với v2: `sceneOrder: string[]` được thay bằng
+ * `visualTracks: VisualTrackV3[]` với clip chỉ nguồn scene, mang transition
+ * in/out, playback rate, loop và opacity riêng. Component instance là node
+ * scene (`type: "component"`), không phải nguồn visual-clip.
  */
 import { z } from "zod";
-import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { CaptionTrackSchema } from "./captions";
+import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
+import { CaptionTrackSchema } from "../captions";
 import {
   FiniteNumberSchema,
   IdSchema,
   NormalizedRatioSchema,
   PositiveNumberSchema,
-} from "./common";
-import { SceneMarkerV3Schema } from "./animation/tracks";
+} from "../common";
+import { SceneMarkerV3Schema } from "../animation/tracks";
 
 export const TransitionV3Schema = z.discriminatedUnion("type", [
   z
@@ -113,8 +113,8 @@ export const VisualClipV3Schema = z
   })
   .strict()
   .superRefine((val, ctx) => {
-    // playbackRate must be > 0 (runtime PlaybackSchema already enforces this;
-    // catch it at authoring time too for early feedback).
+    // playbackRate phải > 0 (runtime PlaybackSchema cũng enforce;
+    // bắt sớm ở authoring để feedback nhanh).
     if (val.playbackRate !== undefined && !(val.playbackRate > 0)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -123,7 +123,7 @@ export const VisualClipV3Schema = z
       });
     }
 
-    // Transition durations must fit within the clip duration.
+    // Duration transition phải nằm trong duration clip.
     const transitionInDuration = val.transitionIn?.duration ?? 0;
     const transitionOutDuration = val.transitionOut?.duration ?? 0;
     if (transitionInDuration > val.duration) {
@@ -194,7 +194,7 @@ export const AudioTrackV3Schema = z
   })
   .strict()
   .superRefine((track, ctx) => {
-    // trimEnd must not exceed duration
+    // trimEnd không được vượt duration
     if (track.trimEnd !== undefined && track.trimEnd > track.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -202,7 +202,7 @@ export const AudioTrackV3Schema = z
         path: ["trimEnd"],
       });
     }
-    // fadeIn + fadeOut must not exceed duration
+    // fadeIn + fadeOut không được vượt duration
     if (track.fadeIn + track.fadeOut > track.duration) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -234,9 +234,9 @@ export const WorkAreaSchema = z
 
 export const ProjectTimelineV3Schema = z
   .object({
-    duration: PositiveNumberSchema.max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ).optional(),
+    duration: FiniteNumberSchema.nonnegative()
+      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
+      .optional(),
     workArea: WorkAreaSchema.optional(),
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     visualTracks: z
@@ -253,8 +253,8 @@ export const ProjectTimelineV3Schema = z
   })
   .strict()
   .superRefine((timeline, ctx) => {
-    // Timeline-boundary semantic validation: when `duration` is declared,
-    // every timeline child must fit inside it.
+    // Validate biên timeline: khi đã khai báo `duration`, mọi phần tử con
+    // phải nằm trong khoảng đó.
     const duration = timeline.duration;
     if (duration === undefined) return;
 
@@ -316,3 +316,24 @@ export type VisualClipV3 = z.infer<typeof VisualClipV3Schema>;
 export type VisualTrackV3 = z.infer<typeof VisualTrackV3Schema>;
 export type AudioTrackV3 = z.infer<typeof AudioTrackV3Schema>;
 export type CaptionTrackV3 = z.infer<typeof CaptionTrackV3Schema>;
+
+/**
+ * Schema timeline canonical — bắt buộc có `duration`.
+ *
+ * Authoring có thể bỏ `duration`; biên export/save phải dùng schema này để
+ * độ dài MP4 cuối luôn tường minh.
+ */
+export const CanonicalProjectTimelineV3Schema =
+  ProjectTimelineV3Schema.superRefine((timeline, ctx) => {
+    if (timeline.duration === undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["duration"],
+        message: "Canonical timeline requires an explicit duration",
+      });
+    }
+  });
+
+export type CanonicalProjectTimelineV3 = ProjectTimelineV3 & {
+  duration: number;
+};

@@ -891,15 +891,410 @@ describe("v3 schema — negative fixtures", () => {
             {
               id: "cap-1",
               locale: "vi-VN",
-              tokens: [
-                { id: "tok-1", text: "hello", start: 4, end: 6 },
-              ],
+              tokens: [{ id: "tok-1", text: "hello", start: 4, end: 6 }],
               style: { fontSize: 32, fill: "#ffffff" },
             },
           ],
         },
       }),
     ).toThrow();
+  });
+});
+
+// ── Timeline & scene integrity — Phase 6 ──────────────────────────────
+
+describe("v3 timeline integrity — Phase 6", () => {
+  const base = () =>
+    loadFixture("minimal-empty.project.json") as Record<string, unknown>;
+
+  it("rejects duplicate visual clip ids within a track", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("rejects duplicate visual clip ids across different tracks", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+            {
+              id: "track-2",
+              role: "overlay",
+              order: 1,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("accepts duplicate visual track order (stable tie-breaker)", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+            {
+              id: "track-2",
+              role: "overlay",
+              order: 0,
+              clips: [
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects main-track clip overlap without a transition", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow();
+  });
+
+  it("accepts overlay clip overlap", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "overlay",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts main-track overlap bridged by a crossfade transition", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                  transitionOut: { type: "crossfade", duration: 1 },
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                  transitionIn: { type: "crossfade", duration: 1 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects main-track overlap longer than the bridging transition", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 4,
+                  transitionOut: { type: "crossfade", duration: 0.5 },
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 2,
+                  duration: 3,
+                  transitionIn: { type: "crossfade", duration: 0.5 },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(/exceeds transition duration/);
+  });
+
+  it("accepts back-to-back main-track clips (no overlap)", () => {
+    const input = base();
+    expect(() =>
+      MotionProjectV3Schema.parse({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 0,
+                  duration: 3,
+                },
+                {
+                  id: "c2",
+                  source: { kind: "scene", sceneId: "s1" },
+                  start: 3,
+                  duration: 3,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects visual clip trim exceeding source scene duration", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    expect(() =>
+      parseMotionProjectV3({
+        ...input,
+        timeline: {
+          ...(input.timeline as Record<string, unknown>),
+          visualTracks: [
+            {
+              id: "track-1",
+              role: "main",
+              order: 0,
+              clips: [
+                {
+                  id: "c1",
+                  source: { kind: "scene", sceneId: "intro" },
+                  start: 0,
+                  duration: 3,
+                  trimStart: 2,
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).toThrow(MotionV3ReferenceError);
+  });
+
+  it("rejects scene-local absolute clip beyond scene duration", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (scene) =>
+        scene.id === "intro"
+          ? {
+              ...scene,
+              clips: [
+                {
+                  id: "mc1",
+                  targetId: "headline",
+                  schedule: { kind: "absolute", at: 2 },
+                  duration: 2,
+                  source: { kind: "preset", presetId: "p1" },
+                },
+              ],
+            }
+          : scene,
+    );
+    expect(() => MotionProjectV3Schema.parse({ ...input, scenes })).toThrow();
+  });
+
+  it("rejects scene-local scene-end clip that starts before 0", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (scene) =>
+        scene.id === "intro"
+          ? {
+              ...scene,
+              clips: [
+                {
+                  id: "mc1",
+                  targetId: "headline",
+                  schedule: { kind: "scene-end", offset: 0 },
+                  duration: 4,
+                  source: { kind: "preset", presetId: "p1" },
+                },
+              ],
+            }
+          : scene,
+    );
+    expect(() => MotionProjectV3Schema.parse({ ...input, scenes })).toThrow();
+  });
+
+  it("accepts scene-local clip within scene duration", () => {
+    const input = loadFixture("multi-scene.project.json") as Record<
+      string,
+      unknown
+    >;
+    const scenes = (input.scenes as Array<Record<string, unknown>>).map(
+      (scene) =>
+        scene.id === "intro"
+          ? {
+              ...scene,
+              clips: [
+                {
+                  id: "mc1",
+                  targetId: "headline",
+                  schedule: { kind: "absolute", at: 1 },
+                  duration: 2,
+                  source: { kind: "preset", presetId: "p1" },
+                },
+              ],
+            }
+          : scene,
+    );
+    expect(() =>
+      MotionProjectV3Schema.parse({ ...input, scenes }),
+    ).not.toThrow();
   });
 });
 
@@ -1166,7 +1561,9 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     try {
       parseMotionProjectV3({ ...input, scenes });
     } catch (err) {
-      expect(String(err)).toContain('does not expose public target "not-a-target"');
+      expect(String(err)).toContain(
+        'does not expose public target "not-a-target"',
+      );
     }
   });
 
@@ -1181,7 +1578,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         ...c,
         publicTargets: [
           ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
-          { id: "cta-opacity", nodeId: "cta-bg", property: "transform.opacity" },
+          {
+            id: "cta-opacity",
+            nodeId: "cta-bg",
+            property: "transform.opacity",
+          },
         ],
       }),
     );
@@ -1201,9 +1602,9 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         ),
       }),
     );
-    expect(() => parseMotionProjectV3({ ...input, components, scenes })).toThrow(
-      MotionV3ReferenceError,
-    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components, scenes }),
+    ).toThrow(MotionV3ReferenceError);
     try {
       parseMotionProjectV3({ ...input, components, scenes });
     } catch (err) {
@@ -1221,7 +1622,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         ...c,
         publicTargets: [
           ...((c.publicTargets as Array<Record<string, unknown>>) ?? []),
-          { id: "cta-opacity", nodeId: "cta-bg", property: "transform.opacity" },
+          {
+            id: "cta-opacity",
+            nodeId: "cta-bg",
+            property: "transform.opacity",
+          },
         ],
       }),
     );
@@ -1246,13 +1651,13 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
         ),
       }),
     );
-    expect(() => parseMotionProjectV3({ ...input, components, scenes })).toThrow(
-      MotionV3ReferenceError,
-    );
+    expect(() =>
+      parseMotionProjectV3({ ...input, components, scenes }),
+    ).toThrow(MotionV3ReferenceError);
     try {
       parseMotionProjectV3({ ...input, components, scenes });
     } catch (err) {
-      expect(String(err)).toContain("expected value kind \"number\"");
+      expect(String(err)).toContain('expected value kind "number"');
     }
   });
 
