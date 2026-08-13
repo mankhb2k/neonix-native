@@ -6,16 +6,16 @@
  * Move `movingId` to `targetIndex` within a top→bottom node id list.
  * Indices are in the current order (before removal).
  */
-export function reorderLayerNodeIds(
-  orderedNodeIds: readonly string[],
+export function reorderLayerLayerIds(
+  orderedLayerIds: readonly string[],
   movingId: string,
   targetIndex: number,
 ): string[] {
-  const from = orderedNodeIds.indexOf(movingId);
-  if (from < 0) return [...orderedNodeIds];
-  const to = Math.max(0, Math.min(targetIndex, orderedNodeIds.length - 1));
-  if (from === to) return [...orderedNodeIds];
-  const next = [...orderedNodeIds];
+  const from = orderedLayerIds.indexOf(movingId);
+  if (from < 0) return [...orderedLayerIds];
+  const to = Math.max(0, Math.min(targetIndex, orderedLayerIds.length - 1));
+  if (from === to) return [...orderedLayerIds];
+  const next = [...orderedLayerIds];
   next.splice(from, 1);
   next.splice(to, 0, movingId);
   return next;
@@ -25,18 +25,18 @@ export function reorderLayerNodeIds(
  * Insert `movingId` before `insertBeforeIndex` in the original top→bottom list.
  * `insertBeforeIndex === length` means append after the last row.
  */
-export function reorderLayerNodeIdsByInsert(
-  orderedNodeIds: readonly string[],
+export function reorderLayerLayerIdsByInsert(
+  orderedLayerIds: readonly string[],
   movingId: string,
   insertBeforeIndex: number,
 ): string[] {
-  const from = orderedNodeIds.indexOf(movingId);
-  if (from < 0) return [...orderedNodeIds];
+  const from = orderedLayerIds.indexOf(movingId);
+  if (from < 0) return [...orderedLayerIds];
   let insertAt = Math.max(
     0,
-    Math.min(insertBeforeIndex, orderedNodeIds.length),
+    Math.min(insertBeforeIndex, orderedLayerIds.length),
   );
-  const next = [...orderedNodeIds];
+  const next = [...orderedLayerIds];
   next.splice(from, 1);
   if (from < insertAt) insertAt -= 1;
   next.splice(insertAt, 0, movingId);

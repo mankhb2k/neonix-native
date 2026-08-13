@@ -1,8 +1,8 @@
 export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   idLength: 128,
   scenesPerProject: 100,
-  nodesPerScene: 2_000,
-  nodesPerComponent: 2_000,
+  layersPerScene: 2_000,
+  layersPerComponent: 2_000,
   clipsPerScene: 2_000,
   clipsPerComponent: 2_000,
   tracksPerClip: 2_000,
@@ -14,7 +14,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   frameRate: 240,
   sampleRate: 384_000,
   audioChannels: 16,
-  nodeDimension: 32_768,
+  layerDimension: 32_768,
   transformScale: 1_000,
   playbackIterations: 10_000,
   semanticTags: 64,
@@ -38,7 +38,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   repeaterInstances: 1_000,
   repeaterGridColumns: 100,
   textAnimatorUnits: 1_000,
-  modifiersPerNode: 32,
+  modifiersPerLayer: 32,
   sourceImportsPerComponent: 16,
   sourcePartsPerImport: 2_048,
   sourceElementIdsPerPart: 1_024,
@@ -48,7 +48,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   actionsPerComponent: 256,
   clipsPerAction: 512,
   lipSyncCuesPerAction: 512,
-  effectsPerNode: 16,
+  effectsPerLayer: 16,
   effectRadius: 512,
   effectOffset: 32_768,
   effectIntensity: 8,
@@ -158,7 +158,7 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "transform.height": {
       valueKind: "number",
@@ -167,7 +167,7 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "transform.rotation": {
       valueKind: "angle",
@@ -262,7 +262,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       minExclusive: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "payload.counterProgress": {
       valueKind: "number",
@@ -312,7 +312,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "style.strokeOpacity": {
       valueKind: "number",
@@ -339,7 +339,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
   },
   path: {
@@ -373,7 +373,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "style.strokeOpacity": {
       valueKind: "number",
@@ -402,7 +402,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "payload.height": {
       valueKind: "number",
@@ -411,7 +411,7 @@ const NODE_PROPERTIES: Readonly<
       public: true,
       runtimeSupport: "evaluated",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
     "payload.color": {
       valueKind: "color",
@@ -499,7 +499,7 @@ const NODE_PROPERTIES: Readonly<
       public: false,
       runtimeSupport: "compile-time",
       min: 0,
-      max: MOTION_PROTOCOL_LIMITS.nodeDimension,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
     },
   },
   adjustment: {

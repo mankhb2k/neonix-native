@@ -68,8 +68,8 @@ describe("evaluateCompositionFrame", () => {
       width: 800,
       height: 600,
     });
-    expect(composed!.interaction.items.map((item) => item.nodeId)).toEqual(
-      local.interaction.items.map((item) => item.nodeId),
+    expect(composed!.interaction.items.map((item) => item.layerId)).toEqual(
+      local.interaction.items.map((item) => item.layerId),
     );
     expect(composed!.paint.commands.length).toBe(local.paint.commands.length);
   });

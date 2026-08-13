@@ -45,11 +45,11 @@
       "id": "scene-a",
       "name": "Scene A",
       "duration": 3,
-      "nodes": [
+      "layers": [
         {
           "id": "bg-a",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -74,7 +74,7 @@
         {
           "id": "text-a",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -106,11 +106,11 @@
       "id": "scene-b",
       "name": "Scene B",
       "duration": 3,
-      "nodes": [
+      "layers": [
         {
           "id": "bg-b",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -135,7 +135,7 @@
         {
           "id": "text-b",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -167,11 +167,11 @@
       "id": "scene-c",
       "name": "Scene C",
       "duration": 3,
-      "nodes": [
+      "layers": [
         {
           "id": "bg-c",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -196,7 +196,7 @@
         {
           "id": "text-c",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,

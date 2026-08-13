@@ -3,60 +3,60 @@
  * self-parent, cycles, depth, group-only children, and unique zIndex
  * per parent (sibling stack order must be deterministic).
  */
-import type { NodeV3 } from "../nodes";
+import type { LayerV3 } from "../layers";
 import { duplicates } from "./helpers";
 import type { ReferenceIssue } from "./types";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 
-export function validateNodeGraphV3(
-  nodes: NodeV3[],
+export function validateLayerGraphV3(
+  layers: LayerV3[],
   prefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
 
   // ── Duplicate ids ──────────────────────────────────────────────────
-  const ids = nodes.map((node) => node.id);
+  const ids = layers.map((node) => node.id);
   for (const id of new Set(duplicates(ids))) {
     issues.push({ path: prefix, message: `Duplicate node id: ${id}` });
   }
 
-  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const byId = new Map(layers.map((node) => [node.id, node]));
 
-  for (const node of nodes) {
+  for (const node of layers) {
     // ── Self-parent ──────────────────────────────────────────────────
-    if (node.parentId === node.id) {
+    if (node.parentLayerId === node.id) {
       issues.push({
-        path: `${prefix}.${node.id}.parentId`,
+        path: `${prefix}.${node.id}.parentLayerId`,
         message: `Node cannot be its own parent: ${node.id}`,
       });
     }
 
     // ── Unknown parent ───────────────────────────────────────────────
-    if (node.parentId !== null && !byId.has(node.parentId)) {
+    if (node.parentLayerId !== null && !byId.has(node.parentLayerId)) {
       issues.push({
-        path: `${prefix}.${node.id}.parentId`,
-        message: `Unknown parent node: ${node.parentId}`,
+        path: `${prefix}.${node.id}.parentLayerId`,
+        message: `Unknown parent node: ${node.parentLayerId}`,
       });
     }
 
     // ── Non-group parent ─────────────────────────────────────────────
-    if (node.parentId !== null && node.parentId !== node.id) {
-      const parent = byId.get(node.parentId);
+    if (node.parentLayerId !== null && node.parentLayerId !== node.id) {
+      const parent = byId.get(node.parentLayerId);
       if (parent && parent.type !== "group") {
         issues.push({
-          path: `${prefix}.${node.id}.parentId`,
-          message: `Parent node ${node.parentId} has type "${parent.type}" — only "group" nodes may have children`,
+          path: `${prefix}.${node.id}.parentLayerId`,
+          message: `Parent node ${node.parentLayerId} has type "${parent.type}" — only "group" layers may have children`,
         });
       }
     }
 
     // ── Mask source ──────────────────────────────────────────────────
     if (node.mask) {
-      const source = byId.get(node.mask.sourceNodeId);
+      const source = byId.get(node.mask.sourceLayerId);
       if (!source) {
         issues.push({
-          path: `${prefix}.${node.id}.mask.sourceNodeId`,
-          message: `Unknown mask source node: ${node.mask.sourceNodeId}`,
+          path: `${prefix}.${node.id}.mask.sourceLayerId`,
+          message: `Unknown mask source node: ${node.mask.sourceLayerId}`,
         });
       }
     }
@@ -74,32 +74,32 @@ export function validateNodeGraphV3(
     }
   }
 
-  // ── Unique zIndex among siblings (same parentId) ─────────────────
-  issues.push(...checkUniqueZIndexPerParent(nodes, prefix));
+  // ── Unique zIndex among siblings (same parentLayerId) ─────────────────
+  issues.push(...checkUniqueZIndexPerParent(layers, prefix));
 
   // ── Cycle detection ────────────────────────────────────────────────
-  issues.push(...detectCycles(nodes, byId, prefix));
+  issues.push(...detectCycles(layers, byId, prefix));
 
   // ── Hierarchy depth ────────────────────────────────────────────────
-  issues.push(...checkHierarchyDepth(nodes, byId, prefix));
+  issues.push(...checkHierarchyDepth(layers, byId, prefix));
 
   return issues;
 }
 
 /**
  * Render order among siblings must be deterministic: within the same
- * `parentId` (including root `null`), `zIndex` values must be unique.
+ * `parentLayerId` (including root `null`), `zIndex` values must be unique.
  * Nodes under different parents may share the same zIndex.
  */
 function checkUniqueZIndexPerParent(
-  nodes: NodeV3[],
+  layers: LayerV3[],
   prefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
-  const byParent = new Map<string, NodeV3[]>();
+  const byParent = new Map<string, LayerV3[]>();
 
-  for (const node of nodes) {
-    const key = node.parentId ?? "$root";
+  for (const node of layers) {
+    const key = node.parentLayerId ?? "$root";
     const list = byParent.get(key);
     if (list) list.push(node);
     else byParent.set(key, [node]);
@@ -115,7 +115,7 @@ function checkUniqueZIndexPerParent(
       if (prev !== undefined) {
         issues.push({
           path: `${prefix}.${node.id}.zIndex`,
-          message: `Duplicate zIndex ${z} among siblings of parent ${node.parentId ?? "null"} (also used by "${prev}")`,
+          message: `Duplicate zIndex ${z} among siblings of parent ${node.parentLayerId ?? "null"} (also used by "${prev}")`,
         });
       } else {
         seen.set(z, node.id);
@@ -129,8 +129,8 @@ function checkUniqueZIndexPerParent(
 // ── Cycle detection (DFS with coloring) ──────────────────────────────
 
 function detectCycles(
-  nodes: NodeV3[],
-  byId: Map<string, NodeV3>,
+  layers: LayerV3[],
+  byId: Map<string, LayerV3>,
   prefix: string,
 ): ReferenceIssue[] {
   const WHITE = 0;
@@ -138,7 +138,7 @@ function detectCycles(
   const BLACK = 2;
   const color = new Map<string, number>();
 
-  for (const node of nodes) {
+  for (const node of layers) {
     color.set(node.id, WHITE);
   }
 
@@ -147,7 +147,7 @@ function detectCycles(
     if (c === GRAY) {
       const cyclePath = [...path, id].join(" → ");
       return {
-        path: `${prefix}.${id}.parentId`,
+        path: `${prefix}.${id}.parentLayerId`,
         message: `Parent cycle detected: ${cyclePath}`,
       };
     }
@@ -155,15 +155,15 @@ function detectCycles(
 
     color.set(id, GRAY);
     const node = byId.get(id);
-    if (node && node.parentId !== null && node.parentId !== id) {
-      const result = visit(node.parentId, [...path, id]);
+    if (node && node.parentLayerId !== null && node.parentLayerId !== id) {
+      const result = visit(node.parentLayerId, [...path, id]);
       if (result) return result;
     }
     color.set(id, BLACK);
     return null;
   }
 
-  for (const node of nodes) {
+  for (const node of layers) {
     if (color.get(node.id) === WHITE) {
       const result = visit(node.id, []);
       if (result) return [result];
@@ -176,8 +176,8 @@ function detectCycles(
 // ── Hierarchy depth check ────────────────────────────────────────────
 
 function checkHierarchyDepth(
-  nodes: NodeV3[],
-  byId: Map<string, NodeV3>,
+  layers: LayerV3[],
+  byId: Map<string, LayerV3>,
   prefix: string,
 ): ReferenceIssue[] {
   const maxDepth = MOTION_PROTOCOL_LIMITS.hierarchyDepth;
@@ -189,17 +189,17 @@ function checkHierarchyDepth(
     visited.add(id);
 
     const node = byId.get(id);
-    if (!node || node.parentId === null || node.parentId === id) {
+    if (!node || node.parentLayerId === null || node.parentLayerId === id) {
       depthCache.set(id, 1);
       return 1;
     }
 
-    const d = 1 + depth(node.parentId, visited);
+    const d = 1 + depth(node.parentLayerId, visited);
     depthCache.set(id, d);
     return d;
   }
 
-  for (const node of nodes) {
+  for (const node of layers) {
     const d = depth(node.id, new Set());
     if (d > maxDepth) {
       return [

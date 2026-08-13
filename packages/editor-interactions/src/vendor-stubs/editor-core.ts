@@ -25,7 +25,7 @@ export type TimelineLane = {
 
 export type NodeTargetRef = {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
 };
 
 export type TransformPatch = {

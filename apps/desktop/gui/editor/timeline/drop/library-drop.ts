@@ -238,26 +238,26 @@ function resolveLayerDropContext(
   host: TimelineDropHost,
   insertBeforeIndex: number,
 ): {
-  parentId: string | null;
+  parentLayerId: string | null;
   parentSceneStart: number;
   parentDuration: number;
   insertOrder: number;
 } {
   const layerMode = host.layerMode;
-  const nodes = layerMode?.nodes ?? [];
-  const before = nodes[insertBeforeIndex];
-  const previous = nodes[insertBeforeIndex - 1];
-  const parentId = before?.parentId ?? previous?.parentId ?? null;
-  const siblings = nodes.filter((node) => node.parentId === parentId);
-  const siblingInsertIndex = nodes
+  const layers = layerMode?.layers ?? [];
+  const before = layers[insertBeforeIndex];
+  const previous = layers[insertBeforeIndex - 1];
+  const parentLayerId = before?.parentLayerId ?? previous?.parentLayerId ?? null;
+  const siblings = layers.filter((node) => node.parentLayerId === parentLayerId);
+  const siblingInsertIndex = layers
     .slice(0, Math.max(0, insertBeforeIndex))
-    .filter((node) => node.parentId === parentId).length;
-  const parent = parentId
-    ? nodes.find((node) => node.id === parentId)
+    .filter((node) => node.parentLayerId === parentLayerId).length;
+  const parent = parentLayerId
+    ? layers.find((node) => node.id === parentLayerId)
     : undefined;
 
   return {
-    parentId,
+    parentLayerId,
     parentSceneStart: parent?.sceneLocalStart ?? 0,
     parentDuration:
       parent?.sceneLocalDuration ?? layerMode?.containerDuration ?? 0.001,
@@ -322,7 +322,7 @@ function resolveLayerModeDropPreview(
     contentTop,
     label: payloadLabel(payload),
     snapGuideTime: snapped.snapGuideTime,
-    layerParentId: layerContext.parentId,
+    layerParentId: layerContext.parentLayerId,
     layerParentSceneStart: layerContext.parentSceneStart,
     layerParentDuration: layerContext.parentDuration,
   };

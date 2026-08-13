@@ -23,8 +23,8 @@ export function compositingFingerprint(
   let masks = 0;
   let effectDrawables = 0;
 
-  const walk = (nodes: typeof list.roots) => {
-    for (const node of nodes) {
+  const walk = (items: typeof list.roots) => {
+    for (const node of items) {
       if (node.kind === "layer") {
         layers += 1;
         if (node.mask) masks += 1;

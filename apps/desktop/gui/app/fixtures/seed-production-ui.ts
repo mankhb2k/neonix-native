@@ -67,11 +67,11 @@ function withSceneClip(
           id: sceneId,
           name: "Fixture Scene",
           duration: 4,
-          nodes: [
+          layers: [
             {
               id: stableId("node"),
               type: "text",
-              parentId: null,
+              parentLayerId: null,
               zIndex: 0,
               transform: {
                 x: 80,

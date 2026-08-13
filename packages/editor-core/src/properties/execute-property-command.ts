@@ -2,7 +2,7 @@ import {
   MOTION_PROTOCOL_LIMITS,
   motionPropertyCapability,
   setTextPayloadPlain,
-  type MotionNode,
+  type MotionLayer,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 import type { TimelineDocument } from "../document/document";
@@ -13,7 +13,7 @@ import type {
   MediaPayloadPatch,
   MetadataPatch,
   NodeTargetRef,
-  NodeTimingPatch,
+  LayerTimingPatch,
   PropertyDomainEvent,
   StylePatch,
   TextPayloadPatch,
@@ -63,9 +63,9 @@ function rejectedInvalid(message: string): PropertyCommandResult {
 }
 
 function applyTransformPatch(
-  node: MotionNode,
+  node: MotionLayer,
   patch: TransformPatch,
-): MotionNode {
+): MotionLayer {
   const t = node.transform;
   const type = node.type;
   let scaleX = t.scaleX;
@@ -112,7 +112,7 @@ function applyTransformPatch(
   };
 }
 
-function applyOpacity(node: MotionNode, opacity: number): MotionNode {
+function applyOpacity(node: MotionLayer, opacity: number): MotionLayer {
   return {
     ...node,
     transform: {
@@ -122,8 +122,8 @@ function applyOpacity(node: MotionNode, opacity: number): MotionNode {
   };
 }
 
-function applyMetadata(node: MotionNode, patch: MetadataPatch): MotionNode {
-  let next: MotionNode = node;
+function applyMetadata(node: MotionLayer, patch: MetadataPatch): MotionLayer {
+  let next: MotionLayer = node;
   if (patch.visible !== undefined) {
     next = {
       ...next,
@@ -135,7 +135,7 @@ function applyMetadata(node: MotionNode, patch: MetadataPatch): MotionNode {
     if (!name) {
       const rest = { ...next };
       delete (rest as { name?: string }).name;
-      next = rest as MotionNode;
+      next = rest as MotionLayer;
     } else {
       next = { ...next, name: name.slice(0, MOTION_PROTOCOL_LIMITS.idLength) };
     }
@@ -143,7 +143,7 @@ function applyMetadata(node: MotionNode, patch: MetadataPatch): MotionNode {
   return next;
 }
 
-function applyStyle(node: MotionNode, patch: StylePatch): MotionNode | null {
+function applyStyle(node: MotionLayer, patch: StylePatch): MotionLayer | null {
   if (
     node.type !== "text" &&
     node.type !== "shape" &&
@@ -168,10 +168,10 @@ function applyStyle(node: MotionNode, patch: StylePatch): MotionNode | null {
   if (patch.strokeOpacity !== undefined) {
     nextStyle.strokeOpacity = Math.min(1, Math.max(0, patch.strokeOpacity));
   }
-  return { ...node, style: nextStyle } as MotionNode;
+  return { ...node, style: nextStyle } as MotionLayer;
 }
 
-function applyText(node: MotionNode, patch: TextPayloadPatch): MotionNode | null {
+function applyText(node: MotionLayer, patch: TextPayloadPatch): MotionLayer | null {
   if (node.type !== "text") return null;
   let payload = { ...node.payload };
   if (patch.text !== undefined) {
@@ -212,7 +212,7 @@ function normalizeCrop(crop: {
   return { x, y, width, height };
 }
 
-function applyMedia(node: MotionNode, patch: MediaPayloadPatch): MotionNode | null {
+function applyMedia(node: MotionLayer, patch: MediaPayloadPatch): MotionLayer | null {
   if (node.type !== "image" && node.type !== "svg" && node.type !== "video") {
     return null;
   }
@@ -237,10 +237,10 @@ function applyMedia(node: MotionNode, patch: MediaPayloadPatch): MotionNode | nu
       height: patch.crop.height ?? prev?.height ?? 1,
     });
   }
-  return { ...node, payload } as MotionNode;
+  return { ...node, payload } as MotionLayer;
 }
 
-function applyEffects(node: MotionNode, patch: EffectStackPatch): MotionNode {
+function applyEffects(node: MotionLayer, patch: EffectStackPatch): MotionLayer {
   const effects = [...(node.effects ?? [])];
   if (patch.op === "remove") {
     return {
@@ -279,22 +279,22 @@ function applyEffects(node: MotionNode, patch: EffectStackPatch): MotionNode {
 function applyReorderSceneNodes(
   project: MotionProject,
   sceneId: string,
-  nodeIds: string[],
+  layerIds: string[],
 ): { project: MotionProject; missing: boolean } {
   const scene = project.scenes.find((s) => s.id === sceneId);
   if (!scene) return { project, missing: true };
 
-  const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+  const byId = new Map(scene.layers.map((n) => [n.id, n]));
   const seen = new Set<string>();
-  const ordered: MotionNode[] = [];
-  for (const id of nodeIds) {
+  const ordered: MotionLayer[] = [];
+  for (const id of layerIds) {
     if (!id || seen.has(id)) continue;
     const node = byId.get(id);
     if (!node) return { project, missing: true };
     seen.add(id);
     ordered.push(node);
   }
-  for (const node of scene.nodes) {
+  for (const node of scene.layers) {
     if (!seen.has(node.id)) ordered.push(node);
   }
 
@@ -308,35 +308,35 @@ function applyReorderSceneNodes(
     project: {
       ...project,
       scenes: project.scenes.map((s) =>
-        s.id === sceneId ? { ...s, nodes: withZ } : s,
+        s.id === sceneId ? { ...s, layers: withZ } : s,
       ),
     },
     missing: false,
   };
 }
 
-function applyTiming(node: MotionNode, timing: NodeTimingPatch): MotionNode {
+function applyTiming(node: MotionLayer, timing: LayerTimingPatch): MotionLayer {
   const start = Math.max(0, timing.start);
   const duration = Math.max(Number.EPSILON, timing.duration);
   return {
     ...node,
     timing: { start, duration },
-  } as MotionNode;
+  } as MotionLayer;
 }
 
 function applyToTargets(
   project: MotionProject,
   targets: NodeTargetRef[],
-  transform: (node: MotionNode) => MotionNode,
+  transform: (node: MotionLayer) => MotionLayer,
 ): { project: MotionProject; missing: boolean } {
   let next = project;
   for (const target of targets) {
     const scene = next.scenes.find((s) => s.id === target.sceneId);
-    const node = scene?.nodes.find((n) => n.id === target.nodeId);
+    const node = scene?.layers.find((n) => n.id === target.layerId);
     if (!scene || !node) {
       return { project: next, missing: true };
     }
-    next = mapNode(next, target.sceneId, target.nodeId, transform);
+    next = mapNode(next, target.sceneId, target.layerId, transform);
   }
   return { project: next, missing: false };
 }
@@ -345,12 +345,12 @@ function applyToTargets(
 function applyToCompatibleTargets(
   project: MotionProject,
   targets: NodeTargetRef[],
-  transform: (node: MotionNode) => MotionNode | null,
+  transform: (node: MotionLayer) => MotionLayer | null,
 ): { project: MotionProject; missing: boolean; incompatible: boolean } {
   let next = project;
   for (const target of targets) {
     const scene = next.scenes.find((s) => s.id === target.sceneId);
-    const node = scene?.nodes.find((n) => n.id === target.nodeId);
+    const node = scene?.layers.find((n) => n.id === target.layerId);
     if (!scene || !node) {
       return { project: next, missing: true, incompatible: false };
     }
@@ -358,7 +358,7 @@ function applyToCompatibleTargets(
     if (!updated) {
       return { project: next, missing: false, incompatible: true };
     }
-    next = mapNode(next, target.sceneId, target.nodeId, () => updated);
+    next = mapNode(next, target.sceneId, target.layerId, () => updated);
   }
   return { project: next, missing: false, incompatible: false };
 }
@@ -410,7 +410,7 @@ function clampKeyframeClipDuration(
 
 function allocateUniqueClipId(
   existingIds: Set<string>,
-  nodeId: string,
+  layerId: string,
   property: string,
 ): string {
   const maxLen = MOTION_PROTOCOL_LIMITS.idLength;
@@ -421,7 +421,7 @@ function allocateUniqueClipId(
     hash = (hash * 31 + property.charCodeAt(i)) >>> 0;
   }
   const fingerprint = hash.toString(36).slice(0, 6);
-  const prefix = `kf_${nodeId}_`.slice(0, Math.max(8, maxLen - 24));
+  const prefix = `kf_${layerId}_`.slice(0, Math.max(8, maxLen - 24));
   const base = `${prefix}${sanitized}_${fingerprint}`.slice(0, maxLen);
   if (!existingIds.has(base)) return base;
   for (let n = 2; n < 10_000; n += 1) {
@@ -440,21 +440,21 @@ function upsertKeyframeOnScene(
   const sceneIdx = project.scenes.findIndex((s) => s.id === target.sceneId);
   if (sceneIdx < 0) return { project, missing: true };
   const scene = project.scenes[sceneIdx]!;
-  const node = scene.nodes.find((n) => n.id === target.nodeId);
+  const node = scene.layers.find((n) => n.id === target.layerId);
   if (!node) return { project, missing: true };
 
   const clips = [...scene.clips];
   const clipIdx = clips.findIndex(
     (c) =>
-      c.targetId === target.nodeId &&
+      c.layerId === target.layerId &&
       c.source.kind === "tracks" &&
       c.source.tracks.some((tr) => tr.property === command.property),
   );
   if (clipIdx < 0) {
     const existingIds = new Set(clips.map((c) => c.id));
     clips.push({
-      id: allocateUniqueClipId(existingIds, target.nodeId, command.property),
-      targetId: target.nodeId,
+      id: allocateUniqueClipId(existingIds, target.layerId, command.property),
+      layerId: target.layerId,
       schedule: { kind: "absolute", at: 0 },
       duration: clampKeyframeClipDuration(scene.duration, command.t),
       playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -462,7 +462,7 @@ function upsertKeyframeOnScene(
         kind: "tracks",
         tracks: [
           {
-            targetId: target.nodeId,
+            layerId: target.layerId,
             property: command.property,
             keys: [
               {
@@ -544,7 +544,7 @@ function moveKeyframeOnScene(
   const clips = [...scene.clips];
   const clipIdx = clips.findIndex(
     (c) =>
-      c.targetId === target.nodeId &&
+      c.layerId === target.layerId &&
       c.source.kind === "tracks" &&
       c.source.tracks.some((tr) => tr.property === command.property),
   );
@@ -600,7 +600,7 @@ function deleteKeyframeOnScene(
   const clips = [...scene.clips];
   const clipIdx = clips.findIndex(
     (c) =>
-      c.targetId === target.nodeId &&
+      c.layerId === target.layerId &&
       c.source.kind === "tracks" &&
       c.source.tracks.some((tr) => tr.property === command.property),
   );
@@ -637,7 +637,7 @@ function setKeyframeEasingOnScene(
   const clips = [...scene.clips];
   const clipIdx = clips.findIndex(
     (c) =>
-      c.targetId === target.nodeId &&
+      c.layerId === target.layerId &&
       c.source.kind === "tracks" &&
       c.source.tracks.some((tr) => tr.property === command.property),
   );
@@ -678,11 +678,11 @@ export function executePropertyCommand(
   let events: PropertyDomainEvent[];
 
   switch (command.type) {
-    case "reorder-scene-nodes": {
+    case "reorder-scene-layers": {
       if (!command.sceneId.trim()) {
         return rejectedInvalid("Scene id is required.");
       }
-      if (!command.nodeIds.length) {
+      if (!command.layerIds.length) {
         return {
           status: "rejected",
           reason: "empty_targets",
@@ -692,13 +692,13 @@ export function executePropertyCommand(
       result = applyReorderSceneNodes(
         document.project,
         command.sceneId,
-        command.nodeIds,
+        command.layerIds,
       );
       events = [
         {
-          type: "scene-nodes-reordered",
+          type: "scene-layers-reordered",
           sceneId: command.sceneId,
-          nodeIds: command.nodeIds,
+          layerIds: command.layerIds,
         },
       ];
       break;
@@ -847,7 +847,7 @@ export function executePropertyCommand(
           (node) => applyText(node, command.patch),
         );
         if (compat.incompatible) {
-          return rejectedInvalid("One or more targets are not text nodes.");
+          return rejectedInvalid("One or more targets are not text layers.");
         }
         result = compat;
       }

@@ -14,14 +14,14 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | `src/v3/project.ts`               | **Root schema** của V3. Hiểu `MotionProjectV3Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
 | 2   | `src/v3/timeline.ts`              | **Scene-only timeline**. Xem `visualTracks`, `VisualClipV3` — clip source chỉ cho phép `{ kind: "scene", sceneId }`.            |
-| 2b  | `src/v3/nodes/component.ts`       | **Component node** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
+| 2b  | `src/v3/layers/component.ts`       | **Component node** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
 | 3   | `src/v3/components.ts`            | **Sealed component contract** — `props`, `slots`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v3/variables.ts`             | **Binding model** — phân biệt scene binding vs component binding; consumer có được chạm internal không.                         |
 | 5   | `src/v3/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v3/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
 | 7   | `src/v3/__tests__/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
 
-> **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi nhảy sang `timeline.ts` (scene-only) và `nodes/component.ts` vì phần component motion nằm ở đó.
+> **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi nhảy sang `timeline.ts` (scene-only) và `layers/component.ts` vì phần component motion nằm ở đó.
 
 ---
 
@@ -39,16 +39,16 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - `VisualClipV3` chỉ chấp nhận `source.kind === "scene"` — không có component source.
 - Clip không sở hữu `instanceTransform`/`instanceTransformTracks` nữa; định vị/keyframe component nằm ở component node.
 
-### 2b) `src/v3/nodes/component.ts` — Component node (instance)
+### 2b) `src/v3/layers/component.ts` — Component node (instance)
 
-- `ComponentNodeV3Schema` với `type: "component"` và `payload.componentId`.
+- `ComponentLayerV3Schema` với `type: "component"` và `payload.componentId`.
 - `transform` của node đóng vai trò wrapper transform khi compiler expand.
 - Scene-local motion clip nhắm vào component node → compiler remap sang wrapper group.
 - **Wrapper-safe contract:** các property transform chuẩn của node được phép animate; không expose internal node của component.
 
 ### 3) `src/v3/components.ts` — Sealed component
 
-- Owner sở hữu toàn bộ internals (nodes, internalBindings, actions).
+- Owner sở hữu toàn bộ internals (layers, internalBindings, actions).
 - Consumer chỉ được dùng public API: `props`, `slots`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
 - Prop values: static | variable | keyframes (chỉ khi `animatable`). Unknown variable / choice ngoài options / assetKind lệch → reject.
 - Asset props bắt buộc `assetKind`. Conflict: payload keyframes + scene `payload.props.*` cùng prop → reject.
@@ -56,7 +56,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 ### 4) `src/v3/variables.ts` — Binding model
 
-- Phân biệt **scene binding** (bind tới node trong scene) vs **componentNode binding** (bind tới instance scene-level) vs **component binding** (mọi **scene-level** instance của `componentId`; nested nhận value qua `childProp`).
+- Phân biệt **scene binding** (bind tới node trong scene) vs **componentLayer binding** (bind tới instance scene-level) vs **component binding** (mọi **scene-level** instance của `componentId`; nested nhận value qua `childProp`).
 - Consumer có bị bắt buộc dùng `propId` thay vì `nodeId` trực tiếp không.
 
 ### 5) `src/v3/references/project.ts` — Semantic validation
@@ -112,7 +112,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 
 > Nếu tôi bind tới component, tôi có bắt buộc dùng `propId` không?
 
-- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `layerId`. Dạng `componentNode` trỏ instance scene-level cụ thể; dạng `component` bind mọi instance **scene-level**. Nested instance chỉ nhận value nếu parent `childProp`.
+- **Mong đợi:** Có. Bind tới component bắt buộc dùng `propId`, không dùng internal `layerId`. Dạng `componentLayer` trỏ instance scene-level cụ thể; dạng `component` bind mọi instance **scene-level**. Nested instance chỉ nhận value nếu parent `childProp`.
 
 ### 4.4 Public target type-check
 
@@ -135,7 +135,7 @@ project.ts (root schema + limits)
 timeline.ts (scene-only visual clips)   ← trọng tâm
         │
         ▼
-nodes/component.ts (component node) ──► components.ts (sealed contract)
+layers/component.ts (component node) ──► components.ts (sealed contract)
         │
         ▼
 variables.ts (binding model)

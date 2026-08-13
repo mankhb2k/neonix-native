@@ -1,7 +1,7 @@
 /**
  * Runtime geometry validation helpers.
  */
-import type { MotionPathContour } from "../v3/nodes/geometry";
+import type { MotionPathContour } from "../v3/layers/geometry";
 
 export function duplicates(values: string[]): string[] {
   return values.filter((value, index) => values.indexOf(value) !== index);

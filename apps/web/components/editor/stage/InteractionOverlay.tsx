@@ -90,7 +90,7 @@ export function InteractionOverlay({
       snapshot.items.find(
         (item) =>
           item.sceneId === selection.sceneId &&
-          item.nodeId === selection.nodeId,
+          item.layerId === selection.layerId,
       ) ?? null
     );
   }, [snapshot, selection]);
@@ -105,7 +105,7 @@ export function InteractionOverlay({
     if (
       !preview ||
       !base ||
-      preview.nodeId !== selectedItem.nodeId ||
+      preview.layerId !== selectedItem.layerId ||
       preview.sceneId !== selectedItem.sceneId
     ) {
       return selectedItem.worldBounds;
@@ -138,15 +138,15 @@ export function InteractionOverlay({
   );
 
   const resolveNodeBase = useCallback(
-    (sceneId: string, nodeId: string) => {
+    (sceneId: string, layerId: string) => {
       if (!project) return null;
       const previewProject = resolvePreviewProject(project).project;
       const scene = previewProject.scenes.find((s) => s.id === sceneId);
-      const node = scene?.nodes.find((n) => n.id === nodeId);
+      const node = scene?.layers.find((n) => n.id === nodeId);
       if (!node) return null;
       return {
         sceneId,
-        nodeId,
+        layerId,
         x: node.transform.x,
         y: node.transform.y,
         width: node.transform.width,
@@ -172,7 +172,7 @@ export function InteractionOverlay({
       });
     }
 
-    commitNodeTransform(values.sceneId, values.nodeId, {
+    commitNodeTransform(values.sceneId, values.layerId, {
       x: values.x,
       y: values.y,
       width: values.width,
@@ -217,7 +217,7 @@ export function InteractionOverlay({
   const nudge = useCallback(
     (dx: number, dy: number) => {
       if (selection.kind !== "node" || !project) return;
-      const nodeBase = resolveNodeBase(selection.sceneId, selection.nodeId);
+      const nodeBase = resolveNodeBase(selection.sceneId, selection.layerId);
       if (!nodeBase) return;
       const resolved = resolvePreviewProject(project);
       if (resolved.usingDemo) {
@@ -228,7 +228,7 @@ export function InteractionOverlay({
           timelineClips: clips,
         });
       }
-      commitNodeTransform(nodeBase.sceneId, nodeBase.nodeId, {
+      commitNodeTransform(nodeBase.sceneId, nodeBase.layerId, {
         x: nodeBase.x + dx,
         y: nodeBase.y + dy,
       });
@@ -254,7 +254,7 @@ export function InteractionOverlay({
         event.stopPropagation();
         const nodeBase = resolveNodeBase(
           selectedItem.sceneId,
-          selectedItem.nodeId,
+          selectedItem.layerId,
         );
         if (!nodeBase) return;
         if (handle === "rotate") {
@@ -285,11 +285,11 @@ export function InteractionOverlay({
       setCycleIndex(nextIndex);
       const hit = hits[nextIndex]!;
       useEditorStore.setState({
-        selection: selectionNode(hit.sceneId, hit.nodeId),
+        selection: selectionNode(hit.sceneId, hit.layerId),
       });
 
-      const nodeBase = resolveNodeBase(hit.sceneId, hit.nodeId);
-      if (nodeBase && !isElementLocked(envelope, hit.sceneId, hit.nodeId)) {
+      const nodeBase = resolveNodeBase(hit.sceneId, hit.layerId);
+      if (nodeBase && !isElementLocked(envelope, hit.sceneId, hit.layerId)) {
         startMove(nodeBase, hit.worldBounds, point);
       }
     },

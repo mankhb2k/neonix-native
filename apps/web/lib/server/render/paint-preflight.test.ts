@@ -53,7 +53,7 @@ describe("paint-preflight", () => {
         {
           op: "unsupported",
           key: "k",
-          nodeId: "n",
+          layerId: "n",
           nodeType: "mesh",
           message: "no",
         },

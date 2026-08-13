@@ -11,7 +11,7 @@
  *                            clip, sorted by unique track `order`)
  *   scene clips            → runtime tracks (compiled directly)
  *   variables / bindings   → resolved inline before scene compilation
- *   component nodes        → sealed wrapper-group expansion in the scene
+ *   component layers        → sealed wrapper-group expansion in the scene
  *                            graph (not a timeline clip source)
  *   caption tracks         → copied through
  *
@@ -159,7 +159,7 @@ export function detectScheduleCycles(
 
 // ── Runtime shape preparation ─────────────────────────────────────────
 
-function prepareRuntimeNode(node: V3.NodeV3): JsonRecord {
+function prepareRuntimeLayer(node: V3.LayerV3): JsonRecord {
   const flags: {
     position?: boolean;
     rotation?: boolean;
@@ -172,7 +172,7 @@ function prepareRuntimeNode(node: V3.NodeV3): JsonRecord {
   const base: JsonRecord = {
     id: node.id,
     type: node.type,
-    parentId: node.parentId,
+    parentLayerId: node.parentLayerId,
     transform,
   };
   if (node.name) base.name = node.name;
@@ -312,7 +312,7 @@ function prepareRuntimeNode(node: V3.NodeV3): JsonRecord {
         ...(node.style ? { style: clone(node.style) } : {}),
       };
     case "component":
-      // Component nodes are expanded before runtime preparation; this
+      // Component layers are expanded before runtime preparation; this
       // fallback keeps a missing-component node from producing undefined.
       return {
         ...base,
@@ -328,7 +328,7 @@ function prepareRuntimeClip(clip: V3SceneClip): JsonRecord {
 }
 
 type ComponentInstanceRef = {
-  componentNodeId: string;
+  componentLayerId: string;
   componentId: string;
   runtimeSceneId: string;
 };
@@ -383,8 +383,8 @@ function resolvePropTargets(
       });
       continue;
     }
-    const childNode = component.nodes.find(
-      (node) => node.id === target.childId,
+    const childNode = component.layers.find(
+      (node) => node.id === target.childLayerId,
     );
     if (!childNode || childNode.type !== "component") continue;
     const childDef = components.get(childNode.payload.componentId);
@@ -420,7 +420,7 @@ function isKeyframesPropValue(
 
 function resolveComponentPropValues(
   component: V3.ComponentDefinitionV3,
-  payload: V3.ComponentNodeV3["payload"],
+  payload: V3.ComponentLayerV3["payload"],
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {};
   for (const prop of component.props) {
@@ -438,10 +438,10 @@ function resolveComponentPropValues(
 
 function applyComponentPropForwards(
   component: V3.ComponentDefinitionV3,
-  internalNodes: V3.NodeV3[],
+  internalLayers: V3.LayerV3[],
   resolvedProps: Record<string, unknown>,
-): V3.NodeV3[] {
-  return internalNodes.map((node) => {
+): V3.LayerV3[] {
+  return internalLayers.map((node) => {
     if (node.type !== "component") return node;
     const forwarded: Record<string, unknown> = {
       ...(node.payload.props ?? {}),
@@ -449,7 +449,7 @@ function applyComponentPropForwards(
     for (const binding of component.propBindings) {
       if (
         binding.target.kind === "childProp" &&
-        binding.target.childId === node.id &&
+        binding.target.childLayerId === node.id &&
         binding.propId in resolvedProps
       ) {
         forwarded[binding.target.propId] = resolvedProps[binding.propId];
@@ -459,7 +459,7 @@ function applyComponentPropForwards(
       ...node,
       payload: {
         ...node.payload,
-        props: forwarded as V3.ComponentNodeV3["payload"]["props"],
+        props: forwarded as V3.ComponentLayerV3["payload"]["props"],
       },
     };
   });
@@ -489,7 +489,7 @@ function buildPropKeyframeClip(
           : "string";
   return {
     id: `${instanceId}__prop__${propId}__${layer.layerId}`,
-    targetId,
+    layerId: targetId,
     schedule: { kind: "absolute", at: 0 },
     duration: Math.max(
       ...keyframes.keys.map((k) => k.t),
@@ -500,7 +500,7 @@ function buildPropKeyframeClip(
       kind: "tracks",
       tracks: [
         {
-          targetId,
+          layerId: targetId,
           property: layer.property,
           valueKind,
           keys: keyframes.keys.map((k) => ({
@@ -515,27 +515,27 @@ function buildPropKeyframeClip(
 }
 
 type ExpandComponentResult = {
-  nodes: V3.NodeV3[];
+  layers: V3.LayerV3[];
   wrapperId: string;
   propClips: JsonRecord[];
 };
 
 function expandOneComponentInstance(
-  instanceNode: V3.ComponentNodeV3,
+  instanceNode: V3.ComponentLayerV3,
   instanceId: string,
-  parentId: string | null,
+  parentLayerId: string | null,
   components: Map<string, V3.ComponentDefinitionV3>,
   runtimeSceneId: string | null,
   componentInstances: Map<string, ComponentInstanceRef> | null,
 ): ExpandComponentResult {
   const component = components.get(instanceNode.payload.componentId);
   if (!component) {
-    return { nodes: [instanceNode], wrapperId: instanceId, propClips: [] };
+    return { layers: [instanceNode], wrapperId: instanceId, propClips: [] };
   }
 
   if (componentInstances && runtimeSceneId) {
     componentInstances.set(instanceId, {
-      componentNodeId: instanceId,
+      componentLayerId: instanceId,
       componentId: instanceNode.payload.componentId,
       runtimeSceneId,
     });
@@ -548,19 +548,19 @@ function expandOneComponentInstance(
   const wrapperId = `${instanceId}__instance`;
   const processedInternals = applyComponentPropForwards(
     component,
-    component.nodes,
+    component.layers,
     resolvedProps,
   );
 
   const propClips: JsonRecord[] = [];
-  const expandedInternals: V3.NodeV3[] = [];
+  const expandedInternals: V3.LayerV3[] = [];
   for (const internal of processedInternals) {
     if (internal.type === "component") {
       const nestedInstanceId = `${instanceId}__${internal.id}`;
       const nestedParentId =
-        internal.parentId === null || internal.parentId === undefined
+        internal.parentLayerId === null || internal.parentLayerId === undefined
           ? wrapperId
-          : `${instanceId}__${internal.parentId}`;
+          : `${instanceId}__${internal.parentLayerId}`;
       const nested = expandOneComponentInstance(
         internal,
         nestedInstanceId,
@@ -569,21 +569,21 @@ function expandOneComponentInstance(
         null,
         null, // nested instances are not scene-level; skip global bindings
       );
-      const nestedWrapper = nested.nodes.find((n) => n.id === nested.wrapperId);
+      const nestedWrapper = nested.layers.find((n) => n.id === nested.wrapperId);
       if (nestedWrapper && nestedWrapper.type === "group") {
-        nestedWrapper.parentId = nestedParentId;
+        nestedWrapper.parentLayerId = nestedParentId;
       }
-      expandedInternals.push(...nested.nodes);
+      expandedInternals.push(...nested.layers);
       propClips.push(...nested.propClips);
       continue;
     }
 
-    const cloned = clone(internal) as V3.NodeV3;
+    const cloned = clone(internal) as V3.LayerV3;
     cloned.id = `${instanceId}__${internal.id}`;
-    cloned.parentId =
-      internal.parentId === null || internal.parentId === undefined
+    cloned.parentLayerId =
+      internal.parentLayerId === null || internal.parentLayerId === undefined
         ? wrapperId
-        : `${instanceId}__${internal.parentId}`;
+        : `${instanceId}__${internal.parentLayerId}`;
     for (const binding of component.propBindings) {
       if (
         binding.target.kind !== "layerProperty" ||
@@ -627,7 +627,7 @@ function expandOneComponentInstance(
   const wrapper = {
     id: wrapperId,
     type: "group" as const,
-    parentId,
+    parentLayerId,
     transform: clone(instanceNode.transform),
     visible: instanceNode.visible,
     payload: { compositing: { mode: "pass-through" as const } },
@@ -642,9 +642,9 @@ function expandOneComponentInstance(
       ? { inheritFlags: clone(instanceNode.inheritFlags) }
       : {}),
     ...(instanceNode.modifiers ? { modifiers: clone(instanceNode.modifiers) } : {}),
-  } as V3.NodeV3;
+  } as V3.LayerV3;
 
-  return { nodes: [wrapper, ...expandedInternals], wrapperId, propClips };
+  return { layers: [wrapper, ...expandedInternals], wrapperId, propClips };
 }
 
 /**
@@ -654,7 +654,7 @@ function expandOneComponentInstance(
 function remapPayloadPropTracks(
   clip: V3SceneClip,
   components: Map<string, V3.ComponentDefinitionV3>,
-  sceneNodes: V3.NodeV3[],
+  sceneLayers: V3.LayerV3[],
 ): JsonRecord {
   const cloned = clone(clip) as JsonRecord;
   const source = cloned.source as
@@ -664,13 +664,13 @@ function remapPayloadPropTracks(
     return cloned;
   }
   const targetId =
-    typeof cloned.targetId === "string" ? cloned.targetId : undefined;
-  const componentNode = sceneNodes.find(
+    typeof cloned.layerId === "string" ? cloned.layerId : undefined;
+  const componentLayer = sceneLayers.find(
     (n) => n.id === targetId && n.type === "component",
-  ) as V3.ComponentNodeV3 | undefined;
-  if (!componentNode) return cloned;
+  ) as V3.ComponentLayerV3 | undefined;
+  if (!componentLayer) return cloned;
 
-  const component = components.get(componentNode.payload.componentId);
+  const component = components.get(componentLayer.payload.componentId);
   if (!component) return cloned;
 
   const remappedTracks: Array<Record<string, unknown>> = [];
@@ -685,13 +685,13 @@ function remapPayloadPropTracks(
       continue;
     }
     const propId = match[1]!;
-    const inline = componentNode.payload.props?.[propId];
+    const inline = componentLayer.payload.props?.[propId];
     if (isKeyframesPropValue(inline)) continue;
     const leaves = resolvePropTargets(
       components,
       component,
       propId,
-      componentNode.id,
+      componentLayer.id,
     );
     if (leaves.length === 0) {
       remappedTracks.push(track);
@@ -700,7 +700,7 @@ function remapPayloadPropTracks(
     for (const leaf of leaves) {
       remappedTracks.push({
         ...clone(track),
-        targetId: `${leaf.instancePrefix}__${leaf.layerId}`,
+        layerId: `${leaf.instancePrefix}__${leaf.layerId}`,
         property: leaf.property,
       });
     }
@@ -708,35 +708,35 @@ function remapPayloadPropTracks(
   source.tracks = remappedTracks;
   if (
     remappedTracks.length === 1 &&
-    typeof remappedTracks[0]?.targetId === "string"
+    typeof remappedTracks[0]?.layerId === "string"
   ) {
-    cloned.targetId = remappedTracks[0].targetId;
+    cloned.layerId = remappedTracks[0].layerId;
   }
   return cloned;
 }
 
 /**
- * Expand `type: "component"` scene nodes into a wrapper group plus the
- * component's internal nodes, with deterministic ids:
- *   - wrapper:          `<componentNodeId>__instance`
- *   - internal node n:  `<componentNodeId>__<n.id>`
+ * Expand `type: "component"` scene layers into a wrapper group plus the
+ * component's internal layers, with deterministic ids:
+ *   - wrapper:          `<componentLayerId>__instance`
+ *   - internal node n:  `<componentLayerId>__<n.id>`
  * Consumer `payload.props` resolve through prop defaults, variant.props,
  * then instance overrides, then apply via owner `propBindings`.
  */
-function expandComponentNodesV3(
-  nodes: V3.NodeV3[],
+function expandComponentLayersV3(
+  layers: V3.LayerV3[],
   components: Map<string, V3.ComponentDefinitionV3>,
   runtimeSceneId: string,
   componentInstances: Map<string, ComponentInstanceRef>,
 ): {
-  nodes: V3.NodeV3[];
-  wrapperByNodeId: Map<string, string>;
+  layers: V3.LayerV3[];
+  wrapperByLayerId: Map<string, string>;
   propClips: JsonRecord[];
 } {
-  const out: V3.NodeV3[] = [];
-  const wrapperByNodeId = new Map<string, string>();
+  const out: V3.LayerV3[] = [];
+  const wrapperByLayerId = new Map<string, string>();
   const propClips: JsonRecord[] = [];
-  for (const node of nodes) {
+  for (const node of layers) {
     if (node.type !== "component") {
       out.push(node);
       continue;
@@ -744,29 +744,29 @@ function expandComponentNodesV3(
     const expanded = expandOneComponentInstance(
       node,
       node.id,
-      node.parentId,
+      node.parentLayerId,
       components,
       runtimeSceneId,
       componentInstances,
     );
-    wrapperByNodeId.set(node.id, expanded.wrapperId);
-    out.push(...expanded.nodes);
+    wrapperByLayerId.set(node.id, expanded.wrapperId);
+    out.push(...expanded.layers);
     propClips.push(...expanded.propClips);
   }
-  return { nodes: out, wrapperByNodeId, propClips };
+  return { layers: out, wrapperByLayerId, propClips };
 }
 
 /** Remap component-node ids to wrapper ids in a scene-local motion clip. */
 function remapSceneClipTargets(
   clip: V3SceneClip,
-  wrapperByNodeId: Map<string, string>,
+  wrapperByLayerId: Map<string, string>,
 ): JsonRecord {
   const cloned = clone(clip) as JsonRecord;
   if (
-    typeof cloned.targetId === "string" &&
-    wrapperByNodeId.has(cloned.targetId)
+    typeof cloned.layerId === "string" &&
+    wrapperByLayerId.has(cloned.layerId)
   ) {
-    cloned.targetId = wrapperByNodeId.get(cloned.targetId)!;
+    cloned.layerId = wrapperByLayerId.get(cloned.layerId)!;
   }
   const source = cloned.source as
     | { kind: string; tracks?: Array<Record<string, unknown>> }
@@ -774,10 +774,10 @@ function remapSceneClipTargets(
   if (source && source.kind === "tracks" && Array.isArray(source.tracks)) {
     for (const track of source.tracks) {
       if (
-        typeof track.targetId === "string" &&
-        wrapperByNodeId.has(track.targetId)
+        typeof track.layerId === "string" &&
+        wrapperByLayerId.has(track.layerId)
       ) {
-        track.targetId = wrapperByNodeId.get(track.targetId)!;
+        track.layerId = wrapperByLayerId.get(track.layerId)!;
       }
     }
   }
@@ -791,34 +791,34 @@ function prepareRuntimeScene(
   runtimeSceneId: string,
 ): JsonRecord {
   const {
-    nodes: expandedNodes,
-    wrapperByNodeId,
+    layers: expandedLayers,
+    wrapperByLayerId,
     propClips,
-  } = expandComponentNodesV3(
-    scene.nodes,
+  } = expandComponentLayersV3(
+    scene.layers,
     components,
     runtimeSceneId,
     componentInstances,
   );
   const remappedClips = (scene.clips ?? []).map((clip) =>
     remapSceneClipTargets(
-      remapPayloadPropTracks(clip, components, scene.nodes) as V3SceneClip,
-      wrapperByNodeId,
+      remapPayloadPropTracks(clip, components, scene.layers) as V3SceneClip,
+      wrapperByLayerId,
     ),
   );
   const result: JsonRecord = {
     id: runtimeSceneId,
     duration: scene.duration,
-    nodes: expandedNodes.map((node) => {
-      const prepared = prepareRuntimeNode(node);
+    layers: expandedLayers.map((node) => {
+      const prepared = prepareRuntimeLayer(node);
       // Remap mask sources that reference a component node to its wrapper.
-      const mask = (prepared as { mask?: { sourceNodeId?: string } }).mask;
+      const mask = (prepared as { mask?: { sourceLayerId?: string } }).mask;
       if (
         mask &&
-        typeof mask.sourceNodeId === "string" &&
-        wrapperByNodeId.has(mask.sourceNodeId)
+        typeof mask.sourceLayerId === "string" &&
+        wrapperByLayerId.has(mask.sourceLayerId)
       ) {
-        mask.sourceNodeId = wrapperByNodeId.get(mask.sourceNodeId)!;
+        mask.sourceLayerId = wrapperByLayerId.get(mask.sourceLayerId)!;
       }
       return prepared;
     }),
@@ -833,15 +833,21 @@ function prepareRuntimeScene(
     result.drivers = scene.drivers.map((driver) => {
       const cloned = clone(driver) as JsonRecord;
       if (
-        typeof cloned.targetNodeId === "string" &&
-        wrapperByNodeId.has(cloned.targetNodeId)
+        typeof cloned.targetLayerId === "string" &&
+        wrapperByLayerId.has(cloned.targetLayerId)
       ) {
-        cloned.targetNodeId = wrapperByNodeId.get(cloned.targetNodeId)!;
+        cloned.targetLayerId = wrapperByLayerId.get(cloned.targetLayerId)!;
+      }
+      if (
+        typeof cloned.sourceLayerId === "string" &&
+        wrapperByLayerId.has(cloned.sourceLayerId)
+      ) {
+        cloned.sourceLayerId = wrapperByLayerId.get(cloned.sourceLayerId)!;
       }
       return cloned;
     });
   }
-  if (scene.activeCameraId) result.activeCameraId = scene.activeCameraId;
+  if (scene.activeCameraLayerId) result.activeCameraLayerId = scene.activeCameraLayerId;
   return result;
 }
 
@@ -973,7 +979,7 @@ type VisualPlanTrack = {
  * Convert `timeline.visualTracks` into a track-preserving visual plan.
  *
  * Each V3 track becomes one runtime track. Track stacking is `order` only.
- * Visual clips are scene-only; component instances live as scene nodes and
+ * Visual clips are scene-only; component instances live as scene layers and
  * expand into sealed wrapper-group subgraphs during scene preparation.
  */
 function buildVisualPlan(
@@ -1156,12 +1162,12 @@ function validateV3Semantics(
           },
         );
       }
-    } else if (target.kind === "componentNode") {
+    } else if (target.kind === "componentLayer") {
       const scene = project.scenes.find(
         (candidate) => candidate.id === target.sceneId,
       );
-      const node = scene?.nodes.find(
-        (candidate) => candidate.id === target.nodeId,
+      const node = scene?.layers.find(
+        (candidate) => candidate.id === target.layerId,
       );
       const component =
         node?.type === "component"
@@ -1175,7 +1181,7 @@ function validateV3Semantics(
       if (expected && variable.type !== expected) {
         collector.error(
           "CMP_BINDING_TYPE_MISMATCH",
-          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component node "${target.nodeId}" prop "${target.propId}" which expects ${expected}`,
+          `Binding "${binding.id}" binds ${variable.type} variable "${variable.id}" to component node "${target.layerId}" prop "${target.propId}" which expects ${expected}`,
           {
             path: ["bindings", binding.id],
             details: {
@@ -1210,9 +1216,9 @@ function validateV3Semantics(
 
   // ── Scenes: clip targets, presets, asset refs, schedule cycles ──
   for (const scene of project.scenes) {
-    const nodeIds = new Set(scene.nodes.map((node) => node.id));
-    const assetRefs: Array<{ nodeId: string; assetId: string }> = [];
-    for (const node of scene.nodes) {
+    const layerIds = new Set(scene.layers.map((node) => node.id));
+    const assetRefs: Array<{ layerId: string; assetId: string }> = [];
+    for (const node of scene.layers) {
       const payload = node.payload as JsonRecord;
       if (
         (node.type === "image" ||
@@ -1220,10 +1226,10 @@ function validateV3Semantics(
           node.type === "video") &&
         typeof payload.assetId === "string"
       ) {
-        assetRefs.push({ nodeId: node.id, assetId: payload.assetId });
+        assetRefs.push({ layerId: node.id, assetId: payload.assetId });
       }
       if (node.type === "text" && node.payload.fontAssetId) {
-        assetRefs.push({ nodeId: node.id, assetId: node.payload.fontAssetId });
+        assetRefs.push({ layerId: node.id, assetId: node.payload.fontAssetId });
       }
       if (node.type === "component") {
         const component = componentById.get(node.payload.componentId);
@@ -1232,10 +1238,10 @@ function validateV3Semantics(
             "CMP_UNRESOLVED_COMPONENT",
             `Scene "${scene.id}" node "${node.id}" references unknown component "${node.payload.componentId}"`,
             {
-              path: ["scenes", scene.id, "nodes", node.id],
+              path: ["scenes", scene.id, "layers", node.id],
               details: {
                 sceneId: scene.id,
-                nodeId: node.id,
+                layerId: node.id,
                 componentId: node.payload.componentId,
               },
             },
@@ -1248,10 +1254,10 @@ function validateV3Semantics(
             "CMP_UNRESOLVED_COMPONENT_VARIANT",
             `Scene "${scene.id}" node "${node.id}" references unknown variant "${node.payload.variantId}" on component "${component.id}"`,
             {
-              path: ["scenes", scene.id, "nodes", node.id],
+              path: ["scenes", scene.id, "layers", node.id],
               details: {
                 sceneId: scene.id,
-                nodeId: node.id,
+                layerId: node.id,
                 componentId: component.id,
                 variantId: node.payload.variantId,
               },
@@ -1264,12 +1270,12 @@ function validateV3Semantics(
       if (!assetIds.has(ref.assetId)) {
         collector.error(
           "CMP_UNRESOLVED_ASSET",
-          `Scene "${scene.id}" node "${ref.nodeId}" references unknown asset "${ref.assetId}"`,
+          `Scene "${scene.id}" node "${ref.layerId}" references unknown asset "${ref.assetId}"`,
           {
-            path: ["scenes", scene.id, "nodes", ref.nodeId],
+            path: ["scenes", scene.id, "layers", ref.layerId],
             details: {
               sceneId: scene.id,
-              nodeId: ref.nodeId,
+              layerId: ref.layerId,
               assetId: ref.assetId,
             },
           },
@@ -1277,16 +1283,16 @@ function validateV3Semantics(
       }
     }
     for (const clip of scene.clips ?? []) {
-      if (clip.targetId && !nodeIds.has(clip.targetId)) {
+      if (clip.layerId && !layerIds.has(clip.layerId)) {
         collector.error(
           "CMP_CLIP_TARGET_MISSING",
-          `Scene "${scene.id}" clip "${clip.id}" references unknown node "${clip.targetId}"`,
+          `Scene "${scene.id}" clip "${clip.id}" references unknown node "${clip.layerId}"`,
           {
             path: ["scenes", scene.id, "clips", clip.id],
             details: {
               sceneId: scene.id,
               clipId: clip.id,
-              targetId: clip.targetId,
+              layerId: clip.layerId,
             },
           },
         );
@@ -1534,9 +1540,9 @@ export function compileMotionProjectV3(
       normalized.variables.map((v) => [v.id, clone(v.value)] as const),
     );
 
-    // Component instances tracked during buildVisualPlan: componentNodeId →
+    // Component instances tracked during buildVisualPlan: componentLayerId →
     // { componentId, runtimeSceneId }. Bindings resolve through these to the
-    // expanded internal node ids (`<componentNodeId>__<internalNodeId>`).
+    // expanded internal node ids (`<componentLayerId>__<internalNodeId>`).
     const components = new Map(
       normalized.components.map((c) => [c.id, c] as const),
     );
@@ -1544,7 +1550,7 @@ export function compileMotionProjectV3(
     const runtimeBindings: Array<{
       id: string;
       source: { variableId: string };
-      target: { sceneId: string; nodeId: string; property: string };
+      target: { sceneId: string; layerId: string; property: string };
     }> = [];
     for (const binding of normalized.bindings) {
       const target = binding.target;
@@ -1554,21 +1560,21 @@ export function compileMotionProjectV3(
           source: { variableId: binding.source.variableId },
           target: {
             sceneId: target.sceneId,
-            nodeId: target.nodeId,
+            layerId: target.layerId,
             property: toRuntimeProperty(target.property),
           },
         });
         continue;
       }
-      if (target.kind === "componentNode") {
-        const instance = componentInstances.get(target.nodeId);
+      if (target.kind === "componentLayer") {
+        const instance = componentInstances.get(target.layerId);
         if (!instance) {
           collector.warn(
             "CMP_UNRESOLVED_COMPONENT",
-            `Binding "${binding.id}" targets component node "${target.nodeId}" but no component instance exists at that node`,
+            `Binding "${binding.id}" targets component node "${target.layerId}" but no component instance exists at that node`,
             {
               path: ["bindings", binding.id],
-              details: { bindingId: binding.id, nodeId: target.nodeId },
+              details: { bindingId: binding.id, layerId: target.layerId },
             },
           );
           continue;
@@ -1579,13 +1585,13 @@ export function compileMotionProjectV3(
               components,
               component,
               target.propId,
-              instance.componentNodeId,
+              instance.componentLayerId,
             )
           : [];
         if (leaves.length === 0) {
           collector.error(
             "CMP_PRIVATE_COMPONENT_ACCESS",
-            `Binding "${binding.id}" targets component node "${target.nodeId}" prop "${target.propId}" which has no layerProperty binding`,
+            `Binding "${binding.id}" targets component node "${target.layerId}" prop "${target.propId}" which has no layerProperty binding`,
             {
               path: ["bindings", binding.id],
               details: {
@@ -1603,7 +1609,7 @@ export function compileMotionProjectV3(
             source: { variableId: binding.source.variableId },
             target: {
               sceneId: instance.runtimeSceneId,
-              nodeId: `${leaf.instancePrefix}__${leaf.layerId}`,
+              layerId: `${leaf.instancePrefix}__${leaf.layerId}`,
               property: toRuntimeProperty(leaf.property),
             },
           });
@@ -1638,7 +1644,7 @@ export function compileMotionProjectV3(
               components,
               component,
               target.propId,
-              instance.componentNodeId,
+              instance.componentLayerId,
             )
           : [],
       }));
@@ -1666,7 +1672,7 @@ export function compileMotionProjectV3(
           source: { variableId: binding.source.variableId },
           target: {
             sceneId: entry.instance.runtimeSceneId,
-            nodeId: `${entry.leaf.instancePrefix}__${entry.leaf.layerId}`,
+            layerId: `${entry.leaf.instancePrefix}__${entry.leaf.layerId}`,
             property: toRuntimeProperty(entry.leaf.property),
           },
         });
@@ -1699,9 +1705,9 @@ export function compileMotionProjectV3(
         (b) => b.target.sceneId === entry.sceneId,
       );
       for (const binding of sceneBindings) {
-        const nodes = (scene.nodes ?? []) as Array<Record<string, unknown>>;
-        const target = nodes.find(
-          (n: Record<string, unknown>) => n.id === binding.target.nodeId,
+        const layers = (scene.layers ?? []) as Array<Record<string, unknown>>;
+        const target = layers.find(
+          (n: Record<string, unknown>) => n.id === binding.target.layerId,
         );
         if (target && variables.has(binding.source.variableId)) {
           const parts = binding.target.property.split(".");
@@ -1721,9 +1727,9 @@ export function compileMotionProjectV3(
       return compileSceneToRuntime({
         id: scene.id as string,
         duration: scene.duration as number,
-        nodes: (scene.nodes ?? []) as Parameters<
+        layers: (scene.layers ?? []) as Parameters<
           typeof compileSceneToRuntime
-        >[0]["nodes"],
+        >[0]["layers"],
         clips: (scene.clips ?? []) as Parameters<
           typeof compileSceneToRuntime
         >[0]["clips"],
@@ -1738,7 +1744,7 @@ export function compileMotionProjectV3(
         drivers: scene.drivers as
           | Parameters<typeof compileSceneToRuntime>[0]["drivers"]
           | undefined,
-        activeCameraId: scene.activeCameraId as string | undefined,
+        activeCameraLayerId: scene.activeCameraLayerId as string | undefined,
         sourceRef: scene.sourceRef as
           | NonNullable<
               Parameters<typeof compileSceneToRuntime>[0]["sourceRef"]

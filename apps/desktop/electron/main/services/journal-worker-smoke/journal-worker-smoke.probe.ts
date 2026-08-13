@@ -25,7 +25,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const node = {
     id: "node_smoke_pad",
     type: "text",
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
     transform: {
       x: 1,
@@ -45,7 +45,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
     payload: { text: "", fontSize: 12, fontWeight: 400, align: "left" },
   };
   envelope.project.scenes = [
-    { id, name: "Smoke", duration: 1, nodes: [node], clips: [] },
+    { id, name: "Smoke", duration: 1, layers: [node], clips: [] },
   ];
   let json = JSON.stringify(envelope);
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");

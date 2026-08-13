@@ -64,7 +64,7 @@ export type RenderItemPayload =
           paddingY?: number;
           radius?: number;
         };
-        sourceRef?: { kind: "text-run"; nodeId: string; runId: string };
+        sourceRef?: { kind: "text-run"; layerId: string; runId: string };
       }>;
     }
   | {
@@ -121,8 +121,8 @@ export type RenderItemPayload =
 export type RenderSnapshotItem = {
   key: RenderItemKey;
   sceneId: string;
-  nodeId: string;
-  parentNodeId?: string;
+  layerId: string;
+  parentLayerId?: string;
   nodeType: string;
   worldMatrix: Matrix2D;
   /** 4×4 world matrix for perspective-3d space. @since Phase 11 */
@@ -153,7 +153,7 @@ export type RenderSnapshotItem = {
     groupCompositing?: "pass-through" | "isolate";
     mask?: {
       mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
-      sourceNodeId: string;
+      sourceLayerId: string;
       sourceVisibility: "mask-only" | "content-and-mask";
     };
     effectOrder: Array<{ id: string; type: string }>;
@@ -311,7 +311,7 @@ function payloadForNode(
               highlight: run.style?.highlight,
               sourceRef: {
                 kind: "text-run" as const,
-                nodeId: node.id,
+                layerId: node.id,
                 runId: run.id,
               },
             }))
@@ -456,7 +456,7 @@ function resolveCameraMatrix(
   width: number,
   height: number,
 ): Matrix2D {
-  const cameraId = scene.activeCameraId;
+  const cameraId = scene.activeCameraLayerId;
   if (!cameraId) {
     return { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   }
@@ -500,7 +500,7 @@ export function buildRenderSnapshot(input: {
     time: input.time,
   });
   const passByNodeId = new Map(
-    renderPlan.passes.map((pass) => [pass.nodeId, pass]),
+    renderPlan.passes.map((pass) => [pass.layerId, pass]),
   );
   const cameraMatrix = resolveCameraMatrix(
     input.scene,
@@ -522,8 +522,8 @@ export function buildRenderSnapshot(input: {
     items.push({
       key: `${input.scene.id}:${item.node.id}`,
       sceneId: input.scene.id,
-      nodeId: item.node.id,
-      parentNodeId: item.node.parentId ?? undefined,
+      layerId: item.node.id,
+      parentLayerId: item.node.parentLayerId ?? undefined,
       nodeType: item.node.type,
       worldMatrix,
       ...(item.worldMatrix4 ? { worldMatrix4: item.worldMatrix4 } : {}),
@@ -551,7 +551,7 @@ export function buildRenderSnapshot(input: {
                 ? {
                     mask: {
                       mode: pass.mask.mode,
-                      sourceNodeId: pass.mask.sourceNodeId,
+                      sourceLayerId: pass.mask.sourceLayerId,
                       sourceVisibility: pass.mask.sourceVisibility,
                     },
                   }
@@ -576,8 +576,8 @@ export function buildRenderSnapshot(input: {
     space: input.scene.space ?? "flat-2d",
     projection: {
       kind: "orthographic",
-      ...(input.scene.activeCameraId
-        ? { cameraId: input.scene.activeCameraId }
+      ...(input.scene.activeCameraLayerId
+        ? { cameraId: input.scene.activeCameraLayerId }
         : {}),
     },
     cameraMatrix,

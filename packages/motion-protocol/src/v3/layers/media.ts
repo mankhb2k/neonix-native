@@ -1,5 +1,5 @@
 /**
- * V3 media + camera nodes.
+ * V3 media + camera layers.
  *
  * Media payloads are `{ assetId, fit }` (v2 crop/trim stay optional via the
  * shared fit/crop primitives where meaningful). Camera drops the v2
@@ -10,7 +10,7 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { CropSchema, FitSchema } from "./paint";
 import { IdSchema, PositiveNumberSchema } from "../common";
-import { NodeBaseV3Schema } from "./base";
+import { LayerBaseV3Schema } from "./base";
 
 const MediaPayloadSchema = z
   .object({
@@ -20,17 +20,17 @@ const MediaPayloadSchema = z
   })
   .strict();
 
-export const ImageNodeV3Schema = NodeBaseV3Schema.extend({
+export const ImageLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("image"),
   payload: MediaPayloadSchema,
 }).strict();
 
-export const SvgNodeV3Schema = NodeBaseV3Schema.extend({
+export const SvgLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("svg"),
   payload: MediaPayloadSchema,
 }).strict();
 
-export const VideoNodeV3Schema = NodeBaseV3Schema.extend({
+export const VideoLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("video"),
   payload: MediaPayloadSchema.extend({
     trimStart: PositiveNumberSchema.max(
@@ -45,7 +45,7 @@ export const VideoNodeV3Schema = NodeBaseV3Schema.extend({
   }),
 }).strict();
 
-export const CameraNodeV3Schema = NodeBaseV3Schema.extend({
+export const CameraLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("camera"),
   payload: z
     .object({

@@ -128,7 +128,7 @@ describe("committed JSON schemas", () => {
 
 import * as Protocol from "../index";
 import type {
-  NodeTiming,
+  LayerTiming,
   ProceduralDriver,
   MotionPoint,
   MotionPathSegment,
@@ -156,19 +156,19 @@ describe("Phase 7 — public API V3 naming", () => {
       "PathSegmentSchema",
       "PathContourSchema",
       "PathMorphTargetSchema",
-      "NodeTimingSchema",
-      "GroupNodeSchema",
-      "BoneNodeSchema",
-      "TextNodeSchema",
-      "ShapeNodeSchema",
-      "PathNodeSchema",
-      "ImageNodeSchema",
-      "SvgNodeSchema",
-      "VideoNodeSchema",
-      "CameraNodeSchema",
-      "SolidNodeSchema",
-      "AdjustmentNodeSchema",
-      "NodeSchema",
+      "LayerTimingSchema",
+      "GroupLayerSchema",
+      "BoneLayerSchema",
+      "TextLayerSchema",
+      "ShapeLayerSchema",
+      "PathLayerSchema",
+      "ImageLayerSchema",
+      "SvgLayerSchema",
+      "VideoLayerSchema",
+      "CameraLayerSchema",
+      "SolidLayerSchema",
+      "AdjustmentLayerSchema",
+      "LayerSchema",
       "KeyframeEasingSchema",
       "ProceduralDriverSchema",
     ];
@@ -184,7 +184,7 @@ describe("Phase 7 — public API V3 naming", () => {
   it("type-only neutral names are importable", () => {
     // Compile-time check: if these types didn't exist, TS would fail here.
     // Declare dummy vars to suppress no-unused-vars.
-    void (null as unknown as NodeTiming);
+    void (null as unknown as LayerTiming);
     void (null as unknown as ProceduralDriver);
     void (null as unknown as MotionPoint);
     void (null as unknown as MotionPathSegment);

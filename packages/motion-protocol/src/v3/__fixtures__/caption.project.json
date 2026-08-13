@@ -41,11 +41,11 @@
       "id": "main-scene",
       "name": "Main Scene",
       "duration": 8,
-      "nodes": [
+      "layers": [
         {
           "id": "bg",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,

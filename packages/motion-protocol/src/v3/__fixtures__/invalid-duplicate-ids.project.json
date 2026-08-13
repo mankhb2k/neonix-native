@@ -22,11 +22,11 @@
       "id": "s1",
       "name": "A",
       "duration": 5,
-      "nodes": [
+      "layers": [
         {
           "id": "n1",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -57,11 +57,11 @@
       "id": "s1",
       "name": "B",
       "duration": 3,
-      "nodes": [
+      "layers": [
         {
           "id": "n1",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -152,7 +152,7 @@
       "target": {
         "kind": "scene",
         "sceneId": "s1",
-        "nodeId": "n1",
+        "layerId": "n1",
         "property": "transform.opacity"
       }
     }

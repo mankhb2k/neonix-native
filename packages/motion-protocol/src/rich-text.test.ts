@@ -4,7 +4,7 @@ import {
   normalizeTextPayloadInput,
   TextContentSchema,
   TextPayloadSchema,
-} from "./v3/nodes/text-content";
+} from "./v3/layers/text-content";
 import { parseMotionProjectV3 } from "./v3";
 
 describe("rich text content", () => {
@@ -68,11 +68,11 @@ describe("rich text content", () => {
         {
           id: "s1",
           duration: 2,
-          nodes: [
+          layers: [
             {
               id: "t1",
               type: "text",
-              parentId: null,
+              parentLayerId: null,
               transform: {
                 x: 100,
                 y: 100,
@@ -110,7 +110,7 @@ describe("rich text content", () => {
       bindings: [],
       extensions: {},
     });
-    const node = project.scenes[0]!.nodes[0]!;
+    const node = project.scenes[0]!.layers[0]!;
     expect(node.type).toBe("text");
     if (node.type === "text") {
       expect(getTextPayloadPlain(node.payload)).toBe("Hello World");

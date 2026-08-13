@@ -43,7 +43,7 @@ describe("logic parity matrix seams (Logic-6)", () => {
     const targets = [
       {
         sceneId: project.scenes[0]!.id,
-        nodeId: project.scenes[0]!.nodes[0]!.id,
+        layerId: project.scenes[0]!.layers[0]!.id,
       },
     ];
     const prop = executePropertyCommand(

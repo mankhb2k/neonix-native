@@ -113,8 +113,8 @@ export function LayersPanel({
   const tree = useMemo(() => buildLayerTree(scene), [scene]);
   const treeNodeCount = useMemo(() => {
     let n = 0;
-    const walk = (nodes: typeof tree) => {
-      for (const node of nodes) {
+    const walk = (layers: typeof tree) => {
+      for (const node of layers) {
         n += 1;
         walk(node.children);
       }
@@ -151,30 +151,30 @@ export function LayersPanel({
     [tree, expandedIds],
   );
 
-  const toggleExpand = (nodeId: string) => {
+  const toggleExpand = (layerId: string) => {
     if (!sceneId) return;
     setExpandedByScene((prev) => {
       const current = new Set(prev[sceneId] ?? collectExpandableIds(tree));
-      if (current.has(nodeId)) current.delete(nodeId);
-      else current.add(nodeId);
+      if (current.has(layerId)) current.delete(layerId);
+      else current.add(layerId);
       return { ...prev, [sceneId]: [...current] };
     });
   };
 
-  const toggleLock = (nodeId: string) => {
+  const toggleLock = (layerId: string) => {
     setLockedIds((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
   };
 
-  const toggleVisible = (nodeId: string, currentlyVisible: boolean) => {
+  const toggleVisible = (layerId: string, currentlyVisible: boolean) => {
     if (!sceneId || !onExecuteProperty) return;
     onExecuteProperty({
       command: {
         type: "set-node-metadata",
-        targets: [{ sceneId, nodeId }],
+        targets: [{ sceneId, layerId }],
         patch: { visible: !currentlyVisible },
       },
       label: currentlyVisible ? "Hide layer" : "Show layer",
-      coalesceKey: `node-visible:${sceneId}:${nodeId}`,
+      coalesceKey: `node-visible:${sceneId}:${layerId}`,
     });
   };
 
@@ -191,9 +191,9 @@ export function LayersPanel({
     if (!nextIds) return;
     onExecuteProperty({
       command: {
-        type: "reorder-scene-nodes",
+        type: "reorder-scene-layers",
         sceneId,
-        nodeIds: nextIds,
+        layerIds: nextIds,
       },
       label: "Reorder layers",
       coalesceKey: `node-reorder:${sceneId}`,
@@ -208,7 +208,7 @@ export function LayersPanel({
   if (showLayerList && activeClip && isSceneClip(activeClip)) {
     const selectedNodeId =
       selection.kind === "node" && selection.sceneId === activeClip.sceneId
-        ? selection.nodeId
+        ? selection.layerId
         : null;
 
     return (

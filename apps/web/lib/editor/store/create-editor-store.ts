@@ -168,13 +168,13 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       const { dirtyRevision } = get();
       set({ savedRevision: dirtyRevision });
     },
-    commitNodeTransform: (sceneId, nodeId, patch) => {
+    commitNodeTransform: (sceneId, layerId, patch) => {
       const state = get();
       if (!state.project) return;
       const lockedPaths = Object.keys(patch).map((k) => `transform.${k}`);
       if (
         lockedPaths.some((path) =>
-          isPropertyLocked(state.envelope, sceneId, nodeId, path),
+          isPropertyLocked(state.envelope, sceneId, layerId, path),
         )
       ) {
         return;
@@ -182,7 +182,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       const beforeDoc = documentFromStoreState(state);
       if (!beforeDoc) return;
 
-      const nextProject = mapNode(state.project, sceneId, nodeId, (node) => ({
+      const nextProject = mapNode(state.project, sceneId, layerId, (node) => ({
         ...node,
         transform: {
           ...node.transform,
@@ -195,7 +195,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       }));
 
       const envelope = state.envelope
-        ? markUserModified(state.envelope, sceneId, nodeId, lockedPaths)
+        ? markUserModified(state.envelope, sceneId, layerId, lockedPaths)
         : state.envelope;
 
       set({
@@ -222,22 +222,22 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
         canRedo: canRedo(historyState),
       });
     },
-    setElementLocked: (sceneId, nodeId, locked) => {
+    setElementLocked: (sceneId, layerId, locked) => {
       const state = get();
       if (!state.envelope) return;
       set({
-        envelope: toggleElementLock(state.envelope, sceneId, nodeId, locked),
+        envelope: toggleElementLock(state.envelope, sceneId, layerId, locked),
         dirtyRevision: state.dirtyRevision + 1,
       });
     },
-    setPropertyLocked: (sceneId, nodeId, propertyPath, locked) => {
+    setPropertyLocked: (sceneId, layerId, propertyPath, locked) => {
       const state = get();
       if (!state.envelope) return;
       set({
         envelope: togglePropertyLock(
           state.envelope,
           sceneId,
-          nodeId,
+          layerId,
           propertyPath,
           locked,
         ),
@@ -288,7 +288,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
               isPropertyLocked(
                 get().envelope,
                 target.sceneId,
-                target.nodeId,
+                target.layerId,
                 path,
               ),
             )
@@ -321,7 +321,7 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
           envelope = markUserModified(
             envelope,
             target.sceneId,
-            target.nodeId,
+            target.layerId,
             paths,
           );
         }

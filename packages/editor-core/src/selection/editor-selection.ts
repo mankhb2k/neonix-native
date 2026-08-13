@@ -8,7 +8,7 @@ import { isAudioLane, isBaseLane } from "../timeline/timeline-clips";
 export type EditorSelection =
   | { kind: "none" }
   | { kind: "clips"; ids: string[]; primaryId: string }
-  | { kind: "node"; sceneId: string; nodeId: string };
+  | { kind: "node"; sceneId: string; layerId: string };
 
 export function selectionNone(): EditorSelection {
   return { kind: "none" };
@@ -29,9 +29,9 @@ export function selectionClips(
 
 export function selectionNode(
   sceneId: string,
-  nodeId: string,
+  layerId: string,
 ): EditorSelection {
-  return { kind: "node", sceneId, nodeId };
+  return { kind: "node", sceneId, layerId };
 }
 
 export function selectedClipIdFrom(selection: EditorSelection): string | null {
@@ -63,7 +63,7 @@ export function selectedSceneIdFrom(
 }
 
 export function selectedNodeIdFrom(selection: EditorSelection): string | null {
-  return selection.kind === "node" ? selection.nodeId : null;
+  return selection.kind === "node" ? selection.layerId : null;
 }
 
 /** Overlay clip id — derive, không lưu riêng trong state. */
@@ -93,7 +93,7 @@ export function focusedNodeIdFrom(
   project: MotionProject | null,
   firstEditable: (scene: MotionProject["scenes"][number] | undefined) => string | null,
 ): string | null {
-  if (selection.kind === "node") return selection.nodeId;
+  if (selection.kind === "node") return selection.layerId;
   if (selection.kind !== "clips" || !project) return null;
   const sceneId = selectedSceneIdFrom(selection, clips, lanes);
   if (!sceneId) return null;

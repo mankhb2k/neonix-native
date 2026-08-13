@@ -7,7 +7,7 @@
  * - All track order values in one project must be unique across visual+audio
  *
  * Visual: time-exclusive lanes; no role, no transitionIn/Out. Clip source is
- * scene-only; components live as scene nodes (`type: "component"`).
+ * scene-only; components live as scene layers (`type: "component"`).
  *
  * Audio: tracks hold clips[]; fadeIn/fadeOut are per-clip playback envelopes
  * (not transitions between clips). Same-track overlap is allowed (mix).

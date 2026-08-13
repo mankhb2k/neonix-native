@@ -24,10 +24,10 @@ import {
 
 function pointAt(
   evaluated: ReturnType<typeof evaluateScene>,
-  nodeId: string,
+  layerId: string,
 ): { x: number; y: number } {
-  const item = evaluated.find(({ node }) => node.id === nodeId);
-  if (!item) throw new Error(`Evaluated node missing: ${nodeId}`);
+  const item = evaluated.find(({ node }) => node.id === layerId);
+  if (!item) throw new Error(`Evaluated node missing: ${layerId}`);
   return applyMatrix(item.worldMatrix, 0, 0);
 }
 
@@ -38,11 +38,11 @@ function makeHierarchyScene() {
     id: "scene.main",
     name: "Main",
     duration: 3,
-    nodes: [
+    layers: [
       {
         id: "group.root",
         type: "group" as const,
-        parentId: null,
+        parentLayerId: null,
         transform: {
           x: 540,
           y: 960,
@@ -64,7 +64,7 @@ function makeHierarchyScene() {
       {
         id: "group.child",
         type: "group" as const,
-        parentId: "group.root",
+        parentLayerId: "group.root",
         transform: {
           x: 100,
           y: -200,
@@ -86,7 +86,7 @@ function makeHierarchyScene() {
       {
         id: "prop",
         type: "shape" as const,
-        parentId: "group.child",
+        parentLayerId: "group.child",
         transform: {
           x: 80,
           y: 0,
@@ -150,7 +150,7 @@ describe("V3 runtime primitives smoke", () => {
     expect(prop.x).toBeGreaterThan(child.x);
   });
 
-  it("hit-test finds visible nodes, skips hidden ones", () => {
+  it("hit-test finds visible layers, skips hidden ones", () => {
     const scene = makeHierarchyScene();
     // "prop" shape at world roughly (400,440)-(440,480) → hit inside
     const hits = hitTestScene(scene, 0, { x: 420, y: 460 });
@@ -159,7 +159,7 @@ describe("V3 runtime primitives smoke", () => {
 
     // Hide prop — hit-test must skip it
     const hiddenScene = makeHierarchyScene();
-    const hiddenProp = hiddenScene.nodes.find((n: any) => n.id === "prop")!;
+    const hiddenProp = hiddenScene.layers.find((n: any) => n.id === "prop")!;
     hiddenProp.transform.visible = false;
     const hiddenHits = hitTestScene(hiddenScene, 0, { x: 420, y: 460 });
     expect(hiddenHits.some((h) => h.node.id === "prop")).toBe(false);

@@ -157,11 +157,11 @@ const minimalProject = {
     {
       id: "scene_e2e",
       duration: 0.2,
-      nodes: [
+      layers: [
         {
           id: "node_1",
           type: "text",
-          parentId: null,
+          parentLayerId: null,
           name: "Hi",
           transform: {
             x: 100,

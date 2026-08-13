@@ -2,9 +2,9 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema, SemverSchema } from "../common";
 import { JsonValueSchema } from "../values";
-import { NodeBaseSchema } from "./base";
+import { LayerBaseSchema } from "./base";
 
-export const GroupNodeSchema = NodeBaseSchema.extend({
+export const GroupLayerSchema = LayerBaseSchema.extend({
   type: z.literal("group"),
   payload: z
     .object({
@@ -19,12 +19,12 @@ export const GroupNodeSchema = NodeBaseSchema.extend({
     .optional(),
 }).strict();
 
-export const BoneNodeSchema = NodeBaseSchema.extend({
+export const BoneLayerSchema = LayerBaseSchema.extend({
   type: z.literal("bone"),
   payload: z
     .object({
       length: FiniteNumberSchema.nonnegative().max(
-        MOTION_PROTOCOL_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.layerDimension,
       ),
       restRotation: FiniteNumberSchema.optional(),
       rotationLimits: z
@@ -35,7 +35,7 @@ export const BoneNodeSchema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const CameraNodeSchema = NodeBaseSchema.extend({
+export const CameraLayerSchema = LayerBaseSchema.extend({
   type: z.literal("camera"),
   payload: z
     .object({
@@ -92,7 +92,7 @@ export const CameraNodeSchema = NodeBaseSchema.extend({
     }),
 }).strict();
 
-export const ComponentNodeSchema = NodeBaseSchema.extend({
+export const ComponentLayerSchema = LayerBaseSchema.extend({
   type: z.literal("component"),
   payload: z
     .object({
@@ -103,22 +103,22 @@ export const ComponentNodeSchema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const SolidNodeSchema = NodeBaseSchema.extend({
+export const SolidLayerSchema = LayerBaseSchema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
       width: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.layerDimension,
       ),
       height: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.layerDimension,
       ),
       color: z.string().min(1),
     })
     .strict(),
 }).strict();
 
-export const AdjustmentNodeSchema = NodeBaseSchema.extend({
+export const AdjustmentLayerSchema = LayerBaseSchema.extend({
   type: z.literal("adjustment"),
   payload: z
     .object({
@@ -130,4 +130,4 @@ export const AdjustmentNodeSchema = NodeBaseSchema.extend({
 }).strict();
 
 // Motion blur — re-exported from V3
-export { MotionBlurSettingsSchema } from "../../v3/nodes/structural";
+export { MotionBlurSettingsSchema } from "../../v3/layers/structural";

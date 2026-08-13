@@ -68,11 +68,11 @@ describe("MemoryWorkspaceReader", () => {
       content: JSON.stringify({
         name: "Intro",
         duration: 5,
-        nodes: [
+        layers: [
           {
             id: "title",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             transform: { x: 960, y: 540, width: 800, height: 160 },
             payload: {
               content: { kind: "plain", text: "Hello" },
@@ -105,11 +105,11 @@ describe("linkMotionWorkspace", () => {
       module: "scene",
       content: JSON.stringify({
         duration: 5,
-        nodes: [
+        layers: [
           {
             id: "title",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             transform: { x: 960, y: 540, width: 800, height: 160 },
             payload: {
               content: { kind: "plain", text: "Hello World" },
@@ -133,8 +133,8 @@ describe("linkMotionWorkspace", () => {
     expect(result.ok).toBe(true);
     expect(result.project?.scenes).toHaveLength(1);
     expect(result.project?.scenes[0]?.id).toBe("workspace.intro");
-    expect(result.project?.scenes[0]?.nodes).toHaveLength(1);
-    expect(result.project?.scenes[0]?.nodes[0]?.type).toBe("text");
+    expect(result.project?.scenes[0]?.layers).toHaveLength(1);
+    expect(result.project?.scenes[0]?.layers[0]?.type).toBe("text");
   });
 
   it("fails on missing scene module", async () => {
@@ -153,7 +153,7 @@ describe("linkMotionWorkspace", () => {
     reader.addModule({
       name: "intro",
       module: "scene",
-      content: JSON.stringify({ duration: 3, nodes: [], clips: [] }),
+      content: JSON.stringify({ duration: 3, layers: [], clips: [] }),
     });
 
     const result = await linkMotionWorkspace(reader);
@@ -174,7 +174,7 @@ describe("linkMotionWorkspace", () => {
     reader.addModule({
       name: "intro",
       module: "scene",
-      content: JSON.stringify({ duration: 3, nodes: [], clips: [] }),
+      content: JSON.stringify({ duration: 3, layers: [], clips: [] }),
     });
 
     const result = await linkMotionWorkspace(reader);
@@ -190,7 +190,7 @@ describe("linkMotionWorkspace", () => {
       reader.addModule({
         name,
         module: "scene",
-        content: JSON.stringify({ duration: 2, nodes: [], clips: [] }),
+        content: JSON.stringify({ duration: 2, layers: [], clips: [] }),
       });
     }
 

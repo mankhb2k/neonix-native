@@ -124,7 +124,7 @@ import {
 
 const patch: MotionProjectV3Patch = {
   operations: [
-    { op: "addScene", scene: { id: "scene-cta", duration: 3, nodes: [...], clips: [] } },
+    { op: "addScene", scene: { id: "scene-cta", duration: 3, layers: [...], clips: [] } },
     { op: "addVisualClip", trackId: "track-main", clip: { id: "clip-cta", source: { kind: "scene", sceneId: "scene-cta" }, start: 5, duration: 3 } },
     { op: "updateBinding", bindingId: "bind-headline", property: "payload.content", value: "New headline" },
   ],

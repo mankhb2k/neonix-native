@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { clampNodeLocalTiming } from "../timeline/layer-timing";
 import {
-  reorderLayerNodeIds,
-  reorderLayerNodeIdsByInsert,
+  reorderLayerLayerIds,
+  reorderLayerLayerIdsByInsert,
 } from "../timeline/layer-reorder";
 
 describe("clampNodeLocalTiming", () => {
@@ -14,9 +14,9 @@ describe("clampNodeLocalTiming", () => {
   });
 });
 
-describe("reorderLayerNodeIdsByInsert", () => {
+describe("reorderLayerLayerIdsByInsert", () => {
   it("moves a node before the given index", () => {
-    expect(reorderLayerNodeIdsByInsert(["a", "b", "c"], "c", 0)).toEqual([
+    expect(reorderLayerLayerIdsByInsert(["a", "b", "c"], "c", 0)).toEqual([
       "c",
       "a",
       "b",
@@ -24,7 +24,7 @@ describe("reorderLayerNodeIdsByInsert", () => {
   });
 
   it("supports absolute target index reorder", () => {
-    expect(reorderLayerNodeIds(["a", "b", "c"], "a", 2)).toEqual([
+    expect(reorderLayerLayerIds(["a", "b", "c"], "a", 2)).toEqual([
       "b",
       "c",
       "a",

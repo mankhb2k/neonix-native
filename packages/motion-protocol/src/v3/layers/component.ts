@@ -8,9 +8,9 @@
 import { z } from "zod";
 import { IdSchema } from "../common";
 import { ComponentPropValueSchema } from "../prop-values";
-import { NodeBaseV3Schema } from "./base";
+import { LayerBaseV3Schema } from "./base";
 
-export const ComponentNodeV3Schema = NodeBaseV3Schema.extend({
+export const ComponentLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("component"),
   payload: z
     .object({
@@ -22,4 +22,4 @@ export const ComponentNodeV3Schema = NodeBaseV3Schema.extend({
     .strict(),
 }).strict();
 
-export type ComponentNodeV3 = z.infer<typeof ComponentNodeV3Schema>;
+export type ComponentLayerV3 = z.infer<typeof ComponentLayerV3Schema>;

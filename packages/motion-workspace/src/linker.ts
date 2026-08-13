@@ -139,10 +139,10 @@ export async function linkMotionWorkspace(
       const mod = await reader.readModule(sceneName, "scene");
       const sceneJson = JSON.parse(mod.content) as Record<string, unknown>;
       // Normalize node transforms to include all required fields.
-      const nodes = (
-        Array.isArray(sceneJson.nodes) ? sceneJson.nodes : []
+      const layers = (
+        Array.isArray(sceneJson.layers) ? sceneJson.layers : []
       ) as Record<string, unknown>[];
-      const normalizedNodes = nodes.map(normalizeNode);
+      const normalizedLayers = layers.map(normalizeNode);
       // Namespace the scene id to avoid collisions
       const sceneId = `workspace.${sceneName}`;
       scenes.push({
@@ -151,7 +151,7 @@ export async function linkMotionWorkspace(
         duration:
           typeof sceneJson.duration === "number" ? sceneJson.duration : 2,
         space: "flat-2d",
-        nodes: normalizedNodes,
+        layers: normalizedLayers,
         clips: Array.isArray(sceneJson.clips) ? sceneJson.clips : [],
       });
 

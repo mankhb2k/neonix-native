@@ -6,7 +6,7 @@ export {
   buildLayerTree,
   collectExpandableIds,
   flattenVisibleTree,
-  collectDfsNodeIds,
+  collectDfsLayerIds,
   reorderSiblingAndCollectDfs,
   resolveSidebarSiblingInsert,
   type LayerTreeNode,

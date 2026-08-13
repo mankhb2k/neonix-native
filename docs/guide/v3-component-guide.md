@@ -31,7 +31,7 @@ Timeline **không biết** component. Scene đặt instance. Definition mô tả
 ## Câu chốt contract
 
 > A **component** is a sealed design template with public **props**, **variants**, and **slots**.  
-> A **component node** is an **instance** placed in a scene.  
+> A **component layer** is an **instance** placed in a scene.  
 > **Props** are public signals. A prop value can be **static**, **variable-bound**, or **keyframed**.  
 > **PropBindings** wire each signal into one or many internal layers (or child props).  
 > Only **animatable** props may receive keyframes.  
@@ -93,7 +93,7 @@ Muốn một màu đổi **cả 3 vật thể**, owner nối cùng `propId` tớ
 }
 ```
 
-> `layerId` = id của **layer nội bộ** trong `component.nodes` (circle, title, border…).
+> `layerId` = id của **layer nội bộ** trong `component.layers` (circle, title, border…).
 
 Compiler `resolvePropTargets(propId)` tìm **mọi** dây nối, không dừng ở binding đầu tiên.
 
@@ -171,8 +171,8 @@ flowchart TB
 
 | Ai | Làm gì | Không làm |
 | --- | --- | --- |
-| **User / consumer** | Set `payload.props`, chọn `variantId` | Không sửa `nodes` / `propBindings` |
-| **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `nodes` | — |
+| **User / consumer** | Set `payload.props`, chọn `variantId` | Không sửa `layers` / `propBindings` |
+| **Owner** | Khai báo `props[]`, viết `propBindings`, dựng `layers` | — |
 | **Compiler** | Resolve value → apply / emit tracks theo bindings | Không suy luận binding thiếu |
 
 ---
@@ -310,7 +310,7 @@ Một prop cha có thể forward xuống **nhiều** child (nhiều binding `chi
   "propId": "brandColor",
   "target": {
     "kind": "childProp",
-    "childId": "button-instance",
+    "childLayerId": "button-instance",
     "propId": "color"
   }
 }
@@ -333,7 +333,7 @@ Compiler resolve recursive: thấy `childProp` thì đi tiếp vào child defini
 
 | Field | Ở đâu | Phạm vi |
 | --- | --- | --- |
-| `project.bindings` | Project | Scene node, **scene-level** component instance (`componentNode`), hoặc mọi **scene-level** instance của một `componentId` |
+| `project.bindings` | Project | Scene node, **scene-level** component instance (`componentLayer`), hoặc mọi **scene-level** instance của một `componentId` |
 | `component.internalBindings` | Definition | Variable/context **nội bộ** → layer nội bộ. Không có `sceneId`. |
 
 Global `target.kind: "component"` **chỉ** áp dụng instance nằm trực tiếp trên scene. Nested Button trong Card không tự nhận binding đó — parent phải `childProp`.
@@ -394,7 +394,7 @@ flowchart TD
       "target": { "kind": "layerProperty", "layerId": "border", "property": "style.stroke" }
     }
   ],
-  "nodes": [/* circle, title, border, … */],
+  "layers": [/* circle, title, border, … */],
   "internalBindings": [],
   "slots": [],
   "variants": [],
@@ -425,13 +425,13 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải 
 
 | ❌ Sai | ✅ Đúng |
 | --- | --- |
-| User sửa `nodes` / `propBindings` | User chỉ set `payload.props` |
+| User sửa `layers` / `propBindings` | User chỉ set `payload.props` |
 | Một màu = ba prop riêng | Một `brandColor` + ba bindings |
 | Bind thẳng internals từ project | Bind `propId` (scene-level instance) |
 | Skip-level vào layer của nested child | `childProp` từng tầng |
 | Global binding cho nested Button trong Card | Scene-level only; parent forward |
 | `component.bindings` (project schema) | `internalBindings` |
-| `layerProperty.nodeId` | `layerId` |
+| `layerProperty.layerId` | `layerId` |
 | `kind: "string"` / `"enum"` | `text` / `choice` |
 | Asset không có `assetKind` | Bắt buộc `assetKind` |
 | Variable ref không tồn tại | Reject |
@@ -453,7 +453,7 @@ Visual clip chỉ `source.kind: "scene"`. Component = scene node, không phải 
 | --- | --- |
 | `src/v3/components.ts` | Definition, PropKind, propBindings |
 | `src/v3/prop-values.ts` | Static / variable / keyframes |
-| `src/v3/nodes/component.ts` | Instance `payload.props` |
+| `src/v3/layers/component.ts` | Instance `payload.props` |
 | `src/v3/references/project.ts` | Validation |
 | `motion-compiler/compile-v3.ts` | Resolve + fan-out + keyframe tracks |
 

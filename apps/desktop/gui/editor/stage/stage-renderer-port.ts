@@ -40,8 +40,8 @@ export type StageRendererPort = StageRendererPortShape & {
   }): void;
 };
 
-function nodeDomKey(clipId: string, nodeId: string): string {
-  return `${clipId}\0${nodeId}`;
+function nodeDomKey(clipId: string, layerId: string): string {
+  return `${clipId}\0${layerId}`;
 }
 
 /** Derive legacy aspect label from v3 composition dimensions. */
@@ -60,15 +60,15 @@ function isRenderableNode(node: PreviewParityNode): boolean {
   );
 }
 
-type SceneNode = MotionScene["nodes"][number];
+type SceneNode = MotionScene["layers"][number];
 type SceneNodeMap = Map<string, SceneNode>;
 
 function nodeLabel(
   node: PreviewParityNode,
-  sceneNodes: SceneNodeMap | null,
+  sceneLayers: SceneNodeMap | null,
 ): string {
   if (node.type === "text") {
-    const authored = sceneNodes?.get(node.id);
+    const authored = sceneLayers?.get(node.id);
     return nodeText(authored) || node.id;
   }
   if (node.type === "shape" || node.type === "path") return node.type;
@@ -95,7 +95,7 @@ function applyStaticNodeChrome(
 function syncNodeElement(
   el: HTMLDivElement,
   node: PreviewParityNode,
-  sceneNodes: SceneNodeMap | null,
+  sceneLayers: SceneNodeMap | null,
   clipId: string,
 ): void {
   const width = Math.max(8, node.transform.width || node.worldBounds.width);
@@ -107,7 +107,7 @@ function syncNodeElement(
   el.style.visibility =
     !node.visible || node.worldOpacity <= 0 ? "hidden" : "visible";
   el.dataset.clipId = clipId;
-  const label = nodeLabel(node, sceneNodes);
+  const label = nodeLabel(node, sceneLayers);
   if (el.textContent !== label) el.textContent = label;
 }
 
@@ -122,7 +122,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
   /** Invalidated only by setDocument. */
   let compiled: MotionRuntimeProject | null = null;
   let scenesById: Map<string, MotionScene> = new Map();
-  /** Per-scene nodeId → authored node; avoids scene.nodes.find in paintFrame. */
+  /** Per-scene layerId → authored node; avoids scene.layers.find in paintFrame. */
   let sceneNodeMaps: Map<string, SceneNodeMap> = new Map();
   let visualIndex: VisualLaneIndex | null = null;
 
@@ -188,12 +188,12 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
 
       const scene = resolveScene(scenesById, project.scenes, layer.sceneId);
       if (!scene) continue;
-      const sceneNodes = sceneNodeMaps.get(scene.id) ?? null;
+      const sceneLayers = sceneNodeMaps.get(scene.id) ?? null;
 
       const frame = quantizeTimeToFrame(layer.localTime, fps);
       const snapshot = previewParitySnapshot(compiled, scene.id, frame.time);
 
-      for (const node of snapshot.nodes) {
+      for (const node of snapshot.layers) {
         if (!isRenderableNode(node)) continue;
         const key = nodeDomKey(layer.clipId, node.id);
         liveNodeKeys.add(key);
@@ -206,7 +206,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
         } else if (el.parentElement !== layerEl) {
           layerEl.appendChild(el);
         }
-        syncNodeElement(el, node, sceneNodes, layer.clipId);
+        syncNodeElement(el, node, sceneLayers, layer.clipId);
       }
     }
 
@@ -237,7 +237,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       sceneNodeMaps = new Map(
         project.scenes.map((s) => [
           s.id,
-          new Map(s.nodes.map((n) => [n.id, n])),
+          new Map(s.layers.map((n) => [n.id, n])),
         ]),
       );
       visualIndex = buildVisualLaneIndex(clips, lanes);

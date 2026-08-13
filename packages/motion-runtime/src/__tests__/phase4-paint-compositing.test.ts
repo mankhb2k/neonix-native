@@ -49,7 +49,7 @@ function makeItem(
   return {
     key: "test:n1",
     sceneId: "test",
-    nodeId: "n1",
+    layerId: "n1",
     nodeType: "shape",
     worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
     worldBounds: { x: 0, y: 0, width: 100, height: 100 },
@@ -84,7 +84,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
     const snapshot = makeBlurSnapshot([
       makeItem({
         key: "test:g1",
-        nodeId: "g1",
+        layerId: "g1",
         payload: { kind: "group", width: 200, height: 200 },
       }),
     ]);
@@ -93,7 +93,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
     // Group → PaintGroupScope node
     expect(list.roots[0]?.kind).toBe("group");
     if (list.roots[0]?.kind === "group") {
-      expect((list.roots[0] as PaintGroupScope).nodeId).toBe("g1");
+      expect((list.roots[0] as PaintGroupScope).layerId).toBe("g1");
     }
   });
 
@@ -134,7 +134,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
           isAdjustment: false,
           mask: {
             mode: "alpha",
-            sourceNodeId: "maskSrc",
+            sourceLayerId: "maskSrc",
             sourceVisibility: "mask-only",
           },
           effectOrder: [],
@@ -167,7 +167,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
             isolation: "pass-through",
             needsOffscreen: true,
             isAdjustment: false,
-            mask: { mode, sourceNodeId: "src", sourceVisibility: "mask-only" },
+            mask: { mode, sourceLayerId: "src", sourceVisibility: "mask-only" },
             effectOrder: [],
           },
         }),
@@ -252,7 +252,7 @@ describe("Task 4.1 — resource / frame property split", () => {
     const cmd: PaintDrawCommand = {
       op: "drawText",
       key: "k",
-      nodeId: "n",
+      layerId: "n",
       text: "Hello",
       fontSize: 24,
       fontWeight: 600,
@@ -278,7 +278,7 @@ describe("Task 4.1 — resource / frame property split", () => {
     const cmd: PaintDrawCommand = {
       op: "drawImage",
       key: "k",
-      nodeId: "n",
+      layerId: "n",
       assetId: "img-1",
       uri: "https://example.com/a.png",
       width: 100,
@@ -296,7 +296,7 @@ describe("Task 4.1 — resource / frame property split", () => {
     const cmd: PaintDrawCommand = {
       op: "drawShape",
       key: "k",
-      nodeId: "n",
+      layerId: "n",
       shape: "rectangle",
       fill: "#0f0",
       width: 150,
@@ -312,7 +312,7 @@ describe("Task 4.1 — resource / frame property split", () => {
     const result = splitPaintCommand({
       op: "unsupported",
       key: "x",
-      nodeId: "n",
+      layerId: "n",
       nodeType: "unknown",
       message: "",
     });
@@ -323,7 +323,7 @@ describe("Task 4.1 — resource / frame property split", () => {
     const cmd: PaintDrawCommand = {
       op: "drawShape",
       key: "k",
-      nodeId: "n",
+      layerId: "n",
       shape: "ellipse",
       fill: "#ff0",
       width: 80,
@@ -353,7 +353,7 @@ describe("Task 4.2 — item fingerprint", () => {
   const drawCmd: PaintDrawCommand = {
     op: "drawShape",
     key: "k",
-    nodeId: "n",
+    layerId: "n",
     shape: "rectangle",
     fill: "#f00",
     width: 100,
@@ -459,7 +459,7 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
         {
           op: "unsupported",
           key: "unknown",
-          nodeId: "n",
+          layerId: "n",
           nodeType: "webgl",
           message: "not supported",
         },
@@ -495,7 +495,7 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
         {
           op: "unsupported",
           key: "bad",
-          nodeId: "n",
+          layerId: "n",
           nodeType: "3d-model",
           message: "3D models not yet",
         },
@@ -581,7 +581,7 @@ describe("Task 4.4 — contract versioning + validator", () => {
           visible: true,
           zIndex: 0,
         },
-        { op: "beginGroup", key: "g1", nodeId: "n" },
+        { op: "beginGroup", key: "g1", layerId: "n" },
         { op: "endGroup", key: "g2" }, // mismatched
         { op: "endFrame" },
       ],
@@ -721,9 +721,9 @@ describe("Phase 4 integration", () => {
   it("multi-item snapshot decodes to correct drawable count", () => {
     const buffer = buildPaintCommandBuffer(
       makeBlurSnapshot([
-        makeItem({ key: "test:a", nodeId: "a" }),
-        makeItem({ key: "test:b", nodeId: "b" }),
-        makeItem({ key: "test:c", nodeId: "c" }),
+        makeItem({ key: "test:a", layerId: "a" }),
+        makeItem({ key: "test:b", layerId: "b" }),
+        makeItem({ key: "test:c", layerId: "c" }),
       ]),
     );
     const list = decodePaintCommandBuffer(buffer);

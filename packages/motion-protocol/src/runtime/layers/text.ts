@@ -5,7 +5,7 @@ import {
   IdSchema,
   LocaleIdentifierSchema,
 } from "../common";
-import { NodeBaseSchema } from "./base";
+import { LayerBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
 
 const TextAnimatorSchema = z
@@ -154,7 +154,7 @@ export function textContentPlain(content: TextContent): string {
   return content.runs.map((run) => run.text).join("");
 }
 
-export type TextNodePayload = {
+export type TextLayerPayload = {
   content: TextContent;
   fontAssetId?: string;
   fontSize: number;
@@ -212,13 +212,13 @@ const TextPayloadFieldsSchema = z
     content: TextContentSchema,
     fontAssetId: IdSchema.optional(),
     fontSize: FiniteNumberSchema.positive().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     align: z.enum(["left", "center", "right"]).optional(),
     wrap: z.enum(["none", "word", "character"]).optional(),
     lineHeight: FiniteNumberSchema.positive()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     letterSpacing: FiniteNumberSchema.optional(),
     maxLines: FiniteNumberSchema.int().positive().optional(),
@@ -227,10 +227,10 @@ const TextPayloadFieldsSchema = z
     fitText: z
       .object({
         minFontSize: FiniteNumberSchema.positive().max(
-          MOTION_PROTOCOL_LIMITS.nodeDimension,
+          MOTION_PROTOCOL_LIMITS.layerDimension,
         ),
         maxFontSize: FiniteNumberSchema.positive().max(
-          MOTION_PROTOCOL_LIMITS.nodeDimension,
+          MOTION_PROTOCOL_LIMITS.layerDimension,
         ),
       })
       .strict()
@@ -252,7 +252,7 @@ export const TextPayloadSchema = z.preprocess(
   TextPayloadFieldsSchema,
 );
 
-export const TextNodeSchema = NodeBaseSchema.extend({
+export const TextLayerSchema = LayerBaseSchema.extend({
   type: z.literal("text"),
   textAnimator: TextAnimatorSchema.optional(),
   payload: TextPayloadSchema,

@@ -84,7 +84,7 @@ function textNode(id: string, text: string) {
   return {
     id,
     type: "text" as const,
-    parentId: null,
+    parentLayerId: null,
     transform: {
       x: 40,
       y: 40,
@@ -253,7 +253,7 @@ export function buildPhase0LargeFixture(
   const scenes: Array<{
     id: string;
     duration: number;
-    nodes: ReturnType<typeof textNode>[];
+    layers: ReturnType<typeof textNode>[];
     clips: unknown[];
   }> = [];
   const assets: Array<Record<string, unknown>> = [];
@@ -264,7 +264,7 @@ export function buildPhase0LargeFixture(
     scenes.push({
       id: sceneId,
       duration: 1,
-      nodes: [textNode(`${sceneId}.title`, `Main ${i}`)],
+      layers: [textNode(`${sceneId}.title`, `Main ${i}`)],
       clips: [],
     });
     clips.push({
@@ -283,7 +283,7 @@ export function buildPhase0LargeFixture(
     scenes.push({
       id: sceneId,
       duration: 1.5,
-      nodes: [textNode(`${sceneId}.title`, `Overlay ${i}`)],
+      layers: [textNode(`${sceneId}.title`, `Overlay ${i}`)],
       clips: [],
     });
     clips.push({

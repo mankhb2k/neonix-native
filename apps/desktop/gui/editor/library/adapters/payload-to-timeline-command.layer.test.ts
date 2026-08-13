@@ -51,7 +51,7 @@ describe("payloadToTimelineCommand layer mode", () => {
     expect(command).toMatchObject({
       type: "add-scene-node",
       sceneId: "sc1",
-      parentId: "group.char",
+      parentLayerId: "group.char",
       timing: { start: 1, duration: 3 },
       zIndex: 3,
     });

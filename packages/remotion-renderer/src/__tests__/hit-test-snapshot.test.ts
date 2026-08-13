@@ -21,19 +21,19 @@ describe("hitTestRenderSnapshot", () => {
       height: 1080,
     });
 
-    const title = snapshot.items.find((item) => item.nodeId === "node.title");
+    const title = snapshot.items.find((item) => item.layerId === "node.title");
     expect(title).toBeTruthy();
     const cx = title!.worldBounds.x + title!.worldBounds.width / 2;
     const cy = title!.worldBounds.y + title!.worldBounds.height / 2;
     const titleHits = hitTestRenderSnapshot(snapshot, { x: cx, y: cy });
-    expect(titleHits.some((h) => h.nodeId === "node.title")).toBe(true);
-    expect(titleHits[0]!.nodeId).toBe("node.title");
+    expect(titleHits.some((h) => h.layerId === "node.title")).toBe(true);
+    expect(titleHits[0]!.layerId).toBe("node.title");
 
-    const dot = snapshot.items.find((item) => item.nodeId === "node.dot")!;
+    const dot = snapshot.items.find((item) => item.layerId === "node.dot")!;
     const dx = dot.worldBounds.x + dot.worldBounds.width / 2;
     const dy = dot.worldBounds.y + dot.worldBounds.height / 2;
     const dotHits = hitTestRenderSnapshot(snapshot, { x: dx, y: dy });
-    expect(dotHits[0]!.nodeId).toBe("node.dot");
+    expect(dotHits[0]!.layerId).toBe("node.dot");
   });
 
   it("orders hits by renderOrder descending", () => {

@@ -37,7 +37,7 @@ export type PaintPatch = {
   /** Target scene */
   sceneId: string;
   /** Target node */
-  nodeId: string;
+  layerId: string;
   /** Property path to update */
   property: string;
   /** New literal value */
@@ -49,7 +49,7 @@ export type PaintPatch = {
 /**
  * Update keyframe values on one or more tracks.
  * Invalidates the frame range spanning the modified keyframes.
- * Display cache is preserved for unaffected nodes.
+ * Display cache is preserved for unaffected layers.
  */
 export type TrackValuesPatch = {
   kind: "track-values";
@@ -58,7 +58,7 @@ export type TrackValuesPatch = {
   sceneId: string;
   /** Track updates */
   tracks: Array<{
-    targetId: string;
+    layerId: string;
     property: string;
     /** Replace all keys — the patch source owns correctness */
     keys: Array<{ t: number; v: unknown; easing?: string }>;
@@ -73,12 +73,12 @@ export type TrackValuesPatch = {
 // ── Structural patch ──────────────────────────────────────────────────
 
 /**
- * A structural change — nodes added/removed/reparented, scenes changed,
+ * A structural change — layers added/removed/reparented, scenes changed,
  * or timeline reordered. Requires rebuilding the affected scope
  * (subtree, scene, or entire project).
  *
  * The prepared project indexes are rebuilt for the affected scope.
- * Display cache is cleared for affected nodes.
+ * Display cache is cleared for affected layers.
  */
 export type StructuralPatch = {
   kind: "structural";
@@ -94,7 +94,7 @@ export type StructuralPatch = {
   /** Affected scene ID(s) */
   sceneIds: string[];
   /** If scope is "subtree", the root node IDs of changed subtrees */
-  rootNodeIds?: string[];
+  rootLayerIds?: string[];
   /** If scope is "subtree" or "scene", the new normalized scenes */
   newScenes?: MotionRuntimeProject["scenes"];
 };

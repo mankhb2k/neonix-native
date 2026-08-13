@@ -41,11 +41,11 @@
       "integrity": "sha256:logo-reveal-1.0.0",
       "props": [],
       "variables": [],
-      "nodes": [
+      "layers": [
         {
           "id": "logo",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 0,
@@ -86,11 +86,11 @@
       "id": "logo-scene",
       "name": "Logo Scene",
       "duration": 4,
-      "nodes": [
+      "layers": [
         {
           "id": "logo-instance",
           "type": "component",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,

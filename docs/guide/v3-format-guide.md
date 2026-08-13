@@ -194,7 +194,7 @@ Render tại `t`: active scene clips → sort `order` → vẽ thấp→cao.
 | Thuật ngữ | Ý nghĩa                            | Cơ chế xếp chồng      |
 | --------- | ---------------------------------- | --------------------- |
 | **Track** | Lane trong `timeline.visualTracks` | `VisualTrackV3.order` |
-| **Layer** | Node bên trong một scene           | `NodeV3.zIndex`       |
+| **Layer** | Node bên trong một scene           | `LayerV3.zIndex`       |
 
 UI có thể gọi track `order === 0` là “main” và track cao hơn là “overlay” — **không** phải field JSON.
 
@@ -407,8 +407,8 @@ derivedDuration = max(
   "duration": 5, // Thời lượng (giây)
   "semantic": { "role": "intro" }, // optional
   "space": "layered-2.5d", // optional: "flat-2d" | "layered-2.5d"
-  "nodes": [
-    /* NodeV3[] */
+  "layers": [
+    /* LayerV3[] */
   ], // Cây node
   "clips": [
     /* MotionClipV3[] */
@@ -425,7 +425,7 @@ derivedDuration = max(
     "shutterAngle": 180,
     "sampleCount": 8,
   },
-  "activeCameraId": "cam", // optional
+  "activeCameraLayerId": "cam", // optional
 }
 ```
 
@@ -455,7 +455,7 @@ derivedDuration = max(
   "id": "title",
   "type": "text",
   "name": "Title", // optional
-  "parentId": null, // null = root, hoặc id của group node
+  "parentLayerId": null, // null = root, hoặc id của group node
   "zIndex": 0, // optional, thứ tự z giữa các sibling
   "timing": {
     // optional, relative với parent
@@ -508,10 +508,10 @@ Một `group` node (`type: "group"`) là **timeline layer thực sự** — khô
 
 ```text
 Scene                                   ← implicit root
-  group.character        parentId: null  ← root layer
-    group.upper-body     parentId: group.character
-      group.head-rig     parentId: group.upper-body
-        head-image       parentId: group.head-rig
+  group.character        parentLayerId: null  ← root layer
+    group.upper-body     parentLayerId: group.character
+      group.head-rig     parentLayerId: group.upper-body
+        head-image       parentLayerId: group.head-rig
 ```
 
 ### 5.2 Parent-Relative Timing
@@ -527,7 +527,7 @@ nodeGlobalEnd   = min(parentGlobalEnd, nodeGlobalStart + node.timing.duration)
 
 ### 5.3 Z-Order
 
-`zIndex` chỉ có ý nghĩa giữa các **sibling** (cùng `parentId`):
+`zIndex` chỉ có ý nghĩa giữa các **sibling** (cùng `parentLayerId`):
 
 ```text
 Scene
@@ -538,7 +538,7 @@ Scene
 
 `head` (zIndex 99) nằm **trong** group.character (zIndex 1), không thể render trên `title` (zIndex 2).
 
-**Protocol rule:** trong cùng `parentId` (kể cả `null`), `zIndex` phải **unique** (thiếu `zIndex` được coi như `0`). Hai node khác parent được phép cùng số. Timing giữa layer **được trùng**; chỉ stack order phải deterministic.
+**Protocol rule:** trong cùng `parentLayerId` (kể cả `null`), `zIndex` phải **unique** (thiếu `zIndex` được coi như `0`). Hai node khác parent được phép cùng số. Timing giữa layer **được trùng**; chỉ stack order phải deterministic.
 
 Layer copy (editor): giữ `timing`, cấp `id` mới + `zIndex` mới trong siblings — **không** bắt sang lane khác.
 
@@ -602,14 +602,14 @@ Audio `fadeIn` / `fadeOut` là DSP envelope trên **chính clip đó**, không s
 Binding kết nối project variable với node property của scene hoặc component:
 
 ```jsonc
-// Scene binding — truy cập trực tiếp nodeId + property
+// Scene binding — truy cập trực tiếp layerId + property
 {
   "id": "bind-title",
   "source": { "kind": "variable", "variableId": "company" },
   "target": {
     "kind": "scene",
     "sceneId": "intro",
-    "nodeId": "title",
+    "layerId": "title",
     "property": "payload.content.text"
   }
 }
@@ -619,16 +619,16 @@ Binding kết nối project variable với node property của scene hoặc comp
   "id": "bind-cta",
   "source": { "kind": "variable", "variableId": "cta-text" },
   "target": {
-    "kind": "componentNode",
+    "kind": "componentLayer",
     "sceneId": "cta-scene",
-    "nodeId": "cta-instance",
+    "layerId": "cta-instance",
     "propId": "label"       // ← component.props[].id
   }
 }
 ```
 
-> **Scene binding**: dùng `nodeId` + `property` trực tiếp.
-> **Component binding**: bắt buộc dùng `propId` (trỏ đến `component.props`). Hai dạng: `componentNode` (instance cụ thể) và `component` (bind mọi instance). Chi tiết: [v3-component-guide.md](v3-component-guide.md).
+> **Scene binding**: dùng `layerId` + `property` trực tiếp.
+> **Component binding**: bắt buộc dùng `propId` (trỏ đến `component.props`). Hai dạng: `componentLayer` (instance cụ thể) và `component` (bind mọi instance). Chi tiết: [v3-component-guide.md](v3-component-guide.md).
 
 ---
 
@@ -855,7 +855,7 @@ Theo dõi nguồn gốc project và source mapping:
 
 > **UI session KHÔNG thuộc `MotionProjectV3`.** Các field sau chỉ sống trong editor session (localStorage, IndexedDB, hoặc `editor/workspace.mt`) — **không** serialize vào project contract:
 >
-> `playhead` / `currentTime`, `selection` (`selectedNodeIds` / `selectedClipIds`), `zoom` (`timelineZoom`), `scroll` (`timelineScroll`), panel layout, undo/redo.
+> `playhead` / `currentTime`, `selection` (`selectedLayerIds` / `selectedClipIds`), `zoom` (`timelineZoom`), `scroll` (`timelineScroll`), panel layout, undo/redo.
 >
 > Khi nói timing trong contract / compiler / runtime, dùng **`time` / `timelineTime`** (giây trên trục project), không dùng “playhead”.
 
@@ -874,7 +874,7 @@ Theo dõi nguồn gốc project và source mapping:
 
 1. Tạo node mới với `id` mới.
 2. **Giữ timing** (được trùng `start`/`duration` với bản gốc).
-3. Cấp `zIndex` mới trong siblings cùng `parentId` (ví dụ `max(siblings.zIndex)+1`; thiếu zIndex coi như `0`).
+3. Cấp `zIndex` mới trong siblings cùng `parentLayerId` (ví dụ `max(siblings.zIndex)+1`; thiếu zIndex coi như `0`).
 4. Duplicate **group**: deep-clone subtree, remap mọi id con; root siblings nhận `zIndex` mới; relative order nội bộ group giữ sau remap.
 5. Không giữ id cũ nếu gây trùng `node.id` hoặc binding mơ hồ.
 
@@ -891,16 +891,16 @@ Theo dõi nguồn gốc project và source mapping:
 
 ### Khi dùng timeline
 
-1. **Không dùng timeline effect primitives** — effect = scene/component node animation
+1. **Không dùng timeline effect primitives** — effect = scene/component layer animation
 2. **Dùng sparse `order` unique** (visual `>= 0`, audio `< 0`) — không cần contiguous
-3. **Component node** (`type: "component"`) trong scene; visual clip chỉ `source.kind: "scene"`
+3. **Component layer** (`type: "component"`) trong scene; visual clip chỉ `source.kind: "scene"`
 4. **Scene trùng thời gian** → khác track `order`; cùng lane không overlap
 5. **Duplicate clip/layer** chỉ qua editor command — JSON chỉ lưu kết quả
 6. **Audio fade** (`fadeIn`/`fadeOut`) là DSP trên clip — không suy luận crossfade
 
 ### Khi dùng bindings
 
-1. **Scene binding**: `nodeId` + `property` trực tiếp
+1. **Scene binding**: `layerId` + `property` trực tiếp
 2. **Component binding**: `propId` (tham chiếu `component.props`)
 3. **Kiểm tra type khớp**: string → text, number → opacity, color → fill...
 
@@ -913,10 +913,10 @@ Theo dõi nguồn gốc project và source mapping:
 | **MotionProjectV3**      | Single source of truth, một file JSON cho toàn bộ dự án                                          |
 | **visualTracks**         | Thay thế `sceneOrder`; multi-track `order` unique; lane exclusive theo thời gian     |
 | **VisualClip**           | Scene-only source; loop, playbackRate, opacity; **không** timeline effect primitive  |
-| **Node types**           | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
+| **Layer types**          | 12 loại: group, text, solid, shape, path, image, svg, video, camera, bone, adjustment, component |
 | **Group layer**          | Timeline layer thực sự, parent-relative timing, sibling-local unique zIndex                      |
 | **Variables**            | 7 types: string, color, number, boolean, asset, enum, list                                       |
-| **Bindings**             | Scene: `nodeId` + `property`. Component: `propId` (global `kind: "component"` = scene-level instances only) |
+| **Bindings**             | Scene: `layerId` + `property`. Component: `propId` (global `kind: "component"` = scene-level instances only) |
 | **Strict validation**    | `.strict()` trên mọi object + reference validation                                               |
 | **Format discriminator** | `format: "motion-project"`, `formatVersion: 3` — từ chối V2                                      |
 | **Duplicate**            | Editor command only — JSON không có op duplicate                                                 |

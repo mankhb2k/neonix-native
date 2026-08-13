@@ -3,7 +3,7 @@ import { isCompiledPreset } from "./presets";
 
 export type UnknownPresetRef = {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
   preset: string;
 };
 
@@ -24,7 +24,7 @@ export function validateMotionProjectPresets(
         if (!isCompiledPreset(clip.source.presetId)) {
           unknown.push({
             sceneId: scene.id,
-            nodeId: clip.targetId ?? clip.id,
+            layerId: clip.layerId ?? clip.id,
             preset: clip.source.presetId,
           });
         }

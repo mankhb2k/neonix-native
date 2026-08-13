@@ -6,7 +6,7 @@
  * barrel will cause this test to fail.
  */
 import { describe, expect, test } from "vitest";
-import { NodeSchema, VariableSchema } from "../index";
+import { LayerSchema, VariableSchema } from "../index";
 
 describe("root API — no V2-shaped exports", () => {
   test("no *V2Schema exports", async () => {
@@ -38,8 +38,8 @@ describe("root API — no V2-shaped exports", () => {
 });
 
 describe("root API — schema behavior", () => {
-  test("NodeSchema rejects { type: 'component' }", () => {
-    const result = NodeSchema.safeParse({ type: "component" });
+  test("LayerSchema rejects { type: 'component' }", () => {
+    const result = LayerSchema.safeParse({ type: "component" });
     expect(result.success).toBe(false);
   });
 

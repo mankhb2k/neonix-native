@@ -11,7 +11,7 @@
     "brand": {
       "name": "Multi Asset"
     },
-    "description": "Scene with text, image, svg, video nodes and an audio track"
+    "description": "Scene with text, image, svg, video layers and an audio track"
   },
   "assets": [
     {
@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "87e0000742ad56122677a5d24a9e55d8",
+  "runtimeHash": "cceac0e353793bc1193ed014a1f6342d",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -129,18 +129,18 @@
       "id": "intro",
       "duration": 5,
       "space": "flat-2d",
-      "activeCameraId": "main-camera",
+      "activeCameraLayerId": "main-camera",
       "sourceRef": {
         "projectPath": [
           "scenes",
           "intro"
         ]
       },
-      "nodes": [
+      "layers": [
         {
           "id": "main-camera",
           "type": "camera",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 960,
             "y": 540,
@@ -169,7 +169,7 @@
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
@@ -207,7 +207,7 @@
         {
           "id": "logo-img",
           "type": "image",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 2,
           "transform": {
             "x": 300,
@@ -236,7 +236,7 @@
         {
           "id": "logo-svg-node",
           "type": "svg",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 3,
           "transform": {
             "x": 960,
@@ -265,7 +265,7 @@
         {
           "id": "video-bg",
           "type": "video",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 4,
           "transform": {
             "x": 1620,

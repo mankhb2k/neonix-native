@@ -33,22 +33,22 @@ export type AmbientRecipeParams = {
 export type RecipeBakeInput = {
   recipeId: MotionRecipeId;
   sceneId: string;
-  targetNodeId: string;
+  targetLayerId: string;
   duration: number;
   seed?: number;
   intensity?: number;
   frequencyHz?: number;
   phase?: number;
   /** For stagger: sibling node ids in order. */
-  staggerNodeIds?: string[];
+  staggerLayerIds?: string[];
   /** For follow: source node to link from. */
-  sourceNodeId?: string;
+  sourceLayerId?: string;
 };
 
 export type BakedRecipe = {
   drivers: Array<Record<string, unknown>>;
   tracks: Array<{
-    targetId: string;
+    layerId: string;
     property: string;
     keys: Array<{ t: number; v: number; easing?: string | Record<string, unknown> }>;
   }>;
@@ -66,9 +66,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.wiggle`,
+            id: `drv.${input.targetLayerId}.wiggle`,
             type: "noise",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.rotation",
             frequency: frequencyHz ?? 3,
             amplitude: 8 * intensity,
@@ -81,9 +81,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.float`,
+            id: `drv.${input.targetLayerId}.float`,
             type: "oscillator",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.y",
             frequency: frequencyHz ?? 0.6,
             amplitude: 24 * intensity,
@@ -97,9 +97,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.pulse`,
+            id: `drv.${input.targetLayerId}.pulse`,
             type: "oscillator",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.scaleX",
             frequency: frequencyHz ?? 1.2,
             amplitude: 0.08 * intensity,
@@ -109,7 +109,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
         ],
         tracks: [
           {
-            targetId: input.targetNodeId,
+            layerId: input.targetLayerId,
             property: "transform.scaleY",
             keys: [
               { t: 0, v: 1 },
@@ -122,9 +122,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.breathing`,
+            id: `drv.${input.targetLayerId}.breathing`,
             type: "oscillator",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.scaleX",
             frequency: frequencyHz ?? 0.35,
             amplitude: 0.04 * intensity,
@@ -138,9 +138,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.drift`,
+            id: `drv.${input.targetLayerId}.drift`,
             type: "oscillator",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.x",
             frequency: frequencyHz ?? 0.2,
             amplitude: 16 * intensity,
@@ -154,9 +154,9 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.shimmer`,
+            id: `drv.${input.targetLayerId}.shimmer`,
             type: "oscillator",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.opacity",
             frequency: frequencyHz ?? 2.5,
             amplitude: 0.12 * intensity,
@@ -167,15 +167,15 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
         tracks: [],
       };
     case "follow": {
-      if (!input.sourceNodeId) throw new Error("follow recipe requires sourceNodeId");
+      if (!input.sourceLayerId) throw new Error("follow recipe requires sourceLayerId");
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.follow`,
+            id: `drv.${input.targetLayerId}.follow`,
             type: "spring-follow",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.x",
-            sourceNodeId: input.sourceNodeId,
+            sourceLayerId: input.sourceLayerId,
             sourceProperty: "transform.x",
             stiffness: 180,
             damping: 18,
@@ -189,7 +189,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
         drivers: [],
         tracks: [
           {
-            targetId: input.targetNodeId,
+            layerId: input.targetLayerId,
             property: "payload.counterProgress",
             keys: [
               { t: 0, v: 0 },
@@ -199,12 +199,12 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
         ],
       };
     case "stagger": {
-      const ids = input.staggerNodeIds ?? [input.targetNodeId];
-      const tracks = ids.flatMap((nodeId, index) => {
+      const ids = input.staggerLayerIds ?? [input.targetLayerId];
+      const tracks = ids.flatMap((id, index) => {
         const delay = index * 0.08;
         return [
           {
-            targetId: nodeId,
+            layerId: id,
             property: "transform.opacity",
             keys: [
               { t: 0, v: 0 },
@@ -213,7 +213,7 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
             ],
           },
           {
-            targetId: nodeId,
+            layerId: id,
             property: "transform.y",
             keys: [
               { t: 0, v: 40 },
@@ -229,18 +229,18 @@ export function bakeMotionRecipe(input: RecipeBakeInput): BakedRecipe {
       return {
         drivers: [
           {
-            id: `drv.${input.targetNodeId}.shake.x`,
+            id: `drv.${input.targetLayerId}.shake.x`,
             type: "noise",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.x",
             frequency: frequencyHz ?? 8,
             amplitude: 12 * intensity,
             seed,
           },
           {
-            id: `drv.${input.targetNodeId}.shake.y`,
+            id: `drv.${input.targetLayerId}.shake.y`,
             type: "noise",
-            targetNodeId: input.targetNodeId,
+            targetLayerId: input.targetLayerId,
             targetProperty: "transform.y",
             frequency: frequencyHz ?? 8,
             amplitude: 10 * intensity,

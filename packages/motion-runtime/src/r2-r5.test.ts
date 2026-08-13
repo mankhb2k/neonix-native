@@ -45,7 +45,7 @@ describe("track sampler R2", () => {
 
     const spring = evaluateTrack(
       {
-        targetId: "n",
+        layerId: "n",
         property: "transform.x",
         keys: [
           { t: 0, v: 0 },
@@ -63,7 +63,7 @@ describe("track sampler R2", () => {
   it("applies angle valueKind", () => {
     const value = evaluateTrack(
       {
-        targetId: "n",
+        layerId: "n",
         property: "transform.rotation",
         valueKind: "angle",
         keys: [
@@ -93,7 +93,7 @@ describe("driver graph R6", () => {
       {
         id: "o",
         type: "oscillator",
-        targetNodeId: "n",
+        targetLayerId: "n",
         targetProperty: "transform.y",
         frequency: 1,
         amplitude: 10,
@@ -109,9 +109,9 @@ describe("driver graph R6", () => {
           {
             id: "a",
             type: "link",
-            targetNodeId: "n1",
+            targetLayerId: "n1",
             targetProperty: "transform.x",
-            sourceNodeId: "n2",
+            sourceLayerId: "n2",
             sourceProperty: "transform.x",
             multiplier: 1,
             offset: 0,
@@ -119,9 +119,9 @@ describe("driver graph R6", () => {
           {
             id: "b",
             type: "link",
-            targetNodeId: "n2",
+            targetLayerId: "n2",
             targetProperty: "transform.x",
-            sourceNodeId: "n1",
+            sourceLayerId: "n1",
             sourceProperty: "transform.x",
             multiplier: 1,
             offset: 0,

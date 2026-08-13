@@ -10,11 +10,11 @@ function fixtureScene(): RuntimeScene {
   return {
     id: "scene.wave1",
     duration: 2,
-    nodes: [
+    layers: [
       {
         id: "bg",
         type: "shape",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
         transform: {
           x: 0,
@@ -37,7 +37,7 @@ function fixtureScene(): RuntimeScene {
       {
         id: "title",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 20,
@@ -60,7 +60,7 @@ function fixtureScene(): RuntimeScene {
     ],
     tracks: [
       {
-        targetId: "title",
+        layerId: "title",
         property: "transform.opacity",
         keys: [
           { t: 0, v: 0 },

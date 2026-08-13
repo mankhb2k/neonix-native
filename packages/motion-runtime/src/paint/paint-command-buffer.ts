@@ -46,14 +46,14 @@ function pushBeginLayer(
   commands.push({
     op: "beginLayer",
     key: item.key,
-    nodeId: item.nodeId,
+    layerId: item.layerId,
     isolation: c.isolation === "isolate",
     offscreen: c.needsOffscreen,
     ...(c.mask
       ? {
           mask: {
             mode: c.mask.mode,
-            sourceKey: `${item.sceneId}:${c.mask.sourceNodeId}`,
+            sourceKey: `${item.sceneId}:${c.mask.sourceLayerId}`,
           },
         }
       : {}),
@@ -85,7 +85,7 @@ function emitItem(
   const effects = item.effects;
 
   if (payload.kind === "group") {
-    commands.push({ op: "beginGroup", key: item.key, nodeId: item.nodeId });
+    commands.push({ op: "beginGroup", key: item.key, layerId: item.layerId });
     commands.push({ op: "endGroup", key: item.key });
     if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
@@ -95,7 +95,7 @@ function emitItem(
     commands.push({
       op: "drawText",
       key: item.key,
-      nodeId: item.nodeId,
+      layerId: item.layerId,
       text: payload.text,
       fontSize: payload.fontSize,
       fontWeight: payload.fontWeight,
@@ -123,7 +123,7 @@ function emitItem(
     commands.push({
       op: "drawShape",
       key: item.key,
-      nodeId: item.nodeId,
+      layerId: item.layerId,
       shape: payload.shape,
       fill: payload.fill ?? "#1877F2",
       ...(payload.fillPaint ? { fillPaint: payload.fillPaint } : {}),
@@ -140,7 +140,7 @@ function emitItem(
     commands.push({
       op: "drawSolid",
       key: item.key,
-      nodeId: item.nodeId,
+      layerId: item.layerId,
       fill: payload.fill ?? "#1a1916",
       width: payload.width,
       height: payload.height,
@@ -155,15 +155,15 @@ function emitItem(
       diagnostics.push({
         severity: "warning",
         code: "asset_uri_missing",
-        message: `Image ${item.nodeId} has no resolved URI — placeholder`,
-        nodeId: item.nodeId,
+        message: `Image ${item.layerId} has no resolved URI — placeholder`,
+        layerId: item.layerId,
         key: item.key,
       });
     }
     commands.push({
       op: "drawImage",
       key: item.key,
-      nodeId: item.nodeId,
+      layerId: item.layerId,
       assetId: payload.assetId,
       uri: payload.uri,
       width: payload.width,
@@ -179,15 +179,15 @@ function emitItem(
       diagnostics.push({
         severity: "warning",
         code: "path_empty",
-        message: `Path ${item.nodeId} has no contours`,
-        nodeId: item.nodeId,
+        message: `Path ${item.layerId} has no contours`,
+        layerId: item.layerId,
         key: item.key,
       });
     }
     commands.push({
       op: "drawPath",
       key: item.key,
-      nodeId: item.nodeId,
+      layerId: item.layerId,
       contours: payload.contours,
       fillRule: payload.fillRule,
       fill: payload.fill,
@@ -206,14 +206,14 @@ function emitItem(
     diagnostics.push({
       severity: "info",
       code: "video_preview_placeholder",
-      message: `Video ${item.nodeId} uses placeholder until frame decode is wired`,
-      nodeId: item.nodeId,
+      message: `Video ${item.layerId} uses placeholder until frame decode is wired`,
+      layerId: item.layerId,
       key: item.key,
     });
     commands.push({
       op: "drawVideo",
       key: item.key,
-      nodeId: item.nodeId,
+      layerId: item.layerId,
       assetId: payload.assetId,
       uri: payload.uri,
       width: payload.width,
@@ -228,14 +228,14 @@ function emitItem(
   diagnostics.push({
     severity: "error",
     code: "unsupported_payload",
-    message: `Unsupported paint kind for ${item.nodeId}`,
-    nodeId: item.nodeId,
+    message: `Unsupported paint kind for ${item.layerId}`,
+    layerId: item.layerId,
     key: item.key,
   });
   commands.push({
     op: "unsupported",
     key: item.key,
-    nodeId: item.nodeId,
+    layerId: item.layerId,
     nodeType: item.nodeType,
     message: `payload.kind=${payload.kind}`,
   });
@@ -277,7 +277,7 @@ export function buildPaintCommandBuffer(
         severity: "error",
         code: "capability_not_in_ledger",
         message: `Payload kind "${item.payload.kind}" not in paint ledger`,
-        nodeId: item.nodeId,
+        layerId: item.layerId,
         key: item.key,
       });
       commands.push({
@@ -291,7 +291,7 @@ export function buildPaintCommandBuffer(
       commands.push({
         op: "unsupported",
         key: item.key,
-        nodeId: item.nodeId,
+        layerId: item.layerId,
         nodeType: item.nodeType,
         message: `kind=${item.payload.kind}`,
       });
@@ -302,7 +302,7 @@ export function buildPaintCommandBuffer(
         severity: "error",
         code: "unsupported_node_type",
         message: `Node type "${item.nodeType}" has no painter`,
-        nodeId: item.nodeId,
+        layerId: item.layerId,
         key: item.key,
       });
       commands.push({
@@ -316,7 +316,7 @@ export function buildPaintCommandBuffer(
       commands.push({
         op: "unsupported",
         key: item.key,
-        nodeId: item.nodeId,
+        layerId: item.layerId,
         nodeType: item.nodeType,
         message: `unknown nodeType=${item.nodeType}`,
       });

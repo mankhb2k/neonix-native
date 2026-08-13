@@ -141,7 +141,7 @@ export const RUNTIME_DIAGNOSTIC_CODE_META: Record<
   },
   EMPTY_SCENE: {
     severity: "info",
-    message: "Scene has no drawable nodes.",
+    message: "Scene has no drawable layers.",
   },
   CAMERA_TARGET_MISSING: {
     severity: "warning",
@@ -304,7 +304,7 @@ export type RuntimeDiagnostic = {
   /** Severity level */
   severity: DiagnosticSeverity;
   /** Node ID that triggered this diagnostic */
-  nodeId?: string;
+  layerId?: string;
   /** Paint command key (if diagnostic occurred during paint dispatch) */
   key?: string;
   /** Composition frame index (when known) */
@@ -313,7 +313,7 @@ export type RuntimeDiagnostic = {
   time?: number;
   /** Scene ID that triggered this diagnostic */
   sceneId?: string;
-  /** Structural path within the project (e.g. ["scenes", 0, "nodes", 5]) */
+  /** Structural path within the project (e.g. ["scenes", 0, "layers", 5]) */
   path?: (string | number)[];
   /** Source reference for editor highlighting */
   sourceRef?: string;
@@ -331,7 +331,7 @@ export function createDiagnostic(
   code: RuntimeDiagnosticCode,
   opts?: {
     message?: string;
-    nodeId?: string;
+    layerId?: string;
     key?: string;
     frame?: number;
     time?: number;
@@ -358,14 +358,14 @@ export function toRenderDiagnostic(diag: RuntimeDiagnostic): {
   severity: DiagnosticSeverity;
   code: string;
   message: string;
-  nodeId?: string;
+  layerId?: string;
   key?: string;
 } {
   return {
     severity: diag.severity,
     code: diag.code,
     message: diag.message,
-    nodeId: diag.nodeId,
+    layerId: diag.layerId,
     key: diag.key,
   };
 }
@@ -379,7 +379,7 @@ export function toRenderDiagnostic(diag: RuntimeDiagnostic): {
  * Usage:
  * ```typescript
  * const collector = new RuntimeDiagnosticCollector();
- * collector.error("PARENT_MISSING", { nodeId: "n1" });
+ * collector.error("PARENT_MISSING", { layerId: "n1" });
  * if (collector.hasErrors) collector.throwIfFatal();
  * const result = { diagnostics: collector.diagnostics() };
  * ```
@@ -427,7 +427,7 @@ export class RuntimeDiagnosticCollector {
     code: RuntimeDiagnosticCode,
     opts?: {
       message?: string;
-      nodeId?: string;
+      layerId?: string;
       key?: string;
       path?: (string | number)[];
       sourceRef?: string;
@@ -442,7 +442,7 @@ export class RuntimeDiagnosticCollector {
     code: RuntimeDiagnosticCode,
     opts?: {
       message?: string;
-      nodeId?: string;
+      layerId?: string;
       key?: string;
       path?: (string | number)[];
       sourceRef?: string;
@@ -457,7 +457,7 @@ export class RuntimeDiagnosticCollector {
     code: RuntimeDiagnosticCode,
     opts?: {
       message?: string;
-      nodeId?: string;
+      layerId?: string;
       key?: string;
       path?: (string | number)[];
       sourceRef?: string;
@@ -491,7 +491,7 @@ export class RuntimeDiagnosticCollector {
     code: RuntimeDiagnosticCode,
     messageOverride?: string,
     opts?: {
-      nodeId?: string;
+      layerId?: string;
       key?: string;
       path?: (string | number)[];
       sourceRef?: string;
@@ -503,7 +503,7 @@ export class RuntimeDiagnosticCollector {
       code,
       message: messageOverride ?? meta.message,
       severity,
-      nodeId: opts?.nodeId,
+      layerId: opts?.layerId,
       key: opts?.key,
       frame: this._frame,
       time: this._time,

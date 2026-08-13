@@ -55,13 +55,13 @@ export type DirectionalPresetParams = z.infer<
 export type ScalePresetParams = z.infer<typeof ScalePresetParamsSchema>;
 
 export type RuntimeTrackBake = {
-  targetId: string;
+  layerId: string;
   property: string;
   keys: Array<{ t: number; v: number; easing?: KeyframeEasing }>;
 };
 
 export type PresetExpandInput<TParams> = {
-  nodeId: string;
+  layerId: string;
   start: number;
   end: number;
   transform: {
@@ -91,7 +91,7 @@ function easingOf(
 }
 
 function opacityTrack(
-  nodeId: string,
+  layerId: string,
   start: number,
   end: number,
   from: number,
@@ -99,7 +99,7 @@ function opacityTrack(
   easing: KeyframeEasing,
 ): RuntimeTrackBake {
   return {
-    targetId: nodeId,
+    layerId: layerId,
     property: "transform.opacity",
     keys: [
       { t: start, v: from },
@@ -109,7 +109,7 @@ function opacityTrack(
 }
 
 function axisTrack(
-  nodeId: string,
+  layerId: string,
   property: "transform.x" | "transform.y",
   start: number,
   end: number,
@@ -118,7 +118,7 @@ function axisTrack(
   easing: KeyframeEasing,
 ): RuntimeTrackBake {
   return {
-    targetId: nodeId,
+    layerId: layerId,
     property,
     keys: [
       { t: start, v: from },
@@ -128,7 +128,7 @@ function axisTrack(
 }
 
 function scaleTracks(
-  nodeId: string,
+  layerId: string,
   start: number,
   end: number,
   from: number,
@@ -138,7 +138,7 @@ function scaleTracks(
 ): RuntimeTrackBake[] {
   return [
     {
-      targetId: nodeId,
+      layerId: layerId,
       property: "transform.scaleX",
       keys: [
         { t: start, v: from },
@@ -146,7 +146,7 @@ function scaleTracks(
       ],
     },
     {
-      targetId: nodeId,
+      layerId: layerId,
       property: "transform.scaleY",
       keys: [
         { t: start, v: from },
@@ -168,15 +168,15 @@ function directionalEntrance(
     category: "entrance",
     paramsSchema: DirectionalPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const distance = params.distance ?? defaultDistance;
       const easing = easingOf(params);
       const rest = axis === "x" ? transform.x : transform.y;
       const from = rest + sign * distance;
       return [
-        opacityTrack(nodeId, start, end, 0, transform.opacity, easing),
+        opacityTrack(layerId, start, end, 0, transform.opacity, easing),
         axisTrack(
-          nodeId,
+          layerId,
           axis === "x" ? "transform.x" : "transform.y",
           start,
           end,
@@ -201,14 +201,14 @@ function directionalExit(
     category: "exit",
     paramsSchema: DirectionalPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const distance = params.distance ?? defaultDistance;
       const easing = easingOf(params, "easeIn");
       const rest = axis === "x" ? transform.x : transform.y;
       return [
-        opacityTrack(nodeId, start, end, transform.opacity, 0, easing),
+        opacityTrack(layerId, start, end, transform.opacity, 0, easing),
         axisTrack(
-          nodeId,
+          layerId,
           axis === "x" ? "transform.x" : "transform.y",
           start,
           end,
@@ -228,10 +228,10 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "entrance",
     paramsSchema: DirectionalPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       return [
         opacityTrack(
-          nodeId,
+          layerId,
           start,
           end,
           0,
@@ -254,14 +254,14 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "entrance",
     paramsSchema: ScalePresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const p = params as ScalePresetParams;
       const from = p.fromScale ?? 0.65;
       const easing = easingOf(p);
       return [
-        opacityTrack(nodeId, start, end, 0, transform.opacity, easing),
+        opacityTrack(layerId, start, end, 0, transform.opacity, easing),
         ...scaleTracks(
-          nodeId,
+          layerId,
           start,
           end,
           from,
@@ -278,14 +278,14 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "entrance",
     paramsSchema: ScalePresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const p = params as ScalePresetParams;
       const from = p.fromScale ?? 0.65;
       const easing = easingOf(p);
       return [
-        opacityTrack(nodeId, start, end, 0, transform.opacity, easing),
+        opacityTrack(layerId, start, end, 0, transform.opacity, easing),
         ...scaleTracks(
-          nodeId,
+          layerId,
           start,
           end,
           from,
@@ -302,14 +302,14 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "entrance",
     paramsSchema: ScalePresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const p = params as ScalePresetParams;
       const from = p.fromScale ?? 0.65;
       const easing = easingOf(p, "spring");
       return [
-        opacityTrack(nodeId, start, end, 0, transform.opacity, easing),
+        opacityTrack(layerId, start, end, 0, transform.opacity, easing),
         ...scaleTracks(
-          nodeId,
+          layerId,
           start,
           end,
           from,
@@ -326,10 +326,10 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "emphasis",
     paramsSchema: EmptyPresetParamsSchema,
     compatibleNodeTypes: ["text"],
-    expand({ nodeId, start, end }) {
+    expand({ layerId, start, end }) {
       return [
         {
-          targetId: nodeId,
+          layerId: layerId,
           property: "payload.counterProgress",
           keys: [
             { t: start, v: 0 },
@@ -345,10 +345,10 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "exit",
     paramsSchema: DirectionalPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       return [
         opacityTrack(
-          nodeId,
+          layerId,
           start,
           end,
           transform.opacity,
@@ -367,13 +367,13 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "exit",
     paramsSchema: ScalePresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const p = params as ScalePresetParams;
       const to = p.fromScale ?? 0.65;
       const easing = easingOf(p, "easeIn");
       return [
-        opacityTrack(nodeId, start, end, transform.opacity, 0, easing),
-        ...scaleTracks(nodeId, start, end, transform.scaleX, to, to, easing),
+        opacityTrack(layerId, start, end, transform.opacity, 0, easing),
+        ...scaleTracks(layerId, start, end, transform.scaleX, to, to, easing),
       ];
     },
   },
@@ -383,13 +383,13 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "exit",
     paramsSchema: ScalePresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const p = params as ScalePresetParams;
       const to = p.fromScale ?? 0.35;
       const easing = easingOf(p, "easeIn");
       return [
-        opacityTrack(nodeId, start, end, transform.opacity, 0, easing),
-        ...scaleTracks(nodeId, start, end, transform.scaleX, to, to, easing),
+        opacityTrack(layerId, start, end, transform.opacity, 0, easing),
+        ...scaleTracks(layerId, start, end, transform.scaleX, to, to, easing),
       ];
     },
   },
@@ -399,13 +399,13 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "emphasis",
     paramsSchema: DirectionalPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const distance = (params as DirectionalPresetParams).distance ?? 24;
       const mid = start + (end - start) * 0.5;
       const easing = easingOf(params as DirectionalPresetParams, "easeOut");
       return [
         {
-          targetId: nodeId,
+          layerId: layerId,
           property: "transform.y",
           keys: [
             { t: start, v: transform.y },
@@ -422,11 +422,11 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "emphasis",
     paramsSchema: EmptyPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform }) {
+    expand({ layerId, start, end, transform }) {
       const mid = start + (end - start) * 0.5;
       return [
         {
-          targetId: nodeId,
+          layerId: layerId,
           property: "transform.opacity",
           keys: [
             { t: start, v: transform.opacity },
@@ -447,14 +447,14 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
     category: "emphasis",
     paramsSchema: DirectionalPresetParamsSchema,
     compatibleNodeTypes: "all-visual",
-    expand({ nodeId, start, end, transform, params }) {
+    expand({ layerId, start, end, transform, params }) {
       const distance = (params as DirectionalPresetParams).distance ?? 12;
       const q1 = start + (end - start) * 0.25;
       const q2 = start + (end - start) * 0.5;
       const q3 = start + (end - start) * 0.75;
       return [
         {
-          targetId: nodeId,
+          layerId: layerId,
           property: "transform.x",
           keys: [
             { t: start, v: transform.x },
@@ -507,7 +507,7 @@ export function parsePresetParams(
 
 export function expandMotionPreset(input: {
   presetId: string;
-  nodeId: string;
+  layerId: string;
   start: number;
   end: number;
   transform: PresetExpandInput<unknown>["transform"];
@@ -518,7 +518,7 @@ export function expandMotionPreset(input: {
   const parsed = parsePresetParams(input.presetId, input.params);
   if (!parsed.ok) throw new Error(parsed.message);
   return def.expand({
-    nodeId: input.nodeId,
+    layerId: input.layerId,
     start: input.start,
     end: input.end,
     transform: input.transform,

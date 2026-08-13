@@ -1,15 +1,15 @@
 /**
- * V3 structural nodes — group, bone, solid, adjustment.
+ * V3 structural layers — group, bone, solid, adjustment.
  *
  * `component` is intentionally absent from v3 (components live at the
- * timeline level as visual-clip sources, not as scene nodes).
+ * timeline level as visual-clip sources, not as scene layers).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { ColorHexSchema, PositiveNumberSchema } from "../common";
-import { NodeBaseV3Schema } from "./base";
+import { LayerBaseV3Schema } from "./base";
 
-export const GroupNodeV3Schema = NodeBaseV3Schema.extend({
+export const GroupLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("group"),
   payload: z
     .object({
@@ -24,11 +24,11 @@ export const GroupNodeV3Schema = NodeBaseV3Schema.extend({
     .optional(),
 }).strict();
 
-export const BoneNodeV3Schema = NodeBaseV3Schema.extend({
+export const BoneLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("bone"),
   payload: z
     .object({
-      length: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+      length: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.layerDimension),
       restRotation: z.number().finite().optional(),
       rotationLimits: z
         .object({ min: z.number().finite(), max: z.number().finite() })
@@ -38,18 +38,18 @@ export const BoneNodeV3Schema = NodeBaseV3Schema.extend({
     .strict(),
 }).strict();
 
-export const SolidNodeV3Schema = NodeBaseV3Schema.extend({
+export const SolidLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
-      width: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.nodeDimension),
-      height: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+      width: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.layerDimension),
+      height: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.layerDimension),
       color: ColorHexSchema.default("#000000"),
     })
     .strict(),
 }).strict();
 
-export const AdjustmentNodeV3Schema = NodeBaseV3Schema.extend({
+export const AdjustmentLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("adjustment"),
   payload: z
     .object({
@@ -72,8 +72,8 @@ export const MotionBlurSettingsSchema = z
   .strict();
 
 export type {
-  GroupNodeV3,
-  BoneNodeV3,
-  SolidNodeV3,
-  AdjustmentNodeV3,
+  GroupLayerV3,
+  BoneLayerV3,
+  SolidLayerV3,
+  AdjustmentLayerV3,
 } from "./structural-types";

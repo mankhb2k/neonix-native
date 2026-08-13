@@ -200,7 +200,7 @@ describe("computeProjectHash", () => {
         {
           id: "scene-1",
           duration: 5,
-          nodes: [{ id: "n1", type: "text", transform: {}, payload: {} }],
+          layers: [{ id: "n1", type: "text", transform: {}, payload: {} }],
           clips: [],
         },
       ],
@@ -302,7 +302,7 @@ describe("computeRuntimeHash", () => {
   it("different IR produces different hash", () => {
     const ir2 = {
       ...baseIR,
-      scenes: [{ id: "s1", duration: 5, nodes: [], clips: [] }],
+      scenes: [{ id: "s1", duration: 5, layers: [], clips: [] }],
     };
     expect(computeRuntimeHash(baseIR)).not.toBe(computeRuntimeHash(ir2));
   });

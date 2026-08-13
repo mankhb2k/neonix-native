@@ -108,7 +108,7 @@ export function createDenseTimelineFixture(
         id: (c as { sceneId: string }).sceneId,
         name: c.name,
         duration: c.duration,
-        nodes: [],
+        layers: [],
       })),
     audioTracks: [],
   } as unknown as MotionProject;
@@ -117,7 +117,7 @@ export function createDenseTimelineFixture(
 }
 
 /**
- * Expected max mounted clip DOM nodes for a viewport of `viewWidth` at `pps`
+ * Expected max mounted clip DOM layers for a viewport of `viewWidth` at `pps`
  * with overscan 120px (plus optional pin budget).
  */
 export function expectedVisibleClipBudget(

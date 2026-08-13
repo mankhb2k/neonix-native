@@ -8,11 +8,11 @@ describe("sliceScene", () => {
       id: "s1",
       name: "S",
       duration: 5,
-      nodes: [],
+      layers: [],
       clips: [
         {
           id: "c1",
-          targetId: "n1",
+          layerId: "n1",
           schedule: { kind: "absolute" as const, at: 0 },
           duration: 5,
           playback: {},
@@ -20,7 +20,7 @@ describe("sliceScene", () => {
             kind: "tracks" as const,
             tracks: [
               {
-                targetId: "n1",
+                layerId: "n1",
                 property: "transform.opacity",
                 keys: [
                   { t: 0, v: 0 },

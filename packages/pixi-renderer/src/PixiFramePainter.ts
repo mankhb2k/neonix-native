@@ -59,7 +59,7 @@ export type PixiFramePainterOptions = {
   /** Observes unsupported paint ops (preview diagnostic overlay). */
   onUnsupported?: (info: {
     key: string;
-    nodeId: string;
+    layerId: string;
     nodeType: string;
     message: string;
   }) => void;
@@ -94,7 +94,7 @@ export type PixiFramePainter = EvaluatedFramePainter & {
   getLiveKeys(): readonly string[];
   getUnsupported(): readonly {
     key: string;
-    nodeId: string;
+    layerId: string;
     nodeType: string;
     message: string;
   }[];
@@ -414,7 +414,7 @@ export function createPixiFramePainter(
   let paused = false;
   let unsupported: Array<{
     key: string;
-    nodeId: string;
+    layerId: string;
     nodeType: string;
     message: string;
   }> = [];
@@ -659,7 +659,7 @@ export function createPixiFramePainter(
       // ── beginGroup (Phase 5: was flat, now push/pop stack) ─────
       if (cmd.op === "beginGroup") {
         live.add(cmd.key);
-        const groupContainer = compositingCtx.pushGroup(cmd.key, cmd.nodeId);
+        const groupContainer = compositingCtx.pushGroup(cmd.key, cmd.layerId);
         if (pendingTransform && pendingTransform.key === cmd.key) {
           applyAffineMatrix(
             groupContainer,
@@ -683,7 +683,7 @@ export function createPixiFramePainter(
         live.add(cmd.key);
         const info = {
           key: cmd.key,
-          nodeId: cmd.nodeId,
+          layerId: cmd.layerId,
           nodeType: cmd.nodeType,
           message: cmd.message,
         };
@@ -970,7 +970,7 @@ export function createPixiFramePainter(
       if (isPatchStale(patch, currentSequence)) return currentSequence;
 
       // Find the cached display object by key
-      const entry = cache.get(patch.nodeId);
+      const entry = cache.get(patch.layerId);
       if (!entry) return currentSequence;
 
       // Apply property update without clearing Graphics cache
@@ -997,7 +997,7 @@ export function createPixiFramePainter(
             // Re-execute the relevant paint command for this key
             for (const cmd of lastPaint.commands) {
               if (
-                cmd.key === patch.nodeId &&
+                cmd.key === patch.layerId &&
                 (cmd.op === "drawShape" || cmd.op === "drawSolid")
               ) {
                 g.clear();

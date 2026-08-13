@@ -61,7 +61,7 @@ export function TimelineShell() {
         return;
       }
       if (next.kind === "node") {
-        selectNode(next.nodeId);
+        selectNode(next.layerId);
         return;
       }
       clearTimelineSelection();

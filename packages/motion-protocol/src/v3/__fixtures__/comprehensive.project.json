@@ -270,11 +270,11 @@
         }
       ],
       "variables": [],
-      "nodes": [
+      "layers": [
         {
           "id": "lt-bg",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -305,7 +305,7 @@
           "clips": [
             {
               "id": "clip-fade",
-              "targetId": "lt-bg",
+              "layerId": "lt-bg",
               "schedule": {
                 "kind": "absolute",
                 "at": 0
@@ -316,7 +316,7 @@
                 "kind": "tracks",
                 "tracks": [
                   {
-                    "targetId": "lt-bg",
+                    "layerId": "lt-bg",
                     "property": "transform.opacity",
                     "keys": [
                       {
@@ -396,19 +396,19 @@
         {
           "id": "driver-noise",
           "type": "noise",
-          "targetNodeId": "node-title",
+          "targetLayerId": "node-title",
           "targetProperty": "transform.x",
           "seed": 42,
           "amplitude": 10,
           "frequency": 2
         }
       ],
-      "nodes": [
+      "layers": [
         {
           "id": "node-group",
           "type": "group",
           "name": "Title Group",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 0,
           "transform": {
             "x": 960,
@@ -435,7 +435,7 @@
         {
           "id": "node-title",
           "type": "text",
-          "parentId": "node-group",
+          "parentLayerId": "node-group",
           "zIndex": 0,
           "transform": {
             "x": 0,
@@ -471,7 +471,7 @@
         {
           "id": "node-shape",
           "type": "shape",
-          "parentId": "node-group",
+          "parentLayerId": "node-group",
           "zIndex": 1,
           "transform": {
             "x": 0,
@@ -499,7 +499,7 @@
         {
           "id": "node-logo",
           "type": "image",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
@@ -521,7 +521,7 @@
             "fit": "contain"
           },
           "mask": {
-            "sourceNodeId": "node-shape",
+            "sourceLayerId": "node-shape",
             "mode": "alpha",
             "sourceVisibility": "mask-only"
           }
@@ -529,7 +529,7 @@
         {
           "id": "node-bone",
           "type": "bone",
-          "parentId": "node-group",
+          "parentLayerId": "node-group",
           "zIndex": 2,
           "transform": {
             "x": 0,
@@ -558,7 +558,7 @@
         {
           "id": "node-cam",
           "type": "camera",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 2,
           "transform": {
             "x": 0,
@@ -585,7 +585,7 @@
       "clips": [
         {
           "id": "clip-title-fade",
-          "targetId": "node-title",
+          "layerId": "node-title",
           "schedule": {
             "kind": "absolute",
             "at": 0
@@ -596,7 +596,7 @@
             "kind": "tracks",
             "tracks": [
               {
-                "targetId": "node-title",
+                "layerId": "node-title",
                 "property": "transform.opacity",
                 "keys": [
                   {
@@ -615,7 +615,7 @@
         },
         {
           "id": "clip-preset-bounce",
-          "targetId": "node-logo",
+          "layerId": "node-logo",
           "schedule": {
             "kind": "absolute",
             "at": 0.5
@@ -633,18 +633,18 @@
           }
         }
       ],
-      "activeCameraId": "node-cam"
+      "activeCameraLayerId": "node-cam"
     },
     {
       "id": "scene-outro",
       "name": "Outro",
       "duration": 3,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "node-path",
           "type": "path",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 0,
           "transform": {
             "x": 100,
@@ -705,7 +705,7 @@
         {
           "id": "node-adjustment",
           "type": "adjustment",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 0,
@@ -735,11 +735,11 @@
       "name": "Video Scene",
       "duration": 10,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "node-video-bg",
           "type": "video",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 0,
           "transform": {
             "x": 0,
@@ -766,7 +766,7 @@
         {
           "id": "node-svg-icon",
           "type": "svg",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
@@ -794,11 +794,11 @@
       "id": "scene-lower-third",
       "name": "Lower Third Overlay Scene",
       "duration": 4,
-      "nodes": [
+      "layers": [
         {
           "id": "node-lower-third",
           "type": "component",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 160,
             "y": 800,
@@ -955,7 +955,7 @@
       "target": {
         "kind": "scene",
         "sceneId": "scene-intro",
-        "nodeId": "node-title",
+        "layerId": "node-title",
         "property": "payload.content.text"
       }
     },
@@ -968,7 +968,7 @@
       "target": {
         "kind": "scene",
         "sceneId": "scene-intro",
-        "nodeId": "node-title",
+        "layerId": "node-title",
         "property": "transform.opacity"
       }
     },
@@ -979,9 +979,9 @@
         "variableId": "var-brand-color"
       },
       "target": {
-        "kind": "componentNode",
+        "kind": "componentLayer",
         "sceneId": "scene-lower-third",
-        "nodeId": "node-lower-third",
+        "layerId": "node-lower-third",
         "propId": "bgColor"
       }
     }

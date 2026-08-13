@@ -6,12 +6,12 @@
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
-import { MotionBlurSettingsSchema } from "./nodes/structural";
+import { MotionBlurSettingsSchema } from "./layers/structural";
 import { IdSchema, SemanticSchema } from "./common";
 import { MotionClipV3Schema } from "./animation/clips";
 import { ProceduralDriverSchema } from "./animation/drivers";
 import { SceneMarkerV3Schema } from "./animation/tracks";
-import { NodeV3Schema } from "./nodes";
+import { LayerV3Schema } from "./layers";
 
 export const SceneDefinitionV3Schema = z
   .object({
@@ -27,15 +27,15 @@ export const SceneDefinitionV3Schema = z
     markers: z.array(SceneMarkerV3Schema).max(256).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
-    nodes: z
-      .array(NodeV3Schema)
+    layers: z
+      .array(LayerV3Schema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
+      .max(MOTION_PROTOCOL_LIMITS.layersPerScene),
     clips: z
       .array(MotionClipV3Schema)
       .max(MOTION_PROTOCOL_LIMITS.clipsPerScene)
       .default([]),
-    activeCameraId: IdSchema.optional(),
+    activeCameraLayerId: IdSchema.optional(),
   })
   .strict()
   .superRefine((scene, context) => {
@@ -67,21 +67,21 @@ export const SceneDefinitionV3Schema = z
       }
     }
 
-    if (scene.activeCameraId === undefined) return;
-    const camera = scene.nodes.find((node) => node.id === scene.activeCameraId);
+    if (scene.activeCameraLayerId === undefined) return;
+    const camera = scene.layers.find((node) => node.id === scene.activeCameraLayerId);
     if (!camera) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["activeCameraId"],
-        message: `activeCameraId "${scene.activeCameraId}" does not reference a node in this scene`,
+        path: ["activeCameraLayerId"],
+        message: `activeCameraLayerId "${scene.activeCameraLayerId}" does not reference a node in this scene`,
       });
       return;
     }
     if (camera.type !== "camera") {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["activeCameraId"],
-        message: `activeCameraId "${scene.activeCameraId}" must reference a camera node`,
+        path: ["activeCameraLayerId"],
+        message: `activeCameraLayerId "${scene.activeCameraLayerId}" must reference a camera node`,
       });
     }
   });

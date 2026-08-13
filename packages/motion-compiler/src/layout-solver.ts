@@ -1,4 +1,4 @@
-import type { MotionNode } from "@motionvideo/motion-protocol";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 import {
   estimateTextSize,
@@ -7,7 +7,7 @@ import {
 } from "./text-layout";
 
 type LayoutConstraint = Extract<
-  NonNullable<MotionNode["modifiers"]>[number],
+  NonNullable<MotionLayer["modifiers"]>[number],
   { type: "layout" }
 >["constraint"];
 
@@ -25,8 +25,8 @@ type LayoutItemPolicy = {
 
 type EdgeInsets = { top: number; right: number; bottom: number; left: number };
 
-type MutableNode = MotionNode & {
-  transform: MotionNode["transform"] & {
+type MutableNode = MotionLayer & {
+  transform: MotionLayer["transform"] & {
     x: number;
     y: number;
     width: number;
@@ -44,7 +44,7 @@ function normalizePadding(
   return padding;
 }
 
-function readItemPolicy(node: MotionNode): LayoutItemPolicy {
+function readItemPolicy(node: MotionLayer): LayoutItemPolicy {
   const mod = (node.modifiers ?? []).find((m) => m.type === "layout-item");
   return mod && mod.type === "layout-item" ? (mod.policy ?? {}) : {};
 }
@@ -97,10 +97,10 @@ function applyItemSizing(
 
 /** Deterministic layout → literal transforms; layout modifiers are compile-time only. */
 export function applyLayoutConstraints(
-  nodes: MotionNode[],
+  layers: MotionLayer[],
   measure: TextMeasurementProvider = defaultTextMeasurementProvider,
-): MotionNode[] {
-  const byId = new Map(nodes.map((node) => [node.id, cloneNode(node)]));
+): MotionLayer[] {
+  const byId = new Map(layers.map((node) => [node.id, cloneNode(node)]));
   const ordered = [...byId.values()];
 
   for (const parent of ordered) {
@@ -108,7 +108,7 @@ export function applyLayoutConstraints(
       (modifier) => modifier.type === "layout",
     );
     if (layoutMods.length === 0) continue;
-    const children = ordered.filter((node) => node.parentId === parent.id);
+    const children = ordered.filter((node) => node.parentLayerId === parent.id);
     for (const modifier of layoutMods) {
       solveConstraint(parent, children, modifier.constraint, measure);
     }
@@ -127,7 +127,7 @@ export function applyLayoutConstraints(
   });
 }
 
-function cloneNode(node: MotionNode): MutableNode {
+function cloneNode(node: MotionLayer): MutableNode {
   return JSON.parse(JSON.stringify(node)) as MutableNode;
 }
 

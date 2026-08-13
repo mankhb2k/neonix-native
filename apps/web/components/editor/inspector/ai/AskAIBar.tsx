@@ -34,13 +34,13 @@ export function AskAIBar() {
 
   const selectionLabel =
     selection.kind === "node"
-      ? `${selection.sceneId}/${selection.nodeId}`
+      ? `${selection.sceneId}/${selection.layerId}`
       : undefined;
 
   const protectedHint =
     selection.kind === "node" && envelope
       ? Object.entries(envelope.authoring.elementMeta).find(([key]) =>
-          key.endsWith(`:${selection.nodeId}`),
+          key.endsWith(`:${selection.layerId}`),
         )?.[1]
       : undefined;
 

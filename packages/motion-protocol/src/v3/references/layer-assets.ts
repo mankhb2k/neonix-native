@@ -1,18 +1,18 @@
 /**
  * V3 node → asset reference validation (media + font).
  */
-import type { NodeV3 } from "../nodes";
+import type { LayerV3 } from "../layers";
 import type { AssetV3 } from "../assets";
 import type { ReferenceIssue } from "./types";
 
-export function validateNodeAssetsV3(
-  nodes: NodeV3[],
+export function validateLayerAssetsV3(
+  layers: LayerV3[],
   assets: AssetV3[],
   prefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   const byId = new Map(assets.map((asset) => [asset.id, asset]));
-  for (const node of nodes) {
+  for (const node of layers) {
     if (node.type === "image" || node.type === "svg" || node.type === "video") {
       const assetId = node.payload.assetId;
       const asset = byId.get(assetId);

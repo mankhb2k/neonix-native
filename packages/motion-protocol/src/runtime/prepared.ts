@@ -15,9 +15,9 @@ import type { MotionRuntimeProject } from "./project";
 
 // ── Per-scene index ───────────────────────────────────────────────────
 
-/** A runtime node as it appears in MotionRuntimeProject.scenes[].nodes */
+/** A runtime node as it appears in MotionRuntimeProject.scenes[].layers */
 export type RuntimeSceneNode =
-  MotionRuntimeProject["scenes"][number]["nodes"][number];
+  MotionRuntimeProject["scenes"][number]["layers"][number];
 
 /** A runtime track as it appears in MotionRuntimeProject.scenes[].tracks */
 export type RuntimeSceneTrack =
@@ -51,11 +51,11 @@ export type StaticGeometry = {
 // ── Text layout input ─────────────────────────────────────────────────
 
 /**
- * Pre-computed text layout input for text nodes.
+ * Pre-computed text layout input for text layers.
  * The text layout solver consumes these to produce glyph positions.
  */
 export type TextLayoutInput = {
-  nodeId: string;
+  layerId: string;
   text: string;
   fontFamily: string;
   fontSize: number;
@@ -76,11 +76,11 @@ export type TextLayoutInput = {
  */
 export type CompositingScope = {
   scopeId: string;
-  nodeIds: string[];
+  layerIds: string[];
   /** Why isolation is needed */
   reason: "mask" | "effect" | "blend" | "adjustment";
   /** Source node for mask/matte */
-  sourceNodeId?: string;
+  sourceLayerId?: string;
 };
 
 // ── Dependency graph ──────────────────────────────────────────────────
@@ -89,7 +89,7 @@ export type CompositingScope = {
  * A minimal dependency graph node for invalidation tracking.
  */
 export type DepGraphNode = {
-  nodeId: string;
+  layerId: string;
   /** Nodes that this node depends on (parent, mask source, constraint target...) */
   dependsOn: string[];
   /** Nodes that depend on this node */
@@ -128,30 +128,30 @@ export type PreparedRuntimeProject = {
 
   /**
    * Per-scene node lookup.
-   * sceneNodeById.get(sceneId).get(nodeId) → node
+   * sceneNodeById.get(sceneId).get(layerId) → node
    */
   sceneNodeById: Map<string, Map<string, RuntimeSceneNode>>;
 
   /**
    * Per-scene track index by target node ID.
-   * sceneTracksByTarget.get(sceneId).get(nodeId) → tracks[]
+   * sceneTracksByTarget.get(sceneId).get(layerId) → tracks[]
    */
   sceneTracksByTarget: Map<string, Map<string, RuntimeSceneTrack[]>>;
 
   /**
-   * Per-scene topological order of nodes (parent before children).
+   * Per-scene topological order of layers (parent before children).
    * sceneTopoOrder.get(sceneId) → nodeId[]
    */
   sceneTopoOrder: Map<string, string[]>;
 
   /**
    * Per-scene static geometry for each node.
-   * sceneStaticGeometry.get(sceneId).get(nodeId) → geometry
+   * sceneStaticGeometry.get(sceneId).get(layerId) → geometry
    */
   sceneStaticGeometry: Map<string, Map<string, StaticGeometry>>;
 
   /**
-   * Per-scene text layout inputs for text nodes only.
+   * Per-scene text layout inputs for text layers only.
    * sceneTextLayout.get(sceneId) → TextLayoutInput[]
    */
   sceneTextLayout: Map<string, TextLayoutInput[]>;

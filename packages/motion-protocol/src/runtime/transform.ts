@@ -16,9 +16,9 @@ export const TransformSchema = z
       .optional(),
     /** Layered 2.5D parallax depth; omit or 0 keeps flat-2d output (R4). */
     depth: FiniteNumberSchema.optional(),
-    width: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+    width: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.layerDimension),
     height: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     rotation: FiniteNumberSchema,
     /**

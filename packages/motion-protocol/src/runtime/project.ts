@@ -29,19 +29,19 @@ import {
  */
 const RUNTIME_IR_FORMAT_VERSION = 3 as const;
 import {
-  AdjustmentNodeSchema,
-  BoneNodeSchema,
-  CameraNodeSchema,
-  GroupNodeSchema,
-  ImageNodeSchema,
+  AdjustmentLayerSchema,
+  BoneLayerSchema,
+  CameraLayerSchema,
+  GroupLayerSchema,
+  ImageLayerSchema,
   MotionBlurSettingsSchema,
-  PathNodeSchema,
-  ShapeNodeSchema,
-  SolidNodeSchema,
-  SvgNodeSchema,
-  TextNodeSchema,
-  VideoNodeSchema,
-} from "./nodes";
+  PathLayerSchema,
+  ShapeLayerSchema,
+  SolidLayerSchema,
+  SvgLayerSchema,
+  TextLayerSchema,
+  VideoLayerSchema,
+} from "./layers";
 
 // ── Runtime IR schemas ────────────────────────────────────────────────
 
@@ -236,23 +236,23 @@ export type SceneTransition = z.infer<typeof SceneTransitionSchema>;
  */
 export const MOTION_RUNTIME_VERSION = 1 as const;
 
-const RuntimeNodeSchema = z.discriminatedUnion("type", [
-  GroupNodeSchema.omit({ repeat: true }),
-  BoneNodeSchema.omit({ repeat: true }),
-  TextNodeSchema.omit({ repeat: true, textAnimator: true }),
-  ShapeNodeSchema.omit({ repeat: true }),
-  PathNodeSchema.omit({ repeat: true }),
-  ImageNodeSchema.omit({ repeat: true }),
-  SvgNodeSchema.omit({ repeat: true }),
-  VideoNodeSchema.omit({ repeat: true }),
-  CameraNodeSchema.omit({ repeat: true }),
-  SolidNodeSchema.omit({ repeat: true }),
-  AdjustmentNodeSchema.omit({ repeat: true }),
+const RuntimeLayerSchema = z.discriminatedUnion("type", [
+  GroupLayerSchema.omit({ repeat: true }),
+  BoneLayerSchema.omit({ repeat: true }),
+  TextLayerSchema.omit({ repeat: true, textAnimator: true }),
+  ShapeLayerSchema.omit({ repeat: true }),
+  PathLayerSchema.omit({ repeat: true }),
+  ImageLayerSchema.omit({ repeat: true }),
+  SvgLayerSchema.omit({ repeat: true }),
+  VideoLayerSchema.omit({ repeat: true }),
+  CameraLayerSchema.omit({ repeat: true }),
+  SolidLayerSchema.omit({ repeat: true }),
+  AdjustmentLayerSchema.omit({ repeat: true }),
 ]);
 
 const RuntimeTrackSchema = z
   .object({
-    targetId: IdSchema,
+    layerId: IdSchema,
     property: PropertyPathSchema,
     valueKind: ValueKindSchema.optional(),
     preBehavior: ExtrapolationBehaviorSchema.optional(),
@@ -313,7 +313,7 @@ export type RuntimeCompositionMetadata = z.infer<
 >;
 
 /**
- * Source of a runtime visual clip — scene only (components are scene nodes).
+ * Source of a runtime visual clip — scene only (components are scene layers).
  */
 export const RuntimeClipSourceSchema = z
   .object({ kind: z.literal("scene"), sceneId: IdSchema })
@@ -397,9 +397,9 @@ export const RuntimeSceneSchema = z
     space: z.enum(["flat-2d", "layered-2.5d", "perspective-3d"]).optional(),
     motionBlur: MotionBlurSettingsSchema.optional(),
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
-    activeCameraId: IdSchema.optional(),
+    activeCameraLayerId: IdSchema.optional(),
     sourceRef: RuntimeSourceRefSchema.optional(),
-    nodes: z.array(RuntimeNodeSchema).max(MOTION_PROTOCOL_LIMITS.nodesPerScene),
+    layers: z.array(RuntimeLayerSchema).max(MOTION_PROTOCOL_LIMITS.layersPerScene),
     tracks: z
       .array(RuntimeTrackSchema)
       .max(
@@ -533,25 +533,25 @@ export const MotionRuntimeProjectSchema =
       sceneIndex += 1
     ) {
       const scene = runtime.scenes[sceneIndex]!;
-      const nodeById = new Map(scene.nodes.map((node) => [node.id, node]));
-      if (scene.activeCameraId) {
-        const camera = nodeById.get(scene.activeCameraId);
+      const layerById = new Map(scene.layers.map((node) => [node.id, node]));
+      if (scene.activeCameraLayerId) {
+        const camera = layerById.get(scene.activeCameraLayerId);
         if (!camera)
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "activeCameraId"],
-            message: `Unknown runtime camera: ${scene.activeCameraId}`,
+            path: ["scenes", sceneIndex, "activeCameraLayerId"],
+            message: `Unknown runtime camera: ${scene.activeCameraLayerId}`,
           });
         else if (camera.type !== "camera")
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "activeCameraId"],
-            message: `Runtime node ${scene.activeCameraId} has type ${camera.type}, expected camera`,
+            path: ["scenes", sceneIndex, "activeCameraLayerId"],
+            message: `Runtime node ${scene.activeCameraLayerId} has type ${camera.type}, expected camera`,
           });
       }
       const secondaryChainOwners = new Map<string, string>();
-      for (let nodeIndex = 0; nodeIndex < scene.nodes.length; nodeIndex += 1) {
-        const node = scene.nodes[nodeIndex]!;
+      for (let nodeIndex = 0; nodeIndex < scene.layers.length; nodeIndex += 1) {
+        const node = scene.layers[nodeIndex]!;
         const modifiers = node.modifiers ?? [];
         const effects = node.effects ?? [];
         for (const effectId of new Set(
@@ -559,7 +559,7 @@ export const MotionRuntimeProjectSchema =
         )) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "nodes", nodeIndex, "effects"],
+            path: ["scenes", sceneIndex, "layers", nodeIndex, "effects"],
             message: `Duplicate runtime effect id: ${effectId}`,
           });
         }
@@ -568,7 +568,7 @@ export const MotionRuntimeProjectSchema =
         )) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
             message: `Duplicate runtime modifier id: ${modifierId}`,
           });
         }
@@ -582,7 +582,7 @@ export const MotionRuntimeProjectSchema =
               path: [
                 "scenes",
                 sceneIndex,
-                "nodes",
+                "layers",
                 nodeIndex,
                 "payload",
                 "morphTargets",
@@ -604,13 +604,13 @@ export const MotionRuntimeProjectSchema =
             if (modifier.from !== "base" && !fromContours)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+                path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
                 message: `Unknown runtime Path Morph target: ${modifier.from}`,
               });
             if (!toContours)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+                path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
                 message: `Unknown runtime Path Morph target: ${modifier.to}`,
               });
             if (fromContours && toContours) {
@@ -618,7 +618,7 @@ export const MotionRuntimeProjectSchema =
               if (mismatch)
                 context.addIssue({
                   code: z.ZodIssueCode.custom,
-                  path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+                  path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
                   message: mismatch,
                 });
             }
@@ -628,7 +628,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
             message: "Runtime Path Morph modifier requires a path node",
           });
         }
@@ -638,7 +638,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
             message: "Runtime Trim Path modifier requires a path node",
           });
         }
@@ -648,7 +648,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
             message: "Runtime Path Bend modifier requires a path node",
           });
         }
@@ -658,7 +658,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
             message:
               "Only one runtime motion-path modifier is allowed per node",
           });
@@ -672,7 +672,7 @@ export const MotionRuntimeProjectSchema =
           const path = [
             "scenes",
             sceneIndex,
-            "nodes",
+            "layers",
             nodeIndex,
             "modifiers",
             modifierIndex,
@@ -685,17 +685,17 @@ export const MotionRuntimeProjectSchema =
             });
           }
           if (modifier.type === "constraint") {
-            const target = nodeById.get(modifier.targetNodeId);
+            const target = layerById.get(modifier.targetLayerId);
             if (!target)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: [...path, "targetNodeId"],
-                message: `Unknown runtime constraint target: ${modifier.targetNodeId}`,
+                path: [...path, "targetLayerId"],
+                message: `Unknown runtime constraint target: ${modifier.targetLayerId}`,
               });
-            else if (modifier.targetNodeId === node.id)
+            else if (modifier.targetLayerId === node.id)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: [...path, "targetNodeId"],
+                path: [...path, "targetLayerId"],
                 message: "Runtime Constraint cannot target itself",
               });
           }
@@ -706,7 +706,7 @@ export const MotionRuntimeProjectSchema =
               path: [...path, "axis"],
               message: "Runtime Secondary Motion supports rotation axis only",
             });
-          const driver = nodeById.get(modifier.driverNodeId);
+          const driver = layerById.get(modifier.driverNodeId);
           if (!driver)
             context.addIssue({
               code: z.ZodIssueCode.custom,
@@ -726,35 +726,35 @@ export const MotionRuntimeProjectSchema =
               message:
                 "Runtime Secondary Motion modifier must live on its driver node",
             });
-          for (const chainNodeId of modifier.chainNodeIds) {
-            const chainNode = nodeById.get(chainNodeId);
+          for (const chainNodeId of modifier.chainLayerIds) {
+            const chainNode = layerById.get(chainNodeId);
             if (!chainNode)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: [...path, "chainNodeIds"],
+                path: [...path, "chainLayerIds"],
                 message: `Unknown runtime Secondary Motion chain node: ${chainNodeId}`,
               });
             else if (chainNode.type !== "bone")
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: [...path, "chainNodeIds"],
+                path: [...path, "chainLayerIds"],
                 message: `Runtime Secondary Motion chain node must be bone: ${chainNodeId}`,
               });
             const owner = secondaryChainOwners.get(chainNodeId);
             if (owner)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: [...path, "chainNodeIds"],
+                path: [...path, "chainLayerIds"],
                 message: `Runtime Secondary Motion chain node already owned: ${chainNodeId}`,
               });
             else secondaryChainOwners.set(chainNodeId, modifier.id);
           }
           for (const chainNodeId of new Set(
-            duplicates(modifier.chainNodeIds),
+            duplicates(modifier.chainLayerIds),
           )) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
-              path: [...path, "chainNodeIds"],
+              path: [...path, "chainLayerIds"],
               message: `Duplicate runtime Secondary Motion chain node: ${chainNodeId}`,
             });
           }
@@ -766,11 +766,11 @@ export const MotionRuntimeProjectSchema =
         ) {
           const modifier = node.modifiers![modifierIndex]!;
           if (modifier.type !== "motion-path") continue;
-          const source = nodeById.get(modifier.pathNodeId);
+          const source = layerById.get(modifier.pathNodeId);
           const path = [
             "scenes",
             sceneIndex,
-            "nodes",
+            "layers",
             nodeIndex,
             "modifiers",
             modifierIndex,
@@ -821,13 +821,13 @@ export const MotionRuntimeProjectSchema =
           if (seen.has(motionPath.pathNodeId)) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
-              path: ["scenes", sceneIndex, "nodes", nodeIndex, "modifiers"],
+              path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
               message: "Runtime Motion Path dependency cycle detected",
             });
             break;
           }
           seen.add(motionPath.pathNodeId);
-          current = nodeById.get(motionPath.pathNodeId)!;
+          current = layerById.get(motionPath.pathNodeId)!;
         }
       }
       for (
@@ -839,12 +839,12 @@ export const MotionRuntimeProjectSchema =
         const path = ["scenes", sceneIndex, "tracks", trackIndex] as Array<
           string | number
         >;
-        const node = nodeById.get(track.targetId);
+        const node = layerById.get(track.layerId);
         if (!node) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: [...path, "targetId"],
-            message: `Unknown runtime node: ${track.targetId}`,
+            path: [...path, "layerId"],
+            message: `Unknown runtime node: ${track.layerId}`,
           });
           continue;
         }

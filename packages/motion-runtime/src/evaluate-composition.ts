@@ -282,7 +282,7 @@ export function evaluateCompositionFrameV3(
     layers.push({
       layerKey,
       sceneId: layer.sceneId,
-      nodeId: `composition_layer_${i}`,
+      layerId: `composition_layer_${i}`,
       composition: layer,
       interaction: evaluated.interaction,
       paint: evaluated.paint,
@@ -435,8 +435,8 @@ function resolvePerspectiveProjection(
 ): { viewMatrix: number[]; projectionMatrix: number[] } | null {
   if (!scene) return null;
   if ((scene.space ?? "flat-2d") !== "perspective-3d") return null;
-  if (!scene.activeCameraId) return null;
-  const cameraNode = scene.nodes.find((n) => n.id === scene.activeCameraId);
+  if (!scene.activeCameraLayerId) return null;
+  const cameraNode = scene.layers.find((n) => n.id === scene.activeCameraLayerId);
   if (!cameraNode || cameraNode.type !== "camera") return null;
 
   const aspect = width / height;
@@ -495,9 +495,9 @@ function buildProjection(
   }
 
   // layered-2.5d: apply camera view if activeCamera is set
-  if (scene?.activeCameraId && interaction) {
+  if (scene?.activeCameraLayerId && interaction) {
     const cameraNode = interaction.items.find(
-      (n) => n.nodeId === scene.activeCameraId,
+      (n) => n.layerId === scene.activeCameraLayerId,
     );
     if (cameraNode) {
       const cam: CameraViewParams = {
@@ -516,12 +516,12 @@ function buildProjection(
   }
 
   // perspective-3d: compute 4×4 view + projection matrices from active camera
-  if (space === "perspective-3d" && scene?.activeCameraId && interaction) {
+  if (space === "perspective-3d" && scene?.activeCameraLayerId && interaction) {
     const cameraNode = interaction.items.find(
-      (n) => n.nodeId === scene.activeCameraId,
+      (n) => n.layerId === scene.activeCameraLayerId,
     );
     if (cameraNode && cameraNode.worldMatrix4) {
-      const sceneNode = scene.nodes.find((n) => n.id === scene.activeCameraId);
+      const sceneNode = scene.layers.find((n) => n.id === scene.activeCameraLayerId);
       if (sceneNode?.type === "camera") {
         const aspect = width / height;
         const fov = sceneNode.payload.fov ?? 60;
@@ -633,10 +633,10 @@ function buildMediaState(
       if (node.nodeType !== "video" && node.nodeType !== "image") continue;
 
       const scene = runtime.scenes.find((s) => s.id === layer.sceneId);
-      const sceneNode = scene?.nodes.find((n) => n.id === node.nodeId);
+      const sceneNode = scene?.layers.find((n) => n.id === node.layerId);
 
       mediaStates.push({
-        nodeId: node.nodeId,
+        layerId: node.layerId,
         mediaTime: layer.composition.localTime,
         // Use composition fps from the runtime metadata (fallback 30)
         sourceFrame: Math.round(
@@ -645,7 +645,7 @@ function buildMediaState(
         ),
         assetId:
           (sceneNode as { payload?: { assetId?: string } })?.payload?.assetId ??
-          node.nodeId,
+          node.layerId,
         uri: (sceneNode as { payload?: { assetId?: string } })?.payload?.assetId
           ? assetUriById.get(
               (sceneNode as { payload?: { assetId?: string } }).payload!

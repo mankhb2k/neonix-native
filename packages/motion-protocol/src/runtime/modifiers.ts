@@ -27,7 +27,7 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     id: IdSchema,
     type: z.literal("secondary-motion"),
     driverNodeId: IdSchema,
-    chainNodeIds: z.array(IdSchema).min(1).max(MOTION_PROTOCOL_LIMITS.secondaryMotionChainLength),
+    chainLayerIds: z.array(IdSchema).min(1).max(MOTION_PROTOCOL_LIMITS.secondaryMotionChainLength),
     stiffness: FiniteNumberSchema.positive(),
     damping: FiniteNumberSchema.nonnegative(),
     lag: FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds),
@@ -50,7 +50,7 @@ export const MotionModifierSchema = z.discriminatedUnion("type", [
     id: IdSchema,
     type: z.literal("constraint"),
     kind: z.enum(["look-at", "copy-position", "copy-rotation"]),
-    targetNodeId: IdSchema,
+    targetLayerId: IdSchema,
     weight: FiniteNumberSchema.min(0).max(1).default(1),
   }).strict(),
   z.object({

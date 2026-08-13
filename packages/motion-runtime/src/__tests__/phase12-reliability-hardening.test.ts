@@ -73,18 +73,18 @@ describe("Phase 12.1 — RuntimeDiagnosticCollector", () => {
 
   it("collects error diagnostics", () => {
     const c = new RuntimeDiagnosticCollector();
-    c.error("PARENT_MISSING", { nodeId: "n1" });
+    c.error("PARENT_MISSING", { layerId: "n1" });
     expect(c.diagnostics).toHaveLength(1);
     expect(c.errorCount).toBe(1);
     expect(c.hasErrors).toBe(true);
     expect(c.diagnostics[0]!.code).toBe("PARENT_MISSING");
     expect(c.diagnostics[0]!.severity).toBe("error");
-    expect(c.diagnostics[0]!.nodeId).toBe("n1");
+    expect(c.diagnostics[0]!.layerId).toBe("n1");
   });
 
   it("collects warning diagnostics", () => {
     const c = new RuntimeDiagnosticCollector();
-    c.warn("NON_FINITE_VALUE", { nodeId: "n2" });
+    c.warn("NON_FINITE_VALUE", { layerId: "n2" });
     expect(c.diagnostics).toHaveLength(1);
     expect(c.errorCount).toBe(0);
     expect(c.hasErrors).toBe(false);
@@ -99,7 +99,7 @@ describe("Phase 12.1 — RuntimeDiagnosticCollector", () => {
 
   it("enriches diagnostics with frame/time", () => {
     const c = new RuntimeDiagnosticCollector({ frame: 42, time: 1.4 });
-    c.error("PARENT_MISSING", { nodeId: "n3" });
+    c.error("PARENT_MISSING", { layerId: "n3" });
     expect(c.diagnostics[0]!.frame).toBe(42);
     expect(c.diagnostics[0]!.time).toBe(1.4);
   });
@@ -115,7 +115,7 @@ describe("Phase 12.1 — RuntimeDiagnosticCollector", () => {
 
   it("throwIfFatal throws RuntimeDiagnosticError with errors", () => {
     const c = new RuntimeDiagnosticCollector();
-    c.error("PARENT_CYCLE", { nodeId: "n4" });
+    c.error("PARENT_CYCLE", { layerId: "n4" });
     expect(() => c.throwIfFatal()).toThrow(RuntimeDiagnosticError);
   });
 
@@ -135,9 +135,9 @@ describe("Phase 12.1 — RuntimeDiagnosticCollector", () => {
 
   it("merge combines diagnostics from two collectors", () => {
     const a = new RuntimeDiagnosticCollector();
-    a.error("PARENT_MISSING", { nodeId: "a" });
+    a.error("PARENT_MISSING", { layerId: "a" });
     const b = new RuntimeDiagnosticCollector();
-    b.warn("NON_FINITE_VALUE", { nodeId: "b" });
+    b.warn("NON_FINITE_VALUE", { layerId: "b" });
     a.merge(b);
     expect(a.diagnostics).toHaveLength(2);
     expect(a.errorCount).toBe(1);
@@ -171,7 +171,7 @@ describe("Phase 12.1 — Diagnostic codes", () => {
 
   it("toRenderDiagnostic strips frame/time/path", () => {
     const d = createDiagnostic("NON_FINITE_VALUE", {
-      nodeId: "n5",
+      layerId: "n5",
       frame: 10,
       time: 0.5,
       path: ["scenes", 0],
@@ -179,7 +179,7 @@ describe("Phase 12.1 — Diagnostic codes", () => {
     const rd = toRenderDiagnostic(d);
     expect(rd.code).toBe("NON_FINITE_VALUE");
     expect(rd.severity).toBe("warning");
-    expect(rd.nodeId).toBe("n5");
+    expect(rd.layerId).toBe("n5");
     expect(rd.key).toBeUndefined();
     expect((rd as any).frame).toBeUndefined();
     expect((rd as any).time).toBeUndefined();
@@ -199,8 +199,8 @@ describe("Phase 12.1 — Diagnostic codes", () => {
 describe("Phase 12.1 — RuntimeDiagnosticError", () => {
   it("wraps diagnostics in message", () => {
     const c = new RuntimeDiagnosticCollector();
-    c.error("PARENT_MISSING", { nodeId: "n1" });
-    c.error("PARENT_CYCLE", { nodeId: "n2" });
+    c.error("PARENT_MISSING", { layerId: "n1" });
+    c.error("PARENT_CYCLE", { layerId: "n2" });
     try {
       c.throwIfFatal();
     } catch (e) {
@@ -293,7 +293,7 @@ describe("Phase 12.3 — Fuzz: non-finite values", () => {
   it("collector identifies non-finite warnings", () => {
     const c = new RuntimeDiagnosticCollector();
     c.warn("NON_FINITE_VALUE", {
-      nodeId: "n1",
+      layerId: "n1",
       details: { value: "NaN", property: "transform.x" },
     });
     expect(c.diagnostics).toHaveLength(1);
@@ -304,7 +304,7 @@ describe("Phase 12.3 — Fuzz: non-finite values", () => {
   it("schema limit exceeded is an error", () => {
     const c = new RuntimeDiagnosticCollector();
     c.error("SCHEMA_LIMIT_EXCEEDED", {
-      nodeId: "n1",
+      layerId: "n1",
       details: { field: "z", value: 200000, max: 100000 },
     });
     expect(c.errorCount).toBe(1);
@@ -315,12 +315,12 @@ describe("Phase 12.3 — Fuzz: non-finite values", () => {
 describe("Phase 12.3 — Fuzz: cycle detection", () => {
   it("cycle detected creates error diagnostic", () => {
     const d = createDiagnostic("CYCLE_DETECTED", {
-      nodeId: "n1",
+      layerId: "n1",
       message: "Cycle: n1 → n2 → n1",
     });
     expect(d.code).toBe("CYCLE_DETECTED");
     expect(d.severity).toBe("error");
-    expect(d.nodeId).toBe("n1");
+    expect(d.layerId).toBe("n1");
   });
 });
 
@@ -328,8 +328,8 @@ describe("Phase 12.3 — Soak: 20× evaluate/dispose", () => {
   it("collector survives 20 rounds of create/clear/merge", () => {
     for (let i = 0; i < 20; i++) {
       const c = new RuntimeDiagnosticCollector({ frame: i });
-      c.warn("NON_FINITE_VALUE", { nodeId: `n${i}` });
-      c.error("PARENT_MISSING", { nodeId: `n${i}` });
+      c.warn("NON_FINITE_VALUE", { layerId: `n${i}` });
+      c.error("PARENT_MISSING", { layerId: `n${i}` });
       expect(c.diagnostics).toHaveLength(2);
       c.clear();
       expect(c.diagnostics).toHaveLength(0);
@@ -439,11 +439,11 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
       duration: 5,
       space: "flat-2d" as const,
       tracks: [],
-      nodes: [
+      layers: [
         {
           type: "solid" as const,
           id: "n1",
-          parentId: "missing-parent",
+          parentLayerId: "missing-parent",
           transform: {
             x: 0,
             y: 0,
@@ -482,11 +482,11 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
       duration: 5,
       space: "flat-2d" as const,
       tracks: [],
-      nodes: [
+      layers: [
         {
           type: "solid" as const,
           id: "n1",
-          parentId: "n2",
+          parentLayerId: "n2",
           transform: {
             x: 0,
             y: 0,
@@ -508,7 +508,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
         {
           type: "solid" as const,
           id: "n2",
-          parentId: "n1",
+          parentLayerId: "n1",
           transform: {
             x: 0,
             y: 0,

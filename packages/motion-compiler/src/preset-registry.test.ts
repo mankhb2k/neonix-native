@@ -11,7 +11,7 @@ describe("Phase 1 preset registry + recipes", () => {
     expect(isCompiledPreset("fade-out")).toBe(true);
     const tracks = expandMotionPreset({
       presetId: "fade-up",
-      nodeId: "n1",
+      layerId: "n1",
       start: 0,
       end: 0.5,
       transform: { x: 10, y: 20, opacity: 1, scaleX: 1, scaleY: 1 },
@@ -32,7 +32,7 @@ describe("Phase 1 preset registry + recipes", () => {
     const baked = bakeMotionRecipe({
       recipeId: "drift",
       sceneId: "s",
-      targetNodeId: "n",
+      targetLayerId: "n",
       duration: 2,
       intensity: 0.5,
       frequencyHz: 0.4,

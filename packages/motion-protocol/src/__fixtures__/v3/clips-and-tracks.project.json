@@ -34,11 +34,11 @@
       "name": "Introduction",
       "duration": 5,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
@@ -78,7 +78,7 @@
         {
           "id": "subtitle",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 2,
           "transform": {
             "x": 960,
@@ -119,7 +119,7 @@
       "clips": [
         {
           "id": "title-fade-in",
-          "targetId": "title",
+          "layerId": "title",
           "schedule": {
             "kind": "absolute",
             "at": 0
@@ -134,7 +134,7 @@
             "kind": "tracks",
             "tracks": [
               {
-                "targetId": "title",
+                "layerId": "title",
                 "property": "transform.opacity",
                 "valueKind": "number",
                 "keys": [
@@ -154,7 +154,7 @@
         },
         {
           "id": "title-pop",
-          "targetId": "title",
+          "layerId": "title",
           "schedule": {
             "kind": "after",
             "clipId": "title-fade-in",
@@ -176,7 +176,7 @@
         },
         {
           "id": "subtitle-slide",
-          "targetId": "subtitle",
+          "layerId": "subtitle",
           "schedule": {
             "kind": "absolute",
             "at": 1
@@ -191,7 +191,7 @@
             "kind": "tracks",
             "tracks": [
               {
-                "targetId": "subtitle",
+                "layerId": "subtitle",
                 "property": "transform.x",
                 "valueKind": "number",
                 "preBehavior": {

@@ -12,7 +12,7 @@ import {
 
 function firstEditableNodeId(scene: MotionScene | undefined): string | null {
   if (!scene) return null;
-  const node = scene.nodes.find(
+  const node = scene.layers.find(
     (n) => n.type === "text" || n.type === "shape" || n.type === "path",
   );
   return node?.id ?? null;

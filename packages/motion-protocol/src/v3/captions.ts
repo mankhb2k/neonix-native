@@ -53,13 +53,13 @@ const CaptionStyleSchema = z
   .object({
     fontAssetId: IdSchema.optional(),
     fontSize: FiniteNumberSchema.positive().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     fontWeight: FiniteNumberSchema.int().min(1).max(1000).optional(),
     fill: z.string().min(1),
     stroke: z.string().min(1).optional(),
     strokeWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     safeArea: z
       .enum(["tiktok", "reels", "youtube", "generic"])
@@ -83,13 +83,13 @@ const CaptionStyleSchema = z
       .object({
         fill: z.string().min(1),
         paddingX: FiniteNumberSchema.nonnegative().max(
-          MOTION_PROTOCOL_LIMITS.nodeDimension,
+          MOTION_PROTOCOL_LIMITS.layerDimension,
         ),
         paddingY: FiniteNumberSchema.nonnegative().max(
-          MOTION_PROTOCOL_LIMITS.nodeDimension,
+          MOTION_PROTOCOL_LIMITS.layerDimension,
         ),
         radius: FiniteNumberSchema.nonnegative()
-          .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+          .max(MOTION_PROTOCOL_LIMITS.layerDimension)
           .optional(),
       })
       .strict()

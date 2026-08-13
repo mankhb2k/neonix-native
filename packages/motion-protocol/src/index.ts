@@ -267,7 +267,7 @@ export {
   type LayoutItemPolicy,
 } from "./v3/layout";
 
-// Nodes — geometry primitives (Phase 7 neutral names)
+// Layers — geometry primitives (Phase 7 neutral names)
 export {
   PointSchema,
   type MotionPoint,
@@ -277,12 +277,12 @@ export {
   type MotionPathContour,
   PathMorphTargetSchema,
   type MotionPathMorphTarget,
-} from "./v3/nodes/geometry";
+} from "./v3/layers/geometry";
 
-// Nodes — timing, paint, text (Phase 7 neutral names)
+// Layers — timing, paint, text (Phase 7 neutral names)
 export {
-  NodeTimingSchema,
-  type NodeTiming,
+  LayerTimingSchema,
+  type LayerTiming,
   PaintStyleSchema,
   type MotionPaintStyle,
   segmentTextUnits,
@@ -295,29 +295,29 @@ export {
   normalizeTextPayloadInput,
   type TextContent,
   type RichTextRun,
-  type TextNodePayload,
-} from "./v3/nodes";
+  type TextLayerPayload,
+} from "./v3/layers";
 
-// Nodes — structural: MotionBlur owned by V3 (Phase 5)
-export { MotionBlurSettingsSchema } from "./v3/nodes/structural";
+// Layers — structural: MotionBlur owned by V3 (Phase 5)
+export { MotionBlurSettingsSchema } from "./v3/layers/structural";
 
-// Nodes — V3 authoring node union (Phase 1: canonical neutral names)
+// Layers — V3 authoring layer union (Phase 1: canonical neutral names)
 export {
-  GroupNodeV3Schema as GroupNodeSchema,
-  BoneNodeV3Schema as BoneNodeSchema,
-  TextNodeV3Schema as TextNodeSchema,
-  ShapeNodeV3Schema as ShapeNodeSchema,
-  PathNodeV3Schema as PathNodeSchema,
-  ImageNodeV3Schema as ImageNodeSchema,
-  SvgNodeV3Schema as SvgNodeSchema,
-  VideoNodeV3Schema as VideoNodeSchema,
-  CameraNodeV3Schema as CameraNodeSchema,
-  SolidNodeV3Schema as SolidNodeSchema,
-  AdjustmentNodeV3Schema as AdjustmentNodeSchema,
-  ComponentNodeV3Schema as ComponentNodeSchema,
-  NodeV3Schema as NodeSchema,
-  type NodeV3 as MotionNode,
-} from "./v3/nodes";
+  GroupLayerV3Schema as GroupLayerSchema,
+  BoneLayerV3Schema as BoneLayerSchema,
+  TextLayerV3Schema as TextLayerSchema,
+  ShapeLayerV3Schema as ShapeLayerSchema,
+  PathLayerV3Schema as PathLayerSchema,
+  ImageLayerV3Schema as ImageLayerSchema,
+  SvgLayerV3Schema as SvgLayerSchema,
+  VideoLayerV3Schema as VideoLayerSchema,
+  CameraLayerV3Schema as CameraLayerSchema,
+  SolidLayerV3Schema as SolidLayerSchema,
+  AdjustmentLayerV3Schema as AdjustmentLayerSchema,
+  ComponentLayerV3Schema as ComponentLayerSchema,
+  LayerV3Schema as LayerSchema,
+  type LayerV3 as MotionLayer,
+} from "./v3/layers";
 
 // Animation — V3 canonical (Phase 7 neutral names)
 export {

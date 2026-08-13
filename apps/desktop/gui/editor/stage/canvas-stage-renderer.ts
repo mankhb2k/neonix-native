@@ -56,7 +56,7 @@ export function createCanvasStageRenderer(
   let scale = 1;
   let disposed = false;
   let lastFrame = 0;
-  let nodes: NodePaint[] = [];
+  let layers: NodePaint[] = [];
   let fps = 30;
 
   const paint = () => {
@@ -65,7 +65,7 @@ export function createCanvasStageRenderer(
     const h = host.clientHeight;
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
-    for (const n of nodes) {
+    for (const n of layers) {
       if (!n.visible) continue;
       ctx.fillStyle = n.fill;
       ctx.fillRect(n.x, n.y, n.w, n.h);
@@ -87,7 +87,7 @@ export function createCanvasStageRenderer(
   ro.observe(host);
 
   const rebuildFrame = (frameIndex: number) => {
-    nodes = [];
+    layers = [];
     if (!project || !laneIndex) return;
     const time = frameIndex / Math.max(1, fps);
     const layers = composeAtTime(laneIndex, time);
@@ -96,9 +96,9 @@ export function createCanvasStageRenderer(
     for (const layer of layers) {
       const scene = scenes.get(layer.sceneId);
       if (!scene) continue;
-      for (const node of scene.nodes) {
+      for (const node of scene.layers) {
         const t = node.transform;
-        nodes.push({
+        layers.push({
           id: `${layer.clipId}:${node.id}`,
           x: ((t?.x ?? 40) + (i % 8) * 4) * scale,
           y: ((t?.y ?? 40) + Math.floor(i / 8) * 4) * scale,
@@ -145,7 +145,7 @@ export function createCanvasStageRenderer(
     },
     /** Test/contract helper — node count after last rebuild. */
     getPaintStats() {
-      return { frameIndex: lastFrame, nodeCount: nodes.length };
+      return { frameIndex: lastFrame, nodeCount: layers.length };
     },
     dispose() {
       if (disposed) return;

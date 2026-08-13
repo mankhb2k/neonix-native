@@ -19,7 +19,7 @@ import {
   FiniteNumberSchema,
   SemanticSchema,
 } from "./common";
-import { NodeV3Schema } from "./nodes";
+import { LayerV3Schema } from "./layers";
 import { MotionClipV3Schema } from "./animation/clips";
 import { ComponentPropValueSchema } from "./prop-values";
 
@@ -134,7 +134,7 @@ export const ComponentPropBindingTargetV3Schema = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("childProp"),
-      childId: IdSchema,
+      childLayerId: IdSchema,
       propId: IdSchema,
     })
     .strict(),
@@ -218,10 +218,10 @@ export const ComponentDefinitionV3Schema = z
       .array(VariableSchema)
       .max(MOTION_PROTOCOL_LIMITS.variablesPerArtifact)
       .default([]),
-    nodes: z
-      .array(NodeV3Schema)
+    layers: z
+      .array(LayerV3Schema)
       .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.nodesPerComponent),
+      .max(MOTION_PROTOCOL_LIMITS.layersPerComponent),
     internalBindings: z
       .array(ComponentBindingSchema)
       .max(MOTION_PROTOCOL_LIMITS.bindingsPerArtifact)

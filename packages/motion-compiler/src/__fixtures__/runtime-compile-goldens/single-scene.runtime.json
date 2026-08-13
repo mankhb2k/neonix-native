@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "6449ff05f7a01225c78356ff709fafb7",
+  "runtimeHash": "00929db727485578654523c6076afc3b",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -63,11 +63,11 @@
           "intro"
         ]
       },
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,

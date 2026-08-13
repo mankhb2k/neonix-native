@@ -7,7 +7,7 @@
 
 import {
   parseMotionProject,
-  type MotionNode,
+  type MotionLayer,
   type MotionProject,
   type MotionScene,
 } from "@motionvideo/motion-protocol";
@@ -46,29 +46,29 @@ function emptyPadScene(
     id,
     name,
     duration: Math.max(0.001, duration),
-    nodes: [],
+    layers: [],
     clips: [],
   };
 }
 
-/** Remap overlay nodes vào base scene (IDs mới, giữ parent graph). */
+/** Remap overlay layers vào base scene (IDs mới, giữ parent graph). */
 function mergeOverlayNodes(
   base: MotionScene,
   overlay: MotionScene,
   tag: string,
 ): MotionScene {
   const idMap = new Map<string, string>();
-  for (const node of overlay.nodes) {
+  for (const node of overlay.layers) {
     idMap.set(node.id, `${node.id}__${tag}`);
   }
   const remapId = (id: string | undefined): string | undefined => {
     if (!id) return id;
     return idMap.has(id) ? idMap.get(id)! : id;
   };
-  const remappedNodes: MotionNode[] = overlay.nodes.map((node) => ({
+  const remappedNodes: MotionLayer[] = overlay.layers.map((node) => ({
     ...node,
     id: idMap.get(node.id)!,
-    parentId: remapId(node.parentId ?? undefined) ?? null,
+    parentLayerId: remapId(node.parentLayerId ?? undefined) ?? null,
   }));
   const remappedClips = (overlay.clips ?? []).map((clip) => {
     let source = clip.source;
@@ -77,20 +77,20 @@ function mergeOverlayNodes(
         ...source,
         tracks: source.tracks.map((track) => ({
           ...track,
-          targetId: remapId(track.targetId) ?? track.targetId,
+          layerId: remapId(track.layerId) ?? track.layerId,
         })),
       };
     }
     return {
       ...clip,
       id: uid("clip"),
-      targetId: remapId(clip.targetId),
+      layerId: remapId(clip.layerId),
       source,
     };
   });
   return {
     ...base,
-    nodes: [...base.nodes, ...remappedNodes],
+    layers: [...base.layers, ...remappedNodes],
     clips: [...(base.clips ?? []), ...remappedClips],
   };
 }
@@ -159,7 +159,7 @@ function findClipById(
 
 /**
  * Flatten editor snapshot → MotionProject V3 tuần tự.
- * Base gaps → pad scenes; overlay active → merge nodes vào segment.
+ * Base gaps → pad scenes; overlay active → merge layers vào segment.
  * Rejects invalid TimelineDocument when validation fails.
  */
 export function buildExportProject(

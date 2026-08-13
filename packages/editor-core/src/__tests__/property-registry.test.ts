@@ -41,7 +41,7 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.nodes[0]!;
+    const node = result.document.project.scenes[0]!.layers[0]!;
     expect(node.transform.x).toBe(120);
   });
 
@@ -61,7 +61,7 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    expect(result.document.project.scenes[0]!.nodes[0]!.transform.opacity).toBe(
+    expect(result.document.project.scenes[0]!.layers[0]!.transform.opacity).toBe(
       1,
     );
   });
@@ -82,26 +82,26 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    expect(result.document.project.scenes[0]!.nodes[0]!.timing).toEqual({
+    expect(result.document.project.scenes[0]!.layers[0]!.timing).toEqual({
       start: 0.5,
       duration: 1.25,
     });
   });
 
-  it("reorders scene nodes top-to-bottom via zIndex", () => {
+  it("reorders scene layers top-to-bottom via zIndex", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const scene = project.scenes[0]!;
-    const nodes = [
-      { ...scene.nodes[0]!, id: "n-top", zIndex: 2 },
+    const layers = [
+      { ...scene.layers[0]!, id: "n-top", zIndex: 2 },
       {
-        ...scene.nodes[0]!,
+        ...scene.layers[0]!,
         id: "n-mid",
         zIndex: 1,
         type: "shape" as const,
         payload: { shape: "rect" as const, width: 10, height: 10 },
       },
       {
-        ...scene.nodes[0]!,
+        ...scene.layers[0]!,
         id: "n-bot",
         zIndex: 0,
         type: "shape" as const,
@@ -111,19 +111,19 @@ describe("property commands", () => {
     const doc: TimelineDocument = {
       project: {
         ...project,
-        scenes: [{ ...scene, nodes }],
+        scenes: [{ ...scene, layers }],
       },
       clips,
       lanes,
     };
     const result = executePropertyCommand(doc, {
-      type: "reorder-scene-nodes",
+      type: "reorder-scene-layers",
       sceneId: scene.id,
-      nodeIds: ["n-mid", "n-top", "n-bot"],
+      layerIds: ["n-mid", "n-top", "n-bot"],
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const next = result.document.project.scenes[0]!.nodes;
+    const next = result.document.project.scenes[0]!.layers;
     expect(next.map((n) => n.id)).toEqual(["n-mid", "n-top", "n-bot"]);
     expect(next.map((n) => n.zIndex)).toEqual([2, 1, 0]);
   });
@@ -144,7 +144,7 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.nodes[0]!;
+    const node = result.document.project.scenes[0]!.layers[0]!;
     expect(node.name).toBe("Hero");
     expect(node.transform.visible).toBe(false);
   });
@@ -192,12 +192,12 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.nodes[0]!;
+    const node = result.document.project.scenes[0]!.layers[0]!;
     expect(node.transform.scaleX).toBe(2.5);
     expect(node.transform.scaleY).toBe(2.5);
   });
 
-  it("sets fill/stroke style on text nodes", () => {
+  it("sets fill/stroke style on text layers", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
     const targets = resolvePropertyTargets(
@@ -213,7 +213,7 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.nodes[0]!;
+    const node = result.document.project.scenes[0]!.layers[0]!;
     expect(node.type).toBe("text");
     if (node.type !== "text") return;
     expect(node.style?.fill).toBe("#ff0000");
@@ -237,7 +237,7 @@ describe("Logic-2 property domain depth", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.nodes[0]!;
+    const node = result.document.project.scenes[0]!.layers[0]!;
     expect(node.type).toBe("text");
     if (node.type !== "text") return;
     expect(getTextPayloadPlain(node.payload)).toBe("Hello");
@@ -280,7 +280,7 @@ describe("Logic-2 property domain depth", () => {
     expect(withEffect.status).toBe("applied");
     if (withEffect.status !== "applied") return;
     expect(
-      withEffect.document.project.scenes[0]!.nodes[0]!.effects?.[0],
+      withEffect.document.project.scenes[0]!.layers[0]!.effects?.[0],
     ).toEqual({ id: "fx.blur", type: "blur", radius: 8 });
 
     const withKey = executePropertyCommand(withEffect.document, {
@@ -333,13 +333,13 @@ describe("Logic-2 property domain depth", () => {
       scenes: [
         {
           ...scene,
-          nodes: [
-            ...scene.nodes,
+          layers: [
+            ...scene.layers,
             {
               id: groupId,
               type: "group" as const,
-              parentId: null,
-              transform: { ...scene.nodes[0]!.transform },
+              parentLayerId: null,
+              transform: { ...scene.layers[0]!.transform },
             },
           ],
         },
@@ -349,7 +349,7 @@ describe("Logic-2 property domain depth", () => {
       { project: withGroup, clips, lanes },
       {
         type: "set-node-style",
-        targets: [{ sceneId: scene.id, nodeId: groupId }],
+        targets: [{ sceneId: scene.id, layerId: groupId }],
         patch: { fill: "#fff" },
       },
     );
@@ -366,12 +366,12 @@ describe("Logic-2 property domain depth", () => {
       scenes: [
         {
           ...scene,
-          nodes: [
+          layers: [
             {
               id: imageId,
               type: "image" as const,
-              parentId: null,
-              transform: { ...scene.nodes[0]!.transform },
+              parentLayerId: null,
+              transform: { ...scene.layers[0]!.transform },
               payload: { assetId },
             },
           ],
@@ -382,13 +382,13 @@ describe("Logic-2 property domain depth", () => {
       { project: withImage, clips, lanes },
       {
         type: "set-node-media",
-        targets: [{ sceneId: scene.id, nodeId: imageId }],
+        targets: [{ sceneId: scene.id, layerId: imageId }],
         patch: { crop: { x: 0.7, y: 0.8, width: 0.5, height: 0.5 } },
       },
     );
     expect(injected.status).toBe("applied");
     if (injected.status !== "applied") return;
-    const node = injected.document.project.scenes[0]!.nodes.find(
+    const node = injected.document.project.scenes[0]!.layers.find(
       (n) => n.id === imageId,
     );
     expect(node?.type).toBe("image");
@@ -427,7 +427,7 @@ describe("Logic-2 property domain depth", () => {
     expect(reordered.status).toBe("applied");
     if (reordered.status !== "applied") return;
     const ids = (
-      reordered.document.project.scenes[0]!.nodes[0]!.effects ?? []
+      reordered.document.project.scenes[0]!.layers[0]!.effects ?? []
     ).map((e) => e.id);
     expect(ids).toEqual(["c", "a", "b"]);
   });
@@ -582,7 +582,7 @@ describe("history coalesce", () => {
           i === 0
             ? {
                 ...s,
-                nodes: s.nodes.map((n, j) =>
+                layers: s.layers.map((n, j) =>
                   j === 0 ? { ...n, transform: { ...n.transform, x: 10 } } : n,
                 ),
               }
@@ -614,7 +614,7 @@ describe("history coalesce", () => {
           i === 0
             ? {
                 ...s,
-                nodes: s.nodes.map((n, j) =>
+                layers: s.layers.map((n, j) =>
                   j === 0 ? { ...n, transform: { ...n.transform, x: 50 } } : n,
                 ),
               }
@@ -636,7 +636,7 @@ describe("history coalesce", () => {
 
     expect(state.past).toHaveLength(1);
     expect(state.past[0]!.before).toBe(before);
-    expect(state.past[0]!.after.project.scenes[0]!.nodes[0]!.transform.x).toBe(
+    expect(state.past[0]!.after.project.scenes[0]!.layers[0]!.transform.x).toBe(
       50,
     );
   });

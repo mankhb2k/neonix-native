@@ -5,12 +5,12 @@ import {
 } from "../patch";
 import type { MotionProjectV3 } from "../index";
 
-/** A minimal text node for use in test scenes (scenes require nodes.min(1)). */
+/** A minimal text node for use in test scenes (scenes require layers.min(1)). */
 function minNode() {
   return {
     id: "n1",
     type: "text",
-    parentId: null,
+    parentLayerId: null,
     visible: true,
     locked: false,
     transform: {
@@ -92,7 +92,7 @@ describe("V3 patch contract", () => {
           scene: {
             id: "intro",
             duration: 3,
-            nodes: [minNode()],
+            layers: [minNode()],
             clips: [],
           },
         },
@@ -177,7 +177,7 @@ describe("V3 patch contract", () => {
           scene: {
             id: "intro",
             duration: 3,
-            nodes: [minNode()],
+            layers: [minNode()],
             clips: [],
           },
         },
@@ -190,7 +190,7 @@ describe("V3 patch contract", () => {
 
   it("rejects duplicate scene add", () => {
     const project = minimalProject();
-    const scene = { id: "intro", duration: 3, nodes: [minNode()], clips: [] };
+    const scene = { id: "intro", duration: 3, layers: [minNode()], clips: [] };
     const patch = {
       format: "motion-project-patch" as const,
       formatVersion: 1 as const,
@@ -213,7 +213,7 @@ describe("V3 patch contract", () => {
       operations: [
         {
           op: "addScene",
-          scene: { id: "intro", duration: 3, nodes: [minNode()], clips: [] },
+          scene: { id: "intro", duration: 3, layers: [minNode()], clips: [] },
         },
       ],
     });
@@ -244,14 +244,14 @@ describe("V3 patch contract", () => {
           id: "intro",
           duration: 3,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
         {
           id: "outro",
           duration: 2,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
       ],
@@ -310,7 +310,7 @@ describe("V3 patch contract", () => {
           id: "intro",
           duration: 3,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
       ],
@@ -361,7 +361,7 @@ describe("V3 patch contract", () => {
           id: "intro",
           duration: 5,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
       ],
@@ -416,7 +416,7 @@ describe("V3 patch contract", () => {
           id: "intro",
           duration: 3,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
       ],
@@ -495,21 +495,21 @@ describe("V3 patch contract", () => {
           id: "a",
           duration: 2,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
         {
           id: "b",
           duration: 3,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
         {
           id: "c",
           duration: 1,
           space: "flat-2d",
-          nodes: [minNode()],
+          layers: [minNode()],
           clips: [],
         },
       ],
@@ -628,7 +628,7 @@ describe("V3 patch contract", () => {
             target: {
               kind: "scene",
               sceneId: "s1",
-              nodeId: "n1",
+              layerId: "n1",
               property: "payload.content.text",
             },
           },

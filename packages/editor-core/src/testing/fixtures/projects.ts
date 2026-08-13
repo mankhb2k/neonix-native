@@ -42,16 +42,16 @@ function sceneClip(input: {
   return { kind: "scene", ...input };
 }
 
-/** Scene tối giản dùng trong fixture editor (V3 nodes). */
+/** Scene tối giản dùng trong fixture editor (V3 layers). */
 function scene(id: string, name: string, duration = 3) {
   return {
     id,
     duration,
-    nodes: [
+    layers: [
       {
         id: `${id}.title`,
         type: "text" as const,
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
         transform: {
           x: 40,
@@ -389,11 +389,11 @@ export function fixtureMultiSceneReferences() {
       {
         id: "scene.a",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "node.a.root",
             type: "group",
-            parentId: null,
+            parentLayerId: null,
             transform: {
               x: 0,
               y: 0,
@@ -413,7 +413,7 @@ export function fixtureMultiSceneReferences() {
           {
             id: "node.a.child",
             type: "text",
-            parentId: "node.a.root",
+            parentLayerId: "node.a.root",
             transform: {
               x: 10,
               y: 10,
@@ -440,7 +440,7 @@ export function fixtureMultiSceneReferences() {
         clips: [
           {
             id: "anim.a",
-            targetId: "node.a.child",
+            layerId: "node.a.child",
             schedule: { kind: "absolute", at: 0 },
             duration: 1,
             playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -448,7 +448,7 @@ export function fixtureMultiSceneReferences() {
               kind: "tracks",
               tracks: [
                 {
-                  targetId: "node.a.child",
+                  layerId: "node.a.child",
                   property: "transform.opacity",
                   keys: [
                     { t: 0, v: 0 },
@@ -463,11 +463,11 @@ export function fixtureMultiSceneReferences() {
       {
         id: "scene.b",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "node.b.title",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             transform: {
               x: 20,
               y: 20,

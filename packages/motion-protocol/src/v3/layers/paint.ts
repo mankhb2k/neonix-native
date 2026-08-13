@@ -56,13 +56,13 @@ export const PaintStyleSchema = z
     fillOpacity: FiniteNumberSchema.min(0).max(1).optional(),
     stroke: z.string().min(1).optional(),
     strokeWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     strokeOpacity: FiniteNumberSchema.min(0).max(1).optional(),
     lineCap: z.enum(["butt", "round", "square"]).optional(),
     lineJoin: z.enum(["miter", "round", "bevel"]).optional(),
     miterLimit: FiniteNumberSchema.positive()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     dash: z
       .array(

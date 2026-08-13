@@ -26,7 +26,7 @@ describe("PreparedRuntimeProject (type smoke)", () => {
 
   it("TextLayoutInput shape is valid", () => {
     const tli: TextLayoutInput = {
-      nodeId: "text-1",
+      layerId: "text-1",
       text: "Hello",
       fontFamily: "Arial",
       fontSize: 24,
@@ -39,16 +39,16 @@ describe("PreparedRuntimeProject (type smoke)", () => {
   it("CompositingScope shape is valid", () => {
     const scope: CompositingScope = {
       scopeId: "mask-1",
-      nodeIds: ["node-a", "node-b"],
+      layerIds: ["node-a", "node-b"],
       reason: "mask",
-      sourceNodeId: "mask-src",
+      sourceLayerId: "mask-src",
     };
     expect(scope.reason).toBe("mask");
   });
 
   it("DepGraphNode shape is valid", () => {
     const dg: DepGraphNode = {
-      nodeId: "node-1",
+      layerId: "node-1",
       dependsOn: ["parent-1"],
       dependedOnBy: ["child-1", "child-2"],
     };
@@ -84,7 +84,7 @@ describe("RuntimePatch protocol", () => {
         kind: "paint",
         sequence: 3,
         sceneId: "s1",
-        nodeId: "n1",
+        layerId: "n1",
         property: "style.fill",
         value: "#ff0000",
       };
@@ -96,7 +96,7 @@ describe("RuntimePatch protocol", () => {
         kind: "paint",
         sequence: 5,
         sceneId: "s1",
-        nodeId: "n1",
+        layerId: "n1",
         property: "style.fill",
         value: "#ff0000",
       };
@@ -111,7 +111,7 @@ describe("RuntimePatch protocol", () => {
         kind: "paint",
         sequence: 1,
         sceneId: "scene-a",
-        nodeId: "n1",
+        layerId: "n1",
         property: "transform.opacity",
         value: 0.5,
       };
@@ -144,7 +144,7 @@ describe("RuntimePatch protocol", () => {
       kind: "paint",
       sequence: 1,
       sceneId: "s",
-      nodeId: "n",
+      layerId: "n",
       property: "style.fill",
       value: "#fff",
     };
@@ -155,7 +155,7 @@ describe("RuntimePatch protocol", () => {
       sequence: 2,
       sceneId: "s",
       tracks: [
-        { targetId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] },
+        { layerId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] },
       ],
     };
     expect(track.kind).toBe("track-values");

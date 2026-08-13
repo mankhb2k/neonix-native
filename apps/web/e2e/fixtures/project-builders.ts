@@ -45,7 +45,7 @@ function textNode(id: string, text: string) {
   return {
     id,
     type: "text" as const,
-    parentId: null,
+    parentLayerId: null,
     transform: {
       x: 40,
       y: 40,
@@ -74,7 +74,7 @@ function scene(id: string, name: string, duration: number) {
   return {
     id,
     duration,
-    nodes: [textNode(`${id}.title`, name)],
+    layers: [textNode(`${id}.title`, name)],
     clips: [] as unknown[],
   };
 }

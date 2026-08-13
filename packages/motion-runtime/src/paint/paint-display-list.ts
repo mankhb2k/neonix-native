@@ -22,7 +22,7 @@ export type PaintTransformState = {
 export type PaintLayerScope = {
   kind: "layer";
   key: string;
-  nodeId?: string;
+  layerId?: string;
   isolation: boolean;
   offscreen: boolean;
   mask?: {
@@ -35,7 +35,7 @@ export type PaintLayerScope = {
 export type PaintGroupScope = {
   kind: "group";
   key: string;
-  nodeId: string;
+  layerId: string;
   transform?: PaintTransformState;
   children: PaintDisplayNode[];
 };

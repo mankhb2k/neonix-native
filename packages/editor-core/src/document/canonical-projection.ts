@@ -168,7 +168,7 @@ export function validateStableIds(doc: TimelineDocument): StableIdViolation[] {
 
   // Check scene node references
   for (const scene of doc.project.scenes) {
-    for (const node of scene.nodes) {
+    for (const node of scene.layers) {
       if (node.assetId && !assetIds.has(node.assetId)) {
         violations.push({
           kind: "dangling_asset",

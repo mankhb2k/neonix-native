@@ -76,11 +76,11 @@
       "id": "scene-1",
       "name": "Opening",
       "duration": 5,
-      "nodes": [
+      "layers": [
         {
           "id": "opening-text",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -112,11 +112,11 @@
       "id": "scene-2",
       "name": "Main Content",
       "duration": 5,
-      "nodes": [
+      "layers": [
         {
           "id": "content-text",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,

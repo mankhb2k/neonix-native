@@ -25,7 +25,7 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
     const layer: EvaluatedLayer = {
       layerKey: "s1:n1",
       sceneId: "s1",
-      nodeId: "n1",
+      layerId: "n1",
       composition: {
         sceneId: "s1",
         localTime: 0.5,
@@ -38,7 +38,7 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
       interaction: {
         sceneId: "s1",
         time: 0.5,
-        nodes: [],
+        layers: [],
         width: 1920,
         height: 1080,
       },
@@ -90,7 +90,7 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
 
   it("EvaluatedMediaState has required fields", () => {
     const media: EvaluatedMediaState = {
-      nodeId: "n1",
+      layerId: "n1",
       mediaTime: 2.0,
       sourceFrame: 60,
       assetId: "vid-1",
@@ -130,14 +130,14 @@ describe("stableLayerKey", () => {
 describe("parseStableLayerKey", () => {
   it("round-trips without iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a");
-    expect(parsed).toEqual({ sceneId: "scene-1", nodeId: "node-a" });
+    expect(parsed).toEqual({ sceneId: "scene-1", layerId: "node-a" });
   });
 
   it("round-trips with iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a::iter3");
     expect(parsed).toEqual({
       sceneId: "scene-1",
-      nodeId: "node-a",
+      layerId: "node-a",
       iteration: 3,
     });
   });
@@ -189,11 +189,11 @@ function emptyRuntime(): MotionRuntimeProject {
         id: "s1",
         duration: 2,
         space: "flat-2d",
-        nodes: [
+        layers: [
           {
             type: "group",
             id: "n1",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 0,
             transform: {
               x: 0,
@@ -335,7 +335,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     rt.scenes.push({
       id: "s2",
       duration: 3,
-      nodes: [],
+      layers: [],
       tracks: [],
     });
     rt.timeline.visualTracks = [
@@ -372,7 +372,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     rt.scenes.push({
       id: "s2",
       duration: 3,
-      nodes: [],
+      layers: [],
       tracks: [],
     });
     // Remove the declared duration to exercise the legacy fallback path.
@@ -405,7 +405,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     rt.scenes.push({
       id: "s2",
       duration: 3,
-      nodes: [],
+      layers: [],
       tracks: [],
     });
     // Content ends at 5s — duration must match SoT semantics.

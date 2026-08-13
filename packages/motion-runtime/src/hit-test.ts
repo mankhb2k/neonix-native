@@ -23,15 +23,15 @@ export function hitTestNode(item: EvaluatedNode, point: Point2D, includeContaine
 export function hitTestScene(scene: RuntimeScene, time: number, point: Point2D, includeContainers = false): EvaluatedNode[] {
   const evaluated = evaluateScene(scene, time);
   const byId = new Map(evaluated.map((item) => [item.node.id, item]));
-  const visibleMaskSources = new Set(scene.nodes.filter((node) => node.mask?.sourceVisibility === "content-and-mask").map((node) => node.mask!.sourceNodeId));
-  const hiddenMaskSources = new Set(scene.nodes.filter((node) => node.mask?.sourceVisibility === "mask-only").map((node) => node.mask!.sourceNodeId));
-  // Sort all nodes by hierarchy (top-first) so parent groups anchor children properly
+  const visibleMaskSources = new Set(scene.layers.filter((node) => node.mask?.sourceVisibility === "content-and-mask").map((node) => node.mask!.sourceLayerId));
+  const hiddenMaskSources = new Set(scene.layers.filter((node) => node.mask?.sourceVisibility === "mask-only").map((node) => node.mask!.sourceLayerId));
+  // Sort all layers by hierarchy (top-first) so parent groups anchor children properly
   const ordered = hierarchyRenderOrderReverse(evaluated);
   return ordered.filter((item) => {
     if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) return false;
     if (!hitTestNode(item, point, includeContainers)) return false;
     if (!item.node.mask) return true;
-    const source = byId.get(item.node.mask.sourceNodeId);
+    const source = byId.get(item.node.mask.sourceLayerId);
     if (!source) return false;
     const inside = containsPoint(source.worldBounds, point);
     if (item.node.mask.mode === "inverse-alpha" || item.node.mask.mode === "inverse-luma") return !inside;
@@ -42,9 +42,9 @@ export function hitTestScene(scene: RuntimeScene, time: number, point: Point2D, 
 export function subtreeBounds(evaluated: EvaluatedNode[], rootId: string, drawableOnly = true): Bounds2D | undefined {
   const byParent = new Map<string | null, EvaluatedNode[]>();
   for (const item of evaluated) {
-    const siblings = byParent.get(item.node.parentId) ?? [];
+    const siblings = byParent.get(item.node.parentLayerId) ?? [];
     siblings.push(item);
-    byParent.set(item.node.parentId, siblings);
+    byParent.set(item.node.parentLayerId, siblings);
   }
   const root = evaluated.find((item) => item.node.id === rootId);
   if (!root) return undefined;
@@ -62,7 +62,7 @@ export function hitTestTextRun(
   item: EvaluatedNode,
   point: Point2D,
   runs: Array<{ id: string; text: string }>,
-): { runId: string; sourceRef: { kind: "text-run"; nodeId: string; runId: string } } | null {
+): { runId: string; sourceRef: { kind: "text-run"; layerId: string; runId: string } } | null {
   if (item.node.type !== "text" || !hitTestNode(item, point)) return null;
   if (runs.length === 0) return null;
   const inverse = invertMatrix(item.worldMatrix);
@@ -78,12 +78,12 @@ export function hitTestTextRun(
     if (local.x >= start && local.x <= end) {
       return {
         runId: run.id,
-        sourceRef: { kind: "text-run", nodeId: item.node.id, runId: run.id },
+        sourceRef: { kind: "text-run", layerId: item.node.id, runId: run.id },
       };
     }
   }
   return {
     runId: runs[0]!.id,
-    sourceRef: { kind: "text-run", nodeId: item.node.id, runId: runs[0]!.id },
+    sourceRef: { kind: "text-run", layerId: item.node.id, runId: runs[0]!.id },
   };
 }

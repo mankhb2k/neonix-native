@@ -34,12 +34,12 @@ export function createDemoMotionProject(): MotionProjectV3 {
         id: DEMO_SCENE_ID,
         name: "Demo",
         duration: 3,
-        nodes: [
+        layers: [
           {
             id: "node.bg",
             type: "shape",
             name: "Background",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 0,
             transform: {
               x: 0,
@@ -63,7 +63,7 @@ export function createDemoMotionProject(): MotionProjectV3 {
             id: "node.group",
             type: "group",
             name: "Hero",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 1,
             transform: {
               x: 960,
@@ -86,7 +86,7 @@ export function createDemoMotionProject(): MotionProjectV3 {
             id: "node.card",
             type: "shape",
             name: "Card",
-            parentId: "node.group",
+            parentLayerId: "node.group",
             zIndex: 0,
             transform: {
               x: 0,
@@ -110,7 +110,7 @@ export function createDemoMotionProject(): MotionProjectV3 {
             id: "node.title",
             type: "text",
             name: "Title",
-            parentId: "node.group",
+            parentLayerId: "node.group",
             zIndex: 1,
             transform: {
               x: 0,
@@ -138,7 +138,7 @@ export function createDemoMotionProject(): MotionProjectV3 {
             id: "node.dot",
             type: "shape",
             name: "Accent",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 2,
             transform: {
               x: 240,

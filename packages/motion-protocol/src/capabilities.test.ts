@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ExtrapolationBehaviorSchema,
   KeyframeEasingSchema,
-  NodeSchema,
+  LayerSchema,
   TransformSchema,
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
@@ -25,12 +25,12 @@ const baseTransform = {
 };
 
 describe("motion-protocol R2–R5 contract", () => {
-  it("accepts adjustment nodes", () => {
+  it("accepts adjustment layers", () => {
     expect(
-      NodeSchema.parse({
+      LayerSchema.parse({
         id: "grade",
         type: "adjustment",
-        parentId: null,
+        parentLayerId: null,
         transform: baseTransform,
         payload: { brightness: 0.1, contrast: 1.1, saturation: 1 },
       }).type,
@@ -104,11 +104,11 @@ describe("motion-protocol R2–R5 contract", () => {
     ).toThrow();
   });
 
-  it("parses solid nodes via V3 NodeSchema", () => {
-    const node = NodeSchema.parse({
+  it("parses solid layers via V3 LayerSchema", () => {
+    const node = LayerSchema.parse({
       id: "plate",
       type: "solid",
-      parentId: null,
+      parentLayerId: null,
       transform: {
         ...baseTransform,
         width: 100,

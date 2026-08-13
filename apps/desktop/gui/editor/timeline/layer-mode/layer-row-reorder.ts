@@ -4,8 +4,8 @@
 
 import type { TimelineLane } from "@motionvideo/editor-core";
 import {
-  reorderLayerNodeIds as reorderLayerNodeIdsShared,
-  reorderLayerNodeIdsByInsert as reorderLayerNodeIdsByInsertShared,
+  reorderLayerLayerIds as reorderLayerLayerIdsShared,
+  reorderLayerLayerIdsByInsert as reorderLayerLayerIdsByInsertShared,
 } from "@motionvideo/editor-interactions";
 import {
   collectSceneLanesFromLayout,
@@ -13,21 +13,21 @@ import {
 } from "../drop/lane-drop-target";
 import { nodeIdFromLayerLaneId } from "./build-layer-mode-view";
 
-export function reorderLayerNodeIds(
-  orderedNodeIds: readonly string[],
+export function reorderLayerLayerIds(
+  orderedLayerIds: readonly string[],
   movingId: string,
   targetIndex: number,
 ): string[] {
-  return reorderLayerNodeIdsShared(orderedNodeIds, movingId, targetIndex);
+  return reorderLayerLayerIdsShared(orderedLayerIds, movingId, targetIndex);
 }
 
-export function reorderLayerNodeIdsByInsert(
-  orderedNodeIds: readonly string[],
+export function reorderLayerLayerIdsByInsert(
+  orderedLayerIds: readonly string[],
   movingId: string,
   insertBeforeIndex: number,
 ): string[] {
-  return reorderLayerNodeIdsByInsertShared(
-    orderedNodeIds,
+  return reorderLayerLayerIdsByInsertShared(
+    orderedLayerIds,
     movingId,
     insertBeforeIndex,
   );
@@ -129,7 +129,7 @@ export function zIndexForLayerInsertGap(
  *
  * Unlike `zIndexForLayerInsertGap` (which uses a global ordered list),
  * this function only considers `siblingZIndices` — the zIndex values of
- * nodes that share the same `parentId`. When adjacent integer zIndex values
+ * layers that share the same `parentLayerId`. When adjacent integer zIndex values
  * leave no gap, the result may intentionally tie with the sibling above; V3
  * render/editor order then falls back to declaration order.
  */
@@ -185,8 +185,8 @@ export function resolveLayerLaneAtClientY(
 
 export type SiblingGroupReorderInput = {
   /** Ordered node ids (top→bottom, zIndex desc). */
-  orderedNodeIds: readonly string[];
-  /** Map from nodeId → parentId (null for roots). */
+  orderedLayerIds: readonly string[];
+  /** Map from layerId → parentLayerId (null for roots). */
   parentIdByNodeId: Map<string, string | null>;
 };
 
@@ -206,14 +206,14 @@ export function isSiblingLocalMove(
   movingId: string,
   insertBeforeIndex: number,
 ): boolean {
-  const { orderedNodeIds, parentIdByNodeId } = input;
+  const { orderedLayerIds, parentIdByNodeId } = input;
   const movingParent = parentIdByNodeId.get(movingId);
   if (movingParent === undefined) return false;
 
-  // Find all nodes with the same parentId
+  // Find all layers with the same parentLayerId
   const siblingIndices: number[] = [];
-  for (let i = 0; i < orderedNodeIds.length; i += 1) {
-    const pid = parentIdByNodeId.get(orderedNodeIds[i]!);
+  for (let i = 0; i < orderedLayerIds.length; i += 1) {
+    const pid = parentIdByNodeId.get(orderedLayerIds[i]!);
     if (pid === movingParent) {
       siblingIndices.push(i);
     }

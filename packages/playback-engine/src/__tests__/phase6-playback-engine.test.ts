@@ -34,11 +34,11 @@ function makeRuntime(
       id: "s1",
       duration: duration,
       space: "flat-2d" as const,
-      nodes: [
+      layers: [
         {
           type: "group" as const,
           id: "n1",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 0,
           transform: {
             x: 0,
@@ -64,11 +64,11 @@ function makeRuntime(
       id: `s${i + 2}`,
       duration: 1,
       space: "flat-2d" as const,
-      nodes: [
+      layers: [
         {
           type: "group" as const,
           id: `n_extra_${i}`,
-          parentId: null,
+          parentLayerId: null,
           zIndex: 0,
           transform: {
             x: 0,

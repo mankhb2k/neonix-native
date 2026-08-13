@@ -173,7 +173,7 @@ export type CompositingContext = {
    *
    * Group containers are always plain — no direct isolation here.
    */
-  pushGroup(key: string, nodeId: string): Container;
+  pushGroup(key: string, layerId: string): Container;
 
   /** Pop the current layer scope. */
   popLayer(key: string): void;
@@ -299,15 +299,15 @@ export function createCompositingContext(
     return layer.childContainer;
   }
 
-  function pushGroup(key: string, nodeId: string): Container {
+  function pushGroup(key: string, layerId: string): Container {
     const parent = stack[stack.length - 1]!.container;
     // Look for existing group container by key
     let groupContainer = parent.children.find(
-      (c) => c.label === `${key}_${nodeId}`,
+      (c) => c.label === `${key}_${layerId}`,
     ) as Container | undefined;
     if (!groupContainer) {
       groupContainer = new Container({ sortableChildren: true });
-      groupContainer.label = `${key}_${nodeId}`;
+      groupContainer.label = `${key}_${layerId}`;
       parent.addChild(groupContainer);
     }
     stack.push({ kind: "group", container: groupContainer });

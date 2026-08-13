@@ -22,11 +22,11 @@
       "id": "scene-a",
       "name": "A",
       "duration": 5,
-      "nodes": [
+      "layers": [
         {
           "id": "node-img",
           "type": "image",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -49,7 +49,7 @@
         {
           "id": "node-text",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -131,7 +131,7 @@
       "target": {
         "kind": "scene",
         "sceneId": "scene-a",
-        "nodeId": "node-text",
+        "layerId": "node-text",
         "property": "payload.content.text"
       }
     }

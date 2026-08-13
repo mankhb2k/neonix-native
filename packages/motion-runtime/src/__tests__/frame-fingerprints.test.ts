@@ -72,11 +72,11 @@ function frameFingerprint(frame: EvaluatedCompositionFrame | null): string {
     layers: frame.layers.map((layer) => ({
       layerKey: layer.layerKey,
       sceneId: layer.sceneId,
-      nodeId: layer.nodeId,
+      layerId: layer.layerId,
       composition: layer.composition,
       interactionItems: layer.interaction.items.map((item) => ({
         key: item.key,
-        nodeId: item.nodeId,
+        layerId: item.layerId,
         nodeType: item.nodeType,
         worldMatrix: item.worldMatrix,
         worldOpacity: item.worldOpacity,

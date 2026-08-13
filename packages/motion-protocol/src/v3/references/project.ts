@@ -2,7 +2,7 @@
  * V3 project-wide reference validation.
  */
 import type { MotionProjectV3 } from "../project";
-import type { NodeV3 } from "../nodes";
+import type { LayerV3 } from "../layers";
 import { isVariableReference } from "../values";
 import type { ProjectVariableV3 } from "../variables";
 import {
@@ -12,8 +12,8 @@ import {
 } from "../components";
 import { isPropKeyframesValue } from "../prop-values";
 import { duplicates } from "./helpers";
-import { validateNodeGraphV3 } from "./node-graph";
-import { validateNodeAssetsV3 } from "./node-assets";
+import { validateLayerGraphV3 } from "./layer-graph";
+import { validateLayerAssetsV3 } from "./layer-assets";
 import type { ReferenceIssue } from "./types";
 
 const TRANSFORM_PUBLIC_PROPERTIES = new Set([
@@ -53,7 +53,7 @@ const PAINT_STYLE_PUBLIC_PROPERTIES = new Set([
   "style.dashOffset",
 ]);
 
-const NODE_PUBLIC_PAYLOAD_PROPERTIES: Record<NodeV3["type"], Set<string>> = {
+const NODE_PUBLIC_PAYLOAD_PROPERTIES: Record<LayerV3["type"], Set<string>> = {
   group: new Set(["payload.compositing.mode"]),
   bone: new Set([
     "payload.length",
@@ -126,7 +126,7 @@ const NODE_PUBLIC_PAYLOAD_PROPERTIES: Record<NodeV3["type"], Set<string>> = {
   component: new Set([]),
 };
 
-function isPublicTargetPropertyValid(node: NodeV3, property: string): boolean {
+function isPublicTargetPropertyValid(node: LayerV3, property: string): boolean {
   if (BASE_PUBLIC_PROPERTIES.has(property)) return true;
   if (TRANSFORM_PUBLIC_PROPERTIES.has(property)) return true;
   if (
@@ -500,14 +500,14 @@ function validatePropValue(
 }
 
 function collectDirectChildComponentIds(
-  nodes: NodeV3[],
-): Array<{ nodeId: string; componentId: string }> {
-  return nodes
+  layers: LayerV3[],
+): Array<{ layerId: string; componentId: string }> {
+  return layers
     .filter(
-      (n): n is Extract<NodeV3, { type: "component" }> =>
+      (n): n is Extract<LayerV3, { type: "component" }> =>
         n.type === "component",
     )
-    .map((n) => ({ nodeId: n.id, componentId: n.payload.componentId }));
+    .map((n) => ({ layerId: n.id, componentId: n.payload.componentId }));
 }
 
 function detectComponentCycles(
@@ -529,7 +529,7 @@ function detectComponentCycles(
     visiting.add(componentId);
     const component = componentById.get(componentId);
     if (component) {
-      for (const child of collectDirectChildComponentIds(component.nodes)) {
+      for (const child of collectDirectChildComponentIds(component.layers)) {
         dfs(child.componentId, [...stack, componentId]);
       }
     }
@@ -560,14 +560,14 @@ function extractVariableReferenceId(value: unknown): string | undefined {
 }
 
 /**
- * Validate component nodes within a scene (or component) node list.
+ * Validate component layers within a scene (or component) node list.
  *
  * Each `type: "component"` node must reference an existing component, its
  * `variantId` (when present) must be declared, and `payload.props` keys must
  * match declared prop ids with compatible values.
  */
-function validateComponentNodeReferences(
-  nodes: NodeV3[],
+function validateComponentLayerReferences(
+  layers: LayerV3[],
   componentById: Map<string, import("../components").ComponentDefinitionV3>,
   variableById: Map<string, ProjectVariableV3>,
   assetById: Map<string, AssetLike>,
@@ -575,7 +575,7 @@ function validateComponentNodeReferences(
   sceneDuration?: number,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
-  for (const node of nodes) {
+  for (const node of layers) {
     if (node.type !== "component") continue;
     const path = `${pathPrefix}.${node.id}`;
     const component = componentById.get(node.payload.componentId);
@@ -625,7 +625,7 @@ function collectScenePropTrackConflicts(
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
   for (const scene of project.scenes) {
-    for (const node of scene.nodes) {
+    for (const node of scene.layers) {
       if (node.type !== "component") continue;
       const keyframedProps = new Set<string>();
       for (const [propId, value] of Object.entries(node.payload.props ?? {})) {
@@ -633,7 +633,7 @@ function collectScenePropTrackConflicts(
       }
       if (keyframedProps.size === 0) continue;
       for (const clip of scene.clips ?? []) {
-        if (clip.targetId !== node.id) continue;
+        if (clip.layerId !== node.id) continue;
         const source = clip.source;
         if (!source || source.kind !== "tracks") continue;
         for (const track of source.tracks ?? []) {
@@ -794,16 +794,16 @@ export function validateMotionProjectV3References(
           message: `Unknown scene: ${bindingTarget.sceneId}`,
         });
       } else if (
-        !scene.nodes.some((node) => node.id === bindingTarget.nodeId)
+        !scene.layers.some((node) => node.id === bindingTarget.layerId)
       ) {
         issues.push({
-          path: `${path}.target.nodeId`,
-          message: `Unknown node: ${bindingTarget.nodeId}`,
+          path: `${path}.target.layerId`,
+          message: `Unknown node: ${bindingTarget.layerId}`,
         });
       }
-    } else if (bindingTarget.kind === "componentNode") {
+    } else if (bindingTarget.kind === "componentLayer") {
       const scene = sceneById.get(bindingTarget.sceneId);
-      const node = scene?.nodes.find((n) => n.id === bindingTarget.nodeId);
+      const node = scene?.layers.find((n) => n.id === bindingTarget.layerId);
       if (!scene) {
         issues.push({
           path: `${path}.target.sceneId`,
@@ -811,20 +811,20 @@ export function validateMotionProjectV3References(
         });
       } else if (!node) {
         issues.push({
-          path: `${path}.target.nodeId`,
-          message: `Unknown node: ${bindingTarget.nodeId}`,
+          path: `${path}.target.layerId`,
+          message: `Unknown node: ${bindingTarget.layerId}`,
         });
       } else if (node.type !== "component") {
         issues.push({
-          path: `${path}.target.nodeId`,
-          message: `Node "${bindingTarget.nodeId}" is not a component node (type "${node.type}")`,
+          path: `${path}.target.layerId`,
+          message: `Node "${bindingTarget.layerId}" is not a component node (type "${node.type}")`,
         });
       } else {
         const component = componentById.get(node.payload.componentId);
         if (!component) {
           issues.push({
-            path: `${path}.target.nodeId`,
-            message: `Component node "${bindingTarget.nodeId}" references unknown component "${node.payload.componentId}"`,
+            path: `${path}.target.layerId`,
+            message: `Component node "${bindingTarget.layerId}" references unknown component "${node.payload.componentId}"`,
           });
         } else if (
           !component.props.some((p) => p.id === bindingTarget.propId)
@@ -856,31 +856,31 @@ export function validateMotionProjectV3References(
   // ── scenes ───────────────────────────────────────────────────────────
   for (const scene of project.scenes) {
     issues.push(
-      ...validateNodeGraphV3(scene.nodes, `scenes.${scene.id}.nodes`),
+      ...validateLayerGraphV3(scene.layers, `scenes.${scene.id}.layers`),
     );
     issues.push(
-      ...validateNodeAssetsV3(
-        scene.nodes,
+      ...validateLayerAssetsV3(
+        scene.layers,
         project.assets,
-        `scenes.${scene.id}.nodes`,
+        `scenes.${scene.id}.layers`,
       ),
     );
     issues.push(
-      ...validateComponentNodeReferences(
-        scene.nodes,
+      ...validateComponentLayerReferences(
+        scene.layers,
         componentById,
         variableById,
         assetById,
-        `scenes.${scene.id}.nodes`,
+        `scenes.${scene.id}.layers`,
         scene.duration,
       ),
     );
-    const nodeIds = new Set(scene.nodes.map((node) => node.id));
+    const layerIds = new Set(scene.layers.map((node) => node.id));
     for (const clip of scene.clips) {
-      if (clip.targetId && !nodeIds.has(clip.targetId)) {
+      if (clip.layerId && !layerIds.has(clip.layerId)) {
         issues.push({
-          path: `scenes.${scene.id}.clips.${clip.id}.targetId`,
-          message: `Unknown node: ${clip.targetId}`,
+          path: `scenes.${scene.id}.clips.${clip.id}.layerId`,
+          message: `Unknown node: ${clip.layerId}`,
         });
       }
     }
@@ -889,30 +889,30 @@ export function validateMotionProjectV3References(
   // ── components ───────────────────────────────────────────────────────
   for (const component of project.components) {
     issues.push(
-      ...validateNodeGraphV3(
-        component.nodes,
-        `components.${component.id}.nodes`,
+      ...validateLayerGraphV3(
+        component.layers,
+        `components.${component.id}.layers`,
       ),
     );
     issues.push(
-      ...validateNodeAssetsV3(
-        component.nodes,
+      ...validateLayerAssetsV3(
+        component.layers,
         project.assets,
-        `components.${component.id}.nodes`,
+        `components.${component.id}.layers`,
       ),
     );
     issues.push(
-      ...validateComponentNodeReferences(
-        component.nodes,
+      ...validateComponentLayerReferences(
+        component.layers,
         componentById,
         variableById,
         assetById,
-        `components.${component.id}.nodes`,
+        `components.${component.id}.layers`,
       ),
     );
 
     const propById = new Map(component.props.map((p) => [p.id, p] as const));
-    const componentNodeIds = new Set(component.nodes.map((n) => n.id));
+    const componentLayerIds = new Set(component.layers.map((n) => n.id));
 
     // Validate prop duplicate ids
     const propIds = component.props.map((p) => p.id);
@@ -948,7 +948,7 @@ export function validateMotionProjectV3References(
       }
       const target = binding.target;
       if (target.kind === "layerProperty") {
-        const node = component.nodes.find((n) => n.id === target.layerId);
+        const node = component.layers.find((n) => n.id === target.layerId);
         if (!node) {
           issues.push({
             path: `components.${component.id}.propBindings`,
@@ -961,16 +961,16 @@ export function validateMotionProjectV3References(
           });
         }
       } else {
-        const childNode = component.nodes.find((n) => n.id === target.childId);
+        const childNode = component.layers.find((n) => n.id === target.childLayerId);
         if (!childNode) {
           issues.push({
             path: `components.${component.id}.propBindings`,
-            message: `propBinding for "${binding.propId}" references unknown child "${target.childId}"`,
+            message: `propBinding for "${binding.propId}" references unknown child "${target.childLayerId}"`,
           });
         } else if (childNode.type !== "component") {
           issues.push({
             path: `components.${component.id}.propBindings`,
-            message: `propBinding childProp target "${target.childId}" is not a component node (type "${childNode.type}")`,
+            message: `propBinding childProp target "${target.childLayerId}" is not a component node (type "${childNode.type}")`,
           });
         } else {
           const childDef = componentById.get(childNode.payload.componentId);
@@ -1007,7 +1007,7 @@ export function validateMotionProjectV3References(
           });
         }
       }
-      if (!componentNodeIds.has(binding.target.layerId)) {
+      if (!componentLayerIds.has(binding.target.layerId)) {
         issues.push({
           path: `${bindPath}.target.layerId`,
           message: `internalBinding "${binding.id}" references unknown layer "${binding.target.layerId}"`,
@@ -1015,12 +1015,12 @@ export function validateMotionProjectV3References(
       }
     }
 
-    // M16: component nodes must reference parents within the same definition
-    for (const node of component.nodes) {
-      if (node.parentId !== null && !componentNodeIds.has(node.parentId)) {
+    // M16: component layers must reference parents within the same definition
+    for (const node of component.layers) {
+      if (node.parentLayerId !== null && !componentLayerIds.has(node.parentLayerId)) {
         issues.push({
-          path: `components.${component.id}.nodes.${node.id}.parentId`,
-          message: `Component root node "${node.id}" references external parent "${node.parentId}" — component nodes must not reference nodes outside the component`,
+          path: `components.${component.id}.layers.${node.id}.parentLayerId`,
+          message: `Component root node "${node.id}" references external parent "${node.parentLayerId}" — component layers must not reference layers outside the component`,
         });
       }
     }

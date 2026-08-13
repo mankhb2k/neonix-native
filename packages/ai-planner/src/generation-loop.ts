@@ -45,7 +45,7 @@ export function runGenerationLoop(input: {
 
   // Apply layout + entrance recipes via a follow-up batch
   const recipeCommands = project.scenes.flatMap((scene) => {
-    const textIds = scene.nodes.filter((node) => node.type === "text").map((node) => node.id);
+    const textIds = scene.layers.filter((node) => node.type === "text").map((node) => node.id);
     if (textIds.length === 0) return [];
     const commands = [];
     if (textIds.length >= 2) {
@@ -53,8 +53,8 @@ export function runGenerationLoop(input: {
         type: "applyRecipe" as const,
         sceneId: scene.id,
         recipeId: "stagger" as const,
-        targetNodeId: textIds[0]!,
-        staggerNodeIds: textIds,
+        targetLayerId: textIds[0]!,
+        staggerLayerIds: textIds,
         duration: Math.min(1.2, scene.duration),
       });
     } else {
@@ -62,7 +62,7 @@ export function runGenerationLoop(input: {
         type: "applyRecipe" as const,
         sceneId: scene.id,
         recipeId: "float" as const,
-        targetNodeId: textIds[0]!,
+        targetLayerId: textIds[0]!,
         duration: scene.duration,
         intensity: 0.6,
       });

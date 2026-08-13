@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MotionNode, MotionScene } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionScene } from "@motionvideo/motion-protocol";
 import {
   buildLayerTree,
   collectExpandableIds,
@@ -9,8 +9,8 @@ import {
 } from "./build-layer-tree";
 
 function node(
-  partial: Partial<MotionNode> & Pick<MotionNode, "id" | "type" | "parentId">,
-): MotionNode {
+  partial: Partial<MotionLayer> & Pick<MotionLayer, "id" | "type" | "parentLayerId">,
+): MotionLayer {
   return {
     zIndex: 0,
     transform: {
@@ -23,15 +23,15 @@ function node(
       visible: true,
     },
     ...partial,
-  } as MotionNode;
+  } as MotionLayer;
 }
 
-function scene(nodes: MotionNode[]): MotionScene {
+function scene(layers: MotionLayer[]): MotionScene {
   return {
     id: "sc1",
     name: "Scene",
     duration: 10,
-    nodes,
+    layers,
     clips: [],
   } as MotionScene;
 }
@@ -40,10 +40,10 @@ describe("buildLayerTree", () => {
   it("nests children under group and sorts siblings by zIndex desc", () => {
     const roots = buildLayerTree(
       scene([
-        node({ id: "g1", type: "group", parentId: null, zIndex: 1, name: "Group" }),
-        node({ id: "a", type: "text", parentId: "g1", zIndex: 1, name: "A" }),
-        node({ id: "b", type: "shape", parentId: "g1", zIndex: 5, name: "B" }),
-        node({ id: "root", type: "video", parentId: null, zIndex: 0, name: "Root" }),
+        node({ id: "g1", type: "group", parentLayerId: null, zIndex: 1, name: "Group" }),
+        node({ id: "a", type: "text", parentLayerId: "g1", zIndex: 1, name: "A" }),
+        node({ id: "b", type: "shape", parentLayerId: "g1", zIndex: 5, name: "B" }),
+        node({ id: "root", type: "video", parentLayerId: null, zIndex: 0, name: "Root" }),
       ]),
     );
     expect(roots.map((r) => r.id)).toEqual(["g1", "root"]);
@@ -54,7 +54,7 @@ describe("buildLayerTree", () => {
   it("treats unknown parent as root orphan", () => {
     const roots = buildLayerTree(
       scene([
-        node({ id: "x", type: "text", parentId: "missing", zIndex: 0, name: "X" }),
+        node({ id: "x", type: "text", parentLayerId: "missing", zIndex: 0, name: "X" }),
       ]),
     );
     expect(roots).toHaveLength(1);
@@ -68,7 +68,7 @@ describe("buildLayerTree", () => {
         node({
           id: "h",
           type: "text",
-          parentId: null,
+          parentLayerId: null,
           transform: {
             x: 0,
             y: 0,
@@ -89,8 +89,8 @@ describe("flattenVisibleTree", () => {
   it("hides descendants when parent is collapsed", () => {
     const roots = buildLayerTree(
       scene([
-        node({ id: "g", type: "group", parentId: null, name: "G" }),
-        node({ id: "c", type: "text", parentId: "g", name: "C" }),
+        node({ id: "g", type: "group", parentLayerId: null, name: "G" }),
+        node({ id: "c", type: "text", parentLayerId: "g", name: "C" }),
       ]),
     );
     const expanded = flattenVisibleTree(roots, new Set(["g"]));
@@ -104,9 +104,9 @@ describe("flattenVisibleTree", () => {
   it("collectExpandableIds lists parents with children", () => {
     const roots = buildLayerTree(
       scene([
-        node({ id: "g", type: "group", parentId: null }),
-        node({ id: "c", type: "text", parentId: "g" }),
-        node({ id: "leaf", type: "shape", parentId: null }),
+        node({ id: "g", type: "group", parentLayerId: null }),
+        node({ id: "c", type: "text", parentLayerId: "g" }),
+        node({ id: "leaf", type: "shape", parentLayerId: null }),
       ]),
     );
     expect(collectExpandableIds(roots)).toEqual(["g"]);
@@ -117,9 +117,9 @@ describe("reorderSiblingAndCollectDfs", () => {
   it("reorders root siblings and returns DFS ids for timeline sync", () => {
     const roots = buildLayerTree(
       scene([
-        node({ id: "a", type: "text", parentId: null, zIndex: 2 }),
-        node({ id: "b", type: "text", parentId: null, zIndex: 1 }),
-        node({ id: "c", type: "text", parentId: null, zIndex: 0 }),
+        node({ id: "a", type: "text", parentLayerId: null, zIndex: 2 }),
+        node({ id: "b", type: "text", parentLayerId: null, zIndex: 1 }),
+        node({ id: "c", type: "text", parentLayerId: null, zIndex: 0 }),
       ]),
     );
     // Move a before c → b, a, c
@@ -139,10 +139,10 @@ describe("reorderSiblingAndCollectDfs", () => {
   it("reorders only within the same parent", () => {
     const roots = buildLayerTree(
       scene([
-        node({ id: "g", type: "group", parentId: null, zIndex: 1 }),
-        node({ id: "x", type: "text", parentId: "g", zIndex: 2 }),
-        node({ id: "y", type: "text", parentId: "g", zIndex: 1 }),
-        node({ id: "root", type: "video", parentId: null, zIndex: 0 }),
+        node({ id: "g", type: "group", parentLayerId: null, zIndex: 1 }),
+        node({ id: "x", type: "text", parentLayerId: "g", zIndex: 2 }),
+        node({ id: "y", type: "text", parentLayerId: "g", zIndex: 1 }),
+        node({ id: "root", type: "video", parentLayerId: null, zIndex: 0 }),
       ]),
     );
     expect(reorderSiblingAndCollectDfs(roots, "x", null)).toEqual([
@@ -163,7 +163,7 @@ describe("reorderSiblingAndCollectDfs", () => {
         zIndex: 1,
         visible: true,
         hasChildren: false,
-        parentId: null,
+        parentLayerId: null,
       },
       {
         id: "b",
@@ -173,7 +173,7 @@ describe("reorderSiblingAndCollectDfs", () => {
         zIndex: 0,
         visible: true,
         hasChildren: false,
-        parentId: "g",
+        parentLayerId: "g",
       },
     ];
     expect(resolveSidebarSiblingInsert(rows, "a", "b", "before")).toBeNull();

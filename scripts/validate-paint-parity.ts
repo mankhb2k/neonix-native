@@ -23,7 +23,7 @@ function fixtureScene(): RuntimeScene {
       {
         id: "bg",
         type: "shape",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
         transform: {
           x: 0,
@@ -46,7 +46,7 @@ function fixtureScene(): RuntimeScene {
       {
         id: "title",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 24,
@@ -69,7 +69,7 @@ function fixtureScene(): RuntimeScene {
       {
         id: "curve",
         type: "path",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 2,
         transform: {
           x: 0,

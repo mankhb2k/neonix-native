@@ -51,29 +51,29 @@ function sceneIdsFromVisualTracks(
  * Build a project that instantiates the embedded `logo-reveal` component as
  * a `type: "component"` scene node, sequenced by a single visual clip.
  */
-function makeComponentNodeProject(
+function makeComponentLayerProject(
   options: {
     sceneId?: string;
-    nodeId?: string;
+    layerId?: string;
     sceneDuration?: number;
     clipDuration?: number;
     componentId?: string;
-    transform?: Partial<V3.ComponentNodeV3["transform"]>;
-    props?: V3.ComponentNodeV3["payload"]["props"];
+    transform?: Partial<V3.ComponentLayerV3["transform"]>;
+    props?: V3.ComponentLayerV3["payload"]["props"];
     sceneClips?: V3.MotionClipV3[];
   } = {},
 ): V3.MotionProjectV3 {
   const project = structuredClone(representative);
   const sceneId = options.sceneId ?? "comp-scene";
-  const nodeId = options.nodeId ?? "comp-node";
+  const layerId = options.layerId ?? "comp-node";
   const componentId = options.componentId ?? "logo-reveal";
   const sceneDuration = options.sceneDuration ?? 4;
   const clipDuration = options.clipDuration ?? sceneDuration;
 
-  const componentNode: V3.ComponentNodeV3 = {
-    id: nodeId,
+  const componentLayer: V3.ComponentLayerV3 = {
+    id: layerId,
     type: "component",
-    parentId: null,
+    parentLayerId: null,
     visible: true,
     locked: false,
     transform: {
@@ -103,7 +103,7 @@ function makeComponentNodeProject(
     name: "Component Scene",
     duration: sceneDuration,
     space: "flat-2d",
-    nodes: [componentNode],
+    layers: [componentLayer],
     clips: options.sceneClips ?? [],
   });
   project.timeline.visualTracks = [
@@ -173,7 +173,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(intro.tracks.length).toBeGreaterThan(0);
 
     // camera node down-migrated.
-    const cam = intro.nodes.find((node) => node.id === "cam")!;
+    const cam = intro.layers.find((node) => node.id === "cam")!;
     expect(cam).toBeDefined();
     expect(cam.payload).toMatchObject({ zoom: 1, projection: "orthographic" });
   });
@@ -183,7 +183,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const intro = result.project.scenes.find((scene) => scene.id === "intro")!;
-    const subtitle = intro.nodes.find((node) => node.id === "subtitle")!;
+    const subtitle = intro.layers.find((node) => node.id === "subtitle")!;
     expect(subtitle.type).toBe("text");
     if (subtitle.type === "text") {
       // payload.text binding → payload.content after v2 text normalization.
@@ -192,12 +192,12 @@ describe("compileMotionProjectV3 — happy paths", () => {
         text: "Mark Zuckerberg",
       });
     }
-    const title = intro.nodes.find((node) => node.id === "title")!;
+    const title = intro.layers.find((node) => node.id === "title")!;
     expect(title.transform.opacity).toBe(0.9);
   });
 
-  it("expands a component node into a wrapper group plus internal nodes", () => {
-    const project = makeComponentNodeProject();
+  it("expands a component node into a wrapper group plus internal layers", () => {
+    const project = makeComponentLayerProject();
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) {
@@ -211,16 +211,16 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(scene).toBeDefined();
     expect(scene.duration).toBe(4);
     // wrapper group + internal "logo" node re-parented under the wrapper.
-    expect(scene.nodes.map((node) => node.id)).toEqual([
+    expect(scene.layers.map((node) => node.id)).toEqual([
       "comp-node__instance",
       "comp-node__logo",
     ]);
-    expect(scene.nodes[0]!.type).toBe("group");
-    expect(scene.nodes[1]!.parentId).toBe("comp-node__instance");
+    expect(scene.layers[0]!.type).toBe("group");
+    expect(scene.layers[1]!.parentLayerId).toBe("comp-node__instance");
   });
 
   it("component node transform becomes the wrapper group transform", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       transform: {
         x: 100,
         y: 200,
@@ -238,8 +238,8 @@ describe("compileMotionProjectV3 — happy paths", () => {
     }
     const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
     expect(scene).toBeDefined();
-    expect(scene.nodes).toHaveLength(2);
-    const wrapperGroup = scene.nodes[0]!;
+    expect(scene.layers).toHaveLength(2);
+    const wrapperGroup = scene.layers[0]!;
     expect(wrapperGroup.id).toBe("comp-node__instance");
     expect(wrapperGroup.type).toBe("group");
     expect(wrapperGroup.transform.x).toBe(100);
@@ -248,31 +248,31 @@ describe("compileMotionProjectV3 — happy paths", () => {
     expect(wrapperGroup.transform.scaleX).toBe(0.5);
     expect(wrapperGroup.transform.scaleY).toBe(0.5);
     expect(wrapperGroup.transform.opacity).toBe(0.8);
-    const logoNode = scene.nodes[1]!;
+    const logoNode = scene.layers[1]!;
     expect(logoNode.id).toBe("comp-node__logo");
-    expect(logoNode.parentId).toBe("comp-node__instance");
+    expect(logoNode.parentLayerId).toBe("comp-node__instance");
   });
 
-  it("produces deterministic internal node ids for component nodes", () => {
-    const project = makeComponentNodeProject();
+  it("produces deterministic internal node ids for component layers", () => {
+    const project = makeComponentLayerProject();
     const first = compileMotionProjectV3(project);
     const second = compileMotionProjectV3(project);
     expect(first.ok && second.ok).toBe(true);
     if (!first.ok || !second.ok) return;
     const sceneA = first.project.scenes.find((s) => s.id === "comp-scene")!;
     const sceneB = second.project.scenes.find((s) => s.id === "comp-scene")!;
-    expect(sceneA.nodes.map((n) => n.id)).toEqual(
-      sceneB.nodes.map((n) => n.id),
+    expect(sceneA.layers.map((n) => n.id)).toEqual(
+      sceneB.layers.map((n) => n.id),
     );
     expect(first.project.runtimeHash).toBe(second.project.runtimeHash);
   });
 
   it("scene-local motion targeting a component node compiles to wrapper motion", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       sceneClips: [
         {
           id: "clip-anim",
-          targetId: "comp-node",
+          layerId: "comp-node",
           schedule: { kind: "absolute", at: 0 },
           duration: 2,
           playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -280,7 +280,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
             kind: "tracks",
             tracks: [
               {
-                targetId: "comp-node",
+                layerId: "comp-node",
                 property: "transform.x",
                 keys: [
                   { t: 0, v: 0 },
@@ -299,18 +299,18 @@ describe("compileMotionProjectV3 — happy paths", () => {
       return;
     }
     const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
-    expect(scene.nodes).toHaveLength(2);
-    expect(scene.nodes[0]!.id).toBe("comp-node__instance");
-    expect(scene.nodes[0]!.type).toBe("group");
-    expect(scene.nodes[1]!.parentId).toBe("comp-node__instance");
+    expect(scene.layers).toHaveLength(2);
+    expect(scene.layers[0]!.id).toBe("comp-node__instance");
+    expect(scene.layers[0]!.type).toBe("group");
+    expect(scene.layers[1]!.parentLayerId).toBe("comp-node__instance");
     // Motion targeting the component node is remapped to the wrapper group.
     expect(scene.tracks).toHaveLength(1);
-    expect(scene.tracks[0]!.targetId).toBe("comp-node__instance");
+    expect(scene.tracks[0]!.layerId).toBe("comp-node__instance");
     expect(scene.tracks[0]!.property).toBe("transform.x");
   });
 
   it("golden: component node expansion is deterministic with transform + tracks", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       transform: {
         x: 100,
         y: 0,
@@ -323,7 +323,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
       sceneClips: [
         {
           id: "clip-anim",
-          targetId: "comp-node",
+          layerId: "comp-node",
           schedule: { kind: "absolute", at: 0 },
           duration: 4,
           playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -331,7 +331,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
             kind: "tracks",
             tracks: [
               {
-                targetId: "comp-node",
+                layerId: "comp-node",
                 property: "transform.x",
                 valueKind: "number",
                 keys: [
@@ -340,7 +340,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
                 ],
               },
               {
-                targetId: "comp-node",
+                layerId: "comp-node",
                 property: "transform.opacity",
                 keys: [
                   { t: 0, v: 0 },
@@ -361,25 +361,25 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const scene = result.project.scenes.find((s) => s.id === "comp-scene")!;
 
     // ── Deterministic wrapper group ──────────────────────────────────
-    expect(scene.nodes).toHaveLength(2);
-    const wrapper = scene.nodes[0]!;
+    expect(scene.layers).toHaveLength(2);
+    const wrapper = scene.layers[0]!;
     expect(wrapper.id).toBe("comp-node__instance");
     expect(wrapper.type).toBe("group");
-    expect(wrapper.parentId).toBeNull();
+    expect(wrapper.parentLayerId).toBeNull();
     expect(wrapper.transform.x).toBe(100);
     expect(wrapper.transform.y).toBe(0);
     expect(wrapper.transform.opacity).toBe(1);
     expect(wrapper.transform.visible).toBe(true);
 
-    const logo = scene.nodes[1]!;
-    expect(logo.parentId).toBe("comp-node__instance");
+    const logo = scene.layers[1]!;
+    expect(logo.parentLayerId).toBe("comp-node__instance");
     expect(logo.type).toBe("solid");
 
     // ── Deterministic motion tracks ──────────────────────────────────
     expect(scene.tracks).toHaveLength(2);
 
     const txTrack = scene.tracks.find((t) => t.property === "transform.x")!;
-    expect(txTrack.targetId).toBe("comp-node__instance");
+    expect(txTrack.layerId).toBe("comp-node__instance");
     expect(txTrack.keys).toHaveLength(2);
     expect(txTrack.keys[0]!.t).toBe(0);
     expect(txTrack.keys[0]!.v).toBe(100);
@@ -390,7 +390,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const opacityTrack = scene.tracks.find(
       (t) => t.property === "transform.opacity",
     )!;
-    expect(opacityTrack.targetId).toBe("comp-node__instance");
+    expect(opacityTrack.layerId).toBe("comp-node__instance");
     expect(opacityTrack.keys).toHaveLength(2);
     expect(opacityTrack.keys[0]!.t).toBe(0);
     expect(opacityTrack.keys[0]!.v).toBe(0);
@@ -399,7 +399,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
   });
 
   it("applies variant props through propBindings", () => {
-    const project = makeComponentNodeProject();
+    const project = makeComponentLayerProject();
     const component = project.components.find((c) => c.id === "logo-reveal")!;
     component.variants = [
       {
@@ -409,9 +409,9 @@ describe("compileMotionProjectV3 — happy paths", () => {
       },
     ];
     const scene = project.scenes.find((s) => s.id === "comp-scene")!;
-    const compNode = scene.nodes.find(
+    const compNode = scene.layers.find(
       (n) => n.type === "component",
-    ) as V3.ComponentNodeV3;
+    ) as V3.ComponentLayerV3;
     compNode.payload.variantId = "accent";
 
     const result = compileMotionProjectV3(project);
@@ -420,14 +420,14 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const runtimeScene = result.project.scenes.find(
       (s) => s.id === "comp-scene",
     )!;
-    const logo = runtimeScene.nodes.find(
+    const logo = runtimeScene.layers.find(
       (n) => n.id === "comp-node__logo",
     ) as unknown as { payload: Record<string, unknown> };
     expect(logo.payload.color).toBe("#ff0000");
   });
 
   it("consumer props override variant props", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       props: { "logo-color": "#00ff00" },
     });
     const component = project.components.find((c) => c.id === "logo-reveal")!;
@@ -439,9 +439,9 @@ describe("compileMotionProjectV3 — happy paths", () => {
       },
     ];
     const scene = project.scenes.find((s) => s.id === "comp-scene")!;
-    const compNode = scene.nodes.find(
+    const compNode = scene.layers.find(
       (n) => n.type === "component",
-    ) as V3.ComponentNodeV3;
+    ) as V3.ComponentLayerV3;
     compNode.payload.variantId = "accent";
 
     const result = compileMotionProjectV3(project);
@@ -450,14 +450,14 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const runtimeScene = result.project.scenes.find(
       (s) => s.id === "comp-scene",
     )!;
-    const logo = runtimeScene.nodes.find(
+    const logo = runtimeScene.layers.find(
       (n) => n.id === "comp-node__logo",
     ) as unknown as { payload: Record<string, unknown> };
     expect(logo.payload.color).toBe("#00ff00");
   });
 
   it("emits motion tracks for keyframed public props", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       props: {
         "logo-color": {
           kind: "keyframes",
@@ -478,14 +478,14 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const runtimeScene = result.project.scenes.find(
       (s) => s.id === "comp-scene",
     )!;
-    const logo = runtimeScene.nodes.find(
+    const logo = runtimeScene.layers.find(
       (n) => n.id === "comp-node__logo",
     ) as unknown as { payload: Record<string, unknown> };
     expect(logo.payload.color).toBe("#ff0000");
     expect(runtimeScene.tracks.length).toBeGreaterThan(0);
     const colorTrack = runtimeScene.tracks.find(
       (t) =>
-        t.targetId === "comp-node__logo" &&
+        t.layerId === "comp-node__logo" &&
         (t.property === "payload.color" || t.property === "color"),
     );
     expect(colorTrack).toBeDefined();
@@ -493,11 +493,11 @@ describe("compileMotionProjectV3 — happy paths", () => {
 
   function addLogoColorFanOut(project: V3.MotionProjectV3): void {
     const component = project.components.find((c) => c.id === "logo-reveal")!;
-    const logo = component.nodes.find((n) => n.id === "logo")!;
+    const logo = component.layers.find((n) => n.id === "logo")!;
     const ring = structuredClone(logo);
     ring.id = "ring";
     ring.zIndex = 1;
-    component.nodes.push(ring);
+    component.layers.push(ring);
     component.propBindings.push({
       propId: "logo-color",
       target: {
@@ -509,7 +509,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
   }
 
   it("fans out a static prop to every layerProperty binding", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       props: { "logo-color": "#00ff88" },
     });
     addLogoColorFanOut(project);
@@ -520,7 +520,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
       (s) => s.id === "comp-scene",
     )!;
     const colors = ["comp-node__logo", "comp-node__ring"].map((id) => {
-      const node = runtimeScene.nodes.find((n) => n.id === id) as unknown as {
+      const node = runtimeScene.layers.find((n) => n.id === id) as unknown as {
         payload: Record<string, unknown>;
       };
       return node.payload.color;
@@ -529,7 +529,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
   });
 
   it("fans out project bindings to every resolved layer", () => {
-    const project = makeComponentNodeProject();
+    const project = makeComponentLayerProject();
     addLogoColorFanOut(project);
     const colorVar = project.variables.find((v) => v.id === "brand-color")!;
     colorVar.value = "#ff00aa";
@@ -537,9 +537,9 @@ describe("compileMotionProjectV3 — happy paths", () => {
       id: "bind-logo-color",
       source: { kind: "variable", variableId: "brand-color" },
       target: {
-        kind: "componentNode",
+        kind: "componentLayer",
         sceneId: "comp-scene",
-        nodeId: "comp-node",
+        layerId: "comp-node",
         propId: "logo-color",
       },
     });
@@ -550,7 +550,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
       (s) => s.id === "comp-scene",
     )!;
     for (const id of ["comp-node__logo", "comp-node__ring"]) {
-      const node = runtimeScene.nodes.find((n) => n.id === id) as unknown as {
+      const node = runtimeScene.layers.find((n) => n.id === id) as unknown as {
         payload: Record<string, unknown>;
       };
       expect(node.payload.color).toBe("#ff00aa");
@@ -558,11 +558,11 @@ describe("compileMotionProjectV3 — happy paths", () => {
   });
 
   it("fans out scene payload.props tracks to every resolved layer", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       sceneClips: [
         {
           id: "clip-prop-color",
-          targetId: "comp-node",
+          layerId: "comp-node",
           schedule: { kind: "absolute", at: 0 },
           duration: 2,
           playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -570,7 +570,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
             kind: "tracks",
             tracks: [
               {
-                targetId: "comp-node",
+                layerId: "comp-node",
                 property: "payload.props.logo-color",
                 valueKind: "color",
                 keys: [
@@ -593,12 +593,12 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const colorTracks = runtimeScene.tracks.filter(
       (t) => t.property === "payload.color" || t.property === "color",
     );
-    const targetIds = colorTracks.map((t) => t.targetId).sort();
+    const targetIds = colorTracks.map((t) => t.layerId).sort();
     expect(targetIds).toEqual(["comp-node__logo", "comp-node__ring"]);
   });
 
   it("emits unique keyframe clips when one prop fans out to many layers", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       props: {
         "logo-color": {
           kind: "keyframes",
@@ -623,18 +623,18 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const colorTracks = runtimeScene.tracks.filter(
       (t) =>
         (t.property === "payload.color" || t.property === "color") &&
-        (t.targetId === "comp-node__logo" || t.targetId === "comp-node__ring"),
+        (t.layerId === "comp-node__logo" || t.layerId === "comp-node__ring"),
     );
     expect(colorTracks).toHaveLength(2);
-    expect(new Set(colorTracks.map((t) => t.targetId)).size).toBe(2);
+    expect(new Set(colorTracks.map((t) => t.layerId)).size).toBe(2);
   });
 
   it("forwards props recursively through childProp to nested layers", () => {
-    const project = makeComponentNodeProject({
+    const project = makeComponentLayerProject({
       props: { "logo-color": "#00ff88" },
     });
     const logo = project.components.find((c) => c.id === "logo-reveal")!;
-    const solid = structuredClone(logo.nodes.find((n) => n.id === "logo")!);
+    const solid = structuredClone(logo.layers.find((n) => n.id === "logo")!);
     solid.id = "fill";
     project.components.push({
       id: "inner-swatch",
@@ -654,7 +654,7 @@ describe("compileMotionProjectV3 — happy paths", () => {
         },
       ],
       variables: [],
-      nodes: [solid],
+      layers: [solid],
       internalBindings: [],
       actions: [],
     });
@@ -662,14 +662,14 @@ describe("compileMotionProjectV3 — happy paths", () => {
       propId: "logo-color",
       target: {
         kind: "childProp",
-        childId: "inner",
+        childLayerId: "inner",
         propId: "fill",
       },
     });
-    logo.nodes.push({
+    logo.layers.push({
       id: "inner",
       type: "component",
-      parentId: null,
+      parentLayerId: null,
       zIndex: 1,
       visible: true,
       locked: false,
@@ -685,18 +685,18 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const runtimeScene = result.project.scenes.find(
       (s) => s.id === "comp-scene",
     )!;
-    const nested = runtimeScene.nodes.find(
+    const nested = runtimeScene.layers.find(
       (n) => n.id === "comp-node__inner__fill",
     ) as unknown as { payload: Record<string, unknown> };
     expect(nested.payload.color).toBe("#00ff88");
   });
 
   it("applies global component bindings only to scene-level instances", () => {
-    const project = makeComponentNodeProject({
-      nodeId: "scene-logo",
+    const project = makeComponentLayerProject({
+      layerId: "scene-logo",
     });
     const logo = project.components.find((c) => c.id === "logo-reveal")!;
-    const solid = structuredClone(logo.nodes.find((n) => n.id === "logo")!);
+    const solid = structuredClone(logo.layers.find((n) => n.id === "logo")!);
     project.components.push({
       id: "card",
       version: "1.0.0",
@@ -706,11 +706,11 @@ describe("compileMotionProjectV3 — happy paths", () => {
       variants: [],
       propBindings: [],
       variables: [],
-      nodes: [
+      layers: [
         {
           id: "nested-logo",
           type: "component",
-          parentId: null,
+          parentLayerId: null,
           visible: true,
           locked: false,
           transform: structuredClone(solid.transform),
@@ -721,10 +721,10 @@ describe("compileMotionProjectV3 — happy paths", () => {
       actions: [],
     });
     const scene = project.scenes.find((s) => s.id === "comp-scene")!;
-    scene.nodes.push({
+    scene.layers.push({
       id: "card-1",
       type: "component",
-      parentId: null,
+      parentLayerId: null,
       visible: true,
       locked: false,
       transform: structuredClone(solid.transform),
@@ -747,10 +747,10 @@ describe("compileMotionProjectV3 — happy paths", () => {
     const runtimeScene = result.project.scenes.find(
       (s) => s.id === "comp-scene",
     )!;
-    const sceneLevel = runtimeScene.nodes.find(
+    const sceneLevel = runtimeScene.layers.find(
       (n) => n.id === "scene-logo__logo",
     ) as unknown as { payload: Record<string, unknown> };
-    const nested = runtimeScene.nodes.find(
+    const nested = runtimeScene.layers.find(
       (n) => n.id === "card-1__nested-logo__logo",
     ) as unknown as { payload: Record<string, unknown> };
     expect(sceneLevel.payload.color).toBe("#ff00aa");
@@ -1080,7 +1080,7 @@ describe("compileMotionProjectV3 — Phase 2 track preservation", () => {
   });
 
   it("component node scene on higher-order track works", () => {
-    const project = makeComponentNodeProject();
+    const project = makeComponentLayerProject();
     project.timeline.visualTracks = [
       {
         id: "overlay-track",
@@ -1236,7 +1236,7 @@ describe("compileMotionProjectV3 — Phase 6 runtime IR enrichment", () => {
   });
 
   it("points component-node scenes back to their authored scene", () => {
-    const project = makeComponentNodeProject();
+    const project = makeComponentLayerProject();
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -1279,7 +1279,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
       target: {
         kind: "scene",
         sceneId: "intro",
-        nodeId: "title",
+        layerId: "title",
         property: "transform.opacity",
       },
     });
@@ -1293,7 +1293,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
   });
 
   it("CMP_UNRESOLVED_COMPONENT: component node references a missing component", () => {
-    const project = makeComponentNodeProject({ componentId: "ghost" });
+    const project = makeComponentLayerProject({ componentId: "ghost" });
     const result = compileMotionProjectV3(project);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -1304,10 +1304,10 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
 
   it("CMP_UNRESOLVED_ASSET: node references a missing asset", () => {
     const project = structuredClone(representative);
-    project.scenes[0]!.nodes.push({
+    project.scenes[0]!.layers.push({
       id: "ghost-img",
       type: "image",
-      parentId: null,
+      parentLayerId: null,
       visible: true,
       locked: false,
       transform: {
@@ -1339,7 +1339,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     const project = structuredClone(representative);
     project.scenes[0]!.clips.push({
       id: "ghost-preset-clip",
-      targetId: "title",
+      layerId: "title",
       schedule: { kind: "absolute", at: 0 },
       duration: 0.5,
       playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -1358,7 +1358,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     project.scenes[0]!.clips.push(
       {
         id: "clip-a",
-        targetId: "title",
+        layerId: "title",
         schedule: { kind: "after", clipId: "clip-b" },
         duration: 0.5,
         playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -1366,7 +1366,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
           kind: "tracks",
           tracks: [
             {
-              targetId: "title",
+              layerId: "title",
               property: "transform.opacity",
               keys: [{ t: 0, v: 1 }],
             },
@@ -1375,7 +1375,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
       },
       {
         id: "clip-b",
-        targetId: "title",
+        layerId: "title",
         schedule: { kind: "after", clipId: "clip-a" },
         duration: 0.5,
         playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -1383,7 +1383,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
           kind: "tracks",
           tracks: [
             {
-              targetId: "title",
+              layerId: "title",
               property: "transform.opacity",
               keys: [{ t: 0, v: 1 }],
             },
@@ -1420,7 +1420,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
       target: {
         kind: "scene",
         sceneId: "intro",
-        nodeId: "subtitle",
+        layerId: "subtitle",
         property: "payload.text",
       },
     });
@@ -1433,15 +1433,15 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
   });
 
   it("CMP_BINDING_TYPE_MISMATCH: component node binding with wrong variable type", () => {
-    const project = makeComponentNodeProject();
+    const project = makeComponentLayerProject();
     // logo-visible prop expects boolean, but brand-color is color → mismatch
     project.bindings.push({
       id: "binding-component-wrong-type",
       source: { kind: "variable", variableId: "brand-color" },
       target: {
-        kind: "componentNode",
+        kind: "componentLayer",
         sceneId: "comp-scene",
-        nodeId: "comp-node",
+        layerId: "comp-node",
         propId: "logo-visible",
       },
     });
@@ -1454,14 +1454,14 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
   });
 
   it("CMP_PRIVATE_COMPONENT_ACCESS: component node binding targets prop without layerProperty binding", () => {
-    const project = makeComponentNodeProject();
+    const project = makeComponentLayerProject();
     project.bindings.push({
       id: "binding-private-access",
       source: { kind: "variable", variableId: "brand-color" },
       target: {
-        kind: "componentNode",
+        kind: "componentLayer",
         sceneId: "comp-scene",
-        nodeId: "comp-node",
+        layerId: "comp-node",
         propId: "internal-prop-not-wired",
       },
     });
@@ -1477,7 +1477,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
     const project = structuredClone(representative);
     project.scenes[0]!.clips.push({
       id: "ghost-target-clip",
-      targetId: "ghost-node",
+      layerId: "ghost-node",
       schedule: { kind: "absolute", at: 0 },
       duration: 0.5,
       playback: { direction: "normal", iterations: 1, rate: 1 },
@@ -1485,7 +1485,7 @@ describe("compileMotionProjectV3 — CMP_* diagnostics", () => {
         kind: "tracks",
         tracks: [
           {
-            targetId: "ghost-node",
+            layerId: "ghost-node",
             property: "transform.opacity",
             keys: [{ t: 0, v: 1 }],
           },
@@ -1586,25 +1586,25 @@ describe("Phase 6 — compiler preserves group semantics", () => {
     expect(compileResult.ok).toBe(true);
   });
 
-  it("preserves three-level parentId chain", () => {
+  it("preserves three-level parentLayerId chain", () => {
     if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
-    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+    const byId = new Map(scene.layers.map((n) => [n.id, n]));
 
     // group.character is root
-    expect(byId.get("group.character")!.parentId).toBeNull();
+    expect(byId.get("group.character")!.parentLayerId).toBeNull();
     // group.upper-body is child of group.character
-    expect(byId.get("group.upper-body")!.parentId).toBe("group.character");
+    expect(byId.get("group.upper-body")!.parentLayerId).toBe("group.character");
     // group.head-rig is child of group.upper-body
-    expect(byId.get("group.head-rig")!.parentId).toBe("group.upper-body");
+    expect(byId.get("group.head-rig")!.parentLayerId).toBe("group.upper-body");
     // head-image is child of group.head-rig
-    expect(byId.get("head-image")!.parentId).toBe("group.head-rig");
+    expect(byId.get("head-image")!.parentLayerId).toBe("group.head-rig");
   });
 
-  it("preserves zIndex on all nodes", () => {
+  it("preserves zIndex on all layers", () => {
     if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
-    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+    const byId = new Map(scene.layers.map((n) => [n.id, n]));
 
     expect(byId.get("group.character")!.zIndex).toBe(3);
     expect(byId.get("group.upper-body")!.zIndex).toBe(2);
@@ -1615,7 +1615,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   it("preserves parent-relative timing", () => {
     if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
-    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+    const byId = new Map(scene.layers.map((n) => [n.id, n]));
 
     expect(byId.get("group.character")!.timing).toEqual({
       start: 5,
@@ -1635,10 +1635,10 @@ describe("Phase 6 — compiler preserves group semantics", () => {
     });
   });
 
-  it("preserves `type: group` on group nodes", () => {
+  it("preserves `type: group` on group layers", () => {
     if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
-    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+    const byId = new Map(scene.layers.map((n) => [n.id, n]));
 
     expect(byId.get("group.character")!.type).toBe("group");
     expect(byId.get("group.upper-body")!.type).toBe("group");
@@ -1646,10 +1646,10 @@ describe("Phase 6 — compiler preserves group semantics", () => {
     expect(byId.get("head-image")!.type).toBe("image");
   });
 
-  it("preserves compositing payload on group nodes", () => {
+  it("preserves compositing payload on group layers", () => {
     if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
-    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+    const byId = new Map(scene.layers.map((n) => [n.id, n]));
 
     expect(
       (byId.get("group.character")!.payload as Record<string, unknown>)
@@ -1671,10 +1671,10 @@ describe("Phase 6 — compiler preserves group semantics", () => {
     });
   });
 
-  it("preserves transform fields on all nodes", () => {
+  it("preserves transform fields on all layers", () => {
     if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
-    const byId = new Map(scene.nodes.map((n) => [n.id, n]));
+    const byId = new Map(scene.layers.map((n) => [n.id, n]));
 
     // Spot-check a few transform fields on group.character
     const char = byId.get("group.character")!.transform;
@@ -1710,11 +1710,11 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
         id: "text-scene",
         duration: 3,
         space: "flat-2d",
-        nodes: [
+        layers: [
           {
             id: "hello-text",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             visible: true,
             locked: false,
             transform: {
@@ -1767,7 +1767,7 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
     if (!result.ok) return;
     const scene = result.project.scenes.find((s) => s.id === "text-scene")!;
     expect(scene).toBeDefined();
-    const textNode = scene.nodes.find((n) => n.id === "hello-text")!;
+    const textNode = scene.layers.find((n) => n.id === "hello-text")!;
     expect(textNode).toBeDefined();
     expect(textNode.type).toBe("text");
   });
@@ -1779,11 +1779,11 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
         id: "text-scene",
         duration: 3,
         space: "flat-2d",
-        nodes: [
+        layers: [
           {
             id: "plain-text",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             visible: true,
             locked: false,
             transform: {
@@ -1842,11 +1842,11 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
         id: "text-scene",
         duration: 3,
         space: "flat-2d",
-        nodes: [
+        layers: [
           {
             id: "no-fit-text",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             visible: true,
             locked: false,
             transform: {

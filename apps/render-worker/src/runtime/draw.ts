@@ -27,7 +27,7 @@ const require = createRequire(import.meta.url);
 
 type RuntimeAsset = MotionRuntimeProject["assets"][number];
 type Brand = MotionRuntimeProject["metadata"]["brand"];
-type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
+type RuntimeNode = MotionRuntimeProject["scenes"][number]["layers"][number];
 type PaintNode = Extract<RuntimeNode, { type: "shape" | "path" }>;
 type BlendMode = NonNullable<RuntimeNode["blendMode"]>;
 type GradientFill = Exclude<MotionPaintStyle["fill"], string | undefined>;
@@ -517,7 +517,7 @@ export async function drawSceneFrame(
   const evaluated = hierarchyRenderOrder(evaluateScene(scene, localTime))
     .map((item, index) => ({ item, index }));
   const activeCamera = scene.activeCameraId
-    ? scene.nodes.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraId && node.type === "camera")
+    ? scene.layers.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraId && node.type === "camera")
     : undefined;
   const byId = new Map(evaluated.map(({ item }) => [item.node.id, item]));
   const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "content-and-mask").map(({ item }) => item.node.mask!.sourceNodeId));

@@ -3,7 +3,7 @@
  *
  * `ComponentInput` keeps the compiler decoupled from authoring schema modules.
  */
-import type { MotionNode } from "@motionvideo/motion-protocol";
+import type { MotionLayer } from "@motionvideo/motion-protocol";
 
 /** Minimal view of a component definition needed by the compiler. */
 export interface ComponentInput {
@@ -11,5 +11,5 @@ export interface ComponentInput {
   componentVersion: string;
   variables: Array<{ id: string; value: unknown }>;
   publicAPI: Array<{ id: string; variableId: string }>;
-  nodes: MotionNode[];
+  layers: MotionLayer[];
 }

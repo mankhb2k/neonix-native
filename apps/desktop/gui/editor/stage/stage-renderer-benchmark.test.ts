@@ -40,7 +40,7 @@ function testTimeoutForSize(size: number): number {
 describe("stage renderer DOM paint benchmark", () => {
   for (const size of PREVIEW_FIXTURE_SIZES) {
     it(
-      `paintFrame median/p95 for ${size} nodes`,
+      `paintFrame median/p95 for ${size} layers`,
       () => {
         const fixture = buildStagePaintFixture(size);
         const host = document.createElement("div");
@@ -74,7 +74,7 @@ describe("stage renderer DOM paint benchmark", () => {
         ).length;
 
         console.log(
-          `[stage-renderer-benchmark] nodes=${size} frames=${frames} median=${median.toFixed(3)}ms p95=${p95.toFixed(3)}ms max=${max.toFixed(3)}ms overBudget=${overBudget}/${frames} budget=${PREVIEW_FRAME_BUDGET_MS.toFixed(3)}ms gate=${(PREVIEW_FRAME_BUDGET_MS * P95_GATE_MULTIPLIER[size]).toFixed(3)}ms`,
+          `[stage-renderer-benchmark] layers=${size} frames=${frames} median=${median.toFixed(3)}ms p95=${p95.toFixed(3)}ms max=${max.toFixed(3)}ms overBudget=${overBudget}/${frames} budget=${PREVIEW_FRAME_BUDGET_MS.toFixed(3)}ms gate=${(PREVIEW_FRAME_BUDGET_MS * P95_GATE_MULTIPLIER[size]).toFixed(3)}ms`,
         );
 
         expect(samples).toHaveLength(frames);

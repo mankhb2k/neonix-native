@@ -95,7 +95,7 @@ function layerNodeCommit(
       draft,
       timing: { start: localStart, duration: localDuration },
       zIndex,
-      parentId: target.layerParentId,
+      parentLayerId: target.layerParentId,
     },
     label: `Add layer ${payload.label}`,
   };
@@ -103,7 +103,7 @@ function layerNodeCommit(
 
 /**
  * Map a typed library payload to a TimelineCommand.
- * Image/video use MotionScene image/video nodes via FrameDraft.kind + assetId
+ * Image/video use MotionScene image/video layers via FrameDraft.kind + assetId
  * (image/video node schemas). Audio uses add-audio-clip.
  * Layer mode (`target.layerSceneId`) → `add-scene-node`.
  */

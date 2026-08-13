@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "c71f2a8393eb722c58e8d4b5c81cfefc",
+  "runtimeHash": "61288d243a64c17d7649da904a847388",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -63,11 +63,11 @@
           "intro"
         ]
       },
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
@@ -105,7 +105,7 @@
         {
           "id": "subtitle",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 2,
           "transform": {
             "x": 960,
@@ -143,7 +143,7 @@
       ],
       "tracks": [
         {
-          "targetId": "title",
+          "layerId": "title",
           "property": "transform.opacity",
           "valueKind": "number",
           "keys": [
@@ -168,7 +168,7 @@
           ]
         },
         {
-          "targetId": "title",
+          "layerId": "title",
           "property": "transform.scaleX",
           "keys": [
             {
@@ -183,7 +183,7 @@
           ]
         },
         {
-          "targetId": "title",
+          "layerId": "title",
           "property": "transform.scaleY",
           "keys": [
             {
@@ -198,7 +198,7 @@
           ]
         },
         {
-          "targetId": "subtitle",
+          "layerId": "subtitle",
           "property": "transform.x",
           "valueKind": "number",
           "preBehavior": {

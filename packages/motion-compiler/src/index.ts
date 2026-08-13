@@ -1,6 +1,6 @@
 import {
   type MotionClip,
-  type MotionNode,
+  type MotionLayer,
   type MotionProject,
   type MotionRuntimeProject,
   type RuntimeSourceRef,
@@ -11,7 +11,7 @@ import { expandMotionPreset } from "./preset-registry";
 import { compileMotionProjectV3 } from "./compile-v3";
 
 type RuntimeTrack = MotionRuntimeProject["scenes"][number]["tracks"][number];
-type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
+type RuntimeNode = MotionRuntimeProject["scenes"][number]["layers"][number];
 type RuntimeScene = MotionRuntimeProject["scenes"][number];
 
 export type CompileOptions = {
@@ -173,7 +173,7 @@ function presetTracks(
 ): RuntimeTrack[] {
   return expandMotionPreset({
     presetId: preset,
-    nodeId: node.id,
+    layerId: node.id,
     start,
     end,
     transform: {
@@ -247,13 +247,13 @@ function resolveTrackTime(
 }
 
 function compileClips(
-  nodes: RuntimeNode[],
+  layers: RuntimeNode[],
   clips: MotionClip[],
   variables: Map<string, unknown>,
   sceneDuration: number,
   markers: Map<string, number> = new Map(),
 ): RuntimeTrack[] {
-  const nodeById = new Map(nodes.map((node) => [node.id, node]));
+  const layerById = new Map(layers.map((node) => [node.id, node]));
   const starts = scheduleTimes(clips, variables, sceneDuration);
   const expanded = clips.flatMap((clip) => {
     const start = canonicalTime(starts.get(clip.id) ?? 0);
@@ -261,7 +261,7 @@ function compileClips(
       return clip.source.tracks.map((track) =>
         expandPlaybackTrack(
           {
-            targetId: track.targetId,
+            layerId: track.layerId,
             property: track.property,
             ...(track.valueKind ? { valueKind: track.valueKind } : {}),
             ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
@@ -282,10 +282,10 @@ function compileClips(
         ),
       );
     }
-    if (!clip.targetId)
-      throw new Error(`Preset clip ${clip.id} requires targetId`);
-    const node = nodeById.get(clip.targetId);
-    if (!node) throw new Error(`Unknown clip target: ${clip.targetId}`);
+    if (!clip.layerId)
+      throw new Error(`Preset clip ${clip.id} requires layerId`);
+    const node = layerById.get(clip.layerId);
+    if (!node) throw new Error(`Unknown clip target: ${clip.layerId}`);
     return presetTracks(
       node,
       clip.source.presetId,
@@ -301,7 +301,7 @@ function compileClips(
   });
   const merged = new Map<string, RuntimeTrack>();
   for (const track of expanded) {
-    const key = `${track.targetId}\u0000${track.property}`;
+    const key = `${track.layerId}\u0000${track.property}`;
     const current = merged.get(key);
     if (!current) {
       merged.set(key, { ...track, keys: [...track.keys] });
@@ -318,7 +318,7 @@ function compileClips(
 
 /**
  * V3-native per-scene compilation: prepares a runtime-ready scene from
- * normalized authoring nodes, clips, and variables.
+ * normalized authoring layers, clips, and variables.
  *
  * Pipeline: resolve variables → layout constraints → fit text → compile
  * clips → assemble runtime scene.
@@ -330,22 +330,22 @@ function compileClips(
 export function compileSceneToRuntime(input: {
   id: string;
   duration: number;
-  nodes: MotionNode[];
+  layers: MotionLayer[];
   clips: MotionClip[];
   variables: Map<string, unknown>;
   markers?: Array<{ id: string; t: number }>;
   space?: RuntimeScene["space"];
   motionBlur?: RuntimeScene["motionBlur"];
   drivers?: RuntimeScene["drivers"];
-  activeCameraId?: string;
+  activeCameraLayerId?: string;
   sourceRef?: RuntimeSourceRef;
 }): RuntimeScene {
   const variables = input.variables;
-  const resolvedAuthoringNodes = input.nodes.map(
-    (node) => resolveValue(node, variables) as unknown as MotionNode,
+  const resolvedAuthoringNodes = input.layers.map(
+    (node) => resolveValue(node, variables) as unknown as MotionLayer,
   );
   const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
-  // Authoring path nodes carry no fillRule; the runtime node requires it.
+  // Authoring path layers carry no fillRule; the runtime node requires it.
   // Default it here so authoring → runtime IR stays lossless.
   const runtimeNodes: RuntimeNode[] = laidOut.map((node) =>
     node.type === "path"
@@ -366,9 +366,9 @@ export function compileSceneToRuntime(input: {
     ...(input.drivers && input.drivers.length > 0
       ? { drivers: clone(input.drivers) }
       : {}),
-    ...(input.activeCameraId ? { activeCameraId: input.activeCameraId } : {}),
+    ...(input.activeCameraLayerId ? { activeCameraLayerId: input.activeCameraLayerId } : {}),
     sourceRef,
-    nodes: runtimeNodes,
+    layers: runtimeNodes,
     tracks: [
       ...compileClips(
         runtimeNodes,

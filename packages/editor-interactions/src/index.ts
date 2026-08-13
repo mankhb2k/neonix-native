@@ -73,12 +73,12 @@ export {
   resolveClipTrimUpdate,
 } from "./timeline/clip-trim";
 export {
-  type NodeTimingLocal,
+  type LayerTimingLocal,
   clampNodeLocalTiming,
 } from "./timeline/layer-timing";
 export {
-  reorderLayerNodeIds,
-  reorderLayerNodeIdsByInsert,
+  reorderLayerLayerIds,
+  reorderLayerLayerIdsByInsert,
 } from "./timeline/layer-reorder";
 export {
   type MarqueeRect,

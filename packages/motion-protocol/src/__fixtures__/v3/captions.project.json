@@ -34,11 +34,11 @@
       "name": "Introduction",
       "duration": 5,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 540,

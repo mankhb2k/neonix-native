@@ -53,7 +53,7 @@ export const FIXTURE_AFFINE_SKEW = fixture("affine-skew", "Affine skew", [
   {
     key: "affine-skew:shape",
     sceneId: "affine-skew",
-    nodeId: "shape",
+    layerId: "shape",
     nodeType: "shape",
     worldMatrix: { a: 1, b: 0.2, c: 0.1, d: 1, e: 40, f: 30 },
     worldBounds: { x: 40, y: 30, width: 80, height: 40 },
@@ -78,7 +78,7 @@ export const FIXTURE_TEXT = fixture("text-basic", "Text", [
   {
     key: "text-basic:t",
     sceneId: "text-basic",
-    nodeId: "t",
+    layerId: "t",
     nodeType: "text",
     worldMatrix: { ...identity, e: 16, f: 24 },
     worldBounds: { x: 16, y: 24, width: 200, height: 40 },
@@ -104,7 +104,7 @@ export const FIXTURE_GRADIENT = fixture("gradient-fill", "Gradient", [
   {
     key: "gradient-fill:s",
     sceneId: "gradient-fill",
-    nodeId: "s",
+    layerId: "s",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 20, f: 20 },
     worldBounds: { x: 20, y: 20, width: 120, height: 80 },
@@ -137,7 +137,7 @@ export const FIXTURE_PATH = fixture("path-stroke", "Path", [
   {
     key: "path-stroke:p",
     sceneId: "path-stroke",
-    nodeId: "p",
+    layerId: "p",
     nodeType: "path",
     worldMatrix: { ...identity, e: 10, f: 10 },
     worldBounds: { x: 10, y: 10, width: 100, height: 80 },
@@ -177,7 +177,7 @@ export const FIXTURE_IMAGE = fixture("image-png", "PNG image", [
   {
     key: "image-png:i",
     sceneId: "image-png",
-    nodeId: "i",
+    layerId: "i",
     nodeType: "image",
     worldMatrix: { ...identity, e: 8, f: 8 },
     worldBounds: { x: 8, y: 8, width: 64, height: 64 },
@@ -202,7 +202,7 @@ export const FIXTURE_POLYGON = fixture("polygon", "Polygon shape", [
   {
     key: "polygon:p",
     sceneId: "polygon",
-    nodeId: "p",
+    layerId: "p",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 50, f: 20 },
     worldBounds: { x: 50, y: 20, width: 60, height: 60 },

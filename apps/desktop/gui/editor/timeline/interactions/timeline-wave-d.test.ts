@@ -42,7 +42,7 @@ function documentWithClip(): string {
     {
       id: "scene_1",
       duration: 4,
-      nodes: [],
+      layers: [],
       clips: [],
     },
   ];

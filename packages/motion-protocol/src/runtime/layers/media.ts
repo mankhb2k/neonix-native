@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
-import { NodeBaseSchema } from "./base";
+import { LayerBaseSchema } from "./base";
 import { CropSchema, FitSchema, PaintStyleSchema } from "./paint";
 
-export const ImageNodeSchema = NodeBaseSchema.extend({
+export const ImageLayerSchema = LayerBaseSchema.extend({
   type: z.literal("image"),
   payload: z
     .object({
@@ -15,7 +15,7 @@ export const ImageNodeSchema = NodeBaseSchema.extend({
     .strict(),
 }).strict();
 
-export const SvgNodeSchema = NodeBaseSchema.extend({
+export const SvgLayerSchema = LayerBaseSchema.extend({
   type: z.literal("svg"),
   payload: z
     .object({
@@ -27,7 +27,7 @@ export const SvgNodeSchema = NodeBaseSchema.extend({
   style: PaintStyleSchema.optional(),
 }).strict();
 
-export const VideoNodeSchema = NodeBaseSchema.extend({
+export const VideoLayerSchema = LayerBaseSchema.extend({
   type: z.literal("video"),
   payload: z
     .object({

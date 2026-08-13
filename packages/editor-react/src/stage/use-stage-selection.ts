@@ -40,7 +40,7 @@ export function useStageSelection({ onSelect }: UseStageSelectionArgs) {
       } else {
         setCycleIndex(0);
       }
-      onSelect(selectionNode(hit.primary.sceneId, hit.primary.nodeId));
+      onSelect(selectionNode(hit.primary.sceneId, hit.primary.layerId));
       return hit.primary;
     },
     [cycleIndex, onSelect],

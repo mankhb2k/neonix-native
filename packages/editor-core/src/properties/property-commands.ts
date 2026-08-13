@@ -1,6 +1,6 @@
 export type NodeTargetRef = {
   sceneId: string;
-  nodeId: string;
+  layerId: string;
 };
 
 export type TransformPatch = {
@@ -54,7 +54,7 @@ export type AudioTrackPatch = {
 };
 
 /** Scene-local layer timing (Layer Mode in/out). */
-export type NodeTimingPatch = {
+export type LayerTimingPatch = {
   start: number;
   duration: number;
 };
@@ -70,10 +70,10 @@ export type EffectStackPatch =
 
 export type DocumentPropertyCommand =
   | {
-      /** Layer mode row order — nodeIds top→bottom (highest zIndex first). */
-      type: "reorder-scene-nodes";
+      /** Layer mode row order — layerIds top→bottom (highest zIndex first). */
+      type: "reorder-scene-layers";
       sceneId: string;
-      nodeIds: string[];
+      layerIds: string[];
     }
   | {
       type: "set-node-transform";
@@ -118,7 +118,7 @@ export type DocumentPropertyCommand =
   | {
       type: "set-node-timing";
       targets: NodeTargetRef[];
-      timing: NodeTimingPatch;
+      timing: LayerTimingPatch;
     }
   | {
       type: "set-property-keyframe";
@@ -152,9 +152,9 @@ export type DocumentPropertyCommand =
 
 export type PropertyDomainEvent =
   | {
-      type: "scene-nodes-reordered";
+      type: "scene-layers-reordered";
       sceneId: string;
-      nodeIds: string[];
+      layerIds: string[];
     }
   | {
       type: "node-transform-changed";

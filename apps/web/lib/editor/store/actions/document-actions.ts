@@ -51,11 +51,11 @@ export function createDocumentActions(
       });
     },
 
-    updateNodeText: (sceneId, nodeId, text) => {
+    updateNodeText: (sceneId, layerId, text) => {
       const project = get().project;
       if (!project) return;
       set({
-        project: mapNode(project, sceneId, nodeId, (node) =>
+        project: mapNode(project, sceneId, layerId, (node) =>
           node.type === "text"
             ? { ...node, payload: { ...node.payload, text } }
             : node,
@@ -63,11 +63,11 @@ export function createDocumentActions(
       });
     },
 
-    updateNodePosition: (sceneId, nodeId, position) => {
+    updateNodePosition: (sceneId, layerId, position) => {
       const project = get().project;
       if (!project) return;
       set({
-        project: mapNode(project, sceneId, nodeId, (node) => ({
+        project: mapNode(project, sceneId, layerId, (node) => ({
           ...node,
           transform: {
             ...node.transform,
@@ -78,7 +78,7 @@ export function createDocumentActions(
       });
     },
 
-    updateNodeAnimation: (sceneId, nodeId, patch) => {
+    updateNodeAnimation: (sceneId, layerId, patch) => {
       const project = get().project;
       if (!project) return;
       set({
@@ -88,7 +88,7 @@ export function createDocumentActions(
             if (scene.id !== sceneId) return scene;
             const existing = scene.clips.find(
               (clip) =>
-                clip.targetId === nodeId && clip.source.kind === "preset",
+                clip.layerId === layerId && clip.source.kind === "preset",
             );
             if (!existing) {
               return {
@@ -97,7 +97,7 @@ export function createDocumentActions(
                   ...scene.clips,
                   {
                     id: uid("clip"),
-                    targetId: nodeId,
+                    layerId: layerId,
                     schedule: {
                       kind: "absolute",
                       at: Math.max(0, patch.at ?? 0),

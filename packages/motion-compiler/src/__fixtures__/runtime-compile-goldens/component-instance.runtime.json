@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "160c1095bd897506daded5d87727d756",
+  "runtimeHash": "60f1c3bd9489056b3441e7329df625a9",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -63,11 +63,11 @@
           "logo-scene"
         ]
       },
-      "nodes": [
+      "layers": [
         {
           "id": "logo-instance__instance",
           "type": "group",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -92,7 +92,7 @@
         {
           "id": "logo-instance__logo",
           "type": "solid",
-          "parentId": "logo-instance__instance",
+          "parentLayerId": "logo-instance__instance",
           "zIndex": 1,
           "transform": {
             "x": 0,

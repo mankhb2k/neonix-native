@@ -24,7 +24,7 @@ export type RemotionPaintTreeNode =
   | {
       kind: "group";
       key: string;
-      nodeId: string;
+      layerId: string;
       transform?: PaintTransformState;
       children: RemotionPaintTreeNode[];
     }
@@ -62,7 +62,7 @@ function mapNode(node: PaintDisplayNode): RemotionPaintTreeNode {
     return {
       kind: "group",
       key: node.key,
-      nodeId: node.nodeId,
+      layerId: node.layerId,
       ...(node.transform ? { transform: node.transform } : {}),
       children: node.children.map(mapNode),
     };
@@ -103,8 +103,8 @@ export function flattenRemotionDrawables(
     draw: PaintDrawCommand;
   }> = [];
 
-  const walk = (nodes: RemotionPaintTreeNode[]) => {
-    for (const node of nodes) {
+  const walk = (layers: RemotionPaintTreeNode[]) => {
+    for (const node of layers) {
       if (node.kind === "drawable") {
         out.push({
           key: node.key,

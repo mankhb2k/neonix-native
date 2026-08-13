@@ -7,7 +7,7 @@ import { MotionModifierSchema } from "../modifiers";
 import { TransformSchema } from "../transform";
 
 /** Optional scene-local in/out for Layer Mode timeline strips. */
-export const NodeTimingSchema = z
+export const LayerTimingSchema = z
   .object({
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
@@ -18,27 +18,27 @@ export const NodeTimingSchema = z
   })
   .strict();
 
-export type NodeTiming = z.infer<typeof NodeTimingSchema>;
+export type LayerTiming = z.infer<typeof LayerTimingSchema>;
 
-export const NodeBaseSchema = z
+export const LayerBaseSchema = z
   .object({
     id: IdSchema,
     type: IdSchema,
     name: z.string().min(1).optional(),
-    parentId: IdSchema.nullable(),
+    parentLayerId: IdSchema.nullable(),
     zIndex: FiniteNumberSchema.int().optional(),
     transform: TransformSchema,
     /** Scene-local timing (Layer Mode). Absent → visible for full scene/container duration. */
-    timing: NodeTimingSchema.optional(),
+    timing: LayerTimingSchema.optional(),
     semantic: SemanticSchema.optional(),
     repeat: RepeaterSchema.optional(),
     modifiers: z
       .array(MotionModifierSchema)
-      .max(MOTION_PROTOCOL_LIMITS.modifiersPerNode)
+      .max(MOTION_PROTOCOL_LIMITS.modifiersPerLayer)
       .optional(),
     effects: z
       .array(EffectSchema)
-      .max(MOTION_PROTOCOL_LIMITS.effectsPerNode)
+      .max(MOTION_PROTOCOL_LIMITS.effectsPerLayer)
       .optional(),
     blendMode: z
       .enum([
@@ -57,7 +57,7 @@ export const NodeBaseSchema = z
     inheritOpacity: z.boolean().optional(),
     mask: z
       .object({
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         mode: z.enum([
           "clip",
           "alpha",

@@ -47,7 +47,7 @@ export const RepeatLayoutSchema = z.discriminatedUnion("kind", [
     .object({
       kind: z.literal("radial"),
       radius: FiniteNumberSchema.nonnegative().max(
-        MOTION_PROTOCOL_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.layerDimension,
       ),
       startAngle: FiniteNumberSchema,
       endAngle: FiniteNumberSchema,
@@ -71,16 +71,16 @@ export const RepeaterSchema = z
 export const EdgeInsetsSchema = z
   .object({
     top: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     right: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     bottom: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     left: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
   })
   .strict();
@@ -93,22 +93,22 @@ export const LayoutItemPolicySchema = z
     shrink: FiniteNumberSchema.nonnegative().max(100).optional(),
     alignSelf: z.enum(["auto", "start", "center", "end", "stretch"]).optional(),
     minWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     maxWidth: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     minHeight: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
     maxHeight: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+      .max(MOTION_PROTOCOL_LIMITS.layerDimension)
       .optional(),
   })
   .strict();
 
 const PaddingSchema = z.union([
-  FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.nodeDimension),
+  FiniteNumberSchema.nonnegative().max(MOTION_PROTOCOL_LIMITS.layerDimension),
   EdgeInsetsSchema,
 ]);
 

@@ -5,7 +5,7 @@
 Make V3 production-ready for MP4 motion graphic rendering by enforcing one source of truth:
 
 - Authoring timeline uses scene-only visual clips.
-- Component instances exist only as sealed `type: "component"` scene nodes.
+- Component instances exist only as sealed `type: "component"` scene layers.
 - Runtime IR receives compiled scenes only, not component clip sources.
 - MCP/tools inspect and generate the canonical scene-only model.
 - TypeScript, tests, runtime schema, fixtures, and docs all agree.
@@ -15,7 +15,7 @@ Make V3 production-ready for MP4 motion graphic rendering by enforcing one sourc
 Component should stay as a scene layer/group-like node:
 
 - `kind`/`type` remains `component` at scene node level.
-- Internal component nodes are sealed.
+- Internal component layers are sealed.
 - Consumers can only edit owner-exposed public API.
 - Whole component instance can be moved/scaled/keyframed through the component node transform, exactly like a group layer.
 - Public props are separate from transform/keyframe behavior.
@@ -120,9 +120,9 @@ Files:
 Tasks:
 
 - Resolve duplicate `RuntimeScene` exports in `runtime/index.ts`.
-- Import `MotionPathContour` from the correct module, likely `../nodes/geometry`.
+- Import `MotionPathContour` from the correct module, likely `../layers/geometry`.
 - Add missing diagnostic code `CMP_UNRESOLVED_COMPONENT_VARIANT` or reuse `UNKNOWN_VARIANT` consistently.
-- Fix union narrowing in `compile-v3.ts` so `component`, `componentNode`, and `scene` binding targets are narrowed before accessing fields.
+- Fix union narrowing in `compile-v3.ts` so `component`, `componentLayer`, and `scene` binding targets are narrowed before accessing fields.
 - Update test fixtures/types for required defaults that are inferred as required by Zod output types.
 - Fix `publicProps` fixture typing so default `{}` is explicit where needed.
 - Fix stale skill fixtures requiring `instructionFormat`.
@@ -225,7 +225,7 @@ Component node `publicProps` only validates public target keys, not value compat
 Files:
 
 - `packages/motion-protocol/src/v3/components.ts`
-- `packages/motion-protocol/src/v3/nodes/component.ts`
+- `packages/motion-protocol/src/v3/layers/component.ts`
 - `packages/motion-protocol/src/v3/references/project.ts`
 - `packages/motion-compiler/src/compile-v3.ts`
 - `packages/motion-protocol/src/v3/__tests__/schema.test.ts`
@@ -254,7 +254,7 @@ Problem:
 Files:
 
 - `packages/motion-protocol/src/v3/components.ts`
-- `packages/motion-protocol/src/v3/nodes/component.ts`
+- `packages/motion-protocol/src/v3/layers/component.ts`
 - `packages/motion-compiler/src/compile-v3.ts`
 - `packages/motion-protocol/src/v3/__tests__/schema.test.ts`
 - `packages/motion-compiler/src/__tests__/compile-v3.test.ts`
@@ -282,7 +282,7 @@ Slots exist in component schema but component node instances do not yet provide 
 Files:
 
 - `packages/motion-protocol/src/v3/components.ts`
-- `packages/motion-protocol/src/v3/nodes/component.ts`
+- `packages/motion-protocol/src/v3/layers/component.ts`
 - `packages/motion-protocol/src/v3/references/project.ts`
 
 Tasks:

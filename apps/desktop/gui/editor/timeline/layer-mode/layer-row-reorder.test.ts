@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
-  reorderLayerNodeIds,
-  reorderLayerNodeIdsByInsert,
+  reorderLayerLayerIds,
+  reorderLayerLayerIdsByInsert,
   isSiblingLocalMove,
   zIndexForLayerInsertGap,
   zIndexForLayerInsertGapInGroup,
 } from "./layer-row-reorder";
 
-describe("reorderLayerNodeIds", () => {
+describe("reorderLayerLayerIds", () => {
   it("moves a node to another row index", () => {
-    expect(reorderLayerNodeIds(["a", "b", "c", "d"], "a", 2)).toEqual([
+    expect(reorderLayerLayerIds(["a", "b", "c", "d"], "a", 2)).toEqual([
       "b",
       "c",
       "a",
       "d",
     ]);
-    expect(reorderLayerNodeIds(["a", "b", "c"], "c", 0)).toEqual([
+    expect(reorderLayerLayerIds(["a", "b", "c"], "c", 0)).toEqual([
       "c",
       "a",
       "b",
@@ -23,24 +23,24 @@ describe("reorderLayerNodeIds", () => {
   });
 
   it("no-ops when index is unchanged or id missing", () => {
-    expect(reorderLayerNodeIds(["a", "b"], "a", 0)).toEqual(["a", "b"]);
-    expect(reorderLayerNodeIds(["a", "b"], "z", 1)).toEqual(["a", "b"]);
+    expect(reorderLayerLayerIds(["a", "b"], "a", 0)).toEqual(["a", "b"]);
+    expect(reorderLayerLayerIds(["a", "b"], "z", 1)).toEqual(["a", "b"]);
   });
 });
 
-describe("reorderLayerNodeIdsByInsert", () => {
+describe("reorderLayerLayerIdsByInsert", () => {
   it("inserts before a gap index (adjusting after removal)", () => {
-    expect(reorderLayerNodeIdsByInsert(["a", "b", "c"], "a", 2)).toEqual([
+    expect(reorderLayerLayerIdsByInsert(["a", "b", "c"], "a", 2)).toEqual([
       "b",
       "a",
       "c",
     ]);
-    expect(reorderLayerNodeIdsByInsert(["a", "b", "c"], "c", 0)).toEqual([
+    expect(reorderLayerLayerIdsByInsert(["a", "b", "c"], "c", 0)).toEqual([
       "c",
       "a",
       "b",
     ]);
-    expect(reorderLayerNodeIdsByInsert(["a", "b", "c"], "a", 3)).toEqual([
+    expect(reorderLayerLayerIdsByInsert(["a", "b", "c"], "a", 3)).toEqual([
       "b",
       "c",
       "a",
@@ -48,12 +48,12 @@ describe("reorderLayerNodeIdsByInsert", () => {
   });
 
   it("no-ops when dropping into the mover home gap", () => {
-    expect(reorderLayerNodeIdsByInsert(["a", "b", "c"], "b", 1)).toEqual([
+    expect(reorderLayerLayerIdsByInsert(["a", "b", "c"], "b", 1)).toEqual([
       "a",
       "b",
       "c",
     ]);
-    expect(reorderLayerNodeIdsByInsert(["a", "b", "c"], "b", 2)).toEqual([
+    expect(reorderLayerLayerIdsByInsert(["a", "b", "c"], "b", 2)).toEqual([
       "a",
       "b",
       "c",
@@ -74,9 +74,9 @@ describe("zIndexForLayerInsertGap", () => {
 
 describe("isSiblingLocalMove (Phase 7)", () => {
   function makeParentMap(
-    nodes: Array<{ id: string; parentId: string | null }>,
+    layers: Array<{ id: string; parentLayerId: string | null }>,
   ): Map<string, string | null> {
-    return new Map(nodes.map((n) => [n.id, n.parentId]));
+    return new Map(layers.map((n) => [n.id, n.parentLayerId]));
   }
 
   it("allows reorder within root siblings", () => {
@@ -84,17 +84,17 @@ describe("isSiblingLocalMove (Phase 7)", () => {
     // Roots: g.char (idx 0), title (idx 3)
     const orderedIds = ["group.char", "group.head", "head-image", "title"];
     const parentMap = makeParentMap([
-      { id: "group.char", parentId: null },
-      { id: "group.head", parentId: "group.char" },
-      { id: "head-image", parentId: "group.head" },
-      { id: "title", parentId: null },
+      { id: "group.char", parentLayerId: null },
+      { id: "group.head", parentLayerId: "group.char" },
+      { id: "head-image", parentLayerId: "group.head" },
+      { id: "title", parentLayerId: null },
     ]);
 
     // Move "title" (root, idx 3) before "group.char" (idx 0)
     // insertBeforeIndex=0 is within [0, 3+1]=[0,4] → valid
     expect(
       isSiblingLocalMove(
-        { orderedNodeIds: orderedIds, parentIdByNodeId: parentMap },
+        { orderedLayerIds: orderedIds, parentIdByNodeId: parentMap },
         "title",
         0,
       ),
@@ -103,7 +103,7 @@ describe("isSiblingLocalMove (Phase 7)", () => {
     // Move "title" after itself → no-op but valid
     expect(
       isSiblingLocalMove(
-        { orderedNodeIds: orderedIds, parentIdByNodeId: parentMap },
+        { orderedLayerIds: orderedIds, parentIdByNodeId: parentMap },
         "title",
         4,
       ),
@@ -113,19 +113,19 @@ describe("isSiblingLocalMove (Phase 7)", () => {
   it("rejects cross-parent moves", () => {
     const orderedIds = ["group.char", "group.head", "head-image", "title"];
     const parentMap = makeParentMap([
-      { id: "group.char", parentId: null },
-      { id: "group.head", parentId: "group.char" },
-      { id: "head-image", parentId: "group.head" },
-      { id: "title", parentId: null },
+      { id: "group.char", parentLayerId: null },
+      { id: "group.head", parentLayerId: "group.char" },
+      { id: "head-image", parentLayerId: "group.head" },
+      { id: "title", parentLayerId: null },
     ]);
 
     // Move "head-image" (parent=head, idx 2) to root area (idx 0)
     // head-image's siblings are under group.head — none at root
-    // Sibling range for parentId="group.head": it has only head-image at idx 2
+    // Sibling range for parentLayerId="group.head": it has only head-image at idx 2
     // So insertBeforeIndex 0 is outside [2,3] → rejected
     expect(
       isSiblingLocalMove(
-        { orderedNodeIds: orderedIds, parentIdByNodeId: parentMap },
+        { orderedLayerIds: orderedIds, parentIdByNodeId: parentMap },
         "head-image",
         0,
       ),
@@ -134,7 +134,7 @@ describe("isSiblingLocalMove (Phase 7)", () => {
     // Move to root area (idx 4 = after title)
     expect(
       isSiblingLocalMove(
-        { orderedNodeIds: orderedIds, parentIdByNodeId: parentMap },
+        { orderedLayerIds: orderedIds, parentIdByNodeId: parentMap },
         "head-image",
         4,
       ),
@@ -151,18 +151,18 @@ describe("isSiblingLocalMove (Phase 7)", () => {
       "title",
     ];
     const parentMap = makeParentMap([
-      { id: "group.char", parentId: null },
-      { id: "group.head", parentId: "group.char" },
-      { id: "head-image", parentId: "group.head" },
-      { id: "head-text", parentId: "group.head" },
-      { id: "title", parentId: null },
+      { id: "group.char", parentLayerId: null },
+      { id: "group.head", parentLayerId: "group.char" },
+      { id: "head-image", parentLayerId: "group.head" },
+      { id: "head-text", parentLayerId: "group.head" },
+      { id: "title", parentLayerId: null },
     ]);
 
     // Move head-text (idx 3) before head-image (idx 2)
     // Sibling range for parent=head: [2,3], insertBefore=2 is within [2,4] → valid
     expect(
       isSiblingLocalMove(
-        { orderedNodeIds: orderedIds, parentIdByNodeId: parentMap },
+        { orderedLayerIds: orderedIds, parentIdByNodeId: parentMap },
         "head-text",
         2,
       ),
@@ -172,7 +172,7 @@ describe("isSiblingLocalMove (Phase 7)", () => {
     // insertBefore=4 is within [2,4] → valid (after last sibling)
     expect(
       isSiblingLocalMove(
-        { orderedNodeIds: orderedIds, parentIdByNodeId: parentMap },
+        { orderedLayerIds: orderedIds, parentIdByNodeId: parentMap },
         "head-image",
         4,
       ),
@@ -183,7 +183,7 @@ describe("isSiblingLocalMove (Phase 7)", () => {
     expect(
       isSiblingLocalMove(
         {
-          orderedNodeIds: ["a", "b"],
+          orderedLayerIds: ["a", "b"],
           parentIdByNodeId: new Map([
             ["a", null],
             ["b", null],

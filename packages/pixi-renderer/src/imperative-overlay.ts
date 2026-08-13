@@ -15,7 +15,7 @@ import { Container, Graphics, type ColorSource } from "pixi.js";
 
 export type OverlayStore = {
   /** Currently selected node IDs. */
-  selectedNodeIds: string[];
+  selectedLayerIds: string[];
   /** Hovered node ID (null = none). */
   hoveredNodeId: string | null;
   /** Dragged node ID + preview bounds override. */
@@ -135,8 +135,8 @@ export function createImperativeOverlay(
     let guidesDrawn = 0;
 
     // Draw selection boxes + handles
-    for (const nodeId of store.selectedNodeIds) {
-      const b = bounds.get(nodeId);
+    for (const layerId of store.selectedLayerIds) {
+      const b = bounds.get(layerId);
       if (!b) continue;
 
       const sx = b.x * zoom + panX;
@@ -170,7 +170,7 @@ export function createImperativeOverlay(
     // Draw hover rect
     if (
       store.hoveredNodeId &&
-      !store.selectedNodeIds.includes(store.hoveredNodeId)
+      !store.selectedLayerIds.includes(store.hoveredNodeId)
     ) {
       const b = bounds.get(store.hoveredNodeId);
       if (b) {

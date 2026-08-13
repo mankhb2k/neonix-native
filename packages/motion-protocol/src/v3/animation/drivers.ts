@@ -14,7 +14,7 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("oscillator"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
         frequency: FiniteNumberSchema.positive().max(60),
         amplitude: FiniteNumberSchema,
@@ -28,7 +28,7 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("noise"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
         frequency: FiniteNumberSchema.positive().max(60),
         amplitude: FiniteNumberSchema,
@@ -39,9 +39,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("link"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         multiplier: FiniteNumberSchema.default(1),
         offset: FiniteNumberSchema.default(0),
@@ -51,9 +51,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("remap"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         inMin: FiniteNumberSchema,
         inMax: FiniteNumberSchema,
@@ -65,9 +65,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("clamp"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         min: FiniteNumberSchema,
         max: FiniteNumberSchema,
@@ -77,9 +77,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("wrap"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         min: FiniteNumberSchema,
         max: FiniteNumberSchema,
@@ -89,9 +89,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("quantize"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         step: FiniteNumberSchema.positive(),
       })
@@ -100,9 +100,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("delay-follow"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         delay: FiniteNumberSchema.nonnegative().max(
           MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
@@ -113,9 +113,9 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("spring-follow"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
-        sourceNodeId: IdSchema,
+        sourceLayerId: IdSchema,
         sourceProperty: PropertyPathSchema,
         stiffness: FiniteNumberSchema.positive().max(10_000),
         damping: FiniteNumberSchema.nonnegative().max(1_000),
@@ -125,7 +125,7 @@ export const ProceduralDriverSchema = z
       .object({
         id: IdSchema,
         type: z.literal("time-remap"),
-        targetNodeId: IdSchema,
+        targetLayerId: IdSchema,
         targetProperty: PropertyPathSchema,
         scale: FiniteNumberSchema.positive().max(16).default(1),
         offset: FiniteNumberSchema.default(0),

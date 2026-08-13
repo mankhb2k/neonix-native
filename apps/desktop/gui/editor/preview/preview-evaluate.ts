@@ -31,7 +31,7 @@ export type PreviewParityNode = {
 export type PreviewParitySnapshot = {
   sceneId: string;
   time: number;
-  nodes: PreviewParityNode[];
+  layers: PreviewParityNode[];
 };
 
 export function matrixToCss(matrix: Matrix2D): string {
@@ -51,7 +51,7 @@ export function previewParitySnapshot(
   return {
     sceneId: scene.id,
     time,
-    nodes: evaluated.map((item) => {
+    layers: evaluated.map((item) => {
       const worldOrigin = applyMatrix(item.worldMatrix, 0, 0);
       return {
         id: item.node.id,

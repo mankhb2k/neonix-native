@@ -29,7 +29,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
   const node = {
     id: "node_pad",
     type: "text",
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
     transform: {
       x: 1,
@@ -54,7 +54,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
     },
   };
   envelope.project.scenes = [
-    { id, name: "Pad", duration: 1, nodes: [node], clips: [] },
+    { id, name: "Pad", duration: 1, layers: [node], clips: [] },
   ];
   envelope.project.timeline.visualTracks = [
     {

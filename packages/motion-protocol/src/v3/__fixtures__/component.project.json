@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v3-component",
     "name": "V3 Component Example",
-    "description": "Demonstrates embedded component definition and component-as-scene-layer nodes",
+    "description": "Demonstrates embedded component definition and component-as-scene-layer layers",
     "locale": "vi-VN",
     "tags": [
       "example",
@@ -130,11 +130,11 @@
           "value": "#1877f2"
         }
       ],
-      "nodes": [
+      "layers": [
         {
           "id": "cta-bg",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 0,
           "transform": {
             "x": 0,
@@ -160,7 +160,7 @@
         {
           "id": "cta-label-node",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 0,
@@ -203,11 +203,11 @@
       "id": "landing",
       "name": "Landing Page",
       "duration": 5,
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": -200,
@@ -239,11 +239,11 @@
       "id": "cta-scene",
       "name": "CTA Overlay Scene",
       "duration": 2.5,
-      "nodes": [
+      "layers": [
         {
           "id": "cta-instance",
           "type": "component",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 100,
             "y": 200,
@@ -308,9 +308,9 @@
         "variableId": "cta-text"
       },
       "target": {
-        "kind": "componentNode",
+        "kind": "componentLayer",
         "sceneId": "cta-scene",
-        "nodeId": "cta-instance",
+        "layerId": "cta-instance",
         "propId": "label"
       }
     }

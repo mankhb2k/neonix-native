@@ -51,7 +51,7 @@ describe("Pure Command Runner Engine", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const doc: TimelineDocument = { project, clips, lanes };
     const sceneId = project.scenes[0]!.id;
-    const beforeCount = project.scenes[0]!.nodes.length;
+    const beforeCount = project.scenes[0]!.layers.length;
 
     const result = executeTimelineCommand(doc, {
       type: "add-scene-node",
@@ -70,8 +70,8 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
     const scene = result.document.project.scenes.find((s) => s.id === sceneId)!;
-    expect(scene.nodes.length).toBe(beforeCount + 1);
-    const added = scene.nodes[scene.nodes.length - 1]!;
+    expect(scene.layers.length).toBe(beforeCount + 1);
+    const added = scene.layers[scene.layers.length - 1]!;
     expect(added.zIndex).toBe(3);
     expect(added.timing).toEqual({ start: 0.5, duration: 1.5 });
     expect(result.selection?.kind).toBe("node");
@@ -82,11 +82,11 @@ describe("Pure Command Runner Engine", () => {
     const { project, clips, lanes } = fixtureMainOnly();
     const scene = project.scenes[0]!;
     scene.duration = 10;
-    scene.nodes = [
+    scene.layers = [
       {
         id: "group.char",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
         timing: { start: 5, duration: 2 },
         transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
@@ -95,7 +95,7 @@ describe("Pure Command Runner Engine", () => {
       {
         id: "root.title",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 99,
         transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
         payload: { text: "Root", fontSize: 12 },
@@ -103,12 +103,12 @@ describe("Pure Command Runner Engine", () => {
       {
         id: "child.existing",
         type: "text",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 1,
         transform: { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1, opacity: 1 },
         payload: { text: "Child", fontSize: 12 },
       },
-    ] as typeof scene.nodes;
+    ] as typeof scene.layers;
     const doc: TimelineDocument = { project, clips, lanes };
 
     const result = executeTimelineCommand(doc, {
@@ -121,14 +121,14 @@ describe("Pure Command Runner Engine", () => {
         duration: 5,
         kind: "text",
       },
-      parentId: "group.char",
+      parentLayerId: "group.char",
       timing: { start: 1.5, duration: 5 },
     });
 
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const added = result.document.project.scenes[0]!.nodes.at(-1)!;
-    expect(added.parentId).toBe("group.char");
+    const added = result.document.project.scenes[0]!.layers.at(-1)!;
+    expect(added.parentLayerId).toBe("group.char");
     expect(added.zIndex).toBe(2);
     expect(added.timing).toEqual({ start: 1.5, duration: 0.5 });
   });
@@ -153,7 +153,7 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       const scene = result.document.project.scenes.at(-1);
-      const node = scene?.nodes[0];
+      const node = scene?.layers[0];
       expect(node?.type).toBe("shape");
       if (node?.type === "shape") {
         expect(node.payload.shape).toBe("rectangle");
@@ -181,7 +181,7 @@ describe("Pure Command Runner Engine", () => {
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
       const scene = result.document.project.scenes.at(-1);
-      const node = scene?.nodes[0];
+      const node = scene?.layers[0];
       expect(node?.type).toBe("image");
       if (node?.type === "image") {
         expect(node.payload.assetId).toBe("asset.photo");
@@ -291,7 +291,7 @@ describe("Pure Command Runner Engine", () => {
     );
     expect(result.status).toBe("applied");
     if (result.status === "applied") {
-      const node = result.document.project.scenes.at(-1)?.nodes[0];
+      const node = result.document.project.scenes.at(-1)?.layers[0];
       expect(node?.transform.x).toBe(960);
       expect(node?.transform.y).toBe(540);
     }

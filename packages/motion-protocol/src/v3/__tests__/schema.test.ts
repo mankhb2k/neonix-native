@@ -120,7 +120,7 @@ describe("v3 schema — positive fixtures", () => {
 
     // scenes — group, text, shape, image, bone, camera, path, adjustment, video, svg, component
     expect(project.scenes).toHaveLength(4);
-    const allNodes = project.scenes.flatMap((s) => s.nodes);
+    const allNodes = project.scenes.flatMap((s) => s.layers);
     const nodeTypes = allNodes.map((n) => n.type);
     expect(nodeTypes).toEqual(
       expect.arrayContaining([
@@ -171,17 +171,17 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.timeline.captionTracks).toHaveLength(1);
     expect(project.timeline.captionTracks[0]!.audioTrackId).toBe("track-bgm");
 
-    // bindings — scene + componentNode targets
+    // bindings — scene + componentLayer targets
     expect(project.bindings).toHaveLength(3);
     const componentBinding = project.bindings.find(
-      (b) => b.target.kind === "componentNode",
+      (b) => b.target.kind === "componentLayer",
     )!;
-    expect(componentBinding.target.kind).toBe("componentNode");
-    if (componentBinding.target.kind !== "componentNode") {
-      throw new Error("Expected componentNode binding");
+    expect(componentBinding.target.kind).toBe("componentLayer");
+    if (componentBinding.target.kind !== "componentLayer") {
+      throw new Error("Expected componentLayer binding");
     }
     expect(componentBinding.target.sceneId).toBe("scene-lower-third");
-    expect(componentBinding.target.nodeId).toBe("node-lower-third");
+    expect(componentBinding.target.layerId).toBe("node-lower-third");
     expect(componentBinding.target.propId).toBe("bgColor");
 
     // provenance — all 4 sub-fields
@@ -208,11 +208,11 @@ describe("v3 schema — positive fixtures", () => {
     expect(introClip).not.toHaveProperty("transitionOut");
   });
 
-  it("validates activeCameraId references a camera node", () => {
+  it("validates activeCameraLayerId references a camera node", () => {
     const input = loadFixture("representative.project.json");
     const project = MotionProjectV3Schema.parse(input);
     const intro = project.scenes.find((scene) => scene.id === "intro")!;
-    const cam = intro.nodes.find((node) => node.id === "cam")!;
+    const cam = intro.layers.find((node) => node.id === "cam")!;
     expect(cam.type).toBe("camera");
   });
 
@@ -283,12 +283,12 @@ describe("v3 schema — positive fixtures", () => {
     expect(project.components[0]!.props).toHaveLength(2);
 
     const ctaScene = project.scenes.find((scene) => scene.id === "cta-scene")!;
-    const componentNode = ctaScene.nodes.find(
+    const componentLayer = ctaScene.layers.find(
       (node) => node.type === "component",
     )!;
-    expect(componentNode).toBeDefined();
-    if (componentNode.type === "component") {
-      expect(componentNode.payload.componentId).toBe("call-to-action");
+    expect(componentLayer).toBeDefined();
+    if (componentLayer.type === "component") {
+      expect(componentLayer.payload.componentId).toBe("call-to-action");
     }
 
     const overlayTrack = project.timeline.visualTracks.find(
@@ -312,7 +312,7 @@ describe("v3 schema — positive fixtures", () => {
     ctaScene.clips = [
       {
         id: "clip-anim",
-        targetId: "cta-instance",
+        layerId: "cta-instance",
         schedule: { kind: "absolute", at: 0 },
         duration: 1,
         playback: {},
@@ -320,7 +320,7 @@ describe("v3 schema — positive fixtures", () => {
           kind: "tracks",
           tracks: [
             {
-              targetId: "cta-instance",
+              layerId: "cta-instance",
               property: "transform.x",
               valueKind: "number",
               keys: [
@@ -335,7 +335,7 @@ describe("v3 schema — positive fixtures", () => {
     const project = MotionProjectV3Schema.parse(input);
     const parsedScene = project.scenes.find((s) => s.id === "cta-scene")!;
     expect(parsedScene.clips).toHaveLength(1);
-    expect(parsedScene.clips[0]!.targetId).toBe("cta-instance");
+    expect(parsedScene.clips[0]!.layerId).toBe("cta-instance");
     expect(parsedScene.clips[0]!.source.kind).toBe("tracks");
   });
 
@@ -346,8 +346,8 @@ describe("v3 schema — positive fixtures", () => {
     >;
     const scenes = input.scenes as Array<Record<string, unknown>>;
     const ctaScene = scenes.find((s) => s.id === "cta-scene")!;
-    const nodes = ctaScene.nodes as Array<Record<string, unknown>>;
-    const node = nodes.find((n) => n.type === "component")!;
+    const layers = ctaScene.layers as Array<Record<string, unknown>>;
+    const node = layers.find((n) => n.type === "component")!;
     delete (node.payload as Record<string, unknown>).componentId;
     expect(() => MotionProjectV3Schema.parse(input)).toThrow();
   });
@@ -375,7 +375,7 @@ describe("v3 schema — positive fixtures", () => {
     ctaScene.clips = [
       {
         id: "clip-anim",
-        targetId: "cta-instance",
+        layerId: "cta-instance",
         schedule: { kind: "absolute", at: 0 },
         duration: 1,
         playback: {},
@@ -383,7 +383,7 @@ describe("v3 schema — positive fixtures", () => {
           kind: "tracks",
           tracks: [
             {
-              targetId: "cta-instance",
+              layerId: "cta-instance",
               property: "transform.width",
               valueKind: "number",
               keys: [{ t: 0, v: 600 }],
@@ -395,7 +395,7 @@ describe("v3 schema — positive fixtures", () => {
     const project = MotionProjectV3Schema.parse(input);
     const parsedScene = project.scenes.find((s) => s.id === "cta-scene")!;
     expect(parsedScene.clips[0]!.source.kind).toBe("tracks");
-    expect(parsedScene.clips[0]!.targetId).toBe("cta-instance");
+    expect(parsedScene.clips[0]!.layerId).toBe("cta-instance");
   });
 
   it("rejects scene-local motion clip on component node with empty keys", () => {
@@ -408,14 +408,14 @@ describe("v3 schema — positive fixtures", () => {
     ctaScene.clips = [
       {
         id: "clip-anim",
-        targetId: "cta-instance",
+        layerId: "cta-instance",
         schedule: { kind: "absolute", at: 0 },
         duration: 1,
         playback: {},
         source: {
           kind: "tracks",
           tracks: [
-            { targetId: "cta-instance", property: "transform.x", keys: [] },
+            { layerId: "cta-instance", property: "transform.x", keys: [] },
           ],
         },
       },
@@ -433,7 +433,7 @@ describe("v3 schema — positive fixtures", () => {
     ctaScene.clips = [
       {
         id: "clip-anim",
-        targetId: "cta-instance",
+        layerId: "cta-instance",
         schedule: { kind: "absolute", at: 0 },
         duration: 1,
         playback: {},
@@ -441,7 +441,7 @@ describe("v3 schema — positive fixtures", () => {
           kind: "tracks",
           tracks: [
             {
-              targetId: "cta-instance",
+              layerId: "cta-instance",
               property: "transform.x",
               valueKind: "color",
               keys: [{ t: 0, v: 0 }],
@@ -1534,7 +1534,7 @@ describe("v3 timeline integrity — Phase 6", () => {
               clips: [
                 {
                   id: "mc1",
-                  targetId: "headline",
+                  layerId: "headline",
                   schedule: { kind: "absolute", at: 2 },
                   duration: 2,
                   source: { kind: "preset", presetId: "p1" },
@@ -1559,7 +1559,7 @@ describe("v3 timeline integrity — Phase 6", () => {
               clips: [
                 {
                   id: "mc1",
-                  targetId: "headline",
+                  layerId: "headline",
                   schedule: { kind: "scene-end", offset: 0 },
                   duration: 4,
                   source: { kind: "preset", presetId: "p1" },
@@ -1584,7 +1584,7 @@ describe("v3 timeline integrity — Phase 6", () => {
               clips: [
                 {
                   id: "mc1",
-                  targetId: "headline",
+                  layerId: "headline",
                   schedule: { kind: "absolute", at: 1 },
                   duration: 2,
                   source: { kind: "preset", presetId: "p1" },
@@ -1837,7 +1837,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -1877,7 +1877,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -1917,7 +1917,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -1952,7 +1952,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -1991,7 +1991,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2071,7 +2071,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2118,7 +2118,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2156,11 +2156,11 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     >;
     const components = (input.components as Array<Record<string, unknown>>).map(
       (c) => {
-        const nodes = [
-          ...((c.nodes as Array<Record<string, unknown>>) ?? []),
+        const layers = [
+          ...((c.layers as Array<Record<string, unknown>>) ?? []),
         ];
-        const bg = nodes.find((n) => n.id === "cta-bg")!;
-        nodes.push({ ...structuredClone(bg), id: "border", zIndex: 2 });
+        const bg = layers.find((n) => n.id === "cta-bg")!;
+        layers.push({ ...structuredClone(bg), id: "border", zIndex: 2 });
         return {
           ...c,
           propBindings: [
@@ -2189,7 +2189,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
               },
             },
           ],
-          nodes,
+          layers,
         };
       },
     );
@@ -2205,7 +2205,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
       unknown
     >;
     const cta = (input.components as Array<Record<string, unknown>>)[0]!;
-    const bg = (cta.nodes as Array<Record<string, unknown>>).find(
+    const bg = (cta.layers as Array<Record<string, unknown>>).find(
       (n) => n.id === "cta-bg",
     )!;
     const leaf = {
@@ -2223,7 +2223,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           },
         },
       ],
-      nodes: [{ ...structuredClone(bg), id: "fill-layer" }],
+      layers: [{ ...structuredClone(bg), id: "fill-layer" }],
     };
     const mid = {
       id: "badge",
@@ -2235,16 +2235,16 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           propId: "color",
           target: {
             kind: "childProp",
-            childId: "swatch-1",
+            childLayerId: "swatch-1",
             propId: "fill",
           },
         },
       ],
-      nodes: [
+      layers: [
         {
           id: "swatch-1",
           type: "component",
-          parentId: null,
+          parentLayerId: null,
           transform: structuredClone(bg.transform),
           payload: { componentId: "swatch" },
         },
@@ -2258,17 +2258,17 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
           propId: "color",
           target: {
             kind: "childProp",
-            childId: "badge-1",
+            childLayerId: "badge-1",
             propId: "color",
           },
         },
       ],
-      nodes: [
-        ...((cta.nodes as Array<Record<string, unknown>>) ?? []),
+      layers: [
+        ...((cta.layers as Array<Record<string, unknown>>) ?? []),
         {
           id: "badge-1",
           type: "component",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 2,
           transform: structuredClone(bg.transform),
           payload: { componentId: "badge" },
@@ -2290,7 +2290,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2358,7 +2358,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2433,7 +2433,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const keyframed = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2464,7 +2464,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     ).toThrow(MotionV3ReferenceError);
     const bound = (input.scenes as Array<Record<string, unknown>>).map((s) => ({
       ...s,
-      nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+      layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
         n.type === "component"
           ? {
               ...n,
@@ -2511,7 +2511,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const scenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2546,7 +2546,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
     const boundScenes = (input.scenes as Array<Record<string, unknown>>).map(
       (s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2592,7 +2592,7 @@ describe("v3 reference validation — parseMotionProjectV3", () => {
       components,
       scenes: (input.scenes as Array<Record<string, unknown>>).map((s) => ({
         ...s,
-        nodes: (s.nodes as Array<Record<string, unknown>>).map((n) =>
+        layers: (s.layers as Array<Record<string, unknown>>).map((n) =>
           n.type === "component"
             ? {
                 ...n,
@@ -2783,14 +2783,14 @@ describe("v3 extensions — namespaced keys", () => {
 
 // ── Node-graph validation (Phase 2: group layer semantics) ────────────
 
-import { validateNodeGraphV3 } from "../references/node-graph";
-import type { NodeV3 } from "../nodes";
+import { validateLayerGraphV3 } from "../references/layer-graph";
+import type { LayerV3 } from "../layers";
 
 function makeNode(
-  overrides: Partial<NodeV3> & { id: string; type: string },
-): NodeV3 {
+  overrides: Partial<LayerV3> & { id: string; type: string },
+): LayerV3 {
   return {
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
     transform: {
       x: 0,
@@ -2810,152 +2810,152 @@ function makeNode(
     timing: { start: 0, duration: 1 },
     payload: {},
     ...overrides,
-  } as NodeV3;
+  } as LayerV3;
 }
 
-describe("validateNodeGraphV3 — group layer semantics", () => {
+describe("validateLayerGraphV3 — group layer semantics", () => {
   it("accepts valid three-level nested groups", () => {
-    const nodes: NodeV3[] = [
+    const layers: LayerV3[] = [
       makeNode({
         id: "group.character",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 3,
       }),
       makeNode({
         id: "group.upper-body",
         type: "group",
-        parentId: "group.character",
+        parentLayerId: "group.character",
         zIndex: 2,
       }),
       makeNode({
         id: "group.head-rig",
         type: "group",
-        parentId: "group.upper-body",
+        parentLayerId: "group.upper-body",
         zIndex: 3,
       }),
       makeNode({
         id: "head-image",
         type: "image",
-        parentId: "group.head-rig",
+        parentLayerId: "group.head-rig",
         zIndex: 0,
         payload: { assetId: "asset.head" },
       }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(issues).toEqual([]);
   });
 
-  it("rejects duplicate zIndex among siblings with the same parentId", () => {
-    const nodes: NodeV3[] = [
+  it("rejects duplicate zIndex among siblings with the same parentLayerId", () => {
+    const layers: LayerV3[] = [
       makeNode({
         id: "text_1",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 10,
         timing: { start: 0, duration: 3 },
       }),
       makeNode({
         id: "text_2",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 10,
         timing: { start: 0, duration: 3 },
       }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(issues.some((i) => i.message.includes("Duplicate zIndex"))).toBe(
       true,
     );
   });
 
   it("accepts the same zIndex under different parents", () => {
-    const nodes: NodeV3[] = [
-      makeNode({ id: "group.a", type: "group", parentId: null, zIndex: 0 }),
-      makeNode({ id: "group.b", type: "group", parentId: null, zIndex: 1 }),
+    const layers: LayerV3[] = [
+      makeNode({ id: "group.a", type: "group", parentLayerId: null, zIndex: 0 }),
+      makeNode({ id: "group.b", type: "group", parentLayerId: null, zIndex: 1 }),
       makeNode({
         id: "child.a",
         type: "image",
-        parentId: "group.a",
+        parentLayerId: "group.a",
         zIndex: 5,
         payload: { assetId: "a" },
       }),
       makeNode({
         id: "child.b",
         type: "image",
-        parentId: "group.b",
+        parentLayerId: "group.b",
         zIndex: 5,
         payload: { assetId: "b" },
       }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(issues).toEqual([]);
   });
 
   it("rejects missing parent", () => {
-    const nodes: NodeV3[] = [
-      makeNode({ id: "group.a", type: "group", parentId: null }),
+    const layers: LayerV3[] = [
+      makeNode({ id: "group.a", type: "group", parentLayerId: null }),
       makeNode({
         id: "child",
         type: "image",
-        parentId: "nonexistent",
+        parentLayerId: "nonexistent",
         payload: { assetId: "a" },
       }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(issues.some((i) => i.message.includes("Unknown parent"))).toBe(true);
   });
 
   it("rejects self-parent", () => {
-    const nodes: NodeV3[] = [
-      makeNode({ id: "group.a", type: "group", parentId: "group.a" }),
+    const layers: LayerV3[] = [
+      makeNode({ id: "group.a", type: "group", parentLayerId: "group.a" }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(
       issues.some((i) => i.message.includes("cannot be its own parent")),
     ).toBe(true);
   });
 
   it("rejects parent cycles (A → B → A)", () => {
-    const nodes: NodeV3[] = [
-      makeNode({ id: "a", type: "group", parentId: "b" }),
-      makeNode({ id: "b", type: "group", parentId: "a" }),
+    const layers: LayerV3[] = [
+      makeNode({ id: "a", type: "group", parentLayerId: "b" }),
+      makeNode({ id: "b", type: "group", parentLayerId: "a" }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(
       issues.some((i) => i.message.includes("Parent cycle detected")),
     ).toBe(true);
   });
 
   it("rejects children under non-group parent (image)", () => {
-    const nodes: NodeV3[] = [
+    const layers: LayerV3[] = [
       makeNode({
         id: "img",
         type: "image",
-        parentId: null,
+        parentLayerId: null,
         payload: { assetId: "a" },
       }),
       makeNode({
         id: "child",
         type: "image",
-        parentId: "img",
+        parentLayerId: "img",
         payload: { assetId: "b" },
       }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(
       issues.some((i) =>
-        i.message.includes('only "group" nodes may have children'),
+        i.message.includes('only "group" layers may have children'),
       ),
     ).toBe(true);
   });
 
   it("rejects children under non-group parent (text)", () => {
-    const nodes: NodeV3[] = [
+    const layers: LayerV3[] = [
       makeNode({
         id: "txt",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         payload: {
           content: { kind: "plain", text: "hi" },
           fontSize: 24,
@@ -2968,14 +2968,14 @@ describe("validateNodeGraphV3 — group layer semantics", () => {
       makeNode({
         id: "child",
         type: "image",
-        parentId: "txt",
+        parentLayerId: "txt",
         payload: { assetId: "b" },
       }),
     ];
-    const issues = validateNodeGraphV3(nodes, "scene.test");
+    const issues = validateLayerGraphV3(layers, "scene.test");
     expect(
       issues.some((i) =>
-        i.message.includes('only "group" nodes may have children'),
+        i.message.includes('only "group" layers may have children'),
       ),
     ).toBe(true);
   });
@@ -2990,9 +2990,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "remap",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       inMin: 10,
       inMax: 5,
@@ -3013,9 +3013,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "remap",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       inMin: 0,
       inMax: 100,
@@ -3036,9 +3036,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "remap",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       inMin: 0,
       inMax: 100,
@@ -3055,9 +3055,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "clamp",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       min: 10,
       max: 10,
@@ -3076,9 +3076,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "clamp",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       min: 0,
       max: 1,
@@ -3090,9 +3090,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "wrap",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       min: 100,
       max: 0,
@@ -3111,9 +3111,9 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "wrap",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
-      sourceNodeId: "n2",
+      sourceLayerId: "n2",
       sourceProperty: "transform.y",
       min: 0,
       max: 360,
@@ -3125,7 +3125,7 @@ describe("ProceduralDriverSchema — range validation", () => {
     const result = ProceduralDriverSchema.safeParse({
       id: "d1",
       type: "noise",
-      targetNodeId: "n1",
+      targetLayerId: "n1",
       targetProperty: "transform.x",
       frequency: 2,
       amplitude: 10,

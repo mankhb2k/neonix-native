@@ -16,7 +16,7 @@ export const SourceRefKindSchema = z.enum([
 export const SourceRefSchema = z
   .object({
     kind: SourceRefKindSchema,
-    nodeId: IdSchema.optional(),
+    layerId: IdSchema.optional(),
     runId: IdSchema.optional(),
     captionTrackId: IdSchema.optional(),
     tokenId: IdSchema.optional(),
@@ -28,7 +28,7 @@ export const SourceRefSchema = z
     let missing = false;
     switch (ref.kind) {
       case "text-run":
-        if (!ref.nodeId || !ref.runId) missing = true;
+        if (!ref.layerId || !ref.runId) missing = true;
         break;
       case "caption-token":
         if (!ref.captionTrackId || !ref.tokenId) missing = true;
@@ -37,7 +37,7 @@ export const SourceRefSchema = z
         if (!ref.captionTrackId || !ref.cueId) missing = true;
         break;
       case "node":
-        if (!ref.nodeId) missing = true;
+        if (!ref.layerId) missing = true;
         break;
       case "clip":
         if (!ref.clipId) missing = true;
@@ -57,13 +57,13 @@ export type SourceRefKind = z.infer<typeof SourceRefKindSchema>;
 export function sourceRefKey(ref: SourceRef): string {
   switch (ref.kind) {
     case "text-run":
-      return `${ref.kind}:${ref.nodeId}:${ref.runId}`;
+      return `${ref.kind}:${ref.layerId}:${ref.runId}`;
     case "caption-token":
       return `${ref.kind}:${ref.captionTrackId}:${ref.tokenId}`;
     case "caption-cue":
       return `${ref.kind}:${ref.captionTrackId}:${ref.cueId}`;
     case "node":
-      return `${ref.kind}:${ref.nodeId}`;
+      return `${ref.kind}:${ref.layerId}`;
     case "clip":
       return `${ref.kind}:${ref.clipId}`;
   }

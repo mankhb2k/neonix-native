@@ -2,7 +2,7 @@
 
 **Standard Zod Validation Schema** và **TypeScript Type System** cho Motion Format V3 — the **only authoring protocol**. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**.
 
-> **V3 is the only authoring protocol.** `formatVersion` must be `3`. Compat layer and V2 authoring types have been permanently removed from the source tree. All public APIs use neutral canonical names (`EffectSchema`, `BrandSchema`, `NodeTimingSchema` — no `V2` suffix).
+> **V3 is the only authoring protocol.** `formatVersion` must be `3`. Compat layer and V2 authoring types have been permanently removed from the source tree. All public APIs use neutral canonical names (`EffectSchema`, `BrandSchema`, `LayerTimingSchema` — no `V2` suffix).
 
 > **For AI agents / MCP / Skills:** Generate `MotionProjectV3`. Use `visualTracks` (not `sceneOrder`). Visual clip source is scene-only — no `transitionIn`/`transitionOut`, no `role`, no `source.kind: "component"`. Effects = scene/component/layer animation. Runtime IR is produced by `@motionvideo/motion-compiler` — you only author the project JSON.
 
@@ -14,7 +14,7 @@
 
 2. **Authoring IR vs. Runtime IR Pipeline**:
    - **Authoring IR** (`MotionProjectV3`): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), component props, binding qua `propId`, component instances (`type: "component"`), caption tracks, và layout modifiers.
-   - **Runtime IR** (`MotionRuntimeProject`): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat nodes được clone, presets & text animators được biên dịch thành keyframe tracks thực tế. Ranh giới chuyển đổi nằm ở `@motionvideo/motion-compiler`.
+   - **Runtime IR** (`MotionRuntimeProject`): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat layers được clone, presets & text animators được biên dịch thành keyframe tracks thực tế. Ranh giới chuyển đổi nằm ở `@motionvideo/motion-compiler`.
 
 3. **An toàn dữ liệu nghiêm ngặt (Strict Validation & Bounds)**:
    - Sử dụng Zod `discriminatedUnion` và `.strict()` nhằm reject thuộc tính lạ hoặc dữ liệu rác.
@@ -34,7 +34,7 @@ Package gồm các module chính trong [`src/`](./src):
 - [`index.ts`](./src/index.ts): Export chính. Cung cấp alias canonical (`MotionProject`, `Node`, `Scene`, `parseMotionProject`, …) và re-export capabilities / AI matrix.
 - [`v3/`](./src/v3): Schema v3 chia theo domain (authoring format):
   - `common`, `values`, `transform`, `effects`, `layout`, `modifiers`, `assets`, `variables`
-  - `nodes/` — text, geometry, media, structural, paint, base
+  - `layers/` — text, geometry, media, structural, paint, base
   - `animation/` — clips (gồm `scene-end`), tracks, easing, drivers
   - `captions.ts`, `source-ref.ts`, `project.ts`, `component.ts`, `runtime.ts`
   - `parse.ts` — parse + normalize + serialize
@@ -65,7 +65,7 @@ JSON Input  ──► normalizeMotionProjectInput()
 | Schema / Type                                   | Version | Mô tả                                                                                                          |
 | ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
 | `MotionProjectV3Schema` / `MotionProject`       | `3`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
-| `ComponentDefinitionV3` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `nodes`, `variants`, `slots`, `actions`.         |
+| `ComponentDefinitionV3` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `layers`, `variants`, `slots`, `actions`.         |
 | `MotionRuntimeProjectSchema`                    | `3`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
 | `MotionPatchSchema`                             | `1`     | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance).                                  |
 | `SceneComponentRegistrySchema`                  | `1`     | Catalog linh kiện scene cho AI/Editor template picker.                                                         |
@@ -74,9 +74,9 @@ JSON Input  ──► normalizeMotionProjectInput()
 
 ## 📐 Cấu trúc Dữ liệu Chi tiết (Core Schemas)
 
-### 1. Scene Graph & Node Types (`NodeV3`)
+### 1. Scene Graph & Node Types (`LayerV3`)
 
-Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node tổ chức theo cây với `TransformV3`. `NodeV3` là Discriminated Union theo trường `type`:
+Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node tổ chức theo cây với `TransformV3`. `LayerV3` là Discriminated Union theo trường `type`:
 
 - **`group`**: Gom cụm và phân cấp không gian.
 - **`bone`**: Khung xương cut-out (`payload.length`, `payload.restRotation`).
@@ -92,9 +92,9 @@ Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node t
 
 `group` node (`type: "group"`) là một **timeline layer thực sự** — không phải folder thụ động. Nó có timing, transform, z-order, animation, effects riêng, và có thể chứa child layer.
 
-**Thuật ngữ**: `timeline track/lane` (lane của scene trong `visualTracks`), `timeline layer` (node layer trong scene), `group layer` (node `group` có child), `root layer` (`parentId: null`), `child layer` (có `parentId` trỏ node khác). Không dùng `track`/`lane`/`layer` thay thế cho nhau.
+**Thuật ngữ**: `timeline track/lane` (lane của scene trong `visualTracks`), `timeline layer` (node layer trong scene), `group layer` (node `group` có child), `root layer` (`parentLayerId: null`), `child layer` (có `parentLayerId` trỏ node khác). Không dùng `track`/`lane`/`layer` thay thế cho nhau.
 
-**Parent relationship**: `parentId: null` → relative với scene. `parentId` → relative với parent. Chỉ `group` node được phép có children.
+**Parent relationship**: `parentLayerId: null` → relative với scene. `parentLayerId` → relative với parent. Chỉ `group` node được phép có children.
 
 **Timing**: Child timing là **parent-relative**:
 
@@ -105,7 +105,7 @@ nodeGlobalEnd   = min(parentGlobalEnd, nodeGlobalStart + node.timing.duration)
 
 Default: `start=0`, `duration=parent duration`. Child chỉ visible khi scene time nằm trong timing của **tất cả ancestor**.
 
-**zIndex**: Chỉ so sánh giữa **sibling** (cùng `parentId`). Child zIndex cao không vượt ra ngoài parent group.
+**zIndex**: Chỉ so sánh giữa **sibling** (cùng `parentLayerId`). Child zIndex cao không vượt ra ngoài parent group.
 
 **Animation**: Group có đầy đủ animation (transform, opacity, effects, blend, mask). Khi group transform → tất cả child di chuyển theo. Child animation evaluate trong group local coordinate space.
 
@@ -116,7 +116,7 @@ Xem ví dụ 3 cấp group lồng nhau tại [`docs/motion-format-v3.md#group-la
 #### Thuộc tính mở rộng trên Node
 
 - **Transform** (`TransformV3`): `x`, `y`, `depth` (2.5D parallax), `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY` (0..1), `opacity`, `visible`, `flipX`, `flipY`.
-- **Masking**: Tối đa một quan hệ `mask: { sourceNodeId, mode, sourceVisibility }` với mode `clip` / `alpha` / `inverse-alpha` / `luma` / `inverse-luma`.
+- **Masking**: Tối đa một quan hệ `mask: { sourceLayerId, mode, sourceVisibility }` với mode `clip` / `alpha` / `inverse-alpha` / `luma` / `inverse-luma`.
 - **Effects Stack** (`EffectV3`): `blur`, `shadow`, `glow`, `color-adjust`.
 - **Blend mode**: `normal` | `multiply` | `screen` | `add` | `darken` | `lighten` | `overlay` — đồng bộ NodeBase → snapshot → paint `setTransform` → Pixi / Remotion.
 - **Modifiers**: `motion-path`, `path-morph`, `secondary-motion`, `trim-path`, `path-bend`, `constraint`, `parallax`, `layout`, `layout-item`.
@@ -285,7 +285,7 @@ Khi preview cần map vùng paint về authoring:
 
 ### 9. Capability Registry & Limits (`capabilities.ts`)
 
-- **`MOTION_PROTOCOL_LIMITS`**: Giới hạn kích thước/số lượng (ví dụ max 2 000 nodes/scene, 10 000 keys/track, 64 rich-text runs, 4 096 caption tokens/track, 10 000 beats/asset, …).
+- **`MOTION_PROTOCOL_LIMITS`**: Giới hạn kích thước/số lượng (ví dụ max 2 000 layers/scene, 10 000 keys/track, 64 rich-text runs, 4 096 caption tokens/track, 10 000 beats/asset, …).
 - **`motionPropertyCapability`**: Tra cứu từng property:
   - `valueKind`: `number`, `color`, `angle`, `vec2`, `boolean`, `string`, `asset`, `path`, `gradient`, `json`
   - `animatable` / `bindable` / `public`

@@ -154,11 +154,11 @@
         }
       ],
       "variables": [],
-      "nodes": [
+      "layers": [
         {
           "id": "logo",
           "type": "solid",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -191,11 +191,11 @@
       "name": "Intro",
       "duration": 5,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": -200,
@@ -224,7 +224,7 @@
         {
           "id": "subtitle",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 200,
@@ -253,7 +253,7 @@
         {
           "id": "logo-img",
           "type": "image",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": -80,
@@ -277,7 +277,7 @@
         {
           "id": "cam",
           "type": "camera",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -302,7 +302,7 @@
       "clips": [
         {
           "id": "title-fade-in",
-          "targetId": "title",
+          "layerId": "title",
           "schedule": {
             "kind": "absolute",
             "at": 0
@@ -313,7 +313,7 @@
             "kind": "tracks",
             "tracks": [
               {
-                "targetId": "title",
+                "layerId": "title",
                 "property": "transform.opacity",
                 "keys": [
                   {
@@ -331,18 +331,18 @@
           }
         }
       ],
-      "activeCameraId": "cam"
+      "activeCameraLayerId": "cam"
     },
     {
       "id": "outro",
       "name": "Outro",
       "duration": 3,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "thanks",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "transform": {
             "x": 0,
             "y": 0,
@@ -469,7 +469,7 @@
       "target": {
         "kind": "scene",
         "sceneId": "intro",
-        "nodeId": "subtitle",
+        "layerId": "subtitle",
         "property": "payload.text"
       }
     },
@@ -482,7 +482,7 @@
       "target": {
         "kind": "scene",
         "sceneId": "intro",
-        "nodeId": "title",
+        "layerId": "title",
         "property": "transform.opacity"
       }
     }

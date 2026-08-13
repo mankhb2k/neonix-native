@@ -77,7 +77,7 @@ function fixtureInput(
         {
           id: "scene.a",
           duration: 5,
-          nodes: [],
+          layers: [],
           tracks: [],
           clips: [],
         },

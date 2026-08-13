@@ -23,7 +23,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "b3c2e6f33e78ecb22cbd6d9b00ac494d",
+  "runtimeHash": "4bb7f0a478922a9a9cc62ae8febe243f",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -64,11 +64,11 @@
           "intro"
         ]
       },
-      "nodes": [
+      "layers": [
         {
           "id": "title",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 1,
           "transform": {
             "x": 960,
@@ -106,7 +106,7 @@
         {
           "id": "subtitle",
           "type": "text",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 2,
           "transform": {
             "x": 960,

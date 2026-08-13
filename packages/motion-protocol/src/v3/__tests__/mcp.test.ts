@@ -295,8 +295,8 @@ describe("V3 MCP contract", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
       scenes: [
-        { id: "intro", duration: 3, space: "flat-2d", nodes: [], clips: [] },
-        { id: "outro", duration: 2, space: "flat-2d", nodes: [], clips: [] },
+        { id: "intro", duration: 3, space: "flat-2d", layers: [], clips: [] },
+        { id: "outro", duration: 2, space: "flat-2d", layers: [], clips: [] },
       ],
       timeline: {
         ...minimalProject().timeline,
@@ -385,7 +385,7 @@ describe("V3 MCP contract", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
       scenes: [
-        { id: "a", duration: 2, space: "flat-2d", nodes: [], clips: [] },
+        { id: "a", duration: 2, space: "flat-2d", layers: [], clips: [] },
       ],
       timeline: {
         ...minimalProject().timeline,

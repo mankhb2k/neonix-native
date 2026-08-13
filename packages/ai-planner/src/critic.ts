@@ -115,7 +115,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
   // ── Asset integrity ──
   const assetIds = new Set(project.assets.map((a) => a.id));
   for (const scene of project.scenes) {
-    for (const node of scene.nodes) {
+    for (const node of scene.layers) {
       const payload = node.payload as Record<string, unknown>;
       if (
         (node.type === "image" ||
@@ -127,7 +127,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
         findings.push({
           code: "asset_missing",
           severity: "error",
-          path: `scenes.${scene.id}.nodes.${node.id}`,
+          path: `scenes.${scene.id}.layers.${node.id}`,
           message: `Node references unknown asset "${payload.assetId}"`,
           repairHint:
             "registerAsset before referencing it, or use a valid asset id",
@@ -165,7 +165,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
 
   const hasCta = project.scenes.some(
     (scene) =>
-      scene.nodes.some(
+      scene.layers.some(
         (node) =>
           node.semantic?.role === "cta" || node.semantic?.key?.includes("cta"),
       ) || scene.id.includes("cta"),
@@ -182,19 +182,19 @@ export function critiqueProject(project: MotionProject): CriticReport {
   }
 
   for (const scene of project.scenes) {
-    if (scene.nodes.length === 0) {
+    if (scene.layers.length === 0) {
       findings.push({
         code: "empty_scene",
         severity: "error",
         path: `scenes.${scene.id}`,
-        message: `Scene ${scene.id} has no nodes`,
+        message: `Scene ${scene.id} has no layers`,
         repairHint: "addNode with on-screen copy",
       });
       score -= 25;
     }
 
     const safe = project.metadata.safeArea;
-    for (const node of scene.nodes) {
+    for (const node of scene.layers) {
       if (node.type !== "text") continue;
       const fontSize = node.payload.fontSize;
       const width = node.transform.width;
@@ -204,7 +204,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
         findings.push({
           code: "text_overflow",
           severity: "warning",
-          path: `scenes.${scene.id}.nodes.${node.id}`,
+          path: `scenes.${scene.id}.layers.${node.id}`,
           message: `Text may overflow width at fontSize=${fontSize}`,
           repairHint: "Reduce fontSize or shorten copy",
         });
@@ -218,7 +218,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
           findings.push({
             code: "safe_area",
             severity: "info",
-            path: `scenes.${scene.id}.nodes.${node.id}.transform.y`,
+            path: `scenes.${scene.id}.layers.${node.id}.transform.y`,
             message: "Node may sit in platform safe-area top inset",
             repairHint: "Increase y or apply layout padding",
           });
@@ -227,8 +227,8 @@ export function critiqueProject(project: MotionProject): CriticReport {
       }
     }
 
-    // Overlap among sibling text nodes (AABB)
-    const texts = scene.nodes.filter((node) => node.type === "text");
+    // Overlap among sibling text layers (AABB)
+    const texts = scene.layers.filter((node) => node.type === "text");
     for (let i = 0; i < texts.length; i += 1) {
       for (let j = i + 1; j < texts.length; j += 1) {
         const a = texts[i]!;
@@ -242,8 +242,8 @@ export function critiqueProject(project: MotionProject): CriticReport {
           findings.push({
             code: "overlap",
             severity: "warning",
-            path: `scenes.${scene.id}.nodes`,
-            message: `Text nodes ${a.id} and ${b.id} overlap`,
+            path: `scenes.${scene.id}.layers`,
+            message: `Text layers ${a.id} and ${b.id} overlap`,
             repairHint: "setLayoutConstraint stack or adjust transforms",
           });
           score -= 4;
@@ -262,10 +262,10 @@ export function applyCriticRepair(
 ): MotionProject {
   const next = JSON.parse(JSON.stringify(project)) as MotionProject;
   if (finding.code === "text_overflow") {
-    const match = /^scenes\.([^.]+)\.nodes\.(.+)$/.exec(finding.path);
+    const match = /^scenes\.([^.]+)\.layers\.(.+)$/.exec(finding.path);
     if (match) {
       const scene = next.scenes.find((item) => item.id === match[1]);
-      const node = scene?.nodes.find((item) => item.id === match[2]);
+      const node = scene?.layers.find((item) => item.id === match[2]);
       if (node?.type === "text") {
         const box = Math.max(1, node.transform.width);
         const needed =
@@ -280,7 +280,7 @@ export function applyCriticRepair(
   if (finding.code === "missing_cta" && next.scenes.length > 0) {
     const last = next.scenes[next.scenes.length - 1]!;
     last.name = "cta";
-    for (const node of last.nodes) {
+    for (const node of last.layers) {
       if (node.type === "text") {
         node.semantic = { role: "cta", key: "cta.copy", tags: [] };
       }
@@ -289,11 +289,11 @@ export function applyCriticRepair(
   if (finding.code === "empty_scene") {
     const match = /^scenes\.([^.]+)$/.exec(finding.path);
     const scene = next.scenes.find((item) => item.id === match?.[1]);
-    if (scene && scene.nodes.length === 0) {
-      scene.nodes.push({
+    if (scene && scene.layers.length === 0) {
+      scene.layers.push({
         id: `node.repair.${scene.id}`,
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         transform: {
           x: 540,
           y: 960,

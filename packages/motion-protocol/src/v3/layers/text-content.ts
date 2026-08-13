@@ -1,7 +1,7 @@
 /**
  * V3 text content schemas & helpers — canonical source of truth.
  *
- * Node-level text type (TextNodeV3) lives in v3/nodes/text.ts.
+ * Node-level text type (TextLayerV3) lives in v3/layers/text.ts.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
@@ -101,7 +101,7 @@ export type RichTextRun = z.infer<typeof RichTextRunSchema>;
 
 // ── Text payload helpers ──────────────────────────────────────────────
 
-export type TextNodePayload = {
+export type TextLayerPayload = {
   content: TextContent;
   fontAssetId?: string;
   fontSize: number;
@@ -158,13 +158,13 @@ export const TextPayloadSchema = z.preprocess(
       content: TextContentSchema,
       fontAssetId: IdSchema.optional(),
       fontSize: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.nodeDimension,
+        MOTION_PROTOCOL_LIMITS.layerDimension,
       ),
       color: ColorHexSchema.default("#000000"),
       alignment: z.enum(["left", "center", "right"]).default("left"),
       wrap: z.enum(["none", "word", "character"]).default("word"),
       lineHeight: FiniteNumberSchema.positive()
-        .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+        .max(MOTION_PROTOCOL_LIMITS.layerDimension)
         .optional(),
       letterSpacing: FiniteNumberSchema.optional(),
       maxLines: FiniteNumberSchema.int().positive().optional(),

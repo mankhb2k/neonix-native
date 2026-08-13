@@ -34,7 +34,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "c13bb38951dcccdae388b40ac171e2c0",
+  "runtimeHash": "7263e030e19415ef284988010b5b4266",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "a87c6007fe880e96",
   "sourceRef": {
@@ -75,11 +75,11 @@
           "character-demo"
         ]
       },
-      "nodes": [
+      "layers": [
         {
           "id": "group.character",
           "type": "group",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 3,
           "transform": {
             "x": 540,
@@ -109,7 +109,7 @@
         {
           "id": "group.upper-body",
           "type": "group",
-          "parentId": "group.character",
+          "parentLayerId": "group.character",
           "zIndex": 2,
           "transform": {
             "x": 0,
@@ -139,7 +139,7 @@
         {
           "id": "group.head-rig",
           "type": "group",
-          "parentId": "group.upper-body",
+          "parentLayerId": "group.upper-body",
           "zIndex": 3,
           "transform": {
             "x": 0,
@@ -169,7 +169,7 @@
         {
           "id": "head-image",
           "type": "image",
-          "parentId": "group.head-rig",
+          "parentLayerId": "group.head-rig",
           "zIndex": 0,
           "transform": {
             "x": 0,

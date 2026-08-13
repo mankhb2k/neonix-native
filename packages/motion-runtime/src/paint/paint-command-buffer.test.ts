@@ -20,7 +20,7 @@ const snapshot: RenderSnapshot = {
     {
       key: "s1:shape",
       sceneId: "s1",
-      nodeId: "shape",
+      layerId: "shape",
       nodeType: "shape",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 10, f: 20 },
       worldBounds: { x: 10, y: 20, width: 80, height: 40 },
@@ -103,7 +103,7 @@ describe("validatePaintCommandBuffer", () => {
         {
           op: "drawSolid",
           key: "x",
-          nodeId: "n",
+          layerId: "n",
           fill: "#000",
           width: 1,
           height: 1,
@@ -118,7 +118,7 @@ describe("validatePaintCommandBuffer", () => {
 });
 
 describe("decodePaintCommandBuffer", () => {
-  it("builds a display list with drawable nodes", () => {
+  it("builds a display list with drawable layers", () => {
     const buffer = buildPaintCommandBuffer(snapshot);
     const list = decodePaintCommandBuffer(buffer);
     expect(list.width).toBe(200);

@@ -46,7 +46,7 @@ describe("web/desktop host contract", () => {
   it("stage session: same move → same transform command fields", () => {
     const base = {
       sceneId: "scene",
-      nodeId: "node",
+      layerId: "node",
       x: 10,
       y: 20,
       width: 40,

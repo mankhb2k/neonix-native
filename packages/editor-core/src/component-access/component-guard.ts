@@ -3,11 +3,11 @@
  * editor level.
  *
  * The contract:
- * - **Owner mode**: can edit ALL component internals (nodes, bindings, actions,
+ * - **Owner mode**: can edit ALL component internals (layers, bindings, actions,
  *   public surface). Used when the user is authoring/editing a component
  *   definition.
  * - **Consumer mode**: can ONLY interact with the public surface (publicParams,
- *   slots, variants, publicTargets, actions). Internal nodes are sealed.
+ *   slots, variants, publicTargets, actions). Internal layers are sealed.
  *
  * These guards are designed to be called by the property panel, node tree,
  * and command executors BEFORE any mutation. They return structured results
@@ -36,7 +36,7 @@ export type ComponentEditContext =
       clipId: string;
     }
   | {
-      /** Not editing a component at all — full access to scene nodes. */
+      /** Not editing a component at all — full access to scene layers. */
       mode: "scene";
     };
 
@@ -114,13 +114,13 @@ export function canConsumerWrite(property: string): AccessCheckResult {
 /**
  * Check whether a node operation is allowed in the current editing context.
  *
- * In consumer mode, internal nodes (nodes, bindings, variables) are sealed.
- * In owner mode, all nodes are editable.
- * In scene mode, all scene nodes are editable.
+ * In consumer mode, internal layers (layers, bindings, variables) are sealed.
+ * In owner mode, all layers are editable.
+ * In scene mode, all scene layers are editable.
  */
 export function canAccessNode(
   context: ComponentEditContext,
-  nodeId: string,
+  layerId: string,
   component?: V3.EmbeddedComponentV3,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
@@ -129,7 +129,7 @@ export function canAccessNode(
   // Consumer mode — only allow access if the node is referenced by a publicTarget
   if (component) {
     const isExposed = component.publicTargets.some(
-      (pt) => pt.nodeId === nodeId,
+      (pt) => pt.layerId === layerId,
     );
     if (isExposed) {
       return { allowed: true };
@@ -138,7 +138,7 @@ export function canAccessNode(
 
   return {
     allowed: false,
-    reason: `Node "${nodeId}" is internal to component "${context.componentId}" and not exposed via publicTargets`,
+    reason: `Node "${layerId}" is internal to component "${context.componentId}" and not exposed via publicTargets`,
     suggestion: "Ask the component owner to expose this node as a publicTarget",
   };
 }
@@ -149,7 +149,7 @@ export function canAccessNode(
  */
 export function canAccessBinding(
   context: ComponentEditContext,
-  targetNodeId: string,
+  targetLayerId: string,
   component?: V3.EmbeddedComponentV3,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
@@ -158,7 +158,7 @@ export function canAccessBinding(
   // Consumer mode — binding must go through a publicTarget
   if (component) {
     const isExposed = component.publicTargets.some(
-      (pt) => pt.nodeId === targetNodeId,
+      (pt) => pt.layerId === targetLayerId,
     );
     if (isExposed) {
       return { allowed: true };
@@ -167,7 +167,7 @@ export function canAccessBinding(
 
   return {
     allowed: false,
-    reason: `Cannot bind to internal node "${targetNodeId}" of component "${context.componentId}"`,
+    reason: `Cannot bind to internal node "${targetLayerId}" of component "${context.componentId}"`,
     suggestion:
       "Use a publicTarget to expose this property, or bind through an existing publicTarget",
   };

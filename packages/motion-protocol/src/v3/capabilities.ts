@@ -107,8 +107,8 @@ const NODE_CAPABILITY: Record<string, string> = {
  * emit transition.* capabilities from visual clips.
  */
 export function inspectProjectCapabilities(project: {
-  scenes?: Array<{ nodes?: Array<{ type: string }> }>;
-  components?: Array<{ nodes?: Array<{ type: string }> }>;
+  scenes?: Array<{ layers?: Array<{ type: string }> }>;
+  components?: Array<{ layers?: Array<{ type: string }> }>;
   timeline?: {
     visualTracks?: Array<{
       clips?: Array<{
@@ -123,7 +123,7 @@ export function inspectProjectCapabilities(project: {
 
   // Scenes → node type capabilities
   for (const scene of project.scenes ?? []) {
-    for (const node of scene.nodes ?? []) {
+    for (const node of scene.layers ?? []) {
       const cap = NODE_CAPABILITY[node.type];
       if (cap) caps.add(cap);
     }
@@ -133,16 +133,16 @@ export function inspectProjectCapabilities(project: {
   if ((project.components ?? []).length > 0) {
     caps.add("component.embedding");
     for (const component of project.components ?? []) {
-      for (const node of component.nodes ?? []) {
+      for (const node of component.layers ?? []) {
         const cap = NODE_CAPABILITY[node.type];
         if (cap) caps.add(cap);
       }
     }
   }
 
-  // Component nodes in scenes also imply embedding.
+  // Component layers in scenes also imply embedding.
   for (const scene of project.scenes ?? []) {
-    if (scene.nodes?.some((node) => node.type === "component")) {
+    if (scene.layers?.some((node) => node.type === "component")) {
       caps.add("component.embedding");
     }
   }
@@ -191,8 +191,8 @@ export interface CapabilityPreflightResult {
 export function preflightProjectCapabilities(
   project: {
     capabilities?: ProjectCapabilityRequirements;
-    scenes?: Array<{ nodes?: Array<{ type: string }> }>;
-    components?: Array<{ nodes?: Array<{ type: string }> }>;
+    scenes?: Array<{ layers?: Array<{ type: string }> }>;
+    components?: Array<{ layers?: Array<{ type: string }> }>;
     timeline?: {
       visualTracks?: Array<{
         clips?: Array<{

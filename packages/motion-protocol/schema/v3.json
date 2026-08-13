@@ -1834,7 +1834,7 @@
                               "type": "string",
                               "const": "childProp"
                             },
-                            "childId": {
+                            "childLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -1847,7 +1847,7 @@
                           },
                           "required": [
                             "kind",
-                            "childId",
+                            "childLayerId",
                             "propId"
                           ],
                           "additionalProperties": false
@@ -2377,7 +2377,7 @@
                 "maxItems": 1024,
                 "default": []
               },
-              "nodes": {
+              "layers": {
                 "type": "array",
                 "items": {
                   "anyOf": [
@@ -2397,7 +2397,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -2739,7 +2739,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -2763,7 +2763,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -2985,7 +2985,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -3021,7 +3021,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -3110,7 +3110,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -3126,7 +3126,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -3445,7 +3445,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform"
                       ],
                       "additionalProperties": false
@@ -3466,7 +3466,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -3808,7 +3808,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -3832,7 +3832,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -4054,7 +4054,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -4090,7 +4090,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -4179,7 +4179,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -4195,7 +4195,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -4528,7 +4528,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -4550,7 +4550,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -4892,7 +4892,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -4916,7 +4916,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -5138,7 +5138,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -5174,7 +5174,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -5263,7 +5263,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -5279,7 +5279,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -5767,7 +5767,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -5789,7 +5789,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -6131,7 +6131,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -6155,7 +6155,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -6377,7 +6377,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -6413,7 +6413,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -6502,7 +6502,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -6518,7 +6518,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -7075,7 +7075,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -7097,7 +7097,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -7439,7 +7439,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -7463,7 +7463,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -7685,7 +7685,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -7721,7 +7721,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -7810,7 +7810,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -7826,7 +7826,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -8665,7 +8665,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -8687,7 +8687,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -9029,7 +9029,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -9053,7 +9053,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -9275,7 +9275,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -9311,7 +9311,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -9400,7 +9400,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -9416,7 +9416,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -9772,7 +9772,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -9794,7 +9794,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -10136,7 +10136,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -10160,7 +10160,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -10382,7 +10382,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -10418,7 +10418,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -10507,7 +10507,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -10523,7 +10523,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -10879,7 +10879,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -10901,7 +10901,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -11243,7 +11243,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -11267,7 +11267,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -11489,7 +11489,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -11525,7 +11525,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -11614,7 +11614,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -11630,7 +11630,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -12012,7 +12012,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -12034,7 +12034,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -12376,7 +12376,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -12400,7 +12400,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -12622,7 +12622,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -12658,7 +12658,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -12747,7 +12747,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -12763,7 +12763,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -13109,7 +13109,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -13131,7 +13131,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -13473,7 +13473,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -13497,7 +13497,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -13719,7 +13719,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -13755,7 +13755,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -13844,7 +13844,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -13860,7 +13860,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -14186,7 +14186,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -14208,7 +14208,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -14550,7 +14550,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -14574,7 +14574,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -14796,7 +14796,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -14832,7 +14832,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -14921,7 +14921,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -14937,7 +14937,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -15257,7 +15257,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform"
                       ],
                       "additionalProperties": false
@@ -15278,7 +15278,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -15620,7 +15620,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -15644,7 +15644,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -15866,7 +15866,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -15902,7 +15902,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -15991,7 +15991,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -16007,7 +16007,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -16543,7 +16543,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -16659,7 +16659,7 @@
                             "minLength": 1,
                             "maxLength": 128
                           },
-                          "targetId": {
+                          "layerId": {
                             "type": "string",
                             "minLength": 1,
                             "maxLength": 128
@@ -16892,7 +16892,7 @@
                                     "items": {
                                       "type": "object",
                                       "properties": {
-                                        "targetId": {
+                                        "layerId": {
                                           "type": "string",
                                           "minLength": 1,
                                           "maxLength": 128
@@ -17207,7 +17207,7 @@
                                         }
                                       },
                                       "required": [
-                                        "targetId",
+                                        "layerId",
                                         "property",
                                         "keys"
                                       ],
@@ -17287,7 +17287,7 @@
               "id",
               "version",
               "integrity",
-              "nodes"
+              "layers"
             ],
             "additionalProperties": false
           },
@@ -17415,7 +17415,7 @@
                           "type": "string",
                           "const": "oscillator"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17451,7 +17451,7 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
                         "frequency",
                         "amplitude"
@@ -17470,7 +17470,7 @@
                           "type": "string",
                           "const": "noise"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17496,7 +17496,7 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
                         "frequency",
                         "amplitude",
@@ -17516,7 +17516,7 @@
                           "type": "string",
                           "const": "link"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17525,7 +17525,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17546,9 +17546,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty"
                       ],
                       "additionalProperties": false
@@ -17565,7 +17565,7 @@
                           "type": "string",
                           "const": "remap"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17574,7 +17574,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17599,9 +17599,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty",
                         "inMin",
                         "inMax",
@@ -17622,7 +17622,7 @@
                           "type": "string",
                           "const": "clamp"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17631,7 +17631,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17650,9 +17650,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty",
                         "min",
                         "max"
@@ -17671,7 +17671,7 @@
                           "type": "string",
                           "const": "wrap"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17680,7 +17680,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17699,9 +17699,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty",
                         "min",
                         "max"
@@ -17720,7 +17720,7 @@
                           "type": "string",
                           "const": "quantize"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17729,7 +17729,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17747,9 +17747,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty",
                         "step"
                       ],
@@ -17767,7 +17767,7 @@
                           "type": "string",
                           "const": "delay-follow"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17776,7 +17776,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17794,9 +17794,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty",
                         "delay"
                       ],
@@ -17814,7 +17814,7 @@
                           "type": "string",
                           "const": "spring-follow"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17823,7 +17823,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "sourceNodeId": {
+                        "sourceLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17847,9 +17847,9 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty",
-                        "sourceNodeId",
+                        "sourceLayerId",
                         "sourceProperty",
                         "stiffness",
                         "damping"
@@ -17868,7 +17868,7 @@
                           "type": "string",
                           "const": "time-remap"
                         },
-                        "targetNodeId": {
+                        "targetLayerId": {
                           "type": "string",
                           "minLength": 1,
                           "maxLength": 128
@@ -17892,7 +17892,7 @@
                       "required": [
                         "id",
                         "type",
-                        "targetNodeId",
+                        "targetLayerId",
                         "targetProperty"
                       ],
                       "additionalProperties": false
@@ -17901,7 +17901,7 @@
                 },
                 "maxItems": 512
               },
-              "nodes": {
+              "layers": {
                 "type": "array",
                 "items": {
                   "anyOf": [
@@ -17921,7 +17921,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -18263,7 +18263,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -18287,7 +18287,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -18509,7 +18509,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -18545,7 +18545,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -18634,7 +18634,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -18650,7 +18650,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -18969,7 +18969,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform"
                       ],
                       "additionalProperties": false
@@ -18990,7 +18990,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -19332,7 +19332,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -19356,7 +19356,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -19578,7 +19578,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -19614,7 +19614,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -19703,7 +19703,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -19719,7 +19719,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -20052,7 +20052,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -20074,7 +20074,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -20416,7 +20416,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -20440,7 +20440,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -20662,7 +20662,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -20698,7 +20698,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -20787,7 +20787,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -20803,7 +20803,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -21291,7 +21291,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -21313,7 +21313,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -21655,7 +21655,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -21679,7 +21679,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -21901,7 +21901,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -21937,7 +21937,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -22026,7 +22026,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -22042,7 +22042,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -22599,7 +22599,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -22621,7 +22621,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -22963,7 +22963,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -22987,7 +22987,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -23209,7 +23209,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -23245,7 +23245,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -23334,7 +23334,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -23350,7 +23350,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -24189,7 +24189,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -24211,7 +24211,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -24553,7 +24553,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -24577,7 +24577,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -24799,7 +24799,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -24835,7 +24835,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -24924,7 +24924,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -24940,7 +24940,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -25296,7 +25296,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -25318,7 +25318,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -25660,7 +25660,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -25684,7 +25684,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -25906,7 +25906,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -25942,7 +25942,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -26031,7 +26031,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -26047,7 +26047,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -26403,7 +26403,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -26425,7 +26425,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -26767,7 +26767,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -26791,7 +26791,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -27013,7 +27013,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -27049,7 +27049,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -27138,7 +27138,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -27154,7 +27154,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -27536,7 +27536,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -27558,7 +27558,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -27900,7 +27900,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -27924,7 +27924,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -28146,7 +28146,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -28182,7 +28182,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -28271,7 +28271,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -28287,7 +28287,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -28633,7 +28633,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -28655,7 +28655,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -28997,7 +28997,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -29021,7 +29021,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -29243,7 +29243,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -29279,7 +29279,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -29368,7 +29368,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -29384,7 +29384,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -29710,7 +29710,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -29732,7 +29732,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -30074,7 +30074,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -30098,7 +30098,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -30320,7 +30320,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -30356,7 +30356,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -30445,7 +30445,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -30461,7 +30461,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -30781,7 +30781,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform"
                       ],
                       "additionalProperties": false
@@ -30802,7 +30802,7 @@
                           "type": "string",
                           "minLength": 1
                         },
-                        "parentId": {
+                        "parentLayerId": {
                           "anyOf": [
                             {
                               "type": "string",
@@ -31144,7 +31144,7 @@
                         "mask": {
                           "type": "object",
                           "properties": {
-                            "sourceNodeId": {
+                            "sourceLayerId": {
                               "type": "string",
                               "minLength": 1,
                               "maxLength": 128
@@ -31168,7 +31168,7 @@
                             }
                           },
                           "required": [
-                            "sourceNodeId",
+                            "sourceLayerId",
                             "mode",
                             "sourceVisibility"
                           ],
@@ -31390,7 +31390,7 @@
                                     "minLength": 1,
                                     "maxLength": 128
                                   },
-                                  "chainNodeIds": {
+                                  "chainLayerIds": {
                                     "type": "array",
                                     "items": {
                                       "type": "string",
@@ -31426,7 +31426,7 @@
                                   "id",
                                   "type",
                                   "driverNodeId",
-                                  "chainNodeIds",
+                                  "chainLayerIds",
                                   "stiffness",
                                   "damping",
                                   "lag",
@@ -31515,7 +31515,7 @@
                                       "copy-rotation"
                                     ]
                                   },
-                                  "targetNodeId": {
+                                  "targetLayerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -31531,7 +31531,7 @@
                                   "id",
                                   "type",
                                   "kind",
-                                  "targetNodeId"
+                                  "targetLayerId"
                                 ],
                                 "additionalProperties": false
                               },
@@ -32067,7 +32067,7 @@
                       "required": [
                         "id",
                         "type",
-                        "parentId",
+                        "parentLayerId",
                         "transform",
                         "payload"
                       ],
@@ -32088,7 +32088,7 @@
                       "minLength": 1,
                       "maxLength": 128
                     },
-                    "targetId": {
+                    "layerId": {
                       "type": "string",
                       "minLength": 1,
                       "maxLength": 128
@@ -32321,7 +32321,7 @@
                               "items": {
                                 "type": "object",
                                 "properties": {
-                                  "targetId": {
+                                  "layerId": {
                                     "type": "string",
                                     "minLength": 1,
                                     "maxLength": 128
@@ -32636,7 +32636,7 @@
                                   }
                                 },
                                 "required": [
-                                  "targetId",
+                                  "layerId",
                                   "property",
                                   "keys"
                                 ],
@@ -32666,7 +32666,7 @@
                 "maxItems": 2000,
                 "default": []
               },
-              "activeCameraId": {
+              "activeCameraLayerId": {
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 128
@@ -32675,7 +32675,7 @@
             "required": [
               "id",
               "duration",
-              "nodes"
+              "layers"
             ],
             "additionalProperties": false
           },
@@ -33275,7 +33275,7 @@
                         "minLength": 1,
                         "maxLength": 128
                       },
-                      "nodeId": {
+                      "layerId": {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 128
@@ -33288,7 +33288,7 @@
                     "required": [
                       "kind",
                       "sceneId",
-                      "nodeId",
+                      "layerId",
                       "property"
                     ],
                     "additionalProperties": false
@@ -33323,14 +33323,14 @@
                     "properties": {
                       "kind": {
                         "type": "string",
-                        "const": "componentNode"
+                        "const": "componentLayer"
                       },
                       "sceneId": {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 128
                       },
-                      "nodeId": {
+                      "layerId": {
                         "type": "string",
                         "minLength": 1,
                         "maxLength": 128
@@ -33344,7 +33344,7 @@
                     "required": [
                       "kind",
                       "sceneId",
-                      "nodeId",
+                      "layerId",
                       "propId"
                     ],
                     "additionalProperties": false

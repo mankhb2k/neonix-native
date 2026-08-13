@@ -41,7 +41,7 @@ export function toStagePropertyPatches(
 
   return [
     {
-      target: { sceneId: preview.sceneId, nodeId: preview.nodeId },
+      target: { sceneId: preview.sceneId, layerId: preview.layerId },
       values: preview,
       transformPatch,
       sizePatch: sizeChanged

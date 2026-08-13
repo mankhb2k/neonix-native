@@ -30,11 +30,11 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
         id: "hook",
         name: "Hook",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "hook-text",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 0,
             transform: {
               x: 540,
@@ -62,7 +62,7 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
         clips: [
           {
             id: "clip.hook",
-            targetId: "hook-text",
+            layerId: "hook-text",
             schedule: { kind: "absolute", at: 0 },
             duration: 0.8,
             source: { kind: "preset", presetId: "fade-up" },
@@ -73,11 +73,11 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
         id: "offer",
         name: "Offer",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "offer-text",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 0,
             transform: {
               x: 540,
@@ -105,7 +105,7 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
         clips: [
           {
             id: "clip.offer",
-            targetId: "offer-text",
+            layerId: "offer-text",
             schedule: { kind: "absolute", at: 0 },
             duration: 0.6,
             source: { kind: "preset", presetId: "pop" },
@@ -116,11 +116,11 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
         id: "cta",
         name: "CTA",
         duration: 2,
-        nodes: [
+        layers: [
           {
             id: "cta-text",
             type: "text",
-            parentId: null,
+            parentLayerId: null,
             zIndex: 0,
             transform: {
               x: 540,
@@ -148,7 +148,7 @@ export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
         clips: [
           {
             id: "clip.cta",
-            targetId: "cta-text",
+            layerId: "cta-text",
             schedule: { kind: "absolute", at: 0 },
             duration: 0.6,
             source: { kind: "preset", presetId: "slide-up" },

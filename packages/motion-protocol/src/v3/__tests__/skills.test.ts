@@ -245,7 +245,7 @@ describe("V3 Skill contract", () => {
           id: "s1",
           name: "Scene 1",
           duration: 5,
-          nodes: [],
+          layers: [],
           transition: { type: "fade", duration: 0.5 },
         },
       ],

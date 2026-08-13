@@ -27,11 +27,11 @@ function runtimeScene(id = "intro"): Record<string, unknown> {
   return {
     id,
     duration: 5,
-    nodes: [
+    layers: [
       {
         id: "title",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 960,

@@ -10,7 +10,7 @@ import {
   layerLaneIdForNode,
   listSceneInnerLayers,
   resolveNodeLocalTiming,
-  resolveEffectiveNodeTiming,
+  resolveEffectiveLayerTiming,
   resolveParentRelativeTimingWindow,
   resolveNodeGlobalTiming,
 } from "./build-layer-mode-view";
@@ -32,12 +32,12 @@ function sceneClip(
   };
 }
 
-function stubScene(nodes: MotionScene["nodes"]): MotionScene {
+function stubScene(layers: MotionScene["layers"]): MotionScene {
   return {
     id: "sc1",
     name: "Scene",
     duration: 10,
-    nodes,
+    layers,
     clips: [],
   } as MotionScene;
 }
@@ -57,7 +57,7 @@ describe("buildLayerModeView", () => {
         id: "n1",
         type: "text",
         name: "Title",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 0,
@@ -73,7 +73,7 @@ describe("buildLayerModeView", () => {
         id: "n2",
         type: "shape",
         name: "Box",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 5,
         transform: {
           x: 0,
@@ -85,15 +85,15 @@ describe("buildLayerModeView", () => {
         },
         payload: { shape: "rect", width: 10, height: 10 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
 
     const view = buildLayerModeView(clip, scene);
     expect(view).not.toBeNull();
-    expect(view!.rows.map((r) => r.nodeId)).toEqual(["n2", "n1"]);
+    expect(view!.rows.map((r) => r.layerId)).toEqual(["n2", "n1"]);
     expect(view!.lanes[0]!.id).toBe(layerLaneIdForNode("n2"));
     expect(view!.lanes[0]!.policy).toEqual(DEFAULT_VISUAL_POLICY);
     expect(view!.strips[0]).toMatchObject({
-      nodeId: "n2",
+      layerId: "n2",
       startTime: 2,
       duration: 4,
       localTiming: { start: 0, duration: 4 },
@@ -107,7 +107,7 @@ describe("buildLayerModeView", () => {
         id: "v1",
         type: "video",
         name: "Vid",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 2,
         transform: {
           x: 0,
@@ -123,7 +123,7 @@ describe("buildLayerModeView", () => {
         id: "t1",
         type: "text",
         name: "Txt",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 0,
@@ -135,7 +135,7 @@ describe("buildLayerModeView", () => {
         },
         payload: { text: "Hi", fontSize: 12 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
     expect(view.laneRows[0]!.height).toBe(32);
     expect(view.laneRows[1]!.height).toBe(24);
@@ -147,7 +147,7 @@ describe("buildLayerModeView", () => {
       {
         id: "n1",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         transform: {
           x: 0,
           y: 0,
@@ -159,7 +159,7 @@ describe("buildLayerModeView", () => {
         timing: { start: 1, duration: 2 },
         payload: { text: "Hi", fontSize: 24 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
     expect(view.strips[0]).toMatchObject({
       startTime: 11,
@@ -168,7 +168,7 @@ describe("buildLayerModeView", () => {
     });
   });
 
-  it("provides a drop runway when the scene has no nodes", () => {
+  it("provides a drop runway when the scene has no layers", () => {
     const clip = sceneClip("c1", "sc1", 0, 4);
     const view = buildLayerModeView(clip, stubScene([]))!;
     expect(view.lanes).toHaveLength(1);
@@ -192,7 +192,7 @@ describe("resolveNodeLocalTiming", () => {
         {
           id: "n",
           type: "text",
-          parentId: null,
+          parentLayerId: null,
           transform: {
             x: 0,
             y: 0,
@@ -202,7 +202,7 @@ describe("resolveNodeLocalTiming", () => {
             opacity: 1,
           },
           payload: { text: "x", fontSize: 12 },
-        } as MotionScene["nodes"][number],
+        } as MotionScene["layers"][number],
         3,
       ),
     ).toEqual({ start: 0, duration: 3 });
@@ -210,14 +210,14 @@ describe("resolveNodeLocalTiming", () => {
 });
 
 describe("listSceneInnerLayers", () => {
-  it("lists sorted nodes for the sidebar", () => {
+  it("lists sorted layers for the sidebar", () => {
     const layers = listSceneInnerLayers(
       stubScene([
         {
           id: "a",
           type: "text",
           name: "A",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 0,
           transform: {
             x: 0,
@@ -233,7 +233,7 @@ describe("listSceneInnerLayers", () => {
           id: "b",
           type: "shape",
           name: "B",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 2,
           transform: {
             x: 0,
@@ -245,7 +245,7 @@ describe("listSceneInnerLayers", () => {
           },
           payload: { shape: "rect", width: 1, height: 1 },
         },
-      ] as MotionScene["nodes"]),
+      ] as MotionScene["layers"]),
     );
     expect(layers.map((l) => l.id)).toEqual(["b", "a"]);
     expect(layers[0]).toMatchObject({ id: "b", duration: expect.any(Number) });
@@ -263,7 +263,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "low",
         type: "text",
         name: "Low",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 0,
@@ -279,7 +279,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "high",
         type: "text",
         name: "High",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 99,
         transform: {
           x: 0,
@@ -291,9 +291,9 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         },
         payload: { text: "H", fontSize: 12 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
-    expect(view.rows.map((r) => r.nodeId)).toEqual(["high", "low"]);
+    expect(view.rows.map((r) => r.layerId)).toEqual(["high", "low"]);
   });
 
   it("child rows appear after parent group, not interleaved with roots", () => {
@@ -302,7 +302,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "title",
         type: "text",
         name: "Title",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 2,
         transform: {
           x: 0,
@@ -318,7 +318,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "group.char",
         type: "group",
         name: "Character",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         timing: { start: 0, duration: 10 },
         transform: {
@@ -342,7 +342,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "head",
         type: "image",
         name: "Head",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 99,
         transform: {
           x: 0,
@@ -365,7 +365,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "body",
         type: "image",
         name: "Body",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 1,
         transform: {
           x: 0,
@@ -384,10 +384,10 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         },
         payload: { assetId: "b" },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
     // title (zIndex=2) on top, then group.char (zIndex=1) with children below
-    expect(view.rows.map((r) => r.nodeId)).toEqual([
+    expect(view.rows.map((r) => r.layerId)).toEqual([
       "title",
       "group.char",
       "head", // zIndex=99 but inside group, cannot escape above title
@@ -401,7 +401,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "title",
         type: "text",
         name: "Title",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 5,
         transform: {
           x: 0,
@@ -417,7 +417,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "group.outer",
         type: "group",
         name: "Outer",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 3,
         timing: { start: 0, duration: 10 },
         transform: {
@@ -441,7 +441,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "head-z99",
         type: "image",
         name: "Head-99",
-        parentId: "group.outer",
+        parentLayerId: "group.outer",
         zIndex: 99,
         transform: {
           x: 0,
@@ -464,7 +464,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         id: "footer",
         type: "text",
         name: "Footer",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 0,
@@ -476,11 +476,11 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         },
         payload: { text: "F", fontSize: 12 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
     // title(5) > group.outer(3) > head-z99 (in group) > footer(1)
     // head-z99 must NOT appear above title (it's in group.outer)
-    expect(view.rows.map((r) => r.nodeId)).toEqual([
+    expect(view.rows.map((r) => r.layerId)).toEqual([
       "title",
       "group.outer",
       "head-z99",
@@ -493,7 +493,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
       {
         id: "grp",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         timing: { start: 0, duration: 10 },
         transform: {
@@ -516,7 +516,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
       {
         id: "child-low",
         type: "image",
-        parentId: "grp",
+        parentLayerId: "grp",
         zIndex: 1,
         transform: {
           x: 0,
@@ -538,7 +538,7 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
       {
         id: "child-high",
         type: "image",
-        parentId: "grp",
+        parentLayerId: "grp",
         zIndex: 5,
         transform: {
           x: 0,
@@ -557,9 +557,9 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
         },
         payload: { assetId: "b" },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
-    expect(view.rows.map((r) => r.nodeId)).toEqual([
+    expect(view.rows.map((r) => r.layerId)).toEqual([
       "grp",
       "child-high", // zIndex=5, above child-low
       "child-low", // zIndex=1
@@ -567,13 +567,13 @@ describe("Phase 2 — hierarchy-aware layer order", () => {
   });
 });
 
-describe("Phase 1 — resolveEffectiveNodeTiming", () => {
+describe("Phase 1 — resolveEffectiveLayerTiming", () => {
   it("root node timing = container-relative", () => {
-    const nodes = [
+    const layers = [
       {
         id: "r1",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         timing: { start: 5, duration: 4 },
         transform: {
           x: 0,
@@ -585,8 +585,8 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
         },
         payload: { text: "x", fontSize: 12 },
       },
-    ] as MotionScene["nodes"];
-    const e = resolveEffectiveNodeTiming(nodes[0]!, nodes, 10);
+    ] as MotionScene["layers"];
+    const e = resolveEffectiveLayerTiming(layers[0]!, layers, 10);
     expect(e.sceneLocalStart).toBe(5);
     expect(e.sceneLocalDuration).toBe(4);
     expect(e.sceneLocalEnd).toBe(9);
@@ -594,11 +594,11 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
   });
 
   it("child timing accumulates parent offset", () => {
-    const nodes = [
+    const layers = [
       {
         id: "group.char",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 3,
         timing: { start: 5, duration: 4 },
         transform: {
@@ -621,7 +621,7 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
       {
         id: "head-image",
         type: "image",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 1,
         timing: { start: 1, duration: 2 },
         transform: {
@@ -641,9 +641,9 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
         },
         payload: { assetId: "a" },
       },
-    ] as MotionScene["nodes"];
-    const child = nodes[1]!;
-    const e = resolveEffectiveNodeTiming(child, nodes, 10);
+    ] as MotionScene["layers"];
+    const child = layers[1]!;
+    const e = resolveEffectiveLayerTiming(child, layers, 10);
     // parent start=5, child start=1 → sceneLocal = 6
     expect(e.sceneLocalStart).toBe(6);
     // child duration=2, parent end=9 → not clipped, duration=2
@@ -653,11 +653,11 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
   });
 
   it("child duration is clipped by parent effective end", () => {
-    const nodes = [
+    const layers = [
       {
         id: "grp",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         timing: { start: 5, duration: 2 },
         transform: {
           x: 0,
@@ -679,7 +679,7 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
       {
         id: "child",
         type: "image",
-        parentId: "grp",
+        parentLayerId: "grp",
         timing: { start: 1, duration: 5 },
         transform: {
           x: 0,
@@ -698,8 +698,8 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
         },
         payload: { assetId: "a" },
       },
-    ] as MotionScene["nodes"];
-    const e = resolveEffectiveNodeTiming(nodes[1]!, nodes, 10);
+    ] as MotionScene["layers"];
+    const e = resolveEffectiveLayerTiming(layers[1]!, layers, 10);
     // parent start=5 duration=2 → parent window [5,7]
     // child start=1 → sceneLocal = 5+1=6
     // child duration=5 → raw end=11, but clipped by parent end=7 → actual end=7
@@ -709,11 +709,11 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
   });
 
   it("child starting after parent end has zero effective duration", () => {
-    const nodes = [
+    const layers = [
       {
         id: "grp",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         timing: { start: 2, duration: 2 },
         transform: {
           x: 0,
@@ -735,7 +735,7 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
       {
         id: "child",
         type: "text",
-        parentId: "grp",
+        parentLayerId: "grp",
         timing: { start: 3, duration: 1 },
         transform: {
           x: 0,
@@ -754,8 +754,8 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
         },
         payload: { text: "late", fontSize: 12 },
       },
-    ] as MotionScene["nodes"];
-    const e = resolveEffectiveNodeTiming(nodes[1]!, nodes, 10);
+    ] as MotionScene["layers"];
+    const e = resolveEffectiveLayerTiming(layers[1]!, layers, 10);
     expect(e.sceneLocalStart).toBe(5);
     expect(e.sceneLocalEnd).toBe(4);
     expect(e.sceneLocalDuration).toBe(0);
@@ -763,9 +763,9 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
 
   it("3-level nesting with clipping", () => {
     const scene = makeNestedScene();
-    const nodes = scene.nodes;
-    const img = nodes.find((n: any) => n.id === "head-image")!;
-    const e = resolveEffectiveNodeTiming(img, nodes, 10);
+    const layers = scene.layers;
+    const img = layers.find((n: any) => n.id === "head-image")!;
+    const e = resolveEffectiveLayerTiming(img, layers, 10);
     // group.char start=5 dur=4 → window [5,9]
     // group.head start=1 dur=2 → relative to group.char → raw [6,8]
     // head-image start=0.5 dur=1 → relative to group.head → raw [6.5,7.5]
@@ -776,11 +776,11 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
   });
 
   it("missing child timing defaults to remaining parent duration", () => {
-    const nodes = [
+    const layers = [
       {
         id: "grp",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         timing: { start: 2, duration: 5 },
         transform: {
           x: 0,
@@ -802,7 +802,7 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
       {
         id: "child",
         type: "text",
-        parentId: "grp",
+        parentLayerId: "grp",
         timing: { start: 3, duration: 0 },
         transform: {
           x: 0,
@@ -814,8 +814,8 @@ describe("Phase 1 — resolveEffectiveNodeTiming", () => {
         },
         payload: { text: "x", fontSize: 12 },
       },
-    ] as MotionScene["nodes"];
-    const e = resolveEffectiveNodeTiming(nodes[1]!, nodes, 10);
+    ] as MotionScene["layers"];
+    const e = resolveEffectiveLayerTiming(layers[1]!, layers, 10);
     // parent window [2,7], child start=3 → sceneLocal=5
     // child no duration → fills remaining parent: 7-5=2
     expect(e.sceneLocalStart).toBe(5);
@@ -831,7 +831,7 @@ describe("Phase 1 — strip timing uses effective parent-relative position", () 
       {
         id: "grp",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 3,
         timing: { start: 5, duration: 4 },
         transform: {
@@ -854,7 +854,7 @@ describe("Phase 1 — strip timing uses effective parent-relative position", () 
       {
         id: "child",
         type: "text",
-        parentId: "grp",
+        parentLayerId: "grp",
         zIndex: 1,
         timing: { start: 1, duration: 2 },
         transform: {
@@ -867,9 +867,9 @@ describe("Phase 1 — strip timing uses effective parent-relative position", () 
         },
         payload: { text: "Hi", fontSize: 24 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
-    const byNode = new Map(view.strips.map((s) => [s.nodeId, s]));
+    const byNode = new Map(view.strips.map((s) => [s.layerId, s]));
 
     // Root: container.startTime(100) + grp.timing.start(5) = 105
     expect(byNode.get("grp")!.startTime).toBe(105);
@@ -885,7 +885,7 @@ describe("Phase 1 — strip timing uses effective parent-relative position", () 
       {
         id: "grp",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 3,
         timing: { start: 2, duration: 3 },
         transform: {
@@ -908,7 +908,7 @@ describe("Phase 1 — strip timing uses effective parent-relative position", () 
       {
         id: "child-long",
         type: "text",
-        parentId: "grp",
+        parentLayerId: "grp",
         zIndex: 1,
         timing: { start: 1, duration: 10 },
         transform: {
@@ -921,9 +921,9 @@ describe("Phase 1 — strip timing uses effective parent-relative position", () 
         },
         payload: { text: "Hi", fontSize: 24 },
       },
-    ] as MotionScene["nodes"]);
+    ] as MotionScene["layers"]);
     const view = buildLayerModeView(clip, scene)!;
-    const child = view.strips.find((s) => s.nodeId === "child-long")!;
+    const child = view.strips.find((s) => s.layerId === "child-long")!;
     // parent window [2,5], child start=1 → sceneLocal=3
     // child raw end = 3+10=13, clipped by parent end=5 → duration = 5-3 = 2
     expect(child.startTime).toBe(103);
@@ -938,11 +938,11 @@ function makeNestedScene(): MotionScene {
     id: "sc1",
     name: "Nested",
     duration: 10,
-    nodes: [
+    layers: [
       {
         id: "group.char",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 3,
         timing: { start: 5, duration: 4 },
         transform: {
@@ -965,7 +965,7 @@ function makeNestedScene(): MotionScene {
       {
         id: "group.head",
         type: "group",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 5,
         timing: { start: 1, duration: 2 },
         transform: {
@@ -988,7 +988,7 @@ function makeNestedScene(): MotionScene {
       {
         id: "head-image",
         type: "image",
-        parentId: "group.head",
+        parentLayerId: "group.head",
         zIndex: 10,
         timing: { start: 0.5, duration: 1 },
         transform: {
@@ -1016,32 +1016,32 @@ function makeNestedScene(): MotionScene {
 describe("Phase 7 — buildLayerModeView group hierarchy metadata", () => {
   const clip = sceneClip("c1", "sc1", 0, 10);
 
-  it("sets parentId on rows and strips", () => {
+  it("sets parentLayerId on rows and strips", () => {
     const view = buildLayerModeView(clip, makeNestedScene())!;
-    const byNodeId = new Map(view.rows.map((r) => [r.nodeId, r]));
-    const stripsById = new Map(view.strips.map((s) => [s.nodeId, s]));
+    const byNodeId = new Map(view.rows.map((r) => [r.layerId, r]));
+    const stripsById = new Map(view.strips.map((s) => [s.layerId, s]));
 
-    expect(byNodeId.get("group.char")!.parentId).toBeNull();
-    expect(byNodeId.get("group.head")!.parentId).toBe("group.char");
-    expect(byNodeId.get("head-image")!.parentId).toBe("group.head");
+    expect(byNodeId.get("group.char")!.parentLayerId).toBeNull();
+    expect(byNodeId.get("group.head")!.parentLayerId).toBe("group.char");
+    expect(byNodeId.get("head-image")!.parentLayerId).toBe("group.head");
 
-    expect(stripsById.get("group.char")!.parentId).toBeNull();
-    expect(stripsById.get("group.head")!.parentId).toBe("group.char");
-    expect(stripsById.get("head-image")!.parentId).toBe("group.head");
+    expect(stripsById.get("group.char")!.parentLayerId).toBeNull();
+    expect(stripsById.get("group.head")!.parentLayerId).toBe("group.char");
+    expect(stripsById.get("head-image")!.parentLayerId).toBe("group.head");
   });
 
   it("sets hasChildren flag correctly", () => {
     const view = buildLayerModeView(clip, makeNestedScene())!;
-    const byNodeId = new Map(view.rows.map((r) => [r.nodeId, r]));
+    const byNodeId = new Map(view.rows.map((r) => [r.layerId, r]));
 
     expect(byNodeId.get("group.char")!.hasChildren).toBe(true);
     expect(byNodeId.get("group.head")!.hasChildren).toBe(true);
     expect(byNodeId.get("head-image")!.hasChildren).toBe(false);
   });
 
-  it("computes correct depth for nested nodes", () => {
+  it("computes correct depth for nested layers", () => {
     const view = buildLayerModeView(clip, makeNestedScene())!;
-    const byNodeId = new Map(view.rows.map((r) => [r.nodeId, r]));
+    const byNodeId = new Map(view.rows.map((r) => [r.layerId, r]));
 
     expect(byNodeId.get("group.char")!.depth).toBe(0);
     expect(byNodeId.get("group.head")!.depth).toBe(1);
@@ -1050,7 +1050,7 @@ describe("Phase 7 — buildLayerModeView group hierarchy metadata", () => {
 
   it("sets parentRelativeStart on strips", () => {
     const view = buildLayerModeView(clip, makeNestedScene())!;
-    const stripsById = new Map(view.strips.map((s) => [s.nodeId, s]));
+    const stripsById = new Map(view.strips.map((s) => [s.layerId, s]));
 
     // group.char is root: timing start 5 (relative to container, but
     // parentRelativeStart is the timing.start itself since no parent)
@@ -1063,25 +1063,25 @@ describe("Phase 7 — buildLayerModeView group hierarchy metadata", () => {
 });
 
 describe("Phase 7 — resolveParentRelativeTimingWindow", () => {
-  it("returns null for root nodes", () => {
-    const nodes = makeNestedScene().nodes;
-    const char = nodes.find((n: any) => n.id === "group.char")!;
+  it("returns null for root layers", () => {
+    const layers = makeNestedScene().layers;
+    const char = layers.find((n: any) => n.id === "group.char")!;
     expect(
-      resolveParentRelativeTimingWindow(char as any, nodes as any, 10),
+      resolveParentRelativeTimingWindow(char as any, layers as any, 10),
     ).toBeNull();
   });
 
-  it("returns parent timing window for child nodes", () => {
+  it("returns parent timing window for child layers", () => {
     const scene = makeNestedScene();
-    const nodes = scene.nodes;
-    const head = nodes.find((n: any) => n.id === "group.head")!;
+    const layers = scene.layers;
+    const head = layers.find((n: any) => n.id === "group.head")!;
     const result = resolveParentRelativeTimingWindow(
       head as any,
-      nodes as any,
+      layers as any,
       10,
     );
     expect(result).not.toBeNull();
-    expect(result!.parentId).toBe("group.char");
+    expect(result!.parentLayerId).toBe("group.char");
     // group.char timing: start=5 duration=4 → parent window [5, 9]
     expect(result!.parentStartTime).toBe(5);
     expect(result!.parentEndTime).toBe(9);
@@ -1091,7 +1091,7 @@ describe("Phase 7 — resolveParentRelativeTimingWindow", () => {
     const orphan = {
       id: "orphan",
       type: "image",
-      parentId: "nonexistent",
+      parentLayerId: "nonexistent",
       transform: {
         x: 0,
         y: 0,
@@ -1117,10 +1117,10 @@ describe("Phase 7 — resolveParentRelativeTimingWindow", () => {
 describe("Phase 7 — resolveNodeGlobalTiming", () => {
   it("walks parent chain to compute global position", () => {
     const scene = makeNestedScene();
-    const nodes = scene.nodes;
-    const img = nodes.find((n: any) => n.id === "head-image")!;
+    const layers = scene.layers;
+    const img = layers.find((n: any) => n.id === "head-image")!;
 
-    const result = resolveNodeGlobalTiming(img as any, nodes as any, 0, 10);
+    const result = resolveNodeGlobalTiming(img as any, layers as any, 0, 10);
     expect(result).not.toBeNull();
     // head-image timing: start=0.5 duration=1 (relative to group.head)
     // group.head timing: start=1 duration=2 (relative to group.char)
@@ -1130,12 +1130,12 @@ describe("Phase 7 — resolveNodeGlobalTiming", () => {
     expect(result!.globalEnd).toBe(7.5);
   });
 
-  it("returns container-relative for root nodes", () => {
+  it("returns container-relative for root layers", () => {
     const scene = makeNestedScene();
-    const nodes = scene.nodes;
-    const char = nodes.find((n: any) => n.id === "group.char")!;
+    const layers = scene.layers;
+    const char = layers.find((n: any) => n.id === "group.char")!;
 
-    const result = resolveNodeGlobalTiming(char as any, nodes as any, 100, 10);
+    const result = resolveNodeGlobalTiming(char as any, layers as any, 100, 10);
     expect(result).not.toBeNull();
     expect(result!.globalStart).toBe(105); // 100 + 5
     expect(result!.globalEnd).toBe(109); // 100 + 5 + 4

@@ -3,7 +3,7 @@
  *
  * Small utility functions used by v3/references validation.
  */
-import type { MotionPathContour } from "../nodes/geometry";
+import type { MotionPathContour } from "../layers/geometry";
 
 export function duplicates(values: string[]): string[] {
   return values.filter((value, index) => values.indexOf(value) !== index);

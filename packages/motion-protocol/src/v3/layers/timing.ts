@@ -5,7 +5,7 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema } from "../common";
 
-export const NodeTimingSchema = z
+export const LayerTimingSchema = z
   .object({
     start: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
@@ -16,4 +16,4 @@ export const NodeTimingSchema = z
   })
   .strict();
 
-export type NodeTiming = z.infer<typeof NodeTimingSchema>;
+export type LayerTiming = z.infer<typeof LayerTimingSchema>;

@@ -1,12 +1,12 @@
 /**
  * Runtime geometry — point/path primitives re-exported from V3;
- * shape and path node schemas use the runtime NodeBaseSchema.
+ * shape and path node schemas use the runtime LayerBaseSchema.
  */
 
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema } from "../common";
-import { NodeBaseSchema } from "./base";
+import { LayerBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
 
 // Shared primitives — imported from V3 for local use, then re-exported
@@ -14,7 +14,7 @@ import {
   PointSchema,
   PathContourSchema,
   PathMorphTargetSchema,
-} from "../../v3/nodes/geometry";
+} from "../../v3/layers/geometry";
 export {
   PointSchema,
   PathSegmentSchema,
@@ -24,15 +24,15 @@ export {
   type MotionPathSegment,
   type MotionPathContour,
   type MotionPathMorphTarget,
-} from "../../v3/nodes/geometry";
+} from "../../v3/layers/geometry";
 
-// Shape node (runtime NodeBaseSchema)
+// Shape node (runtime LayerBaseSchema)
 const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
     .object({
       shape: z.literal("rectangle"),
       cornerRadius: FiniteNumberSchema.nonnegative()
-        .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+        .max(MOTION_PROTOCOL_LIMITS.layerDimension)
         .optional(),
     })
     .strict(),
@@ -48,14 +48,14 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
     .strict(),
 ]);
 
-export const ShapeNodeSchema = NodeBaseSchema.extend({
+export const ShapeLayerSchema = LayerBaseSchema.extend({
   type: z.literal("shape"),
   payload: ShapePayloadSchema,
   style: PaintStyleSchema.optional(),
 }).strict();
 
-// Path node (runtime NodeBaseSchema, has fillRule)
-export const PathNodeSchema = NodeBaseSchema.extend({
+// Path node (runtime LayerBaseSchema, has fillRule)
+export const PathLayerSchema = LayerBaseSchema.extend({
   type: z.literal("path"),
   payload: z
     .object({

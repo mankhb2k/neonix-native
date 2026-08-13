@@ -50,11 +50,11 @@ function inflateToTargetBytes(base: string, targetBytes: number): string {
     id,
     name: "Bench",
     duration: 3,
-    nodes: [
+    layers: [
       {
         id: "node_bench_pad",
         type: "text",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
         transform: {
           x: 100,
@@ -101,7 +101,7 @@ function inflateToTargetBytes(base: string, targetBytes: number): string {
   const deficit = targetBytes - Buffer.byteLength(json, "utf8");
   if (deficit > 0) {
     (
-      skeleton.nodes[0] as {
+      skeleton.layers[0] as {
         payload: { content: { text: string } };
       }
     ).payload.content.text = "x".repeat(deficit);

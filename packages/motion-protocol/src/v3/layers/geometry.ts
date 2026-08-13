@@ -1,5 +1,5 @@
 /**
- * V3 geometry nodes — shape + path.
+ * V3 geometry layers — shape + path.
  *
  * Owns point/path primitives so V3 is self-contained for path data.
  */
@@ -8,17 +8,17 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { FiniteNumberSchema, IdSchema } from "../common";
 import { PaintStyleSchema } from "./paint";
-import { NodeBaseV3Schema } from "./base";
+import { LayerBaseV3Schema } from "./base";
 
 // ── Shared point / path primitives ────────────────────────────────────
 
 export const PointSchema = z
   .object({
-    x: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.nodeDimension).max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    x: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.layerDimension).max(
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
-    y: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.nodeDimension).max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+    y: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.layerDimension).max(
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
   })
   .strict();
@@ -65,7 +65,7 @@ export const PathMorphTargetSchema = z
 
 export type MotionPathMorphTarget = z.infer<typeof PathMorphTargetSchema>;
 
-// ── V3 geometry nodes ─────────────────────────────────────────────────
+// ── V3 geometry layers ─────────────────────────────────────────────────
 
 const ShapePayloadSchema = z.discriminatedUnion("shape", [
   z
@@ -74,7 +74,7 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
       cornerRadius: z
         .number()
         .nonnegative()
-        .max(MOTION_PROTOCOL_LIMITS.nodeDimension)
+        .max(MOTION_PROTOCOL_LIMITS.layerDimension)
         .optional(),
     })
     .strict(),
@@ -87,13 +87,13 @@ const ShapePayloadSchema = z.discriminatedUnion("shape", [
     .strict(),
 ]);
 
-export const ShapeNodeV3Schema = NodeBaseV3Schema.extend({
+export const ShapeLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("shape"),
   payload: ShapePayloadSchema,
   style: PaintStyleSchema.optional(),
 }).strict();
 
-export const PathNodeV3Schema = NodeBaseV3Schema.extend({
+export const PathLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("path"),
   payload: z
     .object({
@@ -110,7 +110,7 @@ export const PathNodeV3Schema = NodeBaseV3Schema.extend({
   style: PaintStyleSchema.optional(),
 }).strict();
 
-export type { ShapeNodeV3, PathNodeV3 } from "./geometry-types";
+export type { ShapeLayerV3, PathLayerV3 } from "./geometry-types";
 
 // ── Phase 7 neutral aliases (geometry primitives) ───────────────────
 

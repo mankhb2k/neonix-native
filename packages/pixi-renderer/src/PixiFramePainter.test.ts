@@ -17,7 +17,7 @@ const snapshot: RenderSnapshot = {
     {
       key: "s1:shape",
       sceneId: "s1",
-      nodeId: "shape",
+      layerId: "shape",
       nodeType: "shape",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 10, f: 20 },
       worldBounds: { x: 10, y: 20, width: 80, height: 40 },
@@ -39,7 +39,7 @@ const snapshot: RenderSnapshot = {
     {
       key: "s1:text",
       sceneId: "s1",
-      nodeId: "text",
+      layerId: "text",
       nodeType: "text",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
       worldBounds: { x: 0, y: 0, width: 40, height: 20 },
@@ -89,7 +89,7 @@ describe("PixiFramePainter", () => {
         {
           key: "s1:bad",
           sceneId: "s1",
-          nodeId: "bad",
+          layerId: "bad",
           nodeType: "mesh",
           worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
           worldBounds: { x: 0, y: 0, width: 1, height: 1 },

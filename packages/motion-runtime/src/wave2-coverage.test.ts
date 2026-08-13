@@ -11,12 +11,12 @@ function pathScene(): RuntimeScene {
   return {
     id: "scene.path",
     duration: 2,
-    activeCameraId: "cam",
-    nodes: [
+    activeCameraLayerId: "cam",
+    layers: [
       {
         id: "cam",
         type: "camera",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 0,
         transform: {
           x: 100,
@@ -38,7 +38,7 @@ function pathScene(): RuntimeScene {
       {
         id: "stroke",
         type: "path",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         transform: {
           x: 0,

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import { EffectSchema } from "../effects";
 import { MotionModifierSchema } from "../modifiers";
-import { NodeTimingSchema } from "./timing";
+import { LayerTimingSchema } from "./timing";
 import { PaintStyleSchema } from "./paint";
 import { TransformSchema } from "../transform";
 import { IdSchema, SemanticSchema } from "../common";
@@ -26,27 +26,27 @@ export const InheritFlagsSchema = z
   })
   .strict();
 
-export const NodeMaskV3Schema = z
+export const LayerMaskV3Schema = z
   .object({
-    sourceNodeId: IdSchema,
+    sourceLayerId: IdSchema,
     mode: z.enum(["clip", "alpha", "inverse-alpha", "luma", "inverse-luma"]),
     sourceVisibility: z.enum(["mask-only", "content-and-mask"]),
   })
   .strict();
 
-export const NodeBaseV3Schema = z
+export const LayerBaseV3Schema = z
   .object({
     id: IdSchema,
     type: IdSchema,
     name: z.string().min(1).optional(),
-    parentId: IdSchema.nullable(),
+    parentLayerId: IdSchema.nullable(),
     zIndex: z.number().int().optional(),
     transform: TransformV3Schema,
-    timing: NodeTimingSchema.optional(),
+    timing: LayerTimingSchema.optional(),
     semantic: SemanticSchema.optional(),
     effects: z
       .array(EffectSchema)
-      .max(MOTION_PROTOCOL_LIMITS.effectsPerNode)
+      .max(MOTION_PROTOCOL_LIMITS.effectsPerLayer)
       .optional(),
     blendMode: z
       .enum([
@@ -59,13 +59,13 @@ export const NodeBaseV3Schema = z
         "overlay",
       ])
       .optional(),
-    mask: NodeMaskV3Schema.optional(),
+    mask: LayerMaskV3Schema.optional(),
     inheritFlags: InheritFlagsSchema.optional(),
     visible: z.boolean().default(true),
     locked: z.boolean().default(false),
     modifiers: z
       .array(MotionModifierSchema)
-      .max(MOTION_PROTOCOL_LIMITS.modifiersPerNode)
+      .max(MOTION_PROTOCOL_LIMITS.modifiersPerLayer)
       .optional(),
   })
   .strict();

@@ -10,8 +10,8 @@ import type { NodeTarget } from "./types";
 function firstEditableNodeId(
   scene: MotionProject["scenes"][number] | undefined,
 ): string | null {
-  if (!scene?.nodes.length) return null;
-  return scene.nodes[0]?.id ?? null;
+  if (!scene?.layers.length) return null;
+  return scene.layers[0]?.id ?? null;
 }
 
 /**
@@ -28,7 +28,7 @@ export function resolvePropertyTargets(
   if (!project) return [];
 
   if (selection.kind === "node") {
-    return [{ sceneId: selection.sceneId, nodeId: selection.nodeId }];
+    return [{ sceneId: selection.sceneId, layerId: selection.layerId }];
   }
 
   if (selection.kind !== "clips") return [];
@@ -42,7 +42,7 @@ export function resolvePropertyTargets(
     const sceneId = clip.sceneId;
     if (!sceneId) continue;
     const scene = project.scenes.find((s) => s.id === sceneId);
-    const nodeId =
+    const layerId =
       selection.primaryId === clipId
         ? focusedNodeIdFrom(
             selection,
@@ -53,23 +53,23 @@ export function resolvePropertyTargets(
           )
         : firstEditableNodeId(scene);
     if (!nodeId) continue;
-    const key = `${sceneId}::${nodeId}`;
+    const key = `${sceneId}::${layerId}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    targets.push({ sceneId, nodeId });
+    targets.push({ sceneId, layerId });
   }
 
   // Fallback: primary scene focused node when ids empty of scene clips
   if (targets.length === 0) {
     const sceneId = selectedSceneIdFrom(selection, clips, lanes);
-    const nodeId = focusedNodeIdFrom(
+    const layerId = focusedNodeIdFrom(
       selection,
       clips,
       lanes,
       project,
       firstEditableNodeId,
     );
-    if (sceneId && nodeId) targets.push({ sceneId, nodeId });
+    if (sceneId && nodeId) targets.push({ sceneId, layerId });
   }
 
   return targets;
@@ -78,8 +78,8 @@ export function resolvePropertyTargets(
 export function findNode(
   project: MotionProject,
   sceneId: string,
-  nodeId: string,
-): MotionProject["scenes"][number]["nodes"][number] | null {
+  layerId: string,
+): MotionProject["scenes"][number]["layers"][number] | null {
   const scene = project.scenes.find((s) => s.id === sceneId);
-  return scene?.nodes.find((n) => n.id === nodeId) ?? null;
+  return scene?.layers.find((n) => n.id === nodeId) ?? null;
 }

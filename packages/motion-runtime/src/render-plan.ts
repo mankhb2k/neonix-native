@@ -11,7 +11,7 @@ export type IsolationMode = "pass-through" | "isolate";
 
 export type RenderPass = {
   id: string;
-  nodeId: string;
+  layerId: string;
   type: RuntimeNode["type"];
   zIndex: number;
   isolation: IsolationMode;
@@ -20,7 +20,7 @@ export type RenderPass = {
   visible: boolean;
   needsOffscreen: boolean;
   mask?: {
-    sourceNodeId: string;
+    sourceLayerId: string;
     mode: "clip" | "alpha" | "inverse-alpha" | "luma" | "inverse-luma";
     sourceVisibility: "mask-only" | "content-and-mask";
   };
@@ -99,7 +99,7 @@ export function buildRenderPlan(
 
     passes.push({
       id: `pass_${node.id}`,
-      nodeId: node.id,
+      layerId: node.id,
       type: node.type,
       zIndex: node.zIndex ?? 0,
       isolation,

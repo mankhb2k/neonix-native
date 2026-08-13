@@ -2,8 +2,8 @@ import {
   parseMotionProjectV3,
   type MotionClipV3,
   type MotionProjectV3,
-  type NodeV3,
-  type SceneDefinitionV3,
+  type MotionLayer,
+  type MotionScene,
 } from "@motionvideo/motion-protocol";
 
 export const FB_HISTORY_SCENE_IDS = {
@@ -53,12 +53,12 @@ function xform(input: Xform) {
   };
 }
 
-function bg(id: string, fill: string): NodeV3 {
+function bg(id: string, fill: string): MotionLayer {
   return {
     id,
     type: "shape",
     name: "Background",
-    parentId: null,
+    parentLayerId: null,
     zIndex: 0,
     transform: xform({
       x: 960,
@@ -78,13 +78,13 @@ function rect(
   name: string,
   t: Xform,
   fill: string,
-  opts?: { parentId?: string | null; zIndex?: number; cornerRadius?: number },
-): NodeV3 {
+  opts?: { parentLayerId?: string | null; zIndex?: number; cornerRadius?: number },
+): MotionLayer {
   return {
     id,
     type: "shape",
     name,
-    parentId: opts?.parentId ?? null,
+    parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 1,
     transform: xform(t),
     payload: {
@@ -107,13 +107,13 @@ function textNode(
     align?: "left" | "center" | "right";
   },
   fill: string,
-  opts?: { parentId?: string | null; zIndex?: number },
-): NodeV3 {
+  opts?: { parentLayerId?: string | null; zIndex?: number },
+): MotionLayer {
   return {
     id,
     type: "text",
     name,
-    parentId: opts?.parentId ?? null,
+    parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 2,
     transform: xform(t),
     payload: {
@@ -127,18 +127,18 @@ function textNode(
 
 function fadeInClip(
   id: string,
-  targetId: string,
+  layerId: string,
   at: number,
   duration: number,
   fromY?: number,
 ): MotionClipV3 {
   const tracks: Array<{
-    targetId: string;
+    layerId: string;
     property: string;
     keys: Array<{ t: number; v: number; easing?: "easeOut" }>;
   }> = [
     {
-      targetId,
+      layerId,
       property: "transform.opacity",
       keys: [
         { t: 0, v: 0 },
@@ -148,7 +148,7 @@ function fadeInClip(
   ];
   if (fromY != null) {
     tracks.push({
-      targetId,
+      layerId,
       property: "transform.y",
       keys: [
         { t: 0, v: fromY },
@@ -158,7 +158,7 @@ function fadeInClip(
   }
   return {
     id,
-    targetId,
+    layerId,
     schedule: { kind: "absolute", at },
     duration,
     playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -170,10 +170,10 @@ function scene(
   id: string,
   name: string,
   duration: number,
-  nodes: NodeV3[],
+  layers: MotionLayer[],
   clips: MotionClipV3[],
-): SceneDefinitionV3 {
-  return { id, name, duration, nodes, clips };
+): MotionScene {
+  return { id, name, duration, layers, clips };
 }
 
 function buildHook(): MotionScene {
@@ -223,7 +223,7 @@ function buildHook(): MotionScene {
       fadeInClip("clip.hook.sub", subId, 0.6, 0.7),
       {
         id: "clip.hook.accent",
-        targetId: accentId,
+        layerId: accentId,
         schedule: { kind: "absolute", at: 0.9 },
         duration: 0.6,
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -231,7 +231,7 @@ function buildHook(): MotionScene {
           kind: "tracks",
           tracks: [
             {
-              targetId: accentId,
+              layerId: accentId,
               property: "transform.opacity",
               keys: [
                 { t: 0, v: 0 },
@@ -239,7 +239,7 @@ function buildHook(): MotionScene {
               ],
             },
             {
-              targetId: accentId,
+              layerId: accentId,
               property: "transform.width",
               keys: [
                 { t: 0, v: 40 },
@@ -485,7 +485,7 @@ function buildIpo(): MotionScene {
       fadeInClip("clip.ipo.title", titleId, 0.35, 0.55),
       {
         id: "clip.ipo.bar",
-        targetId: barId,
+        layerId: barId,
         schedule: { kind: "absolute", at: 0.6 },
         duration: 0.5,
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -493,7 +493,7 @@ function buildIpo(): MotionScene {
           kind: "tracks",
           tracks: [
             {
-              targetId: barId,
+              layerId: barId,
               property: "transform.opacity",
               keys: [
                 { t: 0, v: 0 },
@@ -501,7 +501,7 @@ function buildIpo(): MotionScene {
               ],
             },
             {
-              targetId: barId,
+              layerId: barId,
               property: "transform.width",
               keys: [
                 { t: 0, v: 40 },
@@ -580,7 +580,7 @@ function buildMeta(): MotionScene {
       fadeInClip("clip.meta.note", noteId, 1.1, 0.5),
       {
         id: "clip.meta.dark",
-        targetId: "meta.overlay",
+        layerId: "meta.overlay",
         schedule: { kind: "absolute", at: 2.2 },
         duration: 0.8,
         playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -588,7 +588,7 @@ function buildMeta(): MotionScene {
           kind: "tracks",
           tracks: [
             {
-              targetId: "meta.overlay",
+              layerId: "meta.overlay",
               property: "transform.opacity",
               keys: [
                 { t: 0, v: 0 },
@@ -703,7 +703,7 @@ export function createFacebookHistoryDemoProject(): MotionProjectV3 {
     timeline: {
       visualTracks: [
         {
-          id: "track.main",
+          id: "track.main",
           order: 0,
           clips: scenes.map((scene, index) => ({
             id: `clip.${scene.id}`,

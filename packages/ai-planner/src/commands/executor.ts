@@ -8,7 +8,7 @@ import {
   normalizeTextPayloadInput,
   parseMotionProject,
   ProceduralDriverSchema,
-  type MotionNode,
+  type MotionLayer,
   type MotionProject,
   type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
@@ -213,7 +213,7 @@ function applyOne(
           id: command.sceneId,
           ...(command.name ? { name: command.name } : {}),
           duration: command.duration,
-          nodes: [] as MotionNode[],
+          layers: [] as MotionLayer[],
           clips: [],
         };
         const insertAt = command.insertAt ?? next.scenes.length;
@@ -409,7 +409,7 @@ function applyOne(
             },
           };
         }
-        if (scene.nodes.some((node) => node.id === command.nodeId)) {
+        if (scene.layers.some((node) => node.id === command.layerId)) {
           return {
             project,
             receipt: {
@@ -418,16 +418,16 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "duplicate_id",
-                  `nodes.${command.nodeId}`,
-                  `Node already exists: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Node already exists: ${command.layerId}`,
                 ),
               ],
             },
           };
         }
-        const parentId =
-          command.parentId === undefined ? null : command.parentId;
-        if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
+        const parentLayerId =
+          command.parentLayerId === undefined ? null : command.parentLayerId;
+        if (parentLayerId && !scene.layers.some((node) => node.id === parentLayerId)) {
           return {
             project,
             receipt: {
@@ -436,8 +436,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_parent",
-                  `nodes.${command.nodeId}.parentId`,
-                  `Unknown parent: ${parentId}`,
+                  `layers.${command.layerId}.parentLayerId`,
+                  `Unknown parent: ${parentLayerId}`,
                 ),
               ],
             },
@@ -452,20 +452,20 @@ function applyOne(
                 tags: [] as string[],
               }
             : undefined;
-        let node: MotionNode;
+        let node: MotionLayer;
         if (command.nodeType === "group") {
           node = {
-            id: command.nodeId,
+            id: command.layerId,
             type: "group",
-            parentId,
+            parentLayerId,
             transform,
             ...(semantic ? { semantic } : {}),
           };
         } else if (command.nodeType === "text") {
           node = {
-            id: command.nodeId,
+            id: command.layerId,
             type: "text",
-            parentId,
+            parentLayerId,
             transform,
             payload: {
               content: { kind: "plain" as const, text: command.text ?? "" },
@@ -477,17 +477,17 @@ function applyOne(
           };
         } else {
           node = {
-            id: command.nodeId,
+            id: command.layerId,
             type: "shape",
-            parentId,
+            parentLayerId,
             transform,
             payload: { shape: "rectangle" as const },
             style: { fill: command.fill ?? "#111111" },
             ...(semantic ? { semantic } : {}),
           };
         }
-        scene.nodes.push(node);
-        changedIds.push(command.nodeId);
+        scene.layers.push(node);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -528,7 +528,7 @@ function applyOne(
             },
           };
         }
-        if (!scene.nodes.some((node) => node.id === command.nodeId)) {
+        if (!scene.layers.some((node) => node.id === command.layerId)) {
           return {
             project,
             receipt: {
@@ -537,8 +537,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_node",
-                  `nodes.${command.nodeId}`,
-                  `Unknown node: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Unknown node: ${command.layerId}`,
                 ),
               ],
             },
@@ -547,17 +547,17 @@ function applyOne(
         const removeIds = new Set<string>();
         const visit = (id: string): void => {
           removeIds.add(id);
-          for (const child of scene.nodes) {
-            if (child.parentId === id) visit(child.id);
+          for (const child of scene.layers) {
+            if (child.parentLayerId === id) visit(child.id);
           }
         };
-        visit(command.nodeId);
-        scene.nodes = scene.nodes.filter((node) => !removeIds.has(node.id));
+        visit(command.layerId);
+        scene.layers = scene.layers.filter((node) => !removeIds.has(node.id));
         scene.clips = scene.clips.filter((clip) => {
-          if (clip.targetId && removeIds.has(clip.targetId)) return false;
+          if (clip.layerId && removeIds.has(clip.layerId)) return false;
           if (clip.source.kind === "tracks") {
             clip.source.tracks = clip.source.tracks.filter(
-              (track) => !removeIds.has(track.targetId),
+              (track) => !removeIds.has(track.layerId),
             );
             return clip.source.tracks.length > 0;
           }
@@ -604,7 +604,7 @@ function applyOne(
             },
           };
         }
-        if (!scene.nodes.some((node) => node.id === command.targetId)) {
+        if (!scene.layers.some((node) => node.id === command.layerId)) {
           return {
             project,
             receipt: {
@@ -613,8 +613,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_node",
-                  `nodes.${command.targetId}`,
-                  `Unknown track target: ${command.targetId}`,
+                  `layers.${command.layerId}`,
+                  `Unknown track target: ${command.layerId}`,
                 ),
               ],
             },
@@ -638,7 +638,7 @@ function applyOne(
         }
         scene.clips.push({
           id: command.clipId,
-          targetId: command.targetId,
+          layerId: command.layerId,
           schedule: { kind: "absolute", at: command.at ?? 0 },
           duration: command.duration,
           playback: { iterations: 1, direction: "normal", rate: 1 },
@@ -646,7 +646,7 @@ function applyOne(
             kind: "tracks",
             tracks: [
               {
-                targetId: command.targetId,
+                layerId: command.layerId,
                 property: command.property,
                 keys: command.keys,
               },
@@ -815,7 +815,7 @@ function applyOne(
             },
           };
         }
-        const node = scene.nodes.find((item) => item.id === command.nodeId);
+        const node = scene.layers.find((item) => item.id === command.layerId);
         if (!node) {
           return {
             project,
@@ -825,8 +825,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_node",
-                  `nodes.${command.nodeId}`,
-                  `Unknown node: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Unknown node: ${command.layerId}`,
                 ),
               ],
             },
@@ -855,12 +855,12 @@ function applyOne(
                 }
               : {}),
           } as Extract<
-            NonNullable<MotionNode["modifiers"]>[number],
+            NonNullable<MotionLayer["modifiers"]>[number],
             { type: "layout" }
           >["constraint"],
         });
         node.modifiers = modifiers;
-        changedIds.push(command.nodeId);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -901,9 +901,9 @@ function applyOne(
             },
           };
         }
-        const node = scene.nodes.find((item) => item.id === command.nodeId);
-        const source = scene.nodes.find(
-          (item) => item.id === command.sourceNodeId,
+        const node = scene.layers.find((item) => item.id === command.layerId);
+        const source = scene.layers.find(
+          (item) => item.id === command.sourceLayerId,
         );
         if (!node || !source) {
           return {
@@ -914,10 +914,10 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_node",
-                  `nodes.${command.nodeId}`,
-                  "addMask requires existing node and sourceNodeId",
+                  `layers.${command.layerId}`,
+                  "addMask requires existing node and sourceLayerId",
                   {
-                    repairHint: "Create both nodes before addMask",
+                    repairHint: "Create both layers before addMask",
                   },
                 ),
               ],
@@ -925,11 +925,11 @@ function applyOne(
           };
         }
         node.mask = {
-          sourceNodeId: command.sourceNodeId,
+          sourceLayerId: command.sourceLayerId,
           mode: command.mode,
           sourceVisibility: command.sourceVisibility ?? "mask-only",
         };
-        changedIds.push(command.nodeId);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -970,7 +970,7 @@ function applyOne(
             },
           };
         }
-        const node = scene.nodes.find((item) => item.id === command.nodeId);
+        const node = scene.layers.find((item) => item.id === command.layerId);
         if (!node) {
           return {
             project,
@@ -980,8 +980,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_node",
-                  `nodes.${command.nodeId}`,
-                  `Unknown node: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Unknown node: ${command.layerId}`,
                 ),
               ],
             },
@@ -1039,7 +1039,7 @@ function applyOne(
           });
         }
         node.effects = effects;
-        changedIds.push(command.nodeId);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -1080,12 +1080,12 @@ function applyOne(
             },
           };
         }
-        let camera = scene.nodes.find((item) => item.id === command.cameraId);
+        let camera = scene.layers.find((item) => item.id === command.cameraId);
         if (!camera) {
           camera = {
             id: command.cameraId,
             type: "camera",
-            parentId: null,
+            parentLayerId: null,
             transform: defaultTransform(command.transform),
             payload: {
               zoom: command.zoom ?? 1,
@@ -1095,7 +1095,7 @@ function applyOne(
                 : {}),
             },
           };
-          scene.nodes.push(camera);
+          scene.layers.push(camera);
         } else if (camera.type !== "camera") {
           return {
             project,
@@ -1105,7 +1105,7 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "invalid_node_type",
-                  `nodes.${command.cameraId}`,
+                  `layers.${command.cameraId}`,
                   `Node ${command.cameraId} is not a camera`,
                 ),
               ],
@@ -1127,7 +1127,7 @@ function applyOne(
             camera.payload.parallaxStrength = command.parallaxStrength;
         }
         if (command.makeActive !== false) {
-          scene.activeCameraId = command.cameraId;
+          scene.activeCameraLayerId = command.cameraId;
           if (!scene.space || scene.space === "flat-2d")
             scene.space = "layered-2.5d";
         }
@@ -1192,7 +1192,7 @@ function applyOne(
             },
           };
         }
-        if (!scene.nodes.some((node) => node.id === parsed.data.targetNodeId)) {
+        if (!scene.layers.some((node) => node.id === parsed.data.targetLayerId)) {
           return {
             project,
             receipt: {
@@ -1202,7 +1202,7 @@ function applyOne(
                 diagnostic(
                   "unknown_node",
                   `drivers.${parsed.data.id}`,
-                  `Unknown targetNodeId: ${parsed.data.targetNodeId}`,
+                  `Unknown targetLayerId: ${parsed.data.targetLayerId}`,
                 ),
               ],
             },
@@ -1290,12 +1290,12 @@ function applyOne(
         const baked = bakeMotionRecipe({
           recipeId: command.recipeId,
           sceneId: command.sceneId,
-          targetNodeId: command.targetNodeId,
+          targetLayerId: command.targetLayerId,
           duration: command.duration,
           seed: command.seed,
           intensity: command.intensity,
-          sourceNodeId: command.sourceNodeId,
-          staggerNodeIds: command.staggerNodeIds,
+          sourceLayerId: command.sourceLayerId,
+          staggerLayerIds: command.staggerLayerIds,
         });
         const drivers = [...(scene.drivers ?? [])];
         for (const driver of baked.drivers) {
@@ -1323,7 +1323,7 @@ function applyOne(
         if (baked.tracks.length > 0) {
           const clipId =
             command.clipId ??
-            `clip.recipe.${command.recipeId}.${command.targetNodeId}`;
+            `clip.recipe.${command.recipeId}.${command.targetLayerId}`;
           scene.clips.push({
             id: clipId,
             schedule: { kind: "absolute", at: 0 },
@@ -1332,7 +1332,7 @@ function applyOne(
             source: {
               kind: "tracks",
               tracks: baked.tracks.map((track) => ({
-                targetId: track.targetId,
+                layerId: track.layerId,
                 property: track.property,
                 keys: track.keys.map((key) => ({
                   t: key.t,
@@ -1516,7 +1516,7 @@ function applyOne(
             },
           };
         }
-        if (scene.nodes.some((node) => node.id === command.nodeId)) {
+        if (scene.layers.some((node) => node.id === command.layerId)) {
           return {
             project,
             receipt: {
@@ -1525,8 +1525,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "duplicate_id",
-                  `nodes.${command.nodeId}`,
-                  `Node already exists: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Node already exists: ${command.layerId}`,
                 ),
               ],
             },
@@ -1543,16 +1543,16 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_asset",
-                  `nodes.${command.nodeId}.payload.assetId`,
+                  `layers.${command.layerId}.payload.assetId`,
                   `Asset ${command.assetId} missing or not ${expectedType}`,
                 ),
               ],
             },
           };
         }
-        const parentId =
-          command.parentId === undefined ? null : command.parentId;
-        if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
+        const parentLayerId =
+          command.parentLayerId === undefined ? null : command.parentLayerId;
+        if (parentLayerId && !scene.layers.some((node) => node.id === parentLayerId)) {
           return {
             project,
             receipt: {
@@ -1561,8 +1561,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_parent",
-                  `nodes.${command.nodeId}.parentId`,
-                  `Unknown parent: ${parentId}`,
+                  `layers.${command.layerId}.parentLayerId`,
+                  `Unknown parent: ${parentLayerId}`,
                 ),
               ],
             },
@@ -1576,10 +1576,10 @@ function applyOne(
                 tags: [] as string[],
               }
             : undefined;
-        const node: MotionNode = {
-          id: command.nodeId,
+        const node: MotionLayer = {
+          id: command.layerId,
           type: expectedType,
-          parentId,
+          parentLayerId,
           transform: defaultTransform(command.transform),
           payload: {
             assetId: command.assetId,
@@ -1588,8 +1588,8 @@ function applyOne(
           },
           ...(semantic ? { semantic } : {}),
         };
-        scene.nodes.push(node);
-        changedIds.push(command.nodeId);
+        scene.layers.push(node);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -1630,7 +1630,7 @@ function applyOne(
             },
           };
         }
-        if (scene.nodes.some((node) => node.id === command.nodeId)) {
+        if (scene.layers.some((node) => node.id === command.layerId)) {
           return {
             project,
             receipt: {
@@ -1639,16 +1639,16 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "duplicate_id",
-                  `nodes.${command.nodeId}`,
-                  `Node already exists: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Node already exists: ${command.layerId}`,
                 ),
               ],
             },
           };
         }
-        const parentId =
-          command.parentId === undefined ? null : command.parentId;
-        if (parentId && !scene.nodes.some((node) => node.id === parentId)) {
+        const parentLayerId =
+          command.parentLayerId === undefined ? null : command.parentLayerId;
+        if (parentLayerId && !scene.layers.some((node) => node.id === parentLayerId)) {
           return {
             project,
             receipt: {
@@ -1657,8 +1657,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_parent",
-                  `nodes.${command.nodeId}.parentId`,
-                  `Unknown parent: ${parentId}`,
+                  `layers.${command.layerId}.parentLayerId`,
+                  `Unknown parent: ${parentLayerId}`,
                 ),
               ],
             },
@@ -1682,10 +1682,10 @@ function applyOne(
                   : {}),
               }
             : undefined;
-        const node: MotionNode = {
-          id: command.nodeId,
+        const node: MotionLayer = {
+          id: command.layerId,
           type: "path",
-          parentId,
+          parentLayerId,
           transform: defaultTransform(command.transform),
           payload: {
             contours: command.contours,
@@ -1694,8 +1694,8 @@ function applyOne(
           ...(style ? { style } : {}),
           ...(semantic ? { semantic } : {}),
         };
-        scene.nodes.push(node);
-        changedIds.push(command.nodeId);
+        scene.layers.push(node);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -1720,7 +1720,7 @@ function applyOne(
         }
         const next = cloneProject(project);
         const scene = next.scenes.find((item) => item.id === command.sceneId);
-        const node = scene?.nodes.find((item) => item.id === command.nodeId);
+        const node = scene?.layers.find((item) => item.id === command.layerId);
         if (!scene || !node) {
           return {
             project,
@@ -1730,8 +1730,8 @@ function applyOne(
               diagnostics: [
                 diagnostic(
                   "unknown_node",
-                  `nodes.${command.nodeId}`,
-                  `Unknown node: ${command.nodeId}`,
+                  `layers.${command.layerId}`,
+                  `Unknown node: ${command.layerId}`,
                 ),
               ],
             },
@@ -1751,7 +1751,7 @@ function applyOne(
             ...command.payload,
           } as typeof node.payload;
         }
-        changedIds.push(command.nodeId);
+        changedIds.push(command.layerId);
         return {
           project: parseMotionProject(next),
           receipt: { revision: revision + 1, changedIds, diagnostics },
@@ -1859,7 +1859,7 @@ function applyOne(
           };
         }
         const bgId = "__scene_background__";
-        const existing = scene.nodes.find((n) => n.id === bgId);
+        const existing = scene.layers.find((n) => n.id === bgId);
         // Phase 9: v3 composition replaces v2 metadata.aspectRatio.
         const comp = (next as Record<string, unknown>).composition as
           | Record<string, number>
@@ -1884,12 +1884,12 @@ function applyOne(
           };
           existing.zIndex = -10_000;
         } else {
-          scene.nodes = [
+          scene.layers = [
             {
               id: bgId,
               type: "solid",
               name: "Scene Background",
-              parentId: null,
+              parentLayerId: null,
               zIndex: -10_000,
               transform: {
                 x: width / 2,
@@ -1908,7 +1908,7 @@ function applyOne(
               },
               payload: { color: command.fill, width, height },
             },
-            ...scene.nodes.filter((n) => n.id !== bgId),
+            ...scene.layers.filter((n) => n.id !== bgId),
           ];
         }
         changedIds.push(bgId);

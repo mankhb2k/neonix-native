@@ -340,7 +340,7 @@ export async function runZeroTemplateGeneration(input: {
     // Recipe pass (deterministic polish)
     const recipeCommands: AuthoringCommand[] = [];
     for (const scene of project.scenes) {
-      const textIds = scene.nodes
+      const textIds = scene.layers
         .filter((node) => node.type === "text")
         .map((node) => node.id);
       if (textIds.length === 0) continue;
@@ -349,8 +349,8 @@ export async function runZeroTemplateGeneration(input: {
           type: "applyRecipe",
           sceneId: scene.id,
           recipeId: "stagger",
-          targetNodeId: textIds[0]!,
-          staggerNodeIds: textIds,
+          targetLayerId: textIds[0]!,
+          staggerLayerIds: textIds,
           duration: Math.min(1.2, scene.duration),
         });
       } else {
@@ -358,7 +358,7 @@ export async function runZeroTemplateGeneration(input: {
           type: "applyRecipe",
           sceneId: scene.id,
           recipeId: "float",
-          targetNodeId: textIds[0]!,
+          targetLayerId: textIds[0]!,
           duration: scene.duration,
           intensity: 0.6,
         });
@@ -418,7 +418,7 @@ export async function runZeroTemplateGeneration(input: {
       });
       const targetedIds = critic.findings
         .map((f) => {
-          const m = /\.nodes\.([^.]+)/.exec(f.path);
+          const m = /\.layers\.([^.]+)/.exec(f.path);
           return m?.[1];
         })
         .filter((id): id is string => Boolean(id));
@@ -434,7 +434,7 @@ export async function runZeroTemplateGeneration(input: {
           targetedIds,
           projectSummary: {
             sceneIds: project.scenes.map((s) => s.id),
-            nodeIds: project.scenes.flatMap((s) => s.nodes.map((n) => n.id)),
+            layerIds: project.scenes.flatMap((s) => s.layers.map((n) => n.id)),
           },
         },
         model: modelName,
@@ -492,7 +492,7 @@ export async function runZeroTemplateGeneration(input: {
     const ok =
       critic.findings.every((f) => f.severity !== "error") &&
       project.scenes.length > 0 &&
-      project.scenes.every((s) => s.nodes.length > 0);
+      project.scenes.every((s) => s.layers.length > 0);
 
     return {
       ok,
@@ -583,10 +583,10 @@ export async function runScopedRefine(input: {
   gateway?: ModelGateway;
 }): Promise<CommandBatchResult & { summary: string; commandLabels: string[] }> {
   const gateway = input.gateway ?? createModelGateway();
-  const [sceneId, nodeId] = (input.selectionKey ?? "").split("/");
+  const [sceneId, layerId] = (input.selectionKey ?? "").split("/");
   const commands: AuthoringCommand[] = [];
 
-  if (input.scope === "element" && sceneId && nodeId) {
+  if (input.scope === "element" && sceneId && layerId) {
     const lower = input.prompt.toLowerCase();
     if (
       lower.includes("larger") ||
@@ -596,14 +596,14 @@ export async function runScopedRefine(input: {
       commands.push({
         type: "setNodePayload",
         sceneId,
-        nodeId,
+        layerId,
         payload: { fontSize: 72 },
       });
     } else {
       commands.push({
         type: "setNodePayload",
         sceneId,
-        nodeId,
+        layerId,
         payload: {
           content: { kind: "plain", text: input.prompt.slice(0, 200) },
         },
@@ -616,7 +616,7 @@ export async function runScopedRefine(input: {
       commands.push({
         type: "addNode",
         sceneId: lastScene.id,
-        nodeId: `node.refine.${Date.now().toString(36)}`,
+        layerId: `node.refine.${Date.now().toString(36)}`,
         nodeType: "text",
         text: input.prompt.slice(0, 120),
         fontSize: 40,
@@ -655,7 +655,7 @@ export async function runScopedRefine(input: {
               repairHint: `scope=${input.scope}`,
             },
           ],
-          targetedIds: nodeId ? [nodeId] : [],
+          targetedIds: layerId ? [layerId] : [],
         },
         model: "anthropic/messages",
         maxOutputTokens: 2_048,

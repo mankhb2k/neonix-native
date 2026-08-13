@@ -18,7 +18,7 @@ const baseRow = {
   zIndex: 0,
   visible: true,
   hasChildren: true,
-  parentId: null as string | null,
+  parentLayerId: null as string | null,
 };
 
 const dragNop = {

@@ -19,7 +19,7 @@ describe("sceneFromFrameDraft composition center", () => {
         (p) => `${p}_1`,
         size,
       );
-      const node = scene.nodes[0]!;
+      const node = scene.layers[0]!;
       expect(node.transform.x).toBe(size.width / 2);
       expect(node.transform.y).toBe(size.height / 2);
     });

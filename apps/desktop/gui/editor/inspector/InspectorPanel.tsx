@@ -38,7 +38,7 @@ type Props = {
 function selectionFingerprint(selection: EditorSelection): string {
   if (selection.kind === "none") return "none";
   if (selection.kind === "node") {
-    return `node:${selection.sceneId}:${selection.nodeId}`;
+    return `node:${selection.sceneId}:${selection.layerId}`;
   }
   return `clips:${selection.ids.slice().sort().join(",")}`;
 }
@@ -70,9 +70,9 @@ export function InspectorPanel({
       : selection.kind === "clips"
         ? sceneClips.find((c) => c.id === selection.primaryId)?.sceneId ?? null
         : null;
-  const sceneNodes =
+  const sceneLayers =
     project && selectedSceneId
-      ? (project.scenes.find((s) => s.id === selectedSceneId)?.nodes ?? [])
+      ? (project.scenes.find((s) => s.id === selectedSceneId)?.layers ?? [])
       : [];
 
   function toggleClip(clipId: string, additive: boolean) {
@@ -156,13 +156,13 @@ export function InspectorPanel({
         )}
       </div>
 
-      {sceneNodes.length > 0 ? (
+      {sceneLayers.length > 0 ? (
         <div className="inspector-panel__section">
           <h3 className="inspector-panel__group">Nodes</h3>
           <ul className="inspector-panel__list">
-            {sceneNodes.map((node) => {
+            {sceneLayers.map((node) => {
               const active =
-                selection.kind === "node" && selection.nodeId === node.id;
+                selection.kind === "node" && selection.layerId === node.id;
               return (
                 <li key={node.id}>
                   <button

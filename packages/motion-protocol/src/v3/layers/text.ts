@@ -6,9 +6,9 @@
  */
 import { z } from "zod";
 import { TextPayloadSchema } from "./text-content";
-import { NodeBaseV3Schema } from "./base";
+import { LayerBaseV3Schema } from "./base";
 
-export const TextNodeV3Schema = NodeBaseV3Schema.extend({
+export const TextLayerV3Schema = LayerBaseV3Schema.extend({
   type: z.literal("text"),
   payload: TextPayloadSchema,
 }).strict();

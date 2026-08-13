@@ -15,10 +15,10 @@ export const TransformSchema = z
       .optional(),
     depth: FiniteNumberSchema.optional(),
     width: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     height: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.nodeDimension,
+      MOTION_PROTOCOL_LIMITS.layerDimension,
     ),
     rotation: FiniteNumberSchema,
     rotationX: FiniteNumberSchema.min(-MOTION_PROTOCOL_LIMITS.rotation3DAngle)

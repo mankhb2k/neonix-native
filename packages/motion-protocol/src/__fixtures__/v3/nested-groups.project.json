@@ -46,11 +46,11 @@
       "name": "Character Demo",
       "duration": 10,
       "space": "flat-2d",
-      "nodes": [
+      "layers": [
         {
           "id": "group.character",
           "type": "group",
-          "parentId": null,
+          "parentLayerId": null,
           "zIndex": 3,
           "timing": {
             "start": 5,
@@ -81,7 +81,7 @@
         {
           "id": "group.upper-body",
           "type": "group",
-          "parentId": "group.character",
+          "parentLayerId": "group.character",
           "zIndex": 2,
           "timing": {
             "start": 1,
@@ -112,7 +112,7 @@
         {
           "id": "group.head-rig",
           "type": "group",
-          "parentId": "group.upper-body",
+          "parentLayerId": "group.upper-body",
           "zIndex": 3,
           "timing": {
             "start": 0.5,
@@ -143,7 +143,7 @@
         {
           "id": "head-image",
           "type": "image",
-          "parentId": "group.head-rig",
+          "parentLayerId": "group.head-rig",
           "zIndex": 0,
           "timing": {
             "start": 0,

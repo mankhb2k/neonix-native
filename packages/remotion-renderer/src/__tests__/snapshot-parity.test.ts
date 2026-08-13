@@ -33,7 +33,7 @@ describe("remotion-renderer snapshot contract", () => {
     expect(kinds.has("text")).toBe(true);
     expect(kinds.has("group")).toBe(true);
 
-    const title = snapshot.items.find((item) => item.nodeId === "node.title");
+    const title = snapshot.items.find((item) => item.layerId === "node.title");
     expect(title?.payload.kind).toBe("text");
     if (title?.payload.kind === "text") {
       expect(title.payload.text).toBe("MotiClip AI Studio");

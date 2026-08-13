@@ -32,7 +32,7 @@ export const FIXTURE_GROUP_PASSTHROUGH = make("group-pass", "Group pass-through"
   {
     key: "group-pass:g",
     sceneId: "group-pass",
-    nodeId: "g",
+    layerId: "g",
     nodeType: "group",
     worldMatrix: { ...identity },
     worldBounds: { x: 0, y: 0, width: 100, height: 100 },
@@ -55,7 +55,7 @@ export const FIXTURE_GROUP_PASSTHROUGH = make("group-pass", "Group pass-through"
   {
     key: "group-pass:child",
     sceneId: "group-pass",
-    nodeId: "child",
+    layerId: "child",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 10, f: 10 },
     worldBounds: { x: 10, y: 10, width: 40, height: 40 },
@@ -80,7 +80,7 @@ export const FIXTURE_BLUR_LAYER = make("blur-layer", "Blur isolation layer", [
   {
     key: "blur-layer:s",
     sceneId: "blur-layer",
-    nodeId: "s",
+    layerId: "s",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 20, f: 20 },
     worldBounds: { x: 20, y: 20, width: 80, height: 80 },
@@ -112,7 +112,7 @@ export const FIXTURE_MASK_LAYER = make("mask-layer", "Mask layer metadata", [
   {
     key: "mask-layer:s",
     sceneId: "mask-layer",
-    nodeId: "s",
+    layerId: "s",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 0, f: 0 },
     worldBounds: { x: 0, y: 0, width: 100, height: 100 },
@@ -136,7 +136,7 @@ export const FIXTURE_MASK_LAYER = make("mask-layer", "Mask layer metadata", [
       isAdjustment: false,
       mask: {
         mode: "alpha",
-        sourceNodeId: "maskSrc",
+        sourceLayerId: "maskSrc",
         sourceVisibility: "mask-only",
       },
       effectOrder: [],

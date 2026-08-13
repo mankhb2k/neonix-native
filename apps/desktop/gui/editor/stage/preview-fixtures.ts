@@ -35,12 +35,12 @@ export function buildSyntheticPreviewNodes(
   size: number,
 ): SyntheticPreviewNode[] {
   const count = buildSyntheticClipCount(size);
-  const nodes: SyntheticPreviewNode[] = [];
+  const layers: SyntheticPreviewNode[] = [];
   const cols = Math.ceil(Math.sqrt(count));
   for (let i = 0; i < count; i += 1) {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    nodes.push({
+    layers.push({
       id: `syn_${i}`,
       label: `N${i}`,
       x: col * 24,
@@ -49,7 +49,7 @@ export function buildSyntheticPreviewNodes(
       h: 12,
     });
   }
-  return nodes;
+  return layers;
 }
 
 /** Dropped-frame gate target (ms) for a 60fps paint loop under fixture load. */
@@ -63,18 +63,18 @@ export type StagePaintFixture = {
 };
 
 /**
- * Minimal MotionProject + timeline with `size` text nodes for DomStage paint benchmarks.
+ * Minimal MotionProject + timeline with `size` text layers for DomStage paint benchmarks.
  */
 export function buildStagePaintFixture(size: number): StagePaintFixture {
   const count = buildSyntheticClipCount(size);
   const cols = Math.ceil(Math.sqrt(count));
-  const nodes = Array.from({ length: count }, (_, i) => {
+  const layers = Array.from({ length: count }, (_, i) => {
     const col = i % cols;
     const row = Math.floor(i / cols);
     return {
       id: `node_${i}`,
       type: "text" as const,
-      parentId: null,
+      parentLayerId: null,
       zIndex: i,
       transform: {
         x: 40 + col * 24,
@@ -146,7 +146,7 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
         id: "scene_bench",
         name: "Bench",
         duration: 4,
-        nodes,
+        layers,
         clips: [],
       },
     ],

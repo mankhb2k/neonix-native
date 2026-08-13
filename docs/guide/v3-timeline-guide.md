@@ -106,7 +106,7 @@ Compiler / runtime / render **không** được tái dựng `start` bằng curso
 
 `VisualClipSourceV3` chỉ cho phép `{ kind: "scene", sceneId }`.
 
-Component **không** là visual-clip source. Đặt component như **scene node** (`type: "component"`) bên trong scene, rồi clip timeline tham chiếu scene đó. Compiler expand component node → wrapper group.
+Component **không** là visual-clip source. Đặt component như **scene layer** (`type: "component"`) bên trong scene, rồi clip timeline tham chiếu scene đó. Compiler expand component layer → wrapper group.
 
 `kind: "node"` / `kind: "component"` trên timeline = không hợp lệ. Canonical parse **reject** — không rewrite.
 
@@ -479,7 +479,7 @@ Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` ch�
 6. Visual local time có đi qua trim/rate/loop không?
 7. Empty visual clips có fail rõ ràng (không silent fallback) không?
 8. Empty tail có trả “không scene” thay vì clamp scene cuối không?
-9. Sibling nodes có `zIndex` unique trong cùng `parentId` không?
+9. Sibling layers có `zIndex` unique trong cùng `parentLayerId` không?
 
 ---
 

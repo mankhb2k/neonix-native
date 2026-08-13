@@ -115,7 +115,7 @@ describe("playback driver", () => {
 });
 
 describe("compose + evaluate smoke", () => {
-  it("composes a scene clip layer and evaluates nodes", () => {
+  it("composes a scene clip layer and evaluates layers", () => {
     const project = parseMotionProjectV3({
       format: "motion-project",
       formatVersion: 3,
@@ -162,11 +162,11 @@ describe("compose + evaluate smoke", () => {
           id: "scene_1",
           name: "Scene",
           duration: 3,
-          nodes: [
+          layers: [
             {
               id: "node_1",
               type: "text",
-              parentId: null,
+              parentLayerId: null,
               zIndex: 0,
               transform: {
                 x: 100,
@@ -229,7 +229,7 @@ describe("compose + evaluate smoke", () => {
     const compiled = compiledResult.ok ? compiledResult.project : null;
     if (!compiled) return;
     const snapshot = previewParitySnapshot(compiled, "scene_1", 0.5);
-    expect(snapshot.nodes.length).toBeGreaterThan(0);
-    expect(snapshot.nodes.some((n) => n.type === "text")).toBe(true);
+    expect(snapshot.layers.length).toBeGreaterThan(0);
+    expect(snapshot.layers.some((n) => n.type === "text")).toBe(true);
   });
 });

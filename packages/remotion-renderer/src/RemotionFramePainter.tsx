@@ -81,7 +81,7 @@ function drawableToView(
   switch (draw.op) {
     case "unsupported":
       throw new Error(
-        `Unsupported paint command: ${draw.message} (${draw.nodeId ?? "unknown"})`,
+        `Unsupported paint command: ${draw.message} (${draw.layerId ?? "unknown"})`,
       );
     case "drawText":
       return (
@@ -111,7 +111,7 @@ function drawableToView(
                   key={run.id}
                   data-source-ref={
                     run.sourceRef
-                      ? `${run.sourceRef.kind}:${run.sourceRef.nodeId}:${run.sourceRef.runId}`
+                      ? `${run.sourceRef.kind}:${run.sourceRef.layerId}:${run.sourceRef.runId}`
                       : undefined
                   }
                   style={{
@@ -303,7 +303,7 @@ export function RemotionFramePainterFromTree({
   fps?: number;
 }) {
   const drawables = flattenRemotionDrawables(tree);
-  const nodes = drawables.map((item) =>
+  const layers = drawables.map((item) =>
     drawableToView(item.key, item.transform, item.draw, fps),
   );
 
@@ -312,7 +312,7 @@ export function RemotionFramePainterFromTree({
       data-testid="remotion-frame-painter"
       style={{ background: tree.background ?? "#ffffff" }}
     >
-      {nodes}
+      {layers}
     </AbsoluteFill>
   );
 }

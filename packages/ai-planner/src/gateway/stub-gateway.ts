@@ -88,7 +88,7 @@ export class StubModelGateway implements ModelGateway {
               ? {
                   type: "addSvgNode",
                   sceneId,
-                  nodeId: `node.svg.${assetId}`,
+                  layerId: `node.svg.${assetId}`,
                   assetId,
                   fit: "contain",
                   transform: {
@@ -105,7 +105,7 @@ export class StubModelGateway implements ModelGateway {
               : {
                   type: "addImageNode",
                   sceneId,
-                  nodeId: `node.image.${assetId}`,
+                  layerId: `node.image.${assetId}`,
                   assetId,
                   fit: "contain",
                   transform: {
@@ -134,12 +134,12 @@ export class StubModelGateway implements ModelGateway {
         const commands: AuthoringCommand[] = [];
         for (const finding of repair.findings.slice(0, 8)) {
           if (finding.code === "text_overflow") {
-            const match = /^scenes\.([^.]+)\.nodes\.(.+)$/.exec(finding.path);
+            const match = /^scenes\.([^.]+)\.layers\.(.+)$/.exec(finding.path);
             if (match) {
               commands.push({
                 type: "setNodePayload",
                 sceneId: match[1]!,
-                nodeId: match[2]!,
+                layerId: match[2]!,
                 payload: { fontSize: 48 },
               });
             }
@@ -152,7 +152,7 @@ export class StubModelGateway implements ModelGateway {
             commands.push({
               type: "addNode",
               sceneId,
-              nodeId: `node.repair.${sceneId.replace(/\./g, "_")}`,
+              layerId: `node.repair.${sceneId.replace(/\./g, "_")}`,
               nodeType: "text",
               text: "Continue",
               fontSize: 48,
@@ -173,7 +173,7 @@ export class StubModelGateway implements ModelGateway {
               commands.push({
                 type: "setLayoutConstraint",
                 sceneId: match[1]!,
-                nodeId: `group.${match[1]}`,
+                layerId: `group.${match[1]}`,
                 modifierId: `lay.repair.${match[1]}`,
                 constraint: {
                   kind: "stack",

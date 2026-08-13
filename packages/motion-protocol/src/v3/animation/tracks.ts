@@ -66,7 +66,7 @@ export const TrackTimeSchema = z.union([
 
 export const PropertyTrackSchema = z
   .object({
-    targetId: IdSchema,
+    layerId: IdSchema,
     property: PropertyPathSchema,
     valueKind: ValueKindSchema.optional(),
     preBehavior: ExtrapolationBehaviorSchema.optional(),

@@ -15,9 +15,9 @@ export default [
         {
           patterns: [
             {
-              group: ["./runtime/nodes", "./runtime/nodes/*"],
+              group: ["./runtime/layers", "./runtime/layers/*"],
               message:
-                "src/index.ts must not import from runtime/nodes. Runtime node types are a separate entry point.",
+                "src/index.ts must not import from runtime/layers. Runtime node types are a separate entry point.",
             },
           ],
         },

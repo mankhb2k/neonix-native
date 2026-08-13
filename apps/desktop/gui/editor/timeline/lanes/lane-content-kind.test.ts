@@ -48,7 +48,7 @@ function sceneClip(
 }
 
 function projectWithScenes(
-  scenes: Array<{ id: string; nodes: Array<{ id: string; type: string }> }>,
+  scenes: Array<{ id: string; layers: Array<{ id: string; type: string }> }>,
 ): MotionProject {
   return { scenes } as unknown as MotionProject;
 }
@@ -67,11 +67,11 @@ describe("buildLaneContentKindById", () => {
     const project = projectWithScenes([
         {
           id: "s-text",
-          nodes: [{ type: "text", id: "n1" }],
+          layers: [{ type: "text", id: "n1" }],
         },
         {
           id: "s-other",
-          nodes: [{ type: "shape", id: "n2" }],
+          layers: [{ type: "shape", id: "n2" }],
         },
     ]);
 
@@ -101,7 +101,7 @@ describe("buildLaneContentKindById", () => {
     const lanes = [visualLane("ov", "overlay", 1)];
     const clips = [sceneClip("c1", "ov", "scene")];
     const project = projectWithScenes([
-      { id: "scene", nodes: [{ id: "node", type: nodeType }] },
+      { id: "scene", layers: [{ id: "node", type: nodeType }] },
     ]);
 
     expect(buildLaneContentKindById(lanes, clips, project).get("ov")).toBe(
@@ -116,8 +116,8 @@ describe("buildLaneContentKindById", () => {
       sceneClip("video", "ov", "video-scene"),
     ];
     const project = projectWithScenes([
-      { id: "text-scene", nodes: [{ id: "text", type: "text" }] },
-      { id: "video-scene", nodes: [{ id: "video", type: "video" }] },
+      { id: "text-scene", layers: [{ id: "text", type: "text" }] },
+      { id: "video-scene", layers: [{ id: "video", type: "video" }] },
     ]);
 
     expect(buildLaneContentKindById(lanes, clips, project).get("ov")).toBe(
@@ -135,8 +135,8 @@ describe("buildLaneContentKindById", () => {
       sceneClip("video", "video-lane", "video-scene"),
     ];
     const project = projectWithScenes([
-      { id: "text-scene", nodes: [{ id: "text", type: "text" }] },
-      { id: "video-scene", nodes: [{ id: "video", type: "image" }] },
+      { id: "text-scene", layers: [{ id: "text", type: "text" }] },
+      { id: "video-scene", layers: [{ id: "video", type: "image" }] },
     ]);
 
     const map = buildLaneContentKindById(lanes, clips, project);

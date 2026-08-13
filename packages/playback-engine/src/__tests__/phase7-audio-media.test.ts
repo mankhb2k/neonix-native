@@ -3,7 +3,7 @@
  *
  * Verifies:
  *   - Task 7.1: AudioRenderPlan expansion (assetDuration, trimEnd, loopWindow, channelPolicy)
- *   - Task 7.2: Web Audio scheduler (look-ahead, gain nodes, mute/solo, reschedule)
+ *   - Task 7.2: Web Audio scheduler (look-ahead, gain layers, mute/solo, reschedule)
  *   - Task 7.3: Volume envelope linear interpolation
  *   - Task 7.5: MediaFrameProvider (acquire/release, frame tracking, dispose)
  */
@@ -263,7 +263,7 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
         {
           id: "s1",
           duration: 5,
-          nodes: [],
+          layers: [],
           tracks: [],
           clips: [],
         },

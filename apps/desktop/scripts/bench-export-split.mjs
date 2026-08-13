@@ -103,11 +103,11 @@ const project = {
     {
       id: "scene.a",
       duration: wantUhd ? 0.5 : 0.25,
-      nodes: [
+      layers: [
         {
           id: "n1",
           type: "text",
-          parentId: null,
+          parentLayerId: null,
           transform: {
             x: 100,
             y: 100,

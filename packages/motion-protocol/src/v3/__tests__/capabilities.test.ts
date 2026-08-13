@@ -18,65 +18,65 @@ describe("inspectProjectCapabilities", () => {
     expect(caps.size).toBe(0);
   });
 
-  it("detects text nodes", () => {
+  it("detects text layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "text" }] }],
+      scenes: [{ layers: [{ type: "text" }] }],
     });
     expect(caps.has("primitive.text")).toBe(true);
   });
 
-  it("detects image nodes", () => {
+  it("detects image layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "image" }] }],
+      scenes: [{ layers: [{ type: "image" }] }],
     });
     expect(caps.has("primitive.image")).toBe(true);
   });
 
-  it("detects video nodes", () => {
+  it("detects video layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "video" }] }],
+      scenes: [{ layers: [{ type: "video" }] }],
     });
     expect(caps.has("primitive.video")).toBe(true);
   });
 
-  it("detects svg nodes", () => {
+  it("detects svg layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "svg" }] }],
+      scenes: [{ layers: [{ type: "svg" }] }],
     });
     expect(caps.has("primitive.svg")).toBe(true);
   });
 
-  it("detects shape nodes", () => {
+  it("detects shape layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "shape" }] }],
+      scenes: [{ layers: [{ type: "shape" }] }],
     });
     expect(caps.has("primitive.shape")).toBe(true);
   });
 
-  it("detects path nodes", () => {
+  it("detects path layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "path" }] }],
+      scenes: [{ layers: [{ type: "path" }] }],
     });
     expect(caps.has("primitive.path")).toBe(true);
   });
 
-  it("detects group nodes", () => {
+  it("detects group layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "group" }] }],
+      scenes: [{ layers: [{ type: "group" }] }],
     });
     expect(caps.has("primitive.group")).toBe(true);
   });
 
-  it("detects camera nodes as orthographic", () => {
+  it("detects camera layers as orthographic", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "camera" }] }],
+      scenes: [{ layers: [{ type: "camera" }] }],
     });
     expect(caps.has("camera.orthographic")).toBe(true);
   });
 
-  it("detects adjustment nodes as color-adjust effect", () => {
+  it("detects adjustment layers as color-adjust effect", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "adjustment" }] }],
+      scenes: [{ layers: [{ type: "adjustment" }] }],
     });
     expect(caps.has("effect.color-adjust")).toBe(true);
   });
@@ -85,7 +85,7 @@ describe("inspectProjectCapabilities", () => {
     const caps = inspectProjectCapabilities({
       scenes: [
         {
-          nodes: [
+          layers: [
             { type: "text" },
             { type: "image" },
             { type: "shape" },
@@ -103,7 +103,7 @@ describe("inspectProjectCapabilities", () => {
 
   it("detects component embedding from components array", () => {
     const caps = inspectProjectCapabilities({
-      components: [{ nodes: [{ type: "text" }] }],
+      components: [{ layers: [{ type: "text" }] }],
     });
     expect(caps.has("component.embedding")).toBe(true);
     expect(caps.has("primitive.text")).toBe(true);
@@ -123,9 +123,9 @@ describe("inspectProjectCapabilities", () => {
     expect(caps.has("caption.track")).toBe(true);
   });
 
-  it("does not emit transition capabilities; embedding from scene component nodes", () => {
+  it("does not emit transition capabilities; embedding from scene component layers", () => {
     const caps = inspectProjectCapabilities({
-      scenes: [{ nodes: [{ type: "component" }] }],
+      scenes: [{ layers: [{ type: "component" }] }],
       timeline: {
         visualTracks: [
           {
@@ -149,7 +149,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("detects undeclared capabilities used by scenes", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "text" }, { type: "image" }] }],
+      scenes: [{ layers: [{ type: "text" }, { type: "image" }] }],
       capabilities: { required: [] },
     });
     expect(result.ok).toBe(false);
@@ -163,7 +163,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("passes when all used capabilities are declared", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "text" }] }],
+      scenes: [{ layers: [{ type: "text" }] }],
       capabilities: { required: ["primitive.text"] },
     });
     expect(result.ok).toBe(true);
@@ -172,7 +172,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("passes when declared capabilities include unused ones", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "text" }] }],
+      scenes: [{ layers: [{ type: "text" }] }],
       capabilities: {
         required: ["primitive.text", "primitive.video", "effect.blur"],
       },
@@ -183,7 +183,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("detects experimental capabilities in use", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "text" }] }],
+      scenes: [{ layers: [{ type: "text" }] }],
       capabilities: {
         required: ["primitive.text"],
         experimental: ["primitive.text"],
@@ -195,7 +195,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("passes when experimental capabilities are not actually used", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "text" }] }],
+      scenes: [{ layers: [{ type: "text" }] }],
       capabilities: {
         required: ["primitive.text"],
         experimental: ["effect.blur"],
@@ -207,7 +207,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("sorts used and declared arrays", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "image" }, { type: "text" }] }],
+      scenes: [{ layers: [{ type: "image" }, { type: "text" }] }],
       capabilities: { required: [] },
     });
     expect(result.used).toEqual(["primitive.image", "primitive.text"]);
@@ -215,7 +215,7 @@ describe("preflightProjectCapabilities", () => {
 
   it("does not treat removed transition fields as used capabilities", () => {
     const result = preflightProjectCapabilities({
-      scenes: [{ nodes: [{ type: "group" }] }],
+      scenes: [{ layers: [{ type: "group" }] }],
       timeline: {
         visualTracks: [
           {

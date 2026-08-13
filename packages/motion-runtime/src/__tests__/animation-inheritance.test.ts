@@ -22,11 +22,11 @@ function makeGroupScene(opts: {
   return {
     id: "scene.test",
     duration: 10,
-    nodes: [
+    layers: [
       {
         id: "group.char",
         type: "group",
-        parentId: null,
+        parentLayerId: null,
         zIndex: 1,
         timing: opts.groupTiming ?? { start: 0, duration: 10 },
         transform: {
@@ -51,7 +51,7 @@ function makeGroupScene(opts: {
       {
         id: "head",
         type: "image",
-        parentId: "group.char",
+        parentLayerId: "group.char",
         zIndex: 0,
         timing: opts.childTiming ?? { start: 0, duration: 10 },
         transform: {
@@ -85,7 +85,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.x",
           keys: [
             { t: 0, v: 100 },
@@ -115,7 +115,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.y",
           keys: [
             { t: 0, v: 200 },
@@ -138,7 +138,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.rotation",
           keys: [
             { t: 0, v: 0 },
@@ -163,7 +163,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene = makeGroupScene({
       tracks: [
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.opacity",
           keys: [
             { t: 0, v: 1 },
@@ -189,7 +189,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       groupTransform: { visible: true },
       tracks: [
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.visible",
           keys: [
             { t: 0, v: true },
@@ -215,7 +215,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       tracks: [
         // Parent: group moves from x=100 to x=300
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.x",
           keys: [
             { t: 0, v: 100 },
@@ -224,7 +224,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
         } as RuntimeScene["tracks"][number],
         // Child: head rotates from 0 to 45 degrees locally
         {
-          targetId: "head",
+          layerId: "head",
           property: "transform.rotation",
           keys: [
             { t: 0, v: 0 },
@@ -261,7 +261,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       tracks: [
         // Animate child local x from 10 to 60
         {
-          targetId: "head",
+          layerId: "head",
           property: "transform.x",
           keys: [
             { t: 0, v: 10 },
@@ -288,11 +288,11 @@ describe("V3 group animation inheritance (Phase 5)", () => {
     const scene: RuntimeScene = {
       id: "scene.deep",
       duration: 10,
-      nodes: [
+      layers: [
         {
           id: "g.root",
           type: "group",
-          parentId: null,
+          parentLayerId: null,
           zIndex: 1,
           timing: { start: 0, duration: 10 },
           transform: {
@@ -307,7 +307,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
         {
           id: "g.mid",
           type: "group",
-          parentId: "g.root",
+          parentLayerId: "g.root",
           zIndex: 1,
           timing: { start: 0, duration: 10 },
           transform: {
@@ -322,7 +322,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
         {
           id: "leaf",
           type: "image",
-          parentId: "g.mid",
+          parentLayerId: "g.mid",
           zIndex: 0,
           timing: { start: 0, duration: 10 },
           transform: {
@@ -338,7 +338,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       tracks: [
         // Animate root group horizontal position
         {
-          targetId: "g.root",
+          layerId: "g.root",
           property: "transform.x",
           keys: [
             { t: 0, v: 100 },
@@ -347,7 +347,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
         } as RuntimeScene["tracks"][number],
         // Animate mid group vertical position
         {
-          targetId: "g.mid",
+          layerId: "g.mid",
           property: "transform.y",
           keys: [
             { t: 0, v: 0 },
@@ -376,7 +376,7 @@ describe("V3 group animation inheritance (Phase 5)", () => {
       childTiming: { start: 0, duration: 10 },
       tracks: [
         {
-          targetId: "group.char",
+          layerId: "group.char",
           property: "transform.x",
           keys: [
             { t: 3, v: 100 },

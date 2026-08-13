@@ -518,7 +518,7 @@ export function createAudioScheduler(
 
   function dispose(): void {
     stop();
-    // Disconnect all gain nodes
+    // Disconnect all gain layers
     for (const [, ts] of trackStates) {
       try {
         ts.gainNode.disconnect();

@@ -96,7 +96,7 @@ export function decodePaintCommandBuffer(
         const node: PaintGroupScope = {
           kind: "group",
           key: cmd.key,
-          nodeId: cmd.nodeId,
+          layerId: cmd.layerId,
           children: [],
           ...(transform ? { transform } : {}),
         };
@@ -116,7 +116,7 @@ export function decodePaintCommandBuffer(
         const node: PaintLayerScope = {
           kind: "layer",
           key: cmd.key,
-          nodeId: cmd.nodeId,
+          layerId: cmd.layerId,
           isolation: Boolean(cmd.isolation),
           offscreen: Boolean(cmd.offscreen),
           ...(cmd.mask ? { mask: cmd.mask } : {}),

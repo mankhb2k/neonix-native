@@ -11,7 +11,7 @@ function collectNodeKinds(
   scene: Scene,
   kinds: Set<Exclude<LaneContentKind, "audio">>,
 ): void {
-  for (const node of scene.nodes) {
+  for (const node of scene.layers) {
     if (node.type === "text") kinds.add("text");
     else if (
       node.type === "shape" ||

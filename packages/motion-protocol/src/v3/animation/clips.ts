@@ -100,7 +100,7 @@ export const ClipSourceV3Schema = z.discriminatedUnion("kind", [
 export const MotionClipV3Schema = z
   .object({
     id: IdSchema,
-    targetId: IdSchema.optional(),
+    layerId: IdSchema.optional(),
     schedule: ClipScheduleSchema,
     duration: z
       .number()
@@ -112,11 +112,11 @@ export const MotionClipV3Schema = z
   })
   .strict()
   .superRefine((val, ctx) => {
-    if (val.source.kind === "preset" && !val.targetId) {
+    if (val.source.kind === "preset" && !val.layerId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "targetId is required when source.kind is 'preset'",
-        path: ["targetId"],
+        message: "layerId is required when source.kind is 'preset'",
+        path: ["layerId"],
       });
     }
   });

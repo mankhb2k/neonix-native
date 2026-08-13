@@ -13,7 +13,7 @@ type Track = CompiledProject["timeline"]["visualTracks"][number];
 type Scene = CompiledProject["scenes"][number];
 
 function scene(id: string, duration = 10): Scene {
-  return { id, duration, nodes: [], tracks: [] } as Scene;
+  return { id, duration, layers: [], tracks: [] } as Scene;
 }
 
 function clip(

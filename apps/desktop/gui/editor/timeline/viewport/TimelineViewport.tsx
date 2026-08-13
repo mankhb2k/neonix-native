@@ -244,7 +244,7 @@ export function TimelineViewport({
         next.kind === "clips" &&
         next.ids.length >= 1
       ) {
-        const nodeId = next.primaryId ?? next.ids[0]!;
+        const layerId = next.primaryId ?? next.ids[0]!;
         onSelect(selectionNode(layerModeView.sceneId, nodeId));
         return;
       }

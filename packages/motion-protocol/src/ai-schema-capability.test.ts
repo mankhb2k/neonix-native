@@ -19,7 +19,7 @@ describe("Phase 0 AI schema expansion foundation", () => {
   it("locks SourceRef shape for click-to-edit", () => {
     const ref = SourceRefSchema.parse({
       kind: "text-run",
-      nodeId: "n1",
+      layerId: "n1",
       runId: "r1",
     });
     expect(sourceRefKey(ref)).toBe("text-run:n1:r1");

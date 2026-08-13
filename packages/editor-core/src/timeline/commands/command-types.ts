@@ -67,7 +67,7 @@ export type TimelineCommand =
       /** Higher = above. Defaults to max existing + 1. */
       zIndex?: number;
       /** V3 group layers: parent group node id (null = root, default). */
-      parentId?: string | null;
+      parentLayerId?: string | null;
     }
   | { type: "add-audio-clip"; item: AudioLibraryItem; target: PlacementTarget }
   | { type: "move-clip"; clipId: string; patch: ClipMovePatch }
@@ -106,7 +106,7 @@ export type TimelineDomainEvent =
   | {
       type: "scene-node-added";
       sceneId: string;
-      nodeId: string;
+      layerId: string;
     }
   | { type: "clip-moved"; clipId: string; fromLaneId: string; toLaneId: string }
   | { type: "clip-deleted"; clipIds: string[] }
