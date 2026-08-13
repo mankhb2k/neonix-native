@@ -912,13 +912,11 @@ Theo dõi nguồn gốc project và source mapping:
 
 ## 14. Editor UI State
 
-> **Editor UI state KHÔNG thuộc về project JSON.** Các dữ liệu sau được lưu riêng (localStorage, IndexedDB, hoặc workspace file):
-
-- Vị trí scroll/viewport của timeline
-- Tab đang mở, panel layout
-- Node đang được chọn
-- Undo/redo stack
-- Playhead position
+> **UI session KHÔNG thuộc `MotionProjectV3`.** Các field sau chỉ sống trong editor session (localStorage, IndexedDB, hoặc `editor/workspace.mt`) — **không** serialize vào project contract:
+>
+> `playhead` / `currentTime`, `selection` (`selectedNodeIds` / `selectedClipIds`), `zoom` (`timelineZoom`), `scroll` (`timelineScroll`), panel layout, undo/redo.
+>
+> Khi nói timing trong contract / compiler / runtime, dùng **`time` / `timelineTime`** (giây trên trục project), không dùng “playhead”.
 
 ### 14.1 Editor Duplicate commands (không phải schema)
 

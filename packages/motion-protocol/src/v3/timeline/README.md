@@ -16,7 +16,7 @@ Timeline V3 mô tả **khi nào** nội dung xuất hiện trên trục thời g
 | `visualTracks`         | Lane hình ảnh (AE layer stack); `order` unique = stacking               |
 | `audioTracks`          | Lane âm thanh với `clips[]` + fadeIn/fadeOut (DSP)                      |
 | `captionTracks`        | Lane phụ đề                                                             |
-| `workArea` / `markers` | Vùng làm việc và mốc thời gian (editor), vẫn phải nằm trong `duration` |
+| `workArea` / `markers` | Optional project helpers (vùng làm việc / mốc); vẫn phải nằm trong `duration` |
 
 ```mermaid
 flowchart TB
@@ -65,7 +65,7 @@ Mỗi project có đúng một `timeline`:
     // ═══ Clock ═══
     "duration": 10, // optional lúc authoring; bắt buộc ở canonical/export
 
-    // ═══ Editor helpers (optional) ═══
+    // ═══ Optional project helpers (not UI session) ═══
     "workArea": { "start": 0, "end": 8 },
     "markers": [{ "id": "beat-1", "t": 2.5 /* ... */ }],
 
@@ -367,12 +367,14 @@ flowchart TD
 - Có visual clip → map từng clip (`start`, `trimStart`, `playbackRate`, `loop`, transitions) sang runtime.
 - Không có visual clip → **error**, không synthesize từ scenes.
 
-### 6.2 Resolve playhead
+### 6.2 Resolve timeline time
 
-`resolveTimelineAtTime(runtime, t)`:
+`resolveTimelineAtTime(runtime, timelineTime)` — contract dùng **`timelineTime` / `t`** (giây trên trục project), không dùng từ “playhead”.
 
 - Prefer **primary** khi primary và overlay chồng nhau.
-- `t` trong empty tail hoặc `t ≥ duration` → `null` (không clamp scene cuối).
+- `timelineTime` trong empty tail hoặc `timelineTime ≥ duration` → `null` (không clamp scene cuối).
+
+> **UI session ≠ project:** `playhead` / `currentTime` / `selection` / `zoom` / `scroll` chỉ thuộc editor UI session — **không** được nằm trong `MotionProjectV3`.
 
 ### 6.3 Audio render plan
 
@@ -461,7 +463,7 @@ Cùng track + overlap thời gian → **reject** integrity. Scene `fx-scene` ch�
 }
 ```
 
-Playhead `t = 9` → không có layer / `resolveTimelineAtTime` = `null`.
+`timelineTime = 9` → không có layer / `resolveTimelineAtTime` = `null`.
 
 ---
 

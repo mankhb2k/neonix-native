@@ -681,17 +681,21 @@ Rules:
 - Unknown optional extension co the preserve round-trip nhung khong tu y render.
 - Khong cho source code, function hoac dynamic import.
 
-## 21. Editor state khong thuoc project
+## 21. Editor / UI session khong thuoc `MotionProjectV3`
 
-Nhung field sau nam trong `editor/workspace.mt`, khong nam trong canonical project:
+Nhung field sau chi thuoc **UI session** (`editor/workspace.mt` / app store), **khong** nam trong `MotionProjectV3` hay canonical project:
 
 ```text
-currentTime, playing, selectedNodeIds, selectedClipIds,
-timelineZoom, timelineScroll, collapsedLanes, activePanel,
-inspectorTab, stageScale, stagePan, stageView, undoHistory
+playhead / currentTime, playing,
+selectedNodeIds, selectedClipIds,
+timelineZoom, timelineScroll,
+collapsedLanes, activePanel, inspectorTab,
+stageScale, stagePan, stageView, undoHistory
 ```
 
-Xoa editor state khong duoc lam thay doi video output hay project/runtime hash.
+Contract timing dung `time` / `timelineTime` (giay tren truc project) — khong dung wording "playhead" khi mo ta schema, compile, hay resolve.
+
+Xoa UI session khong duoc lam thay doi video output hay project/runtime hash.
 
 ## 22. Minimal valid v2 project
 
