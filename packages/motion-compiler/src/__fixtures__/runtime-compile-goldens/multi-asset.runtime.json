@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 1,
+  "runtimeVersion": 2,
   "metadata": {
     "id": "multi-asset",
     "name": "Multi Asset",
@@ -73,246 +73,221 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "30b0355c8ac8e8e767461b65da56fcbd",
+  "runtimeHash": "c4688e687520ab7d022fae1a385c2093",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
-    "scenes": {
-      "root": "scenes:root"
+    "layers": {
+      "main-camera": "layers:main-camera",
+      "title": "layers:title",
+      "logo-img": "layers:logo-img",
+      "logo-svg-node": "layers:logo-svg-node",
+      "video-bg": "layers:video-bg",
+      "track-bgm-clip": "layers:track-bgm-clip"
     }
   },
-  "timeline": {
-    "duration": 42.5,
-    "visualTracks": [
-      {
-        "id": "visual",
-        "order": 0,
-        "clips": [
-          {
-            "id": "root-clip",
-            "source": {
-              "kind": "scene",
-              "sceneId": "root"
-            },
-            "start": 0,
-            "duration": 42.5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [
-      {
-        "id": "track-bgm-clip",
-        "order": -1,
-        "muted": false,
-        "clips": [
-          {
-            "id": "track-bgm-clip-clip",
-            "assetId": "bgm",
-            "start": 0,
-            "duration": 42.5,
-            "trimStart": 0,
-            "playbackRate": 1,
-            "volume": 0.8,
-            "loop": false,
-            "fadeIn": 0.5,
-            "fadeOut": 1,
-            "muted": false
-          }
-        ]
-      }
-    ],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "root",
-      "duration": 42.5,
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "root"
-        ]
+      "id": "main-camera",
+      "type": "camera",
+      "parentLayerId": null,
+      "zIndex": 0,
+      "transform": {
+        "x": 960,
+        "y": 540,
+        "width": 0,
+        "height": 0,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0,
+        "anchorY": 0,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
-      "layers": [
-        {
-          "id": "main-camera",
-          "type": "camera",
-          "parentLayerId": null,
-          "zIndex": 0,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 0,
-            "height": 0,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0,
-            "anchorY": 0,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "zoom": 1,
-            "projection": "orthographic",
-            "parallaxStrength": 1
-          }
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "zoom": 1,
+        "projection": "orthographic",
+        "parallaxStrength": 1
+      }
+    },
+    {
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "x": 960,
+        "y": 200,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Multi Asset Scene"
         },
-        {
-          "id": "title",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 200,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Multi Asset Scene"
-            },
-            "fontSize": 48,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        },
-        {
-          "id": "logo-img",
-          "type": "image",
-          "parentLayerId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 300,
-            "y": 540,
-            "width": 300,
-            "height": 300,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "assetId": "logo-png",
-            "fit": "contain"
-          }
-        },
-        {
-          "id": "logo-svg-node",
-          "type": "svg",
-          "parentLayerId": null,
-          "zIndex": 3,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 300,
-            "height": 300,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "assetId": "logo-svg",
-            "fit": "contain"
-          }
-        },
-        {
-          "id": "video-bg",
-          "type": "video",
-          "parentLayerId": null,
-          "zIndex": 4,
-          "transform": {
-            "x": 1620,
-            "y": 540,
-            "width": 480,
-            "height": 270,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "assetId": "clip-video",
-            "fit": "cover",
-            "loop": true
-          }
-        }
-      ],
-      "tracks": []
+        "fontSize": 48,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
+    },
+    {
+      "id": "logo-img",
+      "type": "image",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "x": 300,
+        "y": 540,
+        "width": 300,
+        "height": 300,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "assetId": "logo-png",
+        "fit": "contain"
+      }
+    },
+    {
+      "id": "logo-svg-node",
+      "type": "svg",
+      "parentLayerId": null,
+      "zIndex": 3,
+      "transform": {
+        "x": 960,
+        "y": 540,
+        "width": 300,
+        "height": 300,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "assetId": "logo-svg",
+        "fit": "contain"
+      }
+    },
+    {
+      "id": "video-bg",
+      "type": "video",
+      "parentLayerId": null,
+      "zIndex": 4,
+      "transform": {
+        "x": 1620,
+        "y": 540,
+        "width": 480,
+        "height": 270,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "assetId": "clip-video",
+        "fit": "cover",
+        "loop": true
+      }
+    },
+    {
+      "id": "track-bgm-clip",
+      "type": "audio",
+      "parentLayerId": null,
+      "zIndex": -1,
+      "timing": {
+        "start": 0,
+        "duration": 42.5
+      },
+      "visible": true,
+      "locked": false,
+      "payload": {
+        "assetId": "bgm",
+        "trimStart": 0,
+        "playbackRate": 1,
+        "volume": 0.8,
+        "loop": false,
+        "fadeIn": 0.5,
+        "fadeOut": 1,
+        "muted": false
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 42.5
+  }
 }

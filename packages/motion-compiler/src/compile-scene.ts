@@ -13,14 +13,18 @@ import {
   type MotionClip,
   type MotionLayer,
   type MotionRuntimeProject,
+  type MotionRuntimeScene,
   type RuntimeSourceRef,
 } from "@motionvideo/motion-protocol";
 import { applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 
-type RuntimeTrack = MotionRuntimeProject["scenes"][number]["tracks"][number];
-type RuntimeNode = MotionRuntimeProject["scenes"][number]["layers"][number];
-type RuntimeScene = MotionRuntimeProject["scenes"][number];
+type RuntimeTrack = MotionRuntimeProject["tracks"][number];
+type RuntimeNode = Exclude<
+  MotionRuntimeProject["layers"][number],
+  { type: "audio" }
+>;
+type RuntimeScene = MotionRuntimeScene;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -336,7 +340,7 @@ export function compileSceneToRuntime(input: {
     (input.markers ?? []).map((m) => [m.id, m.t]),
   );
   const sourceRef = input.sourceRef ?? {
-    projectPath: ["scenes", input.id],
+    projectPath: ["layers", input.id],
   };
   return {
     id: input.id,

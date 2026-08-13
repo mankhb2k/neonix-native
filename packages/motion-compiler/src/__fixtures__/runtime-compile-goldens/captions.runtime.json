@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 1,
+  "runtimeVersion": 2,
   "metadata": {
     "id": "captions",
     "name": "Captions",
@@ -22,193 +22,165 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "d33bfdc3f92adf9c605dbc21ec5c5dec",
+  "runtimeHash": "ca50e14612048e9c6a7eb6bcd2b1e630",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
-    "scenes": {
-      "root": "scenes:root"
+    "layers": {
+      "title": "layers:title",
+      "caption-vi": "layers:caption-vi",
+      "token-1": "layers:token-1",
+      "token-2": "layers:token-2"
     }
   },
-  "timeline": {
-    "duration": 5,
-    "visualTracks": [
-      {
-        "id": "visual",
-        "order": 0,
-        "clips": [
-          {
-            "id": "root-clip",
-            "source": {
-              "kind": "scene",
-              "sceneId": "root"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "root",
-      "duration": 5,
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "root"
-        ]
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "x": 540,
+        "y": 960,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
-      "layers": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 540,
-            "y": 960,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Captioned Video"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Captioned Video"
         },
-        {
-          "id": "caption-vi",
-          "type": "group",
-          "parentLayerId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 2.5
-          },
-          "payload": {}
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
+    },
+    {
+      "id": "caption-vi",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 2.5
+      },
+      "payload": {}
+    },
+    {
+      "id": "token-1",
+      "type": "text",
+      "parentLayerId": "caption-vi",
+      "zIndex": 0,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 1.2
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Xin chào"
         },
-        {
-          "id": "token-1",
-          "type": "text",
-          "parentLayerId": "caption-vi",
-          "zIndex": 0,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 1.2
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Xin chào"
-            },
-            "fontSize": 48,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#ffffff"
-          }
+        "fontSize": 48,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#ffffff"
+      }
+    },
+    {
+      "id": "token-2",
+      "type": "text",
+      "parentLayerId": "caption-vi",
+      "zIndex": 1,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 1.3,
+        "duration": 1.2
+      },
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "MotiClip"
         },
-        {
-          "id": "token-2",
-          "type": "text",
-          "parentLayerId": "caption-vi",
-          "zIndex": 1,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 1.3,
-            "duration": 1.2
-          },
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "MotiClip"
-            },
-            "fontSize": 48,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#ffffff"
-          }
-        }
-      ],
-      "tracks": []
+        "fontSize": 48,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#ffffff"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 5
+  }
 }

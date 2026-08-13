@@ -185,26 +185,14 @@ export function prepareRuntimeClip(clip: V1SceneClip): JsonRecord {
 export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
   return {
     id: layer.id,
-    order: layer.zIndex,
-    ...(layer.visible === false ? { muted: true } : {}),
-    clips: [
-      {
-        id: `${layer.id}-clip`,
-        assetId: layer.payload.assetId,
-        start: layer.timing.start,
-        duration: layer.timing.duration,
-        trimStart: layer.payload.trimStart,
-        ...(layer.payload.trimEnd !== undefined
-          ? { trimEnd: layer.payload.trimEnd }
-          : {}),
-        playbackRate: layer.payload.playbackRate,
-        volume: layer.payload.volume,
-        loop: layer.payload.loop,
-        fadeIn: layer.payload.fadeIn,
-        fadeOut: layer.payload.fadeOut,
-        muted: layer.payload.muted,
-      },
-    ],
+    type: "audio",
+    ...(layer.name ? { name: layer.name } : {}),
+    parentLayerId: null,
+    zIndex: layer.zIndex,
+    timing: clone(layer.timing),
+    visible: layer.visible,
+    locked: layer.locked,
+    payload: clone(layer.payload),
   };
 }
 

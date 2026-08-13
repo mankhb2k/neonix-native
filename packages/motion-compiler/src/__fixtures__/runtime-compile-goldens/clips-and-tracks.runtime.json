@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 1,
+  "runtimeVersion": 2,
   "metadata": {
     "id": "clips-and-tracks",
     "name": "Clips And Tracks",
@@ -22,133 +22,103 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "d12515016fc9adc092db624c7c36fdca",
+  "runtimeHash": "cdf2625cf5f07e6f1b141d84f3bf1e93",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
-    "scenes": {
-      "root": "scenes:root"
+    "layers": {
+      "title": "layers:title",
+      "subtitle": "layers:subtitle"
     }
   },
-  "timeline": {
-    "duration": 5,
-    "visualTracks": [
-      {
-        "id": "visual",
-        "order": 0,
-        "clips": [
-          {
-            "id": "root-clip",
-            "source": {
-              "kind": "scene",
-              "sceneId": "root"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "root",
-      "duration": 5,
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "root"
-        ]
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "x": 960,
+        "y": 540,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
-      "layers": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Animated Title"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Animated Title"
         },
-        {
-          "id": "subtitle",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 2,
-          "transform": {
-            "x": 960,
-            "y": 700,
-            "width": 600,
-            "height": 80,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Property track clip"
-            },
-            "fontSize": 32,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        }
-      ],
-      "tracks": []
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 2,
+      "transform": {
+        "x": 960,
+        "y": 700,
+        "width": 600,
+        "height": 80,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Property track clip"
+        },
+        "fontSize": 32,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 5
+  }
 }

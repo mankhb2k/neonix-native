@@ -5,13 +5,36 @@ import {
   type BuildAudioRenderPlanInput,
 } from "./audio-render-plan";
 
+function audioLayer(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "aud.bgm",
+    type: "audio" as const,
+    parentLayerId: null,
+    zIndex: -1,
+    timing: { start: 1, duration: 4 },
+    visible: true,
+    locked: false,
+    payload: {
+      assetId: "asset.bgm",
+      trimStart: 0.5,
+      volume: 0.8,
+      loop: false,
+      fadeIn: 0.5,
+      fadeOut: 1,
+      muted: false,
+      playbackRate: 1,
+    },
+    ...overrides,
+  };
+}
+
 function fixtureInput(
   overrides?: Partial<BuildAudioRenderPlanInput>,
 ): BuildAudioRenderPlanInput {
   return {
     fps: 30,
     durationInFrames: 150,
-    playbackRateByClipId: { "clip.bgm": 1.25 },
+    playbackRateByClipId: { "aud.bgm": 1.25 },
     runtime: {
       format: "motion-runtime",
       formatVersion: 1,
@@ -35,53 +58,9 @@ function fixtureInput(
           codec: "mp3",
         },
       ],
-      variables: [],
-      timeline: {
-        duration: 5,
-        visualTracks: [
-          {
-            id: "primary",
-            order: 0,
-            clips: [
-              {
-                id: "clip-a",
-                source: { kind: "scene", sceneId: "scene.a" },
-                start: 0,
-                duration: 5,
-              },
-            ],
-          },
-        ],
-        audioTracks: [
-          {
-            id: "aud.bgm",
-            clips: [
-              {
-                id: "clip.bgm",
-                assetId: "asset.bgm",
-                start: 1,
-                duration: 4,
-                trimStart: 0.5,
-                volume: 0.8,
-                loop: false,
-                fadeIn: 0.5,
-                fadeOut: 1,
-                muted: false,
-                playbackRate: 1,
-              },
-            ],
-          },
-        ],
-      },
-      scenes: [
-        {
-          id: "scene.a",
-          duration: 5,
-          layers: [],
-          tracks: [],
-          clips: [],
-        },
-      ],
+      layers: [audioLayer()],
+      tracks: [],
+      timeline: { duration: 5 },
     } as unknown as BuildAudioRenderPlanInput["runtime"],
     ...overrides,
   };
@@ -93,7 +72,7 @@ describe("buildAudioRenderPlan", () => {
     expect(plan.clips).toHaveLength(1);
     const clip = plan.clips[0]!;
     expect(clip.trackId).toBe("aud.bgm");
-    expect(clip.clipId).toBe("clip.bgm");
+    expect(clip.clipId).toBe("aud.bgm");
     expect(clip.fromFrame).toBe(30);
     expect(clip.trimStartSeconds).toBe(0.5);
     expect(clip.playbackRate).toBe(1.25);
@@ -109,29 +88,22 @@ describe("buildAudioRenderPlan", () => {
     });
     input.runtime = {
       ...input.runtime,
-      timeline: {
-        ...input.runtime.timeline,
-        audioTracks: [
-          {
-            id: "aud.short",
-            clips: [
-              {
-                id: "clip.short",
-                assetId: "asset.bgm",
-                start: 0,
-                duration: 3,
-                trimStart: 0,
-                volume: 1,
-                loop: false,
-                fadeIn: 0,
-                fadeOut: 0,
-                muted: false,
-                playbackRate: 1,
-              },
-            ],
+      layers: [
+        audioLayer({
+          id: "aud.short",
+          timing: { start: 0, duration: 3 },
+          payload: {
+            assetId: "asset.bgm",
+            trimStart: 0,
+            volume: 1,
+            loop: false,
+            fadeIn: 0,
+            fadeOut: 0,
+            muted: false,
+            playbackRate: 1,
           },
-        ],
-      },
+        }),
+      ],
     } as BuildAudioRenderPlanInput["runtime"];
 
     const plan = buildAudioRenderPlan(input);
@@ -144,29 +116,22 @@ describe("buildAudioRenderPlan", () => {
     const input = fixtureInput({ playbackRateByClipId: undefined });
     input.runtime = {
       ...input.runtime,
-      timeline: {
-        ...input.runtime.timeline,
-        audioTracks: [
-          {
-            id: "aud.muted",
-            clips: [
-              {
-                id: "clip.muted",
-                assetId: "asset.bgm",
-                start: 0,
-                duration: 2,
-                trimStart: 0,
-                volume: 1,
-                loop: false,
-                fadeIn: 0.5,
-                fadeOut: 0.5,
-                muted: true,
-                playbackRate: 1,
-              },
-            ],
+      layers: [
+        audioLayer({
+          id: "aud.muted",
+          timing: { start: 0, duration: 2 },
+          payload: {
+            assetId: "asset.bgm",
+            trimStart: 0,
+            volume: 1,
+            loop: false,
+            fadeIn: 0.5,
+            fadeOut: 0.5,
+            muted: true,
+            playbackRate: 1,
           },
-        ],
-      },
+        }),
+      ],
     } as BuildAudioRenderPlanInput["runtime"];
 
     const plan = buildAudioRenderPlan(input);
@@ -182,8 +147,7 @@ describe("buildAudioRenderPlan", () => {
     input.runtime = {
       ...input.runtime,
       assets: [],
-    };
-    const plan = buildAudioRenderPlan(input);
-    expect(plan.clips).toHaveLength(0);
+    } as BuildAudioRenderPlanInput["runtime"];
+    expect(buildAudioRenderPlan(input).clips).toEqual([]);
   });
 });

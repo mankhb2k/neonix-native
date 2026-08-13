@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 1,
+  "runtimeVersion": 2,
   "metadata": {
     "id": "nested-groups",
     "name": "Nested Groups",
@@ -34,167 +34,139 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "2754ae02042785d823a4065db8b00ca8",
+  "runtimeHash": "143f840b2fe592aa10c64604c7339589",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
-    "scenes": {
-      "root": "scenes:root"
+    "layers": {
+      "group.character": "layers:group.character",
+      "group.upper-body": "layers:group.upper-body",
+      "group.head-rig": "layers:group.head-rig",
+      "head-image": "layers:head-image"
     }
   },
-  "timeline": {
-    "duration": 9,
-    "visualTracks": [
-      {
-        "id": "visual",
-        "order": 0,
-        "clips": [
-          {
-            "id": "root-clip",
-            "source": {
-              "kind": "scene",
-              "sceneId": "root"
-            },
-            "start": 0,
-            "duration": 9
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "root",
-      "duration": 9,
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "root"
-        ]
+      "id": "group.character",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 3,
+      "transform": {
+        "x": 540,
+        "y": 960,
+        "width": 500,
+        "height": 700,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
-      "layers": [
-        {
-          "id": "group.character",
-          "type": "group",
-          "parentLayerId": null,
-          "zIndex": 3,
-          "transform": {
-            "x": 540,
-            "y": 960,
-            "width": 500,
-            "height": 700,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 5,
-            "duration": 4
-          },
-          "payload": {
-            "compositing": {
-              "mode": "pass-through"
-            }
-          }
-        },
-        {
-          "id": "group.upper-body",
-          "type": "group",
-          "parentLayerId": "group.character",
-          "zIndex": 2,
-          "transform": {
-            "x": 0,
-            "y": -120,
-            "width": 360,
-            "height": 380,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 1,
-            "duration": 2
-          },
-          "payload": {
-            "compositing": {
-              "mode": "pass-through"
-            }
-          }
-        },
-        {
-          "id": "group.head-rig",
-          "type": "group",
-          "parentLayerId": "group.upper-body",
-          "zIndex": 3,
-          "transform": {
-            "x": 0,
-            "y": -140,
-            "width": 180,
-            "height": 180,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0.5,
-            "duration": 1.5
-          },
-          "payload": {
-            "compositing": {
-              "mode": "isolate"
-            }
-          }
-        },
-        {
-          "id": "head-image",
-          "type": "image",
-          "parentLayerId": "group.head-rig",
-          "zIndex": 0,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 160,
-            "height": 160,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 1
-          },
-          "payload": {
-            "assetId": "asset.head"
-          }
+      "timing": {
+        "start": 5,
+        "duration": 4
+      },
+      "payload": {
+        "compositing": {
+          "mode": "pass-through"
         }
-      ],
-      "tracks": []
+      }
+    },
+    {
+      "id": "group.upper-body",
+      "type": "group",
+      "parentLayerId": "group.character",
+      "zIndex": 2,
+      "transform": {
+        "x": 0,
+        "y": -120,
+        "width": 360,
+        "height": 380,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 1,
+        "duration": 2
+      },
+      "payload": {
+        "compositing": {
+          "mode": "pass-through"
+        }
+      }
+    },
+    {
+      "id": "group.head-rig",
+      "type": "group",
+      "parentLayerId": "group.upper-body",
+      "zIndex": 3,
+      "transform": {
+        "x": 0,
+        "y": -140,
+        "width": 180,
+        "height": 180,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0.5,
+        "duration": 1.5
+      },
+      "payload": {
+        "compositing": {
+          "mode": "isolate"
+        }
+      }
+    },
+    {
+      "id": "head-image",
+      "type": "image",
+      "parentLayerId": "group.head-rig",
+      "zIndex": 0,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 160,
+        "height": 160,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "timing": {
+        "start": 0,
+        "duration": 1
+      },
+      "payload": {
+        "assetId": "asset.head"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 9
+  }
 }

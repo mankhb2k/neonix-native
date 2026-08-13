@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 1,
+  "runtimeVersion": 2,
   "metadata": {
     "id": "single-scene",
     "name": "Single Scene",
@@ -22,91 +22,60 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "025b5e48e3b0b5e76422f7412b648f7e",
+  "runtimeHash": "e9abc3e0cbca4f0e03429428a3f2afd5",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
-    "scenes": {
-      "root": "scenes:root"
+    "layers": {
+      "title": "layers:title"
     }
   },
-  "timeline": {
-    "duration": 5,
-    "visualTracks": [
-      {
-        "id": "visual",
-        "order": 0,
-        "clips": [
-          {
-            "id": "root-clip",
-            "source": {
-              "kind": "scene",
-              "sceneId": "root"
-            },
-            "start": 0,
-            "duration": 5
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "root",
-      "duration": 5,
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "root"
-        ]
+      "id": "title",
+      "type": "text",
+      "parentLayerId": null,
+      "zIndex": 1,
+      "transform": {
+        "x": 960,
+        "y": 540,
+        "width": 800,
+        "height": 120,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
-      "layers": [
-        {
-          "id": "title",
-          "type": "text",
-          "parentLayerId": null,
-          "zIndex": 1,
-          "transform": {
-            "x": 960,
-            "y": 540,
-            "width": 800,
-            "height": 120,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 5
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "content": {
-              "kind": "plain",
-              "text": "Hello MotiClip"
-            },
-            "fontSize": 64,
-            "align": "center",
-            "wrap": "word",
-            "overflow": "visible"
-          },
-          "style": {
-            "fill": "#000000"
-          }
-        }
-      ],
-      "tracks": []
+      "timing": {
+        "start": 0,
+        "duration": 5
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "content": {
+          "kind": "plain",
+          "text": "Hello MotiClip"
+        },
+        "fontSize": 64,
+        "align": "center",
+        "wrap": "word",
+        "overflow": "visible"
+      },
+      "style": {
+        "fill": "#000000"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 5
+  }
 }

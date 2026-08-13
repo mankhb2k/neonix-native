@@ -1,6 +1,6 @@
 import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject, MotionRuntimeScene } from "@motionvideo/motion-protocol";
 import { timelineTotalDuration } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
 import {
@@ -25,56 +25,27 @@ import { perspectiveMatrix, lookAtMatrix, matrix4ToArray } from "./matrix4";
 import { throwIfAborted, cancelledDiagnostic } from "./cancellation";
 import { RuntimeDiagnosticCollector, toRenderDiagnostic } from "./diagnostics";
 import { isFeatureEnabled, FeatureFlag } from "./version-policy";
+import {
+  ROOT_LAYER_GRAPH_ID,
+  audioLayersFromRuntime,
+  layerGraphFromRuntime,
+} from "./layer-graph";
 
 function scenesForComposition(
   runtime: MotionRuntimeProject,
 ): CompositionSceneInput[] {
-  // Collect all clips from every visual track, sorted bottom-to-top by
-  // track.order (AE layer stack). Clip `start` is ABSOLUTE global timeline time.
-  type Indexed = {
-    clip: MotionRuntimeProject["timeline"]["visualTracks"][number]["clips"][number];
-    trackIndex: number;
-    clipIndex: number;
-    order: number;
-    trackId: string;
-  };
-  const indexed: Indexed[] = [];
-  runtime.timeline.visualTracks.forEach((track, trackIndex) => {
-    track.clips.forEach((clip, clipIndex) => {
-      indexed.push({
-        clip,
-        trackIndex,
-        clipIndex,
-        order: track.order,
-        trackId: track.id,
-      });
-    });
-  });
-  indexed.sort((a, b) => {
-    if (a.order !== b.order) return a.order - b.order;
-    if (a.trackIndex !== b.trackIndex) return a.trackIndex - b.trackIndex;
-    if (a.clip.start !== b.clip.start) return a.clip.start - b.clip.start;
-    return a.clipIndex - b.clipIndex;
-  });
-  return indexed.map(({ clip, trackId, order }) => {
-    const sceneId =
-      clip.source.kind === "scene" ? (clip.source.sceneId ?? "") : "";
-    const scene = sceneId
-      ? runtime.scenes.find((candidate) => candidate.id === sceneId)
-      : undefined;
-    return {
-      sceneId,
-      start: clip.start,
-      duration: clip.duration,
-      trimStart: clip.trimStart,
-      playbackRate: clip.playbackRate,
-      loop: clip.loop,
-      sourceDuration: scene?.duration ?? clip.duration,
-      opacity: clip.opacity,
-      trackId,
-      trackOrder: order,
-    };
-  });
+  const duration = runtime.timeline.duration;
+  if (!(duration > 0)) return [];
+  return [
+    {
+      sceneId: ROOT_LAYER_GRAPH_ID,
+      start: 0,
+      duration,
+      sourceDuration: duration,
+      trackId: "visual",
+      trackOrder: 0,
+    },
+  ];
 }
 
 export function planCompositionFrame(
@@ -100,33 +71,27 @@ function resolveCompositionEvaluateTarget(
   width = 1080,
   height = 1920,
 ): {
-  scene: MotionRuntimeProject["scenes"][number];
+  scene: MotionRuntimeScene;
   time: number;
   frame: number;
   layerPlan?: CompositionFramePlan;
 } | null {
   const safeFps = Math.max(1, fps);
+  const graph = layerGraphFromRuntime(runtime);
 
   if (sceneId) {
-    const scene =
-      runtime.scenes.find((candidate) => candidate.id === sceneId) ??
-      runtime.scenes[0];
-    if (!scene) return null;
-    return { scene, time: frame / safeFps, frame };
+    if (graph.layers.length === 0 && !(graph.duration > 0)) return null;
+    return { scene: graph, time: frame / safeFps, frame };
   }
 
   const globalTime = frame / safeFps;
   const layerPlan = planCompositionFrame(runtime, globalTime, width, height);
   const primary = layerPlan.layers[layerPlan.layers.length - 1];
   if (primary) {
-    const scene = runtime.scenes.find((s) => s.id === primary.sceneId);
-    if (!scene) return null;
     const localFrame = Math.max(0, Math.round(primary.localTime * safeFps));
-    return { scene, time: primary.localTime, frame: localFrame, layerPlan };
+    return { scene: graph, time: primary.localTime, frame: localFrame, layerPlan };
   }
 
-  // Phase 7: composition layers are resolved exclusively from visualTracks.
-  // When no layers match (e.g. empty timeline), return null.
   return null;
 }
 
@@ -244,19 +209,16 @@ export function evaluateCompositionFrameV1(
 
   // ── Evaluate each layer ─────────────────────────────────────────
   const layers: EvaluatedLayer[] = [];
-  const sceneCache = new Map<string, MotionRuntimeProject["scenes"][number]>();
+  const sceneCache = new Map<string, MotionRuntimeScene>();
+  const graph = layerGraphFromRuntime(runtime);
+  sceneCache.set(ROOT_LAYER_GRAPH_ID, graph);
 
   for (let i = 0; i < layerPlan.layers.length; i++) {
     // Phase 12: Periodically check cancellation during layer evaluation
     throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
 
     const layer = layerPlan.layers[i]!;
-    let scene = sceneCache.get(layer.sceneId);
-    if (!scene) {
-      scene = runtime.scenes.find((s) => s.id === layer.sceneId);
-      if (scene) sceneCache.set(layer.sceneId, scene);
-    }
-    if (!scene) continue;
+    const scene = sceneCache.get(layer.sceneId) ?? graph;
 
     const localFrame = Math.max(0, Math.round(layer.localTime * safeFps));
     const evaluated = evaluateFrame({
@@ -418,7 +380,7 @@ export function evaluateCompositionSnapshot(
     sceneId,
     background,
   });
-  return v3?.interaction ?? null;
+  return v1?.interaction ?? null;
 }
 
 // ── Projection helpers ────────────────────────────────────────────────
@@ -429,7 +391,7 @@ export function evaluateCompositionSnapshot(
  * This is a scene-only projection — doesn't depend on evaluated frames.
  */
 function resolvePerspectiveProjection(
-  scene: MotionRuntimeProject["scenes"][number] | null,
+  scene: MotionRuntimeScene | null,
   width: number,
   height: number,
 ): { viewMatrix: number[]; projectionMatrix: number[] } | null {
@@ -479,7 +441,7 @@ function resolvePerspectiveProjection(
 }
 
 function buildProjection(
-  scene: MotionRuntimeProject["scenes"][number] | null,
+  scene: MotionRuntimeScene | null,
   interaction: RenderSnapshot | null,
   stageView: "camera" | "flat",
   width: number,
@@ -587,33 +549,33 @@ function buildAudioState(
       .map((a) => [a.id, (a as { duration?: number }).duration ?? 0]),
   );
 
-  const tracks = (runtime.timeline.audioTracks ?? []).flatMap((track) => {
-    const trackMuted = track.muted ?? false;
-    return track.clips.map((clip) => {
-      const start = clip.start ?? 0;
-      const trimStart = clip.trimStart ?? 0;
-      const assetDuration = assetDurationById.get(clip.assetId) ?? 0;
-      const localTime = Math.max(0, globalTime - start + trimStart);
-      const volume = Math.min(1, Math.max(0, clip.volume ?? 1));
-      const fadeInEnd = clip.fadeIn ?? 0;
-      const fadeOutStart = clip.duration - (clip.fadeOut ?? 0);
-      const clipLocal = globalTime - start;
-      const fadeActive =
-        clipLocal >= 0 &&
-        clipLocal < clip.duration &&
-        (((clip.fadeIn ?? 0) > 0 && clipLocal < fadeInEnd) ||
-          ((clip.fadeOut ?? 0) > 0 && clipLocal > fadeOutStart));
+  const tracks = audioLayersFromRuntime(runtime).map((layer) => {
+    const payload = layer.payload;
+    const start = layer.timing.start;
+    const duration = layer.timing.duration;
+    const trimStart = payload.trimStart ?? 0;
+    const assetDuration = assetDurationById.get(payload.assetId) ?? 0;
+    const localTime = Math.max(0, globalTime - start + trimStart);
+    const volume = Math.min(1, Math.max(0, payload.volume ?? 1));
+    const fadeInEnd = payload.fadeIn ?? 0;
+    const fadeOutStart = duration - (payload.fadeOut ?? 0);
+    const clipLocal = globalTime - start;
+    const muted = layer.visible === false || (payload.muted ?? false);
+    const fadeActive =
+      clipLocal >= 0 &&
+      clipLocal < duration &&
+      (((payload.fadeIn ?? 0) > 0 && clipLocal < fadeInEnd) ||
+        ((payload.fadeOut ?? 0) > 0 && clipLocal > fadeOutStart));
 
-      return {
-        trackId: `${track.id}:${clip.id}`,
-        assetId: clip.assetId,
-        mediaTime: localTime,
-        volume: trackMuted || clip.muted ? 0 : volume,
-        muted: trackMuted || (clip.muted ?? false),
-        fadeActive,
-        assetDuration,
-      };
-    });
+    return {
+      trackId: layer.id,
+      assetId: payload.assetId,
+      mediaTime: localTime,
+      volume: muted ? 0 : volume,
+      muted,
+      fadeActive,
+      assetDuration,
+    };
   });
 
   return { tracks };
@@ -632,8 +594,7 @@ function buildMediaState(
     for (const node of layer.interaction.items) {
       if (node.nodeType !== "video" && node.nodeType !== "image") continue;
 
-      const scene = runtime.scenes.find((s) => s.id === layer.sceneId);
-      const sceneNode = scene?.layers.find((n) => n.id === node.layerId);
+      const sceneNode = runtime.layers.find((n) => n.id === node.layerId);
 
       mediaStates.push({
         layerId: node.layerId,
@@ -668,11 +629,10 @@ export function compositionDurationInFrames(
 ): number {
   const safeFps = Math.max(1, fps);
   if (sceneId) {
-    const scene =
-      runtime.scenes.find((candidate) => candidate.id === sceneId) ??
-      runtime.scenes[0];
-    if (!scene) return Math.max(1, safeFps);
-    const duration = Math.max(1 / safeFps, scene.duration ?? 1);
+    const graph = layerGraphFromRuntime(runtime);
+    if (graph.layers.length === 0 && !(graph.duration > 0))
+      return Math.max(1, safeFps);
+    const duration = Math.max(1 / safeFps, graph.duration || 1);
     return Math.max(
       1,
       frameIndexAtTime(duration, safeFps) || Math.ceil(duration * safeFps),

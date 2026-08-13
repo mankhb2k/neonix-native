@@ -11,19 +11,23 @@
  * remains the serialization format.
  */
 
-import type { MotionRuntimeProject } from "./project";
+import type {
+  MotionRuntimeProject,
+  MotionRuntimeScene,
+} from "./project";
 
-// ── Per-scene index ───────────────────────────────────────────────────
+// ── Per-graph index ───────────────────────────────────────────────────
 
-/** A runtime node as it appears in MotionRuntimeProject.scenes[].layers */
-export type RuntimeSceneNode =
-  MotionRuntimeProject["scenes"][number]["layers"][number];
+/** A runtime node as it appears in MotionRuntimeProject.layers */
+export type RuntimeSceneNode = Exclude<
+  MotionRuntimeProject["layers"][number],
+  { type: "audio" }
+>;
 
-/** A runtime track as it appears in MotionRuntimeProject.scenes[].tracks */
-export type RuntimeSceneTrack =
-  MotionRuntimeProject["scenes"][number]["tracks"][number];
+/** A runtime track as it appears in MotionRuntimeProject.tracks */
+export type RuntimeSceneTrack = MotionRuntimeProject["tracks"][number];
 
-export type RuntimeScene = MotionRuntimeProject["scenes"][number];
+export type RuntimeScene = MotionRuntimeScene;
 
 // ── Static geometry descriptor ───────────────────────────────────────
 

@@ -11,6 +11,7 @@ import {
   SolidLayerSchema,
 } from "./structural";
 
+export { RuntimeAudioLayerSchema, type RuntimeAudioLayer } from "./audio";
 export { LayerTimingSchema, type LayerTiming, LayerBaseSchema } from "./base";
 export {
   PaintStyleSchema,

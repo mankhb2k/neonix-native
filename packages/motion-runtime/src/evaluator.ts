@@ -1,6 +1,7 @@
 import {
   motionPropertyCapability,
   type MotionRuntimeProject,
+  type MotionRuntimeScene,
 } from "@motionvideo/motion-protocol";
 import {
   IDENTITY_MATRIX,
@@ -43,9 +44,9 @@ import {
   nodeLocalTime,
 } from "./composition/effective-timing";
 
-export type RuntimeScene = MotionRuntimeProject["scenes"][number];
+export type RuntimeScene = MotionRuntimeScene;
 export type RuntimeNode = RuntimeScene["layers"][number];
-export type RuntimeTrack = RuntimeScene["tracks"][number];
+export type RuntimeTrack = MotionRuntimeProject["tracks"][number];
 export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
 type PathNodeContours = Extract<
   RuntimeNode,

@@ -1,6 +1,7 @@
 import {
   buildRenderSnapshot,
   hitTestRenderSnapshot,
+  layerGraphFromRuntime,
 } from "@motionvideo/motion-runtime";
 import {
   createDemoMotionProject,
@@ -12,7 +13,7 @@ import { describe, expect, it } from "vitest";
 describe("hitTestRenderSnapshot", () => {
   it("returns drawable hits under a point, top-most first", () => {
     const runtime = compileProjectV1(createDemoMotionProject());
-    const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
+    const scene = layerGraphFromRuntime(runtime);
     const snapshot = buildRenderSnapshot({
       scene,
       time: 0,
@@ -38,7 +39,7 @@ describe("hitTestRenderSnapshot", () => {
 
   it("orders hits by renderOrder descending", () => {
     const runtime = compileProjectV1(createDemoMotionProject());
-    const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
+    const scene = layerGraphFromRuntime(runtime);
     const snapshot = buildRenderSnapshot({
       scene,
       time: 0,

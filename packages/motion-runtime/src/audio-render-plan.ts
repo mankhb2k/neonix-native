@@ -6,6 +6,7 @@
  */
 
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import { audioLayersFromRuntime } from "./layer-graph";
 
 export type AudioVolumeKeyframe = {
   frame: number;
@@ -134,57 +135,58 @@ export function buildAudioRenderPlan(
   const fps = Math.max(1, input.fps);
   const clips: AudioRenderClip[] = [];
 
-  for (const track of input.runtime.timeline.audioTracks) {
-    const trackMuted = track.muted ?? false;
-    for (const clip of track.clips) {
-      const asset = resolveAsset(input.runtime, clip.assetId);
-      if (!asset) continue;
+  for (const layer of audioLayersFromRuntime(input.runtime)) {
+    const payload = layer.payload;
+    const asset = resolveAsset(input.runtime, payload.assetId);
+    if (!asset) continue;
 
-      const playbackRate = Math.max(
-        0.01,
-        input.playbackRateByClipId?.[clip.id] ?? clip.playbackRate ?? 1,
-      );
-      const fromFrame = Math.max(0, Math.round(clip.start * fps));
-      const durationInFrames = Math.max(0, Math.round(clip.duration * fps));
-      if (durationInFrames <= 0) continue;
+    const playbackRate = Math.max(
+      0.01,
+      input.playbackRateByClipId?.[layer.id] ?? payload.playbackRate ?? 1,
+    );
+    const fromFrame = Math.max(0, Math.round(layer.timing.start * fps));
+    const durationInFrames = Math.max(
+      0,
+      Math.round(layer.timing.duration * fps),
+    );
+    if (durationInFrames <= 0) continue;
 
-      const muted = trackMuted || (clip.muted ?? false);
-      const volume = muted ? 0 : (clip.volume ?? 1);
+    const muted = layer.visible === false || (payload.muted ?? false);
+    const volume = muted ? 0 : (payload.volume ?? 1);
 
-      const channelPolicy: AudioChannelPolicy =
-        (clip as { channelPolicy?: AudioChannelPolicy }).channelPolicy ??
-        "stereo";
+    const channelPolicy: AudioChannelPolicy =
+      (payload as { channelPolicy?: AudioChannelPolicy }).channelPolicy ??
+      "stereo";
 
-      const loopWindowStart = (clip as { loopWindowStart?: number })
-        .loopWindowStart;
-      const loopWindowEnd = (clip as { loopWindowEnd?: number }).loopWindowEnd;
+    const loopWindowStart = (payload as { loopWindowStart?: number })
+      .loopWindowStart;
+    const loopWindowEnd = (payload as { loopWindowEnd?: number }).loopWindowEnd;
 
-      clips.push({
-        trackId: track.id,
-        clipId: clip.id,
-        assetId: clip.assetId,
-        uri: asset.uri,
-        fromFrame,
+    clips.push({
+      trackId: layer.id,
+      clipId: layer.id,
+      assetId: payload.assetId,
+      uri: asset.uri,
+      fromFrame,
+      durationInFrames,
+      trimStartSeconds: payload.trimStart ?? 0,
+      trimEndSeconds: payload.trimEnd ?? asset.duration,
+      assetDurationSeconds: asset.duration,
+      playbackRate,
+      volumeEnvelope: buildVolumeEnvelope({
+        startFrame: fromFrame,
         durationInFrames,
-        trimStartSeconds: clip.trimStart ?? 0,
-        trimEndSeconds: clip.trimEnd ?? asset.duration,
-        assetDurationSeconds: asset.duration,
-        playbackRate,
-        volumeEnvelope: buildVolumeEnvelope({
-          startFrame: fromFrame,
-          durationInFrames,
-          volume,
-          fadeInSeconds: muted ? 0 : (clip.fadeIn ?? 0),
-          fadeOutSeconds: muted ? 0 : (clip.fadeOut ?? 0),
-          fps,
-        }),
-        loop: clip.loop ?? false,
-        muted,
-        loopWindowStartSeconds: loopWindowStart,
-        loopWindowEndSeconds: loopWindowEnd,
-        channelPolicy,
-      });
-    }
+        volume,
+        fadeInSeconds: muted ? 0 : (payload.fadeIn ?? 0),
+        fadeOutSeconds: muted ? 0 : (payload.fadeOut ?? 0),
+        fps,
+      }),
+      loop: payload.loop ?? false,
+      muted,
+      loopWindowStartSeconds: loopWindowStart,
+      loopWindowEndSeconds: loopWindowEnd,
+      channelPolicy,
+    });
   }
 
   return { fps, clips };
@@ -202,4 +204,27 @@ export function sampleAudioVolumeAtFrame(
     value = key.value;
   }
   return value;
+}
+
+/** Sample volume envelope with linear interpolation between keyframes. */
+export function sampleAudioVolumeLinear(
+  envelope: AudioVolumeKeyframe[],
+  frame: number,
+): number {
+  if (envelope.length === 0) return 0;
+  const first = envelope[0]!;
+  if (envelope.length === 1 || frame <= first.frame) return first.value;
+  const last = envelope[envelope.length - 1]!;
+  if (frame >= last.frame) return last.value;
+  for (let i = 1; i < envelope.length; i += 1) {
+    const next = envelope[i]!;
+    const prev = envelope[i - 1]!;
+    if (frame <= next.frame) {
+      const span = next.frame - prev.frame;
+      if (span <= 0) return next.value;
+      const t = (frame - prev.frame) / span;
+      return prev.value + (next.value - prev.value) * t;
+    }
+  }
+  return last.value;
 }

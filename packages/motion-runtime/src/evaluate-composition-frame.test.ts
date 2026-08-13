@@ -6,6 +6,7 @@ import {
 import { evaluateFrame } from "./evaluated-frame";
 import { compileProjectV1 } from "./testing/compile";
 import { createDemoMotionProject, DEMO_SCENE_ID } from "./testing/demo-project";
+import { layerGraphFromRuntime } from "./layer-graph";
 
 function compileDemo() {
   return compileProjectV1(createDemoMotionProject());
@@ -52,7 +53,7 @@ describe("evaluateCompositionFrame", () => {
 
   it("matches scene-local evaluateFrame for the same inputs", () => {
     const runtime = compileDemo();
-    const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
+    const scene = layerGraphFromRuntime(runtime);
     const composed = evaluateCompositionFrame(
       runtime,
       10,

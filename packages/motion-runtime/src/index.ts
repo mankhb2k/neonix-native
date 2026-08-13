@@ -1,5 +1,6 @@
 export * from "./matrix";
 export * from "./matrix4";
+export * from "./layer-graph";
 export * from "./evaluator";
 export * from "./spatial";
 export * from "./hit-test";

@@ -1,8 +1,8 @@
 /**
  * MotionRuntimeProject — canonical runtime IR schemas and types.
  *
- * This module OWNS the runtime IR schema definitions.
- * Phase 6: formatVersion is 1, sceneOrder removed.
+ * Authoring and runtime share one layer graph: `layers` + animation `tracks`.
+ * There is no serialized `scenes` array or visual/audio clip tracks.
  */
 
 import { z } from "zod";
@@ -35,6 +35,7 @@ import {
   ImageLayerSchema,
   MotionBlurSettingsSchema,
   PathLayerSchema,
+  RuntimeAudioLayerSchema,
   ShapeLayerSchema,
   SolidLayerSchema,
   SvgLayerSchema,
@@ -44,7 +45,6 @@ import {
 
 // ── Runtime IR schemas ────────────────────────────────────────────────
 
-import { CaptionTrackSchema } from "../v1/captions";
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
 import { LiteralValueSchema, ValueKindSchema } from "../v1/values";
 
@@ -233,7 +233,21 @@ export type SceneTransition = z.infer<typeof SceneTransitionSchema>;
  * Incremented when the runtime shape changes (new fields, new node types).
  * Renderers check this to reject incompatible IR.
  */
-export const MOTION_RUNTIME_VERSION = 1 as const;
+export const MOTION_RUNTIME_VERSION = 2 as const;
+
+const RuntimeVisualLayerSchema = z.discriminatedUnion("type", [
+  GroupLayerSchema.omit({ repeat: true }),
+  BoneLayerSchema.omit({ repeat: true }),
+  TextLayerSchema.omit({ repeat: true, textAnimator: true }),
+  ShapeLayerSchema.omit({ repeat: true }),
+  PathLayerSchema.omit({ repeat: true }),
+  ImageLayerSchema.omit({ repeat: true }),
+  SvgLayerSchema.omit({ repeat: true }),
+  VideoLayerSchema.omit({ repeat: true }),
+  CameraLayerSchema.omit({ repeat: true }),
+  SolidLayerSchema.omit({ repeat: true }),
+  AdjustmentLayerSchema.omit({ repeat: true }),
+]);
 
 const RuntimeLayerSchema = z.discriminatedUnion("type", [
   GroupLayerSchema.omit({ repeat: true }),
@@ -247,6 +261,7 @@ const RuntimeLayerSchema = z.discriminatedUnion("type", [
   CameraLayerSchema.omit({ repeat: true }),
   SolidLayerSchema.omit({ repeat: true }),
   AdjustmentLayerSchema.omit({ repeat: true }),
+  RuntimeAudioLayerSchema,
 ]);
 
 const RuntimeTrackSchema = z
@@ -312,7 +327,8 @@ export type RuntimeCompositionMetadata = z.infer<
 >;
 
 /**
- * Source of a runtime visual clip — scene only (components are scene layers).
+ * Source of a runtime visual clip — removed from IR; kept only for type export
+ * during renderer migration. Runtime no longer serializes visual clips.
  */
 export const RuntimeClipSourceSchema = z
   .object({ kind: z.literal("scene"), sceneId: IdSchema })
@@ -376,21 +392,19 @@ export type RuntimeSourceRef = z.infer<typeof RuntimeSourceRefSchema>;
  */
 export const RuntimeSourceRefMapSchema = z
   .object({
-    scenes: z.record(z.string().min(1).max(256)),
+    layers: z.record(z.string().min(1).max(256)),
   })
   .strict();
 export type RuntimeSourceRefMap = z.infer<typeof RuntimeSourceRefMapSchema>;
 
 /**
- * Runtime scene — a single scene in the compiled runtime IR.
- *
- * Extracted from the inline scene schema in MotionRuntimeProjectBaseSchema
- * so renderers and tooling can validate/show individual scenes independently.
+ * In-memory layer graph for evaluators (not a serialized scene).
+ * Compiler lifts this onto `MotionRuntimeProject.layers` / `.tracks`.
  */
-export const RuntimeSceneSchema = z
+export const RuntimeLayerGraphSchema = z
   .object({
     id: IdSchema,
-    duration: FiniteNumberSchema.positive().max(
+    duration: FiniteNumberSchema.nonnegative().max(
       MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
     ),
     space: z.enum(["flat-2d", "layered-2.5d", "perspective-3d"]).optional(),
@@ -398,16 +412,22 @@ export const RuntimeSceneSchema = z
     drivers: z.array(ProceduralDriverSchema).max(512).optional(),
     activeCameraLayerId: IdSchema.optional(),
     sourceRef: RuntimeSourceRefSchema.optional(),
-    layers: z.array(RuntimeLayerSchema).max(MOTION_PROTOCOL_LIMITS.layersPerScene),
+    layers: z
+      .array(RuntimeVisualLayerSchema)
+      .max(MOTION_PROTOCOL_LIMITS.layersPerScene),
     tracks: z
       .array(RuntimeTrackSchema)
       .max(
         MOTION_PROTOCOL_LIMITS.clipsPerScene *
           MOTION_PROTOCOL_LIMITS.tracksPerClip,
-      ),
+      )
+      .default([]),
   })
   .strict();
-export type RuntimeScene = z.infer<typeof RuntimeSceneSchema>;
+export type RuntimeLayerGraph = z.infer<typeof RuntimeLayerGraphSchema>;
+/** @deprecated Use RuntimeLayerGraph — no serialized scenes. */
+export const RuntimeSceneSchema = RuntimeLayerGraphSchema;
+export type RuntimeScene = RuntimeLayerGraph;
 
 const MotionRuntimeProjectBaseSchema = z
   .object({
@@ -421,144 +441,75 @@ const MotionRuntimeProjectBaseSchema = z
     compilerVersion: z.string().min(1).max(128).optional(),
     capabilityFingerprint: z.string().min(1).max(128).optional(),
     sourceRef: RuntimeSourceRefMapSchema.optional(),
+    space: z.enum(["flat-2d", "layered-2.5d", "perspective-3d"]).optional(),
+    motionBlur: MotionBlurSettingsSchema.optional(),
+    drivers: z.array(ProceduralDriverSchema).max(512).optional(),
+    activeCameraLayerId: IdSchema.optional(),
+    layers: z
+      .array(RuntimeLayerSchema)
+      .max(MOTION_PROTOCOL_LIMITS.layersPerScene)
+      .default([]),
+    tracks: z
+      .array(RuntimeTrackSchema)
+      .max(
+        MOTION_PROTOCOL_LIMITS.clipsPerScene *
+          MOTION_PROTOCOL_LIMITS.tracksPerClip,
+      )
+      .default([]),
     timeline: z
       .object({
         duration: FiniteNumberSchema.nonnegative().max(
           MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
         ),
-        visualTracks: z
-          .array(RuntimeVisualTrackSchema)
-          .min(1)
-          .max(MOTION_PROTOCOL_LIMITS.visualTracksPerProject),
-        audioTracks: z
-          .array(AudioTrackSchema)
-          .max(MOTION_PROTOCOL_LIMITS.audioTracksPerProject),
-        captionTracks: z
-          .array(CaptionTrackSchema)
-          .max(MOTION_PROTOCOL_LIMITS.captionTracksPerProject)
-          .default([]),
       })
       .strict(),
-    scenes: z
-      .array(RuntimeSceneSchema)
-      .max(MOTION_PROTOCOL_LIMITS.scenesPerProject),
   })
   .strict();
 
 export const MotionRuntimeProjectSchema =
   MotionRuntimeProjectBaseSchema.superRefine((runtime, context) => {
     const timelineDuration = runtime.timeline.duration;
-    {
-      for (
-        let trackIndex = 0;
-        trackIndex < runtime.timeline.visualTracks.length;
-        trackIndex += 1
-      ) {
-        const track = runtime.timeline.visualTracks[trackIndex]!;
-        for (
-          let clipIndex = 0;
-          clipIndex < track.clips.length;
-          clipIndex += 1
-        ) {
-          const clip = track.clips[clipIndex]!;
-          if (clip.start + clip.duration > timelineDuration) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [
-                "timeline",
-                "visualTracks",
-                trackIndex,
-                "clips",
-                clipIndex,
-              ],
-              message: `Runtime clip "${clip.id}" ends at ${clip.start + clip.duration} beyond timeline.duration (${timelineDuration})`,
-            });
-          }
-        }
-      }
-      for (
-        let audioIndex = 0;
-        audioIndex < runtime.timeline.audioTracks.length;
-        audioIndex += 1
-      ) {
-        const audio = runtime.timeline.audioTracks[audioIndex]!;
-        for (
-          let clipIndex = 0;
-          clipIndex < audio.clips.length;
-          clipIndex += 1
-        ) {
-          const clip = audio.clips[clipIndex]!;
-          if (clip.start + clip.duration > timelineDuration) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: ["timeline", "audioTracks", audioIndex, "clips", clipIndex],
-              message: `Runtime audio clip "${clip.id}" ends at ${clip.start + clip.duration} beyond timeline.duration (${timelineDuration})`,
-            });
-          }
-        }
-      }
-      for (
-        let captionIndex = 0;
-        captionIndex < runtime.timeline.captionTracks.length;
-        captionIndex += 1
-      ) {
-        const caption = runtime.timeline.captionTracks[captionIndex]!;
-        for (
-          let tokenIndex = 0;
-          tokenIndex < caption.tokens.length;
-          tokenIndex += 1
-        ) {
-          const token = caption.tokens[tokenIndex]!;
-          if (token.end > timelineDuration) {
-            context.addIssue({
-              code: z.ZodIssueCode.custom,
-              path: [
-                "timeline",
-                "captionTracks",
-                captionIndex,
-                "tokens",
-                tokenIndex,
-                "end",
-              ],
-              message: `Runtime caption token "${token.id}" ends at ${token.end} beyond timeline.duration (${timelineDuration})`,
-            });
-          }
-        }
-      }
+    const layers = runtime.layers;
+    const layerById = new Map(
+      layers.map((node) => [node.id, node] as const),
+    );
+    if (runtime.activeCameraLayerId) {
+      const camera = layerById.get(runtime.activeCameraLayerId);
+      if (!camera)
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["activeCameraLayerId"],
+          message: `Unknown runtime camera: ${runtime.activeCameraLayerId}`,
+        });
+      else if (camera.type !== "camera")
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["activeCameraLayerId"],
+          message: `Runtime node ${runtime.activeCameraLayerId} has type ${camera.type}, expected camera`,
+        });
     }
-    for (
-      let sceneIndex = 0;
-      sceneIndex < runtime.scenes.length;
-      sceneIndex += 1
-    ) {
-      const scene = runtime.scenes[sceneIndex]!;
-      const layerById = new Map(scene.layers.map((node) => [node.id, node]));
-      if (scene.activeCameraLayerId) {
-        const camera = layerById.get(scene.activeCameraLayerId);
-        if (!camera)
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "activeCameraLayerId"],
-            message: `Unknown runtime camera: ${scene.activeCameraLayerId}`,
-          });
-        else if (camera.type !== "camera")
-          context.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "activeCameraLayerId"],
-            message: `Runtime node ${scene.activeCameraLayerId} has type ${camera.type}, expected camera`,
-          });
+    const secondaryChainOwners = new Map<string, string>();
+    for (let nodeIndex = 0; nodeIndex < layers.length; nodeIndex += 1) {
+      const node = layers[nodeIndex]!;
+      if (
+        node.timing &&
+        node.timing.start + node.timing.duration > timelineDuration + 1e-9
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["layers", nodeIndex, "timing"],
+          message: `Runtime layer "${node.id}" ends at ${node.timing.start + node.timing.duration} beyond timeline.duration (${timelineDuration})`,
+        });
       }
-      const secondaryChainOwners = new Map<string, string>();
-      for (let nodeIndex = 0; nodeIndex < scene.layers.length; nodeIndex += 1) {
-        const node = scene.layers[nodeIndex]!;
-        const modifiers = node.modifiers ?? [];
-        const effects = node.effects ?? [];
+      if (node.type === "audio") continue;
+      const modifiers = node.modifiers ?? [];
+      const effects = node.effects ?? [];
         for (const effectId of new Set(
           duplicates(effects.map((effect) => effect.id)),
         )) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "layers", nodeIndex, "effects"],
+            path: ["layers", nodeIndex, "effects"],
             message: `Duplicate runtime effect id: ${effectId}`,
           });
         }
@@ -567,7 +518,7 @@ export const MotionRuntimeProjectSchema =
         )) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+            path: ["layers", nodeIndex, "modifiers"],
             message: `Duplicate runtime modifier id: ${modifierId}`,
           });
         }
@@ -579,8 +530,6 @@ export const MotionRuntimeProjectSchema =
             context.addIssue({
               code: z.ZodIssueCode.custom,
               path: [
-                "scenes",
-                sceneIndex,
                 "layers",
                 nodeIndex,
                 "payload",
@@ -603,13 +552,13 @@ export const MotionRuntimeProjectSchema =
             if (modifier.from !== "base" && !fromContours)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+                path: ["layers", nodeIndex, "modifiers"],
                 message: `Unknown runtime Path Morph target: ${modifier.from}`,
               });
             if (!toContours)
               context.addIssue({
                 code: z.ZodIssueCode.custom,
-                path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+                path: ["layers", nodeIndex, "modifiers"],
                 message: `Unknown runtime Path Morph target: ${modifier.to}`,
               });
             if (fromContours && toContours) {
@@ -617,7 +566,7 @@ export const MotionRuntimeProjectSchema =
               if (mismatch)
                 context.addIssue({
                   code: z.ZodIssueCode.custom,
-                  path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+                  path: ["layers", nodeIndex, "modifiers"],
                   message: mismatch,
                 });
             }
@@ -627,7 +576,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+            path: ["layers", nodeIndex, "modifiers"],
             message: "Runtime Path Morph modifier requires a path node",
           });
         }
@@ -637,7 +586,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+            path: ["layers", nodeIndex, "modifiers"],
             message: "Runtime Trim Path modifier requires a path node",
           });
         }
@@ -647,7 +596,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+            path: ["layers", nodeIndex, "modifiers"],
             message: "Runtime Path Bend modifier requires a path node",
           });
         }
@@ -657,7 +606,7 @@ export const MotionRuntimeProjectSchema =
         ) {
           context.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+            path: ["layers", nodeIndex, "modifiers"],
             message:
               "Only one runtime motion-path modifier is allowed per node",
           });
@@ -669,8 +618,6 @@ export const MotionRuntimeProjectSchema =
         ) {
           const modifier = modifiers[modifierIndex]!;
           const path = [
-            "scenes",
-            sceneIndex,
             "layers",
             nodeIndex,
             "modifiers",
@@ -767,8 +714,6 @@ export const MotionRuntimeProjectSchema =
           if (modifier.type !== "motion-path") continue;
           const source = layerById.get(modifier.pathNodeId);
           const path = [
-            "scenes",
-            sceneIndex,
             "layers",
             nodeIndex,
             "modifiers",
@@ -820,22 +765,24 @@ export const MotionRuntimeProjectSchema =
           if (seen.has(motionPath.pathNodeId)) {
             context.addIssue({
               code: z.ZodIssueCode.custom,
-              path: ["scenes", sceneIndex, "layers", nodeIndex, "modifiers"],
+              path: ["layers", nodeIndex, "modifiers"],
               message: "Runtime Motion Path dependency cycle detected",
             });
             break;
           }
           seen.add(motionPath.pathNodeId);
-          current = layerById.get(motionPath.pathNodeId)!;
+          const next = layerById.get(motionPath.pathNodeId);
+          if (!next || next.type === "audio") break;
+          current = next;
         }
       }
       for (
         let trackIndex = 0;
-        trackIndex < scene.tracks.length;
+        trackIndex < runtime.tracks.length;
         trackIndex += 1
       ) {
-        const track = scene.tracks[trackIndex]!;
-        const path = ["scenes", sceneIndex, "tracks", trackIndex] as Array<
+        const track = runtime.tracks[trackIndex]!;
+        const path = ["tracks", trackIndex] as Array<
           string | number
         >;
         const node = layerById.get(track.layerId);
@@ -844,6 +791,14 @@ export const MotionRuntimeProjectSchema =
             code: z.ZodIssueCode.custom,
             path: [...path, "layerId"],
             message: `Unknown runtime node: ${track.layerId}`,
+          });
+          continue;
+        }
+        if (node.type === "audio") {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [...path, "property"],
+            message: `Animation tracks cannot target audio layers: ${track.layerId}`,
           });
           continue;
         }
@@ -954,12 +909,10 @@ export const MotionRuntimeProjectSchema =
             });
         }
       }
-    }
   });
 
 export type MotionRuntimeProject = z.infer<typeof MotionRuntimeProjectSchema>;
 
-/** Canonical scene/track sub-types */
-export type MotionRuntimeScene = MotionRuntimeProject["scenes"][number];
-export type MotionRuntimeTrack =
-  MotionRuntimeProject["scenes"][number]["tracks"][number];
+/** In-memory layer graph (evaluators). Not a serialized project field. */
+export type MotionRuntimeScene = RuntimeLayerGraph;
+export type MotionRuntimeTrack = MotionRuntimeProject["tracks"][number];

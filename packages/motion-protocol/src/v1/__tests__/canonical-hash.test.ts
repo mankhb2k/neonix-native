@@ -259,7 +259,7 @@ describe("computeProjectHashShort", () => {
 describe("computeRuntimeHash", () => {
   const baseIR = {
     format: "motion-runtime",
-    formatVersion: 2,
+    formatVersion: 1,
     metadata: {
       id: "test",
       name: "Test",
@@ -268,12 +268,11 @@ describe("computeRuntimeHash", () => {
       brand: { name: "Default" },
     },
     assets: [],
+    layers: [],
+    tracks: [],
     timeline: {
-      visualTracks: [],
-      audioTracks: [],
-      captionTracks: [],
+      duration: 0,
     },
-    scenes: [],
     composition: {
       width: 1920,
       height: 1080,
@@ -303,7 +302,7 @@ describe("computeRuntimeHash", () => {
   it("different IR produces different hash", () => {
     const ir2 = {
       ...baseIR,
-      scenes: [{ id: "s1", duration: 5, layers: [], clips: [] }],
+      layers: [{ id: "s1", type: "group", parentLayerId: null, transform: {}, payload: {} }],
     };
     expect(computeRuntimeHash(baseIR)).not.toBe(computeRuntimeHash(ir2));
   });
@@ -317,7 +316,8 @@ describe("computeRuntimeHash", () => {
       metadata: baseIR.metadata,
       assets: [],
       timeline: baseIR.timeline,
-      scenes: [],
+      layers: [],
+      tracks: [],
       composition: baseIR.composition,
       compilerVersion: baseIR.compilerVersion,
       capabilityFingerprint: baseIR.capabilityFingerprint,
@@ -328,7 +328,8 @@ describe("computeRuntimeHash", () => {
       metadata: baseIR.metadata,
       assets: baseIR.assets,
       timeline: baseIR.timeline,
-      scenes: baseIR.scenes,
+      layers: baseIR.layers,
+      tracks: baseIR.tracks,
       composition: baseIR.composition,
       compilerVersion: baseIR.compilerVersion,
       capabilityFingerprint: baseIR.capabilityFingerprint,

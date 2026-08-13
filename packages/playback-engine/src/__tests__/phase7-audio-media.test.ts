@@ -213,10 +213,11 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
       formatVersion: 1,
       metadata: {
         id: "test",
-        title: "Test",
+        name: "Test",
         aspectRatio: "16:9" as const,
-        width: 1920,
-        height: 1080,
+        fps: 30,
+        locale: "vi-VN" as const,
+        brand: { name: "Test" },
       },
       assets: [
         {
@@ -230,44 +231,24 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
           codec: "mp3",
         },
       ],
-      variables: [],
-      timeline: {
-        visualTracks: [
-          {
-            id: "primary",
-            role: "primary",
-            order: 0,
-            clips: [
-              {
-                id: "clip-s1",
-                source: { kind: "scene" as const, sceneId: "s1" },
-                start: 0,
-                duration: 5,
-              },
-            ],
-          },
-        ],
-        audioTracks: [
-          {
-            id: "aud.bgm",
-            role: "bgm" as const,
+      layers: [
+        {
+          id: "aud.bgm",
+          type: "audio" as const,
+          parentLayerId: null,
+          zIndex: -1,
+          timing: { start: 0, duration: 5 },
+          visible: true,
+          locked: false,
+          payload: {
             assetId: "asset.bgm",
-            start: 0,
             volume: 0.8,
             loop: false,
           },
-        ],
-        captionTracks: [],
-      },
-      scenes: [
-        {
-          id: "s1",
-          duration: 5,
-          layers: [],
-          tracks: [],
-          clips: [],
         },
       ],
+      tracks: [],
+      timeline: { duration: 5 },
     };
 
     const plan = buildAudioRenderPlan({

@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 1,
+  "runtimeVersion": 2,
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
@@ -22,109 +22,79 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "dc67c1da2093d7745e5e8f3d91c9f05d",
+  "runtimeHash": "7399c0c33837c71600e1c367d88adb93",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
-    "scenes": {
-      "root": "scenes:root"
+    "layers": {
+      "logo-instance__instance": "layers:logo-instance__instance",
+      "logo-instance__logo": "layers:logo-instance__logo"
     }
   },
-  "timeline": {
-    "duration": 4,
-    "visualTracks": [
-      {
-        "id": "visual",
-        "order": 0,
-        "clips": [
-          {
-            "id": "root-clip",
-            "source": {
-              "kind": "scene",
-              "sceneId": "root"
-            },
-            "start": 0,
-            "duration": 4
-          }
-        ]
-      }
-    ],
-    "audioTracks": [],
-    "captionTracks": []
-  },
-  "scenes": [
+  "layers": [
     {
-      "id": "root",
-      "duration": 4,
-      "sourceRef": {
-        "projectPath": [
-          "scenes",
-          "root"
-        ]
+      "id": "logo-instance__instance",
+      "type": "group",
+      "parentLayerId": null,
+      "zIndex": 0,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
       },
-      "layers": [
-        {
-          "id": "logo-instance__instance",
-          "type": "group",
-          "parentLayerId": null,
-          "zIndex": 0,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 256,
-            "height": 256,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "timing": {
-            "start": 0,
-            "duration": 4
-          },
-          "payload": {
-            "compositing": {
-              "mode": "pass-through"
-            }
-          }
-        },
-        {
-          "id": "logo-instance__logo",
-          "type": "solid",
-          "parentLayerId": "logo-instance__instance",
-          "zIndex": 1,
-          "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 256,
-            "height": 256,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "inheritPosition": true,
-          "inheritRotation": true,
-          "inheritScale": true,
-          "inheritOpacity": true,
-          "payload": {
-            "width": 256,
-            "height": 256,
-            "color": "#1877f2"
-          }
+      "timing": {
+        "start": 0,
+        "duration": 4
+      },
+      "payload": {
+        "compositing": {
+          "mode": "pass-through"
         }
-      ],
-      "tracks": []
+      }
+    },
+    {
+      "id": "logo-instance__logo",
+      "type": "solid",
+      "parentLayerId": "logo-instance__instance",
+      "zIndex": 1,
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "width": 256,
+        "height": 256,
+        "rotation": 0,
+        "scaleX": 1,
+        "scaleY": 1,
+        "anchorX": 0.5,
+        "anchorY": 0.5,
+        "opacity": 1,
+        "visible": true,
+        "flipX": false,
+        "flipY": false
+      },
+      "inheritPosition": true,
+      "inheritRotation": true,
+      "inheritScale": true,
+      "inheritOpacity": true,
+      "payload": {
+        "width": 256,
+        "height": 256,
+        "color": "#1877f2"
+      }
     }
-  ]
+  ],
+  "tracks": [],
+  "timeline": {
+    "duration": 4
+  }
 }

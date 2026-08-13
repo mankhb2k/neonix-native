@@ -13,7 +13,7 @@
  * editor commands and the playback evaluator/painter pipeline.
  */
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type { MotionRuntimeProject, MotionRuntimeScene } from "@motionvideo/motion-protocol";
 
 // ── Sequence ──────────────────────────────────────────────────────────
 
@@ -95,8 +95,8 @@ export type StructuralPatch = {
   sceneIds: string[];
   /** If scope is "subtree", the root node IDs of changed subtrees */
   rootLayerIds?: string[];
-  /** If scope is "subtree" or "scene", the new normalized scenes */
-  newScenes?: MotionRuntimeProject["scenes"];
+  /** If scope is "subtree" or "scene", the new normalized layer graph */
+  newScenes?: MotionRuntimeScene[];
 };
 
 // ── Union type ────────────────────────────────────────────────────────

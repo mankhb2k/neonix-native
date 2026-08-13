@@ -1,6 +1,7 @@
 import {
   buildRenderSnapshot,
   evaluateCompositionSnapshot,
+  layerGraphFromRuntime,
 } from "@motionvideo/motion-runtime";
 import {
   createDemoMotionProject,
@@ -13,7 +14,7 @@ describe("remotion-renderer snapshot contract", () => {
   it("builds drawable snapshot items from demo project", () => {
     const project = createDemoMotionProject();
     const runtime = compileProjectV1(project);
-    const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID);
+    const scene = layerGraphFromRuntime(runtime);
     expect(scene).toBeTruthy();
 
     const snapshot = buildRenderSnapshot({
@@ -52,7 +53,7 @@ describe("remotion-renderer snapshot contract", () => {
         DEMO_SCENE_ID,
         "#0c0b0a",
       );
-      const scene = runtime.scenes[0]!;
+      const scene = layerGraphFromRuntime(runtime);
       const viaBuild = buildRenderSnapshot({
         scene,
         time: frame / 30,

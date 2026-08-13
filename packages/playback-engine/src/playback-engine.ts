@@ -201,7 +201,7 @@ export function createPlaybackEngine(
   return {
     load(next: MotionRuntimeProject) {
       runtime = next;
-      duration = next.scenes.reduce((sum, s) => sum + s.duration, 0);
+      duration = next.timeline.duration;
       // Re-create clock with new duration
       clock = createPlaybackClock({
         fps: opts.fps,

@@ -7,11 +7,10 @@
  *
  *   composition            → runtime metadata (aspectRatio derived from
  *                            dimensions, fps, background as brand color)
- *   project.layers         → one synthetic runtime scene `root`
- *   root audio layers      → runtime audioTracks
- *   captionTracks          → always []
- *   variables / bindings   → resolved inline before scene compilation
- *   component layers        → sealed wrapper-group expansion in the scene
+ *   project.layers         → runtime `layers` (flat parentLayerId graph)
+ *   root audio layers      → runtime audio layers on the same `layers` list
+ *   variables / bindings   → resolved inline before layer compilation
+ *   component layers        → sealed wrapper-group expansion in the layer
  *                            graph
  *
  * Semantic problems are reported with the `CMP_*` diagnostic family so
@@ -80,8 +79,9 @@ export const COMPILER_VERSION_V1 = "3.0.0-phase11";
  * Compile a `MotionProjectV1` into the runtime IR with structured
  * diagnostics.
  *
- * Compiles `project.layers` into one synthetic runtime scene `root`.
- * Root audio layers become runtime `audioTracks`. Caption tracks are empty.
+ * Compiles `project.layers` into one runtime layer graph.
+ * Root audio layers become runtime audio layers. Animation tracks live on
+ * `project.tracks`.
  *
  * Returns `{ ok: true, project }` on success or `{ ok: false, diagnostics }`
  * when the project fails semantic validation (CMP_* codes) or the runtime
@@ -151,7 +151,7 @@ export function compileMotionProjectV1(
     return compileFailure([...collector.diagnostics]);
   }
 
-  // Build the visual plan from timeline.visualTracks.
+  // Build the visual plan from project.layers.
   const { scene, componentInstances, audioLayers } = buildLayerPlan(
     normalized,
     collector,
@@ -354,47 +354,31 @@ export function compileMotionProjectV1(
     }
 
     const duration = normalized.timeline.duration ?? 0;
-    const compiledScenes =
+    const compiledGraph =
       duration > 0
-        ? [
-            compileSceneToRuntime({
-              id: scene.id as string,
-              duration: scene.duration as number,
-              layers: (scene.layers ?? []) as Parameters<
-                typeof compileSceneToRuntime
-              >[0]["layers"],
-              clips: (scene.clips ?? []) as Parameters<
-                typeof compileSceneToRuntime
-              >[0]["clips"],
-              variables: projectVariables,
-            }),
-          ]
-        : [];
-    const visualTracks = [
-      {
-        id: "visual",
-        order: 0,
-        clips:
-          duration > 0
-            ? [
-                {
-                  id: "root-clip",
-                  source: { kind: "scene" as const, sceneId: "root" },
-                  start: 0,
-                  duration,
-                },
-              ]
-            : [],
-      },
-    ];
+        ? compileSceneToRuntime({
+            id: scene.id as string,
+            duration: scene.duration as number,
+            layers: (scene.layers ?? []) as Parameters<
+              typeof compileSceneToRuntime
+            >[0]["layers"],
+            clips: (scene.clips ?? []) as Parameters<
+              typeof compileSceneToRuntime
+            >[0]["clips"],
+            variables: projectVariables,
+          })
+        : null;
+    const visualLayers = compiledGraph?.layers ?? [];
+    const tracks = compiledGraph?.tracks ?? [];
+    const audioRuntimeLayers = audioLayers
+      .slice()
+      .sort((a, b) => a.zIndex - b.zIndex)
+      .map(prepareRuntimeAudioLayer);
 
     const sourceRefIndex: Record<string, string> = {};
-    for (const scene of compiledScenes) {
-      const srcRef = scene.sourceRef;
-      if (!srcRef) continue;
-      sourceRefIndex[scene.id] = srcRef.sourceModule
-        ? `${srcRef.projectPath.join(":")}#${srcRef.sourceModule}`
-        : srcRef.projectPath.join(":");
+    for (const layer of [...visualLayers, ...audioRuntimeLayers]) {
+      const id = (layer as { id: string }).id;
+      sourceRefIndex[id] = `layers:${id}`;
     }
 
     const ir = {
@@ -408,17 +392,24 @@ export function compileMotionProjectV1(
       capabilityFingerprint: buildCapabilityFingerprint(
         CAPABILITY_MANIFEST_VERSION_V1,
       ),
+      ...(compiledGraph?.space ? { space: compiledGraph.space } : {}),
+      ...(compiledGraph?.motionBlur
+        ? { motionBlur: compiledGraph.motionBlur }
+        : {}),
+      ...(compiledGraph?.drivers && compiledGraph.drivers.length > 0
+        ? { drivers: compiledGraph.drivers }
+        : {}),
+      ...(compiledGraph?.activeCameraLayerId
+        ? { activeCameraLayerId: compiledGraph.activeCameraLayerId }
+        : {}),
+      layers: [...visualLayers, ...audioRuntimeLayers],
+      tracks,
       timeline: {
-        duration: normalized.timeline.duration,
-        audioTracks: audioLayers
-          .slice()
-          .sort((a, b) => a.zIndex - b.zIndex)
-          .map(prepareRuntimeAudioLayer),
-        captionTracks: [],
-        visualTracks,
+        duration,
       },
-      sourceRef: { scenes: sourceRefIndex },
-      scenes: compiledScenes,
+      ...(Object.keys(sourceRefIndex).length > 0
+        ? { sourceRef: { layers: sourceRefIndex } }
+        : {}),
     };
 
     const validated = MotionRuntimeProjectSchema.parse({

@@ -8,6 +8,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { layerGraphFromRuntime } from "@motionvideo/motion-runtime";
 import { drawSceneFrame } from "./runtime/draw";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -63,9 +64,9 @@ async function main(): Promise<void> {
     return;
   }
   const runtime = result.project;
-  const scene = runtime.scenes[0];
-  if (!scene) {
-    console.log(JSON.stringify({ ok: false, error: "No scenes" }));
+  const scene = layerGraphFromRuntime(runtime);
+  if (scene.layers.length === 0 && !(scene.duration > 0)) {
+    console.log(JSON.stringify({ ok: false, error: "No layers" }));
     process.exitCode = 1;
     return;
   }

@@ -1,5 +1,5 @@
 /**
- * Compiler V1 — nested project.layers compile to a synthetic runtime scene.
+ * Compiler V1 — nested project.layers compile to a runtime layer graph.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -24,39 +24,36 @@ const representative = loadV1Fixture("representative.project.json");
 const audio = loadV1Fixture("audio.project.json");
 
 describe("compileMotionProjectV1", () => {
-  it("compiles a minimal empty project to a synthetic root scene", () => {
+  it("compiles a minimal empty project to an empty layer graph", () => {
     const result = compileMotionProjectV1(minimal);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const parsed = MotionRuntimeProjectSchema.parse(result.project);
-    expect(parsed.scenes).toEqual([]);
-    expect(parsed.timeline.visualTracks).toHaveLength(1);
-    expect(parsed.timeline.visualTracks[0]!.clips).toEqual([]);
-    expect(parsed.timeline.captionTracks).toEqual([]);
+    expect(parsed.layers).toEqual([]);
+    expect(parsed.tracks).toEqual([]);
+    expect(parsed.timeline.duration).toBe(0);
   });
 
-  it("compiles representative layers into one runtime scene", () => {
+  it("compiles representative layers into one runtime layer graph", () => {
     const result = compileMotionProjectV1(representative);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.project.scenes.map((scene) => scene.id)).toEqual(["root"]);
-    expect(result.project.timeline.visualTracks).toHaveLength(1);
-    expect(result.project.timeline.visualTracks[0]!.clips[0]!.source).toEqual({
-      kind: "scene",
-      sceneId: "root",
-    });
-    expect(result.project.scenes[0]!.layers.length).toBeGreaterThan(0);
+    expect(result.project.layers.length).toBeGreaterThan(0);
+    expect(result.project.timeline.duration).toBeGreaterThan(0);
+    expect(
+      result.project.layers.every((layer) => layer.type !== undefined),
+    ).toBe(true);
   });
 
-  it("maps root audio layers onto runtime audioTracks", () => {
+  it("maps root audio layers onto runtime audio layers", () => {
     const result = compileMotionProjectV1(audio);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.project.timeline.audioTracks.length).toBeGreaterThan(0);
-    expect(
-      result.project.timeline.audioTracks.every((track) => track.order < 0),
-    ).toBe(true);
-    expect(result.project.timeline.captionTracks).toEqual([]);
+    const audioLayers = result.project.layers.filter(
+      (layer) => layer.type === "audio",
+    );
+    expect(audioLayers.length).toBeGreaterThan(0);
+    expect(audioLayers.every((layer) => layer.zIndex < 0)).toBe(true);
   });
 
   it("places a component instance as a leaf on the project tree", () => {
@@ -98,12 +95,9 @@ describe("compileMotionProjectV1", () => {
     const result = compileMotionProjectV1(project);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.project.scenes).toHaveLength(1);
-    expect(
-      result.project.scenes[0]!.layers.some(
-        (layer) => layer.id === "badge" || layer.type === "group",
-      ),
-    ).toBe(true);
+    expect(result.project.layers.some((layer) => layer.id === "badge" || layer.type === "group")).toBe(
+      true,
+    );
   });
 
   it("produces a stable compile cache key", () => {

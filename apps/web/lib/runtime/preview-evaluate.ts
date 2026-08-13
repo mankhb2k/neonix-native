@@ -1,6 +1,7 @@
 import {
   applyMatrix,
   evaluateScene,
+  layerGraphFromRuntime,
   type EvaluatedNode,
   type Matrix2D,
 } from "@motionvideo/motion-runtime";
@@ -43,8 +44,9 @@ export function previewParitySnapshot(
   sceneId: string | undefined,
   time: number,
 ): PreviewParitySnapshot {
-  const scene = runtime.scenes.find((candidate) => candidate.id === sceneId) ?? runtime.scenes[0];
-  if (!scene) throw new Error("Runtime preview requires at least one scene");
+  const scene = layerGraphFromRuntime(runtime);
+  if (scene.layers.length === 0 && !(scene.duration > 0))
+    throw new Error("Runtime preview requires at least one layer");
   const evaluated = evaluateScene(scene, time);
   return {
     sceneId: scene.id,
