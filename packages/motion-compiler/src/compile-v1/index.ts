@@ -42,13 +42,23 @@ import {
   type CompileResult,
 } from "../compile-result";
 import { compileLayerGraphToRuntime } from "../compile-layer-graph";
-import { clone, deriveAspectRatio, toRuntimeProperty } from "./helpers";
+import { clone, deriveAspectRatio, toRuntimeProperty, type JsonRecord } from "./helpers";
 import { prepareRuntimeAsset, prepareRuntimeAudioLayer } from "./prepare";
 import { resolvePropTargets } from "./components";
 import { buildLayerPlan } from "./layer-plan";
 import { validateV1Semantics } from "./semantics";
 
 export { detectScheduleCycles } from "./semantics";
+
+function resolveCompileAssetUri(
+  asset: V1.AssetV1,
+  resolver?: (assetId: string) => string | undefined,
+): string | undefined {
+  if (asset.storage?.managed === true) {
+    return resolver?.(asset.id);
+  }
+  return asset.uri;
+}
 
 export type CompileV1Profile = "embedded-components" | "flattened-components";
 
@@ -67,6 +77,12 @@ export type CompileV1Options = {
   assetMetadataProvider?: (
     assetId: string,
   ) => { duration?: number; width?: number; height?: number } | undefined;
+  /**
+   * Resolves ephemeral URIs for managed assets (`storage.managed: true`).
+   * Unmanaged assets keep authoring `uri`. Callers should batch download-url
+   * from motion-storage before compile and pass a sync map lookup here.
+   */
+  assetUrlResolver?: (assetId: string) => string | undefined;
 };
 
 /**
@@ -91,7 +107,6 @@ export function compileMotionProjectV1(
   project: V1.MotionProjectV1,
   options: CompileV1Options = {},
 ): CompileResult<MotionRuntimeProject> {
-  void options;
   const collector = new DiagnosticCollector();
 
   // Materialize defaults + reject structurally invalid v1 projects.
@@ -206,7 +221,25 @@ export function compileMotionProjectV1(
         : {}),
     };
 
-    const runtimeAssets = normalized.assets.map(prepareRuntimeAsset);
+    const runtimeAssets: JsonRecord[] = [];
+    for (const asset of normalized.assets) {
+      const uri = resolveCompileAssetUri(asset, options.assetUrlResolver);
+      if (!uri) {
+        collector.error(
+          "CMP_ASSET_URI_UNRESOLVED",
+          `Managed asset "${asset.id}" has no resolved uri; pass assetUrlResolver from motion-storage`,
+          {
+            path: ["assets"],
+            details: { assetId: asset.id },
+          },
+        );
+        continue;
+      }
+      runtimeAssets.push(prepareRuntimeAsset(asset, uri));
+    }
+    if (collector.hasErrors) {
+      return compileFailure([...collector.diagnostics]);
+    }
 
     // Project variables for binding injection
     const projectVariables = new Map<string, unknown>(

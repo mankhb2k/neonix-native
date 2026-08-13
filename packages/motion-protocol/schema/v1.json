@@ -869,6 +869,93 @@
                     "type": "string",
                     "minLength": 1
                   },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sizeBytes": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/width"
+                  },
+                  "storage": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "managed": {
+                            "type": "boolean",
+                            "const": true
+                          },
+                          "provider": {
+                            "type": "string",
+                            "const": "r2"
+                          },
+                          "key": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "retention": {
+                            "type": "string",
+                            "enum": [
+                              "temporary",
+                              "project",
+                              "library",
+                              "permanent"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "managed",
+                          "provider",
+                          "key",
+                          "retention"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "managed": {
+                            "type": "boolean",
+                            "const": false
+                          }
+                        },
+                        "required": [
+                          "managed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "source": {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "upload",
+                          "googleDrive",
+                          "url",
+                          "local"
+                        ]
+                      },
+                      "externalId": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "originalName": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "importedAt": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind"
+                    ],
+                    "additionalProperties": false
+                  },
                   "assetType": {
                     "type": "string",
                     "const": "image"
@@ -900,7 +987,6 @@
                 },
                 "required": [
                   "id",
-                  "uri",
                   "assetType",
                   "mimeType",
                   "width",
@@ -919,6 +1005,18 @@
                   },
                   "integrity": {
                     "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/integrity"
+                  },
+                  "name": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/name"
+                  },
+                  "sizeBytes": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/sizeBytes"
+                  },
+                  "storage": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/storage"
+                  },
+                  "source": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/source"
                   },
                   "assetType": {
                     "type": "string",
@@ -946,7 +1044,6 @@
                 },
                 "required": [
                   "id",
-                  "uri",
                   "assetType",
                   "mimeType",
                   "width",
@@ -965,6 +1062,18 @@
                   },
                   "integrity": {
                     "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/integrity"
+                  },
+                  "name": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/name"
+                  },
+                  "sizeBytes": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/sizeBytes"
+                  },
+                  "storage": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/storage"
+                  },
+                  "source": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/source"
                   },
                   "assetType": {
                     "type": "string",
@@ -1022,7 +1131,6 @@
                 },
                 "required": [
                   "id",
-                  "uri",
                   "assetType",
                   "mimeType",
                   "width",
@@ -1043,6 +1151,18 @@
                   },
                   "integrity": {
                     "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/integrity"
+                  },
+                  "name": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/name"
+                  },
+                  "sizeBytes": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/sizeBytes"
+                  },
+                  "storage": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/storage"
+                  },
+                  "source": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/source"
                   },
                   "assetType": {
                     "type": "string",
@@ -1084,7 +1204,6 @@
                 },
                 "required": [
                   "id",
-                  "uri",
                   "assetType",
                   "mimeType",
                   "duration"
@@ -1102,6 +1221,18 @@
                   },
                   "integrity": {
                     "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/integrity"
+                  },
+                  "name": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/name"
+                  },
+                  "sizeBytes": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/sizeBytes"
+                  },
+                  "storage": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/storage"
+                  },
+                  "source": {
+                    "$ref": "#/definitions/MotionProjectV1/properties/assets/items/anyOf/0/properties/source"
                   },
                   "assetType": {
                     "type": "string",
@@ -1145,7 +1276,6 @@
                 },
                 "required": [
                   "id",
-                  "uri",
                   "assetType",
                   "mimeType",
                   "family"

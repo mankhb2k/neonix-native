@@ -105,4 +105,39 @@ describe("compileMotionProjectV1", () => {
     const b = buildCompileCacheKeyV1(representative);
     expect(a).toBe(b);
   });
+
+  it("requires assetUrlResolver for managed assets", () => {
+    const project = structuredClone(minimal);
+    project.assets = [
+      {
+        id: "managed.logo",
+        assetType: "image",
+        mimeType: "image/png",
+        width: 64,
+        height: 64,
+        integrity: "sha256:abc",
+        sizeBytes: 100,
+        storage: {
+          managed: true,
+          provider: "r2",
+          key: "assets/temporary/managed.logo.png",
+          retention: "temporary",
+        },
+      },
+    ];
+    const missing = compileMotionProjectV1(project);
+    expect(missing.ok).toBe(false);
+    if (missing.ok) return;
+    expect(
+      missing.diagnostics.some((d) => d.code === "CMP_ASSET_URI_UNRESOLVED"),
+    ).toBe(true);
+
+    const ok = compileMotionProjectV1(project, {
+      assetUrlResolver: (id) =>
+        id === "managed.logo" ? "https://signed.example/logo.png" : undefined,
+    });
+    expect(ok.ok).toBe(true);
+    if (!ok.ok) return;
+    expect(ok.project.assets[0]?.uri).toBe("https://signed.example/logo.png");
+  });
 });

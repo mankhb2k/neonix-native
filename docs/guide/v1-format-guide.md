@@ -414,11 +414,31 @@ Binding kết nối project variable với layer property hoặc public componen
 
 ## 9. Assets
 
-5 loại asset được hỗ trợ:
+5 loại asset được hỗ trợ. Layer chỉ reference `assetId` — **không** gắn URL trên layer.
+
+Có hai chế độ khai báo trên `project.assets[]`:
+
+1. **Unmanaged / fixture** — có `uri` (local path). Dùng cho test/offline.
+2. **Managed** — ingest qua `motion-storage` (R2); **cấm `uri`**; bắt buộc `storage` + `integrity` + `sizeBytes`.
+
+Chi tiết contract, API Express, client SDK và vòng resolve cho compiler: [`asset-format-storage.md`](./asset-format-storage.md).
 
 ```jsonc
-// Image
+// Image (unmanaged fixture)
 { "id": "logo", "uri": "./assets/logo.png", "integrity": "sha256:abc", "assetType": "image", "mimeType": "image/png", "width": 512, "height": 512, "pixelFormat": "rgba", "hasAlpha": true }
+
+// Image (managed — sau Asset API)
+{
+  "id": "asset.image.9f3c",
+  "assetType": "image",
+  "mimeType": "image/png",
+  "width": 512,
+  "height": 512,
+  "integrity": "sha256:abc",
+  "sizeBytes": 20480,
+  "storage": { "managed": true, "provider": "r2", "key": "assets/temporary/…", "retention": "temporary" },
+  "source": { "kind": "upload", "originalName": "logo.png" }
+}
 
 // SVG
 { "id": "icon", "uri": "./assets/icon.svg", "integrity": "sha256:def", "assetType": "svg", "mimeType": "image/svg+xml", "width": 64, "height": 64, "viewBox": "0 0 64 64", "sanitized": true }

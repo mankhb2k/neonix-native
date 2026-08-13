@@ -206,7 +206,18 @@ export {
   AssetSchema,
 } from "./runtime/assets";
 // V1 authoring asset schemas (compile-time)
-export { AssetV1Schema, type AssetV1 } from "./v1/assets";
+export {
+  AssetV1Schema,
+  AssetRetentionModeV1Schema,
+  AssetStorageV1Schema,
+  AssetSourceV1Schema,
+  AssetSourceKindV1Schema,
+  type AssetV1,
+  type AssetRetentionModeV1,
+  type AssetStorageV1,
+  type AssetSourceV1,
+  type AssetSourceKindV1,
+} from "./v1/assets";
 
 // Captions — owned by V1 (Phase 2)
 export {

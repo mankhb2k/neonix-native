@@ -196,13 +196,16 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
   };
 }
 
-export function prepareRuntimeAsset(asset: V1.AssetV1): JsonRecord {
+export function prepareRuntimeAsset(
+  asset: V1.AssetV1,
+  resolvedUri: string,
+): JsonRecord {
   switch (asset.assetType) {
     case "image": {
       const pixelFormat = asset.pixelFormat ?? "rgba";
       return {
         id: asset.id,
-        uri: asset.uri,
+        uri: resolvedUri,
         integrity: asset.integrity,
         assetType: "image",
         mimeType: asset.mimeType,
@@ -215,7 +218,7 @@ export function prepareRuntimeAsset(asset: V1.AssetV1): JsonRecord {
     case "svg":
       return {
         id: asset.id,
-        uri: asset.uri,
+        uri: resolvedUri,
         integrity: asset.integrity,
         assetType: "svg",
         mimeType: asset.mimeType,
@@ -230,7 +233,7 @@ export function prepareRuntimeAsset(asset: V1.AssetV1): JsonRecord {
       );
       return {
         id: asset.id,
-        uri: asset.uri,
+        uri: resolvedUri,
         integrity: asset.integrity,
         assetType: "video",
         mimeType: asset.mimeType,
@@ -253,7 +256,7 @@ export function prepareRuntimeAsset(asset: V1.AssetV1): JsonRecord {
     case "audio":
       return {
         id: asset.id,
-        uri: asset.uri,
+        uri: resolvedUri,
         integrity: asset.integrity,
         assetType: "audio",
         mimeType: asset.mimeType,
@@ -265,7 +268,7 @@ export function prepareRuntimeAsset(asset: V1.AssetV1): JsonRecord {
     case "font":
       return {
         id: asset.id,
-        uri: asset.uri,
+        uri: resolvedUri,
         integrity: asset.integrity,
         assetType: "font",
         mimeType: asset.mimeType,
