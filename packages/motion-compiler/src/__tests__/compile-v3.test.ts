@@ -1113,7 +1113,7 @@ describe("compileMotionProjectV3 — Phase 4 clip transitions", () => {
     expect(c.transitionOut).toBeUndefined();
     // No scene.transition on compiled scenes
     const compiledScene = result.project.scenes[0]!;
-    expect(compiledScene.transition).toBeUndefined();
+    expect((compiledScene as Record<string, unknown>).transition).toBeUndefined();
   });
 });
 
@@ -1524,7 +1524,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("preserves three-level parentId chain", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
@@ -1539,7 +1539,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("preserves zIndex on all nodes", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
@@ -1550,7 +1550,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("preserves parent-relative timing", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
@@ -1573,7 +1573,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("preserves `type: group` on group nodes", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
@@ -1584,7 +1584,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("preserves compositing payload on group nodes", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
@@ -1609,7 +1609,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("preserves transform fields on all nodes", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     const byId = new Map(scene.nodes.map((n) => [n.id, n]));
 
@@ -1631,7 +1631,7 @@ describe("Phase 6 — compiler preserves group semantics", () => {
   });
 
   it("produces empty tracks array for scene without animations", () => {
-    expect(compileResult.ok).toBe(true);
+    if (!compileResult.ok) throw new Error("unexpected compile failure");
     const scene = compileResult.project.scenes[0]!;
     expect(scene.tracks).toEqual([]);
   });
@@ -1646,6 +1646,7 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
       {
         id: "text-scene",
         duration: 3,
+        space: "flat-2d",
         nodes: [
           {
             id: "hello-text",
@@ -1671,6 +1672,10 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
             payload: {
               content: { kind: "plain", text: "Hello V3" },
               fontSize: 48,
+              color: "#000000",
+              alignment: "left",
+              wrap: "word",
+              overflow: "visible",
             },
           },
         ],
@@ -1711,6 +1716,7 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
       {
         id: "text-scene",
         duration: 3,
+        space: "flat-2d",
         nodes: [
           {
             id: "plain-text",
@@ -1736,6 +1742,10 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
             payload: {
               content: { kind: "plain", text: "No Animator" },
               fontSize: 32,
+              color: "#000000",
+              alignment: "left",
+              wrap: "word",
+              overflow: "visible",
             },
           },
         ],
@@ -1770,6 +1780,7 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
       {
         id: "text-scene",
         duration: 3,
+        space: "flat-2d",
         nodes: [
           {
             id: "no-fit-text",
@@ -1795,6 +1806,10 @@ describe("compileMotionProjectV3 — V3 text node compilation", () => {
             payload: {
               content: { kind: "plain", text: "No FitText" },
               fontSize: 32,
+              color: "#000000",
+              alignment: "left",
+              wrap: "word",
+              overflow: "visible",
             },
           },
         ],
@@ -1830,7 +1845,7 @@ describe("compileMotionProjectV3 — V3 scene transition absence", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     for (const scene of result.project.scenes) {
-      expect(scene.transition).toBeUndefined();
+      expect((scene as Record<string, unknown>).transition).toBeUndefined();
     }
   });
 });

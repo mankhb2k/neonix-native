@@ -1383,9 +1383,15 @@ export function compileMotionProjectV3(
         >[0]["clips"],
         variables,
         markers: scene.markers as Array<{ id: string; t: number }> | undefined,
-        space: scene.space as string | undefined,
-        motionBlur: scene.motionBlur,
-        drivers: scene.drivers as unknown[] | undefined,
+        space: scene.space as
+          | Parameters<typeof compileSceneToRuntime>[0]["space"]
+          | undefined,
+        motionBlur: scene.motionBlur as
+          | Parameters<typeof compileSceneToRuntime>[0]["motionBlur"]
+          | undefined,
+        drivers: scene.drivers as
+          | Parameters<typeof compileSceneToRuntime>[0]["drivers"]
+          | undefined,
         activeCameraId: scene.activeCameraId as string | undefined,
         sourceRef: scene.sourceRef as
           | NonNullable<

@@ -11,6 +11,8 @@ function minNode() {
     id: "n1",
     type: "text",
     parentId: null,
+    visible: true,
+    locked: false,
     transform: {
       x: 0,
       y: 0,
@@ -26,7 +28,14 @@ function minNode() {
       flipX: false,
       flipY: false,
     },
-    payload: { content: { kind: "plain" as const, text: "x" }, fontSize: 24 },
+    payload: {
+      content: { kind: "plain" as const, text: "x" },
+      fontSize: 24,
+      color: "#000000",
+      alignment: "left",
+      wrap: "word",
+      overflow: "visible",
+    },
   } as const;
 }
 
@@ -43,7 +52,7 @@ function minimalProject(): MotionProjectV3 {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
+    capabilities: { required: [] },
     dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     tokens: {},
     variables: [],
@@ -231,8 +240,8 @@ describe("V3 patch contract", () => {
     project = {
       ...project,
       scenes: [
-        { id: "intro", duration: 3, nodes: [minNode()], clips: [] },
-        { id: "outro", duration: 2, nodes: [minNode()], clips: [] },
+        { id: "intro", duration: 3, space: "flat-2d", nodes: [minNode()], clips: [] },
+        { id: "outro", duration: 2, space: "flat-2d", nodes: [minNode()], clips: [] },
       ],
       timeline: {
         ...project.timeline,
@@ -285,7 +294,7 @@ describe("V3 patch contract", () => {
     let project = minimalProject();
     project = {
       ...project,
-      scenes: [{ id: "intro", duration: 3, nodes: [minNode()], clips: [] }],
+      scenes: [{ id: "intro", duration: 3, space: "flat-2d", nodes: [minNode()], clips: [] }],
       timeline: {
         ...project.timeline,
         visualTracks: [
@@ -329,7 +338,7 @@ describe("V3 patch contract", () => {
     let project = minimalProject();
     project = {
       ...project,
-      scenes: [{ id: "intro", duration: 5, nodes: [minNode()], clips: [] }],
+      scenes: [{ id: "intro", duration: 5, space: "flat-2d", nodes: [minNode()], clips: [] }],
       timeline: {
         ...project.timeline,
         visualTracks: [
@@ -377,7 +386,7 @@ describe("V3 patch contract", () => {
     let project = minimalProject();
     project = {
       ...project,
-      scenes: [{ id: "intro", duration: 3, nodes: [minNode()], clips: [] }],
+      scenes: [{ id: "intro", duration: 3, space: "flat-2d", nodes: [minNode()], clips: [] }],
       timeline: {
         ...project.timeline,
         visualTracks: [
@@ -449,9 +458,9 @@ describe("V3 patch contract", () => {
     project = {
       ...project,
       scenes: [
-        { id: "a", duration: 2, nodes: [minNode()], clips: [] },
-        { id: "b", duration: 3, nodes: [minNode()], clips: [] },
-        { id: "c", duration: 1, nodes: [minNode()], clips: [] },
+        { id: "a", duration: 2, space: "flat-2d", nodes: [minNode()], clips: [] },
+        { id: "b", duration: 3, space: "flat-2d", nodes: [minNode()], clips: [] },
+        { id: "c", duration: 1, space: "flat-2d", nodes: [minNode()], clips: [] },
       ],
       timeline: {
         ...project.timeline,
@@ -626,8 +635,11 @@ describe("V3 patch contract", () => {
           {
             id: "cap-en",
             locale: "en-US",
+            enabled: true,
             tokens: [],
-            style: { fontSize: 36, fill: "#ffffff", position: "bottom" },
+            segmentation: { maxLines: 2 },
+            style: { fontSize: 36, fill: "#ffffff", position: "bottom", safeArea: "generic" },
+            animation: { presetId: "none" },
           },
         ],
       },

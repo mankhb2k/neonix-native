@@ -31,7 +31,7 @@ function minimalProject(): MotionProjectV3 {
       colorSpace: "srgb",
       audioSampleRate: 48000,
     },
-    capabilities: {},
+    capabilities: { required: [] },
     dependencies: { compiler: { range: ">=1.0.0" }, components: [] },
     tokens: {},
     variables: [],
@@ -295,8 +295,8 @@ describe("V3 MCP contract", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
       scenes: [
-        { id: "intro", duration: 3, nodes: [], clips: [] },
-        { id: "outro", duration: 2, nodes: [], clips: [] },
+        { id: "intro", duration: 3, space: "flat-2d", nodes: [], clips: [] },
+        { id: "outro", duration: 2, space: "flat-2d", nodes: [], clips: [] },
       ],
       timeline: {
         ...minimalProject().timeline,
@@ -347,11 +347,19 @@ describe("V3 MCP contract", () => {
           {
             id: "cap-en",
             locale: "en-US",
+            enabled: true,
             tokens: [
               { id: "t1", text: "Hello", start: 0, end: 2 },
               { id: "t2", text: "World", start: 2, end: 5 },
             ],
-            style: { fontSize: 36, fill: "#ffffff", position: "bottom" },
+            segmentation: { maxLines: 2 },
+            style: {
+              fontSize: 36,
+              fill: "#ffffff",
+              position: "bottom",
+              safeArea: "generic",
+            },
+            animation: { presetId: "none" },
           },
         ],
       },
@@ -372,7 +380,7 @@ describe("V3 MCP contract", () => {
   it("inspects a specific track by id", () => {
     const project: MotionProjectV3 = {
       ...minimalProject(),
-      scenes: [{ id: "a", duration: 2, nodes: [], clips: [] }],
+      scenes: [{ id: "a", duration: 2, space: "flat-2d", nodes: [], clips: [] }],
       timeline: {
         ...minimalProject().timeline,
         visualTracks: [
@@ -421,6 +429,8 @@ describe("V3 MCP contract", () => {
 
   it("explains unknown scene diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "operations[0].target.sceneId",
@@ -435,6 +445,8 @@ describe("V3 MCP contract", () => {
 
   it("explains sceneOrder V2 leak diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "output.project.timeline",
@@ -450,6 +462,8 @@ describe("V3 MCP contract", () => {
 
   it("explains scene.transition V2 leak diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "output.project.scenes.0.transition",
@@ -466,6 +480,8 @@ describe("V3 MCP contract", () => {
 
   it("explains formatVersion: 2 V2 leak diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "output.project.formatVersion",
@@ -481,6 +497,8 @@ describe("V3 MCP contract", () => {
 
   it("explains post-patch validation failures", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         {
           path: "(composition.fps)",
@@ -496,6 +514,8 @@ describe("V3 MCP contract", () => {
 
   it("explains multiple diagnostics", () => {
     const result = explainDiagnostics({
+      locale: "en",
+      suggestFixes: true,
       diagnostics: [
         { path: "x", message: "Required", severity: "error" },
         { path: "y", message: "Unknown scene: foo", severity: "warning" },
@@ -506,12 +526,14 @@ describe("V3 MCP contract", () => {
 
   it("honors suggestFixes flag", () => {
     const withFixes = explainDiagnostics({
+      locale: "en",
       diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: true,
     });
     expect(withFixes.explanations[0]!.suggestedAction).toBeDefined();
 
     const withoutFixes = explainDiagnostics({
+      locale: "en",
       diagnostics: [{ path: "x", message: "Required", severity: "error" }],
       suggestFixes: false,
     });

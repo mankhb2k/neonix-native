@@ -12,6 +12,7 @@ import { compileMotionProjectV3 } from "./compile-v3";
 
 type RuntimeTrack = MotionRuntimeProject["scenes"][number]["tracks"][number];
 type RuntimeNode = MotionRuntimeProject["scenes"][number]["nodes"][number];
+type RuntimeScene = MotionRuntimeProject["scenes"][number];
 
 export type CompileOptions = {
   components?: ComponentInput[];
@@ -333,17 +334,24 @@ export function compileSceneToRuntime(input: {
   clips: MotionClip[];
   variables: Map<string, unknown>;
   markers?: Array<{ id: string; t: number }>;
-  space?: string;
-  motionBlur?: unknown;
-  drivers?: unknown[];
+  space?: RuntimeScene["space"];
+  motionBlur?: RuntimeScene["motionBlur"];
+  drivers?: RuntimeScene["drivers"];
   activeCameraId?: string;
   sourceRef?: RuntimeSourceRef;
-}): MotionRuntimeProject["scenes"][number] {
+}): RuntimeScene {
   const variables = input.variables;
   const resolvedAuthoringNodes = input.nodes.map(
     (node) => resolveValue(node, variables) as unknown as MotionNode,
   );
   const laidOut = applyLayoutConstraints(resolvedAuthoringNodes);
+  // Authoring path nodes carry no fillRule; the runtime node requires it.
+  // Default it here so authoring → runtime IR stays lossless.
+  const runtimeNodes: RuntimeNode[] = laidOut.map((node) =>
+    node.type === "path"
+      ? { ...node, payload: { ...node.payload, fillRule: "nonzero" as const } }
+      : node,
+  ) as RuntimeNode[];
   const markers = new Map<string, number>(
     (input.markers ?? []).map((m) => [m.id, m.t]),
   );
@@ -360,9 +368,15 @@ export function compileSceneToRuntime(input: {
       : {}),
     ...(input.activeCameraId ? { activeCameraId: input.activeCameraId } : {}),
     sourceRef,
-    nodes: laidOut,
+    nodes: runtimeNodes,
     tracks: [
-      ...compileClips(laidOut, input.clips, variables, input.duration, markers),
+      ...compileClips(
+        runtimeNodes,
+        input.clips,
+        variables,
+        input.duration,
+        markers,
+      ),
     ],
   };
 }
@@ -373,7 +387,7 @@ export function compileMotionProject(
 ): MotionRuntimeProject {
   const result = compileMotionProjectV3(
     project as Parameters<typeof compileMotionProjectV3>[0],
-    options,
+    options as unknown as Parameters<typeof compileMotionProjectV3>[1],
   );
   if (!result.ok) {
     throw new Error(
