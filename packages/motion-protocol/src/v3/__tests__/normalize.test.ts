@@ -382,6 +382,11 @@ describe("normalizeMotionProjectV3 — component clips", () => {
       audioTracks: unknown[];
       captionTracks: unknown[];
     };
+    scenes?: Array<{
+      id: string;
+      nodes: Array<Record<string, unknown>>;
+      clips: Array<Record<string, unknown>>;
+    }>;
   } => ({
     timeline: {
       visualTracks: [
@@ -439,11 +444,11 @@ describe("normalizeMotionProjectV3 — component clips", () => {
     // Scene synthesized with a component node.
     expect(project.scenes).toHaveLength(1);
     const scene = project.scenes![0]!;
-    expect(scene.id).toBe("logo-reveal-scene");
+    expect(scene.id).toBe("component-scene__main-track__clip-logo");
     expect(scene.duration).toBe(4);
     expect(scene.nodes).toHaveLength(1);
     expect(scene.nodes![0]).toMatchObject({
-      id: "logo-reveal-instance",
+      id: "component-instance__clip-logo",
       type: "component",
       payload: { componentId: "logo-reveal" },
     });
@@ -457,13 +462,13 @@ describe("normalizeMotionProjectV3 — component clips", () => {
     // instanceTransformTracks → scene-local motion clips.
     expect(scene.clips).toHaveLength(1);
     expect(scene.clips![0]).toMatchObject({
-      id: "logo-reveal-instance__motion",
-      targetId: "logo-reveal-instance",
+      id: "component-instance__clip-logo__motion",
+      targetId: "component-instance__clip-logo",
       source: {
         kind: "tracks",
         tracks: [
           {
-            targetId: "logo-reveal-instance",
+            targetId: "component-instance__clip-logo",
             property: "transform.x",
             valueKind: "number",
           },
@@ -475,7 +480,7 @@ describe("normalizeMotionProjectV3 — component clips", () => {
     const clip = project.timeline!.visualTracks![0]!.clips![0]!;
     expect(clip.source).toEqual({
       kind: "scene",
-      sceneId: "logo-reveal-scene",
+      sceneId: "component-scene__main-track__clip-logo",
     });
     expect(clip).not.toHaveProperty("instanceTransform");
     expect(clip).not.toHaveProperty("instanceTransformTracks");
@@ -501,8 +506,52 @@ describe("normalizeMotionProjectV3 — component clips", () => {
     });
 
     expect(project.scenes!.map((s) => s.id)).toEqual([
-      "logo-reveal-scene",
-      "lower-third-scene",
+      "component-scene__main-track__clip-logo",
+      "component-scene__main-track__clip-lower-third",
+    ]);
+  });
+
+  it("migrates two clips using the same component into distinct scenes", () => {
+    const input = legacyClipProject();
+    input.timeline.visualTracks[0]!.clips!.push({
+      id: "clip-logo-again",
+      source: { kind: "component", componentId: "logo-reveal" },
+      start: 4,
+      duration: 2,
+      opacity: 1,
+      loop: false,
+    });
+
+    const { project } = normalizeMotionProjectV3(input, {
+      migrateComponentClipsToScenes: true,
+    });
+
+    const sceneIds = project.scenes!.map((s) => s.id);
+    expect(sceneIds).toEqual([
+      "component-scene__main-track__clip-logo",
+      "component-scene__main-track__clip-logo-again",
+    ]);
+    const nodeIds = project.scenes!.map((s) => s.nodes![0]!.id);
+    expect(nodeIds).toEqual([
+      "component-instance__clip-logo",
+      "component-instance__clip-logo-again",
+    ]);
+  });
+
+  it("appends a deterministic suffix on pre-existing scene id collision", () => {
+    const input = legacyClipProject();
+    // Pre-existing scene uses the same id the migration would synthesize.
+    input.scenes = [
+      { id: "component-scene__main-track__clip-logo", nodes: [], clips: [] },
+    ];
+
+    const { project } = normalizeMotionProjectV3(input, {
+      migrateComponentClipsToScenes: true,
+    });
+
+    expect(project.scenes!.map((s) => s.id)).toEqual([
+      "component-scene__main-track__clip-logo",
+      "component-scene__main-track__clip-logo__2",
     ]);
   });
 

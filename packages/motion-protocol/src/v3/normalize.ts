@@ -293,6 +293,9 @@ function migrateComponentClipsToScenes(
   if (!timeline || !Array.isArray(timeline.visualTracks)) return;
 
   if (!Array.isArray(project.scenes)) project.scenes = [];
+  // Track pre-existing + newly synthesized scene ids so migrated clips can
+  // never collide with another scene.
+  const usedSceneIds = new Set(project.scenes.map((scene) => scene.id));
 
   for (const track of timeline.visualTracks) {
     if (!track || !Array.isArray(track.clips)) continue;
@@ -311,9 +314,18 @@ function migrateComponentClipsToScenes(
         continue;
       }
 
-      // Deterministic, collision-free-enough ids derived from the component.
-      const sceneId = `${componentId}-scene`;
-      const nodeId = `${componentId}-instance`;
+      // Deterministic ids derived from track + clip so multiple clips using
+      // the same component never collide. Collisions (e.g. a pre-existing
+      // scene with the same id) get a deterministic numeric suffix.
+      const baseSceneId = `component-scene__${track.id}__${clip.id}`;
+      const nodeId = `component-instance__${clip.id}`;
+      let sceneId = baseSceneId;
+      let suffix = 2;
+      while (usedSceneIds.has(sceneId)) {
+        sceneId = `${baseSceneId}__${suffix}`;
+        suffix += 1;
+      }
+      usedSceneIds.add(sceneId);
       const clipDuration =
         typeof clip.duration === "number" ? clip.duration : 1;
 
