@@ -65,7 +65,7 @@ export type CacheEntry = {
  *   const cache = new CompileCache({ maxSize: 50 });
  *   const cached = cache.get(key);
  *   if (cached) return cached;
- *   const result = compileMotionProjectV3(project, options);
+ *   const result = compileMotionProjectV1(project, options);
  *   cache.set(key, result);
  */
 export class CompileCache {

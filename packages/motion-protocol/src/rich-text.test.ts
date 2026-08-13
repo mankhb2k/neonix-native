@@ -4,8 +4,8 @@ import {
   normalizeTextPayloadInput,
   TextContentSchema,
   TextPayloadSchema,
-} from "./v3/layers/text-content";
-import { parseMotionProjectV3 } from "./v3";
+} from "./v1/layers/text-content";
+import { parseMotionProjectV1 } from "./v1";
 
 describe("rich text content", () => {
   it("normalizes legacy payload.text to content.plain", () => {
@@ -35,9 +35,9 @@ describe("rich text content", () => {
   });
 
   it("parses project with rich text runs", () => {
-    const project = parseMotionProjectV3({
+    const project = parseMotionProjectV1({
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "p1",
         name: "Rich",

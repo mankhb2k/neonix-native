@@ -20,7 +20,7 @@ describe("root API — no V2-shaped exports", () => {
 
   test("no V2-suffixed type exports", async () => {
     // Dynamic import is for values-only; types are not enumerable via keys.
-    // We rely on the gate (validate-v3-source-of-truth) for type-level checks.
+    // We rely on the gate (validate-v1-source-of-truth) for type-level checks.
     // This test guards runtime-visible exports only.
     const mod = await import("../index");
     const exported = new Set(Object.keys(mod));

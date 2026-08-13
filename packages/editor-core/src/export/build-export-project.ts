@@ -1,8 +1,8 @@
 /**
- * Bake editor timeline → MotionProject V3 tuần tự hợp lệ cho export/compiler.
+ * Bake editor timeline → MotionProject V1 tuần tự hợp lệ cho export/compiler.
  * Overlay compose ngoài schema — flatten theo interval với local-time slice.
  *
- * Phase 8: Outputs V3 visualTracks directly.
+ * Phase 8: Outputs V1 visualTracks directly.
  */
 
 import {
@@ -158,7 +158,7 @@ function findClipById(
 }
 
 /**
- * Flatten editor snapshot → MotionProject V3 tuần tự.
+ * Flatten editor snapshot → MotionProject V1 tuần tự.
  * Base gaps → pad scenes; overlay active → merge layers vào segment.
  * Rejects invalid TimelineDocument when validation fails.
  */

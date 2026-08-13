@@ -21,7 +21,7 @@
 
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import {
-  evaluateCompositionFrameV3,
+  evaluateCompositionFrameV1,
   type EvaluatedCompositionFrame,
 } from "@motionvideo/motion-runtime";
 import { createPlaybackClock, type PlaybackClock } from "./playback-clock";
@@ -134,7 +134,7 @@ export function createPlaybackEngine(
     const h = Math.round(runtime.metadata.height * scale);
 
     // Evaluate
-    const result = evaluateCompositionFrameV3(runtime, frame, opts.fps, w, h);
+    const result = evaluateCompositionFrameV1(runtime, frame, opts.fps, w, h);
 
     const evalMs = performance.now() - t0;
 

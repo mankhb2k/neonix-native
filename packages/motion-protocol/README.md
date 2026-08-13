@@ -1,25 +1,25 @@
 # `@motionvideo/motion-protocol`
 
-**Standard Zod Validation Schema** và **TypeScript Type System** cho Motion Format V3 — the **only authoring protocol**. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**.
+**Standard Zod Validation Schema** và **TypeScript Type System** cho Motion Format V1 — the **only authoring protocol**. Package này đóng vai trò là hợp đồng dữ liệu chuẩn hóa (Canonical Contract) duy nhất giữa **Authoring Tools (Editor / AI Generator)**, **Component Registry** và **Renderer Engine**.
 
-> **V3 is the only authoring protocol.** `formatVersion` must be `3`. Compat layer and V2 authoring types have been permanently removed from the source tree. All public APIs use neutral canonical names (`EffectSchema`, `BrandSchema`, `LayerTimingSchema` — no `V2` suffix).
+> **V1 is the only authoring protocol.** `formatVersion` must be `3`. Compat layer and V2 authoring types have been permanently removed from the source tree. All public APIs use neutral canonical names (`EffectSchema`, `BrandSchema`, `LayerTimingSchema` — no `V2` suffix).
 
-> **For AI agents / MCP / Skills:** Generate `MotionProjectV3`. Use `visualTracks` (not `sceneOrder`). Visual clip source is scene-only — no `transitionIn`/`transitionOut`, no `role`, no `source.kind: "component"`. Effects = scene/component/layer animation. Runtime IR is produced by `@motionvideo/motion-compiler` — you only author the project JSON.
+> **For AI agents / MCP / Skills:** Generate `MotionProjectV1`. Use `visualTracks` (not `sceneOrder`). Visual clip source is scene-only — no `transitionIn`/`transitionOut`, no `role`, no `source.kind: "component"`. Effects = scene/component/layer animation. Runtime IR is produced by `@motionvideo/motion-compiler` — you only author the project JSON.
 
 ---
 
 ## 🎯 Mục đích & Triết lý Thiết kế
 
-1. **Single Source of Truth cho Format v3**: Định nghĩa chính xác cấu trúc dữ liệu cho Project (`.mt`), Component (`.mvc`), Patch, và Normalized IR. Editor, AI planner, compiler và hai bridge render (Pixi / Remotion) đều validate cùng một schema — không có “schema riêng theo engine”.
+1. **Single Source of Truth cho Format v1**: Định nghĩa chính xác cấu trúc dữ liệu cho Project (`.mt`), Component (`.mvc`), Patch, và Normalized IR. Editor, AI planner, compiler và hai bridge render (Pixi / Remotion) đều validate cùng một schema — không có “schema riêng theo engine”.
 
 2. **Authoring IR vs. Runtime IR Pipeline**:
-   - **Authoring IR** (`MotionProjectV3`): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), component props, binding qua `propId`, component instances (`type: "component"`), caption tracks, và layout modifiers.
+   - **Authoring IR** (`MotionProjectV1`): Định dạng dành cho Editor & AI. Hỗ trợ biến (`variables`), component props, binding qua `propId`, component instances (`type: "component"`), caption tracks, và layout modifiers.
    - **Runtime IR** (`MotionRuntimeProject`): Định dạng dành riêng cho Renderer. Toàn bộ biến đã được resolve thành giá trị literal, component instances đã được flatten/expand, repeat layers được clone, presets & text animators được biên dịch thành keyframe tracks thực tế. Ranh giới chuyển đổi nằm ở `@motionvideo/motion-compiler`.
 
 3. **An toàn dữ liệu nghiêm ngặt (Strict Validation & Bounds)**:
    - Sử dụng Zod `discriminatedUnion` và `.strict()` nhằm reject thuộc tính lạ hoặc dữ liệu rác.
    - Cấm giá trị numeric không hữu hạn (`NaN`, `Infinity`).
-   - Kiểm soát giới hạn cứng qua `MOTION_PROTOCOL_LIMITS` (internal, [`src/capabilities.ts`](./src/capabilities.ts)) — áp dụng cho cả V3 authoring lẫn runtime IR.
+   - Kiểm soát giới hạn cứng qua `MOTION_PROTOCOL_LIMITS` (internal, [`src/capabilities.ts`](./src/capabilities.ts)) — áp dụng cho cả V1 authoring lẫn runtime IR.
 
 4. **Normalize tại biên parse**: Payload cũ (ví dụ `payload.text`) được chuẩn hóa khi gọi `parseMotionProject`. Serializer chỉ ghi shape mới (`payload.content`). File cũ vẫn đọc được, file ghi ra luôn đồng nhất.
 
@@ -32,7 +32,7 @@
 Package gồm các module chính trong [`src/`](./src):
 
 - [`index.ts`](./src/index.ts): Export chính. Cung cấp alias canonical (`MotionProject`, `Node`, `Scene`, `parseMotionProject`, …) và re-export capabilities / AI matrix.
-- [`v3/`](./src/v3): Schema v3 chia theo domain (authoring format):
+- [`v1/`](./src/v1): Schema v1 chia theo domain (authoring format):
   - `common`, `values`, `transform`, `effects`, `layout`, `modifiers`, `assets`, `variables`
   - `layers/` — text, geometry, media, structural, paint, base
   - `animation/` — clips (gồm `scene-end`), tracks, easing, drivers
@@ -51,7 +51,7 @@ Package gồm các module chính trong [`src/`](./src):
 JSON Input  ──► normalizeMotionProjectInput()
                        │
                        ▼ Structural + Limit Validation (Zod)
-             Typed MotionProjectV3 / MotionComponentV3 (Authoring IR)
+             Typed MotionProjectV1 / MotionComponentV1 (Authoring IR)
                        │
                        ▼ Reference validation
                        │
@@ -64,8 +64,8 @@ JSON Input  ──► normalizeMotionProjectInput()
 
 | Schema / Type                                   | Version | Mô tả                                                                                                          |
 | ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------- |
-| `MotionProjectV3Schema` / `MotionProject`       | `3`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
-| `ComponentDefinitionV3` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `layers`, `variants`, `actions`.         |
+| `MotionProjectV1Schema` / `MotionProject`       | `3`     | File dự án chuyển động (`.mt`): `scenes`, `assets`, `variables`, `timeline` (audio + caption), `dependencies`. |
+| `ComponentDefinitionV1` trong `components[]` | `3`     | Component definition: `props`, `propBindings`, `layers`, `variants`, `actions`.         |
 | `MotionRuntimeProjectSchema`                    | `3`     | Runtime IR đã biên dịch, chỉ literal — dành cho Renderer.                                                      |
 | `MotionPatchSchema`                             | `1`     | Bản vá trên surface công khai (biến dự án hoặc props của Component Instance).                                  |
 | `SceneComponentRegistrySchema`                  | `1`     | Catalog linh kiện scene cho AI/Editor template picker.                                                         |
@@ -74,9 +74,9 @@ JSON Input  ──► normalizeMotionProjectInput()
 
 ## 📐 Cấu trúc Dữ liệu Chi tiết (Core Schemas)
 
-### 1. Scene Graph & Node Types (`LayerV3`)
+### 1. Scene Graph & Node Types (`LayerV1`)
 
-Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node tổ chức theo cây với `TransformV3`. `LayerV3` là Discriminated Union theo trường `type`:
+Mọi đối tượng không gian đều thuộc về một `Scene`. Các Node tổ chức theo cây với `TransformV1`. `LayerV1` là Discriminated Union theo trường `type`:
 
 - **`group`**: Gom cụm và phân cấp không gian.
 - **`bone`**: Khung xương cut-out (`payload.length`, `payload.restRotation`).
@@ -111,13 +111,13 @@ Default: `start=0`, `duration=parent duration`. Child chỉ visible khi scene ti
 
 **Compositing**: `pass-through` (children render trong parent context) | `isolate` (render ra offscreen surface trước, rồi áp group effects/blend/mask).
 
-Xem ví dụ 3 cấp group lồng nhau tại [`docs/motion-format-v3.md#group-layer-semantics`](../../docs/motion-format-v3.md#group-layer-semantics).
+Xem ví dụ 3 cấp group lồng nhau tại [`docs/motion-format-v1.md#group-layer-semantics`](../../docs/motion-format-v1.md#group-layer-semantics).
 
 #### Thuộc tính mở rộng trên Node
 
-- **Transform** (`TransformV3`): `x`, `y`, `depth` (2.5D parallax), `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY` (0..1), `opacity`, `visible`, `flipX`, `flipY`.
+- **Transform** (`TransformV1`): `x`, `y`, `depth` (2.5D parallax), `width`, `height`, `rotation`, `scaleX`, `scaleY`, `anchorX`, `anchorY` (0..1), `opacity`, `visible`, `flipX`, `flipY`.
 - **Masking**: Tối đa một quan hệ `mask: { sourceLayerId, mode, sourceVisibility }` với mode `clip` / `alpha` / `inverse-alpha` / `luma` / `inverse-luma`.
-- **Effects Stack** (`EffectV3`): `blur`, `shadow`, `glow`, `color-adjust`.
+- **Effects Stack** (`EffectV1`): `blur`, `shadow`, `glow`, `color-adjust`.
 - **Blend mode**: `normal` | `multiply` | `screen` | `add` | `darken` | `lighten` | `overlay` — đồng bộ NodeBase → snapshot → paint `setTransform` → Pixi / Remotion.
 - **Modifiers**: `motion-path`, `path-morph`, `secondary-motion`, `trim-path`, `path-bend`, `constraint`, `parallax`, `layout`, `layout-item`.
 - **Repeater**: Lặp node theo grid / linear / radial kèm stagger thời gian.
@@ -173,7 +173,7 @@ Paint/runtime mang thêm typography + runs + `SourceRef` (`kind: "text-run"`) đ
 
 ---
 
-### 4. Asset Declarations (`AssetV3`)
+### 4. Asset Declarations (`AssetV1`)
 
 Assets là Discriminated Union theo `assetType`, kèm metadata bắt buộc cho loader/renderer:
 
@@ -201,8 +201,8 @@ Beat phải sorted và nằm trong `duration` asset; số lượng bị giới h
 
 ### 5. Variables, Public API & Component Bindings
 
-- **Variables** (`VariableV3`): `number`, `string`, `color`, `boolean`, `asset`, `enum`, hoặc `list`.
-- **Public Parameters** (`PublicParamV3`): Expose biến ra UI Component với gợi ý control:
+- **Variables** (`VariableV1`): `number`, `string`, `color`, `boolean`, `asset`, `enum`, hoặc `list`.
+- **Public Parameters** (`PublicParamV1`): Expose biến ra UI Component với gợi ý control:
   - `group`: `content | style | motion | layout | audio`
   - `control`: `text | textarea | color-picker | slider | toggle | asset-picker | enum`
   - `capability`: `basic | advanced | designer-only`
@@ -248,7 +248,7 @@ Evaluator composition dùng chung ở motion-runtime (một layer plan cho previ
 
 #### Scene background (command, không phải field Scene)
 
-AI/editor dùng `setSceneBackground` → tạo/cập nhật node ổn định `id: "__scene_background__"` (`solid`, full canvas, `zIndex` rất thấp). Không thêm primitive background riêng trên `SceneV3`.
+AI/editor dùng `setSceneBackground` → tạo/cập nhật node ổn định `id: "__scene_background__"` (`solid`, full canvas, `zIndex` rất thấp). Không thêm primitive background riêng trên `SceneV1`.
 
 ---
 
@@ -362,7 +362,7 @@ Mỗi hàng có các cột: `schema`, `compiler`, `runtime`, `paint`, `pixi`, `r
 ```ts
 import {
   parseMotionProject,
-  parseMotionComponentV3,
+  parseMotionComponentV1,
   serializeMotionProject,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
@@ -395,9 +395,9 @@ textNode.payload = setTextPayloadPlain(textNode.payload, "Nội dung mới");
 ### 3. Áp dụng Patch
 
 ```ts
-import { applyMotionProjectV3Patch } from "@motionvideo/motion-protocol";
+import { applyMotionProjectV1Patch } from "@motionvideo/motion-protocol";
 
-const result = applyMotionProjectV3Patch(project, {
+const result = applyMotionProjectV1Patch(project, {
   format: "motion-patch",
   formatVersion: 1,
   baseRevision: 1,
@@ -427,11 +427,11 @@ console.log("Animatable:", cap?.animatable); // true
 
 ---
 
-## 🤖 Skills & Agent Surface (V3-only)
+## 🤖 Skills & Agent Surface (V1-only)
 
-Skills là instruction template được validate bởi protocol. Mỗi skill có `MotionSkillManifest` + output `MotionProjectV3`.
+Skills là instruction template được validate bởi protocol. Mỗi skill có `MotionSkillManifest` + output `MotionProjectV1`.
 
-**5 built-in skills** trong [`src/v3/skills.ts`](./src/v3/skills.ts):
+**5 built-in skills** trong [`src/v1/skills.ts`](./src/v1/skills.ts):
 
 | Skill ID             | Loại     | Mô tả                                     |
 | -------------------- | -------- | ----------------------------------------- |
@@ -445,7 +445,7 @@ Skills là instruction template được validate bởi protocol. Mỗi skill c�
 
 **Authoring rules cho AI agents:**
 
-- Luôn dùng `MotionProjectV3` (formatVersion: 3)
+- Luôn dùng `MotionProjectV1` (formatVersion: 1)
 - Timeline dùng `visualTracks`, không dùng `sceneOrder`
 - Visual clip source chỉ `kind: "scene"`; effect = scene/component/layer animation — không `transitionOut`
 - Runtime IR do compiler sinh — agent chỉ cần tạo project JSON hợp lệ
@@ -484,13 +484,13 @@ pnpm --filter @motionvideo/motion-protocol typecheck
 ## 📜 Source of Truth Contract
 
 ```text
-Authoring source of truth:   MotionProjectV3     (formatVersion: 3)
-Editing source of truth:     MotionProjectV3Patch  (patch format)
+Authoring source of truth:   MotionProjectV1     (formatVersion: 1)
+Editing source of truth:     MotionProjectV1Patch  (patch format)
 Runtime source of truth:     MotionRuntimeProject  (compiler output, not authored)
 Timeline source of truth:    visualTracks          (not sceneOrder)
 Visual effect source:        scene/component/layer animation (not transitionIn/Out)
-Canonical parse:             MotionProjectV3Schema  (strict V3; rejects component clip source)
-JSON Schema artifact:        schema/v3.json          (must match Zod; regenerate via generate:schema)
+Canonical parse:             MotionProjectV1Schema  (strict V1; rejects component clip source)
+JSON Schema artifact:        schema/v1.json          (must match Zod; regenerate via generate:schema)
 ```
 
 Mọi consumer (editor, AI planner, compiler, MCP server, render providers) đều sử dụng cùng một contract này. Không có đường dẫn V2 ẩn nào còn tồn tại.

@@ -26,8 +26,8 @@ flowchart LR
   end
 
   subgraph Core["Core Pipeline"]
-    Protocol["motion-protocol<br/>MotionProjectV3 JSON"]
-    Compiler["motion-compiler<br/>V3 → MotionRuntimeProject"]
+    Protocol["motion-protocol<br/>MotionProjectV1 JSON"]
+    Compiler["motion-compiler<br/>V1 → MotionRuntimeProject"]
     Runtime["motion-runtime<br/>evaluateFrame()"]
     Paint["PaintCommandBuffer<br/>renderer-neutral"]
   end
@@ -50,7 +50,7 @@ flowchart LR
 
 **Nguyên tắc cốt lõi**:
 
-- **Một format duy nhất** — `MotionProjectV3` (`.mt`) là canonical authoring contract. Tất cả
+- **Một format duy nhất** — `MotionProjectV1` (`.mt`) là canonical authoring contract. Tất cả
   surface (AI, editor, MCP, Skills) đọc/ghi cùng một format. Không có V2 fallback.
 - **Compiler tách biệt** — Từ authoring JSON sang `MotionRuntimeProject` (literal, flat).
   Variables, components, presets, bindings, layout được resolve hoàn toàn ở compile time.
@@ -58,7 +58,7 @@ flowchart LR
   không tự tính easing, timing, transform hay layout.
 - **Editor UI state nằm ngoài project JSON** — Scroll, selection, undo stack, panel layout
   là local state; không ảnh hưởng project hash hay render output.
-- **AI-first** — AI agent tạo project qua `ai-planner` (brief → CommandBatch → MotionProjectV3)
+- **AI-first** — AI agent tạo project qua `ai-planner` (brief → CommandBatch → MotionProjectV1)
   hoặc qua Skills (parameterized templates). MCP tools cung cấp automation surface cho validate,
   patch, compile, preview.
 
@@ -71,7 +71,7 @@ flowchart LR
 | Package           | Vai trò                                                                   |
 | ----------------- | ------------------------------------------------------------------------- |
 | `motion-protocol` | Zod schema, parse/validate, reference check, capability registry, hashing |
-| `motion-compiler` | Authoring V3 → Runtime IR (resolve, expand, layout, emit)                 |
+| `motion-compiler` | Authoring V1 → Runtime IR (resolve, expand, layout, emit)                 |
 | `motion-runtime`  | Timeline resolve, evaluateFrame, PaintCommandBuffer, audio plan           |
 
 ### Renderers
@@ -127,7 +127,7 @@ pnpm --filter @motionvideo/motion-compiler test
 pnpm --filter @motionvideo/motion-runtime test
 
 # Validate kiến trúc (không được phép có V2 patterns)
-pnpm validate:v3-source-of-truth
+pnpm validate:v1-source-of-truth
 
 # Web editor dev
 pnpm --filter @motionvideo/web dev
@@ -142,11 +142,11 @@ pnpm --filter @motionvideo/desktop dev
 
 | Tài liệu                                                             | Nội dung                                            |
 | -------------------------------------------------------------------- | --------------------------------------------------- |
-| [Motion Format V3](docs/motion-format-v3.md)                         | Canonical authoring format specification            |
+| [Motion Format V1](docs/motion-format-v1.md)                         | Canonical authoring format specification            |
 | [AI-First Editor Architecture](docs/ai-first-editor-architecture.md) | Kiến trúc AI agent, MCP, Skills, editor             |
 | [Web Architecture](web-architechture.md)                             | Kiến trúc Web, Pixi preview, Remotion Lambda export |
 | [JSON Project Design](json-project-design.md)                        | Thiết kế chi tiết schema `.mt`                      |
-| [V3 Refactor Plan](docs/motion-project-v3-refactor-plan.md)          | Lộ trình chuyển đổi từ V2 sang V3                   |
+| [V1 Refactor Plan](docs/motion-project-v1-refactor-plan.md)          | Lộ trình chuyển đổi từ V2 sang V1                   |
 
 ---
 
@@ -160,5 +160,5 @@ Xem [LICENSE](./LICENSE) và [`clipkit/`](./clipkit/) cho các điều khoản l
 
 - **Không thêm fallback cho format cũ** — dữ liệu sai `formatVersion` phải báo lỗi rõ ràng.
 - **Renderer không tự ý suy diễn** — không đọc preset, variable, binding, repeater hay component definition.
-- **Mọi thay đổi schema** phải cập nhật docs, fixtures, và gate script (`validate:v3-source-of-truth`) cùng lúc.
-- **Codegen** — JSON Schema (`schema/v3.json`) được generate tự động từ Zod schema. Không sửa bằng tay.
+- **Mọi thay đổi schema** phải cập nhật docs, fixtures, và gate script (`validate:v1-source-of-truth`) cùng lúc.
+- **Codegen** — JSON Schema (`schema/v1.json`) được generate tự động từ Zod schema. Không sửa bằng tay.

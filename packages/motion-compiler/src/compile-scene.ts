@@ -1,13 +1,13 @@
 /**
- * V3-native per-scene compilation: prepares a runtime-ready scene from
+ * V1-native per-scene compilation: prepares a runtime-ready scene from
  * normalized authoring layers, clips, and variables.
  *
  * Pipeline: resolve variables → layout constraints → fit text → compile
  * clips → assemble runtime scene.
  *
- * This is the canonical V3 → Runtime IR path. No V2 intermediate shape.
+ * This is the canonical V1 → Runtime IR path. No V2 intermediate shape.
  *
- * @internal — used by `compile-v3`; re-exported from the package barrel.
+ * @internal — used by `compile-v1`; re-exported from the package barrel.
  */
 import {
   type MotionClip,

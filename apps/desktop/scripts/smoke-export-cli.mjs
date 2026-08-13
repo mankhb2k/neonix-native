@@ -169,7 +169,7 @@ ok("canvas + ffmpeg under ELECTRON_RUN_AS_NODE");
 
 const minimalProject = {
   format: "motion-project",
-  formatVersion: 3,
+  formatVersion: 1,
   metadata: {
     id: "smoke_export_cli",
     name: "Smoke Export",

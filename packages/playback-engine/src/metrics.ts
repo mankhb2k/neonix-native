@@ -7,7 +7,7 @@
  *   - Starvation: ticks where no frame was produced (RAF fired but nothing to paint)
  *   - Dropped frames: frames produced but not painted (sequence mismatch)
  *   - Stale frames: old frames arriving after seek/patch
- *   - Evaluate time (ms): time spent in evaluateCompositionFrameV3
+ *   - Evaluate time (ms): time spent in evaluateCompositionFrameV1
  *   - Paint time (ms): time spent in painter.paintCommands
  *   - Buffer size: number of buffered frames (future Phase 9)
  *

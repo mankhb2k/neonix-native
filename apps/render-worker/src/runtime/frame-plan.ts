@@ -18,7 +18,7 @@ export type FrameLayer = {
   opacity: number;
 };
 
-// ── Visual clip helpers (V3 visualTracks model) ───────────────────────
+// ── Visual clip helpers (V1 visualTracks model) ───────────────────────
 
 type VisualClipLike = {
   start: number;

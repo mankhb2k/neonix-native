@@ -11,7 +11,7 @@ import { parseMotionProject } from "@motionvideo/motion-protocol";
 export const runtime = "nodejs";
 export const maxDuration = 180;
 
-/** AI output is already V3 (Phase 7 cutover). */
+/** AI output is already V1 (Phase 7 cutover). */
 
 function repoRoot(): string {
   const cwd = process.cwd();

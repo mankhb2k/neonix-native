@@ -4,11 +4,11 @@ import {
   evaluateCompositionSnapshot,
 } from "./evaluate-composition";
 import { evaluateFrame } from "./evaluated-frame";
-import { compileProjectV3 } from "./testing/compile";
+import { compileProjectV1 } from "./testing/compile";
 import { createDemoMotionProject, DEMO_SCENE_ID } from "./testing/demo-project";
 
 function compileDemo() {
-  return compileProjectV3(createDemoMotionProject());
+  return compileProjectV1(createDemoMotionProject());
 }
 
 describe("evaluateCompositionFrame", () => {

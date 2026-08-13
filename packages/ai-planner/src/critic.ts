@@ -1,5 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
-import { getTextPayloadPlain, V3 } from "@motionvideo/motion-protocol";
+import { getTextPayloadPlain, V1 } from "@motionvideo/motion-protocol";
 
 export type CriticFinding = {
   code: string;
@@ -14,13 +14,13 @@ export type CriticReport = {
   findings: CriticFinding[];
 };
 
-/** Structural/layout critic — deterministic, no CSS/JS (R7). Phase 9: V3-aware. */
+/** Structural/layout critic — deterministic, no CSS/JS (R7). Phase 9: V1-aware. */
 export function critiqueProject(project: MotionProject): CriticReport {
   const findings: CriticFinding[] = [];
   let score = 100;
 
-  // ── Phase 9: V3 schema validity ──
-  const parsed = V3.MotionProjectV3Schema.safeParse(project);
+  // ── Phase 9: V1 schema validity ──
+  const parsed = V1.MotionProjectV1Schema.safeParse(project);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
       findings.push({
@@ -35,7 +35,7 @@ export function critiqueProject(project: MotionProject): CriticReport {
     return { score: Math.max(0, score), findings };
   }
 
-  // ── V3 visualTracks integrity ──
+  // ── V1 visualTracks integrity ──
   const sceneIds = new Set(project.scenes.map((s) => s.id));
   const componentIds = new Set(project.components.map((c) => c.id));
   for (const track of project.timeline.visualTracks) {

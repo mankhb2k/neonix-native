@@ -1,0 +1,307 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "v1-component",
+    "name": "V1 Component Example",
+    "description": "Demonstrates embedded component definition and component-as-scene-layer layers",
+    "locale": "vi-VN",
+    "tags": [
+      "example",
+      "v3",
+      "component"
+    ]
+  },
+  "composition": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": [
+      "primitive.text",
+      "primitive.solid",
+      "component.embedding"
+    ]
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": [
+      {
+        "componentId": "call-to-action",
+        "version": "1.0.0",
+        "source": "com.moticlip.store",
+        "integrity": "sha256:cta-1.0.0"
+      }
+    ]
+  },
+  "tokens": {},
+  "variables": [
+    {
+      "id": "cta-text",
+      "name": "CTA Button Text",
+      "type": "string",
+      "value": "Tìm hiểu thêm"
+    }
+  ],
+  "assets": [],
+  "components": [
+    {
+      "id": "call-to-action",
+      "version": "1.0.0",
+      "integrity": "sha256:cta-1.0.0",
+      "props": [
+        {
+          "id": "label",
+          "name": "Button label",
+          "kind": "text",
+          "default": "Click me"
+        },
+        {
+          "id": "color",
+          "name": "Button color",
+          "kind": "color",
+          "default": "#1877f2"
+        }
+      ],
+      "variants": [
+        {
+          "id": "primary",
+          "name": "Primary CTA",
+          "props": {
+            "color": "#1877f2",
+            "label": "Click me"
+          }
+        },
+        {
+          "id": "outline",
+          "name": "Outline CTA",
+          "props": {
+            "color": "#ffffff",
+            "label": "Learn more"
+          }
+        }
+      ],
+      "propBindings": [
+        {
+          "propId": "label",
+          "target": {
+            "kind": "layerProperty",
+            "layerId": "cta-label-node",
+            "property": "payload.content.text"
+          }
+        },
+        {
+          "propId": "color",
+          "target": {
+            "kind": "layerProperty",
+            "layerId": "cta-bg",
+            "property": "payload.color"
+          }
+        }
+      ],
+      "variables": [
+        {
+          "id": "cta-label",
+          "name": "CTA Label",
+          "type": "string",
+          "value": "Click me"
+        },
+        {
+          "id": "cta-color",
+          "name": "CTA Color",
+          "type": "color",
+          "value": "#1877f2"
+        }
+      ],
+      "layers": [
+        {
+          "id": "cta-bg",
+          "type": "solid",
+          "parentLayerId": null,
+          "zIndex": 0,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 600,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "width": 600,
+            "height": 120,
+            "color": "#1877f2"
+          }
+        },
+        {
+          "id": "cta-label-node",
+          "type": "text",
+          "parentLayerId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "width": 500,
+            "height": 60,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Click me"
+            },
+            "fontSize": 40,
+            "color": "#ffffff",
+            "alignment": "center"
+          }
+        }
+      ],
+      "internalBindings": [],
+      "actions": [
+        {
+          "id": "cta-tap",
+          "name": "Button tap animation",
+          "clips": []
+        }
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "landing",
+      "name": "Landing Page",
+      "duration": 5,
+      "layers": [
+        {
+          "id": "title",
+          "type": "text",
+          "parentLayerId": null,
+          "transform": {
+            "x": 0,
+            "y": -200,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Welcome to MotiClip"
+            },
+            "fontSize": 56,
+            "color": "#111111",
+            "alignment": "center"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cta-scene",
+      "name": "CTA Overlay Scene",
+      "duration": 2.5,
+      "layers": [
+        {
+          "id": "cta-instance",
+          "type": "component",
+          "parentLayerId": null,
+          "transform": {
+            "x": 100,
+            "y": 200,
+            "width": 600,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "payload": {
+            "componentId": "call-to-action"
+          }
+        }
+      ]
+    }
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main",
+        "order": 0,
+        "clips": [
+          {
+            "id": "c-landing",
+            "source": {
+              "kind": "scene",
+              "sceneId": "landing"
+            },
+            "start": 0,
+            "duration": 5
+          }
+        ]
+      },
+      {
+        "id": "overlay-cta",
+        "order": 1,
+        "clips": [
+          {
+            "id": "c-cta",
+            "source": {
+              "kind": "scene",
+              "sceneId": "cta-scene"
+            },
+            "start": 1,
+            "duration": 2.5
+          }
+        ]
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "id": "bind-cta",
+      "source": {
+        "kind": "variable",
+        "variableId": "cta-text"
+      },
+      "target": {
+        "kind": "componentLayer",
+        "sceneId": "cta-scene",
+        "layerId": "cta-instance",
+        "propId": "label"
+      }
+    }
+  ]
+}

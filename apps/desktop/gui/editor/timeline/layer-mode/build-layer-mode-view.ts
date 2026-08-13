@@ -116,7 +116,7 @@ export type EffectiveLayerTiming = {
 /**
  * Compute effective scene-local timing for a node, walking the parent chain.
  *
- * V3 contract: child timing is parent-relative. This function:
+ * V1 contract: child timing is parent-relative. This function:
  * 1. Accumulates all ancestor `timing.start` offsets to get `sceneLocalStart`.
  * 2. Computes `sceneLocalEnd = sceneLocalStart + node.timing.duration`.
  * 3. Clips `sceneLocalEnd` by every ancestor's effective end (child cannot
@@ -199,7 +199,7 @@ function nodeDisplayName(node: MotionLayer): string {
 /**
  * Sort scene layers into hierarchy-aware DFS pre-order for the timeline.
  *
- * V3 contract: `zIndex` is sibling-local. This function:
+ * V1 contract: `zIndex` is sibling-local. This function:
  * 1. Groups siblings by `parentLayerId` (null → root).
  * 2. Within each group, sorts by zIndex DESC (highest on top like Figma/After Effects).
  * 3. DFS pre-order: parent → children (sorted) → next sibling.
@@ -338,7 +338,7 @@ export function buildLayerModeView(
     const nodeDepth = computeDepth(node);
 
     // Phase 7: parentRelativeStart — child's timing.start is already
-    // parent-relative by V3 contract; we record it for UI display.
+    // parent-relative by V1 contract; we record it for UI display.
     const parentRelativeStart = node.timing?.start ?? 0;
 
     const strip: LayerModeStrip = {
@@ -434,7 +434,7 @@ export function listSceneInnerLayers(
 /**
  * Resolve a node's effective parent-local timing window for timeline display.
  *
- * V3 contract: child timing is parent-relative. This function walks the
+ * V1 contract: child timing is parent-relative. This function walks the
  * parent chain to determine, for a given child node, what time range the
  * child occupies relative to its **direct parent's** effective window.
  *

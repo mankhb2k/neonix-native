@@ -5,9 +5,9 @@ Biên dịch **Motion Project / Component authoring** → **MotionRuntimeProject
 ## Vai trò
 
 ```text
-MotionProjectV3 (+ Component registry)
+MotionProjectV1 (+ Component registry)
         ↓
-  compileMotionProjectV3
+  compileMotionProjectV1
         ↓
 MotionRuntimeProject  →  runtime / draw / encode
 ```
@@ -36,5 +36,5 @@ const runtime = compileMotionProject(project, { components });
 
 ## Docs
 
-- [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
-- Runtime goldens: `pnpm validate:v3-source-of-truth`
+- [`docs/motion-format-v1.md`](../../docs/motion-format-v1.md)
+- Runtime goldens: `pnpm validate:v1-source-of-truth`

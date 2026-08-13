@@ -108,7 +108,7 @@ Gaps: time between clips is valid — only background renders during a gap
 (audio/caption may still exist).
 
 Source layout: timeline schema/utilities live in
-`packages/motion-protocol/src/v3/timeline/` (`schema.ts`, `duration.ts`,
+`packages/motion-protocol/src/v1/timeline/` (`schema.ts`, `duration.ts`,
 `canonicalize.ts`, `validation.ts`, `index.ts`).
 
 ## Implementation Phases
@@ -117,25 +117,25 @@ Source layout: timeline schema/utilities live in
 
 Files:
 
-- `packages/motion-protocol/src/v3/timeline-duration.ts`
-- `packages/motion-protocol/src/v3/index.ts`
+- `packages/motion-protocol/src/v1/timeline-duration.ts`
+- `packages/motion-protocol/src/v1/index.ts`
 - `packages/motion-protocol/src/index.ts`
 
 Tasks:
 
-- Create `deriveTimelineDurationV3(timeline)` utility.
-- Create `getVisualTimelineEndV3(timeline)` helper.
-- Create `getAudioTimelineEndV3(timeline)` helper.
-- Create `getCaptionTimelineEndV3(timeline)` helper.
+- Create `deriveTimelineDurationV1(timeline)` utility.
+- Create `getVisualTimelineEndV1(timeline)` helper.
+- Create `getAudioTimelineEndV1(timeline)` helper.
+- Create `getCaptionTimelineEndV1(timeline)` helper.
 - Ensure returned duration is finite and rounded consistently.
 - Use canonical rounding, for example `Math.round(value * 1e9) / 1e9`.
 
 Suggested API:
 
 ```ts
-export function deriveTimelineDurationV3(timeline: ProjectTimelineV3): number;
+export function deriveTimelineDurationV1(timeline: ProjectTimelineV1): number;
 
-export function hasTimelineContentV3(timeline: ProjectTimelineV3): boolean;
+export function hasTimelineContentV1(timeline: ProjectTimelineV1): boolean;
 ```
 
 Tests:
@@ -152,13 +152,13 @@ Tests:
 
 Files:
 
-- `packages/motion-protocol/src/v3/normalize.ts`
-- or new file: `packages/motion-protocol/src/v3/canonicalize.ts`
-- `packages/motion-protocol/src/v3/parse.ts`
+- `packages/motion-protocol/src/v1/normalize.ts`
+- or new file: `packages/motion-protocol/src/v1/canonicalize.ts`
+- `packages/motion-protocol/src/v1/parse.ts`
 
 Tasks:
 
-- Add `canonicalizeTimelineDurationV3(project)` that fills missing `timeline.duration`.
+- Add `canonicalizeTimelineDurationV1(project)` that fills missing `timeline.duration`.
 - Do not mutate input.
 - If duration is present, leave it unchanged.
 - Return issues/warnings when duration is derived.
@@ -172,23 +172,23 @@ export interface CanonicalizeTimelineDurationIssue {
   severity: "info" | "warn";
 }
 
-export function canonicalizeTimelineDurationV3(project: MotionProjectV3): {
-  project: MotionProjectV3;
+export function canonicalizeTimelineDurationV1(project: MotionProjectV1): {
+  project: MotionProjectV1;
   issues: CanonicalizeTimelineDurationIssue[];
 };
 ```
 
 Decision point:
 
-- `parseMotionProjectV3` should probably stay strict and not auto-fill.
+- `parseMotionProjectV1` should probably stay strict and not auto-fill.
 - compiler should call canonicalization before semantic validation.
 - app save/export can call canonicalization explicitly.
 
 Recommended:
 
-- `parseMotionProjectV3`: validates canonical project.
-- `compileMotionProjectV3`: accepts authoring project, derives missing duration internally.
-- `serializeMotionProjectV3`: serializes already-canonical project only.
+- `parseMotionProjectV1`: validates canonical project.
+- `compileMotionProjectV1`: accepts authoring project, derives missing duration internally.
+- `serializeMotionProjectV1`: serializes already-canonical project only.
 
 Tests:
 
@@ -201,8 +201,8 @@ Tests:
 
 Files:
 
-- `packages/motion-protocol/src/v3/timeline.ts`
-- `packages/motion-protocol/src/v3/__tests__/schema.test.ts`
+- `packages/motion-protocol/src/v1/timeline.ts`
+- `packages/motion-protocol/src/v1/__tests__/schema.test.ts`
 
 Tasks:
 
@@ -214,26 +214,26 @@ Tasks:
 
 Optional:
 
-- Add `ExportTimelineV3Schema` or `CanonicalMotionProjectV3Schema` where duration is required.
+- Add `ExportTimelineV1Schema` or `CanonicalMotionProjectV1Schema` where duration is required.
 
 Recommended production design:
 
 ```ts
-MotionProjectV3Schema; // authoring/canonical-compatible, duration optional
-CanonicalMotionProjectV3Schema; // export/save canonical, duration required
+MotionProjectV1Schema; // authoring/canonical-compatible, duration optional
+CanonicalMotionProjectV1Schema; // export/save canonical, duration required
 ```
 
 ### Phase 4. Update Compiler Flow
 
 Files:
 
-- `packages/motion-compiler/src/compile-v3.ts`
+- `packages/motion-compiler/src/compile-v1.ts`
 - `packages/motion-compiler/src/compile-result.ts`
-- `packages/motion-compiler/src/__tests__/compile-v3.test.ts`
+- `packages/motion-compiler/src/__tests__/compile-v1.test.ts`
 
 Tasks:
 
-- After normalizing input and before `validateV3Semantics`, derive timeline duration if missing.
+- After normalizing input and before `validateV1Semantics`, derive timeline duration if missing.
 - Use the derived/canonical project for all later compiler steps.
 - Emit warning diagnostic when duration is derived.
 - Add diagnostic code, for example `CMP_TIMELINE_DURATION_DERIVED`.
@@ -245,7 +245,7 @@ Compiler flow should become:
 ```ts
 const normalized = parse/normalize input;
 const canonical = fillTimelineDurationIfMissing(normalized);
-validateV3Semantics(canonical);
+validateV1Semantics(canonical);
 buildVisualPlan(canonical);
 emit runtime from canonical;
 ```
@@ -265,7 +265,7 @@ Files:
 
 - `packages/motion-protocol/src/runtime/project.ts`
 - `packages/motion-protocol/src/runtime/__tests__/project.test.ts`
-- `packages/motion-compiler/src/compile-v3.ts`
+- `packages/motion-compiler/src/compile-v1.ts`
 - runtime golden fixtures.
 
 Tasks:
@@ -321,8 +321,8 @@ UX rule:
 
 Files:
 
-- `docs/guide/v3-format-guide.md`
-- `docs/guide/v3-component-guide.md`
+- `docs/guide/v1-format-guide.md`
+- `docs/guide/v1-component-guide.md`
 - `docs/runtime-mcp-legacy-cleanup-production-plan.md`
 
 Tasks:
@@ -341,7 +341,7 @@ Tasks:
 
 ### Protocol Unit Tests
 
-- `deriveTimelineDurationV3` returns `0` for empty timeline.
+- `deriveTimelineDurationV1` returns `0` for empty timeline.
 - visual clip `start: 6`, `duration: 4` derives `10`.
 - audio track ending at `12` derives `12`.
 - caption token ending at `15` derives `15`.
@@ -457,6 +457,6 @@ Optional after core changes:
 
 ```powershell
 pnpm.cmd typecheck
-pnpm.cmd validate:v3-source-of-truth
+pnpm.cmd validate:v1-source-of-truth
 pnpm.cmd validate:motion-fixtures
 ```

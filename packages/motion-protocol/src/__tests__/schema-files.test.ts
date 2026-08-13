@@ -2,15 +2,15 @@
  * Committed JSON Schema gates.
  *
  * Freshness is a **required** protocol gate: every `pnpm test` regenerates
- * `schema/v3.json` from Zod in-memory and fails if the committed file drifts.
+ * `schema/v1.json` from Zod in-memory and fails if the committed file drifts.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { serializeMotionProjectV3JsonSchema } from "../../scripts/v3-json-schema";
+import { serializeMotionProjectV1JsonSchema } from "../../scripts/v1-json-schema";
 
 const SCHEMA_DIR = join(__dirname, "..", "..", "schema");
-const V3_SCHEMA_PATH = join(SCHEMA_DIR, "v3.json");
+const V1_SCHEMA_PATH = join(SCHEMA_DIR, "v1.json");
 
 function loadSchema(name: string): {
   $ref: string;
@@ -19,24 +19,119 @@ function loadSchema(name: string): {
   return JSON.parse(readFileSync(join(SCHEMA_DIR, name), "utf8"));
 }
 
+type JsonSchemaNode = Record<string, unknown>;
+
+function isOpenJsonSchema(value: unknown): boolean {
+  if (value === true) return true;
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as JsonSchemaNode;
+  const keys = Object.keys(record);
+  if (keys.length === 0) return true;
+  return keys.length === 1 && record.type === true;
+}
+
+function decodePointerToken(token: string): string {
+  return token.replace(/~1/g, "/").replace(/~0/g, "~");
+}
+
+function deref(
+  document: unknown,
+  node: unknown,
+  seen: Set<string> = new Set(),
+): unknown {
+  if (!node || typeof node !== "object" || Array.isArray(node)) return node;
+  const rec = node as JsonSchemaNode;
+  if (typeof rec.$ref !== "string") return node;
+  // Document wrappers keep `$ref` beside `definitions`; only follow pure refs.
+  const keys = Object.keys(rec).filter((key) => key !== "$schema");
+  if (keys.some((key) => key !== "$ref")) return node;
+  const pointer = rec.$ref;
+  if (seen.has(pointer)) return node;
+  seen.add(pointer);
+  return deref(document, getByPointer(document, pointer, seen), seen);
+}
+
+function getByPointer(
+  document: unknown,
+  pointer: string,
+  seen: Set<string> = new Set(),
+): unknown {
+  if (pointer === "" || pointer === "#") return document;
+  const path = pointer.startsWith("#/")
+    ? pointer.slice(2)
+    : pointer.replace(/^\//, "");
+  let current: unknown = document;
+  for (const token of path.split("/").map(decodePointerToken)) {
+    current = deref(document, current, seen);
+    if (Array.isArray(current)) {
+      current = current[Number(token)];
+    } else if (current && typeof current === "object") {
+      current = (current as JsonSchemaNode)[token];
+    } else {
+      return undefined;
+    }
+  }
+  return deref(document, current, seen);
+}
+
+function getPath(
+  document: unknown,
+  start: unknown,
+  keys: string[],
+): unknown {
+  let current: unknown = start;
+  for (const key of keys) {
+    current = deref(document, current);
+    if (Array.isArray(current)) {
+      current = current[Number(key)];
+    } else if (current && typeof current === "object") {
+      current = (current as JsonSchemaNode)[key];
+    } else {
+      return undefined;
+    }
+  }
+  return deref(document, current);
+}
+
+function findComponentLayerSchema(
+  document: unknown,
+  layersItems: unknown,
+): JsonSchemaNode {
+  const resolved = deref(document, layersItems) as
+    | { anyOf?: unknown[] }
+    | undefined;
+  const anyOf = resolved?.anyOf;
+  expect(anyOf, "layers.items must be a union").toEqual(expect.any(Array));
+  const component = anyOf!.find((entry) => {
+    const rec = deref(document, entry) as {
+      properties?: { type?: { const?: string } };
+    };
+    return rec.properties?.type?.const === "component";
+  });
+  expect(component, "component layer branch in layers.anyOf").toBeDefined();
+  return deref(document, component) as JsonSchemaNode;
+}
+
 describe("committed JSON schemas", () => {
-  it("schema/v3.json exists", () => {
-    expect(existsSync(V3_SCHEMA_PATH)).toBe(true);
+  it("schema/v1.json exists", () => {
+    expect(existsSync(V1_SCHEMA_PATH)).toBe(true);
   });
 
-  it("schema/v3.json matches Zod source (required artifact sync gate)", () => {
-    const committed = readFileSync(V3_SCHEMA_PATH, "utf8");
-    const generated = serializeMotionProjectV3JsonSchema();
+  it("schema/v1.json matches Zod source (required artifact sync gate)", () => {
+    const committed = readFileSync(V1_SCHEMA_PATH, "utf8");
+    const generated = serializeMotionProjectV1JsonSchema();
     expect(
       committed,
-      "schema/v3.json is stale. Run: pnpm --filter @motionvideo/motion-protocol generate:schema",
+      "schema/v1.json is stale. Run: pnpm --filter @motionvideo/motion-protocol generate:schema",
     ).toBe(generated);
   });
 
-  it("v3 schema is draft-07 compatible and has all root fields", () => {
-    const schema = loadSchema("v3.json");
-    expect(schema.$ref).toBe("#/definitions/MotionProjectV3");
-    const definition = schema.definitions.MotionProjectV3;
+  it("v1 schema is draft-07 compatible and has all root fields", () => {
+    const schema = loadSchema("v1.json");
+    expect(schema.$ref).toBe("#/definitions/MotionProjectV1");
+    const definition = schema.definitions.MotionProjectV1;
     expect(definition.properties).toBeDefined();
     const fields = Object.keys(definition.properties!);
     expect(fields.sort()).toEqual(
@@ -60,9 +155,9 @@ describe("committed JSON schemas", () => {
     );
   });
 
-  it("v3 schema encodes visualTracks (timeline no longer sceneOrder)", () => {
-    const schema = loadSchema("v3.json");
-    const timeline = schema.definitions.MotionProjectV3.properties!
+  it("v1 schema encodes visualTracks (timeline no longer sceneOrder)", () => {
+    const schema = loadSchema("v1.json");
+    const timeline = schema.definitions.MotionProjectV1.properties!
       .timeline as unknown as {
       properties?: Record<string, unknown>;
     };
@@ -71,9 +166,9 @@ describe("committed JSON schemas", () => {
     expect(timelineProps).not.toContain("sceneOrder");
   });
 
-  it("v3 schema visual clips are scene-only (no role, no transition, no component source)", () => {
-    const schema = loadSchema("v3.json");
-    const timeline = schema.definitions.MotionProjectV3.properties!
+  it("v1 schema visual clips are scene-only (no role, no transition, no component source)", () => {
+    const schema = loadSchema("v1.json");
+    const timeline = schema.definitions.MotionProjectV1.properties!
       .timeline as {
       properties?: {
         visualTracks?: {
@@ -122,9 +217,98 @@ describe("committed JSON schemas", () => {
     expect(audioOrder?.exclusiveMaximum).toBe(true);
     expect(audioOrder?.maximum).toBe(0);
   });
+
+  it("does not warn recursive-any while generating schema/v1.json", () => {
+    const warnings: string[] = [];
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(String(args[0] ?? ""));
+      originalWarn.apply(console, args);
+    };
+    try {
+      serializeMotionProjectV1JsonSchema();
+    } finally {
+      console.warn = originalWarn;
+    }
+    expect(
+      warnings.filter((warning) => warning.includes("Defaulting to any")),
+    ).toEqual([]);
+  });
+
+  it("contract prop paths are not open any / {} / true schemas", () => {
+    const schema = loadSchema("v1.json");
+    const assertClosed = (value: unknown, label: string) => {
+      expect(value, label).toBeDefined();
+      expect(isOpenJsonSchema(value), `${label} must not be open any`).toBe(
+        false,
+      );
+    };
+
+    assertClosed(schema.definitions.JsonValue, "JsonValue");
+    assertClosed(schema.definitions.ListField, "ListField");
+    assertClosed(schema.definitions.ComponentPropValue, "ComponentPropValue");
+    assertClosed(schema.definitions.PropKeyframesValue, "PropKeyframesValue");
+    assertClosed(
+      getByPointer(schema, "#/definitions/ListField/properties/itemSchema"),
+      "ListField.itemSchema",
+    );
+    assertClosed(
+      getByPointer(
+        schema,
+        "#/definitions/PropKeyframesValue/properties/keys/items/properties/value",
+      ),
+      "PropKeyframesValue.keys[].value",
+    );
+    assertClosed(
+      getByPointer(
+        schema,
+        "#/definitions/MotionProjectV1/properties/components/items/properties/props/items/properties/default",
+      ),
+      "components.items.props.items.default",
+    );
+    assertClosed(
+      getByPointer(
+        schema,
+        "#/definitions/MotionProjectV1/properties/components/items/properties/variants/items/properties/props/additionalProperties",
+      ),
+      "components.items.variants.items.props.additionalProperties",
+    );
+
+    const componentLayers = getByPointer(
+      schema,
+      "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items",
+    );
+    const componentLayer = findComponentLayerSchema(schema, componentLayers);
+    assertClosed(
+      getPath(schema, componentLayer, [
+        "properties",
+        "payload",
+        "properties",
+        "props",
+        "additionalProperties",
+      ]),
+      "component layer payload.props.additionalProperties",
+    );
+
+    const sceneLayers = getByPointer(
+      schema,
+      "#/definitions/MotionProjectV1/properties/scenes/items/properties/layers/items",
+    );
+    const sceneComponentLayer = findComponentLayerSchema(schema, sceneLayers);
+    assertClosed(
+      getPath(schema, sceneComponentLayer, [
+        "properties",
+        "payload",
+        "properties",
+        "props",
+        "additionalProperties",
+      ]),
+      "scenes.items.layers component payload.props.additionalProperties",
+    );
+  });
 });
 
-// ── Phase 7 — V3 naming gate ────────────────────────────────────────
+// ── Phase 7 — V1 naming gate ────────────────────────────────────────
 
 import * as Protocol from "../index";
 import type {
@@ -136,7 +320,7 @@ import type {
   MotionPathMorphTarget,
 } from "../index";
 
-describe("Phase 7 — public API V3 naming", () => {
+describe("Phase 7 — public API V1 naming", () => {
   it("every V2-named schema/value export has a neutral counterpart", () => {
     // Only runtime values (Zod schemas, constants, functions), not types.
     const runtimeExports = Object.keys(Protocol);
@@ -177,7 +361,7 @@ describe("Phase 7 — public API V3 naming", () => {
       expect(runtimeExports, `Missing neutral export: ${name}`).toContain(name);
     }
 
-    expect(runtimeExports).not.toContain("normalizeMotionProjectV3");
+    expect(runtimeExports).not.toContain("normalizeMotionProjectV1");
     expect(runtimeExports).not.toContain("needsNormalization");
   });
 

@@ -14,7 +14,7 @@
  * so the UI can show clear error messages instead of silently failing.
  */
 
-import type { V3 } from "@motionvideo/motion-protocol";
+import type { V1 } from "@motionvideo/motion-protocol";
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -119,7 +119,7 @@ export function canConsumerWrite(property: string): AccessCheckResult {
 export function canAccessNode(
   context: ComponentEditContext,
   layerId: string,
-  component?: V3.EmbeddedComponentV3,
+  component?: V1.EmbeddedComponentV1,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
   if (context.mode === "owner") return { allowed: true };
@@ -148,7 +148,7 @@ export function canAccessNode(
 export function canAccessBinding(
   context: ComponentEditContext,
   targetLayerId: string,
-  component?: V3.EmbeddedComponentV3,
+  component?: V1.EmbeddedComponentV1,
 ): AccessCheckResult {
   if (context.mode === "scene") return { allowed: true };
   if (context.mode === "owner") return { allowed: true };
@@ -176,7 +176,7 @@ export function canAccessBinding(
  * Only variants declared by the owner are allowed.
  */
 export function canSelectVariant(
-  component: V3.EmbeddedComponentV3,
+  component: V1.EmbeddedComponentV1,
   variantId: string,
 ): AccessCheckResult {
   const variant = component.variants.find((v) => v.id === variantId);

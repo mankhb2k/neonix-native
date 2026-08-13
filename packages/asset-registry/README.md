@@ -26,5 +26,5 @@ Binary font/image/video **không** nằm trong package — sống dưới `asset
 
 ## Docs
 
-- SVG cut-out / import: [`docs/motion-format-v3.md`](../../docs/motion-format-v3.md)
+- SVG cut-out / import: [`docs/motion-format-v1.md`](../../docs/motion-format-v1.md)
 - Fixture import: `assets/`

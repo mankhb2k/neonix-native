@@ -1,99 +1,76 @@
 /**
- * Public API surface — V3 is the only authoring protocol.
+ * Public API surface — V1 is the only authoring protocol.
  *
- * Legacy authoring types (formatVersion 1 / 2) and their companion
- * directories have been permanently removed. All exports are canonical V3.
+ * `parseMotionProject` is `parseMotionProjectV1`. Non-1 payloads fail Zod.
  */
 
 // ── Capabilities / Registry / AI matrix ───────────────────────────────
 export * from "./capabilities";
 export {
-  CAPABILITY_MANIFEST_VERSION_V3,
+  CAPABILITY_MANIFEST_VERSION_V1,
   preflightProjectCapabilities,
   inspectProjectCapabilities,
   type CapabilityPreflightResult,
-} from "./v3/capabilities";
+} from "./v1/capabilities";
 export * from "./scene-registry";
 export * from "./ai-schema-capability";
 
-// ── V3 namespace ──────────────────────────────────────────────────────
-export * as V3 from "./v3";
+// ── V1 namespace ──────────────────────────────────────────────────────
+export * as V1 from "./v1";
 
-// ── Canonical V3 Authoring API ────────────────────────────────────────
+// ── Canonical V1 Authoring API ────────────────────────────────────────
 
 import {
-  parseMotionProjectV3,
-  MotionProjectV3Schema,
-  CanonicalMotionProjectV3Schema,
-  serializeMotionProjectV3,
-  deriveTimelineDurationV3,
-  hasTimelineContentV3,
-  getVisualTimelineEndV3,
-  getAudioTimelineEndV3,
-  getCaptionTimelineEndV3,
-  canonicalizeTimelineDurationV3,
-  type MotionProjectV3,
-  type CanonicalMotionProjectV3,
-} from "./v3";
+  parseMotionProjectV1,
+  MotionProjectV1Schema,
+  CanonicalMotionProjectV1Schema,
+  serializeMotionProjectV1,
+  deriveTimelineDurationV1,
+  hasTimelineContentV1,
+  getVisualTimelineEndV1,
+  getAudioTimelineEndV1,
+  getCaptionTimelineEndV1,
+  canonicalizeTimelineDurationV1,
+  type MotionProjectV1,
+  type CanonicalMotionProjectV1,
+} from "./v1";
 
-export type MotionProject = MotionProjectV3;
-export const MotionProjectSchema = MotionProjectV3Schema;
-export const MOTION_FORMAT_VERSION = 3 as const;
+export type MotionProject = MotionProjectV1;
+export const MotionProjectSchema = MotionProjectV1Schema;
+export const MOTION_FORMAT_VERSION = 1 as const;
 
-/** Parse a motion project JSON payload. Only formatVersion 3 is accepted. */
+/** Parse a motion project JSON payload. Only formatVersion 1 is accepted. */
 export function parseMotionProject(input: unknown): MotionProject {
-  if (
-    input !== null &&
-    typeof input === "object" &&
-    !Array.isArray(input) &&
-    (input as Record<string, unknown>).formatVersion === 1
-  ) {
-    throw new Error(
-      "Format version 1 motion projects are no longer supported. " +
-        "Please migrate your project to format version 3.",
-    );
-  }
-  if (
-    input !== null &&
-    typeof input === "object" &&
-    !Array.isArray(input) &&
-    (input as Record<string, unknown>).formatVersion === 2
-  ) {
-    throw new Error(
-      "Format version 2 motion projects are no longer supported. " +
-        "Please migrate your project to format version 3.",
-    );
-  }
-  return parseMotionProjectV3(input);
+  return parseMotionProjectV1(input);
 }
 
 export function serializeMotionProject(project: MotionProject): string {
-  return serializeMotionProjectV3(project);
+  return serializeMotionProjectV1(project);
 }
 
-// Explicit V3 parse/serialize so consumers can import directly.
+// Explicit V1 parse/serialize so consumers can import directly.
 export {
-  parseMotionProjectV3,
-  MotionProjectV3Schema,
-  CanonicalMotionProjectV3Schema,
-  serializeMotionProjectV3,
-  deriveTimelineDurationV3,
-  hasTimelineContentV3,
-  getVisualTimelineEndV3,
-  getAudioTimelineEndV3,
-  getCaptionTimelineEndV3,
-  canonicalizeTimelineDurationV3,
+  parseMotionProjectV1,
+  MotionProjectV1Schema,
+  CanonicalMotionProjectV1Schema,
+  serializeMotionProjectV1,
+  deriveTimelineDurationV1,
+  hasTimelineContentV1,
+  getVisualTimelineEndV1,
+  getAudioTimelineEndV1,
+  getCaptionTimelineEndV1,
+  canonicalizeTimelineDurationV1,
 };
 export type {
-  MotionProjectV3,
-  CanonicalMotionProjectV3,
-  VisualClipV3,
-  VisualTrackV3,
-  AudioTrackV3,
-  CaptionTrackV3,
+  MotionProjectV1,
+  CanonicalMotionProjectV1,
+  VisualClipV1,
+  VisualTrackV1,
+  AudioTrackV1,
+  CaptionTrackV1,
   CanonicalizeTimelineDurationIssue,
   CanonicalizeTimelineDurationResult,
-} from "./v3";
+} from "./v1";
 
 // ── Canonical hash utilities ──────────────────────────────────────────
 export {
@@ -107,20 +84,20 @@ export {
   hashesMatch,
   buildCapabilityFingerprint,
   RENDER_MANIFEST_VERSION,
-} from "./v3/canonical-hash";
-// V3 Patch (AI / MCP editing surface)
+} from "./v1/canonical-hash";
+// V1 Patch (AI / MCP editing surface)
 export {
-  MotionProjectV3PatchSchema,
-  applyMotionProjectV3Patch,
-} from "./v3/patch";
+  MotionProjectV1PatchSchema,
+  applyMotionProjectV1Patch,
+} from "./v1/patch";
 export type {
-  MotionProjectV3Patch,
-  V3PatchOp,
-  V3PatchDiagnostic,
-  V3PatchResult,
-} from "./v3/patch";
+  MotionProjectV1Patch,
+  V1PatchOp,
+  V1PatchDiagnostic,
+  V1PatchResult,
+} from "./v1/patch";
 
-// V3 Skills (AI Agent / MCP instruction layer)
+// V1 Skills (AI Agent / MCP instruction layer)
 export {
   MotionSkillManifestSchema,
   validateSkillManifest,
@@ -132,15 +109,15 @@ export {
   SUBTITLE_STYLING_SKILL,
   PRODUCT_DEMO_SKILL,
   CORPORATE_TEMPLATE_SKILL,
-} from "./v3/skills";
+} from "./v1/skills";
 export type {
   MotionSkillManifest,
   SkillOutputContract,
   SkillExecutionResult,
   SkillValidationResult,
-} from "./v3/skills";
+} from "./v1/skills";
 
-// V3 MCP Tool Contract (server-agnostic automation surface)
+// V1 MCP Tool Contract (server-agnostic automation surface)
 export {
   MCPCreateProjectInputSchema,
   MCPValidateProjectInputSchema,
@@ -157,7 +134,7 @@ export {
   listCapabilities,
   inspectTimeline,
   explainDiagnostics,
-} from "./v3/mcp";
+} from "./v1/mcp";
 export type {
   MCPCapabilityCheck,
   MCPBaseResult,
@@ -180,7 +157,7 @@ export type {
   MCPToolOperation,
   MCPToolResult,
   MCPToolDescriptor,
-} from "./v3/mcp";
+} from "./v1/mcp";
 
 // ── Runtime IR (canonical path) ──────────────────────────────────────
 export {
@@ -190,15 +167,11 @@ export {
   type MotionRuntimeTrack,
 } from "./runtime";
 
-// ── Shared Infrastructure (explicit re-exports from V3-owned modules) ──
+// ── Shared Infrastructure (explicit re-exports from V1-owned modules) ──
 //
-// All schemas are V3-owned and exported from v3/ paths.
-//
-// LEGACY AUTHORING TYPES INTENTIONALLY EXCLUDED:
-//   Format version 1/2 project, component, and parser types. These were
-//   permanently removed — use the V3 authoring API instead.
+// All schemas are V1-owned and exported from v1/ paths.
 
-// Common / Primitives — owned by V3 (Phase 2)
+// Common / Primitives — owned by V1 (Phase 2)
 export {
   FiniteNumberSchema,
   IdSchema,
@@ -208,7 +181,7 @@ export {
   AspectRatioSchema,
   SemanticSchema,
   type AspectRatio,
-} from "./v3/common";
+} from "./v1/common";
 
 export {
   SourceRefSchema,
@@ -216,7 +189,7 @@ export {
   sourceRefKey,
   type SourceRef,
   type SourceRefKind,
-} from "./v3/source-ref";
+} from "./v1/source-ref";
 
 export {
   JsonValueSchema,
@@ -224,13 +197,13 @@ export {
   ResolvableValueSchema,
   LiteralValueSchema,
   ValueKindSchema,
-} from "./v3/values";
+} from "./v1/values";
 
-// Effects / Transform — V3 canonical (Phase 7 neutral names)
-export { EffectSchema, type MotionEffect } from "./v3/effects";
-export { TransformSchema, type MotionTransform } from "./v3/transform";
+// Effects / Transform — V1 canonical (Phase 7 neutral names)
+export { EffectSchema, type MotionEffect } from "./v1/effects";
+export { TransformSchema, type MotionTransform } from "./v1/transform";
 
-// Assets — V3 canonical (Phase 7 neutral names)
+// Assets — V1 canonical (Phase 7 neutral names)
 export {
   ImageAssetSchema,
   SvgAssetSchema,
@@ -240,32 +213,32 @@ export {
   FontAssetSchema,
   AssetSchema,
 } from "./runtime/assets";
-// V3 authoring asset schemas (compile-time)
-export { AssetV3Schema, type AssetV3 } from "./v3/assets";
+// V1 authoring asset schemas (compile-time)
+export { AssetV1Schema, type AssetV1 } from "./v1/assets";
 
-// Captions — owned by V3 (Phase 2)
+// Captions — owned by V1 (Phase 2)
 export {
   CaptionTrackSchema,
   type CaptionTrack,
   type CaptionToken,
-} from "./v3/captions";
+} from "./v1/captions";
 
-// Variables / Bindings — V3 canonical (Phase 7 neutral names)
+// Variables / Bindings — V1 canonical (Phase 7 neutral names)
 export {
   VariableSchema,
   ComponentBindingSchema,
   ProjectBindingSchema,
   PublicParamSchema,
-} from "./v3/variables";
+} from "./v1/variables";
 
-// Layout — owned by V3 (Phase 2)
+// Layout — owned by V1 (Phase 2)
 export {
   LayoutConstraintSchema,
   EdgeInsetsSchema,
   LayoutItemPolicySchema,
   type EdgeInsets,
   type LayoutItemPolicy,
-} from "./v3/layout";
+} from "./v1/layout";
 
 // Layers — geometry primitives (Phase 7 neutral names)
 export {
@@ -277,7 +250,7 @@ export {
   type MotionPathContour,
   PathMorphTargetSchema,
   type MotionPathMorphTarget,
-} from "./v3/layers/geometry";
+} from "./v1/layers/geometry";
 
 // Layers — timing, paint, text (Phase 7 neutral names)
 export {
@@ -296,30 +269,30 @@ export {
   type TextContent,
   type RichTextRun,
   type TextLayerPayload,
-} from "./v3/layers";
+} from "./v1/layers";
 
-// Layers — structural: MotionBlur owned by V3 (Phase 5)
-export { MotionBlurSettingsSchema } from "./v3/layers/structural";
+// Layers — structural: MotionBlur owned by V1 (Phase 5)
+export { MotionBlurSettingsSchema } from "./v1/layers/structural";
 
-// Layers — V3 authoring layer union (Phase 1: canonical neutral names)
+// Layers — V1 authoring layer union (Phase 1: canonical neutral names)
 export {
-  GroupLayerV3Schema as GroupLayerSchema,
-  BoneLayerV3Schema as BoneLayerSchema,
-  TextLayerV3Schema as TextLayerSchema,
-  ShapeLayerV3Schema as ShapeLayerSchema,
-  PathLayerV3Schema as PathLayerSchema,
-  ImageLayerV3Schema as ImageLayerSchema,
-  SvgLayerV3Schema as SvgLayerSchema,
-  VideoLayerV3Schema as VideoLayerSchema,
-  CameraLayerV3Schema as CameraLayerSchema,
-  SolidLayerV3Schema as SolidLayerSchema,
-  AdjustmentLayerV3Schema as AdjustmentLayerSchema,
-  ComponentLayerV3Schema as ComponentLayerSchema,
-  LayerV3Schema as LayerSchema,
-  type LayerV3 as MotionLayer,
-} from "./v3/layers";
+  GroupLayerV1Schema as GroupLayerSchema,
+  BoneLayerV1Schema as BoneLayerSchema,
+  TextLayerV1Schema as TextLayerSchema,
+  ShapeLayerV1Schema as ShapeLayerSchema,
+  PathLayerV1Schema as PathLayerSchema,
+  ImageLayerV1Schema as ImageLayerSchema,
+  SvgLayerV1Schema as SvgLayerSchema,
+  VideoLayerV1Schema as VideoLayerSchema,
+  CameraLayerV1Schema as CameraLayerSchema,
+  SolidLayerV1Schema as SolidLayerSchema,
+  AdjustmentLayerV1Schema as AdjustmentLayerSchema,
+  ComponentLayerV1Schema as ComponentLayerSchema,
+  LayerV1Schema as LayerSchema,
+  type LayerV1 as MotionLayer,
+} from "./v1/layers";
 
-// Animation — V3 canonical (Phase 7 neutral names)
+// Animation — V1 canonical (Phase 7 neutral names)
 export {
   ClipScheduleSchema,
   PlaybackSchema,
@@ -332,18 +305,18 @@ export {
   type ProceduralDriver,
   SceneMarkerSchema,
   TrackTimeSchema,
-} from "./v3/animation";
+} from "./v1/animation";
 
-export { type MotionClipV3 } from "./v3/animation/clips";
+export { type MotionClipV1 } from "./v1/animation/clips";
 
-/** Canonical clip type — re-exported from the V3 animation module. */
-export type { MotionClipV3 as MotionClip } from "./v3/animation/clips";
+/** Canonical clip type — re-exported from the V1 animation module. */
+export type { MotionClipV1 as MotionClip } from "./v1/animation/clips";
 
-// Project scene type — V3 canonical
-export type { SceneDefinitionV3 as MotionScene } from "./v3/scenes";
+// Project scene type — V1 canonical
+export type { SceneDefinitionV1 as MotionScene } from "./v1/scenes";
 
-// Design tokens — V3 canonical
-export { DesignTokensSchema, type DesignTokens } from "./v3/variables";
+// Design tokens — V1 canonical
+export { DesignTokensSchema, type DesignTokens } from "./v1/variables";
 
 // Runtime IR schemas/types (also available via ./runtime)
 export {

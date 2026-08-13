@@ -1,0 +1,168 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "transition",
+    "name": "Transition",
+    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "background": "#ffffff",
+    "colorSpace": "srgb",
+    "audioSampleRate": 48000
+  },
+  "capabilities": {
+    "required": []
+  },
+  "dependencies": {
+    "compiler": {
+      "range": ">=1.0.0"
+    },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [],
+  "components": [],
+  "scenes": [
+    {
+      "id": "intro",
+      "name": "Introduction",
+      "duration": 3,
+      "space": "flat-2d",
+      "layers": [
+        {
+          "id": "intro-title",
+          "type": "text",
+          "parentLayerId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "First Scene"
+            },
+            "fontSize": 64,
+            "color": "#000000",
+            "alignment": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          }
+        }
+      ],
+      "clips": []
+    },
+    {
+      "id": "outro",
+      "name": "Outro",
+      "duration": 2,
+      "space": "flat-2d",
+      "layers": [
+        {
+          "id": "outro-title",
+          "type": "text",
+          "parentLayerId": null,
+          "zIndex": 1,
+          "transform": {
+            "x": 960,
+            "y": 540,
+            "width": 800,
+            "height": 120,
+            "rotation": 0,
+            "scaleX": 1,
+            "scaleY": 1,
+            "anchorX": 0.5,
+            "anchorY": 0.5,
+            "opacity": 1,
+            "visible": true,
+            "flipX": false,
+            "flipY": false
+          },
+          "inheritFlags": {
+            "position": true,
+            "rotation": true,
+            "scale": true,
+            "opacity": true
+          },
+          "visible": true,
+          "locked": false,
+          "payload": {
+            "content": {
+              "kind": "plain",
+              "text": "Second Scene"
+            },
+            "fontSize": 64,
+            "color": "#000000",
+            "alignment": "center",
+            "wrap": "word",
+            "overflow": "visible"
+          }
+        }
+      ],
+      "clips": []
+    }
+  ],
+  "timeline": {
+    "visualTracks": [
+      {
+        "id": "main-track",
+        "order": 0,
+        "muted": false,
+        "clips": [
+          {
+            "id": "clip-intro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "intro"
+            },
+            "start": 0,
+            "duration": 3,
+            "loop": false,
+            "opacity": 1
+          },
+          {
+            "id": "clip-outro",
+            "source": {
+              "kind": "scene",
+              "sceneId": "outro"
+            },
+            "start": 3,
+            "duration": 2,
+            "loop": false,
+            "opacity": 1
+          }
+        ]
+      }
+    ],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "bindings": [],
+  "extensions": {}
+}

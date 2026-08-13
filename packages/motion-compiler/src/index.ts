@@ -1,6 +1,6 @@
 import { type MotionProject, type MotionRuntimeProject } from "@motionvideo/motion-protocol";
 import type { ComponentInput } from "./types";
-import { compileMotionProjectV3 } from "./compile-v3";
+import { compileMotionProjectV1 } from "./compile-v1";
 
 export type CompileOptions = {
   components?: ComponentInput[];
@@ -23,9 +23,9 @@ export function compileMotionProject(
   project: MotionProject,
   options: CompileOptions = {},
 ): MotionRuntimeProject {
-  const result = compileMotionProjectV3(
-    project as Parameters<typeof compileMotionProjectV3>[0],
-    options as unknown as Parameters<typeof compileMotionProjectV3>[1],
+  const result = compileMotionProjectV1(
+    project as Parameters<typeof compileMotionProjectV1>[0],
+    options as unknown as Parameters<typeof compileMotionProjectV1>[1],
   );
   if (!result.ok) {
     throw new Error(
@@ -41,13 +41,13 @@ export function compileMotionProject(
 
 export type { CompiledProject } from "./compile-result";
 export {
-  compileMotionProjectV3,
-  buildCompileCacheKeyV3,
+  compileMotionProjectV1,
+  buildCompileCacheKeyV1,
   detectScheduleCycles,
-  COMPILER_VERSION_V3,
-  type CompileV3Options,
-  type CompileV3Profile,
-} from "./compile-v3";
+  COMPILER_VERSION_V1,
+  type CompileV1Options,
+  type CompileV1Profile,
+} from "./compile-v1";
 export { compileSceneToRuntime } from "./compile-scene";
 export {
   DiagnosticCollector,

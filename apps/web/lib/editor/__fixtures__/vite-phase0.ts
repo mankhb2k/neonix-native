@@ -332,7 +332,7 @@ export function buildPhase0LargeFixture(
 
   const project = parseProjectInput({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "vite-phase0.large",
       name: `Phase0 Large ${clipCount}`,
@@ -380,7 +380,7 @@ function applyPure(
 export function buildPhase0Goldens(): Record<string, DocSnapshot> {
   return withDeterministicIds(() => {
     const { project, clips, lanes } = fixtureMainOnly();
-    // Goldens document command output on the current (v3) project shape.
+    // Goldens document command output on the current (v1) project shape.
     const baseProject = parseProjectInput(project);
     const baseDoc: TimelineDocument = { project: baseProject, clips, lanes };
     const overlay = fixtureBasePlusOverlay();

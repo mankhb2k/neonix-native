@@ -16,7 +16,7 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileProjectV3 } from "@motionvideo/motion-runtime/testing";
+import { compileProjectV1 } from "@motionvideo/motion-runtime/testing";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
@@ -238,7 +238,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        compiled = compileProjectV3(project);
+        compiled = compileProjectV1(project);
       } catch {
         compiled = null;
       }

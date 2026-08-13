@@ -3,7 +3,7 @@
  *
  * Phase 10: Workspace manifest, reader, linker, and canonicalizer.
  *
- * This package produces canonical MotionProjectV3 bundles from
+ * This package produces canonical MotionProjectV1 bundles from
  * multi-file workspace layouts. It is a BUILD-TIME tool only —
  * runtime and renderers must never import this package.
  */

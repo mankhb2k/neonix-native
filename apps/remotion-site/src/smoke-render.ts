@@ -14,7 +14,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import {
   createDemoMotionProject,
-  compileProjectV3,
+  compileProjectV1,
 } from "@motionvideo/motion-runtime/testing";
 import {
   parseRenderManifest,
@@ -28,7 +28,7 @@ const OUT_DIR = path.resolve(SITE_ROOT, "../../tmp/remotion-smoke");
 async function main() {
   await mkdir(OUT_DIR, { recursive: true });
   const project = createDemoMotionProject();
-  const runtime = compileProjectV3(project);
+  const runtime = compileProjectV1(project);
   const fps = runtime.metadata.fps || 30;
   const durationInFrames = compositionDurationInFrames(runtime, undefined, fps);
   const size =

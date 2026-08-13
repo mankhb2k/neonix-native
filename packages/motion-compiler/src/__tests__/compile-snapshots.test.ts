@@ -1,7 +1,7 @@
 /**
  * Phase 3 — runtime compile snapshot tests.
  *
- * Every v3 fixture is compiled to `MotionRuntimeProject` and the output
+ * Every v1 fixture is compiled to `MotionRuntimeProject` and the output
  * is compared against a checked-in golden file. Goldens can be refreshed with
  * `UPDATE_GOLDENS=1` when a compile change is intentional.
  */
@@ -9,11 +9,11 @@ import { describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { compileMotionProjectV3 } from "../index";
-import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
+import { compileMotionProjectV1 } from "../index";
+import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
 
 const projectFixtureDir = fileURLToPath(
-  new URL("../../../motion-protocol/src/__fixtures__/v3", import.meta.url),
+  new URL("../../../motion-protocol/src/__fixtures__/v1", import.meta.url),
 );
 const goldenDir = fileURLToPath(
   new URL("../__fixtures__/runtime-compile-goldens", import.meta.url),
@@ -62,8 +62,8 @@ function compileFixture(name: string): {
   diagnostics?: Array<{ severity: string; code: string; message: string }>;
 } {
   const input = loadProjectJson(name);
-  const project = parseMotionProjectV3(input);
-  const result = compileMotionProjectV3(project);
+  const project = parseMotionProjectV1(input);
+  const result = compileMotionProjectV1(project);
   if (!result.ok) {
     return {
       ok: false,

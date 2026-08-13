@@ -57,7 +57,7 @@ export function saveProject(
   project: MotionProject,
   options: SaveProjectOptions | OverlaySceneItem[] = {},
 ): void {
-  // Version-aware: legacy v2 projects are migrated to v3 before persisting.
+  // Version-aware: legacy v2 projects are migrated to v1 before persisting.
   const parsed = parseProjectInput(project);
   const adapter = getProjectStorageAdapter();
   const previous = loadStored(parsed.metadata.id);

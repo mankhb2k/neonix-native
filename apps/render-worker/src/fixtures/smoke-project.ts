@@ -1,11 +1,11 @@
-﻿import { parseMotionProjectV3, type MotionProjectV3 } from "@motionvideo/motion-protocol";
+﻿import { parseMotionProjectV1, type MotionProjectV1 } from "@motionvideo/motion-protocol";
 
 /** Minimal text+preset project for render-worker e2e / benchmark (replaces template-library seed). */
-export function createSmokeMotionProject(idSuffix?: string): MotionProjectV3 {
+export function createSmokeMotionProject(idSuffix?: string): MotionProjectV1 {
   const id = idSuffix ? `smoke_${idSuffix}` : `smoke_${Date.now()}`;
-  return parseMotionProjectV3({
+  return parseMotionProjectV1({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id,
       name: "Smoke Export",

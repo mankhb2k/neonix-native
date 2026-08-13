@@ -6,7 +6,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import { parseMotionProject } from "@motionvideo/motion-protocol";
 import { drawSceneFrame } from "./runtime/draw";
 
@@ -51,7 +51,7 @@ async function main(): Promise<void> {
   const project = parseMotionProject(
     JSON.parse(await readFile(resolve(mtPath), "utf8")),
   );
-  const result = compileMotionProjectV3(project);
+  const result = compileMotionProjectV1(project);
   if (!result.ok) {
     console.log(
       JSON.stringify({

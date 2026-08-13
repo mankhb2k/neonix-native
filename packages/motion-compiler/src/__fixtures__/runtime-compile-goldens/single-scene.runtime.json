@@ -1,6 +1,6 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 3,
+  "formatVersion": 1,
   "runtimeVersion": 1,
   "metadata": {
     "id": "single-scene",
@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "00929db727485578654523c6076afc3b",
+  "runtimeHash": "fafdb3bebb3a9e268c7481ac484c9319",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "a87c6007fe880e96",
+  "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
       "intro": "scenes:intro"

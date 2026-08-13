@@ -210,7 +210,7 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
   it("buildAudioRenderPlan resolves asset duration from runtime", () => {
     const runtime = {
       format: "motion-runtime" as const,
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "test",
         title: "Test",

@@ -1,7 +1,7 @@
 /**
  * Phase 5 — Animation inheritance tests (Group Layer Semantics).
  *
- * Verifies the V3 group animation contract:
+ * Verifies the V1 group animation contract:
  *   - Animating a group transform moves all descendants
  *   - Child local animation combines with parent animation
  *   - Group opacity animation cascades to children
@@ -80,7 +80,7 @@ function makeGroupScene(opts: {
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
-describe("V3 group animation inheritance (Phase 5)", () => {
+describe("V1 group animation inheritance (Phase 5)", () => {
   it("animating group.transform.x moves child world position", () => {
     const scene = makeGroupScene({
       tracks: [

@@ -4,7 +4,7 @@ import {
   isMotionRecipe,
 } from "@motionvideo/motion-compiler";
 import {
-  applyMotionProjectV3Patch,
+  applyMotionProjectV1Patch,
   normalizeTextPayloadInput,
   parseMotionProject,
   ProceduralDriverSchema,
@@ -70,7 +70,7 @@ export function createBlankMotionProject(input: {
   const dims = ASPECT_DIMS[input.aspectRatio];
   return parseMotionProject({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: input.projectId,
       name: input.name,
@@ -155,7 +155,7 @@ function applyOne(
         }
         const next = cloneProject(project);
         if (command.projectName) next.metadata.name = command.projectName;
-        // Phase 9: v3 tokens replace v2 metadata.brand.
+        // Phase 9: v1 tokens replace v2 metadata.brand.
         const tokens = (next as Record<string, unknown>).tokens as
           | Record<string, Record<string, string>>
           | undefined;
@@ -538,7 +538,7 @@ function applyOne(
                 diagnostic(
                   "unknown_node",
                   `layers.${command.layerId}`,
-                  `Unknown node: ${command.layerId}`,
+                  `Unknown layer: ${command.layerId}`,
                 ),
               ],
             },
@@ -745,7 +745,7 @@ function applyOne(
             },
           };
         }
-        const result = applyMotionProjectV3Patch(project, command.patch);
+        const result = applyMotionProjectV1Patch(project, command.patch);
         if (!result.project) {
           return {
             project,
@@ -826,7 +826,7 @@ function applyOne(
                 diagnostic(
                   "unknown_node",
                   `layers.${command.layerId}`,
-                  `Unknown node: ${command.layerId}`,
+                  `Unknown layer: ${command.layerId}`,
                 ),
               ],
             },
@@ -981,7 +981,7 @@ function applyOne(
                 diagnostic(
                   "unknown_node",
                   `layers.${command.layerId}`,
-                  `Unknown node: ${command.layerId}`,
+                  `Unknown layer: ${command.layerId}`,
                 ),
               ],
             },
@@ -1731,7 +1731,7 @@ function applyOne(
                 diagnostic(
                   "unknown_node",
                   `layers.${command.layerId}`,
-                  `Unknown node: ${command.layerId}`,
+                  `Unknown layer: ${command.layerId}`,
                 ),
               ],
             },
@@ -1860,7 +1860,7 @@ function applyOne(
         }
         const bgId = "__scene_background__";
         const existing = scene.layers.find((n) => n.id === bgId);
-        // Phase 9: v3 composition replaces v2 metadata.aspectRatio.
+        // Phase 9: v1 composition replaces v2 metadata.aspectRatio.
         const comp = (next as Record<string, unknown>).composition as
           | Record<string, number>
           | undefined;

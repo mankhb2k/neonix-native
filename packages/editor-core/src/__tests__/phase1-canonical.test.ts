@@ -20,7 +20,7 @@ import type { TimelineDocument } from "../document/document";
 function minimalProject(overrides?: Partial<MotionProject>): MotionProject {
   return {
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "test-proj",
       name: "Test Project",
@@ -112,7 +112,7 @@ describe("projectToTimelineDocument", () => {
     const proj1 = minimalProject();
     const proj2: MotionProject = {
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "test-proj",
         name: "Test Project",

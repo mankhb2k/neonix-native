@@ -5,7 +5,7 @@
  *   Child node timing is parent-relative. This module walks the node tree
  *   and computes each node's effective time window on the scene timeline.
  *
- * Rules (per the V3 Group Layer Semantics doc):
+ * Rules (per the V1 Group Layer Semantics doc):
  *   - Root layers (parentLayerId: null) are relative to the scene.
  *   - Child layers (parentLayerId set) are relative to their parent.
  *   - Missing timing means full parent duration (start=0, duration=parent duration).

@@ -60,7 +60,7 @@ fs.mkdirSync(exportOutDir, { recursive: true });
 
 const project = {
   format: "motion-project",
-  formatVersion: 3,
+  formatVersion: 1,
   metadata: {
     id: "bench.export",
     name: "Bench",

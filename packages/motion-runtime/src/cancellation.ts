@@ -13,7 +13,7 @@
  *
  * Usage in frame evaluation:
  * ```typescript
- * export function evaluateCompositionFrameV3(
+ * export function evaluateCompositionFrameV1(
  *   runtime, frame, fps, width, height, opts?: { signal?: AbortSignal }
  * ): EvaluatedCompositionFrame | null {
  *   throwIfAborted(opts?.signal);

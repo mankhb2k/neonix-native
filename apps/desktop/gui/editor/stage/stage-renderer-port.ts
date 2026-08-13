@@ -15,7 +15,7 @@ import {
   type TimelineLane,
   type VisualLaneIndex,
 } from "@motionvideo/editor-core";
-import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import {
   quantizeTimeToFrame,
   type StageRendererPortShape,
@@ -44,7 +44,7 @@ function nodeDomKey(clipId: string, layerId: string): string {
   return `${clipId}\0${layerId}`;
 }
 
-/** Derive legacy aspect label from v3 composition dimensions. */
+/** Derive legacy aspect label from v1 composition dimensions. */
 function compositionAspectLabel(
   project: MotionProject,
 ): "16:9" | "9:16" | "1:1" {
@@ -228,7 +228,7 @@ export function createDomStageRenderer(host: HTMLElement): StageRendererPort {
       clips = input.clips;
       lanes = input.lanes;
       try {
-        const result = compileMotionProjectV3(project);
+        const result = compileMotionProjectV1(project);
         compiled = result.ok ? result.project : null;
       } catch {
         compiled = null;

@@ -9,7 +9,7 @@
  *   components/*.mt    → embedded component definitions
  *   assets/*           → asset files referenced by the project
  *
- * The linker resolves all modules into a single canonical MotionProjectV3.
+ * The linker resolves all modules into a single canonical MotionProjectV1.
  * Runtime/renderers NEVER import this package — it's a build-time tool.
  */
 import { z } from "zod";

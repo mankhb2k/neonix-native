@@ -72,7 +72,7 @@ describe("project-journal.service", () => {
 
     const v1 = buildBlankDesktopProject({ name: "Snap1" }).documentJson;
     const v2 = buildBlankDesktopProject({ name: "Snap2" }).documentJson;
-    const v3 = buildBlankDesktopProject({ name: "Snap3" }).documentJson;
+    const v1 = buildBlankDesktopProject({ name: "Snap3" }).documentJson;
     await journal.writeAutosaveSnapshot({
       projectId: blank.projectId,
       path: filePath,
@@ -95,10 +95,10 @@ describe("project-journal.service", () => {
       documentJson: blank.documentJson,
     });
     expect(offer).not.toBeNull();
-    expect(offer?.journalDocumentHash).toBe(hashDocumentJson(v3));
+    expect(offer?.journalDocumentHash).toBe(hashDocumentJson(v1));
 
     const recovered = await journal.recover({ path: filePath });
-    expect(recovered?.documentJson).toBe(v3);
+    expect(recovered?.documentJson).toBe(v1);
 
     await journal.discard({ path: filePath, projectId: blank.projectId });
     expect(

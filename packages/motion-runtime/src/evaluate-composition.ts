@@ -137,7 +137,7 @@ function resolveCompositionEvaluateTarget(
  * - When `sceneId` is set: frame is local to that scene.
  * - When `sceneId` is omitted: frame is global; transition overlaps use the shared layer plan.
  *
- * @deprecated Use {@link evaluateCompositionFrameV3} which returns the richer
+ * @deprecated Use {@link evaluateCompositionFrameV1} which returns the richer
  *             {@link EvaluatedCompositionFrame} with layers, projection, audio, and media state.
  */
 export function evaluateCompositionFrame(
@@ -189,7 +189,7 @@ export function evaluateCompositionFrame(
  *     transform and renders in identity space (useful for editor flat preview).
  *  - `sceneId`: local to a single scene; omit for global composition timeline.
  */
-export function evaluateCompositionFrameV3(
+export function evaluateCompositionFrameV1(
   runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
@@ -414,7 +414,7 @@ export function evaluateCompositionSnapshot(
   sceneId?: string,
   background?: string,
 ): RenderSnapshot | null {
-  const v3 = evaluateCompositionFrameV3(runtime, frame, fps, width, height, {
+  const v1 = evaluateCompositionFrameV1(runtime, frame, fps, width, height, {
     sceneId,
     background,
   });

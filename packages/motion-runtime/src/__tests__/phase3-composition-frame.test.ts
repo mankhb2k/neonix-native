@@ -150,13 +150,13 @@ describe("parseStableLayerKey", () => {
 
 // ── Task 3.4: Camera view override seam ───────────────────────────────
 
-import { evaluateCompositionFrameV3 } from "../evaluate-composition";
+import { evaluateCompositionFrameV1 } from "../evaluate-composition";
 import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
 
 function emptyRuntime(): MotionRuntimeProject {
   return {
     format: "motion-runtime",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "test",
       title: "Test",
@@ -216,10 +216,10 @@ function emptyRuntime(): MotionRuntimeProject {
   };
 }
 
-describe("evaluateCompositionFrameV3", () => {
+describe("evaluateCompositionFrameV1", () => {
   it("returns EvaluatedCompositionFrame with all fields", () => {
     const runtime = emptyRuntime();
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1920, 1080);
     expect(frame).not.toBeNull();
     if (!frame) return;
 
@@ -239,14 +239,14 @@ describe("evaluateCompositionFrameV3", () => {
 
   it("returns orthographic-2d projection for flat space", () => {
     const runtime = emptyRuntime();
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1920, 1080);
     expect(frame?.projection.kind).toBe("orthographic-2d");
   });
 
   it("stageView:'flat' produces orthographic-2d even for 2.5d space", () => {
     const runtime = emptyRuntime();
     runtime.scenes[0]!.space = "layered-2.5d";
-    const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1920, 1080, {
+    const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1920, 1080, {
       stageView: "flat",
     });
     expect(frame?.projection.kind).toBe("orthographic-2d");
@@ -255,7 +255,7 @@ describe("evaluateCompositionFrameV3", () => {
   it("null for out-of-bounds frame", () => {
     const runtime = emptyRuntime();
     // Frame way beyond duration
-    const frame = evaluateCompositionFrameV3(runtime, 10000, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(runtime, 10000, 30, 1920, 1080);
     expect(frame).toBeNull();
   });
 });
@@ -451,7 +451,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
     expect(resolveTimelineAtTime(rt, 0)).toBeNull();
   });
 
-  it("multitrack: evaluateCompositionFrameV3 from primary + overlay", () => {
+  it("multitrack: evaluateCompositionFrameV1 from primary + overlay", () => {
     const rt = emptyRuntime();
     rt.timeline.visualTracks = [
       {
@@ -480,7 +480,7 @@ describe("Phase 5 — multi-track timeline resolution", () => {
       },
     ];
     // Frame at global time 0.5 → primary clip is active
-    const frame = evaluateCompositionFrameV3(rt, 0, 30, 1920, 1080);
+    const frame = evaluateCompositionFrameV1(rt, 0, 30, 1920, 1080);
     expect(frame).not.toBeNull();
     expect(frame!.compositionTime).toBe(0);
   });

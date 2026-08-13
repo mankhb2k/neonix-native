@@ -3,14 +3,14 @@
 > **Status**: Canonical architecture document — Phase 14
 >
 > **Goal**: Document how AI agents, MCP tools, Skills, and the editor UI all
-> orbit around the same V3 project format, without requiring knowledge of V2,
+> orbit around the same V1 project format, without requiring knowledge of V2,
 > editor internals, or compat layers.
 
 ---
 
-## 1. Core Principle: The Editor Is Optional UI Over V3
+## 1. Core Principle: The Editor Is Optional UI Over V1
 
-The MotiClip system has exactly one source of truth: **`MotionProjectV3`** JSON.
+The MotiClip system has exactly one source of truth: **`MotionProjectV1`** JSON.
 Everything else — the editor UI, AI planner, MCP tools, Skill templates,
 CLI scripts — reads and writes this single format.
 
@@ -25,14 +25,14 @@ flowchart TB
   end
 
   subgraph Canonical["Canonical Format"]
-    V3["MotionProjectV3<br/>JSON document"]
+    V1["MotionProjectV1<br/>JSON document"]
   end
 
   subgraph Pipeline["Processing Pipeline"]
     VALIDATE["validate<br/>(schema + references + capabilities)"]
-    COMPILE["compileMotionProjectV3()"]
+    COMPILE["compileMotionProjectV1()"]
     IR["MotionRuntimeProject<br/>(compiled artifact)"]
-    EVAL["evaluateFrame()<br/>evaluateCompositionFrameV3()"]
+    EVAL["evaluateFrame()<br/>evaluateCompositionFrameV1()"]
     PAINT["PaintCommandBuffer"]
   end
 
@@ -42,12 +42,12 @@ flowchart TB
     WORKER["Render Worker<br/>(headless Node.js)"]
   end
 
-  AI --> V3
-  MCP --> V3
-  SKILL --> V3
-  EDITOR --> V3
-  CLI --> V3
-  V3 --> VALIDATE
+  AI --> V1
+  MCP --> V1
+  SKILL --> V1
+  EDITOR --> V1
+  CLI --> V1
+  V1 --> VALIDATE
   VALIDATE --> COMPILE
   COMPILE --> IR
   IR --> EVAL
@@ -57,9 +57,9 @@ flowchart TB
   PAINT --> WORKER
 ```
 
-**Key invariant**: All five authoring surfaces produce identical V3 JSON. The
+**Key invariant**: All five authoring surfaces produce identical V1 JSON. The
 pipeline doesn't know or care which surface created the project — it only
-validates `format: "motion-project"`, `formatVersion: 3`.
+validates `format: "motion-project"`, `formatVersion: 1`.
 
 ---
 
@@ -67,15 +67,15 @@ validates `format: "motion-project"`, `formatVersion: 3`.
 
 | Concern                         | Lives In                                     | NOT In Project JSON   |
 | ------------------------------- | -------------------------------------------- | --------------------- |
-| Scene graph, clips, tracks      | `MotionProjectV3`                            | —                     |
-| Variable definitions & bindings | `MotionProjectV3`                            | —                     |
-| Asset references (by ID)        | `MotionProjectV3`                            | Asset binary data     |
+| Scene graph, clips, tracks      | `MotionProjectV1`                            | —                     |
+| Variable definitions & bindings | `MotionProjectV1`                            | —                     |
+| Asset references (by ID)        | `MotionProjectV1`                            | Asset binary data     |
 | Capability requirements         | `project.capabilities`                       | Runtime detection     |
 | Composition settings            | `project.composition`                        | Render worker config  |
 | Design tokens                   | `project.tokens`                             | Raw CSS / theme files |
 | Editor UI state                 | App-specific store (Zustand / session-store) | ✅ NOT in project     |
 | Undo/redo history               | Editor command history                       | ✅ NOT in project     |
-| playhead / currentTime, selection, zoom, scroll, panels | UI session only — never in `MotionProjectV3` | ✅ NOT in project     |
+| playhead / currentTime, selection, zoom, scroll, panels | UI session only — never in `MotionProjectV1` | ✅ NOT in project     |
 | AI generation metadata          | `provenance` (optional)                      | AI model state        |
 | Custom extensions               | `extensions` (namespaced)                    | —                     |
 
@@ -88,51 +88,51 @@ intact with no editor-only artifacts.
 
 ### 3.1 How Agents Create Projects
 
-An AI agent (Claude, GPT, Cursor) creates a V3 project through one of these paths:
+An AI agent (Claude, GPT, Cursor) creates a V1 project through one of these paths:
 
 **Path A — Full project generation:**
 
 ```text
-User brief → ai-planner → CommandBatch → executor → MotionProjectV3
+User brief → ai-planner → CommandBatch → executor → MotionProjectV1
 ```
 
 **Path B — Skill-based generation:**
 
 ```text
-User brief + Skill choice → Skill.apply(params) → MotionProjectV3 + V3Patch
+User brief + Skill choice → Skill.apply(params) → MotionProjectV1 + V1Patch
 ```
 
 **Path C — Direct JSON construction:**
 
 ```text
-AI generates valid MotionProjectV3 JSON → parseMotionProject() validates
+AI generates valid MotionProjectV1 JSON → parseMotionProject() validates
 ```
 
 All paths converge on the same `parseMotionProject()` entry point, which only
-accepts `formatVersion: 3`. There is no V2 fallback.
+accepts `formatVersion: 1`. There is no V2 fallback.
 
-### 3.2 Agent Edits Via V3 Patches
+### 3.2 Agent Edits Via V1 Patches
 
 Agents don't mutate project JSON directly for partial edits — they use
-`MotionProjectV3Patch`:
+`MotionProjectV1Patch`:
 
 ```typescript
 import {
-  applyMotionProjectV3Patch,
-  type MotionProjectV3Patch,
+  applyMotionProjectV1Patch,
+  type MotionProjectV1Patch,
 } from "@motionvideo/motion-protocol";
 
-const patch: MotionProjectV3Patch = {
+const patch: MotionProjectV1Patch = {
   operations: [
     { op: "addScene", scene: { id: "scene-cta", duration: 3, layers: [...], clips: [] } },
     { op: "addVisualClip", trackId: "track-main", clip: { id: "clip-cta", source: { kind: "scene", sceneId: "scene-cta" }, start: 5, duration: 3 } },
     { op: "updateBinding", bindingId: "bind-headline", property: "payload.content", value: "New headline" },
   ],
 };
-const updated = applyMotionProjectV3Patch(project, patch);
+const updated = applyMotionProjectV1Patch(project, patch);
 ```
 
-Patch paths match V3 structure exactly:
+Patch paths match V1 structure exactly:
 
 - `addScene` / `updateScene` / `removeScene`
 - `addVisualClip` / `trimVisualClip` / `moveVisualClip` / `reorderVisualTrack`
@@ -143,7 +143,7 @@ Patch paths match V3 structure exactly:
 - `addAudioTrack` / `updateAudioTrack`
 - `setComposition` / `setTokens`
 
-Every patch output is re-validated through `MotionProjectV3Schema.parse()`.
+Every patch output is re-validated through `MotionProjectV1Schema.parse()`.
 
 ### 3.3 Agent Preflight
 
@@ -170,8 +170,8 @@ if (!preflight.ok) {
 
 ## 4. Skill Lifecycle
 
-Skills are parameterized templates that produce V3 projects or patches. They
-live in `packages/motion-protocol/src/v3/skills.ts` as `MotionSkillManifest`
+Skills are parameterized templates that produce V1 projects or patches. They
+live in `packages/motion-protocol/src/v1/skills.ts` as `MotionSkillManifest`
 records.
 
 ### 4.1 Skill Manifest Structure
@@ -211,8 +211,8 @@ type MotionSkillManifest = {
 2. VALIDATE — skillSchema.parse(manifest)
 3. TEST — skill.apply(params) → compile → evaluate → verify frame keys
 4. PUBLISH — register in skills.ts manifest registry
-5. APPLY — AI or user calls skill with params → V3 project or patch
-6. RENDER — V3 → compile → evaluate → Pixi | Remotion | worker
+5. APPLY — AI or user calls skill with params → V1 project or patch
+6. RENDER — V1 → compile → evaluate → Pixi | Remotion | worker
 ```
 
 ### 4.4 Enterprise Template Skills
@@ -252,8 +252,8 @@ const acmeBrandSkill: MotionSkillManifest = {
 The skill's `apply()` function:
 
 1. Takes params (headline, CTA, logo, colors)
-2. Builds a `MotionProjectV3` with the correct `tokens.colors.brand`, scenes, clips
-3. Returns validated V3 JSON
+2. Builds a `MotionProjectV1` with the correct `tokens.colors.brand`, scenes, clips
+3. Returns validated V1 JSON
 
 No editor UI is needed — an AI agent can call this skill directly.
 
@@ -261,27 +261,27 @@ No editor UI is needed — an AI agent can call this skill directly.
 
 ## 5. MCP Tool Lifecycle
 
-MCP tools provide an automation surface around V3 operations. They are defined
-in `packages/motion-protocol/src/v3/mcp.ts`.
+MCP tools provide an automation surface around V1 operations. They are defined
+in `packages/motion-protocol/src/v1/mcp.ts`.
 
 ### 5.1 Available MCP Tools
 
 | Tool                   | Input                          | Output                 | Required Capabilities |
 | ---------------------- | ------------------------------ | ---------------------- | --------------------- |
-| `create_project`       | composition + metadata         | `MotionProjectV3`      | `[]`                  |
-| `validate_project`     | `MotionProjectV3`              | `ValidationReport`     | `[]`                  |
-| `apply_patch`          | `MotionProjectV3` + `V3Patch`  | `MotionProjectV3`      | `[]`                  |
-| `compile_project`      | `MotionProjectV3`              | `MotionRuntimeProject` | `[]`                  |
+| `create_project`       | composition + metadata         | `MotionProjectV1`      | `[]`                  |
+| `validate_project`     | `MotionProjectV1`              | `ValidationReport`     | `[]`                  |
+| `apply_patch`          | `MotionProjectV1` + `V1Patch`  | `MotionProjectV1`      | `[]`                  |
+| `compile_project`      | `MotionProjectV1`              | `MotionRuntimeProject` | `[]`                  |
 | `render_preview_frame` | `MotionRuntimeProject` + frame | `PaintCommandBuffer`   | depends on project    |
 | `list_capabilities`    | —                              | `CapabilityId[]`       | `[]`                  |
-| `inspect_timeline`     | `MotionProjectV3`              | timeline summary       | `[]`                  |
+| `inspect_timeline`     | `MotionProjectV1`              | timeline summary       | `[]`                  |
 | `explain_diagnostics`  | `CompileDiagnostic[]`          | human explanation      | `[]`                  |
 
 ### 5.2 MCP Workflow
 
 ```text
 1. VALIDATE — mcp.validate_project(project) → ValidationReport
-2. PATCH — mcp.apply_patch(project, patch) → updated MotionProjectV3
+2. PATCH — mcp.apply_patch(project, patch) → updated MotionProjectV1
 3. COMPILE — mcp.compile_project(project) → MotionRuntimeProject
 4. PREVIEW — mcp.render_preview_frame(runtime, frame) → base64 PNG
 5. EXPORT — render-worker processes runtime → MP4
@@ -340,9 +340,9 @@ const runtimeHash = computeRuntimeHash(runtimeIR); // 32-char SHA-256
 ### 6.3 Compile Cache Key
 
 ```typescript
-import { buildCompileCacheKeyV3 } from "@motionvideo/motion-compiler";
+import { buildCompileCacheKeyV1 } from "@motionvideo/motion-compiler";
 
-const key = buildCompileCacheKeyV3(project, { profile: "embedded-components" });
+const key = buildCompileCacheKeyV1(project, { profile: "embedded-components" });
 // "proj:abc123|compiler:3.0.0-phase11|protocol:3|caps:def456|deps:789012|profile:embedded-components"
 ```
 
@@ -360,11 +360,11 @@ const brief =
 // Step 2: AI planner creates command batch
 const commands = await aiPlanner.plan(brief);
 
-// Step 3: Executor applies commands → V3 project
+// Step 3: Executor applies commands → V1 project
 const project = executor.execute(commands);
 
 // Step 4: Validate
-const parsed = parseMotionProject(project); // throws if not valid V3
+const parsed = parseMotionProject(project); // throws if not valid V1
 
 // Step 5: Capability preflight
 const preflight = preflightProjectCapabilities(parsed);
@@ -374,13 +374,13 @@ if (!preflight.ok) {
 }
 
 // Step 6: Compile
-const result = compileMotionProjectV3(parsed);
+const result = compileMotionProjectV1(parsed);
 if (!result.ok) {
   console.log("Diagnostics:", result.diagnostics);
 } else {
   const runtime = result.project;
   // Step 7: Preview frame 0
-  const frame = evaluateCompositionFrameV3(runtime, 0, 30, 1080, 1920);
+  const frame = evaluateCompositionFrameV1(runtime, 0, 30, 1080, 1920);
   // Step 8: Export via render-worker
   const manifest = buildRenderManifestDigest(runtime);
   await processJob(parsed);
@@ -457,8 +457,8 @@ MCP Server:
 
 | Package               | Role                                                  | Exposed To          |
 | --------------------- | ----------------------------------------------------- | ------------------- |
-| `motion-protocol`     | V3 schema, parsing, patching, capabilities, hashing   | Everyone            |
-| `motion-compiler`     | V3 → runtime IR compilation                           | Pipeline, MCP, CLI  |
+| `motion-protocol`     | V1 schema, parsing, patching, capabilities, hashing   | Everyone            |
+| `motion-compiler`     | V1 → runtime IR compilation                           | Pipeline, MCP, CLI  |
 | `motion-runtime`      | Frame evaluation, paint commands, timeline resolution | Pipeline, renderers |
 | `pixi-renderer`       | Interactive Pixi.js preview                           | Editor UI           |
 | `remotion-renderer`   | Remotion Lambda export                                | Export service      |
@@ -481,10 +481,10 @@ script, you only need `motion-protocol` (for schema/parse/patch) and optionally
 
 - [x] A developer can build a Skill without opening editor code
 - [x] A developer can build an MCP tool without knowing V2/compat
-- [x] `parseMotionProject()` accepts only `formatVersion: 3`
-- [x] All product paths use the same V3 → compile → evaluate pipeline
+- [x] `parseMotionProject()` accepts only `formatVersion: 1`
+- [x] All product paths use the same V1 → compile → evaluate pipeline
 - [x] Editor UI state is not part of the project JSON
 - [x] Project hash is stable (timestamps, provenance, extensions excluded)
 - [x] Runtime hash is stable (same input → same hash)
-- [x] `validate-v3-source-of-truth` CI gate passes
+- [x] `validate-v1-source-of-truth` CI gate passes
 - [x] No production code imports V2 authoring types from root public API

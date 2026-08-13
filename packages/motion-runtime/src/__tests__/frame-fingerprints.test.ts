@@ -1,9 +1,9 @@
 /**
  * Phase 3 — runtime frame fingerprints.
  *
- * Every v3 fixture is compiled to runtime IR and evaluated at three key
+ * Every v1 fixture is compiled to runtime IR and evaluated at three key
  * frames (first / middle / last). The structural fingerprint of each frame
- * is compared against a checked-in golden file, guaranteeing that v3 work
+ * is compared against a checked-in golden file, guaranteeing that v1 work
  * cannot silently change current runtime output.
  *
  * Goldens can be refreshed with `UPDATE_GOLDENS=1`.
@@ -12,16 +12,16 @@ import { describe, expect, it } from "vitest";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
-import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
+import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
 import {
-  evaluateCompositionFrameV3,
+  evaluateCompositionFrameV1,
   timelineTotalDuration,
   type EvaluatedCompositionFrame,
 } from "../index";
 
 const projectFixtureDir = fileURLToPath(
-  new URL("../../../motion-protocol/src/__fixtures__/v3", import.meta.url),
+  new URL("../../../motion-protocol/src/__fixtures__/v1", import.meta.url),
 );
 const goldenDir = fileURLToPath(
   new URL("../__fixtures__/runtime-frame-goldens", import.meta.url),
@@ -116,8 +116,8 @@ function evaluateFixture(name: string): {
   frameNumbers: number[];
 } {
   const input = loadJson(name, "project.json");
-  const project = parseMotionProjectV3(input);
-  const result = compileMotionProjectV3(project);
+  const project = parseMotionProjectV1(input);
+  const result = compileMotionProjectV1(project);
   if (!result.ok) {
     throw new Error(
       `Compile failed for ${name}: ${result.diagnostics
@@ -136,7 +136,7 @@ function evaluateFixture(name: string): {
     frameNumbers: frames,
     fingerprints: frames.map((frame) =>
       frameFingerprint(
-        evaluateCompositionFrameV3(runtime, frame, fps, width, height),
+        evaluateCompositionFrameV1(runtime, frame, fps, width, height),
       ),
     ),
   };

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make timeline duration production-ready end-to-end and reorganize V3 timeline code into a dedicated module folder.
+Make timeline duration production-ready end-to-end and reorganize V1 timeline code into a dedicated module folder.
 
 Production target:
 
@@ -10,14 +10,14 @@ Production target:
 - Compiler derives `timeline.duration` when authoring input omits it.
 - Runtime/render paths use `timeline.duration` and `clip.start` as source of truth.
 - Gaps, overlays, audio/caption extensions, and manual tail padding render correctly.
-- V3 timeline-related schema/utilities live under `src/v3/timeline/`.
+- V1 timeline-related schema/utilities live under `src/v1/timeline/`.
 
 ## Current Status
 
 Already implemented:
 
-- `deriveTimelineDurationV3()` derives duration from visual/audio/caption content.
-- `canonicalizeTimelineDurationV3()` fills missing duration without mutating input.
+- `deriveTimelineDurationV1()` derives duration from visual/audio/caption content.
+- `canonicalizeTimelineDurationV1()` fills missing duration without mutating input.
 - Compiler emits `CMP_TIMELINE_DURATION_DERIVED` warning.
 - Runtime output includes `timeline.duration`.
 - Protocol/compiler tests and typecheck pass.
@@ -27,7 +27,7 @@ Remaining production issues:
 - Some render/runtime consumers still compute start times by cursor and ignore `clip.start`.
 - Some duration helpers still derive from clip end instead of preferring explicit `runtime.timeline.duration`.
 - Runtime audio validation cannot check audio end because runtime audio track lacks `duration`.
-- Timeline files are now growing enough to justify a `v3/timeline/` folder.
+- Timeline files are now growing enough to justify a `v1/timeline/` folder.
 
 ## Principles
 
@@ -182,7 +182,7 @@ export type CompositionSceneInput = {
   - Crossfade should not move clip starts.
   - Transition affects compositing around fixed clip boundaries.
 - Update `compositionTotalDuration()` to prefer explicit runtime duration when available, or compute max segment end.
-- Update `evaluateCompositionFrameV3()` boundary check to use explicit `timeline.duration`.
+- Update `evaluateCompositionFrameV1()` boundary check to use explicit `timeline.duration`.
 
 ### Files
 
@@ -203,7 +203,7 @@ export type CompositionSceneInput = {
 ### Acceptance Criteria
 
 - Motion runtime preview/evaluation matches compiler timeline.
-- No cursor-derived start remains in V3 composition path.
+- No cursor-derived start remains in V1 composition path.
 
 ## Phase 5. Runtime Audio Duration Policy
 
@@ -223,7 +223,7 @@ Authoring audio has `duration`, but runtime audio track schema currently drops i
 ### Files
 
 - `packages/motion-protocol/src/runtime/project.ts`
-- `packages/motion-compiler/src/compile-v3.ts`
+- `packages/motion-compiler/src/compile-v1.ts`
 - `packages/motion-compiler/src/__fixtures__/runtime-compile-goldens/*.runtime.json`
 - audio/caption compiler or render paths if they consume runtime audio
 
@@ -256,10 +256,10 @@ Authoring audio has `duration`, but runtime audio track schema currently drops i
 
 ### Files
 
-- `packages/motion-protocol/src/v3/references/project.ts`
-- `packages/motion-protocol/src/v3/timeline.ts`
-- `packages/motion-protocol/src/v3/scenes.ts`
-- `packages/motion-protocol/src/v3/__tests__/schema.test.ts`
+- `packages/motion-protocol/src/v1/references/project.ts`
+- `packages/motion-protocol/src/v1/timeline.ts`
+- `packages/motion-protocol/src/v1/scenes.ts`
+- `packages/motion-protocol/src/v1/__tests__/schema.test.ts`
 
 ### Tests
 
@@ -277,7 +277,7 @@ Authoring audio has `duration`, but runtime audio track schema currently drops i
 - Timeline is deterministic and safe for render/export.
 - No duplicate/collision-prone ids in runtime scene clone ids.
 
-## Phase 7. Refactor To `src/v3/timeline/`
+## Phase 7. Refactor To `src/v1/timeline/`
 
 ### Recommendation
 
@@ -286,7 +286,7 @@ Do this after behavior fixes above so file moves do not hide logic changes in re
 ### Target Structure
 
 ```text
-packages/motion-protocol/src/v3/timeline/
+packages/motion-protocol/src/v1/timeline/
   index.ts
   schema.ts
   duration.ts
@@ -297,28 +297,28 @@ packages/motion-protocol/src/v3/timeline/
 
 ### File Mapping
 
-- Current `src/v3/timeline.ts` -> `src/v3/timeline/schema.ts`
-- Current `src/v3/timeline-duration.ts` -> `src/v3/timeline/duration.ts`
-- Current `src/v3/canonicalize.ts` duration-specific logic -> `src/v3/timeline/canonicalize.ts`
-- Future timeline integrity helpers -> `src/v3/timeline/validation.ts`
-- Timeline type aliases -> `src/v3/timeline/types.ts` or keep next to schema if simpler.
+- Current `src/v1/timeline.ts` -> `src/v1/timeline/schema.ts`
+- Current `src/v1/timeline-duration.ts` -> `src/v1/timeline/duration.ts`
+- Current `src/v1/canonicalize.ts` duration-specific logic -> `src/v1/timeline/canonicalize.ts`
+- Future timeline integrity helpers -> `src/v1/timeline/validation.ts`
+- Timeline type aliases -> `src/v1/timeline/types.ts` or keep next to schema if simpler.
 
 ### Compatibility Plan
 
 Keep old import paths working:
 
 ```ts
-// packages/motion-protocol/src/v3/timeline.ts
+// packages/motion-protocol/src/v1/timeline.ts
 export * from "./timeline/index";
 ```
 
 ```ts
-// packages/motion-protocol/src/v3/timeline-duration.ts
+// packages/motion-protocol/src/v1/timeline-duration.ts
 export * from "./timeline/duration";
 ```
 
 ```ts
-// packages/motion-protocol/src/v3/canonicalize.ts
+// packages/motion-protocol/src/v1/canonicalize.ts
 export * from "./timeline/canonicalize";
 ```
 
@@ -328,10 +328,10 @@ Update internal imports gradually to the new folder paths.
 
 Files:
 
-- `packages/motion-protocol/src/v3/index.ts`
+- `packages/motion-protocol/src/v1/index.ts`
 - `packages/motion-protocol/src/index.ts`
-- `packages/motion-protocol/src/v3/project.ts`
-- `packages/motion-compiler/src/compile-v3.ts`
+- `packages/motion-protocol/src/v1/project.ts`
+- `packages/motion-compiler/src/compile-v1.ts`
 
 Tasks:
 
@@ -348,22 +348,22 @@ Tasks:
 - Add a small import compatibility test if useful:
 
 ```ts
-import { ProjectTimelineV3Schema } from "../timeline";
-import { deriveTimelineDurationV3 } from "../timeline-duration";
+import { ProjectTimelineV1Schema } from "../timeline";
+import { deriveTimelineDurationV1 } from "../timeline-duration";
 ```
 
 ### Acceptance Criteria
 
 - Existing public imports continue to work.
-- New code can import from `src/v3/timeline`.
+- New code can import from `src/v1/timeline`.
 - No circular dependency regression.
 
 ## Phase 8. Documentation Update
 
 ### Files
 
-- `docs/guide/v3-format-guide.md`
-- `docs/guide/v3-component-guide.md`
+- `docs/guide/v1-format-guide.md`
+- `docs/guide/v1-component-guide.md`
 - `docs/timeline-duration-derivation-plan.md`
 - `docs/runtime-mcp-legacy-cleanup-production-plan.md`
 
@@ -377,7 +377,7 @@ import { deriveTimelineDurationV3 } from "../timeline-duration";
   - background only.
   - audio/caption may still exist.
 - Document main vs overlay overlap policy after final decision.
-- Document new source layout `v3/timeline/`.
+- Document new source layout `v1/timeline/`.
 
 ### Acceptance Criteria
 
@@ -402,7 +402,7 @@ pnpm.cmd --filter @motionvideo/render-worker test
 
 ```powershell
 pnpm.cmd typecheck
-pnpm.cmd validate:v3-source-of-truth
+pnpm.cmd validate:v1-source-of-truth
 pnpm.cmd validate:motion-fixtures
 pnpm.cmd e2e:render
 ```
@@ -420,6 +420,6 @@ This work is complete when:
 - Manual empty tail renders as frames.
 - Gaps render correctly.
 - Overlay starts render correctly.
-- Timeline code is organized under `src/v3/timeline/`.
+- Timeline code is organized under `src/v1/timeline/`.
 - Old public import paths remain compatible.
 - Protocol, compiler, runtime, and render-worker tests/typecheck pass.

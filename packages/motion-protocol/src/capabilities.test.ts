@@ -104,7 +104,7 @@ describe("motion-protocol R2–R5 contract", () => {
     ).toThrow();
   });
 
-  it("parses solid layers via V3 LayerSchema", () => {
+  it("parses solid layers via V1 LayerSchema", () => {
     const node = LayerSchema.parse({
       id: "plate",
       type: "solid",

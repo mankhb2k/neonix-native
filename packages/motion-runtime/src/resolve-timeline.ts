@@ -4,7 +4,7 @@ export type TimelineProjectLike = {
   timeline: {
     /** Explicit final MP4 length (compiler canonicalization). */
     duration?: number;
-    /** V3 visual tracks — stacking by `order` (unique). */
+    /** V1 visual tracks — stacking by `order` (unique). */
     visualTracks: ReadonlyArray<{
       order: number;
       clips: ReadonlyArray<{

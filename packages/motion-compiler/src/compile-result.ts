@@ -16,7 +16,7 @@ export type CompiledProject = MotionRuntimeProject;
 export type DiagnosticSeverity = "error" | "warning" | "info";
 
 export type DiagnosticCode =
-  // V3 compiler (Phase 5) — CMP_* family
+  // V1 compiler (Phase 5) — CMP_* family
   | "CMP_UNRESOLVED_VARIABLE"
   | "CMP_UNRESOLVED_COMPONENT"
   | "CMP_UNRESOLVED_COMPONENT_VARIANT"

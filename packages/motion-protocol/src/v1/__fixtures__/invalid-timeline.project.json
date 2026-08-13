@@ -1,0 +1,30 @@
+{
+  "format": "motion-project",
+  "formatVersion": 1,
+  "metadata": {
+    "id": "v1-invalid-format",
+    "name": "V1 Invalid Format",
+    "locale": "vi-VN"
+  },
+  "composition": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "capabilities": {},
+  "dependencies": {
+    "compiler": { "range": ">=1.0.0" },
+    "components": []
+  },
+  "tokens": {},
+  "variables": [],
+  "assets": [],
+  "components": [],
+  "scenes": [],
+  "timeline": {
+    "sceneOrder": [],
+    "audioTracks": [],
+    "captionTracks": []
+  },
+  "bindings": []
+}

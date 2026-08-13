@@ -1,7 +1,7 @@
 import {
-  parseMotionProjectV3,
-  type MotionClipV3,
-  type MotionProjectV3,
+  parseMotionProjectV1,
+  type MotionClipV1,
+  type MotionProjectV1,
   type MotionLayer,
   type MotionScene,
 } from "@motionvideo/motion-protocol";
@@ -131,7 +131,7 @@ function fadeInClip(
   at: number,
   duration: number,
   fromY?: number,
-): MotionClipV3 {
+): MotionClipV1 {
   const tracks: Array<{
     layerId: string;
     property: string;
@@ -171,7 +171,7 @@ function scene(
   name: string,
   duration: number,
   layers: MotionLayer[],
-  clips: MotionClipV3[],
+  clips: MotionClipV1[],
 ): MotionScene {
   return { id, name, duration, layers, clips };
 }
@@ -659,7 +659,7 @@ function buildOutro(): MotionScene {
 
 /** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
 /** Multi-scene narrative demo — Facebook history intro (text/shape + keyframes). */
-export function createFacebookHistoryDemoProject(): MotionProjectV3 {
+export function createFacebookHistoryDemoProject(): MotionProjectV1 {
   const scenes = [
     buildHook(),
     buildHarvard(),
@@ -674,9 +674,9 @@ export function createFacebookHistoryDemoProject(): MotionProjectV3 {
     scenes.slice(0, index).reduce((sum, s) => sum + s.duration, 0),
   );
 
-  return parseMotionProjectV3({
+  return parseMotionProjectV1({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "proj_facebook_history_demo",
       name: "Facebook History — Demo",

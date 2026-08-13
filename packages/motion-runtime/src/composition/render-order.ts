@@ -1,7 +1,7 @@
 /**
  * Hierarchy-aware render order (Phase 4 — Group Layer Semantics).
  *
- * V3 rule: zIndex is sibling-local. Children sort among siblings with
+ * V1 rule: zIndex is sibling-local. Children sort among siblings with
  * the same parentLayerId and cannot escape their parent's z-order.
  *
  * This module provides `hierarchyRenderOrder` which produces a

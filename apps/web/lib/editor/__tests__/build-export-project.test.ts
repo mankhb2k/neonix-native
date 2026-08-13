@@ -245,7 +245,7 @@ describe("export temporal parity (local-time bake)", () => {
     const overlayScene = sceneWithAbsoluteAnim("scene.overlay", 2);
     const project = parseMotionProject({
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "parity.boundary",
         name: "Parity",

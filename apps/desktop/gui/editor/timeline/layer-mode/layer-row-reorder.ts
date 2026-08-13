@@ -125,12 +125,12 @@ export function zIndexForLayerInsertGap(
 }
 
 /**
- * V3 group layers: compute zIndex scoped to siblings of the same parent.
+ * V1 group layers: compute zIndex scoped to siblings of the same parent.
  *
  * Unlike `zIndexForLayerInsertGap` (which uses a global ordered list),
  * this function only considers `siblingZIndices` — the zIndex values of
  * layers that share the same `parentLayerId`. When adjacent integer zIndex values
- * leave no gap, the result may intentionally tie with the sibling above; V3
+ * leave no gap, the result may intentionally tie with the sibling above; V1
  * render/editor order then falls back to declaration order.
  */
 export function zIndexForLayerInsertGapInGroup(
@@ -191,7 +191,7 @@ export type SiblingGroupReorderInput = {
 };
 
 /**
- * Validate that a reorder move is sibling-local (V3 zIndex rule).
+ * Validate that a reorder move is sibling-local (V1 zIndex rule).
  *
  * Returns `true` if the moving node and the target position belong to
  * the same parent group. Cross-parent moves return `false`.

@@ -129,5 +129,5 @@ export const AdjustmentLayerSchema = LayerBaseSchema.extend({
     .strict(),
 }).strict();
 
-// Motion blur — re-exported from V3
-export { MotionBlurSettingsSchema } from "../../v3/layers/structural";
+// Motion blur — re-exported from V1
+export { MotionBlurSettingsSchema } from "../../v1/layers/structural";

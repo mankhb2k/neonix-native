@@ -63,7 +63,7 @@ function runtimeScene(id = "intro"): Record<string, unknown> {
 function baseIR(): Record<string, unknown> {
   return {
     format: "motion-runtime",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "rt",
       name: "Runtime",

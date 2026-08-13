@@ -42,7 +42,7 @@ function sceneClip(input: {
   return { kind: "scene", ...input };
 }
 
-/** Scene tối giản dùng trong fixture editor (V3 layers). */
+/** Scene tối giản dùng trong fixture editor (V1 layers). */
 function scene(id: string, name: string, duration = 3) {
   return {
     id,
@@ -87,7 +87,7 @@ function baseProject(
 ): MotionProject {
   return parseMotionProject({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id,
       name,
@@ -338,7 +338,7 @@ export function fixtureLegacyTrackLayerIndex() {
 export function fixtureMultiSceneReferences() {
   const project = parseMotionProject({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "fixture.multi-ref",
       name: "Multi Scene Refs",

@@ -6,7 +6,7 @@ import {
   listAiSchemaProductionCapabilities,
 } from "./ai-schema-capability";
 import { MOTION_PROTOCOL_LIMITS } from "./capabilities";
-import { SourceRefSchema, sourceRefKey } from "./v3/source-ref";
+import { SourceRefSchema, sourceRefKey } from "./v1/source-ref";
 
 describe("Phase 0 AI schema expansion foundation", () => {
   it("exposes new MOTION_PROTOCOL_LIMITS for expansion phases", () => {

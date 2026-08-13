@@ -9,7 +9,7 @@ import {
   type TimelineLane,
 } from "@motionvideo/editor-core";
 import {
-  parseMotionProjectV3,
+  parseMotionProjectV1,
   type MotionProject,
 } from "@motionvideo/motion-protocol";
 
@@ -100,9 +100,9 @@ export function buildStagePaintFixture(size: number): StagePaintFixture {
     };
   });
 
-  const project = parseMotionProjectV3({
+  const project = parseMotionProjectV1({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "proj_stage_bench",
       name: "Stage bench",

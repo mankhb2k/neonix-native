@@ -14,9 +14,9 @@ function _uid(prefix: string): string {
 
 /**
  * Derive timeline lanes + clips from project.timeline.visualTracks
- * and project.timeline.audioTracks (Phase 8: V3 only).
+ * and project.timeline.audioTracks (Phase 8: V1 only).
  *
- * Every V3 visual track maps to a visual lane (main → base, overlay → overlay);
+ * Every V1 visual track maps to a visual lane (main → base, overlay → overlay);
  * audio tracks map to audio clips with a shared audio lane.
  */
 export function visualTracksToTimelineClips(project: MotionProject): {

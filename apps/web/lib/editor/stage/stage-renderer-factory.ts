@@ -9,7 +9,7 @@ import {
   type StageRendererPort,
 } from "@/lib/editor/stage/stage-renderer-port";
 import { createPixiStageRenderer } from "@motionvideo/pixi-renderer";
-import { compileProjectV3 } from "@motionvideo/motion-runtime/testing";
+import { compileProjectV1 } from "@motionvideo/motion-runtime/testing";
 import {
   evaluateCompositionFrame,
   type EvaluatedFrame,
@@ -74,7 +74,7 @@ export async function createStageRenderer(
       setDocument(input) {
         project = input.project;
         try {
-          compiled = compileProjectV3(input.project);
+          compiled = compileProjectV1(input.project);
         } catch {
           compiled = null;
         }

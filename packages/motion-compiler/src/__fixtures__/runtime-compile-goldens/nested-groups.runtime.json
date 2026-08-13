@@ -1,6 +1,6 @@
 {
   "format": "motion-runtime",
-  "formatVersion": 3,
+  "formatVersion": 1,
   "runtimeVersion": 1,
   "metadata": {
     "id": "nested-groups",
@@ -11,7 +11,7 @@
     "brand": {
       "name": "Nested Groups"
     },
-    "description": "Three-level nested group hierarchy validated for V3 Group Layer Semantics"
+    "description": "Three-level nested group hierarchy validated for V1 Group Layer Semantics"
   },
   "assets": [
     {
@@ -34,9 +34,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "7263e030e19415ef284988010b5b4266",
+  "runtimeHash": "1e6207af5a8481963b4968dae81c39a5",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "a87c6007fe880e96",
+  "capabilityFingerprint": "c5412f1a003c40e0",
   "sourceRef": {
     "scenes": {
       "character-demo": "scenes:character-demo"

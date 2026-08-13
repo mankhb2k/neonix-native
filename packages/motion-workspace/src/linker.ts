@@ -1,6 +1,6 @@
 /**
  * MotionWorkspaceLinker — resolves workspace modules into a canonical
- * MotionProjectV3.
+ * MotionProjectV1.
  *
  * Pipeline:
  *   read manifest → parse modules → resolve cross-references →
@@ -30,7 +30,7 @@ export interface LinkDiagnostic {
 /** Result of workspace linking. */
 export interface LinkResult {
   ok: boolean;
-  /** Canonical MotionProjectV3 when ok=true. */
+  /** Canonical MotionProjectV1 when ok=true. */
   project?: MotionProject;
   /** Structured diagnostics. */
   diagnostics: LinkDiagnostic[];
@@ -65,7 +65,7 @@ function normalizeNode(raw: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Link all workspace modules into a single canonical MotionProjectV3.
+ * Link all workspace modules into a single canonical MotionProjectV1.
  *
  * Strategy:
  *  1. Parse the manifest
@@ -96,7 +96,7 @@ export async function linkMotionWorkspace(
   // 2. Build project skeleton
   const project: Record<string, unknown> = {
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: manifest.metadata.id,
       name: manifest.metadata.name,

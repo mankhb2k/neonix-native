@@ -1,15 +1,15 @@
 import {
-  parseMotionProjectV3,
-  type MotionProjectV3,
+  parseMotionProjectV1,
+  type MotionProjectV1,
 } from "@motionvideo/motion-protocol";
 
 export const DEMO_SCENE_ID = "scene.demo";
 
 /** Minimal shape + text + group fixture for preview / snapshot parity tests. */
-export function createDemoMotionProject(): MotionProjectV3 {
-  return parseMotionProjectV3({
+export function createDemoMotionProject(): MotionProjectV1 {
+  return parseMotionProjectV1({
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: "proj_preview_demo",
       name: "Preview Demo",

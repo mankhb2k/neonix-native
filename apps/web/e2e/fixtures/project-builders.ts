@@ -153,7 +153,7 @@ export function buildStoredProject(input: {
 }): StoredEditorProject {
   const project = {
     format: "motion-project",
-    formatVersion: 3,
+    formatVersion: 1,
     metadata: {
       id: input.projectId,
       name: input.name,

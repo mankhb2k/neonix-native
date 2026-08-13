@@ -26,7 +26,7 @@ export type PlacementTarget = {
   layerContainerStart?: number;
   layerContainerDuration?: number;
   /**
-   * V3 group layers: target parent group node id for the new child node.
+   * V1 group layers: target parent group node id for the new child node.
    * `null` = root layer (default). When set, the new node is created as a
    * child of the group and its timing is parent-relative.
    */
@@ -66,7 +66,7 @@ export type TimelineCommand =
       timing?: { start: number; duration: number };
       /** Higher = above. Defaults to max existing + 1. */
       zIndex?: number;
-      /** V3 group layers: parent group node id (null = root, default). */
+      /** V1 group layers: parent group node id (null = root, default). */
       parentLayerId?: string | null;
     }
   | { type: "add-audio-clip"; item: AudioLibraryItem; target: PlacementTarget }

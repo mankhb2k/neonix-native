@@ -6,8 +6,8 @@ import {
   createPlaybackDriver,
 } from "@motionvideo/editor-core";
 import { previewParitySnapshot } from "../preview/preview-evaluate";
-import { compileMotionProjectV3 } from "@motionvideo/motion-compiler";
-import { parseMotionProjectV3 } from "@motionvideo/motion-protocol";
+import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
+import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {
@@ -116,9 +116,9 @@ describe("playback driver", () => {
 
 describe("compose + evaluate smoke", () => {
   it("composes a scene clip layer and evaluates layers", () => {
-    const project = parseMotionProjectV3({
+    const project = parseMotionProjectV1({
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: "proj_test",
         name: "Test",
@@ -224,7 +224,7 @@ describe("compose + evaluate smoke", () => {
     expect(layers).toHaveLength(1);
     expect(layers[0]?.sceneId).toBe("scene_1");
 
-    const compiledResult = compileMotionProjectV3(project);
+    const compiledResult = compileMotionProjectV1(project);
     expect(compiledResult.ok).toBe(true);
     const compiled = compiledResult.ok ? compiledResult.project : null;
     if (!compiled) return;

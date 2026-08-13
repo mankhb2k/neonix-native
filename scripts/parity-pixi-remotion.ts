@@ -21,7 +21,7 @@ import {
 } from "@motionvideo/motion-runtime";
 import {
   createDemoMotionProject,
-  compileProjectV3,
+  compileProjectV1,
 } from "@motionvideo/motion-runtime/testing";
 import {
   buildRemotionPaintTree,
@@ -60,7 +60,7 @@ function sampleFrames(
 async function main() {
   await mkdir(outRoot, { recursive: true });
   const project = createDemoMotionProject();
-  const runtime = compileProjectV3(project);
+  const runtime = compileProjectV1(project);
   const fps = runtime.metadata.fps || 30;
   const durationInFrames = compositionDurationInFrames(runtime, undefined, fps);
   const width = 640;

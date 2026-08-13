@@ -1,7 +1,7 @@
 /**
  * Phase 3 — Effective timing tests (Group Layer Semantics).
  *
- * Verifies the V3 parent-relative timing contract:
+ * Verifies the V1 parent-relative timing contract:
  *   - Child timing is parent-relative
  *   - Child visibility is clipped by ancestor timing
  *   - Missing child timing = full parent duration

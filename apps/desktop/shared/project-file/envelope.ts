@@ -174,7 +174,7 @@ export function projectNameFromEnvelope(
   return envelope.project.metadata.name;
 }
 
-/** Derive legacy aspect-ratio label from v3 composition dimensions. */
+/** Derive legacy aspect-ratio label from v1 composition dimensions. */
 export function envelopeAspectRatio(
   envelope: DesktopProjectEnvelope,
 ): "16:9" | "9:16" | "1:1" {
@@ -218,7 +218,7 @@ export function buildBlankDesktopProject(input?: {
     formatVersion: EDITOR_ENVELOPE_VERSION,
     project: {
       format: "motion-project",
-      formatVersion: 3,
+      formatVersion: 1,
       metadata: {
         id: projectId,
         name,

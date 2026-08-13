@@ -1,8 +1,8 @@
 ﻿/**
- * V3 Runtime Primitives — delegates to vitest smoke test.
+ * V1 Runtime Primitives — delegates to vitest smoke test.
  *
  * The actual validation lives at:
- *   packages/motion-runtime/src/__tests__/v3-primitives-smoke.test.ts
+ *   packages/motion-runtime/src/__tests__/v1-primitives-smoke.test.ts
  *
  * Run directly: pnpm --filter @motionvideo/motion-runtime test
  */
@@ -13,9 +13,9 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 
-console.log("Running V3 runtime primitives via vitest...");
+console.log("Running V1 runtime primitives via vitest...");
 execSync(
-  "pnpm --filter @motionvideo/motion-runtime exec vitest run --reporter=verbose src/__tests__/v3-primitives-smoke.test.ts",
+  "pnpm --filter @motionvideo/motion-runtime exec vitest run --reporter=verbose src/__tests__/v1-primitives-smoke.test.ts",
   { cwd: repoRoot, stdio: "inherit" },
 );
-console.log("V3 runtime primitives smoke test PASSED");
+console.log("V1 runtime primitives smoke test PASSED");

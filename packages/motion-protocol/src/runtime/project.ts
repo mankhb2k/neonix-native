@@ -2,7 +2,7 @@
  * MotionRuntimeProject — canonical runtime IR schemas and types.
  *
  * This module OWNS the runtime IR schema definitions.
- * Phase 6: formatVersion bumped to 3, sceneOrder removed.
+ * Phase 6: formatVersion is 1, sceneOrder removed.
  */
 
 import { z } from "zod";
@@ -12,22 +12,21 @@ import {
   motionPropertyCapability,
   motionPropertyValueError,
 } from "../capabilities";
-import { ProceduralDriverSchema } from "../v3/animation/drivers";
-import { ExtrapolationBehaviorSchema } from "../v3/animation/tracks";
-import { KeyframeEasingSchema } from "../v3/animation/easing";
+import { ProceduralDriverSchema } from "../v1/animation/drivers";
+import { ExtrapolationBehaviorSchema } from "../v1/animation/tracks";
+import { KeyframeEasingSchema } from "../v1/animation/easing";
 import { AssetSchema } from "./assets";
 import {
   AspectRatioSchema,
   FiniteNumberSchema,
   IdSchema,
   PropertyPathSchema,
-} from "../v3/common";
+} from "../v1/common";
 
 /**
- * Runtime IR format version — bumped to 3 (Phase 6)
- * to match the V3 authoring format.
+ * Runtime IR format version — 1, matching V1 authoring.
  */
-const RUNTIME_IR_FORMAT_VERSION = 3 as const;
+const RUNTIME_IR_FORMAT_VERSION = 1 as const;
 import {
   AdjustmentLayerSchema,
   BoneLayerSchema,
@@ -45,9 +44,9 @@ import {
 
 // ── Runtime IR schemas ────────────────────────────────────────────────
 
-import { CaptionTrackSchema } from "../v3/captions";
+import { CaptionTrackSchema } from "../v1/captions";
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
-import { LiteralValueSchema, ValueKindSchema } from "../v3/values";
+import { LiteralValueSchema, ValueKindSchema } from "../v1/values";
 
 export const PlatformSafeAreaSchema = z
   .object({

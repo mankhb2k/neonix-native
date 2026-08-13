@@ -5,13 +5,13 @@ import {
 import {
   createDemoMotionProject,
   DEMO_SCENE_ID,
-  compileProjectV3,
+  compileProjectV1,
 } from "@motionvideo/motion-runtime/testing";
 import { describe, expect, it } from "vitest";
 
 describe("hitTestRenderSnapshot", () => {
   it("returns drawable hits under a point, top-most first", () => {
-    const runtime = compileProjectV3(createDemoMotionProject());
+    const runtime = compileProjectV1(createDemoMotionProject());
     const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
     const snapshot = buildRenderSnapshot({
       scene,
@@ -37,7 +37,7 @@ describe("hitTestRenderSnapshot", () => {
   });
 
   it("orders hits by renderOrder descending", () => {
-    const runtime = compileProjectV3(createDemoMotionProject());
+    const runtime = compileProjectV1(createDemoMotionProject());
     const scene = runtime.scenes.find((s) => s.id === DEMO_SCENE_ID)!;
     const snapshot = buildRenderSnapshot({
       scene,

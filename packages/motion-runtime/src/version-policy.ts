@@ -127,7 +127,7 @@ export function buildVersionManifest(): RuntimeVersionManifest {
  *
  * Set via:
  *   (globalThis as any).__MOTION_FEATURE_FLAGS__ = ["PERSPECTIVE_3D"];
- *   // or pass via evaluateCompositionFrameV3 opts.featureFlags
+ *   // or pass via evaluateCompositionFrameV1 opts.featureFlags
  */
 export const FeatureFlag = {
   /** Phase 11: Perspective 3D projection */

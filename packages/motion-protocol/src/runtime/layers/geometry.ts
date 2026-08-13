@@ -1,5 +1,5 @@
 /**
- * Runtime geometry — point/path primitives re-exported from V3;
+ * Runtime geometry — point/path primitives re-exported from V1;
  * shape and path node schemas use the runtime LayerBaseSchema.
  */
 
@@ -9,12 +9,12 @@ import { FiniteNumberSchema } from "../common";
 import { LayerBaseSchema } from "./base";
 import { PaintStyleSchema } from "./paint";
 
-// Shared primitives — imported from V3 for local use, then re-exported
+// Shared primitives — imported from V1 for local use, then re-exported
 import {
   PointSchema,
   PathContourSchema,
   PathMorphTargetSchema,
-} from "../../v3/layers/geometry";
+} from "../../v1/layers/geometry";
 export {
   PointSchema,
   PathSegmentSchema,
@@ -24,7 +24,7 @@ export {
   type MotionPathSegment,
   type MotionPathContour,
   type MotionPathMorphTarget,
-} from "../../v3/layers/geometry";
+} from "../../v1/layers/geometry";
 
 // Shape node (runtime LayerBaseSchema)
 const ShapePayloadSchema = z.discriminatedUnion("shape", [

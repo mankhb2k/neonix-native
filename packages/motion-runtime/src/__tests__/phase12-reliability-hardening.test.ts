@@ -9,7 +9,7 @@
  *   - RuntimeDiagnosticError wrapping
  *
  * Task 12.2: Cancellation/dispose
- *   - AbortSignal via evaluateCompositionFrameV3
+ *   - AbortSignal via evaluateCompositionFrameV1
  *   - CancellationError class
  *   - throwIfAborted / isAborted
  *   - withTimeout combining signals
