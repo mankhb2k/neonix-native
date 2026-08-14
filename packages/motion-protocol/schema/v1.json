@@ -326,32 +326,6 @@
               ],
               "default": 48000
             },
-            "safeArea": {
-              "type": "object",
-              "properties": {
-                "top": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                "right": {
-                  "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top"
-                },
-                "bottom": {
-                  "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top"
-                },
-                "left": {
-                  "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top"
-                }
-              },
-              "required": [
-                "top",
-                "right",
-                "bottom",
-                "left"
-              ],
-              "additionalProperties": false
-            },
             "motionBlur": {
               "type": "object",
               "properties": {
@@ -369,7 +343,9 @@
                   "default": 180
                 },
                 "shutterPhase": {
-                  "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top",
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1,
                   "default": 0
                 }
               },
@@ -557,7 +533,7 @@
             "radii": {
               "type": "object",
               "additionalProperties": {
-                "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top"
+                "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/motionBlur/properties/shutterPhase"
               }
             },
             "motion": {
@@ -1495,23 +1471,9 @@
                         "zIndex": {
                           "type": "integer"
                         },
-                        "transform": {
+                        "frame": {
                           "type": "object",
                           "properties": {
-                            "x": {
-                              "$ref": "#/definitions/JsonValue/anyOf/1"
-                            },
-                            "y": {
-                              "$ref": "#/definitions/JsonValue/anyOf/1"
-                            },
-                            "z": {
-                              "type": "number",
-                              "minimum": -100000,
-                              "maximum": 100000
-                            },
-                            "depth": {
-                              "$ref": "#/definitions/JsonValue/anyOf/1"
-                            },
                             "width": {
                               "type": "number",
                               "minimum": 0,
@@ -1521,80 +1483,269 @@
                               "type": "number",
                               "minimum": 0,
                               "maximum": 32768
-                            },
-                            "rotation": {
-                              "$ref": "#/definitions/JsonValue/anyOf/1"
-                            },
-                            "rotationX": {
-                              "type": "number",
-                              "minimum": -360,
-                              "maximum": 360
-                            },
-                            "rotationY": {
-                              "type": "number",
-                              "minimum": -360,
-                              "maximum": 360
-                            },
-                            "rotationZ": {
-                              "type": "number",
-                              "minimum": -360,
-                              "maximum": 360
-                            },
-                            "scaleX": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1000
-                            },
-                            "scaleY": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1000
-                            },
-                            "anchorX": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1
-                            },
-                            "anchorY": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1
-                            },
-                            "anchorZ": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1
-                            },
-                            "opacity": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 1
-                            },
-                            "visible": {
-                              "type": "boolean"
-                            },
-                            "flipX": {
-                              "type": "boolean"
-                            },
-                            "flipY": {
-                              "type": "boolean"
                             }
                           },
                           "required": [
-                            "x",
-                            "y",
                             "width",
-                            "height",
-                            "rotation",
-                            "scaleX",
-                            "scaleY",
-                            "anchorX",
-                            "anchorY",
-                            "opacity",
-                            "visible",
-                            "flipX",
-                            "flipY"
+                            "height"
                           ],
+                          "additionalProperties": false
+                        },
+                        "transform": {
+                          "type": "object",
+                          "properties": {
+                            "translate": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number",
+                                  "default": 0
+                                },
+                                "y": {
+                                  "type": "number",
+                                  "default": 0
+                                }
+                              },
+                              "additionalProperties": false,
+                              "default": {
+                                "x": 0,
+                                "y": 0
+                              }
+                            },
+                            "rotate": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number",
+                                  "minimum": -360,
+                                  "maximum": 360,
+                                  "default": 0
+                                },
+                                "y": {
+                                  "type": "number",
+                                  "minimum": -360,
+                                  "maximum": 360,
+                                  "default": 0
+                                },
+                                "z": {
+                                  "type": "number",
+                                  "minimum": -360,
+                                  "maximum": 360,
+                                  "default": 0
+                                }
+                              },
+                              "additionalProperties": false,
+                              "default": {
+                                "x": 0,
+                                "y": 0,
+                                "z": 0
+                              }
+                            },
+                            "scale": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number",
+                                  "minimum": -1000,
+                                  "maximum": 1000,
+                                  "default": 1
+                                },
+                                "y": {
+                                  "type": "number",
+                                  "minimum": -1000,
+                                  "maximum": 1000,
+                                  "default": 1
+                                },
+                                "z": {
+                                  "type": "number",
+                                  "minimum": -1000,
+                                  "maximum": 1000,
+                                  "default": 1
+                                }
+                              },
+                              "additionalProperties": false,
+                              "default": {
+                                "x": 1,
+                                "y": 1,
+                                "z": 1
+                              }
+                            },
+                            "skew": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number",
+                                  "minimum": -360,
+                                  "maximum": 360,
+                                  "default": 0
+                                },
+                                "y": {
+                                  "type": "number",
+                                  "minimum": -360,
+                                  "maximum": 360,
+                                  "default": 0
+                                }
+                              },
+                              "additionalProperties": false,
+                              "default": {
+                                "x": 0,
+                                "y": 0
+                              }
+                            },
+                            "origin": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "default": 0.5
+                                },
+                                "y": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "default": 0.5
+                                },
+                                "z": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "default": 0
+                                }
+                              },
+                              "additionalProperties": false,
+                              "default": {
+                                "x": 0.5,
+                                "y": 0.5,
+                                "z": 0
+                              }
+                            },
+                            "depth": {
+                              "type": "number",
+                              "minimum": -100000,
+                              "maximum": 100000,
+                              "default": 0
+                            },
+                            "perspective": {
+                              "type": "number",
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 100000
+                            },
+                            "perspective-origin": {
+                              "type": "object",
+                              "properties": {
+                                "x": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "default": 0.5
+                                },
+                                "y": {
+                                  "type": "number",
+                                  "minimum": 0,
+                                  "maximum": 1,
+                                  "default": 0.5
+                                }
+                              },
+                              "additionalProperties": false
+                            },
+                            "transform-style": {
+                              "type": "string",
+                              "enum": [
+                                "flat",
+                                "preserve-3d"
+                              ],
+                              "default": "flat"
+                            },
+                            "backface-visibility": {
+                              "type": "string",
+                              "enum": [
+                                "visible",
+                                "hidden"
+                              ],
+                              "default": "visible"
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "appearance": {
+                          "type": "object",
+                          "properties": {
+                            "visible": {
+                              "type": "boolean",
+                              "default": true
+                            },
+                            "opacity": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 100,
+                              "default": 100
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {
+                            "visible": true,
+                            "opacity": 100
+                          }
+                        },
+                        "compositing": {
+                          "type": "object",
+                          "properties": {
+                            "blend-mode": {
+                              "type": "string",
+                              "enum": [
+                                "normal",
+                                "multiply",
+                                "screen",
+                                "add",
+                                "darken",
+                                "lighten",
+                                "overlay"
+                              ],
+                              "default": "normal"
+                            },
+                            "isolation": {
+                              "type": "string",
+                              "enum": [
+                                "auto",
+                                "isolate"
+                              ],
+                              "default": "auto"
+                            },
+                            "mask": {
+                              "type": "object",
+                              "properties": {
+                                "sourceLayerId": {
+                                  "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
+                                },
+                                "mode": {
+                                  "type": "string",
+                                  "enum": [
+                                    "clip",
+                                    "alpha",
+                                    "inverse-alpha",
+                                    "luma",
+                                    "inverse-luma"
+                                  ]
+                                },
+                                "source-visibility": {
+                                  "type": "string",
+                                  "enum": [
+                                    "mask-only",
+                                    "content-and-mask"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "sourceLayerId",
+                                "mode",
+                                "source-visibility"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
                           "additionalProperties": false
                         },
                         "timing": {
@@ -1658,39 +1809,46 @@
                                     "type": "string",
                                     "const": "shadow"
                                   },
-                                  "offsetX": {
-                                    "type": "number",
-                                    "minimum": -32768,
-                                    "maximum": 32768
+                                  "color": {
+                                    "type": "string",
+                                    "minLength": 1
                                   },
-                                  "offsetY": {
-                                    "type": "number",
-                                    "minimum": -32768,
-                                    "maximum": 32768
+                                  "opacity": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "default": 25
                                   },
                                   "blur": {
                                     "type": "number",
                                     "minimum": 0,
                                     "maximum": 512
                                   },
-                                  "color": {
-                                    "type": "string",
-                                    "minLength": 1
-                                  },
-                                  "opacity": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                    "default": 1
+                                  "offset": {
+                                    "type": "object",
+                                    "properties": {
+                                      "x": {
+                                        "type": "number",
+                                        "minimum": -32768,
+                                        "maximum": 32768
+                                      },
+                                      "y": {
+                                        "type": "number",
+                                        "minimum": -32768,
+                                        "maximum": 32768
+                                      }
+                                    },
+                                    "required": [
+                                      "x",
+                                      "y"
+                                    ],
+                                    "additionalProperties": false
                                   }
                                 },
                                 "required": [
                                   "id",
                                   "type",
-                                  "offsetX",
-                                  "offsetY",
+                                  "color",
                                   "blur",
-                                  "color"
+                                  "offset"
                                 ],
                                 "additionalProperties": false
                               },
@@ -1710,26 +1868,22 @@
                                     "maximum": 512
                                   },
                                   "intensity": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 8
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "default": 100
                                   },
                                   "color": {
                                     "type": "string",
                                     "minLength": 1
                                   },
                                   "opacity": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 1,
-                                    "default": 1
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                                    "default": 100
                                   }
                                 },
                                 "required": [
                                   "id",
                                   "type",
                                   "radius",
-                                  "intensity",
                                   "color"
                                 ],
                                 "additionalProperties": false
@@ -1745,22 +1899,24 @@
                                     "const": "color-adjust"
                                   },
                                   "brightness": {
-                                    "type": "number",
-                                    "minimum": -1,
-                                    "maximum": 1,
-                                    "default": 0
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 200,
+                                    "default": 100
                                   },
                                   "contrast": {
-                                    "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 4,
-                                    "default": 1
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness",
+                                    "default": 100
                                   },
                                   "saturation": {
+                                    "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness",
+                                    "default": 100
+                                  },
+                                  "hue-rotate": {
                                     "type": "number",
-                                    "minimum": 0,
-                                    "maximum": 4,
-                                    "default": 1
+                                    "minimum": -180,
+                                    "maximum": 180,
+                                    "default": 0
                                   }
                                 },
                                 "required": [
@@ -1772,49 +1928,6 @@
                             ]
                           },
                           "maxItems": 16
-                        },
-                        "blendMode": {
-                          "type": "string",
-                          "enum": [
-                            "normal",
-                            "multiply",
-                            "screen",
-                            "add",
-                            "darken",
-                            "lighten",
-                            "overlay"
-                          ]
-                        },
-                        "mask": {
-                          "type": "object",
-                          "properties": {
-                            "sourceLayerId": {
-                              "$ref": "#/definitions/ComponentPropValue/anyOf/1/properties/ref/properties/id"
-                            },
-                            "mode": {
-                              "type": "string",
-                              "enum": [
-                                "clip",
-                                "alpha",
-                                "inverse-alpha",
-                                "luma",
-                                "inverse-luma"
-                              ]
-                            },
-                            "sourceVisibility": {
-                              "type": "string",
-                              "enum": [
-                                "mask-only",
-                                "content-and-mask"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "sourceLayerId",
-                            "mode",
-                            "sourceVisibility"
-                          ],
-                          "additionalProperties": false
                         },
                         "inheritFlags": {
                           "type": "object",
@@ -1837,10 +1950,6 @@
                             }
                           },
                           "additionalProperties": false
-                        },
-                        "visible": {
-                          "type": "boolean",
-                          "default": true
                         },
                         "locked": {
                           "type": "boolean",
@@ -2380,22 +2489,7 @@
                         },
                         "payload": {
                           "type": "object",
-                          "properties": {
-                            "compositing": {
-                              "type": "object",
-                              "properties": {
-                                "mode": {
-                                  "type": "string",
-                                  "enum": [
-                                    "pass-through",
-                                    "isolate"
-                                  ],
-                                  "default": "pass-through"
-                                }
-                              },
-                              "additionalProperties": false
-                            }
-                          },
+                          "properties": {},
                           "additionalProperties": false
                         },
                         "children": {
@@ -2433,8 +2527,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -2445,17 +2548,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -2526,8 +2620,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -2538,17 +2641,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -2767,8 +2861,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -2779,17 +2882,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3060,8 +3154,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3072,17 +3175,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3233,8 +3327,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3245,17 +3348,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3347,8 +3441,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3359,17 +3462,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3409,8 +3503,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3421,17 +3524,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3512,8 +3606,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3524,17 +3627,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3616,8 +3710,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3628,17 +3731,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3649,27 +3743,11 @@
                         "payload": {
                           "type": "object",
                           "properties": {
-                            "width": {
-                              "type": "number",
-                              "exclusiveMinimum": true,
-                              "minimum": 0,
-                              "maximum": 32768
-                            },
-                            "height": {
-                              "type": "number",
-                              "exclusiveMinimum": true,
-                              "minimum": 0,
-                              "maximum": 32768
-                            },
                             "color": {
                               "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/background",
                               "default": "#000000"
                             }
                           },
-                          "required": [
-                            "width",
-                            "height"
-                          ],
                           "additionalProperties": false
                         }
                       },
@@ -3701,8 +3779,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3713,17 +3800,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3735,19 +3813,16 @@
                           "type": "object",
                           "properties": {
                             "brightness": {
-                              "type": "number",
-                              "minimum": -1,
-                              "maximum": 1
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness"
                             },
                             "contrast": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 4
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness"
                             },
                             "saturation": {
-                              "type": "number",
-                              "minimum": 0,
-                              "maximum": 4
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/brightness"
+                            },
+                            "hue-rotate": {
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects/items/anyOf/3/properties/hue-rotate"
                             }
                           },
                           "additionalProperties": false
@@ -3780,8 +3855,17 @@
                         "zIndex": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/zIndex"
                         },
+                        "frame": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/frame"
+                        },
                         "transform": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/transform"
+                        },
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance"
+                        },
+                        "compositing": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/compositing"
                         },
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
@@ -3792,17 +3876,8 @@
                         "effects": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/effects"
                         },
-                        "blendMode": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/blendMode"
-                        },
-                        "mask": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/mask"
-                        },
                         "inheritFlags": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/inheritFlags"
-                        },
-                        "visible": {
-                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/visible"
                         },
                         "locked": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/locked"
@@ -3867,9 +3942,12 @@
                         "timing": {
                           "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/timing"
                         },
-                        "visible": {
-                          "type": "boolean",
-                          "default": true
+                        "appearance": {
+                          "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance",
+                          "default": {
+                            "visible": true,
+                            "opacity": 100
+                          }
                         },
                         "locked": {
                           "type": "boolean",
@@ -3901,8 +3979,8 @@
                               "default": 1
                             },
                             "volume": {
-                              "$ref": "#/definitions/MotionProjectV1/properties/composition/properties/safeArea/properties/top",
-                              "default": 1
+                              "$ref": "#/definitions/MotionProjectV1/properties/components/items/properties/layers/items/anyOf/0/properties/appearance/properties/opacity",
+                              "default": 100
                             },
                             "loop": {
                               "type": "boolean",

@@ -1,6 +1,6 @@
 # MotiClip — Asset Format & Storage
 
-Module: `packages/motion-storage/` · Schema: `packages/motion-protocol/src/v1/assets.ts`
+Module: `packages/motion-storage/` · Schema: `packages/motion-protocol/src/v1/assets/`
 
 `motion-storage` là **vòng khép kín** cho binary: nhận asset → lưu object store → emit `AssetV1` (authoring, `@motionvideo/motion-protocol`) → resolve URL ephemeral cho compiler/export. Runtime IR dùng `AssetSchema` trên `@motionvideo/motion-protocol/runtime`. MCP và web chỉ gọi API này; không upload R2 trực tiếp, không nhét URL vào layer.
 

@@ -2,7 +2,7 @@ import { V1 } from "@motionvideo/motion-protocol";
 
 export type JsonRecord = Record<string, unknown>;
 
-export type LayerMotionUnit = import("@motionvideo/motion-protocol/internal").MotionClipV1;
+export type LayerMotionUnit = import("@motionvideo/motion-protocol/internal").LayerMotionUnit;
 
 export function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;

@@ -7,6 +7,7 @@ import type {
   MotionLayer,
   MotionProject,
 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import type {
   MotionScene,
 } from "@motionvideo/motion-protocol/runtime";
@@ -40,25 +41,24 @@ export function updateVariable(
   });
 }
 
-/** Cập nhật một Node cụ thể trong một Scene nhất định */
+/** Cập nhật một Node cụ thể trong cây layer */
 export function mapNode(
   project: MotionProject,
-  sceneId: string,
+  _sceneId: string,
   layerId: string,
   transform: (node: MotionLayer) => MotionLayer,
 ): MotionProject {
+  const mapLayers = (layers: MotionLayer[]): MotionLayer[] =>
+    layers.map((layer) => {
+      if (layer.id === layerId) return transform(layer);
+      if (layer.type === "group") {
+        return { ...layer, children: mapLayers(layer.children) };
+      }
+      return layer;
+    });
   return {
     ...project,
-    scenes: project.scenes.map((scene) =>
-      scene.id === sceneId
-        ? {
-            ...scene,
-            layers: scene.layers.map((node) =>
-              node.id === layerId ? transform(node) : node,
-            ),
-          }
-        : scene,
-    ),
+    layers: mapLayers(project.layers),
   };
 }
 
@@ -106,21 +106,12 @@ function baseTransform(
   width: number,
   height: number,
 ) {
-  return {
+  return visualLayerAtoms({
     x: composition.width / 2,
     y: composition.height / 2,
     width,
     height,
-    rotation: 0,
-    scaleX: 1,
-    scaleY: 1,
-    anchorX: 0.5,
-    anchorY: 0.5,
-    opacity: 1,
-    visible: true,
-    flipX: false,
-    flipY: false,
-  };
+  });
 }
 
 function nodeFromDraft(
@@ -155,7 +146,7 @@ function nodeFromDraft(
       type: "shape",
       parentLayerId: null,
       zIndex: 0,
-      transform: baseTransform(composition, shapeSide, shapeSide),
+      ...baseTransform(composition, shapeSide, shapeSide),
       payload: shapePayload,
       style: { fill: "#4A90D9" },
     };
@@ -167,7 +158,7 @@ function nodeFromDraft(
       type: "image",
       parentLayerId: null,
       zIndex: 0,
-      transform: baseTransform(composition, mediaSide, mediaSide),
+      ...baseTransform(composition, mediaSide, mediaSide),
       payload: {
         assetId: draft.assetId,
         fit: "contain",
@@ -181,7 +172,7 @@ function nodeFromDraft(
       type: "video",
       parentLayerId: null,
       zIndex: 0,
-      transform: baseTransform(composition, mediaSide, mediaSide),
+      ...baseTransform(composition, mediaSide, mediaSide),
       payload: {
         assetId: draft.assetId,
         fit: "contain",
@@ -195,7 +186,7 @@ function nodeFromDraft(
     type: "text",
     parentLayerId: null,
     zIndex: 0,
-    transform: baseTransform(composition, textW, textH),
+    ...baseTransform(composition, textW, textH),
     payload: {
       text: draft.text || draft.name,
       fontSize: 64,

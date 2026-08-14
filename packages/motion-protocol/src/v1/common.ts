@@ -1,8 +1,8 @@
 /**
- * V1 shared primitives — canonical source of truth for common schemas.
+ * Primitive dùng chung V1 — nguồn sự thật cho schema cơ bản.
  *
- * Previously re-exported from legacy/common. Phase 2 moves ownership here
- * so V1 modules no longer depend on legacy/.
+ * Gồm PercentSchema (0..100), ColorAdjustPercentSchema (0..200),
+ * HueRotateSchema (−180..180) và ratioFromPercent.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -10,7 +10,7 @@ import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 export const MOTION_PROJECT_V1_FORMAT_VERSION = 1 as const;
 export const MOTION_WORKSPACE_FORMAT_VERSION = 1 as const;
 
-// ── Primitives (copied from legacy/common — same definitions) ─────────
+// ── Primitive dùng chung ─────────────────────────────────────────────
 
 export const AspectRatioSchema = z.enum(["9:16", "16:9", "1:1"]);
 
@@ -47,7 +47,7 @@ export const SemanticSchema = z
 
 export type AspectRatio = z.infer<typeof AspectRatioSchema>;
 
-/** #rrggbb (6 hex digits). */
+/** Màu #rrggbb (6 hex). */
 export const ColorHexSchema = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "Expected #rrggbb hex color");
@@ -55,3 +55,17 @@ export const ColorHexSchema = z
 export const NonNegativeIntegerSchema = z.number().int().nonnegative();
 export const PositiveNumberSchema = z.number().positive().finite();
 export const NormalizedRatioSchema = z.number().min(0).max(1).finite();
+
+/** Phần trăm authoring. 100 = đầy (opacity, volume, intensity). Chỉ số nguyên. */
+export const PercentSchema = z.number().int().min(0).max(100);
+
+/** Phần trăm color-adjust. 100 = bình thường, 200 = 2×. Chỉ số nguyên. */
+export const ColorAdjustPercentSchema = z.number().int().min(0).max(200);
+
+/** hue-rotate theo độ. */
+export const HueRotateSchema = z.number().finite().min(-180).max(180);
+
+/** Paint/audio: phần trăm authoring → 0..1 (hoặc 0..2 với color-adjust). */
+export function ratioFromPercent(percent: number): number {
+  return percent / 100;
+}

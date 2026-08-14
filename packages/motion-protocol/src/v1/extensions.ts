@@ -1,9 +1,7 @@
 /**
- * V1 namespaced extensions.
+ * Extension theo namespace chấm (com.moticlip.foo).
  *
- * Extensions must use a dotted namespace (`com.moticlip.foo`) so different
- * tooling can coexist without key collisions. Values are intentionally
- * opaque (`unknown`) — they never enter the render hash.
+ * Giá trị opaque (unknown) — không vào render hash.
  */
 import { z } from "zod";
 

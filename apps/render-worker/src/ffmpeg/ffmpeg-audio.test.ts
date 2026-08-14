@@ -23,9 +23,9 @@ describe("buildFfmpegAudioMixFilters", () => {
   it("builds filters from AudioRenderPlan SoT (duration, rate, muted)", () => {
     const plan: AudioRenderPlan = {
       fps: 30,
-      clips: [
+      layers: [
         {
-          trackId: "aud.bgm",
+          layerId: "aud.bgm",
           assetId: "asset.bgm",
           uri: "assets/bgm.mp3",
           fromFrame: 30,
@@ -38,7 +38,6 @@ describe("buildFfmpegAudioMixFilters", () => {
             { frame: 30, value: 0.8 },
             { frame: 120, value: 0.8 },
           ],
-          role: "bgm",
           loop: false,
           muted: false,
           channelPolicy: "stereo",
@@ -59,9 +58,9 @@ describe("buildFfmpegAudioMixFilters", () => {
   it("forces volume=0 when muted", () => {
     const plan: AudioRenderPlan = {
       fps: 30,
-      clips: [
+      layers: [
         {
-          trackId: "aud.muted",
+          layerId: "aud.muted",
           assetId: "asset.sfx",
           uri: "assets/sfx.mp3",
           fromFrame: 0,
@@ -74,7 +73,6 @@ describe("buildFfmpegAudioMixFilters", () => {
             { frame: 0, value: 0 },
             { frame: 30, value: 0 },
           ],
-          role: "sfx",
           loop: false,
           muted: true,
           channelPolicy: "stereo",

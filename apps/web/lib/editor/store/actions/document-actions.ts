@@ -67,14 +67,20 @@ export function createDocumentActions(
       const project = get().project;
       if (!project) return;
       set({
-        project: mapNode(project, sceneId, layerId, (node) => ({
-          ...node,
-          transform: {
-            ...node.transform,
-            x: position.x ?? node.transform.x,
-            y: position.y ?? node.transform.y,
-          },
-        })),
+        project: mapNode(project, sceneId, layerId, (node) => {
+          if (!("transform" in node) || !node.transform) return node;
+          return {
+            ...node,
+            transform: {
+              ...node.transform,
+              translate: {
+                ...node.transform.translate,
+                x: position.x ?? node.transform.translate.x,
+                y: position.y ?? node.transform.translate.y,
+              },
+            },
+          };
+        }),
       });
     },
 

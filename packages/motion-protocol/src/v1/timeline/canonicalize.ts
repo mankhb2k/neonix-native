@@ -1,8 +1,5 @@
 /**
- * Canonical hóa duration timeline V1 + snap frame-grid.
- *
- * Điền `timeline.duration` còn thiếu từ điểm kết thúc root layer, rồi snap
- * mọi field timing lên `composition.fps`.
+ * Điền timeline.duration còn thiếu rồi snap mọi timing lên lưới composition.fps.
  */
 import type { MotionProjectV1 } from "../project";
 import { deriveTimelineDurationV1 } from "./duration";

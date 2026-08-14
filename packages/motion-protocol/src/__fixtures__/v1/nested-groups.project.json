@@ -53,25 +53,31 @@
         "duration": 4
       },
       "transform": {
-        "x": 540,
-        "y": 960,
-        "width": 500,
-        "height": 700,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
-      },
-      "visible": true,
-      "payload": {
-        "compositing": {
-          "mode": "pass-through"
-        }
+        "translate": {
+          "x": 540,
+          "y": 960
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "children": [
         {
@@ -84,25 +90,31 @@
             "duration": 2
           },
           "transform": {
-            "x": 0,
-            "y": -120,
-            "width": 360,
-            "height": 380,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
-          },
-          "visible": true,
-          "payload": {
-            "compositing": {
-              "mode": "pass-through"
-            }
+            "translate": {
+              "x": 0,
+              "y": -120
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "children": [
             {
@@ -115,25 +127,31 @@
                 "duration": 1.5
               },
               "transform": {
-                "x": 0,
-                "y": -140,
-                "width": 180,
-                "height": 180,
-                "rotation": 0,
-                "scaleX": 1,
-                "scaleY": 1,
-                "anchorX": 0.5,
-                "anchorY": 0.5,
-                "opacity": 1,
-                "visible": true,
-                "flipX": false,
-                "flipY": false
-              },
-              "visible": true,
-              "payload": {
-                "compositing": {
-                  "mode": "isolate"
-                }
+                "translate": {
+                  "x": 0,
+                  "y": -140
+                },
+                "rotate": {
+                  "x": 0,
+                  "y": 0,
+                  "z": 0
+                },
+                "scale": {
+                  "x": 1,
+                  "y": 1,
+                  "z": 1
+                },
+                "skew": {
+                  "x": 0,
+                  "y": 0
+                },
+                "origin": {
+                  "x": 0.5,
+                  "y": 0.5,
+                  "z": 0
+                },
+                "transform-style": "flat",
+                "backface-visibility": "visible"
               },
               "children": [
                 {
@@ -146,30 +164,82 @@
                     "duration": 1
                   },
                   "transform": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 160,
-                    "height": 160,
-                    "rotation": 0,
-                    "scaleX": 1,
-                    "scaleY": 1,
-                    "anchorX": 0.5,
-                    "anchorY": 0.5,
-                    "opacity": 1,
-                    "visible": true,
-                    "flipX": false,
-                    "flipY": false
+                    "translate": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "rotate": {
+                      "x": 0,
+                      "y": 0,
+                      "z": 0
+                    },
+                    "scale": {
+                      "x": 1,
+                      "y": 1,
+                      "z": 1
+                    },
+                    "skew": {
+                      "x": 0,
+                      "y": 0
+                    },
+                    "origin": {
+                      "x": 0.5,
+                      "y": 0.5,
+                      "z": 0
+                    },
+                    "transform-style": "flat",
+                    "backface-visibility": "visible"
                   },
-                  "visible": true,
                   "payload": {
                     "assetId": "asset.head"
+                  },
+                  "frame": {
+                    "width": 160,
+                    "height": 160
+                  },
+                  "appearance": {
+                    "visible": true,
+                    "opacity": 100
                   }
                 }
-              ]
+              ],
+              "frame": {
+                "width": 180,
+                "height": 180
+              },
+              "appearance": {
+                "visible": true,
+                "opacity": 100
+              },
+              "compositing": {
+                "isolation": "isolate"
+              }
             }
-          ]
+          ],
+          "frame": {
+            "width": 360,
+            "height": 380
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
+          },
+          "compositing": {
+            "isolation": "auto"
+          }
         }
-      ]
+      ],
+      "frame": {
+        "width": 500,
+        "height": 700
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
+      "compositing": {
+        "isolation": "auto"
+      }
     }
   ]
 }

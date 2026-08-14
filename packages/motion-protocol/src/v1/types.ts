@@ -1,12 +1,12 @@
 /**
- * V1 public protocol types.
+ * Kiểu public V1.
  *
- * Keep root aggregate types here so large Zod schemas do not force
- * TypeScript to serialize enormous inferred types in schema modules.
+ * Aggregate MotionProjectV1 viết tay để Zod không buộc TS bung type khổng lồ.
  */
 import type { AssetV1 } from "./assets";
 import type { ProjectCapabilityRequirements } from "./capabilities";
 import type { CompositionSettings } from "./composition";
+import type { DesignTokens } from "./design-tokens";
 import type {
   ComponentDefinitionV1,
   ProjectDependenciesV1,
@@ -16,11 +16,7 @@ import type { LayerV1 } from "./layers";
 import type { ProjectMetadataV1 } from "./metadata";
 import type { ProjectProvenance } from "./provenance";
 import type { ProjectTimelineV1 } from "./timeline/schema";
-import type {
-  DesignTokens,
-  ProjectBindingV1,
-  ProjectVariableV1,
-} from "./variables";
+import type { ProjectBindingV1, ProjectVariableV1 } from "./variables";
 
 export type MotionProjectV1 = {
   format: "motion-project";

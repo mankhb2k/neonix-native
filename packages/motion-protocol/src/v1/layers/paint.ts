@@ -1,6 +1,5 @@
 /**
- * V1 paint schemas — canonical source of truth.
-
+ * Schema paint V1 — fit, crop, fill/stroke.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

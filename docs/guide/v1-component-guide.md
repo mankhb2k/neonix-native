@@ -460,8 +460,8 @@ Component instance = `type: "component"` layer trên **project layer tree**. Kh�
 
 | File | Vai trò |
 | --- | --- |
-| `src/v1/components.ts` | Definition, PropKind, propBindings |
-| `src/v1/prop-values.ts` | Static / variable / keyframes |
+| `src/v1/components/index.ts` | Definition, PropKind, propBindings |
+| `src/v1/components/prop-values.ts` | Static / variable / keyframes |
 | `src/v1/layers/component.ts` | Instance `payload.props` |
 | `src/v1/references/project.ts` | Validation |
 | `motion-compiler/compile-v1.ts` | Resolve + fan-out + keyframe tracks |

@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { describe, expect, it } from "vitest";
 import {
   canUndo,
@@ -46,21 +47,7 @@ describe("timeline session property bus", () => {
             id: "node_1",
             type: "text",
             parentLayerId: null,
-            transform: {
-              x: 10,
-              y: 20,
-              width: 100,
-              height: 40,
-              rotation: 0,
-              scaleX: 1,
-              scaleY: 1,
-              anchorX: 0,
-              anchorY: 0,
-              opacity: 1,
-              visible: true,
-              flipX: false,
-              flipY: false,
-            },
+            ...visualLayerAtoms({ x: 10, y: 20, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
             payload: {
               content: { kind: "plain", text: "Hi" },
               fontSize: 24,

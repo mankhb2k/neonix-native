@@ -537,7 +537,9 @@ export function buildRenderSnapshot(input: {
       payload: payloadForNode(item.layer, item, input.assetUriById, input.time),
       depth: item.depth,
       projectedOffset: item.projectedOffset,
-      ...(item.layer.blendMode ? { blendMode: item.layer.blendMode } : {}),
+      ...(item.layer.compositing?.["blend-mode"]
+        ? { blendMode: item.layer.compositing["blend-mode"] }
+        : {}),
       ...(item.effects?.length ? { effects: item.effects } : {}),
       ...(pass
         ? {

@@ -1,14 +1,8 @@
 /**
- * Canonical hash — single source of truth for deterministic hashing.
+ * Hash canonical — một nguồn cho hashing xác định.
  *
- * Phase 11: Consolidates hashing from motion-compiler, render-contracts,
- * editor-core, and motion-protocol into one module.
- *
- * Guarantees:
- * - Same semantic v1 project → same projectHash
- * - Same runtime IR → same runtimeHash
- * - Timestamps, provenance, extensions, and editor state are EXCLUDED
- *   from the project hash so they don't break reproducibility.
+ * Cùng project V1 về ngữ nghĩa → cùng projectHash.
+ * Loại timestamp / provenance / extensions khỏi hash render.
  */
 import { createHash } from "node:crypto";
 

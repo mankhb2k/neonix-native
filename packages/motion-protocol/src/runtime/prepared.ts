@@ -11,7 +11,7 @@
  * remains the serialization format.
  */
 
-import type { MotionRuntimeProject, RuntimeLayerGraph } from "./project";
+import type { MotionRuntimeProject } from "./project";
 
 /** A runtime visual layer as it appears in MotionRuntimeProject.layers */
 export type RuntimeVisualLayer = Exclude<
@@ -21,10 +21,6 @@ export type RuntimeVisualLayer = Exclude<
 
 /** A runtime property track as it appears in MotionRuntimeProject.tracks */
 export type RuntimePropertyTrack = MotionRuntimeProject["tracks"][number];
-
-export type RuntimeSceneNode = RuntimeVisualLayer;
-export type RuntimeSceneTrack = RuntimePropertyTrack;
-export type RuntimeScene = RuntimeLayerGraph;
 
 // ── Static geometry descriptor ───────────────────────────────────────
 

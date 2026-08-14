@@ -1,5 +1,5 @@
 /**
- * V1 property tracks — canonical track/easing/extrapolation schemas.
+ * Property track V1 — track, easing, extrapolation, keyframe.
  */
 
 import { z } from "zod";
@@ -34,21 +34,25 @@ export const TimelineMarkerSchema = z
  * Maps property path patterns to allowed value kinds for property tracks.
  */
 const VALUE_KIND_BY_PROPERTY: Record<string, string[]> = {
-  "transform.x": ["number", "angle"],
-  "transform.y": ["number", "angle"],
-  "transform.rotation": ["number", "angle"],
-  "transform.rotationX": ["number", "angle"],
-  "transform.rotationY": ["number", "angle"],
-  "transform.rotationZ": ["number", "angle"],
-  "transform.scaleX": ["number"],
-  "transform.scaleY": ["number"],
-  "transform.opacity": ["number"],
-  "transform.anchorX": ["number"],
-  "transform.anchorY": ["number"],
-  "transform.anchorZ": ["number"],
-  "transform.visible": ["boolean"],
-  "transform.flipX": ["boolean"],
-  "transform.flipY": ["boolean"],
+  "transform.translate.x": ["number", "angle"],
+  "transform.translate.y": ["number", "angle"],
+  "transform.rotate.x": ["number", "angle"],
+  "transform.rotate.y": ["number", "angle"],
+  "transform.rotate.z": ["number", "angle"],
+  "transform.scale.x": ["number"],
+  "transform.scale.y": ["number"],
+  "transform.scale.z": ["number"],
+  "transform.origin.x": ["number"],
+  "transform.origin.y": ["number"],
+  "transform.origin.z": ["number"],
+  "transform.skew.x": ["number", "angle"],
+  "transform.skew.y": ["number", "angle"],
+  "transform.depth": ["number"],
+  "transform.perspective": ["number"],
+  "appearance.opacity": ["number"],
+  "appearance.visible": ["boolean"],
+  "frame.width": ["number"],
+  "frame.height": ["number"],
 };
 
 /** Absolute seconds or marker-relative time resolved at compile time. */

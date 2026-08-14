@@ -18,12 +18,6 @@
     "background": "#ffffff",
     "colorSpace": "srgb",
     "audioSampleRate": 48000,
-    "safeArea": {
-      "top": 0.1,
-      "right": 0.05,
-      "bottom": 0.15,
-      "left": 0.05
-    },
     "motionBlur": {
       "samples": 8,
       "shutterAngle": 180,
@@ -81,9 +75,9 @@
       "id": "title-opacity",
       "name": "Title opacity",
       "type": "number",
-      "value": 0.9,
+      "value": 90,
       "min": 0,
-      "max": 1
+      "max": 100
     },
     {
       "id": "show-subtitle",
@@ -141,7 +135,7 @@
           "target": {
             "kind": "layerProperty",
             "layerId": "logo",
-            "property": "transform.visible"
+            "property": "appearance.visible"
           }
         },
         {
@@ -160,24 +154,42 @@
           "type": "solid",
           "parentLayerId": null,
           "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 256,
-            "height": 256,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "payload": {
-            "width": 256,
-            "height": 256,
             "color": "#1877f2"
+          },
+          "frame": {
+            "width": 256,
+            "height": 256
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
           }
         }
       ]
@@ -212,7 +224,7 @@
       "target": {
         "type": "layer",
         "layerId": "title",
-        "property": "transform.opacity"
+        "property": "appearance.opacity"
       }
     }
   ],
@@ -222,19 +234,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": -200,
-        "width": 800,
-        "height": 120,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": -200
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -249,6 +273,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -256,19 +288,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 200,
-        "width": 700,
-        "height": 80,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 200
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -283,6 +327,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 700,
+        "height": 80
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -290,19 +342,31 @@
       "type": "image",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": -80,
-        "width": 200,
-        "height": 200,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 0.9,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": -80
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "assetId": "logo-png",
@@ -312,6 +376,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 200,
+        "height": 200
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 90
       }
     },
     {
@@ -319,19 +391,31 @@
       "type": "camera",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 0,
-        "height": 0,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "projection": "orthographic",
@@ -341,6 +425,10 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -348,19 +436,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 700,
-        "height": 100,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -375,6 +475,14 @@
       "timing": {
         "start": 0,
         "duration": 3
+      },
+      "frame": {
+        "width": 700,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -390,7 +498,7 @@
         "assetId": "bgm",
         "trimStart": 0,
         "playbackRate": 1,
-        "volume": 0.8,
+        "volume": 80,
         "loop": false,
         "fadeIn": 0.5,
         "fadeOut": 1,
@@ -407,19 +515,31 @@
         "duration": 2.5
       },
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 100,
-        "height": 100,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "children": [
         {
@@ -432,25 +552,45 @@
             "duration": 1.2
           },
           "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "payload": {
             "text": "Xin chào",
             "fontSize": 48,
             "color": "#ffffff",
             "alignment": "center"
+          },
+          "frame": {
+            "width": 100,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
           }
         },
         {
@@ -463,28 +603,56 @@
             "duration": 1.2
           },
           "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "payload": {
             "text": "MotiClip",
             "fontSize": 48,
             "color": "#ffffff",
             "alignment": "center"
+          },
+          "frame": {
+            "width": 100,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
           }
         }
-      ]
+      ],
+      "frame": {
+        "width": 100,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
     }
   ]
 }

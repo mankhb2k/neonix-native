@@ -23,23 +23,21 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
     scale?: boolean;
     opacity?: boolean;
   } = node.inheritFlags ?? {};
-  const transform = clone(node.transform) as JsonRecord;
-  // Node-level `visible` is the authoring source of truth in v1.
-  transform.visible = node.visible;
   const base: JsonRecord = {
     id: node.id,
     type: node.type,
     parentLayerId: node.parentLayerId,
-    transform,
+    transform: clone(node.transform),
+    appearance: clone(node.appearance),
   };
+  if (node.frame) base.frame = clone(node.frame);
   if (node.name) base.name = node.name;
   if (node.zIndex !== undefined) base.zIndex = node.zIndex;
   if (node.timing) base.timing = clone(node.timing);
   if (node.semantic) base.semantic = node.semantic;
   if (node.effects && node.effects.length > 0)
     base.effects = clone(node.effects);
-  if (node.blendMode) base.blendMode = node.blendMode;
-  if (node.mask) base.mask = clone(node.mask);
+  if (node.compositing) base.compositing = clone(node.compositing);
   if (flags.position !== undefined) base.inheritPosition = flags.position;
   if (flags.rotation !== undefined) base.inheritRotation = flags.rotation;
   if (flags.scale !== undefined) base.inheritScale = flags.scale;
@@ -122,19 +120,13 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
       return {
         ...base,
         payload: {
-          width: payload.width,
-          height: payload.height,
           color: payload.color,
         },
       };
     case "group":
       return {
         ...base,
-        payload: {
-          ...(payload.compositing
-            ? { compositing: clone(payload.compositing) }
-            : {}),
-        },
+        payload: {},
       };
     case "bone":
       return {
@@ -153,6 +145,9 @@ export function prepareRuntimeLayer(node: V1.LayerV1): JsonRecord {
             : {}),
           ...(payload.saturation !== undefined
             ? { saturation: payload.saturation }
+            : {}),
+          ...(payload["hue-rotate"] !== undefined
+            ? { "hue-rotate": payload["hue-rotate"] }
             : {}),
         },
       };
@@ -190,7 +185,7 @@ export function prepareRuntimeAudioLayer(layer: V1.AudioLayerV1): JsonRecord {
     parentLayerId: null,
     zIndex: layer.zIndex,
     timing: clone(layer.timing),
-    visible: layer.visible,
+    appearance: clone(layer.appearance),
     locked: layer.locked,
     payload: clone(layer.payload),
   };

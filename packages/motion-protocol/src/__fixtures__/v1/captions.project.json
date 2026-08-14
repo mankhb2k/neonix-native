@@ -38,19 +38,31 @@
       "parentLayerId": null,
       "zIndex": 1,
       "transform": {
-        "x": 540,
-        "y": 960,
-        "width": 800,
-        "height": 120,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 540,
+          "y": 960
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "inheritFlags": {
         "position": true,
@@ -58,7 +70,6 @@
         "scale": true,
         "opacity": true
       },
-      "visible": true,
       "locked": false,
       "payload": {
         "content": {
@@ -74,6 +85,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 800,
+        "height": 120
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -86,19 +105,31 @@
         "duration": 2.5
       },
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 100,
-        "height": 100,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "children": [
         {
@@ -111,25 +142,45 @@
             "duration": 1.2
           },
           "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "payload": {
             "text": "Xin chào",
             "fontSize": 48,
             "color": "#ffffff",
             "alignment": "center"
+          },
+          "frame": {
+            "width": 100,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
           }
         },
         {
@@ -142,28 +193,56 @@
             "duration": 1.2
           },
           "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 100,
-            "height": 100,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "payload": {
             "text": "MotiClip",
             "fontSize": 48,
             "color": "#ffffff",
             "alignment": "center"
+          },
+          "frame": {
+            "width": 100,
+            "height": 100
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
           }
         }
-      ]
+      ],
+      "frame": {
+        "width": 100,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      }
     }
   ]
 }

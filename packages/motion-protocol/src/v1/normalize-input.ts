@@ -1,9 +1,7 @@
 /**
- * V1 input normalizer — walks authoring trees and normalizes
- * text payloads before schema parse.
+ * Chuẩn hóa input V1 trước khi parse Zod.
  *
- * Used at the parse boundary to convert `{ text }` payloads to
- * `{ content: { kind: "plain" } }` before Zod validation runs.
+ * Payload chữ { text } → { content: { kind: "plain" } }.
  */
 import { normalizeTextPayloadInput } from "./layers/text-content";
 

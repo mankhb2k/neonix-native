@@ -92,6 +92,10 @@ export type PixiFramePainterOptions = {
 export type PixiFramePainter = EvaluatedFramePainter & {
   paintCommands(buffer: PaintCommandBuffer): void;
   getLiveKeys(): readonly string[];
+  getCompositingLayers(): ReadonlyMap<
+    string,
+    import("./pixi-compositing").CompositingLayer
+  >;
   getUnsupported(): readonly {
     key: string;
     layerId: string;
@@ -448,6 +452,7 @@ export function createPixiFramePainter(
       if (existing.display.parent !== parent) {
         parent.addChild(existing.display);
       }
+      compositingCtx?.registerDisplay(key, existing.display);
       return existing.display as T;
     }
     if (existing) {
@@ -459,6 +464,7 @@ export function createPixiFramePainter(
     display.label = key;
     parent.addChild(display);
     cache.set(key, { kind, display });
+    compositingCtx?.registerDisplay(key, display);
     return display;
   };
 
@@ -938,6 +944,7 @@ export function createPixiFramePainter(
     },
     paintCommands,
     getLiveKeys: () => lastLiveKeys,
+    getCompositingLayers: () => compositingCtx?.getLayers() ?? new Map(),
     getUnsupported: () => unsupported,
     setPaused(p: boolean) {
       paused = p;
@@ -977,12 +984,12 @@ export function createPixiFramePainter(
       const display = entry.display;
       try {
         if (
-          patch.property === "transform.opacity" &&
+          patch.property === "appearance.opacity" &&
           typeof patch.value === "number"
         ) {
           display.alpha = patch.value;
         } else if (
-          patch.property === "transform.visible" &&
+          patch.property === "appearance.visible" &&
           typeof patch.value === "boolean"
         ) {
           display.visible = patch.value;

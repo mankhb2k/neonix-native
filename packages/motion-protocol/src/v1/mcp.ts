@@ -1,23 +1,13 @@
 /**
- * V1 MCP Tool Contract — server-agnostic automation surface.
+ * Hợp đồng MCP V1 — bề mặt tự động hóa, không gắn server cụ thể.
  *
- * Defines typed operation schemas (inputs) and result types (outputs) for
- * the 8 standard MCP-facing operations. Framework-agnostic — any MCP server,
- * HTTP handler, or CLI tool can implement against this contract.
- *
- * Design principles:
- *  1. All inputs accept only V1 authoring JSON (no V2 compat).
- *  2. All diagnostics use V1 source paths only.
- *  3. Every operation includes capability preflight.
- *  4. Results include canonical V1 project hash and runtime hash for
- *     deterministic reproducibility.
- *  5. No editor UI state is exposed — this is a pure document contract.
+ * 8 operation chuẩn: schema input + kiểu kết quả.
  */
 
 import { z } from "zod";
 import { CapabilityIdSchema } from "./capabilities";
 import { CompositionSettingsSchema } from "./composition";
-import { DesignTokensSchema } from "./variables";
+import { DesignTokensSchema } from "./design-tokens";
 import { ProjectMetadataV1Schema } from "./metadata";
 import { MotionProjectV1Schema, type MotionProjectV1 } from "./project";
 import { MotionProjectV1PatchSchema } from "./patch";
@@ -528,7 +518,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "effect.color-adjust",
     name: "Color Adjustment",
-    description: "Brightness, contrast, saturation adjustment",
+    description: "Brightness, contrast, saturation, hue-rotate adjustment",
     category: "effect",
     experimental: false,
   },

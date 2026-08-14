@@ -1,10 +1,6 @@
 /**
- * V1 media + camera layers.
- *
- * Media payloads are `{ assetId, fit }` (v2 crop/trim stay optional via the
- * shared fit/crop primitives where meaningful). Camera drops the v2
- * `fov`/`near`/`far` naming in favor of explicit `fieldOfView` +
- * `focalLength` distance semantics.
+ * Layer media + camera. Payload media: { assetId, fit, crop? }.
+ * image/svg cùng shape; khác assetType. video thêm trim/loop/muted.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

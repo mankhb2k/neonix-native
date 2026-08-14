@@ -4,7 +4,7 @@
  * Usage: pnpm generate:schema  (runs `tsx scripts/generate-json-schema.ts`)
  *
  * Writes `schema/v1.json` deterministically.
- * Freshness is gated by `src/__tests__/schema-files.test.ts` on every test run.
+ * Freshness is gated by `test/schema-files.test.ts` on every test run.
  */
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";

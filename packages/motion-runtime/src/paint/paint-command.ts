@@ -43,6 +43,7 @@ export type PaintCommand =
       mask?: {
         mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
         sourceKey: string;
+        sourceVisibility?: "mask-only" | "content-and-mask";
       };
     }
   | { op: "endLayer"; key: string }

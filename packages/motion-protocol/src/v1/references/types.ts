@@ -1,10 +1,7 @@
 /**
- * V1 reference validation types — canonical source of truth.
- *
- * Asset bytes liveness dùng cùng envelope: xem `AssetValidationIssue`
- * (`layer: "authoring" | "storage"`). Graph issues khác chỉ cần path + message.
+ * Kiểu lỗi reference. Asset byte dùng AssetValidationIssue (layer authoring | storage).
  */
-import type { AssetValidationIssue } from "../asset-validation";
+import type { AssetValidationIssue } from "../assets/validation";
 
 export type ReferenceIssue = {
   path: string;

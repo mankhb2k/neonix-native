@@ -1,6 +1,5 @@
 /**
- * Module timeline V1 — schema, derive duration, canonicalize, validate
- * toàn vẹn, và frame-grid.
+ * Module timeline V1 — schema, derive duration, canonicalize, validate, frame-grid.
  */
 export * from "./schema";
 export * from "./duration";

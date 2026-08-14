@@ -64,11 +64,11 @@ describe("ai-planner R1 commands", () => {
           sceneId: "scene.a",
           clipId: "clip.a",
           layerId: "text.a",
-          property: "transform.opacity",
+          property: "appearance.opacity",
           duration: 1,
           keys: [
             { t: 0, v: 0 },
-            { t: 1, v: 1, easing: "easeOut" },
+            { t: 1, v: 100, easing: "easeOut" },
           ],
         },
         { type: "removeNode", sceneId: "scene.a", layerId: "text.a" },
@@ -83,8 +83,10 @@ describe("ai-planner R1 commands", () => {
       ],
     });
     expect(result.ok).toBe(true);
-    expect(result.project?.scenes[0]?.layers).toHaveLength(1);
-    expect(result.project?.scenes[0]?.layers[0]?.id).toBe("text.b");
+    expect(result.project?.layers.some((layer) => layer.id === "scene.a")).toBe(true);
+    const scene = result.project?.layers.find((layer) => layer.id === "scene.a");
+    expect(scene && scene.type === "group" ? scene.children : []).toHaveLength(1);
+    expect(scene && scene.type === "group" ? scene.children[0]?.id : undefined).toBe("text.b");
     expect(result.compiled?.format).toBe("motion-runtime");
   });
 
@@ -166,7 +168,7 @@ describe("ai-planner R1 commands", () => {
           sceneId: "scene.1",
           clipId: "clip.x",
           layerId: "child",
-          property: "transform.x",
+          property: "transform.translate.x",
           duration: 1,
           keys: [
             { t: 0, v: 0 },
@@ -177,11 +179,21 @@ describe("ai-planner R1 commands", () => {
       ],
     });
     expect(result.ok).toBe(true);
-    expect(result.project?.scenes[0]?.activeCameraLayerId).toBe("cam");
-    expect(result.project?.scenes[0]?.space).toBe("layered-2.5d");
-    const child = result.project?.scenes[0]?.layers.find((node) => node.id === "child");
-    expect(child?.mask?.mode).toBe("luma");
-    expect(result.compiled?.scenes[0]?.tracks.some((track) => track.property === "transform.x")).toBe(true);
+    expect(result.project?.extensions["com.moticlip.ai"]).toMatchObject({
+      activeCameraLayerId: "cam",
+      space: "layered-2.5d",
+    });
+    const scene = result.project?.layers.find((layer) => layer.id === "scene.1");
+    const child =
+      scene && scene.type === "group"
+        ? scene.children
+            .flatMap((node) =>
+              node.type === "group" ? [node, ...node.children] : [node],
+            )
+            .find((node) => node.id === "child")
+        : undefined;
+    expect(child && "compositing" in child ? child.compositing?.mask?.mode : undefined).toBe("luma");
+    expect(result.compiled?.tracks.some((track) => track.property === "transform.translate.x")).toBe(true);
   });
 });
 
@@ -204,7 +216,7 @@ describe("ai-planner R1 from-scratch", () => {
     }) as PlanResult;
 
     expect(result.project.format).toBe("motion-project");
-    expect(result.project.scenes.length).toBeGreaterThanOrEqual(1);
+    expect(result.project.layers.length).toBeGreaterThanOrEqual(1);
     expect(result.generation.model).toContain("from-scratch");
     expect(result.generation.planId).toBe("plan_unit-from-scratch");
     expect(result.receipts.some((receipt) => receipt.diagnostics.some((d) => d.code === "compiled"))).toBe(true);

@@ -16,7 +16,7 @@
 
 import type {
   AudioRenderPlan,
-  AudioRenderClip,
+  AudioRenderLayer,
 } from "@motionvideo/motion-runtime";
 
 // ── Minimal Web Audio surface (injectable for testing) ────────────────
@@ -203,8 +203,8 @@ export function createAudioScheduler(
     currentPlan = plan;
 
     // Build track states for all clips
-    for (const clip of plan.clips) {
-      const trackKey = `${clip.assetId}:${clip.trackId}`;
+    for (const clip of plan.layers) {
+      const trackKey = `${clip.assetId}:${clip.layerId}`;
       if (!trackStates.has(trackKey)) {
         const gainNode = ctx.createGain();
         gainNode.connect(ctx.destination);
@@ -238,7 +238,7 @@ export function createAudioScheduler(
   }
 
   function buildChannelGraph(
-    clip: AudioRenderClip,
+    clip: AudioRenderLayer,
     gainNode: GainNodeLike,
     source: AudioBufferSourceNodeLike,
   ): void {
@@ -267,11 +267,11 @@ export function createAudioScheduler(
   }
 
   function scheduleClip(
-    clip: AudioRenderClip,
+    clip: AudioRenderLayer,
     compositionTimeNow: number,
     fps: number,
   ): void {
-    const trackKey = `${clip.assetId}:${clip.trackId}`;
+    const trackKey = `${clip.assetId}:${clip.layerId}`;
     const trackState = trackStates.get(trackKey);
     if (!trackState) return;
 
@@ -347,7 +347,7 @@ export function createAudioScheduler(
   }
 
   function scheduleVolumeEnvelope(
-    clip: AudioRenderClip,
+    clip: AudioRenderLayer,
     trackState: TrackState,
     now: number,
     sourceWhen: number,
@@ -401,9 +401,9 @@ export function createAudioScheduler(
   }
 
   function scheduleAhead(compositionTimeNow: number): void {
-    if (!currentPlan || currentPlan.clips.length === 0) return;
+    if (!currentPlan || currentPlan.layers.length === 0) return;
 
-    for (const clip of currentPlan.clips) {
+    for (const clip of currentPlan.layers) {
       const clipStartComp = clip.fromFrame / currentPlan.fps;
       const clipEndComp =
         clipStartComp + clip.durationInFrames / currentPlan.fps;

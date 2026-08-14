@@ -113,10 +113,9 @@ function makeTestAudioPlan(
 ): AudioRenderPlan {
   return {
     fps: 30,
-    clips: [
+    layers: [
       {
-        trackId: "aud.bgm",
-        clipId: "clip.bgm",
+        layerId: "aud.bgm",
         assetId: "asset.bgm",
         uri: "https://cdn.example/bgm.mp3",
         fromFrame: 0,
@@ -145,68 +144,68 @@ function makeTestAudioPlan(
 describe("Task 7.1 — AudioRenderPlan expansion", () => {
   it("includes assetDurationSeconds from resolved asset", () => {
     const plan = makeTestAudioPlan();
-    expect(plan.clips[0]!.assetDurationSeconds).toBe(5);
+    expect(plan.layers[0]!.assetDurationSeconds).toBe(5);
   });
 
   it("includes trimEndSeconds", () => {
     const plan = makeTestAudioPlan();
-    expect(plan.clips[0]!.trimEndSeconds).toBe(5);
+    expect(plan.layers[0]!.trimEndSeconds).toBe(5);
   });
 
   it("includes channelPolicy (default stereo)", () => {
     const plan = makeTestAudioPlan();
-    expect(plan.clips[0]!.channelPolicy).toBe("stereo");
+    expect(plan.layers[0]!.channelPolicy).toBe("stereo");
   });
 
   it("supports mono channelPolicy", () => {
     const plan = makeTestAudioPlan({
-      clips: [
+      layers: [
         {
-          ...makeTestAudioPlan().clips[0]!,
+          ...makeTestAudioPlan().layers[0]!,
           channelPolicy: "mono",
         },
       ],
     });
-    expect(plan.clips[0]!.channelPolicy).toBe("mono");
+    expect(plan.layers[0]!.channelPolicy).toBe("mono");
   });
 
   it("supports left-only channelPolicy", () => {
     const plan = makeTestAudioPlan({
-      clips: [
+      layers: [
         {
-          ...makeTestAudioPlan().clips[0]!,
+          ...makeTestAudioPlan().layers[0]!,
           channelPolicy: "left-only",
         },
       ],
     });
-    expect(plan.clips[0]!.channelPolicy).toBe("left-only");
+    expect(plan.layers[0]!.channelPolicy).toBe("left-only");
   });
 
   it("supports right-only channelPolicy", () => {
     const plan = makeTestAudioPlan({
-      clips: [
+      layers: [
         {
-          ...makeTestAudioPlan().clips[0]!,
+          ...makeTestAudioPlan().layers[0]!,
           channelPolicy: "right-only",
         },
       ],
     });
-    expect(plan.clips[0]!.channelPolicy).toBe("right-only");
+    expect(plan.layers[0]!.channelPolicy).toBe("right-only");
   });
 
   it("includes optional loopWindow fields", () => {
     const plan = makeTestAudioPlan({
-      clips: [
+      layers: [
         {
-          ...makeTestAudioPlan().clips[0]!,
+          ...makeTestAudioPlan().layers[0]!,
           loop: true,
           loopWindowStartSeconds: 1,
           loopWindowEndSeconds: 4,
         },
       ],
     });
-    expect(plan.clips[0]!.loopWindowStartSeconds).toBe(1);
-    expect(plan.clips[0]!.loopWindowEndSeconds).toBe(4);
+    expect(plan.layers[0]!.loopWindowStartSeconds).toBe(1);
+    expect(plan.layers[0]!.loopWindowEndSeconds).toBe(4);
   });
 
   it("buildAudioRenderPlan resolves asset duration from runtime", () => {
@@ -259,9 +258,9 @@ describe("Task 7.1 — AudioRenderPlan expansion", () => {
       durationInFrames: 150,
     });
 
-    expect(plan.clips).toHaveLength(1);
-    expect(plan.clips[0]!.assetDurationSeconds).toBe(30);
-    expect(plan.clips[0]!.trimEndSeconds).toBe(30);
+    expect(plan.layers).toHaveLength(1);
+    expect(plan.layers[0]!.assetDurationSeconds).toBe(30);
+    expect(plan.layers[0]!.trimEndSeconds).toBe(30);
   });
 });
 
@@ -301,9 +300,9 @@ describe("Task 7.2 — Web Audio scheduler", () => {
   it("reschedule stops old and starts new", async () => {
     const plan1 = makeTestAudioPlan();
     const plan2 = makeTestAudioPlan({
-      clips: [
+      layers: [
         {
-          ...makeTestAudioPlan().clips[0]!,
+          ...makeTestAudioPlan().layers[0]!,
           fromFrame: 30,
         },
       ],
@@ -354,7 +353,7 @@ describe("Task 7.2 — Web Audio scheduler", () => {
   });
 
   it("handles empty plan gracefully", async () => {
-    const plan: AudioRenderPlan = { fps: 30, clips: [] };
+    const plan: AudioRenderPlan = { fps: 30, layers: [] };
     await scheduler.loadPlan(plan);
     expect(() => scheduler.start(0)).not.toThrow();
   });
@@ -362,10 +361,9 @@ describe("Task 7.2 — Web Audio scheduler", () => {
   it("handles multiple clips in a plan", async () => {
     const plan: AudioRenderPlan = {
       fps: 30,
-      clips: [
+      layers: [
         {
-          trackId: "aud.bgm",
-          clipId: "clip.bgm",
+          layerId: "aud.bgm",
           assetId: "asset.bgm",
           uri: "https://cdn.example/bgm.mp3",
           fromFrame: 0,
@@ -384,8 +382,7 @@ describe("Task 7.2 — Web Audio scheduler", () => {
           channelPolicy: "stereo",
         },
         {
-          trackId: "aud.vo",
-          clipId: "clip.vo",
+          layerId: "aud.vo",
           assetId: "asset.vo",
           uri: "https://cdn.example/vo.mp3",
           fromFrame: 30,
@@ -586,13 +583,12 @@ describe("Phase 7 integration", () => {
     const mockCtx = createMockAudioContext();
     const scheduler = createAudioScheduler({ audioContext: mockCtx });
     const plan = makeTestAudioPlan({
-      clips: [
+      layers: [
         {
-          ...makeTestAudioPlan().clips[0]!,
+          ...makeTestAudioPlan().layers[0]!,
         },
         {
-          trackId: "aud.vo",
-          clipId: "clip.vo",
+          layerId: "aud.vo",
           assetId: "asset.vo",
           uri: "https://cdn.example/vo.mp3",
           fromFrame: 30,

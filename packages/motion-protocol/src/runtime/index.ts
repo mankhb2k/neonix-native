@@ -12,8 +12,6 @@ export {
   RuntimeSourceRefSchema,
   RuntimeSourceRefMapSchema,
   RuntimeLayerGraphSchema,
-  RuntimeSceneSchema,
-  PlatformSafeAreaSchema,
   ProjectMetadataSchema,
   MOTION_RUNTIME_VERSION,
   type MotionRuntimeProject,
@@ -22,8 +20,6 @@ export {
   type RuntimeSourceRef,
   type RuntimeSourceRefMap,
   type RuntimeLayerGraph,
-  type RuntimeScene,
-  type PlatformSafeArea,
   type ProjectMetadata,
 } from "./project";
 
@@ -31,8 +27,6 @@ export {
   type PreparedRuntimeProject,
   type RuntimeVisualLayer,
   type RuntimePropertyTrack,
-  type RuntimeSceneNode,
-  type RuntimeSceneTrack,
   type StaticGeometry,
   type TextLayoutInput,
   type CompositingScope,

@@ -1,6 +1,20 @@
-import type { MotionTransform } from "@motionvideo/motion-protocol";
-
-export type Transform2D = MotionTransform;
+/** Evaluated 2D pose used by matrix/paint — not authoring MotionTransform. */
+export type Transform2D = {
+  x: number;
+  y: number;
+  depth: number;
+  width: number;
+  height: number;
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  anchorX: number;
+  anchorY: number;
+  opacity: number;
+  visible: boolean;
+  flipX: boolean;
+  flipY: boolean;
+};
 
 export type Matrix2D = {
   a: number;

@@ -8,6 +8,7 @@ import {
 import { previewParitySnapshot } from "../preview/preview-evaluate";
 import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import { parseMotionProjectV1 } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { DEFAULT_VISUAL_POLICY } from "@motionvideo/editor-core";
 
 describe("playback driver", () => {
@@ -168,21 +169,7 @@ describe("compose + evaluate smoke", () => {
               type: "text",
               parentLayerId: null,
               zIndex: 0,
-              transform: {
-                x: 100,
-                y: 100,
-                width: 400,
-                height: 80,
-                rotation: 0,
-                scaleX: 1,
-                scaleY: 1,
-                anchorX: 0.5,
-                anchorY: 0.5,
-                opacity: 1,
-                visible: true,
-                flipX: false,
-                flipY: false,
-              },
+              ...visualLayerAtoms({ x: 100, y: 100, width: 400, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
               payload: {
                 content: { kind: "plain", text: "Hello" },
                 fontSize: 64,

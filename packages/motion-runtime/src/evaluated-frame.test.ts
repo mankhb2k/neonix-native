@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { describe, expect, it } from "vitest";
 import { evaluateFrame } from "./evaluated-frame";
 import {
@@ -16,21 +17,7 @@ function fixtureScene(): RuntimeScene {
         type: "shape",
         parentLayerId: null,
         zIndex: 0,
-        transform: {
-          x: 0,
-          y: 0,
-          width: 200,
-          height: 100,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          opacity: 1,
-          visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 200, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: { shape: "rectangle" },
         style: { fill: "#1877F2" },
       },
@@ -39,21 +26,7 @@ function fixtureScene(): RuntimeScene {
         type: "text",
         parentLayerId: null,
         zIndex: 1,
-        transform: {
-          x: 20,
-          y: 30,
-          width: 160,
-          height: 40,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          opacity: 1,
-          visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 20, y: 30, width: 160, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: { content: { kind: "plain", text: "Wave1" }, fontSize: 24, fontWeight: 700, align: "left" },
         style: { fill: "#ffffff" },
       },
@@ -61,10 +34,10 @@ function fixtureScene(): RuntimeScene {
     tracks: [
       {
         layerId: "title",
-        property: "transform.opacity",
+        property: "appearance.opacity",
         keys: [
           { t: 0, v: 0 },
-          { t: 1, v: 1 },
+          { t: 1, v: 100 },
         ],
       },
     ],

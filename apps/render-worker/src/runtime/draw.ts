@@ -415,7 +415,7 @@ function drawEvaluatedNode(
 function effectPadding(effect: RuntimeEffect): number {
   switch (effect.type) {
     case "blur": return effect.radius;
-    case "shadow": return Math.max(Math.abs(effect.offsetX), Math.abs(effect.offsetY)) + effect.blur;
+    case "shadow": return Math.max(Math.abs(effect.offset.x), Math.abs(effect.offset.y)) + effect.blur;
     case "glow": return effect.radius;
     case "color-adjust": return 0;
   }
@@ -451,8 +451,8 @@ function applyEffect(layer: Canvas, effect: RuntimeEffect): Canvas {
   } else if (effect.type === "shadow") {
     outputContext.shadowColor = colorWithOpacity(effect.color, effect.opacity);
     outputContext.shadowBlur = effect.blur;
-    outputContext.shadowOffsetX = effect.offsetX;
-    outputContext.shadowOffsetY = effect.offsetY;
+    outputContext.shadowOffsetX = effect.offset.x;
+    outputContext.shadowOffsetY = effect.offset.y;
     outputContext.drawImage(layer, 0, 0);
     outputContext.shadowColor = "transparent";
     outputContext.shadowBlur = 0;
@@ -493,9 +493,9 @@ function applyCameraView(
   time: number,
   source: AspectSize,
 ): void {
-  const x = evaluateProperty(scene, camera, "transform.x", time, camera.transform.x);
-  const y = evaluateProperty(scene, camera, "transform.y", time, camera.transform.y);
-  const rotation = evaluateProperty(scene, camera, "transform.rotation", time, camera.transform.rotation);
+  const x = evaluateProperty(scene, camera, "transform.translate.x", time, camera.transform.x);
+  const y = evaluateProperty(scene, camera, "transform.translate.y", time, camera.transform.y);
+  const rotation = evaluateProperty(scene, camera, "transform.rotate.z", time, camera.transform.rotation);
   const zoom = evaluateProperty(scene, camera, "payload.zoom", time, camera.payload.zoom);
   if (typeof x !== "number" || typeof y !== "number" || typeof rotation !== "number" || typeof zoom !== "number") return;
   ctx.translate(source.width / 2, source.height / 2);
@@ -530,8 +530,8 @@ export async function drawSceneFrame(
     ? scene.layers.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraLayerId && node.type === "camera")
     : undefined;
   const byId = new Map(evaluated.map(({ item }) => [item.layer.id, item]));
-  const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.layer.mask?.sourceVisibility === "content-and-mask").map(({ item }) => item.layer.mask!.sourceLayerId));
-  const hiddenMaskSources = new Set(evaluated.filter(({ item }) => item.layer.mask?.sourceVisibility === "mask-only").map(({ item }) => item.layer.mask!.sourceLayerId));
+  const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.layer.compositing?.mask?.["source-visibility"] === "content-and-mask").map(({ item }) => item.layer.compositing!.mask!.sourceLayerId));
+  const hiddenMaskSources = new Set(evaluated.filter(({ item }) => item.layer.compositing?.mask?.["source-visibility"] === "mask-only").map(({ item }) => item.layer.compositing!.mask!.sourceLayerId));
   const rasterize = (item: EvaluatedNode, stack = new Set<string>(), maskPass?: "alpha" | "clip") => {
     if (stack.has(item.layer.id)) throw new Error(`Runtime mask cycle: ${item.layer.id}`);
     const nextStack = new Set(stack).add(item.layer.id);
@@ -540,10 +540,10 @@ export async function drawSceneFrame(
     layerContext.scale(width / source.width, height / source.height);
     if (activeCamera) applyCameraView(layerContext, scene, activeCamera, localTime, source);
     drawEvaluatedNode(layerContext, scene, item, metadata.brand, assetById, assetBaseDir, localTime, maskPass);
-    if (item.layer.mask) {
-      const maskSource = byId.get(item.layer.mask.sourceLayerId);
-      if (!maskSource) throw new Error(`Runtime mask source missing: ${item.layer.mask.sourceLayerId}`);
-      const maskMode = item.layer.mask.mode;
+    if (item.layer.compositing?.mask) {
+      const maskSource = byId.get(item.layer.compositing.mask.sourceLayerId);
+      if (!maskSource) throw new Error(`Runtime mask source missing: ${item.layer.compositing.mask.sourceLayerId}`);
+      const maskMode = item.layer.compositing.mask.mode;
       const maskLayer = rasterize(maskSource, nextStack, maskMode === "clip" ? "clip" : "alpha");
       if (maskMode === "luma" || maskMode === "inverse-luma") {
         const maskCtx = maskLayer.getContext("2d");
@@ -573,7 +573,7 @@ export async function drawSceneFrame(
   if (activeCamera) applyCameraView(ctx, scene, activeCamera, localTime, source);
   for (const { item } of evaluated) {
     if (hiddenMaskSources.has(item.layer.id) && !visibleMaskSources.has(item.layer.id)) continue;
-    if (!item.layer.mask && (item.layer.effects?.length ?? 0) === 0) {
+    if (!item.layer.compositing?.mask && (item.layer.effects?.length ?? 0) === 0) {
       drawEvaluatedNode(ctx, scene, item, metadata.brand, assetById, assetBaseDir, localTime);
       continue;
     }

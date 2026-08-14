@@ -1,8 +1,7 @@
 /**
- * V1 layer-graph motion clips (compiler / schedule vocabulary).
+ * Motion clip lịch trình — vocabulary compiler (không thuộc JSON authoring).
  *
- * Scheduling: `absolute` | `timeline-end` | `after` | `with`
- * with preset / property-track sources.
+ * Import @motionvideo/motion-protocol/internal.
  */
 
 import { z } from "zod";
@@ -127,5 +126,7 @@ export const ScheduleV1Schema = ClipScheduleSchema;
 export const PlaybackV1Schema = PlaybackSchema;
 
 export type MotionClipV1 = z.infer<typeof MotionClipV1Schema>;
+export type LayerMotionUnit = MotionClipV1;
+export const LayerMotionUnitSchema = MotionClipV1Schema;
 export type ScheduleV1 = z.infer<typeof ScheduleV1Schema>;
 export type ClipSourceV1 = z.infer<typeof ClipSourceV1Schema>;

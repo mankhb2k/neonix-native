@@ -413,7 +413,7 @@ export function executeTimelineCommand(
         assetId,
         start: placement.startTime,
         trimStart: 0,
-        volume: 1,
+        volume: 100,
         loop: false,
         fadeIn: 0,
         fadeOut: 0,

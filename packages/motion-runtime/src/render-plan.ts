@@ -47,8 +47,9 @@ export function inflateBoundsForEffects(bounds: Bounds2D, effects: NonNullable<R
   let inflation = 0;
   for (const effect of effects) {
     if (effect.type === "blur") inflation += effect.radius;
-    if (effect.type === "shadow") inflation += effect.blur + Math.abs(effect.offsetX) + Math.abs(effect.offsetY);
-    if (effect.type === "glow") inflation += effect.radius * effect.intensity;
+    if (effect.type === "shadow") inflation += effect.blur + Math.abs(effect.offset.x) + Math.abs(effect.offset.y);
+    if (effect.type === "glow")
+      inflation += effect.radius * (effect.intensity / 100);
   }
   if (inflation === 0) return bounds;
   return {
@@ -78,12 +79,17 @@ export function buildRenderPlan(
     const effects = node.effects ?? [];
     const inflatedBounds = inflateBoundsForEffects(evaluated.worldBounds, effects);
     const isAdjustment = node.type === "adjustment";
-    const groupCompositingMode =
-      node.type === "group" ? String(node.payload?.compositing?.mode ?? "pass-through") : "pass-through";
+    const compositingIsolation =
+      node.compositing?.isolation === "isolate" ? "isolate" : "pass-through";
     const needsOffscreen =
-      Boolean(node.mask) || effects.length > 0 || isAdjustment || groupCompositingMode === "isolate";
+      Boolean(node.compositing?.mask) ||
+      effects.length > 0 ||
+      isAdjustment ||
+      compositingIsolation === "isolate";
     const isolation: IsolationMode =
-      needsOffscreen || groupCompositingMode === "isolate" ? "isolate" : "pass-through";
+      needsOffscreen || compositingIsolation === "isolate"
+        ? "isolate"
+        : "pass-through";
 
     if (needsOffscreen) {
       const area = Math.ceil(inflatedBounds.width) * Math.ceil(inflatedBounds.height);
@@ -107,11 +113,17 @@ export function buildRenderPlan(
       worldOpacity: evaluated.worldOpacity,
       visible: evaluated.visible,
       needsOffscreen,
-      mask: node.mask,
+      mask: node.compositing?.mask
+        ? {
+            sourceLayerId: node.compositing.mask.sourceLayerId,
+            mode: node.compositing.mask.mode,
+            sourceVisibility: node.compositing.mask["source-visibility"],
+          }
+        : undefined,
       effects,
       isAdjustment,
-      ...(groupCompositingMode === "isolate" || groupCompositingMode === "pass-through"
-        ? { groupCompositing: groupCompositingMode as "pass-through" | "isolate" }
+      ...(node.type === "group"
+        ? { groupCompositing: compositingIsolation }
         : {}),
     });
   }

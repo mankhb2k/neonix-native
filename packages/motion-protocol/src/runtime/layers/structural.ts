@@ -1,22 +1,18 @@
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { FiniteNumberSchema, IdSchema, SemverSchema } from "../common";
+import {
+  ColorAdjustPercentSchema,
+  FiniteNumberSchema,
+  HueRotateSchema,
+  IdSchema,
+  SemverSchema,
+} from "../common";
 import { JsonValueSchema } from "../values";
 import { LayerBaseSchema } from "./base";
 
 export const GroupLayerSchema = LayerBaseSchema.extend({
   type: z.literal("group"),
-  payload: z
-    .object({
-      compositing: z
-        .object({
-          mode: z.enum(["pass-through", "isolate"]).default("pass-through"),
-        })
-        .strict()
-        .optional(),
-    })
-    .strict()
-    .optional(),
+  payload: z.object({}).strict().optional(),
 }).strict();
 
 export const BoneLayerSchema = LayerBaseSchema.extend({
@@ -107,12 +103,6 @@ export const SolidLayerSchema = LayerBaseSchema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
-      width: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.layerDimension,
-      ),
-      height: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.layerDimension,
-      ),
       color: z.string().min(1),
     })
     .strict(),
@@ -122,9 +112,10 @@ export const AdjustmentLayerSchema = LayerBaseSchema.extend({
   type: z.literal("adjustment"),
   payload: z
     .object({
-      brightness: FiniteNumberSchema.min(-1).max(1).optional(),
-      contrast: FiniteNumberSchema.min(0).max(4).optional(),
-      saturation: FiniteNumberSchema.min(0).max(4).optional(),
+      brightness: ColorAdjustPercentSchema.optional(),
+      contrast: ColorAdjustPercentSchema.optional(),
+      saturation: ColorAdjustPercentSchema.optional(),
+      "hue-rotate": HueRotateSchema.optional(),
     })
     .strict(),
 }).strict();

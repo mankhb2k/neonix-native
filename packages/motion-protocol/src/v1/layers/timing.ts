@@ -1,5 +1,5 @@
 /**
- * V1 node timing schema — canonical source of truth.
+ * Timing in/out của layer (giây).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

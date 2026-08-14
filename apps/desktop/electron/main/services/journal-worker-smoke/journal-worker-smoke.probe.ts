@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Packaged-app probe for journal validate worker.
  * Triggered only when MOTIONVIDEO_JOURNAL_WORKER_SMOKE=1 and a harness token is set.
@@ -27,21 +28,7 @@ function inflateToBytes(base: string, targetBytes: number): string {
     type: "text",
     parentLayerId: null,
     zIndex: 0,
-    transform: {
-      x: 1,
-      y: 1,
-      width: 10,
-      height: 10,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0.5,
-      anchorY: 0.5,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    ...visualLayerAtoms({ x: 1, y: 1, width: 10, height: 10, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: { text: "", fontSize: 12, fontWeight: 400, align: "left" },
   };
   envelope.project.scenes = [

@@ -56,7 +56,23 @@ function readTransformNumber(
 ): number | MixedValue {
   const values = context.targets.map((t) => {
     const node = findNode(context.project, t.sceneId, t.layerId);
-    return node?.transform[key] ?? 0;
+    if (!node || !("transform" in node)) return 0;
+    const tr = node.transform;
+    const appearance = "appearance" in node ? node.appearance : undefined;
+    switch (key) {
+      case "x":
+        return tr.translate.x;
+      case "y":
+        return tr.translate.y;
+      case "rotation":
+        return tr.rotate.z;
+      case "scaleX":
+        return tr.scale.x;
+      case "scaleY":
+        return tr.scale.y;
+      case "opacity":
+        return appearance?.opacity ?? 1;
+    }
   });
   return readUniform(values);
 }
@@ -96,38 +112,38 @@ function numberProp(
 }
 
 const transformX = numberProp(
-  "transform.x",
+  "transform.translate.x",
   "X",
   "Transform",
-  "transform.x",
+  "transform.translate.x",
   "x",
 );
 const transformY = numberProp(
-  "transform.y",
+  "transform.translate.y",
   "Y",
   "Transform",
-  "transform.y",
+  "transform.translate.y",
   "y",
 );
 const transformRotation = numberProp(
-  "transform.rotation",
+  "transform.rotate.z",
   "Rotation",
   "Transform",
-  "transform.rotation",
+  "transform.rotate.z",
   "rotation",
 );
 const transformScaleX = numberProp(
-  "transform.scaleX",
+  "transform.scale.x",
   "Scale X",
   "Transform",
-  "transform.scaleX",
+  "transform.scale.x",
   "scaleX",
 );
 const transformScaleY = numberProp(
-  "transform.scaleY",
+  "transform.scale.y",
   "Scale Y",
   "Transform",
-  "transform.scaleY",
+  "transform.scale.y",
   "scaleY",
 );
 
@@ -142,14 +158,14 @@ const transformScaleUniform: PropertyDefinition<number> = {
     const values = ctx.targets.map((t) => {
       const node = findNode(ctx.project, t.sceneId, t.layerId);
       if (!node) return 1;
-      return Math.abs(node.transform.scaleX - node.transform.scaleY) < 1e-6
-        ? node.transform.scaleX
-        : node.transform.scaleX;
+      return Math.abs(node.transform.scale.x - node.transform.scale.y) < 1e-6
+        ? node.transform.scale.x
+        : node.transform.scale.x;
     });
     const sx = readUniform(
       ctx.targets.map((t) => {
         const node = findNode(ctx.project, t.sceneId, t.layerId);
-        return node?.transform.scaleX ?? 1;
+        return node?.transform.scale.x ?? 1;
       }),
     );
     const sy = readUniform(
@@ -170,11 +186,11 @@ const transformScaleUniform: PropertyDefinition<number> = {
   },
   createCommand: (value, ctx) =>
     transformCommand("scaleX", value, ctx, true),
-  validate: (value, ctx) => validateNumber(value, "transform.scaleX", ctx),
+  validate: (value, ctx) => validateNumber(value, "transform.scale.x", ctx),
 };
 
 const transformOpacity: PropertyDefinition<number> = {
-  id: "transform.opacity",
+  id: "appearance.opacity",
   label: "Opacity",
   group: "Transform",
   editor: "number",
@@ -185,7 +201,7 @@ const transformOpacity: PropertyDefinition<number> = {
     targets: ctx.targets,
     opacity: value,
   }),
-  validate: (value, ctx) => validateNumber(value, "transform.opacity", ctx),
+  validate: (value, ctx) => validateNumber(value, "appearance.opacity", ctx),
 };
 
 const metadataName: PropertyDefinition<string> = {

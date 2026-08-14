@@ -23,8 +23,8 @@ export function hitTestNode(item: EvaluatedNode, point: Point2D, includeContaine
 export function hitTestScene(scene: RuntimeScene, time: number, point: Point2D, includeContainers = false): EvaluatedNode[] {
   const evaluated = evaluateScene(scene, time);
   const byId = new Map(evaluated.map((item) => [item.layer.id, item]));
-  const visibleMaskSources = new Set(scene.layers.filter((node) => node.mask?.sourceVisibility === "content-and-mask").map((node) => node.mask!.sourceLayerId));
-  const hiddenMaskSources = new Set(scene.layers.filter((node) => node.mask?.sourceVisibility === "mask-only").map((node) => node.mask!.sourceLayerId));
+  const visibleMaskSources = new Set(scene.layers.filter((node) => node.compositing?.mask?.["source-visibility"] === "content-and-mask").map((node) => node.compositing!.mask!.sourceLayerId));
+  const hiddenMaskSources = new Set(scene.layers.filter((node) => node.compositing?.mask?.["source-visibility"] === "mask-only").map((node) => node.compositing!.mask!.sourceLayerId));
   // Sort all layers by hierarchy (top-first) so parent groups anchor children properly
   const ordered = hierarchyRenderOrderReverse(evaluated);
   return ordered.filter((item) => {

@@ -1,13 +1,11 @@
 /**
- * V1 component layer — a sealed component instance on the project layer tree.
+ * Layer instance component trên cây project.
  *
- * Consumers only touch the component through its public API:
- *   - `payload.variantId` selects an owner-approved variant preset.
- *   - `payload.props` maps prop ids to static, variable, or keyframed values.
+ * Consumer chỉ đụng payload.componentId, variantId?, props.
  */
 import { z } from "zod";
 import { IdSchema } from "../common";
-import { ComponentPropValueSchema } from "../prop-values";
+import { ComponentPropValueSchema } from "../components/prop-values";
 import { LayerBaseV1Schema } from "./base";
 
 export const ComponentLayerV1Schema = LayerBaseV1Schema.extend({

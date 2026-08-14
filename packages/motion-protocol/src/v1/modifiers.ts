@@ -1,6 +1,5 @@
 /**
- * V1 motion modifier schemas — canonical source of truth.
-
+ * Schema motion modifier V1 (motion-path, …).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";

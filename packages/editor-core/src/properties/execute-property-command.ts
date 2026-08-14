@@ -7,6 +7,7 @@ import {
 } from "@motionvideo/motion-protocol";
 import type { TimelineDocument } from "../document/document";
 import { mapNode } from "../timeline/internal/scene-utils";
+import { findNode } from "./resolve-targets";
 import type {
   DocumentPropertyCommand,
   EffectStackPatch,
@@ -66,10 +67,11 @@ function applyTransformPatch(
   node: MotionLayer,
   patch: TransformPatch,
 ): MotionLayer {
+  if (node.type === "audio") return node;
   const t = node.transform;
   const type = node.type;
-  let scaleX = t.scaleX;
-  let scaleY = t.scaleY;
+  let scaleX = t.scale.x;
+  let scaleY = t.scale.y;
   if (patch.lockAspect) {
     const uniform =
       patch.scaleX !== undefined
@@ -78,46 +80,52 @@ function applyTransformPatch(
           ? patch.scaleY
           : undefined;
     if (uniform !== undefined) {
-      const clamped = clampNumber(uniform, "transform.scaleX", type);
+      const clamped = clampNumber(uniform, "transform.scale.x", type);
       scaleX = clamped;
       scaleY = clamped;
     }
   } else {
     if (patch.scaleX !== undefined) {
-      scaleX = clampNumber(patch.scaleX, "transform.scaleX", type);
+      scaleX = clampNumber(patch.scaleX, "transform.scale.x", type);
     }
     if (patch.scaleY !== undefined) {
-      scaleY = clampNumber(patch.scaleY, "transform.scaleY", type);
+      scaleY = clampNumber(patch.scaleY, "transform.scale.y", type);
     }
   }
   return {
     ...node,
     transform: {
       ...t,
-      x:
-        patch.x !== undefined
-          ? clampNumber(patch.x, "transform.x", type)
-          : t.x,
-      y:
-        patch.y !== undefined
-          ? clampNumber(patch.y, "transform.y", type)
-          : t.y,
-      rotation:
-        patch.rotation !== undefined
-          ? clampNumber(patch.rotation, "transform.rotation", type)
-          : t.rotation,
-      scaleX,
-      scaleY,
+      translate: {
+        ...t.translate,
+        x:
+          patch.x !== undefined
+            ? clampNumber(patch.x, "transform.translate.x", type)
+            : t.translate.x,
+        y:
+          patch.y !== undefined
+            ? clampNumber(patch.y, "transform.translate.y", type)
+            : t.translate.y,
+      },
+      rotate: {
+        ...t.rotate,
+        z:
+          patch.rotation !== undefined
+            ? clampNumber(patch.rotation, "transform.rotate.z", type)
+            : t.rotate.z,
+      },
+      scale: { ...t.scale, x: scaleX, y: scaleY },
     },
   };
 }
 
 function applyOpacity(node: MotionLayer, opacity: number): MotionLayer {
+  if (node.type === "audio") return node;
   return {
     ...node,
-    transform: {
-      ...node.transform,
-      opacity: clampNumber(opacity, "transform.opacity", node.type),
+    appearance: {
+      ...node.appearance,
+      opacity: clampNumber(opacity, "appearance.opacity", node.type),
     },
   };
 }
@@ -125,10 +133,10 @@ function applyOpacity(node: MotionLayer, opacity: number): MotionLayer {
 function applyMetadata(node: MotionLayer, patch: MetadataPatch): MotionLayer {
   let next: MotionLayer = node;
   if (patch.visible !== undefined) {
-    next = {
-      ...next,
-      transform: { ...next.transform, visible: Boolean(patch.visible) },
-    };
+      next = {
+        ...next,
+        appearance: { ...next.appearance, visible: Boolean(patch.visible) },
+      };
   }
   if (patch.name !== undefined) {
     const name = patch.name.trim();
@@ -331,8 +339,8 @@ function applyToTargets(
 ): { project: MotionProject; missing: boolean } {
   let next = project;
   for (const target of targets) {
-    const scene = next.scenes.find((s) => s.id === target.sceneId);
-    const node = scene?.layers.find((n) => n.id === target.layerId);
+    const scene = next.layers.find((s) => s.id === target.sceneId);
+    const node = findNode(next, target.sceneId, target.layerId);
     if (!scene || !node) {
       return { project: next, missing: true };
     }
@@ -349,8 +357,8 @@ function applyToCompatibleTargets(
 ): { project: MotionProject; missing: boolean; incompatible: boolean } {
   let next = project;
   for (const target of targets) {
-    const scene = next.scenes.find((s) => s.id === target.sceneId);
-    const node = scene?.layers.find((n) => n.id === target.layerId);
+    const scene = next.layers.find((s) => s.id === target.sceneId);
+    const node = findNode(next, target.sceneId, target.layerId);
     if (!scene || !node) {
       return { project: next, missing: true, incompatible: false };
     }

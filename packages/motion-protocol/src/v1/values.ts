@@ -1,6 +1,5 @@
 /**
- * V1 JSON value schemas — canonical source of truth.
-
+ * Schema giá trị JSON V1 — JsonValue, ResolvableValue, VariableReference.
  */
 import { z } from "zod";
 import { FiniteNumberSchema, IdSchema } from "./common";

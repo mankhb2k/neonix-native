@@ -1,10 +1,8 @@
 /**
- * V1 capability requirements.
+ * Yêu cầu capability của project V1.
  *
- * IDs follow the dotted capability manifest used by motion-runtime
- * (e.g. `primitive.group`, `effect.blur`, `projection.perspective-3d`).
- * `required` capabilities gate hard errors at preflight; `optional` produce
- * warnings; `experimental` are blocked unless a feature flag opts in.
+ * ID dạng dotted (ví dụ primitive.group, effect.blur).
+ * required = lỗi cứng; optional = cảnh báo; experimental = chặn trừ khi bật flag.
  */
 import { z } from "zod";
 
@@ -41,7 +39,7 @@ const KNOWN_CAPABILITY_IDS = [
   "asset.external",
 ] as const;
 
-export const CAPABILITY_MANIFEST_VERSION_V1 = "v1.2" as const;
+export const CAPABILITY_MANIFEST_VERSION_V1 = "v1.3" as const;
 
 export const CapabilityIdSchema = z.union([
   z.enum(KNOWN_CAPABILITY_IDS),

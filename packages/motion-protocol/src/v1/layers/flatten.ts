@@ -1,7 +1,7 @@
 /**
- * Flatten a nested authoring layer tree into a pre-order list.
- * Nested JSON (`group.children`) is the source of truth; this helper is
- * for validation, duration, and the compiler adapter.
+ * Duỗi cây layer lồng thành danh sách pre-order.
+ *
+ * JSON lồng (group.children) là nguồn sự thật; helper cho validate, duration, compiler.
  */
 import type { LayerV1 } from "./index";
 

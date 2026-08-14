@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { describe, expect, it } from "vitest";
 import { evaluateFrame } from "./evaluated-frame";
 import {
@@ -18,21 +19,7 @@ function pathScene(): RuntimeScene {
         type: "camera",
         parentLayerId: null,
         zIndex: 0,
-        transform: {
-          x: 100,
-          y: 50,
-          width: 1,
-          height: 1,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          opacity: 1,
-          visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 100, y: 50, width: 1, height: 1, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: { zoom: 1.5, projection: "orthographic", parallaxStrength: 1 },
       },
       {
@@ -40,21 +27,7 @@ function pathScene(): RuntimeScene {
         type: "path",
         parentLayerId: null,
         zIndex: 1,
-        transform: {
-          x: 0,
-          y: 0,
-          width: 200,
-          height: 100,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          opacity: 1,
-          visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 200, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: {
           contours: [
             {

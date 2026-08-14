@@ -1,11 +1,7 @@
 /**
- * V1 layer union.
+ * Union layer V1. Discriminator luôn là type (không dùng kind).
  *
- * Discriminator is always `type` (never `kind`):
- * group | text | audio | component | visual primitives.
- *
- * `group` nests `children[]`. `component` is a sealed instance leaf.
- * `audio` is a root-only leaf (negative zIndex).
+ * Chỉ group có children. component = instance niêm phong. audio = lá root, zIndex âm.
  */
 import { z } from "zod";
 import { TextLayerV1Schema } from "./text";
@@ -26,13 +22,7 @@ import {
 import { AudioLayerV1Schema } from "./audio";
 import type { AudioLayerV1 } from "./audio";
 
-export {
-  LayerBaseV1Schema,
-  LayerMaskV1Schema,
-  InheritFlagsSchema,
-  TransformV1Schema,
-  type TransformV1,
-} from "./base";
+export { LayerBaseV1Schema, InheritFlagsSchema } from "./base";
 export { LayerTimingSchema, type LayerTiming } from "./timing";
 export { PaintStyleSchema, type MotionPaintStyle } from "./paint";
 export { TextLayerV1Schema } from "./text";

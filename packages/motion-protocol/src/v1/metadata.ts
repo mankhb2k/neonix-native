@@ -1,9 +1,7 @@
 /**
- * V1 project metadata.
+ * Metadata project V1.
  *
- * Unlike v2 there is no `aspectRatio`/`fps` here — the composition is
- * described by `composition.ts`. `locale` is a full BCP-47 identifier
- * (v2 locked it to `vi-VN`).
+ * Không chứa aspectRatio/fps (nằm ở composition.ts). locale là BCP-47 đầy đủ.
  */
 import { z } from "zod";
 import { IdSchema, LocaleIdentifierSchema } from "./common";

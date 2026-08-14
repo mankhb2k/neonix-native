@@ -20,6 +20,7 @@ import {
   AspectRatioSchema,
   FiniteNumberSchema,
   IdSchema,
+  PercentSchema,
   PropertyPathSchema,
 } from "../v1/common";
 
@@ -47,17 +48,6 @@ import {
 
 import { contourHasLength, duplicates, morphTopologyMismatch } from "./helpers";
 import { LiteralValueSchema, ValueKindSchema } from "../v1/values";
-
-export const PlatformSafeAreaSchema = z
-  .object({
-    platform: z.enum(["tiktok", "reels", "youtube", "generic"]),
-    top: FiniteNumberSchema.nonnegative().max(1).optional(),
-    right: FiniteNumberSchema.nonnegative().max(1).optional(),
-    bottom: FiniteNumberSchema.nonnegative().max(1).optional(),
-    left: FiniteNumberSchema.nonnegative().max(1).optional(),
-  })
-  .strict();
-export type PlatformSafeArea = z.infer<typeof PlatformSafeAreaSchema>;
 
 const DesignTokensSchema = z
   .object({
@@ -89,7 +79,6 @@ export const ProjectMetadataSchema = z
     industry: z.string().optional(),
     brand: BrandSchema,
     designTokens: DesignTokensSchema.optional(),
-    safeArea: PlatformSafeAreaSchema.optional(),
     description: z.string().optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
@@ -116,7 +105,7 @@ export const AudioClipSchema = z
     playbackRate: FiniteNumberSchema.positive()
       .max(MOTION_PROTOCOL_LIMITS.transformScale)
       .default(1),
-    volume: FiniteNumberSchema.min(0).max(1).default(1),
+    volume: PercentSchema.default(100),
     loop: z.boolean().default(false),
     fadeIn: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
@@ -235,7 +224,6 @@ export const RuntimeCompositionMetadataSchema = z
       .positive()
       .max(MOTION_PROTOCOL_LIMITS.sampleRate)
       .optional(),
-    safeArea: PlatformSafeAreaSchema.optional(),
   })
   .strict();
 export type RuntimeCompositionMetadata = z.infer<
@@ -293,10 +281,6 @@ export const RuntimeLayerGraphSchema = z
   })
   .strict();
 export type RuntimeLayerGraph = z.infer<typeof RuntimeLayerGraphSchema>;
-/** @deprecated Use RuntimeLayerGraphSchema */
-export const RuntimeSceneSchema = RuntimeLayerGraphSchema;
-/** @deprecated Use RuntimeLayerGraph */
-export type RuntimeScene = RuntimeLayerGraph;
 
 const MotionRuntimeProjectBaseSchema = z
   .object({
@@ -722,7 +706,7 @@ export const MotionRuntimeProjectSchema =
           });
           continue;
         }
-        const effectMatch = /^effects\.([^.]+)\.([^.]+)$/.exec(track.property);
+        const effectMatch = /^effects\.([^.]+)\.(.+)$/.exec(track.property);
         if (effectMatch) {
           const effect = node.effects?.find(
             (candidate) => candidate.id === effectMatch[1],

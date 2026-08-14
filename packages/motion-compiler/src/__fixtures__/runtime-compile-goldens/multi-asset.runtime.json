@@ -73,9 +73,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "15f6a96770a3440d0672912d27485ef9",
+  "runtimeHash": "39f91091f921f07acc171cebee56c837",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "87631d2c89faf8ea",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
     "layers": {
       "main-camera": "layers:main-camera",
@@ -93,19 +93,36 @@
       "parentLayerId": null,
       "zIndex": 0,
       "transform": {
-        "x": 960,
-        "y": 540,
-        "width": 0,
-        "height": 0,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0,
-        "anchorY": 0,
-        "opacity": 1,
+        "translate": {
+          "x": 960,
+          "y": 540
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,
@@ -126,20 +143,41 @@
       "type": "text",
       "parentLayerId": null,
       "zIndex": 1,
-      "transform": {
-        "x": 960,
-        "y": 200,
+      "frame": {
         "width": 800,
-        "height": 120,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 120
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 200
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,
@@ -168,20 +206,41 @@
       "type": "image",
       "parentLayerId": null,
       "zIndex": 2,
-      "transform": {
-        "x": 300,
-        "y": 540,
+      "frame": {
         "width": 300,
-        "height": 300,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 300
+      },
+      "transform": {
+        "translate": {
+          "x": 300,
+          "y": 540
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,
@@ -201,20 +260,41 @@
       "type": "svg",
       "parentLayerId": null,
       "zIndex": 3,
-      "transform": {
-        "x": 960,
-        "y": 540,
+      "frame": {
         "width": 300,
-        "height": 300,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 300
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 540
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,
@@ -234,20 +314,41 @@
       "type": "video",
       "parentLayerId": null,
       "zIndex": 4,
-      "transform": {
-        "x": 1620,
-        "y": 540,
+      "frame": {
         "width": 480,
-        "height": 270,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 270
+      },
+      "transform": {
+        "translate": {
+          "x": 1620,
+          "y": 540
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,
@@ -272,13 +373,16 @@
         "start": 0,
         "duration": 42.5
       },
-      "visible": true,
+      "appearance": {
+        "visible": true,
+        "opacity": 100
+      },
       "locked": false,
       "payload": {
         "assetId": "bgm",
         "trimStart": 0,
         "playbackRate": 1,
-        "volume": 0.8,
+        "volume": 80,
         "loop": false,
         "fadeIn": 0.5,
         "fadeOut": 1,

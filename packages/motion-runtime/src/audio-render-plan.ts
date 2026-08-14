@@ -1,10 +1,11 @@
 /**
  * AudioRenderPlan — shared audio timing for Pixi Web Audio and Remotion adapters.
  *
- * Per-clip fadeIn/fadeOut are DSP envelopes on that clip only — never inferred
- * crossfades between neighboring clips.
+ * Per-layer fadeIn/fadeOut are DSP envelopes on that audio layer only — never
+ * inferred crossfades between neighboring layers.
  */
 
+import { ratioFromPercent } from "@motionvideo/motion-protocol";
 import type {
   MotionRuntimeProject,
 } from "@motionvideo/motion-protocol/runtime";
@@ -18,10 +19,9 @@ export type AudioVolumeKeyframe = {
 /** Channel routing policy for audio adapters. */
 export type AudioChannelPolicy = "stereo" | "mono" | "left-only" | "right-only";
 
-export type AudioRenderClip = {
-  /** Runtime audio track id + clip id (stable identity). */
-  trackId: string;
-  clipId: string;
+export type AudioRenderLayer = {
+  /** Runtime audio layer id (stable identity). */
+  layerId: string;
   assetId: string;
   uri: string;
   fromFrame: number;
@@ -44,7 +44,7 @@ export type AudioRenderClip = {
 
 export type AudioRenderPlan = {
   fps: number;
-  clips: AudioRenderClip[];
+  layers: AudioRenderLayer[];
 };
 
 export type BuildAudioRenderPlanInput = {
@@ -53,10 +53,10 @@ export type BuildAudioRenderPlanInput = {
   /** Composition duration (frames); used only for fade clamp context. */
   durationInFrames: number;
   /**
-   * Optional override rate per clip id (tests / debug). Defaults to the
-   * clip's own `playbackRate`.
+   * Optional override rate per audio layer id (tests / debug). Defaults to the
+   * layer's own `playbackRate`.
    */
-  playbackRateByClipId?: Record<string, number>;
+  playbackRateByLayerId?: Record<string, number>;
 };
 
 /** Resolved asset metadata from the runtime asset registry. */
@@ -127,15 +127,14 @@ function buildVolumeEnvelope(input: {
 }
 
 /**
- * Build a deterministic {@link AudioRenderPlan} from Runtime IR audio tracks.
- * Overlapping clips (same or different tracks) each get their own envelope
- * and are mixed by the adapter.
+ * Build a deterministic {@link AudioRenderPlan} from Runtime IR audio layers.
+ * Overlapping layers each get their own envelope and are mixed by the adapter.
  */
 export function buildAudioRenderPlan(
   input: BuildAudioRenderPlanInput,
 ): AudioRenderPlan {
   const fps = Math.max(1, input.fps);
-  const clips: AudioRenderClip[] = [];
+  const layers: AudioRenderLayer[] = [];
 
   for (const layer of audioLayersFromRuntime(input.runtime)) {
     const payload = layer.payload;
@@ -144,7 +143,7 @@ export function buildAudioRenderPlan(
 
     const playbackRate = Math.max(
       0.01,
-      input.playbackRateByClipId?.[layer.id] ?? payload.playbackRate ?? 1,
+      input.playbackRateByLayerId?.[layer.id] ?? payload.playbackRate ?? 1,
     );
     const fromFrame = Math.max(0, Math.round(layer.timing.start * fps));
     const durationInFrames = Math.max(
@@ -153,8 +152,8 @@ export function buildAudioRenderPlan(
     );
     if (durationInFrames <= 0) continue;
 
-    const muted = layer.visible === false || (payload.muted ?? false);
-    const volume = muted ? 0 : (payload.volume ?? 1);
+    const muted = layer.appearance?.visible === false || (payload.muted ?? false);
+    const volume = muted ? 0 : ratioFromPercent(payload.volume ?? 100);
 
     const channelPolicy: AudioChannelPolicy =
       (payload as { channelPolicy?: AudioChannelPolicy }).channelPolicy ??
@@ -164,9 +163,8 @@ export function buildAudioRenderPlan(
       .loopWindowStart;
     const loopWindowEnd = (payload as { loopWindowEnd?: number }).loopWindowEnd;
 
-    clips.push({
-      trackId: layer.id,
-      clipId: layer.id,
+    layers.push({
+      layerId: layer.id,
       assetId: payload.assetId,
       uri: asset.uri,
       fromFrame,
@@ -191,7 +189,7 @@ export function buildAudioRenderPlan(
     });
   }
 
-  return { fps, clips };
+  return { fps, layers };
 }
 
 /** Sample volume envelope at a composition frame (step/hold between keys). */

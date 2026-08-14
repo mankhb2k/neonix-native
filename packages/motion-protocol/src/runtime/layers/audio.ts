@@ -7,9 +7,10 @@ import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
-  NormalizedRatioSchema,
+  PercentSchema,
   PositiveNumberSchema,
 } from "../../v1/common";
+import { AppearanceSchema } from "../../v1/appearance";
 import { LayerTimingSchema } from "./base";
 
 export const RuntimeAudioPayloadSchema = z
@@ -24,7 +25,7 @@ export const RuntimeAudioPayloadSchema = z
     playbackRate: PositiveNumberSchema.max(
       MOTION_PROTOCOL_LIMITS.transformScale,
     ).default(1),
-    volume: NormalizedRatioSchema.default(1),
+    volume: PercentSchema.default(100),
     loop: z.boolean().default(false),
     fadeIn: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
@@ -44,7 +45,7 @@ export const RuntimeAudioLayerSchema = z
     parentLayerId: z.null(),
     zIndex: z.number().int().negative(),
     timing: LayerTimingSchema,
-    visible: z.boolean().default(true),
+    appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
     locked: z.boolean().default(false),
     payload: RuntimeAudioPayloadSchema,
   })

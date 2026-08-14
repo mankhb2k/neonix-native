@@ -1,6 +1,7 @@
 // @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
   parseMotionProjectV1,
+  visualLayerAtoms,
   type MotionProjectV1,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
@@ -37,21 +38,18 @@ type Xform = {
 };
 
 function xform(input: Xform) {
-  return {
+  return visualLayerAtoms({
     x: input.x,
     y: input.y,
     width: input.width,
     height: input.height,
-    rotation: input.rotation ?? 0,
-    scaleX: input.scaleX ?? 1,
-    scaleY: input.scaleY ?? 1,
-    opacity: input.opacity ?? 1,
-    visible: true,
-    anchorX: input.anchorX ?? 0.5,
-    anchorY: input.anchorY ?? 0.5,
-    flipX: false,
-    flipY: false,
-  };
+    rotation: input.rotation,
+    scaleX: input.scaleX,
+    scaleY: input.scaleY,
+    originX: input.anchorX,
+    originY: input.anchorY,
+    opacity: input.opacity,
+  });
 }
 
 function bg(id: string, fill: string): MotionLayer {
@@ -61,7 +59,7 @@ function bg(id: string, fill: string): MotionLayer {
     name: "Background",
     parentLayerId: null,
     zIndex: 0,
-    transform: xform({
+    ...xform({
       x: 960,
       y: 540,
       width: 1920,
@@ -87,7 +85,7 @@ function rect(
     name,
     parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 1,
-    transform: xform(t),
+    ...xform(t),
     payload: {
       shape: "rectangle",
       ...(opts?.cornerRadius != null
@@ -116,7 +114,7 @@ function textNode(
     name,
     parentLayerId: opts?.parentLayerId ?? null,
     zIndex: opts?.zIndex ?? 2,
-    transform: xform(t),
+    ...xform(t),
     payload: {
       content: { kind: "plain", text: payload.text },
       fontSize: payload.fontSize,
@@ -140,17 +138,17 @@ function fadeInClip(
   }> = [
     {
       layerId,
-      property: "transform.opacity",
+      property: "appearance.opacity",
       keys: [
         { t: 0, v: 0 },
-        { t: duration, v: 1, easing: "easeOut" },
+        { t: duration, v: 100, easing: "easeOut" },
       ],
     },
   ];
   if (fromY != null) {
     tracks.push({
       layerId,
-      property: "transform.y",
+      property: "transform.translate.y",
       keys: [
         { t: 0, v: fromY },
         { t: duration, v: fromY - 40, easing: "easeOut" },
@@ -233,15 +231,15 @@ function buildHook(): RuntimeLayerGraph {
           tracks: [
             {
               layerId: accentId,
-              property: "transform.opacity",
+              property: "appearance.opacity",
               keys: [
                 { t: 0, v: 0 },
-                { t: 0.6, v: 1, easing: "easeOut" },
+                { t: 0.6, v: 100, easing: "easeOut" },
               ],
             },
             {
               layerId: accentId,
-              property: "transform.width",
+              property: "frame.width",
               keys: [
                 { t: 0, v: 40 },
                 { t: 0.6, v: 120, easing: "easeOut" },
@@ -495,15 +493,15 @@ function buildIpo(): RuntimeLayerGraph {
           tracks: [
             {
               layerId: barId,
-              property: "transform.opacity",
+              property: "appearance.opacity",
               keys: [
                 { t: 0, v: 0 },
-                { t: 0.5, v: 1, easing: "easeOut" },
+                { t: 0.5, v: 100, easing: "easeOut" },
               ],
             },
             {
               layerId: barId,
-              property: "transform.width",
+              property: "frame.width",
               keys: [
                 { t: 0, v: 40 },
                 { t: 0.5, v: 200, easing: "easeOut" },
@@ -590,10 +588,10 @@ function buildMeta(): RuntimeLayerGraph {
           tracks: [
             {
               layerId: "meta.overlay",
-              property: "transform.opacity",
+              property: "appearance.opacity",
               keys: [
                 { t: 0, v: 0 },
-                { t: 0.8, v: 0.55, easing: "easeInOut" },
+                { t: 0.8, v: 55, easing: "easeInOut" },
               ],
             },
           ],

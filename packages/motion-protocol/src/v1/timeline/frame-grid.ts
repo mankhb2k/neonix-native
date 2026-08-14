@@ -1,5 +1,5 @@
 /**
- * Frame-grid — snap và validate thời gian timeline + layer tree về lưới `n / fps`.
+ * Lưới khung — snap và kiểm thời gian timeline + cây layer về n / fps.
  */
 import type { LayerV1 } from "../layers";
 import type { AudioLayerV1 } from "../layers/audio";

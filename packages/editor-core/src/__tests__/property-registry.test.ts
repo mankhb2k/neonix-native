@@ -41,8 +41,10 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    const node = result.document.project.scenes[0]!.layers[0]!;
-    expect(node.transform.x).toBe(120);
+    const node = result.document.project.layers[0];
+    const title =
+      node && node.type === "group" ? node.children[0] : undefined;
+    expect(title && "transform" in title ? title.transform.translate.x : undefined).toBe(120);
   });
 
   it("clamps opacity to 0..1", () => {
@@ -61,7 +63,9 @@ describe("property commands", () => {
     });
     expect(result.status).toBe("applied");
     if (result.status !== "applied") return;
-    expect(result.document.project.scenes[0]!.layers[0]!.transform.opacity).toBe(
+    const root = result.document.project.layers[0];
+    const title = root && root.type === "group" ? root.children[0] : undefined;
+    expect(title && "appearance" in title ? title.appearance.opacity : undefined).toBe(
       1,
     );
   });
@@ -167,7 +171,7 @@ describe("mixed + registry", () => {
       selection,
       targets,
     };
-    const prop = getPropertyDefinition("transform.x")!;
+    const prop = getPropertyDefinition("transform.translate.x")!;
     expect(prop.read(ctx)).toBe(40);
     const cmd = prop.createCommand(99, ctx);
     expect(cmd.type).toBe("set-node-transform");
@@ -286,7 +290,7 @@ describe("Logic-2 property domain depth", () => {
     const withKey = executePropertyCommand(withEffect.document, {
       type: "set-property-keyframe",
       targets,
-      property: "transform.x",
+      property: "transform.translate.x",
       t: 0.5,
       v: 200,
       easing: "easeOut",
@@ -481,7 +485,7 @@ describe("Logic-2 property domain depth", () => {
       executePropertyCommand(doc, {
         type: "set-property-keyframe",
         targets,
-        property: "transform.x",
+        property: "transform.translate.x",
         t: Number.NaN,
         v: 1,
       }).status,
@@ -499,7 +503,7 @@ describe("Logic-2 property domain depth", () => {
       executePropertyCommand(doc, {
         type: "set-property-keyframe",
         targets,
-        property: "transform.x",
+        property: "transform.translate.x",
         t: 86_401,
         v: 1,
       }).status,
@@ -552,7 +556,7 @@ describe("Logic-2 property domain depth", () => {
     const result = executePropertyCommand(doc, {
       type: "set-property-keyframe",
       targets,
-      property: "transform.x",
+      property: "transform.translate.x",
       t,
       v: 42,
     });
@@ -561,7 +565,7 @@ describe("Logic-2 property domain depth", () => {
     const kf = result.document.project.scenes[0]!.clips.find(
       (c) =>
         c.source.kind === "tracks" &&
-        c.source.tracks.some((tr) => tr.property === "transform.x"),
+        c.source.tracks.some((tr) => tr.property === "transform.translate.x"),
     );
     expect(kf).toBeTruthy();
     expect(kf!.duration).toBeLessThanOrEqual(
@@ -597,7 +601,7 @@ describe("history coalesce", () => {
     const entry1: HistoryEntry = {
       id: "h1",
       timestamp: 1,
-      label: "transform.x",
+      label: "transform.translate.x",
       coalesceKey: "scrub:transform.x:clip1",
       before,
       after,
@@ -625,7 +629,7 @@ describe("history coalesce", () => {
     const entry2: HistoryEntry = {
       id: "h2",
       timestamp: 2,
-      label: "transform.x",
+      label: "transform.translate.x",
       coalesceKey: "scrub:transform.x:clip1",
       before: after,
       after,

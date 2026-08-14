@@ -1,4 +1,5 @@
 import type { MotionProject } from "@motionvideo/motion-protocol";
+import { V1 } from "@motionvideo/motion-protocol";
 import {
   parseCreativeBriefV1,
   parseCreativePlanV1,
@@ -339,8 +340,8 @@ export async function runZeroTemplateGeneration(input: {
 
     // Recipe pass (deterministic polish)
     const recipeCommands: AuthoringCommand[] = [];
-    for (const scene of project.scenes) {
-      const textIds = scene.layers
+    for (const scene of project.layers.filter((layer) => layer.type === "group")) {
+      const textIds = V1.flattenLayerTree(scene.children)
         .filter((node) => node.type === "text")
         .map((node) => node.id);
       if (textIds.length === 0) continue;
@@ -351,7 +352,7 @@ export async function runZeroTemplateGeneration(input: {
           recipeId: "stagger",
           targetLayerId: textIds[0]!,
           staggerLayerIds: textIds,
-          duration: Math.min(1.2, scene.duration),
+          duration: Math.min(1.2, scene.timing?.duration ?? 1),
         });
       } else {
         recipeCommands.push({
@@ -359,7 +360,7 @@ export async function runZeroTemplateGeneration(input: {
           sceneId: scene.id,
           recipeId: "float",
           targetLayerId: textIds[0]!,
-          duration: scene.duration,
+          duration: scene.timing?.duration ?? 1,
           intensity: 0.6,
         });
       }
@@ -433,8 +434,10 @@ export async function runZeroTemplateGeneration(input: {
           findings: critic.findings,
           targetedIds,
           projectSummary: {
-            sceneIds: project.scenes.map((s) => s.id),
-            layerIds: project.scenes.flatMap((s) => s.layers.map((n) => n.id)),
+            sceneIds: project.layers
+              .filter((s) => s.type === "group")
+              .map((s) => s.id),
+            layerIds: V1.flattenLayerTree(project.layers).map((n) => n.id),
           },
         },
         model: modelName,
@@ -491,8 +494,10 @@ export async function runZeroTemplateGeneration(input: {
     emit({ phase: "ready", progress: 100, message: "Done" });
     const ok =
       critic.findings.every((f) => f.severity !== "error") &&
-      project.scenes.length > 0 &&
-      project.scenes.every((s) => s.layers.length > 0);
+      project.layers.some((layer) => layer.type === "group") &&
+      project.layers
+        .filter((layer) => layer.type === "group")
+        .every((s) => s.children.length > 0);
 
     return {
       ok,
@@ -611,7 +616,8 @@ export async function runScopedRefine(input: {
     }
   } else {
     // Fall back to full zero-template for video scope via stub commands on last CTA
-    const lastScene = input.project.scenes[input.project.scenes.length - 1];
+    const groups = input.project.layers.filter((layer) => layer.type === "group");
+    const lastScene = groups[groups.length - 1];
     if (lastScene) {
       commands.push({
         type: "addNode",
@@ -622,14 +628,7 @@ export async function runScopedRefine(input: {
         fontSize: 40,
         fill: "#ffffff",
         semanticRole: "offer",
-        transform: {
-          x: 540,
-          y: 1400,
-          width: 900,
-          height: 100,
-          anchorX: 0.5,
-          anchorY: 0.5,
-        },
+        transform: { x: 540, y: 1400, width: 900, height: 100 },
       });
     }
   }

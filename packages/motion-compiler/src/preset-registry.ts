@@ -100,7 +100,7 @@ function opacityTrack(
 ): RuntimeTrackBake {
   return {
     layerId: layerId,
-    property: "transform.opacity",
+    property: "appearance.opacity",
     keys: [
       { t: start, v: from },
       { t: end, v: to, easing },
@@ -110,7 +110,7 @@ function opacityTrack(
 
 function axisTrack(
   layerId: string,
-  property: "transform.x" | "transform.y",
+  property: "transform.translate.x" | "transform.translate.y",
   start: number,
   end: number,
   from: number,
@@ -139,7 +139,7 @@ function scaleTracks(
   return [
     {
       layerId: layerId,
-      property: "transform.scaleX",
+      property: "transform.scale.x",
       keys: [
         { t: start, v: from },
         { t: end, v: toX, easing },
@@ -147,7 +147,7 @@ function scaleTracks(
     },
     {
       layerId: layerId,
-      property: "transform.scaleY",
+      property: "transform.scale.y",
       keys: [
         { t: start, v: from },
         { t: end, v: toY, easing },
@@ -177,7 +177,7 @@ function directionalEntrance(
         opacityTrack(layerId, start, end, 0, transform.opacity, easing),
         axisTrack(
           layerId,
-          axis === "x" ? "transform.x" : "transform.y",
+          axis === "x" ? "transform.translate.x" : "transform.translate.y",
           start,
           end,
           from,
@@ -209,7 +209,7 @@ function directionalExit(
         opacityTrack(layerId, start, end, transform.opacity, 0, easing),
         axisTrack(
           layerId,
-          axis === "x" ? "transform.x" : "transform.y",
+          axis === "x" ? "transform.translate.x" : "transform.translate.y",
           start,
           end,
           rest,
@@ -406,7 +406,7 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
       return [
         {
           layerId: layerId,
-          property: "transform.y",
+          property: "transform.translate.y",
           keys: [
             { t: start, v: transform.y },
             { t: mid, v: transform.y - distance, easing },
@@ -427,12 +427,12 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
       return [
         {
           layerId: layerId,
-          property: "transform.opacity",
+          property: "appearance.opacity",
           keys: [
             { t: start, v: transform.opacity },
             {
               t: mid,
-              v: Math.min(1, transform.opacity + 0.35),
+              v: Math.min(100, transform.opacity + 35),
               easing: "easeOut",
             },
             { t: end, v: transform.opacity, easing: "easeIn" },
@@ -455,7 +455,7 @@ const PRESETS: MotionPresetDefinition<unknown>[] = [
       return [
         {
           layerId: layerId,
-          property: "transform.x",
+          property: "transform.translate.x",
           keys: [
             { t: start, v: transform.x },
             { t: q1, v: transform.x + distance },

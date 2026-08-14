@@ -38,6 +38,10 @@ function itemNeedsLayer(item: RenderSnapshotItem): boolean {
   );
 }
 
+function parentKey(item: RenderSnapshotItem): string | null {
+  return item.parentLayerId ?? null;
+}
+
 function pushBeginLayer(
   item: RenderSnapshotItem,
   commands: PaintCommand[],
@@ -54,22 +58,17 @@ function pushBeginLayer(
           mask: {
             mode: c.mask.mode,
             sourceKey: `${item.graphId}:${c.mask.sourceLayerId}`,
+            sourceVisibility: c.mask.sourceVisibility,
           },
         }
       : {}),
   });
 }
 
-function emitItem(
+function pushTransform(
   item: RenderSnapshotItem,
   commands: PaintCommand[],
-  diagnostics: RenderDiagnostic[],
 ): void {
-  if (!item.visible) return;
-
-  const wrapLayer = itemNeedsLayer(item);
-  if (wrapLayer) pushBeginLayer(item, commands);
-
   commands.push({
     op: "setTransform",
     key: item.key,
@@ -80,14 +79,18 @@ function emitItem(
     ...(item.blendMode ? { blendMode: item.blendMode } : {}),
     ...(item.worldMatrix4 ? { matrix4: Array.from(item.worldMatrix4) } : {}),
   });
+}
 
+function emitDraw(
+  item: RenderSnapshotItem,
+  commands: PaintCommand[],
+  diagnostics: RenderDiagnostic[],
+): void {
   const payload = item.payload;
   const effects = item.effects;
 
   if (payload.kind === "group") {
     commands.push({ op: "beginGroup", key: item.key, layerId: item.layerId });
-    commands.push({ op: "endGroup", key: item.key });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -115,7 +118,6 @@ function emitItem(
       ...(payload.runs ? { runs: payload.runs } : {}),
       ...(effects?.length ? { effects } : {}),
     });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -132,7 +134,6 @@ function emitItem(
       cornerRadius: payload.cornerRadius,
       ...(effects?.length ? { effects } : {}),
     });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -146,7 +147,6 @@ function emitItem(
       height: payload.height,
       ...(effects?.length ? { effects } : {}),
     });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -170,7 +170,6 @@ function emitItem(
       height: payload.height,
       ...(effects?.length ? { effects } : {}),
     });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -198,7 +197,6 @@ function emitItem(
       strokeOpacity: payload.strokeOpacity,
       ...(effects?.length ? { effects } : {}),
     });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -221,7 +219,6 @@ function emitItem(
       mediaTime: payload.mediaTime,
       ...(effects?.length ? { effects } : {}),
     });
-    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
     return;
   }
 
@@ -239,7 +236,27 @@ function emitItem(
     nodeType: item.nodeType,
     message: `payload.kind=${payload.kind}`,
   });
-  if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
+}
+
+function emitSubtree(
+  parentId: string | null,
+  byParent: Map<string | null, RenderSnapshotItem[]>,
+  commands: PaintCommand[],
+  diagnostics: RenderDiagnostic[],
+): void {
+  const children = byParent.get(parentId) ?? [];
+  for (const item of children) {
+    if (!item.visible) continue;
+    const wrapLayer = itemNeedsLayer(item);
+    if (wrapLayer) pushBeginLayer(item, commands);
+    pushTransform(item, commands);
+    emitDraw(item, commands, diagnostics);
+    emitSubtree(item.layerId, byParent, commands, diagnostics);
+    if (item.payload.kind === "group") {
+      commands.push({ op: "endGroup", key: item.key });
+    }
+    if (wrapLayer) commands.push({ op: "endLayer", key: item.key });
+  }
 }
 
 /**
@@ -268,6 +285,8 @@ export function buildPaintCommandBuffer(
     (a, b) => a.renderOrder - b.renderOrder || a.key.localeCompare(b.key),
   );
 
+  const knownIds = new Set(ordered.map((item) => item.layerId));
+  const byParent = new Map<string | null, RenderSnapshotItem[]>();
   for (const item of ordered) {
     if (
       !PAINT_KINDS.has(item.payload.kind) &&
@@ -322,8 +341,14 @@ export function buildPaintCommandBuffer(
       });
       continue;
     }
-    emitItem(item, commands, diagnostics);
+    const rawParent = parentKey(item);
+    const parent = rawParent && knownIds.has(rawParent) ? rawParent : null;
+    const list = byParent.get(parent) ?? [];
+    list.push(item);
+    byParent.set(parent, list);
   }
+
+  emitSubtree(null, byParent, commands, diagnostics);
 
   commands.push({ op: "endFrame" });
   return { version: PAINT_COMMAND_VERSION, commands, diagnostics };

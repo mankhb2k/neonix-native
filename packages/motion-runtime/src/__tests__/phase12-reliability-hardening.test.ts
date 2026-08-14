@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Phase 12 — Reliability & Production Hardening tests.
  *
@@ -294,7 +295,7 @@ describe("Phase 12.3 — Fuzz: non-finite values", () => {
     const c = new RuntimeDiagnosticCollector();
     c.warn("NON_FINITE_VALUE", {
       layerId: "n1",
-      details: { value: "NaN", property: "transform.x" },
+      details: { value: "NaN", property: "transform.translate.x" },
     });
     expect(c.diagnostics).toHaveLength(1);
     expect(c.diagnostics[0]!.code).toBe("NON_FINITE_VALUE");
@@ -444,21 +445,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           type: "solid" as const,
           id: "n1",
           parentLayerId: "missing-parent",
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            anchorX: 0.5,
-            anchorY: 0.5,
-            opacity: 1,
-            visible: true,
-            flipX: false,
-            flipY: false,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
           zIndex: 0,
           name: "orphan",
           payload: { width: 100, height: 100, color: "#000000" },
@@ -488,21 +475,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           type: "solid" as const,
           id: "n1",
           parentLayerId: "n2",
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            anchorX: 0.5,
-            anchorY: 0.5,
-            opacity: 1,
-            visible: true,
-            flipX: false,
-            flipY: false,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
           zIndex: 0,
           name: "child",
           payload: { width: 100, height: 100, color: "#000000" },
@@ -511,21 +484,7 @@ describe("Phase 12 — Integration: Scene evaluation with diagnostics", () => {
           type: "solid" as const,
           id: "n2",
           parentLayerId: "n1",
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            anchorX: 0.5,
-            anchorY: 0.5,
-            opacity: 1,
-            visible: true,
-            flipX: false,
-            flipY: false,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
           zIndex: 0,
           name: "parent",
           payload: { width: 100, height: 100, color: "#000000" },

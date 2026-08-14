@@ -23,9 +23,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "b7787aa6b203a6b59354d779647e6836",
+  "runtimeHash": "936e10171ebe696a0044fe0df2a0f9e8",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "87631d2c89faf8ea",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
     "layers": {
       "title": "layers:title",
@@ -38,20 +38,41 @@
       "type": "text",
       "parentLayerId": null,
       "zIndex": 1,
-      "transform": {
-        "x": 960,
-        "y": 400,
+      "frame": {
         "width": 800,
-        "height": 120,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 0.9,
+        "height": 120
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 400
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 90
       },
       "timing": {
         "start": 0,
@@ -80,20 +101,41 @@
       "type": "text",
       "parentLayerId": null,
       "zIndex": 2,
-      "transform": {
-        "x": 960,
-        "y": 600,
+      "frame": {
         "width": 800,
-        "height": 100,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 100
+      },
+      "transform": {
+        "translate": {
+          "x": 960,
+          "y": 600
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,

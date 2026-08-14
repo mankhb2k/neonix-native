@@ -1,7 +1,5 @@
 /**
- * V1 geometry layers — shape + path.
- *
- * Owns point/path primitives so V1 is self-contained for path data.
+ * Layer hình học V1 — shape + path. Sở hữu primitive điểm/path.
  */
 
 import { z } from "zod";

@@ -1,20 +1,11 @@
 import {
   parseMotionProjectV1,
+  visualLayerAtoms,
   type MotionProjectV1,
 } from "@motionvideo/motion-protocol";
 
 /** Matches the in-memory layer graph id used by the runtime evaluator. */
 export const DEMO_SCENE_ID = "root";
-
-const transform = {
-  rotation: 0,
-  scaleX: 1,
-  scaleY: 1,
-  opacity: 1,
-  visible: true,
-  flipX: false,
-  flipY: false,
-} as const;
 
 /** Minimal shape + text + group fixture for preview / snapshot parity tests. */
 export function createDemoMotionProject(): MotionProjectV1 {
@@ -48,17 +39,8 @@ export function createDemoMotionProject(): MotionProjectV1 {
         parentLayerId: null,
         zIndex: 0,
         timing: { start: 0, duration: 3 },
-        visible: true,
         locked: false,
-        transform: {
-          ...transform,
-          x: 0,
-          y: 0,
-          width: 1920,
-          height: 1080,
-          anchorX: 0,
-          anchorY: 0,
-        },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 1920, height: 1080, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: { shape: "rectangle" },
         style: { fill: "#ffffff" },
       },
@@ -69,17 +51,8 @@ export function createDemoMotionProject(): MotionProjectV1 {
         parentLayerId: null,
         zIndex: 1,
         timing: { start: 0, duration: 3 },
-        visible: true,
         locked: false,
-        transform: {
-          ...transform,
-          x: 960,
-          y: 480,
-          width: 600,
-          height: 280,
-          anchorX: 0.5,
-          anchorY: 0.5,
-        },
+        ...visualLayerAtoms({ x: 960, y: 480, width: 600, height: 280, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
         payload: {},
         children: [
           {
@@ -88,17 +61,8 @@ export function createDemoMotionProject(): MotionProjectV1 {
             name: "Card",
             parentLayerId: "node.group",
             zIndex: 0,
-            visible: true,
             locked: false,
-            transform: {
-              ...transform,
-              x: 0,
-              y: 40,
-              width: 520,
-              height: 160,
-              anchorX: 0.5,
-              anchorY: 0.5,
-            },
+            ...visualLayerAtoms({ x: 0, y: 40, width: 520, height: 160, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
             payload: { shape: "rectangle", cornerRadius: 24 },
             style: { fill: "#0d9488" },
           },
@@ -108,17 +72,8 @@ export function createDemoMotionProject(): MotionProjectV1 {
             name: "Title",
             parentLayerId: "node.group",
             zIndex: 1,
-            visible: true,
             locked: false,
-            transform: {
-              ...transform,
-              x: 0,
-              y: -60,
-              width: 560,
-              height: 80,
-              anchorX: 0.5,
-              anchorY: 0.5,
-            },
+            ...visualLayerAtoms({ x: 0, y: -60, width: 560, height: 80, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
             payload: {
               content: { kind: "plain", text: "MotiClip AI Studio" },
               fontSize: 56,
@@ -135,17 +90,8 @@ export function createDemoMotionProject(): MotionProjectV1 {
         parentLayerId: null,
         zIndex: 2,
         timing: { start: 0, duration: 3 },
-        visible: true,
         locked: false,
-        transform: {
-          ...transform,
-          x: 240,
-          y: 820,
-          width: 72,
-          height: 72,
-          anchorX: 0.5,
-          anchorY: 0.5,
-        },
+        ...visualLayerAtoms({ x: 240, y: 820, width: 72, height: 72, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
         payload: { shape: "ellipse" },
         style: { fill: "#2dd4bf" },
       },

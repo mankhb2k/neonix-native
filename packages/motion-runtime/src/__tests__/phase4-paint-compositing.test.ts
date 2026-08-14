@@ -233,8 +233,7 @@ describe("Task 4.1 — compositing semantics (spec)", () => {
           {
             id: "e2",
             type: "shadow",
-            offsetX: 2,
-            offsetY: 2,
+            offset: { x: 2, y: 2 },
             blur: 4,
             color: "#000",
             opacity: 0.5,

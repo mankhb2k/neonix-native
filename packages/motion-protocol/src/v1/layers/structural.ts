@@ -1,27 +1,21 @@
 /**
- * V1 structural layers — group, bone, solid, adjustment.
+ * Layer cấu trúc: group, bone, solid, adjustment.
  *
- * Group is the only wrapper that may nest `children`. Nested JSON is the
- * authoring source of truth; `parentLayerId` on each child must match.
+ * Chỉ group được lồng children. parentLayerId con phải khớp.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
-import { ColorHexSchema, PositiveNumberSchema } from "../common";
+import {
+  ColorAdjustPercentSchema,
+  ColorHexSchema,
+  HueRotateSchema,
+  PositiveNumberSchema,
+} from "../common";
 import { LayerBaseV1Schema } from "./base";
 
 export const GroupLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("group"),
-  payload: z
-    .object({
-      compositing: z
-        .object({
-          mode: z.enum(["pass-through", "isolate"]).default("pass-through"),
-        })
-        .strict()
-        .optional(),
-    })
-    .strict()
-    .optional(),
+  payload: z.object({}).strict().optional(),
 }).strict();
 
 export const BoneLayerV1Schema = LayerBaseV1Schema.extend({
@@ -42,8 +36,6 @@ export const SolidLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("solid"),
   payload: z
     .object({
-      width: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.layerDimension),
-      height: PositiveNumberSchema.max(MOTION_PROTOCOL_LIMITS.layerDimension),
       color: ColorHexSchema.default("#000000"),
     })
     .strict(),
@@ -53,9 +45,10 @@ export const AdjustmentLayerV1Schema = LayerBaseV1Schema.extend({
   type: z.literal("adjustment"),
   payload: z
     .object({
-      brightness: z.number().min(-1).max(1).optional(),
-      contrast: z.number().min(0).max(4).optional(),
-      saturation: z.number().min(0).max(4).optional(),
+      brightness: ColorAdjustPercentSchema.optional(),
+      contrast: ColorAdjustPercentSchema.optional(),
+      saturation: ColorAdjustPercentSchema.optional(),
+      "hue-rotate": HueRotateSchema.optional(),
     })
     .strict()
     .optional(),

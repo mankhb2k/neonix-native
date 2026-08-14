@@ -24,13 +24,13 @@ import { cn } from "@/lib/utils";
 
 /** Map inspector prop id → Motion track property path. */
 const TRACK_PROPERTY_BY_PROP_ID: Record<string, string> = {
-  "transform.x": "transform.x",
-  "transform.y": "transform.y",
-  "transform.rotation": "transform.rotation",
-  "transform.scaleX": "transform.scaleX",
-  "transform.scaleY": "transform.scaleY",
-  "transform.opacity": "transform.opacity",
-  "metadata.visible": "transform.visible",
+  "transform.translate.x": "transform.translate.x",
+  "transform.translate.y": "transform.translate.y",
+  "transform.rotate.z": "transform.rotate.z",
+  "transform.scale.x": "transform.scale.x",
+  "transform.scale.y": "transform.scale.y",
+  "appearance.opacity": "appearance.opacity",
+  "metadata.visible": "appearance.visible",
   "style.fill": "style.fill",
   "style.stroke": "style.stroke",
   "style.strokeWidth": "style.strokeWidth",

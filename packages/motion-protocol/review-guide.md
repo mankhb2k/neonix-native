@@ -15,11 +15,11 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 | 1   | `src/v1/project.ts`               | **Root schema** của V1. Hiểu `MotionProjectV1Schema` gom những phần nào, giới hạn tổng thể (`MOTION_PROTOCOL_LIMITS`) ra sao.   |
 | 2   | `src/v1/timeline/schema.ts`       | **Timeline metadata**. Chỉ `duration?` / `workArea?` / `markers?`. Không `visualTracks` / `audioTracks` / `captionTracks`. |
 | 2b  | `src/v1/layers/component.ts`       | **Component layer** (`type: "component"`) — `payload.componentId`, `variantId?`, `props?`, transform đóng vai trò wrapper. |
-| 3   | `src/v1/components.ts`            | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
+| 3   | `src/v1/components/`              | **Sealed component contract** — `props`, `variants`, `propBindings`, internals.                                |
 | 4   | `src/v1/variables.ts`             | **Binding model** — `target.type`: `layer` | `componentLayer`; consumer không chạm internals. |
 | 5   | `src/v1/references/project.ts`    | **Semantic validation** — id có tồn tại, public target có hợp lệ, binding có đi qua public API không.                           |
 | 6   | `src/v1/parse.ts`                 | **Actual parse path** — schema parse xong có thật sự chạy reference validation không.                                           |
-| 7   | `src/v1/__tests__/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
+| 7   | `test/v1/schema.test.ts` | **Kiểm chứng bằng test** — cái gì được accept, cái gì bị reject.                                                                |
 
 > **Bắt đầu tốt nhất:** đọc `project.ts` trước, rồi `timeline/schema.ts` và `layers/index.ts` (nested tree + audio).
 
@@ -46,7 +46,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Animation trên component layer → compiler remap sang wrapper group.
 - **Wrapper-safe contract:** các property transform chuẩn của layer được phép animate; không expose internal layer của component.
 
-### 3) `src/v1/components.ts` — Sealed component
+### 3) `src/v1/components/` — Sealed component
 
 - Owner sở hữu toàn bộ internals (layers). Public props là luồng drive duy nhất từ ngoài vào trong.
 - Consumer chỉ được dùng public API: `props`, `variants`. Wiring owner = `propBindings` (`layerProperty.layerId` / `childProp`).
@@ -75,7 +75,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - Lỗi semantic có bị ném sớm (`MotionV1ReferenceError`) hay để trôi tới compiler.
 - Không có legacy project normalizer trên parse path.
 
-### 7) `src/v1/__tests__/schema.test.ts` — Kiểm chứng bằng test
+### 7) `test/v1/schema.test.ts` — Kiểm chứng bằng test
 
 - Đọc các test để biết **hợp đồng thật sự** là gì: cái gì được accept, cái gì bị reject.
 - Kiểm tra xem mọi ràng buộc (wrapper-safe, ownership, binding) đều có test fail rõ ràng.
@@ -139,7 +139,7 @@ project.ts (root schema + limits)
 timeline/schema.ts (duration / workArea / markers)   ← trọng tâm
         │
         ▼
-layers/component.ts (component layer) ──► components.ts (sealed contract)
+layers/component.ts (component layer) ──► components/ (sealed contract)
         │
         ▼
 variables.ts (binding model)

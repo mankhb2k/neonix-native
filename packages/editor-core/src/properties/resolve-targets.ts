@@ -4,14 +4,13 @@ import {
   type EditorSelection,
 } from "../selection/editor-selection";
 import type { TimelineClip, TimelineLane } from "../timeline/model/timeline-types";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import type { MotionLayer, MotionProject } from "@motionvideo/motion-protocol";
 import type { NodeTarget } from "./types";
 
 function firstEditableNodeId(
-  scene: MotionProject["scenes"][number] | undefined,
+  scene: { children?: MotionLayer[] } | undefined,
 ): string | null {
-  if (!scene?.layers.length) return null;
-  return scene.layers[0]?.id ?? null;
+  return scene?.children?.[0]?.id ?? null;
 }
 
 /**
@@ -41,7 +40,7 @@ export function resolvePropertyTargets(
     if (!clip || clip.kind !== "scene") continue;
     const sceneId = clip.sceneId;
     if (!sceneId) continue;
-    const scene = project.scenes.find((s) => s.id === sceneId);
+    const scene = project.layers.find((s) => s.id === sceneId);
     const layerId =
       selection.primaryId === clipId
         ? focusedNodeIdFrom(
@@ -77,9 +76,18 @@ export function resolvePropertyTargets(
 
 export function findNode(
   project: MotionProject,
-  sceneId: string,
+  _sceneId: string,
   layerId: string,
-): MotionProject["scenes"][number]["layers"][number] | null {
-  const scene = project.scenes.find((s) => s.id === sceneId);
-  return scene?.layers.find((n) => n.id === nodeId) ?? null;
+): MotionLayer | null {
+  const walk = (nodes: MotionLayer[]): MotionLayer | null => {
+    for (const node of nodes) {
+      if (node.id === layerId) return node;
+      if (node.type === "group") {
+        const found = walk(node.children);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  return walk(project.layers);
 }

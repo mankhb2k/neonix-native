@@ -1,9 +1,6 @@
 /**
- * Timeline integrity V1.
- *
- * Track overlap / clip-id checks are gone: authoring has no visual, audio,
- * or caption tracks. Root-lane uniqueness lives on the layer graph
- * (unique zIndex among `parentLayerId: null`).
+ * Toàn vẹn timeline. Không còn track visual/audio/caption.
+ * Lane gốc unique nhờ zIndex trên layer parentLayerId null.
  */
 import type { ProjectTimelineV1 } from "./schema";
 

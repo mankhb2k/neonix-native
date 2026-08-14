@@ -1,8 +1,7 @@
 /**
- * V1 project root schema — leaf module (no barrel cycle).
+ * Schema gốc project V1 — module lá (không vòng barrel).
  *
- * Extracted from v1/index.ts to break circular imports: mcp.ts, patch.ts,
- * and parse.ts import MotionProjectV1Schema from here instead of from`n * ./index, which re-exports those same modules.
+ * mcp / patch / parse import MotionProjectV1Schema từ đây, không từ ./index.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -11,8 +10,8 @@ import { ProjectMetadataV1Schema } from "./metadata";
 import { CompositionSettingsSchema } from "./composition";
 import { ProjectCapabilityRequirementsSchema } from "./capabilities";
 import { ProjectDependenciesV1Schema } from "./components";
+import { DesignTokensSchema } from "./design-tokens";
 import {
-  DesignTokensSchema,
   ProjectBindingV1Schema,
   ProjectVariableV1Schema,
 } from "./variables";

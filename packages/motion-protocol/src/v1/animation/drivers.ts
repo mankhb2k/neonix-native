@@ -1,7 +1,5 @@
 /**
- * V1 procedural drivers — canonical procedural driver schemas.
- *
- * Closed procedural driver vocabulary. Evaluated in Runtime IR.
+ * Driver thủ tục V1 — vocabulary đóng, evaluate ở Runtime IR.
  */
 
 import { z } from "zod";

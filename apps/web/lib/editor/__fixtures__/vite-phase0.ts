@@ -22,6 +22,7 @@ import {
   type TimelineDocument,
 } from "@motionvideo/editor-core";
 import type { MotionProject } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { parseProjectInput } from "@/lib/runtime/parse-project-input";
 
 export const PHASE0_SAVED_AT = "2026-07-31T00:00:00.000Z";
@@ -85,21 +86,7 @@ function textNode(id: string, text: string) {
     id,
     type: "text" as const,
     parentLayerId: null,
-    transform: {
-      x: 40,
-      y: 40,
-      width: 200,
-      height: 40,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0,
-      anchorY: 0,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    ...visualLayerAtoms({ x: 40, y: 40, width: 200, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
     payload: { text, fontSize: 24, fontWeight: 600, align: "left" as const },
     style: { fill: "#111111" },
   };
@@ -198,7 +185,7 @@ export function buildPhase0MediumFixture(): StoredEnvelope {
           role: "bgm",
           assetId: "asset.audio.a",
           start: 0,
-          volume: 1,
+          volume: 100,
         },
         {
           id: "audio.b",
@@ -316,7 +303,7 @@ export function buildPhase0LargeFixture(
       role: "sfx",
       assetId,
       start: i * 1.5,
-      volume: 1,
+      volume: 100,
     });
     clips.push({
       kind: "audio",

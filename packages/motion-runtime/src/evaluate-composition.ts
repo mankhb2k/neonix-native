@@ -1,4 +1,4 @@
-import { type RenderSnapshot } from "./render-snapshot";
+import { ratioFromPercent } from "@motionvideo/motion-protocol";
 import { frameIndexAtTime } from "./clock";
 import type {
   MotionRuntimeProject,
@@ -10,7 +10,7 @@ import {
   compositionTotalDuration,
   evaluateCompositionLayers,
   type CompositionFramePlan,
-  type CompositionSceneInput,
+  type LayerGraphSegmentInput,
 } from "./composition/evaluate-composition-layers";
 import {
   COMPOSITION_FRAME_CONTRACT_VERSION,
@@ -34,9 +34,9 @@ import {
   layerGraphFromRuntime,
 } from "./layer-graph";
 
-function scenesForComposition(
+function layerGraphsForComposition(
   runtime: MotionRuntimeProject,
-): CompositionSceneInput[] {
+): LayerGraphSegmentInput[] {
   const duration = runtime.timeline.duration;
   if (!(duration > 0)) return [];
   return [
@@ -58,7 +58,7 @@ export function planCompositionFrame(
   height: number,
 ): CompositionFramePlan {
   return evaluateCompositionLayers(
-    scenesForComposition(runtime),
+    layerGraphsForComposition(runtime),
     globalTime,
     width,
     height,
@@ -102,8 +102,8 @@ function resolveCompositionEvaluateTarget(
  * Evaluate a composition frame into the shared {@link EvaluatedFrame} contract
  * (interaction snapshot + paint buffer + diagnostics).
  *
- * - When `graphId` is set: frame is local to that scene.
- * - When `graphId` is omitted: frame is global; transition overlaps use the shared layer plan.
+ * - When `graphId` is set: frame is local to that layer graph.
+ * - When `graphId` is omitted: frame is global; empty timing windows yield no layers.
  *
  * @deprecated Use {@link evaluateCompositionFrameV1} which returns the richer
  *             {@link EvaluatedCompositionFrame} with layers, projection, audio, and media state.
@@ -201,7 +201,7 @@ export function evaluateCompositionFrameV1(
   if (globalTime < 0 || globalTime >= totalDuration) return null;
 
   const layerPlan = evaluateCompositionLayers(
-    scenesForComposition(runtime),
+    layerGraphsForComposition(runtime),
     globalTime,
     width,
     height,
@@ -419,11 +419,9 @@ function resolvePerspectiveProjection(
   const rotY = cameraNode.payload.rotationY ?? 0;
   const pitchRad = (rotX * Math.PI) / 180;
   const yawRad = (rotY * Math.PI) / 180;
-  const camX = cameraNode.transform.x;
-  const camY = cameraNode.transform.y;
-  const camZ =
-    ((cameraNode.transform as unknown as Record<string, unknown>)
-      .z as number) ?? 0;
+  const camX = cameraNode.transform.translate.x;
+  const camY = cameraNode.transform.translate.y;
+  const camZ = cameraNode.transform.depth;
   const lookTarget = [
     camX + Math.sin(yawRad) * Math.cos(pitchRad),
     camY + Math.sin(pitchRad),
@@ -563,11 +561,14 @@ function buildAudioState(
     const trimStart = payload.trimStart ?? 0;
     const assetDuration = assetDurationById.get(payload.assetId) ?? 0;
     const localTime = Math.max(0, globalTime - start + trimStart);
-    const volume = Math.min(1, Math.max(0, payload.volume ?? 1));
+    const volume = Math.min(
+      1,
+      Math.max(0, ratioFromPercent(payload.volume ?? 100)),
+    );
     const fadeInEnd = payload.fadeIn ?? 0;
     const fadeOutStart = duration - (payload.fadeOut ?? 0);
     const clipLocal = globalTime - start;
-    const muted = layer.visible === false || (payload.muted ?? false);
+    const muted = layer.appearance?.visible === false || (payload.muted ?? false);
     const fadeActive =
       clipLocal >= 0 &&
       clipLocal < duration &&
@@ -646,7 +647,7 @@ export function compositionDurationInFrames(
     );
   }
 
-  const total = compositionTotalDuration(scenesForComposition(runtime));
+  const total = compositionTotalDuration(layerGraphsForComposition(runtime));
   const fallback = timelineTotalDuration(runtime);
   const derivedDuration = total > 0 ? total : fallback > 0 ? fallback : 1;
   // An explicit timeline.duration is the authoritative final MP4 length. It
@@ -670,5 +671,6 @@ export {
   compositionTotalDuration,
   type CompositionFramePlan,
   type CompositionLayerPlan,
-  type CompositionSceneInput,
+  type LayerGraphSegmentInput,
+  type CompositionLayerInput,
 } from "./composition/evaluate-composition-layers";

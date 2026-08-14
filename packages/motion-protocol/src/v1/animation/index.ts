@@ -1,5 +1,5 @@
 /**
- * V1 animation barrel.
+ * Barrel animation V1 — easing / clips / tracks / drivers.
  */
 
 // Easing

@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   V1,
+  visualLayerAtoms,
 } from "@motionvideo/motion-protocol";
 import {
   MotionRuntimeProjectSchema,
@@ -75,23 +76,8 @@ describe("compileMotionProjectV1", () => {
       parentLayerId: null,
       zIndex: maxZ + 1,
       timing: { start: 0, duration: 4 },
-      visible: true,
       locked: false,
-      transform: {
-        x: 100,
-        y: 200,
-        width: 256,
-        height: 256,
-        rotation: 0,
-        scaleX: 1,
-        scaleY: 1,
-        anchorX: 0.5,
-        anchorY: 0.5,
-        opacity: 1,
-        visible: true,
-        flipX: false,
-        flipY: false,
-      },
+      ...visualLayerAtoms({ x: 100, y: 200, width: 256, height: 256, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
       payload: {
         componentId: "logo-reveal",
         props: {},

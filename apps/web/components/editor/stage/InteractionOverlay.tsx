@@ -147,11 +147,11 @@ export function InteractionOverlay({
       return {
         sceneId,
         layerId,
-        x: node.transform.x,
-        y: node.transform.y,
-        width: node.transform.width,
-        height: node.transform.height,
-        rotation: node.transform.rotation,
+        x: node.transform.translate.x,
+        y: node.transform.translate.y,
+        width: node.frame?.width ?? 0,
+        height: node.frame?.height ?? 0,
+        rotation: node.transform.rotate.z,
       };
     },
     [project],

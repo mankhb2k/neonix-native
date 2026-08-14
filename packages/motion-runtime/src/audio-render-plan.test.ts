@@ -17,7 +17,7 @@ function audioLayer(overrides: Record<string, unknown> = {}) {
     payload: {
       assetId: "asset.bgm",
       trimStart: 0.5,
-      volume: 0.8,
+      volume: 80,
       loop: false,
       fadeIn: 0.5,
       fadeOut: 1,
@@ -34,7 +34,7 @@ function fixtureInput(
   return {
     fps: 30,
     durationInFrames: 150,
-    playbackRateByClipId: { "aud.bgm": 1.25 },
+    playbackRateByLayerId: { "aud.bgm": 1.25 },
     runtime: {
       format: "motion-runtime",
       formatVersion: 1,
@@ -67,24 +67,23 @@ function fixtureInput(
 }
 
 describe("buildAudioRenderPlan", () => {
-  it("maps offset, trim, rate, gain and fade into clips", () => {
+  it("maps offset, trim, rate, gain and fade into layers", () => {
     const plan = buildAudioRenderPlan(fixtureInput());
-    expect(plan.clips).toHaveLength(1);
-    const clip = plan.clips[0]!;
-    expect(clip.trackId).toBe("aud.bgm");
-    expect(clip.clipId).toBe("aud.bgm");
-    expect(clip.fromFrame).toBe(30);
-    expect(clip.trimStartSeconds).toBe(0.5);
-    expect(clip.playbackRate).toBe(1.25);
-    expect(clip.durationInFrames).toBe(120);
-    expect(sampleAudioVolumeAtFrame(clip.volumeEnvelope, 30)).toBe(0);
-    expect(sampleAudioVolumeAtFrame(clip.volumeEnvelope, 45)).toBeCloseTo(0.8);
-    expect(sampleAudioVolumeAtFrame(clip.volumeEnvelope, 150)).toBe(0);
+    expect(plan.layers).toHaveLength(1);
+    const layer = plan.layers[0]!;
+    expect(layer.layerId).toBe("aud.bgm");
+    expect(layer.fromFrame).toBe(30);
+    expect(layer.trimStartSeconds).toBe(0.5);
+    expect(layer.playbackRate).toBe(1.25);
+    expect(layer.durationInFrames).toBe(120);
+    expect(sampleAudioVolumeAtFrame(layer.volumeEnvelope, 30)).toBe(0);
+    expect(sampleAudioVolumeAtFrame(layer.volumeEnvelope, 45)).toBeCloseTo(0.8);
+    expect(sampleAudioVolumeAtFrame(layer.volumeEnvelope, 150)).toBe(0);
   });
 
   it("uses clip.duration even when the asset is longer", () => {
     const input = fixtureInput({
-      playbackRateByClipId: undefined,
+      playbackRateByLayerId: undefined,
     });
     input.runtime = {
       ...input.runtime,
@@ -95,7 +94,7 @@ describe("buildAudioRenderPlan", () => {
           payload: {
             assetId: "asset.bgm",
             trimStart: 0,
-            volume: 1,
+            volume: 100,
             loop: false,
             fadeIn: 0,
             fadeOut: 0,
@@ -107,13 +106,13 @@ describe("buildAudioRenderPlan", () => {
     } as BuildAudioRenderPlanInput["runtime"];
 
     const plan = buildAudioRenderPlan(input);
-    expect(plan.clips).toHaveLength(1);
-    expect(plan.clips[0]!.durationInFrames).toBe(90);
-    expect(plan.clips[0]!.playbackRate).toBe(1);
+    expect(plan.layers).toHaveLength(1);
+    expect(plan.layers[0]!.durationInFrames).toBe(90);
+    expect(plan.layers[0]!.playbackRate).toBe(1);
   });
 
   it("emits muted clips with zero volume envelope", () => {
-    const input = fixtureInput({ playbackRateByClipId: undefined });
+    const input = fixtureInput({ playbackRateByLayerId: undefined });
     input.runtime = {
       ...input.runtime,
       layers: [
@@ -123,7 +122,7 @@ describe("buildAudioRenderPlan", () => {
           payload: {
             assetId: "asset.bgm",
             trimStart: 0,
-            volume: 1,
+            volume: 100,
             loop: false,
             fadeIn: 0.5,
             fadeOut: 0.5,
@@ -135,11 +134,11 @@ describe("buildAudioRenderPlan", () => {
     } as BuildAudioRenderPlanInput["runtime"];
 
     const plan = buildAudioRenderPlan(input);
-    const clip = plan.clips[0]!;
-    expect(clip.muted).toBe(true);
-    expect(clip.durationInFrames).toBe(60);
-    expect(sampleAudioVolumeAtFrame(clip.volumeEnvelope, 0)).toBe(0);
-    expect(sampleAudioVolumeAtFrame(clip.volumeEnvelope, 30)).toBe(0);
+    const layer = plan.layers[0]!;
+    expect(layer.muted).toBe(true);
+    expect(layer.durationInFrames).toBe(60);
+    expect(sampleAudioVolumeAtFrame(layer.volumeEnvelope, 0)).toBe(0);
+    expect(sampleAudioVolumeAtFrame(layer.volumeEnvelope, 30)).toBe(0);
   });
 
   it("skips tracks whose asset URI is missing", () => {
@@ -148,6 +147,6 @@ describe("buildAudioRenderPlan", () => {
       ...input.runtime,
       assets: [],
     } as BuildAudioRenderPlanInput["runtime"];
-    expect(buildAudioRenderPlan(input).clips).toEqual([]);
+    expect(buildAudioRenderPlan(input).layers).toEqual([]);
   });
 });

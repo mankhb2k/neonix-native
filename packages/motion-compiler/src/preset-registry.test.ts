@@ -17,7 +17,7 @@ describe("Phase 1 preset registry + recipes", () => {
       transform: { x: 10, y: 20, opacity: 1, scaleX: 1, scaleY: 1 },
       params: { distance: 80 },
     });
-    const y = tracks.find((t) => t.property === "transform.y");
+    const y = tracks.find((t) => t.property === "transform.translate.y");
     expect(y?.keys[0]?.v).toBe(100);
     expect(y?.keys[1]?.v).toBe(20);
   });

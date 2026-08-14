@@ -91,12 +91,12 @@ export function focusedNodeIdFrom(
   clips: TimelineClip[],
   lanes: TimelineLane[],
   project: MotionProject | null,
-  firstEditable: (scene: MotionProject["scenes"][number] | undefined) => string | null,
+  firstEditable: (scene: MotionProject["layers"][number] | undefined) => string | null,
 ): string | null {
   if (selection.kind === "node") return selection.layerId;
   if (selection.kind !== "clips" || !project) return null;
   const sceneId = selectedSceneIdFrom(selection, clips, lanes);
   if (!sceneId) return null;
-  const scene = project.scenes.find((s) => s.id === sceneId);
+  const scene = project.layers.find((s) => s.id === sceneId);
   return firstEditable(scene);
 }

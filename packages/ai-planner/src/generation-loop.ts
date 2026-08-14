@@ -3,7 +3,7 @@ import { executeCommandBatch, type CommandBatchResult } from "./commands";
 import { planFromScratch } from "./from-scratch";
 import { applyCriticRepair, critiqueProject, type CriticReport } from "./critic";
 import { buildContactSheetPlan, type ContactSheetPlan } from "./contact-sheet";
-import type { MotionProject } from "@motionvideo/motion-protocol";
+import { V1 } from "@motionvideo/motion-protocol";
 import { runZeroTemplateGeneration, type ZeroTemplateGenerationResult } from "./orchestrator";
 
 export type GenerationLoopResult = {
@@ -44,8 +44,12 @@ export function runGenerationLoop(input: {
   let repairs = 0;
 
   // Apply layout + entrance recipes via a follow-up batch
-  const recipeCommands = project.scenes.flatMap((scene) => {
-    const textIds = scene.layers.filter((node) => node.type === "text").map((node) => node.id);
+  const recipeCommands = project.layers
+    .filter((layer) => layer.type === "group")
+    .flatMap((scene) => {
+    const textIds = V1.flattenLayerTree(scene.children)
+      .filter((node) => node.type === "text")
+      .map((node) => node.id);
     if (textIds.length === 0) return [];
     const commands = [];
     if (textIds.length >= 2) {
@@ -55,7 +59,7 @@ export function runGenerationLoop(input: {
         recipeId: "stagger" as const,
         targetLayerId: textIds[0]!,
         staggerLayerIds: textIds,
-        duration: Math.min(1.2, scene.duration),
+        duration: Math.min(1.2, scene.timing?.duration ?? 1),
       });
     } else {
       commands.push({
@@ -63,7 +67,7 @@ export function runGenerationLoop(input: {
         sceneId: scene.id,
         recipeId: "float" as const,
         targetLayerId: textIds[0]!,
-        duration: scene.duration,
+        duration: scene.timing?.duration ?? 1,
         intensity: 0.6,
       });
     }

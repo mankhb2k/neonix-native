@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Phase 3 tests: EvaluatedCompositionFrame, stable keys, interaction snapshot,
  * camera view override, transition frame fixtures.
@@ -179,21 +180,7 @@ function emptyRuntime(): MotionRuntimeProject {
         id: "n1",
         parentLayerId: null,
         zIndex: 0,
-        transform: {
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          rotation: 0,
-          opacity: 1,
-          visible: true,
-          anchorX: 0,
-          anchorY: 0,
-          scaleX: 1,
-          scaleY: 1,
-          flipX: false,
-          flipY: false,
-        },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
         payload: {},
       } as MotionRuntimeProject["layers"][number],
     ],

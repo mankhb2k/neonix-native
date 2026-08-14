@@ -82,19 +82,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": -300,
-        "width": 800,
-        "height": 100,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": -300
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -109,6 +121,14 @@
       "timing": {
         "start": 0,
         "duration": 3
+      },
+      "frame": {
+        "width": 800,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -116,19 +136,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 700,
-        "height": 200,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -143,6 +175,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 700,
+        "height": 200
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -150,19 +190,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 600,
-        "height": 80,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -177,6 +229,14 @@
       "timing": {
         "start": 0,
         "duration": 2
+      },
+      "frame": {
+        "width": 600,
+        "height": 80
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     }
   ]

@@ -1,8 +1,7 @@
 /**
- * Click-to-edit / hit-test pointer into a V1 authoring project.
+ * Con trỏ click-to-edit / hit-test vào project authoring V1.
  *
- * Provenance (`provenance.sourceMap`) maps ids to origin strings.
- * This schema names a visual unit: a layer, or a rich-text run on a layer.
+ * Trỏ layer hoặc text-run trên layer. Không phải node/clip/caption-track.
  */
 import { z } from "zod";
 import { IdSchema } from "./common";

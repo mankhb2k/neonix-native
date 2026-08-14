@@ -8,6 +8,7 @@
  *   - Group visibility animation hides children
  */
 import { describe, expect, it } from "vitest";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import { evaluateScene, type RuntimeNode, type RuntimeScene } from "../evaluator";
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -29,24 +30,7 @@ function makeGroupScene(opts: {
         parentLayerId: null,
         zIndex: 1,
         timing: opts.groupTiming ?? { start: 0, duration: 10 },
-        transform: {
-          x: 100,
-          y: 200,
-          width: 200,
-          height: 200,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-          ...opts.groupTransform,
-        },
-        payload: { compositing: { mode: "pass-through" as const } },
+        ...visualLayerAtoms({ x: 100, y: 200, width: 200, height: 200, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
       },
       {
         id: "head",
@@ -54,23 +38,7 @@ function makeGroupScene(opts: {
         parentLayerId: "group.char",
         zIndex: 0,
         timing: opts.childTiming ?? { start: 0, duration: 10 },
-        transform: {
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-          ...opts.childTransform,
-        },
+        ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
         payload: { assetId: "asset.head" },
       },
     ],
@@ -86,7 +54,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       tracks: [
         {
           layerId: "group.char",
-          property: "transform.x",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 100 },
             { t: 2, v: 300 },
@@ -116,7 +84,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       tracks: [
         {
           layerId: "group.char",
-          property: "transform.y",
+          property: "transform.translate.y",
           keys: [
             { t: 0, v: 200 },
             { t: 2, v: 500 },
@@ -139,7 +107,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       tracks: [
         {
           layerId: "group.char",
-          property: "transform.rotation",
+          property: "transform.rotate.z",
           keys: [
             { t: 0, v: 0 },
             { t: 2, v: 90 },
@@ -164,10 +132,10 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       tracks: [
         {
           layerId: "group.char",
-          property: "transform.opacity",
+          property: "appearance.opacity",
           keys: [
-            { t: 0, v: 1 },
-            { t: 2, v: 0.5 },
+            { t: 0, v: 100 },
+            { t: 2, v: 50 },
           ],
         } as RuntimeScene["tracks"][number],
       ],
@@ -190,7 +158,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       tracks: [
         {
           layerId: "group.char",
-          property: "transform.visible",
+          property: "appearance.visible",
           keys: [
             { t: 0, v: true },
             { t: 0.5, v: false },
@@ -216,7 +184,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
         // Parent: group moves from x=100 to x=300
         {
           layerId: "group.char",
-          property: "transform.x",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 100 },
             { t: 2, v: 300 },
@@ -225,7 +193,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
         // Child: head rotates from 0 to 45 degrees locally
         {
           layerId: "head",
-          property: "transform.rotation",
+          property: "transform.rotate.z",
           keys: [
             { t: 0, v: 0 },
             { t: 2, v: 45 },
@@ -262,7 +230,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
         // Animate child local x from 10 to 60
         {
           layerId: "head",
-          property: "transform.x",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 10 },
             { t: 2, v: 60 },
@@ -295,13 +263,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           parentLayerId: null,
           zIndex: 1,
           timing: { start: 0, duration: 10 },
-          transform: {
-            x: 100, y: 200, width: 200, height: 200,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5,
-            opacity: 1, visible: true,
-            flipX: false, flipY: false, depth: 0,
-          },
+          ...visualLayerAtoms({ x: 100, y: 200, width: 200, height: 200, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
           payload: { compositing: { mode: "pass-through" as const } },
         },
         {
@@ -310,13 +272,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           parentLayerId: "g.root",
           zIndex: 1,
           timing: { start: 0, duration: 10 },
-          transform: {
-            x: 50, y: 0, width: 100, height: 100,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5,
-            opacity: 1, visible: true,
-            flipX: false, flipY: false, depth: 0,
-          },
+          ...visualLayerAtoms({ x: 50, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
           payload: { compositing: { mode: "pass-through" as const } },
         },
         {
@@ -325,13 +281,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
           parentLayerId: "g.mid",
           zIndex: 0,
           timing: { start: 0, duration: 10 },
-          transform: {
-            x: 0, y: 0, width: 50, height: 50,
-            rotation: 0, scaleX: 1, scaleY: 1,
-            anchorX: 0.5, anchorY: 0.5,
-            opacity: 1, visible: true,
-            flipX: false, flipY: false, depth: 0,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 50, height: 50, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
           payload: { assetId: "a" },
         },
       ],
@@ -339,7 +289,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
         // Animate root group horizontal position
         {
           layerId: "g.root",
-          property: "transform.x",
+          property: "transform.translate.x",
           keys: [
             { t: 0, v: 100 },
             { t: 4, v: 500 },
@@ -348,7 +298,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
         // Animate mid group vertical position
         {
           layerId: "g.mid",
-          property: "transform.y",
+          property: "transform.translate.y",
           keys: [
             { t: 0, v: 0 },
             { t: 4, v: 200 },
@@ -377,7 +327,7 @@ describe("V1 group animation inheritance (Phase 5)", () => {
       tracks: [
         {
           layerId: "group.char",
-          property: "transform.x",
+          property: "transform.translate.x",
           keys: [
             { t: 3, v: 100 },
             { t: 5, v: 300 },

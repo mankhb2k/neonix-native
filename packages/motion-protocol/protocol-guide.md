@@ -1,152 +1,244 @@
 # Protocol Guide — `motion-protocol/src`
 
-Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/motion-protocol/src`, bỏ qua các file `.test.ts`. Đây là tài liệu tham khảo nhanh để hiểu cách package được tổ chức theo domain, và file nào sở hữu schema / type nào.
+Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/motion-protocol/src`, bỏ qua `.test.ts`, `__tests__`, `__fixtures__`.
 
-> **Nguyên tắc tổ chức chung:**
+> **Nguyên tắc:**
 >
-> - Mỗi file `.ts` (không phải `index.ts`) thường sở hữu **một domain schema** (V1 authoring) hoặc **một domain schema** (runtime IR).
-> - Các file `*-types.ts` chỉ chứa type được `z.infer` từ schema, tách riêng để **tránh circular import** giữa union và per-kind schema.
-> - `index.ts` là barrel re-export, không chứa logic schema.
-> - V1 (`src/v1`) là **authoring protocol duy nhất**; Runtime (`src/runtime`) là **IR cho renderer** (literal, flattened).
+> - Mỗi file `.ts` (không phải barrel `index.ts`) sở hữu **một domain schema**.
+> - `*-types.ts` chỉ chứa `z.infer`, tách để tránh circular import.
+> - `index.ts` trong folder là barrel (hoặc ghép schema từ atom files).
+> - V1 (`src/v1`) = authoring JSON. Runtime (`src/runtime`) = IR renderer. Compile nằm ở `@motionvideo/motion-compiler`.
+
+**Percent / độ (authoring):** `appearance.opacity`, `payload.volume`, glow opacity/intensity, shadow opacity = integer **0..100** (100 = full). Color-adjust + adjustment payload brightness/contrast/saturation = integer **0..200** (100 = normal). `hue-rotate` = **-180..180** độ. Paint/audio: `ratioFromPercent(n) = n/100`.
 
 ---
 
 ## 1. Thư mục gốc `src/`
 
-| File                      | Nhiệm vụ                                                                                                                                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `index.ts`                | Authoring public API (`.`). `MotionProject` / layers / `AssetV1` / patch / MCP. Runtime IR không export ở đây. |
-| `capabilities.ts`         | `MOTION_PROTOCOL_LIMITS` (internal, `Object.freeze`): giới hạn cứng cho scenes/layers/clips/tracks/keys… áp dụng cho cả V1 lẫn runtime. Đồng thời chứa bảng đăng ký khả năng thuộc tính (`motionPropertyCapability`) cho AI/UI. |
-| `ai-schema-capability.ts` | Ma trận E2E cho AI schema expansion (`ai-schema.1`). Một hàng là "production-ready" khi mọi cột (schema → compiler → runtime → paint → pixi → remotion) đều "yes". AI allowlist chỉ mở khi gate E2E xanh.                      |
-| `scene-registry.ts`       | Legacy template registry — **không** còn trên public barrel.                                                                                                                                                                    |
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Public authoring API (`.`). Runtime không export ở đây. |
+| `internal.ts` | Barrel `@motionvideo/motion-protocol/internal` — `animation/clips`, `captions`. Không phải authoring JSON. |
+| `capabilities.ts` | `MOTION_PROTOCOL_LIMITS` + bảng `motionPropertyCapability` / `motionEffectPropertyCapability`. |
+| `ai-schema-capability.ts` | Ma trận E2E AI schema (`ai-schema.1`). |
+| `scene-registry.ts` | Legacy template registry — không còn trên public barrel. |
 
 ---
 
-## 2. `src/v1/` — Authoring Protocol (V1)
+## 2. `src/v1/` — Authoring Protocol
 
-### 2.1 File gốc `src/v1/`
+### 2.1 File gốc (không nằm trong folder con)
 
-| File                 | Nhiệm vụ                                                                                                                                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `index.ts`           | Authoring V1 barrel — layers, assets, bindings, patch, MCP. Không export captions hay motion-clip units. |
-| `common.ts`          | V1 shared primitives — **canonical source of truth** cho `IdSchema`, `FiniteNumberSchema`, `SemverSchema`, `PropertyPathSchema`, `ColorHexSchema`, `LocaleIdentifierSchema`, `MOTION_PROJECT_V1_FORMAT_VERSION` (= 1), … |
-| `values.ts`          | JSON value schemas — `JsonValueSchema` (lazy recursive), `ResolvableValueSchema`, `ValueKindSchema`.                                                                                                                     |
-| `transform.ts`       | `TransformSchema` — vị trí/kích thước/xoay/scale/opacity/anchor/flip của layer.                                                                                                                                           |
-| `effects.ts`         | `EffectSchema` — discriminated union các pixel effect (blur, shadow, …).                                                                                                                                                 |
-| `layout.ts`          | Layout schemas — `RepeatSourceSchema`, `RepeatLayoutSchema`, `RepeaterSchema`, `EdgeInsetsSchema`, `LayoutConstraintSchema`, `LayoutItemPolicySchema`.                                                                   |
-| `modifiers.ts`       | Motion modifier schemas — `MotionModifierSchema` (motion-path, …).                                                                                                                                                       |
-| `assets.ts`          | Asset schemas — discriminated `assetType` union (image/svg/video/audio/font).                                                                                                                                            |
-| `assets-types.ts`    | Type `z.infer` cho từng asset kind, tách riêng tránh circular import giữa union và per-kind exports.                                                                                                                     |
-| `canonical-hash.ts`  | Canonical hash — single source of truth cho deterministic hashing (`projectHash`/`runtimeHash`). Exclude timestamp/provenance/extensions/editor-state để đảm bảo reproducibility.                                        |
-| `capabilities.ts`    | Capability requirements của project — `required`/`optional`/`experimental` với ID dạng dotted manifest (`primitive.group`, `effect.blur`, …).                                                                            |
-| `captions.ts`        | Legacy caption token schemas (không thuộc `project.layers`; không export trên authoring `.`).                                                                                                                            |
-| `components.ts`      | Components & dependencies — sealed owner-owned component (`ComponentDefinitionV1Schema`), `props`/`variants`/`propBindings`, `ProjectDependenciesV1Schema`.                                                |
-| `composition.ts`     | Composition settings — width/height/fps/background/colorSpace, thay thế `metadata.aspectRatio` + `fps` của v2.                                                                                                           |
-| `extensions.ts`      | `NamespacedExtensionsSchema` — extension theo dotted namespace, value `unknown`, không vào render hash.                                                                                                                  |
-| `metadata.ts`        | `ProjectMetadataV1Schema` — id/name/description/locale (BCP-47)/tags/timestamps.                                                                                                                                         |
-| `mcp.ts`             | MCP Tool Contract — typed operation schemas cho 8 operation MCP-facing, server-agnostic.                                                                                                                                 |
-| `normalize-input.ts` | Input normalizer — walk authoring tree, normalize text payload `{ text }` → `{ content: { kind: "plain" } }` trước khi Zod parse.                                                                                        |
-| `parse.ts`           | Canonical production parse — `parseMotionProjectV1` (text-payload normalize → schema + reference validation). Strict V1 only. `serializeMotionProjectV1` emit key alphabet để byte-identical. |
-| `patch.ts`           | Native Patch Contract — safe editor surface cho AI/MCP (`applyMotionProjectV1Patch`, `MotionProjectV1PatchSchema`), idempotent, luôn re-validate bằng `MotionProjectV1Schema`.                                           |
-| `project.ts`         | **Root schema** (`MotionProjectV1Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id, root zIndex/timing, audio root-only. |
-| `provenance.ts`      | Provenance — debug/trace metadata, exclude khỏi render hash.                                                                                                                                                             |
-| `source-ref.ts`      | Click-to-edit pointer — `layer` \| `text-run`. Không `node` / `clip` / caption-track. Provenance id map nằm ở `provenance.ts`. |
-| `timeline.ts`        | Project timeline — metadata only (`duration` / `workArea` / `markers`). Visual/audio/caption content lives on `project.layers`. |
-| `types.ts`           | V1 public protocol types — nơi đặt **aggregate root type** (`MotionProjectV1` viết tay) để tránh TS serialize type khổng lồ trong schema module.                                                                         |
-| `variables.ts`       | Variables, design tokens & project bindings — `ProjectVariableV1Schema`, `DesignTokensSchema`, `ProjectBindingV1Schema`.                                                                                                  |
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Barrel V1 — layers, assets, components, patch, MCP. Không export captions / motion-clip units. |
+| `common.ts` | Primitive: `IdSchema`, `FiniteNumberSchema`, `PercentSchema` (0..100 int), `ColorAdjustPercentSchema` (0..200 int), `HueRotateSchema` (−180..180), `ratioFromPercent`, `MOTION_PROJECT_V1_FORMAT_VERSION`. |
+| `values.ts` | `JsonValueSchema`, `ResolvableValueSchema`, `ValueKindSchema`, `VariableReferenceSchema`. |
+| `frame.ts` | `FrameSchema` — `{ width, height }` trước scale/rotate. |
+| `layer-atoms.ts` | Helper test/fixture `visualLayerAtoms()` / `defaultTransform()`. |
+| `layout.ts` | Repeater — không nhầm với `frame`. |
+| `modifiers.ts` | `MotionModifierSchema` (motion-path, …). |
+| `canonical-hash.ts` | Hash deterministic (`projectHash` / `runtimeHash`). Exclude timestamp/provenance/extensions. |
+| `capabilities.ts` | Capability requirements project (`required` / `optional` / `experimental`). |
+| `captions.ts` | Legacy caption tokens — không thuộc `project.layers`; export qua `internal`. |
+| `composition.ts` | Width/height/fps/background/colorSpace. |
+| `design-tokens.ts` | `project.tokens` — colors/fonts/spacing/radii/motion. |
+| `extensions.ts` | `NamespacedExtensionsSchema` — không vào render hash. |
+| `metadata.ts` | `ProjectMetadataV1Schema`. |
+| `mcp.ts` | MCP tool contract. |
+| `normalize-input.ts` | Normalize text payload trước Zod. |
+| `parse.ts` | `parseMotionProjectV1` / `serializeMotionProjectV1`. |
+| `patch.ts` | `applyMotionProjectV1Patch`. |
+| `project.ts` | Root `MotionProjectV1Schema` (leaf, không barrel cycle). |
+| `provenance.ts` | Debug/trace — exclude hash. |
+| `source-ref.ts` | Click-to-edit: `layer` \| `text-run`. |
+| `types.ts` | Aggregate `MotionProjectV1` viết tay. |
+| `variables.ts` | `ProjectVariableV1Schema`, `ProjectBindingV1Schema` (`layer` \| `componentLayer`). |
 
-### 2.2 `src/v1/layers/`
+**Property path (cũ → mới, không alias):**
 
-| File                  | Nhiệm vụ                                                                                                                                            |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`            | Layer union — `LayerV1Schema` discriminated union theo `type`, gồm `audio` (root-only) và `component` (sealed instance leaf). Chỉ `group` có `children`. |
-| `base.ts`             | `LayerBaseV1Schema` + transform — nền tảng chung cho mọi layer (id/type/parentLayerId/transform/timing/effects/modifiers).                                 |
-| `geometry.ts`         | Geometry layers — `ShapeLayerV1Schema` + `PathLayerV1Schema` (point/path primitives).                                                                  |
-| `geometry-types.ts`   | Type `z.infer` cho shape/path, tách riêng tránh circular import.                                                                                    |
-| `media.ts`            | Media + camera layers — `ImageLayerV1Schema`, `VideoLayerV1Schema`, `SvgLayerV1Schema`, `CameraLayerV1Schema` (payload `{ assetId, fit }`).              |
-| `paint.ts`            | Paint schemas — `FitSchema`, `CropSchema`, `PaintStyleSchema` (fill/stroke/gradient).                                                               |
-| `structural.ts`       | Structural layers — `GroupLayerV1Schema` (base; children attached in `index.ts`), `BoneLayerV1Schema`, `SolidLayerV1Schema`, `AdjustmentLayerV1Schema`. |
-| `audio.ts`            | `AudioLayerV1Schema` — root-only leaf, negative zIndex, payload playback fields. |
-| `flatten.ts`          | `flattenLayerTree` — walk nested `group.children`. |
-| `structural-types.ts` | Type `z.infer` cho structural layers, tách riêng tránh circular import.                                                                              |
-| `text.ts`             | `TextLayerV1Schema` — text layer, content dùng rich text (plain/runs).                                                                                |
-| `text-content.ts`     | Text content schemas & helpers — `TextPayloadSchema`, `segmentTextUnits`, rich text runs.                                                           |
-| `timing.ts`           | `LayerTimingSchema` — layer-level in/out timing.                                                                                                      |
+| Cũ | Mới |
+| --- | --- |
+| `transform.x/y` | `transform.translate.x/y` |
+| `transform.z` | `transform.depth` |
+| `transform.rotation` / `rotationZ` | `transform.rotate.z` |
+| `transform.scaleX/Y` | `transform.scale.x/y` |
+| `transform.anchorX/Y` | `transform.origin.x/y` |
+| `transform.opacity` / `visible` | `appearance.opacity` / `appearance.visible` |
+| `transform.width/height` | `frame.width` / `frame.height` |
+| `flipX/Y` | `scale.x < 0` / `scale.y < 0` |
 
-### 2.3 `src/v1/animation/`
+### 2.2 `src/v1/transform/`
 
-| File         | Nhiệm vụ                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------- |
-| `index.ts`   | Animation barrel — re-export easing/clips/tracks/drivers.                                           |
-| `clips.ts`   | **Internal** compiler motion-unit schema (`MotionClipV1`) — import `@motionvideo/motion-protocol/internal`. Không thuộc authoring JSON. |
-| `drivers.ts` | `ProceduralDriverSchema` — procedural driver vocabulary (evaluated trong runtime IR).               |
-| `easing.ts`  | Keyframe easing — `KeyframeEasingNamedSchema`/`Cubic`/`Spring`/`KeyframeEasingSchema`.              |
-| `tracks.ts`  | `PropertyTrackV1Schema` — property track + extrapolation + keyframes.                               |
+Geometry only. Không size, opacity, zoom.
 
-### 2.4 `src/v1/references/`
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Ghép `TransformSchema`. Không re-export atom — import file lá. |
+| `translate.ts` | `{ x, y }` — không `z`. |
+| `rotate.ts` | `{ x, y, z }` độ. |
+| `scale.ts` | `{ x, y, z }`. |
+| `skew.ts` | `{ x, y }`. |
+| `origin.ts` | Pivot `{ x, y, z }` (thường 0..1). |
+| `depth.ts` | Pseudo-3D near/far; mặc định 0. Không phải `zIndex`. |
+| `perspective.ts` | Perspective distance. |
+| `perspective-origin.ts` | Key JSON `perspective-origin`. |
+| `transform-style.ts` | Key JSON `transform-style` (`flat` \| `preserve-3d`). |
+| `backface-visibility.ts` | Key JSON `backface-visibility`. |
 
-| File             | Nhiệm vụ                                                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`       | References barrel.                                                                                                                 |
-| `project.ts`     | Project-wide reference validation — `validateMotionProjectV1References`. |
-| `layer-graph.ts` | `validateLayerGraphV1` — duplicate id, parent refs, mask sources, self-parent, cycles, depth. |
-| `layer-assets.ts` | `validateLayerAssetsV1` — lớp **authoring**: layer → asset (id/type/trim). Bytes: `AssetValidationIssue` `layer: "storage"`. |
-| `helpers.ts`     | Reference helpers — `duplicates`, `morphTopologyMismatch`.                                                                         |
-| `types.ts`       | `ReferenceIssue` (path + message; asset issues thêm `layer` / `code` / `assetId`). |
+### 2.3 `src/v1/appearance/`
+
+Compositing visibility — không phải effect.
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | `AppearanceSchema` = `visible` + `opacity`. |
+| `opacity.ts` | `OpacitySchema` = `PercentSchema` (0..100 int, default 100). |
+| `visibility.ts` | `VisibilitySchema` boolean. |
+
+### 2.4 `src/v1/compositing/`
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | `CompositingSchema` — `blend-mode`, `isolation`, `mask`. |
+| `blend-mode.ts` | Key JSON `blend-mode`. |
+| `isolation.ts` | `auto` \| `isolate`. |
+| `mask.ts` | Clip source + `source-visibility`. |
+
+### 2.5 `src/v1/effects/`
+
+Stack `effects[]`. Không có field `filter` trên layer.
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | `EffectSchema` discriminated `blur` \| `shadow` \| `glow` \| `color-adjust`. |
+| `blur.ts` | `radius`. |
+| `shadow.ts` | `offset: { x, y }`, `blur`, `color`, `opacity` default 25. |
+| `glow.ts` | `radius`, `intensity`/`opacity` 0..100. |
+| `color-adjust.ts` | brightness/contrast/saturation 0..200; `hue-rotate` −180..180. |
+
+### 2.6 `src/v1/assets/`
+
+`assetType` = kind (`image` \| `svg` \| `video` \| `audio` \| `font`). Codec nằm ở `mimeType` (`image/png` \| `image/jpeg` \| `image/webp`). Không có `assetType: "webp"`.
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Union schema + storage policy (managed R2 vs unmanaged `uri`). |
+| `types.ts` | `z.infer` per-kind. |
+| `validation.ts` | Envelope authoring/storage. |
+
+### 2.7 `src/v1/components/`
+
+Catalog (definition). Instance layer ở `layers/component.ts`.
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | `ComponentDefinitionV1Schema`, props/variants/`propBindings`, `ProjectDependenciesV1Schema`. |
+| `prop-values.ts` | Static \| variable \| keyframes (`value`, không track `v`). |
+
+### 2.8 `src/v1/layers/`
+
+Discriminator luôn `type`. Chỉ `group` có `children`. `audio` root-only (zIndex âm).
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | `LayerV1Schema` union + `GroupLayerV1` gắn `children`. |
+| `base.ts` | `LayerBaseV1Schema` — frame, transform, appearance, compositing, effects, modifiers, inheritFlags. |
+| `timing.ts` | `LayerTimingSchema` — in/out. |
+| `component.ts` | `type: "component"` — `payload.componentId`, `variantId?`, `props`. |
+| `audio.ts` | `AudioLayerV1Schema` — payload trim/fade/volume (0..100)/loop. |
+| `media.ts` | `image` / `svg` / `video` / `camera`. Image+svg: `{ assetId, fit, crop? }`. |
+| `geometry.ts` | `shape` + `path`. |
+| `geometry-types.ts` | `z.infer` shape/path. |
+| `paint.ts` | `FitSchema`, `CropSchema`, `PaintStyleSchema`. |
+| `structural.ts` | `group` (base), `bone`, `solid`, `adjustment` (payload 0..200 / hue-rotate). |
+| `structural-types.ts` | `z.infer` structural. |
+| `text.ts` | `TextLayerV1Schema`. |
+| `text-content.ts` | Rich text payload + helpers. |
+| `flatten.ts` | `flattenLayerTree`. |
+
+### 2.9 `src/v1/animation/`
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Barrel easing/clips/tracks/drivers. |
+| `easing.ts` | Named / cubic / spring. |
+| `tracks.ts` | `PropertyTrackV1Schema` + markers dùng timeline. |
+| `drivers.ts` | `ProceduralDriverSchema` (runtime evaluate). |
+| `clips.ts` | **Internal** `MotionClipV1` — `internal` export, không thuộc authoring JSON. |
+
+### 2.10 `src/v1/timeline/`
+
+Metadata only. Visual/audio/caption sống trên `project.layers`.
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Barrel. |
+| `schema.ts` | `duration` / `workArea` / `markers`. |
+| `duration.ts` | Derive duration từ root layer timing. |
+| `canonicalize.ts` | Điền duration thiếu + snap frame-grid. |
+| `frame-grid.ts` | Snap/validate thời gian về `n / fps`. |
+| `validation.ts` | Integrity timeline (không còn visual/audio/caption tracks). |
+
+### 2.11 `src/v1/references/`
+
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Barrel. |
+| `project.ts` | `validateMotionProjectV1References`. |
+| `layer-graph.ts` | Duplicate id, parent, mask, cycle, depth. |
+| `layer-assets.ts` | Layer → asset (id/type/trim). |
+| `helpers.ts` | `duplicates`, `morphTopologyMismatch`. |
+| `types.ts` | `ReferenceIssue`. |
 
 ---
 
-## 3. `src/runtime/` — Runtime IR (Renderer-Ready)
+## 3. `src/runtime/` — Runtime IR
 
-> Runtime IR = literal, flat, renderer-ready. Biến đã resolve, component instance đã flatten, repeat node đã clone, preset/text-animator đã biên dịch thành keyframe track.
+Literal, renderer-ready. Transform / appearance / compositing / effects **reuse schema V1** (`../../v1/...`). Không còn `runtime/transform.ts` hay `runtime/effects.ts`.
 
-| File           | Nhiệm vụ                                                                                                                                                                                |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`     | Public barrel `@motionvideo/motion-protocol/runtime`. `MotionRuntimeProject`, runtime assets, prepared types.                                                                            |
-| `common.ts`    | Re-export từ V1 canonical source of truth (`IdSchema`, `PropertyPathSchema`, …) + hằng `MOTION_PROJECT_FORMAT_VERSION`/`MOTION_COMPONENT_FORMAT_VERSION`/`MOTION_PATCH_FORMAT_VERSION`. |
-| `assets.ts`    | Asset schemas cho runtime IR.                                                                                                                                                           |
-| `effects.ts`   | `EffectSchema` — pixel effects cho runtime node.                                                                                                                                        |
-| `helpers.ts`   | Runtime geometry validation helpers — `duplicates`, `morphTopologyMismatch`.                                                                                                            |
-| `layout.ts`    | Layout schemas — `RepeatSourceSchema`, `RepeatLayoutSchema`, `RepeaterSchema`, layout constraint/item policy.                                                                           |
-| `modifiers.ts` | `MotionModifierSchema` — motion modifiers cho runtime node.                                                                                                                             |
-| `prepared.ts`  | `PreparedRuntimeProject` — compiled runtime IR kèm O(1) lookup index (Map, in-memory, không serialize). Dùng chung cho compiler & runtime.                                              |
-| `project.ts`   | **`MotionRuntimeProject`** — canonical runtime IR root schema (`MotionRuntimeProjectSchema` + `.superRefine`).                                                                          |
-| `transform.ts` | `TransformSchema` — runtime transform (gồm cả perspective-3D `z`).                                                                                                                      |
-| `values.ts`    | JSON value schemas — `JsonValueSchema`, `ResolvableValueSchema`, `VariableReferenceSchema`, `ValueKindSchema`.                                                                          |
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Barrel `@motionvideo/motion-protocol/runtime`. |
+| `common.ts` | Re-export primitive V1 + hằng format version runtime. |
+| `assets.ts` | Asset IR (cùng mime image png/jpeg/webp). |
+| `helpers.ts` | `duplicates`, `morphTopologyMismatch`. |
+| `layout.ts` | Repeater / layout constraint. |
+| `modifiers.ts` | Motion modifiers trên runtime node. |
+| `prepared.ts` | `PreparedRuntimeProject` — index O(1), không serialize. |
+| `project.ts` | `MotionRuntimeProjectSchema`. |
+| `values.ts` | JSON / resolvable values. |
 
 ### 3.1 `src/runtime/layers/`
 
-| File            | Nhiệm vụ                                                                                                                                        |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`      | Runtime node union — `LayerSchema` discriminated union theo `type` (bao gồm `component` node type).                                              |
-| `base.ts`       | `LayerBaseSchema` — nền tảng chung cho runtime node (id/type/transform/timing/effects/modifiers/repeater).                                       |
-| `geometry.ts`   | Runtime geometry — shape/path, re-export point/path primitives từ V1.                                                                           |
-| `media.ts`      | Runtime media — `ImageLayerSchema`, `VideoLayerSchema`, `SvgLayerSchema`.                                                                          |
-| `paint.ts`      | Paint schemas — `FitSchema`, `CropSchema`, `PaintStyleSchema`.                                                                                  |
-| `structural.ts` | Runtime structural — `GroupLayerSchema`, `BoneLayerSchema`, `SolidLayerSchema`, `AdjustmentLayerSchema`, `CameraLayerSchema`, `ComponentLayerSchema`. |
-| `text.ts`       | Runtime text — `TextLayerSchema` + `TextAnimatorSchema`.                                                                                         |
+| File | Nhiệm vụ |
+| --- | --- |
+| `index.ts` | Runtime node union theo `type`. |
+| `base.ts` | `LayerBaseSchema` — frame + V1 transform/appearance/compositing/effects. |
+| `audio.ts` | Runtime audio leaf. |
+| `geometry.ts` | Shape/path (primitive từ V1). |
+| `media.ts` | Image / svg / video. |
+| `paint.ts` | Fit / crop / paint style. |
+| `structural.ts` | Group, bone, solid, adjustment, **camera**, **component**. |
+| `text.ts` | Text + text animator. |
 
 ---
 
-## 4. Sơ đồ quan hệ (tóm tắt)
+## 4. Sơ đồ
 
 ```text
-src/index.ts  ──►  re-export capabilities + v1 + runtime
+src/index.ts
+     ├── capabilities.ts / ai-schema-capability.ts / internal.ts
      │
-     ├── capabilities.ts          (MOTION_PROTOCOL_LIMITS + property registry)
-     ├── ai-schema-capability.ts  (AI E2E matrix)
-     ├── scene-registry.ts        (template scenes)
+     ├── v1/
+     │     ├── project.ts / parse.ts / patch.ts / mcp.ts
+     │     ├── common.ts / values.ts / frame.ts / variables.ts
+     │     ├── transform/ appearance/ compositing/ effects/
+     │     ├── assets/ components/ layers/ animation/ timeline/ references/
      │
-     ├── v1/                      (Authoring Protocol — duy nhất)
-     │     ├── project.ts         (root schema, leaf module)
-     │     ├── types.ts           (aggregate types viết tay)
-     │     ├── parse.ts / normalize-input.ts / patch.ts / mcp.ts
-     │     ├── layers/ animation/ references/  (schema theo domain)
-     │
-     └── runtime/                 (Runtime IR — renderer-ready)
-           ├── project.ts         (MotionRuntimeProject root)
-           ├── prepared.ts        (PreparedRuntimeProject — in-memory)
-           └── layers/  (runtime node union)
+     └── runtime/
+           ├── project.ts / prepared.ts / assets.ts
+           └── layers/   (reuse V1 transform/appearance/effects)
 ```
 
-> **Ranh giới chuyển đổi:** V1 (authoring) → `@motionvideo/motion-compiler` → Runtime IR (renderer). `motion-protocol` chỉ định nghĩa cả hai schema + validation; không thực hiện compile.
+> V1 → `@motionvideo/motion-compiler` → Runtime IR. `motion-protocol` chỉ schema + validation.

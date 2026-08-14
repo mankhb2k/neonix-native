@@ -1,6 +1,5 @@
 /**
- * Inferred V1 geometry node types (kept separate to avoid circular
- * imports between per-kind schema modules and the union index).
+ * Kiểu infer geometry — tách để tránh circular với union.
  */
 import { z } from "zod";
 import type { PathLayerV1Schema, ShapeLayerV1Schema } from "./geometry";

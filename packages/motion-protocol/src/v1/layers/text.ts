@@ -1,8 +1,5 @@
 /**
- * V1 text node — canonical source of truth.
- *
- * Content uses rich text (plain | runs). `color`/`alignment` live on
- * the payload directly instead of v2's style object.
+ * Layer chữ V1. Nội dung rich text (plain | runs). color/alignment trên payload.
  */
 import { z } from "zod";
 import { TextPayloadSchema } from "./text-content";

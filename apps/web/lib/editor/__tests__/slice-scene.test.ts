@@ -23,7 +23,7 @@ describe("sliceScene", () => {
             tracks: [
               {
                 layerId: "n1",
-                property: "transform.opacity",
+                property: "appearance.opacity",
                 keys: [
                   { t: 0, v: 0 },
                   { t: 2, v: 0.5 },

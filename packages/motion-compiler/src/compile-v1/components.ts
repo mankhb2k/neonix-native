@@ -289,6 +289,19 @@ function expandOneComponentInstance(
       internal.parentLayerId === null || internal.parentLayerId === undefined
         ? wrapperId
         : `${instanceId}__${internal.parentLayerId}`;
+    if ("compositing" in cloned && cloned.compositing?.mask) {
+      const sourceId = cloned.compositing.mask.sourceLayerId;
+      const isInternal = processedInternals.some((node) => node.id === sourceId);
+      if (isInternal) {
+        cloned.compositing = {
+          ...cloned.compositing,
+          mask: {
+            ...cloned.compositing.mask,
+            sourceLayerId: `${instanceId}__${sourceId}`,
+          },
+        };
+      }
+    }
     for (const binding of component.propBindings) {
       if (
         binding.target.kind !== "layerProperty" ||
@@ -334,15 +347,30 @@ function expandOneComponentInstance(
     type: "group" as const,
     parentLayerId,
     transform: clone(instanceNode.transform),
-    visible: instanceNode.visible,
-    payload: { compositing: { mode: "pass-through" as const } },
+    appearance: clone(instanceNode.appearance),
+    ...(instanceNode.frame ? { frame: clone(instanceNode.frame) } : {}),
     ...(instanceNode.name ? { name: instanceNode.name } : {}),
     ...(instanceNode.zIndex !== undefined ? { zIndex: instanceNode.zIndex } : {}),
     ...(instanceNode.timing ? { timing: clone(instanceNode.timing) } : {}),
     ...(instanceNode.semantic ? { semantic: clone(instanceNode.semantic) } : {}),
     ...(instanceNode.effects ? { effects: clone(instanceNode.effects) } : {}),
-    ...(instanceNode.blendMode ? { blendMode: instanceNode.blendMode } : {}),
-    ...(instanceNode.mask ? { mask: clone(instanceNode.mask) } : {}),
+    ...(instanceNode.compositing
+      ? {
+          compositing: (() => {
+            const compositing = clone(instanceNode.compositing);
+            const mask = compositing.mask;
+            if (mask) {
+              const isInternal = processedInternals.some(
+                (node) => node.id === mask.sourceLayerId,
+              );
+              if (isInternal) {
+                mask.sourceLayerId = `${instanceId}__${mask.sourceLayerId}`;
+              }
+            }
+            return compositing;
+          })(),
+        }
+      : {}),
     ...(instanceNode.inheritFlags
       ? { inheritFlags: clone(instanceNode.inheritFlags) }
       : {}),
@@ -429,7 +457,12 @@ export function prepareRuntimeLayerGraph(
       .filter((node) => node.type !== "audio")
       .map((node) => {
       const prepared = prepareRuntimeLayer(node);
-      const mask = (prepared as { mask?: { sourceLayerId?: string } }).mask;
+      const compositing = (
+        prepared as {
+          compositing?: { mask?: { sourceLayerId?: string } };
+        }
+      ).compositing;
+      const mask = compositing?.mask;
       if (
         mask &&
         typeof mask.sourceLayerId === "string" &&

@@ -1,7 +1,5 @@
 /**
- * V1 easing — canonical keyframe easing schemas.
- *
- * Closed easing vocabulary: named presets or parameterized cubic/spring.
+ * Easing keyframe V1 — preset tên hoặc cubic/spring có tham số.
  */
 
 import { z } from "zod";

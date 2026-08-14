@@ -1,13 +1,12 @@
 /**
  * Lớp authoring: layer → asset trong JSON (không đụng R2).
  *
- * Lớp storage (missing / integrity / size / deleted) nằm ở
- * motion-storage.validateAssets — cùng `AssetValidationIssue`.
+ * Lớp storage (missing / integrity / size) nằm ở motion-storage.validateAssets.
  */
 import type { LayerV1 } from "../layers";
 import type { AssetV1 } from "../assets";
-import type { AssetValidationIssue } from "../asset-validation";
-import { assetValidationIssue } from "../asset-validation";
+import type { AssetValidationIssue } from "../assets/validation";
+import { assetValidationIssue } from "../assets/validation";
 
 export function validateLayerAssetsV1(
   layers: LayerV1[],

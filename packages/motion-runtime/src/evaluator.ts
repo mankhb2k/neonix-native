@@ -1,5 +1,6 @@
 import {
   motionPropertyCapability,
+  ratioFromPercent,
 } from "@motionvideo/motion-protocol";
 import {
   type MotionRuntimeProject,
@@ -23,6 +24,15 @@ import {
   multiplyMatrix4,
 } from "./matrix4";
 import { invertMatrix, transformBounds, type Bounds2D } from "./spatial";
+
+function readNestedNumber(root: Record<string, unknown>, path: string): number {
+  let cursor: unknown = root;
+  for (const part of path.split(".")) {
+    if (!cursor || typeof cursor !== "object") return 0;
+    cursor = (cursor as Record<string, unknown>)[part];
+  }
+  return typeof cursor === "number" && Number.isFinite(cursor) ? cursor : 0;
+}
 import {
   bendPathContours,
   localNodeBounds,
@@ -128,7 +138,7 @@ function resolveValueKind(
   right: unknown,
 ): string | undefined {
   if (track?.valueKind) return track.valueKind;
-  if (property === "transform.rotation" || property.endsWith(".rotation"))
+  if (property === "transform.rotate.z" || property.endsWith(".rotate.z"))
     return "angle";
   if (
     typeof left === "string" &&
@@ -389,31 +399,28 @@ export function evaluateEffect(
     case "shadow":
       return {
         ...effect,
-        offsetX: effectNumber(
-          scene,
-          node,
-          effect,
-          "offsetX",
-          time,
-          effect.offsetX,
-        ),
-        offsetY: effectNumber(
-          scene,
-          node,
-          effect,
-          "offsetY",
-          time,
-          effect.offsetY,
-        ),
+        offset: {
+          x: effectNumber(
+            scene,
+            node,
+            effect,
+            "offset.x",
+            time,
+            effect.offset.x,
+          ),
+          y: effectNumber(
+            scene,
+            node,
+            effect,
+            "offset.y",
+            time,
+            effect.offset.y,
+          ),
+        },
         blur: effectNumber(scene, node, effect, "blur", time, effect.blur),
         color: effectString(scene, node, effect, "color", time, effect.color),
-        opacity: effectNumber(
-          scene,
-          node,
-          effect,
-          "opacity",
-          time,
-          effect.opacity,
+        opacity: ratioFromPercent(
+          effectNumber(scene, node, effect, "opacity", time, effect.opacity),
         ),
       };
     case "glow":
@@ -427,50 +434,54 @@ export function evaluateEffect(
           time,
           effect.radius,
         ),
-        intensity: effectNumber(
-          scene,
-          node,
-          effect,
-          "intensity",
-          time,
-          effect.intensity,
+        intensity: ratioFromPercent(
+          effectNumber(
+            scene,
+            node,
+            effect,
+            "intensity",
+            time,
+            effect.intensity,
+          ),
         ),
         color: effectString(scene, node, effect, "color", time, effect.color),
-        opacity: effectNumber(
-          scene,
-          node,
-          effect,
-          "opacity",
-          time,
-          effect.opacity,
+        opacity: ratioFromPercent(
+          effectNumber(scene, node, effect, "opacity", time, effect.opacity),
         ),
       };
     case "color-adjust":
       return {
         ...effect,
-        brightness: effectNumber(
-          scene,
-          node,
-          effect,
-          "brightness",
-          time,
-          effect.brightness,
+        brightness: ratioFromPercent(
+          effectNumber(
+            scene,
+            node,
+            effect,
+            "brightness",
+            time,
+            effect.brightness,
+          ),
         ),
-        contrast: effectNumber(
-          scene,
-          node,
-          effect,
-          "contrast",
-          time,
-          effect.contrast,
+        contrast: ratioFromPercent(
+          effectNumber(scene, node, effect, "contrast", time, effect.contrast),
         ),
-        saturation: effectNumber(
+        saturation: ratioFromPercent(
+          effectNumber(
+            scene,
+            node,
+            effect,
+            "saturation",
+            time,
+            effect.saturation,
+          ),
+        ),
+        "hue-rotate": effectNumber(
           scene,
           node,
           effect,
-          "saturation",
+          "hue-rotate",
           time,
-          effect.saturation,
+          effect["hue-rotate"],
         ),
       };
   }
@@ -537,22 +548,25 @@ export function evaluateTransform(
   driven?: Map<string, number>,
   collector?: RuntimeDiagnosticCollector,
 ): Transform2D {
+  const t = node.transform;
+  const appearance = node.appearance ?? { visible: true, opacity: 100 };
+  const frame = node.frame ?? { width: 0, height: 0 };
   return {
     x: numberProperty(
       scene,
       node,
-      "transform.x",
+      "transform.translate.x",
       time,
-      node.transform.x,
+      t.translate.x,
       driven,
       collector,
     ),
     y: numberProperty(
       scene,
       node,
-      "transform.y",
+      "transform.translate.y",
       time,
-      node.transform.y,
+      t.translate.y,
       driven,
       collector,
     ),
@@ -561,103 +575,93 @@ export function evaluateTransform(
       node,
       "transform.depth",
       time,
-      node.transform.depth ?? 0,
+      t.depth,
       driven,
       collector,
     ),
     width: numberProperty(
       scene,
       node,
-      "transform.width",
+      "frame.width",
       time,
-      node.transform.width,
+      frame.width,
       driven,
       collector,
     ),
     height: numberProperty(
       scene,
       node,
-      "transform.height",
+      "frame.height",
       time,
-      node.transform.height,
+      frame.height,
       driven,
       collector,
     ),
     rotation: numberProperty(
       scene,
       node,
-      "transform.rotation",
+      "transform.rotate.z",
       time,
-      node.transform.rotation,
+      t.rotate.z,
       driven,
       collector,
     ),
     scaleX: numberProperty(
       scene,
       node,
-      "transform.scaleX",
+      "transform.scale.x",
       time,
-      node.transform.scaleX,
+      t.scale.x,
       driven,
       collector,
     ),
     scaleY: numberProperty(
       scene,
       node,
-      "transform.scaleY",
+      "transform.scale.y",
       time,
-      node.transform.scaleY,
+      t.scale.y,
       driven,
       collector,
     ),
     anchorX: numberProperty(
       scene,
       node,
-      "transform.anchorX",
+      "transform.origin.x",
       time,
-      node.transform.anchorX,
+      t.origin.x,
       driven,
       collector,
     ),
     anchorY: numberProperty(
       scene,
       node,
-      "transform.anchorY",
+      "transform.origin.y",
       time,
-      node.transform.anchorY,
+      t.origin.y,
       driven,
       collector,
     ),
-    opacity: numberProperty(
-      scene,
-      node,
-      "transform.opacity",
-      time,
-      node.transform.opacity,
-      driven,
-      collector,
+    opacity: ratioFromPercent(
+      numberProperty(
+        scene,
+        node,
+        "appearance.opacity",
+        time,
+        appearance.opacity,
+        driven,
+        collector,
+      ),
     ),
     visible: booleanProperty(
       scene,
       node,
-      "transform.visible",
+      "appearance.visible",
       time,
-      node.transform.visible,
+      appearance.visible,
     ),
-    flipX: booleanProperty(
-      scene,
-      node,
-      "transform.flipX",
-      time,
-      node.transform.flipX,
-    ),
-    flipY: booleanProperty(
-      scene,
-      node,
-      "transform.flipY",
-      time,
-      node.transform.flipY,
-    ),
+    flipX: false,
+    flipY: false,
   };
 }
 
@@ -683,53 +687,50 @@ export function evaluateTransform3DFields(
   driven?: Map<string, number>,
   collector?: RuntimeDiagnosticCollector,
 ): Transform3DFields {
-  // 3D fields are optional in the schema — safely extract numbers
-  const t = node.transform as unknown as Record<string, unknown>;
-  const get = (key: string, fallback: number): number =>
-    typeof t[key] === "number" ? (t[key] as number) : fallback;
+  const t = node.transform;
   return {
     z: numberProperty(
       scene,
       node,
-      "transform.z",
+      "transform.depth",
       time,
-      get("z", 0),
+      t.depth,
       driven,
       collector,
     ),
     rotationX: numberProperty(
       scene,
       node,
-      "transform.rotationX",
+      "transform.rotate.x",
       time,
-      get("rotationX", 0),
+      t.rotate.x,
       driven,
       collector,
     ),
     rotationY: numberProperty(
       scene,
       node,
-      "transform.rotationY",
+      "transform.rotate.y",
       time,
-      get("rotationY", 0),
+      t.rotate.y,
       driven,
       collector,
     ),
     rotationZ: numberProperty(
       scene,
       node,
-      "transform.rotationZ",
+      "transform.rotate.z",
       time,
-      get("rotationZ", 0),
+      t.rotate.z,
       driven,
       collector,
     ),
     anchorZ: numberProperty(
       scene,
       node,
-      "transform.anchorZ",
+      "transform.origin.z",
       time,
-      get("anchorZ", 0),
+      t.origin.z,
       driven,
       collector,
     ),
@@ -831,12 +832,12 @@ export function evaluateScene(
     const node = byId.get(layerId);
     if (!node) return 0;
     let fallback = 0;
-    if (property.startsWith("transform.")) {
-      const key = property.slice(
-        "transform.".length,
-      ) as keyof typeof node.transform;
-      const raw = node.transform[key];
-      fallback = typeof raw === "number" ? raw : 0;
+    if (
+      property.startsWith("transform.") ||
+      property.startsWith("appearance.") ||
+      property.startsWith("frame.")
+    ) {
+      fallback = readNestedNumber(node as unknown as Record<string, unknown>, property);
     }
     const value = evaluateTrack(
       trackIndex.get(`${layerId}::${property}`),
@@ -913,8 +914,8 @@ export function evaluateScene(
           x: 0,
           y: 0,
           depth: 0,
-          width: node.transform.width,
-          height: node.transform.height,
+          width: node.frame?.width ?? 0,
+          height: node.frame?.height ?? 0,
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
@@ -951,8 +952,8 @@ export function evaluateScene(
           x: 0,
           y: 0,
           depth: 0,
-          width: node.transform.width,
-          height: node.transform.height,
+          width: node.frame?.width ?? 0,
+          height: node.frame?.height ?? 0,
           rotation: 0,
           scaleX: 1,
           scaleY: 1,
@@ -1296,9 +1297,9 @@ export function evaluateScene(
           ? numberProperty(
               scene,
               cameraNode,
-              "transform.x",
+              "transform.translate.x",
               time,
-              cameraNode.transform.x,
+              cameraNode.transform.translate.x,
             )
           : 0);
       const cameraY =
@@ -1307,9 +1308,9 @@ export function evaluateScene(
           ? numberProperty(
               scene,
               cameraNode,
-              "transform.y",
+              "transform.translate.y",
               time,
-              cameraNode.transform.y,
+              cameraNode.transform.translate.y,
             )
           : 0);
       const strength =

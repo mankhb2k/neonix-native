@@ -2,10 +2,10 @@
  * V1-native layer-graph compilation: prepares runtime layers/tracks from an
  * in-memory layer graph plus compiler motion units (presets / property keyframes).
  *
- * MotionClipV1 (internal schema) is compiled as motion-units only — not timeline clips.
+ * LayerMotionUnit (internal schema) is compiled as motion-units only — not timeline clips.
  */
 import { type MotionLayer } from "@motionvideo/motion-protocol";
-import type { MotionClipV1 as LayerMotionUnit } from "@motionvideo/motion-protocol/internal";
+import type { LayerMotionUnit } from "@motionvideo/motion-protocol/internal";
 import {
   type MotionRuntimeProject,
   type RuntimeLayerGraph,
@@ -171,7 +171,7 @@ function presetTracks(
     transform: {
       x: node.transform.x,
       y: node.transform.y,
-      opacity: node.transform.opacity,
+      opacity: node.appearance.opacity,
       scaleX: node.transform.scaleX,
       scaleY: node.transform.scaleY,
     },

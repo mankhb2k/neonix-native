@@ -1,17 +1,13 @@
 /**
- * V1 variables, design tokens and project bindings.
+ * Variable và binding project V1.
  *
- * Variable kinds mirror v2 but the `list` kind carries an explicit item
- * schema so AI/editor tooling can validate list payloads structurally.
- * Design tokens extend v2 `DesignTokensSchema` with `radii` and `motion`.
- * Bindings may target a project layer or a component instance layer.
+ * Binding nhắm layer hoặc componentLayer (instance trên cây project).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
-  NormalizedRatioSchema,
   PropertyPathSchema,
   SemanticSchema,
 } from "./common";
@@ -92,18 +88,6 @@ export const ProjectVariableV1Schema = z.discriminatedUnion("type", [
 ]);
 
 export type ProjectVariableV1 = z.infer<typeof ProjectVariableV1Schema>;
-
-export const DesignTokensSchema = z
-  .object({
-    colors: z.record(z.string().min(1).max(64)).optional(),
-    fonts: z.record(z.string().min(1).max(128)).optional(),
-    spacing: z.record(FiniteNumberSchema).optional(),
-    radii: z.record(NormalizedRatioSchema).optional(),
-    motion: z.record(FiniteNumberSchema).optional(),
-  })
-  .strict();
-
-export type DesignTokens = z.infer<typeof DesignTokensSchema>;
 
 export const VariableBindingSourceSchema = z
   .object({ kind: z.literal("variable"), variableId: IdSchema })

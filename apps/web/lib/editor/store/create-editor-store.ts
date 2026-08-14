@@ -182,17 +182,28 @@ export function createEditorStore(initialState?: Partial<EditorStore>) {
       const beforeDoc = documentFromStoreState(state);
       if (!beforeDoc) return;
 
-      const nextProject = mapNode(state.project, sceneId, layerId, (node) => ({
-        ...node,
-        transform: {
-          ...node.transform,
-          x: patch.x ?? node.transform.x,
-          y: patch.y ?? node.transform.y,
-          width: patch.width ?? node.transform.width,
-          height: patch.height ?? node.transform.height,
-          rotation: patch.rotation ?? node.transform.rotation,
-        },
-      }));
+      const nextProject = mapNode(state.project, sceneId, layerId, (node) => {
+        if (!("transform" in node) || !node.transform) return node;
+        return {
+          ...node,
+          frame: {
+            width: patch.width ?? node.frame?.width ?? 0,
+            height: patch.height ?? node.frame?.height ?? 0,
+          },
+          transform: {
+            ...node.transform,
+            translate: {
+              ...node.transform.translate,
+              x: patch.x ?? node.transform.translate.x,
+              y: patch.y ?? node.transform.translate.y,
+            },
+            rotate: {
+              ...node.transform.rotate,
+              z: patch.rotation ?? node.transform.rotate.z,
+            },
+          },
+        };
+      });
 
       const envelope = state.envelope
         ? markUserModified(state.envelope, sceneId, layerId, lockedPaths)

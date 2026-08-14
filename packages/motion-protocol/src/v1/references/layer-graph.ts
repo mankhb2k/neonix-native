@@ -1,8 +1,6 @@
 /**
- * V1 layer-graph validation: duplicate ids, parent refs, mask sources,
- * self-parent, cycles, depth, group-only children, nested parentLayerId
- * match, and unique zIndex per parent (sibling stack order must be
- * deterministic).
+ * Validate đồ thị layer: id trùng, parent, mask, cycle, depth,
+ * chỉ group có children, parentLayerId khớp, zIndex unique theo cha.
  */
 import type { LayerV1 } from "../layers";
 import { flattenLayerTree } from "../layers";
@@ -51,14 +49,27 @@ export function validateLayerGraphV1(
       }
     }
 
-    if (node.type !== "audio" && "mask" in node && node.mask) {
-      const source = byId.get(node.mask.sourceLayerId);
-      if (!source) {
+    if (node.type !== "audio" && node.type !== "camera") {
+      if (!("frame" in node) || !node.frame) {
         issues.push({
-          path: `${prefix}.${node.id}.mask.sourceLayerId`,
-          message: `Unknown mask source layer: ${node.mask.sourceLayerId}`,
+          path: `${prefix}.${node.id}.frame`,
+          message: `Visual layer ${node.id} requires frame.width and frame.height`,
         });
       }
+    }
+    if (node.type === "camera" && "frame" in node && node.frame) {
+      issues.push({
+        path: `${prefix}.${node.id}.frame`,
+        message: `Camera layer ${node.id} must not have frame`,
+      });
+    }
+
+    if (
+      node.type !== "audio" &&
+      "compositing" in node &&
+      node.compositing?.mask
+    ) {
+      issues.push(...validateMask(node, byId, prefix));
     }
 
     if (
@@ -77,6 +88,52 @@ export function validateLayerGraphV1(
   issues.push(...detectCycles(layers, byId, prefix));
   issues.push(...checkHierarchyDepth(layers, byId, prefix));
 
+  return issues;
+}
+
+const CLIP_MASK_SOURCE_TYPES = new Set([
+  "path",
+  "shape",
+  "solid",
+  "group",
+  "component",
+]);
+
+function validateMask(
+  node: LayerV1,
+  byId: Map<string, LayerV1>,
+  prefix: string,
+): ReferenceIssue[] {
+  if (
+    node.type === "audio" ||
+    !("compositing" in node) ||
+    !node.compositing?.mask
+  )
+    return [];
+  const mask = node.compositing.mask;
+  const issues: ReferenceIssue[] = [];
+  const sourceId = mask.sourceLayerId;
+  if (sourceId === node.id) {
+    issues.push({
+      path: `${prefix}.${node.id}.compositing.mask.sourceLayerId`,
+      message: `Layer cannot mask itself: ${node.id}`,
+    });
+    return issues;
+  }
+  const source = byId.get(sourceId);
+  if (!source) {
+    issues.push({
+      path: `${prefix}.${node.id}.compositing.mask.sourceLayerId`,
+      message: `Unknown mask source layer: ${sourceId}`,
+    });
+    return issues;
+  }
+  if (!CLIP_MASK_SOURCE_TYPES.has(source.type)) {
+    issues.push({
+      path: `${prefix}.${node.id}.compositing.mask.sourceLayerId`,
+      message: `Mask source "${sourceId}" has type "${source.type}" — clip sources must be path, shape, solid, group, or component`,
+    });
+  }
   return issues;
 }
 

@@ -1,8 +1,7 @@
 /**
- * Timeline project V1 — global metadata only.
+ * Timeline project — chỉ metadata toàn cục (duration / workArea / markers).
  *
- * Duration, work area, and markers live here. Visual / audio / caption
- * content lives on `project.layers` (root layer = timeline lane).
+ * Nội dung visual/audio/caption sống trên project.layers.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

@@ -91,14 +91,7 @@ export class StubModelGateway implements ModelGateway {
                   layerId: `node.svg.${assetId}`,
                   assetId,
                   fit: "contain",
-                  transform: {
-                    x: brief.aspectRatio === "16:9" ? 960 : 540,
-                    y: brief.aspectRatio === "9:16" ? 520 : 360,
-                    width: 320,
-                    height: 320,
-                    anchorX: 0.5,
-                    anchorY: 0.5,
-                  },
+                  transform: { x: brief.aspectRatio === "16:9" ? 960 : 540, y: brief.aspectRatio === "9:16" ? 520 : 360, width: 320, height: 320 },
                   semanticRole: "logo",
                   semanticKey: "brand.logo",
                 }
@@ -108,14 +101,7 @@ export class StubModelGateway implements ModelGateway {
                   layerId: `node.image.${assetId}`,
                   assetId,
                   fit: "contain",
-                  transform: {
-                    x: brief.aspectRatio === "16:9" ? 960 : 540,
-                    y: brief.aspectRatio === "9:16" ? 520 : 360,
-                    width: brief.aspectRatio === "16:9" ? 640 : 720,
-                    height: brief.aspectRatio === "9:16" ? 720 : 480,
-                    anchorX: 0.5,
-                    anchorY: 0.5,
-                  },
+                  transform: { x: brief.aspectRatio === "16:9" ? 960 : 540, y: brief.aspectRatio === "9:16" ? 520 : 360, width: brief.aspectRatio === "16:9" ? 640 : 720, height: brief.aspectRatio === "9:16" ? 720 : 480 },
                   semanticRole: "demo",
                   semanticKey: "product.image",
                 },
@@ -158,14 +144,7 @@ export class StubModelGateway implements ModelGateway {
               fontSize: 48,
               fill: "#ffffff",
               semanticRole: "hook",
-              transform: {
-                x: 540,
-                y: 960,
-                width: 900,
-                height: 120,
-                anchorX: 0.5,
-                anchorY: 0.5,
-              },
+              transform: { x: 540, y: 960, width: 900, height: 120 },
             });
           } else if (finding.code === "overlap") {
             const match = /^scenes\.([^.]+)/.exec(finding.path);

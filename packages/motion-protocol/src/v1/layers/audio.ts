@@ -1,15 +1,16 @@
 /**
- * V1 audio layer — root-only leaf. Playback fields live on payload;
- * timeline placement lives on `timing`.
+ * Layer audio V1 — lá chỉ ở root. Playback trên payload; chỗ đứng trên timing.
+ * volume 0..100 nguyên, 100 = đầy.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";
 import {
   FiniteNumberSchema,
   IdSchema,
-  NormalizedRatioSchema,
+  PercentSchema,
   PositiveNumberSchema,
 } from "../common";
+import { AppearanceSchema } from "../appearance";
 import { LayerTimingSchema } from "./timing";
 
 export const AudioLayerPayloadV1Schema = z
@@ -24,7 +25,7 @@ export const AudioLayerPayloadV1Schema = z
     playbackRate: PositiveNumberSchema.max(
       MOTION_PROTOCOL_LIMITS.transformScale,
     ).default(1),
-    volume: NormalizedRatioSchema.default(1),
+    volume: PercentSchema.default(100),
     loop: z.boolean().default(false),
     fadeIn: FiniteNumberSchema.nonnegative()
       .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
@@ -44,7 +45,7 @@ export const AudioLayerV1Schema = z
     parentLayerId: z.null(),
     zIndex: z.number().int().negative(),
     timing: LayerTimingSchema,
-    visible: z.boolean().default(true),
+    appearance: AppearanceSchema.default({ visible: true, opacity: 100 }),
     locked: z.boolean().default(false),
     payload: AudioLayerPayloadV1Schema,
   })

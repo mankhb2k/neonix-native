@@ -194,20 +194,20 @@ Authoring has **no** `scenes` / `visualTracks` / `audioTracks` / `captionTracks`
     "start": 0,
     "duration": 5,
   },
+  "frame": { "width": 800, "height": 120 },
   "transform": {
-    "x": 0,
-    "y": 0,
-    "width": 800,
-    "height": 120,
-    "rotation": 0,
-    "scaleX": 1,
-    "scaleY": 1,
-    "anchorX": 0.5,
-    "anchorY": 0.5,
-    "opacity": 1,
-    "visible": true,
-    "flipX": false,
-    "flipY": false,
+    "translate": { "x": 0, "y": 0 },
+    "rotate": { "x": 0, "y": 0, "z": 0 },
+    "scale": { "x": 1, "y": 1, "z": 1 },
+    "origin": { "x": 0.5, "y": 0.5, "z": 0 },
+    "depth": 0,
+    "transform-style": "flat",
+    "backface-visibility": "visible"
+  },
+  "appearance": { "visible": true, "opacity": 100 },
+  "compositing": {
+    "blend-mode": "normal",
+    "isolation": "auto"
   },
   "inheritFlags": {
     // optional, kế thừa từ parent
@@ -218,17 +218,15 @@ Authoring has **no** `scenes` / `visualTracks` / `audioTracks` / `captionTracks`
   },
   "semantic": { "role": "title" }, // optional
   "effects": [
-    /* ... */
-  ], // optional
-  "blendMode": "normal", // optional
-  "mask": {
-    /* ... */
-  }, // optional
+    /* blur | shadow | glow | color-adjust */
+  ],
   "payload": {
     /* type-specific */
   },
 }
 ```
+
+Authoring percent: `appearance.opacity`, `payload.volume`, glow opacity/intensity, and shadow opacity are integers **0..100** (100 = full). Color-adjust brightness/contrast/saturation (and adjustment-layer payload) are integers **0..200** (100 = normal). `hue-rotate` is **-180..180** degrees. Paint and audio convert with `n / 100`.
 
 ---
 
@@ -271,6 +269,8 @@ Project root
 `head` (zIndex 99) nằm **trong** group.character (zIndex 1), không thể render trên `title` (zIndex 2).
 
 **Protocol rule:** trong cùng `parentLayerId` (kể cả `null`), `zIndex` phải **unique** (thiếu `zIndex` được coi như `0`). Hai layer khác parent được phép cùng số. Timing giữa layer **được trùng**; chỉ stack order phải deterministic.
+
+`transform.depth` không thay `zIndex`. Depth (>0 gần camera, <0 xa, 0 mặt phẳng) chỉ cho parallax/perspective; render sort vẫn theo `zIndex`. Audio không có `transform`/`depth`.
 
 Layer copy (editor): giữ `timing`, cấp `id` mới + `zIndex` mới trong siblings — **không** bắt sang lane khác.
 
@@ -376,13 +376,6 @@ Binding kết nối project variable với layer property hoặc public componen
     "colorSpace": "srgb", // default "srgb"
     "pixelAspectRatio": 1, // optional, default 1
     "audioSampleRate": 48000, // default 48000
-    "safeArea": {
-      // optional
-      "top": 0.05,
-      "right": 0.05,
-      "bottom": 0.1,
-      "left": 0.05,
-    },
     "motionBlur": {
       // optional
       "samples": 16,

@@ -112,7 +112,7 @@ describe("RuntimePatch protocol", () => {
         sequence: 1,
         graphId: "scene-a",
         layerId: "n1",
-        property: "transform.opacity",
+        property: "appearance.opacity",
         value: 0.5,
       };
       expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
@@ -155,7 +155,7 @@ describe("RuntimePatch protocol", () => {
       sequence: 2,
       graphId: "s",
       tracks: [
-        { layerId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] },
+        { layerId: "n", property: "transform.translate.x", keys: [{ t: 0, v: 100 }] },
       ],
     };
     expect(track.kind).toBe("track-values");

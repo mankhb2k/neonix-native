@@ -131,6 +131,10 @@ export {
   SemverSchema,
   AspectRatioSchema,
   SemanticSchema,
+  PercentSchema,
+  ColorAdjustPercentSchema,
+  HueRotateSchema,
+  ratioFromPercent,
   type AspectRatio,
 } from "./v1/common";
 
@@ -150,8 +154,15 @@ export {
   ValueKindSchema,
 } from "./v1/values";
 
+export { visualLayerAtoms, defaultTransform } from "./v1/layer-atoms";
 export { EffectSchema, type MotionEffect } from "./v1/effects";
 export { TransformSchema, type MotionTransform } from "./v1/transform";
+export { FrameSchema, type MotionFrame } from "./v1/frame";
+export { AppearanceSchema, type MotionAppearance } from "./v1/appearance";
+export {
+  CompositingSchema,
+  type MotionCompositing,
+} from "./v1/compositing";
 
 export {
   AssetV1Schema,
@@ -170,7 +181,7 @@ export {
   type AssetValidationIssue,
   type AssetValidationCode,
   type AssetValidationLayer,
-} from "./v1/asset-validation";
+} from "./v1/assets/validation";
 
 export {
   VariableSchema,
@@ -246,4 +257,4 @@ export {
   TrackTimeSchema,
 } from "./v1/animation";
 
-export { DesignTokensSchema, type DesignTokens } from "./v1/variables";
+export { DesignTokensSchema, type DesignTokens } from "./v1/design-tokens";

@@ -1,8 +1,7 @@
 /**
- * V1 provenance — debug/trace metadata.
+ * Provenance V1 — metadata debug/trace.
  *
- * Excluded from the render hash: provenance never affects rendered output,
- * only explains where a bundle came from.
+ * Không vào render hash: không ảnh hưởng output, chỉ giải thích nguồn bundle.
  */
 import { z } from "zod";
 import { IdSchema } from "./common";

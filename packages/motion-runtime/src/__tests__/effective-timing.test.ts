@@ -1,3 +1,4 @@
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 /**
  * Phase 3 — Effective timing tests (Group Layer Semantics).
  *
@@ -31,21 +32,7 @@ function g(
     parentLayerId: overrides.parentLayerId ?? null,
     zIndex: 0,
     timing: overrides.timing,
-    transform: {
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 100,
-      rotation: 0,
-      scaleX: 1,
-      scaleY: 1,
-      anchorX: 0.5,
-      anchorY: 0.5,
-      opacity: 1,
-      visible: true,
-      flipX: false,
-      flipY: false,
-    },
+    ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 100, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true }),
     payload: {},
     ...overrides,
   } as RuntimeNode;

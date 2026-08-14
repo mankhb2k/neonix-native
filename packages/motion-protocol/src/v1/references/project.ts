@@ -1,3 +1,6 @@
+/**
+ * Validate reference toàn project V1.
+ */
 ﻿/**
  * V1 project-wide reference validation.
  */
@@ -16,7 +19,7 @@ import {
   defaultInterpolationForPropKind,
   type ComponentPropV1,
 } from "../components";
-import { isPropKeyframesValue } from "../prop-values";
+import { isPropKeyframesValue } from "../components/prop-values";
 import { duplicates } from "./helpers";
 import { validateLayerGraphV1 } from "./layer-graph";
 import { validateLayerAssetsV1 } from "./layer-assets";

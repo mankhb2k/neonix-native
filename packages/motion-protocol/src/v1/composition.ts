@@ -1,8 +1,7 @@
 /**
- * V1 composition settings — replaces v2 `metadata.aspectRatio` + `fps`.
+ * Cài đặt composition V1 — width/height/fps/background/colorSpace.
  *
- * Dimensions are explicit pixels (no aspect-ratio presets), color space is
- * declared, and motion blur defaults are composition-level.
+ * Thay metadata.aspectRatio + fps của v2. Motion blur mặc định ở cấp composition.
  */
 import { z } from "zod";
 import {
@@ -11,17 +10,6 @@ import {
   NormalizedRatioSchema,
   PositiveNumberSchema,
 } from "./common";
-
-export const SafeAreaSchema = z
-  .object({
-    top: NormalizedRatioSchema,
-    right: NormalizedRatioSchema,
-    bottom: NormalizedRatioSchema,
-    left: NormalizedRatioSchema,
-  })
-  .strict();
-
-export type SafeArea = z.infer<typeof SafeAreaSchema>;
 
 export const MotionBlurDefaultsSchema = z
   .object({
@@ -50,7 +38,6 @@ export const CompositionSettingsSchema = z
     audioSampleRate: z
       .union([z.literal(44100), z.literal(48000)])
       .default(48000),
-    safeArea: SafeAreaSchema.optional(),
     motionBlur: MotionBlurDefaultsSchema.optional(),
   })
   .strict();

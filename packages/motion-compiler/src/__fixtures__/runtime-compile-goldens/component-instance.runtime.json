@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "8deeaab4f2b8ab6e3885bf07520e7717",
+  "runtimeHash": "ff3b9fb3fe56b111068d1fd82d11b44d",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "87631d2c89faf8ea",
+  "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
     "layers": {
       "logo-instance__instance": "layers:logo-instance__instance",
@@ -37,58 +37,94 @@
       "type": "group",
       "parentLayerId": null,
       "zIndex": 0,
-      "transform": {
-        "x": 0,
-        "y": 0,
+      "frame": {
         "width": 256,
-        "height": 256,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 256
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "timing": {
         "start": 0,
         "duration": 4
       },
-      "payload": {
-        "compositing": {
-          "mode": "pass-through"
-        }
-      }
+      "payload": {}
     },
     {
       "id": "logo-instance__logo",
       "type": "solid",
       "parentLayerId": "logo-instance__instance",
       "zIndex": 1,
-      "transform": {
-        "x": 0,
-        "y": 0,
+      "frame": {
         "width": 256,
-        "height": 256,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
+        "height": 256
+      },
+      "transform": {
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "depth": 0,
+        "transform-style": "flat",
+        "backface-visibility": "visible"
+      },
+      "appearance": {
         "visible": true,
-        "flipX": false,
-        "flipY": false
+        "opacity": 100
       },
       "inheritPosition": true,
       "inheritRotation": true,
       "inheritScale": true,
       "inheritOpacity": true,
       "payload": {
-        "width": 256,
-        "height": 256,
         "color": "#1877f2"
       }
     }

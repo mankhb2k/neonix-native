@@ -1,6 +1,5 @@
 /**
- * Inferred V1 structural node types (kept separate to avoid circular
- * imports between per-kind schema modules and the union index).
+ * Kiểu infer structural — tách để tránh circular với union.
  */
 import { z } from "zod";
 import type {

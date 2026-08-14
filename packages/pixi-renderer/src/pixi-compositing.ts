@@ -160,7 +160,11 @@ export type CompositingContext = {
     key: string;
     offscreen: boolean;
     isolation: boolean;
-    mask?: { mode: string; sourceKey: string };
+    mask?: {
+      mode: string;
+      sourceKey: string;
+      sourceVisibility?: "mask-only" | "content-and-mask";
+    };
   }): Container;
 
   /** Push a new group scope. Returns the new parent for child ops.
@@ -187,6 +191,9 @@ export type CompositingContext = {
   /** All active compositing layers (used for post-frame cleanup). */
   getLayers(): ReadonlyMap<string, CompositingLayer>;
 
+  /** Register a drawable/display so mask sources resolve by paint key. */
+  registerDisplay(key: string, display: Container): void;
+
   /** Wire a mask after the mask source has been created. */
   applyMask(targetKey: string, sourceDisplay: Container): void;
 
@@ -209,7 +216,15 @@ export function createCompositingContext(
   const pool = createRenderTexturePool();
   const layers = new Map<string, CompositingLayer>();
   const stack: NestingFrame[] = [{ kind: "root", container: opts.root }];
-  const pendingMasks = new Map<string, { mode: string; sourceKey: string }>();
+  const pendingMasks = new Map<
+    string,
+    {
+      mode: string;
+      sourceKey: string;
+      sourceVisibility?: "mask-only" | "content-and-mask";
+    }
+  >();
+  const displays = new Map<string, Container>();
   const maskSourceKeys = new Set<string>();
 
   pool.beginFrame();
@@ -219,7 +234,11 @@ export function createCompositingContext(
     cfg: {
       offscreen: boolean;
       isolation: boolean;
-      mask?: { mode: string; sourceKey: string };
+      mask?: {
+        mode: string;
+        sourceKey: string;
+        sourceVisibility?: "mask-only" | "content-and-mask";
+      };
     },
   ): CompositingLayer {
     let layer = layers.get(key);
@@ -273,6 +292,7 @@ export function createCompositingContext(
       }
 
       layers.set(key, layer);
+      displays.set(key, layer.display);
     } else {
       layer.live = true;
       if (layer.offscreen) layer.offscreen.live = true;
@@ -285,7 +305,11 @@ export function createCompositingContext(
     key: string;
     offscreen: boolean;
     isolation: boolean;
-    mask?: { mode: string; sourceKey: string };
+    mask?: {
+      mode: string;
+      sourceKey: string;
+      sourceVisibility?: "mask-only" | "content-and-mask";
+    };
   }): Container {
     const layer = getOrCreateLayer(cfg.key, cfg);
     const parent = stack[stack.length - 1]!.container;
@@ -332,16 +356,20 @@ export function createCompositingContext(
     }
   }
 
+  function resolveDisplay(key: string): Container | undefined {
+    return displays.get(key) ?? layers.get(key)?.display;
+  }
+
   function applyMask(targetKey: string, sourceDisplay: Container): void {
     const layer = layers.get(targetKey);
     if (!layer) return;
-    // Apply mask to the display (proxy for offscreen, container directly)
     layer.display.mask = sourceDisplay;
-    // Ensure mask source is in the scene
-    if (!opts.root.children.includes(sourceDisplay)) {
-      sourceDisplay.visible = false; // Mask sources are invisible by default
-      opts.root.addChild(sourceDisplay);
-    }
+    displays.set(sourceDisplay.label || targetKey, sourceDisplay);
+  }
+
+  function registerDisplay(key: string, display: Container): void {
+    display.label = display.label || key;
+    displays.set(key, display);
   }
 
   function markMaskSource(key: string): void {
@@ -349,16 +377,15 @@ export function createCompositingContext(
   }
 
   function endFrame(): void {
-    // Wire any pending masks where both target and source now exist
     for (const [layerKey, maskCfg] of pendingMasks) {
       const layer = layers.get(layerKey);
       if (!layer) continue;
-      const sourceDisplay = opts.root.children.find(
-        (c) => c.label === maskCfg.sourceKey,
-      ) as Container | undefined;
+      const sourceDisplay = resolveDisplay(maskCfg.sourceKey);
       if (sourceDisplay) {
         layer.display.mask = sourceDisplay;
-        sourceDisplay.visible = false;
+        if (maskCfg.sourceVisibility !== "content-and-mask") {
+          sourceDisplay.visible = false;
+        }
       }
     }
     pendingMasks.clear();
@@ -387,6 +414,7 @@ export function createCompositingContext(
     getLayers: () => layers,
 
     applyMask,
+    registerDisplay,
     markMaskSource,
 
     endFrame,

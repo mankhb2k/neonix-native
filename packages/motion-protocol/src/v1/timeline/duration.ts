@@ -1,10 +1,6 @@
 /**
- * Derive `timeline.duration` V1 from root layer timing.
- *
- *   max(...rootLayers.map(layer => layer.timing.start + layer.timing.duration))
- *
- * Child layer timing is local to the parent and does not extend the
- * global duration.
+ * Suy duration timeline từ timing layer gốc:
+ * max(start + duration) của root. Timing con không kéo dài duration toàn cục.
  */
 import type { LayerV1 } from "../layers";
 

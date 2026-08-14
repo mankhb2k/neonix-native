@@ -16,7 +16,7 @@ export const TransformPatchSchema = z
     scaleY: Finite.nonnegative().optional(),
     anchorX: Finite.min(0).max(1).optional(),
     anchorY: Finite.min(0).max(1).optional(),
-    opacity: Finite.min(0).max(1).optional(),
+    opacity: Finite.int().min(0).max(100).optional(),
     visible: z.boolean().optional(),
     flipX: z.boolean().optional(),
     flipY: z.boolean().optional(),
@@ -263,24 +263,25 @@ export const AuthoringCommandSchema = z.discriminatedUnion("type", [
             offsetY: Finite,
             blur: Finite.nonnegative(),
             color: z.string().min(1),
-            opacity: Finite.min(0).max(1).optional(),
+            opacity: Finite.min(0).max(100).optional(),
           })
           .strict(),
         z
           .object({
             type: z.literal("glow"),
             radius: Finite.nonnegative(),
-            intensity: Finite.nonnegative(),
+            intensity: Finite.min(0).max(100).optional(),
             color: z.string().min(1),
-            opacity: Finite.min(0).max(1).optional(),
+            opacity: Finite.min(0).max(100).optional(),
           })
           .strict(),
         z
           .object({
             type: z.literal("color-adjust"),
-            brightness: Finite.min(-1).max(1).optional(),
-            contrast: Finite.min(0).max(4).optional(),
-            saturation: Finite.min(0).max(4).optional(),
+            brightness: Finite.min(0).max(200).optional(),
+            contrast: Finite.min(0).max(200).optional(),
+            saturation: Finite.min(0).max(200).optional(),
+            "hue-rotate": Finite.min(-180).max(180).optional(),
           })
           .strict(),
       ]),

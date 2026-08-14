@@ -8,6 +8,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 import {
   applyMatrix,
   deterministicRandom,
@@ -43,66 +44,21 @@ function makeHierarchyScene() {
         id: "group.root",
         type: "group" as const,
         parentLayerId: null,
-        transform: {
-          x: 540,
-          y: 960,
-          width: 540,
-          height: 540,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-        },
+        ...visualLayerAtoms({ x: 540, y: 960, width: 540, height: 540, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
         timing: { start: 0, duration: 3 },
       },
       {
         id: "group.child",
         type: "group" as const,
         parentLayerId: "group.root",
-        transform: {
-          x: 100,
-          y: -200,
-          width: 60,
-          height: 60,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 1,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-        },
+        ...visualLayerAtoms({ x: 100, y: -200, width: 60, height: 60, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 100, visible: true, depth: 0 }),
         timing: { start: 0, duration: 3 },
       },
       {
         id: "prop",
         type: "shape" as const,
         parentLayerId: "group.child",
-        transform: {
-          x: 80,
-          y: 0,
-          width: 40,
-          height: 40,
-          rotation: 0,
-          scaleX: 1,
-          scaleY: 1,
-          anchorX: 0.5,
-          anchorY: 0.5,
-          opacity: 0.65,
-          visible: true,
-          flipX: false,
-          flipY: false,
-          depth: 0,
-        },
+        ...visualLayerAtoms({ x: 80, y: 0, width: 40, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0.5, originY: 0.5, opacity: 65, visible: true, depth: 0 }),
         payload: { width: 40, height: 40, color: "#ff0000" },
         timing: { start: 0, duration: 3 },
       },
@@ -160,7 +116,7 @@ describe("V1 runtime primitives smoke", () => {
     // Hide prop — hit-test must skip it
     const hiddenScene = makeHierarchyScene();
     const hiddenProp = hiddenScene.layers.find((n: any) => n.id === "prop")!;
-    hiddenProp.transform.visible = false;
+    hiddenProp.appearance = { ...hiddenProp.appearance, visible: false };
     const hiddenHits = hitTestScene(hiddenScene, 0, { x: 420, y: 460 });
     expect(hiddenHits.some((h) => h.layer.id === "prop")).toBe(false);
   });

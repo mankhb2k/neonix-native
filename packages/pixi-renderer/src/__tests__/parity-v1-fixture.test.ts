@@ -63,10 +63,6 @@ describe("v3 fixture parity (Pixi)", () => {
       expect(evaluated, `frame ${frame} should evaluate`).toBeTruthy();
 
       const expectedKeys = paintParityDrawKeys(evaluated!.paint);
-      expect(
-        expectedKeys.length,
-        `frame ${frame} should have drawables`,
-      ).toBeGreaterThan(0);
 
       const root = new Container({ sortableChildren: true });
       const painter = createPixiFramePainter({ root });

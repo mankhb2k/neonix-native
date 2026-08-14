@@ -207,10 +207,6 @@ export function compileMotionProjectV1(
       metadata.createdAt = normalized.metadata.createdAt;
     if (normalized.metadata.updatedAt)
       metadata.updatedAt = normalized.metadata.updatedAt;
-    if (comp.safeArea) {
-      metadata.safeArea = { platform: "generic", ...comp.safeArea };
-    }
-
     const composition: Record<string, unknown> = {
       width: comp.width,
       height: comp.height,
@@ -218,9 +214,6 @@ export function compileMotionProjectV1(
       background: comp.background,
       colorSpace: comp.colorSpace,
       audioSampleRate: comp.audioSampleRate,
-      ...(comp.safeArea
-        ? { safeArea: { platform: "generic", ...comp.safeArea } }
-        : {}),
     };
 
     const runtimeAssets: JsonRecord[] = [];
@@ -344,6 +337,18 @@ export function compileMotionProjectV1(
     }
 
     const duration = normalized.timeline.duration ?? 0;
+    const aiExt = normalized.extensions["com.moticlip.ai"];
+    const aiRecord =
+      aiExt && typeof aiExt === "object" && !Array.isArray(aiExt)
+        ? (aiExt as {
+            motionUnits?: unknown[];
+            activeCameraLayerId?: string;
+            space?: "flat-2d" | "layered-2.5d";
+          })
+        : undefined;
+    const extraUnits = Array.isArray(aiRecord?.motionUnits)
+      ? aiRecord.motionUnits
+      : [];
     const compiledGraph =
       duration > 0
         ? compileLayerGraphToRuntime({
@@ -352,10 +357,19 @@ export function compileMotionProjectV1(
             layers: (graph.layers ?? []) as Parameters<
               typeof compileLayerGraphToRuntime
             >[0]["layers"],
-            motionUnits: (graph.motionUnits ?? []) as Parameters<
-              typeof compileLayerGraphToRuntime
-            >[0]["motionUnits"],
+            motionUnits: [
+              ...((graph.motionUnits ?? []) as Parameters<
+                typeof compileLayerGraphToRuntime
+              >[0]["motionUnits"]),
+              ...(extraUnits as Parameters<
+                typeof compileLayerGraphToRuntime
+              >[0]["motionUnits"]),
+            ],
             variables: projectVariables,
+            ...(aiRecord?.space ? { space: aiRecord.space } : {}),
+            ...(aiRecord?.activeCameraLayerId
+              ? { activeCameraLayerId: aiRecord.activeCameraLayerId }
+              : {}),
           })
         : null;
     const visualLayers = compiledGraph?.layers ?? [];

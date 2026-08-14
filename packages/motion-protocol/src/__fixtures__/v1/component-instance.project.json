@@ -48,19 +48,31 @@
           "parentLayerId": null,
           "zIndex": 1,
           "transform": {
-            "x": 0,
-            "y": 0,
-            "width": 256,
-            "height": 256,
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "anchorX": 0.5,
-            "anchorY": 0.5,
-            "opacity": 1,
-            "visible": true,
-            "flipX": false,
-            "flipY": false
+            "translate": {
+              "x": 0,
+              "y": 0
+            },
+            "rotate": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            },
+            "skew": {
+              "x": 0,
+              "y": 0
+            },
+            "origin": {
+              "x": 0.5,
+              "y": 0.5,
+              "z": 0
+            },
+            "transform-style": "flat",
+            "backface-visibility": "visible"
           },
           "inheritFlags": {
             "position": true,
@@ -68,12 +80,17 @@
             "scale": true,
             "opacity": true
           },
-          "visible": true,
           "locked": false,
           "payload": {
-            "width": 256,
-            "height": 256,
             "color": "#1877f2"
+          },
+          "frame": {
+            "width": 256,
+            "height": 256
+          },
+          "appearance": {
+            "visible": true,
+            "opacity": 100
           }
         }
       ]
@@ -88,19 +105,31 @@
       "type": "component",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 256,
-        "height": 256,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "componentId": "logo-reveal"
@@ -109,6 +138,14 @@
       "timing": {
         "start": 0,
         "duration": 4
+      },
+      "frame": {
+        "width": 256,
+        "height": 256
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     }
   ]

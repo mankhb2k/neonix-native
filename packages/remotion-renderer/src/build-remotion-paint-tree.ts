@@ -18,7 +18,11 @@ export type RemotionPaintTreeNode =
       key: string;
       isolation: boolean;
       offscreen: boolean;
-      mask?: { mode: string; sourceKey: string };
+      mask?: {
+        mode: string;
+        sourceKey: string;
+        sourceVisibility?: "mask-only" | "content-and-mask";
+      };
       children: RemotionPaintTreeNode[];
     }
   | {

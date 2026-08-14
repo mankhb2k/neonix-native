@@ -1,7 +1,5 @@
 /**
- * V1 text content schemas & helpers — canonical source of truth.
- *
- * Node-level text type (TextLayerV1) lives in v1/layers/text.ts.
+ * Schema + helper nội dung chữ. Kiểu layer nằm ở text.ts.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

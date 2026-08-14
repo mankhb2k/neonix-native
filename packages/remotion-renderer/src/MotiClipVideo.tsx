@@ -125,61 +125,61 @@ export function MotiClipVideo({ manifest, runtime: runtimeProp }: MotiClipVideoP
 function MotiClipAudio({ plan }: { plan: AudioRenderPlan }) {
   return (
     <>
-      {plan.clips.map((clip, index) => (
+      {plan.layers.map((layer, index) => (
         <Sequence
-          key={`${clip.assetId}-${index}`}
-          from={clip.fromFrame}
-          durationInFrames={clip.durationInFrames}
+          key={`${layer.assetId}-${index}`}
+          from={layer.fromFrame}
+          durationInFrames={layer.durationInFrames}
           layout="none"
         >
-          <AudioClipVolume clip={clip} fps={plan.fps} />
+          <AudioLayerVolume layer={layer} fps={plan.fps} />
         </Sequence>
       ))}
     </>
   );
 }
 
-function AudioClipVolume({
-  clip,
+function AudioLayerVolume({
+  layer,
   fps,
 }: {
-  clip: AudioRenderPlan["clips"][number];
+  layer: AudioRenderPlan["layers"][number];
   fps: number;
 }) {
   const frame = useCurrentFrame();
-  const absoluteFrame = clip.fromFrame + frame;
-  const volume = sampleAudioVolumeLinear(clip.volumeEnvelope, absoluteFrame);
+  const absoluteFrame = layer.fromFrame + frame;
+  const volume = sampleAudioVolumeLinear(layer.volumeEnvelope, absoluteFrame);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loopStartInFrames =
-    clip.loopWindowStartSeconds != null
-      ? Math.round(clip.loopWindowStartSeconds * fps)
-      : Math.round(clip.trimStartSeconds * fps);
+    layer.loopWindowStartSeconds != null
+      ? Math.round(layer.loopWindowStartSeconds * fps)
+      : Math.round(layer.trimStartSeconds * fps);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const loopDurationInFrames =
-    clip.loopWindowEndSeconds != null && clip.loopWindowStartSeconds != null
+    layer.loopWindowEndSeconds != null && layer.loopWindowStartSeconds != null
       ? Math.round(
-          (clip.loopWindowEndSeconds - clip.loopWindowStartSeconds) * fps,
+          (layer.loopWindowEndSeconds - layer.loopWindowStartSeconds) * fps,
         )
-      : clip.trimEndSeconds > 0
-        ? Math.round((clip.trimEndSeconds - clip.trimStartSeconds) * fps)
+      : layer.trimEndSeconds > 0
+        ? Math.round((layer.trimEndSeconds - layer.trimStartSeconds) * fps)
         : undefined;
 
-  const channelPolicy = clip.channelPolicy ?? "stereo";
+  const channelPolicy = layer.channelPolicy ?? "stereo";
 
   return (
     <Audio
-      src={clip.uri}
-      startFrom={Math.max(0, Math.round(clip.trimStartSeconds * fps))}
+      src={layer.uri}
+      startFrom={Math.max(0, Math.round(layer.trimStartSeconds * fps))}
       endAt={
-        clip.trimEndSeconds > 0
-          ? Math.round(clip.trimEndSeconds * fps)
+        layer.trimEndSeconds > 0
+          ? Math.round(layer.trimEndSeconds * fps)
           : undefined
       }
       volume={volume}
-      playbackRate={clip.playbackRate}
-      loop={clip.loop}
+      playbackRate={layer.playbackRate}
+      loop={layer.loop}
       loopVolumeCurveBehavior="repeat"
       toneFrequency={
         channelPolicy === "left-only"

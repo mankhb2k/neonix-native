@@ -12,7 +12,7 @@ import { MotionProjectV1Schema } from "../src/v1/project";
 import {
   ComponentPropValueSchema,
   PropKeyframesValueSchema,
-} from "../src/v1/prop-values";
+} from "../src/v1/components/prop-values";
 import { JsonValueSchema } from "../src/v1/values";
 import { ListFieldSchema } from "../src/v1/variables";
 

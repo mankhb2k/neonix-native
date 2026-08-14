@@ -1,5 +1,5 @@
 /**
- * V1 references barrel.
+ * Barrel kiểm tra reference V1.
  */
 export { validateMotionProjectV1References } from "./project";
 export { validateLayerGraphV1 } from "./layer-graph";
@@ -11,4 +11,4 @@ export {
   type AssetValidationIssue,
   type AssetValidationCode,
   type AssetValidationLayer,
-} from "../asset-validation";
+} from "../assets/validation";

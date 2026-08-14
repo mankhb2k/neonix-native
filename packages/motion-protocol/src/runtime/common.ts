@@ -13,5 +13,8 @@ export {
   FiniteNumberSchema,
   LocaleIdentifierSchema,
   SemanticSchema,
+  PercentSchema,
+  ColorAdjustPercentSchema,
+  HueRotateSchema,
   type AspectRatio,
 } from "../v1/common";

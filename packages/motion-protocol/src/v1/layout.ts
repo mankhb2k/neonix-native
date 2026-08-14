@@ -1,5 +1,5 @@
 /**
- * V1 layout schemas — canonical source of truth.
+ * Schema layout V1 — repeater / constraint. Không nhầm với frame.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";

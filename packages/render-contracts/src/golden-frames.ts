@@ -4,7 +4,7 @@
  * §Phase 10 Task 10.5 in core-engine-tasks.md
  *
  * Golden frames are rendered at known sample points (before, start,
- * middle, end, after + transition overlaps) and their content hashes
+ * middle, end, after, plus a mid-composition probe) and their content hashes
  * are compared across re-renders to guarantee deterministic output.
  */
 
@@ -55,7 +55,7 @@ export function goldenSampleFrame(
     case "after-end":
       return last;
     case "transition-overlap":
-      // If only one scene, use middle; otherwise halfway through first transition
+      // Historical sample label: 15% into the composition (not a scene cut).
       return Math.floor(durationInFrames * 0.15);
   }
 }

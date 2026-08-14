@@ -28,6 +28,7 @@ export type PaintLayerScope = {
   mask?: {
     mode: "alpha" | "inverse-alpha" | "luma" | "inverse-luma" | "clip";
     sourceKey: string;
+    sourceVisibility?: "mask-only" | "content-and-mask";
   };
   children: PaintDisplayNode[];
 };

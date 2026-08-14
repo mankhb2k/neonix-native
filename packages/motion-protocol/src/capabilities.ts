@@ -44,7 +44,13 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   effectsPerLayer: 16,
   effectRadius: 512,
   effectOffset: 32_768,
-  effectIntensity: 8,
+  effectIntensity: 100,
+  /** Authoring percent for opacity / volume / glow intensity. 100 = full. */
+  percent: 100,
+  /** Color-adjust percent. 100 = normal, 200 = 2×. */
+  colorAdjustPercent: 200,
+  /** hue-rotate degrees. */
+  hueRotate: 180,
   pathMorphTargets: 64,
   secondaryMotionChainLength: 32,
   gradientStops: 16,
@@ -94,7 +100,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.1";
+export const CAPABILITY_MANIFEST_VERSION = "2.4";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -135,8 +141,29 @@ function cap(
 
 const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
-    visible: cap("boolean"),
     locked: cap("boolean", { animatable: false, runtimeSupport: "compile-time" }),
+    "appearance.visible": cap("boolean"),
+    "appearance.opacity": cap("number", { min: 0, max: 100 }),
+    "frame.width": cap("number", {
+      min: 0,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    }),
+    "frame.height": cap("number", {
+      min: 0,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    }),
+    "compositing.blend-mode": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "compositing.isolation": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "compositing.mask.sourceLayerId": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
     name: cap("string", { animatable: false, runtimeSupport: "compile-time" }),
     zIndex: cap("number", { animatable: false, runtimeSupport: "compile-time" }),
   });
@@ -190,176 +217,50 @@ const MEDIA_PAYLOAD_PROPERTIES: Readonly<Record<string, MotionPropertyCapability
 
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
-    "transform.x": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "transform.y": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "transform.z": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    "transform.translate.x": cap("number"),
+    "transform.translate.y": cap("number"),
+    "transform.rotate.x": cap("angle", {
+      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+    }),
+    "transform.rotate.y": cap("angle", {
+      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+    }),
+    "transform.rotate.z": cap("angle", {
+      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+    }),
+    "transform.scale.x": cap("number", {
+      min: -MOTION_PROTOCOL_LIMITS.transformScale,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
+    }),
+    "transform.scale.y": cap("number", {
+      min: -MOTION_PROTOCOL_LIMITS.transformScale,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
+    }),
+    "transform.scale.z": cap("number", {
+      min: -MOTION_PROTOCOL_LIMITS.transformScale,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
+    }),
+    "transform.origin.x": cap("number", { min: 0, max: 1 }),
+    "transform.origin.y": cap("number", { min: 0, max: 1 }),
+    "transform.origin.z": cap("number", { min: 0, max: 1 }),
+    "transform.skew.x": cap("angle"),
+    "transform.skew.y": cap("angle"),
+    "transform.depth": cap("number", {
       min: -MOTION_PROTOCOL_LIMITS.zPositionRange,
       max: MOTION_PROTOCOL_LIMITS.zPositionRange,
-    },
-    "transform.depth": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.parallaxFactor,
-      max: MOTION_PROTOCOL_LIMITS.parallaxFactor,
-    },
-    "transform.width": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "transform.height": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "transform.rotation": {
-      valueKind: "angle",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "transform.rotationX": {
-      valueKind: "angle",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-    },
-    "transform.rotationY": {
-      valueKind: "angle",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-    },
-    "transform.rotationZ": {
-      valueKind: "angle",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-    },
-    "transform.scaleX": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.transformScale,
-    },
-    "transform.scaleY": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.transformScale,
-    },
-    "transform.anchorX": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "transform.anchorY": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "transform.anchorZ": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "transform.opacity": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "transform.visible": {
-      valueKind: "boolean",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "transform.flipX": {
-      valueKind: "boolean",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "transform.flipY": {
-      valueKind: "boolean",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
+    }),
+    "transform.perspective": cap("number", {
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.zPositionRange,
+    }),
   });
 
 const NODE_PROPERTIES: Readonly<
   Record<string, Readonly<Record<string, MotionPropertyCapability>>>
 > = Object.freeze({
-  group: {
-    "payload.compositing.mode": cap("string", {
-      animatable: false,
-      runtimeSupport: "compile-time",
-    }),
-  },
   text: {
     "payload.text": cap("string"),
     "payload.content": cap("json"),
@@ -430,14 +331,6 @@ const NODE_PROPERTIES: Readonly<
     }),
   },
   solid: {
-    "payload.width": cap("number", {
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    }),
-    "payload.height": cap("number", {
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    }),
     "payload.color": cap("color"),
   },
   svg: {
@@ -521,9 +414,13 @@ const NODE_PROPERTIES: Readonly<
     "payload.rotationLimits.max": cap("angle"),
   },
   adjustment: {
-    "payload.brightness": cap("number", { min: -1, max: 1 }),
-    "payload.contrast": cap("number", { min: 0, max: 4 }),
-    "payload.saturation": cap("number", { min: 0, max: 4 }),
+    "payload.brightness": cap("number", { min: 0, max: 200 }),
+    "payload.contrast": cap("number", { min: 0, max: 200 }),
+    "payload.saturation": cap("number", { min: 0, max: 200 }),
+    "payload.hue-rotate": cap("angle", {
+      min: -MOTION_PROTOCOL_LIMITS.hueRotate,
+      max: MOTION_PROTOCOL_LIMITS.hueRotate,
+    }),
   },
   audio: {
     "payload.assetId": cap("asset", {
@@ -546,7 +443,7 @@ const NODE_PROPERTIES: Readonly<
       minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.transformScale,
     }),
-    "payload.volume": cap("number", { min: 0, max: 1 }),
+    "payload.volume": cap("number", { min: 0, max: 100 }),
     "payload.loop": cap("boolean", {
       animatable: false,
       runtimeSupport: "compile-time",
@@ -572,8 +469,10 @@ export function motionPropertyCapability(
 ): MotionPropertyCapability | undefined {
   const layerBase = LAYER_BASE_PROPERTIES[property];
   if (layerBase) return layerBase;
-  const transform = TRANSFORM_PROPERTIES[property];
-  if (transform) return transform;
+  if (nodeType !== "audio") {
+    const transform = TRANSFORM_PROPERTIES[property];
+    if (transform) return transform;
+  }
   if (/^modifiers\.[^.]+\.progress$/.test(property))
     return {
       valueKind: "number",
@@ -622,7 +521,7 @@ export function motionPropertyCapability(
       min: 0,
       max: 1,
     };
-  const effectMatch = /^effects\.[^.]+\.([^.]+)$/.exec(property);
+  const effectMatch = /^effects\.[^.]+\.(.+)$/.exec(property);
   if (effectMatch) {
     for (const type of ["blur", "shadow", "glow", "color-adjust"] as const) {
       const capability = motionEffectPropertyCapability(type, effectMatch[1]!);
@@ -668,14 +567,14 @@ export function motionEffectPropertyCapability(
         ? number(0, MOTION_PROTOCOL_LIMITS.effectRadius)
         : undefined;
     case "shadow":
-      if (field === "offsetX" || field === "offsetY")
+      if (field === "offset.x" || field === "offset.y")
         return number(
           -MOTION_PROTOCOL_LIMITS.effectOffset,
           MOTION_PROTOCOL_LIMITS.effectOffset,
         );
       if (field === "blur")
         return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
-      if (field === "opacity") return number(0, 1);
+      if (field === "opacity") return number(0, 100);
       if (field === "color")
         return {
           valueKind: "color",
@@ -688,9 +587,8 @@ export function motionEffectPropertyCapability(
     case "glow":
       if (field === "radius")
         return number(0, MOTION_PROTOCOL_LIMITS.effectRadius);
-      if (field === "intensity")
-        return number(0, MOTION_PROTOCOL_LIMITS.effectIntensity);
-      if (field === "opacity") return number(0, 1);
+      if (field === "intensity") return number(0, 100);
+      if (field === "opacity") return number(0, 100);
       if (field === "color")
         return {
           valueKind: "color",
@@ -701,8 +599,22 @@ export function motionEffectPropertyCapability(
         };
       return undefined;
     case "color-adjust":
-      if (field === "brightness") return number(-1, 1);
-      if (field === "contrast" || field === "saturation") return number(0, 4);
+      if (
+        field === "brightness" ||
+        field === "contrast" ||
+        field === "saturation"
+      )
+        return number(0, 200);
+      if (field === "hue-rotate")
+        return {
+          valueKind: "angle",
+          animatable: true,
+          bindable: true,
+          public: true,
+          runtimeSupport: "evaluated",
+          min: -MOTION_PROTOCOL_LIMITS.hueRotate,
+          max: MOTION_PROTOCOL_LIMITS.hueRotate,
+        };
       return undefined;
   }
 }
@@ -714,7 +626,7 @@ export function motionPropertyCapabilities(
 ): MotionPropertyCapabilityEntry[] {
   return [
     ...Object.entries(LAYER_BASE_PROPERTIES),
-    ...Object.entries(TRANSFORM_PROPERTIES),
+    ...(nodeType === "audio" ? [] : Object.entries(TRANSFORM_PROPERTIES)),
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
     ...motionPathModifierIds.map(
       (id) =>

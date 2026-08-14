@@ -1,7 +1,5 @@
 /**
- * V1 reference helpers — canonical source of truth.
- *
- * Small utility functions used by v1/references validation.
+ * Helper reference — duplicates, morphTopologyMismatch.
  */
 import type { MotionPathContour } from "../layers/geometry";
 

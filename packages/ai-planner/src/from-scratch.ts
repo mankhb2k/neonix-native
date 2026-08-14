@@ -173,14 +173,7 @@ export function buildBlankProjectCommands(input: {
         sceneId: design.sceneBriefId,
         layerId: groupId,
         nodeType: "group",
-        transform: {
-          x: brief.aspectRatio === "16:9" ? 80 : 60,
-          y: brief.aspectRatio === "9:16" ? 220 : 120,
-          width: brief.aspectRatio === "16:9" ? 1760 : 960,
-          height: 800,
-          anchorX: 0,
-          anchorY: 0,
-        },
+        transform: { x: brief.aspectRatio === "16:9" ? 80 : 60, y: brief.aspectRatio === "9:16" ? 220 : 120, width: brief.aspectRatio === "16:9" ? 1760 : 960, height: 800, anchorX: 0, anchorY: 0 },
       });
       commands.push({
         type: "setLayoutConstraint",
@@ -203,25 +196,18 @@ export function buildBlankProjectCommands(input: {
         fill: brief.brand?.primaryColor ?? "#ffffff",
         semanticRole: briefScene.role,
         semanticKey: node.semanticKey,
-        transform: {
-          x: brief.aspectRatio === "16:9" ? 960 : 540,
-          y: brief.aspectRatio === "9:16" ? 960 : 540,
-          width: brief.aspectRatio === "16:9" ? 1400 : 900,
-          height: 160,
-          anchorX: 0.5,
-          anchorY: 0.5,
-        },
+        transform: { x: brief.aspectRatio === "16:9" ? 960 : 540, y: brief.aspectRatio === "9:16" ? 960 : 540, width: brief.aspectRatio === "16:9" ? 1400 : 900, height: 160 },
       });
       commands.push({
         type: "addTrack",
         sceneId: design.sceneBriefId,
         clipId: `clip.${node.id}.opacity`,
         layerId: node.id,
-        property: "transform.opacity",
+        property: "appearance.opacity",
         duration: Math.min(1, briefScene.duration),
         keys: [
           { t: 0, v: 0 },
-          { t: Math.min(1, briefScene.duration), v: 1, easing: "easeOut" },
+          { t: Math.min(1, briefScene.duration), v: 100, easing: "easeOut" },
         ],
       });
     }

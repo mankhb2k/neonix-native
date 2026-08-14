@@ -1,5 +1,5 @@
 /**
- * V1 caption schemas — canonical source of truth.
+ * Schema caption V1 — không thuộc project.layers; export qua internal.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";

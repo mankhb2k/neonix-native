@@ -74,5 +74,5 @@ export {
 export {
   buildAudioExportManifest,
   type AudioExportManifest,
-  type AudioExportClip,
+  type AudioExportLayer,
 } from "./audio-export-manifest";

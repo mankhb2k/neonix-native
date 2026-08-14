@@ -1,12 +1,7 @@
 /**
- * V1 Native Patch Contract — safe editor surface for AI agents and MCP tools.
+ * Patch native V1 — bề mặt an toàn cho AI/MCP.
  *
- * Design principles:
- *  1. Every operation maps to a V1-first path (`project.layers`).
- *  2. Diagnostics are structured (path + message + severity), never raw throws.
- *  3. Patch output is always re-validated with `MotionProjectV1Schema`.
- *  4. Idempotent by design — applying the same patch twice yields the same
- *     result (or a no-op diagnostic).
+ * Mọi thao tác đi qua project.layers; luôn validate lại MotionProjectV1Schema; idempotent.
  */
 
 import { z } from "zod";
@@ -14,7 +9,7 @@ import type { MotionProjectV1 } from "./project";
 import { MotionProjectV1Schema } from "./project";
 import { IdSchema, FiniteNumberSchema } from "./common";
 import { CompositionSettingsSchema } from "./composition";
-import { DesignTokensSchema } from "./variables";
+import { DesignTokensSchema } from "./design-tokens";
 import { LayerV1Schema, flattenLayerTree, type LayerV1 } from "./layers";
 import { AssetV1Schema } from "./assets";
 import { ProjectVariableV1Schema } from "./variables";

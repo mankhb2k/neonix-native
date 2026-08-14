@@ -79,19 +79,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 800,
-        "height": 100,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -106,6 +118,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 800,
+        "height": 100
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -113,19 +133,31 @@
       "type": "text",
       "parentLayerId": null,
       "transform": {
-        "x": 0,
-        "y": 0,
-        "width": 700,
-        "height": 200,
-        "rotation": 0,
-        "scaleX": 1,
-        "scaleY": 1,
-        "anchorX": 0.5,
-        "anchorY": 0.5,
-        "opacity": 1,
-        "visible": true,
-        "flipX": false,
-        "flipY": false
+        "translate": {
+          "x": 0,
+          "y": 0
+        },
+        "rotate": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        },
+        "skew": {
+          "x": 0,
+          "y": 0
+        },
+        "origin": {
+          "x": 0.5,
+          "y": 0.5,
+          "z": 0
+        },
+        "transform-style": "flat",
+        "backface-visibility": "visible"
       },
       "payload": {
         "content": {
@@ -140,6 +172,14 @@
       "timing": {
         "start": 0,
         "duration": 5
+      },
+      "frame": {
+        "width": 700,
+        "height": 200
+      },
+      "appearance": {
+        "visible": true,
+        "opacity": 100
       }
     },
     {
@@ -153,7 +193,7 @@
       },
       "payload": {
         "assetId": "bgm-track",
-        "volume": 0.3,
+        "volume": 30,
         "loop": false,
         "fadeIn": 1,
         "fadeOut": 1
@@ -170,7 +210,7 @@
       },
       "payload": {
         "assetId": "voiceover",
-        "volume": 1,
+        "volume": 100,
         "loop": false
       }
     },
@@ -185,7 +225,7 @@
       },
       "payload": {
         "assetId": "sfx-whoosh",
-        "volume": 0.8,
+        "volume": 80,
         "loop": false
       }
     },
@@ -200,7 +240,7 @@
       },
       "payload": {
         "assetId": "sfx-whoosh",
-        "volume": 0.8,
+        "volume": 80,
         "loop": false
       }
     }

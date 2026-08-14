@@ -46,7 +46,7 @@ describe("track sampler R2", () => {
     const spring = evaluateTrack(
       {
         layerId: "n",
-        property: "transform.x",
+        property: "transform.translate.x",
         keys: [
           { t: 0, v: 0 },
           { t: 1, v: 100, easing: { type: "spring", stiffness: 200, damping: 20, mass: 1 } },
@@ -64,7 +64,7 @@ describe("track sampler R2", () => {
     const value = evaluateTrack(
       {
         layerId: "n",
-        property: "transform.rotation",
+        property: "transform.rotate.z",
         valueKind: "angle",
         keys: [
           { t: 0, v: 350 },
@@ -73,7 +73,7 @@ describe("track sampler R2", () => {
       },
       0.5,
       0,
-      "transform.rotation",
+      "transform.rotate.z",
     );
     expect(value).toBeCloseTo(0, 5);
   });
@@ -94,7 +94,7 @@ describe("driver graph R6", () => {
         id: "o",
         type: "oscillator",
         targetLayerId: "n",
-        targetProperty: "transform.y",
+        targetProperty: "transform.translate.y",
         frequency: 1,
         amplitude: 10,
         phase: 0,
@@ -110,9 +110,9 @@ describe("driver graph R6", () => {
             id: "a",
             type: "link",
             targetLayerId: "n1",
-            targetProperty: "transform.x",
+            targetProperty: "transform.translate.x",
             sourceLayerId: "n2",
-            sourceProperty: "transform.x",
+            sourceProperty: "transform.translate.x",
             multiplier: 1,
             offset: 0,
           },
@@ -120,9 +120,9 @@ describe("driver graph R6", () => {
             id: "b",
             type: "link",
             targetLayerId: "n2",
-            targetProperty: "transform.x",
+            targetProperty: "transform.translate.x",
             sourceLayerId: "n1",
-            sourceProperty: "transform.x",
+            sourceProperty: "transform.translate.x",
             multiplier: 1,
             offset: 0,
           },

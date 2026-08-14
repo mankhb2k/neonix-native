@@ -1,11 +1,8 @@
 /**
- * V1 parse / serialize API.
+ * API parse / serialize V1.
  *
- * `parseMotionProjectV1` is the **canonical** production entry: text-payload
- * normalizer, then schema + reference validation. Strict V1 only — no
- * timeline component-source migration. `serializeMotionProjectV1` emits
- * canonical (alphabetically sorted) keys so two identical projects always
- * serialize byte-identically.
+ * parseMotionProjectV1: normalize text → schema → kiểm tra reference. Chỉ V1.
+ * serializeMotionProjectV1: sort key alphabet để hai project giống nhau ra byte giống nhau.
  */
 import { MotionProjectV1Schema, type MotionProjectV1 } from "./project";
 import { normalizeMotionProjectInput } from "./normalize-input";

@@ -14,6 +14,7 @@ import {
 } from "@/lib/editor/export/editor-project-envelope";
 import { fixtureBasePlusOverlay } from "@/lib/editor/__fixtures__/projects";
 import { parseMotionProject } from "@motionvideo/motion-protocol";
+import { visualLayerAtoms } from "@motionvideo/motion-protocol";
 
 describe("buildExportProject", () => {
   it("bakes base + gap + overlay + muted audio into valid MotionProject", () => {
@@ -93,7 +94,7 @@ describe("buildExportProject", () => {
             assetId: "asset.audio.a",
             start: 0,
             duration: 4,
-            volume: 1,
+            volume: 100,
           },
         ],
       },
@@ -192,21 +193,7 @@ describe("export temporal parity (local-time bake)", () => {
           type: "text" as const,
           parentLayerId: null,
           zIndex: 0,
-          transform: {
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 40,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            anchorX: 0,
-            anchorY: 0,
-            opacity: 1,
-            visible: true,
-            flipX: false,
-            flipY: false,
-          },
+          ...visualLayerAtoms({ x: 0, y: 0, width: 100, height: 40, rotation: 0, scaleX: 1, scaleY: 1, originX: 0, originY: 0, opacity: 100, visible: true }),
           payload: {
             content: { kind: "plain" as const, text: id },
             fontSize: 20,
@@ -227,7 +214,7 @@ describe("export temporal parity (local-time bake)", () => {
             tracks: [
               {
                 layerId: `${id}.node`,
-                property: "transform.opacity",
+                property: "appearance.opacity",
                 keys: [
                   { t: 0, v: 0 },
                   { t: duration, v: 1 },
