@@ -60,6 +60,10 @@ export type RuntimeTrackBake = {
   keys: Array<{ t: number; v: number; easing?: KeyframeEasing }>;
 };
 
+/**
+ * Snapshot pose khi bake preset (không phải key JSON authoring).
+ * Điền bằng layerPoseFromAtoms: translate / appearance.opacity / scale.
+ */
 export type PresetExpandInput<TParams> = {
   layerId: string;
   start: number;

@@ -4,13 +4,11 @@
 export function defaultTransform(overrides: Record<string, unknown> = {}) {
   return {
     translate: { x: 0, y: 0 },
-    rotate: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 },
+    rotate: { z: 0 },
+    scale: { x: 1, y: 1 },
     skew: { x: 0, y: 0 },
-    origin: { x: 0.5, y: 0.5, z: 0 },
+    origin: { x: 0.5, y: 0.5 },
     depth: 0,
-    "transform-style": "flat" as const,
-    "backface-visibility": "visible" as const,
     ...overrides,
   };
 }
@@ -33,12 +31,11 @@ export function visualLayerAtoms(opts: {
     frame: { width: opts.width, height: opts.height },
     transform: defaultTransform({
       translate: { x: opts.x ?? 0, y: opts.y ?? 0 },
-      rotate: { x: 0, y: 0, z: opts.rotation ?? 0 },
-      scale: { x: opts.scaleX ?? 1, y: opts.scaleY ?? 1, z: 1 },
+      rotate: { z: opts.rotation ?? 0 },
+      scale: { x: opts.scaleX ?? 1, y: opts.scaleY ?? 1 },
       origin: {
         x: opts.originX ?? 0.5,
         y: opts.originY ?? 0.5,
-        z: 0,
       },
       depth: opts.depth ?? 0,
     }),

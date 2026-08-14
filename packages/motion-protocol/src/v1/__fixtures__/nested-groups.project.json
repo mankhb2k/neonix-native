@@ -58,14 +58,11 @@
           "y": 960
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -73,11 +70,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "children": [
         {
@@ -95,14 +89,11 @@
               "y": -120
             },
             "rotate": {
-              "x": 0,
-              "y": 0,
               "z": 0
             },
             "scale": {
               "x": 1,
-              "y": 1,
-              "z": 1
+              "y": 1
             },
             "skew": {
               "x": 0,
@@ -110,11 +101,8 @@
             },
             "origin": {
               "x": 0.5,
-              "y": 0.5,
-              "z": 0
-            },
-            "transform-style": "flat",
-            "backface-visibility": "visible"
+              "y": 0.5
+            }
           },
           "children": [
             {
@@ -132,14 +120,11 @@
                   "y": -140
                 },
                 "rotate": {
-                  "x": 0,
-                  "y": 0,
                   "z": 0
                 },
                 "scale": {
                   "x": 1,
-                  "y": 1,
-                  "z": 1
+                  "y": 1
                 },
                 "skew": {
                   "x": 0,
@@ -147,11 +132,8 @@
                 },
                 "origin": {
                   "x": 0.5,
-                  "y": 0.5,
-                  "z": 0
-                },
-                "transform-style": "flat",
-                "backface-visibility": "visible"
+                  "y": 0.5
+                }
               },
               "children": [
                 {
@@ -169,14 +151,11 @@
                       "y": 0
                     },
                     "rotate": {
-                      "x": 0,
-                      "y": 0,
                       "z": 0
                     },
                     "scale": {
                       "x": 1,
-                      "y": 1,
-                      "z": 1
+                      "y": 1
                     },
                     "skew": {
                       "x": 0,
@@ -184,11 +163,8 @@
                     },
                     "origin": {
                       "x": 0.5,
-                      "y": 0.5,
-                      "z": 0
-                    },
-                    "transform-style": "flat",
-                    "backface-visibility": "visible"
+                      "y": 0.5
+                    }
                   },
                   "payload": {
                     "assetId": "asset.head"

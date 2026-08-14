@@ -18,7 +18,6 @@ export * from "./capabilities";
 export * from "./design-tokens";
 export * from "./variables";
 export * from "./assets";
-export * from "./assets/types";
 export * from "./assets/validation";
 export * from "./components";
 export * from "./timeline";

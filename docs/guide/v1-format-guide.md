@@ -197,12 +197,11 @@ Authoring has **no** `scenes` / `visualTracks` / `audioTracks` / `captionTracks`
   "frame": { "width": 800, "height": 120 },
   "transform": {
     "translate": { "x": 0, "y": 0 },
-    "rotate": { "x": 0, "y": 0, "z": 0 },
-    "scale": { "x": 1, "y": 1, "z": 1 },
-    "origin": { "x": 0.5, "y": 0.5, "z": 0 },
-    "depth": 0,
-    "transform-style": "flat",
-    "backface-visibility": "visible"
+    "rotate": { "z": 0 },
+    "scale": { "x": 1, "y": 1 },
+    "skew": { "x": 0, "y": 0 },
+    "origin": { "x": 0.5, "y": 0.5 },
+    "depth": 0
   },
   "appearance": { "visible": true, "opacity": 100 },
   "compositing": {
@@ -270,7 +269,7 @@ Project root
 
 **Protocol rule:** trong cùng `parentLayerId` (kể cả `null`), `zIndex` phải **unique** (thiếu `zIndex` được coi như `0`). Hai layer khác parent được phép cùng số. Timing giữa layer **được trùng**; chỉ stack order phải deterministic.
 
-`transform.depth` không thay `zIndex`. Depth (>0 gần camera, <0 xa, 0 mặt phẳng) chỉ cho parallax/perspective; render sort vẫn theo `zIndex`. Audio không có `transform`/`depth`.
+`transform.depth` không thay `zIndex`. Depth (>0 gần người xem, <0 xa hơn, 0 mặt phẳng thường) là cảm giác parallax/pseudo-3D và có thể keyframe; render sort vẫn theo `zIndex`. Audio không có `transform`/`depth`.
 
 Layer copy (editor): giữ `timing`, cấp `id` mới + `zIndex` mới trong siblings — **không** bắt sang lane khác.
 

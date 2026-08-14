@@ -72,19 +72,17 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 Geometry only. Không size, opacity, zoom.
 
+**MVP 2.5D:** `translate.x/y`, `depth`, `rotate.z`, `scale.x/y`, `skew.x/y`, `origin.x/y`. `depth > 0` gần người xem, `< 0` xa hơn, `0` mặt phẳng thường. Keyframe được. Không phải `zIndex`. Không có perspective / rotate.x/y / scale.z / transform-style.
+
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | Ghép `TransformSchema`. Không re-export atom — import file lá. |
+| `index.ts` | Ghép `TransformSchema`. |
 | `translate.ts` | `{ x, y }` — không `z`. |
-| `rotate.ts` | `{ x, y, z }` độ. |
-| `scale.ts` | `{ x, y, z }`. |
+| `rotate.ts` | `{ z }` độ (2D). |
+| `scale.ts` | `{ x, y }`. Âm = lật trục. |
 | `skew.ts` | `{ x, y }`. |
-| `origin.ts` | Pivot `{ x, y, z }` (thường 0..1). |
-| `depth.ts` | Pseudo-3D near/far; mặc định 0. Không phải `zIndex`. |
-| `perspective.ts` | Perspective distance. |
-| `perspective-origin.ts` | Key JSON `perspective-origin`. |
-| `transform-style.ts` | Key JSON `transform-style` (`flat` \| `preserve-3d`). |
-| `backface-visibility.ts` | Key JSON `backface-visibility`. |
+| `origin.ts` | Pivot `{ x, y }` (0..1). |
+| `depth.ts` | Pseudo-3D gần/xa; mặc định 0. Không phải `zIndex`. |
 
 ### 2.3 `src/v1/appearance/`
 
@@ -123,8 +121,7 @@ Stack `effects[]`. Không có field `filter` trên layer.
 
 | File | Nhiệm vụ |
 | --- | --- |
-| `index.ts` | Union schema + storage policy (managed R2 vs unmanaged `uri`). |
-| `types.ts` | `z.infer` per-kind. |
+| `index.ts` | Union schema + storage policy; `z.infer` per-kind (`ImageAssetV1`, …). |
 | `validation.ts` | Envelope authoring/storage. |
 
 ### 2.7 `src/v1/components/`

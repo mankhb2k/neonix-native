@@ -23,7 +23,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "936e10171ebe696a0044fe0df2a0f9e8",
+  "runtimeHash": "87403d44019d37a5cc584cf9e26ae523",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -48,14 +48,11 @@
           "y": 400
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -63,12 +60,9 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
+          "y": 0.5
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,
@@ -111,14 +105,11 @@
           "y": 600
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -126,12 +117,9 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
+          "y": 0.5
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,

@@ -2,8 +2,9 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   idLength: 128,
   layersPerProject: 2_000,
   layersPerComponent: 2_000,
-  /** Max motion clips / schedule units on a compiled layer graph. */
+  /** Max motion-unit trên compiled layer graph (internal compiler, không phải timeline clip). */
   motionClipsPerProject: 2_000,
+  /** Max property tracks trên một motion-unit / runtime project. */
   tracksPerClip: 2_000,
   keysPerTrack: 10_000,
   hierarchyDepth: 64,
@@ -60,12 +61,12 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   parallaxFactor: 8,
   /** Max rich-text runs per text node. */
   richTextRuns: 64,
-  /** Max caption tokens (legacy caption-compiler). */
+  /** Max tokens trong caption-compiler nội bộ — không phải project.captionTracks. */
   captionTokensPerTrack: 4_096,
-  /** Max caption cues after segmentation (legacy caption-compiler). */
+  /** Max cue sau segment (caption-compiler nội bộ). */
   captionCuesPerTrack: 1_024,
-  /** Max caption-style groups (not project.captionTracks). */
-  captionTracksPerProject: 32,
+  /** Max nhóm caption-style (không phải timeline captionTracks). */
+  captionGroupsPerProject: 32,
   /** Max beat markers in AudioAnalysis. */
   audioBeatsPerAsset: 10_000,
   /** Max energy envelope samples in AudioAnalysis. */
@@ -79,11 +80,11 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   /** Font scale relative multiplier for a run. */
   richTextFontScale: 4,
 
-  // ── Phase 11 — Perspective 3D limits ──────────────────────────────
+  // ── 2.5D / pseudo-3D authoring (không phải true 3D render) ──────────
 
-  /** Max absolute Z position in 3D space (px). */
+  /** Max |depth| (px). Pseudo-3D gần/xa, không world Z. */
   zPositionRange: 100_000,
-  /** Max absolute rotation angle around any 3D axis (degrees). */
+  /** Max |rotate.z| (độ). */
   rotation3DAngle: 360,
   /** Max perspective FOV (degrees). */
   perspectiveFov: 179,
@@ -100,7 +101,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.4";
+export const CAPABILITY_MANIFEST_VERSION = "2.5";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -219,14 +220,6 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
     "transform.translate.x": cap("number"),
     "transform.translate.y": cap("number"),
-    "transform.rotate.x": cap("angle", {
-      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-    }),
-    "transform.rotate.y": cap("angle", {
-      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
-    }),
     "transform.rotate.z": cap("angle", {
       min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
       max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
@@ -239,21 +232,12 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       min: -MOTION_PROTOCOL_LIMITS.transformScale,
       max: MOTION_PROTOCOL_LIMITS.transformScale,
     }),
-    "transform.scale.z": cap("number", {
-      min: -MOTION_PROTOCOL_LIMITS.transformScale,
-      max: MOTION_PROTOCOL_LIMITS.transformScale,
-    }),
     "transform.origin.x": cap("number", { min: 0, max: 1 }),
     "transform.origin.y": cap("number", { min: 0, max: 1 }),
-    "transform.origin.z": cap("number", { min: 0, max: 1 }),
     "transform.skew.x": cap("angle"),
     "transform.skew.y": cap("angle"),
     "transform.depth": cap("number", {
       min: -MOTION_PROTOCOL_LIMITS.zPositionRange,
-      max: MOTION_PROTOCOL_LIMITS.zPositionRange,
-    }),
-    "transform.perspective": cap("number", {
-      minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.zPositionRange,
     }),
   });

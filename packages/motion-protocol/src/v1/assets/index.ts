@@ -196,11 +196,8 @@ export type AssetRetentionModeV1 = z.infer<typeof AssetRetentionModeV1Schema>;
 export type AssetStorageV1 = z.infer<typeof AssetStorageV1Schema>;
 export type AssetSourceV1 = z.infer<typeof AssetSourceV1Schema>;
 export type AssetSourceKindV1 = z.infer<typeof AssetSourceKindV1Schema>;
-
-export type {
-  ImageAssetV1,
-  SvgAssetV1,
-  VideoAssetV1,
-  AudioAssetV1,
-  FontAssetV1,
-} from "./types";
+export type ImageAssetV1 = z.infer<typeof ImageAssetV1Schema>;
+export type SvgAssetV1 = z.infer<typeof SvgAssetV1Schema>;
+export type VideoAssetV1 = z.infer<typeof VideoAssetV1Schema>;
+export type AudioAssetV1 = z.infer<typeof AudioAssetV1Schema>;
+export type FontAssetV1 = z.infer<typeof FontAssetV1Schema>;

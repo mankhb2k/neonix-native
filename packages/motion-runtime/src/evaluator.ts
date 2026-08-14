@@ -698,24 +698,8 @@ export function evaluateTransform3DFields(
       driven,
       collector,
     ),
-    rotationX: numberProperty(
-      scene,
-      node,
-      "transform.rotate.x",
-      time,
-      t.rotate.x,
-      driven,
-      collector,
-    ),
-    rotationY: numberProperty(
-      scene,
-      node,
-      "transform.rotate.y",
-      time,
-      t.rotate.y,
-      driven,
-      collector,
-    ),
+    rotationX: 0,
+    rotationY: 0,
     rotationZ: numberProperty(
       scene,
       node,
@@ -725,15 +709,7 @@ export function evaluateTransform3DFields(
       driven,
       collector,
     ),
-    anchorZ: numberProperty(
-      scene,
-      node,
-      "transform.origin.z",
-      time,
-      t.origin.z,
-      driven,
-      collector,
-    ),
+    anchorZ: 0,
   };
 }
 

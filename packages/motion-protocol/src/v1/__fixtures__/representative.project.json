@@ -159,14 +159,11 @@
               "y": 0
             },
             "rotate": {
-              "x": 0,
-              "y": 0,
               "z": 0
             },
             "scale": {
               "x": 1,
-              "y": 1,
-              "z": 1
+              "y": 1
             },
             "skew": {
               "x": 0,
@@ -174,11 +171,8 @@
             },
             "origin": {
               "x": 0.5,
-              "y": 0.5,
-              "z": 0
-            },
-            "transform-style": "flat",
-            "backface-visibility": "visible"
+              "y": 0.5
+            }
           },
           "payload": {
             "color": "#1877f2"
@@ -239,14 +233,11 @@
           "y": -200
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -254,11 +245,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "payload": {
         "content": {
@@ -293,14 +281,11 @@
           "y": 200
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -308,11 +293,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "payload": {
         "content": {
@@ -347,14 +329,11 @@
           "y": -80
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -362,11 +341,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "payload": {
         "assetId": "logo-png",
@@ -396,14 +372,11 @@
           "y": 0
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -411,11 +384,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "payload": {
         "projection": "orthographic",
@@ -441,14 +411,11 @@
           "y": 0
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -456,11 +423,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "payload": {
         "content": {
@@ -520,14 +484,11 @@
           "y": 0
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -535,11 +496,8 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
-        },
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+          "y": 0.5
+        }
       },
       "children": [
         {
@@ -557,14 +515,11 @@
               "y": 0
             },
             "rotate": {
-              "x": 0,
-              "y": 0,
               "z": 0
             },
             "scale": {
               "x": 1,
-              "y": 1,
-              "z": 1
+              "y": 1
             },
             "skew": {
               "x": 0,
@@ -572,11 +527,8 @@
             },
             "origin": {
               "x": 0.5,
-              "y": 0.5,
-              "z": 0
-            },
-            "transform-style": "flat",
-            "backface-visibility": "visible"
+              "y": 0.5
+            }
           },
           "payload": {
             "text": "Xin chào",
@@ -608,14 +560,11 @@
               "y": 0
             },
             "rotate": {
-              "x": 0,
-              "y": 0,
               "z": 0
             },
             "scale": {
               "x": 1,
-              "y": 1,
-              "z": 1
+              "y": 1
             },
             "skew": {
               "x": 0,
@@ -623,11 +572,8 @@
             },
             "origin": {
               "x": 0.5,
-              "y": 0.5,
-              "z": 0
-            },
-            "transform-style": "flat",
-            "backface-visibility": "visible"
+              "y": 0.5
+            }
           },
           "payload": {
             "text": "MotiClip",

@@ -1,7 +1,7 @@
 /**
  * Validate reference toàn project V1.
  */
-﻿/**
+/**
  * V1 project-wide reference validation.
  */
 import {
@@ -622,7 +622,9 @@ export function validateMotionProjectV1References(
         } else {
           layerPropertySeen.set(layerPropertyKey, binding.propId);
         }
-        const layer = componentLayers.find((item) => item.id === target.layerId);
+        const layer = componentLayers.find(
+          (item) => item.id === target.layerId,
+        );
         if (!layer) {
           issues.push({
             path: `components.${component.id}.propBindings`,
@@ -679,7 +681,9 @@ export function validateMotionProjectV1References(
               message: `propBinding child component "${childLayer.payload.componentId}" is not defined in project`,
             });
           } else {
-            const childProp = childDef.props.find((p) => p.id === target.propId);
+            const childProp = childDef.props.find(
+              (p) => p.id === target.propId,
+            );
             if (!childProp) {
               issues.push({
                 path: `components.${component.id}.propBindings`,

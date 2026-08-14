@@ -1,7 +1,7 @@
 /**
- * Pseudo-3D gần/xa cho parallax và perspective.
- * depth > 0 gần camera, < 0 xa, 0 mặt phẳng mặc định.
- * Không phải zIndex. Không phải translate.z.
+ * Pseudo-3D gần/xa (parallax). Có thể keyframe như translate/scale/rotate.z.
+ * depth > 0 gần người xem; < 0 xa hơn; 0 mặt phẳng thường.
+ * Không phải zIndex (thứ tự chồng lớp).
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../../capabilities";

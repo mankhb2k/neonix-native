@@ -13,6 +13,7 @@ import {
 } from "@motionvideo/motion-protocol/runtime";
 import { applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
+import { layerPoseFromAtoms } from "./layer-pose";
 
 type RuntimeTrack = MotionRuntimeProject["tracks"][number];
 type RuntimeNode = Exclude<
@@ -168,13 +169,7 @@ function presetTracks(
     layerId: node.id,
     start,
     end,
-    transform: {
-      x: node.transform.x,
-      y: node.transform.y,
-      opacity: node.appearance.opacity,
-      scaleX: node.transform.scaleX,
-      scaleY: node.transform.scaleY,
-    },
+    transform: layerPoseFromAtoms(node),
     params,
   }) as RuntimeTrack[];
 }

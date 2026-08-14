@@ -14,7 +14,7 @@ describe("Phase 1 preset registry + recipes", () => {
       layerId: "n1",
       start: 0,
       end: 0.5,
-      transform: { x: 10, y: 20, opacity: 1, scaleX: 1, scaleY: 1 },
+      transform: { x: 10, y: 20, opacity: 100, scaleX: 1, scaleY: 1 },
       params: { distance: 80 },
     });
     const y = tracks.find((t) => t.property === "transform.translate.y");

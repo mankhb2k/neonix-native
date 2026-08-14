@@ -75,6 +75,7 @@ export {
 } from "./compile-cache";
 
 export { applyLayoutConstraints } from "./layout-solver";
+export { layerPoseFromAtoms, type LayerPoseSnapshot } from "./layer-pose";
 export {
   defaultTextMeasurementProvider,
   estimateTextSize,

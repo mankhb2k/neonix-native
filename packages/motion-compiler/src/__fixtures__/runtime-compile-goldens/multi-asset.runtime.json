@@ -73,7 +73,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "39f91091f921f07acc171cebee56c837",
+  "runtimeHash": "a2c41bf69986fea94da2247069a2d736",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "2cf6603729d72afd",
   "sourceRef": {
@@ -98,14 +98,11 @@
           "y": 540
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -113,12 +110,9 @@
         },
         "origin": {
           "x": 0,
-          "y": 0,
-          "z": 0
+          "y": 0
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,
@@ -153,14 +147,11 @@
           "y": 200
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -168,12 +159,9 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
+          "y": 0.5
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,
@@ -216,14 +204,11 @@
           "y": 540
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -231,12 +216,9 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
+          "y": 0.5
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,
@@ -270,14 +252,11 @@
           "y": 540
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -285,12 +264,9 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
+          "y": 0.5
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,
@@ -324,14 +300,11 @@
           "y": 540
         },
         "rotate": {
-          "x": 0,
-          "y": 0,
           "z": 0
         },
         "scale": {
           "x": 1,
-          "y": 1,
-          "z": 1
+          "y": 1
         },
         "skew": {
           "x": 0,
@@ -339,12 +312,9 @@
         },
         "origin": {
           "x": 0.5,
-          "y": 0.5,
-          "z": 0
+          "y": 0.5
         },
-        "depth": 0,
-        "transform-style": "flat",
-        "backface-visibility": "visible"
+        "depth": 0
       },
       "appearance": {
         "visible": true,

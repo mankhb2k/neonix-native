@@ -1515,18 +1515,6 @@
                             "rotate": {
                               "type": "object",
                               "properties": {
-                                "x": {
-                                  "type": "number",
-                                  "minimum": -360,
-                                  "maximum": 360,
-                                  "default": 0
-                                },
-                                "y": {
-                                  "type": "number",
-                                  "minimum": -360,
-                                  "maximum": 360,
-                                  "default": 0
-                                },
                                 "z": {
                                   "type": "number",
                                   "minimum": -360,
@@ -1536,8 +1524,6 @@
                               },
                               "additionalProperties": false,
                               "default": {
-                                "x": 0,
-                                "y": 0,
                                 "z": 0
                               }
                             },
@@ -1555,19 +1541,12 @@
                                   "minimum": -1000,
                                   "maximum": 1000,
                                   "default": 1
-                                },
-                                "z": {
-                                  "type": "number",
-                                  "minimum": -1000,
-                                  "maximum": 1000,
-                                  "default": 1
                                 }
                               },
                               "additionalProperties": false,
                               "default": {
                                 "x": 1,
-                                "y": 1,
-                                "z": 1
+                                "y": 1
                               }
                             },
                             "skew": {
@@ -1606,19 +1585,12 @@
                                   "minimum": 0,
                                   "maximum": 1,
                                   "default": 0.5
-                                },
-                                "z": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "maximum": 1,
-                                  "default": 0
                                 }
                               },
                               "additionalProperties": false,
                               "default": {
                                 "x": 0.5,
-                                "y": 0.5,
-                                "z": 0
+                                "y": 0.5
                               }
                             },
                             "depth": {
@@ -1626,46 +1598,6 @@
                               "minimum": -100000,
                               "maximum": 100000,
                               "default": 0
-                            },
-                            "perspective": {
-                              "type": "number",
-                              "exclusiveMinimum": true,
-                              "minimum": 0,
-                              "maximum": 100000
-                            },
-                            "perspective-origin": {
-                              "type": "object",
-                              "properties": {
-                                "x": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "maximum": 1,
-                                  "default": 0.5
-                                },
-                                "y": {
-                                  "type": "number",
-                                  "minimum": 0,
-                                  "maximum": 1,
-                                  "default": 0.5
-                                }
-                              },
-                              "additionalProperties": false
-                            },
-                            "transform-style": {
-                              "type": "string",
-                              "enum": [
-                                "flat",
-                                "preserve-3d"
-                              ],
-                              "default": "flat"
-                            },
-                            "backface-visibility": {
-                              "type": "string",
-                              "enum": [
-                                "visible",
-                                "hidden"
-                              ],
-                              "default": "visible"
                             }
                           },
                           "additionalProperties": false
