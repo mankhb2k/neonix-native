@@ -66,6 +66,20 @@ describe("motion-storage closed loop", () => {
       .send({ assets: [complete.body.asset] })
       .expect(200);
     expect(validate.body.ok).toBe(true);
+    expect(validate.body.issues).toEqual([]);
+
+    await request(app).delete(`/assets/${create.body.assetId}`).expect(204);
+    const afterDelete = await request(app)
+      .post("/assets/validate")
+      .send({ assets: [complete.body.asset] })
+      .expect(200);
+    expect(afterDelete.body.ok).toBe(false);
+    expect(afterDelete.body.issues[0]).toMatchObject({
+      layer: "storage",
+      code: "deleted",
+      assetId: create.body.assetId,
+      path: `assets.${create.body.assetId}`,
+    });
   });
 
   it("client ingestBytes helper works against the app", async () => {

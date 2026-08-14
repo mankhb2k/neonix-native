@@ -5,7 +5,6 @@ export type {
   DownloadUrlResponse,
   ValidateAssetsRequest,
   ValidateAssetsResponse,
-  AssetValidateIssue,
   StoredAssetRecord,
 } from "./types";
 export { CreateUploadRequestSchema } from "./types";
@@ -23,3 +22,5 @@ export {
   type AssetStorageClient,
   type AssetStorageClientOptions,
 } from "./client";
+
+export type { AssetValidationIssue } from "@motionvideo/motion-protocol";

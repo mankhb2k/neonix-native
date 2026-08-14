@@ -138,6 +138,7 @@ const LAYER_PUBLIC_PAYLOAD_PROPERTIES: Record<LayerV1["type"], Set<string>> = {
   ]),
 };
 
+/** Path `property` có nằm trong API public của layer này không (transform / visible / payload theo type). */
 function isPropBindingPropertyValid(layer: LayerV1, property: string): boolean {
   if (BASE_PUBLIC_PROPERTIES.has(property)) return true;
   if (TRANSFORM_PUBLIC_PROPERTIES.has(property)) return true;
@@ -151,8 +152,8 @@ function isPropBindingPropertyValid(layer: LayerV1, property: string): boolean {
 }
 
 /**
- * Infer the expected value kind for a prop-binding property path.
- * Returns `undefined` when no confident inference is possible.
+ * Đoán kiểu giá trị của path trên layer (`transform.x` → number).
+ * Không chắc thì trả undefined — không reject theo kind.
  */
 function inferPropBindingValueKind(property: string): string | undefined {
   const segments = property.toLowerCase().split(".");
@@ -195,55 +196,20 @@ function inferPropBindingValueKind(property: string): string | undefined {
   return undefined;
 }
 
-/** Check whether a literal JSON value matches an expected value kind. */
-function literalMatchesValueKind(value: unknown, kind: string): boolean {
-  switch (kind) {
+/** prop.kind (text/choice/…) có khớp kiểu path đã suy ra (string/number/…) không. */
+function propKindFitsPathKind(propKind: string, pathKind: string): boolean {
+  switch (propKind) {
+    case "text":
+    case "choice":
+      return pathKind === "string";
     case "number":
-    case "angle":
-      return typeof value === "number";
+      return pathKind === "number";
     case "boolean":
-      return typeof value === "boolean";
-    case "string":
+      return pathKind === "boolean";
     case "color":
+      return pathKind === "color";
     case "asset":
-      return typeof value === "string";
-    case "vec2":
-      return (
-        Array.isArray(value) &&
-        value.length === 2 &&
-        value.every((v) => typeof v === "number")
-      );
-    case "path":
-    case "gradient":
-      return (
-        typeof value === "object" && value !== null && !Array.isArray(value)
-      );
-    default:
-      return true;
-  }
-}
-
-/** Check whether a variable type is compatible with an expected value kind. */
-function variableTypeMatchesValueKind(
-  variableType: string,
-  kind: string,
-): boolean {
-  switch (kind) {
-    case "number":
-    case "angle":
-      return variableType === "number";
-    case "boolean":
-      return variableType === "boolean";
-    case "string":
-      return variableType === "string" || variableType === "enum";
-    case "color":
-      return variableType === "color";
-    case "asset":
-      return variableType === "asset";
-    case "vec2":
-    case "path":
-    case "gradient":
-      return variableType === "list";
+      return pathKind === "asset";
     default:
       return true;
   }
@@ -516,10 +482,13 @@ function collectDirectChildComponentIds(
 ): Array<{ layerId: string; componentId: string }> {
   return layers
     .filter(
-      (n): n is Extract<LayerV1, { type: "component" }> =>
-        n.type === "component",
+      (layer): layer is Extract<LayerV1, { type: "component" }> =>
+        layer.type === "component",
     )
-    .map((n) => ({ layerId: n.id, componentId: n.payload.componentId }));
+    .map((layer) => ({
+      layerId: layer.id,
+      componentId: layer.payload.componentId,
+    }));
 }
 
 function detectComponentCycles(
@@ -574,12 +543,14 @@ function extractVariableReferenceId(value: unknown): string | undefined {
 }
 
 /**
- * Validate component layers within a layer tree.
+ * Kiểm tra instance `type: "component"` trên một cây layer.
  *
- * Each `type: "component"` node must reference an existing component, its
- * `variantId` (when present) must be declared, and `payload.props` keys must
- * match declared prop ids with compatible values. Prop keyframe `t` is local
- * to the component instance layer when that layer declares `timing.duration`.
+ * `variableById` do caller chọn phạm vi:
+ * - cây `project.layers` → chỉ `project.variables` (consumer)
+ * - cây `component.layers` → chỉ `component.variables` của owner đó
+ *
+ * `payload.props` phải khớp prop đã khai báo. Keyframe `t` là local theo
+ * `layer.timing.duration` của instance.
  */
 function validateComponentLayerReferences(
   layers: LayerV1[],
@@ -589,28 +560,28 @@ function validateComponentLayerReferences(
   pathPrefix: string,
 ): ReferenceIssue[] {
   const issues: ReferenceIssue[] = [];
-  for (const node of layers) {
-    if (node.type !== "component") continue;
-    const path = `${pathPrefix}.${node.id}`;
-    const component = componentById.get(node.payload.componentId);
+  for (const layer of layers) {
+    if (layer.type !== "component") continue;
+    const path = `${pathPrefix}.${layer.id}`;
+    const component = componentById.get(layer.payload.componentId);
     if (!component) {
       issues.push({
         path: `${path}.payload.componentId`,
-        message: `Component layer "${node.id}" references unknown component: ${node.payload.componentId}`,
+        message: `Component layer "${layer.id}" references unknown component: ${layer.payload.componentId}`,
       });
       continue;
     }
     if (
-      node.payload.variantId !== undefined &&
-      !component.variants.some((v) => v.id === node.payload.variantId)
+      layer.payload.variantId !== undefined &&
+      !component.variants.some((v) => v.id === layer.payload.variantId)
     ) {
       issues.push({
         path: `${path}.payload.variantId`,
-        message: `Component "${component.id}" does not declare variant "${node.payload.variantId}"`,
+        message: `Component "${component.id}" does not declare variant "${layer.payload.variantId}"`,
       });
     }
     const propById = new Map(component.props.map((p) => [p.id, p] as const));
-    for (const [propId, value] of Object.entries(node.payload.props ?? {})) {
+    for (const [propId, value] of Object.entries(layer.payload.props ?? {})) {
       const prop = propById.get(propId);
       if (!prop) {
         issues.push({
@@ -626,7 +597,7 @@ function validateComponentLayerReferences(
           variableById,
           assetById,
           `${path}.payload.props.${propId}`,
-          node.timing?.duration,
+          layer.timing?.duration,
         ),
       );
     }
@@ -644,16 +615,10 @@ export function validateMotionProjectV1References(
     project.components.map((component) => [component.id, component]),
   );
   const variableIds = new Set(project.variables.map((variable) => variable.id));
-  const variableById = new Map(
+  // Lookup consumer: instance trên project.layers chỉ được ref map này.
+  const projectVariableById = new Map(
     project.variables.map((variable) => [variable.id, variable] as const),
   );
-  for (const component of project.components) {
-    for (const variable of component.variables) {
-      if (!variableById.has(variable.id)) {
-        variableById.set(variable.id, variable);
-      }
-    }
-  }
   const assetById = new Map(project.assets.map((asset) => [asset.id, asset]));
 
   for (const id of new Set(
@@ -687,38 +652,46 @@ export function validateMotionProjectV1References(
       });
     }
     if (bindingTarget.type === "layer") {
-      if (!layerById.has(bindingTarget.layerId)) {
+      // Binding thẳng vào layer trên cây project — không phải instance component.
+      const layer = layerById.get(bindingTarget.layerId);
+      if (!layer) {
         issues.push({
           path: `${path}.target.layerId`,
           message: `Unknown layer: ${bindingTarget.layerId}`,
+        });
+      } else if (!isPropBindingPropertyValid(layer, bindingTarget.property)) {
+        // Chặn path giả (vd. payload.notAField) kẻo compiler tự tạo object dọc path.
+        issues.push({
+          path: `${path}.target.property`,
+          message: `Binding targets unsupported property "${bindingTarget.property}" on ${layer.type} layer "${layer.id}"`,
         });
       }
     } else {
-      // componentLayer
-      const node = layerById.get(bindingTarget.layerId);
-      if (!node) {
+      // target.type === "componentLayer": chỉ được bind qua propId public.
+      const layer = layerById.get(bindingTarget.layerId);
+      if (!layer) {
         issues.push({
           path: `${path}.target.layerId`,
           message: `Unknown layer: ${bindingTarget.layerId}`,
         });
-      } else if (node.type !== "component") {
+      } else if (layer.type !== "component") {
         issues.push({
           path: `${path}.target.layerId`,
-          message: `Layer "${bindingTarget.layerId}" is not a component layer (type "${node.type}")`,
+          message: `Layer "${bindingTarget.layerId}" is not a component layer (type "${layer.type}")`,
         });
       } else {
-        const component = componentById.get(node.payload.componentId);
+        const component = componentById.get(layer.payload.componentId);
         if (!component) {
           issues.push({
             path: `${path}.target.layerId`,
-            message: `Component layer "${bindingTarget.layerId}" references unknown component "${node.payload.componentId}"`,
+            message: `Component layer "${bindingTarget.layerId}" references unknown component "${layer.payload.componentId}"`,
           });
         } else if (
           !component.props.some((p) => p.id === bindingTarget.propId)
         ) {
           issues.push({
             path: `${path}.target.propId`,
-            message: `Component "${node.payload.componentId}" does not declare prop "${bindingTarget.propId}"`,
+            message: `Component "${layer.payload.componentId}" does not declare prop "${bindingTarget.propId}"`,
           });
         }
       }
@@ -735,13 +708,36 @@ export function validateMotionProjectV1References(
     ...validateComponentLayerReferences(
       projectLayers,
       componentById,
-      variableById,
+      projectVariableById,
       assetById,
       "layers",
     ),
   );
 
   for (const component of project.components) {
+    // Biến nội bộ owner — không gộp vào project.variables.
+    const ownerVariableById = new Map<string, ProjectVariableV1>();
+    for (const dupId of new Set(
+      duplicates(component.variables.map((variable) => variable.id)),
+    )) {
+      issues.push({
+        path: `components.${component.id}.variables`,
+        message: `Duplicate variable id: ${dupId}`,
+      });
+    }
+    for (const variable of component.variables) {
+      if (variableIds.has(variable.id)) {
+        issues.push({
+          path: `components.${component.id}.variables.${variable.id}`,
+          message: `Component variable "${variable.id}" collides with project.variables — owner internals must stay scoped`,
+        });
+        continue;
+      }
+      if (!ownerVariableById.has(variable.id)) {
+        ownerVariableById.set(variable.id, variable);
+      }
+    }
+
     const componentLayers = flattenLayerTree(component.layers);
     issues.push(
       ...validateLayerGraphV1(
@@ -760,7 +756,7 @@ export function validateMotionProjectV1References(
       ...validateComponentLayerReferences(
         componentLayers,
         componentById,
-        variableById,
+        ownerVariableById,
         assetById,
         `components.${component.id}.layers`,
       ),
@@ -782,7 +778,7 @@ export function validateMotionProjectV1References(
         ...validatePropValue(
           prop.default,
           prop,
-          variableById,
+          ownerVariableById,
           assetById,
           `components.${component.id}.props.${prop.id}.default`,
         ),
@@ -811,17 +807,28 @@ export function validateMotionProjectV1References(
         } else {
           layerPropertySeen.set(layerPropertyKey, binding.propId);
         }
-        const node = componentLayers.find((n) => n.id === target.layerId);
-        if (!node) {
+        const layer = componentLayers.find((item) => item.id === target.layerId);
+        if (!layer) {
           issues.push({
             path: `components.${component.id}.propBindings`,
             message: `propBinding for "${binding.propId}" references unknown layer "${target.layerId}"`,
           });
-        } else if (!isPropBindingPropertyValid(node, target.property)) {
+        } else if (!isPropBindingPropertyValid(layer, target.property)) {
           issues.push({
             path: `components.${component.id}.propBindings`,
-            message: `propBinding for "${binding.propId}" targets unsupported property "${target.property}" on ${node.type} layer "${node.id}"`,
+            message: `propBinding for "${binding.propId}" targets unsupported property "${target.property}" on ${layer.type} layer "${layer.id}"`,
           });
+        } else {
+          const expected = inferPropBindingValueKind(target.property);
+          if (
+            expected !== undefined &&
+            !propKindFitsPathKind(prop.kind, expected)
+          ) {
+            issues.push({
+              path: `components.${component.id}.propBindings`,
+              message: `propBinding kind mismatch: prop "${prop.id}" (${prop.kind}) → ${target.property} (${expected})`,
+            });
+          }
         }
       } else {
         const childPropKey = `${target.childLayerId}\0${target.propId}`;
@@ -833,25 +840,25 @@ export function validateMotionProjectV1References(
         } else {
           childPropSeen.set(childPropKey, binding.propId);
         }
-        const childNode = componentLayers.find(
-          (n) => n.id === target.childLayerId,
+        const childLayer = componentLayers.find(
+          (item) => item.id === target.childLayerId,
         );
-        if (!childNode) {
+        if (!childLayer) {
           issues.push({
             path: `components.${component.id}.propBindings`,
             message: `propBinding for "${binding.propId}" references unknown child "${target.childLayerId}"`,
           });
-        } else if (childNode.type !== "component") {
+        } else if (childLayer.type !== "component") {
           issues.push({
             path: `components.${component.id}.propBindings`,
-            message: `propBinding childProp target "${target.childLayerId}" is not a component layer (type "${childNode.type}")`,
+            message: `propBinding childProp target "${target.childLayerId}" is not a component layer (type "${childLayer.type}")`,
           });
         } else {
-          const childDef = componentById.get(childNode.payload.componentId);
+          const childDef = componentById.get(childLayer.payload.componentId);
           if (!childDef) {
             issues.push({
               path: `components.${component.id}.propBindings`,
-              message: `propBinding child component "${childNode.payload.componentId}" is not defined in project`,
+              message: `propBinding child component "${childLayer.payload.componentId}" is not defined in project`,
             });
           } else {
             const childProp = childDef.props.find((p) => p.id === target.propId);
@@ -871,14 +878,14 @@ export function validateMotionProjectV1References(
       }
     }
 
-    for (const node of componentLayers) {
+    for (const layer of componentLayers) {
       if (
-        node.parentLayerId !== null &&
-        !componentLayerIds.has(node.parentLayerId)
+        layer.parentLayerId !== null &&
+        !componentLayerIds.has(layer.parentLayerId)
       ) {
         issues.push({
-          path: `components.${component.id}.layers.${node.id}.parentLayerId`,
-          message: `Component root layer "${node.id}" references external parent "${node.parentLayerId}" â€” component layers must not reference layers outside the component`,
+          path: `components.${component.id}.layers.${layer.id}.parentLayerId`,
+          message: `Component layer "${layer.id}" references external parent "${layer.parentLayerId}" — component layers must not reference layers outside the component`,
         });
       }
     }
@@ -905,7 +912,7 @@ export function validateMotionProjectV1References(
           ...validatePropValue(
             value,
             prop,
-            variableById,
+            ownerVariableById,
             assetById,
             `components.${component.id}.variants.${variant.id}.props.${propId}`,
           ),

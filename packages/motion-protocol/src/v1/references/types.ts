@@ -1,12 +1,18 @@
 /**
  * V1 reference validation types — canonical source of truth.
  *
- * Phase 2: ReferenceIssue is now defined here (was re-exported from legacy).
+ * Asset bytes liveness dùng cùng envelope: xem `AssetValidationIssue`
+ * (`layer: "authoring" | "storage"`). Graph issues khác chỉ cần path + message.
  */
-export interface ReferenceIssue {
+import type { AssetValidationIssue } from "../asset-validation";
+
+export type ReferenceIssue = {
   path: string;
   message: string;
-}
+  layer?: AssetValidationIssue["layer"];
+  code?: AssetValidationIssue["code"];
+  assetId?: string;
+};
 
 export class MotionV1ReferenceError extends Error {
   constructor(public readonly issues: ReferenceIssue[]) {

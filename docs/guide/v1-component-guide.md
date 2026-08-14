@@ -255,6 +255,9 @@ type AssetKind = "image" | "video" | "audio" | "svg" | "font" | "media";
 
 ### Variable-bound
 
+Instance trên `project.layers` chỉ được ref **`project.variables`**.  
+`component.variables` là biến local của owner — dùng cho `props.default`, `variants[].props`, và nested `payload.props` trong `component.layers`. Consumer không được trỏ vào đó.
+
 ```jsonc
 {
   "props": {

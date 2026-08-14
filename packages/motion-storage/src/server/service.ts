@@ -13,7 +13,6 @@ import type { AssetMetadataStore } from "./metadata";
 import type { StorageProvider } from "./providers/types";
 import { CreateUploadRequestSchema } from "../types";
 
-const TEMPORARY_TTL_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_UPLOAD_TTL_SECONDS = 15 * 60;
 const DEFAULT_DOWNLOAD_TTL_SECONDS = 15 * 60;
 
@@ -62,13 +61,7 @@ export class AssetService {
 
   async createUpload(input: CreateUploadRequest): Promise<CreateUploadResponse> {
     const parsed: CreateUploadRequestParsed = CreateUploadRequestSchema.parse(input);
-    if (parsed.retention !== "temporary") {
-      throw new AssetServiceError(
-        400,
-        "retention_unsupported",
-        `MVP only supports retention "temporary" (got "${parsed.retention}")`,
-      );
-    }
+    // retention trên request chỉ là nhãn cho web copy vào JSON — kho không GC theo đó.
 
     const now = this.clock();
     const assetId = `asset.${parsed.assetType}.${randomUUID()}`;
@@ -77,7 +70,7 @@ export class AssetService {
       assetType: _assetType,
       mimeType: _mimeType,
       name: _name,
-      retention: _retention,
+      retention,
       ...declared
     } = parsed;
 
@@ -85,8 +78,10 @@ export class AssetService {
       id: assetId,
       status: "pending",
       storageKey,
-      retention: "temporary",
-      expiresAt: new Date(now.getTime() + TEMPORARY_TTL_MS).toISOString(),
+      retention,
+      pendingExpiresAt: new Date(
+        now.getTime() + this.uploadTtlSeconds * 1000,
+      ).toISOString(),
       mimeType: parsed.mimeType,
       assetType: parsed.assetType,
       name: parsed.name,
@@ -134,6 +129,7 @@ export class AssetService {
         `Asset "${assetId}" is not pending upload`,
       );
     }
+    this.assertPendingSessionAlive(record);
     await this.provider.putObject({
       key: record.storageKey,
       body,
@@ -148,6 +144,9 @@ export class AssetService {
     }
     if (record.status === "ready" && record.asset) {
       return { asset: record.asset };
+    }
+    if (record.status === "pending") {
+      this.assertPendingSessionAlive(record);
     }
 
     const head = await this.provider.headObject(record.storageKey);
@@ -174,6 +173,7 @@ export class AssetService {
     const next: StoredAssetRecord = {
       ...record,
       status: "ready",
+      pendingExpiresAt: null,
       sizeBytes: head.sizeBytes,
       integrity,
       asset,
@@ -192,7 +192,6 @@ export class AssetService {
         `Asset "${assetId}" is not ready`,
       );
     }
-    this.assertNotExpired(record);
 
     const signed = await this.provider.presignGet(
       record.storageKey,
@@ -237,34 +236,30 @@ export class AssetService {
       const record = await this.metadata.get(asset.id);
       if (!record || record.status === "deleted") {
         issues.push({
-          assetId: asset.id,
+          layer: "storage",
           code: record?.status === "deleted" ? "deleted" : "missing",
+          assetId: asset.id,
+          path: `assets.${asset.id}`,
           message: `Managed asset "${asset.id}" is not available`,
         });
         continue;
       }
       if (record.status !== "ready") {
         issues.push({
-          assetId: asset.id,
+          layer: "storage",
           code: "missing",
-          message: `Managed asset "${asset.id}" is not ready`,
-        });
-        continue;
-      }
-      try {
-        this.assertNotExpired(record);
-      } catch {
-        issues.push({
           assetId: asset.id,
-          code: "expired",
-          message: `Managed asset "${asset.id}" temporary retention expired`,
+          path: `assets.${asset.id}`,
+          message: `Managed asset "${asset.id}" is not ready`,
         });
         continue;
       }
       if (asset.integrity && record.integrity && asset.integrity !== record.integrity) {
         issues.push({
-          assetId: asset.id,
+          layer: "storage",
           code: "integrity_mismatch",
+          assetId: asset.id,
+          path: `assets.${asset.id}.integrity`,
           message: `Integrity mismatch for "${asset.id}"`,
         });
       }
@@ -274,8 +269,10 @@ export class AssetService {
         asset.sizeBytes !== record.sizeBytes
       ) {
         issues.push({
-          assetId: asset.id,
+          layer: "storage",
           code: "size_mismatch",
+          assetId: asset.id,
+          path: `assets.${asset.id}.sizeBytes`,
           message: `Size mismatch for "${asset.id}"`,
         });
       }
@@ -306,13 +303,13 @@ export class AssetService {
     return record;
   }
 
-  private assertNotExpired(record: StoredAssetRecord): void {
-    if (record.retention !== "temporary" || !record.expiresAt) return;
-    if (this.clock().getTime() > Date.parse(record.expiresAt)) {
+  private assertPendingSessionAlive(record: StoredAssetRecord): void {
+    if (record.status !== "pending" || !record.pendingExpiresAt) return;
+    if (this.clock().getTime() > Date.parse(record.pendingExpiresAt)) {
       throw new AssetServiceError(
         410,
-        "expired",
-        `Asset "${record.id}" temporary retention expired`,
+        "upload_session_expired",
+        `Upload session "${record.id}" expired; create a new upload`,
       );
     }
   }
@@ -337,7 +334,6 @@ function buildManagedAssetV1(
     source: {
       kind: "upload" as const,
       originalName: record.name,
-      importedAt: record.createdAt,
     },
   };
 

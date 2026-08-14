@@ -1,7 +1,10 @@
 # `@motionvideo/motion-storage`
 
-Closed-loop asset ingest for MotiClip: receive bytes → store (memory/R2) →
-emit managed `AssetV1` → resolve ephemeral URLs for compiler/export.
+Closed-loop asset ingest: receive bytes → unique `assetId` → object store →
+`AssetV1` for the project JSON. Storage does **not** own product TTL or the
+user library — that belongs to the web app DB. Missing file → re-upload → new id.
+
+See `docs/guide/asset-format-storage.md`.
 
 ## Run locally
 
@@ -9,7 +12,7 @@ emit managed `AssetV1` → resolve ephemeral URLs for compiler/export.
 pnpm --filter @motionvideo/motion-storage start
 ```
 
-Env:
+Env: see [`.env.example`](./.env.example).
 
 | Variable | Default | Notes |
 |----------|---------|-------|

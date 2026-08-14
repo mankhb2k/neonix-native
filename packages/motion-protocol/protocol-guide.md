@@ -89,11 +89,11 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File             | Nhiệm vụ                                                                                                                           |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `index.ts`       | References barrel.                                                                                                                 |
-| `project.ts`     | Project-wide reference validation — `validateMotionProjectV1References` (scene refs, asset types, transform public properties, …). |
-| `node-graph.ts`  | `validateLayerGraphV1` — duplicate id, parent refs, mask sources, self-parent, cycles, depth, group-only children.                  |
-| `node-assets.ts` | `validateLayerAssetsV1` — node → asset reference validation (media + font).                                                         |
+| `project.ts`     | Project-wide reference validation — `validateMotionProjectV1References`. |
+| `layer-graph.ts` | `validateLayerGraphV1` — duplicate id, parent refs, mask sources, self-parent, cycles, depth. |
+| `layer-assets.ts` | `validateLayerAssetsV1` — lớp **authoring**: layer → asset (id/type/trim). Bytes: `AssetValidationIssue` `layer: "storage"`. |
 | `helpers.ts`     | Reference helpers — `duplicates`, `morphTopologyMismatch`.                                                                         |
-| `types.ts`       | Reference validation types — `ReferenceIssue`, `MotionV1ReferenceError`.                                                           |
+| `types.ts`       | `ReferenceIssue` (path + message; asset issues thêm `layer` / `code` / `assetId`). |
 
 ---
 

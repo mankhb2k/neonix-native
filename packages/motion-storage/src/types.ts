@@ -1,5 +1,8 @@
 import { z } from "zod";
-import type { AssetV1 } from "@motionvideo/motion-protocol";
+import type {
+  AssetV1,
+  AssetValidationIssue,
+} from "@motionvideo/motion-protocol";
 
 export const CreateUploadRequestSchema = z
   .object({
@@ -46,28 +49,19 @@ export type ValidateAssetsRequest = {
   assets: AssetV1[];
 };
 
-export type AssetValidateIssue = {
-  assetId: string;
-  code:
-    | "missing"
-    | "expired"
-    | "integrity_mismatch"
-    | "size_mismatch"
-    | "deleted";
-  message: string;
-};
-
 export type ValidateAssetsResponse = {
   ok: boolean;
-  issues: AssetValidateIssue[];
+  issues: AssetValidationIssue[];
 };
 
 export type StoredAssetRecord = {
   id: string;
   status: "pending" | "ready" | "deleted";
   storageKey: string;
+  /** Nhãn copy vào JSON — kho không GC file ready theo field này. */
   retention: "temporary" | "project" | "library" | "permanent";
-  expiresAt: string | null;
+  /** Chỉ session pending (chưa complete). Null khi ready. */
+  pendingExpiresAt: string | null;
   mimeType: string;
   assetType: CreateUploadRequestParsed["assetType"];
   name?: string;

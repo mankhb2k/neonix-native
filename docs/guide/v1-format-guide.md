@@ -419,7 +419,7 @@ Binding kết nối project variable với layer property hoặc public componen
 Có hai chế độ khai báo trên `project.assets[]`:
 
 1. **Unmanaged / fixture** — có `uri` (local path). Dùng cho test/offline.
-2. **Managed** — ingest qua `motion-storage` (R2); **cấm `uri`**; bắt buộc `storage` + `integrity` + `sizeBytes`.
+2. **Managed** — ingest qua `motion-storage` (R2); **cấm `uri`**; bắt buộc `storage` + `integrity` + `sizeBytes`. Không có `expiresAt` trên JSON — hạn/thư viện do web app. File mất thì upload lại, `assetId` mới.
 
 Chi tiết contract, API Express, client SDK và vòng resolve cho compiler: [`asset-format-storage.md`](./asset-format-storage.md).
 
@@ -436,7 +436,7 @@ Chi tiết contract, API Express, client SDK và vòng resolve cho compiler: [`a
   "height": 512,
   "integrity": "sha256:abc",
   "sizeBytes": 20480,
-  "storage": { "managed": true, "provider": "r2", "key": "assets/temporary/…", "retention": "temporary" },
+  "storage": { "managed": true, "provider": "r2", "key": "assets/…", "retention": "temporary" },
   "source": { "kind": "upload", "originalName": "logo.png" }
 }
 

@@ -8,6 +8,9 @@
  * Storage policy:
  * - `storage.managed: true` → R2-backed; `uri` forbidden; integrity + sizeBytes required
  * - unmanaged / missing storage → local/fixture; `uri` required
+ * - `retention` is a product label for the web app DB — not an expiry timestamp.
+ * - `source` is always ingest via our storage (`kind: "upload"`).
+ *   MCP/web may download from Drive/URL first; the project only records the upload.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";
@@ -40,19 +43,13 @@ export const AssetStorageV1Schema = z.discriminatedUnion("managed", [
     .strict(),
 ]);
 
-export const AssetSourceKindV1Schema = z.enum([
-  "upload",
-  "googleDrive",
-  "url",
-  "local",
-]);
+/** Bytes always entered storage via upload. Other origins are client-side only. */
+export const AssetSourceKindV1Schema = z.literal("upload");
 
 export const AssetSourceV1Schema = z
   .object({
     kind: AssetSourceKindV1Schema,
-    externalId: z.string().min(1).optional(),
     originalName: z.string().min(1).optional(),
-    importedAt: z.string().min(1).optional(),
   })
   .strict();
 

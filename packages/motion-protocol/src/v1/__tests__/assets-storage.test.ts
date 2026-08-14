@@ -36,6 +36,26 @@ describe("AssetV1 storage policy", () => {
     expect(asset.storage?.managed).toBe(true);
   });
 
+  it("rejects source kinds other than upload", () => {
+    const result = AssetV1Schema.safeParse({
+      id: "logo",
+      assetType: "image",
+      mimeType: "image/png",
+      width: 100,
+      height: 100,
+      integrity: "sha256:abc",
+      sizeBytes: 2048,
+      storage: {
+        managed: true,
+        provider: "r2",
+        key: "tmp/logo.png",
+        retention: "temporary",
+      },
+      source: { kind: "googleDrive", externalId: "file-1" },
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("rejects managed asset with uri", () => {
     const result = AssetV1Schema.safeParse({
       id: "logo",

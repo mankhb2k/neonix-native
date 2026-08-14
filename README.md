@@ -88,7 +88,6 @@ flowchart LR
 | `editor-core`         | Commands, selection, history, document ops, timeline layout |
 | `editor-interactions` | Gesture state machines, transform math, timeline math       |
 | `editor-react`        | DOM measurement, pointer capture, reusable React hooks      |
-| `motion-workspace`    | Multi-file workspace linking (.mt + scenes + components)    |
 
 ### AI & Automation
 

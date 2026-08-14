@@ -931,22 +931,9 @@
                     "properties": {
                       "kind": {
                         "type": "string",
-                        "enum": [
-                          "upload",
-                          "googleDrive",
-                          "url",
-                          "local"
-                        ]
-                      },
-                      "externalId": {
-                        "type": "string",
-                        "minLength": 1
+                        "const": "upload"
                       },
                       "originalName": {
-                        "type": "string",
-                        "minLength": 1
-                      },
-                      "importedAt": {
                         "type": "string",
                         "minLength": 1
                       }

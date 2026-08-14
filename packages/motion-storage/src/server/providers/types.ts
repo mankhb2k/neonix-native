@@ -68,5 +68,5 @@ function extensionForMime(mimeType: string): string {
 
 export function defaultObjectKey(assetId: string, mimeType: string): string {
   const safeId = assetId.replace(/[^a-zA-Z0-9._-]/g, "_");
-  return `assets/temporary/${safeId}.${extensionForMime(mimeType)}`;
+  return `assets/${safeId}.${extensionForMime(mimeType)}`;
 }

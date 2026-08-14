@@ -468,12 +468,11 @@ MCP Server:
 | `editor-core`         | Commands, selection, history, document ops            | Editor UI           |
 | `editor-interactions` | Gesture state machines, transform math                | Editor UI           |
 | `editor-react`        | DOM measurement, pointer capture, reusable hooks      | Editor UI           |
-| `motion-workspace`    | Multi-file workspace linking                          | Editor UI           |
 
 **Rule for AI developers**: If you're building a Skill, MCP tool, or automation
 script, you only need `motion-protocol` (for schema/parse/patch) and optionally
 `motion-compiler` (for compilation). You never need `editor-core`,
-`editor-interactions`, `editor-react`, or `motion-workspace`.
+`editor-interactions`, or `editor-react`.
 
 ---
 

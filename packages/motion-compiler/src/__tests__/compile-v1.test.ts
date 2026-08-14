@@ -120,7 +120,7 @@ describe("compileMotionProjectV1", () => {
         storage: {
           managed: true,
           provider: "r2",
-          key: "assets/temporary/managed.logo.png",
+          key: "assets/managed.logo.png",
           retention: "temporary",
         },
       },

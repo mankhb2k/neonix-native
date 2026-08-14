@@ -218,6 +218,12 @@ export {
   type AssetSourceV1,
   type AssetSourceKindV1,
 } from "./v1/assets";
+export {
+  assetValidationIssue,
+  type AssetValidationIssue,
+  type AssetValidationCode,
+  type AssetValidationLayer,
+} from "./v1/asset-validation";
 
 // Captions — owned by V1 (Phase 2)
 export {

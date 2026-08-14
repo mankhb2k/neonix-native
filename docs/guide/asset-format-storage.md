@@ -25,8 +25,33 @@ flowchart LR
 | --- | --- | --- |
 | Layer payload | Chỉ `assetId` / `fontAssetId` | Không chứa URL |
 | `project.assets[]` | Khai báo metadata + storage | Không phải nguồn bytes runtime |
-| `motion-storage` | Ingest, lưu, validate, signed/ephemeral URL | — |
+| `motion-storage` | Mint id, giữ bytes, URL tạm, validate còn file | Không quản lý thư viện user / TTL product |
 | Compiler | Resolve URI rồi emit runtime IR | Không đọc R2/key trực tiếp |
+
+Drive / URL / máy local: MCP hoặc web **tải về rồi upload** vào storage. JSON không ghi `googleDrive` / `url` — source of truth luôn là file đã nằm trong kho (`source.kind: "upload"`).
+
+---
+
+## 1b. Hai lớp validation (cùng một envelope)
+
+Parse **không** gọi R2. Bytes sống hay chết là việc của storage. Hai lớp nói cùng type `AssetValidationIssue`:
+
+```ts
+{
+  layer: "authoring" | "storage",
+  code: string,
+  message: string,
+  path: string,
+  assetId: string
+}
+```
+
+| `layer` | Chỗ chạy | `code` |
+| --- | --- | --- |
+| `authoring` | `validateLayerAssetsV1` lúc parse | `unknown_asset`, `asset_type_mismatch`, `video_trim_invalid` |
+| `storage` | `POST /assets/validate` | `missing`, `integrity_mismatch`, `size_mismatch`, `deleted` |
+
+Compile/export: parse (authoring) → `validateAssets` (storage) → compile. Gộp hai mảng `issues` là đọc được.
 
 ---
 
@@ -68,14 +93,10 @@ Sau khi ingest qua Asset API:
   "storage": {
     "managed": true,
     "provider": "r2",
-    "key": "assets/temporary/asset.image.9f3c….png",
+    "key": "assets/asset.image.9f3c….png",
     "retention": "temporary"
   },
-  "source": {
-    "kind": "upload",
-    "originalName": "logo.png",
-    "importedAt": "2026-08-14T00:00:00.000Z"
-  }
+  "source": { "kind": "upload", "originalName": "logo.png" }
 }
 ```
 
@@ -85,18 +106,19 @@ Sau khi ingest qua Asset API:
 
 ---
 
-## 3. Retention
+## 3. Ai quản lý vòng đời file?
 
-Schema hỗ trợ 4 mode:
+**Storage = kho + id.** Mint `assetId`, giữ bytes, trả URL tạm lúc đọc. Không ghi `expiresAt` vào JSON project. Không tự xóa file **đã complete** vì “vé 24h”.
 
-| Mode | Ý nghĩa | MVP runtime |
-| --- | --- | --- |
-| `temporary` | TTL 24h | **Implement** |
-| `project` | Gắn vòng đời project | Schema only |
-| `library` | Thư viện user | Schema only |
-| `permanent` | Không GC tự động | Schema only |
+**Web app (sau này, DB riêng)** = sổ: project nào dùng id nào, thư viện, user xóa clip. Hết hạn “vé ngày” nếu có cũng nằm ở đây.
 
-Upload mặc định: `temporary`. Mode khác → API trả `400 retention_unsupported` cho đến phase sau.
+**File mất / sai:** user upload lại → id **mới** → layer trỏ id mới (kiểu CapCut). Không sửa timestamp cho id cũ sống lại.
+
+`retention` trên JSON chỉ là **nhãn** cho web copy (`temporary` / `project` / `library` / `permanent`). Kho không GC theo nhãn đó.
+
+TTL duy nhất trong storage: **session upload chưa complete** (~15 phút). Bỏ dở thì tạo upload mới.
+
+`POST /assets/validate` hỏi: id còn bytes không, hash/size có khớp không — không hỏi “đã quá 24h chưa”.
 
 ---
 
@@ -117,7 +139,7 @@ Base mặc định: `http://127.0.0.1:8787`
 | `POST` | `/assets/uploads/:id/complete` | Hash/size → `AssetV1` managed |
 | `GET` | `/assets/:id/download-url` | URL ephemeral ngắn hạn |
 | `GET` | `/assets/objects/:token` | Serve bytes (memory provider) |
-| `POST` | `/assets/validate` | `{ assets: AssetV1[] }` → missing/expired/integrity |
+| `POST` | `/assets/validate` | `{ assets: AssetV1[] }` → missing / integrity / size / deleted |
 | `DELETE` | `/assets/:id` | Soft-delete + xóa object |
 
 Auth optional: `Authorization: Bearer $MOTION_STORAGE_API_TOKEN`.
@@ -194,9 +216,8 @@ Thiếu resolver với managed asset → diagnostic `CMP_ASSET_URI_UNRESOLVED`.
 
 ## 7. Out of scope (phase sau)
 
-- Google Drive import (`source.kind: "googleDrive"`)
-- Relink / replace bytes cùng `assetId`
-- Retention `project` / `library` / `permanent`
+- Relink / replace bytes **cùng** `assetId` (mặc định: upload mới + id mới)
+- Web DB quản lý thư viện / TTL product
 - MCP tool wrappers (sẽ gọi cùng client này)
 
 ---
