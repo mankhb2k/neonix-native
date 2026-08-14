@@ -1,4 +1,6 @@
-import type { CaptionTrack } from "@motionvideo/motion-protocol";
+import type { V1 } from "@motionvideo/motion-protocol";
+
+type CaptionTrack = V1.CaptionTrack;
 
 export type CompiledCaptionCueToken = {
   tokenId: string;

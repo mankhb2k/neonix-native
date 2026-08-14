@@ -11,7 +11,7 @@
     "brand": {
       "name": "Component Instance"
     },
-    "description": "Project with an embedded component instantiated as a scene node"
+    "description": "Embedded component instantiated as a root component layer"
   },
   "assets": [],
   "composition": {
@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "7399c0c33837c71600e1c367d88adb93",
+  "runtimeHash": "a6fe0136617364793a9164b165207c9c",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "c5412f1a003c40e0",
+  "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {
     "layers": {
       "logo-instance__instance": "layers:logo-instance__instance",

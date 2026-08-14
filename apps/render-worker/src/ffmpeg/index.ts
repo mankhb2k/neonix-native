@@ -5,7 +5,9 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { AspectRatio } from "@motionvideo/motion-protocol";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   buildAudioRenderPlan,
   sampleAudioVolumeAtFrame,

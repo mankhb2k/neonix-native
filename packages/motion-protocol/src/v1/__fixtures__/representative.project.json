@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v1-representative",
     "name": "V1 Representative",
-    "description": "Covers scene, visual track, audio, captions, tokens, variables",
+    "description": "Root layers (text, audio), variables, bindings, and tokens",
     "locale": "vi-VN",
     "tags": [
       "demo",

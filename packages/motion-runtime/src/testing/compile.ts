@@ -1,8 +1,10 @@
 import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import type {
   MotionProjectV1,
-  MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 /**
  * Compile a v1 authoring project into the runtime IR, throwing on failure.

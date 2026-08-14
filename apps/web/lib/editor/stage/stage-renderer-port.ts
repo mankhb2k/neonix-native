@@ -23,9 +23,11 @@ import {
 } from "@motionvideo/motion-runtime";
 import type {
   MotionProject,
+} from "@motionvideo/motion-protocol";
+import type {
   MotionScene,
   MotionRuntimeProject,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 import {
   matrixToCss,
   previewParitySnapshot,

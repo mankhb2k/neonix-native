@@ -1,9 +1,13 @@
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   computeRuntimeHash,
-  MOTION_RUNTIME_VERSION,
   CAPABILITY_MANIFEST_VERSION_V1,
 } from "@motionvideo/motion-protocol";
+import {
+  MOTION_RUNTIME_VERSION,
+} from "@motionvideo/motion-protocol/runtime";
 
 /**
  * Phase 10-11: Render manifest with project hash, runtime hash, compiler version,

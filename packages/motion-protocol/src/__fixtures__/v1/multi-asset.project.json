@@ -4,7 +4,7 @@
   "metadata": {
     "id": "multi-asset",
     "name": "Multi Asset",
-    "description": "Scene with text, image, svg, video layers and an audio track",
+    "description": "Root text, image, svg, video, and audio layers",
     "locale": "vi-VN"
   },
   "composition": {

@@ -34,9 +34,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "143f840b2fe592aa10c64604c7339589",
+  "runtimeHash": "eec50757dd768e9cfe83ed798028d17b",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "c5412f1a003c40e0",
+  "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {
     "layers": {
       "group.character": "layers:group.character",

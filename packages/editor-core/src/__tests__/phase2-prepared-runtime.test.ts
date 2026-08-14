@@ -11,7 +11,7 @@ import type {
   TextLayoutInput,
   CompositingScope,
   DepGraphNode,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 
 describe("PreparedRuntimeProject (type smoke)", () => {
   it("StaticGeometry shape is valid", () => {

@@ -6,7 +6,9 @@
  * source locations, severity, and codes.
  */
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 /** Canonical alias for the normalized project output. */
 export type CompiledProject = MotionRuntimeProject;

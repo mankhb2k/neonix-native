@@ -4,6 +4,7 @@ import {
   KeyframeEasingSchema,
   LayerSchema,
   TransformSchema,
+  isLayerPropertyBindable,
   motionPropertyCapability,
   publicMotionPropertyCapabilities,
 } from "./index";
@@ -70,6 +71,23 @@ describe("motion-protocol R2–R5 contract", () => {
     expect(
       publicMotionPropertyCapabilities("adjustment").some(
         (entry) => entry.property === "payload.brightness",
+      ),
+    ).toBe(true);
+  });
+
+  it("treats capability bindable as the binding allowlist", () => {
+    expect(isLayerPropertyBindable("text", "payload.content.text")).toBe(true);
+    expect(isLayerPropertyBindable("text", "payload.notAField")).toBe(false);
+    expect(isLayerPropertyBindable("text", "payload.counterProgress")).toBe(
+      false,
+    );
+    expect(isLayerPropertyBindable("component", "payload.props.title")).toBe(
+      false,
+    );
+    expect(isLayerPropertyBindable("group", "transform.z")).toBe(true);
+    expect(
+      publicMotionPropertyCapabilities("text").some(
+        (entry) => entry.property === "payload.content.text",
       ),
     ).toBe(true);
   });

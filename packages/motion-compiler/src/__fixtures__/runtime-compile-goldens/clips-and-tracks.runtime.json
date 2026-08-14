@@ -11,7 +11,7 @@
     "brand": {
       "name": "Clips And Tracks"
     },
-    "description": "Scene with property tracks and a preset clip"
+    "description": "Text layers with property tracks and a motion preset"
   },
   "assets": [],
   "composition": {
@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "cdf2625cf5f07e6f1b141d84f3bf1e93",
+  "runtimeHash": "7744ae36776ad2582acb5525e8278ce5",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "c5412f1a003c40e0",
+  "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {
     "layers": {
       "title": "layers:title",

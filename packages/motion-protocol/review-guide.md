@@ -67,7 +67,7 @@ Review theo thứ tự từ **rộng → hẹp**, từ **cấu trúc → ngữ n
 - `propBindings` có trỏ tới layer thật (`layerProperty.layerId`) / child component trực tiếp (`childProp`) không.
 - Binding có đi qua public API không, hay lách vào internal.
 - `component.variables` không được merge vào lookup global (`variableById`).
-- Project binding `target.type: "layer"` phải pass `isPropBindingPropertyValid` (cùng allowlist với owner propBindings).
+- Project binding `target.type: "layer"` phải `isLayerPropertyBindable` (capability table `bindable`, không whitelist riêng trong references).
 
 ### 6) `src/v1/parse.ts` — Parse path thực tế
 

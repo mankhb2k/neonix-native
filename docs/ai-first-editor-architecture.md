@@ -404,23 +404,9 @@ const skill = createSkill({
     // Apply brand tokens
     project.tokens.colors.brand = params.primaryColor;
     project.tokens.fonts.display = "acme-gothic";
-    // Add scenes
-    project.scenes.push(createTextScene("headline", params.headline));
-    project.scenes.push(createImageScene("logo", params.logoUrl));
-    // Add timeline clips
-    project.timeline.visualTracks[0].clips.push(
-      {
-        id: "clip-headline",
-        source: { kind: "scene", sceneId: "headline" },
-        start: 0,
-        duration: 3,
-      },
-      {
-        id: "clip-logo",
-        source: { kind: "scene", sceneId: "logo" },
-        start: 2,
-        duration: 3,
-      },
+    project.layers.push(
+      createTextLayer("headline", params.headline),
+      createImageLayer("logo", params.logoAssetId),
     );
     return parseMotionProject(project);
   },

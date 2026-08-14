@@ -3,7 +3,9 @@ import {
   DEFAULT_VISUAL_POLICY,
   type SceneTimelineClip,
 } from "@motionvideo/editor-core";
-import type { MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   buildLayerModeView,
   clampNodeLocalTiming,

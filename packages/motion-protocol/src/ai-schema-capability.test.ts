@@ -16,16 +16,23 @@ describe("Phase 0 AI schema expansion foundation", () => {
     expect(MOTION_PROTOCOL_LIMITS.presetDistance).toBeGreaterThan(0);
   });
 
-  it("locks SourceRef shape for click-to-edit", () => {
-    const ref = SourceRefSchema.parse({
+  it("locks SourceRef to layer / text-run", () => {
+    const run = SourceRefSchema.parse({
       kind: "text-run",
-      layerId: "n1",
+      layerId: "headline",
       runId: "r1",
     });
-    expect(sourceRefKey(ref)).toBe("text-run:n1:r1");
+    expect(sourceRefKey(run)).toBe("text-run:headline:r1");
+    expect(
+      sourceRefKey(SourceRefSchema.parse({ kind: "layer", layerId: "headline" })),
+    ).toBe("layer:headline");
     expect(() =>
       SourceRefSchema.parse({ kind: "caption-token", captionTrackId: "c1" }),
     ).toThrow();
+    expect(() =>
+      SourceRefSchema.parse({ kind: "node", layerId: "headline" }),
+    ).toThrow();
+    expect(() => SourceRefSchema.parse({ kind: "clip", clipId: "c1" })).toThrow();
   });
 
   it("records capability matrix with production-ready rows", () => {

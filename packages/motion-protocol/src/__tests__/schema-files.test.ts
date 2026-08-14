@@ -288,12 +288,7 @@ describe("Phase 7 — public API V1 naming", () => {
     const requiredNeutralValues = [
       "EffectSchema",
       "TransformSchema",
-      "ImageAssetSchema",
-      "SvgAssetSchema",
-      "VideoAssetSchema",
-      "AudioAssetSchema",
-      "FontAssetSchema",
-      "AssetSchema",
+      "AssetV1Schema",
       "VariableSchema",
       "ProjectBindingV1Schema",
       "PointSchema",
@@ -323,6 +318,11 @@ describe("Phase 7 — public API V1 naming", () => {
 
     expect(runtimeExports).not.toContain("normalizeMotionProjectV1");
     expect(runtimeExports).not.toContain("needsNormalization");
+    expect(runtimeExports).not.toContain("MotionRuntimeProject");
+    expect(runtimeExports).not.toContain("MOTION_RUNTIME_VERSION");
+    expect(runtimeExports).not.toContain("AssetSchema");
+    expect(runtimeExports).not.toContain("CaptionTrackSchema");
+    expect(runtimeExports).not.toContain("ClipScheduleSchema");
   });
 
   it("type-only neutral names are importable", () => {
@@ -353,7 +353,18 @@ describe("Phase 8 — package.json exports", () => {
     expect(exportKeys).not.toContain("./compat");
     expect(exportKeys).not.toContain("./compat/*");
 
-    // Only the root export should remain
-    expect(exportKeys).toEqual(["."]);
+    expect(exportKeys.sort()).toEqual([".", "./runtime"].sort());
+  });
+});
+
+import * as Runtime from "../runtime";
+
+describe("runtime entry", () => {
+  it("exports compiler IR assets and project schema", () => {
+    const names = Object.keys(Runtime);
+    expect(names).toContain("AssetSchema");
+    expect(names).toContain("ImageAssetSchema");
+    expect(names).toContain("MotionRuntimeProjectSchema");
+    expect(names).toContain("MOTION_RUNTIME_VERSION");
   });
 });

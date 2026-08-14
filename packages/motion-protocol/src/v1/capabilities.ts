@@ -41,7 +41,7 @@ const KNOWN_CAPABILITY_IDS = [
   "asset.external",
 ] as const;
 
-export const CAPABILITY_MANIFEST_VERSION_V1 = "v1.1" as const;
+export const CAPABILITY_MANIFEST_VERSION_V1 = "v1.2" as const;
 
 export const CapabilityIdSchema = z.union([
   z.enum(KNOWN_CAPABILITY_IDS),

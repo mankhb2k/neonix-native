@@ -4,7 +4,13 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createCanvas, GlobalFonts, Image, loadImage, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
-import type { AspectRatio, MotionPaintStyle, MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  AspectRatio,
+  MotionPaintStyle,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   evaluateNodeEffects,
   evaluateProperty,

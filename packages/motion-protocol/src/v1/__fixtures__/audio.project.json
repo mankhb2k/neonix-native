@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v1-audio",
     "name": "V1 Audio Example",
-    "description": "Demonstrates audio tracks (BGM + voiceover) on the timeline",
+    "description": "Root audio layers (BGM + voiceover) with negative zIndex",
     "locale": "vi-VN",
     "tags": [
       "example",

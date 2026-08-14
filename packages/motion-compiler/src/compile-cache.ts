@@ -8,7 +8,9 @@
  * in Phase 8 without changing the public API.
  */
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { createHash } from "node:crypto";
 import type { CompileResult } from "./compile-result";
 import type { ComponentInput } from "./types";

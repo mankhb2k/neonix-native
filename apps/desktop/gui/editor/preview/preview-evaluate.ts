@@ -5,7 +5,9 @@ import {
   type EvaluatedNode,
   type Matrix2D,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type PreviewParityNode = {
   id: string;

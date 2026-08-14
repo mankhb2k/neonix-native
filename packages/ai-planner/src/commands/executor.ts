@@ -10,8 +10,10 @@ import {
   ProceduralDriverSchema,
   type MotionLayer,
   type MotionProject,
-  type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
+import {
+  type MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   type CommandReceipt,
   diagnostic,

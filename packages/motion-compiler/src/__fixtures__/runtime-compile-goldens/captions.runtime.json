@@ -11,7 +11,7 @@
     "brand": {
       "name": "Captions"
     },
-    "description": "Scene with a caption track"
+    "description": "Text layers used as on-screen captions"
   },
   "assets": [],
   "composition": {
@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "ca50e14612048e9c6a7eb6bcd2b1e630",
+  "runtimeHash": "8b937f705b6ec453c3eddcf9e922161b",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "c5412f1a003c40e0",
+  "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {
     "layers": {
       "title": "layers:title",

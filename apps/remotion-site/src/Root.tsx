@@ -5,7 +5,9 @@ import {
   type MotiClipVideoProps,
 } from "@motionvideo/remotion-renderer";
 import { parseRenderManifest } from "@motionvideo/render-contracts";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type MotiClipCompositionProps = MotiClipVideoProps;
 

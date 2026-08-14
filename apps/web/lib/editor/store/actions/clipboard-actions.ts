@@ -14,7 +14,9 @@ import type {
   EditorStoreGet,
   EditorStoreSet,
 } from "@/lib/editor/store/types";
-import type { MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type ClipboardActions = Pick<
   EditorStoreActions,

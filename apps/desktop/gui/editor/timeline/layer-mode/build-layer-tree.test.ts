@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { MotionLayer, MotionScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionLayer,
+} from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   buildLayerTree,
   collectExpandableIds,

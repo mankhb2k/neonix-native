@@ -26,15 +26,17 @@ import {
   canonicalJson,
   computeRuntimeHash,
   computeProjectHash,
-  MotionRuntimeProjectSchema,
-  MOTION_RUNTIME_VERSION,
   buildCapabilityFingerprint,
   preflightProjectCapabilities,
   canonicalizeTimelineDurationV1,
   CAPABILITY_MANIFEST_VERSION_V1,
-  type MotionRuntimeProject,
   V1,
 } from "@motionvideo/motion-protocol";
+import {
+  MotionRuntimeProjectSchema,
+  MOTION_RUNTIME_VERSION,
+  type MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   DiagnosticCollector,
   compileSuccess,

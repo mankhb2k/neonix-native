@@ -155,7 +155,9 @@ describe("parseStableLayerKey", () => {
 // ── Task 3.4: Camera view override seam ───────────────────────────────
 
 import { evaluateCompositionFrameV1 } from "../evaluate-composition";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 function emptyRuntime(): MotionRuntimeProject {
   return {

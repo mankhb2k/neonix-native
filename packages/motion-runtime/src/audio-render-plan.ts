@@ -5,7 +5,9 @@
  * crossfades between neighboring clips.
  */
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { audioLayersFromRuntime } from "./layer-graph";
 
 export type AudioVolumeKeyframe = {

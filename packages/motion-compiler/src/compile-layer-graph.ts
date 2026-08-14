@@ -11,12 +11,14 @@
  * @internal — used by `compile-v1`; re-exported from the package barrel.
  */
 import {
-  type MotionClip,
+  type MotionClipV1,
   type MotionLayer,
+} from "@motionvideo/motion-protocol";
+import {
   type MotionRuntimeProject,
   type MotionRuntimeScene,
   type RuntimeSourceRef,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 import { applyLayoutConstraints } from "./layout-solver";
 import { expandMotionPreset } from "./preset-registry";
 
@@ -72,7 +74,7 @@ function resolveValue(
 }
 
 function playbackRate(
-  clip: MotionClip,
+  clip: MotionClipV1,
   variables: Map<string, unknown>,
 ): number {
   const rate = number(
@@ -84,7 +86,7 @@ function playbackRate(
 }
 
 function playbackDuration(
-  clip: MotionClip,
+  clip: MotionClipV1,
   variables: Map<string, unknown>,
   graphDuration?: number,
 ): number {
@@ -100,14 +102,14 @@ function playbackDuration(
 }
 
 function scheduleTimes(
-  clips: MotionClip[],
+  clips: MotionClipV1[],
   variables: Map<string, unknown> = new Map(),
   graphDuration?: number,
 ): Map<string, number> {
   const byId = new Map(clips.map((clip) => [clip.id, clip]));
   const times = new Map<string, number>();
   const visiting = new Set<string>();
-  const resolve = (clip: MotionClip): number => {
+  const resolve = (clip: MotionClipV1): number => {
     const cached = times.get(clip.id);
     if (cached !== undefined) return cached;
     if (visiting.has(clip.id))
@@ -185,7 +187,7 @@ function presetTracks(
 
 function expandPlaybackTrack(
   track: RuntimeTrack,
-  clip: MotionClip,
+  clip: MotionClipV1,
   start: number,
   graphDuration: number,
   variables: Map<string, unknown>,
@@ -244,7 +246,7 @@ function resolveTrackTime(
 
 function compileClips(
   layers: RuntimeNode[],
-  clips: MotionClip[],
+  clips: MotionClipV1[],
   variables: Map<string, unknown>,
   graphDuration: number,
   markers: Map<string, number> = new Map(),
@@ -316,7 +318,7 @@ export function compileLayerGraphToRuntime(input: {
   id: string;
   duration: number;
   layers: MotionLayer[];
-  clips: MotionClip[];
+  clips: MotionClipV1[];
   variables: Map<string, unknown>;
   markers?: Array<{ id: string; t: number }>;
   space?: RuntimeScene["space"];

@@ -16,8 +16,10 @@ import {
 } from "@motionvideo/motion-runtime";
 import type {
   MotionProject,
-  MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { stageSizeForAspect } from "@/lib/runtime/preview-evaluate";
 import {
   compositionAspectRatio,

@@ -5,7 +5,9 @@ import {
   sampleAudioVolumeLinear,
   type AudioRenderPlan,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import type { RenderManifest } from "@motionvideo/render-contracts";
 import { RemotionFramePainter } from "./RemotionFramePainter";
 

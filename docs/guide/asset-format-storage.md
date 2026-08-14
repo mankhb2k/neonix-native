@@ -2,7 +2,7 @@
 
 Module: `packages/motion-storage/` · Schema: `packages/motion-protocol/src/v1/assets.ts`
 
-`motion-storage` là **vòng khép kín** cho binary: nhận asset → lưu object store → emit `AssetV1` → resolve URL ephemeral cho compiler/export. MCP và web chỉ gọi API này; không upload R2 trực tiếp, không nhét URL vào layer.
+`motion-storage` là **vòng khép kín** cho binary: nhận asset → lưu object store → emit `AssetV1` (authoring, `@motionvideo/motion-protocol`) → resolve URL ephemeral cho compiler/export. Runtime IR dùng `AssetSchema` trên `@motionvideo/motion-protocol/runtime`. MCP và web chỉ gọi API này; không upload R2 trực tiếp, không nhét URL vào layer.
 
 > **Contract:** All user-provided assets must be ingested through motion-storage before they can be referenced by `MotionProjectV1`. Compiler and clients never talk to object storage directly.
 
@@ -110,7 +110,7 @@ Sau khi ingest qua Asset API:
 
 **Storage = kho + id.** Mint `assetId`, giữ bytes, trả URL tạm lúc đọc. Không ghi `expiresAt` vào JSON project. Không tự xóa file **đã complete** vì “vé 24h”.
 
-**Web app (sau này, DB riêng)** = sổ: project nào dùng id nào, thư viện, user xóa clip. Hết hạn “vé ngày” nếu có cũng nằm ở đây.
+**Web app (sau này, DB riêng)** = sổ: project nào dùng id nào, thư viện, user gỡ asset khỏi project. Hết hạn “vé ngày” nếu có cũng nằm ở đây.
 
 **File mất / sai:** user upload lại → id **mới** → layer trỏ id mới (kiểu CapCut). Không sửa timestamp cho id cũ sống lại.
 

@@ -19,7 +19,9 @@
  * All platform dependencies are injected via options.
  */
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   evaluateCompositionFrameV1,
   type EvaluatedCompositionFrame,

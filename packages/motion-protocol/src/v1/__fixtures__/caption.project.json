@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v1-caption",
     "name": "V1 Caption Example",
-    "description": "Demonstrates caption tracks with timed tokens on the timeline",
+    "description": "Caption-style text layers grouped on the layer stack",
     "locale": "vi-VN",
     "tags": [
       "example",

@@ -11,7 +11,9 @@ import {
   type PaintCommandBuffer,
   type PaintFill,
 } from "@motionvideo/motion-runtime";
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { projectFrameLayers } from "./frame-plan";
 import { ensureFont } from "./draw";
 

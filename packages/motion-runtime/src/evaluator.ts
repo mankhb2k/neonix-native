@@ -1,8 +1,10 @@
 import {
   motionPropertyCapability,
+} from "@motionvideo/motion-protocol";
+import {
   type MotionRuntimeProject,
   type MotionRuntimeScene,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 import {
   IDENTITY_MATRIX,
   applyMatrix,

@@ -1,10 +1,10 @@
 /**
- * Public API surface — V1 is the only authoring protocol.
+ * Public API — V1 layers-only authoring.
  *
- * `parseMotionProject` is `parseMotionProjectV1`. Non-1 payloads fail Zod.
+ * `.` = JSON project (parse, layers, AssetV1, bindings, patch, MCP).
+ * `./runtime` = compiler IR (`MotionRuntimeProject`, runtime assets, prepared types).
  */
 
-// ── Capabilities / Registry / AI matrix ───────────────────────────────
 export * from "./capabilities";
 export {
   CAPABILITY_MANIFEST_VERSION_V1,
@@ -12,13 +12,9 @@ export {
   inspectProjectCapabilities,
   type CapabilityPreflightResult,
 } from "./v1/capabilities";
-export * from "./scene-registry";
 export * from "./ai-schema-capability";
 
-// ── V1 namespace ──────────────────────────────────────────────────────
 export * as V1 from "./v1";
-
-// ── Canonical V1 Authoring API ────────────────────────────────────────
 
 import {
   parseMotionProjectV1,
@@ -30,7 +26,6 @@ import {
   getRootLayerTimelineEndV1,
   canonicalizeTimelineDurationV1,
   type MotionProjectV1,
-  type CanonicalMotionProjectV1,
 } from "./v1";
 
 export type MotionProject = MotionProjectV1;
@@ -46,7 +41,6 @@ export function serializeMotionProject(project: MotionProject): string {
   return serializeMotionProjectV1(project);
 }
 
-// Explicit V1 parse/serialize so consumers can import directly.
 export {
   parseMotionProjectV1,
   MotionProjectV1Schema,
@@ -64,7 +58,6 @@ export type {
   CanonicalizeTimelineDurationResult,
 } from "./v1";
 
-// ── Canonical hash utilities ──────────────────────────────────────────
 export {
   canonicalJson,
   computeProjectHash,
@@ -77,7 +70,7 @@ export {
   buildCapabilityFingerprint,
   RENDER_MANIFEST_VERSION,
 } from "./v1/canonical-hash";
-// V1 Patch (AI / MCP editing surface)
+
 export {
   MotionProjectV1PatchSchema,
   applyMotionProjectV1Patch,
@@ -89,7 +82,6 @@ export type {
   V1PatchResult,
 } from "./v1/patch";
 
-// V1 Skills (AI Agent / MCP instruction layer)
 export {
   MotionSkillManifestSchema,
   validateSkillManifest,
@@ -109,7 +101,6 @@ export type {
   SkillValidationResult,
 } from "./v1/skills";
 
-// V1 MCP Tool Contract (server-agnostic automation surface)
 export {
   MCPCreateProjectInputSchema,
   MCPValidateProjectInputSchema,
@@ -151,19 +142,6 @@ export type {
   MCPToolDescriptor,
 } from "./v1/mcp";
 
-// ── Runtime IR (canonical path) ──────────────────────────────────────
-export {
-  MotionRuntimeProjectSchema,
-  type MotionRuntimeProject,
-  type MotionRuntimeScene,
-  type MotionRuntimeTrack,
-} from "./runtime";
-
-// ── Shared Infrastructure (explicit re-exports from V1-owned modules) ──
-//
-// All schemas are V1-owned and exported from v1/ paths.
-
-// Common / Primitives — owned by V1 (Phase 2)
 export {
   FiniteNumberSchema,
   IdSchema,
@@ -191,21 +169,9 @@ export {
   ValueKindSchema,
 } from "./v1/values";
 
-// Effects / Transform — V1 canonical (Phase 7 neutral names)
 export { EffectSchema, type MotionEffect } from "./v1/effects";
 export { TransformSchema, type MotionTransform } from "./v1/transform";
 
-// Assets — V1 canonical (Phase 7 neutral names)
-export {
-  ImageAssetSchema,
-  SvgAssetSchema,
-  VideoAssetSchema,
-  AudioAssetSchema,
-  AudioAnalysisSchema,
-  FontAssetSchema,
-  AssetSchema,
-} from "./runtime/assets";
-// V1 authoring asset schemas (compile-time)
 export {
   AssetV1Schema,
   AssetRetentionModeV1Schema,
@@ -225,21 +191,12 @@ export {
   type AssetValidationLayer,
 } from "./v1/asset-validation";
 
-// Captions — owned by V1 (Phase 2)
-export {
-  CaptionTrackSchema,
-  type CaptionTrack,
-  type CaptionToken,
-} from "./v1/captions";
-
-// Variables / Bindings — V1 canonical (Phase 7 neutral names)
 export {
   VariableSchema,
   ProjectBindingV1Schema,
   type ProjectBindingV1,
 } from "./v1/variables";
 
-// Layout — owned by V1 (Phase 2)
 export {
   LayoutConstraintSchema,
   EdgeInsetsSchema,
@@ -248,7 +205,6 @@ export {
   type LayoutItemPolicy,
 } from "./v1/layout";
 
-// Layers — geometry primitives (Phase 7 neutral names)
 export {
   PointSchema,
   type MotionPoint,
@@ -260,7 +216,6 @@ export {
   type MotionPathMorphTarget,
 } from "./v1/layers/geometry";
 
-// Layers — timing, paint, text (Phase 7 neutral names)
 export {
   LayerTimingSchema,
   type LayerTiming,
@@ -279,10 +234,8 @@ export {
   type TextLayerPayload,
 } from "./v1/layers";
 
-// Layers — structural: MotionBlur owned by V1 (Phase 5)
 export { MotionBlurSettingsSchema } from "./v1/layers/structural";
 
-// Layers — V1 authoring layer union (Phase 1: canonical neutral names)
 export {
   GroupLayerV1Schema as GroupLayerSchema,
   BoneLayerV1Schema as BoneLayerSchema,
@@ -300,9 +253,7 @@ export {
   type LayerV1 as MotionLayer,
 } from "./v1/layers";
 
-// Animation — V1 canonical (Phase 7 neutral names)
 export {
-  ClipScheduleSchema,
   PlaybackSchema,
   KeyframeEasingNamedSchema,
   KeyframeEasingCubicSchema,
@@ -315,39 +266,6 @@ export {
   TrackTimeSchema,
 } from "./v1/animation";
 
-export { type MotionClipV1 } from "./v1/animation/clips";
+export type { MotionClipV1 } from "./v1/animation/clips";
 
-/** Canonical clip type — re-exported from the V1 animation module. */
-export type { MotionClipV1 as MotionClip } from "./v1/animation/clips";
-
-// Design tokens — V1 canonical
 export { DesignTokensSchema, type DesignTokens } from "./v1/variables";
-
-// Runtime IR schemas/types (also available via ./runtime)
-export {
-  RuntimeCompositionMetadataSchema,
-  RuntimeClipSourceSchema,
-  RuntimeVisualClipSchema,
-  RuntimeVisualTrackSchema,
-  RuntimeSourceRefSchema,
-  RuntimeSourceRefMapSchema,
-  MOTION_RUNTIME_VERSION,
-  type RuntimeCompositionMetadata,
-  type RuntimeClipSource,
-  type RuntimeVisualClip,
-  type RuntimeVisualTrack,
-  type RuntimeSourceRef,
-  type RuntimeSourceRefMap,
-} from "./runtime/project";
-
-// Prepared Runtime types
-export {
-  type PreparedRuntimeProject,
-  type RuntimeSceneNode,
-  type RuntimeSceneTrack,
-  type RuntimeScene,
-  type StaticGeometry,
-  type TextLayoutInput,
-  type CompositingScope,
-  type DepGraphNode,
-} from "./runtime/prepared";

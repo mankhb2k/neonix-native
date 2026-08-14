@@ -1,6 +1,9 @@
 import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
-import type { MotionRuntimeProject, MotionRuntimeScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+  MotionRuntimeScene,
+} from "@motionvideo/motion-protocol/runtime";
 import { timelineTotalDuration } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
 import {

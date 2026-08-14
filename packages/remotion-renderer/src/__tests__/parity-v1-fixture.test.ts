@@ -13,8 +13,10 @@ import path from "node:path";
 import { compileMotionProjectV1 } from "@motionvideo/motion-compiler";
 import {
   parseMotionProjectV1,
-  type MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
+import {
+  type MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   evaluateCompositionFrameV1,
   timelineTotalDuration,

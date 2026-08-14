@@ -13,7 +13,10 @@
  * editor commands and the playback evaluator/painter pipeline.
  */
 
-import type { MotionRuntimeProject, MotionRuntimeScene } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+  MotionRuntimeScene,
+} from "@motionvideo/motion-protocol/runtime";
 
 // ── Sequence ──────────────────────────────────────────────────────────
 

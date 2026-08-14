@@ -4,7 +4,7 @@
   "metadata": {
     "id": "v1-transition",
     "name": "V1 Transition Example",
-    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)",
+    "description": "Root layers with staggered timing on the layer stack (no scene transitions)",
     "locale": "vi-VN",
     "tags": [
       "example",

@@ -1,4 +1,6 @@
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 import type { Transform2D } from "./matrix";
 import type { Bounds2D } from "./spatial";

@@ -11,7 +11,7 @@
     "brand": {
       "name": "Multi Asset"
     },
-    "description": "Scene with text, image, svg, video layers and an audio track"
+    "description": "Root text, image, svg, video, and audio layers"
   },
   "assets": [
     {
@@ -73,9 +73,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "c4688e687520ab7d022fae1a385c2093",
+  "runtimeHash": "3be7ec46d2d1f708656663620b91b0ad",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "c5412f1a003c40e0",
+  "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {
     "layers": {
       "main-camera": "layers:main-camera",

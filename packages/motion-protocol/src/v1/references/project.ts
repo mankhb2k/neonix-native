@@ -1,6 +1,11 @@
 ﻿/**
  * V1 project-wide reference validation.
  */
+import {
+  isLayerPropertyBindable,
+  motionPropKindFitsValueKind,
+  motionPropertyCapability,
+} from "../../capabilities";
 import type { MotionProjectV1 } from "../project";
 import type { LayerV1 } from "../layers";
 import { flattenLayerTree } from "../layers";
@@ -17,202 +22,9 @@ import { validateLayerGraphV1 } from "./layer-graph";
 import { validateLayerAssetsV1 } from "./layer-assets";
 import type { ReferenceIssue } from "./types";
 
-const TRANSFORM_PUBLIC_PROPERTIES = new Set([
-  "transform.x",
-  "transform.y",
-  "transform.z",
-  "transform.depth",
-  "transform.width",
-  "transform.height",
-  "transform.rotation",
-  "transform.rotationX",
-  "transform.rotationY",
-  "transform.rotationZ",
-  "transform.scaleX",
-  "transform.scaleY",
-  "transform.anchorX",
-  "transform.anchorY",
-  "transform.anchorZ",
-  "transform.opacity",
-  "transform.visible",
-  "transform.flipX",
-  "transform.flipY",
-]);
-
-const BASE_PUBLIC_PROPERTIES = new Set(["visible", "locked", "name", "zIndex"]);
-
-const PAINT_STYLE_PUBLIC_PROPERTIES = new Set([
-  "style.fill",
-  "style.fillOpacity",
-  "style.stroke",
-  "style.strokeWidth",
-  "style.strokeOpacity",
-  "style.lineCap",
-  "style.lineJoin",
-  "style.miterLimit",
-  "style.dash",
-  "style.dashOffset",
-]);
-
-const LAYER_PUBLIC_PAYLOAD_PROPERTIES: Record<LayerV1["type"], Set<string>> = {
-  group: new Set(["payload.compositing.mode"]),
-  bone: new Set([
-    "payload.length",
-    "payload.restRotation",
-    "payload.rotationLimits.min",
-    "payload.rotationLimits.max",
-  ]),
-  text: new Set([
-    "payload.content",
-    "payload.content.text",
-    "payload.fontAssetId",
-    "payload.fontSize",
-    "payload.color",
-    "payload.alignment",
-    "payload.wrap",
-    "payload.lineHeight",
-    "payload.letterSpacing",
-    "payload.maxLines",
-    "payload.overflow",
-  ]),
-  shape: new Set(["payload.shape", "payload.cornerRadius", "payload.points"]),
-  path: new Set(["payload.contours", "payload.morphTargets"]),
-  image: new Set([
-    "payload.assetId",
-    "payload.fit",
-    "payload.crop",
-    "payload.crop.x",
-    "payload.crop.y",
-    "payload.crop.width",
-    "payload.crop.height",
-  ]),
-  svg: new Set([
-    "payload.assetId",
-    "payload.fit",
-    "payload.crop",
-    "payload.crop.x",
-    "payload.crop.y",
-    "payload.crop.width",
-    "payload.crop.height",
-  ]),
-  video: new Set([
-    "payload.assetId",
-    "payload.fit",
-    "payload.crop",
-    "payload.crop.x",
-    "payload.crop.y",
-    "payload.crop.width",
-    "payload.crop.height",
-    "payload.trimStart",
-    "payload.trimEnd",
-    "payload.loop",
-    "payload.muted",
-    "payload.framePolicy",
-  ]),
-  camera: new Set([
-    "payload.projection",
-    "payload.zoom",
-    "payload.parallaxStrength",
-    "payload.focalLength",
-    "payload.fieldOfView",
-    "payload.near",
-    "payload.far",
-  ]),
-  solid: new Set(["payload.width", "payload.height", "payload.color"]),
-  adjustment: new Set([
-    "payload.brightness",
-    "payload.contrast",
-    "payload.saturation",
-  ]),
-  component: new Set([]),
-  audio: new Set([
-    "payload.assetId",
-    "payload.trimStart",
-    "payload.trimEnd",
-    "payload.playbackRate",
-    "payload.volume",
-    "payload.loop",
-    "payload.fadeIn",
-    "payload.fadeOut",
-    "payload.muted",
-  ]),
-};
-
-/** Path `property` có nằm trong API public của layer này không (transform / visible / payload theo type). */
+/** Binding path phải `bindable` trên capability table — không whitelist riêng. */
 function isPropBindingPropertyValid(layer: LayerV1, property: string): boolean {
-  if (BASE_PUBLIC_PROPERTIES.has(property)) return true;
-  if (TRANSFORM_PUBLIC_PROPERTIES.has(property)) return true;
-  if (
-    (layer.type === "shape" || layer.type === "path") &&
-    PAINT_STYLE_PUBLIC_PROPERTIES.has(property)
-  ) {
-    return true;
-  }
-  return LAYER_PUBLIC_PAYLOAD_PROPERTIES[layer.type].has(property);
-}
-
-/**
- * Đoán kiểu giá trị của path trên layer (`transform.x` → number).
- * Không chắc thì trả undefined — không reject theo kind.
- */
-function inferPropBindingValueKind(property: string): string | undefined {
-  const segments = property.toLowerCase().split(".");
-  const last = segments[segments.length - 1];
-  if (!last) return undefined;
-
-  if (last === "visible" || last === "flipx" || last === "flipy") {
-    return "boolean";
-  }
-  if (
-    last === "enabled" ||
-    last === "muted" ||
-    last === "loop" ||
-    last === "locked"
-  ) {
-    return "boolean";
-  }
-  if (
-    last.includes("color") ||
-    last === "fill" ||
-    last === "stroke" ||
-    last === "tint" ||
-    last === "background"
-  ) {
-    return "color";
-  }
-  if (last === "text" || last === "label" || last === "name") {
-    return "string";
-  }
-  if (last === "assetid" || last === "fontassetid") {
-    return "asset";
-  }
-  if (
-    /^(?:opacity|width|height|scalex|scaley|rotation|x|y|z|depth|fontsize|letterspacing|lineheight|rate|volume|duration|start|end|progress|radius|length|fov|zoom|near|far|anchorx|anchory|anchorz|rotationx|rotationy|rotationz|trimstart|trimend|cornerradius|strokewidth|fillopacity|strokeopacity|maxlines)$/.test(
-      last,
-    )
-  ) {
-    return "number";
-  }
-  return undefined;
-}
-
-/** prop.kind (text/choice/…) có khớp kiểu path đã suy ra (string/number/…) không. */
-function propKindFitsPathKind(propKind: string, pathKind: string): boolean {
-  switch (propKind) {
-    case "text":
-    case "choice":
-      return pathKind === "string";
-    case "number":
-      return pathKind === "number";
-    case "boolean":
-      return pathKind === "boolean";
-    case "color":
-      return pathKind === "color";
-    case "asset":
-      return pathKind === "asset";
-    default:
-      return true;
-  }
+  return isLayerPropertyBindable(layer.type, property);
 }
 
 function isPropAnimatable(prop: ComponentPropV1): boolean {
@@ -819,10 +631,13 @@ export function validateMotionProjectV1References(
             message: `propBinding for "${binding.propId}" targets unsupported property "${target.property}" on ${layer.type} layer "${layer.id}"`,
           });
         } else {
-          const expected = inferPropBindingValueKind(target.property);
+          const expected = motionPropertyCapability(
+            layer.type,
+            target.property,
+          )?.valueKind;
           if (
             expected !== undefined &&
-            !propKindFitsPathKind(prop.kind, expected)
+            !motionPropKindFitsValueKind(prop.kind, expected)
           ) {
             issues.push({
               path: `components.${component.id}.propBindings`,

@@ -27,10 +27,12 @@ import {
   type PreviewParityNode,
 } from "../preview/preview-evaluate";
 import type {
-  MotionRuntimeProject,
   MotionProject,
-  MotionScene,
 } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 
 export type StageRendererPort = StageRendererPortShape & {
   setDocument(input: {

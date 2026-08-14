@@ -94,7 +94,7 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
  * properties are animatable/bindable — the compiler records a hash of this
  * in `MotionRuntimeProject.capabilityFingerprint` (Phase 6).
  */
-export const CAPABILITY_MANIFEST_VERSION = "2.0";
+export const CAPABILITY_MANIFEST_VERSION = "2.1";
 
 export type MotionPropertyValueKind =
   | "number"
@@ -119,6 +119,75 @@ export type MotionPropertyCapability = {
   max?: number;
 };
 
+function cap(
+  valueKind: MotionPropertyValueKind,
+  extra: Partial<Omit<MotionPropertyCapability, "valueKind">> = {},
+): MotionPropertyCapability {
+  return {
+    valueKind,
+    animatable: true,
+    bindable: true,
+    public: true,
+    runtimeSupport: "evaluated",
+    ...extra,
+  };
+}
+
+const LAYER_BASE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
+  Object.freeze({
+    visible: cap("boolean"),
+    locked: cap("boolean", { animatable: false, runtimeSupport: "compile-time" }),
+    name: cap("string", { animatable: false, runtimeSupport: "compile-time" }),
+    zIndex: cap("number", { animatable: false, runtimeSupport: "compile-time" }),
+  });
+
+const PAINT_STYLE_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
+  Object.freeze({
+    "style.fill": cap("color"),
+    "style.fillOpacity": cap("number", { min: 0, max: 1 }),
+    "style.stroke": cap("color"),
+    "style.strokeWidth": cap("number", {
+      min: 0,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    }),
+    "style.strokeOpacity": cap("number", { min: 0, max: 1 }),
+    "style.lineCap": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "style.lineJoin": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "style.miterLimit": cap("number", {
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    }),
+    "style.dash": cap("json", { animatable: false, runtimeSupport: "compile-time" }),
+    "style.dashOffset": cap("number", {
+      min: -MOTION_PROTOCOL_LIMITS.dashLength,
+      max: MOTION_PROTOCOL_LIMITS.dashLength,
+    }),
+  });
+
+const MEDIA_PAYLOAD_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
+  Object.freeze({
+    "payload.assetId": cap("asset"),
+    "payload.fit": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.crop": cap("json", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.crop.x": cap("number", { min: 0, max: 1 }),
+    "payload.crop.y": cap("number", { min: 0, max: 1 }),
+    "payload.crop.width": cap("number", { minExclusive: 0, max: 1 }),
+    "payload.crop.height": cap("number", { minExclusive: 0, max: 1 }),
+  });
+
+
 const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
   Object.freeze({
     "transform.x": {
@@ -134,6 +203,15 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       bindable: true,
       public: true,
       runtimeSupport: "evaluated",
+    },
+    "transform.z": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_PROTOCOL_LIMITS.zPositionRange,
+      max: MOTION_PROTOCOL_LIMITS.zPositionRange,
     },
     "transform.depth": {
       valueKind: "number",
@@ -169,6 +247,33 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       public: true,
       runtimeSupport: "evaluated",
     },
+    "transform.rotationX": {
+      valueKind: "angle",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+    },
+    "transform.rotationY": {
+      valueKind: "angle",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+    },
+    "transform.rotationZ": {
+      valueKind: "angle",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: -MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+      max: MOTION_PROTOCOL_LIMITS.rotation3DAngle,
+    },
     "transform.scaleX": {
       valueKind: "number",
       animatable: true,
@@ -197,6 +302,15 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
       max: 1,
     },
     "transform.anchorY": {
+      valueKind: "number",
+      animatable: true,
+      bindable: true,
+      public: true,
+      runtimeSupport: "evaluated",
+      min: 0,
+      max: 1,
+    },
+    "transform.anchorZ": {
       valueKind: "number",
       animatable: true,
       bindable: true,
@@ -240,289 +354,215 @@ const TRANSFORM_PROPERTIES: Readonly<Record<string, MotionPropertyCapability>> =
 const NODE_PROPERTIES: Readonly<
   Record<string, Readonly<Record<string, MotionPropertyCapability>>>
 > = Object.freeze({
+  group: {
+    "payload.compositing.mode": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+  },
   text: {
-    "payload.text": {
-      valueKind: "string",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "payload.fontSize": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    "payload.text": cap("string"),
+    "payload.content": cap("json"),
+    "payload.content.text": cap("string"),
+    "payload.fontAssetId": cap("asset", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.fontSize": cap("number", {
       minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "payload.counterProgress": {
-      valueKind: "number",
-      animatable: true,
+    }),
+    "payload.color": cap("color"),
+    "payload.alignment": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.wrap": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.lineHeight": cap("number", {
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.layerDimension,
+    }),
+    "payload.letterSpacing": cap("number"),
+    "payload.maxLines": cap("number", {
+      minExclusive: 0,
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.overflow": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.counterProgress": cap("number", {
       bindable: false,
       public: false,
-      runtimeSupport: "evaluated",
       min: 0,
       max: 1,
-    },
-    "style.fill": {
-      valueKind: "color",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
+    }),
+    "style.fill": cap("color"),
   },
   shape: {
-    "style.fill": {
-      valueKind: "color",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "style.fillOpacity": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "style.stroke": {
-      valueKind: "color",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "style.strokeWidth": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    ...PAINT_STYLE_PROPERTIES,
+    "payload.shape": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.cornerRadius": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "style.strokeOpacity": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "style.dashOffset": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.dashLength,
-      max: MOTION_PROTOCOL_LIMITS.dashLength,
-    },
-    "payload.cornerRadius": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
+    }),
+    "payload.points": cap("json", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
   },
   path: {
-    "style.fill": {
-      valueKind: "color",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "style.fillOpacity": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "style.stroke": {
-      valueKind: "color",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "style.strokeWidth": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "style.strokeOpacity": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: 0,
-      max: 1,
-    },
-    "style.dashOffset": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -MOTION_PROTOCOL_LIMITS.dashLength,
-      max: MOTION_PROTOCOL_LIMITS.dashLength,
-    },
+    ...PAINT_STYLE_PROPERTIES,
+    "payload.contours": cap("json", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.morphTargets": cap("json", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
   },
   solid: {
-    "payload.width": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    "payload.width": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "payload.height": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    }),
+    "payload.height": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
-    "payload.color": {
-      valueKind: "color",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
+    }),
+    "payload.color": cap("color"),
   },
   svg: {
-    "payload.assetId": {
-      valueKind: "asset",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
-    "style.fill": {
-      valueKind: "color",
+    ...MEDIA_PAYLOAD_PROPERTIES,
+    "style.fill": cap("color", {
       animatable: false,
-      bindable: true,
-      public: true,
       runtimeSupport: "compile-time",
-    },
+    }),
   },
   image: {
-    "payload.assetId": {
-      valueKind: "asset",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-    },
+    ...MEDIA_PAYLOAD_PROPERTIES,
   },
   video: {
-    "payload.assetId": {
-      valueKind: "asset",
+    ...MEDIA_PAYLOAD_PROPERTIES,
+    "payload.assetId": cap("asset", {
       animatable: false,
-      bindable: true,
-      public: true,
       runtimeSupport: "compile-time",
-    },
-    "payload.trimStart": {
-      valueKind: "number",
+    }),
+    "payload.trimStart": cap("number", {
       animatable: false,
-      bindable: true,
-      public: true,
       runtimeSupport: "compile-time",
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    },
-    "payload.muted": {
-      valueKind: "boolean",
+    }),
+    "payload.trimEnd": cap("number", {
       animatable: false,
-      bindable: true,
-      public: true,
       runtimeSupport: "compile-time",
-    },
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    }),
+    "payload.loop": cap("boolean", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.muted": cap("boolean", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.framePolicy": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
   },
   camera: {
-    "payload.zoom": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    "payload.projection": cap("string", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.zoom": cap("number", {
       minExclusive: 0,
       max: MOTION_PROTOCOL_LIMITS.transformScale,
-    },
-    "payload.parallaxStrength": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    }),
+    "payload.parallaxStrength": cap("number", {
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.parallaxFactor,
-    },
+    }),
+    "payload.focalLength": cap("number", { minExclusive: 0 }),
+    "payload.fieldOfView": cap("number", {
+      min: 1,
+      max: MOTION_PROTOCOL_LIMITS.perspectiveFov,
+    }),
+    "payload.near": cap("number", {
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.cameraFar,
+    }),
+    "payload.far": cap("number", {
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.cameraFar,
+    }),
   },
   bone: {
-    "payload.length": {
-      valueKind: "number",
+    "payload.length": cap("number", {
       animatable: false,
-      bindable: true,
       public: false,
       runtimeSupport: "compile-time",
       min: 0,
       max: MOTION_PROTOCOL_LIMITS.layerDimension,
-    },
+    }),
+    "payload.restRotation": cap("angle"),
+    "payload.rotationLimits.min": cap("angle"),
+    "payload.rotationLimits.max": cap("angle"),
   },
   adjustment: {
-    "payload.brightness": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
-      min: -1,
-      max: 1,
-    },
-    "payload.contrast": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+    "payload.brightness": cap("number", { min: -1, max: 1 }),
+    "payload.contrast": cap("number", { min: 0, max: 4 }),
+    "payload.saturation": cap("number", { min: 0, max: 4 }),
+  },
+  audio: {
+    "payload.assetId": cap("asset", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.trimStart": cap("number", {
+      animatable: false,
+      runtimeSupport: "compile-time",
       min: 0,
-      max: 4,
-    },
-    "payload.saturation": {
-      valueKind: "number",
-      animatable: true,
-      bindable: true,
-      public: true,
-      runtimeSupport: "evaluated",
+      max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    }),
+    "payload.trimEnd": cap("number", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    }),
+    "payload.playbackRate": cap("number", {
+      minExclusive: 0,
+      max: MOTION_PROTOCOL_LIMITS.transformScale,
+    }),
+    "payload.volume": cap("number", { min: 0, max: 1 }),
+    "payload.loop": cap("boolean", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
+    "payload.fadeIn": cap("number", {
       min: 0,
-      max: 4,
-    },
+      max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    }),
+    "payload.fadeOut": cap("number", {
+      min: 0,
+      max: MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
+    }),
+    "payload.muted": cap("boolean", {
+      animatable: false,
+      runtimeSupport: "compile-time",
+    }),
   },
 });
 
@@ -530,6 +570,8 @@ export function motionPropertyCapability(
   nodeType: string,
   property: string,
 ): MotionPropertyCapability | undefined {
+  const layerBase = LAYER_BASE_PROPERTIES[property];
+  if (layerBase) return layerBase;
   const transform = TRANSFORM_PROPERTIES[property];
   if (transform) return transform;
   if (/^modifiers\.[^.]+\.progress$/.test(property))
@@ -595,7 +637,7 @@ export function motionPropertyCapability(
     return {
       valueKind: "json",
       animatable: true,
-      bindable: true,
+      bindable: false,
       public: true,
       runtimeSupport: "compile-time",
     };
@@ -671,6 +713,7 @@ export function motionPropertyCapabilities(
   motionPathModifierIds: readonly string[] = [],
 ): MotionPropertyCapabilityEntry[] {
   return [
+    ...Object.entries(LAYER_BASE_PROPERTIES),
     ...Object.entries(TRANSFORM_PROPERTIES),
     ...Object.entries(NODE_PROPERTIES[nodeType] ?? {}),
     ...motionPathModifierIds.map(
@@ -691,6 +734,37 @@ export function publicMotionPropertyCapabilities(
   return motionPropertyCapabilities(nodeType, motionPathModifierIds).filter(
     (capability) => capability.public,
   );
+}
+
+/** Authoring bindings may target this path on this layer type. */
+export function isLayerPropertyBindable(
+  nodeType: string,
+  property: string,
+): boolean {
+  return motionPropertyCapability(nodeType, property)?.bindable === true;
+}
+
+/** Component prop.kind vs layer path valueKind from the capability table. */
+export function motionPropKindFitsValueKind(
+  propKind: string,
+  valueKind: MotionPropertyValueKind,
+): boolean {
+  if (valueKind === "json") return true;
+  switch (propKind) {
+    case "text":
+    case "choice":
+      return valueKind === "string";
+    case "number":
+      return valueKind === "number" || valueKind === "angle";
+    case "boolean":
+      return valueKind === "boolean";
+    case "color":
+      return valueKind === "color";
+    case "asset":
+      return valueKind === "asset";
+    default:
+      return true;
+  }
 }
 
 export function motionLiteralMatchesValueKind(

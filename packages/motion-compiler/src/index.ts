@@ -1,4 +1,9 @@
-import { type MotionProject, type MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import {
+  type MotionProject,
+} from "@motionvideo/motion-protocol";
+import {
+  type MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import type { ComponentInput } from "./types";
 import { compileMotionProjectV1 } from "./compile-v1";
 

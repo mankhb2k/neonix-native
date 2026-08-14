@@ -1,70 +1,38 @@
 /**
- * V1 source-ref schemas — canonical source of truth.
-
+ * Click-to-edit / hit-test pointer into a V1 authoring project.
+ *
+ * Provenance (`provenance.sourceMap`) maps ids to origin strings.
+ * This schema names a visual unit: a layer, or a rich-text run on a layer.
  */
 import { z } from "zod";
 import { IdSchema } from "./common";
 
-export const SourceRefKindSchema = z.enum([
-  "text-run",
-  "caption-token",
-  "caption-cue",
-  "node",
-  "clip",
-]);
+export const SourceRefKindSchema = z.enum(["layer", "text-run"]);
 
-export const SourceRefSchema = z
-  .object({
-    kind: SourceRefKindSchema,
-    layerId: IdSchema.optional(),
-    runId: IdSchema.optional(),
-    captionTrackId: IdSchema.optional(),
-    tokenId: IdSchema.optional(),
-    cueId: IdSchema.optional(),
-    clipId: IdSchema.optional(),
-  })
-  .strict()
-  .superRefine((ref, context) => {
-    let missing = false;
-    switch (ref.kind) {
-      case "text-run":
-        if (!ref.layerId || !ref.runId) missing = true;
-        break;
-      case "caption-token":
-        if (!ref.captionTrackId || !ref.tokenId) missing = true;
-        break;
-      case "caption-cue":
-        if (!ref.captionTrackId || !ref.cueId) missing = true;
-        break;
-      case "node":
-        if (!ref.layerId) missing = true;
-        break;
-      case "clip":
-        if (!ref.clipId) missing = true;
-        break;
-    }
-    if (missing) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `SourceRef kind "${ref.kind}" requires kind-specific fields`,
-      });
-    }
-  });
+export const SourceRefSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      kind: z.literal("layer"),
+      layerId: IdSchema,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal("text-run"),
+      layerId: IdSchema,
+      runId: IdSchema,
+    })
+    .strict(),
+]);
 
 export type SourceRef = z.infer<typeof SourceRefSchema>;
 export type SourceRefKind = z.infer<typeof SourceRefKindSchema>;
 
 export function sourceRefKey(ref: SourceRef): string {
   switch (ref.kind) {
+    case "layer":
+      return `layer:${ref.layerId}`;
     case "text-run":
-      return `${ref.kind}:${ref.layerId}:${ref.runId}`;
-    case "caption-token":
-      return `${ref.kind}:${ref.captionTrackId}:${ref.tokenId}`;
-    case "caption-cue":
-      return `${ref.kind}:${ref.captionTrackId}:${ref.cueId}`;
-    case "node":
-      return `${ref.kind}:${ref.layerId}`;
-    case "clip":
-      return `${ref.kind}:${ref.clipId}`;
+      return `text-run:${ref.layerId}:${ref.runId}`;
   }
 }

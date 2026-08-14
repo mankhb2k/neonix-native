@@ -1,4 +1,6 @@
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import { ROOT_LAYER_GRAPH_ID } from "./layer-graph";
 
 export type TimelineProjectLike = {

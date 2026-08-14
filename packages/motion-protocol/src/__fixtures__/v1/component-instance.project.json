@@ -4,7 +4,7 @@
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
-    "description": "Project with an embedded component instantiated as a scene node",
+    "description": "Embedded component instantiated as a root component layer",
     "locale": "vi-VN"
   },
   "composition": {

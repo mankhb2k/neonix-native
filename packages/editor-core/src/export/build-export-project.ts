@@ -9,8 +9,10 @@ import {
   parseMotionProject,
   type MotionLayer,
   type MotionProject,
-  type MotionScene,
 } from "@motionvideo/motion-protocol";
+import {
+  type MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import {
   documentFromStoreState,
   validateTimelineDocument,

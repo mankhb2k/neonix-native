@@ -20,7 +20,9 @@ import {
   type FrameConsumer,
 } from "../index";
 
-import type { MotionRuntimeProject } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 import type { EvaluatedCompositionFrame } from "@motionvideo/motion-runtime";
 
 // ── Helpers for test runtime ─────────────────────────────────────────

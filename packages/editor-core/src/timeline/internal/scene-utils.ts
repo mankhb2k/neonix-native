@@ -6,8 +6,10 @@ import {
 import type {
   MotionLayer,
   MotionProject,
-  MotionScene,
 } from "@motionvideo/motion-protocol";
+import type {
+  MotionScene,
+} from "@motionvideo/motion-protocol/runtime";
 import { getTextPayloadPlain } from "@motionvideo/motion-protocol";
 
 /** Tạo ID duy nhất với tiền tố — injectable for tests. */

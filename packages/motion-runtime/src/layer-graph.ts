@@ -1,7 +1,7 @@
 import type {
   MotionRuntimeProject,
   MotionRuntimeScene,
-} from "@motionvideo/motion-protocol";
+} from "@motionvideo/motion-protocol/runtime";
 
 export const ROOT_LAYER_GRAPH_ID = "root";
 

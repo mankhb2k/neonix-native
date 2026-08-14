@@ -2,6 +2,13 @@
 
 Canonical Zod schemas and TypeScript types for **Motion Format V1** — the only authoring protocol between editor/AI, compiler, and runtime.
 
+Two package entries:
+
+| Import | Role |
+| --- | --- |
+| `@motionvideo/motion-protocol` | Authoring JSON: parse, `MotionProject`, layers, `AssetV1`, bindings, patch, MCP |
+| `@motionvideo/motion-protocol/runtime` | Compiler IR: `MotionRuntimeProject`, runtime assets, prepared types |
+
 > **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
 
 > **For AI / MCP / Skills:** Generate `MotionProjectV1` with `project.layers` as timeline lanes. Bind via `target.type` (`layer` | `componentLayer`). Component internals are sealed — consumers only set public props. Runtime IR is produced by `@motionvideo/motion-compiler`.
@@ -21,7 +28,8 @@ Canonical Zod schemas and TypeScript types for **Motion Format V1** — the only
 
 | Path | Role |
 | --- | --- |
-| [`src/index.ts`](./src/index.ts) | Public barrel |
+| [`src/index.ts`](./src/index.ts) | Authoring barrel (`.`) |
+| [`src/runtime/index.ts`](./src/runtime/index.ts) | Runtime IR barrel (`./runtime`) |
 | [`src/v1/`](./src/v1) | Authoring schemas (project, layers, components, timeline, variables, animation, references) |
 | [`src/runtime/`](./src/runtime) | Runtime IR schemas |
 | [`src/capabilities.ts`](./src/capabilities.ts) | Limits + property capability registry |

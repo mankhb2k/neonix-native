@@ -15,10 +15,10 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 | File                      | Nhiệm vụ                                                                                                                                                                                                                       |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `index.ts`                | Public API surface. Cung cấp alias canonical (`MotionProject`, `Node`, `Scene`, `parseMotionProject`, …) và re-export `capabilities` + AI matrix. Đây là cổng export duy nhất ra ngoài package.                                |
+| `index.ts`                | Authoring public API (`.`). `MotionProject` / layers / `AssetV1` / patch / MCP. Runtime IR không export ở đây. |
 | `capabilities.ts`         | `MOTION_PROTOCOL_LIMITS` (internal, `Object.freeze`): giới hạn cứng cho scenes/layers/clips/tracks/keys… áp dụng cho cả V1 lẫn runtime. Đồng thời chứa bảng đăng ký khả năng thuộc tính (`motionPropertyCapability`) cho AI/UI. |
 | `ai-schema-capability.ts` | Ma trận E2E cho AI schema expansion (`ai-schema.1`). Một hàng là "production-ready" khi mọi cột (schema → compiler → runtime → paint → pixi → remotion) đều "yes". AI allowlist chỉ mở khi gate E2E xanh.                      |
-| `scene-registry.ts`       | Registry template scene theo role (`hook`, `pain`, `problem`, `solution`, `benefit`, `demo`, …).                                                                                                                               |
+| `scene-registry.ts`       | Legacy template registry — **không** còn trên public barrel.                                                                                                                                                                    |
 
 ---
 
@@ -39,7 +39,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `assets-types.ts`    | Type `z.infer` cho từng asset kind, tách riêng tránh circular import giữa union và per-kind exports.                                                                                                                     |
 | `canonical-hash.ts`  | Canonical hash — single source of truth cho deterministic hashing (`projectHash`/`runtimeHash`). Exclude timestamp/provenance/extensions/editor-state để đảm bảo reproducibility.                                        |
 | `capabilities.ts`    | Capability requirements của project — `required`/`optional`/`experimental` với ID dạng dotted manifest (`primitive.group`, `effect.blur`, …).                                                                            |
-| `captions.ts`        | Caption schemas — `CaptionTokenSchema`, caption track/cue.                                                                                                                                                               |
+| `captions.ts`        | Legacy caption token schemas (không thuộc `project.layers`; không export trên authoring `.`).                                                                                                                            |
 | `components.ts`      | Components & dependencies — sealed owner-owned component (`ComponentDefinitionV1Schema`), `props`/`variants`/`propBindings`, `ProjectDependenciesV1Schema`.                                                |
 | `composition.ts`     | Composition settings — width/height/fps/background/colorSpace, thay thế `metadata.aspectRatio` + `fps` của v2.                                                                                                           |
 | `extensions.ts`      | `NamespacedExtensionsSchema` — extension theo dotted namespace, value `unknown`, không vào render hash.                                                                                                                  |
@@ -51,7 +51,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `project.ts`         | **Root schema** (`MotionProjectV1Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id, root zIndex/timing, audio root-only. |
 | `provenance.ts`      | Provenance — debug/trace metadata, exclude khỏi render hash.                                                                                                                                                             |
 | `skills.ts`          | Skill Template Contract — named template mô tả capability/input/output/instruction cho AI/MCP tạo hoặc patch project.                                                                                                    |
-| `source-ref.ts`      | Source-ref schemas — `SourceRefKindSchema` (text-run/caption-token/caption-cue/node/clip).                                                                                                                               |
+| `source-ref.ts`      | Click-to-edit pointer — `layer` \| `text-run`. Không `node` / `clip` / caption-track. Provenance id map nằm ở `provenance.ts`. |
 | `timeline.ts`        | Project timeline — metadata only (`duration` / `workArea` / `markers`). Visual/audio/caption content lives on `project.layers`. |
 | `types.ts`           | V1 public protocol types — nơi đặt **aggregate root type** (`MotionProjectV1` viết tay) để tránh TS serialize type khổng lồ trong schema module.                                                                         |
 | `variables.ts`       | Variables, design tokens & project bindings — `ProjectVariableV1Schema`, `DesignTokensSchema`, `ProjectBindingV1Schema`.                                                                                                  |
@@ -103,7 +103,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 | File           | Nhiệm vụ                                                                                                                                                                                |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`     | Runtime IR barrel — export `MotionRuntimeProjectSchema`/`MotionRuntimeProject`, các sub-schema, `PreparedRuntimeProject`.                                                               |
+| `index.ts`     | Public barrel `@motionvideo/motion-protocol/runtime`. `MotionRuntimeProject`, runtime assets, prepared types.                                                                            |
 | `common.ts`    | Re-export từ V1 canonical source of truth (`IdSchema`, `PropertyPathSchema`, …) + hằng `MOTION_PROJECT_FORMAT_VERSION`/`MOTION_COMPONENT_FORMAT_VERSION`/`MOTION_PATCH_FORMAT_VERSION`. |
 | `assets.ts`    | Asset schemas cho runtime IR.                                                                                                                                                           |
 | `effects.ts`   | `EffectSchema` — pixel effects cho runtime node.                                                                                                                                        |

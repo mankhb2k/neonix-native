@@ -11,7 +11,7 @@
     "brand": {
       "name": "Transition"
     },
-    "description": "Demonstrates sequential visual clips on a layer-stack timeline (no transitions)"
+    "description": "Root layers with staggered timing on the layer stack (no scene transitions)"
   },
   "assets": [],
   "composition": {
@@ -22,9 +22,9 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "161b85abac7978ec0b5da2016290f149",
+  "runtimeHash": "9728020562d82fe42e9cca9319cd22c8",
   "compilerVersion": "3.0.0-phase11",
-  "capabilityFingerprint": "c5412f1a003c40e0",
+  "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {
     "layers": {
       "intro-title": "layers:intro-title",

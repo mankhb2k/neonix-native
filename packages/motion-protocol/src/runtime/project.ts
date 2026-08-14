@@ -374,9 +374,8 @@ export const RuntimeVisualTrackSchema = z
 export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
 
 /**
- * Per-scene source ref â€” maps a runtime scene back to its authoring origin
- * (scene id, component id, or timeline clip). Used for debug + error
- * mapping only; deliberately excluded from render hashing.
+ * Per-layer source ref — maps a runtime layer graph back to its authoring origin
+ * (layer path or component id). Debug + error mapping only; excluded from render hashing.
  */
 export const RuntimeSourceRefSchema = z
   .object({
@@ -387,8 +386,8 @@ export const RuntimeSourceRefSchema = z
 export type RuntimeSourceRef = z.infer<typeof RuntimeSourceRefSchema>;
 
 /**
- * Project-level source ref index: runtime sceneId â†’ authoring origin
- * description (e.g. `"scenes:intro"`, `"components:button@1.0.0"`).
+ * Project-level source ref index: runtime layerId → authoring origin
+ * (e.g. `"layers:title"`, `"components:button@1.0.0"`).
  */
 export const RuntimeSourceRefMapSchema = z
   .object({

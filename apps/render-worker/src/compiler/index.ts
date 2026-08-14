@@ -7,8 +7,10 @@ import {
 } from "@motionvideo/motion-compiler";
 import type {
   MotionProjectV1,
-  MotionRuntimeProject,
 } from "@motionvideo/motion-protocol";
+import type {
+  MotionRuntimeProject,
+} from "@motionvideo/motion-protocol/runtime";
 
 /**
  * Phase 10: V1-only compiler bridge. All projects are V1 format.
