@@ -2,7 +2,7 @@
  * V1 protocol — MotionProjectV1 re-exports.
  *
  * The root schema lives in ./project (leaf module, no barrel cycle)
- * so mcp, patch, parse, and skills can import it without circular deps.
+ * so mcp, patch, and parse can import it without circular deps.
  */
 export {
   MotionProjectV1Schema,
@@ -29,5 +29,4 @@ export * from "./layers";
 export * from "./animation";
 export * from "./canonical-hash";
 export * from "./patch";
-export * from "./skills";
 export * from "./mcp";

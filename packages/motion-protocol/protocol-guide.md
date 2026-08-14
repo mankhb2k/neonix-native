@@ -50,7 +50,6 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | `patch.ts`           | Native Patch Contract — safe editor surface cho AI/MCP (`applyMotionProjectV1Patch`, `MotionProjectV1PatchSchema`), idempotent, luôn re-validate bằng `MotionProjectV1Schema`.                                           |
 | `project.ts`         | **Root schema** (`MotionProjectV1Schema`) — leaf module (không barrel cycle), object + `.strict()` + `.superRefine()` kiểm tra duplicate id, root zIndex/timing, audio root-only. |
 | `provenance.ts`      | Provenance — debug/trace metadata, exclude khỏi render hash.                                                                                                                                                             |
-| `skills.ts`          | Skill Template Contract — named template mô tả capability/input/output/instruction cho AI/MCP tạo hoặc patch project.                                                                                                    |
 | `source-ref.ts`      | Click-to-edit pointer — `layer` \| `text-run`. Không `node` / `clip` / caption-track. Provenance id map nằm ở `provenance.ts`. |
 | `timeline.ts`        | Project timeline — metadata only (`duration` / `workArea` / `markers`). Visual/audio/caption content lives on `project.layers`. |
 | `types.ts`           | V1 public protocol types — nơi đặt **aggregate root type** (`MotionProjectV1` viết tay) để tránh TS serialize type khổng lồ trong schema module.                                                                         |
@@ -141,7 +140,7 @@ src/index.ts  ──►  re-export capabilities + v1 + runtime
      ├── v1/                      (Authoring Protocol — duy nhất)
      │     ├── project.ts         (root schema, leaf module)
      │     ├── types.ts           (aggregate types viết tay)
-     │     ├── parse.ts / normalize-input.ts / patch.ts / mcp.ts / skills.ts
+     │     ├── parse.ts / normalize-input.ts / patch.ts / mcp.ts
      │     ├── layers/ animation/ references/  (schema theo domain)
      │
      └── runtime/                 (Runtime IR — renderer-ready)

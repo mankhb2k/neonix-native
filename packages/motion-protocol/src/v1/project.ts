@@ -2,8 +2,7 @@
  * V1 project root schema — leaf module (no barrel cycle).
  *
  * Extracted from v1/index.ts to break circular imports: mcp.ts, patch.ts,
- * parse.ts, and skills.ts import MotionProjectV1Schema from here instead
- * of from ./index, which re-exports those same modules.
+ * and parse.ts import MotionProjectV1Schema from here instead of from`n * ./index, which re-exports those same modules.
  */
 import { z } from "zod";
 import { MOTION_PROTOCOL_LIMITS } from "../capabilities";

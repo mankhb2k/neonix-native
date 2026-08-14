@@ -83,25 +83,6 @@ export type {
 } from "./v1/patch";
 
 export {
-  MotionSkillManifestSchema,
-  validateSkillManifest,
-  validateMotionSkillOutput,
-  getBuiltinSkill,
-  BUILTIN_SKILLS,
-  BRAND_INTRO_SKILL,
-  SOCIAL_AD_SKILL,
-  SUBTITLE_STYLING_SKILL,
-  PRODUCT_DEMO_SKILL,
-  CORPORATE_TEMPLATE_SKILL,
-} from "./v1/skills";
-export type {
-  MotionSkillManifest,
-  SkillOutputContract,
-  SkillExecutionResult,
-  SkillValidationResult,
-} from "./v1/skills";
-
-export {
   MCPCreateProjectInputSchema,
   MCPValidateProjectInputSchema,
   MCPApplyPatchInputSchema,

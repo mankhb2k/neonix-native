@@ -168,16 +168,17 @@ if (!preflight.ok) {
 
 ---
 
-## 4. Skill Lifecycle
+## 4. AI Skill Instructions
 
-Skills are parameterized templates that produce V1 projects or patches. They
-live in `packages/motion-protocol/src/v1/skills.ts` as `MotionSkillManifest`
-records.
+Skills are instruction assets that teach AI/MCP agents how to produce V1
+projects or patches. They live outside `motion-protocol` as `SKILL.md` files
+plus optional examples. Protocol safety comes from validating the generated
+project or patch, not from a TypeScript skill registry.
 
-### 4.1 Skill Manifest Structure
+### 4.1 Optional App Metadata
 
 ```typescript
-type MotionSkillManifest = {
+type SkillMetadata = {
   id: string; // "motion/brand-intro"
   name: string; // "Brand Intro"
   description: string; // Human-readable
@@ -194,7 +195,7 @@ type MotionSkillManifest = {
 };
 ```
 
-### 4.2 Built-in Skills
+### 4.2 Example Skill Catalog
 
 | Skill ID                    | Purpose                 | Required Capabilities                                                                                                                        |
 | --------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -207,12 +208,12 @@ type MotionSkillManifest = {
 ### 4.3 Skill Lifecycle
 
 ```text
-1. AUTHOR — Write SKILL.md instruction + TypeScript generator
-2. VALIDATE — skillSchema.parse(manifest)
-3. TEST — skill.apply(params) → compile → evaluate → verify frame keys
-4. PUBLISH — register in skills.ts manifest registry
-5. APPLY — AI or user calls skill with params → V1 project or patch
-6. RENDER — V1 → compile → evaluate → Pixi | Remotion | worker
+1. AUTHOR — Write SKILL.md instruction + examples
+2. GENERATE — AI/MCP produces a V1 project or V1 patch
+3. VALIDATE — parseMotionProjectV1(project) or V1PatchSchema.parse(patch)
+4. PUBLISH — register in the app/backend/MCP catalog if needed
+5. TEST — compile → evaluate → verify frame keys
+6. APPLY — AI or user calls the skill → validated V1 project or patch
 ```
 
 ### 4.4 Enterprise Template Skills
@@ -221,7 +222,7 @@ Enterprises define brand-specific Skills that encode their design system:
 
 ```typescript
 // Example: Acme Corp brand skill
-const acmeBrandSkill: MotionSkillManifest = {
+const acmeBrandSkill: SkillMetadata = {
   id: "acme/brand-template",
   name: "Acme Brand Template",
   version: "1.0.0",
@@ -252,7 +253,7 @@ const acmeBrandSkill: MotionSkillManifest = {
 The skill's `apply()` function:
 
 1. Takes params (headline, CTA, logo, colors)
-2. Builds a `MotionProjectV1` with the correct `tokens.colors.brand`, scenes, clips
+2. Builds a `MotionProjectV1` with the correct layers, tokens, and assets
 3. Returns validated V1 JSON
 
 No editor UI is needed — an AI agent can call this skill directly.
