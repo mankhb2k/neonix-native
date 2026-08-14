@@ -14,7 +14,7 @@ function baseSnapshot(
   id = "parity",
 ): RenderSnapshot {
   return {
-    sceneId: id,
+    graphId: id,
     frame: 0,
     time: 0,
     width: 320,
@@ -52,7 +52,7 @@ function fixture(
 export const FIXTURE_AFFINE_SKEW = fixture("affine-skew", "Affine skew", [
   {
     key: "affine-skew:shape",
-    sceneId: "affine-skew",
+    graphId: "affine-skew",
     layerId: "shape",
     nodeType: "shape",
     worldMatrix: { a: 1, b: 0.2, c: 0.1, d: 1, e: 40, f: 30 },
@@ -77,7 +77,7 @@ export const FIXTURE_AFFINE_SKEW = fixture("affine-skew", "Affine skew", [
 export const FIXTURE_TEXT = fixture("text-basic", "Text", [
   {
     key: "text-basic:t",
-    sceneId: "text-basic",
+    graphId: "text-basic",
     layerId: "t",
     nodeType: "text",
     worldMatrix: { ...identity, e: 16, f: 24 },
@@ -103,7 +103,7 @@ export const FIXTURE_TEXT = fixture("text-basic", "Text", [
 export const FIXTURE_GRADIENT = fixture("gradient-fill", "Gradient", [
   {
     key: "gradient-fill:s",
-    sceneId: "gradient-fill",
+    graphId: "gradient-fill",
     layerId: "s",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 20, f: 20 },
@@ -136,7 +136,7 @@ export const FIXTURE_GRADIENT = fixture("gradient-fill", "Gradient", [
 export const FIXTURE_PATH = fixture("path-stroke", "Path", [
   {
     key: "path-stroke:p",
-    sceneId: "path-stroke",
+    graphId: "path-stroke",
     layerId: "p",
     nodeType: "path",
     worldMatrix: { ...identity, e: 10, f: 10 },
@@ -176,7 +176,7 @@ export const FIXTURE_PATH = fixture("path-stroke", "Path", [
 export const FIXTURE_IMAGE = fixture("image-png", "PNG image", [
   {
     key: "image-png:i",
-    sceneId: "image-png",
+    graphId: "image-png",
     layerId: "i",
     nodeType: "image",
     worldMatrix: { ...identity, e: 8, f: 8 },
@@ -201,7 +201,7 @@ export const FIXTURE_IMAGE = fixture("image-png", "PNG image", [
 export const FIXTURE_POLYGON = fixture("polygon", "Polygon shape", [
   {
     key: "polygon:p",
-    sceneId: "polygon",
+    graphId: "polygon",
     layerId: "p",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 50, f: 20 },

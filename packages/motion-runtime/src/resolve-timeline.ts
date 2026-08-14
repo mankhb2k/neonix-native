@@ -11,7 +11,7 @@ export type TimelineProjectLike = {
 };
 
 export type TimelineResolveResult = {
-  sceneId: string;
+  graphId: string;
   localTime: number;
   /** Absolute start of this scene on the global timeline. */
   sceneStart: number;
@@ -21,7 +21,7 @@ export type TimelineResolveResult = {
 };
 
 export type TimelineSceneSegment = {
-  sceneId: string;
+  graphId: string;
   name?: string;
   start: number;
   duration: number;
@@ -41,7 +41,7 @@ export function listTimelineSegments(
   if (!(duration > 0)) return [];
   return [
     {
-      sceneId: ROOT_LAYER_GRAPH_ID,
+      graphId: ROOT_LAYER_GRAPH_ID,
       start: 0,
       duration,
       trackOrder: 0,
@@ -79,7 +79,7 @@ export function resolveTimelineAtTime(
     Math.max(0, segment.duration - 1e-6),
   );
   return {
-    sceneId: segment.sceneId,
+    graphId: segment.graphId,
     localTime,
     sceneStart: segment.start,
     sceneDuration: segment.duration,

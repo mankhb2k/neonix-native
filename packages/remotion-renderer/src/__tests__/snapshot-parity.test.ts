@@ -26,7 +26,7 @@ describe("remotion-renderer snapshot contract", () => {
       background: "#0c0b0a",
     });
 
-    expect(snapshot.sceneId).toBe(DEMO_SCENE_ID);
+    expect(snapshot.graphId).toBe(DEMO_SCENE_ID);
     expect(snapshot.items.length).toBeGreaterThanOrEqual(4);
 
     const kinds = new Set(snapshot.items.map((item) => item.payload.kind));

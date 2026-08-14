@@ -392,7 +392,7 @@ export const MCP_TOOLS: MCPToolDescriptor[] = [
   {
     name: "inspect_timeline",
     description:
-      "Inspect a project's timeline structure — tracks, clips, durations, transitions",
+      "Inspect a project's timeline — root layers, zIndex lanes, timings, markers",
     inputSchema: { $ref: "#/definitions/MCPInspectTimelineInput" },
     category: "inspect",
     requiredCapabilities: [],
@@ -535,7 +535,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "primitive.group",
     name: "Group",
-    description: "Container node for grouping children",
+    description: "Group layer that nests children",
     category: "primitive",
     experimental: false,
   },
@@ -626,7 +626,7 @@ const KNOWN_CAPABILITIES: Array<{
   {
     id: "audio.render-plan",
     name: "Audio Render Plan",
-    description: "Mixed audio output with BGM, voiceover, SFX",
+    description: "Root audio layers (BGM, voiceover, SFX)",
     category: "audio",
     experimental: false,
   },
@@ -723,6 +723,15 @@ function explainSingle(diag: {
       explanation: `A binding or patch references a layer that doesn't exist in project.layers.`,
       suggestedAction:
         "Remove the binding or add the missing layer to project.layers.",
+    };
+  }
+
+  // Legacy "Unknown scene" — V1 has no scenes; explain via project.layers
+  if (diag.message.includes("Unknown scene")) {
+    return {
+      explanation: `V1 has no scenes. Visual content lives on project.layers (root zIndex is the timeline lane). The referenced id is not a layer in project.layers.`,
+      suggestedAction:
+        "Use a layer id from project.layers, or add the missing layer.",
     };
   }
 

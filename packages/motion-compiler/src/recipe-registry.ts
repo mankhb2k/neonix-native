@@ -32,7 +32,7 @@ export type AmbientRecipeParams = {
 
 export type RecipeBakeInput = {
   recipeId: MotionRecipeId;
-  sceneId: string;
+  graphId: string;
   targetLayerId: string;
   duration: number;
   seed?: number;

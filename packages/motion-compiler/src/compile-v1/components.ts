@@ -157,7 +157,7 @@ function applyComponentPropForwards(
   });
 }
 
-function buildPropKeyframeClip(
+function buildPropKeyframeMotionUnit(
   instanceId: string,
   propId: string,
   layer: Extract<
@@ -208,7 +208,7 @@ function buildPropKeyframeClip(
 type ExpandComponentResult = {
   layers: V1.LayerV1[];
   wrapperId: string;
-  propClips: JsonRecord[];
+  propMotionUnits: JsonRecord[];
 };
 
 function expandOneComponentInstance(
@@ -222,7 +222,7 @@ function expandOneComponentInstance(
 ): ExpandComponentResult {
   const component = components.get(instanceNode.payload.componentId);
   if (!component) {
-    return { layers: [instanceNode], wrapperId: instanceId, propClips: [] };
+    return { layers: [instanceNode], wrapperId: instanceId, propMotionUnits: [] };
   }
 
   if (componentInstances && runtimeGraphId) {
@@ -256,7 +256,7 @@ function expandOneComponentInstance(
     resolvedProps,
   );
 
-  const propClips: JsonRecord[] = [];
+  const propMotionUnits: JsonRecord[] = [];
   const expandedInternals: V1.LayerV1[] = [];
   for (const internal of processedInternals) {
     if (internal.type === "component") {
@@ -279,7 +279,7 @@ function expandOneComponentInstance(
         nestedWrapper.parentLayerId = nestedParentId;
       }
       expandedInternals.push(...nested.layers);
-      propClips.push(...nested.propClips);
+      propMotionUnits.push(...nested.propMotionUnits);
       continue;
     }
 
@@ -300,8 +300,8 @@ function expandOneComponentInstance(
       const value = resolvedProps[binding.propId];
       if (isKeyframesPropValue(value)) {
         const prop = component.props.find((p) => p.id === binding.propId);
-        propClips.push(
-          buildPropKeyframeClip(
+        propMotionUnits.push(
+          buildPropKeyframeMotionUnit(
             instanceId,
             binding.propId,
             binding.target,
@@ -349,7 +349,7 @@ function expandOneComponentInstance(
     ...(instanceNode.modifiers ? { modifiers: clone(instanceNode.modifiers) } : {}),
   } as V1.LayerV1;
 
-  return { layers: [wrapper, ...expandedInternals], wrapperId, propClips };
+  return { layers: [wrapper, ...expandedInternals], wrapperId, propMotionUnits };
 }
 
 /**
@@ -369,11 +369,11 @@ function expandComponentLayersV1(
 ): {
   layers: V1.LayerV1[];
   wrapperByLayerId: Map<string, string>;
-  propClips: JsonRecord[];
+  propMotionUnits: JsonRecord[];
 } {
   const out: V1.LayerV1[] = [];
   const wrapperByLayerId = new Map<string, string>();
-  const propClips: JsonRecord[] = [];
+  const propMotionUnits: JsonRecord[] = [];
   for (const node of layers) {
     if (node.type !== "component") {
       out.push(node);
@@ -390,9 +390,9 @@ function expandComponentLayersV1(
     );
     wrapperByLayerId.set(node.id, expanded.wrapperId);
     out.push(...expanded.layers);
-    propClips.push(...expanded.propClips);
+    propMotionUnits.push(...expanded.propMotionUnits);
   }
-  return { layers: out, wrapperByLayerId, propClips };
+  return { layers: out, wrapperByLayerId, propMotionUnits };
 }
 
 /**
@@ -414,7 +414,7 @@ export function prepareRuntimeLayerGraph(
   const {
     layers: expandedLayers,
     wrapperByLayerId,
-    propClips,
+    propMotionUnits,
   } = expandComponentLayersV1(
     graph.layers.filter((layer) => layer.type !== "audio"),
     components,
@@ -439,7 +439,7 @@ export function prepareRuntimeLayerGraph(
       }
       return prepared;
     }),
-    clips: propClips,
+    motionUnits: propMotionUnits,
   };
   if (graph.name) result.name = graph.name;
   return result;

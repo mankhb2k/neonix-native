@@ -8,7 +8,7 @@
 import { resolveMediaTiming } from "../media-timing";
 
 export type CompositionSceneInput = {
-  sceneId: string;
+  graphId: string;
   /** Absolute global timeline start (seconds). */
   start: number;
   duration: number;
@@ -23,7 +23,7 @@ export type CompositionSceneInput = {
 };
 
 export type CompositionLayerPlan = {
-  sceneId: string;
+  graphId: string;
   localTime: number;
   opacity: number;
   translateX: number;
@@ -41,7 +41,7 @@ export type CompositionFramePlan = {
 };
 
 type Segment = {
-  sceneId: string;
+  graphId: string;
   start: number;
   duration: number;
   trimStart?: number;
@@ -58,7 +58,7 @@ function buildSegments(scenes: CompositionSceneInput[]): {
   totalDuration: number;
 } {
   const segments: Segment[] = scenes.map((scene) => ({
-    sceneId: scene.sceneId,
+    graphId: scene.graphId,
     start: scene.start,
     duration: scene.duration,
     trimStart: scene.trimStart,
@@ -115,7 +115,7 @@ export function evaluateCompositionLayers(
     }
 
     layers.push({
-      sceneId: seg.sceneId,
+      graphId: seg.graphId,
       localTime: effectiveLocalTime(seg, compositionLocalTime, safeFps),
       opacity: seg.opacity,
       translateX: 0,

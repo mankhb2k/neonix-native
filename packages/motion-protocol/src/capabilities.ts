@@ -54,11 +54,11 @@ export const MOTION_PROTOCOL_LIMITS = Object.freeze({
   parallaxFactor: 8,
   /** Max rich-text runs per text node. */
   richTextRuns: 64,
-  /** Max caption tokens per caption track. */
+  /** Max caption tokens (legacy caption-compiler). */
   captionTokensPerTrack: 4_096,
-  /** Max caption cues after segmentation. */
+  /** Max caption cues after segmentation (legacy caption-compiler). */
   captionCuesPerTrack: 1_024,
-  /** Max caption tracks on the project timeline. */
+  /** Max caption-style groups (not project.captionTracks). */
   captionTracksPerProject: 32,
   /** Max beat markers in AudioAnalysis. */
   audioBeatsPerAsset: 10_000,

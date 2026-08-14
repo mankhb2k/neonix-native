@@ -1,22 +1,14 @@
 /**
  * V1-native layer-graph compilation: prepares runtime layers/tracks from an
- * in-memory layer graph (internal compile bridge) plus normalized clips and
- * variables.
+ * in-memory layer graph plus compiler motion units (presets / property keyframes).
  *
- * Pipeline: resolve variables → layout constraints → fit text → compile
- * clips → assemble runtime layer graph output.
- *
- * This is the canonical V1 → Runtime IR path. No V2 intermediate shape.
- *
- * @internal — used by `compile-v1`; re-exported from the package barrel.
+ * MotionClipV1 (internal schema) is compiled as motion-units only — not timeline clips.
  */
-import {
-  type MotionClipV1,
-  type MotionLayer,
-} from "@motionvideo/motion-protocol";
+import { type MotionLayer } from "@motionvideo/motion-protocol";
+import type { MotionClipV1 as LayerMotionUnit } from "@motionvideo/motion-protocol/internal";
 import {
   type MotionRuntimeProject,
-  type MotionRuntimeScene,
+  type RuntimeLayerGraph,
   type RuntimeSourceRef,
 } from "@motionvideo/motion-protocol/runtime";
 import { applyLayoutConstraints } from "./layout-solver";
@@ -27,7 +19,6 @@ type RuntimeNode = Exclude<
   MotionRuntimeProject["layers"][number],
   { type: "audio" }
 >;
-type RuntimeScene = MotionRuntimeScene;
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -74,69 +65,72 @@ function resolveValue(
 }
 
 function playbackRate(
-  clip: MotionClipV1,
+  unit: LayerMotionUnit,
   variables: Map<string, unknown>,
 ): number {
   const rate = number(
-    resolveValue(clip.playback.rate, variables),
-    `clips.${clip.id}.playback.rate`,
+    resolveValue(unit.playback.rate, variables),
+    `motionUnits.${unit.id}.playback.rate`,
   );
-  if (rate <= 0) throw new Error(`clips.${clip.id}.playback.rate must be > 0`);
+  if (rate <= 0)
+    throw new Error(`motionUnits.${unit.id}.playback.rate must be > 0`);
   return rate;
 }
 
 function playbackDuration(
-  clip: MotionClipV1,
+  unit: LayerMotionUnit,
   variables: Map<string, unknown>,
   graphDuration?: number,
 ): number {
-  const rate = playbackRate(clip, variables);
-  if (clip.playback.iterations === "infinite") {
+  const rate = playbackRate(unit, variables);
+  if (unit.playback.iterations === "infinite") {
     if (graphDuration === undefined)
       throw new Error(
-        `Infinite playback requires a timeline duration: ${clip.id}`,
+        `Infinite playback requires a timeline duration: ${unit.id}`,
       );
     return Math.max(0, graphDuration);
   }
-  return (clip.duration * clip.playback.iterations) / rate;
+  return (unit.duration * unit.playback.iterations) / rate;
 }
 
 function scheduleTimes(
-  clips: MotionClipV1[],
+  units: LayerMotionUnit[],
   variables: Map<string, unknown> = new Map(),
   graphDuration?: number,
 ): Map<string, number> {
-  const byId = new Map(clips.map((clip) => [clip.id, clip]));
+  const byId = new Map(units.map((unit) => [unit.id, unit]));
   const times = new Map<string, number>();
   const visiting = new Set<string>();
-  const resolve = (clip: MotionClipV1): number => {
-    const cached = times.get(clip.id);
+  const resolve = (unit: LayerMotionUnit): number => {
+    const cached = times.get(unit.id);
     if (cached !== undefined) return cached;
-    if (visiting.has(clip.id))
-      throw new Error(`Clip schedule cycle: ${clip.id}`);
-    visiting.add(clip.id);
+    if (visiting.has(unit.id))
+      throw new Error(`Motion-unit schedule cycle: ${unit.id}`);
+    visiting.add(unit.id);
     let at: number;
-    if (clip.schedule.kind === "absolute") at = clip.schedule.at;
-    else if (clip.schedule.kind === "timeline-end") {
+    if (unit.schedule.kind === "absolute") at = unit.schedule.at;
+    else if (unit.schedule.kind === "timeline-end") {
       const duration = graphDuration ?? 0;
-      at = Math.max(0, duration - clip.duration + clip.schedule.offset);
+      at = Math.max(0, duration - unit.duration + unit.schedule.offset);
     } else {
-      const dependency = byId.get(clip.schedule.clipId);
+      const dependency = byId.get(unit.schedule.clipId);
       if (!dependency)
-        throw new Error(`Unknown schedule clip: ${clip.schedule.clipId}`);
+        throw new Error(
+          `Unknown schedule motion-unit: ${unit.schedule.clipId}`,
+        );
       const dependencyStart = resolve(dependency);
       at =
-        clip.schedule.kind === "after"
+        unit.schedule.kind === "after"
           ? dependencyStart +
             playbackDuration(dependency, variables, graphDuration) +
-            (clip.schedule.offset ?? 0)
-          : dependencyStart + (clip.schedule.offset ?? 0);
+            (unit.schedule.offset ?? 0)
+          : dependencyStart + (unit.schedule.offset ?? 0);
     }
-    visiting.delete(clip.id);
-    times.set(clip.id, at);
+    visiting.delete(unit.id);
+    times.set(unit.id, at);
     return at;
   };
-  for (const clip of clips) resolve(clip);
+  for (const unit of units) resolve(unit);
   return times;
 }
 
@@ -187,17 +181,17 @@ function presetTracks(
 
 function expandPlaybackTrack(
   track: RuntimeTrack,
-  clip: MotionClipV1,
+  unit: LayerMotionUnit,
   start: number,
   graphDuration: number,
   variables: Map<string, unknown>,
 ): RuntimeTrack {
-  const rate = playbackRate(clip, variables);
-  const cycleDuration = clip.duration / rate;
+  const rate = playbackRate(unit, variables);
+  const cycleDuration = unit.duration / rate;
   const iterations =
-    clip.playback.iterations === "infinite"
+    unit.playback.iterations === "infinite"
       ? Number.POSITIVE_INFINITY
-      : clip.playback.iterations;
+      : unit.playback.iterations;
   const keys: RuntimeTrack["keys"] = [];
   const append = (key: RuntimeTrack["keys"][number]): void => {
     const previous = keys.at(-1);
@@ -210,12 +204,12 @@ function expandPlaybackTrack(
     if (cycleStart >= graphDuration - 1e-9) break;
     const cycleEnd = Math.min(graphDuration, cycleStart + cycleDuration);
     const reverse =
-      clip.playback.direction === "reverse" ||
-      (clip.playback.direction === "alternate" && iteration % 2 === 1);
+      unit.playback.direction === "reverse" ||
+      (unit.playback.direction === "alternate" && iteration % 2 === 1);
     const sourceKeys = reverse
       ? [...track.keys].reverse().map((key) => ({
           ...key,
-          t: canonicalTime((clip.duration - key.t) / rate),
+          t: canonicalTime((unit.duration - key.t) / rate),
         }))
       : track.keys.map((key) => ({ ...key, t: canonicalTime(key.t / rate) }));
     for (const key of sourceKeys) {
@@ -229,34 +223,36 @@ function expandPlaybackTrack(
 function resolveTrackTime(
   time: unknown,
   markers: Map<string, number>,
-  clipId: string,
+  unitId: string,
 ): number {
   if (typeof time === "number" && Number.isFinite(time)) return time;
   if (time && typeof time === "object" && "markerId" in time) {
     const markerId = (time as { markerId: string; offset?: number }).markerId;
     const offset = (time as { offset?: number }).offset ?? 0;
     if (!markers.has(markerId))
-      throw new Error(`Unknown timeline marker ${markerId} in clip ${clipId}`);
+      throw new Error(
+        `Unknown timeline marker ${markerId} in motion-unit ${unitId}`,
+      );
     return markers.get(markerId)! + offset;
   }
   throw new Error(
-    `Invalid keyframe time in clip ${clipId}: ${JSON.stringify(time)}`,
+    `Invalid keyframe time in motion-unit ${unitId}: ${JSON.stringify(time)}`,
   );
 }
 
-function compileClips(
+function compileMotionUnits(
   layers: RuntimeNode[],
-  clips: MotionClipV1[],
+  units: LayerMotionUnit[],
   variables: Map<string, unknown>,
   graphDuration: number,
   markers: Map<string, number> = new Map(),
 ): RuntimeTrack[] {
   const layerById = new Map(layers.map((node) => [node.id, node]));
-  const starts = scheduleTimes(clips, variables, graphDuration);
-  const expanded = clips.flatMap((clip) => {
-    const start = canonicalTime(starts.get(clip.id) ?? 0);
-    if (clip.source.kind === "tracks") {
-      return clip.source.tracks.map((track) =>
+  const starts = scheduleTimes(units, variables, graphDuration);
+  const expanded = units.flatMap((unit) => {
+    const start = canonicalTime(starts.get(unit.id) ?? 0);
+    if (unit.source.kind === "tracks") {
+      return unit.source.tracks.map((track) =>
         expandPlaybackTrack(
           {
             layerId: track.layerId,
@@ -265,7 +261,7 @@ function compileClips(
             ...(track.preBehavior ? { preBehavior: track.preBehavior } : {}),
             ...(track.postBehavior ? { postBehavior: track.postBehavior } : {}),
             keys: track.keys.map((key) => ({
-              t: resolveTrackTime(key.t, markers, clip.id),
+              t: resolveTrackTime(key.t, markers, unit.id),
               v: resolveValue(
                 key.v,
                 variables,
@@ -273,28 +269,29 @@ function compileClips(
               ...(key.easing ? { easing: key.easing } : {}),
             })),
           },
-          clip,
+          unit,
           start,
           graphDuration,
           variables,
         ),
       );
     }
-    if (!clip.layerId)
-      throw new Error(`Preset clip ${clip.id} requires layerId`);
-    const node = layerById.get(clip.layerId);
-    if (!node) throw new Error(`Unknown clip target: ${clip.layerId}`);
+    if (!unit.layerId)
+      throw new Error(`Preset motion-unit ${unit.id} requires layerId`);
+    const node = layerById.get(unit.layerId);
+    if (!node)
+      throw new Error(`Unknown motion-unit target layer: ${unit.layerId}`);
     return presetTracks(
       node,
-      clip.source.presetId,
+      unit.source.presetId,
       0,
-      clip.duration,
+      unit.duration,
       literalPresetParams(
-        clip.source.params as Record<string, unknown> | undefined,
+        unit.source.params as Record<string, unknown> | undefined,
         variables,
       ),
     ).map((track) =>
-      expandPlaybackTrack(track, clip, start, graphDuration, variables),
+      expandPlaybackTrack(track, unit, start, graphDuration, variables),
     );
   });
   const merged = new Map<string, RuntimeTrack>();
@@ -318,15 +315,15 @@ export function compileLayerGraphToRuntime(input: {
   id: string;
   duration: number;
   layers: MotionLayer[];
-  clips: MotionClipV1[];
+  motionUnits: LayerMotionUnit[];
   variables: Map<string, unknown>;
   markers?: Array<{ id: string; t: number }>;
-  space?: RuntimeScene["space"];
-  motionBlur?: RuntimeScene["motionBlur"];
-  drivers?: RuntimeScene["drivers"];
+  space?: RuntimeLayerGraph["space"];
+  motionBlur?: RuntimeLayerGraph["motionBlur"];
+  drivers?: RuntimeLayerGraph["drivers"];
   activeCameraLayerId?: string;
   sourceRef?: RuntimeSourceRef;
-}): RuntimeScene {
+}): RuntimeLayerGraph {
   const variables = input.variables;
   const resolvedAuthoringNodes = input.layers.map(
     (node) => resolveValue(node, variables) as unknown as MotionLayer,
@@ -359,9 +356,9 @@ export function compileLayerGraphToRuntime(input: {
     sourceRef,
     layers: runtimeNodes,
     tracks: [
-      ...compileClips(
+      ...compileMotionUnits(
         runtimeNodes,
-        input.clips,
+        input.motionUnits,
         variables,
         input.duration,
         markers,

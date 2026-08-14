@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 2,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "transition",
     "name": "Transition",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "9728020562d82fe42e9cca9319cd22c8",
+  "runtimeHash": "f546f629f55d9d9da9a08280f393212e",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {

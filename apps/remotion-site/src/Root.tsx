@@ -4,22 +4,19 @@ import {
   MotiClipVideo,
   type MotiClipVideoProps,
 } from "@motionvideo/remotion-renderer";
-import { parseRenderManifest } from "@motionvideo/render-contracts";
-import type {
-  MotionRuntimeProject,
-} from "@motionvideo/motion-protocol/runtime";
+import type { MotionRuntimeProject } from "@motionvideo/motion-protocol/runtime";
 
 export type MotiClipCompositionProps = MotiClipVideoProps;
 
 const calculateMetadata: CalculateMetadataFunction<
   MotiClipCompositionProps
 > = async ({ props }) => {
-  const manifest = parseRenderManifest(props.manifest);
+  const composition = props.manifest.composition;
   return {
-    durationInFrames: manifest.composition.durationInFrames,
-    fps: manifest.composition.fps,
-    width: manifest.composition.width,
-    height: manifest.composition.height,
+    durationInFrames: composition.durationInFrames,
+    fps: composition.fps,
+    width: composition.width,
+    height: composition.height,
   };
 };
 

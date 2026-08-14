@@ -40,7 +40,7 @@ export type RemotionPaintTree = {
   width: number;
   height: number;
   background?: string;
-  sceneId: string;
+  graphId: string;
   frame: number;
   time: number;
   roots: RemotionPaintTreeNode[];
@@ -85,7 +85,7 @@ export function buildRemotionPaintTree(
     width: list.width,
     height: list.height,
     background: list.background,
-    sceneId: list.sceneId,
+    graphId: list.graphId,
     frame: list.frame,
     time: list.time,
     roots: list.roots.map(mapNode),

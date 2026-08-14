@@ -31,7 +31,7 @@ import type { PaintDrawCommand } from "../paint";
 
 function makeBlurSnapshot(items: RenderSnapshotItem[]): RenderSnapshot {
   return {
-    sceneId: "test",
+    graphId: "test",
     frame: 0,
     time: 0,
     width: 400,
@@ -48,7 +48,7 @@ function makeItem(
 ): RenderSnapshotItem {
   return {
     key: "test:n1",
-    sceneId: "test",
+    graphId: "test",
     layerId: "n1",
     nodeType: "shape",
     worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
@@ -453,7 +453,7 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -489,7 +489,7 @@ describe("Task 4.3 — explicit unsupported diagnostic", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -553,7 +553,7 @@ describe("Task 4.4 — contract versioning + validator", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -578,7 +578,7 @@ describe("Task 4.4 — contract versioning + validator", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },
@@ -611,7 +611,7 @@ describe("Task 4.4 — contract versioning + validator", () => {
           op: "beginFrame",
           width: 10,
           height: 10,
-          sceneId: "s",
+          graphId: "s",
           frame: 0,
           time: 0,
         },

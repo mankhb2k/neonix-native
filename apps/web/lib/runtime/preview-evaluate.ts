@@ -32,7 +32,7 @@ export type PreviewParityNode = {
 };
 
 export type PreviewParitySnapshot = {
-  sceneId: string;
+  graphId: string;
   time: number;
   layers: PreviewParityNode[];
 };
@@ -43,7 +43,7 @@ export function matrixToCss(matrix: Matrix2D): string {
 
 export function previewParitySnapshot(
   runtime: MotionRuntimeProject,
-  sceneId: string | undefined,
+  graphId: string | undefined,
   time: number,
 ): PreviewParitySnapshot {
   const scene = layerGraphFromRuntime(runtime);
@@ -51,13 +51,13 @@ export function previewParitySnapshot(
     throw new Error("Runtime preview requires at least one layer");
   const evaluated = evaluateScene(scene, time);
   return {
-    sceneId: scene.id,
+    graphId: scene.id,
     time,
     layers: evaluated.map((item) => {
       const worldOrigin = applyMatrix(item.worldMatrix, 0, 0);
       return {
-        id: item.node.id,
-        type: item.node.type,
+        id: item.layer.id,
+        type: item.layer.type,
         visible: item.visible,
         worldOpacity: item.worldOpacity,
         transform: {

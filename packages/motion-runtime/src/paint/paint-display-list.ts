@@ -55,7 +55,7 @@ export type PaintDisplayList = {
   width: number;
   height: number;
   background?: string;
-  sceneId: string;
+  graphId: string;
   frame: number;
   time: number;
   roots: PaintDisplayNode[];

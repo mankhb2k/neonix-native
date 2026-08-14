@@ -28,7 +28,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 
 | File                 | Nhiệm vụ                                                                                                                                                                                                                 |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `index.ts`           | Barrel re-export cho toàn bộ V1. Root schema nằm ở `./project` (leaf module) để tránh circular deps với `mcp`, `patch`, `parse`, `skills`.                                                                               |
+| `index.ts`           | Authoring V1 barrel — layers, assets, bindings, patch, MCP. Không export captions hay motion-clip units. |
 | `common.ts`          | V1 shared primitives — **canonical source of truth** cho `IdSchema`, `FiniteNumberSchema`, `SemverSchema`, `PropertyPathSchema`, `ColorHexSchema`, `LocaleIdentifierSchema`, `MOTION_PROJECT_V1_FORMAT_VERSION` (= 1), … |
 | `values.ts`          | JSON value schemas — `JsonValueSchema` (lazy recursive), `ResolvableValueSchema`, `ValueKindSchema`.                                                                                                                     |
 | `transform.ts`       | `TransformSchema` — vị trí/kích thước/xoay/scale/opacity/anchor/flip của layer.                                                                                                                                           |
@@ -79,7 +79,7 @@ Hướng dẫn này mô tả **nhiệm vụ của từng file** trong `packages/
 | File         | Nhiệm vụ                                                                                            |
 | ------------ | --------------------------------------------------------------------------------------------------- |
 | `index.ts`   | Animation barrel — re-export easing/clips/tracks/drivers.                                           |
-| `clips.ts`   | `MotionClipV1Schema` — layer-graph motion clips (scheduling `absolute`/`timeline-end`/`after`/`with`). |
+| `clips.ts`   | **Internal** compiler motion-unit schema (`MotionClipV1`) — import `@motionvideo/motion-protocol/internal`. Không thuộc authoring JSON. |
 | `drivers.ts` | `ProceduralDriverSchema` — procedural driver vocabulary (evaluated trong runtime IR).               |
 | `easing.ts`  | Keyframe easing — `KeyframeEasingNamedSchema`/`Cubic`/`Spring`/`KeyframeEasingSchema`.              |
 | `tracks.ts`  | `PropertyTrackV1Schema` — property track + extrapolation + keyframes.                               |

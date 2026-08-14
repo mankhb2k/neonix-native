@@ -81,6 +81,8 @@ export async function startRenderOnLambda(input: {
     functionName: process.env.REMOTION_FUNCTION_NAME!,
     serveUrl: process.env.REMOTION_SERVE_URL!,
     composition: "MotiClipVideo",
+    // MotiClipVideo fetches MotionRuntimeProject from manifest.runtime.url
+    // (https). Do not inline the IR here — Lambda inputProps stay small.
     inputProps: {
       manifest: input.manifest,
     },

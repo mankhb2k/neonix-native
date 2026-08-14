@@ -1,6 +1,4 @@
-import type { V1 } from "@motionvideo/motion-protocol";
-
-type CaptionTrack = V1.CaptionTrack;
+import type { CaptionTrack } from "@motionvideo/motion-protocol/internal";
 
 export type CompiledCaptionCueToken = {
   tokenId: string;
@@ -27,7 +25,7 @@ export type CompiledCaptionTrack = {
 };
 
 /**
- * Deterministic token → cue segmentation for caption tracks.
+ * Compiler motion-unit → cue segmentation. Caption tracks are not authoring JSON.
  * Timing stays in global project seconds.
  */
 export function compileCaptionTracks(tracks: CaptionTrack[]): CompiledCaptionTrack[] {

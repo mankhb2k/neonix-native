@@ -4,7 +4,7 @@ import { Container } from "pixi.js";
 import { createPixiFramePainter } from "./PixiFramePainter";
 
 const snapshot: RenderSnapshot = {
-  sceneId: "s1",
+  graphId: "s1",
   frame: 0,
   time: 0,
   width: 200,
@@ -16,7 +16,7 @@ const snapshot: RenderSnapshot = {
   items: [
     {
       key: "s1:shape",
-      sceneId: "s1",
+      graphId: "s1",
       layerId: "shape",
       nodeType: "shape",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 10, f: 20 },
@@ -38,7 +38,7 @@ const snapshot: RenderSnapshot = {
     },
     {
       key: "s1:text",
-      sceneId: "s1",
+      graphId: "s1",
       layerId: "text",
       nodeType: "text",
       worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },
@@ -88,7 +88,7 @@ describe("PixiFramePainter", () => {
       items: [
         {
           key: "s1:bad",
-          sceneId: "s1",
+          graphId: "s1",
           layerId: "bad",
           nodeType: "mesh",
           worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },

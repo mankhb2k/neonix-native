@@ -61,7 +61,7 @@ describe("PreparedRuntimeProject (type smoke)", () => {
 import {
   isPatchStale,
   nextSequence,
-  affectedSceneIds,
+  affectedGraphIds,
   PATCH_SEQUENCE_INITIAL,
   type PaintPatch,
   type TrackValuesPatch,
@@ -83,7 +83,7 @@ describe("RuntimePatch protocol", () => {
       const patch: PaintPatch = {
         kind: "paint",
         sequence: 3,
-        sceneId: "s1",
+        graphId: "s1",
         layerId: "n1",
         property: "style.fill",
         value: "#ff0000",
@@ -95,7 +95,7 @@ describe("RuntimePatch protocol", () => {
       const patch: PaintPatch = {
         kind: "paint",
         sequence: 5,
-        sceneId: "s1",
+        graphId: "s1",
         layerId: "n1",
         property: "style.fill",
         value: "#ff0000",
@@ -105,37 +105,37 @@ describe("RuntimePatch protocol", () => {
     });
   });
 
-  describe("affectedSceneIds", () => {
+  describe("affectedGraphIds", () => {
     it("paint patch affects one scene", () => {
       const patch: PaintPatch = {
         kind: "paint",
         sequence: 1,
-        sceneId: "scene-a",
+        graphId: "scene-a",
         layerId: "n1",
         property: "transform.opacity",
         value: 0.5,
       };
-      expect(affectedSceneIds(patch)).toEqual(["scene-a"]);
+      expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
     });
 
     it("track-values patch affects one scene", () => {
       const patch: TrackValuesPatch = {
         kind: "track-values",
         sequence: 1,
-        sceneId: "scene-a",
+        graphId: "scene-a",
         tracks: [],
       };
-      expect(affectedSceneIds(patch)).toEqual(["scene-a"]);
+      expect(affectedGraphIds(patch)).toEqual(["scene-a"]);
     });
 
-    it("structural patch returns all sceneIds", () => {
+    it("structural patch returns all graphIds", () => {
       const patch: StructuralPatch = {
         kind: "structural",
         sequence: 1,
         scope: "full",
-        sceneIds: ["s1", "s2", "s3"],
+        graphIds: ["s1", "s2", "s3"],
       };
-      expect(affectedSceneIds(patch)).toEqual(["s1", "s2", "s3"]);
+      expect(affectedGraphIds(patch)).toEqual(["s1", "s2", "s3"]);
     });
   });
 
@@ -143,7 +143,7 @@ describe("RuntimePatch protocol", () => {
     const paint: PaintPatch = {
       kind: "paint",
       sequence: 1,
-      sceneId: "s",
+      graphId: "s",
       layerId: "n",
       property: "style.fill",
       value: "#fff",
@@ -153,7 +153,7 @@ describe("RuntimePatch protocol", () => {
     const track: TrackValuesPatch = {
       kind: "track-values",
       sequence: 2,
-      sceneId: "s",
+      graphId: "s",
       tracks: [
         { layerId: "n", property: "transform.x", keys: [{ t: 0, v: 100 }] },
       ],
@@ -163,8 +163,8 @@ describe("RuntimePatch protocol", () => {
     const structural: StructuralPatch = {
       kind: "structural",
       sequence: 3,
-      scope: "scene",
-      sceneIds: ["s1"],
+        scope: "graph",
+      graphIds: ["s1"],
     };
     expect(structural.kind).toBe("structural");
   });

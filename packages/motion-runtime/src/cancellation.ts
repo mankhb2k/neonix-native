@@ -92,7 +92,7 @@ export function cancelledDiagnostic(
   opts?: {
     frame?: number;
     time?: number;
-    sceneId?: string;
+    graphId?: string;
   },
 ): RuntimeDiagnostic {
   return createDiagnostic(code, {

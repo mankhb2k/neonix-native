@@ -90,7 +90,7 @@ describe("evaluateFrame", () => {
       height: 100,
       background: "#000",
     });
-    expect(a.sceneId).toBe("scene.wave1");
+    expect(a.graphId).toBe("scene.wave1");
     expect(a.paint.commands).toEqual(b.paint.commands);
     expect(a.interaction.items.map((i) => i.key)).toEqual(
       b.interaction.items.map((i) => i.key),

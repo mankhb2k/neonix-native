@@ -254,7 +254,6 @@ export {
 } from "./v1/layers";
 
 export {
-  PlaybackSchema,
   KeyframeEasingNamedSchema,
   KeyframeEasingCubicSchema,
   KeyframeEasingSpringSchema,
@@ -265,7 +264,5 @@ export {
   TimelineMarkerSchema,
   TrackTimeSchema,
 } from "./v1/animation";
-
-export type { MotionClipV1 } from "./v1/animation/clips";
 
 export { DesignTokensSchema, type DesignTokens } from "./v1/variables";

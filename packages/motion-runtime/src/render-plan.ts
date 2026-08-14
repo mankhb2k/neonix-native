@@ -36,7 +36,7 @@ export type RenderPlanDiagnostic = {
 };
 
 export type RenderPlan = {
-  sceneId: string;
+  graphId: string;
   passes: RenderPass[];
   totalAllocatedPixels: number;
   diagnostics: RenderPlanDiagnostic[];
@@ -72,7 +72,7 @@ export function buildRenderPlan(
   const passes: RenderPass[] = [];
 
   for (const evaluated of sorted) {
-    const node = evaluated.node;
+    const node = evaluated.layer;
     if (!evaluated.visible) continue;
 
     const effects = node.effects ?? [];
@@ -132,7 +132,7 @@ export function buildRenderPlan(
       : undefined;
 
   return {
-    sceneId: scene.id,
+    graphId: scene.id,
     passes,
     totalAllocatedPixels,
     diagnostics,

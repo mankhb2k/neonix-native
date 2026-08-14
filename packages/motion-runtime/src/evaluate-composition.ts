@@ -2,7 +2,7 @@ import { type RenderSnapshot } from "./render-snapshot";
 import { frameIndexAtTime } from "./clock";
 import type {
   MotionRuntimeProject,
-  MotionRuntimeScene,
+  RuntimeLayerGraph,
 } from "@motionvideo/motion-protocol/runtime";
 import { timelineTotalDuration } from "./resolve-timeline";
 import { evaluateFrame, type EvaluatedFrame } from "./evaluated-frame";
@@ -41,7 +41,7 @@ function scenesForComposition(
   if (!(duration > 0)) return [];
   return [
     {
-      sceneId: ROOT_LAYER_GRAPH_ID,
+      graphId: ROOT_LAYER_GRAPH_ID,
       start: 0,
       duration,
       sourceDuration: duration,
@@ -70,11 +70,11 @@ function resolveCompositionEvaluateTarget(
   runtime: MotionRuntimeProject,
   frame: number,
   fps: number,
-  sceneId?: string,
+  graphId?: string,
   width = 1080,
   height = 1920,
 ): {
-  scene: MotionRuntimeScene;
+  scene: RuntimeLayerGraph;
   time: number;
   frame: number;
   layerPlan?: CompositionFramePlan;
@@ -82,7 +82,7 @@ function resolveCompositionEvaluateTarget(
   const safeFps = Math.max(1, fps);
   const graph = layerGraphFromRuntime(runtime);
 
-  if (sceneId) {
+  if (graphId) {
     if (graph.layers.length === 0 && !(graph.duration > 0)) return null;
     return { scene: graph, time: frame / safeFps, frame };
   }
@@ -102,8 +102,8 @@ function resolveCompositionEvaluateTarget(
  * Evaluate a composition frame into the shared {@link EvaluatedFrame} contract
  * (interaction snapshot + paint buffer + diagnostics).
  *
- * - When `sceneId` is set: frame is local to that scene.
- * - When `sceneId` is omitted: frame is global; transition overlaps use the shared layer plan.
+ * - When `graphId` is set: frame is local to that scene.
+ * - When `graphId` is omitted: frame is global; transition overlaps use the shared layer plan.
  *
  * @deprecated Use {@link evaluateCompositionFrameV1} which returns the richer
  *             {@link EvaluatedCompositionFrame} with layers, projection, audio, and media state.
@@ -114,14 +114,14 @@ export function evaluateCompositionFrame(
   fps: number,
   width: number,
   height: number,
-  sceneId?: string,
+  graphId?: string,
   background?: string,
 ): EvaluatedFrame | null {
   const target = resolveCompositionEvaluateTarget(
     runtime,
     frame,
     fps,
-    sceneId,
+    graphId,
     width,
     height,
   );
@@ -155,7 +155,7 @@ export function evaluateCompositionFrame(
  * Options:
  *  - `stageView`: "camera" (default) uses the scene's active camera; "flat" ignores camera
  *     transform and renders in identity space (useful for editor flat preview).
- *  - `sceneId`: local to a single scene; omit for global composition timeline.
+ *  - `graphId`: local to a single scene; omit for global composition timeline.
  */
 export function evaluateCompositionFrameV1(
   runtime: MotionRuntimeProject,
@@ -164,7 +164,7 @@ export function evaluateCompositionFrameV1(
   width: number,
   height: number,
   opts?: {
-    sceneId?: string;
+    graphId?: string;
     background?: string;
     /** Camera override — "flat" ignores camera transforms */
     stageView?: "camera" | "flat";
@@ -176,7 +176,7 @@ export function evaluateCompositionFrameV1(
 ): EvaluatedCompositionFrame | null {
   const safeFps = Math.max(1, fps);
   const globalTime = frame / safeFps;
-  const sceneId = opts?.sceneId;
+  const graphId = opts?.graphId;
   const background = opts?.background;
   const stageView = opts?.stageView ?? "camera";
 
@@ -186,7 +186,7 @@ export function evaluateCompositionFrameV1(
   const collector = new RuntimeDiagnosticCollector({
     frame,
     time: globalTime,
-    sceneId: sceneId,
+    graphId: graphId,
   });
 
   const assetUriById = new Map(
@@ -212,7 +212,7 @@ export function evaluateCompositionFrameV1(
 
   // ── Evaluate each layer ─────────────────────────────────────────
   const layers: EvaluatedLayer[] = [];
-  const sceneCache = new Map<string, MotionRuntimeScene>();
+  const sceneCache = new Map<string, RuntimeLayerGraph>();
   const graph = layerGraphFromRuntime(runtime);
   sceneCache.set(ROOT_LAYER_GRAPH_ID, graph);
 
@@ -221,7 +221,7 @@ export function evaluateCompositionFrameV1(
     throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
 
     const layer = layerPlan.layers[i]!;
-    const scene = sceneCache.get(layer.sceneId) ?? graph;
+    const scene = sceneCache.get(layer.graphId) ?? graph;
 
     const localFrame = Math.max(0, Math.round(layer.localTime * safeFps));
     const evaluated = evaluateFrame({
@@ -236,17 +236,17 @@ export function evaluateCompositionFrameV1(
 
     // Generate stable keys for each drawable
     const iterIdx = layerPlan.layers
-      .filter((l) => l.sceneId === layer.sceneId)
+      .filter((l) => l.graphId === layer.graphId)
       .indexOf(layer);
     const layerKey = stableLayerKey(
-      layer.sceneId,
+      layer.graphId,
       `layer_${i}`,
       iterIdx > 0 ? iterIdx : undefined,
     );
 
     layers.push({
       layerKey,
-      sceneId: layer.sceneId,
+      graphId: layer.graphId,
       layerId: `composition_layer_${i}`,
       composition: layer,
       interaction: evaluated.interaction,
@@ -257,7 +257,7 @@ export function evaluateCompositionFrameV1(
   // ── Compute perspective projection early (needed for 3D frame evaluation) ─
   const primaryScene =
     layers.length > 0
-      ? (sceneCache.get(layers[layers.length - 1]!.sceneId) ?? null)
+      ? (sceneCache.get(layers[layers.length - 1]!.graphId) ?? null)
       : null;
   const perspectiveProjection = resolvePerspectiveProjection(
     primaryScene,
@@ -270,7 +270,7 @@ export function evaluateCompositionFrameV1(
   if (perspectiveProjection) {
     for (const layer of layers) {
       throwIfAborted(opts?.signal, "EVALUATION_CANCELLED");
-      const scene = sceneCache.get(layer.sceneId);
+      const scene = sceneCache.get(layer.graphId);
       if (!scene || (scene.space ?? "flat-2d") !== "perspective-3d") continue;
       const localFrame = Math.max(
         0,
@@ -332,7 +332,7 @@ export function evaluateCompositionFrameV1(
         cancelledDiagnostic("EVALUATION_CANCELLED", {
           frame,
           time: globalTime,
-          sceneId,
+          graphId,
         }),
       ),
     );
@@ -356,7 +356,7 @@ export function evaluateCompositionFrameV1(
       combinedInteraction ??
       layers[0]?.interaction ??
       ({
-        sceneId: ROOT_LAYER_GRAPH_ID,
+        graphId: ROOT_LAYER_GRAPH_ID,
         frame,
         time: globalTime,
         width,
@@ -380,11 +380,11 @@ export function evaluateCompositionSnapshot(
   fps: number,
   width: number,
   height: number,
-  sceneId?: string,
+  graphId?: string,
   background?: string,
 ): RenderSnapshot | null {
   const v1 = evaluateCompositionFrameV1(runtime, frame, fps, width, height, {
-    sceneId,
+    graphId,
     background,
   });
   return v1?.interaction ?? null;
@@ -398,7 +398,7 @@ export function evaluateCompositionSnapshot(
  * This is a scene-only projection — doesn't depend on evaluated frames.
  */
 function resolvePerspectiveProjection(
-  scene: MotionRuntimeScene | null,
+  scene: RuntimeLayerGraph | null,
   width: number,
   height: number,
 ): { viewMatrix: number[]; projectionMatrix: number[] } | null {
@@ -448,7 +448,7 @@ function resolvePerspectiveProjection(
 }
 
 function buildProjection(
-  scene: MotionRuntimeScene | null,
+  scene: RuntimeLayerGraph | null,
   interaction: RenderSnapshot | null,
   stageView: "camera" | "flat",
   width: number,
@@ -631,11 +631,11 @@ function buildMediaState(
 
 export function compositionDurationInFrames(
   runtime: MotionRuntimeProject,
-  sceneId?: string,
+  graphId?: string,
   fps = 30,
 ): number {
   const safeFps = Math.max(1, fps);
-  if (sceneId) {
+  if (graphId) {
     const graph = layerGraphFromRuntime(runtime);
     if (graph.layers.length === 0 && !(graph.duration > 0))
       return Math.max(1, safeFps);

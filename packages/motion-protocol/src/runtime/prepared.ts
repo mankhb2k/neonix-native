@@ -11,28 +11,25 @@
  * remains the serialization format.
  */
 
-import type {
-  MotionRuntimeProject,
-  MotionRuntimeScene,
-} from "./project";
+import type { MotionRuntimeProject, RuntimeLayerGraph } from "./project";
 
-// ── Per-graph index ───────────────────────────────────────────────────
-
-/** A runtime node as it appears in MotionRuntimeProject.layers */
-export type RuntimeSceneNode = Exclude<
+/** A runtime visual layer as it appears in MotionRuntimeProject.layers */
+export type RuntimeVisualLayer = Exclude<
   MotionRuntimeProject["layers"][number],
   { type: "audio" }
 >;
 
-/** A runtime track as it appears in MotionRuntimeProject.tracks */
-export type RuntimeSceneTrack = MotionRuntimeProject["tracks"][number];
+/** A runtime property track as it appears in MotionRuntimeProject.tracks */
+export type RuntimePropertyTrack = MotionRuntimeProject["tracks"][number];
 
-export type RuntimeScene = MotionRuntimeScene;
+export type RuntimeSceneNode = RuntimeVisualLayer;
+export type RuntimeSceneTrack = RuntimePropertyTrack;
+export type RuntimeScene = RuntimeLayerGraph;
 
 // ── Static geometry descriptor ───────────────────────────────────────
 
 /**
- * Pre-computed static geometry for a node.
+ * Pre-computed static geometry for a layer.
  * Derived from transform + type-specific bounds at compile time.
  * Animated properties have this as their "at-rest" baseline.
  */
@@ -48,8 +45,8 @@ export type StaticGeometry = {
     e: number;
     f: number;
   };
-  /** Node type for type-specific paint decisions */
-  nodeType: RuntimeSceneNode["type"];
+  /** Layer type for type-specific paint decisions */
+  nodeType: RuntimeVisualLayer["type"];
 };
 
 // ── Text layout input ─────────────────────────────────────────────────
@@ -75,7 +72,7 @@ export type TextLayoutInput = {
 // ── Compositing scope ─────────────────────────────────────────────────
 
 /**
- * A compositing scope defines a region of the node tree that needs
+ * A compositing scope defines a region of the layer tree that needs
  * offscreen isolation (for masks, effects, or blend operations).
  */
 export type CompositingScope = {
@@ -83,7 +80,7 @@ export type CompositingScope = {
   layerIds: string[];
   /** Why isolation is needed */
   reason: "mask" | "effect" | "blend" | "adjustment";
-  /** Source node for mask/matte */
+  /** Source layer for mask/matte */
   sourceLayerId?: string;
 };
 
@@ -94,9 +91,9 @@ export type CompositingScope = {
  */
 export type DepGraphNode = {
   layerId: string;
-  /** Nodes that this node depends on (parent, mask source, constraint target...) */
+  /** Layers that this layer depends on (parent, mask source, constraint target...) */
   dependsOn: string[];
-  /** Nodes that depend on this node */
+  /** Layers that depend on this layer */
   dependedOnBy: string[];
 };
 
@@ -106,7 +103,7 @@ export type DepGraphNode = {
  * PreparedRuntimeProject — compiled project with all indexes pre-built.
  *
  * Created by the compiler. Consumed by:
- *   - evaluator (O(1) node/track lookups)
+ *   - evaluator (O(1) layer/track lookups)
  *   - painter (static geometry, compositing scopes)
  *   - renderer (capability fingerprint, asset URIs)
  */
@@ -120,55 +117,27 @@ export type PreparedRuntimeProject = {
   /** Capability manifest version at compile time */
   capabilityFingerprint: string;
 
-  // ── Global indexes ──
-
-  /** Scene lookup by ID (across all scenes) */
-  sceneById: Map<string, RuntimeScene>;
-
   /** Asset URI by asset ID */
   assetUriMap: Map<string, string>;
 
-  // ── Per-scene indexes ──
+  /** Visual layer lookup by id (one graph). */
+  layerById: Map<string, RuntimeVisualLayer>;
 
-  /**
-   * Per-scene node lookup.
-   * sceneNodeById.get(sceneId).get(layerId) → node
-   */
-  sceneNodeById: Map<string, Map<string, RuntimeSceneNode>>;
+  /** Property tracks indexed by target layer id. */
+  tracksByLayerId: Map<string, RuntimePropertyTrack[]>;
 
-  /**
-   * Per-scene track index by target node ID.
-   * sceneTracksByTarget.get(sceneId).get(layerId) → tracks[]
-   */
-  sceneTracksByTarget: Map<string, Map<string, RuntimeSceneTrack[]>>;
+  /** Topological order of layers (parent before children). */
+  topoOrder: string[];
 
-  /**
-   * Per-scene topological order of layers (parent before children).
-   * sceneTopoOrder.get(sceneId) → nodeId[]
-   */
-  sceneTopoOrder: Map<string, string[]>;
+  /** Static geometry for each visual layer. */
+  staticGeometry: Map<string, StaticGeometry>;
 
-  /**
-   * Per-scene static geometry for each node.
-   * sceneStaticGeometry.get(sceneId).get(layerId) → geometry
-   */
-  sceneStaticGeometry: Map<string, Map<string, StaticGeometry>>;
+  /** Text layout inputs for text layers only. */
+  textLayout: TextLayoutInput[];
 
-  /**
-   * Per-scene text layout inputs for text layers only.
-   * sceneTextLayout.get(sceneId) → TextLayoutInput[]
-   */
-  sceneTextLayout: Map<string, TextLayoutInput[]>;
+  /** Compositing scopes (masks, effects, blends). */
+  compositingScopes: CompositingScope[];
 
-  /**
-   * Per-scene compositing scopes (masks, effects, blends).
-   * sceneCompositingScopes.get(sceneId) → CompositingScope[]
-   */
-  sceneCompositingScopes: Map<string, CompositingScope[]>;
-
-  /**
-   * Per-scene dependency graph for invalidation.
-   * sceneDepGraph.get(sceneId) → DepGraphNode[]
-   */
-  sceneDepGraph: Map<string, DepGraphNode[]>;
+  /** Dependency graph for invalidation. */
+  depGraph: DepGraphNode[];
 };

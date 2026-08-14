@@ -24,8 +24,8 @@ describe("evaluateCompositionFrame", () => {
       DEMO_SCENE_ID,
     );
     expect(evaluated).toBeTruthy();
-    expect(evaluated!.sceneId).toBe(DEMO_SCENE_ID);
-    expect(evaluated!.interaction.sceneId).toBe(DEMO_SCENE_ID);
+    expect(evaluated!.graphId).toBe(DEMO_SCENE_ID);
+    expect(evaluated!.interaction.graphId).toBe(DEMO_SCENE_ID);
     expect(evaluated!.paint.commands.length).toBeGreaterThan(0);
     expect(evaluated!.diagnostics).toEqual(evaluated!.paint.diagnostics);
   });

@@ -328,13 +328,13 @@ export const SOCIAL_AD_SKILL: MotionSkillManifest = {
 };
 
 /**
- * Subtitle styling skill — patches caption tracks with branded typography.
+ * Subtitle styling skill — patches caption-style text layers with branded typography.
  */
 export const SUBTITLE_STYLING_SKILL: MotionSkillManifest = {
   id: "motion/subtitle-styling",
   name: "Subtitle Styling",
   description:
-    "Styles existing caption tracks with brand fonts, colors, and positioning",
+    "Styles existing caption-style text layers with brand fonts, colors, and positioning",
   version: "1.0.0",
   author: { name: "MotiClip" },
   instructionFormat: "text/markdown",

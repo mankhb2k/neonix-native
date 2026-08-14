@@ -2,12 +2,13 @@
 
 Canonical Zod schemas and TypeScript types for **Motion Format V1** — the only authoring protocol between editor/AI, compiler, and runtime.
 
-Two package entries:
+Three package entries:
 
 | Import | Role |
 | --- | --- |
 | `@motionvideo/motion-protocol` | Authoring JSON: parse, `MotionProject`, layers, `AssetV1`, bindings, patch, MCP |
 | `@motionvideo/motion-protocol/runtime` | Compiler IR: `MotionRuntimeProject`, runtime assets, prepared types |
+| `@motionvideo/motion-protocol/internal` | Compiler leftovers (motion units, caption token schemas) — not authoring |
 
 > **Authoring is layers-only.** `formatVersion` must be `1`. There are no `scenes`, `visualTracks`, `audioTracks`, or `captionTracks`. Extra keys are `.strict()` rejected.
 
@@ -30,6 +31,7 @@ Two package entries:
 | --- | --- |
 | [`src/index.ts`](./src/index.ts) | Authoring barrel (`.`) |
 | [`src/runtime/index.ts`](./src/runtime/index.ts) | Runtime IR barrel (`./runtime`) |
+| [`src/internal.ts`](./src/internal.ts) | Compiler leftovers (`./internal`) |
 | [`src/v1/`](./src/v1) | Authoring schemas (project, layers, components, timeline, variables, animation, references) |
 | [`src/runtime/`](./src/runtime) | Runtime IR schemas |
 | [`src/capabilities.ts`](./src/capabilities.ts) | Limits + property capability registry |

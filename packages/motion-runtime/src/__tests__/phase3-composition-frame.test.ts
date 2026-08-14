@@ -24,10 +24,10 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
   it("EvaluatedLayer has required fields", () => {
     const layer: EvaluatedLayer = {
       layerKey: "s1:n1",
-      sceneId: "s1",
+      graphId: "s1",
       layerId: "n1",
       composition: {
-        sceneId: "s1",
+        graphId: "s1",
         localTime: 0.5,
         opacity: 1,
         translateX: 0,
@@ -36,7 +36,7 @@ describe("EvaluatedCompositionFrame (type smoke)", () => {
         zIndex: 0,
       },
       interaction: {
-        sceneId: "s1",
+        graphId: "s1",
         frame: 15,
         time: 0.5,
         width: 1920,
@@ -134,13 +134,13 @@ describe("stableLayerKey", () => {
 describe("parseStableLayerKey", () => {
   it("round-trips without iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a");
-    expect(parsed).toEqual({ sceneId: "scene-1", layerId: "node-a" });
+    expect(parsed).toEqual({ graphId: "scene-1", layerId: "node-a" });
   });
 
   it("round-trips with iteration", () => {
     const parsed = parseStableLayerKey("scene-1:node-a::iter3");
     expect(parsed).toEqual({
-      sceneId: "scene-1",
+      graphId: "scene-1",
       layerId: "node-a",
       iteration: 3,
     });
@@ -259,7 +259,7 @@ describe("Phase 5 — layer-graph timeline resolution", () => {
     const rt = emptyRuntime();
     const segments = listTimelineSegments(rt);
     expect(segments).toHaveLength(1);
-    expect(segments[0]!.sceneId).toBe("root");
+    expect(segments[0]!.graphId).toBe("root");
     expect(segments[0]!.duration).toBe(2);
   });
 
@@ -274,7 +274,7 @@ describe("Phase 5 — layer-graph timeline resolution", () => {
     const rt = emptyRuntime();
     const mid = resolveTimelineAtTime(rt, 1);
     expect(mid).not.toBeNull();
-    expect(mid!.sceneId).toBe("root");
+    expect(mid!.graphId).toBe("root");
     expect(mid!.localTime).toBe(1);
 
     const pastEnd = resolveTimelineAtTime(rt, 10);

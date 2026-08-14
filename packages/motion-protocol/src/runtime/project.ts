@@ -145,95 +145,13 @@ export const AudioClipSchema = z
   });
 export type AudioClip = z.infer<typeof AudioClipSchema>;
 
-export const AudioTrackSchema = z
-  .object({
-    id: IdSchema,
-    /** Sparse ordering key; must be < 0. Unique across all timeline tracks. */
-    order: FiniteNumberSchema.int().negative(),
-    muted: z.boolean().default(false),
-    clips: z
-      .array(AudioClipSchema)
-      .min(1)
-      .max(MOTION_PROTOCOL_LIMITS.motionClipsPerProject),
-  })
-  .strict();
-export type AudioTrack = z.infer<typeof AudioTrackSchema>;
-
-/** @deprecated Timeline transitions removed â€” kept only if legacy IR still references types. */
-export const SceneTransitionSchema = z.discriminatedUnion("type", [
-  z
-    .object({ type: z.literal("cut"), duration: z.literal(0).optional() })
-    .strict(),
-  z
-    .object({
-      type: z.literal("fade"),
-      duration: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      color: z.string().min(1).optional(),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("crossfade"),
-      duration: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("slide"),
-      duration: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      direction: z.enum(["left", "right", "up", "down"]),
-      mode: z.enum(["push", "cover"]).default("push"),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("wipe"),
-      duration: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      direction: z.enum(["left", "right", "up", "down"]),
-      softness: FiniteNumberSchema.min(0).max(1).optional(),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-  z
-    .object({
-      type: z.literal("zoom"),
-      duration: FiniteNumberSchema.positive().max(
-        MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-      ),
-      direction: z.enum(["in", "out"]),
-      easing: z
-        .enum(["linear", "step", "easeIn", "easeOut", "easeInOut", "spring"])
-        .optional(),
-    })
-    .strict(),
-]);
-export type SceneTransition = z.infer<typeof SceneTransitionSchema>;
 
 /**
  * Runtime IR version â€” independent of the project format version.
  * Incremented when the runtime shape changes (new fields, new node types).
  * Renderers check this to reject incompatible IR.
  */
-export const MOTION_RUNTIME_VERSION = 2 as const;
+export const MOTION_RUNTIME_VERSION = 3 as const;
 
 const RuntimeVisualLayerSchema = z.discriminatedUnion("type", [
   GroupLayerSchema.omit({ repeat: true }),
@@ -291,9 +209,7 @@ const RuntimeTrackSchema = z
 // â”€â”€ Runtime IR VNext â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // The runtime IR (`MotionRuntimeProject`) is the compiler's serializable
-// output. Includes composition-level metadata, an optional visual track
-// plan, source refs for error mapping, and runtime hash inputs â€” all
-// OPTIONAL so older IR still parses (backward-compatible schema growth).
+// output: composition metadata, layer graph, property tracks, source refs.
 
 /**
  * Composition-level runtime metadata.
@@ -325,53 +241,6 @@ export const RuntimeCompositionMetadataSchema = z
 export type RuntimeCompositionMetadata = z.infer<
   typeof RuntimeCompositionMetadataSchema
 >;
-
-/**
- * Source of a runtime visual clip â€” removed from IR; kept only for type export
- * during renderer migration. Runtime no longer serializes visual clips.
- */
-export const RuntimeClipSourceSchema = z
-  .object({ kind: z.literal("scene"), sceneId: IdSchema })
-  .strict();
-export type RuntimeClipSource = z.infer<typeof RuntimeClipSourceSchema>;
-
-/**
- * A runtime visual clip: occupancy on a visual track + source to render.
- */
-export const RuntimeVisualClipSchema = z
-  .object({
-    id: IdSchema,
-    source: RuntimeClipSourceSchema,
-    start: FiniteNumberSchema.nonnegative().max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ),
-    duration: FiniteNumberSchema.positive().max(
-      MOTION_PROTOCOL_LIMITS.mediaDurationSeconds,
-    ),
-    trimStart: FiniteNumberSchema.nonnegative()
-      .max(MOTION_PROTOCOL_LIMITS.mediaDurationSeconds)
-      .optional(),
-    playbackRate: FiniteNumberSchema.positive().max(16).optional(),
-    loop: z.boolean().optional(),
-    opacity: FiniteNumberSchema.min(0).max(1).optional(),
-  })
-  .strict();
-export type RuntimeVisualClip = z.infer<typeof RuntimeVisualClipSchema>;
-
-/**
- * A runtime visual track: time-exclusive lane; `order` is stacking order.
- */
-export const RuntimeVisualTrackSchema = z
-  .object({
-    id: IdSchema,
-    order: FiniteNumberSchema.int().nonnegative(),
-    muted: z.boolean().optional(),
-    clips: z
-      .array(RuntimeVisualClipSchema)
-      .max(MOTION_PROTOCOL_LIMITS.motionClipsPerProject),
-  })
-  .strict();
-export type RuntimeVisualTrack = z.infer<typeof RuntimeVisualTrackSchema>;
 
 /**
  * Per-layer source ref — maps a runtime layer graph back to its authoring origin
@@ -424,8 +293,9 @@ export const RuntimeLayerGraphSchema = z
   })
   .strict();
 export type RuntimeLayerGraph = z.infer<typeof RuntimeLayerGraphSchema>;
-/** @deprecated Use RuntimeLayerGraph â€” no serialized scenes. */
+/** @deprecated Use RuntimeLayerGraphSchema */
 export const RuntimeSceneSchema = RuntimeLayerGraphSchema;
+/** @deprecated Use RuntimeLayerGraph */
 export type RuntimeScene = RuntimeLayerGraph;
 
 const MotionRuntimeProjectBaseSchema = z
@@ -912,6 +782,4 @@ export const MotionRuntimeProjectSchema =
 
 export type MotionRuntimeProject = z.infer<typeof MotionRuntimeProjectSchema>;
 
-/** In-memory layer graph (evaluators). Not a serialized project field. */
-export type MotionRuntimeScene = RuntimeLayerGraph;
 export type MotionRuntimeTrack = MotionRuntimeProject["tracks"][number];

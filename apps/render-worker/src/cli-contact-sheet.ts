@@ -95,7 +95,7 @@ async function main(): Promise<void> {
     frames.push({ time, path: file });
   }
 
-  console.log(JSON.stringify({ ok: true, outDir, frames, sceneId: scene.id }));
+  console.log(JSON.stringify({ ok: true, outDir, frames, graphId: scene.id }));
 }
 
 main().catch((error: unknown) => {

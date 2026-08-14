@@ -11,6 +11,7 @@
     "dev:desktop:next": "pnpm --filter @motionvideo/web dev:desktop",
     "dev:worker": "pnpm --filter @motionvideo/render-worker dev",
     "e2e:render": "pnpm --filter @motionvideo/render-worker e2e",
+    "e2e:remotion": "pnpm --filter @motionvideo/remotion-site e2e",
     "e2e:web": "pnpm --filter @motionvideo/web e2e",
     "e2e:timeline": "pnpm --filter @motionvideo/web e2e:timeline",
     "build": "pnpm -r run build",

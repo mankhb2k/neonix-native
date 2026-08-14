@@ -4,7 +4,7 @@
  * so animations continue across timeline segment boundaries.
  */
 
-import type { MotionClipV1 } from "@motionvideo/motion-protocol";
+import type { MotionClipV1 } from "@motionvideo/motion-protocol/internal";
 import type {
   MotionScene,
 } from "@motionvideo/motion-protocol/runtime";

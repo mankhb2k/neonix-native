@@ -53,7 +53,7 @@ function pushBeginLayer(
       ? {
           mask: {
             mode: c.mask.mode,
-            sourceKey: `${item.sceneId}:${c.mask.sourceLayerId}`,
+            sourceKey: `${item.graphId}:${c.mask.sourceLayerId}`,
           },
         }
       : {}),
@@ -258,7 +258,7 @@ export function buildPaintCommandBuffer(
     width: snapshot.width,
     height: snapshot.height,
     background: snapshot.background,
-    sceneId: snapshot.sceneId,
+    graphId: snapshot.graphId,
     frame: snapshot.frame,
     time: snapshot.time,
     ...(perspectiveProjection ? { projection: perspectiveProjection } : {}),

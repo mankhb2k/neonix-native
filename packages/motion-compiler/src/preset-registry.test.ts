@@ -31,7 +31,7 @@ describe("Phase 1 preset registry + recipes", () => {
     expect(isMotionRecipe("breathing")).toBe(true);
     const baked = bakeMotionRecipe({
       recipeId: "drift",
-      sceneId: "s",
+      graphId: "s",
       targetLayerId: "n",
       duration: 2,
       intensity: 0.5,

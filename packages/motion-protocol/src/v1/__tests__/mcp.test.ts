@@ -168,8 +168,11 @@ describe("V1 MCP contract", () => {
 
   // ── Tool registry ─────────────────────────────────────────────────
 
-  it("has 8 registered MCP tools", () => {
-    expect(MCP_TOOLS).toHaveLength(8);
+  it("inspect_timeline describes layers, not tracks/clips", () => {
+    const tool = MCP_TOOLS.find((t) => t.name === "inspect_timeline");
+    expect(tool?.description).toMatch(/root layers/);
+    expect(tool?.description).not.toMatch(/clips/i);
+    expect(tool?.description).not.toMatch(/tracks/i);
   });
 
   it("all tool names are unique", () => {

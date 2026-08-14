@@ -26,7 +26,7 @@ function pointAt(
   evaluated: ReturnType<typeof evaluateScene>,
   layerId: string,
 ): { x: number; y: number } {
-  const item = evaluated.find(({ node }) => node.id === layerId);
+  const item = evaluated.find(({ layer }) => layer.id === layerId);
   if (!item) throw new Error(`Evaluated node missing: ${layerId}`);
   return applyMatrix(item.worldMatrix, 0, 0);
 }
@@ -155,14 +155,14 @@ describe("V1 runtime primitives smoke", () => {
     // "prop" shape at world roughly (400,440)-(440,480) → hit inside
     const hits = hitTestScene(scene, 0, { x: 420, y: 460 });
     expect(hits.length).toBeGreaterThan(0);
-    expect(hits.some((h) => h.node.id === "prop")).toBe(true);
+    expect(hits.some((h) => h.layer.id === "prop")).toBe(true);
 
     // Hide prop — hit-test must skip it
     const hiddenScene = makeHierarchyScene();
     const hiddenProp = hiddenScene.layers.find((n: any) => n.id === "prop")!;
     hiddenProp.transform.visible = false;
     const hiddenHits = hitTestScene(hiddenScene, 0, { x: 420, y: 460 });
-    expect(hiddenHits.some((h) => h.node.id === "prop")).toBe(false);
+    expect(hiddenHits.some((h) => h.layer.id === "prop")).toBe(false);
   });
 
   it("computes subtree bounds", () => {
@@ -177,7 +177,7 @@ describe("V1 runtime primitives smoke", () => {
   it("inverse matrix round-trips correctly", () => {
     const scene = makeHierarchyScene();
     const frame = evaluateScene(scene, 0);
-    const root = frame.find(({ node }) => node.id === "group.root")!;
+    const root = frame.find(({ layer }) => layer.id === "group.root")!;
 
     const inverse = invertMatrix(root.worldMatrix);
     expect(inverse).toBeDefined();

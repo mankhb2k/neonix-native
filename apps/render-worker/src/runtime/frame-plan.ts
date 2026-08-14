@@ -70,3 +70,5 @@ export function splitFramePlan(jobs: FrameJob[], chunks: number): FrameJob[][] {
   }
   return out.filter((chunk) => chunk.length > 0);
 }
+
+export const chunkFramePlan = splitFramePlan;

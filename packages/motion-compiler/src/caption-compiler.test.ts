@@ -3,9 +3,7 @@ import {
   compileCaptionTracks,
   evaluateCaptionStateAtTime,
 } from "./caption-compiler";
-import type { V1 } from "@motionvideo/motion-protocol";
-
-type CaptionTrack = V1.CaptionTrack;
+import type { CaptionTrack } from "@motionvideo/motion-protocol/internal";
 
 const track: CaptionTrack = {
   id: "cap1",

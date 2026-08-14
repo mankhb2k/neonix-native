@@ -30,7 +30,7 @@ const goldenDir = fileURLToPath(
 const UPDATE_GOLDENS = process.env.UPDATE_GOLDENS === "1";
 
 const FIXTURE_NAMES = [
-  "single-scene",
+  "single-root",
   "multi-asset",
   "clips-and-tracks",
   "captions",
@@ -71,7 +71,7 @@ function frameFingerprint(frame: EvaluatedCompositionFrame | null): string {
     viewport: frame.viewport,
     layers: frame.layers.map((layer) => ({
       layerKey: layer.layerKey,
-      sceneId: layer.sceneId,
+      graphId: layer.graphId,
       layerId: layer.layerId,
       composition: layer.composition,
       interactionItems: layer.interaction.items.map((item) => ({

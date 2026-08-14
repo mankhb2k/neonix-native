@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 2,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "component-instance",
     "name": "Component Instance",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "a6fe0136617364793a9164b165207c9c",
+  "runtimeHash": "8deeaab4f2b8ab6e3885bf07520e7717",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {

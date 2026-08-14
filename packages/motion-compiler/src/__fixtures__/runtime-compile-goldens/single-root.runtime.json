@@ -1,7 +1,7 @@
 {
   "format": "motion-runtime",
   "formatVersion": 1,
-  "runtimeVersion": 2,
+  "runtimeVersion": 3,
   "metadata": {
     "id": "single-root",
     "name": "Single Root",
@@ -22,7 +22,7 @@
     "colorSpace": "srgb",
     "audioSampleRate": 48000
   },
-  "runtimeHash": "21a23765f026b96fc641568baef5bf81",
+  "runtimeHash": "e636bad75fc2b0cf81ea9954a9b5515a",
   "compilerVersion": "3.0.0-phase11",
   "capabilityFingerprint": "87631d2c89faf8ea",
   "sourceRef": {

@@ -111,7 +111,7 @@ export type EvaluatedAudioState = {
 
 /**
  * Stable drawable key — survives playback, edit patches, and scene iterations.
- * Format: `sceneId:nodeId` for unique layers; `sceneId:layerId::iter<N>` for repeats.
+ * Format: `graphId:nodeId` for unique layers; `graphId:layerId::iter<N>` for repeats.
  */
 export type StableLayerKey = string;
 
@@ -120,27 +120,27 @@ export type StableLayerKey = string;
  * Deterministic — same inputs always produce the same key.
  */
 export function stableLayerKey(
-  sceneId: string,
+  graphId: string,
   layerId: string,
   iteration?: number,
 ): StableLayerKey {
   return iteration != null
-    ? `${sceneId}:${layerId}::iter${iteration}`
-    : `${sceneId}:${layerId}`;
+    ? `${graphId}:${layerId}::iter${iteration}`
+    : `${graphId}:${layerId}`;
 }
 
 /**
  * Parse a stable layer key back to its components.
  */
 export function parseStableLayerKey(key: StableLayerKey): {
-  sceneId: string;
+  graphId: string;
   layerId: string;
   iteration?: number;
 } | null {
   const match = /^(.+?):(.+?)(?:::iter(\d+))?$/.exec(key);
   if (!match) return null;
   return {
-    sceneId: match[1]!,
+    graphId: match[1]!,
     layerId: match[2]!,
     iteration: match[3] ? Number(match[3]) : undefined,
   };
@@ -152,7 +152,7 @@ export type EvaluatedLayer = {
   /** Stable layer key — deterministic across playback and patches */
   layerKey: StableLayerKey;
   /** Owning scene ID */
-  sceneId: string;
+  graphId: string;
   /** Owning node ID */
   layerId: string;
   /** Composition layer plan entry (position, opacity, transition state) */

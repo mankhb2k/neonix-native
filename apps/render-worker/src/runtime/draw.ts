@@ -23,6 +23,7 @@ import {
   type EvaluatedNode,
   type RuntimeEffect,
   type RuntimeScene,
+  layerGraphFromRuntime,
 } from "@motionvideo/motion-runtime";
 import { projectFrameLayers } from "./frame-plan";
 
@@ -33,7 +34,10 @@ const require = createRequire(import.meta.url);
 
 type RuntimeAsset = MotionRuntimeProject["assets"][number];
 type Brand = MotionRuntimeProject["metadata"]["brand"];
-type RuntimeNode = MotionRuntimeProject["scenes"][number]["layers"][number];
+type RuntimeNode = Exclude<
+  MotionRuntimeProject["layers"][number],
+  { type: "audio" }
+>;
 type PaintNode = Extract<RuntimeNode, { type: "shape" | "path" }>;
 type BlendMode = NonNullable<RuntimeNode["blendMode"]>;
 type GradientFill = Exclude<MotionPaintStyle["fill"], string | undefined>;
@@ -194,7 +198,7 @@ async function prepareFrameAssets(
 ): Promise<void> {
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));
   const pending: Promise<void>[] = [];
-  for (const { node } of evaluateScene(scene, time)) {
+  for (const { layer: node } of evaluateScene(scene, time)) {
     if (node.type === "image" || node.type === "svg") {
       const asset = assetById.get(evaluateProperty(scene, node, "payload.assetId", time, node.payload.assetId) as string);
       if (asset) pending.push(loadAssetImage(asset, assetBaseDir).decode());
@@ -358,7 +362,7 @@ function drawEvaluatedNode(
   maskPass?: "alpha" | "clip",
 ): void {
   if (!evaluated.visible || evaluated.worldOpacity <= 0.001) return;
-  const { node, transform, worldMatrix } = evaluated;
+  const { layer: node, transform, worldMatrix } = evaluated;
   if (node.type === "group" || node.type === "bone" || node.type === "camera") return;
 
   ctx.save();
@@ -522,24 +526,24 @@ export async function drawSceneFrame(
   const assetById = new Map(assets.map((asset) => [asset.id, asset]));
   const evaluated = hierarchyRenderOrder(evaluateScene(scene, localTime))
     .map((item, index) => ({ item, index }));
-  const activeCamera = scene.activeCameraId
-    ? scene.layers.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraId && node.type === "camera")
+  const activeCamera = scene.activeCameraLayerId
+    ? scene.layers.find((node): node is Extract<RuntimeNode, { type: "camera" }> => node.id === scene.activeCameraLayerId && node.type === "camera")
     : undefined;
-  const byId = new Map(evaluated.map(({ item }) => [item.node.id, item]));
-  const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "content-and-mask").map(({ item }) => item.node.mask!.sourceNodeId));
-  const hiddenMaskSources = new Set(evaluated.filter(({ item }) => item.node.mask?.sourceVisibility === "mask-only").map(({ item }) => item.node.mask!.sourceNodeId));
+  const byId = new Map(evaluated.map(({ item }) => [item.layer.id, item]));
+  const visibleMaskSources = new Set(evaluated.filter(({ item }) => item.layer.mask?.sourceVisibility === "content-and-mask").map(({ item }) => item.layer.mask!.sourceLayerId));
+  const hiddenMaskSources = new Set(evaluated.filter(({ item }) => item.layer.mask?.sourceVisibility === "mask-only").map(({ item }) => item.layer.mask!.sourceLayerId));
   const rasterize = (item: EvaluatedNode, stack = new Set<string>(), maskPass?: "alpha" | "clip") => {
-    if (stack.has(item.node.id)) throw new Error(`Runtime mask cycle: ${item.node.id}`);
-    const nextStack = new Set(stack).add(item.node.id);
+    if (stack.has(item.layer.id)) throw new Error(`Runtime mask cycle: ${item.layer.id}`);
+    const nextStack = new Set(stack).add(item.layer.id);
     const layer = createCanvas(width, height);
     const layerContext = layer.getContext("2d");
     layerContext.scale(width / source.width, height / source.height);
     if (activeCamera) applyCameraView(layerContext, scene, activeCamera, localTime, source);
     drawEvaluatedNode(layerContext, scene, item, metadata.brand, assetById, assetBaseDir, localTime, maskPass);
-    if (item.node.mask) {
-      const maskSource = byId.get(item.node.mask.sourceNodeId);
-      if (!maskSource) throw new Error(`Runtime mask source missing: ${item.node.mask.sourceNodeId}`);
-      const maskMode = item.node.mask.mode;
+    if (item.layer.mask) {
+      const maskSource = byId.get(item.layer.mask.sourceLayerId);
+      if (!maskSource) throw new Error(`Runtime mask source missing: ${item.layer.mask.sourceLayerId}`);
+      const maskMode = item.layer.mask.mode;
       const maskLayer = rasterize(maskSource, nextStack, maskMode === "clip" ? "clip" : "alpha");
       if (maskMode === "luma" || maskMode === "inverse-luma") {
         const maskCtx = maskLayer.getContext("2d");
@@ -562,21 +566,21 @@ export async function drawSceneFrame(
       layerContext.globalCompositeOperation = "source-over";
     }
     if (maskPass) return layer;
-    return applyEffects(layer, evaluateNodeEffects(scene, item.node, localTime), item.worldBounds);
+    return applyEffects(layer, evaluateNodeEffects(scene, item.layer, localTime), item.worldBounds);
   };
   ctx.save();
   ctx.scale(width / source.width, height / source.height);
   if (activeCamera) applyCameraView(ctx, scene, activeCamera, localTime, source);
   for (const { item } of evaluated) {
-    if (hiddenMaskSources.has(item.node.id) && !visibleMaskSources.has(item.node.id)) continue;
-    if (!item.node.mask && (item.node.effects?.length ?? 0) === 0) {
+    if (hiddenMaskSources.has(item.layer.id) && !visibleMaskSources.has(item.layer.id)) continue;
+    if (!item.layer.mask && (item.layer.effects?.length ?? 0) === 0) {
       drawEvaluatedNode(ctx, scene, item, metadata.brand, assetById, assetBaseDir, localTime);
       continue;
     }
     const layer = rasterize(item);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalCompositeOperation = compositeOperation(item.node.blendMode);
+    ctx.globalCompositeOperation = compositeOperation(item.layer.blendMode);
     ctx.drawImage(layer, 0, 0);
     ctx.restore();
   }
@@ -596,8 +600,8 @@ export async function drawProjectFrame(
   const canvas = createCanvas(width, height);
   const ctx = canvas.getContext("2d");
   for (const layer of projectFrameLayers(project, globalTime)) {
-    const scene = project.scenes[layer.sceneIndex];
-    if (!scene || layer.opacity <= 0) continue;
+    const scene = layerGraphFromRuntime(project);
+    if (layer.opacity <= 0) continue;
     const image = await loadImage(await drawSceneFrame(scene, project.metadata, project.assets, layer.localTime, width, height, assetBaseDir));
     ctx.save();
     ctx.globalAlpha = Math.min(1, Math.max(0, layer.opacity));

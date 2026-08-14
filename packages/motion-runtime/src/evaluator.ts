@@ -3,7 +3,7 @@ import {
 } from "@motionvideo/motion-protocol";
 import {
   type MotionRuntimeProject,
-  type MotionRuntimeScene,
+  type RuntimeLayerGraph,
 } from "@motionvideo/motion-protocol/runtime";
 import {
   IDENTITY_MATRIX,
@@ -46,7 +46,7 @@ import {
   nodeLocalTime,
 } from "./composition/effective-timing";
 
-export type RuntimeScene = MotionRuntimeScene;
+export type RuntimeScene = RuntimeLayerGraph;
 export type RuntimeNode = RuntimeScene["layers"][number];
 export type RuntimeTrack = MotionRuntimeProject["tracks"][number];
 export type RuntimeEffect = NonNullable<RuntimeNode["effects"]>[number];
@@ -56,7 +56,7 @@ type PathNodeContours = Extract<
 >["payload"]["contours"];
 
 export type EvaluatedNode = {
-  node: RuntimeNode;
+  layer: RuntimeNode;
   transform: Transform2D;
   worldMatrix: Matrix2D;
   /**
@@ -908,7 +908,7 @@ export function evaluateScene(
     const nodeTiming = effectiveTimings.get(node.id);
     if (nodeTiming && !isNodeTimeActive(nodeTiming, time)) {
       const culled: EvaluatedNode = {
-        node,
+        layer: node,
         transform: {
           x: 0,
           y: 0,
@@ -946,7 +946,7 @@ export function evaluateScene(
       });
       // Return a safe stub node to prevent infinite recursion
       const stub: EvaluatedNode = {
-        node,
+        layer: node,
         transform: {
           x: 0,
           y: 0,
@@ -1345,7 +1345,7 @@ export function evaluateScene(
     );
     const effects = evaluateNodeEffects(scene, node, time);
     const result: EvaluatedNode = {
-      node,
+      layer: node,
       transform,
       worldMatrix: projectedMatrix,
       worldMatrix4,

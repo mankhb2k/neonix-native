@@ -57,7 +57,7 @@ export function decodePaintCommandBuffer(
   let width = 0;
   let height = 0;
   let background: string | undefined;
-  let sceneId = "";
+  let graphId = "";
   let frame = 0;
   let time = 0;
 
@@ -73,7 +73,7 @@ export function decodePaintCommandBuffer(
         width = cmd.width;
         height = cmd.height;
         background = cmd.background;
-        sceneId = cmd.sceneId;
+        graphId = cmd.graphId;
         frame = cmd.frame;
         time = cmd.time;
         break;
@@ -171,7 +171,7 @@ export function decodePaintCommandBuffer(
     width,
     height,
     background,
-    sceneId,
+    graphId,
     frame,
     time,
     roots: rootChildren,

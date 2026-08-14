@@ -25,18 +25,4 @@ export {
   type PropertyTrackV1,
 } from "./tracks";
 
-// Clips
-export {
-  ClipScheduleSchema,
-  PlaybackSchema,
-  ClipSourceV1Schema,
-  ScheduleV1Schema,
-  PlaybackV1Schema,
-  MotionClipV1Schema,
-  type MotionClipV1,
-  type ScheduleV1,
-  type ClipSourceV1,
-} from "./clips";
-
-// Drivers
 export { ProceduralDriverSchema, type ProceduralDriver } from "./drivers";

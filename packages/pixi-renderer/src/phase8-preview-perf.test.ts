@@ -78,7 +78,7 @@ mockCanvas();
 
 function makeSnapshot(items: RenderSnapshot["items"]): RenderSnapshot {
   return {
-    sceneId: "test",
+    graphId: "test",
     frame: 0,
     time: 0,
     width: 1920,
@@ -96,7 +96,7 @@ function makeItem(
 ): RenderSnapshot["items"][0] {
   return {
     key,
-    sceneId: "test",
+    graphId: "test",
     layerId: key,
     nodeType: "shape",
     worldMatrix: { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 },

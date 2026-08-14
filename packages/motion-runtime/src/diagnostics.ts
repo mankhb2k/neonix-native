@@ -312,7 +312,7 @@ export type RuntimeDiagnostic = {
   /** Composition time in seconds (when known) */
   time?: number;
   /** Scene ID that triggered this diagnostic */
-  sceneId?: string;
+  graphId?: string;
   /** Structural path within the project (e.g. ["scenes", 0, "layers", 5]) */
   path?: (string | number)[];
   /** Source reference for editor highlighting */
@@ -335,7 +335,7 @@ export function createDiagnostic(
     key?: string;
     frame?: number;
     time?: number;
-    sceneId?: string;
+    graphId?: string;
     path?: (string | number)[];
     sourceRef?: string;
     details?: Record<string, unknown>;
@@ -388,12 +388,12 @@ export class RuntimeDiagnosticCollector {
   private _diagnostics: RuntimeDiagnostic[] = [];
   private _frame: number;
   private _time: number;
-  private _sceneId?: string;
+  private _graphId?: string;
 
-  constructor(opts?: { frame?: number; time?: number; sceneId?: string }) {
+  constructor(opts?: { frame?: number; time?: number; graphId?: string }) {
     this._frame = opts?.frame ?? 0;
     this._time = opts?.time ?? 0;
-    this._sceneId = opts?.sceneId;
+    this._graphId = opts?.graphId;
   }
 
   /** Set the current frame/time context for subsequent diagnostics. */
@@ -403,8 +403,8 @@ export class RuntimeDiagnosticCollector {
   }
 
   /** Set the current scene context. */
-  setScene(sceneId: string): void {
-    this._sceneId = sceneId;
+  setScene(graphId: string): void {
+    this._graphId = graphId;
   }
 
   /** All collected diagnostics */
@@ -507,7 +507,7 @@ export class RuntimeDiagnosticCollector {
       key: opts?.key,
       frame: this._frame,
       time: this._time,
-      sceneId: this._sceneId,
+      graphId: this._graphId,
       path: opts?.path,
       sourceRef: opts?.sourceRef,
       details: opts?.details,

@@ -1,6 +1,6 @@
 import type {
   MotionRuntimeProject,
-  MotionRuntimeScene,
+  RuntimeLayerGraph,
 } from "@motionvideo/motion-protocol/runtime";
 
 export const ROOT_LAYER_GRAPH_ID = "root";
@@ -8,7 +8,7 @@ export const ROOT_LAYER_GRAPH_ID = "root";
 /** In-memory visual graph for `evaluateFrame` — audio stays on `project.layers`. */
 export function layerGraphFromRuntime(
   runtime: MotionRuntimeProject,
-): MotionRuntimeScene {
+): RuntimeLayerGraph {
   return {
     id: ROOT_LAYER_GRAPH_ID,
     duration: runtime.timeline.duration,

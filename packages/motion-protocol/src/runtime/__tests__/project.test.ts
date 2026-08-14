@@ -5,9 +5,6 @@ import { describe, expect, it } from "vitest";
 import {
   MotionRuntimeProjectSchema,
   RuntimeCompositionMetadataSchema,
-  RuntimeClipSourceSchema,
-  RuntimeVisualClipSchema,
-  RuntimeVisualTrackSchema,
   RuntimeSourceRefSchema,
   RuntimeSourceRefMapSchema,
   type MotionRuntimeProject,
@@ -47,7 +44,7 @@ function baseIR(): Record<string, unknown> {
   return {
     format: "motion-runtime",
     formatVersion: 1,
-    runtimeVersion: 2,
+    runtimeVersion: 3,
     metadata: {
       id: "rt",
       name: "Runtime",
@@ -151,94 +148,6 @@ describe("composition metadata (Task 6.2)", () => {
         gamma: 2.2,
       }).success,
     ).toBe(false);
-  });
-});
-
-describe("legacy visual clip schemas (not serialized on IR)", () => {
-  it("clip source accepts scene only and rejects component/preset", () => {
-    expect(
-      RuntimeClipSourceSchema.safeParse({ kind: "scene", sceneId: "intro" })
-        .success,
-    ).toBe(true);
-    expect(
-      RuntimeClipSourceSchema.safeParse({
-        kind: "component",
-        componentId: "button",
-      }).success,
-    ).toBe(false);
-    expect(
-      RuntimeClipSourceSchema.safeParse({ kind: "preset", presetId: "x" })
-        .success,
-    ).toBe(false);
-  });
-
-  it("accepts a full visual clip", () => {
-    const parsed = RuntimeVisualClipSchema.safeParse({
-      id: "clip-intro",
-      source: { kind: "scene", sceneId: "intro" },
-      start: 0,
-      duration: 5,
-      trimStart: 0.5,
-      playbackRate: 1,
-      loop: false,
-      opacity: 0.9,
-    });
-    expect(parsed.success).toBe(true);
-  });
-
-  it("rejects transition fields on visual clips", () => {
-    expect(
-      RuntimeVisualClipSchema.safeParse({
-        id: "clip-intro",
-        source: { kind: "scene", sceneId: "intro" },
-        start: 0,
-        duration: 5,
-        transitionIn: { type: "fade", duration: 0.3 },
-      }).success,
-    ).toBe(false);
-  });
-
-  it("rejects negative start or non-positive duration", () => {
-    expect(
-      RuntimeVisualClipSchema.safeParse({
-        id: "clip-bad",
-        source: { kind: "scene", sceneId: "intro" },
-        start: -1,
-        duration: 5,
-      }).success,
-    ).toBe(false);
-    expect(
-      RuntimeVisualClipSchema.safeParse({
-        id: "clip-bad",
-        source: { kind: "scene", sceneId: "intro" },
-        start: 0,
-        duration: 0,
-      }).success,
-    ).toBe(false);
-  });
-
-  it("visual track wraps clips and requires unique order (no role)", () => {
-    const ok = RuntimeVisualTrackSchema.safeParse({
-      id: "track-primary",
-      order: 0,
-      muted: false,
-      clips: [
-        {
-          id: "clip-intro",
-          source: { kind: "scene", sceneId: "intro" },
-          start: 0,
-          duration: 5,
-        },
-      ],
-    });
-    expect(ok.success).toBe(true);
-    const bad = RuntimeVisualTrackSchema.safeParse({
-      id: "track-bad",
-      role: "main",
-      order: 0,
-      clips: [],
-    });
-    expect(bad.success).toBe(false);
   });
 });
 

@@ -4,7 +4,7 @@
  * Three patch kinds with different invalidation scopes:
  *   PaintPatch       — property-only change, keeps display object cache
  *   TrackValuesPatch — keyframe values change, re-evaluate target frame ranges
- *   StructuralPatch  — node/tree/scene change, rebuild affected scope
+ *   StructuralPatch  — layer/tree/graph change, rebuild affected scope
  *
  * Each patch carries a sequence number (monotonic) so the painter/evaluator
  * can drop stale patches that arrive out of order.
@@ -13,10 +13,7 @@
  * editor commands and the playback evaluator/painter pipeline.
  */
 
-import type {
-  MotionRuntimeProject,
-  MotionRuntimeScene,
-} from "@motionvideo/motion-protocol/runtime";
+import type { RuntimeLayerGraph } from "@motionvideo/motion-protocol/runtime";
 
 // ── Sequence ──────────────────────────────────────────────────────────
 
@@ -29,17 +26,17 @@ export const PATCH_SEQUENCE_INITIAL: PatchSequence = 0;
 // ── Paint patch ───────────────────────────────────────────────────────
 
 /**
- * A paint-only property change on a node within a scene.
+ * A paint-only property change on a layer within a graph.
  * The display object cache is preserved; only the changed property
- * is re-applied. Fastest path — under 1ms for a single node.
+ * is re-applied. Fastest path — under 1ms for a single layer.
  */
 export type PaintPatch = {
   kind: "paint";
   /** Sequence number — painter drops if < current sequence */
   sequence: PatchSequence;
-  /** Target scene */
-  sceneId: string;
-  /** Target node */
+  /** Target layer graph */
+  graphId: string;
+  /** Target layer */
   layerId: string;
   /** Property path to update */
   property: string;
@@ -57,8 +54,8 @@ export type PaintPatch = {
 export type TrackValuesPatch = {
   kind: "track-values";
   sequence: PatchSequence;
-  /** Target scene */
-  sceneId: string;
+  /** Target layer graph */
+  graphId: string;
   /** Track updates */
   tracks: Array<{
     layerId: string;
@@ -76,9 +73,9 @@ export type TrackValuesPatch = {
 // ── Structural patch ──────────────────────────────────────────────────
 
 /**
- * A structural change — layers added/removed/reparented, scenes changed,
+ * A structural change — layers added/removed/reparented, graphs changed,
  * or timeline reordered. Requires rebuilding the affected scope
- * (subtree, scene, or entire project).
+ * (subtree, graph, or entire project).
  *
  * The prepared project indexes are rebuilt for the affected scope.
  * Display cache is cleared for affected layers.
@@ -88,18 +85,18 @@ export type StructuralPatch = {
   sequence: PatchSequence;
   /**
    * Scope of the structural change:
-   * - "subtree": single node subtree changed (reparent, children)
-   * - "scene": entire scene rebuilt (new scene, scene delete)
-   * - "scene-order": timeline reordered
+   * - "subtree": single layer subtree changed (reparent, children)
+   * - "graph": entire layer graph rebuilt
+   * - "graph-order": timeline reordered
    * - "full": project-level change (assets, metadata)
    */
-  scope: "subtree" | "scene" | "scene-order" | "full";
-  /** Affected scene ID(s) */
-  sceneIds: string[];
-  /** If scope is "subtree", the root node IDs of changed subtrees */
+  scope: "subtree" | "graph" | "graph-order" | "full";
+  /** Affected graph ID(s) */
+  graphIds: string[];
+  /** If scope is "subtree", the root layer IDs of changed subtrees */
   rootLayerIds?: string[];
-  /** If scope is "subtree" or "scene", the new normalized layer graph */
-  newScenes?: MotionRuntimeScene[];
+  /** If scope is "subtree" or "graph", the new normalized layer graph */
+  newGraphs?: RuntimeLayerGraph[];
 };
 
 // ── Union type ────────────────────────────────────────────────────────
@@ -109,17 +106,17 @@ export type RuntimePatch = PaintPatch | TrackValuesPatch | StructuralPatch;
 // ── Invalidation helpers ──────────────────────────────────────────────
 
 /**
- * Compute which scene IDs are affected by a patch.
+ * Compute which graph IDs are affected by a patch.
  * Used by the evaluator to determine what needs re-evaluation.
  */
-export function affectedSceneIds(patch: RuntimePatch): string[] {
+export function affectedGraphIds(patch: RuntimePatch): string[] {
   switch (patch.kind) {
     case "paint":
-      return [patch.sceneId];
+      return [patch.graphId];
     case "track-values":
-      return [patch.sceneId];
+      return [patch.graphId];
     case "structural":
-      return patch.sceneIds;
+      return patch.graphIds;
   }
 }
 

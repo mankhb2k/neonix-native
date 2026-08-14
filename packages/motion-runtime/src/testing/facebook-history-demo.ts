@@ -1,10 +1,11 @@
 // @ts-nocheck — legacy demo fixture; not part of the authoring/runtime type gate.
 import {
   parseMotionProjectV1,
-  type MotionClipV1,
   type MotionProjectV1,
   type MotionLayer,
 } from "@motionvideo/motion-protocol";
+import type { MotionClipV1 } from "@motionvideo/motion-protocol/internal";
+import type { RuntimeLayerGraph } from "@motionvideo/motion-protocol/runtime";
 
 export const FB_HISTORY_SCENE_IDS = {
   hook: "scene.hook",
@@ -172,11 +173,11 @@ function scene(
   duration: number,
   layers: MotionLayer[],
   clips: MotionClipV1[],
-): MotionScene {
+): RuntimeLayerGraph {
   return { id, name, duration, layers, clips };
 }
 
-function buildHook(): MotionScene {
+function buildHook(): RuntimeLayerGraph {
   const titleId = "hook.title";
   const subId = "hook.subtitle";
   const accentId = "hook.accent";
@@ -253,7 +254,7 @@ function buildHook(): MotionScene {
   );
 }
 
-function buildHarvard(): MotionScene {
+function buildHarvard(): RuntimeLayerGraph {
   const yearId = "harvard.year";
   const cardId = "harvard.card";
   const bodyId = "harvard.body";
@@ -313,7 +314,7 @@ function buildHarvard(): MotionScene {
   );
 }
 
-function buildNewsfeed(): MotionScene {
+function buildNewsfeed(): RuntimeLayerGraph {
   const yearId = "newsfeed.year";
   const titleId = "newsfeed.title";
   const post1 = "newsfeed.post1";
@@ -416,7 +417,7 @@ function buildNewsfeed(): MotionScene {
   );
 }
 
-function buildIpo(): MotionScene {
+function buildIpo(): RuntimeLayerGraph {
   const yearId = "ipo.year";
   const titleId = "ipo.title";
   const barId = "ipo.bar";
@@ -517,7 +518,7 @@ function buildIpo(): MotionScene {
   );
 }
 
-function buildMeta(): MotionScene {
+function buildMeta(): RuntimeLayerGraph {
   const yearId = "meta.year";
   const oldId = "meta.old";
   const newId = "meta.new";
@@ -602,7 +603,7 @@ function buildMeta(): MotionScene {
   );
 }
 
-function buildOutro(): MotionScene {
+function buildOutro(): RuntimeLayerGraph {
   const titleId = "outro.title";
   const ctaId = "outro.cta";
   const brandId = "outro.brand";
@@ -707,7 +708,7 @@ export function createFacebookHistoryDemoProject(): MotionProjectV1 {
           order: 0,
           clips: scenes.map((scene, index) => ({
             id: `clip.${scene.id}`,
-            source: { kind: "scene", sceneId: scene.id },
+            source: { kind: "scene", graphId: scene.id },
             start: starts[index]!,
             duration: scene.duration,
             opacity: 1,

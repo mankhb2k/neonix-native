@@ -19,7 +19,7 @@
 
 /** A node-like item that carries zIndex and parentLayerId for render ordering. */
 export interface OrderableNode {
-  readonly node: {
+  readonly layer: {
     readonly id: string;
     readonly parentLayerId?: string | null;
     readonly zIndex?: number | null;
@@ -45,7 +45,7 @@ export function hierarchyRenderOrder<T extends OrderableNode>(items: T[]): T[] {
   // Group by parentLayerId (null → scene root)
   const byParent = new Map<string | null, typeof withIndex>();
   for (const entry of withIndex) {
-    const pid = entry.item.node.parentLayerId ?? null;
+    const pid = entry.item.layer.parentLayerId ?? null;
     const group = byParent.get(pid);
     if (group) {
       group.push(entry);
@@ -57,8 +57,8 @@ export function hierarchyRenderOrder<T extends OrderableNode>(items: T[]): T[] {
   // Sort each sibling group by (zIndex, then original index)
   for (const [, group] of byParent) {
     group.sort((a, b) => {
-      const zA = a.item.node.zIndex ?? 0;
-      const zB = b.item.node.zIndex ?? 0;
+      const zA = a.item.layer.zIndex ?? 0;
+      const zB = b.item.layer.zIndex ?? 0;
       if (zA !== zB) return zA - zB;
       return a.index - b.index;
     });
@@ -69,7 +69,7 @@ export function hierarchyRenderOrder<T extends OrderableNode>(items: T[]): T[] {
     const result: typeof withIndex = [];
     for (const entry of byParent.get(pid) ?? []) {
       result.push(entry);
-      result.push(...flatten(entry.item.node.id));
+      result.push(...flatten(entry.item.layer.id));
     }
     return result;
   }

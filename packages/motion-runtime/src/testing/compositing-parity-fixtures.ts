@@ -14,7 +14,7 @@ function make(
   items: RenderSnapshot["items"],
 ): PaintParityFixture {
   const snapshot: RenderSnapshot = {
-    sceneId: id,
+    graphId: id,
     frame: 0,
     time: 0,
     width: 320,
@@ -31,7 +31,7 @@ function make(
 export const FIXTURE_GROUP_PASSTHROUGH = make("group-pass", "Group pass-through", [
   {
     key: "group-pass:g",
-    sceneId: "group-pass",
+    graphId: "group-pass",
     layerId: "g",
     nodeType: "group",
     worldMatrix: { ...identity },
@@ -54,7 +54,7 @@ export const FIXTURE_GROUP_PASSTHROUGH = make("group-pass", "Group pass-through"
   },
   {
     key: "group-pass:child",
-    sceneId: "group-pass",
+    graphId: "group-pass",
     layerId: "child",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 10, f: 10 },
@@ -79,7 +79,7 @@ export const FIXTURE_GROUP_PASSTHROUGH = make("group-pass", "Group pass-through"
 export const FIXTURE_BLUR_LAYER = make("blur-layer", "Blur isolation layer", [
   {
     key: "blur-layer:s",
-    sceneId: "blur-layer",
+    graphId: "blur-layer",
     layerId: "s",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 20, f: 20 },
@@ -111,7 +111,7 @@ export const FIXTURE_BLUR_LAYER = make("blur-layer", "Blur isolation layer", [
 export const FIXTURE_MASK_LAYER = make("mask-layer", "Mask layer metadata", [
   {
     key: "mask-layer:s",
-    sceneId: "mask-layer",
+    graphId: "mask-layer",
     layerId: "s",
     nodeType: "shape",
     worldMatrix: { ...identity, e: 0, f: 0 },

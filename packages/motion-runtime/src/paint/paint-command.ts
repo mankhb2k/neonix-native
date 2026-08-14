@@ -21,7 +21,7 @@ export type PaintCommand =
       width: number;
       height: number;
       background?: string;
-      sceneId: string;
+      graphId: string;
       frame: number;
       time: number;
       /** Perspective 3D projection (Phase 11). When present, painters should use matrix4. */

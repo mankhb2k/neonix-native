@@ -323,6 +323,8 @@ describe("Phase 7 — public API V1 naming", () => {
     expect(runtimeExports).not.toContain("AssetSchema");
     expect(runtimeExports).not.toContain("CaptionTrackSchema");
     expect(runtimeExports).not.toContain("ClipScheduleSchema");
+    expect(runtimeExports).not.toContain("MotionClipV1");
+    expect(runtimeExports).not.toContain("PlaybackSchema");
   });
 
   it("type-only neutral names are importable", () => {
@@ -353,7 +355,18 @@ describe("Phase 8 — package.json exports", () => {
     expect(exportKeys).not.toContain("./compat");
     expect(exportKeys).not.toContain("./compat/*");
 
-    expect(exportKeys.sort()).toEqual([".", "./runtime"].sort());
+    expect(exportKeys.sort()).toEqual([".", "./internal", "./runtime"].sort());
+  });
+});
+
+import * as V1Public from "../v1";
+
+describe("V1 authoring namespace", () => {
+  it("does not export caption tracks or motion-clip units", () => {
+    const names = Object.keys(V1Public);
+    expect(names).not.toContain("CaptionTrackSchema");
+    expect(names).not.toContain("MotionClipV1Schema");
+    expect(names).not.toContain("ClipScheduleSchema");
   });
 });
 

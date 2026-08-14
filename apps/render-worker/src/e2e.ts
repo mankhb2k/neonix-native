@@ -49,7 +49,7 @@ async function main() {
 
   const compiled = compileProject(project);
   console.log(
-    `[e2e] compiled ${compiled.scenes.length} scenes · ${compiled.scenes.reduce((sum, scene) => sum + scene.duration, 0)}s`,
+    `[e2e] compiled ${compiled.layers.length} layers · ${compiled.timeline.duration}s`,
   );
 
   const rendered = await renderCompiledProject(compiled, {

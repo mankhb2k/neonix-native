@@ -352,9 +352,9 @@ export function compileMotionProjectV1(
             layers: (graph.layers ?? []) as Parameters<
               typeof compileLayerGraphToRuntime
             >[0]["layers"],
-            clips: (graph.clips ?? []) as Parameters<
+            motionUnits: (graph.motionUnits ?? []) as Parameters<
               typeof compileLayerGraphToRuntime
-            >[0]["clips"],
+            >[0]["motionUnits"],
             variables: projectVariables,
           })
         : null;
@@ -427,7 +427,7 @@ export function compileMotionProjectV1(
       const msg = err.message;
       if (msg.includes("Unknown variable reference")) {
         collector.error("UNKNOWN_VARIABLE", msg);
-      } else if (msg.includes("Unknown clip target")) {
+      } else if (msg.includes("Unknown motion-unit target layer")) {
         collector.error("UNKNOWN_CLIP_TARGET", msg);
       } else if (msg.includes("Unknown timeline marker")) {
         collector.error("UNKNOWN_MARKER", msg);
